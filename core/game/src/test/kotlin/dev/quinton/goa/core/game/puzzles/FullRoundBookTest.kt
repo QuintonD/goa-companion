@@ -202,11 +202,11 @@ class FullRoundBookTest(private val puzzle: Puzzle) {
             for ((hero, cards) in known.cards) {
                 val listed = cards[i]
                 val card = e.played[hero]
-                // A listed card can only be missing if it has left the hand first (a defense).
+                // A listed card can only be missing if it has left the hand first (a defense, a discard).
                 if (card != listed) {
-                    val spent = s.game.events.filterIsInstance<dev.quinton.goa.core.game.GameEvent.Defended>()
-                        .any { it.heroId == hero && it.cardId == listed }
-                    assertWithMessage("$id turn ${i + 1}: $hero played $card, not $listed").that(spent).isTrue()
+                    val at = s.position.session.state.hero(hero)?.card(listed)?.zone
+                    assertWithMessage("$id turn ${i + 1}: $hero played $card, not $listed ($at)")
+                        .that(at).isEqualTo(dev.quinton.goa.core.game.engine.Zone.DISCARD)
                 }
             }
         }

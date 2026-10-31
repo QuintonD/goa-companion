@@ -1,5 +1,6 @@
 package dev.quinton.goa.core.game.puzzles
 
+import dev.quinton.goa.core.domain.monotonicNanos
 import dev.quinton.goa.core.game.AnswerResult
 import dev.quinton.goa.core.game.Choice
 import dev.quinton.goa.core.game.GameEvent
@@ -107,6 +108,9 @@ class PreparedPuzzle(
          */
         const val ROUND_ANSWER_BUDGET: Long = 500
 
+        /** And at most this long, whatever the device: the phone must answer within about half a second. */
+        const val ROUND_ANSWER_MS: Long = 350
+
         /** A full round off its key: the first turn a budgeted search is worth trying. */
         const val SEARCH_FROM_TURN: Int = 3
     }
@@ -129,6 +133,7 @@ class EnginePuzzleSession internal constructor(private val prepared: PreparedPuz
 
     /** Full round: what is left of [PreparedPuzzle.ROUND_ANSWER_BUDGET] for the answer being worked on. */
     private var answerBudget = PreparedPuzzle.ROUND_ANSWER_BUDGET
+    private var answerDeadline = 0L
     private val static by lazy(LazyThreadSafetyMode.NONE) {
         StaticPolicy(Evaluator(node.session.engineData, Features.KNOBS))
     }
@@ -164,7 +169,7 @@ class EnginePuzzleSession internal constructor(private val prepared: PreparedPuz
         val events = ArrayList<GameEvent>()
         val r = apply(decisionId, index, byPlayer = true, events)
         if (r !is AnswerResult.Accepted) return r
-        answerBudget = PreparedPuzzle.ROUND_ANSWER_BUDGET
+        startAnswerBudget()
         // A full round's key is one line: off it nothing is known yet, a search or the end of the round decides.
         refresh(wins?.let { w -> (index in w.options).takeIf { it || !prepared.fullRound } })
         autoAnswer(events)
@@ -190,7 +195,7 @@ class EnginePuzzleSession internal constructor(private val prepared: PreparedPuz
         val d = node.session.pending ?: return null
         if (solver.sideOf(d) != Side.PLAYER || current != PuzzleStatus.PLAYING) return null
         (keyEntry() as? AnswerKey.Wins)?.let { return d.options[it.options.first()] }
-        answerBudget = PreparedPuzzle.ROUND_ANSWER_BUDGET
+        startAnswerBudget()
         val s = if (prepared.fullRound) budgeted() else solver.solve(node, cancelled)
         return if (s?.value == Value.WIN) d.options[s.best] else null
     }
@@ -244,14 +249,20 @@ class EnginePuzzleSession internal constructor(private val prepared: PreparedPuz
         }
     }
 
+    private fun startAnswerBudget() {
+        answerBudget = PreparedPuzzle.ROUND_ANSWER_BUDGET
+        answerDeadline = monotonicNanos() + PreparedPuzzle.ROUND_ANSWER_MS * NANOS_PER_MS
+    }
+
     /**
      * A solve within what is left for this answer, or null when nothing is left or it is too early: this
      * budget proves nothing in turns 1 and 2, and a phone shouldn't spend half a second to learn that.
+     * The clock is what holds the phone to its time: a value it cuts short is UNKNOWN, never a wrong one.
      */
     private fun budgeted(): Solved? {
         if (answerBudget <= 0 || node.session.state.turn < PreparedPuzzle.SEARCH_FROM_TURN) return null
         val before = solver.nodesExpanded
-        val s = solver.solve(node, budget = answerBudget)
+        val s = solver.solve(node, { monotonicNanos() > answerDeadline }, answerBudget)
         answerBudget -= solver.nodesExpanded - before
         return s
     }
@@ -284,3 +295,5 @@ class EnginePuzzleSession internal constructor(private val prepared: PreparedPuz
         }
     }
 }
+
+private const val NANOS_PER_MS = 1_000_000L

@@ -102,6 +102,8 @@ class PuzzleSolver(
     fun child(parent: Node, choice: Choice): Node? {
         val d = parent.session.pending ?: return null
         val s = parent.session.forkForAnswer()
+        // Nobody reads a search copy's questions: no explanations for a player (the options are the same).
+        s.quiet = true
         val r = s.answer(d.id, choice)
         if (r !is AnswerResult.Accepted) return null
         return node(s, tracker.after(parent.progress, r.events, s), parent)

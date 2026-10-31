@@ -12,9 +12,27 @@ object Puzzles {
      * hardest. Their proofs are certificates in test resources (`FullRoundBookTest`).
      */
     val fullRounds: List<Puzzle> = listOf(
-        R01RoundG2974R5RedCoins5,
-        R02RoundG6470R3BluePush,
-        R03RoundG6470R3RedCoins4,
+        R01WhereTheTurretGoes,
+        R02ShePlaysAnAttack,
+        R03TwoAtOnce,
+        R04TheLastPush,
+        R05ReloadTheSnipe,
+        R06InAStraightLine,
+        R07FloatLikeAButterfly,
+        R08WalkThePlankThenTheThrust,
+        R09WhatToLose,
+        R10NothingLeftToDefendWith,
+        R11CallTheLastOneOver,
+        R12Attack2StillCostsACard,
+        R13HurryUpXargatha,
+        R14TwoSwingsAtWuk,
+        R15StrikeLikeATiger,
+        R16OpeningShots,
+        R17APriceOnBrogan,
+        R18ComeToMe,
+        R19SheHasNoCardsAndPasses,
+        R20BothSidesOfTheCoin,
+        R21LetMinFall,
     )
 
     /** The 50 shipped puzzles in the book's order: hard (1), harder (2), hardest (3) (STATUS.md). */

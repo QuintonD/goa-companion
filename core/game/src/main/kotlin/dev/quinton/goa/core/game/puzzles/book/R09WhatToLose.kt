@@ -18,9 +18,9 @@ import dev.quinton.goa.core.model.board.Hex
 import dev.quinton.goa.core.model.board.MinionType
 import dev.quinton.goa.core.model.match.Team
 
-/** Full round 1, mined from self-play (g2974_r5_RED_coins-5; ADR-052, ENCODING.md "Full rounds"). */
-object R01RoundG2974R5RedCoins5 : Puzzle() {
-    override val concept = "R01"
+/** Full round 9, mined from self-play (g2974_r5_RED_coins-5; ADR-052, ENCODING.md "Full rounds"). */
+object R09WhatToLose : Puzzle() {
+    override val concept = "R09"
 
     override val known = KnownPlays(
         cards = mapOf(
@@ -44,39 +44,49 @@ object R01RoundG2974R5RedCoins5 : Puzzle() {
     )
 
     override val info = PuzzleInfo(
-        id = "r01",
-        number = 1,
-        title = "Round g2974_r5_RED_coins-5",
+        id = "r09",
+        number = 9,
+        title = "What to Lose",
         difficulty = 2,
-        theme = "Full round",
+        theme = "Keeping the card that wins through a forced discard",
         heroes = listOf("emmitt", "whisper", "garrus", "dodger"),
         goal = PuzzleGoal.GainCoins(5, Deadline.END_OF_ROUND, "Gain 5 coins by the end of the round."),
-        intro = "Placeholder.",
-        nudges = R01_NUDGES.first(),
-        nudgesByTurn = R01_NUDGES,
-        explanation = "Turn 1: placeholder." +
+        intro = "Round 5. You play Emmitt and Whisper for Red. Blue has 2 Life counters left. Garrus pays 4 coins to " +
+            "the hero who defeats him and 2 to the other. His best defense in turn 4 will be 5. His Light Pilum " +
+            "is going to cost Whisper a card in turn 2, and you choose which.",
+        nudges = R09_NUDGES.first(),
+        nudgesByTurn = R09_NUDGES,
+        explanation = "Turn 1: Dodger respawns and moves in, as planned. Emmitt plays Reverse Time and Whisper Shadow Walk." +
             "\n\n" +
-            "Turn 2: placeholder." +
+            "Turn 2: Lesser Evil's Movement takes Whisper 2 spaces, and Back to the Future places her back again." +
+            " Garrus's Light Pilum then makes her discard: Swift Justice goes, and Blood Fury stays." +
             "\n\n" +
-            "Turn 3: placeholder." +
+            "Turn 3: Garrus moves next to Whisper as planned. Emmitt's Unstable Timeline makes Garrus choose the " +
+            "Glitch he swaps with, and Whisper plays Death Seeker. She has one card left now." +
             "\n\n" +
-            "Turn 4: placeholder.",
+            "Turn 4: Emmitt and Whisper tie, and Emmitt moves first. Blood Fury attacks Garrus at 6. Chilling " +
+            "Howl gives 3 and 2 for items, 5, not enough, and he is defeated before Blunt Force resolves (p.13): " +
+            "4 coins for Whisper and 2 for Emmitt. Blue spends its last 2 Life counters, too." +
+            "\n\n" +
+            "The computer at strength 7, playing your heroes, doesn't find it, and neither does strength 10.",
         rules = listOf(
-            "p.8 Minion Battle",
+            "p.13 Attacking a hero, When a hero is defeated",
+            "p.10 Discard a Card",
+            "p.14 Defense",
         ),
         known = known.display(
             mapOf(
                 "garrus" to mapOf(
-                    1 to "Placeholder plan.",
-                    2 to "Placeholder plan.",
-                    3 to "Placeholder plan.",
-                    4 to "Placeholder plan.",
+                    1 to "Holds.",
+                    2 to "Light Pilum: Whisper discards a card, then it moves to the space outlined.",
+                    3 to "Moves to the space outlined, next to Whisper.",
+                    4 to "Plays Blunt Force.",
                 ),
                 "dodger" to mapOf(
-                    1 to "Placeholder plan.",
-                    2 to "Placeholder plan.",
-                    3 to "Placeholder plan.",
-                    4 to "Placeholder plan.",
+                    1 to "Respawns, then moves to the space outlined.",
+                    2 to "Holds.",
+                    3 to "Holds.",
+                    4 to "Plays its last card as its skill.",
                 ),
             ),
         ),
@@ -159,7 +169,7 @@ object R01RoundG2974R5RedCoins5 : Puzzle() {
 
     override val wrongTries = listOf(
         WrongTry(
-            "Strength 7's line",
+            "The computer at strength 7 on your heroes",
             listOf(
                 card("emmitt-green-3a"),
                 card("whisper-silver"),
@@ -191,25 +201,25 @@ object R01RoundG2974R5RedCoins5 : Puzzle() {
     )
 }
 
-private val R01_NUDGES = listOf(
+private val R09_NUDGES = listOf(
             listOf(
-                "a",
-                "b",
-                "c",
+                "Which of your cards beats Garrus's best defense? That one has to last until turn 4.",
+                "Blood Fury is Attack 6. Everything else this round serves it.",
+                "Play Reverse Time on Emmitt and Shadow Walk on Whisper.",
             ),
             listOf(
-                "a",
-                "b",
-                "c",
+                "Whisper is going to lose a card this turn. Be sure it is not the one that matters.",
+                "Discard Swift Justice. And Lesser Evil's Movement starts her walking.",
+                "Play Back to the Future on Emmitt and Lesser Evil on Whisper, who moves; discard Swift Justice.",
             ),
             listOf(
-                "a",
-                "b",
-                "c",
+                "Garrus walks next to Whisper this turn. Nothing you do has to stop him.",
+                "Keep Time Trap and Blood Fury for last.",
+                "Play Unstable Timeline on Emmitt and Death Seeker on Whisper.",
             ),
             listOf(
-                "a",
-                "b",
-                "c",
+                "Garrus stands next to Whisper. Which of you goes first on the tie doesn't matter to him.",
+                "Blood Fury acts before his Blunt Force, and Attack 6 beats Chilling Howl's 5.",
+                "Play Time Trap on Emmitt and Blood Fury on Whisper, attacking Garrus.",
             ),
 )

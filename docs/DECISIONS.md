@@ -2164,3 +2164,63 @@ workflow are retired and `github-pages` deploys from `main` only again. A new re
 page by running the workflow on main (`gh workflow run web-pages.yml --ref main`); the download page
 links the web app for iPhones, the root is the web app.
 
+## ADR-052 — Full-round puzzles: what is known about the enemy, and how far (2026-10-31)
+**Context:** The owner: "The puzzles should be expanded to a full round." Every puzzle was a turn or less.
+The round's plan was to add four-turn puzzles with the enemy's *cards* known and everything else
+adversarial, and to let a feasibility spike set the budgets. The spike found that model out of reach.
+
+**What the spike measured** (2v2, positions mined at round starts of self-play games; desktop, 4 threads):
+
+| Test | Result |
+|------|--------|
+| The current solver, cards known, 1 M nodes a position | 20 positions: 5 proven, all trivial (5–49 nodes, goal met in turn 1–2); 15 out of budget at 60–1 700 s |
+| df-pn with weak sums and the 1+ε trick, 6 M engine runs | The same 5; the other 15 out of budget at ~1 M positions |
+| A prover that tries a sibling's plan first (`PlanProver`), 10 M engine runs | Nothing past turn 2 |
+| One rigid player plan, every enemy answer open: distinct positions | Over 4 M, with most of turn 1's branches not yet visited: 12 of 12 positions hit the cap |
+
+So one proof of a four-turn goal against enemies free in everything but their cards is far beyond the whole
+budget (4 threads × 12 h × ~20 000 engine runs/s ≈ 3.5 × 10⁹ runs). Most enemy answers don't merge: two heroes
+at 5–20 options a turn over three or four turns.
+
+**Decision:**
+1. **The enemy's plays are known in more detail than planned: its cards all round, and also what it does with
+   them up to a turn.** From that turn on (`openFrom`, shown on every card), and at every defense and every question
+   asked while someone else resolves a card, and whenever the player makes a known answer impossible, the enemy answers
+   as hard as it can. This goes further than the plan's "enemies answer adversarially in everything else": *on the known
+   turns they don't*, unless disrupted. It is the smallest change the numbers allowed, and the app says so to the player.
+   The known actions are the ones the self-play game really played, so positions and plays are legal by construction.
+2. **2v2, the player on both heroes.** No friends: a teammate answered in the player's favour makes a four-turn plan
+   unreadable. 3v3 was not tried: 2v2 gave enough survivors, and the owner can read the plan of two heroes on a phone.
+3. **A proof, as before, and only ever a proof:** a plan that reaches the goal against every answer that is still open.
+4. **The filter** rejects: a solution ending before turn 4; a goal forced by the end of turn 2 or 3; every first card
+   working for both heroes; a turn with no choice that matters; `s7` or `s3` solving it; the first option at every
+   decision solving it. Mining's budgets leave too much unknown, so a second pass with longer ones
+   (`FullRoundDeepTest`) decides: it cut 14 of the first 40 survivors, and STATUS.md shows its table.
+5. **Answer keys hold one line, and the proof is a certificate in test resources.** Off the line the status comes from a
+   budgeted solve (500 expansions and 350 ms an answer, none in turns 1–2), so a losing line may stay PLAYING until the
+   solver proves it or the round ends. An off-line win counts. Try again takes back a turn at a time.
+6. **`PlanProver` replaces the proposed df-pn** (kept in test sources for the measurement): its history table is what
+   works. The AI's static policy as move order made proofs slower and larger, so it is off, and the search doesn't move
+   when the value stream changes the evaluation.
+
+**Tried and dropped:**
+
+| Tried | Why dropped |
+|-------|-------------|
+| Enemy free in everything but its cards (the plan) | The table above |
+| df-pn | No proof the plan-first prover didn't find faster; more code |
+| The static policy as move order | 577 933 runs and 19 738 positions against 220 452 and 2 416 on the same position |
+| `Survive` as a mined goal | 37 of 37 out of budget in the sample, none survived: left out (it stays available to a hand-made puzzle) |
+| Double oracle | The known actions removed the need |
+
+**Consequences:** Puzzles teach a real thing: a card played or spent now for a turn later, an enemy's spare card stripped
+so it can't defend in turn 4, the Minion Battle counted from turn 1. The weaker statement has a price. In the known
+turns the enemy doesn't react to the player, so a plan can lean on an enemy walking into it. Off the shipped line, MISSED
+comes late. No first-turn option has been *proven* to lose in any puzzle (that proof is out of budget): what is proven is
+how many win, and the text never says a first card loses unless it is proven. No one has played these on the S25 Ultra,
+and no hands-on pass happened on the emulator (`device_open`: "Android emulator video needs working ffmpeg with the libx264
+encoder"): the instrumented test and the screenshots stand in.
+
+If the convention is rejected, the book's second part can be dropped by emptying `Puzzles.fullRounds`: nothing else
+depends on it, and the 50 and their keys are untouched.
+
