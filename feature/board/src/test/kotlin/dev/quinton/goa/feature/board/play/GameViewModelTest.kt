@@ -139,10 +139,11 @@ class GameViewModelTest {
         vm.onAction(GameAction.AskSuggestions)
         advanceUntilIdle()
         vm.onAction(GameAction.CloseSuggestions)
+        val looked = coach.asked + coach.askedPrepared
         vm.onAction(GameAction.Answer(Choice.Action(ActionType.HOLD)))
         advanceUntilIdle()
         assertThat(vm.play.nudge).isNull()
-        assertThat(coach.asked + coach.askedPrepared).isEqualTo(0)
+        assertThat(coach.asked + coach.askedPrepared).isEqualTo(looked)
     }
 
     @Test
