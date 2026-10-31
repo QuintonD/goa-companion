@@ -1,6 +1,7 @@
 package dev.quinton.goa.core.game.ai
 
 import dev.quinton.goa.core.domain.board.HexGrid
+import dev.quinton.goa.core.domain.f32
 import dev.quinton.goa.core.game.engine.EngineData
 import dev.quinton.goa.core.game.engine.GameState
 import dev.quinton.goa.core.game.engine.HeroState
@@ -69,19 +70,24 @@ internal class Features(data: EngineData) {
         val state = ctx.state
         val t = FloatArray(2 * BOARD.size)
         fun base(team: Team) = if (team == Team.RED) 0 else BOARD.size
+
+        // In float arithmetic on every platform ([f32]): the browser's Float is a double until it is stored.
+        fun add(i: Int, x: Double) {
+            t[i] = f32(t[i].toDouble() + f32(x)).toFloat()
+        }
         for (p in state.pieces) {
             val at = p.at ?: continue
             val team = p.team ?: p.owner?.let { state.hero(it)?.team } ?: continue
             val row = base(team) + PIECE_PARTS * (PIECE_INDEX[p.kind] ?: OTHER_PIECE)
-            t[row] += 0.25f
-            t[row + 1] += (max(0, PIECE_REACH - fightDistance(ctx, at)) / (2.0 * PIECE_REACH)).toFloat()
+            add(row, 0.25)
+            add(row + 1, max(0, PIECE_REACH - fightDistance(ctx, at)) / (2.0 * PIECE_REACH))
             val nearest = around.heroes.getValue(team.other()).minOfOrNull { HexGrid.distance(at, it.second) }
-            if (nearest != null) t[row + 2] += (max(0, PIECE_REACH - nearest) / (2.0 * PIECE_REACH)).toFloat()
+            if (nearest != null) add(row + 2, max(0, PIECE_REACH - nearest) / (2.0 * PIECE_REACH))
         }
         for (h in state.heroes) {
             val b = base(h.team)
-            for (m in h.markers) MARKER_INDEX[m.kind]?.let { t[b + MARKERS_AT + it] += 0.5f }
-            for ((key, n) in h.counters) COUNTER_INDEX[key]?.let { t[b + COUNTERS_AT + it] += n / 5f }
+            for (m in h.markers) MARKER_INDEX[m.kind]?.let { add(b + MARKERS_AT + it, 0.5) }
+            for ((key, n) in h.counters) COUNTER_INDEX[key]?.let { add(b + COUNTERS_AT + it, n / 5.0) }
         }
         return t
     }

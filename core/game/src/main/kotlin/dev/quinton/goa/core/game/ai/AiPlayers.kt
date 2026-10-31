@@ -235,14 +235,7 @@ internal class SearchAi(
         val deadline = if (timeCap) monotonicNanos() + budget * 1_000_000L else Long.MAX_VALUE
         if (profile.staticOnly) return staticChoice(es, decision, rng)
         val s = searcher(es.engineData)
-        var a = s.analyze(es, decision, rng.nextLong(), cancelled, deadline) ?: return staticChoice(es, decision, rng)
-        if (profile.lookFurther && a.options.size > 1) {
-            val means = a.options.map { it.mean }
-            if (means.max() - means.min() < Searcher.NO_DIFFERENCE) {
-                val seed2 = rng.nextLong()
-                a = s.analyze(es, decision, seed2, cancelled, deadline, horizon = Horizon.NEXT_TURN) ?: a
-            }
-        }
+        val a = s.analyze(es, decision, rng.nextLong(), cancelled, deadline) ?: return staticChoice(es, decision, rng)
         val byChoice = a.options.associateBy { it.choice }
         val risk = if (decision.kind == DecisionKind.PLAY_CARD) profile.risk else 0.0
         val choices = decision.options.filter { it in byChoice }
