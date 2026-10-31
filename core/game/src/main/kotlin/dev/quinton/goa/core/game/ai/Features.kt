@@ -20,8 +20,10 @@ import kotlin.math.min
  * (position against the Battle Zone and the lane, level and coins, hand and the printed numbers of
  * its cards, items, the played card, exposure-style threats, its neighbourhood), pooled per team as
  * sum and max; then the [GLOBAL] features (the hand evaluation's twelve terms, the lane, Life
- * counters, round and turn, team sizes). Like [Evaluator] it reads only the state it is given — a
- * determinized copy in a search — and nothing names a hero. Pure Kotlin (commonMain-safe).
+ * counters, round and turn, team sizes) and the [BOARD] features (what stands on the board per piece
+ * kind, markers per kind and dashboard counters per key: ADR-049). Like [Evaluator] it reads only the
+ * state it is given — a determinized copy in a search — and no logic depends on a hero. Pure Kotlin
+ * (commonMain-safe).
  *
  * Changing a name, its order or its meaning changes [SCHEMA_HASH]: the checked-in weights then fail
  * `LearnedNetTest` until they are retrained (AI.md "How to retrain"). The hand evaluation's terms
@@ -33,22 +35,55 @@ internal class Features(data: EngineData) {
 
     /**
      * Both points of view of [state]: Red's features into `out[0 until SIZE]`, Blue's into
-     * `out[SIZE until 2 * SIZE]`.
+     * `out[SIZE until 2 * SIZE]`. Each hero's own [HERO] vector goes to [perHero] if given, in the order
+     * of `state.heroes` (what the net's per-hero corrections read, [LearnedNet]).
      */
-    fun extract(state: GameState, out: FloatArray) {
+    fun extract(state: GameState, out: FloatArray, perHero: FloatArray? = null) {
         val ctx = ev.context(state)
         val heroes = state.heroes
         val per = Array(heroes.size) { FloatArray(HERO.size) }
         val around = Around(ctx)
-        for ((i, h) in heroes.withIndex()) heroVector(ctx, around, h, per[i])
+        for ((i, h) in heroes.withIndex()) {
+            heroVector(ctx, around, h, per[i])
+            perHero?.let { per[i].copyInto(it, i * HERO.size) }
+        }
         val terms = ctx.termsRed()
+        val board = boardTable(ctx, around)
         for ((t, team) in listOf(Team.RED, Team.BLUE).withIndex()) {
             val base = t * SIZE
             out.fill(0f, base, base + SIZE)
             pool(heroes, per, team, out, base + OWN)
             pool(heroes, per, team.other(), out, base + ENEMY)
             global(ctx, team, terms, out, base + GLOBAL_AT)
+            val own = if (team == Team.RED) 0 else BOARD.size
+            board.copyInto(out, base + BOARD_AT, own, own + BOARD.size)
+            board.copyInto(out, base + BOARD_AT + BOARD.size, BOARD.size - own, 2 * BOARD.size - own)
         }
+    }
+
+    /**
+     * Per team (Red's [BOARD] numbers, then Blue's): each piece kind's count, how near the Battle Zone
+     * and how near the enemy heroes it stands; the markers its heroes carry and their dashboard counters.
+     */
+    private fun boardTable(ctx: Ctx, around: Around): FloatArray {
+        val state = ctx.state
+        val t = FloatArray(2 * BOARD.size)
+        fun base(team: Team) = if (team == Team.RED) 0 else BOARD.size
+        for (p in state.pieces) {
+            val at = p.at ?: continue
+            val team = p.team ?: p.owner?.let { state.hero(it)?.team } ?: continue
+            val row = base(team) + PIECE_PARTS * (PIECE_INDEX[p.kind] ?: OTHER_PIECE)
+            t[row] += 0.25f
+            t[row + 1] += (max(0, PIECE_REACH - fightDistance(ctx, at)) / (2.0 * PIECE_REACH)).toFloat()
+            val nearest = around.heroes.getValue(team.other()).minOfOrNull { HexGrid.distance(at, it.second) }
+            if (nearest != null) t[row + 2] += (max(0, PIECE_REACH - nearest) / (2.0 * PIECE_REACH)).toFloat()
+        }
+        for (h in state.heroes) {
+            val b = base(h.team)
+            for (m in h.markers) MARKER_INDEX[m.kind]?.let { t[b + MARKERS_AT + it] += 0.5f }
+            for ((key, n) in h.counters) COUNTER_INDEX[key]?.let { t[b + COUNTERS_AT + it] += n / 5f }
+        }
+        return t
     }
 
     /** Where each team's heroes and minions stand, once per state. */
@@ -342,18 +377,51 @@ internal class Features(data: EngineData) {
             "round", "turn", "revealed", "roundOver", "playStep", "teamSize", "enemyTeamSize", "tieBreaker",
         )
 
+        /**
+         * The keys of the engine's piece data ([dev.quinton.goa.core.game.engine.PieceState.kind]), as
+         * [Evaluator.counterValue] knows the counter keys: data the net weighs, no logic. A kind added later
+         * counts as "other" until the next retrain.
+         */
+        val PIECE_KINDS: List<String> = listOf(
+            "pyro", "razzle_double", "token_barrier", "token_blast", "token_dud", "token_familiar", "token_glitch",
+            "token_grenade", "token_ice", "token_illusion", "token_magma", "token_rock", "token_smoke_bomb",
+            "token_totem", "token_tree", "token_zombie", "trinkets_turret", "other",
+        )
+        val MARKER_KINDS: List<String> = listOf(
+            "marker_bounty", "marker_poison", "marker_rune_anvil", "marker_rune_axe", "marker_rune_bird",
+            "marker_rune_horn",
+        )
+        val COUNTER_KEYS: List<String> = listOf("spellbook", "spellsRemoved", "wishCasts")
+
+        /** One team's board numbers. */
+        val BOARD: List<String> = PIECE_KINDS.flatMap {
+            listOf("piece:$it", "pieceNearZone:$it", "pieceNearEnemy:$it")
+        } + MARKER_KINDS.map { "marker:$it" } + COUNTER_KEYS.map { "counter:$it" }
+
+        private const val PIECE_PARTS = 3
+
+        /** A piece counts for "near" within this many spaces, the more the nearer. */
+        private const val PIECE_REACH = 6
+        private val PIECE_INDEX: Map<String, Int> = PIECE_KINDS.withIndex().associate { (i, k) -> k to i }
+        private val OTHER_PIECE = PIECE_KINDS.lastIndex
+        private val MARKER_INDEX: Map<String, Int> = MARKER_KINDS.withIndex().associate { (i, k) -> k to i }
+        private val COUNTER_INDEX: Map<String, Int> = COUNTER_KEYS.withIndex().associate { (i, k) -> k to i }
+        private val MARKERS_AT = PIECE_PARTS * PIECE_KINDS.size
+        private val COUNTERS_AT = MARKERS_AT + MARKER_KINDS.size
+
         const val OWN: Int = 0
         val ENEMY: Int = 2 * HERO.size
         val GLOBAL_AT: Int = 4 * HERO.size
-        val SIZE: Int = GLOBAL_AT + GLOBAL.size
+        val BOARD_AT: Int = GLOBAL_AT + GLOBAL.size
+        val SIZE: Int = BOARD_AT + 2 * BOARD.size
 
         /** Every input's name, in order. */
         val NAMES: List<String> = listOf("own", "enemy").flatMap { side ->
             listOf("sum", "max").flatMap { p -> HERO.map { "$side:$p:$it" } }
-        } + GLOBAL
+        } + GLOBAL + listOf("own", "enemy").flatMap { side -> BOARD.map { "$side:$it" } }
 
         /** FNV-1a of the names and the version of their meaning: what the weights were trained on. */
-        const val MEANING_VERSION: Int = 1
+        const val MEANING_VERSION: Int = 2
         val SCHEMA_HASH: Long = run {
             var x = -0x340d631b7bdddcdbL
             for (c in (NAMES + "v$MEANING_VERSION").joinToString("|")) {

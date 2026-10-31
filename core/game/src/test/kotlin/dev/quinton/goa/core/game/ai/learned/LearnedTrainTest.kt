@@ -11,6 +11,7 @@ import java.util.concurrent.Executors
 import kotlin.math.abs
 import kotlin.math.exp
 import kotlin.math.ln
+import kotlin.math.max
 import org.junit.Test
 
 /**
@@ -24,8 +25,19 @@ import org.junit.Test
  * saved as `<AI_NETS>/<AI_TRAIN_NAME>.net`; `AI_TRAIN_WRITE=1` also writes the checked-in
  * `LearnedWeights.kt`. Targets: λ-returns over the positions of each game (`AI_LAMBDA`, default 0.7;
  * 1 = the result alone) bootstrapped from a teacher (`AI_TEACHER=hand`, the default, or a net name).
+ * `AI_TABLES=0` trains without the per-hero corrections and the card table, `AI_BOARD=0` with the board
+ * inputs zeroed, `AI_TABLE_DECAY` sets how hard the tables decay; `AI_CACHE` is where features are cached.
  */
 class LearnedTrainTest {
+    /** `AI_WRITE_NET=<name>[:<target>]` writes a saved net as the checked-in weights, without training. */
+    @Test
+    fun `write a saved net as the weights`() {
+        val spec = System.getenv("AI_WRITE_NET")?.split(":", limit = 2) ?: return
+        val target = File(spec.getOrNull(1) ?: WEIGHTS)
+        WeightsWriter.write(Learned.loadNetData(File(Learned.NETS, "${spec[0]}.net")), target, System.getenv("AI_WRITE_NOTE") ?: spec[0])
+        println("TRAIN wrote $target")
+    }
+
     @Test
     fun `train the learned evaluation`() {
         val spec = System.getenv("AI_TRAIN") ?: return
@@ -41,6 +53,12 @@ class LearnedTrainTest {
             if (f.isDirectory) f.listFiles { x -> x.name.endsWith(".jsonl") }!!.sorted() else listOf(f)
         }
         val all = files.flatMap { load(it, rate, threads) }
+        if (System.getenv("AI_BOARD") == "0") {
+            for (p in all) {
+                p.x?.fill(0f, Features.BOARD_AT, Features.SIZE)
+                p.x?.fill(0f, Features.SIZE + Features.BOARD_AT, 2 * Features.SIZE)
+            }
+        }
         val train = all.filter { it.lineup % 10 < 8 }
         val valid = all.filter { it.lineup % 10 == 8 }
         val test = all.filter { it.lineup % 10 == 9 }
@@ -50,11 +68,12 @@ class LearnedTrainTest {
         )
         // The hand evaluation: one slope on the tuned score; and a logistic fit of its twelve terms.
         val k = Logistic.fit(train.map { doubleArrayOf(it.hand.toDouble()) }, train.map { it.redWon }, 0.0)[0]
+        val fitOn = train.filterIndexed { i, _ -> i % max(1, train.size / FIT_ROWS) == 0 }
         val m = Logistic.fit(
-            train.map { p ->
+            fitOn.map { p ->
                 DoubleArray(p.terms.size) { p.terms[it].toDouble() }
             },
-            train.map { it.redWon },
+            fitOn.map { it.redWon },
             1e-4,
         )
         println("TRAIN hand slope k = ${"%.4f".format(k)} (coin scale ${"%.2f".format(1 / k)})")
@@ -65,6 +84,7 @@ class LearnedTrainTest {
             batch = System.getenv("AI_BATCH")?.toInt() ?: 512,
             maxEpochs = System.getenv("AI_EPOCHS")?.toInt() ?: 40,
             patience = System.getenv("AI_PATIENCE")?.toInt() ?: 5,
+            tableDecay = System.getenv("AI_TABLE_DECAY")?.toDouble() ?: 1.0,
         )
         val t0 = System.nanoTime()
         // The linear skip starts as the hand evaluation (its tuned score is a feature, ±score / 30 per side).
@@ -75,6 +95,7 @@ class LearnedTrainTest {
         } else {
             mapOf(Features.NAMES.indexOf("tunedScore") to k * 15)
         }
+        val tabled = System.getenv("AI_TABLES") != "0"
         val raw = Trainer(
             Features.SIZE,
             h1,
@@ -82,11 +103,14 @@ class LearnedTrainTest {
             seed,
             threads,
             skip,
-        ).train(data(train, targets), data(valid, targets), cfg)
+            if (tabled) Learned.HEROES.size else 0,
+            if (tabled) Learned.CARDS.size else 0,
+            Features.BOARD_AT,
+        ).train(data(train, targets, release = true), data(valid, targets, release = false), cfg)
         println("TRAIN trained in ${"%.0f".format((System.nanoTime() - t0) / 1e9)} s")
         val net = Learned.NetData(
             raw.inputs, raw.h1, raw.h2, raw.w1, raw.b1, raw.w2, raw.b2, raw.w3, raw.wl, raw.b3, 1 / k,
-            Features.SCHEMA_HASH,
+            Features.SCHEMA_HASH, raw.heroes, raw.wh, raw.cards, raw.wc,
         )
         val out = File(Learned.NETS, "$name.net")
         Learned.saveNet(net, out)
@@ -114,7 +138,7 @@ class LearnedTrainTest {
             val hand = Logistic.loss(ps.map { doubleArrayOf(it.hand.toDouble()) }, y, doubleArrayOf(k))
             val fit = Logistic.loss(ps.map { p -> DoubleArray(p.terms.size) { p.terms[it].toDouble() } }, y, m)
             val nn = ps.indices.sumOf { i ->
-                val p = Trainer.sigmoid(logit(net, ps[i].x)).coerceIn(1e-9, 1 - 1e-9)
+                val p = Trainer.sigmoid(logit(net, ps[i])).coerceIn(1e-9, 1 - 1e-9)
                 -(if (y[i]) ln(p) else ln(1 - p))
             } / ps.size
             println(
@@ -128,7 +152,7 @@ class LearnedTrainTest {
     }
 
     /** One position with the result and what the targets need. */
-    class Pos(
+    internal class Pos(
         val game: Int,
         val family: Long,
         val lineup: Int,
@@ -138,16 +162,22 @@ class LearnedTrainTest {
         val redWon: Boolean,
         val hand: Float,
         val terms: FloatArray,
-        val x: FloatArray,
+        var x: FloatArray?,
+        val extras: Trainer.Extras,
     )
 
-    private fun data(ps: List<Pos>, targets: Map<Pos, Float>): Trainer.Data {
+    /** The rows of [ps]; with [release] the positions give up their inputs (the big training set). */
+    private fun data(ps: List<Pos>, targets: Map<Pos, Float>, release: Boolean): Trainer.Data {
         val x = FloatArray(ps.size * 2 * Features.SIZE)
-        for ((r, p) in ps.withIndex()) p.x.copyInto(x, r * 2 * Features.SIZE)
+        for ((r, p) in ps.withIndex()) {
+            p.x!!.copyInto(x, r * 2 * Features.SIZE)
+            if (release) p.x = null
+        }
         return Trainer.Data(
             x,
             FloatArray(ps.size) { targets.getValue(ps[it]) },
             FloatArray(ps.size) { if (ps[it].redWon) 1f else 0f },
+            ps.map { it.extras },
         )
     }
 
@@ -164,7 +194,7 @@ class LearnedTrainTest {
                     val next = sorted[i + 1]
                     val v = when {
                         lambda >= 1.0 -> result
-                        net != null -> Trainer.sigmoid(logit(net, next.x))
+                        net != null -> Trainer.sigmoid(logit(net, next))
                         else -> Trainer.sigmoid(k * next.hand)
                     }
                     g = (1 - lambda) * v + lambda * g
@@ -175,18 +205,26 @@ class LearnedTrainTest {
         return out
     }
 
-    private fun logit(net: LearnedNet, x: FloatArray): Double = (
-        net.forward(
-            x,
-            0,
-        ) - net.forward(x, Features.SIZE)
-        ).toDouble()
+    /** The net's logit of a recorded position: the same sums as [LearnedNet.corrections], from what was recorded. */
+    private fun logit(net: LearnedNet, p: Pos): Double = (
+        net.forward(p.x!!, 0) - net.forward(p.x!!, Features.SIZE)
+        ).toDouble() + net.recorded(p.extras, true) - net.recorded(p.extras, false)
+
+    private fun LearnedNet.recorded(e: Trainer.Extras, red: Boolean): Double {
+        var out = 0.0
+        val size = Features.HERO.size
+        for (h in if (red) 0 until e.red else e.red until e.heroes.size) {
+            out += tableHero(e.heroes[h].toInt(), e.v, h * size)
+        }
+        for (c in if (red) e.redCards else e.blueCards) out += tableCard(c.toInt())
+        return out
+    }
 
     /** Positions of the games in [file], featurized once per schema and rate (cached next to the file). */
     private fun load(file: File, rate: Double, threads: Int): List<Pos> {
         val cache =
             File(
-                file.parentFile,
+                System.getenv("AI_CACHE")?.let(::File) ?: file.parentFile,
                 "${file.nameWithoutExtension}.${java.lang.Long.toHexString(Features.SCHEMA_HASH)}-$rate.feat",
             )
         if (cache.exists() && cache.lastModified() >= file.lastModified()) return readCache(cache)
@@ -200,7 +238,7 @@ class LearnedTrainTest {
                         Learned.positions(r, rate).map {
                             Pos(
                                 r.game, r.family, r.lineup, r.size, it.index, it.boundary, it.redWon, it.hand,
-                                it.terms, it.x,
+                                it.terms, it.x, it.extras,
                             )
                         }
                     }
@@ -232,7 +270,16 @@ class LearnedTrainTest {
                 o.writeBoolean(p.redWon)
                 o.writeFloat(p.hand)
                 for (t in p.terms) o.writeFloat(t)
-                for (v in p.x) o.writeFloat(v)
+                for (v in p.x!!) o.writeFloat(v)
+                val e = p.extras
+                o.writeByte(e.heroes.size)
+                o.writeByte(e.red)
+                o.write(e.heroes)
+                for (v in e.v) o.writeFloat(v)
+                for (cards in listOf(e.redCards, e.blueCards)) {
+                    o.writeShort(cards.size)
+                    for (c in cards) o.writeShort(c.toInt())
+                }
             }
         }
     }
@@ -248,12 +295,24 @@ class LearnedTrainTest {
                     i.readFloat()
                 },
                 FloatArray(2 * Features.SIZE) { i.readFloat() },
+                run {
+                    val n = i.readByte().toInt()
+                    val red = i.readByte().toInt()
+                    val heroes = ByteArray(n).also { i.readFully(it) }
+                    val v = FloatArray(n * Features.HERO.size) { i.readFloat() }
+                    val rc = ShortArray(i.readShort().toInt()) { i.readShort() }
+                    val bc = ShortArray(i.readShort().toInt()) { i.readShort() }
+                    Trainer.Extras(heroes, red, v, rc, bc)
+                },
             )
         }
     }
 
     companion object {
         const val WEIGHTS = "src/main/kotlin/dev/quinton/goa/core/game/ai/LearnedWeights.kt"
+
+        /** Rows the report's twelve-term fit uses. */
+        private const val FIT_ROWS = 150_000
     }
 }
 

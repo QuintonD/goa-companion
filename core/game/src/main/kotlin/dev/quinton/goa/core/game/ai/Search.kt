@@ -8,6 +8,7 @@ import dev.quinton.goa.core.game.Decision
 import dev.quinton.goa.core.game.DecisionKind
 import dev.quinton.goa.core.game.GameEvent
 import dev.quinton.goa.core.game.engine.Determinizer
+import dev.quinton.goa.core.game.engine.EngineData
 import dev.quinton.goa.core.game.engine.EngineSession
 import dev.quinton.goa.core.game.engine.GameState
 import dev.quinton.goa.core.model.match.Team
@@ -78,6 +79,15 @@ internal data class LevelProfile(
     val learned: EvalSource = EvalSource.HAND,
     /** The net [learned] uses; null = the checked-in one ([LearnedNet.CURRENT]). */
     val net: LearnedNet? = null,
+    /** Tests only: what scores the end of a playout instead of [net] (the frozen baseline, `net=v09`). */
+    val leafEvaluator: ((EngineData) -> PositionEvaluator)? = null,
+    /**
+     * When the playouts see no difference between the options (the choice's effect comes later: a rune
+     * under a slot, a colour named, who acts first), search that answer again to the end of the next turn.
+     */
+    val lookFurther: Boolean = false,
+    /** At a level up's "take one card into your hand", these cards are kept without a search ([UpgradeTable]). */
+    val preferKeep: Set<String> = emptySet(),
 )
 
 /**
@@ -167,8 +177,11 @@ internal class Searcher(
         private set
 
     /** What scores the end of a playout ([LevelProfile.learned]). */
-    val leaf: PositionEvaluator =
-        if (profile.learned == EvalSource.HAND) ev else NetEvaluator(ev.data, profile.net ?: LearnedNet.CURRENT)
+    val leaf: PositionEvaluator = when {
+        profile.learned == EvalSource.HAND -> ev
+        profile.leafEvaluator != null -> profile.leafEvaluator.invoke(ev.data)
+        else -> NetEvaluator(ev.data, profile.net ?: LearnedNet.CURRENT)
+    }
 
     /** What scores the one-ply looks inside a playout. */
     private val inner: PositionEvaluator = if (profile.learned == EvalSource.EVERYWHERE) leaf else ev
@@ -206,9 +219,10 @@ internal class Searcher(
         deadline: Long,
         only: List<Choice>? = null,
         mustInclude: Choice? = null,
+        horizon: Horizon = horizonOf(d.kind),
     ): Analysis? {
         val isPlay = d.kind == DecisionKind.PLAY_CARD
-        val run = Run(es, d, seed, cancelled, if (isPlay) profile.playSamples else profile.otherSamples)
+        val run = Run(es, d, seed, cancelled, if (isPlay) profile.playSamples else profile.otherSamples, horizon)
         val work0 = work
         val workCap = when {
             profile.workBudget <= 0 -> Long.MAX_VALUE
@@ -228,8 +242,8 @@ internal class Searcher(
         val seed: Long,
         val cancelled: () -> Boolean,
         val samples: Int,
+        val horizon: Horizon,
     ) {
-        val horizon = horizonOf(d.kind)
         val table = LinkedHashMap<Choice, DoubleArray>()
         val leaves = ArrayList<Leaf>()
         var done = 0
@@ -542,6 +556,9 @@ internal class Searcher(
 
     companion object {
         const val OPPONENT_TAU: Double = 1.5
+
+        /** Options closer than this in coin-equivalents are ones the search cannot tell apart ([LevelProfile.lookFurther]). */
+        const val NO_DIFFERENCE: Double = 0.01
         const val GREEDY_MAX: Int = 8
 
         /** Samples before racing may drop an option. */

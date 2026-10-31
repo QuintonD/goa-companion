@@ -224,6 +224,9 @@ internal class SearchAi(
 
     override fun choose(session: GameSession, decision: Decision, cancelled: () -> Boolean): Choice {
         if (decision.options.size == 1) return decision.options.single()
+        if (decision.kind == DecisionKind.KEEP_UPGRADE) {
+            decision.options.firstOrNull { it is Choice.Card && it.cardId in profile.preferKeep }?.let { return it }
+        }
         val es = session as? EngineSession ?: return Fallback.choose(decision)
         if (profile.hunt != null && team != decision.team) {
             team = decision.team
@@ -235,7 +238,14 @@ internal class SearchAi(
         val deadline = if (timeCap) monotonicNanos() + budget * 1_000_000L else Long.MAX_VALUE
         if (profile.staticOnly) return staticChoice(es, decision, rng)
         val s = searcher(es.engineData)
-        val a = s.analyze(es, decision, rng.nextLong(), cancelled, deadline) ?: return staticChoice(es, decision, rng)
+        var a = s.analyze(es, decision, rng.nextLong(), cancelled, deadline) ?: return staticChoice(es, decision, rng)
+        if (profile.lookFurther && a.options.size > 1) {
+            val means = a.options.map { it.mean }
+            if (means.max() - means.min() < Searcher.NO_DIFFERENCE) {
+                val seed2 = rng.nextLong()
+                a = s.analyze(es, decision, seed2, cancelled, deadline, horizon = Horizon.NEXT_TURN) ?: a
+            }
+        }
         val byChoice = a.options.associateBy { it.choice }
         val risk = if (decision.kind == DecisionKind.PLAY_CARD) profile.risk else 0.0
         val choices = decision.options.filter { it in byChoice }
