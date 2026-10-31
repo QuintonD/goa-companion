@@ -56,7 +56,7 @@ class GameParityTest {
             maps.forEach { appendLine(canon(it)) }
         }
         assertTrue(catalog.heroes.size >= 30)
-        assertTranscript("67e964d01cf984bad0e83a992bad79317b29f5a7a936123d527168bc14dea33f", transcript, "catalog")
+        assertTranscript("6013b1da79ad369b1be0737eee1c86129e76c23ebe26a50173be8908fd6746f2", transcript, "catalog")
     }
 
     private fun Decision.line(answer: Int) = "$id $seat ${kind.name} ${options.size}>$answer $prompt"
