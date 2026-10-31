@@ -350,22 +350,28 @@ internal class Explainer(
         return null
     }
 
+    /**
+     * Whether [cardId] really stops the attack: a card that falls too can be the better one (it strips
+     * nothing else), and with no total up front (the text decides) it must hold in the playouts.
+     */
+    private fun stops(cardId: String, total: Int, value: Int?): Boolean {
+        val block = d.context.blockPreview[cardId]
+        return when {
+            block != null -> block
+            value != null -> value >= total
+            else -> share(Choice.Card(cardId)) { l ->
+                events(l).any { it is GameEvent.Defended && it.heroId == seat && it.success }
+            } >= 0.5
+        }
+    }
+
     private fun defendReason(): Pair<String, String>? {
         if (d.kind != DecisionKind.DEFEND) return null
         val total = d.context.attackTotal ?: return null
         val attacker = d.context.attackerId?.let { data.heroName(it) } ?: "The attacker"
         if (mine is Choice.Decline && best is Choice.Card) {
             val v = d.context.defensePreview[best.cardId]
-            // A card that falls too can be the better one (it strips nothing else): it does not "stop" this.
-            if (v != null && v < total && d.context.blockPreview[best.cardId] != true) return null
-            if (d.context.blockPreview[best.cardId] == false) return null
-            // No total up front (the text decides): say it only when it holds in the playouts.
-            if (v == null && d.context.blockPreview[best.cardId] != true && share(best) { l ->
-                    events(l).any { it is GameEvent.Defended && it.heroId == seat && it.success }
-                } < 0.5
-            ) {
-                return null
-            }
+            if (!stops(best.cardId, total, v)) return null
             val card = cardName(best.cardId) ?: return null
             val numbers = v?.let { " (Defense $it against Attack $total)" } ?: ""
             return "Your $card can still stop this attack$numbers." to
