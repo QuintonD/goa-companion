@@ -66,6 +66,8 @@ data class Hero(
     val extras: List<Card> = emptyList(),
     val faq: List<Ruling> = emptyList(),
     val lore: String? = null,
+    /** The hero's official tactical tips (source 3, one "- tip" a line), verbatim. */
+    val advice: String? = null,
     val verified: Boolean,
     val sources: List<SourceRef> = emptyList(),
 ) {

@@ -241,6 +241,7 @@ class Importer(lock: SourcesLock, private val cache: SourceCache, private val ov
             extras = cards.filter { it.second == Slot.EXTRA }.map { it.first },
             faq = rulings(src.faqHero, sh.id, data),
             lore = src.faqHero?.lore?.trim(),
+            advice = src.faqHero?.advice?.trim(),
             verified = false,
             sources = sourceRefs(sh.id, src.faqHero != null, src.coleRows != null),
         )
