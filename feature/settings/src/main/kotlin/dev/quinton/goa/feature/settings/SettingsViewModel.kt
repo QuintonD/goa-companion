@@ -6,6 +6,8 @@ import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dev.quinton.goa.core.data.CatalogRepository
 import dev.quinton.goa.core.data.SettingsRepository
+import dev.quinton.goa.core.data.game.AiSpeed
+import dev.quinton.goa.core.data.game.AiSpeedMeter
 import dev.quinton.goa.core.domain.settings.ProductOption
 import dev.quinton.goa.core.domain.settings.ProductOwnership
 import dev.quinton.goa.core.model.catalog.Catalog
@@ -13,6 +15,8 @@ import dev.quinton.goa.core.model.settings.AppSettings
 import dev.quinton.goa.core.model.settings.ThemeMode
 import dev.quinton.goa.core.model.settings.TimerLayout
 import javax.inject.Inject
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
@@ -34,12 +38,25 @@ sealed interface SettingsUiState {
         val soundsEnabled: Boolean,
         val timerLayout: TimerLayout = TimerLayout.STEPS,
         val puzzleNudges: Boolean = true,
+        val speedTest: SpeedTest = SpeedTest.Idle,
     ) : SettingsUiState {
         val ownedCount: Int get() = products.count { it.owned }
     }
 }
 
+/** The "Measure the computer's speed" row. */
+sealed interface SpeedTest {
+    data object Idle : SpeedTest
+
+    data class Running(val progress: Float) : SpeedTest
+
+    data class Done(val speed: AiSpeed) : SpeedTest
+}
+
 sealed interface SettingsAction {
+    /** Starts the measure, or stops one that is running. */
+    data object ToggleSpeedTest : SettingsAction
+
     data class SetTheme(val theme: ThemeMode) : SettingsAction
 
     data class ToggleProduct(val productId: String) : SettingsAction
@@ -59,15 +76,45 @@ sealed interface SettingsAction {
 class SettingsViewModel @Inject constructor(
     private val settingsRepository: SettingsRepository,
     private val catalogRepository: CatalogRepository,
+    private val speedMeter: AiSpeedMeter,
 ) : ViewModel() {
+    private val speedTest = MutableStateFlow<SpeedTest>(SpeedTest.Idle)
+    private var speedJob: Job? = null
+
     val uiState: StateFlow<SettingsUiState> =
-        combine(settingsRepository.settings, catalogRepository.catalog.onStart { emit(Catalog.EMPTY) }) { s, c ->
-            toUiState(s, c)
+        combine(
+            settingsRepository.settings,
+            catalogRepository.catalog.onStart { emit(Catalog.EMPTY) },
+            speedTest,
+        ) { s, c, speed ->
+            toUiState(s, c).copy(speedTest = speed)
         }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), SettingsUiState.Loading)
 
+    private fun toggleSpeedTest() {
+        val running = speedJob
+        if (running != null) {
+            running.cancel()
+            speedJob = null
+            speedTest.value = SpeedTest.Idle
+            return
+        }
+        speedTest.value = SpeedTest.Running(0f)
+        speedJob = viewModelScope.launch {
+            val speed = speedMeter.measure { speedTest.value = SpeedTest.Running(it) }
+            speedJob = null
+            speedTest.value = speed?.let { SpeedTest.Done(it) } ?: SpeedTest.Idle
+        }
+    }
+
     fun onAction(action: SettingsAction) {
+        if (action == SettingsAction.ToggleSpeedTest) {
+            toggleSpeedTest()
+            return
+        }
         viewModelScope.launch {
             when (action) {
+                SettingsAction.ToggleSpeedTest -> Unit
+
                 is SettingsAction.SetTheme -> settingsRepository.update { it.copy(theme = action.theme) }
 
                 is SettingsAction.SetHaptics -> settingsRepository.update { it.copy(hapticsEnabled = action.enabled) }

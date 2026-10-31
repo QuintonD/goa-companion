@@ -7,6 +7,8 @@ import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.unit.Density
 import com.github.takahirom.roborazzi.captureRoboImage
+import dev.quinton.goa.core.data.game.AiSpeed
+import dev.quinton.goa.core.designsystem.component.GoaCard
 import dev.quinton.goa.core.designsystem.theme.GoaTheme
 import dev.quinton.goa.core.model.settings.ThemeMode
 import org.junit.Rule
@@ -41,6 +43,19 @@ class SettingsScreenshotTest {
     @Test fun settingsLight() = capture(ThemeMode.LIGHT) { Settings() }
 
     @Test fun settingsDarkFontScale2() = capture(ThemeMode.DARK, 2f) { Settings() }
+
+    /** The row sits below the fold of the whole screen; a long result must stay readable at large text. */
+    @Composable private fun Speed(test: SpeedTest) = GoaCard { SpeedRow(test) {} }
+
+    @Test fun speedRunningDark() = capture(ThemeMode.DARK) { Speed(SpeedTest.Running(0.4f)) }
+
+    @Test fun speedDoneDark() = capture(ThemeMode.DARK) {
+        Speed(SpeedTest.Done(AiSpeed(2_130, 145, 410, "line")))
+    }
+
+    @Test fun speedDoneDarkFontScale2() = capture(ThemeMode.DARK, 2f) {
+        Speed(SpeedTest.Done(AiSpeed(2_130, 145, 410, "line")))
+    }
 
     @Test fun aboutDark() = capture(ThemeMode.DARK) { About() }
 

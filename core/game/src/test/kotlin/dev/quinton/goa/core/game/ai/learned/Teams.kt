@@ -61,8 +61,11 @@ internal object Teams {
         val score = Tournament.Score(a, b)
         val pool = Executors.newFixedThreadPool(threads)
         try {
-            for (batch in if (sprt == null) listOf(specs) else specs.chunked(SPRT_BATCH)) {
+            // AI_BATCH: a running score after every so many line-ups (a long run that is cut short still says something).
+            val every = System.getenv("AI_BATCH")?.toIntOrNull() ?: if (sprt == null) specs.size else SPRT_BATCH
+            for (batch in specs.chunked(every.coerceAtLeast(1))) {
                 playBatch(a, b, batch, pool, score)
+                if (every < specs.size) println("TEAMS so far $score")
                 if (sprt != null && sprt.verdict(score.aWins, score.bWins) != Tournament.Sprt.Verdict.GOING_ON) break
             }
         } finally {
