@@ -43,7 +43,7 @@ class CoachTest {
     fun `not defending is never told that a card which falls would stop the attack`() {
         val d = pos(engine = TestData.engine) {
             clearMinions()
-            hero("wasp", Team.RED, Hex(0, -2)) { hand("wasp-gold", "wasp-red-1", exactly = true) }
+            hero("wasp", Team.RED, Hex(0, -2)) { hand("wasp-gold", exactly = true) }
             hero("brogan", Team.BLUE, Hex(1, -2)) { played("brogan-gold") }
             minion(Team.RED, MinionType.MELEE, Hex(-4, -1))
             minion(Team.BLUE, MinionType.MELEE, Hex(4, -5))
