@@ -7,6 +7,7 @@ import dev.quinton.goa.core.game.ai.Tournament
 import dev.quinton.goa.core.model.match.Team
 import java.util.concurrent.Callable
 import java.util.concurrent.ExecutionException
+import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
 import kotlin.random.Random
 
@@ -46,9 +47,39 @@ internal object Teams {
         }
     }
 
-    /** Every spec played twice, the sides swapping teams (same seed and coin). */
-    fun mirrored(a: Tournament.Side, b: Tournament.Side, specs: List<Spec>, threads: Int): Tournament.Score {
+    /**
+     * Every spec played twice, the sides swapping teams (same seed and coin). With [sprt] the specs go
+     * in batches of [SPRT_BATCH] and the tournament stops as soon as the test decides.
+     */
+    fun mirrored(
+        a: Tournament.Side,
+        b: Tournament.Side,
+        specs: List<Spec>,
+        threads: Int,
+        sprt: Tournament.Sprt? = null,
+    ): Tournament.Score {
         val score = Tournament.Score(a, b)
+        val pool = Executors.newFixedThreadPool(threads)
+        try {
+            for (batch in if (sprt == null) listOf(specs) else specs.chunked(SPRT_BATCH)) {
+                playBatch(a, b, batch, pool, score)
+                if (sprt != null && sprt.verdict(score.aWins, score.bWins) != Tournament.Sprt.Verdict.GOING_ON) break
+            }
+        } finally {
+            pool.shutdown()
+        }
+        return score
+    }
+
+    private const val SPRT_BATCH = 16
+
+    private fun playBatch(
+        a: Tournament.Side,
+        b: Tournament.Side,
+        specs: List<Spec>,
+        pool: ExecutorService,
+        score: Tournament.Score,
+    ) {
         val jobs = ArrayList<Callable<Pair<Boolean?, AiHarness.Result>>>()
         val aRed = ArrayList<Boolean>()
         for (spec in specs) {
@@ -69,35 +100,26 @@ internal object Teams {
                 }
             }
         }
-        val pool = Executors.newFixedThreadPool(threads)
-        try {
-            for ((i, f) in pool.invokeAll(jobs).withIndex()) {
-                val (aWon, r) = try {
-                    f.get()
-                } catch (e: ExecutionException) {
-                    val spec = specs[i / 2]
-                    throw IllegalStateException("Game failed: ${spec.lineup}, coin ${spec.coin}, seed ${spec.seed}", e)
-                }
-                when (aWon) {
-                    null -> score.draws++
-                    true -> score.aWins++
-                    false -> score.bWins++
-                }
-                val (red, blue) = specs[i / 2].lineup
-                for (hero in if (aRed[i]) red else blue) {
-                    score.heroGames[hero] = (score.heroGames[hero] ?: 0) + 1
-                    if (aWon == true) score.heroWins[hero] = (score.heroWins[hero] ?: 0) + 1
-                }
-                val reason = r.session.view(null).winReason?.name ?: "UNFINISHED"
-                score.reasons[reason] = (score.reasons[reason] ?: 0) + 1
-                score.rounds += r.rounds
-                score.lines +=
-                    "${red.joinToString("+")} vs ${blue.joinToString("+")}: $a ${if (aRed[i]) "Red" else "Blue"}, " +
-                    "${aWon?.let { if (it) "$a won" else "$b won" } ?: "draw"} by $reason in round ${r.rounds}"
+        for ((i, f) in pool.invokeAll(jobs).withIndex()) {
+            val (aWon, r) = try {
+                f.get()
+            } catch (e: ExecutionException) {
+                val spec = specs[i / 2]
+                throw IllegalStateException("Game failed: ${spec.lineup}, coin ${spec.coin}, seed ${spec.seed}", e)
             }
-        } finally {
-            pool.shutdown()
+            when (aWon) {
+                null -> score.draws++
+                true -> score.aWins++
+                false -> score.bWins++
+            }
+            val (red, blue) = specs[i / 2].lineup
+            score.countHeroes(red, blue, aRed[i], aWon)
+            val reason = r.session.view(null).winReason?.name ?: "UNFINISHED"
+            score.reasons[reason] = (score.reasons[reason] ?: 0) + 1
+            score.rounds += r.rounds
+            score.lines +=
+                "${red.joinToString("+")} vs ${blue.joinToString("+")}: $a ${if (aRed[i]) "Red" else "Blue"}, " +
+                "${aWon?.let { if (it) "$a won" else "$b won" } ?: "draw"} by $reason in round ${r.rounds}"
         }
-        return score
     }
 }

@@ -6,6 +6,7 @@ import dev.quinton.goa.core.game.GameEvent
 import dev.quinton.goa.core.model.match.Team
 import java.util.concurrent.Callable
 import java.util.concurrent.Executors
+import kotlin.math.ln
 import kotlin.math.sqrt
 
 /**
@@ -52,6 +53,10 @@ object Tournament {
         val heroGames = sortedMapOf<String, Int>()
         val heroWins = sortedMapOf<String, Int>()
 
+        /** The same for side b: with the above it cancels how strong a hero is ([uplifts]). */
+        val heroGamesB = sortedMapOf<String, Int>()
+        val heroWinsB = sortedMapOf<String, Int>()
+
         /** One line per game: line-up, the side a played, the winner and how. */
         val lines = ArrayList<String>()
 
@@ -90,10 +95,7 @@ object Tournament {
                 false -> bWins++
             }
             val (red, blue) = lineup
-            for (hero in if (aRed) red else blue) {
-                heroGames[hero] = (heroGames[hero] ?: 0) + 1
-                if (aWon == true) heroWins[hero] = (heroWins[hero] ?: 0) + 1
-            }
+            countHeroes(red, blue, aRed, aWon)
             val reason = r.session.view(null).winReason?.name ?: "UNFINISHED"
             reasons[reason] = (reasons[reason] ?: 0) + 1
             rounds += r.rounds
@@ -112,6 +114,18 @@ object Tournament {
             }
             lines += "${red.joinToString("+")} vs ${blue.joinToString("+")}: $a ${if (aRed) "Red" else "Blue"}, " +
                 "$result by $reason in round ${r.rounds}"
+        }
+
+        /** One game's heroes: those of side a and those of side b, with who won. */
+        fun countHeroes(red: List<String>, blue: List<String>, aRed: Boolean, aWon: Boolean?) {
+            for (hero in if (aRed) red else blue) {
+                heroGames[hero] = (heroGames[hero] ?: 0) + 1
+                if (aWon == true) heroWins[hero] = (heroWins[hero] ?: 0) + 1
+            }
+            for (hero in if (aRed) blue else red) {
+                heroGamesB[hero] = (heroGamesB[hero] ?: 0) + 1
+                if (aWon == false) heroWinsB[hero] = (heroWinsB[hero] ?: 0) + 1
+            }
         }
 
         /** Heroes defeated per side, and those with no card left to defend with. */
@@ -133,6 +147,59 @@ object Tournament {
         /** a's win rate with each hero (the heroes a plays worst come first). */
         fun byHero(): String = heroGames.keys.sortedBy { (heroWins[it] ?: 0).toDouble() / heroGames.getValue(it) }
             .joinToString(", ") { "$it ${heroWins[it] ?: 0}/${heroGames.getValue(it)}" }
+    }
+
+    /**
+     * What side a gains over side b with one hero: a's win rate with it less b's win rate with it, on
+     * mirrored games of the same line-ups, so how strong the hero itself is cancels. [low] and [high]
+     * are its 95% normal interval.
+     */
+    class Uplift(val hero: String, val aRate: Double, val bRate: Double, val low: Double, val high: Double) {
+        val gain: Double get() = aRate - bRate
+    }
+
+    /** Every hero's [Uplift], the heroes side a improves least first. */
+    fun uplifts(s: Score): List<Uplift> = s.heroGames.keys.filter { (s.heroGamesB[it] ?: 0) > 0 }.map { h ->
+        val n = s.heroGames.getValue(h).toDouble()
+        val m = s.heroGamesB.getValue(h).toDouble()
+        val a = (s.heroWins[h] ?: 0) / n
+        val b = (s.heroWinsB[h] ?: 0) / m
+        val se = sqrt(a * (1 - a) / n + b * (1 - b) / m)
+        Uplift(h, a, b, a - b - 1.96 * se, a - b + 1.96 * se)
+    }.sortedBy { it.gain }
+
+    /** The per-hero scorecard of a tournament, one line per hero, worst first. */
+    fun scorecard(s: Score): String = uplifts(s).joinToString("\n") { u ->
+        "%-12s %+6.1f%% [%+6.1f, %+6.1f]  a %5.1f%% of %d, b %5.1f%% of %d".format(
+            u.hero,
+            u.gain * 100,
+            u.low * 100,
+            u.high * 100,
+            u.aRate * 100,
+            s.heroGames.getValue(u.hero),
+            u.bRate * 100,
+            s.heroGamesB.getValue(u.hero),
+        )
+    }
+
+    /**
+     * Wald's sequential probability ratio test on a win rate: stops a tournament as soon as the games
+     * so far separate [p0] from [p1] at error rates [alpha] and [beta], so a clear result costs few games.
+     */
+    class Sprt(val p1: Double, val p0: Double = 0.5, val alpha: Double = 0.05, val beta: Double = 0.05) {
+        enum class Verdict { H1, H0, GOING_ON }
+
+        /** The log-likelihood ratio of [p1] over [p0]; draws say nothing. */
+        fun llr(wins: Int, losses: Int): Double = wins * ln(p1 / p0) + losses * ln((1 - p1) / (1 - p0))
+
+        fun verdict(wins: Int, losses: Int): Verdict {
+            val l = llr(wins, losses)
+            return when {
+                l >= ln((1 - beta) / alpha) -> Verdict.H1
+                l <= ln(beta / (1 - alpha)) -> Verdict.H0
+                else -> Verdict.GOING_ON
+            }
+        }
     }
 
     private val KEEP_GOING = System.getenv("AI_KEEP_GOING") != null
