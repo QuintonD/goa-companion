@@ -21,7 +21,7 @@ import dev.quinton.goa.core.model.board.Hex
 import dev.quinton.goa.core.model.board.MinionType
 import dev.quinton.goa.core.model.match.Team
 
-/** Full round 10, mined from self-play (g4536_r8_RED_win; ADR-052, ENCODING.md "Full rounds"). */
+/** Full round 9, mined from self-play (g4536_r8_RED_win; ADR-052, ENCODING.md "Full rounds"). */
 object R10NothingLeftToDefendWith : Puzzle() {
     override val concept = "R10"
 
@@ -54,9 +54,9 @@ object R10NothingLeftToDefendWith : Puzzle() {
 
     override val info = PuzzleInfo(
         id = "r10",
-        number = 10,
+        number = 9,
         title = "Nothing Left to Defend With",
-        difficulty = 2,
+        difficulty = 1,
         theme = "Making a hero spend its spare card",
         heroes = listOf("misa", "wasp", "widget", "nebkher"),
         goal = PuzzleGoal.WinGame("Win the game this round.", Deadline.END_OF_ROUND),
@@ -66,22 +66,18 @@ object R10NothingLeftToDefendWith : Puzzle() {
         nudges = R10_NUDGES.first(),
         nudgesByTurn = R10_NUDGES,
         explanation =
-            "Turn 1: Widget plays four of its five cards this round, so it has one to spare. Electrocute attacks " +
-                "it for 7 now, and it has to spend a card to stop it (p.14): Dragon Bond or Diversionary Attack " +
-                "defends, anything less and Widget is defeated at once, which ends the game." +
+            "Turn 1: Electrocute attacks Widget for 7, and it has to spend a card to stop it (p.14): Dragon Bond " +
+                "or Diversionary Attack defends, anything less and Widget is defeated at once, which ends the game." +
                 "\n\n" +
-                "Turn 2: Widget kills the Red melee minion as planned. Swoop In puts Misa next to Widget and the Blue" +
-                " melee minion (it needs two or more enemy units next to the space), while Wasp plays Static Barrier." +
+                "Turn 2: Widget defeats the Red melee minion. Swoop In puts Misa next to Widget and the Blue melee " +
+                "minion (it needs two or more enemy units next to the space), while Wasp plays Static Barrier." +
                 "\n\n" +
                 "Turn 3: Widget's Safe Landing moves Pyro and swaps with it, so you know where it will end. Dash and " +
-                "Slash takes Misa one space, next to that space." +
+                "Slash takes Misa one space, next to that space: most of its other spaces are proven to lose." +
                 "\n\n" +
-                "Turn 4: The cards are revealed with Widget's hand empty. Misa acts first and attacks with Worthy " +
-                "Opponent for 7. Widget has no card to defend with and is defeated (p.13), its own card goes " +
-                "unresolved, and Blue spends its last 2 Life counters: the game is over." +
-                "\n\n" +
-                "The computer at strength 7, playing your heroes, doesn't find this: on its line the round ends with " +
-                "Widget alive and the Minion Battle level at 1 against 1.",
+                "Turn 4: Misa acts first and attacks with Worthy Opponent for 7. On this line Widget has no card to " +
+                "defend with and is defeated (p.13). Its own card is resolved, without performing an action, and Blue" +
+                " spends its last 2 Life counters: the game is over.",
         rules = listOf(
             "p.13 Attacking a hero, When a hero is defeated",
             "p.14 Defense",
@@ -90,12 +86,12 @@ object R10NothingLeftToDefendWith : Puzzle() {
         known = known.display(
             mapOf(
                 "widget" to mapOf(
-                    1 to "Moves to the space outlined, next to the Red melee minion.",
-                    2 to "Attacks the Red melee minion.",
+                    1 to "Moves to the space outlined.",
+                    2 to "Attacks a unit in its reach.",
                     3 to "Moves Pyro to the space outlined, then swaps places with Pyro.",
                 ),
                 "nebkher" to mapOf(
-                    1 to "Places an Illusion, swaps with it and places another, all in Lane Zone 3.",
+                    1 to "Places Illusions on the spaces outlined and swaps with one.",
                     2 to "Moves to the space outlined.",
                     3 to "Fast travels to the space outlined.",
                 ),
@@ -182,7 +178,7 @@ object R10NothingLeftToDefendWith : Puzzle() {
 
     override val wrongTries = listOf(
         WrongTry(
-            "The computer at strength 7 on your heroes",
+            "A natural line",
             listOf(
                 card("misa-green-3b"),
                 card("wasp-blue-3b"),
@@ -217,8 +213,7 @@ object R10NothingLeftToDefendWith : Puzzle() {
 private val R10_NUDGES = listOf(
     listOf(
         "Widget has five cards and plays four. What will it have left in turn 4?",
-        "A defense costs a card (p.14). Attack Widget now, when it can afford to defend, so that it can't" +
-            " later.",
+        "A defense costs a card (p.14). Attack Widget now and it has to spend one, or fall.",
         "Play Watch How I Soar on Misa and Electrocute on Wasp, and attack Widget with Electrocute.",
     ),
     listOf(
@@ -229,13 +224,13 @@ private val R10_NUDGES = listOf(
     ),
     listOf(
         "Widget's plan this turn ends on the outlined space. Be next to it.",
-        "Misa only needs one space, and Dash and Slash can stop after one.",
+        "Misa only needs one space, and Dash and Slash can stop after one. Most of its spaces are proven " +
+            "to lose.",
         "Play Dash and Slash on Misa, one space along, next to the Red heavy minion, and Magnetic Dagger " +
             "on Wasp, who just moves.",
     ),
     listOf(
-        "Look at Widget's hand: its fourth card is played and the spare is gone. Now look at who acts " +
-            "first.",
+        "Look at Widget's hand, and at who acts first.",
         "Misa acts before Widget in this turn. Her attack is 7.",
         "Play Worthy Opponent on Misa and Kinetic Blast on Wasp, and attack Widget with Worthy Opponent.",
     ),

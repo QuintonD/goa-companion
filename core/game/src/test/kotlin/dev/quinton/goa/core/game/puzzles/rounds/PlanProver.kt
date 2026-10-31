@@ -26,6 +26,10 @@ class PlanProver(
     private val solver: PuzzleSolver,
     private val maxRuns: Long,
     private val deadlineNanos: Long = Long.MAX_VALUE,
+    /** Choices of the player's that are off limits (`RoundGate`: a puzzle with its idea taken away). */
+    private val banned: ((Node, Choice) -> Boolean)? = null,
+    /** Positions the player must not reach (`RoundGate`: what happened on the board, whoever chose it). */
+    private val deadEnd: ((Node) -> Boolean)? = null,
 ) {
     private val proven = HashMap<RoundKey, Boolean>()
     private val tried = HashMap<RoundKey, Long>()
@@ -78,13 +82,26 @@ class PlanProver(
         history[k] = (history[k] ?: 0) + 1
     }
 
+    /** The choices at [n]. A ban can leave none: then that line is simply not open to the player. */
+    private fun allowed(n: Node): List<Int> {
+        val all = solver.choices(n)
+        val ban = banned ?: return all
+        val d = n.decision!!
+        if (solver.sideOf(d) == Side.OPPONENT) return all
+        return all.filterNot { ban(n, d.options[it]) }
+    }
+
     private fun prove(n: Node, budget: Long): Value {
+        // First: a defeat can also be what meets the goal, and the probe is that it doesn't happen.
+        if (deadEnd?.invoke(n) == true) return Value.LOSS
         terminal(n)?.let { return it }
         val k = RoundKey.of(n)
         proven[k]?.let { return if (it) Value.WIN else Value.LOSS }
         if ((tried[k] ?: 0L) >= budget || spent) return Value.UNKNOWN
         val start = engineRuns
-        val choices = ordered(n, solver.choices(n))
+        val open = allowed(n)
+        if (open.isEmpty()) return Value.LOSS
+        val choices = ordered(n, open)
         val v = if (solver.sideOf(n.decision!!) == Side.OPPONENT) {
             enemy(n, choices, budget, start)
         } else {

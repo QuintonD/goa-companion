@@ -17,7 +17,7 @@ import dev.quinton.goa.core.model.board.Hex
 import dev.quinton.goa.core.model.board.MinionType
 import dev.quinton.goa.core.model.match.Team
 
-/** Full round 17, mined from self-play (g8907_r7_BLUE_defeat-snorri; ADR-052, ENCODING.md "Full rounds"). */
+/** Full round 15, mined from self-play (g8907_r7_BLUE_defeat-snorri; ADR-052, ENCODING.md "Full rounds"). */
 object R17OpeningShots : Puzzle() {
     override val concept = "R17"
 
@@ -42,31 +42,34 @@ object R17OpeningShots : Puzzle() {
 
     override val info = PuzzleInfo(
         id = "r17",
-        number = 17,
+        number = 15,
         title = "Opening Shots",
-        difficulty = 3,
-        theme = "A discard forced while both discards are empty, the last Life counters",
+        difficulty = 2,
+        theme = "A discard forced while both discards are empty, the last Life counter",
         heroes = listOf("rowenna", "swift", "snorri", "wasp"),
         goal = PuzzleGoal.DefeatHero("snorri", Deadline.END_OF_ROUND, "Defeat Snorri by the end of the round."),
-        intro = "Round 7. You play Rowenna and Swift for Blue. Red has 2 Life counters left, and defeating Snorri " +
-            "costs both. Snorri has five cards and will play four. Opening Shots makes an enemy hero in radius " +
-            "discard only if neither of you has a card in the discard. Turn 4 isn't known.",
+        intro = "Round 7. You play Rowenna and Swift for Blue. Red has 1 Life counter left, and defeating Snorri " +
+            "costs 2. Snorri has five cards and will play four. Opening Shots makes an enemy hero in radius " +
+            "discard only if neither of you has a card in the discard.",
         nudges = R17_NUDGES.first(),
         nudgesByTurn = R17_NUDGES,
-        explanation = "Turn 1: Throw the Gauntlet places Rowenna near the fight. Wasp fast travels into Side Zone 2." +
-            "\n\n" +
-            "Turn 2: Code of Chivalry's Movement takes Rowenna next to Snorri. Prepared Shot defeats the Red " +
-            "melee minion. Snorri takes a Blue melee minion, as planned." +
-            "\n\n" +
-            "Turn 3: Opening Shots needs both discards empty, and they are, because Rowenna hasn't defended and " +
-            "Snorri hasn't either. He discards Inscribe the Runes, so his hand is down to the one card he plays " +
-            "next turn. Bounce moves Swift 2 spaces in a straight line." +
-            "\n\n" +
-            "Turn 4: Rowenna's initiative beats Snorri's. Paragon of Grace attacks at 7, he has no card to defend" +
-            " with, and he is defeated (p.13). His Runic Battleaxe goes unresolved, and Red spends its last 2 " +
-            "Life counters." +
-            "\n\n" +
-            "The computer at strength 7, playing your heroes, doesn't find it, and neither does strength 10.",
+        explanation =
+            "This is one way through, and other plans win too: making Snorri lose a card before turn 4 is proven " +
+                "not to be needed." +
+                "\n\n" +
+                "Turn 1: Rowenna holds with Throw the Gauntlet and stays where she is. Wasp fast travels into Side " +
+                "Zone 2." +
+                "\n\n" +
+                "Turn 2: Code of Chivalry's Movement takes Rowenna next to Snorri. Prepared Shot defeats the Red " +
+                "melee minion. Snorri takes a Blue melee minion, as planned." +
+                "\n\n" +
+                "Turn 3: Opening Shots needs both discards empty, and they are, because Rowenna hasn't defended and " +
+                "Snorri hasn't either. He discards Inscribe the Runes, so his hand is down to the one card he plays " +
+                "next turn. Bounce moves Swift 2 spaces in a straight line." +
+                "\n\n" +
+                "Turn 4: Rowenna's initiative beats Snorri's. Paragon of Grace attacks at 7, he has no card to defend" +
+                " with, and he is defeated (p.13). His Runic Battleaxe is resolved, without performing an action, and" +
+                " Red has spent its last Life counter.",
         rules = listOf(
             "p.13 Attacking a hero, When a hero is defeated",
             "p.10 Discard a Card",
@@ -76,7 +79,7 @@ object R17OpeningShots : Puzzle() {
             mapOf(
                 "snorri" to mapOf(
                     1 to "Holds.",
-                    2 to "Attacks a Blue melee minion.",
+                    2 to "Attacks the Blue melee minion outlined.",
                     3 to "Holds.",
                 ),
                 "wasp" to mapOf(
@@ -163,7 +166,7 @@ object R17OpeningShots : Puzzle() {
 
     override val wrongTries = listOf(
         WrongTry(
-            "The computer at strength 7 on your heroes",
+            "A natural line",
             listOf(
                 card("rowenna-silver"),
                 card("swift-red-2a"),
@@ -195,7 +198,7 @@ private val R17_NUDGES = listOf(
         "What will Snorri have left in turn 4? And what must Rowenna's own discard look like when you " +
             "take his spare?",
         "Don't defend, and don't discard, before turn 3. Rowenna needs to get close first.",
-        "Play Throw the Gauntlet on Rowenna and Reload! on Swift.",
+        "Play Throw the Gauntlet on Rowenna, who holds, and Reload! on Swift.",
     ),
     listOf(
         "Rowenna has a card that walks her next to Snorri. Swift has a clear shot at a Red minion.",
@@ -206,7 +209,7 @@ private val R17_NUDGES = listOf(
     listOf(
         "Rowenna's discard is still empty, and so is Snorri's. Now is the moment for the card that needs " +
             "that.",
-        "Opening Shots takes Snorri's spare card, in radius 3. Swift only has to bounce clear.",
+        "Opening Shots takes one of Snorri's cards, in radius 3. Swift only has to bounce clear.",
         "Play Opening Shots on Rowenna and Bounce on Swift.",
     ),
     listOf(

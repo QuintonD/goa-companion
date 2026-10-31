@@ -21,7 +21,7 @@ import dev.quinton.goa.core.model.board.Hex
 import dev.quinton.goa.core.model.board.MinionType
 import dev.quinton.goa.core.model.match.Team
 
-/** Full round 19, mined from self-play (g6433_r2_RED_coins-6; ADR-052, ENCODING.md "Full rounds"). */
+/** Full round 17, mined from self-play (g6433_r2_RED_coins-6; ADR-052, ENCODING.md "Full rounds"). */
 object R19ComeToMe : Puzzle() {
     override val concept = "R19"
 
@@ -46,35 +46,32 @@ object R19ComeToMe : Puzzle() {
 
     override val info = PuzzleInfo(
         id = "r19",
-        number = 19,
+        number = 17,
         title = "Come to Me",
-        difficulty = 3,
-        theme = "Bringing the target to you, a Turret set up for later, counting coins",
+        difficulty = 2,
+        theme = "Bringing the target to you, counting coins",
         heroes = listOf("xargatha", "trinkets", "razzle", "wasp"),
         goal = PuzzleGoal.GainCoins(6, Deadline.END_OF_ROUND, "Gain 6 coins by the end of the round."),
         intro = "Round 2. You play Xargatha and Trinkets for Red. Coins come from minions (2 each here) and from " +
-            "defeating a hero and assisting. Wasp is off the board, and Razzle has three doubles out. Their last " +
-            "turn isn't known: they answer as hard as they can.",
+            "defeating a hero and assisting. Wasp is off the board, and Razzle has three doubles out.",
         nudges = R19_NUDGES.first(),
         nudgesByTurn = R19_NUDGES,
-        explanation =
+        explanation = "This is one way through, and other plans win too: Charm is proven not to be needed." +
+            "\n\n" +
             "Turn 1: Trinkets holds. Charm moves Xargatha and then the Blue ranged minion 2 spaces, next to " +
-                "Trinkets, where Cleave can reach it. Razzle walks up to the Red melee minion and Wasp stays off the " +
-                "board." +
-                "\n\n" +
-                "Turn 2: Razzle kills the Red melee minion. Cleave defeats the Blue ranged minion: 2 coins. Salvage " +
-                "Parts places the Turret next to a Blue melee minion, which is what Makeshift Minigun needs next " +
-                "turn: its target must be in range of both Trinkets and the Turret." +
-                "\n\n" +
-                "Turn 3: Razzle takes her doubles off the board, whichever body she acts with. Makeshift Minigun " +
-                "attacks at 5 and defeats the Blue melee minion: 4 coins. Siren's Call then pulls Razzle next to " +
-                "Xargatha, because she is not next to her and in range." +
-                "\n\n" +
-                "Turn 4: Razzle's last free card is played, and her only defense left is too small: Alleyoop gives 2 " +
-                "against Attack 5, and declining is no better. Xargatha gains 2 coins for defeating her and Trinkets " +
-                "1 for the assist (p.13), 7 in all: the goal needs 6." +
-                "\n\n" +
-                "The computer at strength 7, playing your heroes, doesn't reach it, and neither does strength 10.",
+            "Trinkets, where Cleave can reach it. Razzle walks up and Wasp stays off the board." +
+            "\n\n" +
+            "Turn 2: Razzle defeats the Red melee minion. Cleave defeats the Blue ranged minion: 2 coins. Salvage" +
+            " Parts places the Turret next to a Blue melee minion, which is what Makeshift Minigun needs next " +
+            "turn: its target must be in range of both Trinkets and the Turret." +
+            "\n\n" +
+            "Turn 3: Razzle takes her doubles off the board, whichever body she acts with. Makeshift Minigun " +
+            "attacks at 5 and defeats the Blue melee minion: 4 coins. Siren's Call then pulls Razzle next to " +
+            "Xargatha, because she is not next to her and in range." +
+            "\n\n" +
+            "Turn 4: Razzle has no plan shown this turn, and on this line her only defense is too small: Alleyoop" +
+            " gives 2 against Attack 5, and declining is no better. Xargatha gains 2 coins for defeating her and " +
+            "Trinkets 1 for the assist (p.13), 7 in all: the goal needs 6.",
         rules = listOf(
             "p.13 Attacking a hero, When a hero is defeated",
             "p.11 Movement in the card text",
@@ -83,9 +80,9 @@ object R19ComeToMe : Puzzle() {
         known = known.display(
             mapOf(
                 "razzle" to mapOf(
-                    1 to "Moves to the space outlined, next to the Red melee minion.",
-                    2 to "Attacks the Red melee minion.",
-                    3 to "Crowd Control: removes her three doubles.",
+                    1 to "Moves to the space outlined.",
+                    2 to "Attacks a unit in its reach.",
+                    3 to "Removes her three doubles.",
                 ),
                 "wasp" to mapOf(
                     1 to "Stays off the board.",
@@ -199,7 +196,7 @@ object R19ComeToMe : Puzzle() {
 
     override val wrongTries = listOf(
         WrongTry(
-            "The computer at strength 7 on your heroes",
+            "A natural line",
             listOf(
                 card("xargatha-silver"),
                 card("trinkets-gold"),
@@ -229,8 +226,8 @@ object R19ComeToMe : Puzzle() {
 private val R19_NUDGES = listOf(
     listOf(
         "Six coins is two minions and a hero. Which of them can you reach, and which must come to you?",
-        "Charm can move an enemy ranged minion in radius 2 spaces. Move it where Xargatha can hit it next" +
-            " turn.",
+        "Charm can move an enemy ranged minion in radius 2 spaces. Here it moves one where Xargatha can " +
+            "hit it next turn.",
         "Play Charm on Xargatha, moving the Blue ranged minion next to Trinkets, and Rapid Redeployment " +
             "on Trinkets, who holds.",
     ),

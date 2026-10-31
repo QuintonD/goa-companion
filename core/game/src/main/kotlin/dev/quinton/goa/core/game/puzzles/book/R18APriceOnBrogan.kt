@@ -18,7 +18,7 @@ import dev.quinton.goa.core.model.board.Hex
 import dev.quinton.goa.core.model.board.MinionType
 import dev.quinton.goa.core.model.match.Team
 
-/** Full round 18, mined from self-play (g2672_r4_BLUE_defeat-brogan; ADR-052, ENCODING.md "Full rounds"). */
+/** Full round 22, mined from self-play (g2672_r4_BLUE_defeat-brogan; ADR-052, ENCODING.md "Full rounds"). */
 object R18APriceOnBrogan : Puzzle() {
     override val concept = "R18"
 
@@ -53,10 +53,10 @@ object R18APriceOnBrogan : Puzzle() {
 
     override val info = PuzzleInfo(
         id = "r18",
-        number = 18,
+        number = 22,
         title = "A Price on Brogan",
         difficulty = 3,
-        theme = "Bounty set up for a later shot, spending the enemy's hand",
+        theme = "Bounty set up for a later shot",
         heroes = listOf("ursafar", "bain", "brogan", "razzle"),
         goal = PuzzleGoal.DefeatHero("brogan", Deadline.END_OF_ROUND, "Defeat Brogan by the end of the round."),
         intro = "Round 4. You play Ursafar and Bain for Blue. Red has 2 Life counters left. Brogan is off the board " +
@@ -65,26 +65,26 @@ object R18APriceOnBrogan : Puzzle() {
         nudges = R18_NUDGES.first(),
         nudgesByTurn = R18_NUDGES,
         explanation =
-            "Turn 1: Brogan respawns and fast travels away as planned. Nothing can reach him yet. Use Movement on" +
+            "This is one way through, and other plans win too: making Brogan spend a card before turn 4 is proven" +
+                " not to be needed, nor is Hand Crossbow. In this line the Bounty is what lets Bain shoot from where " +
+                "he stands." +
+                "\n\n" +
+                "Turn 1: Brogan respawns and fast travels away as planned. Nothing can reach him yet. Use Movement on" +
                 " both cards to bring Ursafar and Bain up among the minions." +
                 "\n\n" +
-                "Turn 2: Each of you kills a Red melee minion. Claws That Catch makes Ursafar enraged and stays " +
+                "Turn 2: Each of you defeats a Red melee minion. Claws That Catch makes Ursafar enraged and stays " +
                 "active this round. After Dead or Alive's attack, Bain gives Brogan the Bounty marker: he is in " +
-                "radius 4. That marker is the whole point. Hand Crossbow in turn 4 can only target him at range " +
-                "because of it." +
+                "radius 4." +
                 "\n\n" +
                 "Turn 3: Bain goes first and uses Get over here! to move Ursafar one space. When Brogan has fast " +
                 "travelled in, Angry Roar performs the primary action of Claws That Catch, which moves Ursafar next " +
                 "to Brogan (enraged) and attacks for 4. Brogan must spend a card to survive it: with Mad Dash or " +
                 "Mighty Punch he defends, without one he is defeated at once." +
                 "\n\n" +
-                "Turn 4: Brogan's fourth card is played and his spare has gone on that defense. Bain's initiative " +
-                "ties his, and the coin shows Blue, so Bain acts first (p.7): Hand Crossbow shoots at Attack 5, " +
-                "Brogan has no card to defend with, and he is defeated (p.13). His own card goes unresolved, and Red " +
-                "spends its last 2 Life counters too." +
-                "\n\n" +
-                "The computer at strength 7, playing your heroes, doesn't get there: the plan needs the marker in " +
-                "turn 2 and the forced defense in turn 3.",
+                "Turn 4: Bain's initiative ties Brogan's, and the coin shows Blue, so Bain acts first (p.7): Hand " +
+                "Crossbow shoots at Attack 5, Brogan has no card to defend with on this line, and he is defeated " +
+                "(p.13). His own card is resolved, without performing an action, and Red spends its last 2 Life " +
+                "counters too.",
         rules = listOf(
             "p.13 Attacking a hero, When a hero is defeated",
             "p.14 Defense",
@@ -182,7 +182,7 @@ object R18APriceOnBrogan : Puzzle() {
 
     override val wrongTries = listOf(
         WrongTry(
-            "The computer at strength 7 on your heroes",
+            "A natural line",
             listOf(
                 card("ursafar-blue-2b"),
                 card("bain-blue-2a"),
@@ -227,8 +227,8 @@ private val R18_NUDGES = listOf(
             "Brogan the Bounty.",
     ),
     listOf(
-        "Brogan comes to you this turn. Count the cards he has left, and what happens if he has to spend " +
-            "one.",
+        "Brogan comes to you this turn. Bain must not spend Hand Crossbow, and Get over here! is the card" +
+            " that keeps the line: its other targets are proven to lose.",
         "Angry Roar repeats an active card's primary action when you are enraged. Claws That Catch is " +
             "active.",
         "Play Angry Roar on Ursafar and Get over here! on Bain. Bain pulls Ursafar one space, and Angry " +

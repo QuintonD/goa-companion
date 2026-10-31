@@ -163,13 +163,13 @@ class PuzzleScreenshotTest {
         }
     }
 
-    @Test fun puzzleRoundStartDark() = shot(ThemeMode.DARK, needs = listOf("r01")) { drive(round) }
+    @Test fun puzzleRoundStartDark() = shot(ThemeMode.DARK, needs = listOf(round)) { drive(round) }
 
-    @Test fun puzzleRoundTurnTwoLight() = shot(ThemeMode.LIGHT, needs = listOf("r01")) { roundTurnTwo() }
+    @Test fun puzzleRoundTurnTwoLight() = shot(ThemeMode.LIGHT, needs = listOf(round)) { roundTurnTwo() }
 
     @Config(qualifiers = "w384dp-h832dp-xxhdpi")
     @Test
-    fun puzzleRoundW384DarkFontScale2() = shot(ThemeMode.DARK, 2f, needs = listOf("r01")) { roundTurnTwo() }
+    fun puzzleRoundW384DarkFontScale2() = shot(ThemeMode.DARK, 2f, needs = listOf(round)) { roundTurnTwo() }
 
     @Test fun puzzleStartDark() = shot(ThemeMode.DARK, needs = listOf("p01")) { start() }
 

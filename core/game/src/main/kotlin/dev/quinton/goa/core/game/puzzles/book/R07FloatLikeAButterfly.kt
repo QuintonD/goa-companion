@@ -18,7 +18,7 @@ import dev.quinton.goa.core.model.board.Hex
 import dev.quinton.goa.core.model.board.MinionType
 import dev.quinton.goa.core.model.match.Team
 
-/** Full round 7, mined from self-play (g6470_r3_BLUE_push; ADR-052, ENCODING.md "Full rounds"). */
+/** Full round 21, mined from self-play (g6470_r3_BLUE_push; ADR-052, ENCODING.md "Full rounds"). */
 object R07FloatLikeAButterfly : Puzzle() {
     override val concept = "R07"
 
@@ -45,10 +45,10 @@ object R07FloatLikeAButterfly : Puzzle() {
 
     override val info = PuzzleInfo(
         id = "r07",
-        number = 7,
+        number = 21,
         title = "Float Like a Butterfly",
-        difficulty = 2,
-        theme = "Gold cards swapped in sequence, a card kept for the last turn, Minion Battle arithmetic",
+        difficulty = 3,
+        theme = "Gold cards swapped in sequence, Minion Battle arithmetic",
         heroes = listOf("takahide", "swift", "tali", "bain"),
         goal = PuzzleGoal.PushLane(Deadline.END_OF_ROUND, "Push the lane by the end of the round."),
         intro = "Round 3. You play Takahide and Swift for Blue. The Battle Zone holds the Red heavy minion against " +
@@ -57,8 +57,8 @@ object R07FloatLikeAButterfly : Puzzle() {
         nudges = R07_NUDGES.first(),
         nudgesByTurn = R07_NUDGES,
         explanation =
-            "Turn 1: Come to Aid's Movement starts Takahide across the board. His last card, Calculated Risk, " +
-                "stays in his hand all round: he will need it." +
+            "Turn 1: Come to Aid's Movement starts Takahide across the board. Calculated Risk stays in his hand " +
+                "on this line." +
                 "\n\n" +
                 "Turn 2: Bushido swaps a gold card: Float like a Butterfly comes from the deck into his hand, ready " +
                 "for next turn. Tali's plan comes to nothing, as she has no gold card to perform." +
@@ -67,14 +67,11 @@ object R07FloatLikeAButterfly : Puzzle() {
                 " for Sting like a Bee and moves Takahide up to 5 spaces: he ends next to Bain and the Red heavy " +
                 "minion." +
                 "\n\n" +
-                "Turn 4: Bain acts before Takahide and has two targets. If he attacks the Blue melee minion, the Red " +
-                "heavy is the only Red minion left and no longer immune (p.13): Lead from the Front defeats it, Red " +
-                "has none left in the Zone, and the lane is pushed. If he attacks Takahide at 4, Calculated Risk " +
-                "defends: 4, +1 for the item, -1 for the adjacent Red heavy, makes 4 (p.14). Then the Minion Battle " +
-                "is Red 1, Blue 2, Red removes its last minion and Blue pushes the lane (p.8)." +
-                "\n\n" +
-                "The computer at strength 7, playing your heroes, doesn't find it: on its line the Minion Battle ends" +
-                " 1 against 1, with no effect. Strength 10 doesn't find it either.",
+                "Turn 4: Bain acts before Takahide and has two targets. If he attacks the Blue melee minion, Lead " +
+                "from the Front defeats the Red heavy: with no other Red minion in the Zone it isn't immune (p.13), " +
+                "Red has none left, and the lane is pushed. If he attacks Takahide at 4, Calculated Risk defends: 4, " +
+                "+1 for the item, -1 for the adjacent Red heavy, makes 4 (p.14). Not defending wins as well. Either " +
+                "way the Minion Battle is Red 1, Blue 2, Red removes its last minion and Blue pushes the lane (p.8).",
         rules = listOf(
             "p.8 Minion Battle, Push the Lane",
             "p.13 Heavy Minion Immunity",
@@ -85,15 +82,15 @@ object R07FloatLikeAButterfly : Puzzle() {
             mapOf(
                 "tali" to mapOf(
                     1 to "Moves to the space outlined.",
-                    2 to "Commune with Spirits, with no gold card to perform.",
-                    3 to "Attacks the Blue melee minion in range.",
+                    2 to "Performs its primary action, with no gold card to perform.",
+                    3 to "Attacks the Blue melee minion outlined, the one 2 spaces from Bain.",
                     4 to "Moves to the space outlined.",
                 ),
                 "bain" to mapOf(
                     1 to "Moves to the space outlined.",
                     2 to "Moves to the space outlined.",
                     3 to "Holds.",
-                    4 to "Attacks a unit next to it, Takahide or a Blue minion, whichever hurts you more.",
+                    4 to "Attacks a unit next to it, of its choice.",
                 ),
             ),
         ),
@@ -173,7 +170,7 @@ object R07FloatLikeAButterfly : Puzzle() {
 
     override val wrongTries = listOf(
         WrongTry(
-            "The computer at strength 7 on your heroes",
+            "A natural line",
             listOf(
                 card("takahide-red-2a"),
                 card("swift-green-2a"),
@@ -206,8 +203,8 @@ private val R07_NUDGES = listOf(
     listOf(
         "Tali takes a Blue minion in turn 3, and Bain goes for something in turn 4. How many must be left" +
             " for the battle to take the Red heavy?",
-        "Takahide has to be next to the Red heavy by turn 4. His gold cards are the way there, and they " +
-            "take two turns to line up.",
+        "On this line Takahide is next to the Red heavy by turn 4, and his gold cards take him there in " +
+            "two turns.",
         "Play Come to Aid on Takahide, moving 2 spaces, and Snipe on Swift, who holds.",
     ),
     listOf(
@@ -219,15 +216,15 @@ private val R07_NUDGES = listOf(
     listOf(
         "Now is the time to run, and to look at where Bain stands.",
         "Float like a Butterfly swaps itself for Sting like a Bee and moves up to 5 spaces. End next to " +
-            "Bain and the Red heavy minion.",
+            "Bain and the Red heavy minion: all 69 other spaces are proven to lose.",
         "Play Float like a Butterfly on Takahide and Steam Jump on Swift, whose Movement takes it next to" +
             " the Blue heavy.",
     ),
     listOf(
         "Bain has to choose: Takahide or the Blue minion. Make both choices lose.",
         "If Bain hits the minion, Takahide can defeat the Red heavy himself. If Bain attacks Takahide, " +
-            "the card you kept all round defends.",
-        "Play Lead from the Front on Takahide and Pin Down on Swift. Defend with Calculated Risk if Bain " +
-            "attacks.",
+            "the Minion Battle does the work, whether or not he defends.",
+        "Play Lead from the Front on Takahide and Pin Down on Swift. You may defend with Calculated Risk " +
+            "if Bain attacks.",
     ),
 )
