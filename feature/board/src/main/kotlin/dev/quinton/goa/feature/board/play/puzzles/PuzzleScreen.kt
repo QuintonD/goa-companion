@@ -340,7 +340,11 @@ private fun ColumnScope.PuzzlePanel(
                 busy = puzzle.busy,
             )
             ResolutionFlowView(puzzle.flow, puzzle.table, focus, Modifier.padding(top = Spacing.xs))
-            puzzle.round?.let { KnownPlaysStrip(it, focus, showNote = puzzle.introOpen) }
+            puzzle.round?.let {
+                KnownPlaysStrip(it, focus, showNote = puzzle.introOpen, onLater = { shown ->
+                    onAction(PuzzleAction.SetLaterShown(shown))
+                })
+            }
             if (moment != null && questionFirst) MomentCard(moment, puzzle.table, focus = focus)
             if (!puzzle.table.handDecision) YourHand(puzzle.table, focus)
         }

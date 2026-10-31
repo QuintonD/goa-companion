@@ -74,8 +74,9 @@ object R27SixAgainstThree : Puzzle() {
                 "Turn 2: Whisper plays Death Seeker and Hanu holds with Hurry up!: neither is needed for the attacks " +
                 "to come." +
                 "\n\n" +
-                "Turn 3: Razzle takes her doubles off the board. Shadow Step's Movement takes Whisper next to the Red" +
-                " ranged minion, and Unexpected Journey's takes Hanu 3 spaces." +
+                "Turn 3: Razzle takes her doubles off the board. Ignatia's Unstable Portal swaps her with Whisper, " +
+                "which is what brings the Red ranged minion within Whisper's reach. Shadow Step's Movement takes " +
+                "Whisper next to it, and Unexpected Journey's takes Hanu 3 spaces." +
                 "\n\n" +
                 "Turn 4: Sanguine Path defeats the Red ranged minion at 3 and Outnumber a Red melee minion at 6. In " +
                 "the Minion Battle Red has 3 and Blue 6: Red removes 3, all it has, and Blue pushes the lane (p.8).",
@@ -95,7 +96,7 @@ object R27SixAgainstThree : Puzzle() {
                 "ignatia" to mapOf(
                     1 to "Moves to the space outlined.",
                     2 to "Moves to the space outlined.",
-                    3 to "Performs its primary action on Whisper, if she is in reach.",
+                    3 to "Swaps with Whisper, if she is in reach (Unstable Portal's orange text).",
                     4 to "Holds.",
                 ),
             ),
@@ -241,7 +242,7 @@ object R27SixAgainstThree : Puzzle() {
 private val R27_NUDGES = listOf(
     listOf(
         "Five against six. How many Red minions must fall for the battle to take the rest?",
-        "Hanu has to respawn and walk: the fight is a long way off.",
+        "On this line Hanu respawns and walks: the fight is a long way off.",
         "Play Lesser Evil on Whisper, moving, and Fight and Flight on Hanu, who respawns and moves.",
     ),
     listOf(

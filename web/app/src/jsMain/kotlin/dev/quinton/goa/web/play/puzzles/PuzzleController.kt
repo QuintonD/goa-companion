@@ -117,6 +117,7 @@ class PuzzleController(
     /** Nudges switched here while the settings store can't be written (it then lives for this visit). */
     private var nudgesOverride: Boolean? = null
     private var introOpen = true
+    private var laterShown = false
     private var moved = false
     private var stored = PuzzleProgress()
     private var replay: Replay? = null
@@ -150,6 +151,7 @@ class PuzzleController(
         val maps = runCatching { maps() }.getOrDefault(emptyList())
         map = maps.firstOrNull { it.id == started.setup.mapId } ?: return unavailable(NoPuzzle.BROKEN)
         info = list[index]
+        laterShown = false
         total = list.count { it.fullRound == list[index].fullRound }
         next = list.getOrNull(index + 1)?.id
         heroes = catalog.boardHeroes()
@@ -227,6 +229,11 @@ class PuzzleController(
 
             is PuzzleAction.SetIntroOpen -> {
                 introOpen = action.open
+                publish()
+            }
+
+            is PuzzleAction.SetLaterShown -> {
+                laterShown = action.shown
                 publish()
             }
 
@@ -597,7 +604,7 @@ class PuzzleController(
                 busy = busy,
                 announcement = announcement,
                 review = buildReview(s),
-                round = roundUi(puzzle, step?.view ?: s.view, cards) { heroes.hero(it).name },
+                round = roundUi(puzzle, step?.view ?: s.view, cards, laterShown) { heroes.hero(it).name },
             ),
         )
     }
@@ -641,7 +648,7 @@ class PuzzleController(
             selected = selected?.takeIf { it in options },
             bottomTeam = bottomTeam,
             hint = hint?.takeIf { it in options },
-            planned = info?.let { p -> roundUi(p, s.view, cards) { "" }?.planned }.orEmpty(),
+            planned = info?.let { p -> roundUi(p, s.view, cards, laterShown) { "" }?.planned }.orEmpty(),
             // While the replies are narrated the board is the one after the player's move: no later events.
             turnLog = if (live == null) turnLog(s.events) else emptyList(),
         )

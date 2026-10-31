@@ -58,7 +58,8 @@ object R15ClawsThatCatchTwice : Puzzle() {
         theme = "An active card used again, coins counted to the last one",
         heroes = listOf("mortimer", "ursafar", "gydion", "wuk"),
         goal = PuzzleGoal.GainCoins(6, Deadline.END_OF_ROUND, "Gain 6 coins by the end of the round."),
-        intro = "Round 2. You play Mortimer and Ursafar for Red, both still level 1. Minions pay 2 coins. Wuk, also " +
+        intro = "Round 2. You play Mortimer and Ursafar for Red, both still level 1. Melee and ranged minions pay 2 " +
+            "coins. Wuk, also " +
             "level 1, pays 1 to the hero who defeats him and 1 to the other. Wuk holds five cards and will play " +
             "four.",
         nudges = R15_NUDGES.first(),

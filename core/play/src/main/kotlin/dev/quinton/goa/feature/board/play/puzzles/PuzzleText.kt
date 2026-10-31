@@ -36,12 +36,13 @@ object PuzzleText {
         else -> "${play.card?.name ?: "A card"}: " + (play.plan ?: "no plan shown: it chooses for itself.")
     }
 
-    /** A later turn's line: its plan's space is only outlined when that turn comes. */
+    /** A later turn's line: its plan's space is outlined on the board while the later turns are shown. */
     fun laterLine(hero: String, play: KnownCardUi): String = "Turn ${play.turn}. ${knownLine(hero, play)}"
 
     /** The convention, once, where a full round is introduced. */
-    const val KNOWN_NOTE: String = "You know their cards all round and, where a plan is shown, what they do with " +
-        "them; its space is outlined on the board on its turn. Where no plan is shown, at every defense, and if you " +
+    const val KNOWN_NOTE: String = "You know all five of their cards: the four they play and the one they keep, " +
+        "marked –. Where a plan is shown you know what they do with them; its space is outlined on the board on its " +
+        "turn, and while the later turns are shown. Where no plan is shown, at every defense, and if you " +
         "spoil a plan, they choose for themselves. Away from the solution they don't always find their best " +
         "answer, so a win there may not be a forced one."
 

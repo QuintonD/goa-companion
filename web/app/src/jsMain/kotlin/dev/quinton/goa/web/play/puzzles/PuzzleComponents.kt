@@ -164,15 +164,15 @@ private const val MAX_DIFFICULTY = 3
 
 /**
  * A full round's enemy plays (ADR-052), as on the phone: for each enemy hero its four real cards in
- * turn order, those played dimmed and marked, this turn's outlined, one that left the hand marked gone;
- * what this turn's card will do underneath. A tap opens a card.
+ * turn order, those played dimmed and marked, this turn's outlined, one that left the hand marked gone,
+ * then the card it keeps, marked –; what this turn's card will do underneath. A tap opens a card.
  */
 @Composable
-fun KnownPlaysStrip(round: RoundUi, focus: CardFocusState, showNote: Boolean) {
+fun KnownPlaysStrip(round: RoundUi, focus: CardFocusState, showNote: Boolean, onLater: (Boolean) -> Unit) {
     Div({ classes("goa-known") }) {
         H3({ classes("t-overline", "c-primary") }) { Text("What they will play") }
         if (showNote) P({ classes("t-body-small") }) { Text(PuzzleText.KNOWN_NOTE) }
-        var later by remember { mutableStateOf(false) }
+        val later = round.laterShown
         round.heroes.forEach { hero ->
             P({ classes("t-label-large") }) { Text(hero.name) }
             Div({ classes("goa-known-row") }) {
@@ -183,7 +183,8 @@ fun KnownPlaysStrip(round: RoundUi, focus: CardFocusState, showNote: Boolean) {
                         if (play.state == KnownCardState.NOW) classes("now")
                         if (play.state == KnownCardState.PLAYED || play.state == KnownCardState.GONE) classes("done")
                         val name = play.card?.name ?: "a card"
-                        attr("aria-label", "${hero.name}, turn ${play.turn}: $name, ${stateWord(play.state)}")
+                        val which = if (play.turn == 0) "kept card" else "turn ${play.turn}"
+                        attr("aria-label", "${hero.name}, $which: $name, ${stateWord(play.state)}")
                         onClick {
                             val i = shown.indexOf(play.card)
                             if (i >= 0) focus.show(shown, i, title = hero.name)
@@ -195,6 +196,7 @@ fun KnownPlaysStrip(round: RoundUi, focus: CardFocusState, showNote: Boolean) {
                                 when (play.state) {
                                     KnownCardState.PLAYED -> "✓"
                                     KnownCardState.GONE -> "✕"
+                                    KnownCardState.KEPT -> "–"
                                     else -> "${play.turn}"
                                 },
                             )
@@ -212,7 +214,7 @@ fun KnownPlaysStrip(round: RoundUi, focus: CardFocusState, showNote: Boolean) {
             }
         }
         if (round.turn < RoundUi.TURNS) {
-            GoaButton(if (later) "Hide later turns" else "Show later turns", { later = !later })
+            GoaButton(if (later) "Hide later turns" else "Show later turns", { onLater(!later) })
         }
     }
 }
@@ -222,6 +224,7 @@ private fun stateWord(state: KnownCardState): String = when (state) {
     KnownCardState.NOW -> "this turn"
     KnownCardState.COMING -> "still to come"
     KnownCardState.GONE -> "gone from the hand"
+    KnownCardState.KEPT -> "kept, not played"
 }
 
 private const val KNOWN_CARD_WIDTH = 56

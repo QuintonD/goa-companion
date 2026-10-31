@@ -292,7 +292,11 @@ private fun PuzzlePanel(puzzle: PuzzleUi, onAction: (PuzzleAction) -> Unit, focu
                     busy = puzzle.busy,
                 )
                 RecentEvents(puzzle.recent.takeLast(2))
-                puzzle.round?.let { KnownPlaysStrip(it, focus, showNote = puzzle.introOpen) }
+                puzzle.round?.let {
+                    KnownPlaysStrip(it, focus, showNote = puzzle.introOpen) { shown ->
+                        onAction(PuzzleAction.SetLaterShown(shown))
+                    }
+                }
                 if (!puzzle.table.handDecision) YourHand(puzzle.table, focus)
             }
         }

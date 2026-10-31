@@ -304,11 +304,17 @@ private const val SEAL_START = 0.6f
 
 /**
  * A full round's enemy plays (ADR-052): for each enemy hero its four real cards in turn order, those
- * played dimmed and marked, this turn's outlined, one that left the hand marked gone; what this turn's
- * card will do underneath. A tap opens a card.
+ * played dimmed and marked, this turn's outlined, one that left the hand marked gone, then the card it
+ * keeps, marked –; what this turn's card will do underneath. A tap opens a card.
  */
 @Composable
-fun KnownPlaysStrip(round: RoundUi, focus: CardFocusState, showNote: Boolean, modifier: Modifier = Modifier) {
+fun KnownPlaysStrip(
+    round: RoundUi,
+    focus: CardFocusState,
+    showNote: Boolean,
+    modifier: Modifier = Modifier,
+    onLater: (Boolean) -> Unit = {},
+) {
     Column(modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
         Text(
             "WHAT THEY WILL PLAY",
@@ -323,10 +329,10 @@ fun KnownPlaysStrip(round: RoundUi, focus: CardFocusState, showNote: Boolean, mo
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
-        var later by rememberSaveable { mutableStateOf(false) }
+        val later = round.laterShown
         round.heroes.forEach { hero -> KnownHero(hero, round.turn, later, focus) }
         if (round.turn < RoundUi.TURNS) {
-            TextButton(onClick = { later = !later }) { Text(if (later) "Hide later turns" else "Show later turns") }
+            TextButton(onClick = { onLater(!later) }) { Text(if (later) "Hide later turns" else "Show later turns") }
         }
     }
 }
@@ -370,6 +376,7 @@ private fun KnownCard(hero: String, play: KnownCardUi, onOpen: () -> Unit) {
         KnownCardState.NOW -> "this turn"
         KnownCardState.COMING -> "still to come"
         KnownCardState.GONE -> "gone from the hand"
+        KnownCardState.KEPT -> "kept, not played"
     }
     val outline = if (play.state == KnownCardState.NOW) {
         MaterialTheme.colorScheme.primary
@@ -382,7 +389,8 @@ private fun KnownCard(hero: String, play: KnownCardUi, onOpen: () -> Unit) {
         color = androidx.compose.ui.graphics.Color.Transparent,
         border = BorderStroke(2.dp, outline),
         modifier = Modifier.semantics {
-            contentDescription = "$hero, turn ${play.turn}: ${play.card?.name ?: "a card"}, $state"
+            val which = if (play.turn == 0) "kept card" else "turn ${play.turn}"
+            contentDescription = "$hero, $which: ${play.card?.name ?: "a card"}, $state"
         },
     ) {
         Box(Modifier.padding(2.dp), contentAlignment = Alignment.Center) {
@@ -392,6 +400,7 @@ private fun KnownCard(hero: String, play: KnownCardUi, onOpen: () -> Unit) {
                 when (play.state) {
                     KnownCardState.PLAYED -> "✓"
                     KnownCardState.GONE -> "✕"
+                    KnownCardState.KEPT -> "–"
                     else -> "${play.turn}"
                 },
                 style = MaterialTheme.typography.labelMedium,

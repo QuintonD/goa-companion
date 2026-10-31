@@ -47,9 +47,9 @@ object R28DiscardToReach : Puzzle() {
     override val info = PuzzleInfo(
         id = "r28",
         number = 3,
-        title = "Discard to Reach",
+        title = "Down to the Heavy",
         difficulty = 1,
-        theme = "Minion Battle arithmetic, a discard that buys range",
+        theme = "Minion Battle arithmetic, a card brought back",
         heroes = listOf("garrus", "brogan", "arien", "hanu"),
         goal = PuzzleGoal.PushLane(Deadline.END_OF_ROUND, "Push the lane by the end of the round."),
         intro = "Round 5. You play Garrus and Brogan for Blue. In the Battle Zone Blue has five minions and Red has " +
@@ -58,7 +58,10 @@ object R28DiscardToReach : Puzzle() {
         nudges = R28_NUDGES.first(),
         nudgesByTurn = R28_NUDGES,
         explanation =
-            "Turn 1: Hanu's Fight and Flight attacks Brogan at 3, and Onslaught defends: 3, +1 for the item, " +
+            "This is one way through, and other plans win too: Throwing Axe's discard for range is proven not to " +
+                "be needed." +
+                "\n\n" +
+                "Turn 1: Hanu's Fight and Flight attacks Brogan at 3, and Onslaught defends: 3, +1 for the item, " +
                 "makes 4 (p.14). Arien defeats a Blue melee minion. Garrus and Brogan take their cards' Movement." +
                 "\n\n" +
                 "Turn 2: Bulwark brings Onslaught back. Angry Strike's Movement takes Garrus 1 space. Hanu defeats a " +

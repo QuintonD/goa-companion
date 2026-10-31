@@ -197,7 +197,7 @@ private val R20_NUDGES = listOf(
     listOf(
         "Count Xargatha's cards turn by turn. How many defenses can she afford, and how many attacks can " +
             "you land on her in one turn?",
-        "On this line nobody attacks yet. Both of you get next to where she will end up.",
+        "On this line nobody attacks yet, and neither of you moves.",
         "Play Watch How I Soar on Misa and Decoy on Brynn, without using it.",
     ),
     listOf(

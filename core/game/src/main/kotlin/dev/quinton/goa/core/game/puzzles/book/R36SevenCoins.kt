@@ -52,7 +52,8 @@ object R36SevenCoins : Puzzle() {
         theme = "Coins counted to the last turn",
         heroes = listOf("dodger", "snorri", "emmitt", "silverarrow"),
         goal = PuzzleGoal.GainCoins(7, Deadline.END_OF_ROUND, "Gain 7 coins by the end of the round."),
-        intro = "Round 3. You play Dodger and Snorri for Blue. Minions pay 2 coins here, and Emmitt pays 2 to the " +
+        intro = "Round 3. You play Dodger and Snorri for Blue. Melee and ranged minions pay 2 coins here, and " +
+            "Emmitt pays 2 to the " +
             "hero who defeats him and 1 to the other. Dark Ritual gains 1 coin if there are 2 or more empty spawn" +
             " points in its radius in the Battle Zone.",
         nudges = R36_NUDGES.first(),
@@ -65,7 +66,7 @@ object R36SevenCoins : Puzzle() {
                 "Dark Ritual gains Dodger 1 coin." +
                 "\n\n" +
                 "Turn 2: Dread Razor's Movement takes Dodger 1 space, and Snorri places his runes with Inscribe the " +
-                "Runes." +
+                "Runes, the Horn below turn 4 on this line: Runic Hammer's move needs it." +
                 "\n\n" +
                 "Turn 3: Safe Passage's Movement takes Snorri 3 spaces, and Dodger plays Death Trap." +
                 "\n\n" +

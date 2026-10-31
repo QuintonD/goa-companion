@@ -5,6 +5,7 @@ import dev.quinton.goa.core.game.AnswerResult
 import dev.quinton.goa.core.game.Choice
 import dev.quinton.goa.core.game.GameEvent
 import dev.quinton.goa.core.game.GameSession
+import dev.quinton.goa.core.game.KnownPlay
 import dev.quinton.goa.core.game.PuzzleBook
 import dev.quinton.goa.core.game.PuzzleInfo
 import dev.quinton.goa.core.game.PuzzleSession
@@ -14,6 +15,7 @@ import dev.quinton.goa.core.game.ai.Features
 import dev.quinton.goa.core.game.ai.StaticPolicy
 import dev.quinton.goa.core.game.engine.EngineSession
 import dev.quinton.goa.core.game.engine.GameEngine
+import dev.quinton.goa.core.game.engine.Zone
 import dev.quinton.goa.core.game.puzzles.book.Puzzles
 
 /**
@@ -34,9 +36,20 @@ class EnginePuzzleBook(
     /** Numbered within each part of the book, so the full rounds start again at 1. */
     override val puzzles: List<PuzzleInfo> = available.filter { it.known == null }.mapIndexed { i, p ->
         p.info.copy(number = i + 1)
-    } + available.filter { it.known != null }.mapIndexed { i, p -> p.info.copy(number = i + 1) }
+    } + available.filter { it.known != null }.mapIndexed { i, p -> p.info.copy(number = i + 1, keeps = keeps(p)) }
 
     private val prepared = HashMap<String, PreparedPuzzle>()
+
+    /** What each enemy hero holds beyond its listed cards: the arithmetic of a defense can rest on it. */
+    private fun keeps(p: Puzzle): List<KnownPlay> {
+        val state = p.build(engine).state
+        return p.info.known.groupBy { it.heroId }.flatMap { (hero, plays) ->
+            val listed = plays.map { it.cardId }.toSet()
+            state.hero(hero)?.cards.orEmpty()
+                .filter { (it.zone == Zone.HAND || it.zone == Zone.PLAYED) && it.id !in listed }
+                .map { KnownPlay(hero, 0, it.id) }
+        }
+    }
 
     /** The solver-ready puzzle (built once per book). */
     fun prepared(puzzleId: String): PreparedPuzzle {

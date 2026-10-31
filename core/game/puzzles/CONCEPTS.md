@@ -1552,7 +1552,6 @@ Four-turn puzzles (ADR-052). What each is about, as the gate holds it (`rounds/i
 - **r28 Discard to Reach** (battle): A discard buys Throwing Axe its range. garrus, brogan against arien, hanu.
 - **r24 Mind Grip** (coins): Mind Grip starts the coins. sabina, nebkher against tali, razzle.
 - **r01 One Too Many** (battle): Red has to end the round behind in the Minion Battle. arien, trinkets against rowenna, ursafar.
-- **r33 A Tree Next to It** (battle): Nature's Guardian takes the last Red melee minion. mortimer, wuk against brogan, min.
 - **r39 Phantasmal Warrior** (setup): Phantasmal Warrior, with an Illusion in place. silverarrow, nebkher against garrus, mrak.
 - **r35 Seven Coins and Min** (last-card): Min is where the coins end. takahide, snorri against tigerclaw, min.
 - **r10 Nothing Left to Defend With** (strip): Widget's spare card spent before turn 4. misa, wasp against widget, nebkher.

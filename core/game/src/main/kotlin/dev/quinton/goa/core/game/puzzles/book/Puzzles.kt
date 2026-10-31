@@ -17,7 +17,6 @@ object Puzzles {
         R28DiscardToReach,
         R24MindGrip,
         R01OneTooMany,
-        R33ATreeNextToIt,
         R39PhantasmalWarrior,
         R35SevenCoinsAndMin,
         R10NothingLeftToDefendWith,

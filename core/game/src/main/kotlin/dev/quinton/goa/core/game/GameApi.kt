@@ -874,6 +874,8 @@ data class PuzzleInfo(
     val intro: String = "",
     /** A full-round puzzle (ADR-052): each enemy hero's card for each turn, and what it does where known. */
     val known: List<KnownPlay> = emptyList(),
+    /** A full-round puzzle: the card each enemy hero holds back, the fifth of its hand (turn 0, no plan). */
+    val keeps: List<KnownPlay> = emptyList(),
     /** A full-round puzzle's nudges, per turn from turn 1, gentle → strong; the last of each names the move. */
     val nudgesByTurn: List<List<String>> = emptyList(),
 ) {

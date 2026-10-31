@@ -63,8 +63,8 @@ object R12CountTheBattle : Puzzle() {
         nudges = R12_NUDGES.first(),
         nudgesByTurn = R12_NUDGES,
         explanation =
-            "This is one way through, and other plans win too; Siren's Call is proven not to be needed. What they" +
-                " share is the count: the Minion Battle has to leave Red with nothing." +
+            "This is one way through, and other plans win too; Siren's Call is proven not to be needed. Every" +
+                " plan we found comes down to the count: the Minion Battle has to leave Red with nothing." +
                 "\n\n" +
                 "Turn 1: Petrifying Stare's and Seismic Assault's Movement take Xargatha and Mrak into Lane Zone 3, " +
                 "side by side next to a Red melee minion." +
@@ -242,6 +242,6 @@ private val R12_NUDGES = listOf(
     listOf(
         "The Red melee minion is next to Xargatha now. What is left to do before the battle?",
         "Long Thrust attacks a unit in range at 5. Count the battle after that.",
-        "Play Long Thrust on Xargatha, attacking the Red melee minion, and Boulder Blitz on Mrak.",
+        "Play Long Thrust on Xargatha, attacking the Red melee minion, and on this line Boulder Blitz on Mrak.",
     ),
 )
