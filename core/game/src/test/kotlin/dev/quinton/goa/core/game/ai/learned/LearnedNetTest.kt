@@ -125,7 +125,13 @@ class LearnedNetTest {
         val hand = Evaluator(TestData.engine.data, AiPlayers.TUNED)
         val v09 = BaselineV09(TestData.engine.data)
         val states = states(LINEUPS[2], 400)
-        repeat(3) { for (s in states) net.evaluate(s, Team.RED) + hand.evaluate(s, Team.RED) + v09.evaluate(s, Team.RED) }
+        repeat(3) {
+            for (s in states) {
+                net.evaluate(s, Team.RED)
+                hand.evaluate(s, Team.RED)
+                v09.evaluate(s, Team.RED)
+            }
+        }
         fun time(f: (GameState) -> Double): Double {
             var sink = 0.0
             val t0 = System.nanoTime()
@@ -137,10 +143,8 @@ class LearnedNetTest {
         val netNs = time { net.evaluate(it, Team.RED) }
         val handNs = time { hand.evaluate(it, Team.RED) }
         val v09Ns = time { v09.evaluate(it, Team.RED) }
-        println(
-            "LEARNED evaluation: net ${"%.1f".format(netNs / 1000)} µs, v0.9's net ${"%.1f".format(v09Ns / 1000)} µs, " +
-                "hand ${"%.1f".format(handNs / 1000)} µs per position (3v3)",
-        )
+        fun us(ns: Double) = "%.1f".format(ns / 1000)
+        println("LEARNED evaluation: net ${us(netNs)} µs, v0.9's net ${us(v09Ns)} µs, hand ${us(handNs)} µs (3v3)")
         // A playout is 0.1–30 ms on the desktop (AI.md "Determinism"); loose for shared machines.
         assertThat(netNs).isLessThan(2_000_000.0)
     }

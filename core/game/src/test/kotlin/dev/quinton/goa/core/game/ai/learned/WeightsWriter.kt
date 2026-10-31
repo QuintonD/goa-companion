@@ -32,8 +32,14 @@ internal object WeightsWriter {
         ids(sb, "HEROES", n.heroes)
         ids(sb, "CARDS", n.cards)
         val arrays = listOf(
-            "w1" to n.w1, "b1" to n.b1, "w2" to n.w2, "b2" to n.b2, "w3" to n.w3, "wl" to n.wl,
-            "wh" to n.wh, "wc" to n.wc,
+            "w1" to n.w1,
+            "b1" to n.b1,
+            "w2" to n.w2,
+            "b2" to n.b2,
+            "w3" to n.w3,
+            "wl" to n.wl,
+            "wh" to n.wh,
+            "wc" to n.wc,
         )
         for ((name, a) in arrays) floats(sb, name, a)
         sb.append("}\n")

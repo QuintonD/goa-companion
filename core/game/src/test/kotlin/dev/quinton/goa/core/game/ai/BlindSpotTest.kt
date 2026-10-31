@@ -53,12 +53,10 @@ class BlindSpotTest {
             pool.shutdown()
         }
         for ((key, list) in rows.groupBy { it.key }.entries.sortedByDescending { e -> e.value.count { it.blind } }) {
-            println(
-                "BLIND %-58s %5d asked, %5d no difference (%3.0f%%), mean spread %.1f".format(
-                    key, list.size, list.count { it.blind }, 100.0 * list.count { it.blind } / list.size,
-                    list.map { it.spread }.average(),
-                ),
-            )
+            val blind = list.count { it.blind }
+            val spread = list.map { it.spread }.average()
+            val line = "%-58s %5d asked, %5d no difference (%3.0f%%), mean spread %.1f"
+            println("BLIND " + line.format(key, list.size, blind, 100.0 * blind / list.size, spread))
         }
     }
 

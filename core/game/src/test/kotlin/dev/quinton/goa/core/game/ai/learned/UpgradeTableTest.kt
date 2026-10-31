@@ -67,10 +67,9 @@ class UpgradeTableTest {
             val others = rivals.getValue(key).mapNotNull { tally[it] }.filter { it.n >= 2 }
             val lead = if (others.isEmpty()) 0.0 else t.mean - others.maxOf { it.mean }
             val se = sqrt(t.se * t.se + (others.maxOfOrNull { it.se * it.se } ?: 0.0))
-            println(
-                "UPGRADES %-34s n %5d mean %+.3f se %.3f lead %+.3f z %+.1f".format(key, t.n, t.mean, t.se, lead, lead / se),
-            )
-            if (others.isNotEmpty() && lead >= z * se) keep.append(key).append(' ').append("%.3f".format(lead)).append('\n')
+            val line = "%-34s n %5d mean %+.3f se %.3f lead %+.3f z %+.1f"
+            println("UPGRADES " + line.format(key, t.n, t.mean, t.se, lead, lead / se))
+            if (others.isNotEmpty() && lead >= z * se) keep.append("$key ${"%.3f".format(lead)}\n")
         }
         System.getenv("AI_UPGRADES_OUT")?.let { File(it).writeText(keep.toString()) }
         println("UPGRADES kept\n$keep")
@@ -97,7 +96,8 @@ class UpgradeTableTest {
         return out
     }
 
-    private fun key(kind: DecisionKind, card: String) = "${if (kind == DecisionKind.UPGRADE_CARD) "up" else "keep"}:$card"
+    private fun key(kind: DecisionKind, card: String): String =
+        (if (kind == DecisionKind.UPGRADE_CARD) "up:" else "keep:") + card
 
     companion object {
         private val KINDS = setOf(DecisionKind.UPGRADE_CARD, DecisionKind.KEEP_UPGRADE)

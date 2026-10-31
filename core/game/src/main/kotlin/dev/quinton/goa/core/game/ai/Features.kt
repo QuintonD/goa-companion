@@ -394,7 +394,11 @@ internal class Features(data: EngineData) {
             "token_totem", "token_tree", "token_zombie", "trinkets_turret", "other",
         )
         val MARKER_KINDS: List<String> = listOf(
-            "marker_bounty", "marker_poison", "marker_rune_anvil", "marker_rune_axe", "marker_rune_bird",
+            "marker_bounty",
+            "marker_poison",
+            "marker_rune_anvil",
+            "marker_rune_axe",
+            "marker_rune_bird",
             "marker_rune_horn",
         )
         val COUNTER_KEYS: List<String> = listOf("spellbook", "spellsRemoved", "wishCasts")

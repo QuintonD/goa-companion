@@ -83,16 +83,18 @@ internal object Learned {
                 else -> if (v == "v09") {
                     // The frozen baseline: the strength 10 of `feature/v0.10`'s first commit (ADR-049).
                     p.copy(learned = EvalSource.LEAVES, leafEvaluator = ::BaselineV09)
-                } else p.copy(
-                    net = net(v),
-                    learned = if (p.learned ==
-                        EvalSource.HAND
-                    ) {
-                        EvalSource.LEAVES
-                    } else {
-                        p.learned
-                    },
-                )
+                } else {
+                    p.copy(
+                        net = net(v),
+                        learned = if (p.learned ==
+                            EvalSource.HAND
+                        ) {
+                            EvalSource.LEAVES
+                        } else {
+                            p.learned
+                        },
+                    )
+                }
             }
         }
         return p

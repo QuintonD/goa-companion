@@ -17,8 +17,9 @@ internal class BaselineV09(data: EngineData) : PositionEvaluator {
     private val features = FeaturesV09(data)
 
     override fun evaluate(state: GameState, team: Team): Double {
-        val red = state.winner?.let { if (it == Team.RED) Evaluator.WIN - state.round else -Evaluator.WIN + state.round }
-            ?: (redLogit(state) * NET.coinScale)
+        val red =
+            state.winner?.let { if (it == Team.RED) Evaluator.WIN - state.round else -Evaluator.WIN + state.round }
+                ?: (redLogit(state) * NET.coinScale)
         return if (team == Team.RED) red else -red
     }
 

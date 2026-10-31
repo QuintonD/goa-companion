@@ -34,7 +34,8 @@ class LearnedTrainTest {
     fun `write a saved net as the weights`() {
         val spec = System.getenv("AI_WRITE_NET")?.split(":", limit = 2) ?: return
         val target = File(spec.getOrNull(1) ?: WEIGHTS)
-        WeightsWriter.write(Learned.loadNetData(File(Learned.NETS, "${spec[0]}.net")), target, System.getenv("AI_WRITE_NOTE") ?: spec[0])
+        val net = Learned.loadNetData(File(Learned.NETS, "${spec[0]}.net"))
+        WeightsWriter.write(net, target, System.getenv("AI_WRITE_NOTE") ?: spec[0])
         println("TRAIN wrote $target")
     }
 
