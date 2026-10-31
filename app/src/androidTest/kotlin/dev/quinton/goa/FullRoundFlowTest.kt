@@ -54,12 +54,12 @@ class FullRoundFlowTest {
 
         rule.tap(hasContentDescription("More options"))
         rule.tapText("Nudge me")
-        rule.waitForText("Nudge 1 of", substring = true)
+        rule.waitForText("NUDGE 1 OF", substring = true)
         shot("nudge")
 
         rule.tap(hasContentDescription("More options"))
         rule.tapText("Show solution")
-        rule.waitForText("step 1 of", substring = true, timeout = PUZZLE_TIMEOUT)
+        rule.waitForText("STEP 1 OF", substring = true, timeout = PUZZLE_TIMEOUT)
         shot("replay")
         var steps = 0
         while (!rule.exists(hasText("Goal met", substring = true)) && steps++ < MAX_STEPS) {
