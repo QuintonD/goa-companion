@@ -31,10 +31,10 @@ object RoundGate {
     private val data get() = TestData.engine.data
 
     /**
-     * One thing taken away from the player. A choice in some turns (`T1-4 card:Hurry up!`, `T4 defend:X`,
-     * `T3 retrieve:X`, `T2 unit:brogan` where the card asks) or something that must not happen on the board, however it comes about, because an attack
-     * with a single target is never asked: `T1-4 kill:RED` no Red minion falls, `T1-4 defeat:misa` Misa isn't
-     * defeated, `T1-4 spare:widget` Widget's hand stays what its card plays leave.
+     * One thing taken away from the player. A choice in some turns: `T1-4 card:Hurry up!`, `T4 defend:X`,
+     * `T3 retrieve:X`, `T2 unit:brogan` where the card asks. Or something that must not happen on the board, however
+     * it comes about, because an attack with a single target is never asked: `T1-4 kill:RED` no Red minion falls,
+     * `T1-4 defeat:misa` Misa isn't defeated, `T1-4 spare:widget` Widget's hand stays what its card plays leave.
      */
     class Ban(private val turns: IntRange, private val kind: String, private val value: String) {
         fun hits(n: Node, c: Choice): Boolean {
@@ -77,12 +77,17 @@ object RoundGate {
         companion object {
             private const val ON_BOARD = 1
             private const val HAND = 5
+            private const val FROM = 1
+            private const val TO = 2
+            private const val KIND = 3
+            private const val VALUE = 4
             private val FORM = Regex("""T(\d)(?:-(\d))? (\w+):(.+)""")
 
             fun parse(s: String): Ban {
                 val m = requireNotNull(FORM.matchEntire(s.trim())) { "Bad ban: $s" }
-                val (a, b, kind, value) = m.destructured
-                return Ban(a.toInt()..(b.toIntOrNull() ?: a.toInt()), kind, value)
+                val g = m.groupValues
+                val first = g[FROM].toInt()
+                return Ban(first..(g[TO].toIntOrNull() ?: first), g[KIND], g[VALUE])
             }
         }
     }
@@ -113,8 +118,9 @@ object RoundGate {
         val f = File("$RESOURCES/ideas.txt")
         if (!f.exists()) return emptyMap()
         return f.readLines().filter { it.isNotBlank() }.map { line ->
-            val (id, category, text, bans) = line.split("|", limit = 4)
-            Idea(id, category, text, bans.split(";").filter { it.isNotBlank() }.map { it.split("+").map(Ban::parse) })
+            val f = line.split("|", limit = IDEA_FIELDS)
+            val probes = f[IDEA_FIELDS - 1].split(";").filter { it.isNotBlank() }
+            Idea(f[0], f[1], f[2], probes.map { it.split("+").map(Ban::parse) })
         }.associateBy { it.id }
     }
 
@@ -303,6 +309,7 @@ object RoundGate {
         )
     }
 
+    private const val IDEA_FIELDS = 4
     const val S7 = 7
     const val S10 = 10
     private const val THREE = 3
