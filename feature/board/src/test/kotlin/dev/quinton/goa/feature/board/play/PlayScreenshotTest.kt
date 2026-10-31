@@ -27,10 +27,22 @@ import dev.quinton.goa.core.game.ActionType
 import dev.quinton.goa.core.game.AiLevel
 import dev.quinton.goa.core.game.Choice
 import dev.quinton.goa.core.game.CoachNote
+import dev.quinton.goa.core.game.CoachPlan
+import dev.quinton.goa.core.game.CoachReason
+import dev.quinton.goa.core.game.CoachReasonKind
+import dev.quinton.goa.core.game.CoachSuggestions
+import dev.quinton.goa.core.game.CoachThreat
 import dev.quinton.goa.core.game.DecisionKind
+import dev.quinton.goa.core.game.DecisionMark
 import dev.quinton.goa.core.game.GameEvent
 import dev.quinton.goa.core.game.GamePhase
+import dev.quinton.goa.core.game.GameReport
 import dev.quinton.goa.core.game.GameView
+import dev.quinton.goa.core.game.ReviewAccuracy
+import dev.quinton.goa.core.game.ReviewMistake
+import dev.quinton.goa.core.game.ReviewedDecision
+import dev.quinton.goa.core.game.SuggestedOption
+import dev.quinton.goa.core.game.SuggestionConfidence
 import dev.quinton.goa.core.model.match.Team
 import dev.quinton.goa.core.model.settings.ThemeMode
 import dev.quinton.goa.core.navigation.NewGameRoute
@@ -53,7 +65,9 @@ import dev.quinton.goa.feature.board.play.game.NoGame
 import dev.quinton.goa.feature.board.play.game.PendingNudge
 import dev.quinton.goa.feature.board.play.game.PlaySheet
 import dev.quinton.goa.feature.board.play.game.PlayUi
+import dev.quinton.goa.feature.board.play.game.ReportUi
 import dev.quinton.goa.feature.board.play.game.RevealedCard
+import dev.quinton.goa.feature.board.play.game.SuggestUi
 import dev.quinton.goa.feature.board.play.game.TurnStatus
 import dev.quinton.goa.feature.board.play.game.panelWorthy
 import dev.quinton.goa.feature.board.play.game.recentSince
@@ -669,6 +683,146 @@ class PlayScreenshotTest {
     }
 
     @Test fun gameOverDark() = capture(ThemeMode.DARK) { Game(remember { over() }) }
+
+    // ---- The coach's suggestions and the post-game review (ADR-051) -----------------------
+
+    private val tips = listOf(
+        "Use your gold card to move allies out of harm’s way, or to set up future attacks.",
+        "Both green branches enhance your mobility but require some practice to master.",
+    )
+
+    private fun why(kind: CoachReasonKind, text: String, detail: String) = CoachReason(kind, text, detail)
+
+    private fun sampleSuggestions(close: Boolean = false, id: Long = 1) = CoachSuggestions(
+        decisionId = id,
+        seat = "arien",
+        options = listOf(
+            SuggestedOption(
+                Choice.Card("arien-red-1"),
+                "Noble Blade",
+                60,
+                0,
+                if (close) SuggestionConfidence.CLOSE else SuggestionConfidence.CLEAR,
+                line = listOf(
+                    "You attack Tigerclaw with Noble Blade (Attack 4)",
+                    "Tigerclaw could hold the attack",
+                    "An enemy melee minion is defeated",
+                ),
+                reasons = listOf(
+                    why(
+                        CoachReasonKind.KILL,
+                        "You defeat Tigerclaw in most playouts of this.",
+                        "You collect 1 coin (their level) and their team spends 1 Life counter (their lowest card Tier) (p.13).",
+                    ),
+                    why(
+                        CoachReasonKind.KEEP_DEFENDER,
+                        "Playing Noble Blade keeps Liquid Leap in hand (Defense 4); playing Liquid Leap would leave you a best Defense of 2.",
+                        "You defend by discarding a card from your hand; with none, you are defeated (p.13, p.14).",
+                    ),
+                ),
+            ),
+            SuggestedOption(
+                Choice.Card("arien-gold"),
+                "Spell Break",
+                50,
+                10,
+                SuggestionConfidence.LIKELY,
+                line = listOf("You move with Spell Break"),
+                against = listOf(
+                    why(
+                        CoachReasonKind.DANGER,
+                        "Brogan's Onslaught can still reach Arien after this action.",
+                        "An attack whose total is higher than your best Defense card defeats you; minion modifiers count (p.14).",
+                    ),
+                ),
+            ),
+        ),
+        close = close,
+        samples = 12,
+        threats = listOf(
+            CoachThreat("brogan", true, null, 5, 4, -1, "Brogan: a card of Attack 5 could reach you this turn: it takes Defense 5, and your best is only 4, counting −1 from minions here."),
+            CoachThreat("wasp", false, null, 3, 4, -1, "Wasp: a card of Attack 3 could reach you next turn: it takes Defense 3, and your best is 4, counting −1 from minions here."),
+        ),
+        plan = CoachPlan(
+            listOf("arien-red-1", "arien-blue-1", "arien-green-1"),
+            "arien-gold",
+            "Play Noble Blade now, then Liquid Leap, then Slippery Ground; keep Spell Break.",
+            "Best in 5 of 6 guesses of the hidden cards played to the end of the round. A card used to defend is discarded (p.10) and changes the plan; all cards come back at the end of the round (p.8).",
+        ),
+        advice = tips,
+    )
+
+    private fun suggestPlay(close: Boolean = false) = playCard().copy(
+        canSuggest = true,
+        suggest = SuggestUi("arien", suggestions = sampleSuggestions(close)),
+    )
+
+    @Test fun suggestButtonDark() = capture(ThemeMode.DARK) { Game(remember { playCard().copy(canSuggest = true) }) }
+
+    @Test
+    fun suggestSheetDark() = capture(ThemeMode.DARK, screen = true) { Game(remember { suggestPlay() }) }
+
+    @Test
+    fun suggestSheetLight() = capture(ThemeMode.LIGHT, screen = true) { Game(remember { suggestPlay(close = true) }) }
+
+    @Config(qualifiers = "w384dp-h832dp-xxhdpi")
+    @Test
+    fun suggestSheetW384DarkFontScale2() = capture(ThemeMode.DARK, 2f, screen = true) { Game(remember { suggestPlay() }) }
+
+    @Config(qualifiers = "w891dp-h411dp-land-xxhdpi")
+    @Test
+    fun suggestSheetLandscapeDark() = capture(ThemeMode.DARK, screen = true) { Game(remember { suggestPlay() }) }
+
+    @Test
+    fun suggestSheetThinkingDark() = capture(ThemeMode.DARK, screen = true) {
+        Game(remember { playCard().copy(suggest = SuggestUi("arien", looking = true)) })
+    }
+
+    private fun sampleReport(): GameReport {
+        val row = ReviewedDecision(9, "arien", DecisionKind.DEFEND, 2, 3, DecisionMark.BLUNDER, 0.14, 12)
+        return GameReport(
+            decisions = listOf(
+                row,
+                row.copy(decisionId = 10, kind = DecisionKind.PLAY_CARD, mark = DecisionMark.BEST, loss = 0.0),
+                row.copy(decisionId = 11, kind = DecisionKind.PLAY_CARD, mark = DecisionMark.GOOD, loss = 0.01),
+                row.copy(decisionId = 12, kind = DecisionKind.CHOOSE_SPACE, mark = DecisionMark.INACCURACY, loss = 0.03),
+            ),
+            overall = ReviewAccuracy("All", 4, 2, 0.045),
+            byHero = listOf(ReviewAccuracy("arien", 4, 2, 0.045)),
+            byKind = listOf(
+                ReviewAccuracy("DEFEND", 1, 0, 0.14),
+                ReviewAccuracy("PLAY_CARD", 2, 2, 0.005),
+                ReviewAccuracy("CHOOSE_SPACE", 1, 0, 0.03),
+            ),
+            mistakes = listOf(
+                ReviewMistake(
+                    row,
+                    "You are attacked: discard a card to defend",
+                    "Don't defend",
+                    "Round 2, turn 3. Lane Zone 2 is the Battle Zone: your 4 minions against their 3, 5 Wave counters left. Life counters: yours 4, theirs 5. Arien, level 2 with 1 coins and 3 cards in hand, Lane Zone 2, 1 from Brogan.",
+                    sampleSuggestions(id = 9),
+                ),
+            ),
+        )
+    }
+
+    @Test
+    fun gameOverReviewRunningDark() = capture(ThemeMode.DARK) {
+        Game(remember { over().copy(report = ReportUi(done = 40, total = 112, running = true)) })
+    }
+
+    @Test
+    fun gameOverReportLight() = capture(ThemeMode.LIGHT, before = {
+        compose.onNode(hasText("Show what the coach suggests")).performScrollTo().performClick()
+    }) {
+        Game(remember { over().copy(report = ReportUi(112, 112, report = sampleReport())) })
+    }
+
+    @Config(qualifiers = "w384dp-h832dp-xxhdpi")
+    @Test
+    fun gameOverReportW384DarkFontScale2() = capture(ThemeMode.DARK, 2f) {
+        Game(remember { over().copy(report = ReportUi(112, 112, report = sampleReport())) })
+    }
 
     @Test fun gameOverLight() = capture(ThemeMode.LIGHT) { Game(remember { over() }) }
 

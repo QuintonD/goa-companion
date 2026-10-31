@@ -125,9 +125,9 @@ private fun Report(play: PlayUi, report: GameReport, focus: CardFocusState?, onL
         fontWeight = FontWeight.SemiBold,
     )
     Text(
-        DecisionMark.entries.joinToString(" · ") { m ->
+        DecisionMark.entries.map { m ->
             stringResource(R.string.report_marks, markWord(m), report.decisions.count { it.mark == m })
-        },
+        }.joinToString(" · "),
         style = MaterialTheme.typography.bodySmall,
         color = MaterialTheme.colorScheme.onSurfaceVariant,
     )
