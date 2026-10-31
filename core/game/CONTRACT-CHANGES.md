@@ -353,3 +353,11 @@ re-derived by the replay; the new fields appear in old games too, `ResolutionEve
   Barrier), and so does one that makes it an obstacle *because* it is now empty (the empty spaces next
   to Takahide's Spinning Blade). The check lifts the token, asks `isEmpty`, and puts it back, restoring
   the change stamp (a primary probe reads a bumped stamp as a change). `RazzleTest` covers both.
+
+## 2026-10-31 — `feature/v10-ai-value`: the hero-aware net (ADR-049)
+- No change to `GameApi.kt` or `Evaluator.kt`; the coach's numbers on the hand evaluation are unaffected.
+  `LevelProfile` gains `leafEvaluator` (tests only, the frozen baseline), `LearnedNet` per-hero and
+  per-card tables, `Features` the board inputs and `extract(state, out, perHero)`, all internal. Saves
+  carry no strength-specific state, so old games replay unchanged.
+- Behaviour: strength 10 answers differently (new weights), `GameParityTest`'s searching transcript is
+  re-pinned, the JVM and Node agree; strengths 1–9 answer as before.

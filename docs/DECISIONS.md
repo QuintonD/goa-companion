@@ -2164,3 +2164,42 @@ workflow are retired and `github-pages` deploys from `main` only again. A new re
 page by running the workflow on main (`gh workflow run web-pages.yml --ref main`); the download page
 links the web app for iPhones, the root is the web app.
 
+## ADR-049 — A net that knows heroes, cards and pieces (v0.10, 2026-10-31)
+**Context:** The owner asked for a stronger computer with every hero, and beats strength 10 by hero kills
+and pushing the lane in 3v3 or bigger. v0.9's net pools 52 generic numbers per hero per team, so it
+cannot tell what a hero or a token is for; it wins by pushing and loses heroes (ADR-047 together).
+**Decision:**
+- **Extend the net, keep what measured:** N(team) = MLP(pooled features) + linear skip + a per-hero linear
+  correction on each of the team's heroes' 52 numbers + a value per card id and place (in hand, played,
+  resolved, item, extra place). The tables start at zero and decay towards it. New inputs: per team, each
+  piece kind's count and nearness to the Battle Zone and to enemy heroes, markers per kind, counters per
+  key. P(Red) = σ(N(Red) − N(Blue)), the coin scale, λ 0.7 targets from the hand evaluation, team-size
+  invariance and "reads only the determinized copy" all stay. Tables are data: no logic depends on a hero,
+  and a hero or card they do not know adds nothing.
+- **Trained** on the 6 399 stored games and 4 000 new ones (the net in self-play, low-uplift heroes
+  seated more often, kill-punishing variants in 40% of the mix). The checked-in net is seed 3 of three.
+- **Weights as Base64 text in Kotlin source** (exact bits, 209 KB of source for 33 900 floats; the
+  FloatArray literals took 243 KB for 18 300). An evaluation costs 1.34× v0.9's.
+- **v0.9's net stays playable in test sources** (`net=v09`, the same answers, `FingerprintTest`): every
+  later measurement can compare with it.
+- **Only strength 10 changes.** Strengths 1–9 and the coach keep the hand evaluation; `Evaluator` is
+  untouched.
+- **Measured** at the phone's work on line-ups never used for training or choosing, against v0.9's 10: 3v3
+  60.5% (55.6–65.2%, 400 games), 1.71 heroes lost a game against 1.96; 2v2 59.4% (52.3–66.1%, 192), 0.91
+  against 1.16; 4v4 56.8% (49.7–63.6%, 192), 2.29 against 2.49. Against the kill-hunter
+  74.0% (67.3–79.7%, 192) where v0.9's won 62.0% (54.9–68.5%), 2.10 heroes lost a game against its 1.70 (v0.9's: 2.27 against 1.49).
+  10 over 9 in 3v3 84.4% (75.8–90.3%, 96). No hero's uplift over v0.9 is negative in 400 games; the
+  set-up heroes gained most (Gydion +41%, Trinkets +28%, NebKher +20%, ±22 points).
+**Alternatives (measured and dropped, AI.md "v0.10"):** a retrain with neither new part (48.4%, so the
+parts are what pays); per-hero upgrade tables by Monte Carlo control (138 946 explored answers; "which
+to upgrade" showed nothing beyond chance, a table of "which to keep" 50.6% over 1 000 games); searching a
+tied answer again to the end of the next turn (48.3% over 1 000 games, at strength 7 only); other
+λ, table decay, data subsets. A second new generation was not played: generation 2's net did not beat
+generation 1's head to head (46.9%), it only lost fewer heroes.
+**Consequences:** A feature change needs a retrain (AI.md "How to retrain") and re-pinning
+`GameParityTest`; the JVM and Node agree on the new transcript. Training data outside the repo:
+`D:\.goa-qa\v09\a2\data` and `D:\.goa-qa\v10\value\data`, reproducible from their commands. Not
+measured: the real phone's factor and decision times on the new net (`TimingTest` was not rerun; the
+extra cost is one evaluation per playout), and whether a human hunting kills fares worse, which is the
+device game night's question. In a one-ply look inside a playout the hand evaluation still answers, so
+where a token goes in a playout is chosen without the net's knowledge.
