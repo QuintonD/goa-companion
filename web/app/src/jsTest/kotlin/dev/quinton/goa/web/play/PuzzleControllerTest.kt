@@ -94,7 +94,7 @@ class PuzzleControllerTest {
         val first = assertNotNull(rig.puzzle.round)
         assertEquals(1, first.turn)
         assertEquals(2, first.heroes.size)
-        assertTrue(first.heroes.all { it.cards.size == 4 && it.now?.turn == 1 })
+        assertTrue(first.heroes.all { it.cards.size == 5 && it.now?.turn == 1 })
         var moves = 0
         var sawTurnTwo = false
         while (rig.puzzle.phase != PuzzlePhase.SOLVED && moves < MAX_ROUND_MOVES) {

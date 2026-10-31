@@ -156,9 +156,11 @@ class PuzzleViewModelTest {
         assertThat(start.heading).isEqualTo("Turn 1 of 4")
         assertThat(start.heroes).hasSize(2)
         for (hero in start.heroes) {
-            assertThat(hero.cards.map { it.turn }).containsExactly(1, 2, 3, 4).inOrder()
+            // The four it plays, then the fifth card of its hand, kept.
+            assertThat(hero.cards.map { it.turn }).containsExactly(1, 2, 3, 4, 0).inOrder()
             assertThat(hero.cards.first().state).isEqualTo(KnownCardState.NOW)
-            assertThat(hero.cards.drop(1).map { it.state }.toSet()).containsExactly(KnownCardState.COMING)
+            assertThat(hero.cards.drop(1).dropLast(1).map { it.state }.toSet()).containsExactly(KnownCardState.COMING)
+            assertThat(hero.cards.last().state).isEqualTo(KnownCardState.KEPT)
             assertThat(hero.cards.all { it.card != null }).isTrue()
         }
         for (move in puzzleFile(id).solution) {
