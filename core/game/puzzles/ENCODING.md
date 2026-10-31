@@ -15,6 +15,7 @@ Code: `core/game/src/main/kotlin/dev/quinton/goa/core/game/puzzles/`
 | `AnswerKey.kt` | The precomputed answers on every winning line (`src/main/resources/.../puzzles/keys/pNN.key`) |
 | `PuzzleRuntime.kt` | `EnginePuzzleBook` (`PuzzleBook`), `PreparedPuzzle`, `EnginePuzzleSession` (`PuzzleSession`) |
 | `StateHash.kt` | 128-bit position fingerprint for the transposition table |
+| `KnownPlays.kt` | A full round's convention: the enemy's cards, and its actions on the known turns |
 
 ## The workflow
 
@@ -224,3 +225,111 @@ first decision). A key over 20 000 decisions fails: the puzzle has too many alte
 A solver expansion costs 50–150 µs (one engine step re-run, plus a 12 µs hash when a step
 commits). With the key, a phone (3–4× slower) answers in well under 100 ms. The test asserts every
 answer under 200 ms on the desktop.
+
+## Full rounds (ADR-052)
+
+The book's second part: `r01`… are four turns planned from turn 1, through the end-of-round Minion
+Battle. The 50 turn-sized puzzles and their keys are untouched. What they are and why: ADR-052.
+
+### The convention
+
+**The enemy's plays are known** (`Puzzle.known`, `KnownPlays`, shown as `PuzzleInfo.known`):
+
+- Each enemy hero's card for each of the four turns is listed, so those plays are not choices.
+- On the *known turns* (`KnownPlays.actions`) what the hero does with its card is listed too, in order.
+- Everything else is adversarial: the free turns, every defense and every question asked while
+  someone else resolves a card, and any known answer the player has made impossible (the target is gone,
+  the path is blocked). A listed card that left the hand (spent on a defense, discarded) is simply not
+  offered, and the hero plays anything it has left.
+- Falling back to a free choice only makes it harder for the player, so a proof stays sound.
+
+`openFrom` is the first free turn: 5 = reactions only, all round (known turns 1–4); 4 = turn 4 is free;
+3 = turns 3 and 4 are free. A puzzle is a proof that a plan reaches the goal against every enemy answer
+*under this convention*. Fixing the cards alone is not enough; the numbers are in ADR-052.
+
+The player controls both heroes of a team (2v2). No friends: a teammate answered in the player's favour
+would make the plan unreadable over four turns.
+
+The deadline: `GoalTracker.haltAt(…, beforeRetrieve = true)` stops the game once the Minion Battle and the
+pushes are done and before cards are retrieved, so nobody is asked about levelling up and no pity coin
+counts. `PuzzleGoal.WinGame` takes a deadline (`by`, default this turn: the 50 stay as they were).
+
+### Making one (test sources, opt-in; nothing here ships)
+
+| Tool | What |
+|------|------|
+| `rounds/RoundGenTest` | Mines round starts of self-play games and filters them: `ROUND_GEN='<dir>\|<games>\|<hours>'` |
+| `rounds/PlanProver` | The prover: a plan tried first, budgets growing, every proof replayed through the engine |
+| `rounds/RoundSpec` | A mined position as data: what a book file's `setUp` builds, checked equal to the mined state |
+| `rounds/FullRoundDossierTest` | Every fact the text may use, from the engine: `ROUND_DOSSIER=<dir>` |
+| `rounds/FullRoundDeepTest` | The rejection rules again with longer budgets: `ROUND_DEEP='<file>\|<seconds>'` |
+| `FullRoundProveTest` | Proves the book again and rewrites its certificates: `ROUND_PROVE=all` or `r01,r02` |
+| `rounds/RoundSpikeTest`, `RoundWidthTest`, `DfPn` | The feasibility spike's measurements (ADR-052), kept so they can be rerun |
+
+**The filter** (`RoundGenTest.judge`), in order; a position must pass all of them:
+
+1. The game itself reached the goal late: turn 3 or later, or the Minion Battle.
+2. Provable, most known first; then as open as it can be proven (that sets the base grade).
+3. The solution line ends in turn 4 or the end of the round.
+4. Not forced by the end of turn 2, nor of turn 3 (a budgeted solve that finds a win rejects it).
+5. Not every first-turn card wins, for both heroes.
+6. Every turn has a choice on the solution line that isn't proven to be free.
+7. `s7` on the player's seats fails, and so does `s3`.
+
+**Grades:** 3 for `openFrom` 3, 2 for 4, 1 for 5; one higher (at most 3) when `s10` fails too.
+
+**A rule that was only checked within a budget says so.** Disproving is the expensive direction, so at
+turns 1 and 2 an option is often neither proven won nor proven lost. `UNKNOWN` is never reported as "loses":
+`FullRoundDeepTest`'s table counts proven losses, proven wins and unknowns per turn, and STATUS.md shows it.
+
+### A book file
+
+Generated from the dossier and a text file, then edited. As a turn-sized puzzle, plus:
+
+- `override val known = KnownPlays(cards = …, actions = …)`, above `info`, which shows it with
+  `known = known.display(plans)`: one line of plan for every known turn, none for a free one (the test
+  checks they match).
+- `nudgesByTurn`: for each of the four turns, at least three nudges, gentle to strong; the last names that
+  turn's card (the test checks it by card name). `nudges` = turn 1's.
+- `explanation`: turn by turn ("Turn 1: …" … "Turn 4: …", the test checks all four are there), saying why
+  tempting tries fail. Every sentence traces to the dossier or the rulebook, or it goes.
+- `wrongTries`: a real line that fails (`s7`'s from the generator), played on to the end of the round.
+- Unit ids in `actions` are the built position's: minions number `m1000`, `m1001`, … in `minion` call order.
+- `Puzzles.fullRounds` lists them, hard to hardest. `number` is the place in this part of the book.
+
+### Answer keys, certificates and the runtime
+
+A round has too many positions to precompute every winning option, so:
+
+- **The key** (`keys/rNN.key`, the same format) is one line: the solution against the answers that hold out
+  longest. On it the runtime needs no search.
+- **Off the key**, status comes from a budgeted solve (`ROUND_ANSWER_BUDGET` expansions for one answer, its
+  status and the replies it sets off together; none in turns 1 and 2, where this budget proves nothing).
+  MISSED only when the solver proves it or the goal has failed; otherwise the game plays on honestly to the end
+  of the round. An enemy off the key answers by that budgeted solve, else by the AI's static policy (the hand
+  `Evaluator`). A win off the line counts as solved.
+- **After a miss**, Try again takes back a whole turn (`undoTurn`), one turn further each time: a miss is often
+  found long after the move that caused it.
+- **The certificate** (`src/test/resources/…/rounds/rNN.cert`) is the proof: the player's option at every
+  position the plan reaches. `FullRoundBookTest` replays it against every enemy answer, with no search, so a rules
+  change that breaks a puzzle fails the build. The key is derived from it and compared.
+
+**When `ENGINE_VERSION` changes:** a stored key is ignored at runtime, as for the 50, so the puzzle still plays,
+with budgeted statuses and no "show me" until the key is back; `FullRoundBookTest` fails on the stale key and
+rewrites it, so no build ships that way. **When the engine's state changes** (a rule, a new field), the
+certificates' keys hash differently: the gate fails with "no plan at …", and `ROUND_PROVE=all` re-proves them. A
+puzzle that no longer proves fails there: fix it or cut it.
+
+### Solver notes (what the spike found)
+
+- The turn-sized solver's depth-first search and df-pn both stall on free enemies: nothing past turn 2 in 10 M
+  engine runs. `DfPn` stays in the test sources for that measurement; `PlanProver` replaced it.
+- `PlanProver`'s history table (what won in a sibling branch, first) is what makes it work. The AI's static
+  policy as move order made proofs slower and larger (577 933 runs and 19 738 positions against 220 452 and 2 416
+  on the same position), so it is off.
+- `quiet` sessions are 15% faster; the proof is the same.
+- **`RoundKey`'s step hash must change with every answer.** An early version folded from 0, and `Primary`
+  hashes to 0: a position and the next one shared a key, and a proof could look complete when it wasn't. It starts at 1
+  now and adds the answer's kind. Nothing proven before that fix was kept.
+- Opt-in runs: the Gradle configuration cache captures the test JVM's environment, and env vars aren't task
+  inputs, so run with `--no-configuration-cache` and `:core:game:jvmTest --rerun`, or from a class snapshot.

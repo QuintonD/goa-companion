@@ -353,3 +353,25 @@ re-derived by the replay; the new fields appear in old games too, `ResolutionEve
   Barrier), and so does one that makes it an obstacle *because* it is now empty (the empty spaces next
   to Takahide's Spinning Blade). The check lifts the token, asks `isEmpty`, and puts it back, restoring
   the change stamp (a primary probe reads a bumped stamp as a change). `RazzleTest` covers both.
+
+## 2026-10-31 (full rounds, `feature/v10-puzzles`, ADR-052)
+
+Additive; defaults keep the 50 puzzles, other `GameSession` implementations and fakes unaffected. No
+synced or saved type changes: puzzle progress is stored by id, and `p..` ids are unchanged.
+
+- `PuzzleGoal.WinGame.by: Deadline = Deadline.END_OF_TURN`: a win may have a round-long deadline.
+- `PuzzleInfo.known: List<KnownPlay> = emptyList()`: a full round's enemy plays. `KnownPlay(heroId, turn, cardId,
+  plan: String? = null)`; `plan` null = that turn is free. Not empty = a full round (`PuzzleInfo.fullRound`).
+- `PuzzleInfo.nudgesByTurn: List<List<String>> = emptyList()` and `PuzzleInfo.nudgesFor(turn)`: nudges per turn.
+  Use `nudgesFor` rather than `nudges` wherever a nudge is shown.
+- `PuzzleInfo.number` is the place in its part of the book: the full rounds count from 1 again, so numbers repeat
+  across parts. Name a puzzle with `PuzzleText.short(info)`; never key anything by number.
+- `PuzzleInfo.id`: `p01`…`p60` or `r01`….
+- `core/play`: `PuzzleUi.round: RoundUi?` (`roundUi`, the turn and each known card's state), `PuzzleSession.undoTurn()`,
+  `PuzzleText.short/place/knownLine/tryAgain`.
+- Engine side: `Puzzles.fullRounds` beside `Puzzles.all` (which stays the 50); `EnginePuzzleBook`'s default book is
+  both; `PuzzleSolver(known = …)` and `PuzzleSolver.choices(node)`, the real choices at a node; `GoalTracker.haltAt(…,
+  beforeRetrieve)`; `PositionBuilder.gameVar`.
+- Behaviour: a full round's `PuzzleSession.bestChoice` is the key's move on the line and, off it, a budgeted solve's
+  or null. Its status can stay PLAYING on a line that will fail, until the solver proves it or the round ends.
+- Web: `EngineRequest.PuzzleUndo` takes back a whole turn in a full round.
