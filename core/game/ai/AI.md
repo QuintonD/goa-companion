@@ -906,7 +906,7 @@ could only approximate it. A horizon at the end of the round was built but not p
 search that already lost at one turn. The code is kept in commit `7477dbcd` (`later=`, `laterCheap=`, `blend=`,
 `Horizon.ROUND_END`) and left production.
 
-**Speed alone buys nothing either.** Same harness, at the phone's work (`work=15500`, AI.md's 2 s at 4× on three
+**Speed alone buys nothing either.** Same harness, at the phone's work (`work=15500`, 2 s at an assumed 4× on three
 threads):
 
 | 3v3, tune family | Net | Wins | Games | Rate | 95% interval |

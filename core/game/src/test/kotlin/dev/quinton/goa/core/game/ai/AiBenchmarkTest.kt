@@ -1,6 +1,7 @@
 package dev.quinton.goa.core.game.ai
 
 import com.google.common.truth.Truth.assertThat
+import dev.quinton.goa.core.game.AiLevel
 import dev.quinton.goa.core.game.TestData
 import java.util.concurrent.atomic.AtomicLong
 import org.junit.Test
@@ -38,12 +39,12 @@ class AiBenchmarkTest {
     }
 
     @Test
-    fun `a uniform answer gives the same work with any runner`() {
+    fun `threads lose no count of the work`() {
         // The work is what makes answers per second comparable: three threads must not lose counts.
         val positions = AiBenchmark.positions(engine).take(WORK_POSITIONS)
         fun work(runner: SampleRunner): List<Long> {
             val p = SearchAi(
-                dev.quinton.goa.core.game.AiLevel.of(10),
+                AiLevel.of(10),
                 AiPlayers.profile(10),
                 1L,
                 timeCap = false,

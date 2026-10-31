@@ -79,7 +79,9 @@ internal object PlayEngineModule {
                 AiSampleThreads,
                 progress = { progress(it.toFloat()) },
                 cancelled = { !job.isActive },
-            )?.let { AiSpeed(it.answersPerSecond, it.medianMs, it.p95Ms, it.line("${Build.MANUFACTURER} ${Build.MODEL}")) }
+            )?.let {
+                AiSpeed(it.answersPerSecond, it.medianMs, it.p95Ms, it.line("${Build.MANUFACTURER} ${Build.MODEL}"))
+            }
         }
     }
 
