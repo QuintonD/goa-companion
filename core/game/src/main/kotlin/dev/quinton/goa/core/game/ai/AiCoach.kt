@@ -356,6 +356,9 @@ internal class Explainer(
         val attacker = d.context.attackerId?.let { data.heroName(it) } ?: "The attacker"
         if (mine is Choice.Decline && best is Choice.Card) {
             val v = d.context.defensePreview[best.cardId]
+            // A card that falls too can be the better one (it strips nothing else): it does not "stop" this.
+            if (v != null && v < total && d.context.blockPreview[best.cardId] != true) return null
+            if (d.context.blockPreview[best.cardId] == false) return null
             val card = cardName(best.cardId) ?: return null
             val numbers = v?.let { " (Defense $it against Attack $total)" } ?: ""
             return "Your $card can still stop this attack$numbers." to

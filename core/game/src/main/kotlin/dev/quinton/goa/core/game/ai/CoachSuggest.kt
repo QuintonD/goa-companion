@@ -93,7 +93,10 @@ internal class SuggestionBuilder(
                     confidence(best, r)
                 },
                 line = lines.line(c),
-                reasons = found.filterNot { it.reason.speaksAgainst() }.map { it.reason }.distinctBy { it.text }
+                reasons = found.filterNot { it.reason.speaksAgainst() }.map { it.reason }
+                    // "Enough, so the other stays" is said of the first; under another it argues against the first.
+                    .filter { i == 0 || it.kind != CoachReasonKind.DEFENSE_CHEAPER }
+                    .distinctBy { it.text }
                     .take(MAX_REASONS),
                 against = (
                     found.filter { it.reason.speaksAgainst() }.map { it.reason } +
@@ -120,8 +123,7 @@ internal class SuggestionBuilder(
         // These speak of what the better option does: under this one they must say so.
         val ofTheBest = said.kind == CoachReasonKind.KILL || said.kind == CoachReasonKind.MINION ||
             said.kind == CoachReasonKind.PUSH_WON
-        val text = said.text.replaceFirstChar { it.lowercase() }
-        return if (ofTheBest) said.copy(text = "The better option: $text") else said
+        return if (ofTheBest) said.copy(text = "Instead: ${said.text}") else said
     }
 
     /** Three spaces can read the same: what else tells them apart, the distance from the hero first. */

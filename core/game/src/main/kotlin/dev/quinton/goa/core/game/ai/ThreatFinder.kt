@@ -29,7 +29,11 @@ internal class ThreatFinder(private val f: CoachFacts, private val copies: List<
             val top = open ?: list.maxBy { it.attack }
             out += threat(enemy, now, open?.card, top.attack, best, mod)
         }
-        return out.sortedWith(compareBy({ !it.thisTurn }, { -it.attack }, { it.heroId })).take(MAX)
+        // Next turn adds nothing when the same enemy can already do as much this turn.
+        val told = out.filter { next ->
+            next.thisTurn || out.none { it.thisTurn && it.heroId == next.heroId && it.attack >= next.attack }
+        }
+        return told.sortedWith(compareBy({ !it.thisTurn }, { -it.attack }, { it.heroId })).take(MAX)
     }
 
     private fun threatsIn(det: EngineSession): List<Seen> {

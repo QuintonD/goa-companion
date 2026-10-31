@@ -40,6 +40,24 @@ class CoachTest {
     }
 
     @Test
+    fun `not defending is never told that a card which falls would stop the attack`() {
+        val d = pos(engine = TestData.engine) {
+            clearMinions()
+            hero("wasp", Team.RED, Hex(0, -2)) { hand("wasp-gold", "wasp-red-1", exactly = true) }
+            hero("brogan", Team.BLUE, Hex(1, -2)) { played("brogan-gold") }
+            minion(Team.RED, MinionType.MELEE, Hex(-4, -1))
+            minion(Team.BLUE, MinionType.MELEE, Hex(4, -5))
+            turn = 2
+            phase = PositionPhase.Resolving(next = "brogan")
+        }.also { it.action("brogan", ActionType.PRIMARY) }
+        val q = d.expect(DecisionKind.DEFEND, "wasp")
+        val note = coach.nudge(d.s, q, Choice.Decline("Don't defend"))
+        val best = q.context.defensePreview.values.filterNotNull().max()
+        assertThat(best).isLessThan(q.context.attackTotal!!)
+        assertThat(note?.text.orEmpty()).doesNotContain("can still stop")
+    }
+
+    @Test
     fun `defending with a card that is too weak is flagged`() {
         val d = attacked()
         val q = d.expect(DecisionKind.DEFEND, "wasp")

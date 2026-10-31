@@ -131,6 +131,54 @@ class CoachHelpTest {
         }
     }
 
+    /** The time from the tap to the sheet, with the phone's budget at 4x the desktop (AI.md "The coach"). */
+    @Test
+    fun `the time of a suggestion`() {
+        val games = System.getenv("AI_COACH_TIMING")?.toIntOrNull() ?: return
+        val size = System.getenv("AI_SIZE")?.toIntOrNull() ?: 3
+        val onDesktop = AiCoach.BUDGET_MS / PHONE_FACTOR
+        val tap = ArrayList<Double>()
+        val look = ArrayList<Double>()
+        var withPlan = 0
+        var plays = 0
+        var samples = 0
+        for (spec in Teams.specs(games, size, family())) {
+            val (red, blue) = spec.lineup
+            val s = TestData.engine.newGame(AiHarness.setup(red, blue, AiLevel.NORMAL, AiLevel.NORMAL, spec.coin))
+                as EngineSession
+            val coach = AiCoach(TestData.engine, 0x0C0AC4L, onDesktop)
+            val p = AiPlayers.deterministic(8, spec.seed)
+            var n = 0
+            while (n++ < 8000) {
+                val d = s.pending ?: break
+                if (d.team == Team.RED && d.options.size > 1) {
+                    val t0 = System.nanoTime()
+                    val prepared = coach.prepare(s.fork(), d)
+                    val t1 = System.nanoTime()
+                    val said = coach.suggest(prepared, s.fork(), d)
+                    val t2 = System.nanoTime()
+                    look += (t1 - t0) / 1e6
+                    tap += (t2 - t1) / 1e6
+                    samples += said?.samples ?: 0
+                    if (d.kind.name == "PLAY_CARD") {
+                        plays++
+                        if (said?.plan != null) withPlan++
+                    }
+                }
+                s.answer(d.id, p.choose(s, d))
+            }
+        }
+        fun line(v: List<Double>): String {
+            val q = v.sorted()
+            return "mean ${"%.0f".format(v.average())} ms, p95 ${"%.0f".format(q[(q.size * 0.95).toInt()])} ms, " +
+                "max ${"%.0f".format(q.last())} ms"
+        }
+        println(
+            "COACHTIME ${tap.size} decisions, budget $onDesktop ms: the look ahead ${line(look)}; the tap ${line(tap)}; " +
+                "mean samples ${"%.1f".format(samples.toDouble() / tap.size)}, a plan at $withPlan of $plays card plays",
+        )
+    }
+
     private fun pc(a: Int, b: Int) = "%.1f%%".format(100.0 * a / b.coerceAtLeast(1))
 
     @Test
@@ -214,5 +262,6 @@ class CoachHelpTest {
         const val DEEP = 64
         const val SAMPLE_ONE_IN = 12
         const val NEAR = 0.03
+        const val PHONE_FACTOR = 4
     }
 }

@@ -158,11 +158,7 @@ class CoachSuggestTest {
                     if (att.toInt() != d.context.attackTotal) fail(d, "attack total in: $text")
                     if (def.toInt() !in d.context.defensePreview.values) fail(d, "defense total in: $text")
                     val holds = def.toInt() >= att.toInt()
-                    if (holds != (kind == CoachReasonKind.DEFENSE_HOLDS) && "can still " +
-                        "stop" !in text
-                    ) {
-                        fail(d, "verdict in: $text")
-                    }
+                    if (holds != (kind == CoachReasonKind.DEFENSE_HOLDS)) fail(d, "verdict in: $text")
                 }
 
                 CoachReasonKind.LIFE_COST -> {

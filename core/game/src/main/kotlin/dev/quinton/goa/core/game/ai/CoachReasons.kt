@@ -279,7 +279,8 @@ internal class ReasonFinder(private val f: CoachFacts) {
 
     private fun level(x: Choice, y: Choice): Why? {
         val level = f.me.level
-        if (level >= MAX_LEVEL || f.me.coins >= levelCost(level)) return null
+        // Holding earns nothing: coins later in its playouts are not its doing.
+        if (holds(x) || level >= MAX_LEVEL || f.me.coins >= levelCost(level)) return null
         val reaches = { l: Leaf -> (l.end.state.hero(seat)?.coins ?: 0) >= levelCost(level) || levelled(l) }
         val sx = f.share(x, reaches)
         if (sx < MOST || sx - f.share(y, reaches) < CLEAR_GAP) return null
