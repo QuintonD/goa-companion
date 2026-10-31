@@ -18,9 +18,9 @@ import dev.quinton.goa.core.model.board.Hex
 import dev.quinton.goa.core.model.board.MinionType
 import dev.quinton.goa.core.model.match.Team
 
-/** Full round 24, mined from self-play (g4946_r3_BLUE_coins-6; ADR-052, ENCODING.md "Full rounds"). */
-object R24ADiscardForAnAttack : Puzzle() {
-    override val concept = "R24"
+/** Full round 23, mined from self-play (g4946_r3_BLUE_coins-6; ADR-052, ENCODING.md "Full rounds"). */
+object R23ADiscardForAnAttack : Puzzle() {
+    override val concept = "R23"
 
     override val known = KnownPlays(
         cards = mapOf(
@@ -41,8 +41,8 @@ object R24ADiscardForAnAttack : Puzzle() {
     )
 
     override val info = PuzzleInfo(
-        id = "r24",
-        number = 24,
+        id = "r23",
+        number = 23,
         title = "A Discard for an Attack",
         difficulty = 3,
         theme = "Feeding Angry Strike from your own discard, Gydion's spells",
@@ -52,8 +52,8 @@ object R24ADiscardForAnAttack : Puzzle() {
             " who defeats him and 1 to the other. Gydion's spellbook has spells in it. Only the first two turns " +
             "of the enemy's actions are known: from turn 3 they answer as hard as they can. Angry Strike gets +1 " +
             "Attack for every card in Garrus's discard.",
-        nudges = R24_NUDGES.first(),
-        nudgesByTurn = R24_NUDGES,
+        nudges = R23_NUDGES.first(),
+        nudgesByTurn = R23_NUDGES,
         explanation =
             "Turn 1: Burning Hands defeats the Red ranged minion next to Gydion at 6: 2 coins. Garrus plays Light" +
                 " Pilum." +
@@ -224,7 +224,7 @@ object R24ADiscardForAnAttack : Puzzle() {
     )
 }
 
-private val R24_NUDGES = listOf(
+private val R23_NUDGES = listOf(
     listOf(
         "Three times 2. Gydion stands next to one minion already, and he can reach another. Who is the " +
             "third 2?",

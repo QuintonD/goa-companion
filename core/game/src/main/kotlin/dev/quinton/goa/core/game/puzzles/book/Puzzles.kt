@@ -30,12 +30,11 @@ object Puzzles {
         R16StrikeLikeATiger,
         R17OpeningShots,
         R18APriceOnBrogan,
-        R19EveryBodyCounts,
-        R20ComeToMe,
-        R21SheHasNoCardsAndPasses,
-        R22BothSidesOfTheCoin,
-        R23LetMinFall,
-        R24ADiscardForAnAttack,
+        R19ComeToMe,
+        R20SheHasNoCardsAndPasses,
+        R21BothSidesOfTheCoin,
+        R22LetMinFall,
+        R23ADiscardForAnAttack,
     )
 
     /** The 50 shipped puzzles in the book's order: hard (1), harder (2), hardest (3) (STATUS.md). */

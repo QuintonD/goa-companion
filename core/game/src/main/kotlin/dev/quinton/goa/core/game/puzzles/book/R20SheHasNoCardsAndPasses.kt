@@ -20,9 +20,9 @@ import dev.quinton.goa.core.model.board.Hex
 import dev.quinton.goa.core.model.board.MinionType
 import dev.quinton.goa.core.model.match.Team
 
-/** Full round 21, mined from self-play (g4321_r5_BLUE_defeat-xargatha; ADR-052, ENCODING.md "Full rounds"). */
-object R21SheHasNoCardsAndPasses : Puzzle() {
-    override val concept = "R21"
+/** Full round 20, mined from self-play (g4321_r5_BLUE_defeat-xargatha; ADR-052, ENCODING.md "Full rounds"). */
+object R20SheHasNoCardsAndPasses : Puzzle() {
+    override val concept = "R20"
 
     override val known = KnownPlays(
         cards = mapOf(
@@ -43,8 +43,8 @@ object R21SheHasNoCardsAndPasses : Puzzle() {
     )
 
     override val info = PuzzleInfo(
-        id = "r21",
-        number = 21,
+        id = "r20",
+        number = 20,
         title = "She Has No Cards and Passes",
         difficulty = 3,
         theme = "Two attacks in one turn empty a hand",
@@ -53,8 +53,8 @@ object R21SheHasNoCardsAndPasses : Puzzle() {
         intro = "Round 5. You play Misa and Brynn for Blue. Xargatha has played a card every turn by the time it " +
             "matters, and a hero defends by discarding a card. A hero with no cards left passes (p.7). Turns 3 " +
             "and 4 aren't fully known: there she answers as hard as she can.",
-        nudges = R21_NUDGES.first(),
-        nudgesByTurn = R21_NUDGES,
+        nudges = R20_NUDGES.first(),
+        nudgesByTurn = R20_NUDGES,
         explanation =
             "Turn 1: Ursafar takes a Blue melee minion and Xargatha walks up, as planned. Misa plays Watch How I " +
                 "Soar and Brynn plays Decoy without using it: these are cards you don't need later." +
@@ -193,7 +193,7 @@ object R21SheHasNoCardsAndPasses : Puzzle() {
     )
 }
 
-private val R21_NUDGES = listOf(
+private val R20_NUDGES = listOf(
     listOf(
         "Count Xargatha's cards turn by turn. How many defenses can she afford, and how many attacks can " +
             "you land on her in one turn?",

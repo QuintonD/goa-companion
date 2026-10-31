@@ -21,9 +21,9 @@ import dev.quinton.goa.core.model.board.Hex
 import dev.quinton.goa.core.model.board.MinionType
 import dev.quinton.goa.core.model.match.Team
 
-/** Full round 20, mined from self-play (g6433_r2_RED_coins-6; ADR-052, ENCODING.md "Full rounds"). */
-object R20ComeToMe : Puzzle() {
-    override val concept = "R20"
+/** Full round 19, mined from self-play (g6433_r2_RED_coins-6; ADR-052, ENCODING.md "Full rounds"). */
+object R19ComeToMe : Puzzle() {
+    override val concept = "R19"
 
     override val known = KnownPlays(
         cards = mapOf(
@@ -45,8 +45,8 @@ object R20ComeToMe : Puzzle() {
     )
 
     override val info = PuzzleInfo(
-        id = "r20",
-        number = 20,
+        id = "r19",
+        number = 19,
         title = "Come to Me",
         difficulty = 3,
         theme = "Bringing the target to you, a Turret set up for later, counting coins",
@@ -55,8 +55,8 @@ object R20ComeToMe : Puzzle() {
         intro = "Round 2. You play Xargatha and Trinkets for Red. Coins come from minions (2 each here) and from " +
             "defeating a hero and assisting. Wasp is off the board, and Razzle has three doubles out. Their last " +
             "turn isn't known: they answer as hard as they can.",
-        nudges = R20_NUDGES.first(),
-        nudgesByTurn = R20_NUDGES,
+        nudges = R19_NUDGES.first(),
+        nudgesByTurn = R19_NUDGES,
         explanation =
             "Turn 1: Trinkets holds. Charm moves Xargatha and then the Blue ranged minion 2 spaces, next to " +
                 "Trinkets, where Cleave can reach it. Razzle walks up to the Red melee minion and Wasp stays off the " +
@@ -226,7 +226,7 @@ object R20ComeToMe : Puzzle() {
     )
 }
 
-private val R20_NUDGES = listOf(
+private val R19_NUDGES = listOf(
     listOf(
         "Six coins is two minions and a hero. Which of them can you reach, and which must come to you?",
         "Charm can move an enemy ranged minion in radius 2 spaces. Move it where Xargatha can hit it next" +

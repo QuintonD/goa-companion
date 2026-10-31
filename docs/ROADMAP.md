@@ -412,7 +412,7 @@ passes (including an in-place upgrade from the morning build with real data). Ev
   `RoundWidthTest`, ADR-052's table
 - [x] Solver, generator and filter (`PlanProver`, `RoundGenTest`, `FullRoundDeepTest`); certificates replayed against
   every open enemy answer in `FullRoundBookTest` — 2026-10-31. JVM only
-- [ ] FULL_ROUND_COUNT_LINE
+- [x] 23 full rounds of an aimed 30, grades 1/2/3 = 1/12/10, every hero at least 2 times; text traced to the dossiers — 2026-10-31, `FullRoundBookTest` (proofs replayed), STATUS.md
 - [x] Android and web screens: the turn, the enemy's real cards, plans, a plan's space outlined, nudges per turn, a turn
   back after a miss — 2026-10-31, `PuzzleViewModelTest`, `PuzzleControllerTest`, Roborazzi baselines. JVM and JS only
 - [ ] Hands-on on the emulator: not done, `device_open` failed ("Android emulator video needs working ffmpeg with the

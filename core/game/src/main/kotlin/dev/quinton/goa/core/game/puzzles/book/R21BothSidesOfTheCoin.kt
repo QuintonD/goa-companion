@@ -21,9 +21,9 @@ import dev.quinton.goa.core.model.board.Hex
 import dev.quinton.goa.core.model.board.MinionType
 import dev.quinton.goa.core.model.match.Team
 
-/** Full round 22, mined from self-play (g2850_r6_BLUE_push; ADR-052, ENCODING.md "Full rounds"). */
-object R22BothSidesOfTheCoin : Puzzle() {
-    override val concept = "R22"
+/** Full round 21, mined from self-play (g2850_r6_BLUE_push; ADR-052, ENCODING.md "Full rounds"). */
+object R21BothSidesOfTheCoin : Puzzle() {
+    override val concept = "R21"
 
     override val known = KnownPlays(
         cards = mapOf(
@@ -51,8 +51,8 @@ object R22BothSidesOfTheCoin : Puzzle() {
     )
 
     override val info = PuzzleInfo(
-        id = "r22",
-        number = 22,
+        id = "r21",
+        number = 21,
         title = "Both Sides of the Coin",
         difficulty = 3,
         theme = "Tie Breaker text, a card played now for a later turn, Minion Battle arithmetic",
@@ -61,8 +61,8 @@ object R22BothSidesOfTheCoin : Puzzle() {
         intro = "Round 6. You play Ignatia and Garrus for Blue. Ignatia's cards change with the Tie Breaker coin, " +
             "which flips when a tied card resolves. The Battle Zone is Lane Zone 3. Win the Minion Battle by " +
             "enough and Red loses its last minion there (p.8).",
-        nudges = R22_NUDGES.first(),
-        nudgesByTurn = R22_NUDGES,
+        nudges = R21_NUDGES.first(),
+        nudgesByTurn = R21_NUDGES,
         explanation =
             "Turn 1: Swift lands beside you and pushes Ignatia, as planned. Chase's Movement takes Garrus 4 " +
                 "spaces, next to the Red melee and ranged minions; Ignatia walks 3 spaces to Lane Zone 2 with " +
@@ -243,7 +243,7 @@ object R22BothSidesOfTheCoin : Puzzle() {
     )
 }
 
-private val R22_NUDGES = listOf(
+private val R21_NUDGES = listOf(
     listOf(
         "Count the minions in the Battle Zone. How many must go before the battle takes the rest?",
         "Garrus can reach the Red minions now. Ignatia needs to be somewhere else for a while.",

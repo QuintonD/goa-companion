@@ -20,9 +20,9 @@ import dev.quinton.goa.core.model.board.Hex
 import dev.quinton.goa.core.model.board.MinionType
 import dev.quinton.goa.core.model.match.Team
 
-/** Full round 23, mined from self-play (g1893_r4_RED_defeat-mortimer; ADR-052, ENCODING.md "Full rounds"). */
-object R23LetMinFall : Puzzle() {
-    override val concept = "R23"
+/** Full round 22, mined from self-play (g1893_r4_RED_defeat-mortimer; ADR-052, ENCODING.md "Full rounds"). */
+object R22LetMinFall : Puzzle() {
+    override val concept = "R22"
 
     override val known = KnownPlays(
         cards = mapOf(
@@ -44,8 +44,8 @@ object R23LetMinFall : Puzzle() {
     )
 
     override val info = PuzzleInfo(
-        id = "r23",
-        number = 23,
+        id = "r22",
+        number = 22,
         title = "Let Min Fall",
         difficulty = 3,
         theme = "A hero spent for tempo, respawn and return",
@@ -54,8 +54,8 @@ object R23LetMinFall : Puzzle() {
         intro = "Round 4. You play Min and Tali for Red. Min stands next to Mortimer, whose Braains...! hits her " +
             "first for 8. Mortimer holds five cards and will play four. Turn 4 isn't known: there he answers as " +
             "hard as he can.",
-        nudges = R23_NUDGES.first(),
-        nudgesByTurn = R23_NUDGES,
+        nudges = R22_NUDGES.first(),
+        nudgesByTurn = R22_NUDGES,
         explanation =
             "Turn 1: Mortimer attacks Min at 8, and Smoke Bomb gives her only 3: she is defeated, and Red spends " +
                 "2 Life counters. On this line that is the price. Ancestral Totem's Movement takes Tali 2 spaces, " +
@@ -234,7 +234,7 @@ object R23LetMinFall : Puzzle() {
     )
 }
 
-private val R23_NUDGES = listOf(
+private val R22_NUDGES = listOf(
     listOf(
         "Attack 8 is coming at Min. Tali is the one who ends this round next to Mortimer.",
         "Don't spend the round saving Min. Tali should walk.",
