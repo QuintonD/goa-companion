@@ -46,6 +46,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.onClick as semanticsClick
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -329,6 +330,11 @@ private fun PuzzleRow(row: PuzzleRowUi, onClick: () -> Unit) {
                     status,
                     *extras.toTypedArray(),
                 ).joinToString(". ")
+                // Clearing the semantics drops the Surface's own click: a screen reader must still open it.
+                semanticsClick {
+                    onClick()
+                    true
+                }
             },
     ) {
         Row(Modifier.padding(Spacing.md), verticalAlignment = Alignment.Top) {
