@@ -173,7 +173,8 @@ class CoachHelpTest {
                     "${"%.3f".format(q(0.95))} " +
                     "p99 ${"%.3f".format(q(0.99))}; $counts; review of one seat mean ${"%.0f".format(ms / games)} " +
                     "ms, max ${"%.0f".format(maxMs)} ms; " +
-                    "edges ${CoachReviewer.GOOD_BELOW}/${CoachReviewer.INACCURACY_BELOW}/${CoachReviewer.MISTAKE_BELOW}",
+                    "edges ${CoachReviewer.GOOD_BELOW}/${CoachReviewer.INACCURACY_BELOW}/" +
+                    "${CoachReviewer.MISTAKE_BELOW}",
             )
         }
         // The noise floor: the loss of the first-choice option under another seed of the same analysis.

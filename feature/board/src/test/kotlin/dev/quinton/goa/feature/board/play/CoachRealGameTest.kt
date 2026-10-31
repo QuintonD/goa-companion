@@ -133,7 +133,18 @@ class CoachRealGameTest {
         val view = game.view(seat)
         state = play(game, seat).copy(
             status = TurnStatus.Over,
-            over = GameOverUi(view.winner!!, view.winReason!!, view.winner == Team.RED, view.round, emptyList(), 0, 0, 0, emptyList(), true),
+            over = GameOverUi(
+                view.winner!!,
+                view.winReason!!,
+                view.winner == Team.RED,
+                view.round,
+                emptyList(),
+                0,
+                0,
+                0,
+                emptyList(),
+                true,
+            ),
             report = ReportUi(report = report),
         )
         compose.waitForIdle()

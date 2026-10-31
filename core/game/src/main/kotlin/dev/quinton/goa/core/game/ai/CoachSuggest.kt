@@ -40,7 +40,9 @@ internal fun confidence(best: Ranked, other: Ranked): SuggestionConfidence {
     val se = sqrt(diffs.sumOf { (it - mean) * (it - mean) } / (diffs.size - 1) / diffs.size)
     val ahead = diffs.count { it > 0 }.toDouble() / diffs.size
     return when {
-        mean >= Confidence.CLEAR_GAP && mean - 2 * se > 0 && ahead >= Confidence.CLEAR_SHARE -> SuggestionConfidence.CLEAR
+        mean >= Confidence.CLEAR_GAP && mean - 2 * se > 0 && ahead >= Confidence.CLEAR_SHARE ->
+            SuggestionConfidence.CLEAR
+
         mean >= Confidence.LIKELY_GAP && mean - se > 0 -> SuggestionConfidence.LIKELY
         else -> SuggestionConfidence.CLOSE
     }

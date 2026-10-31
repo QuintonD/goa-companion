@@ -219,7 +219,9 @@ class GameController(
             GameAction.Rematch -> rematch()
 
             // Suggestions and the post-game review are on the phone's table only (ADR-051).
-            GameAction.AskSuggestions, GameAction.CloseSuggestions, GameAction.StartReport, GameAction.CancelReport -> Unit
+            GameAction.AskSuggestions, GameAction.CloseSuggestions, GameAction.StartReport,
+            GameAction.CancelReport,
+            -> Unit
 
             is GameAction.MessageShown -> Unit
 
