@@ -361,14 +361,15 @@ synced or saved type changes: puzzle progress is stored by id, and `p..` ids are
 
 - `PuzzleGoal.WinGame.by: Deadline = Deadline.END_OF_TURN`: a win may have a round-long deadline.
 - `PuzzleInfo.known: List<KnownPlay> = emptyList()`: a full round's enemy plays. `KnownPlay(heroId, turn, cardId,
-  plan: String? = null)`; `plan` null = that turn is free. Not empty = a full round (`PuzzleInfo.fullRound`).
+  plan: String? = null, spaces: List<Hex> = emptyList())`; `plan` null = that turn is free; `spaces` = where the plan goes,
+  for the board. Not empty = a full round (`PuzzleInfo.fullRound`).
 - `PuzzleInfo.nudgesByTurn: List<List<String>> = emptyList()` and `PuzzleInfo.nudgesFor(turn)`: nudges per turn.
   Use `nudgesFor` rather than `nudges` wherever a nudge is shown.
 - `PuzzleInfo.number` is the place in its part of the book: the full rounds count from 1 again, so numbers repeat
   across parts. Name a puzzle with `PuzzleText.short(info)`; never key anything by number.
 - `PuzzleInfo.id`: `p01`…`p60` or `r01`….
-- `core/play`: `PuzzleUi.round: RoundUi?` (`roundUi`, the turn and each known card's state), `PuzzleSession.undoTurn()`,
-  `PuzzleText.short/place/knownLine/tryAgain`.
+- `core/play`: `PuzzleUi.round: RoundUi?` (`roundUi`, the turn and each known card's state), `TableUi.planned: Set<Hex>`,
+  `PuzzleSession.undoTurn()`, `PuzzleText.short/place/numbered/knownLine/tryAgain`.
 - Engine side: `Puzzles.fullRounds` beside `Puzzles.all` (which stays the 50); `EnginePuzzleBook`'s default book is
   both; `PuzzleSolver(known = …)` and `PuzzleSolver.choices(node)`, the real choices at a node; `GoalTracker.haltAt(…,
   beforeRetrieve)`; `PositionBuilder.gameVar`.

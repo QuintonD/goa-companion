@@ -340,7 +340,7 @@ puzzle that no longer proves fails there: fix it or cut it.
 |--|--|
 | Proof search | Median 254 ms, 90th percentile 6.9 s (a position that isn't proven in 8 s is dropped while mining) |
 | Proof size, the 23 in the book | 2 613 positions and 2 958 edges in all, the largest 492 positions |
-| Gate | `FullRoundBookTest` replays every certificate against every open enemy answer with no search |
+| Gate | `FullRoundBookTest` replays every certificate against every open enemy answer with no search: 253 tests, 41 s |
 | Answer on the key | No search |
 | Answer off the key | Median of each puzzle's slowest 122 ms, slowest of all 366 ms, loaded |
 | On a phone | Unmeasured. At 4× slower the budget alone would take about 1.5 s, so `ROUND_ANSWER_MS` stops the search at 350 ms by the clock: a phone answers in about half a second, and a search cut short says UNKNOWN (a late MISSED, never a wrong one) |

@@ -2219,7 +2219,8 @@ turns the enemy doesn't react to the player, so a plan can lean on an enemy walk
 comes late. No first-turn option has been *proven* to lose in any puzzle (that proof is out of budget): what is proven is
 how many win, and the text never says a first card loses unless it is proven. No one has played these on the S25 Ultra,
 and no hands-on pass happened on the emulator (`device_open`: "Android emulator video needs working ffmpeg with the libx264
-encoder"): the instrumented test and the screenshots stand in.
+encoder"): `FullRoundFlowTest` on `goa_s25b` and the screenshots stand in, and neither plays a whole round by hand.
+The book is 23, not the aimed 30: more of the pool is usable, but each needs its text traced line by line.
 
 If the convention is rejected, the book's second part can be dropped by emptying `Puzzles.fullRounds`: nothing else
 depends on it, and the 50 and their keys are untouched.
