@@ -189,7 +189,8 @@ class CoachHelpTest {
     fun `the review's marks on a survey`() {
         val games = System.getenv("AI_COACH_MARKS")?.toIntOrNull() ?: return
         val size = System.getenv("AI_SIZE")?.toIntOrNull() ?: 3
-        for (strength in listOf(4, 6, 8, 10)) {
+        val strengths = System.getenv("AI_COACH_MARKS_AT")?.split(",")?.map { it.toInt() } ?: listOf(4, 6, 8, 10)
+        for (strength in strengths) {
             val all = ArrayList<Double>()
             val counts = java.util.EnumMap<DecisionMark, Int>(DecisionMark::class.java)
             var ms = 0.0
@@ -211,6 +212,15 @@ class CoachHelpTest {
                 val took = (System.nanoTime() - t0) / 1e6
                 ms += took
                 maxMs = maxOf(maxMs, took)
+                report.mistakes.filter { it.decision.loss >= CoachReviewer.MISTAKE_BELOW }.forEach { m ->
+                    println(
+                        "COACHBLUNDER s$strength ${m.decision.seat} ${m.decision.kind} ${m.prompt}: chose ${m.chosen} " +
+                            "(-${"%.3f".format(m.decision.loss)}) | ${m.position.take(POSITION_WORDS)} | " +
+                            m.suggestions.options.joinToString(" / ") { o ->
+                                "${o.label} ${o.chance}% ${o.reasons.firstOrNull()?.text.orEmpty()}"
+                            },
+                    )
+                }
                 report.decisions.forEach {
                     all += it.loss
                     counts[it.mark] = (counts[it.mark] ?: 0) + 1
@@ -229,6 +239,7 @@ class CoachHelpTest {
                     )} ms, max ${"%.0f".format(maxMs)} ms; edges $edges",
             )
         }
+        if (System.getenv("AI_COACH_MARKS_AT") != null) return
         // The noise floor: the loss of the first-choice option under another seed of the same analysis.
         val floor = ArrayList<Double>()
         val a = AiCoach(TestData.engine, 1L, unhurried)
@@ -266,6 +277,7 @@ class CoachHelpTest {
         const val DEEP = 64
         const val SAMPLE_ONE_IN = 12
         const val NEAR = 0.03
+        const val POSITION_WORDS = 60
         const val PHONE_FACTOR = 4
     }
 }

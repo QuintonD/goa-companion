@@ -79,11 +79,22 @@ internal class CoachReviewer(
             kind = d.kind,
             round = st.round,
             turn = st.turn,
-            mark = mark(loss, best === mine),
+            mark = mark(loss, best === mine).let { m ->
+                // Called a mistake only with something to say why: the sheet can't back a bare number.
+                if (m >= DecisionMark.MISTAKE && !canSayWhy(fork, d, a, best, mine)) DecisionMark.INACCURACY else m
+            },
             loss = loss,
             eventIndex = fork.events.size,
         )
         return Looked(fork, d, choice, row)
+    }
+
+    private fun canSayWhy(fork: EngineSession, d: Decision, a: Analysis, best: Ranked, mine: Ranked): Boolean {
+        val facts = CoachFacts(fork, d, a, searcher.ev)
+        val b = best.option.choice
+        val c = mine.option.choice
+        return Explainer(fork, d, a, c, b).explainWithKind() != null ||
+            ReasonFinder(facts).forOption(b, c).any { it.claim != null }
     }
 
     private fun mistakes(looked: List<Looked>, cancelled: () -> Boolean): List<ReviewMistake>? {
