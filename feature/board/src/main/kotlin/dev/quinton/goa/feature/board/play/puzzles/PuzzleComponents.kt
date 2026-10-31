@@ -30,6 +30,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -322,12 +323,16 @@ fun KnownPlaysStrip(round: RoundUi, focus: CardFocusState, showNote: Boolean, mo
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
-        round.heroes.forEach { hero -> KnownHero(hero, focus) }
+        var later by rememberSaveable { mutableStateOf(false) }
+        round.heroes.forEach { hero -> KnownHero(hero, round.turn, later, focus) }
+        if (round.turn < RoundUi.TURNS) {
+            TextButton(onClick = { later = !later }) { Text(if (later) "Hide later turns" else "Show later turns") }
+        }
     }
 }
 
 @Composable
-private fun KnownHero(hero: KnownHeroUi, focus: CardFocusState) {
+private fun KnownHero(hero: KnownHeroUi, turn: Int, later: Boolean, focus: CardFocusState) {
     Column(verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
         Text(hero.name, style = MaterialTheme.typography.labelLarge)
         Row(horizontalArrangement = Arrangement.spacedBy(Spacing.xs)) {
@@ -339,13 +344,21 @@ private fun KnownHero(hero: KnownHeroUi, focus: CardFocusState) {
                 }
             }
         }
-        val line = hero.cards.firstOrNull { it.state == KnownCardState.GONE } ?: hero.now
-        line?.let {
+        hero.lineFor(turn)?.let {
             Text(
                 PuzzleText.knownLine(hero.name, it),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
+        }
+        if (later) {
+            hero.later(turn).forEach {
+                Text(
+                    PuzzleText.laterLine(hero.name, it),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
         }
     }
 }

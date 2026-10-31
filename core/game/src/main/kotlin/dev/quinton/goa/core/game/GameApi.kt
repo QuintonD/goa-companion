@@ -898,6 +898,8 @@ data class KnownPlay(
     val plan: String? = null,
     /** The spaces [plan] goes to, for the board (a plan's exact space matters in a four-turn plan). */
     val spaces: List<Hex> = emptyList(),
+    /** The units [plan] targets, for the board: where they stand when the turn comes is outlined. */
+    val targets: List<String> = emptyList(),
 )
 
 // ---------------------------------------------------------------------------------------------

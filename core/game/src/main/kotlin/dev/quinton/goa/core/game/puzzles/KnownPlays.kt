@@ -52,9 +52,9 @@ data class KnownPlays(
                 i + 1,
                 card,
                 plans[hero]?.get(i + 1),
-                answers.filterIsInstance<Choice.Space>().map {
-                    it.hex
-                },
+                answers.filterIsInstance<Choice.Space>().map { it.hex },
+                // What it attacks once its card has started (a Unit first is Razzle choosing which body acts).
+                answers.dropWhile { it !is Choice.Action }.filterIsInstance<Choice.Unit>().map { it.unitId },
             )
         }
     }

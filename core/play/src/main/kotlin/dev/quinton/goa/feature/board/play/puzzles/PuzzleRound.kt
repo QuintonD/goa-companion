@@ -32,11 +32,22 @@ data class KnownCardUi(
     val plan: String?,
     val state: KnownCardState,
     val spaces: List<Hex> = emptyList(),
+    /** Where the plan's target stands now, when it has one on the board. */
+    val targetsAt: List<Hex> = emptyList(),
 )
 
 data class KnownHeroUi(val heroId: String, val name: String, val cards: List<KnownCardUi>) {
     /** The card this turn asks about, for the line under the strip. */
     val now: KnownCardUi? get() = cards.firstOrNull { it.state == KnownCardState.NOW }
+
+    /** The line under this hero's cards in [turn]: this turn's plan, or that this turn's card is gone. */
+    fun lineFor(turn: Int): KnownCardUi? =
+        now ?: cards.firstOrNull { it.turn == turn && it.state == KnownCardState.GONE }
+
+    /** The turns after [turn], for "Show later turns": what is still to come, or has already left the hand. */
+    fun later(turn: Int): List<KnownCardUi> = cards.filter {
+        it.turn > turn && (it.state == KnownCardState.COMING || it.state == KnownCardState.GONE)
+    }
 }
 
 /** "Turn 2 of 4" and the strip of the enemy's cards. */
@@ -44,7 +55,7 @@ data class RoundUi(val turn: Int, val heroes: List<KnownHeroUi>) {
     val heading: String get() = "Turn $turn of $TURNS"
 
     /** Where this turn's plans still to resolve go: outlined on the board. */
-    val planned: Set<Hex> get() = heroes.flatMap { it.now?.spaces.orEmpty() }.toSet()
+    val planned: Set<Hex> get() = heroes.flatMap { h -> h.now?.let { it.spaces + it.targetsAt }.orEmpty() }.toSet()
 
     companion object {
         const val TURNS = 4
@@ -69,7 +80,10 @@ fun roundUi(info: PuzzleInfo, view: GameView, cards: Map<String, Card>, name: (S
                     play.turn == view.turn -> KnownCardState.NOW
                     else -> KnownCardState.COMING
                 }
-                KnownCardUi(play.turn, play.cardId, cards[play.cardId], play.plan, state, play.spaces)
+                val targets = play.targets.mapNotNull { id ->
+                    view.minions.firstOrNull { it.id == id }?.at ?: view.pieces.firstOrNull { it.id == id }?.at
+                }
+                KnownCardUi(play.turn, play.cardId, cards[play.cardId], play.plan, state, play.spaces, targets)
             },
         )
     }

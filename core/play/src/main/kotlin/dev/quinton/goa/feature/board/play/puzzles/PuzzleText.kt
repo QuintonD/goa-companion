@@ -33,13 +33,17 @@ object PuzzleText {
     /** What the known card means for this hero, for the strip. */
     fun knownLine(hero: String, play: KnownCardUi): String = when (play.state) {
         KnownCardState.GONE -> "$hero has lost ${play.card?.name ?: "this card"}: it plays anything it has left."
-        else -> "${play.card?.name ?: "A card"}: " + (play.plan ?: "free, it answers as hard as it can.")
+        else -> "${play.card?.name ?: "A card"}: " + (play.plan ?: "no plan shown: it chooses for itself.")
     }
 
+    /** A later turn's line: its plan's space is only outlined when that turn comes. */
+    fun laterLine(hero: String, play: KnownCardUi): String = "Turn ${play.turn}. ${knownLine(hero, play)}"
+
     /** The convention, once, where a full round is introduced. */
-    const val KNOWN_NOTE: String = "You know their cards all round and what they do with them where a plan " +
-        "is shown; a plan's space is outlined on the board on its turn. Where no plan is shown, or you spoil " +
-        "one, they answer as hard as they can."
+    const val KNOWN_NOTE: String = "You know their cards all round and, where a plan is shown, what they do with " +
+        "them; its space is outlined on the board on its turn. Where no plan is shown, at every defense, and if you " +
+        "spoil a plan, they choose for themselves. Away from the solution they don't always find their best " +
+        "answer, so a win there may not be a forced one."
 
     fun names(names: List<String>): String = when (names.size) {
         0 -> ""
