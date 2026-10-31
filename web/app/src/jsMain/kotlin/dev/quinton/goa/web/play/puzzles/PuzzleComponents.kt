@@ -172,6 +172,7 @@ fun KnownPlaysStrip(round: RoundUi, focus: CardFocusState, showNote: Boolean) {
     Div({ classes("goa-known") }) {
         H3({ classes("t-overline", "c-primary") }) { Text("What they will play") }
         if (showNote) P({ classes("t-body-small") }) { Text(PuzzleText.KNOWN_NOTE) }
+        var later by remember { mutableStateOf(false) }
         round.heroes.forEach { hero ->
             P({ classes("t-label-large") }) { Text(hero.name) }
             Div({ classes("goa-known-row") }) {
@@ -201,9 +202,17 @@ fun KnownPlaysStrip(round: RoundUi, focus: CardFocusState, showNote: Boolean) {
                     }
                 }
             }
-            (hero.cards.firstOrNull { it.state == KnownCardState.GONE } ?: hero.now)?.let {
+            hero.lineFor(round.turn)?.let {
                 P({ classes("t-body-small") }) { Text(PuzzleText.knownLine(hero.name, it)) }
             }
+            if (later) {
+                hero.later(round.turn).forEach {
+                    P({ classes("t-body-small") }) { Text(PuzzleText.laterLine(hero.name, it)) }
+                }
+            }
+        }
+        if (round.turn < RoundUi.TURNS) {
+            GoaButton(if (later) "Hide later turns" else "Show later turns", { later = !later })
         }
     }
 }

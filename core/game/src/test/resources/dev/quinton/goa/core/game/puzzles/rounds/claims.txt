@@ -1,0 +1,32 @@
+r01 T1-4 card:Gatling Gun
+r01 T1-4 card:Noble Blade
+r04 T1-4 card:Mystic Saplings
+r07 T1-4 defend:Calculated Risk
+r12 T1-4 card:Siren's Call
+r14 T1-4 card:Hurry up!
+r14 T1-4 card:Deadly Swipe
+r14 T1-4 defeat:misa
+r15 T1-3 spare:wuk
+r17 T1-3 spare:snorri
+r18 T1-3 spare:brogan
+r18 T1-4 card:Hand Crossbow
+r19 T1-4 card:Charm
+r20 T1-3 spare:xargatha
+r21 T1-4 card:Equilibrium
+r24 T1-4 card:Fleeting Image
+r24 T1-4 card:Phantasmal Warrior
+r24 T1-4 defeat:tali
+r25 T1-4 card:Spectacle
+r25 T1-4 card:Grappling Bolt
+r25 T1-4 card:Bold Thrust
+r27 T3 card:Shadow Step
+r31 T1-4 card:Dark Ritual
+r31 T1-4 defeat:swift
+r32 T1-4 card:Get over here!
+r33 T3 card:Mystic Saplings
+r35 T1-4 card:Lead from the Front
+r36 T1-4 card:Runic Hammer
+r36 T1-4 defeat:emmitt
+r37 T1-4 card:Steam Discharge
+r39 T1-4 defeat:garrus
+r39 T1-4 defeat:mrak

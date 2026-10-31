@@ -1,0 +1,23 @@
+r01|battle|Red has to end the round behind in the Minion Battle|T1-4 kill:RED
+r04|battle|Blue minions have to fall, the last here to Nature's Champion and a Tree|T1-4 card:Nature's Champion;T1-4 kill:BLUE
+r07|battle|Float like a Butterfly fetched and used to stand beside Bain|T1-4 card:Float like a Butterfly;T1-3 card:Bushido
+r10|strip|Widget's spare card spent before turn 4|T1-3 spare:widget
+r12|battle|The battle has to leave Red with nothing|T1-4 kill:RED
+r14|coins|Coins from minions; one way ends with Misa|T1-4 kill:RED
+r15|strip|Angry Roar performs Claws That Catch|T1-4 card:Angry Roar;T1-4 card:Claws That Catch;T1-4 defeat:wuk
+r17|strip|Opening Shots, while both discards are empty|T1-4 card:Opening Shots
+r18|strip|The Bounty on Brogan in turn 2|T2 unit:brogan
+r19|last-card|Siren's Call brings Razzle over|T1-4 card:Siren's Call;T1-4 defeat:razzle
+r20|strip|Split Attack finishes her in turn 4|T1-4 card:Split Attack;T1-4 card:Matter of Honor
+r21|battle|Red has to end the round far enough behind|T1-4 kill:RED
+r24|coins|Mind Grip starts the coins|T1-4 card:Mind Grip
+r25|battle|Red keeps all four and Blue falls behind|T1-4 kill:BLUE
+r27|battle|Red falls far enough behind in the battle|T1-4 kill:RED;T1-4 card:Shadow Step
+r28|battle|A discard buys Throwing Axe its range|T1-4 card:Throwing Axe;T1-4 kill:RED
+r31|coins|Coins counted from minions upward|T1-4 kill:RED;T1-4 card:Poof!
+r32|coins|Six coins from Blue minions|T1-4 kill:BLUE
+r33|battle|Nature's Guardian takes the last Red melee minion|T1-4 card:Nature's Guardian
+r35|last-card|Min is where the coins end|T1-4 defeat:min
+r36|coins|Coins counted from minions upward|T1-4 kill:RED
+r37|last-card|Whisper's defeat is where the coins come from|T1-4 defeat:whisper
+r39|setup|Phantasmal Warrior, with an Illusion in place|T1-4 card:Phantasmal Warrior;T1-4 card:Mind Grip

@@ -20,7 +20,7 @@ import dev.quinton.goa.core.model.board.Hex
 import dev.quinton.goa.core.model.board.MinionType
 import dev.quinton.goa.core.model.match.Team
 
-/** Full round 4, mined from self-play (g3777_r8_RED_push; ADR-052, ENCODING.md "Full rounds"). */
+/** Full round 2, mined from self-play (g3777_r8_RED_push; ADR-052, ENCODING.md "Full rounds"). */
 object R04TheLastPush : Puzzle() {
     override val concept = "R04"
 
@@ -47,36 +47,39 @@ object R04TheLastPush : Puzzle() {
 
     override val info = PuzzleInfo(
         id = "r04",
-        number = 4,
+        number = 2,
         title = "The Last Push",
-        difficulty = 2,
-        theme = "Trees set up for a later shot, three minions in three turns",
+        difficulty = 1,
+        theme = "Nature's Champion needs a Tree, Minion Battle arithmetic",
         heroes = listOf("wuk", "bain", "ignatia", "razzle"),
         goal = PuzzleGoal.PushLane(
             Deadline.END_OF_ROUND,
             "Push the lane by the end of the round. It is the last Wave counter: the push wins the game.",
         ),
         intro = "Round 8. You play Wuk and Bain for Red. Blue has more minions in the Battle Zone than you can take " +
-            "in one turn, and Razzle's first card removes one of yours. Nature's Champion can shoot a unit in " +
-            "range only if that unit stands next to a Tree token. Tree tokens stay at the end of a round.",
+            "in one turn, and Ignatia's first card removes a minion next to an enemy hero: the Red ranged minion " +
+            "is next to Bain. Nature's Champion can shoot a unit in range only if that unit stands next to a Tree" +
+            " token. Tree tokens stay at the end of a round.",
         nudges = R04_NUDGES.first(),
         nudgesByTurn = R04_NUDGES,
         explanation =
-            "Turn 1: Razzle removes the Red ranged minion as planned. Monstrous Throw's Movement takes Wuk next " +
-                "to the Blue ranged minion. Bain plays Get over here!." +
+            "This is one way through, and other plans win too; a plan that never plays Mystic Saplings is one of " +
+                "them." +
+                "\n\n" +
+                "Turn 1: Ignatia's Spontaneous Immolation removes the Red ranged minion, next to Bain, as planned. " +
+                "Razzle fast travels. Monstrous Throw's Movement takes Wuk next to the Blue ranged minion. Bain plays" +
+                " Get over here!." +
                 "\n\n" +
                 "Turn 2: Tree Slam defeats the Blue ranged minion at 6. Bain moves 1 space with Dead or Alive's " +
                 "Movement, which lines him up for next turn." +
                 "\n\n" +
                 "Turn 3: Heavy Crossbow needs a straight line with no units or terrain in the way: from there it " +
                 "reaches a Blue melee minion and defeats it at 8. Mystic Saplings takes the Trees already on the " +
-                "board and places them again, next to the Blue melee minions." +
+                "board and places them again, two of them next to the other Blue melee minion." +
                 "\n\n" +
-                "Turn 4: Nature's Champion shoots a Blue melee minion next to a Tree and defeats it. In the Minion " +
-                "Battle Red has 4 and Blue 2: Blue removes its last two, Red pushes the lane with the last Wave " +
-                "counter, and Red wins the last push (p.3, p.8)." +
-                "\n\n" +
-                "The computer at strength 7, playing your heroes, doesn't find it, and neither does strength 10.",
+                "Turn 4: Nature's Champion shoots the Blue melee minion next to the Trees and defeats it. In the " +
+                "Minion Battle Red has 4 and Blue 2: Blue removes its last two, Red pushes the lane with the last " +
+                "Wave counter, and Red wins the last push (p.3, p.8).",
         rules = listOf(
             "p.8 Minion Battle, Push the Lane",
             "p.3 Last Push",
@@ -86,13 +89,13 @@ object R04TheLastPush : Puzzle() {
         known = known.display(
             mapOf(
                 "ignatia" to mapOf(
-                    1 to "Spontaneous Immolation.",
+                    1 to "Removes a minion next to an enemy hero.",
                     2 to "Holds.",
-                    3 to "Moves to the space outlined, next to the Red heavy minion.",
-                    4 to "Equilibrium.",
+                    3 to "Moves to the space outlined.",
+                    4 to "Plays it: this round she may apply either coin's text.",
                 ),
                 "razzle" to mapOf(
-                    1 to "Aaaand it's gone!: fast travels to the space outlined and removes the Red ranged minion.",
+                    1 to "Fast travels to the space outlined.",
                     2 to "Holds.",
                     3 to "Moves to the space outlined.",
                     4 to "Holds.",
@@ -209,7 +212,7 @@ object R04TheLastPush : Puzzle() {
 
     override val wrongTries = listOf(
         WrongTry(
-            "The computer at strength 7 on your heroes",
+            "A natural line",
             listOf(
                 card("wuk-red-3a"),
                 card("bain-blue-3a"),
@@ -239,9 +242,9 @@ object R04TheLastPush : Puzzle() {
 
 private val R04_NUDGES = listOf(
     listOf(
-        "Count the Minion Battle: Red will lose its ranged minion to Razzle. How many Blue minions must " +
+        "Count the Minion Battle: Red will lose its ranged minion to Ignatia. How many Blue minions must " +
             "be gone by the end?",
-        "Three Blue minions, one a turn from turn 2. This turn is for getting into position.",
+        "One way: three Blue minions, one a turn from turn 2. This turn is for getting into position.",
         "Play Monstrous Throw on Wuk, moving next to the Blue ranged minion, and Get over here! on Bain.",
     ),
     listOf(
@@ -253,10 +256,10 @@ private val R04_NUDGES = listOf(
     ),
     listOf(
         "Bain can take the second one now. Wuk's last attack needs something on the board first.",
-        "Nature's Champion targets a unit in range next to a Tree token. Place Trees next to the Blue " +
-            "minions you want.",
-        "Play Mystic Saplings on Wuk, placing Trees next to the Blue melee minions, and Heavy Crossbow on" +
-            " Bain, shooting a Blue melee minion.",
+        "Nature's Champion targets a unit in range next to a Tree token. Which Blue melee minion can " +
+            "Wuk's Trees be placed next to?",
+        "Play Mystic Saplings on Wuk, placing two Trees next to the Blue melee minion far from Bain, and " +
+            "Heavy Crossbow on Bain, shooting the Blue melee minion near him.",
     ),
     listOf(
         "One more Blue minion, and you are done. Which is next to a Tree?",

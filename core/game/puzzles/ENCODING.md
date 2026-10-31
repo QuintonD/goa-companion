@@ -264,6 +264,9 @@ counts. `PuzzleGoal.WinGame` takes a deadline (`by`, default this turn: the 50 s
 | `rounds/FullRoundDossierTest` | Every fact the text may use, from the engine: `ROUND_DOSSIER=<dir>` |
 | `rounds/FullRoundDeepTest` | The rejection rules again with longer budgets: `ROUND_DEEP='<file>\|<seconds>'` |
 | `FullRoundProveTest` | Proves the book again and rewrites its certificates: `ROUND_PROVE=all` or `r01,r02` |
+| `FullRoundGateTest` | The stricter gate: `ROUND_GATE=<seconds>` measures the book into `rounds/gate.txt`; the rest hold the book to it, without searching |
+| `rounds/RoundGate` | What can be taken away from a puzzle, and the table |
+| `rounds/FullRoundNeedTest` | What a text may say: `ROUND_NEED`, `ROUND_OPTIONS`, `ROUND_CLAIMS` (the verdict on each option of the line, each card, each claim) |
 | `rounds/RoundSpikeTest`, `RoundWidthTest`, `DfPn` | The feasibility spike's measurements (ADR-052), kept so they can be rerun |
 
 **The filter** (`RoundGenTest.judge`), in order; a position must pass all of them:
@@ -274,9 +277,25 @@ counts. `PuzzleGoal.WinGame` takes a deadline (`by`, default this turn: the 50 s
 4. Not forced by the end of turn 2, nor of turn 3 (a budgeted solve that finds a win rejects it).
 5. Not every first-turn card wins, for both heroes.
 6. Every turn has a choice on the solution line that isn't proven to be free.
-7. `s7` on the player's seats fails, and so does `s3`.
+7. Turn 3 has an option proven to lose. Merely not proven to win isn't enough: that let the first book through.
+8. `s7` on the player's seats fails, and so does `s3`.
 
-**Grades:** 3 for `openFrom` 3, 2 for 4, 1 for 5; one higher (at most 3) when `s10` fails too.
+**The stricter gate** (`FullRoundGateTest`, after the audit of the first book), on the finished book:
+
+- A proven loss in turn 3 on the solution line, kept as a witness the test replays.
+- The idea, taken away. `rounds/ideas.txt` lists what each text claims, as probes: `T1-4 card:Hurry up!` forbids a choice;
+  `T1-4 kill:RED`, `T1-4 defeat:misa`, `T1-3 spare:widget` forbid what happens on the board. **Banning a target doesn't
+  work**: an attack with a single target is never asked, so a ban on the choice proves nothing. A probe that still wins means
+  the title and text may not claim it. One that doesn't win means no plan was found in the budget, not that none exists.
+- 20 games of random answers solve nothing; not every first card is proven to win; `s7` fails.
+- `rounds/claims.txt`: each "other plans win" sentence's proof (`ROUND_CLAIMS_CHECK` proves them again).
+- Checked without searching: a plan says "outlined" if and only if it has something to outline; a plan doesn't name a card
+  but the one listed, nor repeat it, nor depend on where the player stands; Life numbers match the position; the text says
+  nothing about the computer's strength.
+
+**Grades** come from the gate (`RoundGate.Row.grade`), one point each: an enemy free to act in turn 3 or 4 on the proof's
+lines; `s10` failing; at least as many proven losses as proven wins among the other options in turns 3–4. Fewer than two is
+Hard, two Harder, three Hardest. `openFrom` no longer sets the grade: "turn 4 is free" was nominal in five of the first book.
 
 **A rule that was only checked within a budget says so.** Disproving is the expensive direction, so at
 turns 1 and 2 an option is often neither proven won nor proven lost. `UNKNOWN` is never reported as "loses":
@@ -292,10 +311,12 @@ Generated from the dossier and a text file, then edited. As a turn-sized puzzle,
 - `nudgesByTurn`: for each of the four turns, at least three nudges, gentle to strong; the last names that
   turn's card (the test checks it by card name). `nudges` = turn 1's.
 - `explanation`: turn by turn ("Turn 1: …" … "Turn 4: …", the test checks all four are there), saying why
-  tempting tries fail. Every sentence traces to the dossier or the rulebook, or it goes.
+  tempting tries fail. Every sentence traces to the dossier or the rulebook, or it goes. Where other plans win, it says so,
+  and only a decision measured as a proven loss is called one.
 - `wrongTries`: a real line that fails (`s7`'s from the generator), played on to the end of the round.
 - Unit ids in `actions` are the built position's: minions number `m1000`, `m1001`, … in `minion` call order.
-- `Puzzles.fullRounds` lists them, hard to hardest. `number` is the place in this part of the book.
+- `Puzzles.fullRounds` lists them, hard to hardest. `number` is the place in this part of the book. Ids stay with a
+  puzzle: a cut one's number isn't reused.
 
 ### Answer keys, certificates and the runtime
 

@@ -412,13 +412,15 @@ passes (including an in-place upgrade from the morning build with real data). Ev
   `RoundWidthTest`, ADR-052's table
 - [x] Solver, generator and filter (`PlanProver`, `RoundGenTest`, `FullRoundDeepTest`); certificates replayed against
   every open enemy answer in `FullRoundBookTest` — 2026-10-31. JVM only
-- [x] 23 full rounds of an aimed 30, grades 1/2/3 = 1/12/10, every hero at least 2 times; text traced to the dossiers — 2026-10-31, `FullRoundBookTest` (proofs replayed), STATUS.md
+- [x] Audit of the first 23 fixed: 10 cut, the stricter gate (`FullRoundGateTest`, `rounds/gate.txt`) closed, titles and text rewritten to what is proven, grades from measurements, 11 new puzzles against the gate — 2026-10-31, ADR-052
+- [x] 23 full rounds of an aimed 30, grades 1/2/3 = 14/7/2, all 32 heroes in the book, cutter, gydion, sabina and tigerclaw once, the rest at least twice — 2026-10-31, `FullRoundBookTest`, `FullRoundGateTest`, STATUS.md
 - [x] Android and web screens: the turn, the enemy's real cards, plans, a plan's space outlined, nudges per turn, a turn
   back after a miss — 2026-10-31, `PuzzleViewModelTest`, `PuzzleControllerTest`, Roborazzi baselines. JVM and JS only
 - [x] `FullRoundFlowTest` on the emulator `goa_s25b` (the list, a round's turn, cards and plan, a nudge, the solution
   to the goal met) and `play-puzzles.spec.ts` on WebKit and Chromium — 2026-10-31
-- [ ] Hands-on on the emulator: not done, `device_open` failed ("Android emulator video needs working ffmpeg with the
-  libx264 encoder")
+- [ ] Hands-on on the emulator: not done, `device_open` still fails ("Android emulator video needs working ffmpeg with the
+  libx264 encoder"). ffmpeg 9.0.2 with libx264 is now at `C:\Users\denma\bin` and on the shell's PATH, but the app's local
+  server started before it was installed and needs a restart, which an agent inside it can't do
 - [ ] On the S25 Ultra: a full round played from scratch, answer times off the line within ~500 ms
 - [ ] Independent rules review of every full round's text (the lead's)
 

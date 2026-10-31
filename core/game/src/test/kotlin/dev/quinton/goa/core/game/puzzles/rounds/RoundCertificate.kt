@@ -95,7 +95,8 @@ class RoundCertificate(val moves: Map<String, Int>) {
     }
 
     companion object {
-        private const val DIR = "src/test/resources/dev/quinton/goa/core/game/puzzles/rounds"
+        private val DIR =
+            System.getenv("ROUND_RES") ?: "src/test/resources/dev/quinton/goa/core/game/puzzles/rounds"
 
         fun file(id: String) = File("$DIR/$id.cert")
 

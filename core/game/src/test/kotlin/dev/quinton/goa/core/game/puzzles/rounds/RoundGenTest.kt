@@ -57,6 +57,8 @@ class RoundGenTest {
         }.shuffled(rng).take(games)
         println("GEN ${records.size} games to mine")
         val queue = java.util.concurrent.Semaphore(threads * 2)
+        val wanted = System.getenv("ROUND_HEROES")?.split(",")?.toSet()
+        val kinds = System.getenv("ROUND_KINDS")?.split(",")?.toSet()
         for (line in records) {
             if (System.nanoTime() > deadline) break
             val rec = Learned.JSON.decodeFromString(Learned.GameRecord.serializer(), line)
@@ -67,7 +69,9 @@ class RoundGenTest {
                 if (m.played.values.any { p -> p.any { it == null } }) continue
                 for (t in Team.entries) {
                     if (m.team(t).all { (found[it] ?: 0) >= ENOUGH_PER_HERO }) continue
-                    for (goal in goals(m, t)) {
+                    // A refill can ask for the heroes it is short of, and for goals other than coins.
+                    if (wanted != null && m.heroes.none { it in wanted }) continue
+                    for (goal in goals(m, t).filter { g -> kinds == null || slug(g).substringBefore('-') in kinds }) {
                         val id = "g${m.game}_r${m.round}_${t}_${slug(goal)}"
                         if (id in seen) continue
                         queue.acquire()
@@ -257,6 +261,16 @@ class RoundGenTest {
             }
             val free = (1..4).filter { it !in matters }
             if (free.isNotEmpty()) return "free turns $free"
+            // An option merely not proven to win says nothing: turn 3 has to have one proven to lose.
+            val lostInThree = line.any { step ->
+                PlanProver.turnOf(step.at) == THREE && solver.sideOf(step.decision) == Side.PLAYER &&
+                    step.decision.options.indices.any { i ->
+                        i != step.option &&
+                            valueOf(solver, solver.child(step.at, step.decision.options[i])!!, THREE_SECONDS) ==
+                            Value.LOSS
+                    }
+            }
+            if (!lostInThree) return "no proven loss in turn 3"
             // Temptation: strength 7 on the player's seats must fail; who does solve it sets the grade.
             val s7 = play(sp, solver, S7)
             if (s7.solved) return "s7 solves it"
@@ -430,6 +444,8 @@ class RoundGenTest {
         const val ROUNDS_PER_GAME = 2
         const val SHORTER_SECONDS = 6L
         const val OPTION_SECONDS = 3L
+        const val THREE_SECONDS = 6L
+        const val THREE = 3
         const val RUNTIME_BUDGET = 1_500L
         const val MAX_DECISIONS = 300
         const val EVENTS_SHOWN = 12
