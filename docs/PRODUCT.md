@@ -615,7 +615,8 @@ The book's second part: four turns planned from turn 1, through the end-of-round
 ### Settings
 Theme (dark default / light / system), owned products (default: all), timer defaults, running
 timer view (step by step / whole round), cue sounds and haptics, puzzle nudges (on by default), Elo constants (advanced; shared
-with the sync group), Group sync, export/import, About/credits.
+with the sync group), Group sync, export/import, a measure of the computer's speed on this phone (about
+30 s at strength 10, cancellable, a line to copy and send back; ADR-050), About/credits.
 
 ## Non-goals (v1)
 - Online play, accounts, cloud sync, ads, analytics SDKs: not in v1, no longer ruled out

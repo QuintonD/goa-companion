@@ -494,6 +494,15 @@ passes (including an in-place upgrade from the morning build with real data). Ev
 - [ ] On the S25 Ultra: a 3v3 game at strength 10, decision times within ~2 s, and whether hunting kills
   still beats it
 
+## M22 — Does deeper search pay? The phone benchmark (ADR-050)
+- [x] The gate: deep playouts with searched later turns against strength 10, 3v3 tune line-ups — lost, 2026-10-31:
+  22.7% (12.8–37.0%, 44 games) on the v0.10 net, 38.2% (23.9–55.0%, 34) on v0.9's; double the search 42.2%
+  (35.4–49.3%, 192) and 43.8% (34.3–53.7%, 96). The move policy and the deeper search were not built; strength
+  10 plays as before
+- [x] Settings → "Measure the computer's speed" and `AiBenchmark`; the desktop's numbers in AI.md "Budgets" —
+  2026-10-31, JVM tests and screenshots; not run on a device or an emulator
+- [ ] On the S25 Ultra: run the measure twice, send back the higher line, and read the phone factor off AI.md
+
 ## M5 — Polish & release readiness
 - [x] Accessibility pass: ATF checks on 25 screens (no errors), contrast fixes, TalkBack labels, font scale 2.0 screenshots — 2026-10-17 (emulator/JVM)
 - [ ] Tablet sanity check

@@ -2295,3 +2295,29 @@ measured: the real phone's factor and decision times on the new net (`TimingTest
 extra cost is one evaluation per playout), and whether a human hunting kills fares worse, which is the
 device game night's question. In a one-ply look inside a playout the hand evaluation still answers, so
 where a token goes in a playout is chosen without the net's knowledge.
+
+## ADR-050 — Deeper search does not pay; the phone's speed gets measured (v0.10, 2026-10-31)
+**Status:** accepted.
+**Context:** Strength 10 is flat Monte Carlo: one ply at the root, playouts to the end of the turn. The owner's kills
+are set up over two turns, past that horizon. The plan: approximate policy iteration, a learned move policy to make deep
+playouts affordable, then deeper horizons and perhaps a tree, each kept only if it measures better. The first step
+was a gate: with no time limit and good later turns, does looking further win at all? The 3–4× phone factor behind every
+budget had never been measured, and no agent has the phone.
+**Decision:** Deep search is out, so the policy has no job, and neither it nor the deeper search was built. Strength 10
+plays as before. What ships is the measure: `AiBenchmark` in `:core:game` (pure Kotlin, the same seeded 3v3 card plays on any
+device, cancellable) and a plain row in Settings → Data, with a line to copy and send back. The work counter became atomic,
+so a threaded run counts every answer; answers are unchanged.
+**Evidence (3v3, tune family, mirrored, AI.md "Depth and speed"):** the end of the next turn with later cards chosen by
+a small search, against today's 10: 22.7% (12.8–37.0%, 44 games) on the v0.10 net, 38.2% (23.9–55.0%, 34) on v0.9's, at about
+15 thread-minutes a game against about 2. Without that search: 33.3% (24.7–43.2%, 96) and 23.8% (15.8–34.1%, 80). Double the
+search at the phone's work: 42.2% (35.4–49.3%, 192) and 43.8% (34.3–53.7%, 96 on v0.10). Half the work: the full budget
+won only 46.9% (37.2–56.8%, 96 on v0.9). Several of the deep runs were stopped by a 2-hour limit before their 96 games.
+**Alternatives:** Training the policy anyway: it could only approximate a search that already loses. A horizon at the
+end of the round: built, not played, for the same reason. A tree over the team's own choices (ISMCTS): not tried, as the
+plan kept it for when cheaper, deeper playouts had shown that the root's one ply was the limit. Variants kept in commit
+`7477dbcd`, out of production.
+**Consequences:** The next gain is expected in what judges a position, not in more search; that is a reading, not a proof.
+Two-turn kills stay unplanned, so what the owner exploits is not answered here. Since half the budget lost nothing
+measurable, a slower phone than assumed costs wait, not visible strength, within that test's wide interval. The phone
+factor stays an assumption until the owner sends back the line: run it twice and keep the higher, as one desktop run in
+five read 45% low for an unknown reason. Not on a device or an emulator yet.

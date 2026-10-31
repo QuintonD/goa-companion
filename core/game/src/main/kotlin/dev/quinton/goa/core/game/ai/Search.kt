@@ -12,6 +12,9 @@ import dev.quinton.goa.core.game.engine.EngineData
 import dev.quinton.goa.core.game.engine.EngineSession
 import dev.quinton.goa.core.game.engine.GameState
 import dev.quinton.goa.core.model.match.Team
+import kotlin.concurrent.atomics.AtomicLong
+import kotlin.concurrent.atomics.ExperimentalAtomicApi
+import kotlin.concurrent.atomics.incrementAndFetch
 import kotlin.math.sqrt
 import kotlin.random.Random
 
@@ -162,6 +165,7 @@ internal class Analysis(
  * hidden cards): for each sample, fork, answer the option, play on with the rollout policy to the
  * horizon, evaluate. Shared by the levels and the coach.
  */
+@OptIn(ExperimentalAtomicApi::class)
 internal class Searcher(
     val ev: Evaluator,
     val profile: LevelProfile,
@@ -170,9 +174,10 @@ internal class Searcher(
 ) {
     val static = StaticPolicy(ev)
 
-    /** Engine answers spent in playouts so far (the [LevelProfile.workBudget] measure; sequential runs). */
-    var work: Long = 0
-        private set
+    private val answered = AtomicLong(0)
+
+    /** Engine answers spent in playouts so far (the [LevelProfile.workBudget] measure, [AiBenchmark]'s; any runner). */
+    val work: Long get() = answered.load()
 
     /** What scores the end of a playout ([LevelProfile.learned]). */
     val leaf: PositionEvaluator = when {
@@ -436,7 +441,7 @@ internal class Searcher(
             val f = det.forkForAnswer()
             val before = f.events.size
             f.answer(dp.id, o)
-            work++
+            answered.incrementAndFetch()
             playout(f, d.seat, d.team, horizon)
             val v = leaf.evaluate(f.state, d.team)
             table.getValue(o)[k] = v
@@ -533,7 +538,7 @@ internal class Searcher(
                 else -> static.best(s, d)
             }
             f.answer(d.id, c)
-            work++
+            answered.incrementAndFetch()
             n++
         }
     }
@@ -582,7 +587,7 @@ internal class Searcher(
         for (o in opts) {
             val g = f.forkForAnswer()
             g.answer(d.id, o)
-            work++
+            answered.incrementAndFetch()
             finishAction(g, d.seat)
             val v = inner.evaluate(g.state, d.team)
             if (v > bestV) {
@@ -605,7 +610,7 @@ internal class Searcher(
             if (s.acting != acting || s.step != step || turnIndex(s) != turn) return
             if (d.seat != seat && d.kind != DecisionKind.DEFEND) return
             g.answer(d.id, static.best(s, d))
-            work++
+            answered.incrementAndFetch()
             n++
         }
     }

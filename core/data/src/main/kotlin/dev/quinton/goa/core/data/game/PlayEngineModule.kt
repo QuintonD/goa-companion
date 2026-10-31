@@ -1,5 +1,6 @@
 package dev.quinton.goa.core.data.game
 
+import android.os.Build
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -11,6 +12,7 @@ import dev.quinton.goa.core.game.AiPlayer
 import dev.quinton.goa.core.game.Coach
 import dev.quinton.goa.core.game.GameFactory
 import dev.quinton.goa.core.game.PuzzleBook
+import dev.quinton.goa.core.game.ai.AiBenchmark
 import dev.quinton.goa.core.game.ai.AiCoach
 import dev.quinton.goa.core.game.ai.AiPlayers as GameAiPlayers
 import dev.quinton.goa.core.game.ai.SampleRunner
@@ -18,9 +20,14 @@ import dev.quinton.goa.core.game.engine.GameEngine
 import dev.quinton.goa.core.game.puzzles.EnginePuzzleBook
 import java.util.concurrent.Callable
 import java.util.concurrent.Executors
+import javax.inject.Provider
 import javax.inject.Singleton
+import kotlin.coroutines.coroutineContext
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.job
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withContext
 
 /** The computer players, one per strength 1..10 (ADR-035, ADR-039). */
 fun interface AiPlayers {
@@ -28,6 +35,14 @@ fun interface AiPlayers {
 
     /** A level alone (a save from before the slider) plays as its anchor strength. */
     fun forLevel(level: AiLevel): AiPlayer = forStrength(level.strength)
+}
+
+/** What a run of the computer's speed measure found ([dev.quinton.goa.core.game.ai.AiBenchmark]). */
+data class AiSpeed(val answersPerSecond: Long, val medianMs: Long, val p95Ms: Long, val line: String)
+
+/** Measures this phone's speed at strength 10 for about 30 s (AI.md "Budgets"); null if it was cancelled. */
+fun interface AiSpeedMeter {
+    suspend fun measure(progress: (Float) -> Unit): AiSpeed?
 }
 
 /**
@@ -52,6 +67,23 @@ internal object PlayEngineModule {
     @Provides
     @Singleton
     fun ai(): AiPlayers = AiPlayers { strength -> GameAiPlayers.forApp(strength, AiSampleThreads) }
+
+    /** On the app's sample threads, off the main thread; the job's cancellation stops it within a playout. */
+    @Provides
+    @Singleton
+    fun speedMeter(factory: Provider<GameFactory>): AiSpeedMeter = AiSpeedMeter { progress ->
+        withContext(Dispatchers.Default) {
+            val job = coroutineContext.job
+            AiBenchmark.run(
+                factory.get() as GameEngine,
+                AiSampleThreads,
+                progress = { progress(it.toFloat()) },
+                cancelled = { !job.isActive },
+            )?.let {
+                AiSpeed(it.answersPerSecond, it.medianMs, it.p95Ms, it.line("${Build.MANUFACTURER} ${Build.MODEL}"))
+            }
+        }
+    }
 
     /** The coach analyses on the game factory's engine (it replays saves for the turning points). */
     @Provides

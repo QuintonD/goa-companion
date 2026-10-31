@@ -1,5 +1,6 @@
 package dev.quinton.goa.feature.settings
 
+import android.content.ClipData
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -27,6 +28,7 @@ import androidx.compose.material.icons.outlined.Inventory2
 import androidx.compose.material.icons.outlined.Leaderboard
 import androidx.compose.material.icons.outlined.LightMode
 import androidx.compose.material.icons.outlined.Lightbulb
+import androidx.compose.material.icons.outlined.Speed
 import androidx.compose.material.icons.outlined.SwapHoriz
 import androidx.compose.material.icons.outlined.Sync
 import androidx.compose.material.icons.outlined.Timer
@@ -36,6 +38,7 @@ import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.SegmentedButton
@@ -45,13 +48,17 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.ClipEntry
+import androidx.compose.ui.platform.LocalClipboard
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.style.TextOverflow
@@ -68,6 +75,7 @@ import dev.quinton.goa.core.designsystem.theme.Spacing
 import dev.quinton.goa.core.domain.settings.ProductOption
 import dev.quinton.goa.core.model.settings.ThemeMode
 import dev.quinton.goa.core.model.settings.TimerLayout
+import kotlinx.coroutines.launch
 
 /** Where each settings link goes; the route maps these to Navigation 3 keys. */
 enum class SettingsLink { TIMER_PRESETS, DRAFT_METHODS, RATINGS, GROUP_SYNC, BACKUP, ABOUT }
@@ -225,6 +233,7 @@ private fun SettingsList(
                 LinkRow(Icons.Outlined.Backup, "Backup and restore", "Export or import all your data and settings") {
                     onOpen(SettingsLink.BACKUP)
                 }
+                SpeedRow(state.speedTest) { onAction(SettingsAction.ToggleSpeedTest) }
                 LinkRow(Icons.Outlined.Info, "About", "Version, credits and licences") { onOpen(SettingsLink.ABOUT) }
             }
         }
@@ -390,6 +399,51 @@ private fun LinkRow(icon: ImageVector, title: String, subtitle: String, onClick:
     }
 }
 
+/** Measures strength 10 on this phone (AI.md "Budgets"): tap to start or stop; the line can be copied to send back. */
+@Composable
+internal fun SpeedRow(test: SpeedTest, onToggle: () -> Unit) {
+    Surface(onClick = onToggle, color = Color.Transparent) {
+        Column(
+            Modifier
+                .fillMaxWidth()
+                .heightIn(min = 64.dp)
+                .padding(horizontal = Spacing.lg, vertical = Spacing.sm),
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                RowIcon(Icons.Outlined.Speed)
+                RowText(
+                    "Measure the computer's speed",
+                    when (test) {
+                        SpeedTest.Idle -> "About 30 s at strength 10 on this phone"
+
+                        is SpeedTest.Running -> "Measuring, ${(test.progress * PERCENT).toInt()}%. Tap to stop"
+
+                        is SpeedTest.Done ->
+                            "${test.speed.answersPerSecond} answers per second. A card play takes " +
+                                "${test.speed.medianMs} ms, 1 in 20 over ${test.speed.p95Ms} ms. Tap to measure again"
+                    },
+                    Modifier.weight(1f),
+                )
+            }
+            if (test is SpeedTest.Running) {
+                Spacer(Modifier.size(Spacing.sm))
+                LinearProgressIndicator(progress = { test.progress }, Modifier.fillMaxWidth())
+            }
+            if (test is SpeedTest.Done) CopyLine(test.speed.line)
+        }
+    }
+}
+
+@Composable
+private fun CopyLine(line: String) {
+    val clipboard = LocalClipboard.current
+    val scope = rememberCoroutineScope()
+    TextButton(
+        onClick = { scope.launch { clipboard.setClipEntry(ClipEntry(ClipData.newPlainText("Speed", line))) } },
+        modifier = Modifier.padding(start = 24.dp + Spacing.lg - Spacing.md),
+    ) { Text("Copy the line to send") }
+}
+
 internal val PreviewSettings = SettingsUiState.Ready(
     theme = ThemeMode.DARK,
     ownsEverything = false,
@@ -414,6 +468,8 @@ private fun SettingsScreenPreview() {
 private fun SettingsScreenLightPreview() {
     GoaTheme(ThemeMode.LIGHT) { SettingsScreen(PreviewSettings, onAction = {}, onBack = {}, onOpen = {}) }
 }
+
+private const val PERCENT = 100
 
 /** Material's disabled content alpha. */
 private const val DISABLED_ALPHA = 0.38f

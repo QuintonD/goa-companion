@@ -3,14 +3,18 @@ package dev.quinton.goa.feature.settings
 import app.cash.turbine.ReceiveTurbine
 import app.cash.turbine.test
 import com.google.common.truth.Truth.assertThat
+import dev.quinton.goa.core.data.game.AiSpeed
+import dev.quinton.goa.core.data.game.AiSpeedMeter
 import dev.quinton.goa.core.model.settings.AppSettings
 import dev.quinton.goa.core.model.settings.ThemeMode
 import dev.quinton.goa.core.model.settings.TimerLayout
 import dev.quinton.goa.core.testing.FakeCatalogRepository
 import dev.quinton.goa.core.testing.FakeSettingsRepository
 import dev.quinton.goa.core.testing.TestCatalog
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.awaitCancellation
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
@@ -24,6 +28,7 @@ class SettingsViewModelTest {
     private val settings = FakeSettingsRepository()
     private val catalog = FakeCatalogRepository()
     private val ids = TestCatalog.products.map { it.id }
+    private val meter = AiSpeedMeter { null }
 
     @Before fun setUp() = Dispatchers.setMain(UnconfinedTestDispatcher())
 
@@ -36,7 +41,7 @@ class SettingsViewModelTest {
     }
 
     @Test fun defaultsOwnEverything() = runTest {
-        val vm = SettingsViewModel(settings, catalog)
+        val vm = SettingsViewModel(settings, catalog, meter)
         vm.uiState.test {
             val s = ready()
             assertThat(s.theme).isEqualTo(ThemeMode.DARK)
@@ -48,7 +53,7 @@ class SettingsViewModelTest {
     }
 
     @Test fun themeAndToggles() = runTest {
-        val vm = SettingsViewModel(settings, catalog)
+        val vm = SettingsViewModel(settings, catalog, meter)
         vm.uiState.test {
             ready()
             vm.onAction(SettingsAction.SetTheme(ThemeMode.LIGHT))
@@ -62,7 +67,7 @@ class SettingsViewModelTest {
     }
 
     @Test fun timerLayoutIsShownAndSaved() = runTest {
-        val vm = SettingsViewModel(settings, catalog)
+        val vm = SettingsViewModel(settings, catalog, meter)
         vm.uiState.test {
             assertThat(ready().timerLayout).isEqualTo(TimerLayout.STEPS)
             vm.onAction(SettingsAction.SetTimerLayout(TimerLayout.ROUND))
@@ -72,7 +77,7 @@ class SettingsViewModelTest {
     }
 
     @Test fun puzzleNudgesAreOnByDefaultAndSaved() = runTest {
-        val vm = SettingsViewModel(settings, catalog)
+        val vm = SettingsViewModel(settings, catalog, meter)
         vm.uiState.test {
             assertThat(ready().puzzleNudges).isTrue()
             vm.onAction(SettingsAction.SetPuzzleNudges(false))
@@ -82,7 +87,7 @@ class SettingsViewModelTest {
     }
 
     @Test fun deselectingFromAllStoresTheRest() = runTest {
-        val vm = SettingsViewModel(settings, catalog)
+        val vm = SettingsViewModel(settings, catalog, meter)
         vm.uiState.test {
             ready()
             vm.onAction(SettingsAction.ToggleProduct(ids[1]))
@@ -93,7 +98,7 @@ class SettingsViewModelTest {
 
     @Test fun reselectingEverythingStoresEmpty() = runTest {
         settings.state.value = AppSettings(ownedProducts = setOf(ids[0]))
-        val vm = SettingsViewModel(settings, catalog)
+        val vm = SettingsViewModel(settings, catalog, meter)
         vm.uiState.test {
             val s = ready()
             assertThat(s.ownsEverything).isFalse()
@@ -106,7 +111,7 @@ class SettingsViewModelTest {
 
     @Test fun cannotDeselectTheLastProduct() = runTest {
         settings.state.value = AppSettings(ownedProducts = setOf(ids[0]))
-        val vm = SettingsViewModel(settings, catalog)
+        val vm = SettingsViewModel(settings, catalog, meter)
         vm.uiState.test {
             ready()
             vm.onAction(SettingsAction.ToggleProduct(ids[0]))
@@ -115,8 +120,45 @@ class SettingsViewModelTest {
         assertThat(settings.state.value.ownedProducts).containsExactly(ids[0])
     }
 
+    @Test fun speedMeasureShowsProgressThenTheResult() = runTest {
+        val gate = CompletableDeferred<Unit>()
+        val speed = AiSpeed(2_000, 120, 350, "line")
+        val vm = SettingsViewModel(settings, catalog) { progress ->
+            progress(0.5f)
+            gate.await()
+            speed
+        }
+        vm.uiState.test {
+            assertThat(ready().speedTest).isEqualTo(SpeedTest.Idle)
+            vm.onAction(SettingsAction.ToggleSpeedTest)
+            assertThat(ready().speedTest).isEqualTo(SpeedTest.Running(0f))
+            assertThat(ready().speedTest).isEqualTo(SpeedTest.Running(0.5f))
+            gate.complete(Unit)
+            assertThat(ready().speedTest).isEqualTo(SpeedTest.Done(speed))
+        }
+    }
+
+    @Test fun tappingWhileMeasuringStopsIt() = runTest {
+        var cancelled = false
+        val vm = SettingsViewModel(settings, catalog) {
+            try {
+                awaitCancellation()
+            } finally {
+                cancelled = true
+            }
+        }
+        vm.uiState.test {
+            ready()
+            vm.onAction(SettingsAction.ToggleSpeedTest)
+            assertThat(ready().speedTest).isEqualTo(SpeedTest.Running(0f))
+            vm.onAction(SettingsAction.ToggleSpeedTest)
+            assertThat(ready().speedTest).isEqualTo(SpeedTest.Idle)
+        }
+        assertThat(cancelled).isTrue()
+    }
+
     @Test fun ownsEverythingSwitch() = runTest {
-        val vm = SettingsViewModel(settings, catalog)
+        val vm = SettingsViewModel(settings, catalog, meter)
         vm.uiState.test {
             ready()
             vm.onAction(SettingsAction.SetOwnsEverything(false))
