@@ -82,8 +82,8 @@ internal class LineBuilder(private val f: CoachFacts) {
                     if (e.winner == f.team) "your team wins the game" else "the other team wins the game"
                 }
 
-                is GameEvent.LevelledUp -> add("level:${e.heroId}:${e.level}", i) {
-                    "${f.who(e.heroId)} ${if (e.heroId == f.seat) "reach" else "reaches"} level ${e.level}"
+                is GameEvent.LevelledUp -> if (e.heroId == f.seat) {
+                    add("level:${e.level}", i) { "you reach level ${e.level}" }
                 }
 
                 is GameEvent.CoinsGained -> if (e.heroId == f.seat) {

@@ -57,7 +57,9 @@ internal class ReasonFinder(private val f: CoachFacts) {
         val always = printedFacts(x, y)
         val played = if (y == null) emptyList() else fromPlayouts(x, y)
         val gap = if (y == null) DoubleArray(Term.entries.size) else termGap(x, y)
-        return always + played.sortedByDescending { w -> w.terms.maxOfOrNull { gap[it.ordinal] } ?: 0.0 }
+        val ranked = played.sortedByDescending { w -> w.terms.maxOfOrNull { gap[it.ordinal] } ?: 0.0 }
+        // What the playouts found first where the fact is only about the rule (Fast Travel at a move).
+        return if (d.kind == DecisionKind.CHOOSE_ACTION) ranked + always else always + ranked
     }
 
     /** Facts of the decision itself, true whatever the playouts do. */
@@ -466,7 +468,7 @@ internal class ReasonFinder(private val f: CoachFacts) {
         val after = theirs - 1
         val oneMore = when {
             after <= 0 -> "One more enemy minion gone is their last: the lane is pushed at once."
-            ours - after >= after -> "One more gone and they must remove all ${plural(after, "minion")} left: the lane is pushed."
+            ours - after >= after -> "One more gone and they must remove every minion they have left: the lane is pushed."
             ours > after -> "One more gone and they would remove ${ours - after}."
             ours == after -> "One more gone and the battle is even."
             else -> "One more gone and your team would remove ${after - ours}."
@@ -503,7 +505,7 @@ internal class ReasonFinder(private val f: CoachFacts) {
             if (sx >= NEARLY_MOST && sy <= 1 - NEARLY_MOST && afterY - after >= CLEAR_GAP) {
                 return why(
                     CoachReasonKind.INITIATIVE,
-                    "Initiative $mine acts before ${data.heroName(e)} in most guesses, and the attack on you stops; with Initiative $other it comes first.",
+                    "In most guesses Initiative $mine acts before ${data.heroName(e)}, and no attack on you comes; with Initiative $other ${data.heroName(e)} acts first and attacks you.",
                     "The highest Initiative acts first (p.7), so a hero acting first can leave before the attack comes.",
                     setOf(Term.EXPOSURE, Term.LIFE, Term.PRESENCE),
                     PlayoutClaim.ACTS_BEFORE,
@@ -614,7 +616,7 @@ internal class ReasonFinder(private val f: CoachFacts) {
         val here = if (dx == 0) "in the Battle Zone" else "${plural(dx, "space")} from the Battle Zone"
         return why(
             CoachReasonKind.POSITION,
-            "This stands you $here; the other is ${plural(dy, "space")} away.",
+            "This puts you $here; the other is ${plural(dy, "space")} away.",
             "The minions fight in the Battle Zone, and the Minion Battle there decides the push (p.8).",
             setOf(Term.PRESENCE, Term.OPPORTUNITY),
         )
@@ -729,7 +731,7 @@ internal class ReasonFinder(private val f: CoachFacts) {
                         p.heroBody != null -> out += Mechanic(
                             "body:${p.kind}",
                             CoachReasonKind.BODY,
-                            "This puts another body of ${f.who(p.heroBody!!)} on the board.",
+                            "This places ${p.label}: it counts as ${f.who(p.heroBody!!)}.",
                             "The card text makes it the same hero (card text beats the rules, p.3).",
                         )
 

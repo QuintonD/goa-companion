@@ -3,6 +3,7 @@ package dev.quinton.goa.core.game.ai
 import dev.quinton.goa.core.domain.board.HexGrid
 import dev.quinton.goa.core.game.Choice
 import dev.quinton.goa.core.game.CoachReason
+import dev.quinton.goa.core.game.CoachReasonKind
 import dev.quinton.goa.core.game.CoachSuggestions
 import dev.quinton.goa.core.game.SuggestedOption
 import dev.quinton.goa.core.game.SuggestionConfidence
@@ -106,8 +107,14 @@ internal class SuggestionBuilder(
     }
 
     /** Why the sampled option trails, in the nudge's own words when it has them. */
-    private fun downside(c: Choice, best: Choice): CoachReason? =
-        Explainer(f.es, f.d, f.a, c, best).explainWithKind()
+    private fun downside(c: Choice, best: Choice): CoachReason? {
+        val said = Explainer(f.es, f.d, f.a, c, best).explainWithKind() ?: return null
+        // These speak of what the better option does: under this one they must say so.
+        val ofTheBest = said.kind == CoachReasonKind.KILL || said.kind == CoachReasonKind.MINION ||
+            said.kind == CoachReasonKind.PUSH_WON
+        val text = said.text.replaceFirstChar { it.lowercase() }
+        return if (ofTheBest) said.copy(text = "The better option: $text") else said
+    }
 
     /** Three spaces can read the same: what else tells them apart, the distance from the hero first. */
     private fun distinctLabels(choices: List<Choice>): List<String> {

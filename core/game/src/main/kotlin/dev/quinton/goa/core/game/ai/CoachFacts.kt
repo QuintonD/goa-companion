@@ -75,8 +75,10 @@ internal class CoachFacts(val es: EngineSession, val d: Decision, val a: Analysi
     /** A unit's or piece's name as the log has it; [fallback] for one that is not on the board now. */
     fun unitName(id: String, at: GameState = state, fallback: String = "a unit"): String {
         if (at.hero(id) != null) return who(id)
-        if (at.minion(id) == null && at.piece(id) == null) return fallback
-        val named = Game(data, at, emptyList(), RunMode.PROBE).name(id)
+        // Gone by the end of a playout: it was on the board when the question was asked.
+        val board = if (at.minion(id) != null || at.piece(id) != null) at else state
+        if (board.minion(id) == null && board.piece(id) == null) return fallback
+        val named = Game(data, board, emptyList(), RunMode.PROBE).name(id)
         return if (named == id) fallback else "the $named"
     }
 

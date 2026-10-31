@@ -13,8 +13,10 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.CenterFocusStrong
@@ -22,6 +24,7 @@ import androidx.compose.material.icons.outlined.SwapVert
 import androidx.compose.material.icons.outlined.ZoomIn
 import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Immutable
@@ -297,14 +300,31 @@ fun PeekConfirm(table: TableUi, busy: Boolean, onAnswer: (Choice) -> Unit) {
 
 /** The event log (a sheet): every event of the game in the engine's words, newest at the bottom. */
 @Composable
-fun EventLog(lines: List<LogLine>, modifier: Modifier = Modifier) {
+fun EventLog(lines: List<LogLine>, modifier: Modifier = Modifier, at: Int? = null) {
+    // [at]: the event count at a decision of the review; the line before it is where the game stood.
+    val marked = at?.minus(1)?.takeIf { it in lines.indices }
+    val state = rememberLazyListState(initialFirstVisibleItemIndex = marked?.let { lines.lastIndex - it } ?: 0)
     LazyColumn(
         modifier.fillMaxWidth(),
+        state = state,
         reverseLayout = true,
         verticalArrangement = Arrangement.spacedBy(Spacing.xs),
     ) {
-        items(lines.asReversed()) { line ->
-            if (line.heading) {
+        itemsIndexed(lines.asReversed()) { reversedAt, line ->
+            if (lines.lastIndex - reversedAt == marked) {
+                Surface(
+                    color = MaterialTheme.colorScheme.secondaryContainer,
+                    shape = RoundedCornerShape(8.dp),
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = Spacing.sm),
+                ) {
+                    Text(
+                        line.text,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSecondaryContainer,
+                        modifier = Modifier.padding(Spacing.sm),
+                    )
+                }
+            } else if (line.heading) {
                 Text(
                     line.text.uppercase(),
                     style = GoaTextStyles.overline,

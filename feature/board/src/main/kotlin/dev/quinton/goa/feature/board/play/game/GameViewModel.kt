@@ -17,6 +17,7 @@ import dev.quinton.goa.core.game.Choice
 import dev.quinton.goa.core.game.Coach
 import dev.quinton.goa.core.game.CoachAnalysis
 import dev.quinton.goa.core.game.CoachNote
+import dev.quinton.goa.core.game.CoachSuggestions
 import dev.quinton.goa.core.game.Controller
 import dev.quinton.goa.core.game.Decision
 import dev.quinton.goa.core.game.DecisionKind
@@ -157,6 +158,15 @@ class GameViewModel internal constructor(
 
     private class Lookahead(val decision: Decision, val analysis: Deferred<CoachAnalysis?>)
 
+    /** The suggestions of the pending question, kept while the sheet is shut (ADR-051). */
+    private var suggestions: Pair<Long, CoachSuggestions?>? = null
+    private var suggesting: Job? = null
+    private var suggestOpen = false
+
+    /** The post-game review (ADR-051): its job, and what it has so far. */
+    private var reporting: Job? = null
+    private var report: ReportUi? = null
+
     init {
         viewModelScope.launch { load() }
     }
@@ -253,6 +263,17 @@ class GameViewModel internal constructor(
                 val turns = (uiState.value as? GameUiState.Playing)?.play?.review?.turns
                 if (review.handle(action.action, turns)) viewModelScope.launch { publish() }
             }
+
+            GameAction.AskSuggestions -> askSuggestions()
+
+            GameAction.CloseSuggestions -> {
+                suggestOpen = false
+                viewModelScope.launch { publish() }
+            }
+
+            GameAction.StartReport -> startReport()
+
+            GameAction.CancelReport -> cancelReport()
         }
     }
 
@@ -283,7 +304,13 @@ class GameViewModel internal constructor(
                 publish()
                 return@launch
             }
-            val note = if (progress?.coach == true) askCoach(game, decision, choice) else null
+            // The coach doesn't warn against what it just suggested.
+            val suggestedFirst = suggestions?.takeIf { it.first == decision.id }?.second?.options?.firstOrNull()?.choice
+            val note = if (progress?.coach == true && choice != suggestedFirst) {
+                askCoach(game, decision, choice)
+            } else {
+                null
+            }
             if (note != null) {
                 nudge = PendingNudge(note, choice, currentTable()?.label(choice).orEmpty())
                 update(publish = false) { it.copy(nudges = it.nudges + 1) }
@@ -350,6 +377,72 @@ class GameViewModel internal constructor(
         lookahead = null
     }
 
+    /**
+     * Suggest (ADR-051), Coach on or off: at once if already worked out for this question, else on [analysis]
+     * from the look ahead when there is one. The session is never touched off [engine].
+     */
+    private fun askSuggestions() {
+        val game = session ?: return
+        if (nudge != null) return
+        viewModelScope.launch {
+            val decision = withContext(engine) { game.pending } ?: return@launch
+            if (decision.seat !in humans || decision.options.size < 2) return@launch
+            suggestOpen = true
+            if (suggestions?.first == decision.id) return@launch publish()
+            suggesting?.cancel()
+            val ahead = lookahead?.takeIf { it.decision == decision }?.analysis
+            suggesting = launch {
+                publish()
+                val prepared = ahead?.let { awaitLook(it) }
+                val copy = withContext(engine) { game.fork() }
+                val said = withContext(analysis) {
+                    val job = currentCoroutineContext().job
+                    runCatching { coach.suggest(prepared, copy, decision) { !job.isActive } }.getOrNull()
+                }
+                suggestions = decision.id to said
+                publish()
+            }
+        }
+    }
+
+    private fun dropSuggestions() {
+        suggesting?.cancel()
+        suggesting = null
+        suggestions = null
+        suggestOpen = false
+    }
+
+    /** Every decision of the person's looked at again, on [analysis]; play is over and nothing waits on it. */
+    private fun startReport() {
+        val game = session ?: return
+        if (reporting?.isActive == true || report?.report != null) return
+        report = ReportUi(running = true)
+        reporting = viewModelScope.launch {
+            publish()
+            val saved = withContext(engine) { game.save() }
+            val done = withContext(analysis) {
+                val job = currentCoroutineContext().job
+                runCatching {
+                    coach.review(saved, humans, { n, total -> reportProgress(n, total) }) { !job.isActive }
+                }.getOrNull()
+            }
+            report = if (done != null) ReportUi(report?.done ?: 0, report?.total ?: 0, report = done) else null
+            publish()
+        }
+    }
+
+    private fun reportProgress(done: Int, total: Int) {
+        report = ReportUi(done, total, running = true)
+        if (done % REPORT_PUBLISH_EVERY == 0) viewModelScope.launch { publish() }
+    }
+
+    private fun cancelReport() {
+        reporting?.cancel()
+        reporting = null
+        report = null
+        viewModelScope.launch { publish() }
+    }
+
     private fun setCoach(on: Boolean) {
         update { it.copy(coach = on) }
         if (!on) return dropLookahead()
@@ -382,6 +475,7 @@ class GameViewModel internal constructor(
 
     private suspend fun commit(game: GameSession, decision: Decision, choice: Choice) {
         dropLookahead()
+        dropSuggestions()
         val (before, result) = withContext(engine) { game.events.size to game.answer(decision.id, choice) }
         busy = false
         selected = null
@@ -400,6 +494,7 @@ class GameViewModel internal constructor(
         val game = session ?: return
         if (busy) return
         dropLookahead()
+        dropSuggestions()
         viewModelScope.launch {
             driver?.let {
                 it.cancel()
@@ -432,6 +527,9 @@ class GameViewModel internal constructor(
         val game = session ?: return
         val old = progress ?: return
         dropLookahead()
+        dropSuggestions()
+        reporting?.cancel()
+        report = null
         viewModelScope.launch {
             driver?.let {
                 it.cancel()
@@ -652,9 +750,19 @@ class GameViewModel internal constructor(
                     messageId = messageId,
                     review = snapshot.review,
                     flow = snapshot.flow,
+                    suggest = suggestUi(decision),
+                    canSuggest = decision != null && decision.seat in humans && decision.options.size >= 2,
+                    report = report,
                 ),
             )
         }
+    }
+
+    /** What the sheet shows while it is open: the question's suggestions, or that the coach is thinking. */
+    private fun suggestUi(decision: Decision?): SuggestUi? {
+        if (!suggestOpen || decision == null) return null
+        val known = suggestions?.takeIf { it.first == decision.id }
+        return SuggestUi(decision.seat, looking = known == null, suggestions = known?.second)
     }
 
     private class Snapshot(
@@ -668,11 +776,16 @@ class GameViewModel internal constructor(
     override fun onCleared() {
         driver?.cancel()
         dropLookahead()
+        dropSuggestions()
+        reporting?.cancel()
     }
 
     internal companion object {
         const val NUDGE_WAIT_MS = GamePacing.NUDGE_WAIT_MS
         const val TURNING_POINTS_TIMEOUT_MS = GamePacing.TURNING_POINTS_TIMEOUT_MS
         const val THINKING_MS = GamePacing.THINKING_MS
+
+        /** The review tells its progress this often (each publish rebuilds the screen's state). */
+        const val REPORT_PUBLISH_EVERY = 4
     }
 }

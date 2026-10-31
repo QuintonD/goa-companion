@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- The coach's suggestions and post-game review (ADR-051). -->
+    <string name="coach_suggest">Suggest</string>
+    <string name="coach_suggest_hint">Look at what the coach would do. It never chooses for you.</string>
+    <string name="coach_suggest_title">Suggestions</string>
+    <string name="coach_suggest_for">For %1$s · %2$d guesses of the hidden cards</string>
+    <string name="coach_thinking">The coach is thinking…</string>
+    <string name="coach_nothing">Nothing to suggest at this question.</string>
+    <string name="coach_close">These are close: the guesses don\'t separate them, so take this as no ranking.</string>
+    <string name="coach_chance">About %1$d%% to win</string>
+    <string name="coach_chance_won">Wins in every guess</string>
+    <string name="coach_chance_lost">Loses in every guess</string>
+    <string name="coach_behind">%1$d points behind the first</string>
+    <string name="coach_same_chance">About the same chance as the first</string>
+    <string name="coach_confidence_clear">Clear</string>
+    <string name="coach_confidence_likely">Likely</string>
+    <string name="coach_confidence_close">Close</string>
+    <string name="coach_show_on_board">Show on the board</string>
+    <string name="coach_read_card">Read the card</string>
+    <string name="coach_why">Why</string>
+    <string name="coach_against">Against it</string>
+    <string name="coach_line">In most playouts</string>
+    <string name="coach_threats">What can hit you</string>
+    <string name="coach_plan">The round</string>
+    <string name="coach_advice">Tips for %1$s</string>
+    <string name="coach_advice_source">The hero\'s official tactical tips.</string>
+    <string name="coach_never_chooses">Suggestions never answer for you. The chances are rough: fitted on self-play games, shown to the nearest 5.</string>
+    <string name="coach_option_said">%1$d. %2$s. %3$s. %4$s</string>
+
+    <string name="report_title">Coach · your decisions</string>
+    <string name="report_start">Review your decisions</string>
+    <string name="report_start_hint">Looks again at every choice you made, on this phone. Play goes on as normal if you leave.</string>
+    <string name="report_running">The coach is going through your decisions: %1$d of %2$d</string>
+    <string name="report_starting">The coach is going through your decisions…</string>
+    <string name="report_cancel">Cancel</string>
+    <string name="report_empty">You had no real choices to look at in this game.</string>
+    <string name="report_overall">%1$d%% best or good, over %2$d decisions</string>
+    <string name="report_by_hero">By hero</string>
+    <string name="report_by_kind">By kind of decision</string>
+    <string name="report_row">%1$s: %2$d%% of %3$d</string>
+    <string name="report_mistakes">The biggest mistakes</string>
+    <string name="report_no_mistakes">No decision gave up enough to call it a mistake.</string>
+    <string name="report_when">Round %1$d · Turn %2$d</string>
+    <string name="report_gave_up">gave up about %1$d points</string>
+    <string name="report_chose">You chose: %1$s</string>
+    <string name="report_show">Show what the coach suggests</string>
+    <string name="report_hide">Hide the suggestions</string>
+    <string name="report_log">See it in the log</string>
+    <string name="report_mark_best">Best</string>
+    <string name="report_mark_good">Good</string>
+    <string name="report_mark_inaccuracy">Inaccuracy</string>
+    <string name="report_mark_mistake">Mistake</string>
+    <string name="report_mark_blunder">Blunder</string>
+    <string name="report_marks">%1$s %2$d</string>
+
+    <string name="kind_play_card">Card plays</string>
+    <string name="kind_act_first">Who acts first</string>
+    <string name="kind_respawn">Respawns</string>
+    <string name="kind_choose_action">Actions</string>
+    <string name="kind_choose_space">Spaces</string>
+    <string name="kind_choose_unit">Targets</string>
+    <string name="kind_choose_token">Tokens</string>
+    <string name="kind_choose_card">Cards named</string>
+    <string name="kind_defend">Defenses</string>
+    <string name="kind_choose_option">Choose one</string>
+    <string name="kind_confirm">Yes or no</string>
+    <string name="kind_choose_number">Numbers</string>
+    <string name="kind_remove_minion">Minion Battle</string>
+    <string name="kind_minion_return">Minions back</string>
+    <string name="kind_upgrade_card">Upgrades</string>
+    <string name="kind_keep_upgrade">Cards kept</string>
+</resources>
