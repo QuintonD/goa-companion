@@ -68,7 +68,10 @@ internal object WeightsWriter {
         sb.append("        ${a.size},\n    )\n")
         for ((i, lines) in parts.withIndex()) {
             sb.append("\n    private fun ${name}Part$i(): String =\n")
-            sb.append(lines.joinToString(" +\n") { "        \"$it\"" }).append('\n')
+            // As ktlint formats it: the first line, then the continuations one indent in.
+            sb.append("        \"${lines.first()}\"")
+            for (line in lines.drop(1)) sb.append(" +\n            \"$line\"")
+            sb.append('\n')
         }
     }
 }
