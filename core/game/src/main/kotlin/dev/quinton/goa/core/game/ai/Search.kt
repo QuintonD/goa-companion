@@ -86,8 +86,6 @@ internal data class LevelProfile(
      * under a slot, a colour named, who acts first), search that answer again to the end of the next turn.
      */
     val lookFurther: Boolean = false,
-    /** At a level up's "take one card into your hand", these cards are kept without a search ([UpgradeTable]). */
-    val preferKeep: Set<String> = emptySet(),
 )
 
 /**

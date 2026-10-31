@@ -224,9 +224,6 @@ internal class SearchAi(
 
     override fun choose(session: GameSession, decision: Decision, cancelled: () -> Boolean): Choice {
         if (decision.options.size == 1) return decision.options.single()
-        if (decision.kind == DecisionKind.KEEP_UPGRADE) {
-            decision.options.firstOrNull { it is Choice.Card && it.cardId in profile.preferKeep }?.let { return it }
-        }
         val es = session as? EngineSession ?: return Fallback.choose(decision)
         if (profile.hunt != null && team != decision.team) {
             team = decision.team

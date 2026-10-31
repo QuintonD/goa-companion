@@ -73,22 +73,12 @@ internal object Learned {
     /** The profile of a [side]. */
     fun profile(spec: String): LevelProfile {
         val parts = spec.split("+")
-        val mine = parts.drop(1).filter { it.startsWith("learned=") || it.startsWith("net=") || it.startsWith("keep=") }
+        val mine = parts.drop(1).filter { it.startsWith("learned=") || it.startsWith("net=") }
         var p = ExperimentTest.variant((listOf(parts[0]) + parts.drop(1).filter { it !in mine }).joinToString("+"))
         for (o in mine) {
             val (k, v) = o.split("=", limit = 2)
             p = when (k) {
                 "learned" -> p.copy(learned = EvalSource.valueOf(v.uppercase()))
-
-                // keep=<file> (one "keep:<card> …" per line; `none` for an empty table): cards a level up keeps.
-                "keep" -> p.copy(
-                    preferKeep = if (v == "none") {
-                        emptySet()
-                    } else {
-                        File(v).readLines().filter { it.isNotBlank() }
-                            .map { it.substringBefore(" ").removePrefix("keep:") }.toSet()
-                    },
-                )
 
                 else -> if (v == "v09") {
                     // The frozen baseline: the strength 10 of `feature/v0.10`'s first commit (ADR-049).
