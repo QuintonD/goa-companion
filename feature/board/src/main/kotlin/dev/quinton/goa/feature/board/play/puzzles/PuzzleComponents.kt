@@ -307,7 +307,7 @@ private const val SEAL_START = 0.6f
  * card will do underneath. A tap opens a card.
  */
 @Composable
-fun KnownPlaysStrip(round: RoundUi, focus: CardFocusState, modifier: Modifier = Modifier) {
+fun KnownPlaysStrip(round: RoundUi, focus: CardFocusState, showNote: Boolean, modifier: Modifier = Modifier) {
     Column(modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
         Text(
             "WHAT THEY WILL PLAY",
@@ -315,11 +315,13 @@ fun KnownPlaysStrip(round: RoundUi, focus: CardFocusState, modifier: Modifier = 
             color = MaterialTheme.colorScheme.primary,
             modifier = Modifier.semantics { heading() },
         )
-        Text(
-            PuzzleText.KNOWN_NOTE,
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
+        if (showNote) {
+            Text(
+                PuzzleText.KNOWN_NOTE,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
         round.heroes.forEach { hero -> KnownHero(hero, focus) }
     }
 }

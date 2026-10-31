@@ -279,7 +279,7 @@ private fun PuzzlePanel(puzzle: PuzzleUi, onAction: (PuzzleAction) -> Unit, focu
             else -> {
                 PuzzleHeader(puzzle)
                 if (puzzle.info.intro.isNotBlank()) Intro(puzzle, onAction)
-                puzzle.round?.let { KnownPlaysStrip(it, focus) }
+                puzzle.round?.let { P({ classes("t-title-medium", "c-primary") }) { Text(it.heading) } }
                 puzzle.nudge?.let {
                     NudgeCard(it, { onAction(PuzzleAction.Nudge) }, { onAction(PuzzleAction.DismissNudge) })
                 }
@@ -292,6 +292,7 @@ private fun PuzzlePanel(puzzle: PuzzleUi, onAction: (PuzzleAction) -> Unit, focu
                     busy = puzzle.busy,
                 )
                 RecentEvents(puzzle.recent.takeLast(2))
+                puzzle.round?.let { KnownPlaysStrip(it, focus, showNote = puzzle.introOpen) }
                 if (!puzzle.table.handDecision) YourHand(puzzle.table, focus)
             }
         }

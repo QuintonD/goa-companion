@@ -168,11 +168,10 @@ private const val MAX_DIFFICULTY = 3
  * what this turn's card will do underneath. A tap opens a card.
  */
 @Composable
-fun KnownPlaysStrip(round: RoundUi, focus: CardFocusState) {
+fun KnownPlaysStrip(round: RoundUi, focus: CardFocusState, showNote: Boolean) {
     Div({ classes("goa-known") }) {
-        P({ classes("t-title-medium", "c-primary") }) { Text(round.heading) }
         H3({ classes("t-overline", "c-primary") }) { Text("What they will play") }
-        P({ classes("t-body-small") }) { Text(PuzzleText.KNOWN_NOTE) }
+        if (showNote) P({ classes("t-body-small") }) { Text(PuzzleText.KNOWN_NOTE) }
         round.heroes.forEach { hero ->
             P({ classes("t-label-large") }) { Text(hero.name) }
             Div({ classes("goa-known-row") }) {

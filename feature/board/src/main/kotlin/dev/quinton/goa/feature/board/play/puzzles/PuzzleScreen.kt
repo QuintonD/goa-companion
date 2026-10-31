@@ -327,7 +327,6 @@ private fun ColumnScope.PuzzlePanel(
         else -> {
             PuzzleHeader(puzzle.info, puzzle.total, puzzle.round)
             if (puzzle.info.intro.isNotBlank()) Intro(puzzle.info.intro, puzzle.introOpen, onAction)
-            puzzle.round?.let { KnownPlaysStrip(it, focus) }
             puzzle.nudge?.let { Nudge(it, onAction) }
             // The person's own question first, the moment after it (as in the game).
             val moment = puzzle.table.moment
@@ -341,6 +340,7 @@ private fun ColumnScope.PuzzlePanel(
                 busy = puzzle.busy,
             )
             ResolutionFlowView(puzzle.flow, puzzle.table, focus, Modifier.padding(top = Spacing.xs))
+            puzzle.round?.let { KnownPlaysStrip(it, focus, showNote = puzzle.introOpen) }
             if (moment != null && questionFirst) MomentCard(moment, puzzle.table, focus = focus)
             if (!puzzle.table.handDecision) YourHand(puzzle.table, focus)
         }
