@@ -100,6 +100,15 @@ class PreparedPuzzle(
 
         /** A full round's transposition table on a phone (these searches never fill much of it). */
         const val ROUND_MEMO: Int = 100_000
+
+        /**
+         * A full round off its key: solver expansions for one answer, its own status and every reply it
+         * sets off together, so the phone answers within about half a second (ENCODING.md "Full rounds").
+         */
+        const val ROUND_ANSWER_BUDGET: Long = 500
+
+        /** A full round off its key: the first turn a budgeted search is worth trying. */
+        const val SEARCH_FROM_TURN: Int = 3
     }
 }
 
@@ -118,8 +127,8 @@ class EnginePuzzleSession internal constructor(private val prepared: PreparedPuz
     private val path = ArrayList<Int>()
     private var current: PuzzleStatus = PuzzleStatus.PLAYING
 
-    /** Full round: what is left of [PreparedPuzzle.RUNTIME_BUDGET] for the answer being worked on. */
-    private var answerBudget = PreparedPuzzle.RUNTIME_BUDGET
+    /** Full round: what is left of [PreparedPuzzle.ROUND_ANSWER_BUDGET] for the answer being worked on. */
+    private var answerBudget = PreparedPuzzle.ROUND_ANSWER_BUDGET
     private val static by lazy(LazyThreadSafetyMode.NONE) {
         StaticPolicy(Evaluator(node.session.engineData, Features.KNOBS))
     }
@@ -155,7 +164,7 @@ class EnginePuzzleSession internal constructor(private val prepared: PreparedPuz
         val events = ArrayList<GameEvent>()
         val r = apply(decisionId, index, byPlayer = true, events)
         if (r !is AnswerResult.Accepted) return r
-        answerBudget = PreparedPuzzle.RUNTIME_BUDGET
+        answerBudget = PreparedPuzzle.ROUND_ANSWER_BUDGET
         // A full round's key is one line: off it nothing is known yet, a search or the end of the round decides.
         refresh(wins?.let { w -> (index in w.options).takeIf { it || !prepared.fullRound } })
         autoAnswer(events)
@@ -181,6 +190,7 @@ class EnginePuzzleSession internal constructor(private val prepared: PreparedPuz
         val d = node.session.pending ?: return null
         if (solver.sideOf(d) != Side.PLAYER || current != PuzzleStatus.PLAYING) return null
         (keyEntry() as? AnswerKey.Wins)?.let { return d.options[it.options.first()] }
+        answerBudget = PreparedPuzzle.ROUND_ANSWER_BUDGET
         val s = if (prepared.fullRound) budgeted() else solver.solve(node, cancelled)
         return if (s?.value == Value.WIN) d.options[s.best] else null
     }
@@ -234,9 +244,12 @@ class EnginePuzzleSession internal constructor(private val prepared: PreparedPuz
         }
     }
 
-    /** A solve within what is left for this answer, or null when nothing is left. */
+    /**
+     * A solve within what is left for this answer, or null when nothing is left or it is too early: this
+     * budget proves nothing in turns 1 and 2, and a phone shouldn't spend half a second to learn that.
+     */
     private fun budgeted(): Solved? {
-        if (answerBudget <= 0) return null
+        if (answerBudget <= 0 || node.session.state.turn < PreparedPuzzle.SEARCH_FROM_TURN) return null
         val before = solver.nodesExpanded
         val s = solver.solve(node, budget = answerBudget)
         answerBudget -= solver.nodesExpanded - before

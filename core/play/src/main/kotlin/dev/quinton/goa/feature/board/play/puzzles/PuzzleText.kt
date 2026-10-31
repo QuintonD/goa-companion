@@ -22,6 +22,10 @@ object PuzzleText {
     /** "Puzzle 3 of 12", "Full round 3 of 30". */
     fun place(info: PuzzleInfo, total: Int): String = "${short(info)} of $total"
 
+    /** The button that takes a miss back: a move, or a whole turn in a full round. */
+    fun tryAgain(info: PuzzleInfo): String =
+        if (info.fullRound) "Back to the start of the turn" else "Try again from before that move"
+
     /** What the known card means for this hero, for the strip. */
     fun knownLine(hero: String, play: KnownCardUi): String = when (play.state) {
         KnownCardState.GONE -> "$hero has lost ${play.card?.name ?: "this card"}: it plays anything it has left."

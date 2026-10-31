@@ -105,14 +105,16 @@ class RoundGenTest {
                 is PuzzleGoal.GainCoins -> g.atLeast >= MIN_COINS && (m.metIn(g, t) ?: 0) >= LATE && !recognised
 
 
-                is PuzzleGoal.Survive -> !recognised
+                // In the spike's numbers Survive only burned its budget: it stays out unless asked for.
+                is PuzzleGoal.Survive -> !recognised && System.getenv("ROUND_SURVIVE") != null
 
                 else -> (m.metIn(g, t) ?: 0) >= LATE
             }
         }
         return real.flatMap { g ->
             if (g is PuzzleGoal.GainCoins) {
-                listOf(g, PuzzleGoal.GainCoins(g.atLeast + 1, by, "Gain ${g.atLeast + 1} coins by the end of the round."))
+                // A forced goal that ends too soon may need four turns one or two coins higher.
+                (0..2).map { PuzzleGoal.GainCoins(g.atLeast + it, by, "Gain ${g.atLeast + it} coins by the end of the round.") }
             } else {
                 listOf(g)
             }
@@ -151,6 +153,8 @@ class RoundGenTest {
                 return false
             }
             val heroIds = m.heroes.toSet()
+            // The most known first, the cheap test of whether this can work at all; then harder for the grade.
+            var survivor: (() -> Unit)? = null
             for (open in OPEN_LEVELS) {
                 val actions = enemies.associateWith { h ->
                     m.actions[h].orEmpty().filterKeys { it < open }.mapValues { (_, l) ->
@@ -160,22 +164,22 @@ class RoundGenTest {
                 val known = KnownPlays(enemies.associateWith { h -> m.played.getValue(h).map { it!! } }, actions)
                 val solver = PuzzleSolver(tracker, known = known)
                 val root = solver.root(session(sp))
-                val seconds = if (open == OPEN_LEVELS.last()) PROOF_SECONDS else OPEN_PROOF_SECONDS
+                val seconds = if (open == OPEN_LEVELS.first()) PROOF_SECONDS else OPEN_PROOF_SECONDS
                 val prover = PlanProver(solver, PROOF_RUNS, System.nanoTime() + seconds * NANOS)
                 val t0 = System.nanoTime()
                 val v = prover.solve(root)
                 val ms = (System.nanoTime() - t0) / MILLIS
                 if (v != Value.WIN) {
                     println("GEN $id open$open: $v, ${prover.engineRuns} runs, $ms ms")
-                    continue
+                    break
                 }
                 val proof = prover.verify(root) ?: error("$id: a proof that does not hold")
-                val why = judge(sp, solver, known, root, proof, prover.engineRuns, ms, open)
+                val why = judge(sp, solver, known, root, proof, prover.engineRuns, ms, open) { survivor = it }
                 println("GEN $id open$open: proven ${proof.positions} positions, $ms ms: ${why ?: "SURVIVES"}")
-                // More known only makes it easier, so a rule that fails here fails below.
-                return why == null
+                if (why != null) break
             }
-            return false
+            survivor?.invoke()
+            return survivor != null
         }
 
         fun session(sp: RoundSpec): EngineSession {
@@ -208,6 +212,7 @@ class RoundGenTest {
             runs: Long,
             ms: Long,
             open: Int,
+            survives: (() -> Unit) -> Unit,
         ): String? {
             val line = PlanProver.mainLine(solver, root, proof.moves)
             val endTurn = PlanProver.turnOf(line.last().next)
@@ -259,7 +264,9 @@ class RoundGenTest {
                 else -> 1
             }
             val grade = if (!s10.solved && base < 3) base + 1 else base
-            writeDossier(sp, solver, known, root, proof, line, runs, ms, open, grade, by2, by3, matters, firstCards, s7, s10)
+            survives {
+                writeDossier(sp, solver, known, root, proof, line, runs, ms, open, grade, by2, by3, matters, firstCards, s7, s10)
+            }
             return null
         }
 
@@ -396,11 +403,11 @@ class RoundGenTest {
         const val MILLIS = 1_000_000L
         const val NANOS_PER_HOUR = 3.6e12
         const val PROOF_RUNS = 4_000_000L
-        const val PROOF_SECONDS = 35L
-        const val OPEN_PROOF_SECONDS = 20L
+        const val PROOF_SECONDS = 8L
+        const val OPEN_PROOF_SECONDS = 15L
         const val ROUNDS_PER_GAME = 2
-        const val SHORTER_SECONDS = 20L
-        const val OPTION_SECONDS = 6L
+        const val SHORTER_SECONDS = 6L
+        const val OPTION_SECONDS = 3L
         const val RUNTIME_BUDGET = 1_500L
         const val MAX_DECISIONS = 300
         const val EVENTS_SHOWN = 12
@@ -408,7 +415,7 @@ class RoundGenTest {
         const val S7 = 7
         const val S10 = 10
 
-        /** The first turn the enemy's actions are free, most open first: 5 = only its reactions, all round. */
-        val OPEN_LEVELS = listOf(3, 4, 5)
+        /** The first turn the enemy's actions are free, most known first: 5 = only its reactions, all round. */
+        val OPEN_LEVELS = listOf(5, 4, 3)
     }
 }

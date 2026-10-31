@@ -464,7 +464,7 @@ private fun MissCard(puzzle: PuzzleUi, onAction: (PuzzleAction) -> Unit) {
             ) {
                 Icon(Icons.AutoMirrored.Outlined.Undo, contentDescription = null, modifier = Modifier.size(18.dp))
                 Spacer(Modifier.width(Spacing.sm))
-                Text("Try again from before that move", textAlign = TextAlign.Center)
+                Text(PuzzleText.tryAgain(puzzle.info), textAlign = TextAlign.Center)
             }
             FlowRow(
                 horizontalArrangement = Arrangement.spacedBy(Spacing.sm),

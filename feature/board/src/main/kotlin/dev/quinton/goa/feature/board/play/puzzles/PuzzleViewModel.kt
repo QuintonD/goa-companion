@@ -386,7 +386,7 @@ class PuzzleViewModel internal constructor(
         if (busy || phase != PuzzlePhase.MISSED) return
         busy = true
         viewModelScope.launch {
-            withContext(engine) { s.undo() }
+            withContext(engine) { if (s.info.fullRound) s.undoTurn() else s.undo() }
             review.reset()
             flowFrom = null
             phase = PuzzlePhase.SOLVING

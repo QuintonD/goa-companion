@@ -337,7 +337,7 @@ private fun MissCard(puzzle: PuzzleUi, onAction: (PuzzleAction) -> Unit) {
         }) { Text(puzzle.miss.orEmpty().removePrefix("Not quite — ").replaceFirstChar { it.uppercase() }) }
         P({ classes("t-body-small", "c-variant") }) { Text("The goal: ${puzzle.info.goal.text}") }
         GoaButton(
-            "Try again from before that move",
+            PuzzleText.tryAgain(puzzle.info),
             { onAction(PuzzleAction.TryAgain) },
             icon = "undo",
             enabled = !puzzle.busy,

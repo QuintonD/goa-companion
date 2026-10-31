@@ -3,6 +3,7 @@ package dev.quinton.goa.feature.board.play.puzzles
 import dev.quinton.goa.core.game.AnswerResult
 import dev.quinton.goa.core.game.Choice
 import dev.quinton.goa.core.game.Decision
+import dev.quinton.goa.core.game.DecisionKind
 import dev.quinton.goa.core.game.GameEvent
 import dev.quinton.goa.core.game.GameSession
 import dev.quinton.goa.core.game.GameView
@@ -29,6 +30,26 @@ data class PuzzleMove(
     /** The log's size before the move: the resolution flow starts there (ADR-046). */
     val before: Int,
 )
+
+/**
+ * Takes back a full round's turn (a miss there is often found long after the move that caused it): to
+ * the first card of this turn, or of the turn before when that is where the player already is. So each
+ * Try again walks back one turn further while the goal stays out of reach.
+ */
+fun PuzzleSession.undoTurn(): Boolean {
+    val first = game.setup.seats.first { it.heroId in playerSeats }.heroId
+
+    fun atTurnStart(): Boolean = game.pending?.let { it.kind == DecisionKind.PLAY_CARD && it.seat == first } == true
+
+    var target = game.view(null).turn
+    if (atTurnStart()) target -= 1
+    var any = false
+    while (undo()) {
+        any = true
+        if (atTurnStart() && game.view(null).turn <= target) break
+    }
+    return any
+}
 
 /** One step of the solution replayed: the position before a move, the move, what happened since the last one. */
 @Serializable
