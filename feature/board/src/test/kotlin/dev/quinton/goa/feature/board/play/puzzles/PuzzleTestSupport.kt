@@ -14,7 +14,7 @@ import dev.quinton.goa.feature.board.play.table.TableUi
 val realPuzzleBook: EnginePuzzleBook by lazy { EnginePuzzleBook(GameEngine(bundledCatalog, bundledMaps)) }
 
 /** The puzzle file behind a book entry (its stored solution and wrong tries). */
-fun puzzleFile(id: String): Puzzle = Puzzles.all.first { it.info.id == id }
+fun puzzleFile(id: String): Puzzle = (Puzzles.all + Puzzles.fullRounds).first { it.info.id == id }
 
 /** The option a stored move stands for at the table's pending question (as the engine's test resolves it). */
 fun TableUi.choiceOf(move: Move): Choice {

@@ -4,6 +4,7 @@ import com.google.common.truth.Truth.assertThat
 import dev.quinton.goa.core.data.EditClock
 import dev.quinton.goa.core.data.puzzle.PuzzleProgress
 import dev.quinton.goa.core.game.puzzles.Move
+import dev.quinton.goa.core.game.puzzles.book.Puzzles
 import dev.quinton.goa.core.model.settings.AppSettings
 import dev.quinton.goa.core.testing.FakeBoardMapRepository
 import dev.quinton.goa.core.testing.FakeCatalogRepository
@@ -141,6 +142,78 @@ class PuzzleViewModelTest {
         assertThat(vm.ui().phase).isEqualTo(PuzzlePhase.SOLVED)
         // Two tries: the one that missed and the one after Try again.
         assertThat(progress.state.value.getValue(info.id).attempts).isEqualTo(2)
+    }
+
+    private val fullRound get() = Puzzles.fullRounds.firstOrNull()?.info?.id
+
+    @Test
+    fun `a full round shows its turn and marks the enemy's cards as the round goes on`() = runTest(dispatcher) {
+        val id = fullRound ?: return@runTest
+        val vm = viewModel(id)
+        val start = checkNotNull(vm.ui().round)
+        assertThat(start.turn).isEqualTo(1)
+        assertThat(start.heading).isEqualTo("Turn 1 of 4")
+        assertThat(start.heroes).hasSize(2)
+        for (hero in start.heroes) {
+            assertThat(hero.cards.map { it.turn }).containsExactly(1, 2, 3, 4).inOrder()
+            assertThat(hero.cards.map { it.state }).containsExactly(
+                KnownCardState.NOW, KnownCardState.COMING, KnownCardState.COMING, KnownCardState.COMING,
+            ).inOrder()
+            assertThat(hero.cards.all { it.card != null }).isTrue()
+        }
+        for (move in puzzleFile(id).solution) {
+            if (vm.ui().round?.turn == 2) break
+            vm.onAction(PuzzleAction.Answer(vm.ui().table.choiceOf(move)))
+            settle()
+        }
+        val second = checkNotNull(vm.ui().round)
+        assertThat(second.turn).isEqualTo(2)
+        for (hero in second.heroes) {
+            assertThat(hero.cards.first().state).isEqualTo(KnownCardState.PLAYED)
+            assertThat(hero.now?.turn).isEqualTo(2)
+        }
+    }
+
+    @Test
+    fun `a full round's nudges follow the turn, gentle first again`() = runTest(dispatcher) {
+        val id = fullRound ?: return@runTest
+        val vm = viewModel(id)
+        val nudges = vm.ui().info.nudgesByTurn
+        vm.onAction(PuzzleAction.Nudge)
+        settle()
+        assertThat(vm.ui().nudge?.text).isEqualTo(nudges[0][0])
+        vm.onAction(PuzzleAction.Nudge)
+        settle()
+        assertThat(vm.ui().nudge?.text).isEqualTo(nudges[0][1])
+        for (move in puzzleFile(id).solution) {
+            if (vm.ui().round?.turn == 2) break
+            vm.onAction(PuzzleAction.Answer(vm.ui().table.choiceOf(move)))
+            settle()
+        }
+        assertThat(vm.ui().nudge).isNull()
+        vm.onAction(PuzzleAction.Nudge)
+        settle()
+        assertThat(vm.ui().nudge?.text).isEqualTo(nudges[1][0])
+    }
+
+    @Test
+    fun `a full round's miss goes back a turn at a time`() = runTest(dispatcher) {
+        val id = fullRound ?: return@runTest
+        val vm = viewModel(id)
+        // The first option all the way: the goal fails at the latest when the round ends.
+        var guard = 0
+        while (vm.ui().phase == PuzzlePhase.SOLVING && guard++ < MAX_ANSWERS) {
+            val d = vm.ui().table.decision ?: break
+            vm.onAction(PuzzleAction.Answer(d.options.first()))
+            settle()
+        }
+        assertThat(vm.ui().phase).isEqualTo(PuzzlePhase.MISSED)
+        val missedIn = checkNotNull(vm.ui().round).turn
+        vm.onAction(PuzzleAction.TryAgain)
+        settle()
+        val back = vm.ui()
+        assertThat(checkNotNull(back.round).turn).isAnyOf(missedIn, missedIn - 1)
+        assertThat(back.table.decision?.kind?.name).isEqualTo("PLAY_CARD")
     }
 
     @Test
@@ -341,6 +414,8 @@ class PuzzleViewModelTest {
     }
 
     private companion object {
+        const val MAX_ANSWERS = 300
+
         const val NOW = 1_000L
         const val SETTLE_MS = 5_000L
     }
