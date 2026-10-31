@@ -18,7 +18,7 @@ import dev.quinton.goa.core.model.board.Hex
 import dev.quinton.goa.core.model.board.MinionType
 import dev.quinton.goa.core.model.match.Team
 
-/** Full round 22, mined from self-play (g2672_r4_BLUE_defeat-brogan; ADR-052, ENCODING.md "Full rounds"). */
+/** Full round 23, mined from self-play (g2672_r4_BLUE_defeat-brogan; ADR-052, ENCODING.md "Full rounds"). */
 object R18APriceOnBrogan : Puzzle() {
     override val concept = "R18"
 
@@ -53,7 +53,7 @@ object R18APriceOnBrogan : Puzzle() {
 
     override val info = PuzzleInfo(
         id = "r18",
-        number = 22,
+        number = 23,
         title = "A Price on Brogan",
         difficulty = 3,
         theme = "Bounty set up for a later shot",

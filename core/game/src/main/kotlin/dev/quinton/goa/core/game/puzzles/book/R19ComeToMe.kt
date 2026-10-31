@@ -21,7 +21,7 @@ import dev.quinton.goa.core.model.board.Hex
 import dev.quinton.goa.core.model.board.MinionType
 import dev.quinton.goa.core.model.match.Team
 
-/** Full round 17, mined from self-play (g6433_r2_RED_coins-6; ADR-052, ENCODING.md "Full rounds"). */
+/** Full round 18, mined from self-play (g6433_r2_RED_coins-6; ADR-052, ENCODING.md "Full rounds"). */
 object R19ComeToMe : Puzzle() {
     override val concept = "R19"
 
@@ -46,7 +46,7 @@ object R19ComeToMe : Puzzle() {
 
     override val info = PuzzleInfo(
         id = "r19",
-        number = 17,
+        number = 18,
         title = "Come to Me",
         difficulty = 2,
         theme = "Bringing the target to you, counting coins",

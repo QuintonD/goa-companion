@@ -19,7 +19,7 @@ import dev.quinton.goa.core.model.board.Hex
 import dev.quinton.goa.core.model.board.MinionType
 import dev.quinton.goa.core.model.match.Team
 
-/** Full round 14, mined from self-play (g2470_r3_BLUE_coins-6; ADR-052, ENCODING.md "Full rounds"). */
+/** Full round 15, mined from self-play (g2470_r3_BLUE_coins-6; ADR-052, ENCODING.md "Full rounds"). */
 object R14OneSpaceForXargatha : Puzzle() {
     override val concept = "R14"
 
@@ -50,7 +50,7 @@ object R14OneSpaceForXargatha : Puzzle() {
 
     override val info = PuzzleInfo(
         id = "r14",
-        number = 14,
+        number = 15,
         title = "One Space for Xargatha",
         difficulty = 2,
         theme = "Coins counted, a space that decides this line",

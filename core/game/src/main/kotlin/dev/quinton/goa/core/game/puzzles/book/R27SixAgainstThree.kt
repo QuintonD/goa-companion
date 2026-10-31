@@ -20,7 +20,7 @@ import dev.quinton.goa.core.model.board.Hex
 import dev.quinton.goa.core.model.board.MinionType
 import dev.quinton.goa.core.model.match.Team
 
-/** Full round 13, mined from self-play (g7394_r4_BLUE_push; ADR-052, ENCODING.md "Full rounds"). */
+/** Full round 14, mined from self-play (g7394_r4_BLUE_push; ADR-052, ENCODING.md "Full rounds"). */
 object R27SixAgainstThree : Puzzle() {
     override val concept = "R27"
 
@@ -54,7 +54,7 @@ object R27SixAgainstThree : Puzzle() {
 
     override val info = PuzzleInfo(
         id = "r27",
-        number = 13,
+        number = 14,
         title = "Six Against Three",
         difficulty = 1,
         theme = "Minion Battle arithmetic, two attacks kept for the last turn",

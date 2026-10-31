@@ -21,7 +21,7 @@ import dev.quinton.goa.core.model.board.Hex
 import dev.quinton.goa.core.model.board.MinionType
 import dev.quinton.goa.core.model.match.Team
 
-/** Full round 19, mined from self-play (g2850_r6_BLUE_push; ADR-052, ENCODING.md "Full rounds"). */
+/** Full round 20, mined from self-play (g2850_r6_BLUE_push; ADR-052, ENCODING.md "Full rounds"). */
 object R21FarEnoughBehind : Puzzle() {
     override val concept = "R21"
 
@@ -52,7 +52,7 @@ object R21FarEnoughBehind : Puzzle() {
 
     override val info = PuzzleInfo(
         id = "r21",
-        number = 19,
+        number = 20,
         title = "Far Enough Behind",
         difficulty = 2,
         theme = "Minion Battle arithmetic, Tie Breaker text",

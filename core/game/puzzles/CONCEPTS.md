@@ -1559,6 +1559,7 @@ Four-turn puzzles (ADR-052). What each is about, as the gate holds it (`rounds/i
 - **r32 Three Blue Minions** (coins): Six coins from Blue minions. bain, wasp against brogan, brynn.
 - **r37 Eight Coins From Whisper** (last-card): Whisper's defeat is where the coins come from. trinkets, widget against nebkher, whisper.
 - **r31 Every Coin Counts** (coins): Coins counted from minions upward. dodger, min against swift, misa.
+- **r12 Count the Battle** (battle): The battle has to leave Red with nothing. xargatha, mrak against silverarrow, snorri.
 - **r27 Six Against Three** (battle): Red falls far enough behind in the battle. whisper, hanu against razzle, ignatia.
 - **r14 One Space for Xargatha** (coins): Coins from minions; one way ends with Misa. hanu, xargatha against misa, emmitt.
 - **r17 Opening Shots** (strip): Opening Shots, while both discards are empty. rowenna, swift against snorri, wasp.
@@ -1566,8 +1567,7 @@ Four-turn puzzles (ADR-052). What each is about, as the gate holds it (`rounds/i
 - **r19 Come to Me** (last-card): Siren's Call brings Razzle over. xargatha, trinkets against razzle, wasp.
 - **r20 The Last Shot** (strip): Split Attack finishes her in turn 4. misa, brynn against xargatha, ursafar.
 - **r21 Far Enough Behind** (battle): Red has to end the round far enough behind. ignatia, garrus against swift, razzle.
-- **r12 Count the Battle** (battle): The battle has to leave Red with nothing. xargatha, mrak against silverarrow, snorri.
+- **r36 Seven Coins** (coins): Coins counted from minions upward. dodger, snorri against emmitt, silverarrow.
 - **r07 Float Like a Butterfly** (battle): Float like a Butterfly fetched and used to stand beside Bain. takahide, swift against tali, bain.
 - **r18 A Price on Brogan** (strip): The Bounty on Brogan in turn 2. ursafar, bain against brogan, razzle.
-- **r36 Seven Coins** (coins): Coins counted from minions upward. dodger, snorri against emmitt, silverarrow.
 <!-- /full-rounds -->

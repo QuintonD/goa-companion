@@ -413,7 +413,7 @@ passes (including an in-place upgrade from the morning build with real data). Ev
 - [x] Solver, generator and filter (`PlanProver`, `RoundGenTest`, `FullRoundDeepTest`); certificates replayed against
   every open enemy answer in `FullRoundBookTest` — 2026-10-31. JVM only
 - [x] Audit of the first 23 fixed: 10 cut, the stricter gate (`FullRoundGateTest`, `rounds/gate.txt`) closed, titles and text rewritten to what is proven, grades from measurements, 11 new puzzles against the gate — 2026-10-31, ADR-052
-- [x] 23 full rounds of an aimed 30, grades 1/2/3 = 13/7/3, all 32 heroes in the book, cutter, gydion, sabina and tigerclaw once, the rest at least twice — 2026-10-31, `FullRoundBookTest`, `FullRoundGateTest`, STATUS.md
+- [x] 23 full rounds of an aimed 30, grades 1/2/3 = 14/7/2, all 32 heroes in the book, cutter, gydion, sabina and tigerclaw once, the rest at least twice — 2026-10-31, `FullRoundBookTest`, `FullRoundGateTest`, STATUS.md
 - [x] Android and web screens: the turn, the enemy's real cards, plans, a plan's space outlined, nudges per turn, a turn
   back after a miss — 2026-10-31, `PuzzleViewModelTest`, `PuzzleControllerTest`, Roborazzi baselines. JVM and JS only
 - [x] `FullRoundFlowTest` on the emulator `goa_s25b` (the list, a round's turn, cards and plan, a nudge, the solution

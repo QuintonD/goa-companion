@@ -19,7 +19,7 @@ import dev.quinton.goa.core.model.board.Hex
 import dev.quinton.goa.core.model.board.MinionType
 import dev.quinton.goa.core.model.match.Team
 
-/** Full round 20, mined from self-play (g9086_r6_BLUE_push; ADR-052, ENCODING.md "Full rounds"). */
+/** Full round 13, mined from self-play (g9086_r6_BLUE_push; ADR-052, ENCODING.md "Full rounds"). */
 object R12CountTheBattle : Puzzle() {
     override val concept = "R12"
 
@@ -52,9 +52,9 @@ object R12CountTheBattle : Puzzle() {
 
     override val info = PuzzleInfo(
         id = "r12",
-        number = 20,
+        number = 13,
         title = "Count the Battle",
-        difficulty = 2,
+        difficulty = 1,
         theme = "Minion Battle arithmetic, a minion pulled into reach",
         heroes = listOf("xargatha", "mrak", "silverarrow", "snorri"),
         goal = PuzzleGoal.PushLane(Deadline.END_OF_ROUND, "Push the lane by the end of the round."),

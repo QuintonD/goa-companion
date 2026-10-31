@@ -20,7 +20,7 @@ import dev.quinton.goa.core.model.board.Hex
 import dev.quinton.goa.core.model.board.MinionType
 import dev.quinton.goa.core.model.match.Team
 
-/** Full round 18, mined from self-play (g4321_r5_BLUE_defeat-xargatha; ADR-052, ENCODING.md "Full rounds"). */
+/** Full round 19, mined from self-play (g4321_r5_BLUE_defeat-xargatha; ADR-052, ENCODING.md "Full rounds"). */
 object R20TheLastShot : Puzzle() {
     override val concept = "R20"
 
@@ -44,7 +44,7 @@ object R20TheLastShot : Puzzle() {
 
     override val info = PuzzleInfo(
         id = "r20",
-        number = 18,
+        number = 19,
         title = "The Last Shot",
         difficulty = 2,
         theme = "A shot kept for turn 4, a hand emptied on the way",

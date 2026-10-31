@@ -24,6 +24,7 @@ object Puzzles {
         R32ThreeBlueMinions,
         R37EightCoinsFromWhisper,
         R31EveryCoinCounts,
+        R12CountTheBattle,
         R27SixAgainstThree,
         R14OneSpaceForXargatha,
         R17OpeningShots,
@@ -31,10 +32,9 @@ object Puzzles {
         R19ComeToMe,
         R20TheLastShot,
         R21FarEnoughBehind,
-        R12CountTheBattle,
+        R36SevenCoins,
         R07FloatLikeAButterfly,
         R18APriceOnBrogan,
-        R36SevenCoins,
     )
 
     /** The 50 shipped puzzles in the book's order: hard (1), harder (2), hardest (3) (STATUS.md). */

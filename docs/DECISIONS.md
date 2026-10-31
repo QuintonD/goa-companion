@@ -2248,8 +2248,9 @@ sentence or premise. What changed:
 4. **Grades come from what is measured**, not from `openFrom` (ENCODING.md).
 5. **Strength sentences are gone from the text**: STATUS.md has the table with its date.
 
-Still true after this: many puzzles have several winning plans, so they teach one way, and say so. Eight of the 23 have only
-"holding this card loses" as their turn-3 loss on the line, a real but thin proof that turn matters.
+Still true after this: many puzzles have several winning plans, so they teach one way, and say so. Ten of the 23 have only
+"holding this card, or skipping what it offers, loses" as their turn-3 losses on the line: real, but thin proof that the turn
+matters. Strength 10 solves 9 of the 23 with the v0.10 net (`gate.txt` is measured on it), up from 4 before it merged.
 
 If the convention is rejected, the book's second part can be dropped by emptying `Puzzles.fullRounds`: nothing else
 depends on it, and the 50 and their keys are untouched.

@@ -18,7 +18,7 @@ import dev.quinton.goa.core.model.board.Hex
 import dev.quinton.goa.core.model.board.MinionType
 import dev.quinton.goa.core.model.match.Team
 
-/** Full round 21, mined from self-play (g6470_r3_BLUE_push; ADR-052, ENCODING.md "Full rounds"). */
+/** Full round 22, mined from self-play (g6470_r3_BLUE_push; ADR-052, ENCODING.md "Full rounds"). */
 object R07FloatLikeAButterfly : Puzzle() {
     override val concept = "R07"
 
@@ -45,7 +45,7 @@ object R07FloatLikeAButterfly : Puzzle() {
 
     override val info = PuzzleInfo(
         id = "r07",
-        number = 21,
+        number = 22,
         title = "Float Like a Butterfly",
         difficulty = 3,
         theme = "Gold cards swapped in sequence, Minion Battle arithmetic",

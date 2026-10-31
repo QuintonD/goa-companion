@@ -17,7 +17,7 @@ import dev.quinton.goa.core.model.board.Hex
 import dev.quinton.goa.core.model.board.MinionType
 import dev.quinton.goa.core.model.match.Team
 
-/** Full round 15, mined from self-play (g8907_r7_BLUE_defeat-snorri; ADR-052, ENCODING.md "Full rounds"). */
+/** Full round 16, mined from self-play (g8907_r7_BLUE_defeat-snorri; ADR-052, ENCODING.md "Full rounds"). */
 object R17OpeningShots : Puzzle() {
     override val concept = "R17"
 
@@ -42,7 +42,7 @@ object R17OpeningShots : Puzzle() {
 
     override val info = PuzzleInfo(
         id = "r17",
-        number = 15,
+        number = 16,
         title = "Opening Shots",
         difficulty = 2,
         theme = "A discard forced while both discards are empty, the last Life counter",

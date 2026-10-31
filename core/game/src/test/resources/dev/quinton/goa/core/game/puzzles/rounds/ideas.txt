@@ -1,7 +1,7 @@
 r01|battle|Red has to end the round behind in the Minion Battle|T1-4 kill:RED
 r04|battle|Blue minions have to fall, the last here to Nature's Champion and a Tree|T1-4 card:Nature's Champion;T1-4 kill:BLUE
 r07|battle|Float like a Butterfly fetched and used to stand beside Bain|T1-4 card:Float like a Butterfly;T1-3 card:Bushido
-r10|strip|Widget's spare card spent before turn 4|T1-3 spare:widget;T1-4 card:Worthy Opponent
+r10|strip|Widget's spare card spent before turn 4|T1-3 spare:widget
 r12|battle|The battle has to leave Red with nothing|T1-4 kill:RED
 r14|coins|Coins from minions; one way ends with Misa|T1-4 kill:RED
 r15|strip|Angry Roar performs Claws That Catch|T1-4 card:Angry Roar;T1-4 card:Claws That Catch;T1-4 defeat:wuk

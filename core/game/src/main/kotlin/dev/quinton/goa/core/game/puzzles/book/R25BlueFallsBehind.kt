@@ -21,7 +21,7 @@ import dev.quinton.goa.core.model.board.Hex
 import dev.quinton.goa.core.model.board.MinionType
 import dev.quinton.goa.core.model.match.Team
 
-/** Full round 16, mined from self-play (g3816_r7_RED_push; ADR-052, ENCODING.md "Full rounds"). */
+/** Full round 17, mined from self-play (g3816_r7_RED_push; ADR-052, ENCODING.md "Full rounds"). */
 object R25BlueFallsBehind : Puzzle() {
     override val concept = "R25"
 
@@ -52,7 +52,7 @@ object R25BlueFallsBehind : Puzzle() {
 
     override val info = PuzzleInfo(
         id = "r25",
-        number = 16,
+        number = 17,
         title = "Blue Falls Behind",
         difficulty = 2,
         theme = "Minion Battle arithmetic, swapping with your own minions on this line",

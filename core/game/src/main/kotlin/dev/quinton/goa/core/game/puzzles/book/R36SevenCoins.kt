@@ -20,7 +20,7 @@ import dev.quinton.goa.core.model.board.Hex
 import dev.quinton.goa.core.model.board.MinionType
 import dev.quinton.goa.core.model.match.Team
 
-/** Full round 23, mined from self-play (g9416_r3_BLUE_coins-7; ADR-052, ENCODING.md "Full rounds"). */
+/** Full round 21, mined from self-play (g9416_r3_BLUE_coins-7; ADR-052, ENCODING.md "Full rounds"). */
 object R36SevenCoins : Puzzle() {
     override val concept = "R36"
 
@@ -46,9 +46,9 @@ object R36SevenCoins : Puzzle() {
 
     override val info = PuzzleInfo(
         id = "r36",
-        number = 23,
+        number = 21,
         title = "Seven Coins",
-        difficulty = 3,
+        difficulty = 2,
         theme = "Coins counted to the last turn",
         heroes = listOf("dodger", "snorri", "emmitt", "silverarrow"),
         goal = PuzzleGoal.GainCoins(7, Deadline.END_OF_ROUND, "Gain 7 coins by the end of the round."),
