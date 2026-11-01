@@ -47,6 +47,21 @@ for (const variant of variants) {
   });
 }
 
+for (const v of [{ name: "phone" }, { name: "small", width: 360, height: 640 }, { name: "text200", text: "200%" }]) {
+  test(`every hero's name fits one line of its plate, so the tiles are one height: ${v.name}`, async ({ page }) => {
+    if (v.width) await page.setViewportSize({ width: v.width, height: v.height });
+    await open(page, "#/heroes");
+    await expect(page.locator(".goa-hero-tile").first()).toBeVisible({ timeout: 30_000 });
+    await settle(page, v.text);
+    const plates = await page.locator(".goa-hero-tile .goa-title-plate").evaluateAll((els) =>
+      els.map((e) => ({ name: e.textContent, height: e.getBoundingClientRect().height, spare: e.clientWidth - e.scrollWidth })),
+    );
+    expect(plates.map((p) => p.name)).toContain("Silverarrow");
+    expect(plates.filter((p) => p.spare < 0).map((p) => p.name), "names cut by their plate").toEqual([]);
+    expect(new Set(plates.map((p) => Math.round(p.height))).size, "plate heights").toBe(1);
+  });
+}
+
 test("a hero tile: the name on the plate, one link read as the whole hero", async ({ page }) => {
   await open(page, "#/heroes");
   const tile = page.getByRole("link", { name: /^Arien, the Tidemaster\. Complexity 1 of 4/ });

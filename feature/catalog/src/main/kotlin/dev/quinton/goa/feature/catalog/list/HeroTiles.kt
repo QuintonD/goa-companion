@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.TextAutoSize
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.KeyboardArrowRight
 import androidx.compose.material.icons.outlined.Search
@@ -24,12 +25,14 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawWithCache
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontStyle
@@ -68,8 +71,9 @@ import dev.quinton.goa.feature.catalog.ui.tilePlate
 /**
  * Grid tile (three per row on a phone), as a card is made: the slate plate, the hero's name on the
  * title plate, the portrait under it with the deck symbol at its corner, then the title, stars and roles.
- * Every row keeps its height whether a tile uses it or not, so the tiles of a line are one height. Text
- * wraps or ellipsizes; the tile never grows wider with the font scale. Frame and art share one draw node
+ * Every row keeps its height whether a tile uses it or not, so the tiles of a line are one height: the name
+ * stays on one line, a long one ("Silverarrow") in a smaller size. Other text wraps or ellipsizes; the tile
+ * never grows wider with the font scale. Frame and art share one draw node
  * each, and [art] one decoded bitmap for every tile, so scrolling stays cheap.
  */
 @Composable
@@ -93,13 +97,20 @@ internal fun HeroGridTile(
                 .padding(start = 3.dp, end = 3.dp, top = 3.dp, bottom = Spacing.sm),
         ) {
             SharedTitlePlate(art.titlePlate, SmallPlate, Modifier.fillMaxWidth().zIndex(1f)) {
+                // Unseen, at the full size: a shrunk name leaves its plate, and so its tile, the height of the others.
+                Text("H", style = TILE_NAME, maxLines = 1, modifier = Modifier.alpha(0f).clearAndSetSemantics {})
                 Text(
                     hero.name,
                     style = TILE_NAME,
                     color = GoaTheme.colors.onParchment,
                     textAlign = TextAlign.Center,
-                    maxLines = 2,
+                    maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
+                    autoSize = TextAutoSize.StepBased(
+                        minFontSize = with(LocalDensity.current) { TILE_NAME_SMALLEST.toSp() },
+                        maxFontSize = TILE_NAME.fontSize,
+                        stepSize = TILE_NAME_STEP,
+                    ),
                 )
             }
             TileArtwork(item)
@@ -360,6 +371,10 @@ private val SYMBOL_CENTER_Y = 20.dp
 private val SYMBOL_SHADE_RADIUS = 24.dp
 private val SYMBOL_SHADE = Color(0x8C000000)
 private val TILE_NAME = GoaTextStyles.plateTitle.copy(fontSize = 13.sp, lineHeight = 16.sp, letterSpacing = 0.sp)
+
+/** In dp: at a large font scale a long name still has to fit its plate. */
+private val TILE_NAME_SMALLEST = 7.dp
+private val TILE_NAME_STEP = 0.25.sp
 private val TILE_TITLE = GoaTextStyles.printedSmall.copy(
     fontStyle = FontStyle.Italic,
     fontSize = 14.sp,

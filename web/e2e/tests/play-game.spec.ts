@@ -79,27 +79,48 @@ async function kind(page: Page): Promise<string> {
 /** Answers the question in front of the person, the simplest way a player would. */
 async function answer(page: Page, k: string) {
   const decision = page.locator(".goa-decision");
+  const click = { timeout: ANSWER_MS };
   if (k === "defend") {
-    await page.locator(".goa-decline").first().click();
-    await page.locator(".goa-confirm").click();
+    await page.locator(".goa-decline").first().click(click);
+    await page.locator(".goa-confirm").click(click);
   } else if (k === "cards") {
-    await page.locator(".goa-offered-card:not(.dimmed)").first().click();
-    await expect(page.locator(".goa-focus")).toBeVisible();
-    await page.locator(".goa-focus-confirm .goa-button").click();
+    if (!(await page.locator(".goa-focus").count())) {
+      await page.locator(".goa-offered-card:not(.dimmed)").first().click(click);
+    }
+    await expect(page.locator(".goa-focus")).toBeVisible({ timeout: ANSWER_MS });
+    await page.locator(".goa-focus-confirm .goa-button").click(click);
   } else if (k === "action") {
-    await decision.locator(".goa-action-chip:not(:disabled)").first().click();
+    await decision.locator(".goa-action-chip:not(:disabled)").first().click(click);
   } else if (k === "board") {
     const chip = decision.locator(".goa-option-chip");
     if (await chip.count()) {
-      await chip.first().click();
+      await chip.first().click(click);
     } else {
-      await page.locator(".goa-map .goa-visually-hidden button", { hasText: /^Choose/ }).first().dispatchEvent("click");
+      await page.locator(".goa-map .goa-visually-hidden button", { hasText: /^Choose/ }).first().dispatchEvent("click", {}, click);
     }
-    await page.locator(".goa-confirm").click();
+    await page.locator(".goa-confirm").click(click);
   } else {
-    await decision.locator(".goa-choice, .goa-number, .goa-button.outlined").first().click();
+    await decision.locator(".goa-choice, .goa-number, .goa-button.outlined").first().click(click);
   }
 }
+
+/**
+ * [answer], looking at the panel again until it takes: the panel can show a question a moment before its answers,
+ * or move on to the next one, and the kind read a moment ago then names a control that never comes.
+ */
+async function answerWhatIsShown(page: Page) {
+  for (let look = 1; ; look++) {
+    try {
+      await answer(page, await kind(page));
+      return;
+    } catch (e) {
+      if (look === ANSWER_LOOKS) throw e;
+    }
+  }
+}
+
+const ANSWER_MS = 15_000;
+const ANSWER_LOOKS = 4;
 
 test("play: a game through the card viewer, every kind of question, take back, game state, reload", async ({ page }, info) => {
   test.setTimeout(420_000);
@@ -166,8 +187,7 @@ test("play: a game through the card viewer, every kind of question, take back, g
       await page.locator(".goa-play-show").click();
     }
     if (seen.has("action") && seen.has("board") && seen.has("track") && seen.has("defend")) break;
-    // Looked at again: the panel can show a question a moment before its answers, and the screens above take time.
-    await answer(page, await kind(page));
+    await answerWhatIsShown(page);
     await yourTurn(page);
   }
   // A hero's sheet: tap a hero chip or slot.
@@ -297,7 +317,7 @@ for (const v of variants) {
         await snap(page, p, `turn-track-${v.name}`);
         break;
       }
-      await answer(page, k);
+      await answerWhatIsShown(page);
       await yourTurn(page);
     }
     await page.getByRole("button", { name: "Game state" }).click();

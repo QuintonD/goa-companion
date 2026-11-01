@@ -87,7 +87,7 @@ internal fun Modifier.tilePlate(art: PlateArt): Modifier = drawWithCache {
 /** Corner and text insets of a title plate at some size, in dp. */
 internal class PlateInsets(val start: Dp, val vertical: Dp, val end: Dp, val minHeight: Dp)
 
-/** On a grid tile: the mock-up's small plate, so "Silverarrow" fits a third of a phone's width. */
+/** On a grid tile: the mock-up's small plate; the tile shrinks a long name to fit it on one line. */
 internal val SmallPlate = PlateInsets(start = 8.dp, vertical = 5.dp, end = 18.dp, minHeight = 25.dp)
 
 /** On the hero page: the same proportions as the design system's `TitlePlate`. */

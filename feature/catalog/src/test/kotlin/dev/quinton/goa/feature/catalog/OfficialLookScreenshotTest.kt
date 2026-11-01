@@ -6,10 +6,12 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.unit.Density
 import androidx.test.core.app.ApplicationProvider
 import com.github.takahirom.roborazzi.captureRoboImage
+import com.google.common.truth.Truth.assertThat
 import dev.quinton.goa.core.designsystem.theme.GoaTheme
 import dev.quinton.goa.core.domain.catalog.AttackStyle
 import dev.quinton.goa.core.domain.catalog.CatalogBrowser
@@ -67,7 +69,11 @@ class OfficialLookScreenshotTest {
         )
     }
 
-    private fun ready(layout: CatalogLayout = CatalogLayout.GRID, query: String = ""): CatalogUiState.Ready {
+    private fun ready(
+        layout: CatalogLayout = CatalogLayout.GRID,
+        query: String = "",
+        catalog: Catalog = this.catalog,
+    ): CatalogUiState.Ready {
         val index = CatalogSearchIndex(catalog.heroes)
         val heroes = CatalogBrowser.browse(catalog, index, query, CatalogFilter(), CatalogSort.NAME, emptySet())
         return CatalogUiState.Ready(
@@ -124,6 +130,37 @@ class OfficialLookScreenshotTest {
     fun gridW384() = shot { Grid() }
 
     @Test fun gridFontScale2() = shot(fontScale = 2f) { Grid() }
+
+    /** The longest name beside a short one, the first row at any width: one line, so one height. */
+    private fun longName(fontScale: Float = 1f) {
+        val names = listOf("Silverarrow", "Snorri")
+        val row = catalog.copy(heroes = (names + "Tigerclaw").map { bundledHero(it.lowercase()) })
+        shot(fontScale = fontScale) {
+            CatalogScreen(
+                state = ready(catalog = row),
+                query = "",
+                onAction = {},
+                onHeroClick = {},
+                onSettingsClick = {},
+            )
+        }
+        val heights = names.map {
+            compose.onNodeWithContentDescription(it, substring = true).fetchSemanticsNode().boundsInRoot.height
+        }
+        assertThat(heights.toSet()).hasSize(1)
+    }
+
+    @Test
+    @Config(qualifiers = "w384dp-h832dp-xxhdpi")
+    fun gridLongNameW384() = longName()
+
+    @Test
+    @Config(qualifiers = "w360dp-h640dp-xxhdpi")
+    fun gridLongNameW360() = longName()
+
+    @Test
+    @Config(qualifiers = "w384dp-h832dp-xxhdpi")
+    fun gridLongNameW384FontScale2() = longName(fontScale = 2f)
 
     @Test
     @Config(qualifiers = "w891dp-h411dp-xxhdpi")

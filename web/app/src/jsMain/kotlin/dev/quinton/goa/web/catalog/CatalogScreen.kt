@@ -384,6 +384,7 @@ private fun HeroGridTile(item: HeroListItem, sort: CatalogSort) {
             Span({
                 classes("goa-title-plate")
                 attr("aria-hidden", "true")
+                style { property("--name-chars", "${hero.name.length}") }
             }) { Text(hero.name) }
             Div({ classes("goa-hero-tile-art") }) {
                 HeroArt(hero, "tile")

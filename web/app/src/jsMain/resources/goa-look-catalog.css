@@ -38,15 +38,19 @@
 .goa-results-header > span { font-family: var(--font-body); }
 
 /* ---------- Heroes grid: the slate plate, the name on the title plate, portrait, then text ---------- */
-.goa-hero-tile.goa-plate { padding: 3px 3px var(--sp-sm); border-radius: 7px; background-size: 14px, 14px, 14px, 14px, auto, 420px, auto; }
+.goa-hero-tile.goa-plate { padding: 3px 3px var(--sp-sm); border-radius: 7px; background-size: 14px, 14px, 14px, 14px, auto, 420px, auto; container-type: inline-size; }
 .goa-hero-tile .goa-title-plate {
   position: relative;
   z-index: 1;
   min-height: 25px;
   border-width: 5px 18px 5px 8px;
   font-size: 0.8125rem;
-  line-height: 1.2;
-  overflow-wrap: anywhere;
+  /* One line on every tile, so they stay one height: a long name ("Silverarrow") gets smaller. 28px: the plate's ends. */
+  font-size: min(0.8125rem, calc((100cqw - 28px) / (var(--name-chars) * 0.66)));
+  line-height: 0.975rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 .goa-hero-tile-art { aspect-ratio: 1.09; margin: -5px 1px 0; flex: none; }
 .goa-hero-tile-art > .goa-hero-art { border-radius: 2px; }
