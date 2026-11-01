@@ -45,7 +45,6 @@ import androidx.compose.material.icons.outlined.Check
 import androidx.compose.material.icons.outlined.DeleteOutline
 import androidx.compose.material.icons.outlined.History
 import androidx.compose.material.icons.outlined.SwapHoriz
-import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -85,6 +84,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import dev.quinton.goa.core.designsystem.component.EngravedRule
+import dev.quinton.goa.core.designsystem.component.GoaButton
 import dev.quinton.goa.core.designsystem.component.GoaScreen
 import dev.quinton.goa.core.designsystem.component.HeroPortrait
 import dev.quinton.goa.core.designsystem.component.HeroSymbol
@@ -773,7 +773,7 @@ private fun SetUpBar(state: NewBoardUiState.Ready, onAction: (NewBoardAction) ->
                 }
             }
             Spacer(Modifier.width(Spacing.sm))
-            Button(
+            GoaButton(
                 onClick = onSetUp,
                 enabled = state.canSetUp,
                 modifier = Modifier.heightIn(min = 56.dp),

@@ -30,7 +30,6 @@ import androidx.compose.material.icons.outlined.Lightbulb
 import androidx.compose.material.icons.outlined.MoreVert
 import androidx.compose.material.icons.outlined.Replay
 import androidx.compose.material.icons.outlined.SwapVert
-import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -64,6 +63,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import dev.quinton.goa.core.designsystem.component.EmptyState
+import dev.quinton.goa.core.designsystem.component.GoaButton
 import dev.quinton.goa.core.designsystem.component.TitlePlate
 import dev.quinton.goa.core.designsystem.theme.GoaTextStyles
 import dev.quinton.goa.core.designsystem.theme.GoaTheme
@@ -165,7 +165,7 @@ fun PuzzleScreen(
                     },
                     modifier = Modifier.align(Alignment.Center),
                     action = {
-                        Button(onClick = onList, modifier = Modifier.heightIn(min = 48.dp)) { Text("All puzzles") }
+                        GoaButton(onClick = onList, modifier = Modifier.heightIn(min = 48.dp)) { Text("All puzzles") }
                     },
                 )
 
@@ -655,7 +655,7 @@ private fun ReplayPanel(puzzle: PuzzleUi, replay: ReplayUi, onAction: (PuzzleAct
             onClick = { onAction(PuzzleAction.CloseReplay) },
             modifier = Modifier.weight(1f).heightIn(min = 48.dp),
         ) { Text(if (replay.afterSolve) "Done" else "Back to the puzzle") }
-        Button(
+        GoaButton(
             onClick = { onAction(PuzzleAction.ReplayNext) },
             enabled = !replay.last,
             modifier = Modifier.weight(1f).heightIn(min = 48.dp),

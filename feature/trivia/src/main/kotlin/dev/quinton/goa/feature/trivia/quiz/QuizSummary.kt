@@ -18,7 +18,6 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowForward
 import androidx.compose.material.icons.outlined.EmojiEvents
-import androidx.compose.material3.Button
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
@@ -38,6 +37,7 @@ import dev.quinton.goa.core.data.trivia.MissUi
 import dev.quinton.goa.core.data.trivia.TriviaCardUi
 import dev.quinton.goa.core.data.trivia.TriviaQuizUiState
 import dev.quinton.goa.core.data.trivia.TriviaText
+import dev.quinton.goa.core.designsystem.component.GoaButton
 import dev.quinton.goa.core.designsystem.component.GoaCard
 import dev.quinton.goa.core.designsystem.component.SectionHeader
 import dev.quinton.goa.core.designsystem.component.scaledIconSize
@@ -99,7 +99,7 @@ private fun SummaryActions(
     Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
         val big = Modifier.fillMaxWidth().heightIn(min = 56.dp)
         if (onBoard) {
-            Button(onClick = onLeaderboard, modifier = big) {
+            GoaButton(onClick = onLeaderboard, modifier = big) {
                 Icon(
                     Icons.Outlined.EmojiEvents,
                     contentDescription = null,
@@ -115,7 +115,7 @@ private fun SummaryActions(
                     Text("Practise the missed ones", style = MaterialTheme.typography.titleMedium)
                 }
             } else {
-                Button(onClick = onPractise, modifier = big) {
+                GoaButton(onClick = onPractise, modifier = big) {
                     Text("Practise the missed ones", style = MaterialTheme.typography.titleMedium)
                 }
             }
@@ -127,7 +127,7 @@ private fun SummaryActions(
                 Text("Play again", style = MaterialTheme.typography.titleMedium)
             }
         } else {
-            Button(onClick = onPlayAgain, modifier = big) {
+            GoaButton(onClick = onPlayAgain, modifier = big) {
                 Text("Play again", style = MaterialTheme.typography.titleMedium)
             }
         }

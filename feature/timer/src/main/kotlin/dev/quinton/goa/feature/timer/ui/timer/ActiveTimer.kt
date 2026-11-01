@@ -57,7 +57,6 @@ import androidx.compose.material.icons.outlined.Timer
 import androidx.compose.material.icons.outlined.Toll
 import androidx.compose.material.icons.outlined.ViewAgenda
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
@@ -101,10 +100,13 @@ import androidx.compose.ui.unit.sp
 import dev.quinton.goa.core.designsystem.component.BannerEndSpacer
 import dev.quinton.goa.core.designsystem.component.BannerMedallionWidth
 import dev.quinton.goa.core.designsystem.component.BevelText
+import dev.quinton.goa.core.designsystem.component.GoaButton
 import dev.quinton.goa.core.designsystem.component.GoaPlate
 import dev.quinton.goa.core.designsystem.component.GoaPlateTheme
 import dev.quinton.goa.core.designsystem.component.LARGE_FONT_SCALE
+import dev.quinton.goa.core.designsystem.component.MetalButton
 import dev.quinton.goa.core.designsystem.component.PlateShape
+import dev.quinton.goa.core.designsystem.component.SlateButton
 import dev.quinton.goa.core.designsystem.component.TitlePlate
 import dev.quinton.goa.core.designsystem.component.steelBanner
 import dev.quinton.goa.core.designsystem.theme.GoaTextStyles
@@ -115,10 +117,8 @@ import dev.quinton.goa.core.model.settings.TimerLayout
 import dev.quinton.goa.feature.timer.ui.components.AlertsOffBanner
 import dev.quinton.goa.feature.timer.ui.components.CountdownRing
 import dev.quinton.goa.feature.timer.ui.components.KeepScreenOn
-import dev.quinton.goa.feature.timer.ui.components.MetalButton
 import dev.quinton.goa.feature.timer.ui.components.RingTone
 import dev.quinton.goa.feature.timer.ui.components.RoundPips
-import dev.quinton.goa.feature.timer.ui.components.SlateButton
 import dev.quinton.goa.feature.timer.ui.components.TimerBackdrop
 import dev.quinton.goa.feature.timer.ui.components.rememberReducedMotion
 import dev.quinton.goa.feature.timer.ui.components.teamName
@@ -180,7 +180,7 @@ internal fun ActiveTimer(state: ActiveUiState, actions: TimerActions) {
                 )
             },
             confirmButton = {
-                Button(onClick = {
+                GoaButton(onClick = {
                     confirmEnd = false
                     actions.onEndMatch()
                 }) { Text("End match") }

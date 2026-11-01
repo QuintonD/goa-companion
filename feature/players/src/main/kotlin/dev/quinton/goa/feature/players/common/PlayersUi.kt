@@ -213,29 +213,6 @@ fun SectionHeader(title: String, modifier: Modifier = Modifier, trailing: (@Comp
     }
 }
 
-/** A word as a top-bar action: light with a dark edge, since bronze is lost on the steel banner. */
-@Composable
-fun BannerTextButton(text: String, onClick: () -> Unit, modifier: Modifier = Modifier, enabled: Boolean = true) {
-    val colors = GoaTheme.colors
-    TextButton(
-        onClick = onClick,
-        modifier = modifier,
-        enabled = enabled,
-        colors = ButtonDefaults.textButtonColors(
-            contentColor = colors.onBanner,
-            disabledContentColor = colors.onBannerVariant.copy(alpha = 0.6f),
-        ),
-    ) {
-        Text(
-            text,
-            style = MaterialTheme.typography.labelLarge.copy(
-                fontWeight = FontWeight.Bold,
-                shadow = Shadow(Color.Black, Offset(0f, 1f), blurRadius = 3f),
-            ),
-        )
-    }
-}
-
 /**
  * A dark plate with a coloured edge and fill for a state (a team, a problem, a choice): both are read
  * in the plate's dark theme, as anything on a plate must be.

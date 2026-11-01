@@ -67,13 +67,6 @@
 .goa-order-chip.strong { background: var(--primary-container); }
 
 /* ---------- The text boxes: the top slice takes in the tab and the rim, so a tall box doesn't stretch the rim over its text ---------- */
-.goa-text-box { border-width: 20px 11px 9px; }
-.goa-text-box.blue { border-image: url("official/ui/textbox-blue.webp") 28 16 13 16 fill stretch; }
-.goa-text-box.silver { border-image: url("official/ui/textbox-silver.webp") 24 16 13 16 fill stretch; }
-.goa-text-box.green { border-image: url("official/ui/textbox-green.webp") 35 20 16 20 fill stretch; }
-.goa-text-box.gold { border-image: url("official/ui/textbox-gold.webp") 34 20 16 20 fill stretch; }
-.goa-text-box.red { border-image: url("official/ui/textbox-red.webp") 26 14 11 14 fill stretch; }
-.goa-text-box .cap { top: -19px; margin: 0; }
 .goa-text-box p { margin: 0; }
 
 /* ---------- The mock-ups' two buttons on a plate: gold for the answer, steel for the rest ---------- */

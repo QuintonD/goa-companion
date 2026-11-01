@@ -40,7 +40,6 @@ import androidx.compose.material.icons.outlined.QrCode2
 import androidx.compose.material.icons.outlined.QrCodeScanner
 import androidx.compose.material.icons.outlined.Sync
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -71,6 +70,7 @@ import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import dev.quinton.goa.core.designsystem.component.ConfirmDialog
+import dev.quinton.goa.core.designsystem.component.GoaButton
 import dev.quinton.goa.core.designsystem.component.GoaCard
 import dev.quinton.goa.core.designsystem.component.GoaScreen
 import dev.quinton.goa.core.designsystem.component.PlayerAvatar
@@ -176,7 +176,7 @@ private fun NoGroup(state: GroupUiState, actions: GroupActions, padding: Padding
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
             Spacer(Modifier.size(Spacing.md))
-            Button(onClick = actions.onScan, modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp)) {
+            GoaButton(onClick = actions.onScan, modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp)) {
                 Icon(Icons.Outlined.QrCodeScanner, null)
                 Spacer(Modifier.width(Spacing.sm))
                 Text("Scan invite QR code")
@@ -261,7 +261,7 @@ private fun InGroup(state: GroupUiState, actions: GroupActions, padding: Padding
                 Spacer(Modifier.size(Spacing.md))
                 // With a server, Sync now syncs through it; face to face is the secondary way.
                 val syncing = state.server.active && state.server.syncing
-                Button(
+                GoaButton(
                     onClick = actions.onSyncNow,
                     enabled = !syncing,
                     modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp),

@@ -168,6 +168,7 @@ internal fun HeroDashboard(table: TableUi, hero: HeroView, focus: CardFocusState
             )
             val extra = if (slot.cards.size > 1) cardWidth * SECOND_CARD else 0.dp
             SlotOnFrame(
+                hero.heroId,
                 table,
                 slot,
                 cardWidth,
@@ -184,6 +185,7 @@ internal fun HeroDashboard(table: TableUi, hero: HeroView, focus: CardFocusState
 /** The cards in one slot of the frame (a second card peeks out behind the first), its band and state. */
 @Composable
 private fun SlotOnFrame(
+    heroId: String,
     table: TableUi,
     slot: DashboardSlot,
     width: Dp,
@@ -223,7 +225,7 @@ private fun SlotOnFrame(
     ) {
         if (slot.cards.size > 1) {
             // Emmitt's Ultimate: the frame holds the second card, peeking out behind the first.
-            TableCard(faces[1], Modifier.align(Alignment.TopEnd).alpha(SECOND_ALPHA), width = width)
+            TableCard(faces[1], Modifier.align(Alignment.TopEnd).alpha(SECOND_ALPHA), width = width, backOf = heroId)
         }
         Box(
             Modifier
@@ -234,7 +236,7 @@ private fun SlotOnFrame(
                 .then(if (first != null) Modifier.cardFocusOrigin(focus, "$title/${first.id}") else Modifier),
         ) {
             if (slot.cards.isNotEmpty()) {
-                TableCard(first, width = width)
+                TableCard(first, width = width, backOf = heroId)
                 if (slot.stepped) Box(Modifier.fillMaxSize().background(Color.Black.copy(alpha = STEPPED_SCRIM)))
             }
             val (background, content) = bandColors(slot.now, slot.next)

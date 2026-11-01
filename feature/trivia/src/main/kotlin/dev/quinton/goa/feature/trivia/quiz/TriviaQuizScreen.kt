@@ -19,7 +19,6 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ExitToApp
 import androidx.compose.material.icons.outlined.Quiz
-import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
@@ -44,8 +43,10 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.LifecycleResumeEffect
 import dev.quinton.goa.core.data.trivia.TriviaQuizUiState
+import dev.quinton.goa.core.designsystem.component.BannerTextButton
 import dev.quinton.goa.core.designsystem.component.ConfirmDialog
 import dev.quinton.goa.core.designsystem.component.EmptyState
+import dev.quinton.goa.core.designsystem.component.GoaButton
 import dev.quinton.goa.core.designsystem.component.GoaPlateTheme
 import dev.quinton.goa.core.designsystem.component.GoaScreen
 import dev.quinton.goa.core.designsystem.component.slatePlate
@@ -53,7 +54,6 @@ import dev.quinton.goa.core.designsystem.theme.GoaTextStyles
 import dev.quinton.goa.core.designsystem.theme.Motion
 import dev.quinton.goa.core.designsystem.theme.Spacing
 import dev.quinton.goa.core.domain.trivia.TriviaAnswer
-import dev.quinton.goa.feature.trivia.ui.BannerTextButton
 
 /**
  * A quiz round: one question at a time, then the round's summary. End (top bar) shows the summary
@@ -288,7 +288,7 @@ private fun NextBar(state: TriviaQuizUiState.Playing, onNext: () -> Unit) {
     ) {
         GoaPlateTheme {
             Column(Modifier.slatePlate(RectangleShape, brackets = false)) {
-                Button(
+                GoaButton(
                     onClick = onNext,
                     modifier = Modifier
                         .fillMaxWidth()

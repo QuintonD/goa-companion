@@ -3722,22 +3722,23 @@ html:has(.goa-app.has-timerbar) {
   position: relative;
   box-sizing: border-box;
   border-style: solid;
-  border-width: 15px 11px 9px;
+  border-width: 20px 11px 9px;
   color: var(--on-parchment);
   font-family: var(--font-printed);
   font-size: 1.0625rem;
   line-height: 1.22;
 }
-.goa-text-box.blue { border-image: url("official/ui/textbox-blue.webp") 20 16 13 16 fill stretch; }
-.goa-text-box.silver { border-image: url("official/ui/textbox-silver.webp") 20 16 13 16 fill stretch; }
-.goa-text-box.green { border-image: url("official/ui/textbox-green.webp") 26 20 16 20 fill stretch; }
-.goa-text-box.gold { border-image: url("official/ui/textbox-gold.webp") 28 20 16 20 fill stretch; }
-.goa-text-box.red { border-image: url("official/ui/textbox-red.webp") 16 14 11 14 fill stretch; }
+.goa-text-box.blue { border-image: url("official/ui/textbox-blue.webp") 28 16 13 16 fill stretch; }
+.goa-text-box.silver { border-image: url("official/ui/textbox-silver.webp") 24 16 13 16 fill stretch; }
+.goa-text-box.green { border-image: url("official/ui/textbox-green.webp") 35 20 16 20 fill stretch; }
+.goa-text-box.gold { border-image: url("official/ui/textbox-gold.webp") 34 20 16 20 fill stretch; }
+.goa-text-box.red { border-image: url("official/ui/textbox-red.webp") 26 14 11 14 fill stretch; }
 .goa-text-box .cap {
   position: absolute;
   left: 0;
   right: 0;
-  top: -14px;
+  top: -19px;
+  margin: 0;
   text-align: center;
   font-family: var(--font-display);
   font-weight: 700;

@@ -19,7 +19,6 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.EmojiEvents
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -33,14 +32,15 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import dev.quinton.goa.core.designsystem.component.GoaButton
 import dev.quinton.goa.core.designsystem.component.GoaPlate
 import dev.quinton.goa.core.designsystem.component.GoaScreen
+import dev.quinton.goa.core.designsystem.component.MetalButton
 import dev.quinton.goa.core.designsystem.component.SettingsActionButton
 import dev.quinton.goa.core.designsystem.component.TitlePlate
 import dev.quinton.goa.core.designsystem.theme.GoaTheme
 import dev.quinton.goa.core.designsystem.theme.Spacing
 import dev.quinton.goa.feature.timer.TimerText
-import dev.quinton.goa.feature.timer.ui.components.MetalButton
 import dev.quinton.goa.feature.timer.ui.components.timerDigits
 
 @Composable
@@ -120,7 +120,7 @@ internal fun MatchSummary(state: SummaryUiState, actions: TimerActions) {
             title = { Text("Discard this match?") },
             text = { Text("The ${state.duration} of play won't be logged anywhere.") },
             confirmButton = {
-                Button(onClick = {
+                GoaButton(onClick = {
                     confirmDiscard = false
                     actions.onLogResult()
                 }) { Text("Log result") }

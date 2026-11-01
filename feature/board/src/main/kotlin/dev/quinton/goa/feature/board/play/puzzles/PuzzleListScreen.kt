@@ -26,7 +26,6 @@ import androidx.compose.material.icons.outlined.Lightbulb
 import androidx.compose.material.icons.outlined.MoreVert
 import androidx.compose.material.icons.outlined.PlayArrow
 import androidx.compose.material.icons.outlined.RestartAlt
-import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -54,6 +53,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import dev.quinton.goa.core.designsystem.component.ConfirmDialog
 import dev.quinton.goa.core.designsystem.component.EmptyState
+import dev.quinton.goa.core.designsystem.component.GoaButton
 import dev.quinton.goa.core.designsystem.component.GoaFilterChip
 import dev.quinton.goa.core.designsystem.component.GoaScreen
 import dev.quinton.goa.core.designsystem.component.HeroPortrait
@@ -259,7 +259,7 @@ private fun ContinueCard(state: PuzzleListUiState.Ready, onOpen: (String) -> Uni
             }
             if (next != null) {
                 Spacer(Modifier.width(Spacing.sm))
-                Button(
+                GoaButton(
                     onClick = { onOpen(next.info.id) },
                     contentPadding = PaddingValues(horizontal = Spacing.lg),
                     modifier = Modifier.heightIn(min = 48.dp),

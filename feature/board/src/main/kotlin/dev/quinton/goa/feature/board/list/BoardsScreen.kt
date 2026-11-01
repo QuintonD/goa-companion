@@ -30,7 +30,6 @@ import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material.icons.outlined.Hexagon
 import androidx.compose.material.icons.outlined.MoreVert
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -63,6 +62,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import dev.quinton.goa.core.designsystem.component.EmptyState
+import dev.quinton.goa.core.designsystem.component.GoaButton
 import dev.quinton.goa.core.designsystem.component.GoaCard
 import dev.quinton.goa.core.designsystem.component.GoaScreen
 import dev.quinton.goa.core.designsystem.component.HeroPortrait
@@ -143,7 +143,7 @@ fun BoardsScreen(
                             },
                             modifier = Modifier.align(Alignment.Center),
                             action = {
-                                Button(onClick = onNew, modifier = Modifier.heightIn(min = 52.dp)) {
+                                GoaButton(onClick = onNew, modifier = Modifier.heightIn(min = 52.dp)) {
                                     Icon(Icons.Outlined.Add, contentDescription = null)
                                     Spacer(Modifier.width(Spacing.sm))
                                     Text("New board")

@@ -9,7 +9,6 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
@@ -22,6 +21,7 @@ import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
+import dev.quinton.goa.core.designsystem.component.GoaButton
 import dev.quinton.goa.core.designsystem.component.GoaCard
 import dev.quinton.goa.core.designsystem.component.GoaScreen
 import dev.quinton.goa.core.designsystem.theme.Spacing
@@ -62,7 +62,7 @@ fun SyncFileImportScreen(state: SyncFileImportUiState, actions: SyncFileImportAc
                         modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite },
                     )
                     if (stage.problem == SyncFileProblem.NOT_IN_A_GROUP) {
-                        Button(onClick = actions.onOpenGroup, modifier = Modifier.heightIn(min = 48.dp)) {
+                        GoaButton(onClick = actions.onOpenGroup, modifier = Modifier.heightIn(min = 48.dp)) {
                             Text("Group sync")
                         }
                     }
@@ -89,7 +89,7 @@ fun SyncFileImportScreen(state: SyncFileImportUiState, actions: SyncFileImportAc
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
-                    Button(
+                    GoaButton(
                         onClick = actions.onConfirm,
                         enabled = !stage.changes.isEmpty,
                         modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp),
@@ -103,7 +103,7 @@ fun SyncFileImportScreen(state: SyncFileImportUiState, actions: SyncFileImportAc
                         style = MaterialTheme.typography.titleMedium,
                         modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite },
                     )
-                    Button(onClick = actions.onBack, modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp)) {
+                    GoaButton(onClick = actions.onBack, modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp)) {
                         Text("Done")
                     }
                 }

@@ -22,7 +22,6 @@ import androidx.compose.material.icons.outlined.FileDownload
 import androidx.compose.material.icons.outlined.FileUpload
 import androidx.compose.material.icons.outlined.Lock
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LinearProgressIndicator
@@ -47,6 +46,7 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
 import dev.quinton.goa.core.data.backup.BackupSummary
 import dev.quinton.goa.core.data.backup.ImportMode
+import dev.quinton.goa.core.designsystem.component.GoaButton
 import dev.quinton.goa.core.designsystem.component.GoaScreen
 import dev.quinton.goa.core.designsystem.theme.Spacing
 import dev.quinton.goa.feature.players.common.Dates
@@ -93,7 +93,7 @@ fun BackupScreen(state: BackupUiState, actions: BackupActions, modifier: Modifie
                             "Keep it somewhere safe, or open it on a new phone.",
                     detail = "${plural(state.players, "player")} · ${plural(state.matches, "match", "matches")}",
                 ) {
-                    Button(
+                    GoaButton(
                         onClick = actions.onExport,
                         enabled = !state.working,
                         modifier = Modifier.heightIn(min = 48.dp),

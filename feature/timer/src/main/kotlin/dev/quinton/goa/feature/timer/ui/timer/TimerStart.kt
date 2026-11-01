@@ -50,6 +50,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import dev.quinton.goa.core.designsystem.component.GoaPlate
 import dev.quinton.goa.core.designsystem.component.GoaScreen
+import dev.quinton.goa.core.designsystem.component.MetalButton
 import dev.quinton.goa.core.designsystem.component.PlateColor
 import dev.quinton.goa.core.designsystem.component.PlateShape
 import dev.quinton.goa.core.designsystem.component.SectionHeader
@@ -60,7 +61,6 @@ import dev.quinton.goa.core.designsystem.theme.GoaTheme
 import dev.quinton.goa.core.designsystem.theme.Spacing
 import dev.quinton.goa.core.model.match.Team
 import dev.quinton.goa.feature.timer.TimerText
-import dev.quinton.goa.feature.timer.ui.components.MetalButton
 import dev.quinton.goa.feature.timer.ui.components.PlateTeal
 import dev.quinton.goa.feature.timer.ui.components.goaTonalIconColors
 import dev.quinton.goa.feature.timer.ui.components.plateEdge

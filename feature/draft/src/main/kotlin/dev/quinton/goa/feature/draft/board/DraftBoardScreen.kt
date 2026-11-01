@@ -98,6 +98,7 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dev.quinton.goa.core.designsystem.component.ComplexityStars
 import dev.quinton.goa.core.designsystem.component.EmptyState
+import dev.quinton.goa.core.designsystem.component.GoaButton
 import dev.quinton.goa.core.designsystem.component.GoaFilterChip
 import dev.quinton.goa.core.designsystem.component.GoaPlate
 import dev.quinton.goa.core.designsystem.component.GoaPlateTheme
@@ -308,7 +309,7 @@ fun DraftBoardScreen(state: BoardUiState, actions: BoardActions) {
                     title = "No draft in progress",
                     message = "Set up players, teams and a method to start one.",
                     modifier = Modifier.align(Alignment.Center),
-                    action = { Button(onClick = actions::back) { Text("Set up a draft") } },
+                    action = { GoaButton(onClick = actions::back) { Text("Set up a draft") } },
                 )
             }
             SnackbarHost(snackbar, Modifier.align(Alignment.BottomCenter))

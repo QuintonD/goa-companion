@@ -166,34 +166,6 @@ internal const val UNVERIFIED_SPOKEN = TriviaText.UNVERIFIED_SPOKEN
 /** "Mad Dash, Arien's Red · Tier II Attack card": how TalkBack names a card. */
 internal fun spokenCard(card: TriviaCardUi): String = TriviaText.spokenCard(card)
 
-/** A word as a top-bar action: light with a dark edge, since bronze is lost on the steel banner. */
-@Composable
-internal fun BannerTextButton(
-    text: String,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier,
-    enabled: Boolean = true,
-) {
-    val colors = GoaTheme.colors
-    TextButton(
-        onClick = onClick,
-        modifier = modifier,
-        enabled = enabled,
-        colors = ButtonDefaults.textButtonColors(
-            contentColor = colors.onBanner,
-            disabledContentColor = colors.onBannerVariant.copy(alpha = 0.6f),
-        ),
-    ) {
-        Text(
-            text,
-            style = MaterialTheme.typography.labelLarge.copy(
-                fontWeight = FontWeight.Bold,
-                shadow = Shadow(Color.Black, Offset(0f, 1f), blurRadius = 3f),
-            ),
-        )
-    }
-}
-
 @Composable
 internal fun SetupLabel(text: String, modifier: Modifier = Modifier) {
     Column(modifier) {

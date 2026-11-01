@@ -38,6 +38,7 @@ import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
+import dev.quinton.goa.core.designsystem.component.GoaButton
 import dev.quinton.goa.core.designsystem.component.GoaPlate
 import dev.quinton.goa.core.designsystem.component.GoaSheet
 import dev.quinton.goa.core.designsystem.component.HeroPortrait
@@ -181,7 +182,7 @@ private fun HeroChoiceRow(state: BoardUiState, session: PlayerDraftSession, play
                     framed = false,
                 )
             } else {
-                Button(onClick = { actions.chooseHeroFor(playerId) }, modifier = Modifier.heightIn(min = 48.dp)) {
+                GoaButton(onClick = { actions.chooseHeroFor(playerId) }, modifier = Modifier.heightIn(min = 48.dp)) {
                     Text("Choose hero")
                 }
             }

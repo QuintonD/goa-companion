@@ -27,7 +27,6 @@ import androidx.compose.material.icons.outlined.History
 import androidx.compose.material.icons.outlined.MoreVert
 import androidx.compose.material.icons.outlined.PlayArrow
 import androidx.compose.material.icons.outlined.Replay
-import androidx.compose.material3.Button
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.FilledTonalButton
@@ -53,6 +52,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import dev.quinton.goa.core.designsystem.component.EmptyState
+import dev.quinton.goa.core.designsystem.component.GoaButton
 import dev.quinton.goa.core.designsystem.component.HeroPortrait
 import dev.quinton.goa.core.designsystem.component.TeamBadge
 import dev.quinton.goa.core.designsystem.theme.Spacing
@@ -130,7 +130,7 @@ fun MatchLogContent(
                 title = "No matches yet",
                 message = "Log your games to build ratings, records and the meta. Drafts add pending matches here too.",
                 action = {
-                    Button(onClick = onLogMatch) {
+                    GoaButton(onClick = onLogMatch) {
                         Icon(Icons.Outlined.Add, contentDescription = null)
                         Spacer(Modifier.width(Spacing.sm))
                         Text("Log a match")

@@ -34,7 +34,6 @@ import androidx.compose.material.icons.outlined.Hexagon
 import androidx.compose.material.icons.outlined.History
 import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -72,6 +71,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import dev.quinton.goa.core.designsystem.component.EmptyState
 import dev.quinton.goa.core.designsystem.component.EngravedRule
+import dev.quinton.goa.core.designsystem.component.GoaButton
 import dev.quinton.goa.core.designsystem.component.GoaScreen
 import dev.quinton.goa.core.designsystem.component.HeroPortrait
 import dev.quinton.goa.core.designsystem.component.TeamMark
@@ -309,7 +309,7 @@ private fun LineupBar(state: NewGameUiState.Ready, onAction: (NewGameAction) -> 
                 )
             }
             Spacer(Modifier.width(Spacing.sm))
-            Button(
+            GoaButton(
                 onClick = { onAction(NewGameAction.Step(NewGameStep.OPTIONS)) },
                 enabled = state.canContinue,
                 modifier = Modifier.heightIn(min = 56.dp),
@@ -441,7 +441,7 @@ private fun OptionsStep(
                         modifier = Modifier.padding(bottom = Spacing.xs),
                     )
                 }
-                Button(
+                GoaButton(
                     onClick = { onAction(NewGameAction.FlipCoin) },
                     enabled = state.canStart && !starting,
                     modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp),
@@ -717,7 +717,7 @@ private fun CoinDialog(coin: Team, starting: Boolean, onStart: () -> Unit, onDis
             )
         },
         confirmButton = {
-            Button(onClick = onStart, enabled = !starting, modifier = Modifier.heightIn(min = 48.dp)) {
+            GoaButton(onClick = onStart, enabled = !starting, modifier = Modifier.heightIn(min = 48.dp)) {
                 if (starting) {
                     CircularProgressIndicator(
                         Modifier.size(16.dp),

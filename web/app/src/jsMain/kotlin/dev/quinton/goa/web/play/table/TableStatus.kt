@@ -510,13 +510,14 @@ private fun HeroDashboard(table: TableUi, hero: HeroView, focus: CardFocusState)
                 classes("goa-dashboard-turn", "t${slot.turn}")
                 attr("aria-hidden", "true")
             }) { Text("Turn ${slot.turn}") }
-            DashboardSlotView(table, slot, focus, title, viewable)
+            DashboardSlotView(hero.heroId, table, slot, focus, title, viewable)
         }
     }
 }
 
 @Composable
 private fun DashboardSlotView(
+    heroId: String,
     table: TableUi,
     slot: DashboardSlot,
     focus: CardFocusState,
@@ -547,9 +548,9 @@ private fun DashboardSlotView(
             }
         }
     }) {
-        faces.getOrNull(1)?.let { second -> Span({ classes("second") }) { CardImage(second, SLOT_CARD, "fluid") } }
-        if (slot.cards.size > 1 && faces[1] == null) Span({ classes("second") }) { CardImage(null, SLOT_CARD, "fluid") }
-        if (slot.cards.isNotEmpty()) CardImage(faces[0], SLOT_CARD, "fluid")
+        faces.getOrNull(1)?.let { second -> Span({ classes("second") }) { CardImage(second, SLOT_CARD, "fluid", backOf = heroId) } }
+        if (slot.cards.size > 1 && faces[1] == null) Span({ classes("second") }) { CardImage(null, SLOT_CARD, "fluid", backOf = heroId) }
+        if (slot.cards.isNotEmpty()) CardImage(faces[0], SLOT_CARD, "fluid", backOf = heroId)
         slot.word?.let { Span({ classes("band") }) { Text(it) } }
     }
 }

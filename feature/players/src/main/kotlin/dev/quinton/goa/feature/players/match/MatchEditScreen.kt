@@ -45,7 +45,6 @@ import androidx.compose.material.icons.outlined.Schedule
 import androidx.compose.material.icons.outlined.SwapVert
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.AssistChip
-import androidx.compose.material3.Button
 import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDefaults
 import androidx.compose.material3.DatePickerDialog
@@ -86,7 +85,9 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import dev.quinton.goa.core.designsystem.component.BannerTextButton
 import dev.quinton.goa.core.designsystem.component.EmptyState
+import dev.quinton.goa.core.designsystem.component.GoaButton
 import dev.quinton.goa.core.designsystem.component.GoaPlate
 import dev.quinton.goa.core.designsystem.component.GoaScreen
 import dev.quinton.goa.core.designsystem.component.HeroPortrait
@@ -100,7 +101,6 @@ import dev.quinton.goa.core.model.match.GameMode
 import dev.quinton.goa.core.model.match.MatchStatus
 import dev.quinton.goa.core.model.match.Team
 import dev.quinton.goa.core.model.match.WinCondition
-import dev.quinton.goa.feature.players.common.BannerTextButton
 import dev.quinton.goa.feature.players.common.Dates
 import dev.quinton.goa.feature.players.common.EdgedPlate
 import dev.quinton.goa.feature.players.common.LARGE_FONT_SCALE
@@ -348,7 +348,7 @@ private fun MatchFormContent(
             }
         }
         Spacer(Modifier.size(Spacing.xl))
-        Button(
+        GoaButton(
             onClick = actions.onSave,
             enabled = !state.saving,
             modifier = Modifier.fillMaxWidth().heightIn(min = 52.dp),

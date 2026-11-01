@@ -27,7 +27,6 @@ import androidx.compose.material.icons.outlined.Hexagon
 import androidx.compose.material.icons.outlined.Lightbulb
 import androidx.compose.material.icons.outlined.MoreVert
 import androidx.compose.material.icons.outlined.SwapVert
-import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -71,6 +70,7 @@ import dev.quinton.goa.core.designsystem.component.BannerMedallionWidth
 import dev.quinton.goa.core.designsystem.component.CardTextBox
 import dev.quinton.goa.core.designsystem.component.ConfirmDialog
 import dev.quinton.goa.core.designsystem.component.EmptyState
+import dev.quinton.goa.core.designsystem.component.GoaButton
 import dev.quinton.goa.core.designsystem.component.HeroPortrait
 import dev.quinton.goa.core.designsystem.component.PlateColor
 import dev.quinton.goa.core.designsystem.component.TeamMark
@@ -601,10 +601,10 @@ private fun Unavailable(
             Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
                 if (why == NoGame.NONE) {
                     TextButton(onClick = onBack, modifier = Modifier.heightIn(min = 48.dp)) { Text("Back") }
-                    Button(onClick = onNewGame, modifier = Modifier.heightIn(min = 48.dp)) { Text("New game") }
+                    GoaButton(onClick = onNewGame, modifier = Modifier.heightIn(min = 48.dp)) { Text("New game") }
                 } else {
                     TextButton(onClick = onBack, modifier = Modifier.heightIn(min = 48.dp)) { Text("Back") }
-                    Button(onClick = onDelete, modifier = Modifier.heightIn(min = 48.dp)) { Text("Delete it") }
+                    GoaButton(onClick = onDelete, modifier = Modifier.heightIn(min = 48.dp)) { Text("Delete it") }
                 }
             }
         },

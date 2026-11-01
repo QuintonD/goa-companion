@@ -31,7 +31,6 @@ import androidx.compose.material.icons.outlined.MoreVert
 import androidx.compose.material.icons.outlined.PlayArrow
 import androidx.compose.material.icons.outlined.Quiz
 import androidx.compose.material.icons.outlined.RestartAlt
-import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -69,6 +68,7 @@ import dev.quinton.goa.core.data.trivia.TriviaHomeUiState
 import dev.quinton.goa.core.data.trivia.TriviaText
 import dev.quinton.goa.core.designsystem.component.ConfirmDialog
 import dev.quinton.goa.core.designsystem.component.EmptyState
+import dev.quinton.goa.core.designsystem.component.GoaButton
 import dev.quinton.goa.core.designsystem.component.GoaCard
 import dev.quinton.goa.core.designsystem.component.GoaFilterChip
 import dev.quinton.goa.core.designsystem.component.GoaPlate
@@ -694,7 +694,7 @@ private fun StartBar(
 
 @Composable
 private fun StartButton(enabled: Boolean, onStart: () -> Unit, modifier: Modifier) {
-    Button(onClick = onStart, enabled = enabled, modifier = modifier.heightIn(min = 56.dp)) {
+    GoaButton(onClick = onStart, enabled = enabled, modifier = modifier.heightIn(min = 56.dp)) {
         Icon(Icons.Outlined.PlayArrow, contentDescription = null, modifier = Modifier.size(scaledIconSize(20.dp)))
         Spacer(Modifier.width(Spacing.sm))
         Text(START_LABEL, style = MaterialTheme.typography.titleMedium, maxLines = 1)

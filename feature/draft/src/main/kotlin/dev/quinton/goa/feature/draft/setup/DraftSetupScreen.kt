@@ -42,7 +42,6 @@ import androidx.compose.material.icons.outlined.LockOpen
 import androidx.compose.material.icons.outlined.PersonAdd
 import androidx.compose.material.icons.outlined.PlayArrow
 import androidx.compose.material.icons.outlined.Shuffle
-import androidx.compose.material3.Button
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilledTonalButton
@@ -90,6 +89,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dev.quinton.goa.core.designsystem.component.ConfirmDialog
 import dev.quinton.goa.core.designsystem.component.EmptyState
+import dev.quinton.goa.core.designsystem.component.GoaButton
 import dev.quinton.goa.core.designsystem.component.GoaPlate
 import dev.quinton.goa.core.designsystem.component.GoaScreen
 import dev.quinton.goa.core.designsystem.component.GoaSheet
@@ -365,7 +365,7 @@ private fun BottomBar(state: SetupUiState, actions: SetupActions) {
                     OutlinedButton(onClick = actions::back, modifier = Modifier.heightIn(min = 52.dp)) { Text("Back") }
                 }
                 val last = state.stage == SetupStage.COIN
-                Button(
+                GoaButton(
                     onClick = if (last) actions::start else actions::next,
                     enabled = state.blocker == null && !state.form.starting,
                     modifier = Modifier.weight(1f).heightIn(min = 52.dp),
@@ -448,7 +448,7 @@ private fun ResumeCard(resume: ResumeInfo, actions: SetupActions) {
             Text("${resume.title} · ${resume.detail}", style = MaterialTheme.typography.bodyMedium)
             Spacer(Modifier.height(Spacing.md))
             Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-                Button(onClick = actions::resume, modifier = Modifier.heightIn(min = 48.dp)) {
+                GoaButton(onClick = actions::resume, modifier = Modifier.heightIn(min = 48.dp)) {
                     Text(if (resume.complete) "Open" else "Resume")
                 }
                 TextButton(onClick = { confirmDiscard = true }, modifier = Modifier.heightIn(min = 48.dp)) {
@@ -954,7 +954,7 @@ private fun HeroChooserSheet(state: SetupUiState, onDone: (Set<String>) -> Unit)
                     )
                 }
             }
-            Button(
+            GoaButton(
                 onClick = { onDone(selection.toSet()) },
                 modifier = Modifier.fillMaxWidth().padding(vertical = Spacing.md).heightIn(min = 52.dp),
             ) { Text("Use ${plural(selection.size, "hero", "heroes")}") }
@@ -980,7 +980,7 @@ private fun CoinStage(state: SetupUiState, actions: SetupActions) {
             style = MaterialTheme.typography.headlineSmall,
             color = teamA?.let { teamColor(it) } ?: MaterialTheme.colorScheme.onSurfaceVariant,
         )
-        Button(onClick = actions::flipCoin, modifier = Modifier.heightIn(min = 52.dp)) {
+        GoaButton(onClick = actions::flipCoin, modifier = Modifier.heightIn(min = 52.dp)) {
             Text(if (teamA == null) "Flip the coin" else "Flip again")
         }
         Text(

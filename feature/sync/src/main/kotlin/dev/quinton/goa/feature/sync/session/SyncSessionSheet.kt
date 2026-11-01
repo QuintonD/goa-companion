@@ -20,7 +20,6 @@ import androidx.compose.material.icons.outlined.ErrorOutline
 import androidx.compose.material.icons.outlined.Groups
 import androidx.compose.material.icons.outlined.PhoneAndroid
 import androidx.compose.material.icons.outlined.WifiTethering
-import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
@@ -48,6 +47,7 @@ import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.LifecycleResumeEffect
+import dev.quinton.goa.core.designsystem.component.GoaButton
 import dev.quinton.goa.core.designsystem.component.GoaCard
 import dev.quinton.goa.core.designsystem.component.scaledIconSize
 import dev.quinton.goa.core.designsystem.theme.GoaTheme
@@ -219,7 +219,7 @@ private fun StageContent(state: SyncSessionUiState, actions: SyncSessionActions)
             icon = Icons.Outlined.Groups,
             title = "Not in a group yet",
             body = "Start a group, or join one by scanning a friend's invite QR code.",
-        ) { Button(onClick = actions.onOpenGroup, modifier = Modifier.heightIn(min = 48.dp)) { Text("Group sync") } }
+        ) { GoaButton(onClick = actions.onOpenGroup, modifier = Modifier.heightIn(min = 48.dp)) { Text("Group sync") } }
 
         is SessionStage.LocalProblem -> Message(
             icon = Icons.Outlined.ErrorOutline,
@@ -290,7 +290,7 @@ private fun PermissionContent(permission: PermissionUi, actions: SyncSessionActi
                 "“$group” for that. Nothing goes on the internet: the data moves straight between the phones " +
                 "at the table, locked with your group's key.",
         ) {
-            Button(onClick = actions.onAllow, modifier = Modifier.heightIn(min = 48.dp)) { Text("Allow") }
+            GoaButton(onClick = actions.onAllow, modifier = Modifier.heightIn(min = 48.dp)) { Text("Allow") }
             TextButton(onClick = actions.onCancel, modifier = Modifier.heightIn(min = 48.dp)) { Text("Not now") }
         }
 
@@ -301,7 +301,7 @@ private fun PermissionContent(permission: PermissionUi, actions: SyncSessionActi
                 "works through Quick Share, a message or Drive.",
             error = true,
         ) {
-            Button(onClick = actions.onAllow, modifier = Modifier.heightIn(min = 48.dp)) { Text("Ask again") }
+            GoaButton(onClick = actions.onAllow, modifier = Modifier.heightIn(min = 48.dp)) { Text("Ask again") }
             OutlinedButton(onClick = actions.onUseFile, modifier = Modifier.heightIn(min = 48.dp)) {
                 Text("Use a sync file")
             }
@@ -315,7 +315,7 @@ private fun PermissionContent(permission: PermissionUi, actions: SyncSessionActi
                 "file instead: it works through Quick Share, a message or Drive.",
             error = true,
         ) {
-            Button(onClick = actions.onOpenSettings, modifier = Modifier.heightIn(min = 48.dp)) {
+            GoaButton(onClick = actions.onOpenSettings, modifier = Modifier.heightIn(min = 48.dp)) {
                 Text("Open settings")
             }
             OutlinedButton(onClick = actions.onUseFile, modifier = Modifier.heightIn(min = 48.dp)) {
@@ -355,7 +355,7 @@ private fun Hosting(host: HostState, state: SyncSessionUiState, actions: SyncSes
     when (host.phase) {
         HostPhase.WAITING -> {
             val ready = host.peers.count { it.stage == PeerStage.READY }
-            Button(
+            GoaButton(
                 onClick = actions.onSyncNow,
                 enabled = host.canSync,
                 modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp),
@@ -411,11 +411,11 @@ private fun Joining(client: ClientState, state: SyncSessionUiState, actions: Syn
 @Composable
 private fun Finish(state: SyncSessionUiState, actions: SyncSessionActions) {
     if (state.firstSync) {
-        Button(onClick = actions.onWhoAreYou, modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp)) {
+        GoaButton(onClick = actions.onWhoAreYou, modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp)) {
             Text("Next: which player are you?")
         }
     } else {
-        Button(onClick = actions.onClose, modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp)) { Text("Done") }
+        GoaButton(onClick = actions.onClose, modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp)) { Text("Done") }
         // The first sync after joining may have failed (phones apart, Nearby off): ask here instead.
         if (!state.meChosen) {
             TextButton(onClick = actions.onWhoAreYou, modifier = Modifier.heightIn(min = 48.dp)) {
@@ -427,7 +427,7 @@ private fun Finish(state: SyncSessionUiState, actions: SyncSessionActions) {
 
 @Composable
 private fun Retry(actions: SyncSessionActions) {
-    Button(onClick = actions.onRetry, modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp)) { Text("Try again") }
+    GoaButton(onClick = actions.onRetry, modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp)) { Text("Try again") }
     OutlinedButton(onClick = actions.onUseFile, modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp)) {
         Text("Use a sync file instead")
     }

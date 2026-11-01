@@ -24,7 +24,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -56,6 +55,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import dev.quinton.goa.core.designsystem.component.GoaButton
 import dev.quinton.goa.core.designsystem.component.GoaFilterChip
 import dev.quinton.goa.core.designsystem.component.GoaSheet
 import dev.quinton.goa.core.designsystem.component.HeroPortrait
@@ -238,7 +238,7 @@ private fun TokenChoices(onPick: (String, Boolean) -> Unit) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             GoaFilterChip(selected = withTeam, onClick = { withTeam = !withTeam }, label = "Belongs to the team")
         }
-        Button(
+        GoaButton(
             onClick = { onPick(trimmed, withTeam) },
             enabled = trimmed.isNotEmpty(),
             modifier = Modifier.fillMaxWidth().heightIn(min = 52.dp),
