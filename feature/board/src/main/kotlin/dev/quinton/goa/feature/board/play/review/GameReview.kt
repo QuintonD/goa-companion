@@ -135,7 +135,7 @@ fun GameReviewContent(
             return@Column
         }
         ReviewTitle(table, onDone)
-        PrimaryTabRow(selectedTabIndex = tab.ordinal, containerColor = MaterialTheme.colorScheme.surface) {
+        PrimaryTabRow(selectedTabIndex = tab.ordinal, containerColor = Color.Transparent) {
             ReviewTab.entries.forEach { t ->
                 Tab(selected = tab == t, onClick = { onTab(t) }, text = { Text(t.label, maxLines = 1) })
             }

@@ -50,7 +50,7 @@ fun HeroPortrait(hero: BoardHero, team: Team?, size: Int, dim: Boolean = false) 
     }
 }
 
-/** One of the look's graphics or the game's official icons (`official/`), decorative; the caller labels what it means. */
+/** One of the look's graphics or official icons (`official/`), decorative; the caller labels what it means. */
 @Composable
 fun LookImg(path: String, cssClass: String) {
     Img(path, alt = "", attrs = {

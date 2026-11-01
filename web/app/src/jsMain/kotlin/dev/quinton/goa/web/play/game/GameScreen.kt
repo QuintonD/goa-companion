@@ -573,5 +573,5 @@ private fun HeroResultRow(play: PlayUi, result: HeroResult, onHero: (String) -> 
     }
 }
 
-/** Room the banner's medallion takes at the end of the top bar (`.goa-topbar`), in CSS px. */
-private const val BANNER_MEDALLION = 60
+/** Room the banner's medallion and the actions' padding take on the top bar (`.goa-topbar`), in CSS px. */
+private const val BANNER_MEDALLION = 100

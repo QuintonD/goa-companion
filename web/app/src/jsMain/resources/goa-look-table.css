@@ -4,7 +4,8 @@
 .goa-table-hud, .goa-hero-chip, .goa-track-slot, .goa-play-panel, .goa-play-peek, .goa-map-button,
 .goa-icon-button.goa-board-map-button, .goa-over-card, .goa-result-row, .goa-puzzle-goal, .goa-puzzle-continue,
 .goa-puzzle-row, .goa-board-entry, .goa-board-resume, .goa-board-latest, .goa-board-row-card, .goa-board-tools,
-.goa-board-tray, .goa-board-banner, .goa-board-panel, .goa-source-row, .goa-play-radio-row, .goa-focus-sheet {
+.goa-board-tray, .goa-board-banner, .goa-board-panel, .goa-source-row, .goa-play-radio-row, .goa-focus-details,
+.goa-board-team {
   color-scheme: dark;
   --surface: #1E2327;
   --surface-high: #2A3136;
@@ -51,6 +52,9 @@
 .goa-over-card.red { border: 2px solid var(--team-red); }
 .goa-over-card.blue { border: 2px solid var(--team-blue); }
 .goa-board-resume { border: 1px solid #3FC1B0; }
+.goa-board-team.filling { border: 2px solid #3FC1B0; }
+.goa-focus-details { border-radius: 14px 14px 0 0; }
+.goa-focus-text .goa-cardtext { color: inherit; }
 
 /* What groups a few lines on a plate is a recess: the slate shows through. */
 .goa-review-box, .goa-review-hero, .goa-review-turn, .goa-puzzle-intro, .goa-puzzle-miss, .goa-puzzle-solved,
@@ -104,6 +108,7 @@
 .goa-table-hud.compact { align-self: auto; }
 .goa-table-hud > .goa-tb-coin { margin-left: auto; width: 28px; height: 28px; }
 .goa-hud-item { gap: 3px; }
+.goa-table-hud .t-numeric { font: inherit; font-variant-numeric: tabular-nums lining-nums; }
 .goa-hud-counter { width: 25px; height: 25px; object-fit: contain; flex: none; }
 .two-lanes .goa-hud-item.waves .goa-hud-counter { width: 22px; height: 22px; }
 .goa-hud-lane { font: 500 0.6875rem/1 var(--font-body); color: var(--on-surface-variant); margin: 0 1px; }
@@ -131,8 +136,12 @@
 }
 /* A small phone: four chips still fit side by side. */
 @media (max-width: 379px) {
-  .goa-hero-chip:not(.compact) .goa-portrait { width: 28px !important; height: 28px !important; }
+  .goa-hero-chip:not(.compact) .goa-portrait { width: 26px !important; height: 26px !important; }
   .goa-chip-name { font-size: 0.75rem; }
+  .goa-hero-strip { gap: 3px; }
+  .goa-hero-chip:not(.compact) { padding: 3px 2px 3px 5px; gap: 3px; }
+  .goa-chip-stats { gap: 2px; }
+  .goa-chip-coin { width: 11px; margin-right: 1px; }
 }
 .goa-hero-chip.compact { flex: none; padding: 2px; border-radius: 50%; background: url("official/ui/slate.webp") center / 420px, #1D2124; }
 .goa-hero-chip.acting { border: 2px solid var(--primary); }
@@ -227,6 +236,7 @@
 
 .goa-question-box { display: flex; align-items: center; gap: var(--sp-sm); }
 .goa-question-box p { margin: 0; }
+.goa-question-box .goa-tap-hint { display: block; color: inherit; font-size: inherit; }
 .goa-question-icon { width: 28px; height: 28px; object-fit: contain; flex: none; }
 .goa-rule-box { font-size: 0.9375rem; line-height: 1.2; }
 .goa-rule-box .goa-unavailable { color: inherit; background: none; border: 0; padding: 0; text-align: left; font: inherit; }
@@ -314,7 +324,10 @@
 .goa-ultimate-hand-rest { flex: 1; min-width: 0; }
 
 /* ---------- The compact top bar: clear of the medallion (the banner's end), a title too long for its line wraps ---------- */
-.goa-screen.fill .goa-topbar-title { white-space: normal; font-size: 1.125rem; line-height: 1.05; padding: 0 var(--sp-xs); }
+.goa-screen.fill:has(.goa-play) .goa-topbar-title {
+  display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; white-space: normal;
+  font-size: min(1.0625rem, 20px); line-height: 1.1; padding: 0 var(--sp-xs);
+}
 
 /* ---------- The sandbox, the lists ---------- */
 .goa-map-button, .goa-icon-button.goa-board-map-button { border-radius: 50%; }

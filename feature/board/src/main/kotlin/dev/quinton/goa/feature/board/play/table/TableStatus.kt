@@ -335,7 +335,7 @@ private fun HeroChip(table: TableUi, hero: HeroView, place: Int?, onClick: () ->
             ),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            ChipPortrait(table, hero, place, if (tight) 28.dp else 32.dp)
+            ChipPortrait(table, hero, place, if (tight) 26.dp else 32.dp)
             Spacer(Modifier.width(if (tight) 4.dp else 5.dp))
             Column {
                 Row(verticalAlignment = Alignment.CenterVertically) {

@@ -542,7 +542,8 @@ private fun DashboardSlotView(
         if (first == null) attr("disabled", "")
         onClick {
             first?.let { card ->
-                focus.open(viewable, viewable.indexOfFirst { it.key == "$title/${card.id}" }.coerceAtLeast(0), title = title)
+                val at = viewable.indexOfFirst { it.key == "$title/${card.id}" }.coerceAtLeast(0)
+                focus.open(viewable, at, title = title)
             }
         }
     }) {
@@ -609,7 +610,8 @@ private fun UltimateAndHand(table: TableUi, hero: HeroView, focus: CardFocusStat
             when {
                 hand == null -> {
                     Overline("In hand · ${hero.handCount}")
-                    CardRow(List(hero.handCount) { CardView(null) }, table, focus, "$name · In hand", cardWidth = SHEET_CARD)
+                    val backs = List(hero.handCount) { CardView(null) }
+                    CardRow(backs, table, focus, "$name · In hand", cardWidth = SHEET_CARD)
                 }
 
                 hero.heroId in table.mine -> {

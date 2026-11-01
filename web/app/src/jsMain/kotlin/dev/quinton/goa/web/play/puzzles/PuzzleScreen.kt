@@ -154,9 +154,7 @@ private fun PuzzleTable(puzzle: PuzzleUi, controller: PuzzleController) {
             }
         },
         banner = { GoalBanner(puzzle.info.goal.text, puzzle.playing, compact = landscape) },
-        panelTitle = if (puzzle.replay == null && table.decision != null && puzzle.phase != PuzzlePhase.SOLVED &&
-            puzzle.phase != PuzzlePhase.REPLYING && puzzle.phase != PuzzlePhase.MISSED
-        ) {
+        panelTitle = if (puzzle.asksOnPanel()) {
             { DecisionWho(table) }
         } else {
             null
@@ -428,3 +426,7 @@ private fun ReplayPanel(puzzle: PuzzleUi, onAction: (PuzzleAction) -> Unit, focu
 }
 
 private const val REPLAY_CARD_PX = 40
+
+/** The panel holds the question (who is asked goes on its bar): not during a replay, a reply, or once it is over. */
+private fun PuzzleUi.asksOnPanel(): Boolean = replay == null && table.decision != null &&
+    phase !in setOf(PuzzlePhase.SOLVED, PuzzlePhase.REPLYING, PuzzlePhase.MISSED)

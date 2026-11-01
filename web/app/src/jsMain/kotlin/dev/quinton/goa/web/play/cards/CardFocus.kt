@@ -379,7 +379,13 @@ private fun CardAsText(card: Card) {
             card.values.range?.let { Value("Range $it") }
             card.values.radius?.let { Value("Radius $it") }
         }
-        if (card.text.isNotBlank()) CardText(card.text)
+        if (card.text.isNotBlank()) {
+            // Printed text on the card's own text box.
+            Div({ classes("goa-text-box", cardBoxColor(card.color), "goa-focus-text") }) {
+                Span({ classes("cap") }) { Text(PlayText.primary(card.primary)) }
+                dev.quinton.goa.web.catalog.CardTextView(card.text, "t-printed-small")
+            }
+        }
     }
 }
 

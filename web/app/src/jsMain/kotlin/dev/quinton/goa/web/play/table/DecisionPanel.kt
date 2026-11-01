@@ -8,7 +8,6 @@ import dev.quinton.goa.core.game.Choice
 import dev.quinton.goa.core.game.Decision
 import dev.quinton.goa.core.game.DecisionKind
 import dev.quinton.goa.core.model.catalog.Card
-import dev.quinton.goa.core.model.catalog.CardColor
 import dev.quinton.goa.core.model.catalog.PrimaryAction
 import dev.quinton.goa.feature.board.BoardText
 import dev.quinton.goa.feature.board.play.PlayText
@@ -40,6 +39,7 @@ import dev.quinton.goa.web.play.cards.CardFocusState
 import dev.quinton.goa.web.play.cards.CardImage
 import dev.quinton.goa.web.play.cards.CardSelection
 import dev.quinton.goa.web.play.cards.ItemBadge
+import dev.quinton.goa.web.play.cards.cardBoxColor
 import dev.quinton.goa.web.play.cards.verdictClass
 import dev.quinton.goa.web.play.ui.TeamMark
 import dev.quinton.goa.web.ui.Icon
@@ -104,7 +104,7 @@ fun DecisionPanel(
                         QuestionBox(table, source, decision, board)
                         if (board) BoardConfirm(table, onAnswer, busy)
                         Choices(table, table.buttonOptions, onAnswer, busy)
-                        RuleBox(boxColor(source.color), table, decision, focus)
+                        RuleBox(cardBoxColor(source.color), table, decision, focus)
                     }
                 }
                 if (board) BoardChips(table, onSelect)
@@ -147,15 +147,6 @@ private fun RuleBox(color: String, table: TableUi, decision: Decision, focus: Ca
     }
 }
 
-/** A card's text box colour; the Ultimate's purple and unknown colours use the neutral silver. */
-private fun boxColor(color: CardColor): String = when (color) {
-    CardColor.GOLD -> "gold"
-    CardColor.SILVER, CardColor.PURPLE, CardColor.OTHER -> "silver"
-    CardColor.RED -> "red"
-    CardColor.GREEN -> "green"
-    CardColor.BLUE -> "blue"
-}
-
 /**
  * The question asked by a card, on the card's own text box (mock-up 03): the action on its tab, the
  * rulebook's action symbol, the prompt (read aloud) and how to answer on the board.
@@ -165,12 +156,12 @@ private fun QuestionBox(table: TableUi, card: Card, decision: Decision, board: B
     val action = table.track?.slots
         ?.firstOrNull { it.heroId == decision.seat && it.cards.any { view -> view.cardId == card.id } }
         ?.action
-    Div({ classes("goa-text-box", boxColor(card.color), "goa-question-box") }) {
+    Div({ classes("goa-text-box", cardBoxColor(card.color), "goa-question-box") }) {
         Span({ classes("cap") }) { Text(action?.let { actionWord(it, card) } ?: PlayText.primary(card.primary)) }
         lookAction(action, card)?.let { LookImg("official/ui/action-$it.webp", "goa-question-icon") }
         Div {
             P({ attr("aria-live", "polite") }) { Text(decision.prompt) }
-            if (board) P { Text(boardHint(table)) }
+            if (board) P({ classes("goa-tap-hint") }) { Text(boardHint(table)) }
         }
     }
 }
@@ -178,8 +169,11 @@ private fun QuestionBox(table: TableUi, card: Card, decision: Decision, board: B
 /** The rulebook's symbol for the action being resolved, or the card's primary while none is chosen yet. */
 private fun lookAction(action: ActionType?, card: Card): String? = when (action) {
     ActionType.MOVEMENT, ActionType.FAST_TRAVEL -> "movement"
+
     ActionType.ATTACK, ActionType.CLEAR -> "attack"
+
     ActionType.HOLD -> null
+
     ActionType.PRIMARY, null -> when (card.primary) {
         PrimaryAction.ATTACK -> "attack"
         PrimaryAction.SKILL -> "skill"
@@ -552,7 +546,8 @@ private fun OfferedRow(
                 if (fan) {
                     val away = kotlin.math.abs(fromCentre)
                     style {
-                        property("transform", "translateY(${away * (away + 1)}px) rotate(${fromCentre * FAN_DEGREES}deg)")
+                        val drop = away * (away + 1)
+                        property("transform", "translateY(${drop}px) rotate(${fromCentre * FAN_DEGREES}deg)")
                     }
                 }
             }) {

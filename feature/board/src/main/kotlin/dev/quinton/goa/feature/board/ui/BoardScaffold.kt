@@ -83,7 +83,7 @@ private fun BoardTopBar(title: String, onBack: () -> Unit, actions: @Composable 
     val landscape = isLandscape()
     val base = GoaTextStyles.bannerTitle
     val bar = if (landscape) LANDSCAPE_BAR else PORTRAIT_BAR
-    // The bar's width doesn't grow: past 1.5× a bevelled title only gets cut, and TalkBack hears it whole anyway.
+    // The bar's width doesn't grow: past 1.25× a bevelled title only gets cut, and TalkBack hears it whole anyway.
     val scale = LocalDensity.current.fontScale
     val capped = minOf(scale, TITLE_MAX_SCALE) / scale
     val oneLine = if (landscape) {
@@ -143,5 +143,5 @@ private fun BoardTopBar(title: String, onBack: () -> Unit, actions: @Composable 
 private val PORTRAIT_BAR = 48.dp
 private val LANDSCAPE_BAR = 40.dp
 private val TITLE_AIR = 8.dp
-private const val TITLE_MAX_SCALE = 1.5f
+private const val TITLE_MAX_SCALE = 1.25f
 private val TWO_LINE_AIR = 4.dp
