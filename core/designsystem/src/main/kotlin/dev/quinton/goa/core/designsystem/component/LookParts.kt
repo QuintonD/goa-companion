@@ -407,7 +407,12 @@ fun CardTextBox(
         }
         CompositionLocalProvider(LocalContentColor provides colors.onParchment) {
             Column(
-                Modifier.fillMaxWidth().padding(start = 12.dp, end = 12.dp, top = if (cap != null) 22.dp else 10.dp, bottom = 10.dp),
+                Modifier.fillMaxWidth().padding(
+                    start = 12.dp,
+                    end = 12.dp,
+                    top = if (cap != null) 22.dp else 10.dp,
+                    bottom = 10.dp,
+                ),
                 content = content,
             )
         }
