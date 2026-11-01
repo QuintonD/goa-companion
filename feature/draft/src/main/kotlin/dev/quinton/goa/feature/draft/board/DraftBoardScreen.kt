@@ -665,7 +665,7 @@ private fun TakenChip(hero: HeroInfo, state: TileState, onClick: () -> Unit) {
                     hero.name,
                     style = MaterialTheme.typography.labelLarge,
                     textDecoration = if (banned) TextDecoration.LineThrough else null,
-                    color = if (banned) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onSurface,
+                    color = with(MaterialTheme.colorScheme) { if (banned) onSurfaceVariant else onSurface },
                     maxLines = 1,
                 )
             }

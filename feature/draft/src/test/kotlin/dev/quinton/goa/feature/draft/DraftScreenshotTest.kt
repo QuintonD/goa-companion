@@ -134,14 +134,13 @@ class DraftScreenshotTest {
 
     /** Pool tiles with real art, in every state: a ban must read as crossed out, not just dimmed. */
     @Test fun heroTileStatesDark() = capture {
-        val ids = listOf("arien", "bain", "brogan", "tigerclaw", "wasp", "xargatha")
+        val ids = listOf("arien", "silverarrow", "brogan", "tigerclaw", "wasp")
         val tiles = ids.map { HeroInfo.of(bundledHero(it)) }
         val states = listOf(
             TileState.Available,
             TileState.Inactive,
             TileState.Banned(Team.RED),
             TileState.Picked(Team.BLUE),
-            TileState.Banned(Team.BLUE),
             TileState.Available,
         )
         Row(horizontalArrangement = Arrangement.spacedBy(4.dp), modifier = Modifier.padding(16.dp)) {

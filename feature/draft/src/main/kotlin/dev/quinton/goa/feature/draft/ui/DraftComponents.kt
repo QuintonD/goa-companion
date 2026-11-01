@@ -224,8 +224,9 @@ private fun HeroTileBody(
                 )
             }
             when (state) {
+                // Small: the cross already says "banned"; the chip keeps the team's mark and the ban's symbol.
                 is TileState.Banned -> StateChip(
-                    text = "Banned",
+                    text = "Banned".takeUnless { compact },
                     team = state.team,
                     icon = true,
                     modifier = Modifier.align(Alignment.BottomCenter).padding(2.dp),
@@ -254,7 +255,13 @@ private fun TileName(name: String, state: TileState, compact: Boolean) {
     val large = LocalDensity.current.fontScale > LARGE_FONT_SCALE
     val style = when {
         large -> MaterialTheme.typography.labelMedium
-        compact -> GoaTextStyles.plateCap.copy(letterSpacing = 0.sp)
+
+        // The longest names (Silverarrow) step down so the whole name still fits a dense tile.
+        compact -> GoaTextStyles.plateCap.copy(
+            letterSpacing = 0.sp,
+            fontSize = if (name.length > LONG_NAME) 9.5.sp else GoaTextStyles.plateCap.fontSize,
+        )
+
         else -> GoaTextStyles.plateTitle.copy(fontSize = 14.sp, lineHeight = 18.sp)
     }
     val colors = GoaTheme.colors
@@ -293,9 +300,10 @@ private val TILE_EDGE = Color(0xFF5D6B70)
 private val CROSS = Color(0xFFFF6B6B)
 private val CROSS_EDGE = Color(0xE6060C12)
 private const val TILE_SYMBOL = 0.32f
+private const val LONG_NAME = 9
 
 @Composable
-private fun StateChip(text: String, team: Team, icon: Boolean, modifier: Modifier = Modifier) {
+private fun StateChip(text: String?, team: Team, icon: Boolean, modifier: Modifier = Modifier) {
     val color = teamColor(team)
     Row(
         modifier
@@ -310,14 +318,16 @@ private fun StateChip(text: String, team: Team, icon: Boolean, modifier: Modifie
             Spacer(Modifier.width(1.dp))
             Icon(Icons.Filled.Block, contentDescription = null, tint = color, modifier = Modifier.size(10.dp))
         }
-        Spacer(Modifier.width(2.dp))
-        Text(
-            text,
-            style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.onSurface,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-        )
+        if (text != null) {
+            Spacer(Modifier.width(2.dp))
+            Text(
+                text,
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurface,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+        }
     }
 }
 
