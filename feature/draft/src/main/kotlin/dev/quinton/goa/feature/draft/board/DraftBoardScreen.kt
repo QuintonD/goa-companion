@@ -35,6 +35,7 @@ import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
@@ -60,6 +61,7 @@ import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
@@ -124,6 +126,7 @@ import dev.quinton.goa.feature.draft.ui.HeroTile
 import dev.quinton.goa.feature.draft.ui.RoleChips
 import dev.quinton.goa.feature.draft.ui.SequenceStrip
 import dev.quinton.goa.feature.draft.ui.StepToken
+import dev.quinton.goa.feature.draft.ui.TeamText
 import dev.quinton.goa.feature.draft.ui.TileState
 import dev.quinton.goa.feature.draft.ui.actionName
 import dev.quinton.goa.feature.draft.ui.crossedOut
@@ -132,8 +135,8 @@ import dev.quinton.goa.feature.draft.ui.label
 import dev.quinton.goa.feature.draft.ui.plateEdge
 import dev.quinton.goa.feature.draft.ui.rememberReducedMotion
 import dev.quinton.goa.feature.draft.ui.teamGlyph
-import dev.quinton.goa.feature.draft.ui.teamLabel
 import dev.quinton.goa.feature.draft.ui.teamName
+import dev.quinton.goa.feature.draft.ui.withoutTeamGlyph
 
 interface BoardActions {
     fun tapHero(heroId: String) {}
@@ -557,25 +560,34 @@ private fun PoolHeader(left: Int, total: Int, filters: PoolFilters, searchable: 
             )
         }
         if (searchable) {
-            OutlinedTextField(
-                value = filters.query,
-                onValueChange = filters.onQuery,
-                placeholder = { Text("Search heroes") },
-                leadingIcon = { Icon(Icons.Outlined.Search, contentDescription = null) },
-                trailingIcon = if (filters.query.isNotEmpty()) {
-                    {
-                        IconButton(onClick = { filters.onQuery("") }) {
-                            Icon(Icons.Outlined.Close, contentDescription = "Clear search")
+            // A dark steel slot in both themes, as the Heroes and Rules searches are.
+            GoaPlateTheme {
+                OutlinedTextField(
+                    value = filters.query,
+                    onValueChange = filters.onQuery,
+                    placeholder = { Text("Search heroes") },
+                    leadingIcon = { Icon(Icons.Outlined.Search, contentDescription = null) },
+                    trailingIcon = if (filters.query.isNotEmpty()) {
+                        {
+                            IconButton(onClick = { filters.onQuery("") }) {
+                                Icon(Icons.Outlined.Close, contentDescription = "Clear search")
+                            }
                         }
-                    }
-                } else {
-                    null
-                },
-                singleLine = true,
-                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
-                keyboardActions = KeyboardActions(onSearch = { keyboard?.hide() }),
-                modifier = Modifier.fillMaxWidth(),
-            )
+                    } else {
+                        null
+                    },
+                    singleLine = true,
+                    shape = CircleShape,
+                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
+                    keyboardActions = KeyboardActions(onSearch = { keyboard?.hide() }),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedContainerColor = PlateGround,
+                        unfocusedContainerColor = PlateGround,
+                        unfocusedBorderColor = SEARCH_EDGE,
+                    ),
+                    modifier = Modifier.fillMaxWidth(),
+                )
+            }
             LazyRow(horizontalArrangement = Arrangement.spacedBy(Spacing.xs)) {
                 items(roles, key = { it.name }) { role ->
                     GoaFilterChip(
@@ -697,7 +709,7 @@ private fun StepBanner(
                 TeamMark(step.team, markSize = if (compact) 20.dp else 26.dp)
                 Spacer(Modifier.width(Spacing.sm))
                 AnimatedContent(
-                    targetState = DraftBoardText.bannerTitle(session).orEmpty(),
+                    targetState = DraftBoardText.bannerTitle(session).orEmpty().withoutTeamGlyph(),
                     transitionSpec = {
                         val d = if (reduced) 0 else 250
                         (fadeIn(tween(d)) + slideInVertically(tween(d)) { it / 3 }) togetherWith fadeOut(tween(d))
@@ -1008,7 +1020,7 @@ private fun ConfirmDialog(
                 if (hero.title.isNotEmpty()) Text(hero.title, style = MaterialTheme.typography.bodyMedium)
                 ComplexityStars(hero.complexity, showLabel = true)
                 RoleChips(hero.roles)
-                Text(
+                TeamText(
                     DraftBoardText.confirmText(session, pilot).orEmpty(),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -1036,7 +1048,15 @@ private fun ConfirmDialog(
                     contentColor = MaterialTheme.colorScheme.background,
                 ),
                 modifier = Modifier.heightIn(min = 48.dp),
-            ) { Text("${teamGlyph(step.team)} ${if (ban) "Ban" else "Pick"}") }
+            ) {
+                TeamText(
+                    "${teamGlyph(step.team)} ${if (ban) "Ban" else "Pick"}",
+                    markGround = MaterialTheme.colorScheme.background,
+                    modifier = Modifier.semantics {
+                        contentDescription = "${teamName(step.team)} ${if (ban) "ban" else "pick"}"
+                    },
+                )
+            }
         },
         dismissButton = { TextButton(onClick = actions::cancelConfirm) { Text("Cancel") } },
     )
@@ -1064,9 +1084,11 @@ private fun PrivacyGate(session: DraftSession, actions: BoardActions) {
         ) {
             Icon(Icons.Outlined.Lock, contentDescription = null, tint = color, modifier = Modifier.size(44.dp))
         }
-        Spacer(Modifier.height(Spacing.xl))
+        Spacer(Modifier.height(Spacing.md))
+        TeamMark(step.team, markSize = 26.dp)
+        Spacer(Modifier.height(Spacing.md))
         TitlePlate(
-            "Pass the phone to ${teamLabel(step.team)}",
+            "Pass the phone to ${teamName(step.team)}",
             Modifier.fillMaxWidth(),
             style = STEP_STYLE,
             maxLines = 3,
@@ -1092,6 +1114,7 @@ private fun PrivacyGate(session: DraftSession, actions: BoardActions) {
 
 private val STEP_STYLE = GoaTextStyles.plateTitle.copy(fontSize = 19.sp, lineHeight = 24.sp)
 private val CLOCK_FACE = Color(0xFF060C12)
+private val SEARCH_EDGE = Color(0xFF5D6B70)
 
 private const val LARGE_FONT = 1.5f
 private const val DISABLED_ALPHA = 0.3f

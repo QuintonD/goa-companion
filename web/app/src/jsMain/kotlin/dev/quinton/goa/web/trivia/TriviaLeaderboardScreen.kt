@@ -195,13 +195,11 @@ private fun BoardContent(
         EmptyBoard(state)
     } else {
         Ul({
-            classes("goa-trivia-board")
+            classes("goa-trivia-board", "goa-plate")
             attr("role", "tabpanel")
         }) {
             state.rows.forEach { row ->
-                Li({ classes("goa-plate", "no-brackets") }) {
-                    RankedRow(row, onClick = { onOpenPlayer(row.player.id) })
-                }
+                Li { RankedRow(row, onClick = { onOpenPlayer(row.player.id) }) }
             }
         }
     }

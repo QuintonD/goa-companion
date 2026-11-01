@@ -80,16 +80,16 @@ fun goaTonalIconColors(): IconButtonColors = IconButtonDefaults.filledTonalIconB
 
 @Composable
 fun goaChipColors(): SelectableChipColors = FilterChipDefaults.filterChipColors(
-    selectedContainerColor = MaterialTheme.colorScheme.secondary.copy(alpha = 0.18f),
+    selectedContainerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.18f),
     selectedLabelColor = MaterialTheme.colorScheme.onSurface,
-    selectedLeadingIconColor = MaterialTheme.colorScheme.secondary,
+    selectedLeadingIconColor = MaterialTheme.colorScheme.primary,
 )
 
 @Composable
 fun goaChipBorder(selected: Boolean) = FilterChipDefaults.filterChipBorder(
     enabled = true,
     selected = selected,
-    selectedBorderColor = MaterialTheme.colorScheme.secondary,
+    selectedBorderColor = MaterialTheme.colorScheme.primary,
     selectedBorderWidth = 1.dp,
 )
 

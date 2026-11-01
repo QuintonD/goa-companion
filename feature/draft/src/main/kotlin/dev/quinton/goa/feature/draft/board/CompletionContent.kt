@@ -24,6 +24,7 @@ import androidx.compose.material.icons.outlined.Casino
 import androidx.compose.material.icons.outlined.Hexagon
 import androidx.compose.material.icons.outlined.Timer
 import androidx.compose.material3.FilterChip
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
@@ -237,7 +238,10 @@ private fun TeamResult(
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
-            seats.forEach { assignment -> SeatRow(state, assignment, session.canSwapSeats, actions) }
+            seats.forEachIndexed { i, assignment ->
+                if (i > 0) HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+                SeatRow(state, assignment, session.canSwapSeats, actions)
+            }
         }
     }
 }
@@ -252,11 +256,8 @@ private fun SeatRow(state: BoardUiState, assignment: SeatAssignment, swappable: 
         onClick = { actions.selectSeat(seat.id) },
         enabled = swappable,
         shape = RoundedCornerShape(6.dp),
-        color = if (selected) MaterialTheme.colorScheme.secondary.copy(alpha = 0.14f) else Color.Transparent,
-        border = BorderStroke(
-            if (selected) 2.dp else 1.dp,
-            if (selected) MaterialTheme.colorScheme.secondary else GoaTheme.colors.engravedBorder,
-        ),
+        color = if (selected) MaterialTheme.colorScheme.primary.copy(alpha = 0.14f) else Color.Transparent,
+        border = if (selected) BorderStroke(2.dp, MaterialTheme.colorScheme.primary) else null,
         modifier = Modifier
             .fillMaxWidth()
             .semantics {

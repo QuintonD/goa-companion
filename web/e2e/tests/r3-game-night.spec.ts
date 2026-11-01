@@ -141,7 +141,7 @@ test("a draft, the timer through a locked screen, the result logged and synced",
   await expect(a.locator(".goa-draft-banner")).toBeVisible();
   while (await a.locator(".goa-draft-banner").count()) {
     await a.locator(".goa-draft-tile:not(.inactive):not(.banned):not(.picked)").first().click();
-    await a.getByRole("alertdialog").getByRole("button", { name: /^(◆|●) (Pick|Ban)$/ }).click();
+    await a.getByRole("alertdialog").getByRole("button", { name: /^(Red|Blue) (Pick|Ban)$/ }).click();
     await expect(a.getByRole("alertdialog")).toHaveCount(0);
   }
   await expect(a.getByRole("heading", { name: "Draft complete" })).toBeInViewport();

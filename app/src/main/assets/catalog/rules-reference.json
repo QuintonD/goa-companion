@@ -441,6 +441,14 @@
         },
         {
           "page": 8,
+          "text": "The Red team has 4 minions to the Blue team’s 2 minions at the end of the round. During the Minion Battle, the Blue team must remove the difference — 2 minions. Since this removes all Blue minions from the Battle Zone, the Lane is pushed."
+        },
+        {
+          "page": 8,
+          "text": "All minions remaining in the old Battle Zone are removed, and then respawn in the new Battle Zone. Note that the defending team has more minion spawn points in their Pre-Throne Zone. One Red minion will not be respawned."
+        },
+        {
+          "page": 8,
           "text": "A Lane can be Pushed both at the end of round, and in the middle of a turn.\nIf you defeat, or remove, the last remaining enemy minion in the Battle Zone, the Lane is immediately Pushed in the same way as it would during a Minion Battle.\nNote: A Lane Push can never be triggered by moving, pushing, or swapping a minion. It must be either defeated, or removed.\nIf the Lane is pushed in the middle of a turn, the turn continues in the Initiative order as normal."
         },
         {

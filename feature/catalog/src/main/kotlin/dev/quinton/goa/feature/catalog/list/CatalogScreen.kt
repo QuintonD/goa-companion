@@ -128,12 +128,12 @@ fun CatalogScreen(
 ) {
     var showFilters by rememberSaveable { mutableStateOf(false) }
     var more by remember { mutableStateOf(false) }
-    // Five actions and the title fit side by side on a phone at normal text size; when they
-    // don't (narrow screen, large text), Board and Card trivia move into "More options".
+    // A phone's banner keeps Layout, Rules and Settings clear of the medallion, as the mock-up does; Board
+    // and Card trivia are in "More options". On a wider screen they have the room.
     val widthDp = LocalConfiguration.current.screenWidthDp
-    val compact = TOP_BAR_ICONS_DP + TITLE_DP * LocalDensity.current.fontScale > widthDp
-    // At the largest text, with the banner's medallion, the title needs the view switch's room too.
-    val switchInMenu = TOP_BAR_ICONS_DP - ICON_DP + TITLE_DP * LocalDensity.current.fontScale > widthDp
+    val compact = widthDp < ALL_ON_BAR_MIN_DP
+    // At the largest text the title needs the view switch's room too.
+    val switchInMenu = TOP_BAR_ICONS_DP + TITLE_DP * LocalDensity.current.fontScale > widthDp
     val ready = state as? CatalogUiState.Ready
     // Back with a search typed clears the search instead of leaving the app.
     BackHandler(enabled = query.isNotEmpty()) { onAction(CatalogAction.Search("")) }
@@ -472,6 +472,8 @@ private fun Results(
     }
     val minCell = if (LocalDensity.current.fontScale > LARGE_FONT_SCALE) GRID_MIN_CELL_LARGE_FONT else GRID_MIN_CELL
     val plateArt = rememberPlateArt()
+    val footnotes =
+        remember(state.heroes, state.controls.sort) { TileFootnoteRoom.of(state.heroes, state.controls.sort) }
     LazyVerticalGrid(
         columns = if (grid) GridCells.Adaptive(minCell) else GridCells.Fixed(1),
         state = gridState,
@@ -503,7 +505,7 @@ private fun Results(
         items(state.heroes, key = { it.hero.id }, contentType = { HERO }) { item ->
             val onClick = { onHeroClick(item.hero.id) }
             if (grid) {
-                HeroGridTile(item, state.controls.sort, plateArt, onClick, Modifier.animateItem())
+                HeroGridTile(item, state.controls.sort, plateArt, footnotes, onClick, Modifier.animateItem())
             } else {
                 HeroListRow(item, state.controls.sort, plateArt, onClick, Modifier.animateItem())
             }
@@ -587,9 +589,11 @@ private val GRID_MIN_CELL_LARGE_FONT = 150.dp
 /** Font scales from Android's 1.3 step up: a tile's plate and texts no longer fit a third of a phone. */
 private const val LARGE_FONT_SCALE = 1.2f
 
-/** Width (dp) of the top bar's five action icons, its padding and the banner's medallion (46). */
-private const val TOP_BAR_ICONS_DP = 5 * 48 + 24 + 46
-private const val ICON_DP = 48
+/** Width (dp) of the top bar's four action icons, its padding and the banner's medallion (46). */
+private const val TOP_BAR_ICONS_DP = 4 * 48 + 24 + 46
+
+/** Width (dp) from which Board and Card trivia sit on the bar, beside the title. */
+private const val ALL_ON_BAR_MIN_DP = 600
 
 /** Width (dp) the "Heroes" title needs at font scale 1. */
 private const val TITLE_DP = 100

@@ -54,6 +54,7 @@ import dev.quinton.goa.core.domain.teams.PlayerDraftSession
 import dev.quinton.goa.core.model.match.Team
 import dev.quinton.goa.feature.draft.ui.HeroTile
 import dev.quinton.goa.feature.draft.ui.PLATE_BRONZE
+import dev.quinton.goa.feature.draft.ui.TeamText
 import dev.quinton.goa.feature.draft.ui.TileState
 import dev.quinton.goa.feature.draft.ui.heroLabel
 import dev.quinton.goa.feature.draft.ui.info
@@ -61,6 +62,7 @@ import dev.quinton.goa.feature.draft.ui.plateEdge
 import dev.quinton.goa.feature.draft.ui.teamGlyph
 import dev.quinton.goa.feature.draft.ui.teamLabel
 import dev.quinton.goa.feature.draft.ui.teamName
+import dev.quinton.goa.feature.draft.ui.withoutTeamGlyph
 
 /** The official Player Draft: heroes for every player first, then captains draft players. */
 @Composable
@@ -103,7 +105,7 @@ internal fun PlayerDraftContent(
     if (pending != null && team != null) {
         GoaDialog(
             onDismissRequest = { drafting = null },
-            title = { Text("Draft ${state.playerName(pending)} to ${teamLabel(team)}?") },
+            title = { TeamText("Draft ${state.playerName(pending)} to ${teamLabel(team)}?") },
             text = { Text("They play ${heroLabel(state.heroes, session.selection.choices[pending])}.") },
             confirmButton = {
                 Button(
@@ -115,7 +117,13 @@ internal fun PlayerDraftContent(
                         containerColor = teamColor(team),
                         contentColor = MaterialTheme.colorScheme.background,
                     ),
-                ) { Text("${teamGlyph(team)} Draft") }
+                ) {
+                    TeamText(
+                        "${teamGlyph(team)} Draft",
+                        markGround = MaterialTheme.colorScheme.background,
+                        modifier = Modifier.semantics { contentDescription = "${teamName(team)} draft" },
+                    )
+                }
             },
             dismissButton = { TextButton(onClick = { drafting = null }) { Text("Cancel") } },
         )
@@ -134,7 +142,7 @@ private fun PhaseBanner(state: BoardUiState, session: PlayerDraftSession) {
             .semantics(mergeDescendants = true) { liveRegion = LiveRegionMode.Polite },
         contentPadding = PaddingValues(Spacing.md),
     ) {
-        TitlePlate(title, Modifier.fillMaxWidth(), heading = false, maxLines = 3)
+        TitlePlate(title.withoutTeamGlyph(), Modifier.fillMaxWidth(), heading = false, maxLines = 3)
         if (body.isNotEmpty()) {
             Text(
                 body,
@@ -160,7 +168,7 @@ private fun HeroChoiceRow(state: BoardUiState, session: PlayerDraftSession, play
             Spacer(Modifier.width(Spacing.md))
             Column(Modifier.weight(1f)) {
                 Text(state.playerName(playerId), style = MaterialTheme.typography.titleMedium)
-                Text(
+                TeamText(
                     captainOf?.let { "${teamLabel(it)} captain" } ?: "Player",
                     style = MaterialTheme.typography.labelMedium,
                     color = captainOf?.let { teamColor(it) } ?: MaterialTheme.colorScheme.onSurfaceVariant,

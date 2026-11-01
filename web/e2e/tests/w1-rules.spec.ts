@@ -102,7 +102,7 @@ test("rules search filters topics, keeps the ladder for ladder words, and surviv
   await expect(page.getByText(/^\d+ of 11 topics$/)).toBeVisible();
   await page.getByRole("link", { name: /^Hero respawn, rulebook pages/ }).click();
   await expect(title(page)).toHaveText("Hero respawn");
-  await expect(page.getByText("quoted word for word")).toBeVisible();
+  await expect(page.getByText("quoted word for word").locator("visible=true")).toBeVisible();
   await page.getByRole("button", { name: "Back" }).click();
   await expect(search).toHaveValue("respawn");
   await search.fill("assist coins");

@@ -83,7 +83,6 @@ fun ProvisionalPill(modifier: Modifier = Modifier) {
     Pill(
         text = "Provisional",
         icon = Icons.Outlined.HourglassEmpty,
-        color = MaterialTheme.colorScheme.secondary,
         modifier = modifier,
     )
 }
@@ -222,12 +221,13 @@ fun EdgedPlate(
     edge: @Composable () -> BorderStroke,
     modifier: Modifier = Modifier,
     fill: @Composable () -> Color = { Color.Transparent },
+    brackets: Boolean = false,
     content: @Composable () -> Unit,
 ) {
     GoaPlateTheme {
         Box(
             modifier
-                .slatePlate(PlateShape, brackets = false)
+                .slatePlate(PlateShape, brackets = brackets)
                 .background(fill(), PlateShape)
                 .border(edge(), PlateShape)
                 .clip(PlateShape),
@@ -282,12 +282,12 @@ fun StatRow(tiles: List<Pair<String, String>>, modifier: Modifier = Modifier) {
 /** Font scale from which compact controls switch to roomier, wrapping layouts. */
 const val LARGE_FONT_SCALE = 1.3f
 
-/** Brand colours for selected chips: tide-teal tint, never the default Material purple. */
+/** Selected chips in bronze, as selected is everywhere (docs/DESIGN.md). */
 @Composable
 fun goaFilterChipColors() = androidx.compose.material3.FilterChipDefaults.filterChipColors(
-    selectedContainerColor = MaterialTheme.colorScheme.secondary.copy(alpha = 0.2f),
+    selectedContainerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.2f),
     selectedLabelColor = MaterialTheme.colorScheme.onSurface,
-    selectedLeadingIconColor = MaterialTheme.colorScheme.secondary,
+    selectedLeadingIconColor = MaterialTheme.colorScheme.primary,
 )
 
 @Composable

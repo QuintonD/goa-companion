@@ -61,6 +61,10 @@
 }
 .goa-team-mark { display: inline-flex; align-items: center; justify-content: center; width: 1.05em; height: 1.05em; flex: none; }
 .goa-team-mark img { width: 100%; height: 100%; object-fit: contain; display: block; }
+/* In line with words, and on a disc on a button in the team's own colour. */
+.goa-table-section-title .goa-team-mark, .goa-table-step-chip .goa-team-mark { vertical-align: -0.2em; }
+.goa-draft-team-button .goa-team-mark { width: 1.3em; height: 1.3em; margin-right: 0.15em; padding: 1px; border-radius: 50%; background: #0B1622; }
+.goa-draft-privacy-team { width: 34px; height: 34px; }
 .goa-table-team { gap: 4px; }
 .goa-table-small-heading { font: 700 1rem/1.375rem var(--font-display); letter-spacing: 0.0375rem; color: var(--heading); }
 .goa-table-section-title.red { color: var(--team-red); }
@@ -95,7 +99,13 @@
 }
 .goa-table-timer.step-view.landscape::after { bottom: 0; }
 .goa-table-timer.round-view.landscape .goa-table-timer-left { border-right: 1px solid #5D6B70; }
-.goa-table-timer-subtitle { color: var(--on-banner); text-shadow: 0 1px 2px #000; }
+/* Small words over the banner's streaks: light with a dark edge, like the title. On a small phone the banner has no
+   room for a second line: it would land on the metal edge. */
+.goa-table-timer-subtitle {
+  color: var(--on-banner);
+  text-shadow: 0 1px 2px #000, 1px 0 1px #05090D, -1px 0 1px #05090D, 0 -1px 1px #05090D, 0 1px 1px #05090D;
+}
+@media (max-width: 359px) { .goa-table-timer-subtitle { display: none; } }
 /* "Round N" must never be cut, and the banner's medallion takes room: End match goes into the More menu
    (it is there too) while the coin's Undo shows, on a small phone and at large text; then the chip keeps its mark. */
 .goa-topbar-actions:has(.goa-table-on-banner) .goa-table-end-flag { display: none; }
@@ -489,8 +499,9 @@
 
 /* Completed draft, the phone-passing gate, the peek */
 .goa-draft-complete-title { align-self: stretch; margin: 0; }
-.goa-draft-seat-row { border-radius: 6px; border-color: var(--engraved); background: none; }
-.goa-draft-seat-row.selected { background: rgba(63, 193, 176, 0.14); }
+/* Seats divided inside the team's plate; only the selected one framed, in bronze. */
+.goa-draft-seat-row { border: 0; border-top: 1px solid var(--outline-variant); border-radius: 0; background: none; }
+.goa-draft-seat-row.selected { border: 2px solid var(--primary); border-radius: 6px; background: color-mix(in srgb, var(--primary) 14%, transparent); }
 .goa-draft-seat-hero { font: 700 1.0625rem/1.3125rem var(--font-display); font-variant: small-caps; }
 .goa-draft-peek-title { font: italic 400 1rem/1.25rem var(--font-printed); color: var(--on-surface); }
 .goa-draft-result-art { border-radius: 3px; }

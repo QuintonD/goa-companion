@@ -211,16 +211,16 @@ private fun BoardContent(state: TriviaLeaderboardUiState.Ready, actions: Leaderb
             if (state.rows.isEmpty()) {
                 item(key = "empty") { EmptyBoard(state, Modifier.fillMaxWidth()) }
             } else {
-                items(state.rows, key = { "${state.tab}-${it.player.id}" }) { row ->
+                item(key = "board-${state.tab}") {
+                    // One plate with dividers, as the Players leaderboard.
                     GoaPlate(
-                        Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = Spacing.screen, vertical = Spacing.xs)
-                            .clip(PlateShape),
-                        brackets = false,
+                        Modifier.fillMaxWidth().padding(horizontal = Spacing.screen).clip(PlateShape),
                         contentPadding = PaddingValues(0.dp),
                     ) {
-                        RankedRow(row, onClick = { actions.onOpenPlayer(row.player.id) })
+                        state.rows.forEachIndexed { i, row ->
+                            if (i > 0) HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+                            RankedRow(row, onClick = { actions.onOpenPlayer(row.player.id) })
+                        }
                     }
                 }
             }
@@ -266,10 +266,10 @@ private fun RankedRow(row: LeaderboardRowUi, onClick: () -> Unit) {
     Row(
         Modifier
             .fillMaxWidth()
-            .heightIn(min = 72.dp)
+            .heightIn(min = 64.dp)
             .clickable(onClickLabel = "See rounds", role = Role.Button, onClick = onClick)
             .semantics(mergeDescendants = true) { contentDescription = row.spoken }
-            .padding(horizontal = Spacing.screen, vertical = Spacing.sm),
+            .padding(horizontal = Spacing.md, vertical = Spacing.sm),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         PlaceBadge(row.place, row.tied)
@@ -328,7 +328,7 @@ private fun LargeRankedRow(row: LeaderboardRowUi, onClick: () -> Unit) {
             .fillMaxWidth()
             .clickable(onClickLabel = "See rounds", role = Role.Button, onClick = onClick)
             .semantics(mergeDescendants = true) { contentDescription = row.spoken }
-            .padding(horizontal = Spacing.screen, vertical = Spacing.sm),
+            .padding(horizontal = Spacing.md, vertical = Spacing.sm),
         verticalAlignment = Alignment.Top,
     ) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {

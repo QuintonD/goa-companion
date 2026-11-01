@@ -71,7 +71,7 @@ private fun RulesList(reference: RulesReference, state: RulesQuery) {
         }
     }
     if (topics.isNotEmpty()) {
-        Ul({ classes("goa-list", "goa-rules-list") }) {
+        Ul({ classes("goa-list", "goa-rules-list", "goa-plate") }) {
             topics.forEach { topic -> TopicRow(topic) }
         }
     }
@@ -129,7 +129,7 @@ private fun TopicRow(topic: RulesTopic) {
     val pages = topic.pages.sorted()
     Li {
         RouteLink(Route.RulesTopic(topic.id), {
-            classes("goa-row", "goa-plate")
+            classes("goa-row")
             attr("aria-label", "${topic.title}, ${RulesText.spokenPages(pages)}")
         }) {
             Span({ classes("goa-row-text") }) {
@@ -171,38 +171,34 @@ private fun TopicContent(topic: RulesTopic) {
         topic.summary?.let { SummaryNote(it) }
         topic.excerpts.forEachIndexed { i, excerpt ->
             if (i > 0 && excerpt.heading != null) Div({ classes("goa-rules-divider") })
-            ExcerptBlock(excerpt)
-            if (showsPushDiagram(topic, excerpt)) PushDiagram()
+            val diagram = RulesDiagrams.of(excerpt)
+            if (diagram != null) DiagramWithCaption(diagram, excerpt) else ExcerptBlock(excerpt)
         }
+        // Sideways or with large text the band gives way to this line (goa-look-catalog.css).
+        P({ classes("t-label-large", "c-variant", "goa-rules-foot-plain") }) { Text(footText(topic)) }
         P({ classes("t-body-small", "c-variant", "goa-rules-footnote") }) {
             Text("Source: the official Guards of Atlantis II rulebook, 2nd printing (printed page numbers).")
         }
     }
-    Div({ classes("goa-rules-foot") }) {
-        Text("Rulebook ${RulesText.pages(topic.pages)} · quoted word for word")
-    }
+    Div({ classes("goa-rules-foot") }) { Text(footText(topic)) }
 }
 
-/** The p.8 diagram goes under the three steps of a push, where the book prints it. */
-private fun showsPushDiagram(topic: RulesTopic, excerpt: RulesExcerpt): Boolean =
-    topic.id == PUSH_TOPIC && excerpt.page == PUSH_PAGE && excerpt.heading == PUSH_HEADING
+private fun footText(topic: RulesTopic) = "Rulebook ${RulesText.pages(topic.pages)} · quoted word for word"
 
 /**
- * The rulebook's "Lane Push" diagram (p.8), its white page multiplied into the parchment (goa-look-catalog.css).
- * Its printed caption isn't in the verbatim data, so it has none; decorative for VoiceOver, the steps above say
- * what it shows.
+ * A diagram the book prints, its white page multiplied into the parchment (goa-look-catalog.css), over its
+ * printed caption (in italics, as printed). Decorative for VoiceOver: the caption says what it shows.
  */
 @Composable
-private fun PushDiagram() {
-    Img("official/rules/push-1.webp", alt = "") {
-        classes("goa-rules-diagram")
-        attr("width", "1461")
-        attr("height", "1126")
-        attr("loading", "lazy")
-        attr("decoding", "async")
+private fun DiagramWithCaption(diagram: RulesDiagrams.Entry, caption: RulesExcerpt) {
+    Div({ classes("goa-rules-figure") }) {
+        Img(diagram.art, alt = "") {
+            classes("goa-rules-diagram")
+            attr("width", "${diagram.width}")
+            attr("height", "${diagram.height}")
+            attr("loading", "lazy")
+            attr("decoding", "async")
+        }
+        ExcerptBlock(caption)
     }
 }
-
-private const val PUSH_TOPIC = "pushing-the-lane"
-private const val PUSH_PAGE = 8
-private const val PUSH_HEADING = "Push the Lane"

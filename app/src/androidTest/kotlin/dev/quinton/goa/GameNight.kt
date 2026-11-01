@@ -327,8 +327,8 @@ class GameNight(private val rule: AppRule, private val checkpoint: (String) -> U
     }
 
     private enum class Side(val label: String, val glyph: String) {
-        RED("◆ Red", "◆"),
-        BLUE("● Blue", "●"),
+        RED("Red", "◆"),
+        BLUE("Blue", "●"),
         ;
 
         val other get() = if (this == RED) BLUE else RED

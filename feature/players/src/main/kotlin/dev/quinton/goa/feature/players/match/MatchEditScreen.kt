@@ -49,6 +49,7 @@ import androidx.compose.material3.DatePickerDefaults
 import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -624,56 +625,68 @@ private fun TeamEditor(
     val doublePilots = state.form.doublePilots(team)
     val duplicates = state.form.heroesInUse().groupingBy { it }.eachCount().filterValues { it > 1 }.keys
     val otherTeam = state.form.seats(team.opponent).mapNotNull { it.playerId }.toSet()
-    Column(modifier.animateContentSize(Motion.spec()), verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            TeamBadge(team)
-            Text(
-                "  ·  ${seats.size} ${if (seats.size == 1) "seat" else "seats"}",
-                style = MaterialTheme.typography.labelLarge,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.weight(1f),
-            )
-            TextButton(
-                onClick = { actions.onAddSeat(team) },
-                enabled = seats.size < MAX_SEATS_PER_TEAM,
-                modifier = Modifier.semantics { contentDescription = "Add seat to ${team.label()}" },
-            ) {
-                Icon(Icons.Outlined.Add, contentDescription = null, modifier = Modifier.size(18.dp))
-                Spacer(Modifier.width(Spacing.xs))
-                Text("Add seat")
+    val problems = seats.associate { seat ->
+        seat.key to when {
+            state.showErrors && seat.playerId == null -> "Choose a pilot"
+            seat.heroId != null && seat.heroId in duplicates -> "Hero picked twice"
+            seat.playerId != null && seat.playerId in otherTeam -> "Also on ${team.opponent.label()}"
+            else -> null
+        }
+    }
+    EdgedPlate(
+        modifier = modifier.fillMaxWidth().animateContentSize(Motion.spec()),
+        brackets = true,
+        edge = {
+            val problem = problems.values.any { it != null }
+            BorderStroke(1.dp, if (problem) MaterialTheme.colorScheme.error else teamColor(team).copy(alpha = 0.6f))
+        },
+    ) {
+        Column {
+            Row(Modifier.padding(start = Spacing.md), verticalAlignment = Alignment.CenterVertically) {
+                TeamBadge(team)
+                Text(
+                    "  ·  ${seats.size} ${if (seats.size == 1) "seat" else "seats"}",
+                    style = MaterialTheme.typography.labelLarge,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.weight(1f),
+                )
+                TextButton(
+                    onClick = { actions.onAddSeat(team) },
+                    enabled = seats.size < MAX_SEATS_PER_TEAM,
+                    modifier = Modifier.semantics { contentDescription = "Add seat to ${team.label()}" },
+                ) {
+                    Icon(Icons.Outlined.Add, contentDescription = null, modifier = Modifier.size(18.dp))
+                    Spacer(Modifier.width(Spacing.xs))
+                    Text("Add seat")
+                }
             }
-        }
-        if (seats.isEmpty()) {
-            Text(
-                "No seats. Add at least one hero for ${team.label()}.",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.error,
-            )
-        }
-        seats.forEach { seat ->
-            SeatEditor(
-                team = team,
-                seat = seat,
-                state = state,
-                doublePilot = seat.playerId != null && seat.playerId in doublePilots,
-                problem = when {
-                    state.showErrors && seat.playerId == null -> "Choose a pilot"
-                    seat.heroId != null && seat.heroId in duplicates -> "Hero picked twice"
-                    seat.playerId != null && seat.playerId in otherTeam -> "Also on ${team.opponent.label()}"
-                    else -> null
-                },
-                onPickHero = { onPickHero(team, seat.key) },
-                onPickPilot = { onPickPilot(team, seat.key) },
-                onToggleHandicap = { actions.onToggleHandicap(team, seat.key) },
-                onRemove = { actions.onRemoveSeat(team, seat.key) },
-            )
+            if (seats.isEmpty()) {
+                Text(
+                    "No seats. Add at least one hero for ${team.label()}.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.error,
+                    modifier = Modifier.padding(start = Spacing.md, end = Spacing.md, bottom = Spacing.md),
+                )
+            }
+            seats.forEach { seat ->
+                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+                SeatEditor(
+                    seat = seat,
+                    state = state,
+                    doublePilot = seat.playerId != null && seat.playerId in doublePilots,
+                    problem = problems[seat.key],
+                    onPickHero = { onPickHero(team, seat.key) },
+                    onPickPilot = { onPickPilot(team, seat.key) },
+                    onToggleHandicap = { actions.onToggleHandicap(team, seat.key) },
+                    onRemove = { actions.onRemoveSeat(team, seat.key) },
+                )
+            }
         }
     }
 }
 
 @Composable
 private fun SeatEditor(
-    team: Team,
     seat: SeatDraft,
     state: MatchEditUiState,
     doublePilot: Boolean,
@@ -686,105 +699,93 @@ private fun SeatEditor(
     val hero = state.heroOption(seat.heroId)
     val heroLabel = if (seat.heroId == null) "Unknown hero" else state.heroName(seat.heroId)
     val pilot = seat.playerId?.let { state.playersById[it] }
-    EdgedPlate(
-        edge = {
-            val teamEdge = teamColor(team).copy(alpha = 0.6f)
-            BorderStroke(1.dp, if (problem != null) MaterialTheme.colorScheme.error else teamEdge)
-        },
-        modifier = Modifier.fillMaxWidth(),
-    ) {
-        Column(Modifier.padding(start = Spacing.md, top = Spacing.sm, bottom = Spacing.sm)) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Row(
-                    Modifier
-                        .weight(1f)
-                        .heightIn(min = 56.dp)
-                        .clickable(onClickLabel = "Choose hero", role = Role.Button, onClick = onPickHero)
-                        .semantics(mergeDescendants = true) { contentDescription = "Hero: $heroLabel. Change hero" },
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    HeroPortrait(
-                        seat.heroId ?: "?",
-                        hero?.portrait,
-                        contentDescription = null,
-                        modifier = Modifier.size(48.dp),
-                    )
-                    Spacer(Modifier.width(Spacing.md))
-                    Column {
-                        Text(
-                            heroLabel,
-                            style = MaterialTheme.typography.titleMedium,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                            color = if (seat.heroId == null) {
-                                MaterialTheme.colorScheme.onSurfaceVariant
-                            } else {
-                                MaterialTheme.colorScheme.onSurface
-                            },
-                        )
-                        Text(
-                            hero?.title ?: "Tap to choose",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                        )
-                    }
-                }
-                IconButton(onClick = onRemove) {
-                    Icon(Icons.Outlined.Close, contentDescription = "Remove seat: $heroLabel")
-                }
-            }
-            FlowRow(
-                Modifier.padding(top = Spacing.xs, end = Spacing.md),
-                horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
-                verticalArrangement = Arrangement.spacedBy(Spacing.xs),
-                itemVerticalAlignment = Alignment.CenterVertically,
+    Column(Modifier.padding(start = Spacing.md, top = Spacing.sm, bottom = Spacing.sm)) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Row(
+                Modifier
+                    .weight(1f)
+                    .heightIn(min = 56.dp)
+                    .clickable(onClickLabel = "Choose hero", role = Role.Button, onClick = onPickHero)
+                    .semantics(mergeDescendants = true) { contentDescription = "Hero: $heroLabel. Change hero" },
+                verticalAlignment = Alignment.CenterVertically,
             ) {
-                AssistChip(
-                    onClick = onPickPilot,
-                    label = { Text(pilot?.name ?: "Choose pilot", maxLines = 1, overflow = TextOverflow.Ellipsis) },
-                    leadingIcon = {
-                        if (pilot != null) {
-                            PlayerAvatar(pilot, size = 24.dp)
+                HeroPortrait(
+                    seat.heroId ?: "?",
+                    hero?.portrait,
+                    contentDescription = null,
+                    modifier = Modifier.size(48.dp),
+                )
+                Spacer(Modifier.width(Spacing.md))
+                Column {
+                    Text(
+                        heroLabel,
+                        style = MaterialTheme.typography.titleMedium,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        color = if (seat.heroId == null) {
+                            MaterialTheme.colorScheme.onSurfaceVariant
                         } else {
-                            Icon(Icons.Outlined.People, contentDescription = null)
-                        }
-                    },
-                    modifier = Modifier.heightIn(min = 48.dp).semantics {
-                        contentDescription = "Pilot: ${pilot?.name ?: "none"}. Change pilot"
-                    },
-                )
-                FilterChip(
-                    selected = seat.handicap,
-                    onClick = onToggleHandicap,
-                    label = { Text("Handicap") },
-                    leadingIcon = if (seat.handicap) {
-                        { Icon(Icons.Filled.Check, contentDescription = null, modifier = Modifier.size(18.dp)) }
-                    } else {
-                        null
-                    },
-                    colors = goaFilterChipColors(),
-                    modifier = Modifier.heightIn(min = 48.dp).semantics {
-                        contentDescription = "Handicap card for $heroLabel"
-                    },
-                )
-                if (doublePilot) {
-                    Pill(
-                        "Double pilot",
-                        icon = Icons.Outlined.People,
-                        color = MaterialTheme.colorScheme.secondary,
+                            MaterialTheme.colorScheme.onSurface
+                        },
+                    )
+                    Text(
+                        hero?.title ?: "Tap to choose",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
                     )
                 }
             }
-            if (problem != null) {
-                Text(
-                    problem,
-                    style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.error,
-                    modifier = Modifier.padding(top = Spacing.xs),
-                )
+            IconButton(onClick = onRemove) {
+                Icon(Icons.Outlined.Close, contentDescription = "Remove seat: $heroLabel")
             }
+        }
+        FlowRow(
+            Modifier.padding(top = Spacing.xs, end = Spacing.md),
+            horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+            verticalArrangement = Arrangement.spacedBy(Spacing.xs),
+            itemVerticalAlignment = Alignment.CenterVertically,
+        ) {
+            AssistChip(
+                onClick = onPickPilot,
+                label = { Text(pilot?.name ?: "Choose pilot", maxLines = 1, overflow = TextOverflow.Ellipsis) },
+                leadingIcon = {
+                    if (pilot != null) {
+                        PlayerAvatar(pilot, size = 24.dp)
+                    } else {
+                        Icon(Icons.Outlined.People, contentDescription = null)
+                    }
+                },
+                modifier = Modifier.heightIn(min = 48.dp).semantics {
+                    contentDescription = "Pilot: ${pilot?.name ?: "none"}. Change pilot"
+                },
+            )
+            FilterChip(
+                selected = seat.handicap,
+                onClick = onToggleHandicap,
+                label = { Text("Handicap") },
+                leadingIcon = if (seat.handicap) {
+                    { Icon(Icons.Filled.Check, contentDescription = null, modifier = Modifier.size(18.dp)) }
+                } else {
+                    null
+                },
+                colors = goaFilterChipColors(),
+                modifier = Modifier.heightIn(min = 48.dp).semantics {
+                    contentDescription = "Handicap card for $heroLabel"
+                },
+            )
+            if (doublePilot) {
+                Pill("Double pilot", icon = Icons.Outlined.People)
+            }
+        }
+        if (problem != null) {
+            Text(
+                problem,
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.error,
+                modifier = Modifier.padding(top = Spacing.xs),
+            )
         }
     }
 }

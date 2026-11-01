@@ -36,6 +36,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.Role
@@ -213,8 +214,8 @@ private fun DefeatResult(row: LevelRow) {
     Column(
         Modifier
             .fillMaxWidth()
-            .background(colors.secondary.copy(alpha = 0.10f), MaterialTheme.shapes.medium)
-            .border(1.dp, colors.secondary.copy(alpha = 0.5f), MaterialTheme.shapes.medium)
+            .background(colors.primary.copy(alpha = 0.10f), MaterialTheme.shapes.medium)
+            .border(1.dp, colors.primary.copy(alpha = 0.5f), MaterialTheme.shapes.medium)
             .padding(Spacing.lg)
             .clearAndSetSemantics { contentDescription = RulesText.spokenDefeat(row) },
     ) {
@@ -279,18 +280,23 @@ private val headers = RulesText.LADDER_HEADERS
 
 private val MIN_CELL = 50.dp
 
-/** Row per level; scrolls sideways when large text makes it wider than the sheet. */
+/**
+ * Row per level. Seven columns don't fit large text, and people check these numbers at the table, so
+ * none may hide off-screen: there each level becomes a block of "column, value" lines ([LadderBlocks]).
+ */
 @Composable
 private fun LadderTable(ladder: LevelLadder, selected: Int?, onSelect: (Int) -> Unit) {
-    val scale = LocalDensity.current.fontScale.coerceIn(1f, 2f)
+    if (LocalDensity.current.fontScale > LARGE_FONT_SCALE) {
+        LadderBlocks(ladder, selected, onSelect)
+        return
+    }
     val colors = MaterialTheme.colorScheme
     BoxWithConstraints(
         Modifier
             .fillMaxWidth()
             .border(1.dp, GoaTheme.colors.engravedBorder, MaterialTheme.shapes.medium),
     ) {
-        // Fill the sheet's width; with large text the minimum cell grows and the table scrolls.
-        val cell = maxOf(MIN_CELL * scale, (maxWidth - Spacing.xs * 2) / headers.size)
+        val cell = maxOf(MIN_CELL, (maxWidth - Spacing.xs * 2) / headers.size)
         Column(Modifier.horizontalScroll(rememberScrollState()).padding(vertical = Spacing.xs)) {
             Row(Modifier.padding(horizontal = Spacing.xs).clearAndSetSemantics {}) {
                 headers.forEach { header ->
@@ -308,7 +314,7 @@ private fun LadderTable(ladder: LevelLadder, selected: Int?, onSelect: (Int) -> 
                 val isSelected = row.level == selected
                 Row(
                     Modifier
-                        .background(if (isSelected) colors.secondary.copy(alpha = 0.16f) else Color.Transparent)
+                        .background(if (isSelected) colors.primary.copy(alpha = 0.16f) else Color.Transparent)
                         .clickable(onClickLabel = "Show level ${row.level}") { onSelect(row.level) }
                         .padding(horizontal = Spacing.xs)
                         .heightIn(min = 40.dp)
@@ -322,6 +328,57 @@ private fun LadderTable(ladder: LevelLadder, selected: Int?, onSelect: (Int) -> 
                     Cell("${row.lifeCounters}", cell)
                     Cell(next?.toString() ?: "–", cell)
                     Cell(RulesText.roman(row.maxTier), cell)
+                }
+            }
+        }
+    }
+}
+
+/** The table at large text: one block per level, each number beside its column's name. */
+@Composable
+private fun LadderBlocks(ladder: LevelLadder, selected: Int?, onSelect: (Int) -> Unit) {
+    val colors = MaterialTheme.colorScheme
+    Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+        ladder.levels.forEach { row ->
+            val next = LadderLookup.nextLevelCost(ladder, row.level)
+            val isSelected = row.level == selected
+            Column(
+                Modifier
+                    .fillMaxWidth()
+                    .border(
+                        if (isSelected) 2.dp else 1.dp,
+                        if (isSelected) colors.primary else GoaTheme.colors.engravedBorder,
+                        MaterialTheme.shapes.medium,
+                    )
+                    .clip(MaterialTheme.shapes.medium)
+                    .clickable(onClickLabel = "Show level ${row.level}") { onSelect(row.level) }
+                    .padding(horizontal = Spacing.md, vertical = Spacing.sm)
+                    .clearAndSetSemantics { contentDescription = RulesText.spokenLadderRow(row, next) },
+            ) {
+                Text("Level ${row.level}", style = MaterialTheme.typography.titleMedium, color = colors.primary)
+                listOf(
+                    RulesText.roman(row.lowestTier),
+                    "${row.defeatCoins}",
+                    "${row.assistCoins}",
+                    "${row.lifeCounters}",
+                    next?.toString() ?: "–",
+                    RulesText.roman(row.maxTier),
+                ).forEachIndexed { c, value ->
+                    Row(Modifier.fillMaxWidth().padding(top = Spacing.xs)) {
+                        Text(
+                            headers[c + 1].replace('\n', ' '),
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = colors.onSurfaceVariant,
+                            modifier = Modifier.weight(1f),
+                        )
+                        Text(
+                            value,
+                            style = GoaTextStyles.numeric.copy(fontSize = 17.sp, lineHeight = 24.sp),
+                            fontWeight = FontWeight.Medium,
+                            color = colors.onSurface,
+                            modifier = Modifier.padding(start = Spacing.sm),
+                        )
+                    }
                 }
             }
         }

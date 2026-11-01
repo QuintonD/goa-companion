@@ -76,8 +76,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shadow
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.Role
@@ -208,12 +211,15 @@ internal fun ActiveTimer(state: ActiveUiState, actions: TimerActions) {
 private fun PortraitTimer(state: ActiveUiState, actions: TimerActions, header: @Composable () -> Unit) {
     Column(Modifier.fillMaxSize()) {
         header()
+        val short = LocalConfiguration.current.screenHeightDp < SHORT_SCREEN_HEIGHT ||
+            LocalDensity.current.fontScale > LARGE_FONT_SCALE
         BoxWithConstraints(Modifier.weight(1f).fillMaxWidth()) {
             val ringMax = min(maxWidth * RING_WIDTH, maxHeight * RING_HEIGHT).coerceAtLeast(160.dp)
+            val scroll = rememberScrollState()
             Column(
                 Modifier
                     .fillMaxSize()
-                    .verticalScroll(rememberScrollState())
+                    .verticalScroll(scroll)
                     .padding(horizontal = Spacing.screen),
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
@@ -225,8 +231,18 @@ private fun PortraitTimer(state: ActiveUiState, actions: TimerActions, header: @
                 SecondaryArea(state, actions)
                 Spacer(Modifier.height(Spacing.lg))
             }
+            // Text running on under the controls fades there, so it reads as more to scroll, not as cut.
+            if (scroll.canScrollForward) {
+                Box(
+                    Modifier
+                        .align(Alignment.BottomCenter)
+                        .fillMaxWidth()
+                        .height(SCROLL_FADE)
+                        .background(Brush.verticalGradient(listOf(Color.Transparent, SCROLL_FADE_COLOR))),
+                )
+            }
         }
-        PinnedShotClock(state, actions, compact = false)
+        PinnedShotClock(state, actions, compact = short)
         TimerControls(state, actions)
     }
 }
@@ -289,6 +305,10 @@ private fun LandscapeTimer(state: ActiveUiState, actions: TimerActions, header: 
     }
 }
 
+private const val SHORT_SCREEN_HEIGHT = 640
+private val SCROLL_FADE = 44.dp
+private val SCROLL_FADE_COLOR = Color(0xE6071019)
+
 /** The dial shrinks where more must fit under it: hero tiles (Action) or the checklist (Upgrade). */
 private fun dialScale(state: ActiveUiState): Float = when {
     state.seats != null -> 0.55f
@@ -347,29 +367,30 @@ private fun TimerHeader(state: ActiveUiState, actions: TimerActions, onEnd: () -
     val largeText = LocalDensity.current.fontScale > LARGE_FONT_SCALE
     BoxWithConstraints(Modifier.fillMaxWidth().steelBanner(banner, MaterialTheme.colorScheme.primary)) {
         val tools = headerTools(state, maxWidth, coinUndo)
+        val subtitle = maxWidth >= SMALL_PHONE_WIDTH
         Row(
             Modifier.fillMaxWidth().padding(start = Spacing.screen, top = Spacing.xs, bottom = Spacing.xs),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Column(Modifier.weight(1f)) {
+                // A small phone's banner has no room for a second line: it would land on the metal edge.
+                val spoken = "${state.presetName}, match time ${state.matchClock}"
                 BevelText(
                     "Round ${state.round}",
                     style = headerTitleStyle(),
                     overflow = TextOverflow.Visible,
-                    modifier = Modifier.semantics { heading() },
-                )
-                // Large text: the match clock alone, so it isn't what gets cut (TalkBack still hears both).
-                Text(
-                    if (largeText) state.matchClock else "${state.presetName} · ${state.matchClock}",
-                    style = MaterialTheme.typography.bodySmall.copy(shadow = TEXT_SHADOW),
-                    color = banner.onBanner,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
                     modifier = Modifier.semantics {
-                        contentDescription =
-                            "${state.presetName}, match time ${state.matchClock}"
+                        heading()
+                        if (!subtitle) contentDescription = "Round ${state.round}, $spoken"
                     },
                 )
+                // Large text: the match clock alone, so it isn't what gets cut (TalkBack still hears both).
+                if (subtitle) {
+                    HeaderSubtitle(
+                        if (largeText) state.matchClock else "${state.presetName} · ${state.matchClock}",
+                        spoken,
+                    )
+                }
             }
             CompositionLocalProvider(LocalContentColor provides banner.onBanner) {
                 TimerTopActions(state, actions, tools, onEnd, onCoin, onCoinUndo = { coinUndo = it })
@@ -379,7 +400,32 @@ private fun TimerHeader(state: ActiveUiState, actions: TimerActions, onEnd: () -
     }
 }
 
+/** Small words over the banner's streaks: light with a dark edge, like the title. */
+@Composable
+private fun HeaderSubtitle(text: String, spoken: String) {
+    val style = MaterialTheme.typography.bodySmall
+    Box(Modifier.semantics(mergeDescendants = true) { contentDescription = spoken }) {
+        Text(
+            text,
+            style = style.copy(color = SUBTITLE_EDGE, drawStyle = Stroke(width = SUBTITLE_EDGE_WIDTH)),
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.clearAndSetSemantics {},
+        )
+        Text(
+            text,
+            style = style,
+            color = GoaTheme.colors.onBanner,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+        )
+    }
+}
+
 private val TEXT_SHADOW = Shadow(Color.Black, Offset(0f, 1f), 3f)
+private val SMALL_PHONE_WIDTH = 360.dp
+private val SUBTITLE_EDGE = Color(0xFF05090D)
+private const val SUBTITLE_EDGE_WIDTH = 5f
 private const val HEADER_TITLE_MAX_SCALE = 1.5f
 
 /** Which optional top-bar parts sit in the bar; the icons that don't are in the overflow menu. */
