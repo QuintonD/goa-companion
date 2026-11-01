@@ -1,6 +1,8 @@
 package dev.quinton.goa.feature.catalog
 
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
@@ -14,6 +16,8 @@ import androidx.compose.ui.test.performScrollToKey
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
 import com.github.takahirom.roborazzi.captureRoboImage
+import dev.quinton.goa.core.designsystem.component.GoaPlateTheme
+import dev.quinton.goa.core.designsystem.component.slatePlate
 import dev.quinton.goa.core.designsystem.theme.GoaTheme
 import dev.quinton.goa.core.domain.catalog.AttackStyle
 import dev.quinton.goa.core.domain.catalog.CatalogBrowser
@@ -300,19 +304,31 @@ class CatalogScreenshotTest {
 
     @Test fun emptyCatalogLight() = shot(ThemeMode.LIGHT) { Catalog(CatalogUiState.Unavailable(error = false)) }
 
+    /** A sheet's plate, dark in both themes, as `GoaSheet` gives its content. */
+    @Composable
+    private fun OnSheet(content: @Composable () -> Unit) = GoaPlateTheme {
+        Box(Modifier.slatePlate(RoundedCornerShape(0.dp), brackets = false)) { content() }
+    }
+
     private val sheetFilter =
         CatalogFilter(complexities = setOf(3), roles = setOf(ShotData.options.roles[1]), products = setOf("test-core"))
 
     @Test fun filterSheetDark() = shot {
-        CatalogFilterContent(sheetFilter, ShotData.options, 4, {}, {}, {}, Modifier.padding(vertical = 16.dp))
+        OnSheet {
+            CatalogFilterContent(sheetFilter, ShotData.options, 4, {}, {}, {}, Modifier.padding(vertical = 16.dp))
+        }
     }
 
     @Test fun filterSheetLight() = shot(ThemeMode.LIGHT) {
-        CatalogFilterContent(sheetFilter, ShotData.options, 4, {}, {}, {}, Modifier.padding(vertical = 16.dp))
+        OnSheet {
+            CatalogFilterContent(sheetFilter, ShotData.options, 4, {}, {}, {}, Modifier.padding(vertical = 16.dp))
+        }
     }
 
     @Test fun filterSheetFontScale2() = shot(fontScale = 2f) {
-        CatalogFilterContent(sheetFilter, ShotData.options, 4, {}, {}, {}, Modifier.padding(vertical = 16.dp))
+        OnSheet {
+            CatalogFilterContent(sheetFilter, ShotData.options, 4, {}, {}, {}, Modifier.padding(vertical = 16.dp))
+        }
     }
 
     @Test

@@ -19,6 +19,23 @@ private fun shippedAsset(path: String): String {
 }
 
 class RulesWebTest {
+    /** The boxes are read off the printed pages by opening words: a reworded reference must not lose them silently. */
+    @Test
+    fun everyBoxedPassageIsInTheShippedReference() {
+        val reference = RulesReference.parse(shippedAsset(RulesReference.PATH))
+        val excerpts = reference.topics.flatMap { it.excerpts } + reference.ladder.allExcerpts
+        RulesBoxes.entries.forEach { entry ->
+            assertTrue(
+                excerpts.any {
+                    RulesBoxes.of(it) == entry.box && it.page == entry.page && it.text.contains(entry.opening)
+                },
+                "p.${entry.page} \"${entry.opening}\" is not in the reference",
+            )
+        }
+        val lane = reference.topics.first { it.id == "pushing-the-lane" }.excerpts
+        assertEquals(listOf(null, null, RulesBox.BLUE, RulesBox.BLUE), lane.map(RulesBoxes::of))
+    }
+
     @Test
     fun theWebReadsTheShippedRulesReferenceOnceWithThePhonesParser() = runTest {
         var reads = 0

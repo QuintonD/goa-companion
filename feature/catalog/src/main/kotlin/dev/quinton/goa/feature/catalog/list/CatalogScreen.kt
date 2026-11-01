@@ -59,7 +59,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.InputChip
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
@@ -75,6 +74,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalFocusManager
@@ -87,8 +87,14 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import dev.quinton.goa.core.designsystem.component.EmptyState
+import dev.quinton.goa.core.designsystem.component.GoaPlate
+import dev.quinton.goa.core.designsystem.component.GoaPlateTheme
 import dev.quinton.goa.core.designsystem.component.GoaScreen
+import dev.quinton.goa.core.designsystem.component.GoaSheet
+import dev.quinton.goa.core.designsystem.component.PlateGround
 import dev.quinton.goa.core.designsystem.component.SettingsActionButton
+import dev.quinton.goa.core.designsystem.theme.GoaTextStyles
+import dev.quinton.goa.core.designsystem.theme.GoaTheme
 import dev.quinton.goa.core.designsystem.theme.Spacing
 import dev.quinton.goa.core.domain.catalog.CatalogFilter
 import dev.quinton.goa.core.domain.catalog.CatalogSort
@@ -99,8 +105,11 @@ import dev.quinton.goa.core.domain.catalog.complexityLabel
 import dev.quinton.goa.core.domain.catalog.label
 import dev.quinton.goa.core.domain.catalog.plural
 import dev.quinton.goa.core.domain.catalog.resultSummary
+import dev.quinton.goa.feature.catalog.ui.goaChipBorder
 import dev.quinton.goa.feature.catalog.ui.goaFilterChipColors
+import dev.quinton.goa.feature.catalog.ui.goaInputChipBorder
 import dev.quinton.goa.feature.catalog.ui.goaInputChipColors
+import dev.quinton.goa.feature.catalog.ui.rememberPlateArt
 
 /** Heroes tab: searchable, filterable grid/list of every hero in the catalog. */
 @OptIn(ExperimentalMaterial3Api::class)
@@ -123,6 +132,8 @@ fun CatalogScreen(
     // don't (narrow screen, large text), Board and Card trivia move into "More options".
     val widthDp = LocalConfiguration.current.screenWidthDp
     val compact = TOP_BAR_ICONS_DP + TITLE_DP * LocalDensity.current.fontScale > widthDp
+    // At the largest text, with the banner's medallion, the title needs the view switch's room too.
+    val switchInMenu = TOP_BAR_ICONS_DP - ICON_DP + TITLE_DP * LocalDensity.current.fontScale > widthDp
     val ready = state as? CatalogUiState.Ready
     // Back with a search typed clears the search instead of leaving the app.
     BackHandler(enabled = query.isNotEmpty()) { onAction(CatalogAction.Search("")) }
@@ -130,13 +141,12 @@ fun CatalogScreen(
         title = "Heroes",
         modifier = modifier,
         actions = {
-            if (ready != null) {
-                val grid = ready.controls.layout == CatalogLayout.GRID
-                IconButton(
-                    onClick = {
-                        onAction(CatalogAction.SetLayout(if (grid) CatalogLayout.LIST else CatalogLayout.GRID))
-                    },
-                ) {
+            val grid = ready?.controls?.layout == CatalogLayout.GRID
+            val switchLayout = {
+                onAction(CatalogAction.SetLayout(if (grid) CatalogLayout.LIST else CatalogLayout.GRID))
+            }
+            if (ready != null && !switchInMenu) {
+                IconButton(onClick = switchLayout) {
                     Icon(
                         if (grid) Icons.Outlined.ViewAgenda else Icons.Outlined.GridView,
                         contentDescription = if (grid) "Show as list" else "Show as grid",
@@ -152,6 +162,21 @@ fun CatalogScreen(
                         Icon(Icons.Outlined.MoreVert, contentDescription = "More options")
                     }
                     DropdownMenu(expanded = more, onDismissRequest = { more = false }) {
+                        if (ready != null && switchInMenu) {
+                            DropdownMenuItem(
+                                text = { Text(if (grid) "Show as list" else "Show as grid") },
+                                leadingIcon = {
+                                    Icon(
+                                        if (grid) Icons.Outlined.ViewAgenda else Icons.Outlined.GridView,
+                                        contentDescription = null,
+                                    )
+                                },
+                                onClick = {
+                                    more = false
+                                    switchLayout()
+                                },
+                            )
+                        }
                         DropdownMenuItem(
                             text = { Text("Board") },
                             leadingIcon = { Icon(Icons.Outlined.Hexagon, contentDescription = null) },
@@ -185,16 +210,20 @@ fun CatalogScreen(
             when (state) {
                 CatalogUiState.Loading -> LoadingGrid()
 
-                is CatalogUiState.Unavailable -> EmptyState(
-                    icon = if (state.error) Icons.Outlined.CloudOff else Icons.Outlined.Shield,
-                    title = if (state.error) "Couldn't load the heroes" else "No heroes yet",
-                    message = if (state.error) {
-                        "The bundled hero data couldn't be read. Reinstalling the latest build should fix it."
-                    } else {
-                        "Hero data isn't bundled with this build yet. It appears here as soon as the catalog is imported."
-                    },
-                    modifier = Modifier.align(Alignment.Center),
-                )
+                is CatalogUiState.Unavailable -> GoaPlate(
+                    modifier = Modifier.align(Alignment.Center).padding(Spacing.screen),
+                ) {
+                    EmptyState(
+                        icon = if (state.error) Icons.Outlined.CloudOff else Icons.Outlined.Shield,
+                        title = if (state.error) "Couldn't load the heroes" else "No heroes yet",
+                        message = if (state.error) {
+                            "The bundled hero data couldn't be read. Reinstalling the latest build should fix it."
+                        } else {
+                            "Hero data isn't bundled with this build yet. " +
+                                "It appears here as soon as the catalog is imported."
+                        },
+                    )
+                }
 
                 is CatalogUiState.Ready -> ReadyContent(
                     state = state,
@@ -208,10 +237,9 @@ fun CatalogScreen(
         }
     }
     if (showFilters && ready != null) {
-        ModalBottomSheet(
+        GoaSheet(
             onDismissRequest = { showFilters = false },
             sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
-            containerColor = MaterialTheme.colorScheme.surface,
         ) {
             CatalogFilterContent(
                 filter = ready.controls.filter,
@@ -258,95 +286,108 @@ private fun NoResults(state: CatalogUiState.Ready, query: String, onAction: (Cat
     val filtered = state.controls.filter.activeCount > 0
     if (hidden > 0) {
         // The collection (Settings → owned products) hides heroes that would match.
-        EmptyState(
-            icon = Icons.Outlined.SearchOff,
-            title = "Not in your collection",
-            message = "${plural(hidden, "hero", "heroes")} from products you don't own " +
-                (if (hidden == 1) "matches" else "match") + ". Your collection is set in Settings.",
-            action = {
-                OutlinedButton(
-                    onClick = { onAction(CatalogAction.SetFilter(state.controls.filter.copy(includeUnowned = true))) },
-                ) { Text("Show all products") }
-            },
-        )
+        GoaPlate(Modifier.padding(Spacing.screen)) {
+            EmptyState(
+                icon = Icons.Outlined.SearchOff,
+                title = "Not in your collection",
+                message = "${plural(hidden, "hero", "heroes")} from products you don't own " +
+                    (if (hidden == 1) "matches" else "match") + ". Your collection is set in Settings.",
+                action = {
+                    OutlinedButton(
+                        onClick = {
+                            onAction(CatalogAction.SetFilter(state.controls.filter.copy(includeUnowned = true)))
+                        },
+                    ) { Text("Show all products") }
+                },
+            )
+        }
         return
     }
-    EmptyState(
-        icon = Icons.Outlined.SearchOff,
-        title = "No heroes match",
-        message = when {
-            query.isBlank() -> "No hero fits all of these filters. Remove one to widen the search."
-            filtered -> "Nothing matches “${query.trim()}” with these filters. Try another word or clear them."
-            else -> "Nothing matches “${query.trim()}”. Try another word, or fewer words."
-        },
-        action = {
-            OutlinedButton(onClick = { onAction(CatalogAction.ClearAll) }) {
-                Text(if (filtered) "Clear search and filters" else "Clear search")
-            }
-        },
-    )
+    GoaPlate(Modifier.padding(Spacing.screen)) {
+        EmptyState(
+            icon = Icons.Outlined.SearchOff,
+            title = "No heroes match",
+            message = when {
+                query.isBlank() -> "No hero fits all of these filters. Remove one to widen the search."
+                filtered -> "Nothing matches “${query.trim()}” with these filters. Try another word or clear them."
+                else -> "Nothing matches “${query.trim()}”. Try another word, or fewer words."
+            },
+            action = {
+                OutlinedButton(onClick = { onAction(CatalogAction.ClearAll) }) {
+                    Text(if (filtered) "Clear search and filters" else "Clear search")
+                }
+            },
+        )
+    }
 }
 
 @Composable
 private fun SearchField(query: String, onQueryChange: (String) -> Unit) {
     val focus = LocalFocusManager.current
-    OutlinedTextField(
-        value = query,
-        onValueChange = onQueryChange,
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = Spacing.screen)
-            .padding(bottom = Spacing.sm),
-        placeholder = { Text(SEARCH_HINT, maxLines = 1, overflow = TextOverflow.Ellipsis) },
-        leadingIcon = { Icon(Icons.Outlined.Search, contentDescription = null) },
-        trailingIcon = {
-            if (query.isNotEmpty()) {
-                IconButton(onClick = { onQueryChange("") }) {
-                    Icon(Icons.Outlined.Close, contentDescription = "Clear search")
+    // A dark steel slot in both themes, like the plates and the banner above it.
+    GoaPlateTheme {
+        OutlinedTextField(
+            value = query,
+            onValueChange = onQueryChange,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = Spacing.screen)
+                .padding(top = Spacing.sm, bottom = Spacing.sm),
+            placeholder = { Text(SEARCH_HINT, maxLines = 1, overflow = TextOverflow.Ellipsis) },
+            leadingIcon = { Icon(Icons.Outlined.Search, contentDescription = null) },
+            trailingIcon = {
+                if (query.isNotEmpty()) {
+                    IconButton(onClick = { onQueryChange("") }) {
+                        Icon(Icons.Outlined.Close, contentDescription = "Clear search")
+                    }
                 }
-            }
-        },
-        singleLine = true,
-        shape = CircleShape,
-        keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
-        keyboardActions = KeyboardActions(onSearch = { focus.clearFocus() }),
-        colors = OutlinedTextFieldDefaults.colors(
-            focusedContainerColor = MaterialTheme.colorScheme.surface,
-            unfocusedContainerColor = MaterialTheme.colorScheme.surface,
-            unfocusedBorderColor = MaterialTheme.colorScheme.outline,
-        ),
-    )
+            },
+            singleLine = true,
+            shape = CircleShape,
+            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
+            keyboardActions = KeyboardActions(onSearch = { focus.clearFocus() }),
+            colors = OutlinedTextFieldDefaults.colors(
+                focusedContainerColor = PlateGround,
+                unfocusedContainerColor = PlateGround,
+                unfocusedBorderColor = SEARCH_EDGE,
+            ),
+        )
+    }
 }
 
 @Composable
 private fun ControlsRow(state: CatalogUiState.Ready, onAction: (CatalogAction) -> Unit, onOpenFilters: () -> Unit) {
     val filter = state.controls.filter
-    LazyRow(
-        contentPadding = PaddingValues(horizontal = Spacing.screen),
-        horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        item(key = "filters") {
-            FilterChip(
-                colors = goaFilterChipColors(),
-                selected = filter.activeCount > 0,
-                onClick = onOpenFilters,
-                label = { Text(if (filter.activeCount > 0) "Filters · ${filter.activeCount}" else "Filters") },
-                leadingIcon = {
-                    Icon(Icons.Outlined.Tune, contentDescription = null, Modifier.size(FilterChipDefaults.IconSize))
-                },
-            )
-        }
-        item(key = "sort") { SortChip(state.controls.sort) { onAction(CatalogAction.SetSort(it)) } }
-        items(activeFilterChips(filter, state.options), key = { it.key }) { chip ->
-            InputChip(
-                colors = goaInputChipColors(),
-                selected = true,
-                onClick = { onAction(CatalogAction.SetFilter(chip.remove(filter))) },
-                label = { Text(chip.label) },
-                trailingIcon = { Icon(Icons.Outlined.Close, contentDescription = null, Modifier.size(16.dp)) },
-                modifier = Modifier.semantics { contentDescription = "Remove filter ${chip.label}" },
-            )
+    GoaPlateTheme {
+        LazyRow(
+            contentPadding = PaddingValues(horizontal = Spacing.screen),
+            horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            item(key = "filters") {
+                FilterChip(
+                    colors = goaFilterChipColors(),
+                    border = goaChipBorder(filter.activeCount > 0),
+                    selected = filter.activeCount > 0,
+                    onClick = onOpenFilters,
+                    label = { Text(if (filter.activeCount > 0) "Filters · ${filter.activeCount}" else "Filters") },
+                    leadingIcon = {
+                        Icon(Icons.Outlined.Tune, contentDescription = null, Modifier.size(FilterChipDefaults.IconSize))
+                    },
+                )
+            }
+            item(key = "sort") { SortChip(state.controls.sort) { onAction(CatalogAction.SetSort(it)) } }
+            items(activeFilterChips(filter, state.options), key = { it.key }) { chip ->
+                InputChip(
+                    colors = goaInputChipColors(),
+                    border = goaInputChipBorder(),
+                    selected = true,
+                    onClick = { onAction(CatalogAction.SetFilter(chip.remove(filter))) },
+                    label = { Text(chip.label) },
+                    trailingIcon = { Icon(Icons.Outlined.Close, contentDescription = null, Modifier.size(16.dp)) },
+                    modifier = Modifier.semantics { contentDescription = "Remove filter ${chip.label}" },
+                )
+            }
         }
     }
 }
@@ -357,6 +398,7 @@ private fun SortChip(sort: CatalogSort, onSort: (CatalogSort) -> Unit) {
     Box {
         FilterChip(
             colors = goaFilterChipColors(),
+            border = goaChipBorder(selected = false),
             selected = false,
             onClick = { open = true },
             label = { Text("Sort: ${sort.label}") },
@@ -401,7 +443,7 @@ private fun ResultSummary(state: CatalogUiState.Ready, query: String) {
 /**
  * Heroes (grid or compact list) and, while searching, the matching cards. Cards come first when
  * they answer the query better than any hero (a card phrase beats a hero matched only through
- * its title and another card). The grid keeps three columns on a phone up to font scale 1.3 and
+ * its title and another card). The grid keeps three columns on a phone up to font scale 1.15 and
  * drops to two above that, so a hero's name never has to break inside a word.
  *
  * The list has its own scroll state and returns to the top whenever the query, filters or sort
@@ -429,6 +471,7 @@ private fun Results(
         gridState.requestScrollToItem(0)
     }
     val minCell = if (LocalDensity.current.fontScale > LARGE_FONT_SCALE) GRID_MIN_CELL_LARGE_FONT else GRID_MIN_CELL
+    val plateArt = rememberPlateArt()
     LazyVerticalGrid(
         columns = if (grid) GridCells.Adaptive(minCell) else GridCells.Fixed(1),
         state = gridState,
@@ -460,9 +503,9 @@ private fun Results(
         items(state.heroes, key = { it.hero.id }, contentType = { HERO }) { item ->
             val onClick = { onHeroClick(item.hero.id) }
             if (grid) {
-                HeroGridTile(item, state.controls.sort, onClick, Modifier.animateItem())
+                HeroGridTile(item, state.controls.sort, plateArt, onClick, Modifier.animateItem())
             } else {
-                HeroListRow(item, state.controls.sort, onClick, Modifier.animateItem())
+                HeroListRow(item, state.controls.sort, plateArt, onClick, Modifier.animateItem())
             }
         }
         if (showCards && !state.cardsFirst) cardSection()
@@ -482,7 +525,7 @@ private fun ResultsHeader(title: String, count: Int) {
         Modifier.padding(top = Spacing.sm, bottom = 2.dp).semantics(mergeDescendants = true) { heading() },
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Text(title, style = MaterialTheme.typography.titleSmall)
+        Text(title, style = GoaTextStyles.sectionHead, color = GoaTheme.colors.heading)
         Spacer(Modifier.size(Spacing.sm))
         Text(
             count.toString(),
@@ -501,7 +544,7 @@ private fun LoadingGrid() {
         animationSpec = infiniteRepeatable(tween(PULSE_MS), RepeatMode.Reverse),
         label = "skeletonAlpha",
     )
-    val tint = MaterialTheme.colorScheme.surfaceVariant
+    val tint = PlateGround
     Column(Modifier.semantics { contentDescription = "Loading heroes" }) {
         Box(
             Modifier
@@ -541,15 +584,17 @@ private val GRID_MIN_CELL = 110.dp
 /** 2 columns on the same phone at large font scales: (411 - 32 + 8) / (150 + 8) = 2. */
 private val GRID_MIN_CELL_LARGE_FONT = 150.dp
 
-/** Font scales above Android's 1.3 step (the next steps are 1.5, 1.8 and 2.0). */
-private const val LARGE_FONT_SCALE = 1.4f
+/** Font scales from Android's 1.3 step up: a tile's plate and texts no longer fit a third of a phone. */
+private const val LARGE_FONT_SCALE = 1.2f
 
-/** Width (dp) of the top bar's five action icons plus its padding. */
-private const val TOP_BAR_ICONS_DP = 5 * 48 + 24
+/** Width (dp) of the top bar's five action icons, its padding and the banner's medallion (46). */
+private const val TOP_BAR_ICONS_DP = 5 * 48 + 24 + 46
+private const val ICON_DP = 48
 
 /** Width (dp) the "Heroes" title needs at font scale 1. */
 private const val TITLE_DP = 100
 private const val SEARCH_HINT = "Search heroes & cards"
+private val SEARCH_EDGE = Color(0xFF5D6B70)
 private const val MOTION_MS = 250
 private const val HEADER = "header"
 private const val HERO = "hero"

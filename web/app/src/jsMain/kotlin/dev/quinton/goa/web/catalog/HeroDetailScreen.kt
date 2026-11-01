@@ -1,7 +1,6 @@
 package dev.quinton.goa.web.catalog
 
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -11,8 +10,7 @@ import dev.quinton.goa.core.domain.catalog.DeckLayout
 import dev.quinton.goa.core.domain.catalog.HANDICAP_EXPLANATION
 import dev.quinton.goa.core.domain.catalog.HeroLogSummary
 import dev.quinton.goa.core.domain.catalog.HeroPilotStat
-import dev.quinton.goa.core.domain.catalog.PROFILE_SCALE
-import dev.quinton.goa.core.domain.catalog.ProfileSegment
+import dev.quinton.goa.core.domain.catalog.ProfileBar
 import dev.quinton.goa.core.domain.catalog.attackProfile
 import dev.quinton.goa.core.domain.catalog.elo
 import dev.quinton.goa.core.domain.catalog.handicapConflict
@@ -40,17 +38,18 @@ import dev.quinton.goa.web.ui.PlayerAvatar
 import dev.quinton.goa.web.ui.RouteLink
 import dev.quinton.goa.web.ui.Screen
 import dev.quinton.goa.web.ui.rememberLoad
-import kotlinx.browser.document
 import kotlinx.coroutines.flow.map
 import org.jetbrains.compose.web.attributes.ATarget
 import org.jetbrains.compose.web.attributes.ButtonType
 import org.jetbrains.compose.web.attributes.target
 import org.jetbrains.compose.web.attributes.type
 import org.jetbrains.compose.web.dom.A
+import org.jetbrains.compose.web.dom.Br
 import org.jetbrains.compose.web.dom.Button
 import org.jetbrains.compose.web.dom.Div
 import org.jetbrains.compose.web.dom.H2
 import org.jetbrains.compose.web.dom.H3
+import org.jetbrains.compose.web.dom.Img
 import org.jetbrains.compose.web.dom.P
 import org.jetbrains.compose.web.dom.Section
 import org.jetbrains.compose.web.dom.Span
@@ -62,7 +61,7 @@ private data class HeroPersonalStats(val rating: Rating?, val usage: HeroUsage?,
 }
 
 /**
- * A hero's page (feature:catalog `HeroDetailScreen`): art and identity, the Hero Profile, the
+ * A hero's page (feature:catalog `HeroDetailScreen`): art and identity, the Hero Profile on a plate, the
  * group's results with the hero, the deck as the official card scans by colour and tier, the
  * Handicap card, extras (Gydion's spellbook), FAQ rulings, lore and sources.
  */
@@ -75,9 +74,7 @@ fun HeroDetailScreen(heroId: String) {
             Triple(hero, catalog.product(hero.product)?.name ?: hero.product, DeckLayout.of(hero))
         }
     }
-    var headerVisible by remember { mutableStateOf(true) }
     val ready = (loaded.state as? Load.Ready)?.value
-    HideTitleWhile(headerVisible && ready != null)
     Screen(ready?.first?.name ?: "Hero") {
         LoadContent(loaded, "Couldn't load this hero") { found ->
             if (found == null) {
@@ -87,20 +84,17 @@ fun HeroDetailScreen(heroId: String) {
                     }, ButtonKind.TONAL)
                 }
             } else {
-                Div({ classes("goa-hero-page") }) { HeroPage(found, onHeaderVisible = { headerVisible = it }) }
+                Div({ classes("goa-hero-page") }) { HeroPage(found) }
             }
         }
     }
 }
 
 @Composable
-private fun HeroPage(found: Triple<Hero, String, DeckLayout>, onHeaderVisible: (Boolean) -> Unit) {
+private fun HeroPage(found: Triple<Hero, String, DeckLayout>) {
     val (hero, productName, deck) = found
-    HeroHeader(hero, productName, onVisible = onHeaderVisible)
-    Section {
-        SectionTitle("Profile")
-        StatBars(hero)
-    }
+    HeroHeader(hero, productName)
+    StatPlate(hero)
     Section {
         SectionTitle("Your table")
         PersonalStatsCard(rememberPersonalStats(hero.id))
@@ -110,9 +104,11 @@ private fun HeroPage(found: Triple<Hero, String, DeckLayout>, onHeaderVisible: (
     deck.handicap?.let { handicap ->
         Section {
             SectionTitle("Handicap")
-            P({ classes("t-body-small", "c-variant") }) { Text(HANDICAP_EXPLANATION) }
-            handicapConflict(hero, handicap)?.let { P({ classes("t-body-small", "c-error") }) { Text(it) } }
-            DeckCardGrid(hero, listOf(handicap), isHandicap = true)
+            Div({ classes("goa-plate", "goa-handicap-plate") }) {
+                P({ classes("t-body-small", "c-variant") }) { Text(HANDICAP_EXPLANATION) }
+                handicapConflict(hero, handicap)?.let { P({ classes("t-body-small", "c-error") }) { Text(it) } }
+                DeckCardGrid(hero, listOf(handicap), isHandicap = true)
+            }
         }
     }
     ExtrasSection(hero, deck)
@@ -138,19 +134,6 @@ private fun HeroPage(found: Triple<Hero, String, DeckLayout>, onHeaderVisible: (
     }
 }
 
-/**
- * The phone shows the hero's name in the top bar only once the big name has scrolled away; the
- * title stays in the page for VoiceOver either way (visually hidden).
- */
-@Composable
-private fun HideTitleWhile(hidden: Boolean) {
-    DisposableEffect(hidden) {
-        val root = document.documentElement
-        if (hidden) root?.classList?.add(TITLE_HIDDEN) else root?.classList?.remove(TITLE_HIDDEN)
-        onDispose { root?.classList?.remove(TITLE_HIDDEN) }
-    }
-}
-
 @Composable
 private fun rememberPersonalStats(heroId: String): HeroPersonalStats {
     val group = LocalServices.current.data.group
@@ -173,47 +156,52 @@ internal fun SectionTitle(text: String, trailing: String? = null) {
     }
 }
 
+/**
+ * The hero's art edge to edge, fading into the canvas. Only Tigerclaw has their dashboard's art (p.16);
+ * for every other hero the portrait is what looked best: a card's art is often a scene without the hero,
+ * and a blurred backdrop muddied the portrait. Then the deck symbol, "Name the Title" on the title plate,
+ * complexity and roles.
+ */
 @Composable
-private fun HeroHeader(hero: Hero, productName: String, onVisible: (Boolean) -> Unit) {
+private fun HeroHeader(hero: Hero, productName: String) {
     Div({ classes("goa-hero-header") }) {
-        HeroArt(hero, "header", alt = "${hero.name} artwork", eager = true)
-        Div({ classes("goa-hero-header-text") }) {
-            Div({ classes("goa-hero-header-names") }) {
-                // The top bar's title is the page's heading for VoiceOver (hidden from sight while
-                // this big name shows): the name isn't read twice.
-                P({
-                    classes("goa-hero-name", "t-headline-medium")
-                    attr("aria-hidden", "true")
-                    ref { element ->
-                        val options: dynamic = js("({})")
-                        options.rootMargin = HEADER_MARGIN
-                        val observer = IntersectionObserver({ entries, _ ->
-                            entries.forEach { onVisible(it.isIntersecting as Boolean) }
-                        }, options)
-                        observer.observe(element)
-                        onDispose { observer.disconnect() }
-                    }
-                }) { Text(hero.name) }
-                P({ classes("goa-hero-header-title", "t-title-medium", "c-variant") }) { Text(hero.title) }
-            }
+        if (hero.id == DASHBOARD_HERO) {
+            HeroArt(
+                hero,
+                "header",
+                alt = "${hero.name} artwork",
+                eager = true,
+                art = "official/ui/dashboard-$DASHBOARD_HERO.webp",
+                artWidth = DASHBOARD_WIDTH,
+                artHeight = DASHBOARD_HEIGHT,
+            )
+        } else {
+            HeroArt(hero, "header", alt = "${hero.name} artwork", eager = true)
+        }
+        Div({ classes("goa-hero-identity") }) {
             HeroSymbol(hero, "header", alt = "${hero.name}'s deck symbol")
+            Div({ classes("goa-hero-identity-text") }) {
+                P({ classes("goa-title-plate", "goa-hero-plate") }) {
+                    // The top bar's title is the page's heading for VoiceOver: the name isn't read twice.
+                    Span({ attr("aria-hidden", "true") }) { Text(hero.name) }
+                    Text(" ${hero.title}")
+                }
+                Div({ classes("goa-hero-identity-line") }) {
+                    hero.complexity?.let { ComplexityStars(it, showName = true) }
+                    hero.roles.forEach { Span({ classes("goa-hero-role") }) { Text(it.label) } }
+                }
+            }
         }
         if (hero.aliases.isNotEmpty()) {
             P({ classes("t-body-small", "c-variant") }) { Text("Also known as ${hero.aliases.joinToString()}") }
         }
         Div({ classes("goa-pills", "goa-hero-header-pills") }) {
-            hero.complexity?.let { ComplexityStars(it, showName = true) }
             MetaPill(productName)
             // App-derived from the Ranged subtype of the deck's Attack cards (DOMAIN.md); kept apart
-            // from the official role chips (the rulebook calls no-range attacks "Non-Ranged", p.13).
+            // from the official roles (the rulebook calls no-range attacks "Non-Ranged", p.13).
             hero.attackProfile().pill?.let { MetaPill(it) }
             if (hero.printing != 2) MetaPill("Printing ${hero.printing}")
             if (hero.verified) VerifiedPill() else UnverifiedBadge()
-        }
-        if (hero.roles.isNotEmpty()) {
-            Div({ classes("goa-pills", "goa-hero-roles") }) {
-                hero.roles.forEach { Span({ classes("goa-role", "t-label-large") }) { Text(it.label) } }
-            }
         }
     }
 }
@@ -226,59 +214,49 @@ private fun VerifiedPill() {
     }
 }
 
-/** Hero Profile bars from 1 ("Very poor") to 8 ("Exceptional"): solid to the base, light to the max. */
+/**
+ * The Hero Profile on a plate with the official item icons: each value as base → max, one value when
+ * they are equal. The note says what the arrow means (the conditional part: level-up choices or card
+ * text) and what the numbers are out of (1 "Very poor" to 8 "Exceptional").
+ */
 @Composable
-private fun StatBars(hero: Hero) {
-    Div({ classes("goa-profile") }) {
-        hero.stats.profileBars().forEach { bar ->
-            Div({
-                classes("goa-profile-bar")
-                attr("role", "img")
-                attr("aria-label", bar.spoken)
-            }) {
-                Div({
-                    classes("goa-profile-head")
-                    attr("aria-hidden", "true")
-                }) {
-                    GameIcon(statToken(bar.stat), extraClass = "primary")
-                    Span({ classes("t-title-small") }) { Text(bar.stat.label) }
-                    Span({ classes("t-title-small", "goa-profile-value") }) { Text(bar.rangeText) }
-                }
-                Div({
-                    classes("goa-profile-segments")
-                    attr("aria-hidden", "true")
-                }) {
-                    for (level in 1..PROFILE_SCALE) {
-                        Span({
-                            classes(
-                                "goa-profile-segment",
-                                when (bar.segment(level)) {
-                                    ProfileSegment.BASE -> "base"
-                                    ProfileSegment.CONDITIONAL -> "conditional"
-                                    ProfileSegment.EMPTY -> "empty"
-                                },
-                            )
-                        })
-                    }
-                }
+private fun StatPlate(hero: Hero) {
+    Div({ classes("goa-plate", "goa-stat-plate") }) {
+        Div({ classes("goa-stat-cells") }) {
+            hero.stats.profileBars().forEach { StatCell(it) }
+        }
+        P({ classes("goa-stat-note", "t-label-small", "c-variant") }) {
+            Text("Base → with level-ups and card text")
+            Br()
+            Text("1 is very poor · 8 is exceptional")
+        }
+    }
+}
+
+@Composable
+private fun StatCell(bar: ProfileBar) {
+    var failed by remember(bar.stat) { mutableStateOf(false) }
+    Div({
+        classes("goa-stat-cell")
+        attr("role", "img")
+        attr("aria-label", bar.spoken)
+    }) {
+        if (failed) {
+            GameIcon(statToken(bar.stat))
+        } else {
+            Img("official/icons/item-${bar.stat.name.lowercase()}.webp", alt = "") {
+                attr("decoding", "async")
+                addEventListener("error") { failed = true }
             }
         }
-        Div({
-            classes("goa-profile-scale", "t-label-small", "c-variant")
+        Span({
+            classes("goa-stat-value")
             attr("aria-hidden", "true")
-        }) {
-            Span { Text("1 · Very poor") }
-            Span { Text("Exceptional · 8") }
-        }
-        Div({
-            classes("goa-profile-legend", "t-label-small", "c-variant")
+        }) { Text(bar.rangeText) }
+        Span({
+            classes("t-label-small", "c-variant")
             attr("aria-hidden", "true")
-        }) {
-            Span({ classes("goa-profile-swatch", "base") })
-            Span { Text("Base") }
-            Span({ classes("goa-profile-swatch", "conditional") })
-            Span { Text("Conditional (level-ups, card text)") }
-        }
+        }) { Text(bar.stat.label) }
     }
 }
 
@@ -373,7 +351,7 @@ private fun LearnNumbers(hero: Hero) {
 private fun FaqItem(ruling: Ruling) {
     var expanded by remember(ruling.question) { mutableStateOf(false) }
     Div({
-        classes("goa-faq")
+        classes("goa-faq", "goa-plate")
         if (expanded) classes("open")
     }) {
         Button({
@@ -423,21 +401,12 @@ private fun SourcesBlock(hero: Hero) {
     }
 }
 
-/** The top bar's height: the name counts as gone once it has scrolled under the bar. */
-private const val HEADER_MARGIN = "-64px 0px 0px 0px"
-
-/** The browser's IntersectionObserver (iOS 12.2+): tells when the hero's name scrolls out of view. */
-private external class IntersectionObserver(
-    callback: (entries: Array<dynamic>, observer: dynamic) -> Unit,
-    options: dynamic,
-) {
-    fun observe(target: org.w3c.dom.Element)
-
-    fun disconnect()
-}
-
 private const val MAX_PILOTS = 3
-private const val TITLE_HIDDEN = "goa-title-hidden"
+
+/** The one hero whose dashboard art the rulebook prints (p.16), and its size in pixels. */
+private const val DASHBOARD_HERO = "tigerclaw"
+private const val DASHBOARD_WIDTH = "821"
+private const val DASHBOARD_HEIGHT = "416"
 
 /** The phone's pilot row avatar (36 dp). */
 private const val PILOT_AVATAR = 36

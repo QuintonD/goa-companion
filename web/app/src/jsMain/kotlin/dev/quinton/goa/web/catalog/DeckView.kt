@@ -47,10 +47,7 @@ internal fun DeckSections(hero: Hero, deck: DeckLayout) {
 private fun DeckGroupSection(hero: Hero, group: DeckGroup) {
     Div({ classes("goa-deck-group") }) {
         H3({ classes("goa-deck-group-title", "t-title-medium") }) {
-            Span({
-                classes("goa-deck-dot", group.kind.color.cssClass)
-                attr("aria-hidden", "true")
-            })
+            ColourRibbon(group.kind.ribbon)
             Text(group.kind.title)
             Span({ classes("t-label-medium", "c-variant") }) { Text("${group.cards.size}") }
         }
@@ -63,14 +60,13 @@ private fun DeckGroupSection(hero: Hero, group: DeckGroup) {
     }
 }
 
-private val DeckGroupKind.color: CardColor
+/** The ribbon over a colour's cards; Basic and the Ultimate use the neutral silver. */
+private val DeckGroupKind.ribbon: CardColor
     get() = when (this) {
-        DeckGroupKind.BASIC -> CardColor.GOLD
         DeckGroupKind.RED -> CardColor.RED
         DeckGroupKind.GREEN -> CardColor.GREEN
         DeckGroupKind.BLUE -> CardColor.BLUE
-        DeckGroupKind.ULTIMATE -> CardColor.PURPLE
-        DeckGroupKind.OTHER -> CardColor.OTHER
+        DeckGroupKind.BASIC, DeckGroupKind.ULTIMATE, DeckGroupKind.OTHER -> CardColor.SILVER
     }
 
 /** The hero's extra cards by tier; titled "Spellbook" for Gydion's spell cards. */
@@ -115,7 +111,8 @@ private fun DeckCard(hero: Hero, card: Card, isHandicap: Boolean, spell: Boolean
         attr("role", "listitem")
     }) {
         RouteLink(Route.CardViewer(hero.id, card.id), {
-            classes(if (image != null) "goa-scan" else "goa-card-tile", card.color.cssClass)
+            classes(card.color.cssClass)
+            if (image != null) classes("goa-scan") else classes("goa-card-tile", "goa-plate")
             attr("aria-label", if (image != null) cardDescription(card, isHandicap) else card.spokenSummary(isHandicap))
         }) {
             if (image != null) {

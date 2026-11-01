@@ -8,7 +8,6 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -18,6 +17,7 @@ import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -25,11 +25,11 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.HelpOutline
@@ -44,33 +44,45 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.BiasAlignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.RectangleShape
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import coil3.compose.AsyncImage
 import dev.quinton.goa.core.designsystem.component.ComplexityStars
 import dev.quinton.goa.core.designsystem.component.EmptyState
+import dev.quinton.goa.core.designsystem.component.GoaPlate
 import dev.quinton.goa.core.designsystem.component.GoaScreen
 import dev.quinton.goa.core.designsystem.component.HeroPortrait
 import dev.quinton.goa.core.designsystem.component.HeroSymbol
+import dev.quinton.goa.core.designsystem.component.LookArt
 import dev.quinton.goa.core.designsystem.component.PlayerAvatar
+import dev.quinton.goa.core.designsystem.component.SectionHeader
+import dev.quinton.goa.core.designsystem.component.assetUrl
+import dev.quinton.goa.core.designsystem.component.rememberOfficialBitmap
 import dev.quinton.goa.core.designsystem.component.scaledIconSize
+import dev.quinton.goa.core.designsystem.theme.GoaTextStyles
 import dev.quinton.goa.core.designsystem.theme.GoaTheme
 import dev.quinton.goa.core.designsystem.theme.Spacing
 import dev.quinton.goa.core.domain.catalog.HANDICAP_EXPLANATION
@@ -87,9 +99,11 @@ import dev.quinton.goa.core.model.catalog.CardColor
 import dev.quinton.goa.core.model.catalog.Hero
 import dev.quinton.goa.core.model.catalog.Ruling
 import dev.quinton.goa.core.navigation.HeroDetailRoute
+import dev.quinton.goa.feature.catalog.ui.LargePlate
 import dev.quinton.goa.feature.catalog.ui.MetaPill
-import dev.quinton.goa.feature.catalog.ui.SectionTitle
+import dev.quinton.goa.feature.catalog.ui.SharedTitlePlate
 import dev.quinton.goa.feature.catalog.ui.UnverifiedBadge
+import dev.quinton.goa.feature.catalog.ui.overlapUp
 
 @Composable
 fun HeroDetailScreen(
@@ -111,9 +125,7 @@ fun HeroDetailScreen(
             extrasItemIndex(ready, onLearnNumbers != null)?.let { listState.scrollToItem(it) }
         }
     }
-    val headerGone by remember { derivedStateOf { listState.firstVisibleItemIndex > 0 } }
-    val title = (state as? HeroDetailUiState.Ready)?.hero?.name?.takeIf { headerGone }.orEmpty()
-    GoaScreen(title = title, onBack = onBack, modifier = modifier) { padding ->
+    GoaScreen(title = ready?.hero?.name.orEmpty(), onBack = onBack, modifier = modifier) { padding ->
         Box(Modifier.fillMaxSize().padding(padding)) {
             when (state) {
                 HeroDetailUiState.Loading -> CircularProgressIndicator(
@@ -162,22 +174,17 @@ private fun LazyListScope.heroDetailContent(
     val hero = state.hero
     val padded = Modifier.padding(horizontal = Spacing.screen)
     item(key = "header") { HeroHeader(hero, state.productName) }
-    item(key = "profile") {
-        Column(padded) {
-            SectionTitle("Profile")
-            StatBars(hero.stats)
-        }
-    }
+    item(key = "profile") { StatPlate(hero.stats, padded.padding(top = Spacing.md)) }
     item(key = "stats") {
         Column(padded) {
-            SectionTitle("Your table")
+            SectionHeader("Your table")
             PersonalStatsCard(state.stats)
         }
     }
     item(key = "deck-title") {
-        SectionTitle(
+        SectionHeader(
             "Deck",
-            modifier = padded,
+            modifier = padded.semantics(mergeDescendants = true) { heading() },
             trailing = {
                 Text(
                     plural(hero.cards.size, "card"),
@@ -196,29 +203,31 @@ private fun LazyListScope.heroDetailContent(
     state.deck.handicap?.let { handicap ->
         item(key = "handicap") {
             Column(padded) {
-                SectionTitle("Handicap")
-                Text(
-                    HANDICAP_EXPLANATION, // Rulebook p.20.
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(bottom = Spacing.sm),
-                )
-                handicapConflict(hero, handicap)?.let { note ->
+                SectionHeader("Handicap")
+                GoaPlate(Modifier.fillMaxWidth()) {
                     Text(
-                        note,
+                        HANDICAP_EXPLANATION, // Rulebook p.20.
                         style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.error,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.padding(bottom = Spacing.sm),
                     )
+                    handicapConflict(hero, handicap)?.let { note ->
+                        Text(
+                            note,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.error,
+                            modifier = Modifier.padding(bottom = Spacing.sm),
+                        )
+                    }
+                    DeckCardGrid(listOf(handicap), onCardClick, isHandicap = true)
                 }
-                DeckCardGrid(listOf(handicap), onCardClick, isHandicap = true)
             }
         }
     }
     if (state.deck.extras.isNotEmpty()) {
         item(key = "extras") { ExtrasSection(state.deck, onCardClick, padded) }
     }
-    item(key = "faq-title") { SectionTitle("FAQ rulings", modifier = padded) }
+    item(key = "faq-title") { SectionHeader("FAQ rulings", modifier = padded) }
     if (hero.faq.isEmpty()) {
         item(key = "faq-empty") {
             Text(
@@ -236,14 +245,14 @@ private fun LazyListScope.heroDetailContent(
     hero.lore?.takeIf { it.isNotBlank() }?.let { lore ->
         item(key = "lore") {
             Column(padded) {
-                SectionTitle("Lore")
+                SectionHeader("Lore")
                 LoreBlock(lore)
             }
         }
     }
     item(key = "sources") {
         Column(padded) {
-            SectionTitle("Sources")
+            SectionHeader("Sources")
             SourcesBlock(hero)
         }
     }
@@ -265,44 +274,82 @@ private fun LearnNumbersButton(heroName: String, onClick: () -> Unit, modifier: 
     }
 }
 
+/**
+ * The hero's art edge to edge, fading into the canvas, as the page's banner. Only Tigerclaw has their
+ * dashboard's art (p.16); for every other hero the portrait is what looked best: a card's art is often
+ * a scene without the hero, and a blurred backdrop muddied the portrait. It is cropped from nearer the
+ * top, where the faces are.
+ */
+@Composable
+private fun HeroHeaderArt(hero: Hero) {
+    val background = MaterialTheme.colorScheme.background
+    val art = LookArt.dashboardArt(hero.id) ?: hero.portrait
+    var loaded by remember(art) { mutableStateOf(false) }
+    Box(
+        Modifier
+            .fillMaxWidth()
+            .heightIn(max = HEADER_ART_MAX_HEIGHT)
+            .aspectRatio(HEADER_ART_RATIO)
+            .semantics { contentDescription = "${hero.name} artwork" },
+    ) {
+        if (!loaded) {
+            // The sigil on the medallion: while it loads, if it fails, and for a hero without art.
+            HeroPortrait(hero.id, null, null, Modifier.fillMaxSize(), RectangleShape)
+        }
+        if (art != null) {
+            AsyncImage(
+                model = assetUrl(art),
+                contentDescription = null,
+                contentScale = ContentScale.Crop,
+                alignment = HEADER_ART_ALIGNMENT,
+                modifier = Modifier.fillMaxSize(),
+                onSuccess = { loaded = true },
+                onError = { loaded = false },
+            )
+        }
+        Box(
+            Modifier.fillMaxSize().background(
+                Brush.verticalGradient(0.55f to Color.Transparent, 1f to background),
+            ),
+        )
+    }
+}
+
+/** The name and title on the cards' title plate: two texts, so it breaks between them when it must. */
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun HeroNamePlate(hero: Hero, modifier: Modifier = Modifier) {
+    val ink = GoaTheme.colors.onParchment
+    SharedTitlePlate(rememberOfficialBitmap(LookArt.TITLE_PLATE), LargePlate, modifier) {
+        FlowRow(
+            Modifier.fillMaxWidth().semantics(mergeDescendants = true) { heading() },
+            horizontalArrangement = Arrangement.spacedBy(5.dp, Alignment.CenterHorizontally),
+        ) {
+            Text(hero.name, style = HERO_PLATE_NAME, color = ink, textAlign = TextAlign.Center)
+            Text(hero.title, style = HERO_PLATE_NAME, color = ink, textAlign = TextAlign.Center)
+        }
+    }
+}
+
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun HeroHeader(hero: Hero, productName: String) {
-    val background = MaterialTheme.colorScheme.background
     Column {
-        Box(Modifier.fillMaxWidth().height(HEADER_ART_HEIGHT)) {
-            HeroPortrait(
-                heroId = hero.id,
-                portrait = hero.portrait,
-                contentDescription = "${hero.name} artwork",
-                shape = RectangleShape,
-                modifier = Modifier.fillMaxSize(),
-            )
-            Box(
-                Modifier.fillMaxSize().background(
-                    Brush.verticalGradient(0.45f to Color.Transparent, 1f to background),
-                ),
-            )
-        }
-        Column(Modifier.padding(horizontal = Spacing.screen).padding(top = Spacing.xs)) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Column(Modifier.weight(1f)) {
-                    Text(hero.name, style = MaterialTheme.typography.headlineMedium)
-                    Text(
-                        hero.title,
-                        style = MaterialTheme.typography.titleMedium,
-                        fontStyle = FontStyle.Italic,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
+        HeroHeaderArt(hero)
+        Column(Modifier.overlapUp(HEADER_OVERLAP).padding(horizontal = Spacing.screen)) {
+            Row {
                 // The deck symbol, as on the back of the hero's cards and their dashboard (p.6).
                 if (hero.symbol != null) {
                     HeroSymbol(
                         hero.id,
                         hero.symbol,
-                        modifier = Modifier.padding(start = Spacing.sm).size(scaledIconSize(HEADER_SYMBOL, 1.4f)),
+                        modifier = Modifier.padding(end = Spacing.sm).size(scaledIconSize(HEADER_SYMBOL, 1.4f)),
                         contentDescription = "${hero.name}'s deck symbol",
                     )
+                }
+                Column(Modifier.weight(1f).padding(top = Spacing.sm)) {
+                    HeroNamePlate(hero, Modifier.widthIn(max = HEADER_PLATE_MAX_WIDTH).fillMaxWidth())
+                    HeroIdentityLine(hero, Modifier.padding(start = 2.dp, top = 6.dp))
                 }
             }
             if (hero.aliases.isNotEmpty()) {
@@ -310,43 +357,47 @@ private fun HeroHeader(hero: Hero, productName: String) {
                     "Also known as ${hero.aliases.joinToString()}",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(top = 2.dp),
+                    modifier = Modifier.padding(top = Spacing.xs),
                 )
             }
             FlowRow(
-                Modifier.padding(top = Spacing.md),
+                Modifier.padding(top = Spacing.sm),
                 horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
-                verticalArrangement = Arrangement.spacedBy(Spacing.sm),
+                verticalArrangement = Arrangement.spacedBy(Spacing.xs),
                 itemVerticalAlignment = Alignment.CenterVertically,
             ) {
-                hero.complexity?.let { level ->
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        ComplexityStars(level, starSize = 18.dp)
-                        complexityName(level)?.let {
-                            Spacer(Modifier.width(6.dp))
-                            Text(
-                                it,
-                                style = MaterialTheme.typography.labelLarge,
-                                color = MaterialTheme.colorScheme.primary,
-                            )
-                        }
-                    }
-                }
                 MetaPill(productName)
                 // App-derived from the Ranged subtype of the deck's Attack cards (DOMAIN.md); kept
-                // apart from the official role chips (the rulebook calls no-range attacks "Non-Ranged", p.13).
+                // apart from the official roles (the rulebook calls no-range attacks "Non-Ranged", p.13).
                 hero.attackProfile().pill?.let { MetaPill(it) }
                 if (hero.printing != 2) MetaPill("Printing ${hero.printing}")
                 if (hero.verified) VerifiedPill() else UnverifiedBadge()
             }
-            val roles = hero.roles.map { it.label }
-            if (roles.isNotEmpty()) {
-                FlowRow(
-                    Modifier.padding(top = Spacing.md),
-                    horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
-                    verticalArrangement = Arrangement.spacedBy(Spacing.sm),
-                ) {
-                    roles.forEach { RolePill(it) }
+        }
+    }
+}
+
+/** Stars, the complexity's name and the official roles, flowing line to line with large text. */
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun HeroIdentityLine(hero: Hero, modifier: Modifier = Modifier) {
+    val words = listOfNotNull(hero.complexity?.let(::complexityName)) + hero.roles.map { it.label }
+    FlowRow(
+        modifier,
+        horizontalArrangement = Arrangement.spacedBy(4.dp),
+        itemVerticalAlignment = Alignment.CenterVertically,
+    ) {
+        hero.complexity?.let { ComplexityStars(it, starSize = 14.dp, modifier = Modifier.padding(end = 2.dp)) }
+        words.forEachIndexed { i, word ->
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(word, style = MaterialTheme.typography.bodySmall)
+                if (i < words.lastIndex) {
+                    Text(
+                        " ·",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.clearAndSetSemantics {},
+                    )
                 }
             }
         }
@@ -370,31 +421,10 @@ private fun VerifiedPill() {
     }
 }
 
-@Composable
-private fun RolePill(text: String) {
-    Text(
-        text,
-        style = MaterialTheme.typography.labelLarge,
-        color = MaterialTheme.colorScheme.secondary,
-        modifier = Modifier
-            .clip(CircleShape)
-            .background(MaterialTheme.colorScheme.secondary.copy(alpha = 0.12f))
-            .padding(horizontal = Spacing.md, vertical = 6.dp),
-    )
-}
-
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun PersonalStatsCard(stats: HeroPersonalStats) {
-    val shape = MaterialTheme.shapes.medium
-    Column(
-        Modifier
-            .fillMaxWidth()
-            .clip(shape)
-            .background(MaterialTheme.colorScheme.surface)
-            .border(1.dp, GoaTheme.colors.engravedBorder, shape)
-            .padding(Spacing.lg),
-    ) {
+    GoaPlate(Modifier.fillMaxWidth(), contentPadding = PaddingValues(Spacing.lg)) {
         if (!stats.hasGames) {
             Text("No games logged with this hero yet", style = MaterialTheme.typography.titleSmall)
             Text(
@@ -403,7 +433,7 @@ private fun PersonalStatsCard(stats: HeroPersonalStats) {
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(top = Spacing.xs),
             )
-            return@Column
+            return@GoaPlate
         }
         val rating = stats.rating
         val usage = stats.usage
@@ -504,14 +534,7 @@ private fun PilotRow(rank: Int, pilot: HeroPilotStat, ranked: Boolean) {
 private fun FaqItem(ruling: Ruling, modifier: Modifier = Modifier) {
     var expanded by rememberSaveable(ruling.question) { mutableStateOf(false) }
     val rotation by animateFloatAsState(if (expanded) 180f else 0f, tween(MOTION_MS), label = "faqChevron")
-    val shape = MaterialTheme.shapes.medium
-    Column(
-        modifier
-            .fillMaxWidth()
-            .clip(shape)
-            .background(MaterialTheme.colorScheme.surface)
-            .border(1.dp, GoaTheme.colors.engravedBorder, shape),
-    ) {
+    GoaPlate(modifier.fillMaxWidth(), brackets = false, contentPadding = PaddingValues()) {
         Row(
             Modifier
                 .fillMaxWidth()
@@ -606,7 +629,17 @@ private fun SourcesBlock(hero: Hero) {
     )
 }
 
-private val HEADER_ART_HEIGHT = 280.dp
-private val HEADER_SYMBOL = 64.dp
+/** The header's art: as wide as the page, about twice as wide as tall, and no taller when held sideways. */
+private const val HEADER_ART_RATIO = 2f
+private val HEADER_ART_MAX_HEIGHT = 240.dp
+
+/** Crops toward the top of the art: 0 is its middle, -1 its top. */
+private val HEADER_ART_ALIGNMENT = BiasAlignment(0f, -0.5f)
+
+/** How far the symbol and the title plate run up over the fading art. */
+private val HEADER_OVERLAP = 54.dp
+private val HEADER_SYMBOL = 66.dp
+private val HEADER_PLATE_MAX_WIDTH = 440.dp
+private val HERO_PLATE_NAME = GoaTextStyles.plateTitle.copy(fontSize = 18.sp, lineHeight = 22.sp, letterSpacing = 0.sp)
 private const val MOTION_MS = 250
 private const val MAX_PILOTS = 3

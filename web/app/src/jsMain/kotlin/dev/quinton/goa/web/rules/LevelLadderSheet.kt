@@ -96,7 +96,10 @@ fun LevelLadderSheet(heroIds: List<String> = emptyList(), showRulesLink: Boolean
 fun LevelLadderScreen(heroIds: List<String>) {
     val router = LocalServices.current.router
     Screen("Levels & defeats") {
-        LevelLadderBody(heroIds, onOpenRules = { router.navigate(Route.Rules) })
+        // The sheet is a plate already; on a page of its own the ladder gets one.
+        Div({ classes("goa-plate", "goa-rules-ladder-page") }) {
+            LevelLadderBody(heroIds, onOpenRules = { router.navigate(Route.Rules) })
+        }
     }
 }
 

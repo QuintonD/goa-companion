@@ -24,6 +24,7 @@ import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.selectableGroup
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.MenuBook
 import androidx.compose.material3.CircularProgressIndicator
@@ -35,6 +36,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.clearAndSetSemantics
@@ -46,8 +48,11 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import dev.quinton.goa.core.designsystem.component.GoaPlateTheme
 import dev.quinton.goa.core.designsystem.component.LARGE_FONT_SCALE
+import dev.quinton.goa.core.designsystem.component.ParchmentPanel
 import dev.quinton.goa.core.designsystem.component.SectionHeader
+import dev.quinton.goa.core.designsystem.component.slatePlate
 import dev.quinton.goa.core.designsystem.theme.GoaTextStyles
 import dev.quinton.goa.core.designsystem.theme.GoaTheme
 import dev.quinton.goa.core.designsystem.theme.Spacing
@@ -61,24 +66,35 @@ import dev.quinton.goa.feature.rules.LadderUiState
 /**
  * "Levels & defeats": pick the defeated hero's level for the three numbers that matter, the full
  * p.13/p.15 table, the rules behind it (verbatim) and the cards in play that change it (verbatim).
+ * The sheet is a dark plate in both themes; what the book prints sits on parchment on it.
  */
 @Composable
 fun LevelLadderSheet(state: LadderUiState, onSelectLevel: (Int) -> Unit, onOpenRules: (() -> Unit)?) {
-    when (state) {
-        LadderUiState.Loading -> Box(Modifier.fillMaxWidth().heightIn(min = 200.dp), Alignment.Center) {
-            CircularProgressIndicator()
-        }
+    GoaPlateTheme {
+        Box(Modifier.fillMaxWidth().slatePlate(RoundedCornerShape(0.dp), brackets = false)) {
+            when (state) {
+                LadderUiState.Loading -> Box(Modifier.fillMaxWidth().heightIn(min = 200.dp), Alignment.Center) {
+                    CircularProgressIndicator()
+                }
 
-        LadderUiState.Unavailable -> Text(
-            "The bundled rules reference could not be read.",
-            modifier = Modifier.padding(Spacing.xl),
-        )
+                LadderUiState.Unavailable -> Text(
+                    "The bundled rules reference could not be read.",
+                    color = MaterialTheme.colorScheme.onSurface,
+                    modifier = Modifier.padding(Spacing.xl),
+                )
 
-        is LadderUiState.Ready -> LazyColumn(
-            contentPadding = PaddingValues(start = Spacing.screen, end = Spacing.screen, bottom = Spacing.xxl),
-            verticalArrangement = Arrangement.spacedBy(Spacing.md),
-        ) {
-            ladderContent(state, onSelectLevel, onOpenRules)
+                is LadderUiState.Ready -> LazyColumn(
+                    contentPadding = PaddingValues(
+                        start = Spacing.screen,
+                        end = Spacing.screen,
+                        top = Spacing.sm,
+                        bottom = Spacing.xxl,
+                    ),
+                    verticalArrangement = Arrangement.spacedBy(Spacing.md),
+                ) {
+                    ladderContent(state, onSelectLevel, onOpenRules)
+                }
+            }
         }
     }
 }
@@ -93,7 +109,8 @@ private fun LazyListScope.ladderContent(
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text(
                 "Levels & defeats",
-                style = MaterialTheme.typography.headlineSmall,
+                style = GoaTextStyles.sectionHead.copy(fontSize = 22.sp, lineHeight = 28.sp),
+                color = GoaTheme.colors.heading,
                 modifier = Modifier.weight(1f).semantics { heading() },
             )
             PageTag(ladder.pages)
@@ -108,15 +125,15 @@ private fun LazyListScope.ladderContent(
     item(key = "defeat-header") { SectionHeader("When a hero is defeated") }
     items(ladder.defeat, key = {
         "defeat-${it.page}-${it.text.hashCode()}"
-    }) { ExcerptBlock(it, style = compactReading()) }
+    }) { ExcerptOnPlate(it) }
     item(key = "level-header") { SectionHeader("Levelling up") }
     items(ladder.levelUp, key = {
         "level-${it.page}-${it.text.hashCode()}"
-    }) { ExcerptBlock(it, style = compactReading()) }
+    }) { ExcerptOnPlate(it) }
     item(key = "cards-header") {
         SectionHeader(if (state.matchHeroesOnly) "Cards in this match that change this" else "Cards that change this")
     }
-    item(key = "cards-rule") { ExcerptBlock(ladder.cardText, style = compactReading()) }
+    item(key = "cards-rule") { ExcerptOnPlate(ladder.cardText) }
     if (state.exceptions.isEmpty()) {
         item(key = "cards-none") {
             Text(
@@ -140,9 +157,6 @@ private fun LazyListScope.ladderContent(
         }
     }
 }
-
-@Composable
-private fun compactReading() = GoaTextStyles.printed
 
 private const val LEVELS_PER_ROW = 4
 
@@ -294,7 +308,7 @@ private fun LadderTable(ladder: LevelLadder, selected: Int?, onSelect: (Int) -> 
                 val isSelected = row.level == selected
                 Row(
                     Modifier
-                        .background(if (isSelected) colors.secondary.copy(alpha = 0.16f) else colors.surface)
+                        .background(if (isSelected) colors.secondary.copy(alpha = 0.16f) else Color.Transparent)
                         .clickable(onClickLabel = "Show level ${row.level}") { onSelect(row.level) }
                         .padding(horizontal = Spacing.xs)
                         .heightIn(min = 40.dp)
@@ -329,6 +343,7 @@ private fun Cell(text: String, width: Dp, bold: Boolean = false) {
 @Composable
 private fun ExceptionCard(card: ExceptionCardUi) {
     val colors = MaterialTheme.colorScheme
+    val parchment = GoaTheme.colors
     Column(
         Modifier
             .fillMaxWidth()
@@ -338,11 +353,14 @@ private fun ExceptionCard(card: ExceptionCardUi) {
     ) {
         Text("${card.heroName} · ${card.cardName}", style = MaterialTheme.typography.titleMedium)
         Text(card.label, style = MaterialTheme.typography.labelMedium, color = colors.onSurfaceVariant)
-        Text(
-            cardTextAnnotated(card.text, colors.onSurfaceVariant),
-            inlineContent = rememberCardIcons(colors.primary),
-            style = MaterialTheme.typography.bodyLarge,
-            modifier = Modifier.padding(top = Spacing.xs),
-        )
+        // The card's own words, on the parchment the card prints them on.
+        ParchmentPanel(Modifier.fillMaxWidth().padding(top = Spacing.xs)) {
+            Text(
+                cardTextAnnotated(card.text, parchment.onParchmentVariant),
+                inlineContent = rememberCardIcons(parchment.parchmentInk),
+                style = GoaTextStyles.printed,
+                color = parchment.onParchment,
+            )
+        }
     }
 }

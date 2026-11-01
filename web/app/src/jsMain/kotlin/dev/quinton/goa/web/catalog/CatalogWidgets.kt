@@ -200,14 +200,40 @@ fun HeroSigil(heroId: String) {
     })
 }
 
+/** A card frame's colour ribbon: marks a card colour's section head or a card in the results; decorative. */
+@Composable
+fun ColourRibbon(color: CardColor) {
+    val slug = when (color) {
+        CardColor.GOLD -> "gold"
+        CardColor.RED -> "red"
+        CardColor.GREEN -> "green"
+        CardColor.BLUE -> "blue"
+        CardColor.SILVER, CardColor.PURPLE, CardColor.OTHER -> "silver"
+    }
+    Img("official/ui/ribbon-$slug.webp", alt = "") {
+        classes("goa-ribbon")
+        attr("aria-hidden", "true")
+        attr("decoding", "async")
+    }
+}
+
 /**
- * The hero's portrait over its sigil: the sigil stays until the image has loaded, and is all that
- * shows if it fails. [eager] for the one image a screen opens with (the hero page header).
+ * The hero's art over its sigil: the sigil stays until the image has loaded, and is all that shows if
+ * it fails. The portrait unless [art] names another picture of [artWidth] × [artHeight]. [eager] for
+ * the one image a screen opens with (the hero page header).
  */
 @Composable
-fun HeroArt(hero: Hero, extraClass: String, alt: String = "", eager: Boolean = false) {
-    var loaded by remember(hero.portrait) { mutableStateOf(false) }
-    var failed by remember(hero.portrait) { mutableStateOf(false) }
+fun HeroArt(
+    hero: Hero,
+    extraClass: String,
+    alt: String = "",
+    eager: Boolean = false,
+    art: String? = hero.portrait,
+    artWidth: String = PORTRAIT_WIDTH,
+    artHeight: String = PORTRAIT_HEIGHT,
+) {
+    var loaded by remember(art) { mutableStateOf(false) }
+    var failed by remember(art) { mutableStateOf(false) }
     Div({
         classes("goa-hero-art", extraClass)
         if (loaded) classes("loaded")
@@ -217,11 +243,10 @@ fun HeroArt(hero: Hero, extraClass: String, alt: String = "", eager: Boolean = f
         }
     }) {
         if (!loaded) HeroSigil(hero.id)
-        val portrait = hero.portrait
-        if (portrait != null && !failed) {
-            Img(portrait, alt = "") {
-                attr("width", PORTRAIT_WIDTH)
-                attr("height", PORTRAIT_HEIGHT)
+        if (art != null && !failed) {
+            Img(art, alt = "") {
+                attr("width", artWidth)
+                attr("height", artHeight)
                 attr("decoding", "async")
                 if (!eager) attr("loading", "lazy")
                 addEventListener("load") { loaded = true }
@@ -237,9 +262,9 @@ fun HeroSymbol(hero: Hero, extraClass: String, alt: String = "") {
     val symbol = hero.symbol ?: return
     var failed by remember(symbol) { mutableStateOf(false) }
     if (failed) return
-    // Its size on screen (goa.css): 30 px on a grid tile, 24 px in a list row, up to 90 px on the hero page.
+    // Its size on screen: 27 px on a grid tile, 24 px in a list row, up to 90 px on the hero page.
     val sizes = when (extraClass) {
-        "tile" -> "30px"
+        "tile" -> "27px"
         "row" -> "24px"
         else -> "90px"
     }
