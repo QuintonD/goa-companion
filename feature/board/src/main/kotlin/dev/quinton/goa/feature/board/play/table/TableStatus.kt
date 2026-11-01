@@ -473,7 +473,13 @@ private fun CompactHeroChip(table: TableUi, hero: HeroView, place: Int?, onClick
             if (place != null) OrderBadge(place, Modifier.align(Alignment.TopStart))
             // Inside the chip's circle, which clips what overhangs it.
             TeamBadge(hero.team, Modifier.align(Alignment.BottomEnd).padding(5.dp), size = 15.dp)
-            if (cardDown(table, hero)) TableCard(null, Modifier.align(Alignment.TopEnd), width = 11.dp, backOf = hero.heroId)
+            if (cardDown(
+                    table,
+                    hero,
+                )
+            ) {
+                TableCard(null, Modifier.align(Alignment.TopEnd), width = 11.dp, backOf = hero.heroId)
+            }
         }
     }
 }

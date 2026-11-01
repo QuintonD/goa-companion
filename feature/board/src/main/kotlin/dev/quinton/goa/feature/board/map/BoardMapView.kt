@@ -167,6 +167,7 @@ fun BoardMapView(
     val painting = rememberMapPainting(state.map)
     val palette = if (painting != null) ArtBoardPalette else boardPalette()
     val look = pieceLook(painted = painting != null)
+    val currentLook by rememberUpdatedState(look)
     val density = LocalDensity.current
     val scope = rememberCoroutineScope()
     val haptics = LocalHapticFeedback.current
@@ -194,7 +195,7 @@ fun BoardMapView(
                 awaitEachGesture {
                     val down = awaitFirstDown(requireUnconsumed = false)
                     val board = current
-                    val onPiece = pieceUnder(board, layout, viewport, down.position)
+                    val onPiece = pieceUnder(board, layout, viewport, down.position, currentLook)
                         ?.takeIf { board.tool == BoardTool.Move }
                     // Only the selected piece drags at once; any other piece needs a long press first.
                     val selectedPiece = onPiece?.takeIf { it.id == board.selectedId }
@@ -271,7 +272,8 @@ fun BoardMapView(
                                 lastTap = null
                                 scope.launch { viewport.zoomStep(down.position) }
                             } else {
-                                val resolved = resolveTap(current, layout, viewport, down.position, touchPx)
+                                val at = down.position
+                                val resolved = resolveTap(current, layout, viewport, at, touchPx, currentLook)
                                 if (resolved == null) ambiguous(down.position)
                                 val did = resolved != null && tap(resolved)
                                 lastTap = LastTap(upTime, hex, inert = resolved != null && !did)
@@ -329,9 +331,12 @@ private fun pieceUnder(
     layout: MapLayout,
     viewport: MapViewport,
     screen: Offset,
+    look: PieceLook,
 ): BoardPiece? {
     val hex = layout.hexAt(viewport.screenToMap(screen))
-    BoardRules.occupancy(state.board.state)[hex]?.let { return it }
+    val occupied = BoardRules.occupancy(state.board.state)
+    occupied[hex]?.let { return it }
+    figureUnder(state, layout, viewport, screen, look)?.let { return occupied[it] }
     val radius = PIECE_SIZE / 2f * viewport.scale
     return state.pieces.filter { it.at != null }
         .map { it to (viewport.mapToScreen(layout.center(it.at!!)) - screen).getDistance() }
@@ -339,10 +344,27 @@ private fun pieceUnder(
         .minByOrNull { it.second }?.first
 }
 
+/** The space of the miniature whose body rises to [screen], above its own hex; null in the other looks. */
+private fun figureUnder(
+    state: BoardUiState.Ready,
+    layout: MapLayout,
+    viewport: MapViewport,
+    screen: Offset,
+    look: PieceLook,
+): Hex? {
+    if (look != PieceLook.MINIATURE) return null
+    val point = viewport.screenToMap(screen)
+    return figureSpaceAt(MapPoint(point.x, point.y), standingFigures(state.pieces)) { hex ->
+        layout.center(hex).let { MapPoint(it.x, it.y) }
+    }
+}
+
 /**
- * What a tap at [screen] means. A tap on a piece's space is that piece. With nothing selected and
- * the map zoomed out, a tap within [touchPx] of one piece selects it; between two pieces about as
- * close it is ambiguous (null) and the screen suggests zooming. Otherwise it is the space.
+ * What a tap at [screen] means. A tap on a piece's space is that piece. With a piece selected, a waiting one
+ * or a tool in hand, any other space is somewhere to go, so it stays the space. Otherwise a tap on a miniature's
+ * body above its own hex is that figure; with the map zoomed out, a tap within [touchPx] of one piece selects
+ * it; between two pieces about as close it is ambiguous (null) and the screen suggests zooming; else it is the
+ * space.
  */
 internal fun resolveTap(
     state: BoardUiState.Ready,
@@ -350,12 +372,14 @@ internal fun resolveTap(
     viewport: MapViewport,
     screen: Offset,
     touchPx: Float,
+    look: PieceLook = PieceLook.DRAWN,
 ): MapTap? {
     val hex = layout.hexAt(viewport.screenToMap(screen))
     val occupied = BoardRules.occupancy(state.board.state)
     occupied[hex]?.let { return MapTap.Piece(it.id) }
     val choosing = state.tool == BoardTool.Move && state.selectedId == null && !state.trayActive
     if (!choosing) return MapTap.Space(hex)
+    figureUnder(state, layout, viewport, screen, look)?.let(occupied::get)?.let { return MapTap.Piece(it.id) }
     val reach = maxOf(touchPx, PIECE_SIZE / 2f * viewport.scale)
     val near = occupied.entries
         .map { (at, piece) -> piece to (viewport.mapToScreen(layout.center(at)) - screen).getDistance() }
