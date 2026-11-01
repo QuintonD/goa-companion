@@ -15,11 +15,9 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.outlined.Search
@@ -347,10 +345,8 @@ internal fun PushDialog(
             )
         },
         text = {
-            Column(
-                Modifier.verticalScroll(rememberScrollState()),
-                verticalArrangement = Arrangement.spacedBy(Spacing.md),
-            ) {
+            // GoaDialog scrolls its text: a second scroll here would be measured without a limit and crash.
+            Column(verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
                 Text(
                     "Which team won the push? The next Zone toward the losing team's Throne becomes the Battle " +
                         "Zone. The minions of the previous Battle Zone are removed, and one minion spawns on each " +
