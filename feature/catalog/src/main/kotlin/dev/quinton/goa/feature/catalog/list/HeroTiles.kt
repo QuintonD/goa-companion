@@ -4,13 +4,12 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.ExperimentalLayoutApi
-import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -40,10 +39,12 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.zIndex
+import dev.quinton.goa.core.designsystem.component.ActionIcon
 import dev.quinton.goa.core.designsystem.component.ComplexityStars
 import dev.quinton.goa.core.designsystem.component.GoaPlateTheme
 import dev.quinton.goa.core.designsystem.component.HeroPortrait
 import dev.quinton.goa.core.designsystem.component.HeroSymbol
+import dev.quinton.goa.core.designsystem.component.LookAction
 import dev.quinton.goa.core.designsystem.theme.GoaTextStyles
 import dev.quinton.goa.core.designsystem.theme.GoaTheme
 import dev.quinton.goa.core.designsystem.theme.Spacing
@@ -66,15 +67,17 @@ import dev.quinton.goa.feature.catalog.ui.tilePlate
 
 /**
  * Grid tile (three per row on a phone), as a card is made: the slate plate, the hero's name on the
- * title plate, the portrait under it with the deck symbol at its corner, then the title, stars, roles
- * and pills. Text wraps or ellipsizes; the tile never grows wider with the font scale. Frame and art
- * share one draw node each, and [art] one decoded bitmap for every tile, so scrolling stays cheap.
+ * title plate, the portrait under it with the deck symbol at its corner, then the title, stars and roles.
+ * Every row keeps its height whether a tile uses it or not, so the tiles of a line are one height. Text
+ * wraps or ellipsizes; the tile never grows wider with the font scale. Frame and art share one draw node
+ * each, and [art] one decoded bitmap for every tile, so scrolling stays cheap.
  */
 @Composable
 internal fun HeroGridTile(
     item: HeroListItem,
     sort: CatalogSort,
     art: PlateArt,
+    footnotes: TileFootnoteRoom,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -100,7 +103,7 @@ internal fun HeroGridTile(
                 )
             }
             TileArtwork(item)
-            TileText(item, sort)
+            TileText(item, sort, footnotes)
         }
     }
 }
@@ -152,9 +155,8 @@ private fun TileArtwork(item: HeroListItem) {
     }
 }
 
-@OptIn(ExperimentalLayoutApi::class)
 @Composable
-private fun TileText(item: HeroListItem, sort: CatalogSort) {
+private fun TileText(item: HeroListItem, sort: CatalogSort, footnotes: TileFootnoteRoom) {
     val hero = item.hero
     // Larger text wraps: every tile keeps the extra lines, so the plates of a row match.
     val lines = tileLines(LocalDensity.current.fontScale)
@@ -167,14 +169,15 @@ private fun TileText(item: HeroListItem, sort: CatalogSort) {
             maxLines = lines,
             overflow = TextOverflow.Ellipsis,
         )
-        // Stars and "Ranged" share a line of a fixed height: with or without the pill, plates match.
-        FlowRow(
-            Modifier.heightIn(min = STARS_LINE * lines),
-            horizontalArrangement = Arrangement.spacedBy(3.dp),
-            itemVerticalAlignment = Alignment.CenterVertically,
+        // A line of a fixed height with no room to wrap: a ranged hero has the game's Range icon beside the
+        // stars (the word on the list row, the hero page and for TalkBack).
+        Row(
+            Modifier.height(STARS_LINE),
+            horizontalArrangement = Arrangement.spacedBy(Spacing.xs),
+            verticalAlignment = Alignment.CenterVertically,
         ) {
             ComplexityStars(hero.complexity, starSize = 10.dp)
-            item.rangedLabel?.let { MetaPill(it, color = MaterialTheme.colorScheme.primary) }
+            if (item.rangedLabel != null) ActionIcon(LookAction.RANGE, size = RANGED_ICON)
         }
         // Two roles fit a tile, as on the mock-up; the hero page and TalkBack have them all.
         val traits = hero.roles.take(TILE_ROLES).joinToString(" · ") { it.label }
@@ -188,23 +191,46 @@ private fun TileText(item: HeroListItem, sort: CatalogSort) {
                 overflow = TextOverflow.Ellipsis,
             )
         }
-        MetaPill(item.productName, modifier = Modifier.padding(top = Spacing.xs))
-        TileFootnotes(item, sort)
+        TileFootnotes(item, sort, footnotes)
+    }
+}
+
+/**
+ * Which footnote rows the grid's tiles keep. A lazy grid doesn't stretch the tiles of a line, so when any tile
+ * of the results has a sort metric or a search hint, every tile keeps the room for it.
+ */
+internal class TileFootnoteRoom(val metric: Boolean, val hint: Boolean) {
+    companion object {
+        fun of(heroes: List<HeroListItem>, sort: CatalogSort) = TileFootnoteRoom(
+            metric = heroes.any { it.metricLine(sort) != null },
+            hint = heroes.any { it.matchHint() != null },
+        )
     }
 }
 
 @Composable
-private fun TileFootnotes(item: HeroListItem, sort: CatalogSort) {
-    item.metricLine(sort)?.let {
+private fun TileFootnotes(item: HeroListItem, sort: CatalogSort, room: TileFootnoteRoom = NO_ROOM) {
+    val metric = item.metricLine(sort)
+    if (metric != null || room.metric) {
         Text(
-            it,
+            metric.orEmpty(),
             style = MaterialTheme.typography.labelMedium,
             fontWeight = FontWeight.SemiBold,
             color = MaterialTheme.colorScheme.primary,
             modifier = Modifier.padding(top = Spacing.xs),
         )
     }
-    item.matchHint()?.let { hint ->
+    val hint = item.matchHint()
+    if (hint == null) {
+        if (room.hint) {
+            Text(
+                "",
+                style = MaterialTheme.typography.labelSmall,
+                minLines = HINT_LINES,
+                modifier = Modifier.padding(top = Spacing.xs),
+            )
+        }
+    } else {
         Row(Modifier.padding(top = Spacing.xs), verticalAlignment = Alignment.CenterVertically) {
             Icon(
                 Icons.Outlined.Search,
@@ -217,7 +243,8 @@ private fun TileFootnotes(item: HeroListItem, sort: CatalogSort) {
                 hint,
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
-                maxLines = 2,
+                minLines = if (room.hint) HINT_LINES else 1,
+                maxLines = HINT_LINES,
                 overflow = TextOverflow.Ellipsis,
             )
         }
@@ -317,7 +344,10 @@ private const val PORTRAIT_RATIO = 1.09f
 private fun tileLines(fontScale: Float): Int = if (fontScale in 1.1f..1.2f || fontScale > 1.6f) 2 else 1
 
 private const val TILE_ROLES = 2
+private const val HINT_LINES = 2
+private val NO_ROOM = TileFootnoteRoom(metric = false, hint = false)
 private val STARS_LINE = 22.dp
+private val RANGED_ICON = 16.dp
 
 private val PORTRAIT_SHAPE = RoundedCornerShape(2.dp)
 

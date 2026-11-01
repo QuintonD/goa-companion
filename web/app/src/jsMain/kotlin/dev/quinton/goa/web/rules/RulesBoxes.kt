@@ -54,3 +54,19 @@ internal object RulesBoxes {
 
     private const val BULLET = "• "
 }
+
+/**
+ * The diagrams the rulebook prints, and the caption it prints under each (feature:rules `RulesDiagrams`, the
+ * same table). A caption is a verbatim passage of `rules-reference.json`; `RulesWebTest` fails if one is gone.
+ */
+internal object RulesDiagrams {
+    class Entry(val page: Int, val opening: String, val art: String, val width: Int, val height: Int)
+
+    val entries = listOf(
+        Entry(8, "The Red team has 4 minions", "official/rules/push-1.webp", 1461, 1126),
+        Entry(8, "All minions remaining in the old", "official/rules/push-2.webp", 1437, 1126),
+    )
+
+    fun of(excerpt: RulesExcerpt): Entry? =
+        entries.firstOrNull { it.page == excerpt.page && excerpt.text.startsWith(it.opening) }
+}

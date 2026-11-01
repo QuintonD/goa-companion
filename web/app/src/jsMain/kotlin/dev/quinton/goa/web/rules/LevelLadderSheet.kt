@@ -216,10 +216,15 @@ private fun DefeatResult(row: LevelRow) {
     }
 }
 
-/** Row per level; scrolls sideways when large text makes it wider than the sheet. */
+/**
+ * Row per level. Seven columns don't fit large text, and people check these numbers at the table, so none
+ * may hide off-screen: at large text (a container query in rem, so it follows Dynamic Type) the table gives
+ * way to one block per level, each number beside its column's name.
+ */
 @Composable
 private fun LadderTable(ladder: LevelLadder, selected: Int?, onSelect: (Int) -> Unit) {
     Div({ classes("goa-rules-ladder-table-wrap") }) {
+        LadderBlocks(ladder, selected, onSelect)
         Table({ classes("goa-rules-ladder-table") }) {
             Thead {
                 Tr({ attr("aria-hidden", "true") }) {
@@ -254,6 +259,39 @@ private fun LadderTable(ladder: LevelLadder, selected: Int?, onSelect: (Int) -> 
                             next?.toString() ?: "–",
                             RulesText.roman(row.maxTier),
                         ).forEach { Td({ attr("aria-hidden", "true") }) { Text(it) } }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun LadderBlocks(ladder: LevelLadder, selected: Int?, onSelect: (Int) -> Unit) {
+    Div({ classes("goa-rules-ladder-blocks") }) {
+        ladder.levels.forEach { row ->
+            val next = LadderLookup.nextLevelCost(ladder, row.level)
+            Button({
+                type(ButtonType.Button)
+                classes("goa-rules-ladder-block")
+                attr("aria-label", RulesText.spokenLadderRow(row, next))
+                attr("aria-pressed", (row.level == selected).toString())
+                onClick { onSelect(row.level) }
+            }) {
+                Span({ classes("t-title-medium", "c-primary") }) { Text("Level ${row.level}") }
+                listOf(
+                    RulesText.roman(row.lowestTier),
+                    "${row.defeatCoins}",
+                    "${row.assistCoins}",
+                    "${row.lifeCounters}",
+                    next?.toString() ?: "–",
+                    RulesText.roman(row.maxTier),
+                ).forEachIndexed { c, value ->
+                    Span({ classes("goa-rules-ladder-line") }) {
+                        Span({ classes("t-body-medium", "c-variant") }) {
+                            Text(RulesText.LADDER_HEADERS[c + 1].replace('\n', ' '))
+                        }
+                        Span({ classes("t-numeric") }) { Text(value) }
                     }
                 }
             }

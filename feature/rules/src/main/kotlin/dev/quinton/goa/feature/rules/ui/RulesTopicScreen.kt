@@ -19,6 +19,7 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
@@ -27,13 +28,16 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.Shadow
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import dev.quinton.goa.core.designsystem.component.BannerMedallionWidth
 import dev.quinton.goa.core.designsystem.component.EmptyState
 import dev.quinton.goa.core.designsystem.component.GoaScreen
-import dev.quinton.goa.core.designsystem.component.LookArt
+import dev.quinton.goa.core.designsystem.component.LARGE_FONT_SCALE
 import dev.quinton.goa.core.designsystem.component.rememberOfficialBitmap
 import dev.quinton.goa.core.designsystem.component.steelBanner
 import dev.quinton.goa.core.designsystem.theme.GoaTheme
@@ -45,7 +49,8 @@ import dev.quinton.goa.feature.rules.RulesTopicUiState
 
 /**
  * One quick-reference topic set like the rulebook's page, on the parchment in both themes: an optional
- * labelled summary, then the verbatim passages, with the page reference in the banner at the foot.
+ * labelled summary, then the verbatim passages, with the page reference in the banner at the foot
+ * (a plain line at the page's end when sideways or with large text).
  */
 @Composable
 fun RulesTopicScreen(state: RulesTopicUiState, onBack: () -> Unit) {
@@ -71,6 +76,10 @@ fun RulesTopicScreen(state: RulesTopicUiState, onBack: () -> Unit) {
 @Composable
 internal fun TopicContent(topic: RulesTopic) {
     val colors = GoaTheme.colors
+    val pages = "Rulebook ${RulesText.pages(topic.pages)} · quoted word for word"
+    // Sideways or with large text, height is scarce and the band would wrap: its words end the page instead.
+    val plainFoot = LocalDensity.current.fontScale > LARGE_FONT_SCALE ||
+        LocalConfiguration.current.screenHeightDp < BANNER_FOOT_MIN_HEIGHT
     ParchmentPage(Modifier.fillMaxSize()) {
         LazyColumn(
             Modifier.weight(1f).fillMaxWidth(),
@@ -81,50 +90,56 @@ internal fun TopicContent(topic: RulesTopic) {
             itemsIndexed(topic.excerpts, key = { i, _ -> "excerpt-$i" }) { i, excerpt ->
                 Column(verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
                     if (i > 0 && excerpt.heading != null) HorizontalDivider(color = colors.parchmentEdge)
-                    ExcerptBlock(excerpt)
-                    if (showsPushDiagram(topic, excerpt)) PushDiagram()
+                    val diagram = remember(excerpt) { RulesDiagrams.of(excerpt) }
+                    if (diagram != null) DiagramWithCaption(diagram, excerpt) else ExcerptBlock(excerpt)
                 }
             }
             item(key = "source") {
-                Text(
-                    "Source: the official Guards of Atlantis II rulebook, 2nd printing (printed page numbers).",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = colors.onParchmentVariant,
-                    modifier = Modifier.padding(top = Spacing.sm),
+                Column(
+                    Modifier.padding(top = Spacing.sm),
+                    verticalArrangement = Arrangement.spacedBy(Spacing.xs),
+                ) {
+                    if (plainFoot) {
+                        Text(pages, style = MaterialTheme.typography.labelLarge, color = colors.onParchmentVariant)
+                    }
+                    Text(
+                        "Source: the official Guards of Atlantis II rulebook, 2nd printing (printed page numbers).",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = colors.onParchmentVariant,
+                    )
+                }
+            }
+        }
+        if (!plainFoot) RulesFooter(pages)
+    }
+}
+
+/**
+ * A diagram the book prints, its white page multiplied into the parchment so it lies on our page as on the
+ * book's, over its printed caption (in italics, as printed). Decorative for TalkBack: the caption says what
+ * it shows. Space stays reserved while it loads.
+ */
+@Composable
+private fun DiagramWithCaption(diagram: RulesDiagrams.Entry, caption: RulesExcerpt) {
+    val image = rememberOfficialBitmap(diagram.art)
+    val page = GoaTheme.colors.parchment
+    Column(verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
+        Box(Modifier.fillMaxWidth().aspectRatio(diagram.aspect)) {
+            if (image != null) {
+                Image(
+                    image,
+                    contentDescription = null,
+                    contentScale = ContentScale.Fit,
+                    colorFilter = ColorFilter.tint(page, BlendMode.Multiply),
+                    modifier = Modifier.fillMaxSize(),
                 )
             }
         }
-        RulesFooter("Rulebook ${RulesText.pages(topic.pages)} · quoted word for word")
+        ExcerptBlock(caption, style = readingStyle().copy(fontStyle = FontStyle.Italic))
     }
 }
 
-/** The p.8 diagram goes under the three steps of a push, where the book prints it. */
-private fun showsPushDiagram(topic: RulesTopic, excerpt: RulesExcerpt): Boolean =
-    topic.id == PUSH_TOPIC && excerpt.page == PUSH_PAGE && excerpt.heading == PUSH_HEADING
-
-/**
- * The rulebook's "Lane Push" diagram (p.8). Its white page is multiplied into the parchment, so it lies
- * on our page as on the book's. Its printed caption isn't in the verbatim data, so it has none; decorative
- * for TalkBack, the steps above say what it shows. Space stays reserved while it loads.
- */
-@Composable
-private fun PushDiagram() {
-    val diagram = rememberOfficialBitmap(LookArt.PUSH_DIAGRAM_1)
-    val page = GoaTheme.colors.parchment
-    Box(Modifier.fillMaxWidth().aspectRatio(PUSH_DIAGRAM_ASPECT)) {
-        if (diagram != null) {
-            Image(
-                diagram,
-                contentDescription = null,
-                contentScale = ContentScale.Fit,
-                colorFilter = ColorFilter.tint(page, BlendMode.Multiply),
-                modifier = Modifier.fillMaxSize(),
-            )
-        }
-    }
-}
-
-/** The page's foot, as the book's: the steel banner with the page reference. Grows with large text. */
+/** The page's foot, as the book's: the steel banner with the page reference. */
 @Composable
 private fun RulesFooter(text: String) {
     val colors = GoaTheme.colors
@@ -150,9 +165,6 @@ private fun RulesFooter(text: String) {
 
 private val PAGE_MARGIN = 18.dp
 private val FOOTER_HEIGHT = 42.dp
-private const val PUSH_TOPIC = "pushing-the-lane"
-private const val PUSH_PAGE = 8
-private const val PUSH_HEADING = "Push the Lane"
 
-/** Width ÷ height of the p.8 diagram (1461 × 1126). */
-private const val PUSH_DIAGRAM_ASPECT = 1461f / 1126f
+/** Below this height (dp) the foot band gives its room back to the text. */
+private const val BANNER_FOOT_MIN_HEIGHT = 480

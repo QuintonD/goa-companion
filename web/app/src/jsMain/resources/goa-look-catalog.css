@@ -62,10 +62,10 @@
   overflow: visible;
   white-space: normal;
 }
-.goa-hero-tile-meta { display: flex; flex-wrap: wrap; align-items: center; gap: 3px; min-height: 22px; }
+.goa-hero-tile-meta { display: flex; flex-wrap: nowrap; align-items: center; gap: 4px; min-height: 22px; }
+.goa-hero-tile-ranged { flex: none; width: 16px; height: 16px; object-fit: contain; }
 .goa-hero-tile-meta .goa-star { width: 10px; height: 10px; }
 .goa-hero-tile-text .goa-hero-traits { font-size: 0.65625rem; line-height: 1rem; letter-spacing: 0; color: var(--on-surface-variant); }
-.goa-hero-tile-product { margin-top: auto; padding-top: var(--sp-xs); }
 
 /* ---------- Compact list ---------- */
 .goa-hero-row.goa-plate { border-radius: 7px; background-size: 14px, 14px, 14px, 14px, auto, 420px, auto; }
@@ -208,12 +208,39 @@
 .goa-rules-ladder .goa-rules-excerpt:not(.boxed) { padding: var(--sp-sm) var(--sp-md); border-radius: 2px; background: var(--parchment); }
 .goa-rules-ladder .goa-rules-heading { font-size: 1.125rem; line-height: 1.5rem; }
 
-/* The rulebook's p.8 diagram: its white page vanishes into the parchment. */
+/* The rulebook's p.8 diagrams: the white page vanishes into the parchment; the caption under each, in italics as printed. */
 .goa-rules-diagram { display: block; width: 100%; height: auto; mix-blend-mode: multiply; }
+.goa-rules-figure { display: flex; flex-direction: column; gap: var(--sp-xs); }
+.goa-rules-figure .goa-rules-quote { font-style: italic; }
+
+/* The ladder at large text (rem follows Dynamic Type): one block per level, no number off-screen. */
+.goa-rules-ladder { container: rules-ladder / inline-size; }
+.goa-rules-ladder-blocks { display: none; flex-direction: column; gap: var(--sp-sm); }
+.goa-rules-ladder-block {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-xs);
+  width: 100%;
+  min-height: 44px;
+  padding: var(--sp-sm) var(--sp-md);
+  border: 1px solid var(--engraved);
+  border-radius: 8px;
+  background: none;
+  color: var(--on-surface);
+  text-align: start;
+  cursor: pointer;
+}
+.goa-rules-ladder-block[aria-pressed="true"] { border: 2px solid var(--primary); }
+.goa-rules-ladder-line { display: flex; justify-content: space-between; gap: var(--sp-sm); }
+@container rules-ladder (max-width: 17.5rem) {
+  .goa-rules-ladder-table-wrap { overflow: visible; border: 0; border-radius: 0; }
+  .goa-rules-ladder-table { display: none; }
+  .goa-rules-ladder-blocks { display: flex; }
+}
 
 .goa-rules-summary.goa-plate { padding: var(--sp-md); border: 1px solid #5D6B70; border-radius: 8px; }
 
-/* The page's foot, as the book's: the steel banner with the page reference. Grows with large text. */
+/* The page's foot, as the book's: the steel banner with the page reference. */
 .goa-rules-foot {
   position: sticky;
   bottom: var(--safe-bottom);
@@ -232,6 +259,17 @@
   text-shadow: 0 1px 1px #000;
 }
 .has-tabbar .goa-rules-foot { bottom: calc(var(--tabbar-height) + var(--safe-bottom)); }
+/* Sideways or with large text height is scarce and the band would wrap: a plain line ends the page instead. */
+.goa-rules-foot-plain { display: none; margin-bottom: 0; }
+.goa-content:has(> .goa-rules-topic) { container: rules-page / inline-size; }
+@media (max-height: 480px) {
+  .goa-rules-foot { display: none; }
+  .goa-rules-foot-plain { display: block; }
+}
+@container rules-page (max-width: 19.5rem) {
+  .goa-rules-foot { display: none; }
+  .goa-rules-foot-plain { display: block; }
+}
 
 /* The Heroes bar at the largest text: the view switch goes to More, so the title keeps its room. */
 @container topbar (max-width: 13rem) {
