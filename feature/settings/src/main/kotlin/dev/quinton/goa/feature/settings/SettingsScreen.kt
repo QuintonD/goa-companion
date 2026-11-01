@@ -134,6 +134,19 @@ private fun SettingsList(
                 ThemeSelector(state.theme) { onAction(SettingsAction.SetTheme(it)) }
             }
         }
+        item { Spacer(Modifier.size(Spacing.md)) }
+        item {
+            GoaCard(Modifier.fillMaxWidth()) {
+                Text("Board style", style = MaterialTheme.typography.titleMedium)
+                Text(
+                    "How pieces and spaces look on the painted maps.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                Spacer(Modifier.size(Spacing.md))
+                BoardStyleSelector(state.boardStyle) { onAction(SettingsAction.SetBoardStyle(it)) }
+            }
+        }
 
         item { SectionHeader("Collection") }
         item {

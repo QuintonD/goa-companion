@@ -12,6 +12,7 @@ import dev.quinton.goa.core.domain.settings.ProductOption
 import dev.quinton.goa.core.domain.settings.ProductOwnership
 import dev.quinton.goa.core.model.catalog.Catalog
 import dev.quinton.goa.core.model.settings.AppSettings
+import dev.quinton.goa.core.model.settings.BoardStyle
 import dev.quinton.goa.core.model.settings.ThemeMode
 import dev.quinton.goa.core.model.settings.TimerLayout
 import javax.inject.Inject
@@ -37,6 +38,7 @@ sealed interface SettingsUiState {
         val hapticsEnabled: Boolean,
         val soundsEnabled: Boolean,
         val timerLayout: TimerLayout = TimerLayout.STEPS,
+        val boardStyle: BoardStyle = BoardStyle.MINIATURES,
         val puzzleNudges: Boolean = true,
         val speedTest: SpeedTest = SpeedTest.Idle,
     ) : SettingsUiState {
@@ -68,6 +70,8 @@ sealed interface SettingsAction {
     data class SetSounds(val enabled: Boolean) : SettingsAction
 
     data class SetTimerLayout(val layout: TimerLayout) : SettingsAction
+
+    data class SetBoardStyle(val style: BoardStyle) : SettingsAction
 
     data class SetPuzzleNudges(val enabled: Boolean) : SettingsAction
 }
@@ -123,6 +127,8 @@ class SettingsViewModel @Inject constructor(
 
                 is SettingsAction.SetTimerLayout -> settingsRepository.update { it.copy(timerLayout = action.layout) }
 
+                is SettingsAction.SetBoardStyle -> settingsRepository.update { it.copy(boardStyle = action.style) }
+
                 is SettingsAction.SetPuzzleNudges -> settingsRepository.update {
                     it.copy(puzzleNudges = action.enabled)
                 }
@@ -153,6 +159,7 @@ class SettingsViewModel @Inject constructor(
         hapticsEnabled = s.hapticsEnabled,
         soundsEnabled = s.soundsEnabled,
         timerLayout = s.timerLayout,
+        boardStyle = s.boardStyle,
         puzzleNudges = s.puzzleNudges,
     )
 }

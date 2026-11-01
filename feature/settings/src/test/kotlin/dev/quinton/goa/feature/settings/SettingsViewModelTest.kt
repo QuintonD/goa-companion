@@ -6,6 +6,7 @@ import com.google.common.truth.Truth.assertThat
 import dev.quinton.goa.core.data.game.AiSpeed
 import dev.quinton.goa.core.data.game.AiSpeedMeter
 import dev.quinton.goa.core.model.settings.AppSettings
+import dev.quinton.goa.core.model.settings.BoardStyle
 import dev.quinton.goa.core.model.settings.ThemeMode
 import dev.quinton.goa.core.model.settings.TimerLayout
 import dev.quinton.goa.core.testing.FakeCatalogRepository
@@ -74,6 +75,16 @@ class SettingsViewModelTest {
             assertThat(ready().timerLayout).isEqualTo(TimerLayout.ROUND)
         }
         assertThat(settings.state.value.timerLayout).isEqualTo(TimerLayout.ROUND)
+    }
+
+    @Test fun boardStyleIsShownAndSaved() = runTest {
+        val vm = SettingsViewModel(settings, catalog, meter)
+        vm.uiState.test {
+            assertThat(ready().boardStyle).isEqualTo(BoardStyle.MINIATURES)
+            vm.onAction(SettingsAction.SetBoardStyle(BoardStyle.GRID_AND_DISCS))
+            assertThat(ready().boardStyle).isEqualTo(BoardStyle.GRID_AND_DISCS)
+        }
+        assertThat(settings.state.value.boardStyle).isEqualTo(BoardStyle.GRID_AND_DISCS)
     }
 
     @Test fun puzzleNudgesAreOnByDefaultAndSaved() = runTest {
