@@ -1,6 +1,7 @@
 package dev.quinton.goa.feature.draft.methods
 
-import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.FlowRow
@@ -26,7 +27,6 @@ import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -43,11 +43,13 @@ import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import dev.quinton.goa.core.designsystem.component.GoaPlate
 import dev.quinton.goa.core.designsystem.component.GoaScreen
-import dev.quinton.goa.core.designsystem.theme.GoaTheme
 import dev.quinton.goa.core.designsystem.theme.Spacing
+import dev.quinton.goa.feature.draft.ui.PLATE_BRONZE
 import dev.quinton.goa.feature.draft.ui.SequenceStrip
 import dev.quinton.goa.feature.draft.ui.goaFilterChipColors
+import dev.quinton.goa.feature.draft.ui.plateEdge
 
 interface MethodsActions {
     fun back() {}
@@ -186,13 +188,9 @@ private fun SectionHeader(text: String) {
 private fun MethodCard(row: MethodRow, actions: MethodsActions, onDelete: (() -> Unit)?) {
     val method = row.method
     var notes by rememberSaveable(method.id) { mutableStateOf(false) }
-    Surface(
-        shape = MaterialTheme.shapes.large,
-        color = MaterialTheme.colorScheme.surface,
-        border = BorderStroke(
-            1.dp,
-            if (row.isDefault) MaterialTheme.colorScheme.primary else GoaTheme.colors.engravedBorder,
-        ),
+    GoaPlate(
+        Modifier.fillMaxWidth().plateEdge(if (row.isDefault) PLATE_BRONZE else null, 1.dp),
+        contentPadding = PaddingValues(0.dp),
     ) {
         Column(Modifier.fillMaxWidth().padding(Spacing.lg)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -266,16 +264,14 @@ private fun MethodCard(row: MethodRow, actions: MethodsActions, onDelete: (() ->
 
 @Composable
 private fun Badge(text: String) {
-    Surface(
-        shape = RoundedCornerShape(50),
-        color = MaterialTheme.colorScheme.secondary.copy(alpha = 0.12f),
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.secondary.copy(alpha = 0.6f)),
-    ) {
-        Text(
-            text,
-            style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.secondary,
-            modifier = Modifier.padding(horizontal = Spacing.sm, vertical = 2.dp),
-        )
-    }
+    val secondary = MaterialTheme.colorScheme.secondary
+    Text(
+        text,
+        style = MaterialTheme.typography.labelSmall,
+        color = secondary,
+        modifier = Modifier
+            .background(secondary.copy(alpha = 0.12f), RoundedCornerShape(50))
+            .border(1.dp, secondary.copy(alpha = 0.6f), RoundedCornerShape(50))
+            .padding(horizontal = Spacing.sm, vertical = 2.dp),
+    )
 }

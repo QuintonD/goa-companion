@@ -1,6 +1,6 @@
 package dev.quinton.goa.feature.draft.ui
 
-import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -22,9 +22,7 @@ import androidx.compose.material.icons.automirrored.outlined.OpenInNew
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
@@ -35,16 +33,20 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import dev.quinton.goa.core.designsystem.component.CardScan
 import dev.quinton.goa.core.designsystem.component.ComplexityStars
+import dev.quinton.goa.core.designsystem.component.GoaSheet
 import dev.quinton.goa.core.designsystem.component.HeroPortrait
 import dev.quinton.goa.core.designsystem.component.HeroSymbol
 import dev.quinton.goa.core.designsystem.component.LARGE_FONT_SCALE
 import dev.quinton.goa.core.designsystem.component.StatBar
+import dev.quinton.goa.core.designsystem.component.TitlePlate
 import dev.quinton.goa.core.designsystem.component.cardColor
 import dev.quinton.goa.core.designsystem.component.scaledIconSize
+import dev.quinton.goa.core.designsystem.theme.GoaTextStyles
 import dev.quinton.goa.core.designsystem.theme.GoaTheme
 import dev.quinton.goa.core.designsystem.theme.Spacing
 import dev.quinton.goa.core.model.catalog.CardColor
@@ -65,7 +67,7 @@ internal fun HeroPeekSheet(
     onOpenHero: ((String) -> Unit)?,
     onOpenSpellbook: ((String) -> Unit)? = null,
 ) {
-    ModalBottomSheet(
+    GoaSheet(
         onDismissRequest = onDismiss,
         sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
     ) {
@@ -76,29 +78,21 @@ internal fun HeroPeekSheet(
                 .padding(bottom = Spacing.xl),
             verticalArrangement = Arrangement.spacedBy(Spacing.md),
         ) {
+            TitlePlate(hero.name, Modifier.fillMaxWidth())
             Row(verticalAlignment = Alignment.CenterVertically) {
-                HeroPortrait(hero.id, hero.portrait, null, Modifier.size(width = 80.dp, height = 100.dp))
+                Box(Modifier.size(width = 80.dp, height = 100.dp)) {
+                    HeroPortrait(hero.id, hero.portrait, null, Modifier.matchParentSize(), framed = false)
+                    if (hero.symbol != null) {
+                        HeroSymbol(hero.id, hero.symbol, Modifier.padding(2.dp).size(28.dp))
+                    }
+                }
                 Spacer(Modifier.width(Spacing.md))
                 Column(verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text(
-                            hero.name,
-                            style = MaterialTheme.typography.titleLarge,
-                            modifier = Modifier.weight(1f, fill = false).semantics { heading() },
-                        )
-                        if (hero.symbol != null) {
-                            HeroSymbol(
-                                hero.id,
-                                hero.symbol,
-                                Modifier.padding(start = Spacing.sm).size(scaledIconSize(32.dp, 1.4f)),
-                            )
-                        }
-                    }
                     if (hero.title.isNotEmpty()) {
                         Text(
                             hero.title,
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            style = GoaTextStyles.printedSmall.copy(fontStyle = FontStyle.Italic),
+                            color = MaterialTheme.colorScheme.onSurface,
                         )
                     }
                     ComplexityStars(hero.complexity, showLabel = true)
@@ -165,8 +159,8 @@ private val PEEK_STATS = listOf(
 private fun PeekHeading(text: String) {
     Text(
         text,
-        style = MaterialTheme.typography.titleSmall,
-        color = MaterialTheme.colorScheme.primary,
+        style = GoaTextStyles.sectionHead,
+        color = GoaTheme.colors.heading,
         modifier = Modifier.semantics { heading() },
     )
 }
@@ -230,16 +224,14 @@ internal fun RoleChips(roles: List<Role>, modifier: Modifier = Modifier, highlig
 @Composable
 internal fun RoleLabel(role: Role, color: Color? = null) {
     val tint = color ?: MaterialTheme.colorScheme.onSurfaceVariant
-    Surface(
-        shape = RoundedCornerShape(6.dp),
-        color = (color ?: Color.Transparent).copy(alpha = if (color == null) 0f else 0.12f),
-        border = BorderStroke(1.dp, color?.copy(alpha = 0.6f) ?: GoaTheme.colors.engravedBorder),
-    ) {
-        Text(
-            role.label,
-            style = MaterialTheme.typography.labelSmall,
-            color = if (color == null) MaterialTheme.colorScheme.onSurface else tint,
-            modifier = Modifier.padding(horizontal = 6.dp, vertical = 1.dp),
-        )
-    }
+    val shape = RoundedCornerShape(6.dp)
+    Text(
+        role.label,
+        style = MaterialTheme.typography.labelSmall,
+        color = if (color == null) MaterialTheme.colorScheme.onSurface else tint,
+        modifier = Modifier
+            .background(color?.copy(alpha = 0.12f) ?: Color.Transparent, shape)
+            .border(1.dp, color?.copy(alpha = 0.6f) ?: GoaTheme.colors.engravedBorder, shape)
+            .padding(horizontal = 6.dp, vertical = 1.dp),
+    )
 }

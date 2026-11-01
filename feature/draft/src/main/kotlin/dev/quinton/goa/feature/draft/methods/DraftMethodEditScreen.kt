@@ -1,7 +1,7 @@
 package dev.quinton.goa.feature.draft.methods
 
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Remove
@@ -23,6 +24,7 @@ import androidx.compose.material.icons.outlined.Lock
 import androidx.compose.material.icons.outlined.LockOpen
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilledTonalIconButton
 import androidx.compose.material3.FilterChip
@@ -34,7 +36,6 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.SegmentedButton
 import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.SingleChoiceSegmentedButtonRow
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -62,6 +63,7 @@ import dev.quinton.goa.feature.draft.ui.actionName
 import dev.quinton.goa.feature.draft.ui.goaFilterChipColors
 import dev.quinton.goa.feature.draft.ui.goaSegmentedColors
 import dev.quinton.goa.feature.draft.ui.goaTonalIconColors
+import dev.quinton.goa.feature.draft.ui.plateEdge
 
 interface MethodEditActions {
     fun back() {}
@@ -129,7 +131,15 @@ fun DraftMethodEditScreen(state: MethodEditUiState, actions: MethodEditActions) 
         title = if (state.isNew) "New method" else "Edit method",
         onBack = actions::back,
         actions = {
-            TextButton(onClick = actions::save, enabled = state.error == null && !state.loading) { Text("Save") }
+            // On the banner: the banner's ink, not bronze on steel.
+            TextButton(
+                onClick = actions::save,
+                enabled = state.error == null && !state.loading,
+                colors = ButtonDefaults.textButtonColors(
+                    contentColor = GoaTheme.colors.onBanner,
+                    disabledContentColor = GoaTheme.colors.onBannerVariant.copy(alpha = 0.6f),
+                ),
+            ) { Text("Save") }
         },
     ) { padding ->
         if (state.loading) return@GoaScreen
@@ -268,11 +278,7 @@ private fun StepsCard(
 
 @Composable
 private fun StepRow(section: StepSection, index: Int, step: StepSpec, count: Int, actions: MethodEditActions) {
-    Surface(
-        shape = MaterialTheme.shapes.small,
-        color = MaterialTheme.colorScheme.surfaceVariant,
-        border = BorderStroke(1.dp, GoaTheme.colors.engravedBorder),
-    ) {
+    Box(Modifier.fillMaxWidth().plateEdge(GoaTheme.colors.engravedBorder, 1.dp, RoundedCornerShape(6.dp))) {
         // FlowRow so the controls wrap instead of clipping at large font scales.
         FlowRow(
             Modifier.fillMaxWidth().padding(start = Spacing.sm),

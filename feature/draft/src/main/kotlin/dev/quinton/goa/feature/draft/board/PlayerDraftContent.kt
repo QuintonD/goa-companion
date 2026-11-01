@@ -1,6 +1,5 @@
 package dev.quinton.goa.feature.draft.board
 
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -24,8 +23,6 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ModalBottomSheet
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -40,22 +37,29 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import dev.quinton.goa.core.designsystem.component.GoaPlate
+import dev.quinton.goa.core.designsystem.component.GoaSheet
 import dev.quinton.goa.core.designsystem.component.HeroPortrait
 import dev.quinton.goa.core.designsystem.component.PlayerAvatar
+import dev.quinton.goa.core.designsystem.component.TeamMark
+import dev.quinton.goa.core.designsystem.component.TitlePlate
 import dev.quinton.goa.core.designsystem.component.teamColor
+import dev.quinton.goa.core.designsystem.theme.GoaTextStyles
 import dev.quinton.goa.core.designsystem.theme.GoaTheme
 import dev.quinton.goa.core.designsystem.theme.Spacing
 import dev.quinton.goa.core.domain.teams.PlayerDraftPhase
 import dev.quinton.goa.core.domain.teams.PlayerDraftSession
 import dev.quinton.goa.core.model.match.Team
 import dev.quinton.goa.feature.draft.ui.HeroTile
+import dev.quinton.goa.feature.draft.ui.PLATE_BRONZE
 import dev.quinton.goa.feature.draft.ui.TileState
 import dev.quinton.goa.feature.draft.ui.heroLabel
 import dev.quinton.goa.feature.draft.ui.info
+import dev.quinton.goa.feature.draft.ui.plateEdge
 import dev.quinton.goa.feature.draft.ui.teamGlyph
 import dev.quinton.goa.feature.draft.ui.teamLabel
+import dev.quinton.goa.feature.draft.ui.teamName
 
 /** The official Player Draft: heroes for every player first, then captains draft players. */
 @Composable
@@ -82,7 +86,8 @@ internal fun PlayerDraftContent(
                 item {
                     Text(
                         "Still to draft",
-                        style = MaterialTheme.typography.titleMedium,
+                        style = GoaTextStyles.sectionHead,
+                        color = GoaTheme.colors.heading,
                         modifier = Modifier.padding(top = Spacing.sm).semantics { heading() },
                     )
                 }
@@ -120,23 +125,22 @@ internal fun PlayerDraftContent(
 @Composable
 private fun PhaseBanner(state: BoardUiState, session: PlayerDraftSession) {
     val team = session.captains.nextTeam
-    val color = team?.let { teamColor(it) } ?: MaterialTheme.colorScheme.primary
     val (title, body) = DraftBoardText.playerDraftBanner(state, session)
-    Surface(
-        shape = MaterialTheme.shapes.large,
-        color = color.copy(alpha = 0.14f),
-        border = BorderStroke(2.dp, color),
-        modifier = Modifier.fillMaxWidth().semantics(mergeDescendants = true) { liveRegion = LiveRegionMode.Polite },
+    GoaPlate(
+        Modifier
+            .fillMaxWidth()
+            .plateEdge(team?.let { teamColor(it) } ?: PLATE_BRONZE)
+            .semantics(mergeDescendants = true) { liveRegion = LiveRegionMode.Polite },
+        contentPadding = PaddingValues(Spacing.md),
     ) {
-        Column(Modifier.padding(Spacing.lg)) {
-            Text(title, style = MaterialTheme.typography.headlineSmall, color = color, fontWeight = FontWeight.Bold)
-            if (body.isNotEmpty()) {
-                Text(
-                    body,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
+        TitlePlate(title, Modifier.fillMaxWidth(), heading = false, maxLines = 3)
+        if (body.isNotEmpty()) {
+            Text(
+                body,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurface,
+                modifier = Modifier.padding(top = Spacing.xs),
+            )
         }
     }
 }
@@ -145,12 +149,10 @@ private fun PhaseBanner(state: BoardUiState, session: PlayerDraftSession) {
 private fun HeroChoiceRow(state: BoardUiState, session: PlayerDraftSession, playerId: String, actions: BoardActions) {
     val heroId = session.selection.choices[playerId]
     val captainOf = Team.entries.firstOrNull { session.captains.captainOf(it) == playerId }
-    Surface(
+    GoaPlate(
+        Modifier.fillMaxWidth().heightIn(min = 64.dp),
         onClick = { if (!session.selection.auto) actions.chooseHeroFor(playerId) },
-        shape = MaterialTheme.shapes.medium,
-        color = MaterialTheme.colorScheme.surface,
-        border = BorderStroke(1.dp, GoaTheme.colors.engravedBorder),
-        modifier = Modifier.fillMaxWidth().heightIn(min = 64.dp),
+        contentPadding = PaddingValues(0.dp),
     ) {
         Row(Modifier.padding(Spacing.sm), verticalAlignment = Alignment.CenterVertically) {
             PlayerAvatar(state.players[playerId])
@@ -176,6 +178,7 @@ private fun HeroChoiceRow(state: BoardUiState, session: PlayerDraftSession, play
                     state.heroes.info(heroId).portrait,
                     null,
                     Modifier.size(width = 48.dp, height = 60.dp),
+                    framed = false,
                 )
             } else {
                 Button(onClick = { actions.chooseHeroFor(playerId) }, modifier = Modifier.heightIn(min = 48.dp)) {
@@ -192,21 +195,20 @@ private fun CaptainTeams(state: BoardUiState, session: PlayerDraftSession) {
         for (team in listOf(session.teamA, session.teamA.opponent)) {
             val members = if (team == Team.RED) session.captains.red else session.captains.blue
             val active = session.captains.nextTeam == team
-            Surface(
-                modifier = Modifier.weight(1f),
-                shape = MaterialTheme.shapes.medium,
-                color = MaterialTheme.colorScheme.surface,
-                border = BorderStroke(
-                    if (active) 2.dp else 1.dp,
-                    if (active) teamColor(team) else GoaTheme.colors.engravedBorder,
-                ),
+            GoaPlate(
+                Modifier.weight(1f).plateEdge(if (active) teamColor(team) else null),
+                contentPadding = PaddingValues(0.dp),
             ) {
                 Column(Modifier.padding(Spacing.sm), verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
-                    Text(
-                        teamLabel(team) + if (team == session.teamA) " · A" else " · B",
-                        style = MaterialTheme.typography.titleSmall,
-                        color = teamColor(team),
-                    )
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        TeamMark(team, markSize = 14.dp)
+                        Spacer(Modifier.width(Spacing.xs))
+                        Text(
+                            teamName(team) + if (team == session.teamA) " · A" else " · B",
+                            style = GoaTextStyles.sectionHead,
+                            color = teamColor(team),
+                        )
+                    }
                     members.forEach { id ->
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             PlayerAvatar(state.players[id], size = 28.dp)
@@ -231,17 +233,15 @@ private fun CaptainTeams(state: BoardUiState, session: PlayerDraftSession) {
 @Composable
 private fun PlayerCard(state: BoardUiState, session: PlayerDraftSession, playerId: String, onClick: () -> Unit) {
     val heroId = session.selection.choices[playerId]
-    Surface(
-        onClick = onClick,
-        shape = MaterialTheme.shapes.medium,
-        color = MaterialTheme.colorScheme.surface,
-        border = BorderStroke(1.dp, GoaTheme.colors.engravedBorder),
-        modifier = Modifier
+    GoaPlate(
+        Modifier
             .fillMaxWidth()
             .heightIn(min = 64.dp)
             .semantics {
                 contentDescription = "${state.playerName(playerId)}, plays ${heroLabel(state.heroes, heroId)}"
             },
+        onClick = onClick,
+        contentPadding = PaddingValues(0.dp),
     ) {
         Row(Modifier.padding(Spacing.sm), verticalAlignment = Alignment.CenterVertically) {
             PlayerAvatar(state.players[playerId])
@@ -258,7 +258,13 @@ private fun PlayerCard(state: BoardUiState, session: PlayerDraftSession, playerI
                 if (heroId !=
                     null
                 ) {
-                    HeroPortrait(heroId, state.heroes.info(heroId).portrait, null, Modifier.matchParentSize())
+                    HeroPortrait(
+                        heroId,
+                        state.heroes.info(heroId).portrait,
+                        null,
+                        Modifier.matchParentSize(),
+                        framed = false,
+                    )
                 }
             }
         }
@@ -276,14 +282,15 @@ private fun HeroChooser(
 ) {
     val available = session.selection.available(playerId).toSet()
     val shown = session.selection.hands[playerId] ?: session.selection.pool
-    ModalBottomSheet(onDismissRequest = { actions.chooseHeroFor(null) }) {
+    GoaSheet(onDismissRequest = { actions.chooseHeroFor(null) }) {
         Column(Modifier.padding(horizontal = Spacing.screen)) {
-            Text("Hero for ${state.playerName(playerId)}", style = MaterialTheme.typography.titleLarge)
+            TitlePlate("Hero for ${state.playerName(playerId)}", Modifier.fillMaxWidth())
             Spacer(Modifier.height(Spacing.sm))
             LazyVerticalGrid(
                 columns = GridCells.Adaptive(100.dp),
                 modifier = Modifier.heightIn(max = 480.dp),
                 horizontalArrangement = Arrangement.spacedBy(Spacing.xs),
+                verticalArrangement = Arrangement.spacedBy(Spacing.xs),
                 contentPadding = PaddingValues(bottom = Spacing.xl),
             ) {
                 items(shown, key = { it }) { heroId ->

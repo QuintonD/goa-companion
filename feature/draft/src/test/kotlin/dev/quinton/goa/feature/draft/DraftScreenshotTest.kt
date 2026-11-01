@@ -1,8 +1,13 @@
 package dev.quinton.goa.feature.draft
 
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onRoot
+import androidx.compose.ui.unit.dp
 import androidx.test.core.app.ApplicationProvider
 import com.github.takahirom.roborazzi.captureRoboImage
 import com.github.takahirom.roborazzi.captureScreenRoboImage
@@ -46,7 +51,9 @@ import dev.quinton.goa.feature.draft.setup.TeamMode
 import dev.quinton.goa.feature.draft.setup.previewSetupState
 import dev.quinton.goa.feature.draft.ui.HeroInfo
 import dev.quinton.goa.feature.draft.ui.HeroPeekSheet
+import dev.quinton.goa.feature.draft.ui.HeroTile
 import dev.quinton.goa.feature.draft.ui.PreviewData
+import dev.quinton.goa.feature.draft.ui.TileState
 import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
@@ -124,6 +131,26 @@ class DraftScreenshotTest {
             players = players,
             local = local,
         )
+
+    /** Pool tiles with real art, in every state: a ban must read as crossed out, not just dimmed. */
+    @Test fun heroTileStatesDark() = capture {
+        val ids = listOf("arien", "bain", "brogan", "tigerclaw", "wasp", "xargatha")
+        val tiles = ids.map { HeroInfo.of(bundledHero(it)) }
+        val states = listOf(
+            TileState.Available,
+            TileState.Inactive,
+            TileState.Banned(Team.RED),
+            TileState.Picked(Team.BLUE),
+            TileState.Banned(Team.BLUE),
+            TileState.Available,
+        )
+        Row(horizontalArrangement = Arrangement.spacedBy(4.dp), modifier = Modifier.padding(16.dp)) {
+            tiles.forEachIndexed { i, hero ->
+                HeroTile(hero, states[i], onClick = {
+                }, selected = i == tiles.lastIndex, compact = true, modifier = Modifier.weight(1f))
+            }
+        }
+    }
 
     // ---- Setup wizard
 
