@@ -24,7 +24,7 @@ import org.jetbrains.compose.web.dom.Text
  * The panel hides ([panelShown] false) to a one-line peek bar that still says what it is about
  * ([peek]: "● Arien · Choose an action for Dangerous Current", teal when it waits for you), with
  * [peekActions] (Confirm, Deselect) and Show; the map then gets the room. A screen with no panel
- * right now passes null.
+ * right now passes null. [panelTitle] (who a question asks) sits on the panel's top bar, beside Hide.
  */
 @Composable
 fun PlayScaffold(
@@ -38,6 +38,7 @@ fun PlayScaffold(
     top: @Composable () -> Unit = {},
     peekActions: @Composable () -> Unit = {},
     panelLabel: String = "Details",
+    panelTitle: (@Composable () -> Unit)? = null,
 ) {
     Screen(title, actions = actions, flush = true, fill = true) {
         Div({ classes("goa-play") }) {
@@ -52,6 +53,7 @@ fun PlayScaffold(
                             attr("aria-label", panelLabel)
                         }) {
                             Div({ classes("goa-play-panel-bar") }) {
+                                panelTitle?.let { title -> Div({ classes("goa-play-panel-title") }) { title() } }
                                 Button({
                                     classes("goa-play-hide")
                                     attr("type", "button")
@@ -112,7 +114,7 @@ fun PeekBar(peek: PanelPeek?, onShow: () -> Unit, actions: @Composable () -> Uni
     }
 }
 
-/** The team's shape (◆ Red, ● Blue): team is never colour alone. */
+/** The team's mark (Red's gear, Blue's star; a shape while it loads): team is never colour alone. */
 @Composable
 fun TeamMark(team: Team) {
     Span({

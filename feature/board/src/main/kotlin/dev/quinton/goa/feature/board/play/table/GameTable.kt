@@ -22,7 +22,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.CenterFocusStrong
 import androidx.compose.material.icons.outlined.SwapVert
 import androidx.compose.material.icons.outlined.ZoomIn
-import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -65,6 +64,7 @@ import dev.quinton.goa.feature.board.ui.FitWhileHidden
 import dev.quinton.goa.feature.board.ui.HideablePanel
 import dev.quinton.goa.feature.board.ui.PanelCover
 import dev.quinton.goa.feature.board.ui.PanelPeek
+import dev.quinton.goa.feature.board.ui.PlateButton
 import dev.quinton.goa.feature.board.ui.cards.CardFocusState
 import kotlinx.coroutines.launch
 
@@ -82,6 +82,7 @@ import kotlinx.coroutines.launch
  * whole board unless the person has moved it. Taps on the map keep selecting while it is hidden.
  * Hidden or shown is kept for the screen (and survives rotation); [initialPanelHidden] for previews.
  * [onSpellbook] adds a Spellbook control per hero the person controls that has one (Gydion, ADR-040).
+ * [panelTitle] goes on the panel's top strip, pinned as it scrolls ([DecisionWho]: who is asked).
  */
 @Composable
 fun GameTable(
@@ -97,6 +98,7 @@ fun GameTable(
     initialPanelHidden: Boolean = false,
     focus: CardFocusState? = null,
     onSpellbook: ((String) -> Unit)? = null,
+    panelTitle: (@Composable () -> Unit)? = null,
     panel: @Composable ColumnScope.() -> Unit,
 ) {
     var hidden by rememberSaveable { mutableStateOf(initialPanelHidden) }
@@ -105,6 +107,7 @@ fun GameTable(
     var buttons by remember { mutableStateOf<Rect?>(null) }
     BoxWithConstraints(modifier.fillMaxSize().onGloballyPositioned { origin = it.positionInRoot() }) {
         val landscape = maxWidth > maxHeight
+        val trackCard = if (maxHeight < TALL_TABLE) TRACK_CARD_SHORT else TRACK_CARD_TALL
         val orientation = if (landscape) MapOrientation.LANDSCAPE else MapOrientation.PORTRAIT
         val layout =
             remember(table.map, orientation, table.bottomTeam) { MapLayout(table.map, orientation, table.bottomTeam) }
@@ -184,7 +187,9 @@ fun GameTable(
             verticalArrangement = Arrangement.spacedBy(Spacing.xs),
         ) {
             Column(
-                Modifier.onSizeChanged { topHeight = it.height + with(density) { Spacing.sm.roundToPx() } },
+                Modifier
+                    .fillMaxWidth()
+                    .onSizeChanged { topHeight = it.height + with(density) { Spacing.sm.roundToPx() } },
                 verticalArrangement = Arrangement.spacedBy(Spacing.xs),
             ) {
                 // After the reveal the turn's cards stay in view, the panel shown or hidden (ADR-041);
@@ -193,9 +198,10 @@ fun GameTable(
                 if (landscape && !hidden) {
                     TableTopRow(table, onHero, focus = focus)
                 } else {
-                    TableHud(table)
+                    TableHud(table, if (landscape) Modifier else Modifier.fillMaxWidth(), spread = !landscape)
                     if (track != null) {
-                        TurnTrackRow(table, track, onHero, focus = focus, compact = hidden)
+                        // [trackCard]: a small phone keeps the map's height, the question framed under it.
+                        TurnTrackRow(table, track, onHero, focus = focus, compact = hidden, cardWidth = trackCard)
                     } else if (!hidden) {
                         HeroStrip(table, onHero)
                     }
@@ -241,11 +247,12 @@ fun GameTable(
             maxShare = PANEL_SHARE,
             onCover = { cover = it },
             peekTrailing = peekTrailing,
+            title = panelTitle,
         ) {
             Column(
                 Modifier
                     .verticalScroll(panelScroll)
-                    .padding(start = Spacing.lg, end = Spacing.lg, bottom = Spacing.md),
+                    .padding(start = PANEL_INSET, end = PANEL_INSET, bottom = Spacing.md),
                 verticalArrangement = Arrangement.spacedBy(Spacing.sm),
                 content = panel,
             )
@@ -288,7 +295,7 @@ fun PeekConfirm(table: TableUi, busy: Boolean, onAnswer: (Choice) -> Unit) {
     val selected = table.selected?.takeIf { it is Choice.Space || it is Choice.Unit || it is Choice.Token } ?: return
     if (!table.asking || table.handDecision) return
     val label = table.label(selected)
-    Button(
+    PlateButton(
         onClick = { onAnswer(selected) },
         enabled = !busy,
         contentPadding = PaddingValues(horizontal = Spacing.md),
@@ -379,5 +386,9 @@ private const val RECENT = 4
  */
 private const val OPTIONS_SHRINK = 0.8f
 private val SIDE_PANEL = 400.dp
+private val PANEL_INSET = 12.dp
+private val TALL_TABLE = 720.dp
+private val TRACK_CARD_TALL = 64.dp
+private val TRACK_CARD_SHORT = 50.dp
 private const val SIDE_SHARE = 0.42f
 private const val PANEL_SHARE = 0.56f

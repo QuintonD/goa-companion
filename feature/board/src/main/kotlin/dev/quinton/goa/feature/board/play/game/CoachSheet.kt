@@ -23,7 +23,6 @@ import androidx.compose.material.icons.outlined.Lightbulb
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -56,14 +55,18 @@ import dev.quinton.goa.feature.board.board.BoardSheet
 import dev.quinton.goa.feature.board.board.SheetTitle
 import dev.quinton.goa.feature.board.play.table.TableCard
 import dev.quinton.goa.feature.board.play.table.TableUi
+import dev.quinton.goa.feature.board.ui.PlateButton
+import dev.quinton.goa.feature.board.ui.PlateTone
+import dev.quinton.goa.feature.board.ui.PlateWell
 import dev.quinton.goa.feature.board.ui.cards.CardFocusState
 
 /** Under the question: think first, the coach is a tap away. It never answers for the person. */
 @Composable
 internal fun SuggestButton(enabled: Boolean, onClick: () -> Unit) {
-    OutlinedButton(
+    PlateButton(
         onClick = onClick,
         enabled = enabled,
+        tone = PlateTone.STEEL,
         modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp),
     ) {
         Icon(Icons.Outlined.Lightbulb, contentDescription = null, modifier = Modifier.size(18.dp))
@@ -215,9 +218,13 @@ private fun OptionCard(
     val confidence = confidenceWords(rank == 1, option.confidence)
     val spoken = stringResource(R.string.coach_option_said, rank, option.label, chance, confidence)
     Surface(
-        shape = RoundedCornerShape(14.dp),
-        color = MaterialTheme.colorScheme.surface,
-        border = BorderStroke(if (rank == 1 && !close) 2.dp else 1.dp, GoaTheme.colors.engravedBorder),
+        shape = RoundedCornerShape(8.dp),
+        color = PlateWell,
+        border = if (rank == 1 && !close) {
+            BorderStroke(2.dp, MaterialTheme.colorScheme.primary)
+        } else {
+            BorderStroke(1.dp, GoaTheme.colors.engravedBorder)
+        },
         modifier = Modifier.fillMaxWidth(),
     ) {
         Column(Modifier.padding(Spacing.md), verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {

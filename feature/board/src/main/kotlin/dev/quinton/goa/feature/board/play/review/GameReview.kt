@@ -52,6 +52,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
@@ -100,6 +101,7 @@ import dev.quinton.goa.feature.board.play.table.spellbookSeats
 import dev.quinton.goa.feature.board.play.table.spellbookUi
 import dev.quinton.goa.feature.board.play.table.spokenCard
 import dev.quinton.goa.feature.board.play.table.ultimateCard
+import dev.quinton.goa.feature.board.ui.PlateWell
 
 /**
  * The game-state review (PRODUCT §9–10, ADR-037), in a sheet: **Now** — the round at a glance (Life
@@ -204,8 +206,8 @@ private fun BoardSummary(table: TableUi, pushes: Map<Team, Int>) {
     val view = table.view
     val geometry = table.geometry
     Surface(
-        shape = RoundedCornerShape(16.dp),
-        color = MaterialTheme.colorScheme.surfaceVariant,
+        shape = RoundedCornerShape(8.dp),
+        color = PlateWell,
         border = BorderStroke(1.dp, GoaTheme.colors.engravedBorder),
         modifier = Modifier.fillMaxWidth(),
     ) {
@@ -302,7 +304,7 @@ private fun OrderChip(table: TableUi, heroId: String, label: String, strong: Boo
     val name = table.hero(heroId).name
     Surface(
         shape = RoundedCornerShape(50),
-        color = if (strong) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surface,
+        color = if (strong) MaterialTheme.colorScheme.primaryContainer else PlateWell,
         border = BorderStroke(1.dp, if (strong) MaterialTheme.colorScheme.primary else GoaTheme.colors.engravedBorder),
         modifier = Modifier.clearAndSetSemantics { contentDescription = "$name: $label" },
     ) {
@@ -349,8 +351,8 @@ private fun HeroCard(table: TableUi, hero: HeroView, onCard: OpenCard, puzzle: B
     val acted = hero.heroId in view.actedThisTurn
     val words = reviewHero(table, hero, puzzle)
     Surface(
-        shape = RoundedCornerShape(16.dp),
-        color = MaterialTheme.colorScheme.surface,
+        shape = RoundedCornerShape(8.dp),
+        color = PlateWell,
         border = BorderStroke(
             if (acting) 2.dp else 1.dp,
             if (acting) MaterialTheme.colorScheme.primary else GoaTheme.colors.engravedBorder,
@@ -544,8 +546,8 @@ private fun LazyListScope.roundItems(
 private fun TurnCard(table: TableUi, turn: TurnUi, onCard: OpenCard, onAction: (ReviewAction) -> Unit) {
     val current = !turn.finished
     Surface(
-        shape = RoundedCornerShape(16.dp),
-        color = MaterialTheme.colorScheme.surface,
+        shape = RoundedCornerShape(8.dp),
+        color = PlateWell,
         border = BorderStroke(
             if (current) 2.dp else 1.dp,
             if (current) MaterialTheme.colorScheme.primary else GoaTheme.colors.engravedBorder,
@@ -633,7 +635,12 @@ private fun PlayTile(table: TableUi, play: TurnPlay, onCard: (Card) -> Unit) {
         if (play.card == null) {
             PassTile(TILE)
         } else {
-            Surface(onClick = { card?.let(onCard) }, enabled = card != null, shape = RoundedCornerShape(6.dp)) {
+            Surface(
+                onClick = { card?.let(onCard) },
+                enabled = card != null,
+                shape = RoundedCornerShape(6.dp),
+                color = Color.Transparent,
+            ) {
                 TableCard(card, width = TILE)
             }
         }
@@ -679,8 +686,8 @@ private fun PassTile(width: Dp) {
 @Composable
 private fun EndOfRound(round: Int, lines: List<ReviewLine>) {
     Surface(
-        shape = RoundedCornerShape(16.dp),
-        color = MaterialTheme.colorScheme.surfaceVariant,
+        shape = RoundedCornerShape(8.dp),
+        color = PlateWell,
         border = BorderStroke(1.dp, GoaTheme.colors.engravedBorder),
         modifier = Modifier.fillMaxWidth(),
     ) {

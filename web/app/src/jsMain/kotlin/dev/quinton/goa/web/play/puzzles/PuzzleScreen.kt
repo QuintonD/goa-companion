@@ -29,6 +29,7 @@ import dev.quinton.goa.web.play.cards.CardImage
 import dev.quinton.goa.web.play.game.PeekConfirm
 import dev.quinton.goa.web.play.table.Announce
 import dev.quinton.goa.web.play.table.DecisionPanel
+import dev.quinton.goa.web.play.table.DecisionWho
 import dev.quinton.goa.web.play.table.EventLog
 import dev.quinton.goa.web.play.table.GameReviewSheet
 import dev.quinton.goa.web.play.table.GameTableView
@@ -153,6 +154,13 @@ private fun PuzzleTable(puzzle: PuzzleUi, controller: PuzzleController) {
             }
         },
         banner = { GoalBanner(puzzle.info.goal.text, puzzle.playing, compact = landscape) },
+        panelTitle = if (puzzle.replay == null && table.decision != null && puzzle.phase != PuzzlePhase.SOLVED &&
+            puzzle.phase != PuzzlePhase.REPLYING && puzzle.phase != PuzzlePhase.MISSED
+        ) {
+            { DecisionWho(table) }
+        } else {
+            null
+        },
     ) { PuzzlePanel(puzzle, onAction, focus) }
     Announce(puzzle.announcement?.text)
     when (val open = sheet) {
@@ -290,6 +298,7 @@ private fun PuzzlePanel(puzzle: PuzzleUi, onAction: (PuzzleAction) -> Unit, focu
                     onAnswer = { onAction(PuzzleAction.Answer(it)) },
                     focus = focus,
                     busy = puzzle.busy,
+                    who = false,
                 )
                 RecentEvents(puzzle.recent.takeLast(2))
                 puzzle.round?.let {
@@ -311,7 +320,7 @@ private fun PuzzleHeader(puzzle: PuzzleUi) {
             Span({ classes("t-overline", "c-primary") }) { Text(PuzzleText.place(puzzle.info, puzzle.total)) }
             DifficultyMark(puzzle.info.difficulty)
         }
-        H2({ classes("t-title-large") }) { Text(puzzle.info.title) }
+        H2({ classes("goa-title-plate") }) { Text(puzzle.info.title) }
         P({ classes("t-label-medium", "c-variant") }) { Text(puzzle.info.theme) }
     }
 }
@@ -335,7 +344,7 @@ private fun Intro(puzzle: PuzzleUi, onAction: (PuzzleAction) -> Unit) {
 @Composable
 private fun MissCard(puzzle: PuzzleUi, onAction: (PuzzleAction) -> Unit) {
     Div({ classes("goa-puzzle-miss") }) {
-        H2({ classes("t-title-large") }) { Text("Not quite") }
+        H2({ classes("goa-title-plate") }) { Text("Not quite") }
         P({
             classes("t-body-large")
             attr("aria-live", "polite")

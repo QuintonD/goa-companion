@@ -1,5 +1,6 @@
 package dev.quinton.goa.feature.board.ui
 
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -19,24 +20,24 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.text.rememberTextMeasurer
+import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import dev.quinton.goa.core.designsystem.component.BannerEndSpacer
+import dev.quinton.goa.core.designsystem.component.BevelText
 import dev.quinton.goa.core.designsystem.component.steelBanner
+import dev.quinton.goa.core.designsystem.theme.GoaTextStyles
 import dev.quinton.goa.core.designsystem.theme.GoaTheme
 
 /**
@@ -80,22 +81,21 @@ internal fun isLandscape(): Boolean {
 @Composable
 private fun BoardTopBar(title: String, onBack: () -> Unit, actions: @Composable RowScope.() -> Unit) {
     val landscape = isLandscape()
-    val base = MaterialTheme.typography.titleLarge
+    val base = GoaTextStyles.bannerTitle
     val bar = if (landscape) LANDSCAPE_BAR else PORTRAIT_BAR
+    // The bar's width doesn't grow: past 1.5× a bevelled title only gets cut, and TalkBack hears it whole anyway.
+    val scale = LocalDensity.current.fontScale
+    val capped = minOf(scale, TITLE_MAX_SCALE) / scale
     val oneLine = if (landscape) {
-        base.copy(fontSize = 16.sp, lineHeight = 20.sp)
+        base.copy(fontSize = 16.sp * capped, lineHeight = 20.sp * capped)
     } else {
-        base.copy(fontSize = 18.sp, lineHeight = 24.sp)
+        base.copy(fontSize = 18.sp * capped, lineHeight = 24.sp * capped)
     }
     val small = base.copy(fontSize = 13.sp, lineHeight = 16.sp)
     val density = LocalDensity.current
     // Too long for one line: two smaller ones, when they fit the bar (not with large text, where
     // the bar would have to grow; the title is cut there and TalkBack still hears it whole).
     val twoFit = with(density) { small.lineHeight.toDp() } * 2 + TWO_LINE_AIR <= bar
-    var tooLong by remember(title, landscape) { mutableStateOf(false) }
-    val twoLines = tooLong && twoFit
-    val style = if (twoLines) small else oneLine
-    val lines = if (twoLines) 2 else 1
     // Large text may need more than the bar's height: one line of the title plus a little air.
     val textHeight = with(density) { oneLine.lineHeight.toDp() } + TITLE_AIR
     val height: Dp = maxOf(bar, textHeight)
@@ -116,21 +116,26 @@ private fun BoardTopBar(title: String, onBack: () -> Unit, actions: @Composable 
                 IconButton(onClick = onBack) {
                     Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
                 }
-                Text(
-                    text = title,
-                    style = style,
-                    maxLines = lines,
-                    overflow = TextOverflow.Ellipsis,
-                    onTextLayout = { if (!tooLong && it.hasVisualOverflow) tooLong = true },
-                    modifier = Modifier
-                        .weight(1f)
-                        .padding(start = 4.dp, end = 4.dp)
-                        .semantics { heading() },
-                )
+                BoxWithConstraints(Modifier.weight(1f).padding(start = 4.dp, end = 4.dp)) {
+                    val measurer = rememberTextMeasurer()
+                    val room = constraints.maxWidth
+                    val tooLong = remember(title, room, oneLine) {
+                        measurer.measure(title, oneLine, maxLines = 1, constraints = Constraints(maxWidth = room))
+                            .hasVisualOverflow
+                    }
+                    val twoLines = tooLong && twoFit
+                    BevelText(
+                        text = title,
+                        style = if (twoLines) small else oneLine,
+                        maxLines = if (twoLines) 2 else 1,
+                        modifier = Modifier.semantics(mergeDescendants = true) { heading() },
+                    )
+                }
             }
             CompositionLocalProvider(LocalContentColor provides GoaTheme.colors.onBannerVariant) {
                 actions()
             }
+            BannerEndSpacer()
         }
     }
 }
@@ -138,4 +143,5 @@ private fun BoardTopBar(title: String, onBack: () -> Unit, actions: @Composable 
 private val PORTRAIT_BAR = 48.dp
 private val LANDSCAPE_BAR = 40.dp
 private val TITLE_AIR = 8.dp
+private const val TITLE_MAX_SCALE = 1.5f
 private val TWO_LINE_AIR = 4.dp

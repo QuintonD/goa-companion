@@ -22,10 +22,8 @@ import androidx.compose.material.icons.outlined.Block
 import androidx.compose.material.icons.outlined.CheckCircle
 import androidx.compose.material.icons.outlined.ErrorOutline
 import androidx.compose.material.icons.outlined.TouchApp
-import androidx.compose.material3.Button
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -35,6 +33,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.clearAndSetSemantics
@@ -49,7 +49,10 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import dev.quinton.goa.core.designsystem.cardtext.GameIcons
+import dev.quinton.goa.core.designsystem.component.CardTextBox
+import dev.quinton.goa.core.designsystem.component.PlateColor
 import dev.quinton.goa.core.designsystem.component.scaledIconSize
 import dev.quinton.goa.core.designsystem.theme.GoaTheme
 import dev.quinton.goa.core.designsystem.theme.Spacing
@@ -58,6 +61,9 @@ import dev.quinton.goa.core.game.Decision
 import dev.quinton.goa.core.game.DecisionKind
 import dev.quinton.goa.core.model.catalog.Card
 import dev.quinton.goa.feature.board.play.PlayText
+import dev.quinton.goa.feature.board.ui.PlateButton
+import dev.quinton.goa.feature.board.ui.PlateTone
+import dev.quinton.goa.feature.board.ui.PlateWell
 import dev.quinton.goa.feature.board.ui.cards.CardFocusState
 import dev.quinton.goa.feature.board.ui.cards.CardNote
 import dev.quinton.goa.feature.board.ui.cards.CardSelection
@@ -134,14 +140,19 @@ internal fun HandPicker(table: TableUi, onAnswer: (Choice) -> Unit, focus: CardF
         )
     }
     val offered = offeredCards(table)
-    OfferedRow(table, offered, focus) { key -> openOffered(focus, table, offered, offered.indexOfKey(key), onAnswer) }
+    OfferedRow(table, offered, focus, fan = true) { key ->
+        openOffered(focus, table, offered, offered.indexOfKey(key), onAnswer)
+    }
     if (offered.any { it.choice != null }) TapHint("Tap a card to see it large; tap it again to play it facedown.")
     if (table.buttonOptions.isNotEmpty()) {
         Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
             table.buttonOptions.forEach { choice ->
-                OutlinedButton(onClick = {
-                    onAnswer(choice)
-                }, enabled = !busy, modifier = Modifier.heightIn(min = 52.dp)) {
+                PlateButton(
+                    onClick = { onAnswer(choice) },
+                    enabled = !busy,
+                    tone = PlateTone.STEEL,
+                    modifier = Modifier.heightIn(min = 52.dp),
+                ) {
                     Text(table.label(choice))
                 }
             }
@@ -172,7 +183,7 @@ internal fun CardPicker(table: TableUi, onAnswer: (Choice) -> Unit, focus: CardF
             )
         }
     } else {
-        OfferedRow(table, offered, focus) { key ->
+        OfferedRow(table, offered, focus, fan = true) { key ->
             openOffered(focus, table, offered, offered.indexOfKey(key), onAnswer)
         }
     }
@@ -211,7 +222,11 @@ internal fun TapHint(text: String) {
             modifier = Modifier.size(scaledIconSize(18.dp, 1.3f)),
         )
         Spacer(Modifier.width(Spacing.xs))
-        Text(text, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Text(
+            text,
+            style = MaterialTheme.typography.bodyMedium.copy(fontSize = 13.sp, letterSpacing = 0.sp),
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
     }
 }
 
@@ -223,7 +238,8 @@ private fun List<OfferedCard>.indexOfKey(key: String): Int = indexOfFirst { it.c
  * cards to keep side by side, up to 140 dp), so the card itself is what is read (ADR-041). Each one
  * is a TalkBack node that opens the viewer; one the question doesn't offer is dimmed and marked.
  * Keeping (level up), each card shows the item it gives if not kept and the spells it casts.
- * [onOpen] gets the key of the viewer page to open (the card's id, or a named spell's [namedKey]).
+ * [fan] lays them as a hand held in a gentle fan (mock-up 01), each still a whole tap target and one
+ * TalkBack node. [onOpen] gets the key of the viewer page to open (the card's id, or a named spell's [namedKey]).
  */
 @Composable
 private fun OfferedRow(
@@ -231,22 +247,36 @@ private fun OfferedRow(
     offered: List<OfferedCard>,
     focus: CardFocusState,
     keep: Boolean = false,
+    fan: Boolean = false,
     onOpen: (String) -> Unit,
 ) {
     val reason = table.decision?.kind?.let(::notOffered)
+    val spread = fan && offered.none { it.card.isSpell }
     BoxWithConstraints(Modifier.fillMaxWidth()) {
         val n = offered.size.coerceAtLeast(1)
         // A landscape spell card (Gydion) is as tall as the others and about twice as wide (CardShape.kt).
         val units = offered.sumOf { cardAspect(it.card) / CARD_ASPECT.toDouble() }.toFloat().coerceAtLeast(1f)
         val min = if (offered.any { it.card.isSpell }) MIN_SPELL_CARD else MIN_HAND_CARD
-        val width = ((maxWidth - Spacing.sm * (n - 1)) / units).coerceIn(min, largestCard(n))
+        val gap = if (spread) 0.dp else Spacing.sm
+        val edge = if (spread) FAN_EDGE else 0.dp
+        val width = ((maxWidth - edge * 2 - gap * (n - 1)) / units).coerceIn(min, largestCard(n))
         Row(
-            Modifier.horizontalScroll(rememberScrollState()),
-            horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+            Modifier
+                .fillMaxWidth()
+                .horizontalScroll(rememberScrollState())
+                .padding(start = edge, end = edge, bottom = if (spread) FAN_DROP else 0.dp),
+            horizontalArrangement = if (spread) {
+                Arrangement.spacedBy(gap, Alignment.CenterHorizontally)
+            } else {
+                Arrangement.spacedBy(gap)
+            },
         ) {
-            offered.forEach { item ->
+            offered.forEachIndexed { i, item ->
                 val named = if (keep) table.namedBy(item.card) else emptyList()
-                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                // About 3.2° per card from the centre, the outer ones slightly lower.
+                val fromCentre = i - (offered.size - 1) / 2f
+                val tilt = if (spread) Modifier.fanned(fromCentre) else Modifier
+                Column(tilt, verticalArrangement = Arrangement.spacedBy(4.dp)) {
                     OfferedThumb(item, width, keep, named, unavailableCardLine(table, item.card.id) ?: reason, focus) {
                         onOpen(item.card.id)
                     }
@@ -287,8 +317,9 @@ private fun OfferedThumb(
     ) {
         Surface(
             onClick = onOpen,
-            shape = RoundedCornerShape(8.dp),
-            border = BorderStroke(1.dp, GoaTheme.colors.engravedBorder),
+            shape = RoundedCornerShape(width * 0.08f),
+            color = Color.Transparent,
+            shadowElevation = 3.dp,
             modifier = Modifier.cardFocusOrigin(focus, card.id).alpha(if (offered) 1f else DIMMED),
         ) {
             TableCard(card, width = width)
@@ -372,7 +403,7 @@ internal fun DefensePanel(
         // The button is under every row: bring it into view once "Don't defend" is chosen.
         val requester = remember { BringIntoViewRequester() }
         LaunchedEffect(declined) { requester.bringIntoView() }
-        Button(
+        PlateButton(
             onClick = { onAnswer(declined) },
             enabled = !busy,
             modifier = Modifier.fillMaxWidth().heightIn(min = 52.dp).bringIntoViewRequester(requester),
@@ -395,16 +426,13 @@ private fun AttackHeader(
     prompt: String,
     focus: CardFocusState,
 ) {
-    Surface(
-        shape = RoundedCornerShape(12.dp),
-        color = MaterialTheme.colorScheme.errorContainer,
-        modifier = Modifier.fillMaxWidth(),
-    ) {
-        Row(Modifier.padding(Spacing.sm), verticalAlignment = Alignment.CenterVertically) {
+    CardTextBox(PlateColor.RED, Modifier.fillMaxWidth(), cap = "Attack") {
+        Row(verticalAlignment = Alignment.CenterVertically) {
             if (card != null) {
                 Surface(
                     onClick = { focus.show(listOf(card), title = "Attacking card") },
                     shape = RoundedCornerShape(6.dp),
+                    color = Color.Transparent,
                     modifier = Modifier
                         .cardFocusOrigin(focus, card.id)
                         .clearAndSetSemantics {
@@ -424,29 +452,19 @@ private fun AttackHeader(
                     contentDescription = prompt
                 },
             ) {
-                Text(
-                    heading,
-                    style = MaterialTheme.typography.labelLarge,
-                    color = MaterialTheme.colorScheme.onErrorContainer,
-                )
+                Text(heading, style = MaterialTheme.typography.labelLarge)
                 Text(
                     attack?.let { "Attack $it" } ?: "Attack decided by the card",
                     style = MaterialTheme.typography.headlineSmall,
-                    color = MaterialTheme.colorScheme.onErrorContainer,
                     fontWeight = FontWeight.Bold,
                 )
                 minionModifier?.takeIf { it != 0 }?.let { m ->
                     Text(
                         "Minion defense modifier ${if (m > 0) "+$m" else "$m"} is counted below (p.14).",
                         style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onErrorContainer,
                     )
                 }
-                Text(
-                    "Discard a card to defend",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onErrorContainer,
-                )
+                Text("Discard a card to defend", style = MaterialTheme.typography.bodySmall)
             }
         }
     }
@@ -474,8 +492,9 @@ private fun DefenseCard(card: Card, line: DefenseLine, width: Dp, focus: CardFoc
     ) {
         Surface(
             onClick = onOpen,
-            shape = RoundedCornerShape(8.dp),
-            border = BorderStroke(1.dp, GoaTheme.colors.engravedBorder),
+            shape = RoundedCornerShape(width * 0.08f),
+            color = Color.Transparent,
+            shadowElevation = 3.dp,
             modifier = Modifier.cardFocusOrigin(focus, card.id),
         ) { TableCard(card, width = width) }
         Verdict(line.verdict.holds, line.verdict.label)
@@ -528,8 +547,8 @@ private fun Verdict(verdict: Boolean?, text: String) {
 @Composable
 private fun DeclineRow(label: String, selected: Boolean, onClick: () -> Unit) {
     Surface(
-        shape = RoundedCornerShape(12.dp),
-        color = if (selected) MaterialTheme.colorScheme.secondaryContainer else MaterialTheme.colorScheme.surface,
+        shape = RoundedCornerShape(7.dp),
+        color = if (selected) MaterialTheme.colorScheme.secondaryContainer else PlateWell,
         border = BorderStroke(
             if (selected) 2.dp else 1.dp,
             if (selected) MaterialTheme.colorScheme.secondary else GoaTheme.colors.engravedBorder,
@@ -558,7 +577,19 @@ private fun largestCard(n: Int): Dp = when {
     else -> HAND_CARD
 }
 
+/** A hand card's place in the fan, [fromCentre] cards from the middle. */
+private fun Modifier.fanned(fromCentre: Float): Modifier = graphicsLayer {
+    val away = kotlin.math.abs(fromCentre)
+    rotationZ = fromCentre * FAN_DEGREES
+    translationY = away * (away + 1f) * 1.dp.toPx()
+}
+
 private val HAND_CARD = 84.dp
+private const val FAN_DEGREES = 3.2f
+
+/** Room for the outer cards' corners and for how far they drop. */
+private val FAN_EDGE = 6.dp
+private val FAN_DROP = 6.dp
 private val MIN_HAND_CARD = 60.dp
 private val ATTACK_CARD = 56.dp
 

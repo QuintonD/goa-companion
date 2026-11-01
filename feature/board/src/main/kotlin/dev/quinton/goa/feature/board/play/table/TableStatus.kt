@@ -9,10 +9,13 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.defaultMinSize
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.offset
@@ -25,11 +28,10 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Favorite
-import androidx.compose.material.icons.filled.Paid
-import androidx.compose.material.icons.filled.Waves
-import androidx.compose.material.icons.outlined.Style
+import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -37,8 +39,13 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.layout.Layout
+import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
@@ -46,14 +53,19 @@ import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.onClick
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import dev.quinton.goa.core.designsystem.component.CoinIcon
 import dev.quinton.goa.core.designsystem.component.HeroPortrait
+import dev.quinton.goa.core.designsystem.component.LifeCounterIcon
 import dev.quinton.goa.core.designsystem.component.OfficialArt
 import dev.quinton.goa.core.designsystem.component.OfficialIcon
 import dev.quinton.goa.core.designsystem.component.TeamMark
+import dev.quinton.goa.core.designsystem.component.WaveCounterIcon
 import dev.quinton.goa.core.designsystem.component.scaledIconSize
 import dev.quinton.goa.core.designsystem.component.teamColor
 import dev.quinton.goa.core.designsystem.theme.GoaTextStyles
@@ -66,6 +78,9 @@ import dev.quinton.goa.core.model.catalog.Card
 import dev.quinton.goa.core.model.match.Team
 import dev.quinton.goa.feature.board.BoardText
 import dev.quinton.goa.feature.board.play.PlayText
+import dev.quinton.goa.feature.board.ui.PlateSurface
+import dev.quinton.goa.feature.board.ui.TeamBadge
+import dev.quinton.goa.feature.board.ui.badgeOverhang
 import dev.quinton.goa.feature.board.ui.cards.CardFocusState
 import dev.quinton.goa.feature.board.ui.cards.FocusCard
 import dev.quinton.goa.feature.board.ui.cards.cardFocusOrigin
@@ -74,12 +89,14 @@ import dev.quinton.goa.feature.board.ui.cards.cardFocusOrigin
 private const val TURNS = 4
 
 /**
- * The round at a glance: each team's Life counters, the Wave counters left (per Lane), the round
- * and its four turn pips, and the side of the Tie Breaker coin showing. One TalkBack node.
+ * The round at a glance, a slate plate as in mock-up 01: each team's mark and official Life counter
+ * with the number beside it, the Wave counters left (per Lane), the round and its four diamond pips,
+ * the side of the Tie Breaker coin showing at the end. One TalkBack node. [spread] (a phone upright)
+ * makes it as wide as it is given, the coin at the far end; with little width or large text it wraps.
  */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-fun TableHud(table: TableUi, modifier: Modifier = Modifier, compact: Boolean = false) {
+fun TableHud(table: TableUi, modifier: Modifier = Modifier, compact: Boolean = false, spread: Boolean = false) {
     val view = table.view
     val waves = table.map.lanes.map { lane -> BoardText.lane(table.map, lane.id) to (view.wavesLeft[lane.id] ?: 0) }
     val spoken = buildList {
@@ -92,82 +109,100 @@ fun TableHud(table: TableUi, modifier: Modifier = Modifier, compact: Boolean = f
         add("Round ${view.round}, turn ${view.turn} of $TURNS")
         add("Tie Breaker coin shows ${BoardText.team(view.tieBreaker)}")
     }.joinToString(". ")
-    Surface(
-        shape = RoundedCornerShape(16.dp),
-        color = MaterialTheme.colorScheme.surface.copy(alpha = 0.94f),
-        border = BorderStroke(1.dp, GoaTheme.colors.engravedBorder),
+    // The plate is read at a glance: past 1.6× the numbers are large enough, and the coin keeps its row.
+    val fontScale = LocalDensity.current.fontScale
+    val big = 16.sp * (minOf(fontScale, HUD_MAX_SCALE) / fontScale)
+    val number = GoaTextStyles.numeric.copy(fontSize = big, lineHeight = big * 1.25f, fontWeight = FontWeight.SemiBold)
+    PlateSurface(
+        shape = RoundedCornerShape(7.dp),
+        brackets = true,
         modifier = modifier.clearAndSetSemantics { contentDescription = spoken },
     ) {
         FlowRow(
-            Modifier.padding(horizontal = Spacing.sm, vertical = 6.dp),
-            // Compact (landscape, beside the heroes' portraits): the same, closer together.
-            horizontalArrangement = Arrangement.spacedBy(if (compact) Spacing.sm else Spacing.md),
-            verticalArrangement = Arrangement.spacedBy(4.dp),
+            Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
+            // Compact (landscape, beside the heroes' portraits), or two Lanes' counters: closer together.
+            horizontalArrangement = Arrangement.spacedBy(
+                if (compact || waves.size > 1 || fontScale > 1.3f) Spacing.sm else Spacing.md,
+            ),
+            verticalArrangement = Arrangement.spacedBy(2.dp),
             itemVerticalAlignment = Alignment.CenterVertically,
         ) {
             Team.entries.forEach { team ->
+                val left = view.lifeCounters[team] ?: 0
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    TeamMark(team, markSize = scaledIconSize(10.dp))
-                    Spacer(Modifier.width(3.dp))
-                    Icon(
-                        Icons.Filled.Favorite,
-                        null,
-                        tint = teamColor(team),
-                        modifier = Modifier.size(scaledIconSize(14.dp, 1.4f)),
-                    )
+                    TeamMark(team, markSize = scaledIconSize(11.dp, 1.15f))
                     Spacer(Modifier.width(2.dp))
-                    Text("${view.lifeCounters[team] ?: 0}", style = GoaTextStyles.numeric, fontWeight = FontWeight.Bold)
+                    LifeCounterIcon(team, spent = left == 0, size = scaledIconSize(25.dp, 1.15f))
+                    Spacer(Modifier.width(3.dp))
+                    Text("$left", style = number)
                 }
             }
             waves.forEach { (lane, left) ->
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(
-                        Icons.Filled.Waves,
-                        null,
-                        tint = MaterialTheme.colorScheme.secondary,
-                        modifier = Modifier.size(scaledIconSize(16.dp, 1.4f)),
-                    )
-                    Spacer(Modifier.width(3.dp))
-                    Text(
-                        listOfNotNull(lane, "$left").joinToString(" "),
-                        style = GoaTextStyles.numeric,
-                        fontWeight = FontWeight.Bold,
-                    )
+                    WaveCounterIcon(spent = left == 0, size = scaledIconSize(if (lane != null) 22.dp else 25.dp, 1.15f))
+                    Spacer(Modifier.width(2.dp))
+                    // Two Lanes: "L1 3" fits both on the row; TalkBack hears "Lane 1".
+                    lane?.let {
+                        Text(
+                            it.replace("Lane ", "L"),
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                        Spacer(Modifier.width(4.dp))
+                    }
+                    Text("$left", style = number)
                 }
             }
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Text("R${view.round}", style = GoaTextStyles.numeric, fontWeight = FontWeight.Bold)
-                Spacer(Modifier.width(4.dp))
+                Text(
+                    "R${view.round}",
+                    style = GoaTextStyles.plateTitle.copy(fontSize = big, lineHeight = big * 1.25f),
+                    color = MaterialTheme.colorScheme.onSurface,
+                )
+                Spacer(Modifier.width(5.dp))
                 TurnPips(view.turn)
             }
-            TieBreakerMark(view.tieBreaker)
+            if (spread) {
+                Box(Modifier.weight(1f), contentAlignment = Alignment.CenterEnd) {
+                    TieBreakerMark(view.tieBreaker, if (fontScale > 1.3f) 22.dp else 28.dp)
+                }
+            } else {
+                TieBreakerMark(view.tieBreaker, if (compact) 24.dp else 28.dp)
+            }
         }
     }
 }
 
-/** Four pips: done turns filled, the current one ringed and larger, later ones hollow. */
+/** Four bronze diamonds: done turns filled, the current one ringed and larger, later ones hollow. */
 @Composable
 private fun TurnPips(turn: Int) {
-    val done = MaterialTheme.colorScheme.primary
-    val rest = MaterialTheme.colorScheme.onSurfaceVariant
-    Row(horizontalArrangement = Arrangement.spacedBy(3.dp), verticalAlignment = Alignment.CenterVertically) {
+    val bronze = MaterialTheme.colorScheme.primary
+    Row(horizontalArrangement = Arrangement.spacedBy(2.dp), verticalAlignment = Alignment.CenterVertically) {
         for (t in 1..TURNS) {
             val current = t == turn
-            Canvas(Modifier.size(if (current) 11.dp else 8.dp)) {
-                val r = size.minDimension / 2f
+            Canvas(Modifier.size(if (current) 16.dp else 12.dp)) {
+                val c = size.minDimension / 2f
                 when {
-                    t < turn -> drawCircle(done, r)
+                    t < turn -> drawPath(diamond(c, c * 0.92f), bronze)
 
                     current -> {
-                        drawCircle(done, r * 0.55f)
-                        drawCircle(done, r * 0.92f, style = Stroke(width = r * 0.3f))
+                        drawPath(diamond(c, c * 0.42f), bronze)
+                        drawPath(diamond(c, c * 0.9f), bronze, style = Stroke(width = 1.5.dp.toPx()))
                     }
 
-                    else -> drawCircle(rest, r * 0.8f, style = Stroke(width = r * 0.3f))
+                    else -> drawPath(diamond(c, c * 0.8f), bronze, style = Stroke(width = 1.2.dp.toPx()))
                 }
             }
         }
     }
+}
+
+private fun diamond(center: Float, radius: Float) = Path().apply {
+    moveTo(center, center - radius)
+    lineTo(center + radius, center)
+    lineTo(center, center + radius)
+    lineTo(center - radius, center)
+    close()
 }
 
 /**
@@ -198,6 +233,7 @@ internal fun TieBreakerMark(team: Team, size: Dp = 22.dp) {
     }
 }
 
+private const val HUD_MAX_SCALE = 1.6f
 private const val COIN_BADGE = 0.48f
 private val MAX_COIN_BADGE = 24.dp
 
@@ -205,7 +241,8 @@ private val MAX_COIN_BADGE = 24.dp
  * Every hero's status, one chip each: portrait ringed in team colour, level, coins, cards in hand.
  * Before the reveal in team order; after it in initiative order, numbered, with the initiative of
  * the card played (the initiative order strip). The acting hero's chip is outlined in bronze and
- * marked "Now". Tap a chip for the hero's game state (ADR-044).
+ * marked "Now". Tap a chip for the hero's game state (ADR-044). The chips share out the width when they
+ * fit, and scroll when they don't (every name is in full).
  *
  * [compact] (a phone held sideways with the panel shown, where the map has little height): each
  * hero is just its ringed portrait with the order badge, the acting one in a bronze ring, so the
@@ -220,16 +257,46 @@ fun HeroStrip(table: TableUi, onHero: (String) -> Unit, modifier: Modifier = Mod
     } else {
         table.view.heroes.sortedBy { it.team.ordinal }
     }
-    Row(
-        modifier.horizontalScroll(rememberScrollState()),
-        horizontalArrangement = Arrangement.spacedBy(Spacing.xs),
-    ) {
-        heroes.forEach { hero ->
-            val place = order.indexOf(hero.heroId).takeIf { it >= 0 }?.plus(1)
-            if (compact) {
+    if (compact) {
+        Row(
+            modifier.horizontalScroll(rememberScrollState()),
+            horizontalArrangement = Arrangement.spacedBy(Spacing.xs),
+        ) {
+            heroes.forEach { hero ->
+                val place = order.indexOf(hero.heroId).takeIf { it >= 0 }?.plus(1)
                 CompactHeroChip(table, hero, place, onClick = { onHero(hero.heroId) })
-            } else {
+            }
+        }
+    } else {
+        SharedWidthRow(modifier) {
+            heroes.forEach { hero ->
+                val place = order.indexOf(hero.heroId).takeIf { it >= 0 }?.plus(1)
                 HeroChip(table, hero, place, onClick = { onHero(hero.heroId) })
+            }
+        }
+    }
+}
+
+/** A row that scrolls when its items don't fit, and shares the spare width among them when they do. */
+@Composable
+private fun SharedWidthRow(modifier: Modifier = Modifier, content: @Composable () -> Unit) {
+    BoxWithConstraints(modifier) {
+        val viewport = constraints.maxWidth
+        Layout(content, Modifier.horizontalScroll(rememberScrollState())) { items, _ ->
+            val gap = Spacing.xs.roundToPx()
+            val natural = items.map { it.maxIntrinsicWidth(Constraints.Infinity) }
+            val free = viewport - natural.sum() - gap * (items.size - 1)
+            val spare = free.coerceAtLeast(0) / items.size.coerceAtLeast(1)
+            val height = items.maxOfOrNull { it.maxIntrinsicHeight(Constraints.Infinity) } ?: 0
+            val placed = items.mapIndexed { i, item ->
+                item.measure(Constraints.fixedWidth(natural[i] + spare).copy(minHeight = height, maxHeight = height))
+            }
+            layout(placed.sumOf { it.width } + gap * (placed.size - 1).coerceAtLeast(0), height) {
+                var x = 0
+                placed.forEach {
+                    it.place(x, 0)
+                    x += it.width + gap
+                }
             }
         }
     }
@@ -238,18 +305,16 @@ fun HeroStrip(table: TableUi, onHero: (String) -> Unit, modifier: Modifier = Mod
 @Composable
 private fun HeroChip(table: TableUi, hero: HeroView, place: Int?, onClick: () -> Unit) {
     val info = table.hero(hero.heroId)
-    val color = teamColor(hero.team)
+    // A small phone: four chips still fit side by side.
+    val tight = LocalConfiguration.current.screenWidthDp < TIGHT_CHIPS
     val acting = table.view.acting == hero.heroId
     val played = table.card(hero.played?.cardId)?.takeIf { hero.played?.facedown != true }
     val spoken = spokenChip(table, hero, place)
-    Surface(
+    PlateSurface(
         onClick = onClick,
-        shape = RoundedCornerShape(14.dp),
-        color = MaterialTheme.colorScheme.surface.copy(alpha = 0.95f),
-        border = BorderStroke(
-            if (acting) 2.dp else 1.dp,
-            if (acting) MaterialTheme.colorScheme.primary else GoaTheme.colors.engravedBorder,
-        ),
+        shape = RoundedCornerShape(7.dp),
+        brackets = true,
+        border = if (acting) BorderStroke(2.dp, BronzeEdge) else null,
         modifier = Modifier
             .heightIn(min = 48.dp)
             .clearAndSetSemantics {
@@ -262,47 +327,26 @@ private fun HeroChip(table: TableUi, hero: HeroView, place: Int?, onClick: () ->
             },
     ) {
         Row(
-            Modifier.padding(start = 4.dp, end = Spacing.sm, top = 4.dp, bottom = 4.dp),
+            Modifier.padding(
+                start = if (tight) 5.dp else 6.dp,
+                end = if (tight) 2.dp else 4.dp,
+                top = 4.dp,
+                bottom = 4.dp,
+            ),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Box {
-                HeroPortrait(
-                    hero.heroId,
-                    info.portrait,
-                    null,
-                    Modifier
-                        .size(scaledIconSize(34.dp, 1.3f))
-                        .border(2.dp, color, CircleShape)
-                        .alpha(if (hero.at == null) OFF_BOARD_ALPHA else 1f),
-                    shape = CircleShape,
-                    framed = false,
-                )
-                if (place != null) {
-                    Surface(
-                        shape = CircleShape,
-                        color = MaterialTheme.colorScheme.background,
-                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary),
-                        modifier = Modifier.align(Alignment.TopStart).size(16.dp),
-                    ) {
-                        Box(contentAlignment = Alignment.Center) {
-                            Text("$place", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold)
-                        }
-                    }
-                }
-            }
-            Spacer(Modifier.width(6.dp))
+            ChipPortrait(table, hero, place, if (tight) 28.dp else 32.dp)
+            Spacer(Modifier.width(if (tight) 4.dp else 5.dp))
             Column {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    TeamMark(hero.team, markSize = 8.dp)
-                    Spacer(Modifier.width(3.dp))
-                    // The name may shorten; "Now" never does ("Trinkets · N…" at large text).
                     Text(
                         info.name,
-                        style = MaterialTheme.typography.labelMedium,
+                        style = MaterialTheme.typography.labelLarge.copy(
+                            fontSize = if (tight) 12.sp else 13.sp,
+                            letterSpacing = 0.sp,
+                        ),
                         fontWeight = FontWeight.SemiBold,
                         maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                        modifier = Modifier.widthIn(max = 108.dp),
                     )
                     if (acting) {
                         Text(
@@ -316,19 +360,80 @@ private fun HeroChip(table: TableUi, hero: HeroView, place: Int?, onClick: () ->
                 }
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(5.dp),
+                    horizontalArrangement = Arrangement.spacedBy(if (tight) 2.dp else 3.dp),
                 ) {
-                    Stat(null, "Lv ${hero.level}")
-                    Stat(Icons.Filled.Paid, "${hero.coins}")
-                    Stat(Icons.Outlined.Style, "${hero.handCount}")
+                    Text("Lv${hero.level}", style = chipNumber())
+                    CoinIcon(size = scaledIconSize(12.dp, 1.3f))
+                    Text("${hero.coins}", style = chipNumber())
                     (hero.initiative ?: played?.initiative)?.let {
                         Stat(dev.quinton.goa.core.designsystem.cardtext.GameIcons.initiative.vector, "$it")
                     }
                     // Before the reveal: whose card is down already (p.7: played facedown, unseen).
-                    if (cardDown(table, hero)) TableCard(null, width = 10.dp)
+                    if (cardDown(table, hero)) TableCard(null, width = 9.dp)
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun chipNumber(): TextStyle =
+    GoaTextStyles.numeric.copy(fontSize = MaterialTheme.typography.labelSmall.fontSize)
+
+/**
+ * The portrait in its team ring, the mark on a dark badge at its foot; the cards in hand on a small card
+ * at its head, so four chips fit a phone; the order among the heroes, after the reveal, at the other side.
+ */
+@Composable
+private fun ChipPortrait(table: TableUi, hero: HeroView, place: Int?, size: Dp) {
+    val info = table.hero(hero.heroId)
+    Box {
+        HeroPortrait(
+            hero.heroId,
+            info.portrait,
+            null,
+            Modifier
+                .size(scaledIconSize(size, 1.3f))
+                .border(2.dp, teamColor(hero.team), CircleShape)
+                .alpha(if (hero.at == null) OFF_BOARD_ALPHA else 1f),
+            shape = CircleShape,
+            framed = false,
+        )
+        TeamBadge(hero.team, Modifier.align(Alignment.BottomEnd).badgeOverhang(CHIP_BADGE), size = CHIP_BADGE)
+        HandCount(hero.handCount, Modifier.align(Alignment.TopStart).offset(x = (-4).dp, y = (-3).dp))
+        if (place != null) OrderBadge(place, Modifier.align(Alignment.TopEnd))
+    }
+}
+
+/** How many cards a hero holds, on a little card. */
+@Composable
+private fun HandCount(count: Int, modifier: Modifier = Modifier) {
+    Box(
+        modifier
+            .defaultMinSize(minWidth = 12.dp, minHeight = 15.dp)
+            .background(BadgeCard, RoundedCornerShape(2.dp))
+            .border(1.dp, BronzeEdge, RoundedCornerShape(2.dp))
+            .padding(horizontal = 2.dp),
+        contentAlignment = Alignment.Center,
+    ) {
+        Text(
+            "$count",
+            style = GoaTextStyles.numeric.copy(fontSize = 10.sp, lineHeight = 13.sp),
+            fontWeight = FontWeight.SemiBold,
+        )
+    }
+}
+
+@Composable
+private fun OrderBadge(place: Int, modifier: Modifier = Modifier) {
+    Box(
+        modifier
+            .size(16.dp)
+            .background(BadgeCard, CircleShape)
+            .border(1.dp, BronzeEdge, CircleShape),
+        contentAlignment = Alignment.Center,
+    ) {
+        Text("$place", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold)
     }
 }
 
@@ -338,14 +443,10 @@ private fun CompactHeroChip(table: TableUi, hero: HeroView, place: Int?, onClick
     val info = table.hero(hero.heroId)
     val acting = table.view.acting == hero.heroId
     val spoken = spokenChip(table, hero, place)
-    Surface(
+    PlateSurface(
         onClick = onClick,
         shape = CircleShape,
-        color = MaterialTheme.colorScheme.surface.copy(alpha = 0.95f),
-        border = BorderStroke(
-            if (acting) 2.dp else 1.dp,
-            if (acting) MaterialTheme.colorScheme.primary else GoaTheme.colors.engravedBorder,
-        ),
+        border = if (acting) BorderStroke(2.dp, BronzeEdge) else null,
         modifier = Modifier
             .size(COMPACT_CHIP)
             .clearAndSetSemantics {
@@ -369,19 +470,9 @@ private fun CompactHeroChip(table: TableUi, hero: HeroView, place: Int?, onClick
                 shape = CircleShape,
                 framed = false,
             )
-            if (place != null) {
-                Surface(
-                    shape = CircleShape,
-                    color = MaterialTheme.colorScheme.background,
-                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary),
-                    modifier = Modifier.align(Alignment.TopStart).size(16.dp),
-                ) {
-                    Box(contentAlignment = Alignment.Center) {
-                        Text("$place", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold)
-                    }
-                }
-            }
-            Box(Modifier.align(Alignment.BottomEnd).padding(2.dp)) { TeamMark(hero.team, markSize = 9.dp) }
+            if (place != null) OrderBadge(place, Modifier.align(Alignment.TopStart))
+            // Inside the chip's circle, which clips what overhangs it.
+            TeamBadge(hero.team, Modifier.align(Alignment.BottomEnd).padding(5.dp), size = 15.dp)
             if (cardDown(table, hero)) TableCard(null, Modifier.align(Alignment.TopEnd), width = 11.dp)
         }
     }
@@ -389,6 +480,10 @@ private fun CompactHeroChip(table: TableUi, hero: HeroView, place: Int?, onClick
 
 private val COMPACT_CHIP = 48.dp
 private val COMPACT_PORTRAIT = 38.dp
+private val CHIP_BADGE = 15.dp
+private const val TIGHT_CHIPS = 380
+private val BronzeEdge = Color(0xFFC9A35B)
+private val BadgeCard = Color(0xFF10181E)
 
 @Composable
 private fun Stat(icon: ImageVector?, text: String) {
@@ -407,126 +502,43 @@ private fun Stat(icon: ImageVector?, text: String) {
 }
 
 /**
- * One hero's game state (ADR-044, open information, p.4), most asked first: who plays them and where they
- * stand (Zone, or off the board and when they may respawn), level, coins, cards in hand; their card this
- * turn (facedown before the reveal unless it is the person's, then faceup with its state on the turn
- * track and its initiative as it counts); this round's Turn slots and the discard; the items (icons for
- * every hero, the tucked cards for the hero's own player); the Ultimate, Active effects, markers and
- * tokens, the spellbook (counts, the Spellbook sheet one tap away). The person's own hand (any hero's
- * in a puzzle) comes right after this turn's card. Tap a card to read it.
+ * One hero's game state (ADR-044, open information, p.4) on the real dashboard (mock-up 05): who plays
+ * them and where they stand, then this round's cards lying in the frame's Turn slots with their states
+ * ([HeroDashboard]; a card facedown to the person stays a back), what this turn's state means and the
+ * initiative as it counts; the items as icons (the tucked cards for the hero's own player), the Ultimate
+ * and the hand (the person's own, any hero's in a puzzle, otherwise card backs), the discard, Active
+ * effects, markers and tokens, the spellbook (counts, the Spellbook sheet one tap away). Tap a card to read it.
  */
-@OptIn(ExperimentalLayoutApi::class)
 @Composable
 internal fun HeroDetail(
     table: TableUi,
     heroId: String,
     focus: CardFocusState,
+    onDone: () -> Unit,
     modifier: Modifier = Modifier,
     onSpellbook: ((String) -> Unit)? = null,
 ) {
     val hero = table.heroView(heroId) ?: return
     val info = table.hero(heroId)
-    Column(
-        modifier
-            .fillMaxWidth()
-            .verticalScroll(rememberScrollState())
-            .padding(horizontal = Spacing.screen, vertical = Spacing.sm),
-        verticalArrangement = Arrangement.spacedBy(Spacing.md),
-    ) {
-        // The sheet's title names the hero: the header says the team, who plays them and where they stand.
-        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.semantics(mergeDescendants = true) {}) {
-            HeroPortrait(
-                heroId,
-                info.portrait,
-                null,
-                Modifier
-                    .size(56.dp)
-                    .border(2.dp, teamColor(hero.team), CircleShape)
-                    .alpha(if (hero.at == null) OFF_BOARD_ALPHA else 1f),
-                shape = CircleShape,
-                framed = false,
-            )
-            Spacer(Modifier.width(Spacing.md))
-            Column(Modifier.weight(1f)) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    TeamMark(hero.team, markSize = 10.dp)
-                    Spacer(Modifier.width(4.dp))
-                    Text(
-                        listOfNotNull(
-                            BoardText.team(hero.team),
-                            table.controllerLabel(hero),
-                        ).joinToString(" · "),
-                        style = MaterialTheme.typography.labelLarge,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
-                Text(
-                    heroWhere(table, hero),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = if (hero.at ==
-                        null
-                    ) {
-                        MaterialTheme.colorScheme.error
-                    } else {
-                        MaterialTheme.colorScheme.onSurface
-                    },
-                )
-            }
-        }
-        FlowRow(
-            horizontalArrangement = Arrangement.spacedBy(Spacing.lg),
-            verticalArrangement = Arrangement.spacedBy(4.dp),
-        ) {
-            Fact("Level", "${hero.level}")
-            Fact("Coins", "${hero.coins}")
-            Fact("In hand", "${hero.handCount}")
-            if (hero.ultimate) Fact("Ultimate", "Unlocked")
-            shownCounters(hero).forEach { (name, value) -> Fact(PlayText.counter(name), "$value") }
-        }
-        // A wide sheet (landscape) puts this turn's card beside the round's cards and the items.
-        BoxWithConstraints(Modifier.fillMaxWidth()) {
-            val cards: @Composable () -> Unit = {
-                if (table.view.phase != GamePhase.GAME_OVER) RoundSlotsSection(table, hero, focus)
-                if (hero.discard.isNotEmpty()) {
-                    Section("Discard · ${hero.discard.size}")
-                    CardRow(hero.discard, table, focus, "${info.name} · Discarded")
-                }
-                ItemsSection(table, hero, focus)
-            }
-            val gap = Arrangement.spacedBy(Spacing.md)
-            if (maxWidth >= WIDE_SHEET && heroTurn(table, hero) != null) {
-                Row(horizontalArrangement = Arrangement.spacedBy(Spacing.xl)) {
-                    Column(Modifier.weight(1f), verticalArrangement = gap) {
-                        ThisTurnSection(table, hero, focus)
-                        HandSection(table, hero, focus)
-                    }
-                    Column(Modifier.weight(1f), verticalArrangement = gap) { cards() }
-                }
-            } else {
-                Column(verticalArrangement = gap) {
-                    ThisTurnSection(table, hero, focus)
-                    // The cards the player most needs together: this turn's card, then the hand.
-                    HandSection(table, hero, focus)
-                    cards()
-                }
-            }
-        }
-        // The unlocked Ultimate is a faceup card on the dashboard (p.16): show it, not only "Unlocked".
-        ultimateCard(table, hero)?.let { card ->
-            Section("Ultimate · p.16")
-            CardRow(listOf(CardView(card.id)), table, focus, "${info.name} · Ultimate")
+    val gap = Arrangement.spacedBy(Spacing.md)
+    val side = Modifier.padding(horizontal = Spacing.screen)
+    val theRest: @Composable ColumnScope.() -> Unit = {
+        ItemsSection(table, hero, focus)
+        UltimateAndHand(table, hero, focus)
+        if (hero.discard.isNotEmpty()) {
+            Section("Discard · ${hero.discard.size}")
+            CardRow(hero.discard, table, focus, "${info.name} · Discarded")
         }
         if (hero.activeEffects.isNotEmpty()) {
             Section("Active effects")
             CardRow(
-                hero.activeEffects.map {
-                    CardView(it, active = true)
-                },
+                hero.activeEffects.map { CardView(it, active = true) },
                 table,
                 focus,
                 "${info.name} · Active effects",
             )
         }
+        Counters(hero)
         MarkersSection(table, hero)
         // Gydion's spellbook (ADR-040): SpellbookSection.kt.
         ExtrasSection(
@@ -535,26 +547,153 @@ internal fun HeroDetail(
             focus,
             onOpenSheet = onSpellbook?.takeIf { info.spells.isNotEmpty() }?.let { open -> { open(heroId) } },
         )
-        Spacer(Modifier.size(Spacing.md))
+        Text(
+            "Open information (p.4)",
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+    }
+    Column(modifier.fillMaxSize()) {
+        HeroSheetHeader(table, hero, onDone)
+        // A wide sheet (landscape) puts the dashboard beside everything else.
+        BoxWithConstraints(Modifier.weight(1f).fillMaxWidth()) {
+            if (maxWidth >= WIDE_SHEET) {
+                Row(Modifier.verticalScroll(rememberScrollState()), horizontalArrangement = gap) {
+                    Column(Modifier.weight(1f), verticalArrangement = gap) {
+                        HeroDashboard(table, hero, focus, Modifier.fillMaxWidth())
+                        Column(side, verticalArrangement = gap) { ThisTurnSection(table, hero) }
+                    }
+                    Column(
+                        Modifier.weight(1f).padding(end = Spacing.screen),
+                        verticalArrangement = gap,
+                        content = theRest,
+                    )
+                }
+            } else {
+                Column(Modifier.verticalScroll(rememberScrollState()), verticalArrangement = gap) {
+                    HeroDashboard(table, hero, focus, Modifier.fillMaxWidth())
+                    Column(side.padding(bottom = Spacing.md), verticalArrangement = gap) {
+                        ThisTurnSection(table, hero)
+                        theRest()
+                    }
+                }
+            }
+        }
+    }
+}
+
+/** Who the hero is, who plays them, their level and coins, where they stand; closing the sheet. */
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun HeroSheetHeader(table: TableUi, hero: HeroView, onDone: () -> Unit) {
+    val info = table.hero(hero.heroId)
+    val small = MaterialTheme.typography.bodySmall
+    Row(
+        Modifier.fillMaxWidth().padding(start = Spacing.screen, end = Spacing.xs, bottom = Spacing.sm),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Box {
+            HeroPortrait(
+                hero.heroId,
+                info.portrait,
+                null,
+                Modifier
+                    .size(scaledIconSize(44.dp, 1.3f))
+                    .border(2.dp, teamColor(hero.team), CircleShape)
+                    .alpha(if (hero.at == null) OFF_BOARD_ALPHA else 1f),
+                shape = CircleShape,
+                framed = false,
+            )
+            TeamBadge(hero.team, Modifier.align(Alignment.BottomEnd).badgeOverhang(CHIP_BADGE), size = CHIP_BADGE)
+        }
+        Spacer(Modifier.width(Spacing.md))
+        Column(Modifier.weight(1f).semantics(mergeDescendants = true) {}) {
+            FlowRow(
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                itemVerticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(
+                    info.name,
+                    style = GoaTextStyles.sectionHead.copy(fontSize = 18.sp, lineHeight = 24.sp),
+                    color = GoaTheme.colors.heading,
+                    modifier = Modifier.semantics { heading() },
+                )
+                TeamMark(hero.team, markSize = scaledIconSize(11.dp, 1.3f))
+                Text(
+                    listOf(BoardText.team(hero.team), table.controllerLabel(hero)).joinToString(" · "),
+                    style = small,
+                )
+            }
+            FlowRow(
+                horizontalArrangement = Arrangement.spacedBy(4.dp),
+                itemVerticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text("Level ${hero.level} ·", style = small)
+                CoinIcon(size = scaledIconSize(13.dp, 1.3f))
+                Text("${BoardText.count(hero.coins, "coin")} ·", style = small)
+                Text(
+                    heroWhere(table, hero),
+                    style = small,
+                    color = if (hero.at == null) MaterialTheme.colorScheme.error else LocalContentColor.current,
+                )
+            }
+        }
+        IconButton(onClick = onDone) { Icon(Icons.Outlined.Close, contentDescription = "Close") }
+    }
+}
+
+/** The hero's own numbers a card or the Ultimate adds; the Ultimate unlocked when it has no card to show. */
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun Counters(hero: HeroView) {
+    val counters = shownCounters(hero)
+    if (counters.isEmpty()) return
+    FlowRow(
+        horizontalArrangement = Arrangement.spacedBy(Spacing.lg),
+        verticalArrangement = Arrangement.spacedBy(4.dp),
+    ) {
+        counters.forEach { (name, value) -> Fact(PlayText.counter(name), "$value") }
     }
 }
 
 /**
- * The hand on the hero sheet, with this turn's card (the hand is what the player chooses from): the
- * person's own hero's, or in a puzzle any hero's (its hands are open information). Nothing otherwise:
- * cards in hand are hidden information (p.4).
+ * The unlocked Ultimate (a faceup card on the dashboard, p.16) beside the hand: the person's own cards, any
+ * hero's in a puzzle (its hands are open information), otherwise as many card backs (hidden, p.4).
  */
 @Composable
-private fun HandSection(table: TableUi, hero: HeroView, focus: CardFocusState) {
-    val hand = hero.hand ?: return
+private fun UltimateAndHand(table: TableUi, hero: HeroView, focus: CardFocusState) {
     val name = table.hero(hero.heroId).name
-    if (hero.heroId in table.mine) {
-        Section("Your hand")
-        CardRow(hand.map { CardView(it) }, table, focus, "$name · Your hand")
-    } else if (hand.isNotEmpty()) {
-        // Only a puzzle shows another hero's hand: its hands are open information.
-        Section("In hand · open in this puzzle")
-        CardRow(hand.map { CardView(it) }, table, focus, "$name · In hand")
+    val ultimate = ultimateCard(table, hero)
+    Row(horizontalArrangement = Arrangement.spacedBy(Spacing.md)) {
+        if (ultimate != null) {
+            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                Section("Ultimate · p.16")
+                CardRow(listOf(CardView(ultimate.id)), table, focus, "$name · Ultimate", width = SHEET_CARD)
+            }
+        } else if (hero.ultimate) {
+            Fact("Ultimate", "Unlocked")
+        }
+        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            val hand = hero.hand
+            when {
+                hand == null -> {
+                    Section("In hand · ${hero.handCount}")
+                    val backs = List(hero.handCount) { CardView(null) }
+                    CardRow(backs, table, focus, "$name · In hand", width = SHEET_CARD)
+                }
+
+                hero.heroId in table.mine -> {
+                    Section("Your hand · ${hand.size}")
+                    CardRow(hand.map { CardView(it) }, table, focus, "$name · Your hand", width = SHEET_CARD)
+                }
+
+                hand.isNotEmpty() -> {
+                    // Only a puzzle shows another hero's hand: its hands are open information.
+                    Section("In hand · open in this puzzle")
+                    CardRow(hand.map { CardView(it) }, table, focus, "$name · In hand", width = SHEET_CARD)
+                }
+            }
+        }
     }
 }
 
@@ -567,14 +706,7 @@ private fun Fact(label: String, value: String) {
 }
 
 @Composable
-private fun Section(title: String) {
-    Text(
-        title.uppercase(),
-        style = GoaTextStyles.overline,
-        color = MaterialTheme.colorScheme.primary,
-        modifier = Modifier.semantics { heading() },
-    )
-}
+private fun Section(title: String) = HeroSection(title)
 
 /** The person's hand, small (one row per hero they control); tap a card to see it large. */
 @Composable
@@ -584,9 +716,9 @@ fun YourHand(table: TableUi, focus: CardFocusState) {
         if (hand.isEmpty()) return@forEach
         val title = if (table.mine.size > 1) "${table.hero(heroId).name}'s hand" else "Your hand"
         Text(
-            title.uppercase(),
-            style = GoaTextStyles.overline,
-            color = MaterialTheme.colorScheme.primary,
+            title,
+            style = GoaTextStyles.sectionHead,
+            color = GoaTheme.colors.heading,
             modifier = Modifier.padding(top = Spacing.xs),
         )
         CardRow(hand.map { CardView(it) }, table, focus, title)
@@ -606,6 +738,7 @@ internal fun CardRow(
     slots: Boolean = false,
     /** Captions under the cards instead of the Turn slot / Active ones. */
     captions: List<String>? = null,
+    width: Dp = THUMB_CARD,
 ) {
     val captions = captions ?: cards.map { cardCaption(it, slots) }
     val open = cards.indices.filter { !cards[it].facedown && table.card(cards[it].cardId) != null }
@@ -619,6 +752,7 @@ internal fun CardRow(
         captions,
         origin = { card -> Modifier.cardFocusOrigin(focus, "$title/${card.id}") },
         onOpen = { i, _ -> open.indexOf(i).takeIf { it >= 0 }?.let { focus.open(viewable, it, title = title) } },
+        width = width,
     )
 }
 
@@ -643,6 +777,7 @@ private fun ThumbRow(
     captions: List<String>,
     origin: (Card) -> Modifier,
     onOpen: (index: Int, card: Card) -> Unit,
+    width: Dp = THUMB_CARD,
 ) {
     Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
         cards.forEachIndexed { i, view ->
@@ -667,11 +802,12 @@ private fun ThumbRow(
                 Surface(
                     onClick = show,
                     enabled = card != null,
-                    shape = RoundedCornerShape(6.dp),
+                    shape = RoundedCornerShape(width * 0.08f),
+                    color = Color.Transparent,
                     border = if (view.active) BorderStroke(2.dp, MaterialTheme.colorScheme.secondary) else null,
                     modifier = if (card != null) origin(card) else Modifier,
                 ) {
-                    TableCard(card, width = 64.dp)
+                    TableCard(card, width = width)
                 }
                 val caption = captions.getOrNull(i).orEmpty()
                 if (caption.isNotEmpty()) {
@@ -688,5 +824,9 @@ private fun ThumbRow(
 
 private const val OFF_BOARD_ALPHA = 0.45f
 
-/** From this width the hero sheet shows this turn's card beside the round's cards. */
+/** From this width the hero sheet shows the dashboard beside the rest. */
 private val WIDE_SHEET = 600.dp
+private val THUMB_CARD = 64.dp
+
+/** The Ultimate and the hand on the hero sheet (mock-up 05). */
+private val SHEET_CARD = 92.dp

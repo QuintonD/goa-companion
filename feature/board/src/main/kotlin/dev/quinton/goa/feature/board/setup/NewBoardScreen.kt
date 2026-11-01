@@ -68,6 +68,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.SubcomposeLayout
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalFocusManager
@@ -103,6 +104,8 @@ import dev.quinton.goa.feature.board.board.SheetTitle
 import dev.quinton.goa.feature.board.list.LineupHeroes
 import dev.quinton.goa.feature.board.play.table.SpellbookSheet
 import dev.quinton.goa.feature.board.play.table.catalogSpellbook
+import dev.quinton.goa.feature.board.ui.PlateSurface
+import dev.quinton.goa.feature.board.ui.PlateWell
 import dev.quinton.goa.feature.board.ui.cards.CardFocusHost
 import dev.quinton.goa.feature.board.ui.cards.rememberCardFocusState
 
@@ -408,10 +411,10 @@ private fun TeamRow(
     val color = teamColor(team)
     val filling = state.form.filling == team
     val heroes = state.team(team)
-    Surface(
-        shape = MaterialTheme.shapes.medium,
-        color = if (filling) color.copy(alpha = 0.08f) else MaterialTheme.colorScheme.surface,
-        border = BorderStroke(if (filling) 2.dp else 1.dp, if (filling) color else GoaTheme.colors.engravedBorder),
+    PlateSurface(
+        tint = if (filling) color.copy(alpha = 0.08f) else Color.Transparent,
+        brackets = true,
+        border = if (filling) BorderStroke(2.dp, color) else null,
         modifier = Modifier
             .fillMaxWidth()
             .heightIn(min = 52.dp)
@@ -495,7 +498,7 @@ private fun SlotChip(
         Surface(
             onClick = { menu = true },
             shape = RoundedCornerShape(50),
-            color = MaterialTheme.colorScheme.surface,
+            color = PlateWell,
             border = BorderStroke(1.dp, color.copy(alpha = 0.8f)),
             modifier = Modifier
                 .heightIn(min = 40.dp)
@@ -623,9 +626,7 @@ private fun HeroTile(hero: BoardHero, state: LineupPicker, onAction: (NewBoardAc
             },
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        Surface(
-            shape = MaterialTheme.shapes.medium,
-            color = MaterialTheme.colorScheme.surface,
+        PlateSurface(
             border = color?.let { BorderStroke(2.dp, it) },
             modifier = Modifier.fillMaxWidth().aspectRatio(1f),
         ) {
@@ -633,10 +634,11 @@ private fun HeroTile(hero: BoardHero, state: LineupPicker, onAction: (NewBoardAc
                 HeroPortrait(hero.id, hero.portrait, null, Modifier.fillMaxSize())
                 if (later) ComingLater(Modifier.align(Alignment.BottomCenter))
                 if (team != null && pick != null && color != null) {
+                    val edge = teamColor(team)
                     Surface(
                         shape = RoundedCornerShape(50),
                         color = MaterialTheme.colorScheme.background.copy(alpha = 0.9f),
-                        border = BorderStroke(1.dp, color),
+                        border = BorderStroke(1.dp, edge),
                         modifier = Modifier.align(Alignment.TopStart).padding(3.dp),
                     ) {
                         Row(
@@ -648,7 +650,7 @@ private fun HeroTile(hero: BoardHero, state: LineupPicker, onAction: (NewBoardAc
                             Text(
                                 "$pick",
                                 style = MaterialTheme.typography.labelSmall,
-                                color = color,
+                                color = edge,
                                 fontWeight = FontWeight.Bold,
                             )
                         }
@@ -686,12 +688,7 @@ private fun HeroTile(hero: BoardHero, state: LineupPicker, onAction: (NewBoardAc
 @Composable
 private fun ComingLater(modifier: Modifier = Modifier) {
     Box(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background.copy(alpha = 0.62f)))
-    Surface(
-        shape = RoundedCornerShape(50),
-        color = MaterialTheme.colorScheme.surface,
-        border = BorderStroke(1.dp, GoaTheme.colors.engravedBorder),
-        modifier = modifier.padding(bottom = 3.dp),
-    ) {
+    PlateSurface(shape = RoundedCornerShape(50), modifier = modifier.padding(bottom = 3.dp)) {
         Text(
             "Later",
             style = MaterialTheme.typography.labelSmall,
@@ -813,7 +810,7 @@ internal fun SourcesContent(
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun SourceRow(source: LineupSource, onClick: () -> Unit) {
-    Surface(onClick = onClick, color = MaterialTheme.colorScheme.surface, modifier = Modifier.fillMaxWidth()) {
+    Surface(onClick = onClick, color = Color.Transparent, modifier = Modifier.fillMaxWidth()) {
         Column(
             Modifier
                 .padding(horizontal = Spacing.screen, vertical = Spacing.md)

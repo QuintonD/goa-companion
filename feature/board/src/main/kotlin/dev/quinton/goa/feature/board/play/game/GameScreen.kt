@@ -1,6 +1,5 @@
 package dev.quinton.goa.feature.board.play.game
 
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.border
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
@@ -37,7 +36,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
@@ -55,6 +53,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.semantics.LiveRegionMode
@@ -68,9 +67,12 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import dev.quinton.goa.core.data.game.AiPace
+import dev.quinton.goa.core.designsystem.component.BannerMedallionWidth
+import dev.quinton.goa.core.designsystem.component.CardTextBox
 import dev.quinton.goa.core.designsystem.component.ConfirmDialog
 import dev.quinton.goa.core.designsystem.component.EmptyState
 import dev.quinton.goa.core.designsystem.component.HeroPortrait
+import dev.quinton.goa.core.designsystem.component.PlateColor
 import dev.quinton.goa.core.designsystem.component.TeamMark
 import dev.quinton.goa.core.designsystem.component.teamColor
 import dev.quinton.goa.core.designsystem.theme.GoaTextStyles
@@ -88,6 +90,7 @@ import dev.quinton.goa.feature.board.play.review.ReviewOpenEffect
 import dev.quinton.goa.feature.board.play.review.ReviewSheet
 import dev.quinton.goa.feature.board.play.review.ReviewTab
 import dev.quinton.goa.feature.board.play.table.DecisionPanel
+import dev.quinton.goa.feature.board.play.table.DecisionWho
 import dev.quinton.goa.feature.board.play.table.EventLog
 import dev.quinton.goa.feature.board.play.table.GameTable
 import dev.quinton.goa.feature.board.play.table.HeroDetail
@@ -102,6 +105,8 @@ import dev.quinton.goa.feature.board.play.table.YourHand
 import dev.quinton.goa.feature.board.play.table.spellbookUi
 import dev.quinton.goa.feature.board.play.table.spokenCard
 import dev.quinton.goa.feature.board.ui.BoardScaffold
+import dev.quinton.goa.feature.board.ui.PlateButton
+import dev.quinton.goa.feature.board.ui.PlateTone
 import dev.quinton.goa.feature.board.ui.cards.CardFocusHost
 import dev.quinton.goa.feature.board.ui.cards.CardFocusState
 import dev.quinton.goa.feature.board.ui.cards.cardFocusOrigin
@@ -143,7 +148,8 @@ fun GameScreen(
     }
     // The title shortens to fit beside the three actions: on a phone in portrait "R2 · Turn 3",
     // with large text "R2 · T3" (the HUD and TalkBack say it in full).
-    val room = LocalConfiguration.current.screenWidthDp / androidx.compose.ui.platform.LocalDensity.current.fontScale
+    val room = (LocalConfiguration.current.screenWidthDp - BannerMedallionWidth.value) /
+        androidx.compose.ui.platform.LocalDensity.current.fontScale
     BoardScaffold(
         title = when {
             play == null -> "Play"
@@ -218,6 +224,11 @@ fun GameScreen(
                             initialPanelHidden = initialPanelHidden,
                             focus = focus,
                             onSpellbook = { sheet = PlaySheet.Spellbook(it) },
+                            panelTitle = if (state.play.status is TurnStatus.YourTurn && state.play.nudge == null) {
+                                { DecisionWho(state.play.table) }
+                            } else {
+                                null
+                            },
                         ) {
                             Panel(state.play, onAction, focus)
                         }
@@ -252,10 +263,14 @@ fun GameScreen(
             }
 
             is PlaySheet.Hero -> BoardSheet(onDismiss = { sheet = null }) {
-                Column(Modifier.fillMaxWidth().fillMaxHeight(SHEET_HEIGHT)) {
-                    SheetTitle(play.table.hero(open.heroId).name, "Open information (p.4)", onDone = { sheet = null })
-                    HeroDetail(play.table, open.heroId, focus, onSpellbook = { sheet = PlaySheet.Spellbook(it) })
-                }
+                HeroDetail(
+                    play.table,
+                    open.heroId,
+                    focus,
+                    onDone = { sheet = null },
+                    modifier = Modifier.fillMaxHeight(SHEET_HEIGHT),
+                    onSpellbook = { sheet = PlaySheet.Spellbook(it) },
+                )
             }
 
             is PlaySheet.Review -> ReviewSheet(play.table, play.review, open, {
@@ -394,6 +409,7 @@ private fun ColumnScope.Panel(play: PlayUi, onAction: (GameAction) -> Unit, focu
                 onAnswer = { onAction(GameAction.Answer(it)) },
                 focus = focus,
                 busy = play.busy,
+                who = false,
             )
             if (play.busy && play.coach) CoachLooking()
             if (play.canSuggest) SuggestButton(enabled = !play.busy) { onAction(GameAction.AskSuggestions) }
@@ -415,50 +431,40 @@ private fun ColumnScope.Panel(play: PlayUi, onAction: (GameAction) -> Unit, focu
 /** A gentle nudge before a clearly worse choice: never blocks, never chooses for you. */
 @Composable
 private fun CoachNudge(nudge: PendingNudge, onAction: (GameAction) -> Unit) {
-    Surface(
-        shape = RoundedCornerShape(16.dp),
-        color = MaterialTheme.colorScheme.secondaryContainer,
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.secondary),
-        modifier = Modifier.fillMaxWidth(),
-    ) {
-        Column(Modifier.padding(Spacing.md), verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.semantics(mergeDescendants = true) {
-                },
-            ) {
-                Icon(Icons.Outlined.Lightbulb, null, tint = MaterialTheme.colorScheme.onSecondaryContainer)
-                Spacer(Modifier.width(Spacing.sm))
-                Text(
-                    "Coach: ${nudge.note.text}",
-                    style = MaterialTheme.typography.titleSmall,
-                    color = MaterialTheme.colorScheme.onSecondaryContainer,
-                    fontWeight = FontWeight.SemiBold,
-                    modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite },
-                )
-            }
-            if (nudge.note.detail.isNotBlank()) {
-                Text(
-                    nudge.note.detail,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSecondaryContainer,
-                )
-            }
-            Text(
-                "Your choice: ${nudge.choiceLabel}",
-                style = MaterialTheme.typography.labelLarge,
-                color = MaterialTheme.colorScheme.onSecondaryContainer,
-            )
-            Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-                OutlinedButton(
-                    onClick = { onAction(GameAction.ChooseAnyway) },
-                    modifier = Modifier.weight(1f).heightIn(min = 48.dp),
-                ) { Text("Choose anyway") }
-                Button(onClick = {
-                    onAction(GameAction.Rethink)
-                }, modifier = Modifier.weight(1f).heightIn(min = 48.dp)) {
-                    Text("Rethink")
+    Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+        CardTextBox(PlateColor.GREEN, Modifier.fillMaxWidth(), cap = "Coach") {
+            Column(verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.semantics(mergeDescendants = true) {
+                    },
+                ) {
+                    Icon(Icons.Outlined.Lightbulb, null)
+                    Spacer(Modifier.width(Spacing.sm))
+                    Text(
+                        "Coach: ${nudge.note.text}",
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.SemiBold,
+                        modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite },
+                    )
                 }
+                if (nudge.note.detail.isNotBlank()) {
+                    Text(nudge.note.detail, style = MaterialTheme.typography.bodyMedium)
+                }
+                Text("Your choice: ${nudge.choiceLabel}", style = MaterialTheme.typography.labelLarge)
+            }
+        }
+        Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+            PlateButton(
+                onClick = { onAction(GameAction.ChooseAnyway) },
+                tone = PlateTone.STEEL,
+                modifier = Modifier.weight(1f).heightIn(min = 48.dp),
+            ) { Text("Choose anyway") }
+            PlateButton(
+                onClick = { onAction(GameAction.Rethink) },
+                modifier = Modifier.weight(1f).heightIn(min = 48.dp),
+            ) {
+                Text("Rethink")
             }
         }
     }
@@ -523,6 +529,7 @@ private fun ComputerMove(table: TableUi, status: TurnStatus.Computer, focus: Car
             Surface(
                 onClick = { focus.show(listOf(card), title = info.name) },
                 shape = RoundedCornerShape(6.dp),
+                color = Color.Transparent,
                 modifier = Modifier
                     .cardFocusOrigin(focus, "computer/${card.id}")
                     .clearAndSetSemantics {

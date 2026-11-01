@@ -84,6 +84,7 @@ import dev.quinton.goa.feature.board.BoardText
 import dev.quinton.goa.feature.board.hero
 import dev.quinton.goa.feature.board.ui.BoardPalette
 import dev.quinton.goa.feature.board.ui.PieceToken
+import dev.quinton.goa.feature.board.ui.PlateWell
 import dev.quinton.goa.feature.board.ui.boardPalette
 import dev.quinton.goa.feature.board.ui.cards.isSpell
 import dev.quinton.goa.feature.board.ui.drawFastTravelCell
@@ -473,7 +474,7 @@ private fun CardChip(card: Card, selected: Boolean, onClick: () -> Unit) {
     }
     Surface(
         shape = RoundedCornerShape(10.dp),
-        color = if (selected) accent.copy(alpha = 0.16f) else MaterialTheme.colorScheme.surface,
+        color = if (selected) accent.copy(alpha = 0.16f) else PlateWell,
         border = BorderStroke(if (selected) 2.dp else 1.dp, if (selected) accent else GoaTheme.colors.engravedBorder),
         modifier = Modifier
             .widthIn(min = 96.dp, max = 168.dp)

@@ -19,6 +19,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
@@ -28,7 +29,6 @@ import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import dev.quinton.goa.core.designsystem.component.cardColor
-import dev.quinton.goa.core.designsystem.theme.GoaTheme
 import dev.quinton.goa.core.designsystem.theme.Spacing
 import dev.quinton.goa.core.game.Choice
 import dev.quinton.goa.core.game.DecisionKind
@@ -196,6 +196,7 @@ private fun UpgradeRowView(row: UpgradeRow, width: Dp, focus: CardFocusState, on
             Surface(
                 onClick = { onOpen(row.card.id) },
                 shape = RoundedCornerShape(8.dp),
+                color = Color.Transparent,
                 border = BorderStroke(2.dp, cardColor(row.card.color)),
                 modifier = Modifier
                     .cardFocusOrigin(focus, row.card.id)
@@ -260,7 +261,8 @@ private fun UpgradeThumb(row: UpgradeRow, card: Card, width: Dp, focus: CardFocu
             Surface(
                 onClick = { onOpen(card.id) },
                 shape = RoundedCornerShape(8.dp),
-                border = BorderStroke(1.dp, GoaTheme.colors.engravedBorder),
+                color = Color.Transparent,
+                shadowElevation = 3.dp,
                 modifier = Modifier.cardFocusOrigin(focus, card.id),
             ) { TableCard(card, width = width) }
             card.item?.let { ItemCaption(it) }
@@ -288,7 +290,7 @@ internal fun NamedThumbs(
             Surface(
                 onClick = { onOpen(key) },
                 shape = RoundedCornerShape(6.dp),
-                border = BorderStroke(1.dp, GoaTheme.colors.engravedBorder),
+                color = Color.Transparent,
                 modifier = Modifier
                     .cardFocusOrigin(focus, key)
                     .clearAndSetSemantics {

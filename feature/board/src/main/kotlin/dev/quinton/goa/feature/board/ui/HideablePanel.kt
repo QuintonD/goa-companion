@@ -31,7 +31,6 @@ import androidx.compose.material.icons.outlined.TouchApp
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Immutable
@@ -43,6 +42,8 @@ import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalLayoutDirection
@@ -61,7 +62,7 @@ import androidx.compose.ui.unit.dp
 import dev.quinton.goa.core.designsystem.component.TeamMark
 import dev.quinton.goa.core.designsystem.component.scaledIconSize
 import dev.quinton.goa.core.designsystem.component.teamColor
-import dev.quinton.goa.core.designsystem.theme.GoaTheme
+import dev.quinton.goa.core.designsystem.theme.GoaFonts
 import dev.quinton.goa.core.designsystem.theme.Spacing
 import dev.quinton.goa.core.model.match.Team
 import dev.quinton.goa.feature.board.map.MapViewport
@@ -77,7 +78,7 @@ data class PanelCover(val bottom: Int = 0, val end: Int = 0)
  * (drag it down, or to the side in landscape). Hidden: a slim peek bar at the bottom in portrait,
  * a small pill at the bottom end in landscape, with [peek]'s one line, [peekTrailing] (e.g. a
  * Confirm button) and Show; tap or drag it up to show the panel again. [onCover] reports what the
- * map must keep clear of.
+ * map must keep clear of. [title] (who a question asks) sits on the strip, beside Hide, as mock-up 01 has it.
  */
 @Composable
 internal fun BoxWithConstraintsScope.HideablePanel(
@@ -90,6 +91,7 @@ internal fun BoxWithConstraintsScope.HideablePanel(
     onCover: (PanelCover) -> Unit,
     peekLeading: (@Composable () -> Unit)? = null,
     peekTrailing: (@Composable () -> Unit)? = null,
+    title: (@Composable () -> Unit)? = null,
     content: @Composable ColumnScope.() -> Unit,
 ) {
     if (!hidden) {
@@ -98,21 +100,22 @@ internal fun BoxWithConstraintsScope.HideablePanel(
         } else {
             Modifier.align(Alignment.BottomCenter).fillMaxWidth().heightIn(max = maxHeight * maxShare)
         }
-        Surface(
-            modifier = modifier.onSizeChanged {
-                onCover(if (landscape) PanelCover(end = it.width) else PanelCover(bottom = it.height))
-            },
-            shape = if (landscape) {
-                RoundedCornerShape(topStart = 28.dp, bottomStart = 28.dp)
-            } else {
-                RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp)
-            },
-            color = MaterialTheme.colorScheme.surface,
-            border = BorderStroke(1.dp, GoaTheme.colors.engravedBorder),
-            shadowElevation = 6.dp,
+        val shape = if (landscape) {
+            RoundedCornerShape(topStart = PANEL_CORNER, bottomStart = PANEL_CORNER)
+        } else {
+            RoundedCornerShape(topStart = PANEL_CORNER, topEnd = PANEL_CORNER)
+        }
+        PlateSurface(
+            modifier = modifier
+                .onSizeChanged {
+                    onCover(if (landscape) PanelCover(end = it.width) else PanelCover(bottom = it.height))
+                }
+                .shadow(6.dp, shape),
+            shape = shape,
+            brackets = true,
         ) {
             Column {
-                PanelStrip(landscape, onHide = { onHiddenChange(true) })
+                PanelStrip(landscape, title, onHide = { onHiddenChange(true) })
                 content()
             }
         }
@@ -144,7 +147,7 @@ internal fun BoxWithConstraintsScope.HideablePanel(
 
 /** The top of a shown panel: a drag handle and Hide. */
 @Composable
-private fun PanelStrip(landscape: Boolean, onHide: () -> Unit) {
+private fun PanelStrip(landscape: Boolean, title: (@Composable () -> Unit)?, onHide: () -> Unit) {
     val hide by rememberUpdatedState(onHide)
     val threshold = with(LocalDensity.current) { DRAG_TO_TOGGLE.toPx() }
     // Toward the end (right in LTR) hides a side panel.
@@ -170,6 +173,9 @@ private fun PanelStrip(landscape: Boolean, onHide: () -> Unit) {
                     .size(width = 36.dp, height = 4.dp)
                     .background(MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.45f), CircleShape),
             )
+        }
+        if (title != null) {
+            Box(Modifier.align(Alignment.CenterStart).padding(start = Spacing.md, end = TITLE_END)) { title() }
         }
         // A 48 dp touch target overlapping the strip's 40 dp.
         IconButton(onClick = onHide, modifier = Modifier.align(Alignment.CenterEnd).padding(end = Spacing.xs)) {
@@ -200,22 +206,24 @@ private fun PeekBar(
     val sign = if (LocalLayoutDirection.current == LayoutDirection.Rtl) -1f else 1f
     var dragged by remember { mutableFloatStateOf(0f) }
     val drag = rememberDraggableState { dragged += it }
-    val accent = MaterialTheme.colorScheme.secondary
-    Surface(
-        modifier = modifier.draggable(
-            drag,
-            orientation = if (landscape) Orientation.Horizontal else Orientation.Vertical,
-            onDragStarted = { dragged = 0f },
-            // Up (or toward the start in landscape) shows the panel.
-            onDragStopped = { if (-dragged * (if (landscape) sign else 1f) > threshold) show() },
-        ),
-        shape = if (landscape) RoundedCornerShape(20.dp) else RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp),
-        color = MaterialTheme.colorScheme.surface,
-        border = BorderStroke(
-            if (peek.attention) 1.5.dp else 1.dp,
-            if (peek.attention) accent else GoaTheme.colors.engravedBorder,
-        ),
-        shadowElevation = 6.dp,
+    val shape = if (landscape) {
+        RoundedCornerShape(PANEL_CORNER)
+    } else {
+        RoundedCornerShape(topStart = PANEL_CORNER, topEnd = PANEL_CORNER)
+    }
+    PlateSurface(
+        modifier = modifier
+            .draggable(
+                drag,
+                orientation = if (landscape) Orientation.Horizontal else Orientation.Vertical,
+                onDragStarted = { dragged = 0f },
+                // Up (or toward the start in landscape) shows the panel.
+                onDragStopped = { if (-dragged * (if (landscape) sign else 1f) > threshold) show() },
+            )
+            .shadow(6.dp, shape),
+        shape = shape,
+        brackets = landscape,
+        border = if (peek.attention) BorderStroke(1.5.dp, PEEK_ATTENTION) else null,
     ) {
         val showButton = @Composable {
             IconButton(onClick = onShow) {
@@ -294,7 +302,9 @@ private fun PeekText(
         Text(
             buildAnnotatedString {
                 peek.label?.let { label ->
-                    withStyle(SpanStyle(color = labelColor, fontWeight = FontWeight.Bold)) { append(label) }
+                    withStyle(
+                        SpanStyle(color = labelColor, fontWeight = FontWeight.Bold, fontFamily = GoaFonts.display),
+                    ) { append(label) }
                     if (peek.text.isNotEmpty()) append(" · ")
                 }
                 append(peek.text)
@@ -319,6 +329,11 @@ internal fun FitWhileHidden(viewport: MapViewport, hidden: Boolean) {
 }
 
 private val STRIP = 40.dp
+private val PANEL_CORNER = 14.dp
+private val PEEK_ATTENTION = Color(0xFF3FC1B0)
+
+/** A title on the strip keeps clear of Hide. */
+private val TITLE_END = 52.dp
 private val PEEK_HEIGHT = 56.dp
 private val DRAG_TO_TOGGLE = 32.dp
 

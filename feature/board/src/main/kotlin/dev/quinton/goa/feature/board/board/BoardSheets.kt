@@ -29,7 +29,6 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
@@ -47,6 +46,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
@@ -55,12 +55,16 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import dev.quinton.goa.core.designsystem.component.GoaFilterChip
+import dev.quinton.goa.core.designsystem.component.GoaSheet
 import dev.quinton.goa.core.designsystem.component.HeroPortrait
 import dev.quinton.goa.core.designsystem.component.SectionHeader
 import dev.quinton.goa.core.designsystem.component.TeamMark
 import dev.quinton.goa.core.designsystem.component.scaledIconSize
 import dev.quinton.goa.core.designsystem.component.teamColor
+import dev.quinton.goa.core.designsystem.theme.GoaTextStyles
+import dev.quinton.goa.core.designsystem.theme.GoaTheme
 import dev.quinton.goa.core.designsystem.theme.Spacing
 import dev.quinton.goa.core.model.board.BoardPiece
 import dev.quinton.goa.core.model.board.HeroPiece
@@ -78,10 +82,9 @@ import dev.quinton.goa.feature.board.ui.boardPalette
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 internal fun BoardSheet(onDismiss: () -> Unit, content: @Composable () -> Unit) {
-    ModalBottomSheet(
+    GoaSheet(
         onDismissRequest = onDismiss,
         sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
-        containerColor = MaterialTheme.colorScheme.surface,
     ) { content() }
 }
 
@@ -100,7 +103,7 @@ internal fun AddContent(
     var team by rememberSaveable { mutableStateOf(Team.RED) }
     Column(modifier.fillMaxWidth().fillMaxHeight(SHEET_HEIGHT)) {
         SheetTitle("Add a piece", "Then tap an empty space to put it there.", onDone)
-        PrimaryTabRow(selectedTabIndex = tab, containerColor = MaterialTheme.colorScheme.surface) {
+        PrimaryTabRow(selectedTabIndex = tab, containerColor = Color.Transparent) {
             listOf("Hero", "Minion", "Token").forEachIndexed { i, label ->
                 Tab(selected = tab == i, onClick = { tab = i }, text = { Text(label, maxLines = 1) })
             }
@@ -162,7 +165,7 @@ private fun HeroRow(hero: BoardHero, taken: Boolean, onClick: () -> Unit) {
     Surface(
         onClick = onClick,
         enabled = !taken,
-        color = MaterialTheme.colorScheme.surface,
+        color = Color.Transparent,
         modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp),
     ) {
         Row(
@@ -203,7 +206,7 @@ private fun MinionChoices(onPick: (MinionType) -> Unit) {
         MinionType.entries.forEach { type ->
             Surface(
                 onClick = { onPick(type) },
-                color = MaterialTheme.colorScheme.surface,
+                color = Color.Transparent,
                 modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp),
             ) {
                 Row(Modifier.padding(vertical = Spacing.sm), verticalAlignment = Alignment.CenterVertically) {
@@ -273,7 +276,7 @@ internal fun PiecesContent(
                         color = if (piece.id == state.selectedId) {
                             MaterialTheme.colorScheme.secondary.copy(alpha = 0.12f)
                         } else {
-                            MaterialTheme.colorScheme.surface
+                            Color.Transparent
                         },
                         modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp),
                     ) {
@@ -438,7 +441,12 @@ internal fun SheetTitle(title: String, subtitle: String?, onDone: () -> Unit) {
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Column(Modifier.weight(1f)) {
-            Text(title, style = MaterialTheme.typography.titleLarge, modifier = Modifier.semantics { heading() })
+            Text(
+                title,
+                style = GoaTextStyles.plateTitle.copy(fontSize = 20.sp, lineHeight = 26.sp),
+                color = GoaTheme.colors.heading,
+                modifier = Modifier.semantics { heading() },
+            )
             if (subtitle != null) {
                 Text(
                     subtitle,

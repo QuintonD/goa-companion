@@ -21,6 +21,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.FormatListBulleted
@@ -62,6 +63,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.boundsInParent
 import androidx.compose.ui.layout.onGloballyPositioned
@@ -78,8 +80,10 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import dev.quinton.goa.core.designsystem.component.ConfirmDialog
 import dev.quinton.goa.core.designsystem.component.EmptyState
+import dev.quinton.goa.core.designsystem.component.GoaPlateTheme
 import dev.quinton.goa.core.designsystem.component.UnverifiedBadge
 import dev.quinton.goa.core.designsystem.component.scaledIconSize
+import dev.quinton.goa.core.designsystem.component.slatePlate
 import dev.quinton.goa.core.designsystem.theme.GoaTheme
 import dev.quinton.goa.core.designsystem.theme.Spacing
 import dev.quinton.goa.core.model.board.HeroPiece
@@ -96,6 +100,8 @@ import dev.quinton.goa.feature.board.ui.HideablePanel
 import dev.quinton.goa.feature.board.ui.PanelCover
 import dev.quinton.goa.feature.board.ui.PanelPeek
 import dev.quinton.goa.feature.board.ui.PieceToken
+import dev.quinton.goa.feature.board.ui.PlateSurface
+import dev.quinton.goa.feature.board.ui.PlateWell
 import dev.quinton.goa.feature.board.ui.boardPalette
 import kotlinx.coroutines.launch
 
@@ -443,9 +449,8 @@ private fun BoardContent(
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun UnverifiedMap(name: String, modifier: Modifier = Modifier) {
-    Surface(
-        shape = RoundedCornerShape(16.dp),
-        color = MaterialTheme.colorScheme.surface.copy(alpha = 0.92f),
+    PlateSurface(
+        shape = RoundedCornerShape(7.dp),
         modifier = modifier.semantics(mergeDescendants = true) {},
     ) {
         FlowRow(
@@ -478,12 +483,7 @@ private fun ToolBanner(state: BoardUiState.Ready, onAction: (BoardAction) -> Uni
         BoardTool.Move -> null
     }
     AnimatedVisibility(visible = text != null, enter = fadeIn(), exit = fadeOut()) {
-        Surface(
-            shape = RoundedCornerShape(16.dp),
-            color = MaterialTheme.colorScheme.surface.copy(alpha = 0.96f),
-            border = BorderStroke(1.dp, MaterialTheme.colorScheme.secondary.copy(alpha = 0.6f)),
-            shadowElevation = 3.dp,
-        ) {
+        PlateSurface(shape = RoundedCornerShape(7.dp), brackets = true) {
             Row(
                 Modifier.padding(start = Spacing.md, end = Spacing.xs),
                 verticalAlignment = Alignment.CenterVertically,
@@ -520,15 +520,17 @@ private fun placeLabel(state: BoardUiState.Ready, piece: NewPiece): String = whe
 /** A round button floating over the map (Fit, Flip): shared by the sandbox and the game table. */
 @Composable
 internal fun MapButton(icon: ImageVector, description: String, onClick: () -> Unit) {
-    FilledTonalIconButton(
-        onClick = onClick,
-        colors = IconButtonDefaults.filledTonalIconButtonColors(
-            containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.92f),
-            contentColor = MaterialTheme.colorScheme.onSurface,
-        ),
-        modifier = Modifier.size(48.dp),
-    ) {
-        Icon(icon, contentDescription = description)
+    GoaPlateTheme {
+        FilledTonalIconButton(
+            onClick = onClick,
+            colors = IconButtonDefaults.filledTonalIconButtonColors(
+                containerColor = Color.Transparent,
+                contentColor = MaterialTheme.colorScheme.onSurface,
+            ),
+            modifier = Modifier.size(48.dp).slatePlate(CircleShape, brackets = false),
+        ) {
+            Icon(icon, contentDescription = description)
+        }
     }
 }
 
@@ -538,11 +540,9 @@ internal fun MapButton(icon: ImageVector, description: String, onClick: () -> Un
  */
 @Composable
 private fun Toolbar(onOpen: (BoardOverlay) -> Unit, compact: Boolean) {
-    Surface(
-        shape = RoundedCornerShape(24.dp),
-        color = MaterialTheme.colorScheme.surface,
-        border = BorderStroke(1.dp, GoaTheme.colors.engravedBorder),
-        shadowElevation = 6.dp,
+    PlateSurface(
+        shape = RoundedCornerShape(topStart = 14.dp, topEnd = 14.dp),
+        brackets = true,
         modifier = Modifier.widthIn(max = 560.dp).fillMaxWidth(),
     ) {
         Row(Modifier.padding(Spacing.xs)) {
@@ -608,11 +608,9 @@ private fun ToolButton(icon: ImageVector, label: String, compact: Boolean, modif
 @Composable
 private fun WaitingTray(state: BoardUiState.Ready, onAction: (BoardAction) -> Unit, modifier: Modifier = Modifier) {
     val palette = boardPalette()
-    Surface(
-        shape = RoundedCornerShape(20.dp),
-        color = MaterialTheme.colorScheme.surface,
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.secondary.copy(alpha = 0.7f)),
-        shadowElevation = 4.dp,
+    PlateSurface(
+        shape = RoundedCornerShape(14.dp),
+        brackets = true,
         modifier = modifier.fillMaxWidth(),
     ) {
         Column(Modifier.padding(Spacing.md)) {
@@ -648,7 +646,7 @@ private fun WaitingTray(state: BoardUiState.Ready, onAction: (BoardAction) -> Un
                         color = if (active) {
                             MaterialTheme.colorScheme.secondary.copy(alpha = 0.16f)
                         } else {
-                            MaterialTheme.colorScheme.surface
+                            PlateWell
                         },
                         border = BorderStroke(
                             if (active) 2.dp else 1.dp,

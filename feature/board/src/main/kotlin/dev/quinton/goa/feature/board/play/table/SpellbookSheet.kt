@@ -24,6 +24,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Immutable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.clearAndSetSemantics
@@ -45,6 +46,8 @@ import dev.quinton.goa.feature.board.BoardText
 import dev.quinton.goa.feature.board.board.BoardSheet
 import dev.quinton.goa.feature.board.board.SheetTitle
 import dev.quinton.goa.feature.board.play.PlayText
+import dev.quinton.goa.feature.board.ui.PlateSurface
+import dev.quinton.goa.feature.board.ui.PlateWell
 import dev.quinton.goa.feature.board.ui.cards.CardFocusState
 import dev.quinton.goa.feature.board.ui.cards.FocusCard
 import dev.quinton.goa.feature.board.ui.cards.cardFocusOrigin
@@ -276,8 +279,8 @@ private fun focusSpell(card: Card, title: String, mark: SpellMark?, castWith: St
 @Composable
 private fun AskingNow(text: String, card: Card?, onOpen: (List<FocusCard>, Int, String) -> Unit) {
     Surface(
-        shape = RoundedCornerShape(12.dp),
-        color = MaterialTheme.colorScheme.primaryContainer,
+        shape = RoundedCornerShape(8.dp),
+        color = PlateWell,
         border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary),
         modifier = Modifier.fillMaxWidth(),
     ) {
@@ -286,6 +289,7 @@ private fun AskingNow(text: String, card: Card?, onOpen: (List<FocusCard>, Int, 
                 Surface(
                     onClick = { onOpen(listOf(FocusCard(card)), 0, "Asked by") },
                     shape = RoundedCornerShape(4.dp),
+                    color = Color.Transparent,
                     modifier = Modifier.clearAndSetSemantics {
                         contentDescription = spokenCard(card)
                         role = Role.Button
@@ -300,7 +304,6 @@ private fun AskingNow(text: String, card: Card?, onOpen: (List<FocusCard>, Int, 
             Text(
                 text,
                 style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onPrimaryContainer,
                 modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite },
             )
         }
@@ -340,11 +343,9 @@ internal fun SpellbookButton(table: TableUi, heroId: String, onClick: () -> Unit
         places[REMOVED]?.takeIf { it > 0 }?.let { add("$it cast") }
         places[BOX]?.takeIf { it > 0 }?.let { add("$it not yet added") }
     }.joinToString(", ")
-    Surface(
+    PlateSurface(
         onClick = onClick,
         shape = RoundedCornerShape(24.dp),
-        color = MaterialTheme.colorScheme.surface.copy(alpha = 0.92f),
-        border = BorderStroke(1.dp, GoaTheme.colors.engravedBorder),
         modifier = modifier
             .heightIn(min = 48.dp)
             .clearAndSetSemantics {
@@ -387,11 +388,10 @@ internal fun SpellbookButton(table: TableUi, heroId: String, onClick: () -> Unit
  */
 @Composable
 internal fun SpellbookChip(hero: BoardHero, onClick: () -> Unit, modifier: Modifier = Modifier) {
-    Surface(
+    PlateSurface(
         onClick = onClick,
         shape = RoundedCornerShape(50),
-        color = MaterialTheme.colorScheme.surface,
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary),
+        border = BorderStroke(1.dp, BRONZE_EDGE),
         modifier = modifier.heightIn(min = 48.dp).semantics(mergeDescendants = true) { role = Role.Button },
     ) {
         Row(
@@ -410,3 +410,4 @@ internal fun SpellbookChip(hero: BoardHero, onClick: () -> Unit, modifier: Modif
 }
 
 private const val SHEET_HEIGHT = 0.9f
+private val BRONZE_EDGE = Color(0xFFC9A35B)

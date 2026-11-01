@@ -58,6 +58,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.semantics.Role
@@ -96,6 +97,7 @@ import dev.quinton.goa.feature.board.setup.NewBoardAction
 import dev.quinton.goa.feature.board.setup.SourcesContent
 import dev.quinton.goa.feature.board.setup.TeamSwitch
 import dev.quinton.goa.feature.board.setup.Teams
+import dev.quinton.goa.feature.board.ui.PlateSurface
 import dev.quinton.goa.feature.board.ui.cards.CardFocusHost
 import dev.quinton.goa.feature.board.ui.cards.rememberCardFocusState
 import kotlin.math.roundToInt
@@ -335,11 +337,9 @@ private fun OptionsStep(
                 .padding(horizontal = Spacing.screen, vertical = Spacing.md),
             verticalArrangement = Arrangement.spacedBy(Spacing.lg),
         ) {
-            Surface(
+            PlateSurface(
                 onClick = { onAction(NewGameAction.Step(NewGameStep.LINEUP)) },
-                shape = MaterialTheme.shapes.medium,
-                color = MaterialTheme.colorScheme.surface,
-                border = BorderStroke(1.dp, GoaTheme.colors.engravedBorder),
+                brackets = true,
                 modifier = Modifier.fillMaxWidth().semantics { contentDescription = "Line-up. Change" },
             ) {
                 Row(Modifier.padding(Spacing.md), verticalAlignment = Alignment.CenterVertically) {
@@ -503,13 +503,10 @@ private fun ControlRow(
         is Control.WholeTeam -> control.team
         is Control.Hero -> if (control.heroId in state.red) Team.RED else Team.BLUE
     }
-    Surface(
-        shape = MaterialTheme.shapes.medium,
-        color = if (selected) teamColor(team).copy(alpha = 0.08f) else MaterialTheme.colorScheme.surface,
-        border = BorderStroke(
-            if (selected) 2.dp else 1.dp,
-            if (selected) teamColor(team) else GoaTheme.colors.engravedBorder,
-        ),
+    PlateSurface(
+        tint = if (selected) teamColor(team).copy(alpha = 0.08f) else Color.Transparent,
+        brackets = true,
+        border = if (selected) BorderStroke(2.dp, teamColor(team)) else null,
         modifier = Modifier
             .fillMaxWidth()
             .heightIn(min = 56.dp)
@@ -654,12 +651,10 @@ private fun MapChoice(state: NewGameUiState.Ready, onAction: (NewGameAction) -> 
     var menu by remember { mutableStateOf(false) }
     val map = state.map
     Box {
-        Surface(
+        PlateSurface(
             onClick = { menu = true },
             enabled = state.maps.size > 1,
-            shape = MaterialTheme.shapes.medium,
-            color = MaterialTheme.colorScheme.surface,
-            border = BorderStroke(1.dp, GoaTheme.colors.engravedBorder),
+            brackets = true,
             modifier = Modifier
                 .fillMaxWidth()
                 .heightIn(min = 56.dp)

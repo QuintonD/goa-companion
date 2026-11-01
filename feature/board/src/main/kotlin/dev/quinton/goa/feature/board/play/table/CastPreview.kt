@@ -21,6 +21,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
@@ -29,6 +30,8 @@ import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import dev.quinton.goa.core.designsystem.component.CardTextBox
+import dev.quinton.goa.core.designsystem.component.PlateColor
 import dev.quinton.goa.core.designsystem.component.cardColor
 import dev.quinton.goa.core.designsystem.component.scaledIconSize
 import dev.quinton.goa.core.designsystem.theme.Spacing
@@ -155,6 +158,7 @@ private fun SpellThumb(table: TableUi, spell: Card, spells: List<Card>, index: I
     Surface(
         onClick = read,
         shape = RoundedCornerShape(6.dp),
+        color = Color.Transparent,
         border = BorderStroke(1.dp, cardColor(spell.color).copy(alpha = 0.8f)),
         modifier = Modifier
             .cardFocusOrigin(focus, spell.id)
@@ -172,20 +176,15 @@ private fun SpellThumb(table: TableUi, spell: Card, spells: List<Card>, index: I
 /** "Will do nothing": said plainly, in the error colours, never by colour alone (the icon and words). */
 @Composable
 private fun NoEffect(text: String) {
-    Surface(
-        shape = RoundedCornerShape(8.dp),
-        color = MaterialTheme.colorScheme.errorContainer,
-        modifier = Modifier.fillMaxWidth().semantics(mergeDescendants = true) {},
-    ) {
-        Row(Modifier.padding(horizontal = Spacing.sm, vertical = 6.dp), verticalAlignment = Alignment.Top) {
+    CardTextBox(PlateColor.RED, Modifier.fillMaxWidth().semantics(mergeDescendants = true) {}, cap = "Rule") {
+        Row(verticalAlignment = Alignment.Top) {
             Icon(
                 Icons.Outlined.WarningAmber,
                 contentDescription = "Warning",
-                tint = MaterialTheme.colorScheme.onErrorContainer,
                 modifier = Modifier.padding(top = 2.dp).size(scaledIconSize(16.dp, 1.3f)),
             )
             Spacer(Modifier.width(Spacing.xs))
-            Text(text, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onErrorContainer)
+            Text(text, style = MaterialTheme.typography.bodySmall)
         }
     }
 }

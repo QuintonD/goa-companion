@@ -130,7 +130,7 @@ class HeroStateSheetTest {
         val play = play(session())
         show(play, PlaySheet.Hero("arien"))
         val words = words()
-        assertThat(words).contains("+1 Defense ×2")
+        assertThat(words).contains("+1 Defense, 2 items")
         assertThat(words).contains("Rogue Wave")
         assertThat(words).contains("Arcane Whirlpool")
         assertThat(words).contains("Tucked under the dashboard")

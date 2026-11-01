@@ -51,6 +51,7 @@ import dev.quinton.goa.core.designsystem.theme.GoaTextStyles
 import dev.quinton.goa.core.designsystem.theme.GoaTheme
 import dev.quinton.goa.core.designsystem.theme.Spacing
 import dev.quinton.goa.core.model.catalog.Card
+import dev.quinton.goa.feature.board.ui.PlateWell
 import dev.quinton.goa.feature.board.ui.cards.CardFocusState
 import dev.quinton.goa.feature.board.ui.cards.FocusCard
 import dev.quinton.goa.feature.board.ui.cards.cardFocusOrigin
@@ -86,8 +87,8 @@ private fun FlowEntryView(entry: FlowEntry, table: TableUi, focus: CardFocusStat
     val scheme = MaterialTheme.colorScheme
     val accent = if (entry.important) scheme.primary else scheme.outlineVariant
     Surface(
-        shape = RoundedCornerShape(10.dp),
-        color = scheme.surfaceVariant.copy(alpha = if (earlier) EARLIER_ALPHA else 1f),
+        shape = RoundedCornerShape(8.dp),
+        color = if (earlier) Color.Transparent else PlateWell,
         border = BorderStroke(if (entry.important || entry.open) 1.5.dp else 1.dp, accent),
         modifier = Modifier.fillMaxWidth(),
     ) {
@@ -318,4 +319,3 @@ private val BADGE = 32.dp
 private val HEADER_CARD: Dp = 30.dp
 private val STEP_CARD: Dp = 40.dp
 private val DEFENSE_CARD: Dp = 48.dp
-private const val EARLIER_ALPHA = 0.6f

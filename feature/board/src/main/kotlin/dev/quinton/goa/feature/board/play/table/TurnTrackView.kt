@@ -35,6 +35,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.CustomAccessibilityAction
 import androidx.compose.ui.semantics.LiveRegionMode
@@ -53,18 +54,21 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import dev.quinton.goa.core.designsystem.cardtext.GameIcon
 import dev.quinton.goa.core.designsystem.cardtext.GameIcons
+import dev.quinton.goa.core.designsystem.component.CardTextBox
 import dev.quinton.goa.core.designsystem.component.HeroPortrait
+import dev.quinton.goa.core.designsystem.component.PlateColor
 import dev.quinton.goa.core.designsystem.component.TeamMark
 import dev.quinton.goa.core.designsystem.component.teamColor
 import dev.quinton.goa.core.designsystem.theme.GoaTextStyles
-import dev.quinton.goa.core.designsystem.theme.GoaTheme
 import dev.quinton.goa.core.designsystem.theme.Spacing
 import dev.quinton.goa.core.game.ActionType
 import dev.quinton.goa.core.model.catalog.Card
 import dev.quinton.goa.feature.board.BoardText
 import dev.quinton.goa.feature.board.play.PlayText
+import dev.quinton.goa.feature.board.ui.PlateSurface
 import dev.quinton.goa.feature.board.ui.cards.CardFocusState
 import dev.quinton.goa.feature.board.ui.cards.FocusCard
 import dev.quinton.goa.feature.board.ui.cards.cardFocusOrigin
@@ -91,6 +95,7 @@ fun TurnTrackRow(
     modifier: Modifier = Modifier,
     focus: CardFocusState? = null,
     compact: Boolean = false,
+    cardWidth: Dp = TRACK_CARD,
 ) {
     val viewable = trackFocusCards(table, track)
     Row(
@@ -105,6 +110,7 @@ fun TurnTrackRow(
                 table = table,
                 slot = slot,
                 compact = compact,
+                cardWidth = if (compact) COMPACT_CARD else cardWidth,
                 focus = focus,
                 onOpen = {
                     if (focus != null && index >= 0) {
@@ -143,23 +149,21 @@ private fun TrackSlotView(
     table: TableUi,
     slot: TrackSlot,
     compact: Boolean,
+    cardWidth: Dp,
     focus: CardFocusState?,
     onOpen: () -> Unit,
     onHero: (() -> Unit)?,
 ) {
     val info = table.hero(slot.heroId)
     val spoken = spokenSlot(table, slot)
-    val scheme = MaterialTheme.colorScheme
     val border = when (slot.state) {
-        SlotState.NOW -> BorderStroke(2.dp, scheme.primary)
-        SlotState.NEXT -> BorderStroke(1.5.dp, scheme.secondary)
-        else -> BorderStroke(1.dp, GoaTheme.colors.engravedBorder)
+        SlotState.NOW -> BorderStroke(2.dp, NowBand)
+        SlotState.NEXT -> BorderStroke(2.dp, NextBand)
+        else -> null
     }
-    val cardWidth = if (compact) COMPACT_CARD else TRACK_CARD
-    val shape = RoundedCornerShape(10.dp)
-    Surface(
+    val shape = RoundedCornerShape(6.dp)
+    PlateSurface(
         shape = shape,
-        color = scheme.surface.copy(alpha = 0.95f),
         border = border,
         modifier = Modifier
             .clip(shape)
@@ -182,7 +186,7 @@ private fun TrackSlotView(
             },
     ) {
         Column(
-            Modifier.padding(4.dp),
+            Modifier.padding(3.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
             SlotCards(table, slot, cardWidth, compact, focus)
@@ -190,7 +194,7 @@ private fun TrackSlotView(
                 Spacer(Modifier.height(2.dp))
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.widthIn(max = NAME_WIDTH),
+                    modifier = Modifier.widthIn(max = cardWidth + NAME_EXTRA),
                 ) {
                     TeamMark(slot.team, markSize = 7.dp)
                     Spacer(Modifier.width(2.dp))
@@ -244,14 +248,19 @@ private fun SlotCards(table: TableUi, slot: TrackSlot, width: Dp, compact: Boole
                     Modifier
                         .fillMaxSize()
                         .clip(RoundedCornerShape(width * 0.08f))
-                        .background(MaterialTheme.colorScheme.background.copy(alpha = DONE_SCRIM)),
+                        .background(Color.Black.copy(alpha = DONE_SCRIM)),
                 )
             }
             slot.initiative?.let { InitiativeBadge(it, slot.tied, compact, Modifier.align(Alignment.TopStart)) }
             slot.action?.let { action ->
-                ActionBadge(actionIcon(action, firstCard), compact, Modifier.align(Alignment.TopEnd))
+                // Under the card's name, which it would hide on the title bar.
+                ActionBadge(
+                    actionIcon(action, firstCard),
+                    compact,
+                    Modifier.align(Alignment.TopEnd).offset(y = if (compact) 0.dp else width * ACTION_BADGE_DROP),
+                )
             }
-            SlotPortrait(table, slot, compact, Modifier.align(Alignment.CenterEnd))
+            SlotPortrait(table, slot, compact, width, Modifier.align(Alignment.CenterEnd))
             StateBand(slot.state, compact, Modifier.align(Alignment.BottomCenter))
         }
     }
@@ -301,10 +310,10 @@ private fun ActionBadge(icon: GameIcon, compact: Boolean, modifier: Modifier) {
 
 /** The hero's portrait in its team ring, over the card's art; crossed out while off the board. */
 @Composable
-private fun SlotPortrait(table: TableUi, slot: TrackSlot, compact: Boolean, modifier: Modifier) {
+private fun SlotPortrait(table: TableUi, slot: TrackSlot, compact: Boolean, width: Dp, modifier: Modifier) {
     val info = table.hero(slot.heroId)
-    val size = if (compact) 18.dp else 24.dp
-    Box(modifier.offset(x = 2.dp)) {
+    val size = if (compact) 18.dp else width * PORTRAIT_SHARE
+    Box(modifier.offset(x = 2.dp, y = (-4).dp)) {
         HeroPortrait(
             slot.heroId,
             info.portrait,
@@ -330,14 +339,8 @@ private fun SlotPortrait(table: TableUi, slot: TrackSlot, compact: Boolean, modi
 /** The state in a word across the foot of the card: DONE (tick), NOW, NEXT, PASS, OUT; none for later. */
 @Composable
 private fun StateBand(state: SlotState, compact: Boolean, modifier: Modifier) {
-    val scheme = MaterialTheme.colorScheme
     val word = slotBand(state) ?: return
-    val (background, content) = when (state) {
-        SlotState.NOW -> scheme.primary to scheme.onPrimary
-        SlotState.NEXT -> scheme.secondaryContainer to scheme.onSecondaryContainer
-        SlotState.DONE -> scheme.surfaceVariant to scheme.onSurface
-        else -> scheme.surfaceVariant to scheme.onSurfaceVariant
-    }
+    val (background, content) = bandColors(state == SlotState.NOW, state == SlotState.NEXT)
     Row(
         modifier
             .fillMaxWidth()
@@ -354,9 +357,9 @@ private fun StateBand(state: SlotState, compact: Boolean, modifier: Modifier) {
             Text(
                 word,
                 style = TextStyle(
-                    fontSize = fixedSp(if (compact) 8f else 9f),
-                    fontWeight = FontWeight.Bold,
-                    letterSpacing = fixedSp(0.4f),
+                    fontSize = fixedSp(if (compact) 8f else 10f),
+                    fontWeight = FontWeight.SemiBold,
+                    letterSpacing = fixedSp(0.8f),
                 ),
                 color = content,
                 maxLines = 1,
@@ -372,29 +375,24 @@ private fun StateBand(state: SlotState, compact: Boolean, modifier: Modifier) {
  */
 @Composable
 fun MomentCard(moment: TableMoment, table: TableUi, modifier: Modifier = Modifier, focus: CardFocusState? = null) {
-    val scheme = MaterialTheme.colorScheme
-    Surface(
-        shape = RoundedCornerShape(12.dp),
-        color = scheme.surfaceVariant,
-        border = BorderStroke(1.dp, scheme.primary.copy(alpha = 0.6f)),
-        modifier = modifier.fillMaxWidth(),
-    ) {
-        Column(Modifier.padding(horizontal = Spacing.md, vertical = Spacing.sm)) {
-            Column(
-                Modifier.semantics(mergeDescendants = true) { liveRegion = LiveRegionMode.Polite },
-            ) {
-                Text(moment.title.uppercase(), style = GoaTextStyles.overline, color = scheme.primary)
-                Text(moment.text, style = MaterialTheme.typography.bodyMedium, color = scheme.onSurfaceVariant)
-            }
-            if (moment.cards.isNotEmpty()) {
-                Spacer(Modifier.height(Spacing.xs))
-                TurnTrackRow(
-                    table,
-                    TurnTrack(table.view.round, table.view.turn - 1, moment.cards),
-                    onHero = null,
-                    focus = focus,
-                )
-            }
+    Column(modifier.fillMaxWidth()) {
+        CardTextBox(
+            PlateColor.GOLD,
+            Modifier
+                .fillMaxWidth()
+                .semantics(mergeDescendants = true) { liveRegion = LiveRegionMode.Polite },
+            cap = moment.title.uppercase(),
+        ) {
+            Text(moment.text, style = GoaTextStyles.printed.copy(fontSize = 16.sp, lineHeight = 20.sp))
+        }
+        if (moment.cards.isNotEmpty()) {
+            Spacer(Modifier.height(Spacing.xs))
+            TurnTrackRow(
+                table,
+                TurnTrack(table.view.round, table.view.turn - 1, moment.cards),
+                onHero = null,
+                focus = focus,
+            )
         }
     }
 }
@@ -411,11 +409,24 @@ private fun cappedSp(value: Float): TextUnit {
     return with(density) { (value * scale).dp.toSp() }
 }
 
+/** The band across a card's foot on the track and the hero sheet: bronze NOW, teal NEXT, else steel. */
+internal fun bandColors(now: Boolean, next: Boolean): Pair<Color, Color> = when {
+    now -> NowBand to BandInk
+    next -> NextBand to BandInk
+    else -> Color(0xFF2A343B) to Color(0xFFE8E2D6)
+}
+
+internal val NowBand = Color(0xFFC9A35B)
+internal val NextBand = Color(0xFF3FC1B0)
+private val BandInk = Color(0xFF0B1622)
+
 private val TRACK_CARD = 48.dp
-private val NAME_WIDTH = 70.dp
+private val NAME_EXTRA = 8.dp
+private const val PORTRAIT_SHARE = 0.44f
+private const val ACTION_BADGE_DROP = 0.2f
 private val COMPACT_CARD = 32.dp
 private val EXTRA_CARD_OFFSET = 6.dp
 private const val STACKED_ALPHA = 0.85f
-private const val DONE_SCRIM = 0.5f
+private const val DONE_SCRIM = 0.42f
 private const val OFF_BOARD_ALPHA = 0.45f
 private const val MAX_NAME_SCALE = 1.3f

@@ -7,7 +7,10 @@ import dev.quinton.goa.core.model.catalog.Card
 import dev.quinton.goa.core.model.match.Team
 import dev.quinton.goa.feature.board.BoardText
 import dev.quinton.goa.feature.board.play.PlayText
+import dev.quinton.goa.feature.board.play.table.DashboardSlot
 import dev.quinton.goa.feature.board.play.table.EXTRAS_SPELLBOOK
+import dev.quinton.goa.feature.board.play.table.HeroTurn
+import dev.quinton.goa.feature.board.play.table.HeroTurnState
 import dev.quinton.goa.feature.board.play.table.LogLine
 import dev.quinton.goa.feature.board.play.table.MomentKind
 import dev.quinton.goa.feature.board.play.table.SlotState
@@ -15,29 +18,32 @@ import dev.quinton.goa.feature.board.play.table.TableMoment
 import dev.quinton.goa.feature.board.play.table.TableUi
 import dev.quinton.goa.feature.board.play.table.TrackSlot
 import dev.quinton.goa.feature.board.play.table.TurnTrack
-import dev.quinton.goa.feature.board.play.table.actionWord
 import dev.quinton.goa.feature.board.play.table.cardCaption
 import dev.quinton.goa.feature.board.play.table.cardDown
+import dev.quinton.goa.feature.board.play.table.dashboardSlots
 import dev.quinton.goa.feature.board.play.table.extrasGroups
 import dev.quinton.goa.feature.board.play.table.extrasTitle
+import dev.quinton.goa.feature.board.play.table.heroTurn
+import dev.quinton.goa.feature.board.play.table.heroWhere
+import dev.quinton.goa.feature.board.play.table.itemGroups
 import dev.quinton.goa.feature.board.play.table.shownCounters
 import dev.quinton.goa.feature.board.play.table.slotBand
 import dev.quinton.goa.feature.board.play.table.slotCaption
 import dev.quinton.goa.feature.board.play.table.spokenCard
 import dev.quinton.goa.feature.board.play.table.spokenChip
 import dev.quinton.goa.feature.board.play.table.spokenSlot
+import dev.quinton.goa.feature.board.play.table.turnLines
+import dev.quinton.goa.feature.board.play.table.turnWord
 import dev.quinton.goa.feature.board.play.table.ultimateCard
 import dev.quinton.goa.feature.board.ui.cards.FocusCard
 import dev.quinton.goa.web.play.cards.CardFocusState
 import dev.quinton.goa.web.play.cards.CardImage
-import dev.quinton.goa.web.play.cards.ItemBadge
 import dev.quinton.goa.web.play.ui.TeamMark
 import dev.quinton.goa.web.play.ui.TieBreakerCoin
 import dev.quinton.goa.web.ui.Icon
 import dev.quinton.goa.web.ui.IconSize
 import org.jetbrains.compose.web.dom.Button
 import org.jetbrains.compose.web.dom.Div
-import org.jetbrains.compose.web.dom.H2
 import org.jetbrains.compose.web.dom.Li
 import org.jetbrains.compose.web.dom.P
 import org.jetbrains.compose.web.dom.Span
@@ -46,6 +52,13 @@ import org.jetbrains.compose.web.dom.Ul
 
 /** Turns in a round (p.7). */
 private const val TURNS = 4
+private const val TRACK_CARD = 64
+private const val SLOT_CARD = 72
+private const val SHEET_CARD = 92
+private const val DASHBOARD_HERO = "tigerclaw"
+private const val NAME_CQW = 2.55
+private const val PLATE_CQW = 29.0
+private const val CINZEL_EM = 0.6
 
 /**
  * The round at a glance: each team's Life counters, the Wave counters left (per Lane), the round and
@@ -68,24 +81,28 @@ fun TableHud(table: TableUi, compact: Boolean = false) {
     Div({
         classes("goa-table-hud")
         if (compact) classes("compact")
+        if (waves.size > 1) classes("two-lanes")
         attr("role", "group")
         attr("aria-label", spoken)
     }) {
         Team.entries.forEach { team ->
+            val left = view.lifeCounters[team] ?: 0
             Span({ classes("goa-hud-item", teamCss(team)) }) {
                 TeamMark(team)
-                Icon("heart", IconSize.SMALL)
-                Span({ classes("t-numeric") }) { Text("${view.lifeCounters[team] ?: 0}") }
+                LookImg("official/ui/life-${teamCss(team)}${if (left == 0) "-spent" else ""}.webp", "goa-hud-counter")
+                Span({ classes("t-numeric") }) { Text("$left") }
             }
         }
         waves.forEach { (lane, left) ->
             Span({ classes("goa-hud-item", "waves") }) {
-                Icon("waves", IconSize.SMALL)
-                Span({ classes("t-numeric") }) { Text(listOfNotNull(lane, "$left").joinToString(" ")) }
+                LookImg("official/ui/wave${if (left == 0) "-spent" else ""}.webp", "goa-hud-counter")
+                // Two Lanes: "L1 3" fits both on the row; VoiceOver hears "Lane 1".
+                lane?.let { Span({ classes("goa-hud-lane") }) { Text(it.replace("Lane ", "L")) } }
+                Span({ classes("t-numeric") }) { Text("$left") }
             }
         }
-        Span({ classes("goa-hud-item") }) {
-            Span({ classes("t-numeric") }) { Text("R${view.round}") }
+        Span({ classes("goa-hud-item", "round") }) {
+            Span({ classes("goa-hud-round") }) { Text("R${view.round}") }
             Span({ classes("goa-pips") }) {
                 for (t in 1..TURNS) {
                     Span({
@@ -140,26 +157,23 @@ private fun HeroChip(table: TableUi, hero: HeroView, place: Int?, compact: Boole
         onClick { onClick() }
     }) {
         Span({ classes("goa-chip-portrait") }) {
-            HeroPortrait(info, hero.team, if (compact) 38 else 34, dim = hero.at == null)
+            HeroPortrait(info, hero.team, if (compact) 38 else 32, dim = hero.at == null)
+            Span({ classes("goa-chip-badge") }) { TeamMark(hero.team) }
+            if (!compact) Span({ classes("goa-chip-hand", "t-numeric") }) { Text("${hero.handCount}") }
             place?.let { Span({ classes("goa-order-badge") }) { Text("$it") } }
             if (cardDown(table, hero)) Span({ classes("goa-card-down") })
         }
         if (!compact) {
             Span({ classes("goa-chip-text") }) {
                 Span({ classes("goa-chip-name") }) {
-                    TeamMark(hero.team)
                     Span({ classes("name") }) { Text(info.name) }
                     if (acting) Span({ classes("now") }) { Text(" · Now") }
                 }
                 Span({ classes("goa-chip-stats", "t-numeric") }) {
-                    Span { Text("Lv ${hero.level}") }
+                    Span { Text("Lv${hero.level}") }
                     Span {
-                        Icon("coin", IconSize.SMALL)
+                        LookImg("official/ui/coin.webp", "goa-chip-coin")
                         Text("${hero.coins}")
-                    }
-                    Span {
-                        Icon("cards", IconSize.SMALL)
-                        Text("${hero.handCount}")
                     }
                     (hero.initiative ?: played?.initiative)?.let {
                         Span {
@@ -235,7 +249,7 @@ private fun TrackSlotView(
             attr("aria-label", spokenSlot(table, slot) + ". Look at the card")
             onClick { onOpen() }
         }) {
-            val width = if (compact) 34 else 46
+            val width = if (compact) 34 else TRACK_CARD
             if (slot.cards.isEmpty()) {
                 Span({ classes("goa-track-pass") }) { Text("—") }
             } else {
@@ -257,6 +271,10 @@ private fun TrackSlotView(
             slot.initiative?.let {
                 Span({ classes("goa-track-init", "t-numeric") }) { Text(if (slot.tied) "=$it" else "$it") }
             }
+            // The action chosen, as the game's icon on the art (the slot's label says it in words).
+            slot.action?.let { action ->
+                Span({ classes("goa-track-action") }) { Icon(actionIconName(action, card), IconSize.SMALL) }
+            }
         }
         Button({
             classes("goa-track-hero")
@@ -264,13 +282,11 @@ private fun TrackSlotView(
             attr("aria-label", "Read about ${info.name}")
             onClick { onHero() }
         }) {
-            HeroPortrait(info, slot.team, if (compact) 18 else 20, dim = slot.offBoard)
+            HeroPortrait(info, slot.team, if (compact) 18 else 28, dim = slot.offBoard)
             if (!compact) {
+                TeamMark(slot.team)
                 Span({ classes("goa-track-name") }) { Text(info.name) }
             }
-        }
-        slot.action?.takeIf { !compact }?.let { action ->
-            Span({ classes("goa-track-action", "t-body-small") }) { Text(actionWord(action, card)) }
         }
     }
 }
@@ -285,8 +301,10 @@ fun MomentCard(moment: TableMoment, table: TableUi, focus: CardFocusState) {
         classes("goa-moment", moment.kind.name.lowercase())
         attr("role", "status")
     }) {
-        P({ classes("t-title-small") }) { Text(moment.title) }
-        P({ classes("t-body-medium") }) { Text(moment.text) }
+        Div({ classes("goa-text-box", "gold") }) {
+            Span({ classes("cap") }) { Text(moment.title) }
+            P { Text(moment.text) }
+        }
         if (moment.kind == MomentKind.TURN_OVER && moment.cards.isNotEmpty()) {
             val cards = moment.cards.flatMap { slot ->
                 slot.cards.mapNotNull { v -> table.card(v.cardId.takeIf { !v.facedown }) }
@@ -347,7 +365,14 @@ fun YourHand(table: TableUi, focus: CardFocusState) {
  * Turn slot.
  */
 @Composable
-fun CardRow(cards: List<CardView>, table: TableUi, focus: CardFocusState, title: String, slots: Boolean = false) {
+fun CardRow(
+    cards: List<CardView>,
+    table: TableUi,
+    focus: CardFocusState,
+    title: String,
+    slots: Boolean = false,
+    cardWidth: Int = 64,
+) {
     val open = cards.indices.filter { !cards[it].facedown && table.card(cards[it].cardId) != null }
     val viewable = open.map { i ->
         FocusCard(table.card(cards[i].cardId)!!, caption = cardCaption(cards[i], slots).ifEmpty { null })
@@ -372,7 +397,7 @@ fun CardRow(cards: List<CardView>, table: TableUi, focus: CardFocusState, title:
                     )
                     if (card == null) attr("disabled", "")
                     onClick { open.indexOf(i).takeIf { it >= 0 }?.let { focus.open(viewable, it, title = title) } }
-                }) { CardImage(card, 64) }
+                }) { CardImage(card, cardWidth) }
                 if (caption.isNotEmpty()) Span({ classes("t-body-small", "goa-quiet") }) { Text(caption) }
             }
         }
@@ -380,9 +405,11 @@ fun CardRow(cards: List<CardView>, table: TableUi, focus: CardFocusState, title:
 }
 
 /**
- * One hero in full (open information, p.4), for a sheet: level, coins, cards in hand, items, markers,
- * Active effects, the card played this turn, the resolved Turn slots, the discard, the Ultimate, the
- * spellbook (ADR-040), and its hand when it is the person's (any hero's in a puzzle).
+ * One hero in full (open information, p.4), for a sheet, on the real dashboard as on the phone (mock-up
+ * 05): who plays them, level, coins, where they stand; this round's cards lying in the frame's Turn slots
+ * with their states (a card facedown to the person stays a back), what this turn's state means; the items
+ * as icons, the Ultimate and the hand (the person's own, any hero's in a puzzle, otherwise card backs),
+ * the discard, Active effects, markers, the spellbook (ADR-040).
  */
 @Composable
 fun HeroDetail(table: TableUi, heroId: String, focus: CardFocusState) {
@@ -390,44 +417,36 @@ fun HeroDetail(table: TableUi, heroId: String, focus: CardFocusState) {
     val info = table.hero(heroId)
     Div({ classes("goa-hero-detail") }) {
         Div({ classes("goa-hero-head") }) {
-            HeroPortrait(info, hero.team, 56)
+            Span({ classes("goa-chip-portrait") }) {
+                HeroPortrait(info, hero.team, 44, dim = hero.at == null)
+                Span({ classes("goa-chip-badge") }) { TeamMark(hero.team) }
+            }
             Div {
-                H2({ classes("t-title-large") }) { Text(info.name) }
                 P({ classes("t-label-large", "goa-quiet") }) {
                     TeamMark(hero.team)
                     Text(" ${BoardText.team(hero.team)} · ${table.controllerLabel(hero)}")
                 }
-            }
-        }
-        Div({ classes("goa-facts") }) {
-            Fact("Level", "${hero.level}")
-            Fact("Coins", "${hero.coins}")
-            Fact("In hand", "${hero.handCount}")
-            if (hero.ultimate) Fact("Ultimate", "Active")
-            if (hero.at == null) Fact("Board", "Off the board")
-            shownCounters(hero).forEach { (name, value) -> Fact(PlayText.counter(name), "$value") }
-        }
-        if (hero.items.isNotEmpty()) {
-            Overline("Items · p.16")
-            hero.items.mapNotNull(table::card).forEach { card ->
-                P({ classes("t-body-medium") }) {
-                    card.item?.let { ItemBadge(it) }
-                    Text(card.item?.let { "+1 ${PlayText.stat(it)} · ${card.name}" } ?: card.name)
+                P({ classes("t-body-small", "goa-hero-where") }) {
+                    Text("Level ${hero.level} · ")
+                    LookImg("official/ui/coin.webp", "goa-chip-coin")
+                    Text(" ${BoardText.count(hero.coins, "coin")} · ")
+                    Span({ if (hero.at == null) classes("off") }) { Text(heroWhere(table, hero)) }
                 }
             }
-        } else if (hero.itemStats.isNotEmpty()) {
-            Overline("Items · p.16")
-            P({ classes("t-body-medium") }) {
-                hero.itemStats.forEach { ItemBadge(it) }
-                Text(hero.itemStats.joinToString(", ") { "+1 ${PlayText.stat(it)}" })
+        }
+        HeroDashboard(table, hero, focus)
+        heroTurn(table, hero)?.let { turn -> ThisTurn(table, hero, turn) }
+        ItemsSection(table, hero, focus)
+        val counters = shownCounters(hero)
+        if (counters.isNotEmpty()) {
+            Div({ classes("goa-facts") }) {
+                counters.forEach { (name, value) -> Fact(PlayText.counter(name), "$value") }
             }
         }
-        if (hero.markers.isNotEmpty()) {
-            Overline("Markers")
-            hero.markers.forEach { marker ->
-                val from = marker.fromHeroId?.let { " · from ${table.hero(it).name}" }.orEmpty()
-                P({ classes("t-body-medium") }) { Text(marker.kind.replaceFirstChar { it.uppercase() } + from) }
-            }
+        UltimateAndHand(table, hero, focus)
+        if (hero.discard.isNotEmpty()) {
+            Overline("Discard · ${hero.discard.size}")
+            CardRow(hero.discard, table, focus, "${info.name} · Discarded")
         }
         if (hero.activeEffects.isNotEmpty()) {
             Overline("Active effects")
@@ -440,30 +459,169 @@ fun HeroDetail(table: TableUi, heroId: String, focus: CardFocusState) {
                 "${info.name} · Active effects",
             )
         }
-        hero.played?.let { played ->
-            Overline("Played this turn")
-            CardRow(listOf(played) + hero.alsoPlayed, table, focus, "${info.name} · Played this turn")
-        }
-        if (hero.resolved.isNotEmpty()) {
-            Overline("Resolved · Turn slots")
-            CardRow(hero.resolved, table, focus, "${info.name} · Resolved", slots = true)
-        }
-        if (hero.discard.isNotEmpty()) {
-            Overline("Discarded")
-            CardRow(hero.discard, table, focus, "${info.name} · Discarded")
-        }
-        ultimateCard(table, hero)?.let { card ->
-            Overline("Ultimate · p.16")
-            CardRow(listOf(CardView(card.id)), table, focus, "${info.name} · Ultimate")
+        if (hero.markers.isNotEmpty()) {
+            Overline("Markers")
+            hero.markers.forEach { marker ->
+                val from = marker.fromHeroId?.let { " · from ${table.hero(it).name}" }.orEmpty()
+                P({ classes("t-body-medium") }) { Text(marker.kind.replaceFirstChar { it.uppercase() } + from) }
+            }
         }
         ExtrasSection(table, hero, focus)
-        val hand = hero.hand
-        if (hand != null && heroId in table.mine) {
-            Overline("Your hand")
-            CardRow(hand.map { CardView(it) }, table, focus, "${info.name} · Your hand")
-        } else if (hand != null && hand.isNotEmpty()) {
-            Overline("In hand · open in this puzzle")
-            CardRow(hand.map { CardView(it) }, table, focus, "${info.name} · In hand")
+    }
+}
+
+/**
+ * The hero's real dashboard (rulebook p.16): the frame over the hero's art (the rulebook's for Tigerclaw,
+ * the portrait cropped and darkened toward the edges for the others), "Hero the Title" on its big plate,
+ * "Turn n" on the small ones, the round's cards in its slots (Emmitt's second one peeking behind the
+ * first). Positions come from the frame (goa-look-table.css), as fractions of its 821 × 416.
+ */
+@Composable
+private fun HeroDashboard(table: TableUi, hero: HeroView, focus: CardFocusState) {
+    val info = table.hero(hero.heroId)
+    val slots = dashboardSlots(table, hero)
+    val title = "${info.name} · Round ${table.view.round}"
+    val viewable = slots.flatMap { slot ->
+        slot.cards.mapNotNull { view ->
+            val card = view.cardId?.takeIf { !view.facedown }?.let(table::card) ?: return@mapNotNull null
+            FocusCard(card, key = "$title/${card.id}", caption = "Turn ${slot.turn}")
+        }
+    }
+    Div({ classes("goa-dashboard") }) {
+        val art = if (hero.heroId == DASHBOARD_HERO) "official/ui/dashboard-$DASHBOARD_HERO.webp" else null
+        when {
+            art != null -> LookImg(art, "goa-dashboard-art")
+
+            info.portrait != null -> {
+                LookImg(info.portrait!!, "goa-dashboard-portrait")
+                Span({ classes("goa-dashboard-shade") })
+            }
+        }
+        LookImg("official/ui/dashboard-frame.webp", "goa-dashboard-frame")
+        val name = listOf(info.name, info.title).filter { it.isNotBlank() }.joinToString(" ")
+        Span({
+            classes("goa-dashboard-name")
+            attr("aria-hidden", "true")
+            // The big plate is about a third of the frame: a long title gets smaller rather than cut.
+            style { property("font-size", "${minOf(NAME_CQW, PLATE_CQW / (name.length * CINZEL_EM))}cqw") }
+        }) { Text(name) }
+        slots.forEach { slot ->
+            Span({
+                classes("goa-dashboard-turn", "t${slot.turn}")
+                attr("aria-hidden", "true")
+            }) { Text("Turn ${slot.turn}") }
+            DashboardSlotView(table, slot, focus, title, viewable)
+        }
+    }
+}
+
+@Composable
+private fun DashboardSlotView(
+    table: TableUi,
+    slot: DashboardSlot,
+    focus: CardFocusState,
+    title: String,
+    viewable: List<FocusCard>,
+) {
+    val faces = slot.cards.map { view -> view.cardId?.takeIf { !view.facedown }?.let(table::card) }
+    val first = faces.firstNotNullOfOrNull { it }
+    val spoken = buildList {
+        add("Turn ${slot.turn}")
+        if (slot.cards.isEmpty() && slot.word == null) add("empty slot")
+        slot.word?.let { add(it.lowercase()) }
+        faces.forEach { add(it?.let(::spokenCard) ?: "facedown card") }
+    }.joinToString(", ")
+    Button({
+        classes("goa-dashboard-slot", "t${slot.turn}")
+        if (slot.now) classes("now")
+        if (slot.next) classes("next")
+        if (slot.stepped) classes("stepped")
+        if (slot.cards.isEmpty()) classes("empty")
+        attr("type", "button")
+        attr("aria-label", spoken)
+        if (first == null) attr("disabled", "")
+        onClick {
+            first?.let { card ->
+                focus.open(viewable, viewable.indexOfFirst { it.key == "$title/${card.id}" }.coerceAtLeast(0), title = title)
+            }
+        }
+    }) {
+        faces.getOrNull(1)?.let { second -> Span({ classes("second") }) { CardImage(second, SLOT_CARD, "fluid") } }
+        if (slot.cards.size > 1 && faces[1] == null) Span({ classes("second") }) { CardImage(null, SLOT_CARD, "fluid") }
+        if (slot.cards.isNotEmpty()) CardImage(faces[0], SLOT_CARD, "fluid")
+        slot.word?.let { Span({ classes("band") }) { Text(it) } }
+    }
+}
+
+/** What this turn's state means, in lines: the card itself lies on the dashboard. */
+@Composable
+private fun ThisTurn(table: TableUi, hero: HeroView, turn: HeroTurn) {
+    Overline("This turn · Round ${table.view.round}, turn ${table.view.turn}")
+    Span({
+        classes("goa-turn-state")
+        if (turn.state == HeroTurnState.NOW) classes("now")
+        if (turn.state == HeroTurnState.NEXT) classes("next")
+    }) { Text(turnWord(turn.state)) }
+    turnLines(table, hero, turn).forEach { line ->
+        P({ classes(if (line.startsWith("Initiative")) "t-title-medium" else "t-body-medium") }) { Text(line) }
+    }
+}
+
+/** Items (p.16): the official icon of each stat with what they add; the tucked cards for their own player (p.4). */
+@Composable
+private fun ItemsSection(table: TableUi, hero: HeroView, focus: CardFocusState) {
+    if (hero.itemStats.isEmpty() && hero.items.isEmpty()) return
+    Overline("Items · p.16")
+    Div({ classes("goa-items") }) {
+        itemGroups(hero.itemStats).forEach { (stat, count) ->
+            Span({
+                classes("goa-item")
+                attr("role", "img")
+                attr("aria-label", "+1 ${PlayText.stat(stat)}" + if (count > 1) ", $count items" else ", 1 item")
+            }) {
+                LookImg("official/icons/item-${stat.name.lowercase()}.webp", "goa-item-icon")
+                Span({ classes("t-title-small") }) { Text("+$count") }
+            }
+        }
+    }
+    if (hero.items.isNotEmpty()) {
+        Quiet("Tucked under the dashboard: only you see which cards (p.4).")
+        CardRow(hero.items.map { CardView(it) }, table, focus, "${table.hero(hero.heroId).name} · Items")
+    }
+}
+
+/**
+ * The unlocked Ultimate (a faceup card on the dashboard, p.16) beside the hand: the person's own cards, any
+ * hero's in a puzzle (its hands are open information), otherwise as many card backs (hidden, p.4).
+ */
+@Composable
+private fun UltimateAndHand(table: TableUi, hero: HeroView, focus: CardFocusState) {
+    val name = table.hero(hero.heroId).name
+    Div({ classes("goa-ultimate-hand") }) {
+        ultimateCard(table, hero)?.let { card ->
+            Div {
+                Overline("Ultimate · p.16")
+                CardRow(listOf(CardView(card.id)), table, focus, "$name · Ultimate", cardWidth = SHEET_CARD)
+            }
+        } ?: run { if (hero.ultimate) Fact("Ultimate", "Unlocked") }
+        Div({ classes("goa-ultimate-hand-rest") }) {
+            val hand = hero.hand
+            when {
+                hand == null -> {
+                    Overline("In hand · ${hero.handCount}")
+                    CardRow(List(hero.handCount) { CardView(null) }, table, focus, "$name · In hand", cardWidth = SHEET_CARD)
+                }
+
+                hero.heroId in table.mine -> {
+                    Overline("Your hand · ${hand.size}")
+                    CardRow(hand.map { CardView(it) }, table, focus, "$name · Your hand", cardWidth = SHEET_CARD)
+                }
+
+                hand.isNotEmpty() -> {
+                    Overline("In hand · open in this puzzle")
+                    CardRow(hand.map { CardView(it) }, table, focus, "$name · In hand", cardWidth = SHEET_CARD)
+                }
+            }
         }
     }
 }

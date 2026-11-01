@@ -20,11 +20,11 @@ import androidx.compose.material.icons.outlined.SportsEsports
 import androidx.compose.material3.Button
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
@@ -33,11 +33,11 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import dev.quinton.goa.core.designsystem.component.scaledIconSize
 import dev.quinton.goa.core.designsystem.theme.GoaTextStyles
-import dev.quinton.goa.core.designsystem.theme.GoaTheme
 import dev.quinton.goa.core.designsystem.theme.Spacing
 import dev.quinton.goa.core.model.match.Team
 import dev.quinton.goa.feature.board.BoardText
 import dev.quinton.goa.feature.board.changedHere
+import dev.quinton.goa.feature.board.ui.PlateSurface
 
 /**
  * Learning by playing (ADR-035), above the boards: a game in progress to resume, "Play against the
@@ -83,21 +83,16 @@ internal fun PlayHub(
 
 @Composable
 private fun EntryCard(icon: ImageVector, title: String, text: String, enabled: Boolean, onClick: () -> Unit) {
-    val content = if (enabled) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant
-    Surface(
+    PlateSurface(
         onClick = onClick,
         enabled = enabled,
-        shape = MaterialTheme.shapes.medium,
-        color = MaterialTheme.colorScheme.surface,
-        border = BorderStroke(
-            1.dp,
-            if (enabled) MaterialTheme.colorScheme.primary.copy(alpha = 0.6f) else GoaTheme.colors.engravedBorder,
-        ),
+        brackets = true,
         modifier = Modifier
             .fillMaxWidth()
             .heightIn(min = 64.dp)
             .semantics { if (!enabled) stateDescription = "Coming soon" },
     ) {
+        val content = if (enabled) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant
         Row(
             Modifier.padding(horizontal = Spacing.lg, vertical = Spacing.md),
             verticalAlignment = Alignment.CenterVertically,
@@ -126,10 +121,9 @@ private fun EntryCard(icon: ImageVector, title: String, text: String, enabled: B
 private fun ResumeCard(resume: ResumeUi, now: Long, onResume: () -> Unit) {
     val names = listOf(resume.red, resume.blue).filter { it.isNotEmpty() }
         .joinToString(" vs ") { team -> team.joinToString(", ") { it.name } }
-    Surface(
-        shape = MaterialTheme.shapes.large,
-        color = MaterialTheme.colorScheme.secondaryContainer,
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.secondary),
+    PlateSurface(
+        brackets = true,
+        border = BorderStroke(1.dp, RESUME_EDGE),
         modifier = Modifier.fillMaxWidth(),
     ) {
         Row(
@@ -195,3 +189,5 @@ private fun ResumeCard(resume: ResumeUi, now: Long, onResume: () -> Unit) {
         }
     }
 }
+
+private val RESUME_EDGE = Color(0xFF3FC1B0)

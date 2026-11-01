@@ -27,7 +27,6 @@ import androidx.compose.material.icons.outlined.Lightbulb
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -61,12 +60,18 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import dev.quinton.goa.core.designsystem.component.PlateColor
 import dev.quinton.goa.core.designsystem.component.scaledIconSize
 import dev.quinton.goa.core.designsystem.theme.GoaTextStyles
 import dev.quinton.goa.core.designsystem.theme.GoaTheme
 import dev.quinton.goa.core.designsystem.theme.Motion
 import dev.quinton.goa.core.designsystem.theme.Spacing
 import dev.quinton.goa.feature.board.play.table.TableCard
+import dev.quinton.goa.feature.board.ui.HeadedTextBox
+import dev.quinton.goa.feature.board.ui.PlateButton
+import dev.quinton.goa.feature.board.ui.PlateSurface
+import dev.quinton.goa.feature.board.ui.PlateTone
 import dev.quinton.goa.feature.board.ui.cards.CardFocusState
 import kotlin.math.PI
 import kotlin.math.cos
@@ -117,10 +122,9 @@ fun GoalBanner(goal: String, playing: List<String>, modifier: Modifier = Modifie
     var cut by remember { mutableStateOf(false) }
     val tappable = compact && (cut || open)
     val toggleLabel = if (open) "Fold the goal" else "Show the whole goal"
-    Surface(
-        shape = RoundedCornerShape(14.dp),
-        color = MaterialTheme.colorScheme.surface.copy(alpha = 0.94f),
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.7f)),
+    PlateSurface(
+        shape = RoundedCornerShape(7.dp),
+        brackets = true,
         modifier = modifier
             .fillMaxWidth()
             .then(if (tappable) Modifier.clickable(onClickLabel = toggleLabel) { open = !open } else Modifier)
@@ -198,54 +202,33 @@ private const val GOAL_GAP = "  ·  "
  */
 @Composable
 fun NudgeCard(nudge: NudgeUi, onMore: () -> Unit, onDismiss: () -> Unit, modifier: Modifier = Modifier) {
-    Surface(
-        shape = RoundedCornerShape(16.dp),
-        color = MaterialTheme.colorScheme.secondaryContainer,
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.secondary),
-        modifier = modifier.fillMaxWidth(),
-    ) {
-        Column(
-            Modifier.padding(start = Spacing.md, end = Spacing.xs, top = Spacing.xs, bottom = Spacing.md),
-            verticalArrangement = Arrangement.spacedBy(Spacing.xs),
-        ) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(Icons.Outlined.Lightbulb, null, tint = MaterialTheme.colorScheme.onSecondaryContainer)
+    Column(modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
+        HeadedTextBox(PlateColor.GREEN, "NUDGE ${nudge.level} OF ${nudge.total}", Modifier.fillMaxWidth()) {
+            Row(verticalAlignment = Alignment.Top) {
+                Icon(Icons.Outlined.Lightbulb, null, Modifier.padding(top = Spacing.xs))
                 Spacer(Modifier.width(Spacing.sm))
-                Text(
-                    "NUDGE ${nudge.level} OF ${nudge.total}",
-                    style = GoaTextStyles.overline,
-                    color = MaterialTheme.colorScheme.onSecondaryContainer,
-                    modifier = Modifier.weight(1f).semantics { heading() },
-                )
-                IconButton(onClick = onDismiss) {
-                    Icon(
-                        Icons.Outlined.Close,
-                        contentDescription = "Hide the nudge",
-                        tint = MaterialTheme.colorScheme.onSecondaryContainer,
+                Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
+                    Text(
+                        nudge.text,
+                        style = GoaTextStyles.printed.copy(fontSize = 17.sp, lineHeight = 22.sp),
+                        modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite },
                     )
+                    nudge.hint?.let { hint ->
+                        Text("Outlined in bronze: $hint", style = MaterialTheme.typography.labelLarge)
+                    }
+                }
+                IconButton(onClick = onDismiss) {
+                    Icon(Icons.Outlined.Close, contentDescription = "Hide the nudge")
                 }
             }
-            Text(
-                nudge.text,
-                style = MaterialTheme.typography.bodyLarge,
-                color = MaterialTheme.colorScheme.onSecondaryContainer,
-                modifier = Modifier.padding(end = Spacing.sm).semantics { liveRegion = LiveRegionMode.Polite },
-            )
-            nudge.hint?.let { hint ->
-                Text(
-                    "Outlined in bronze: $hint",
-                    style = MaterialTheme.typography.labelLarge,
-                    color = MaterialTheme.colorScheme.onSecondaryContainer,
-                    modifier = Modifier.padding(end = Spacing.sm),
-                )
-            }
-            if (nudge.more) {
-                OutlinedButton(
-                    onClick = onMore,
-                    modifier = Modifier.heightIn(min = 48.dp),
-                    contentPadding = PaddingValues(horizontal = Spacing.lg),
-                ) { Text("Another nudge") }
-            }
+        }
+        if (nudge.more) {
+            PlateButton(
+                onClick = onMore,
+                tone = PlateTone.STEEL,
+                modifier = Modifier.heightIn(min = 48.dp),
+                contentPadding = PaddingValues(horizontal = Spacing.lg),
+            ) { Text("Another nudge") }
         }
     }
 }
