@@ -29,9 +29,11 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import dev.quinton.goa.core.designsystem.cardtext.CardTextView
 import dev.quinton.goa.core.designsystem.cardtext.GameIcons
+import dev.quinton.goa.core.designsystem.component.GoaPlateTheme
+import dev.quinton.goa.core.designsystem.component.PrintedCardText
 import dev.quinton.goa.core.designsystem.component.cardColor
+import dev.quinton.goa.core.designsystem.component.slatePlate
 import dev.quinton.goa.core.designsystem.theme.Spacing
 import dev.quinton.goa.core.domain.catalog.kindLabel
 import dev.quinton.goa.core.model.catalog.Card
@@ -44,13 +46,13 @@ import dev.quinton.goa.feature.catalog.ui.InitiativeBadge
  */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-internal fun DesignedCard(card: Card, isHandicap: Boolean, modifier: Modifier = Modifier) {
+internal fun DesignedCard(card: Card, isHandicap: Boolean, modifier: Modifier = Modifier) = GoaPlateTheme {
     val accent = cardColor(card.color)
     val shape = RoundedCornerShape(20.dp)
     Column(
         modifier
+            .slatePlate(shape, brackets = false)
             .clip(shape)
-            .background(MaterialTheme.colorScheme.surface)
             .background(Brush.verticalGradient(0f to accent.copy(alpha = 0.28f), 0.45f to accent.copy(alpha = 0.04f)))
             .border(2.dp, accent.copy(alpha = 0.8f), shape)
             .padding(Spacing.lg),
@@ -103,15 +105,7 @@ internal fun DesignedCard(card: Card, isHandicap: Boolean, modifier: Modifier = 
         }
         if (card.text.isNotBlank()) {
             Spacer(Modifier.height(Spacing.lg))
-            Box(
-                Modifier
-                    .fillMaxWidth()
-                    .clip(RoundedCornerShape(12.dp))
-                    .background(MaterialTheme.colorScheme.background.copy(alpha = 0.55f))
-                    .padding(Spacing.md),
-            ) {
-                CardTextView(card.text, iconTint = accent)
-            }
+            PrintedCardText(card.text, Modifier.fillMaxWidth())
         }
     }
 }

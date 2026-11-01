@@ -6,13 +6,12 @@ import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
-import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
@@ -71,13 +70,13 @@ import dev.quinton.goa.core.designsystem.cardtext.GameIcon
 import dev.quinton.goa.core.designsystem.cardtext.GameIcons
 import dev.quinton.goa.core.designsystem.cardtext.cardTextAnnotated
 import dev.quinton.goa.core.designsystem.component.EmptyState
+import dev.quinton.goa.core.designsystem.component.GoaPlate
 import dev.quinton.goa.core.designsystem.component.GoaScreen
 import dev.quinton.goa.core.designsystem.component.OfficialArt
 import dev.quinton.goa.core.designsystem.component.OfficialIcon
 import dev.quinton.goa.core.designsystem.component.PrintedCardText
 import dev.quinton.goa.core.designsystem.component.assetUrl
 import dev.quinton.goa.core.designsystem.component.cardColor
-import dev.quinton.goa.core.designsystem.theme.GoaTheme
 import dev.quinton.goa.core.designsystem.theme.Spacing
 import dev.quinton.goa.core.domain.catalog.blockMarkerLabel
 import dev.quinton.goa.core.domain.catalog.handicapBasis
@@ -302,20 +301,18 @@ private fun OfficialCardImage(card: Card, isHandicap: Boolean, zoom: ZoomState, 
 }
 
 /** Structured card info under the image: actions, values, markers and (optionally) the text. */
-@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun CardDetails(card: Card, isHandicap: Boolean, includeText: Boolean, modifier: Modifier = Modifier) {
-    val shape = MaterialTheme.shapes.medium
+    GoaPlate(modifier.fillMaxWidth(), contentPadding = PaddingValues(Spacing.lg)) {
+        CardDetailRows(card, isHandicap, includeText)
+    }
+}
+
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun CardDetailRows(card: Card, isHandicap: Boolean, includeText: Boolean) {
     val accent = cardColor(card.color)
-    Column(
-        modifier
-            .fillMaxWidth()
-            .clip(shape)
-            .background(MaterialTheme.colorScheme.surface)
-            .border(1.dp, GoaTheme.colors.engravedBorder, shape)
-            .padding(Spacing.lg),
-        verticalArrangement = Arrangement.spacedBy(Spacing.md),
-    ) {
+    Column(verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
         // Derived from the frame colour, never printed on the card (rulebook p.20: "weaker versions
         // of the regular basic cards (Usually Gold)").
         val handicapBasis = if (isHandicap) card.handicapBasis() else null
@@ -378,29 +375,31 @@ private fun CardDetails(card: Card, isHandicap: Boolean, includeText: Boolean, m
  */
 @Composable
 private fun NotOnTheCard(card: Card, isHandicap: Boolean, onShowText: () -> Unit, modifier: Modifier = Modifier) {
-    Column(modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
-        val handicapBasis = if (isHandicap) card.handicapBasis() else null
-        if (handicapBasis != null) {
-            Text(handicapBasis, style = MaterialTheme.typography.bodyMedium)
-        }
-        card.item?.let { stat ->
-            Row(
-                Modifier.fillMaxWidth().semantics(mergeDescendants = true) {},
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                OfficialIcon(OfficialArt.itemIcon(stat), Modifier.size(width = 40.dp, height = 30.dp))
-                Spacer(Modifier.width(Spacing.sm))
-                Text(
-                    "As an item: +1 ${stat.label} (the icon at the foot of the card, p.16)",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
+    GoaPlate(modifier.fillMaxWidth()) {
+        Column(verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
+            val handicapBasis = if (isHandicap) card.handicapBasis() else null
+            if (handicapBasis != null) {
+                Text(handicapBasis, style = MaterialTheme.typography.bodyMedium)
             }
-        }
-        OutlinedButton(onClick = onShowText, modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp)) {
-            Icon(Icons.AutoMirrored.Outlined.Article, contentDescription = null, modifier = Modifier.size(18.dp))
-            Spacer(Modifier.width(Spacing.sm))
-            Text("Read the card as text")
+            card.item?.let { stat ->
+                Row(
+                    Modifier.fillMaxWidth().semantics(mergeDescendants = true) {},
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    OfficialIcon(OfficialArt.itemIcon(stat), Modifier.size(width = 40.dp, height = 30.dp))
+                    Spacer(Modifier.width(Spacing.sm))
+                    Text(
+                        "As an item: +1 ${stat.label} (the icon at the foot of the card, p.16)",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            }
+            OutlinedButton(onClick = onShowText, modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp)) {
+                Icon(Icons.AutoMirrored.Outlined.Article, contentDescription = null, modifier = Modifier.size(18.dp))
+                Spacer(Modifier.width(Spacing.sm))
+                Text("Read the card as text")
+            }
         }
     }
 }
@@ -421,7 +420,7 @@ private fun DetailRow(label: String, content: @Composable () -> Unit) {
 @Composable
 private fun IconLabel(
     icon: GameIcon,
-    tint: androidx.compose.ui.graphics.Color,
+    tint: Color,
     text: String = icon.label,
     modifier: Modifier = Modifier,
 ) {

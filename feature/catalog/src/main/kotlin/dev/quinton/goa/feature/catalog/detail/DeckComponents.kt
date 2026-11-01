@@ -7,7 +7,10 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.IntrinsicSize
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
@@ -17,7 +20,6 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -50,21 +52,28 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import dev.quinton.goa.core.designsystem.cardtext.CardTextView
 import dev.quinton.goa.core.designsystem.cardtext.GameIcon
 import dev.quinton.goa.core.designsystem.cardtext.GameIcons
 import dev.quinton.goa.core.designsystem.cardtext.cardTextAnnotated
 import dev.quinton.goa.core.designsystem.component.CARD_ASPECT
 import dev.quinton.goa.core.designsystem.component.CardScan
+import dev.quinton.goa.core.designsystem.component.GoaPlate
+import dev.quinton.goa.core.designsystem.component.GoaPlateTheme
+import dev.quinton.goa.core.designsystem.component.LARGE_FONT_SCALE
+import dev.quinton.goa.core.designsystem.component.OfficialArt
+import dev.quinton.goa.core.designsystem.component.OfficialIcon
+import dev.quinton.goa.core.designsystem.component.PlateColor
+import dev.quinton.goa.core.designsystem.component.SectionHeader
 import dev.quinton.goa.core.designsystem.component.cardColor
-import dev.quinton.goa.core.designsystem.theme.GoaTheme
+import dev.quinton.goa.core.designsystem.component.slatePlate
+import dev.quinton.goa.core.designsystem.theme.GoaTextStyles
 import dev.quinton.goa.core.designsystem.theme.Spacing
 import dev.quinton.goa.core.domain.catalog.DeckGroup
 import dev.quinton.goa.core.domain.catalog.DeckGroupKind
 import dev.quinton.goa.core.domain.catalog.DeckLayout
-import dev.quinton.goa.core.domain.catalog.PROFILE_SCALE
 import dev.quinton.goa.core.domain.catalog.ProfileBar
-import dev.quinton.goa.core.domain.catalog.ProfileSegment
 import dev.quinton.goa.core.domain.catalog.SPELLBOOK_NOTE
 import dev.quinton.goa.core.domain.catalog.StartZone
 import dev.quinton.goa.core.domain.catalog.StartingCards
@@ -82,132 +91,91 @@ import dev.quinton.goa.core.domain.catalog.spokenSummary
 import dev.quinton.goa.core.domain.catalog.startsIn
 import dev.quinton.goa.core.domain.catalog.tierNumeral
 import dev.quinton.goa.core.model.catalog.Card
-import dev.quinton.goa.core.model.catalog.CardColor
 import dev.quinton.goa.core.model.catalog.HeroStats
-import dev.quinton.goa.core.model.catalog.Stat
 import dev.quinton.goa.feature.catalog.ui.InitiativeBadge
 import dev.quinton.goa.feature.catalog.ui.ValueChip
 
 /**
- * Hero Profile bars from 1 ("Very poor") to 8 ("Exceptional"): solid up to the base value,
- * brighter up to the max — the conditional part (level-up choices or card text).
+ * The Hero Profile on a plate with the official item icons: each value as base → max, one value when
+ * they are equal. The note says what the arrow means (the conditional part: level-up choices or card
+ * text) and what the numbers are out of (1 "Very poor" to 8 "Exceptional").
  */
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
-internal fun StatBars(stats: HeroStats, modifier: Modifier = Modifier) {
-    Column(modifier, verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
-        stats.profileBars().forEach { bar -> StatBar(bar) }
-        Row(Modifier.fillMaxWidth().clearAndSetSemantics {}) {
-            Text(
-                "1 · Very poor",
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.weight(1f),
-            )
-            Text(
-                "Exceptional · 8",
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
+internal fun StatPlate(stats: HeroStats, modifier: Modifier = Modifier) {
+    val perRow = if (LocalDensity.current.fontScale > LARGE_FONT_SCALE) STATS_LARGE_FONT else STATS_PER_ROW
+    GoaPlate(modifier.fillMaxWidth(), contentPadding = PaddingValues(Spacing.md)) {
+        FlowRow(
+            Modifier.fillMaxWidth(),
+            maxItemsInEachRow = perRow,
+            verticalArrangement = Arrangement.spacedBy(Spacing.md),
+        ) {
+            stats.profileBars().forEach { bar -> StatCell(bar, Modifier.weight(1f)) }
         }
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            LegendSwatch(MaterialTheme.colorScheme.primary)
-            Text(
-                " Base   ",
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-            LegendSwatch(MaterialTheme.colorScheme.primary.copy(alpha = 0.3f), outlined = true)
-            Text(
-                " Conditional (level-ups, card text)",
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-        }
+        Text(
+            "Base → with level-ups and card text\n1 is very poor · 8 is exceptional",
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            textAlign = TextAlign.Center,
+            modifier = Modifier.fillMaxWidth().padding(top = Spacing.sm),
+        )
     }
 }
 
 @Composable
-private fun LegendSwatch(color: Color, outlined: Boolean = false) {
-    val shape = RoundedCornerShape(2.dp)
-    Box(
-        Modifier
-            .size(width = 14.dp, height = 8.dp)
-            .clip(shape)
-            .background(color)
-            .then(if (outlined) Modifier.border(1.dp, MaterialTheme.colorScheme.primary, shape) else Modifier),
-    )
-}
-
-@Composable
-private fun StatBar(bar: ProfileBar) {
-    val stat = bar.stat
-    val icon = GameIcons.forStat(stat)
+private fun StatCell(bar: ProfileBar, modifier: Modifier = Modifier) {
     val description = bar.spoken
-    val rangeText = bar.rangeText
-    Column(Modifier.fillMaxWidth().clearAndSetSemantics { contentDescription = description }) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Icon(
-                icon.vector,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.size(18.dp),
-            )
-            Spacer(Modifier.width(Spacing.sm))
-            Text(stat.label, style = MaterialTheme.typography.titleSmall, modifier = Modifier.weight(1f))
-            Text(
-                rangeText,
-                style = MaterialTheme.typography.titleSmall,
-                fontWeight = FontWeight.Bold,
-            )
-        }
-        Spacer(Modifier.height(6.dp))
-        Row(horizontalArrangement = Arrangement.spacedBy(3.dp)) {
-            repeat(PROFILE_SCALE) { i ->
-                val segment = bar.segment(i + 1)
-                val conditional = segment == ProfileSegment.CONDITIONAL
-                val color = when (segment) {
-                    ProfileSegment.BASE -> MaterialTheme.colorScheme.primary
-                    ProfileSegment.CONDITIONAL -> MaterialTheme.colorScheme.primary.copy(alpha = 0.3f)
-                    ProfileSegment.EMPTY -> MaterialTheme.colorScheme.surfaceVariant
-                }
-                val segmentShape = RoundedCornerShape(3.dp)
-                val conditionalBorder = if (conditional) {
-                    Modifier.border(1.dp, MaterialTheme.colorScheme.primary, segmentShape)
-                } else {
-                    Modifier
-                }
-                Box(
-                    Modifier
-                        .weight(1f)
-                        .height(10.dp)
-                        .clip(segmentShape)
-                        .background(color)
-                        .then(conditionalBorder),
+    Column(
+        modifier.clearAndSetSemantics { contentDescription = description },
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        OfficialIcon(
+            OfficialArt.itemIcon(bar.stat),
+            Modifier.size(width = STAT_ICON_WIDTH, height = STAT_ICON_HEIGHT),
+            fallback = {
+                Icon(
+                    GameIcons.forStat(bar.stat).vector,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary,
                 )
-            }
-        }
+            },
+        )
+        Text(
+            bar.rangeText,
+            style = GoaTextStyles.numeric.copy(fontSize = 16.sp, lineHeight = 22.sp),
+            fontWeight = FontWeight.SemiBold,
+            textAlign = TextAlign.Center,
+        )
+        Text(
+            bar.stat.label,
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            textAlign = TextAlign.Center,
+        )
     }
 }
+
+private const val STATS_PER_ROW = 4
+private const val STATS_LARGE_FONT = 2
+private val STAT_ICON_WIDTH = 40.dp
+private val STAT_ICON_HEIGHT = 27.dp
 
 /** One deck colour (or Basic / Ultimate) with its tier rows. */
 @Composable
 internal fun DeckGroupSection(group: DeckGroup, onCardClick: (Card) -> Unit, modifier: Modifier = Modifier) {
-    val accent = groupAccent(group.kind)
     Column(modifier.fillMaxWidth()) {
-        Row(
-            Modifier.padding(top = Spacing.lg, bottom = Spacing.sm).semantics(mergeDescendants = true) { heading() },
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Box(Modifier.size(10.dp).clip(CircleShape).background(accent))
-            Spacer(Modifier.width(Spacing.sm))
-            Text(group.kind.title, style = MaterialTheme.typography.titleMedium)
-            Spacer(Modifier.width(Spacing.sm))
-            Text(
-                "${group.cards.size}",
-                style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-        }
+        SectionHeader(
+            group.kind.title,
+            modifier = Modifier.semantics(mergeDescendants = true) { heading() },
+            ribbon = groupRibbon(group.kind),
+            trailing = {
+                Text(
+                    "${group.cards.size}",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            },
+        )
         if (group.kind == DeckGroupKind.BASIC) MultipleGoldNote(group.cards)
         // The cards themselves, in tier order (I, II A, II B, III A, III B): each scan prints its
         // tier numeral, so the grid doesn't repeat it.
@@ -237,18 +205,17 @@ internal fun ExtrasSection(layout: DeckLayout, onCardClick: (Card) -> Unit, modi
     if (layout.extras.isEmpty()) return
     val spellbook = layout.extrasAreSpellbook
     Column(modifier.fillMaxWidth()) {
-        Row(
-            Modifier.padding(top = Spacing.xl, bottom = Spacing.xs).semantics(mergeDescendants = true) { heading() },
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Text(if (spellbook) "Spellbook" else "Extras", style = MaterialTheme.typography.titleLarge)
-            Spacer(Modifier.width(Spacing.sm))
-            Text(
-                "${layout.extras.size} cards",
-                style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-        }
+        SectionHeader(
+            if (spellbook) "Spellbook" else "Extras",
+            modifier = Modifier.semantics(mergeDescendants = true) { heading() },
+            trailing = {
+                Text(
+                    "${layout.extras.size} cards",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            },
+        )
         if (spellbook) {
             Text(
                 SPELLBOOK_NOTE,
@@ -401,14 +368,12 @@ internal fun CardTileGrid(
     }
 }
 
-@Composable
-private fun groupAccent(kind: DeckGroupKind): Color = when (kind) {
-    DeckGroupKind.BASIC -> cardColor(CardColor.GOLD)
-    DeckGroupKind.RED -> cardColor(CardColor.RED)
-    DeckGroupKind.GREEN -> cardColor(CardColor.GREEN)
-    DeckGroupKind.BLUE -> cardColor(CardColor.BLUE)
-    DeckGroupKind.ULTIMATE -> cardColor(CardColor.PURPLE)
-    DeckGroupKind.OTHER -> cardColor(CardColor.OTHER)
+/** The ribbon over a colour's cards; Basic and the Ultimate use the neutral silver. */
+private fun groupRibbon(kind: DeckGroupKind): PlateColor = when (kind) {
+    DeckGroupKind.RED -> PlateColor.RED
+    DeckGroupKind.GREEN -> PlateColor.GREEN
+    DeckGroupKind.BLUE -> PlateColor.BLUE
+    DeckGroupKind.BASIC, DeckGroupKind.ULTIMATE, DeckGroupKind.OTHER -> PlateColor.SILVER
 }
 
 /** One printed value; [plus] when the card prints it with a `+` (it grows per the card text). */
@@ -438,20 +403,20 @@ internal fun CardTile(
     isHandicap: Boolean = false,
     showText: Boolean = false,
 ) {
+    GoaPlateTheme { PlateCardTile(card, onClick, modifier, isHandicap, showText) }
+}
+
+@Composable
+private fun PlateCardTile(card: Card, onClick: () -> Unit, modifier: Modifier, isHandicap: Boolean, showText: Boolean) {
     val accent = cardColor(card.color)
     val shape = MaterialTheme.shapes.medium
     val summary = card.spokenSummary(isHandicap)
     Row(
         modifier
             .heightIn(min = 96.dp)
+            .slatePlate(shape, brackets = false)
             .clip(shape)
-            .background(
-                Brush.horizontalGradient(
-                    0f to accent.copy(alpha = 0.14f),
-                    0.6f to MaterialTheme.colorScheme.surface,
-                ),
-            )
-            .border(1.dp, GoaTheme.colors.engravedBorder, shape)
+            .background(Brush.horizontalGradient(0f to accent.copy(alpha = 0.14f), 0.6f to Color.Transparent))
             .clickable(onClickLabel = "View card", role = Role.Button, onClick = onClick)
             .clearAndSetSemantics {
                 contentDescription = summary

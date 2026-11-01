@@ -1,5 +1,6 @@
 package dev.quinton.goa.feature.catalog.ui
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
@@ -25,7 +26,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.semantics.contentDescription
-import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -119,46 +119,43 @@ fun InitiativeBadge(initiative: Int?, modifier: Modifier = Modifier, accent: Col
 }
 
 /**
- * Section heading as the rulebook sets its heads: Cinzel small caps in copper after a short copper
- * bar, announced as a heading by TalkBack.
+ * The filter and sort chips: small steel plates, opaque so they read the same on the canvas of either
+ * theme and on a sheet (use them under `GoaPlateTheme`); selected is bronze and carries its check or count.
  */
 @Composable
-fun SectionTitle(text: String, modifier: Modifier = Modifier, trailing: (@Composable () -> Unit)? = null) {
-    val copper = GoaTheme.colors.heading
-    Row(
-        modifier.padding(top = Spacing.xl, bottom = Spacing.sm),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Box(
-            Modifier
-                .size(width = 3.dp, height = 18.dp)
-                .clip(RoundedCornerShape(2.dp))
-                .background(copper),
-        )
-        Spacer(Modifier.width(Spacing.sm))
-        Text(
-            text,
-            style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
-            color = copper,
-            modifier = Modifier.weight(1f).semantics { heading() },
-        )
-        trailing?.invoke()
-    }
-}
-
-/** Bronze-tinted selected state for filter chips (the Material default is off-palette). */
-@Composable
 fun goaFilterChipColors(): SelectableChipColors = FilterChipDefaults.filterChipColors(
-    selectedContainerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.2f),
+    containerColor = CHIP_STEEL,
+    labelColor = MaterialTheme.colorScheme.onSurface,
+    iconColor = MaterialTheme.colorScheme.primary,
+    selectedContainerColor = CHIP_BRONZE,
     selectedLabelColor = MaterialTheme.colorScheme.onSurface,
     selectedLeadingIconColor = MaterialTheme.colorScheme.primary,
     selectedTrailingIconColor = MaterialTheme.colorScheme.primary,
-    iconColor = MaterialTheme.colorScheme.primary,
+)
+
+@Composable
+fun goaChipBorder(selected: Boolean): BorderStroke = FilterChipDefaults.filterChipBorder(
+    enabled = true,
+    selected = selected,
+    borderColor = CHIP_EDGE,
+    selectedBorderColor = MaterialTheme.colorScheme.primary,
 )
 
 @Composable
 fun goaInputChipColors(): SelectableChipColors = InputChipDefaults.inputChipColors(
-    selectedContainerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.2f),
+    containerColor = CHIP_STEEL,
+    selectedContainerColor = CHIP_BRONZE,
     selectedLabelColor = MaterialTheme.colorScheme.onSurface,
     selectedTrailingIconColor = MaterialTheme.colorScheme.primary,
 )
+
+@Composable
+fun goaInputChipBorder(): BorderStroke = InputChipDefaults.inputChipBorder(
+    enabled = true,
+    selected = true,
+    selectedBorderColor = MaterialTheme.colorScheme.primary,
+)
+
+private val CHIP_STEEL = Color(0xFF2B363E)
+private val CHIP_BRONZE = Color(0xFF4A3D22)
+private val CHIP_EDGE = Color(0xFF5D6B70)

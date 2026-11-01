@@ -33,6 +33,9 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import dev.quinton.goa.core.designsystem.theme.GoaTextStyles
+import dev.quinton.goa.core.designsystem.theme.GoaTheme
 import dev.quinton.goa.core.designsystem.theme.Spacing
 import dev.quinton.goa.core.domain.catalog.ATTACK_STYLE_NOTE
 import dev.quinton.goa.core.domain.catalog.CatalogFilter
@@ -40,6 +43,7 @@ import dev.quinton.goa.core.domain.catalog.FilterOptions
 import dev.quinton.goa.core.domain.catalog.complexityName
 import dev.quinton.goa.core.domain.catalog.label
 import dev.quinton.goa.core.domain.catalog.plural
+import dev.quinton.goa.feature.catalog.ui.goaChipBorder
 import dev.quinton.goa.feature.catalog.ui.goaFilterChipColors
 
 /**
@@ -64,7 +68,8 @@ internal fun CatalogFilterContent(
         ) {
             Text(
                 "Filters",
-                style = MaterialTheme.typography.headlineSmall,
+                style = GoaTextStyles.sectionHead.copy(fontSize = 22.sp, lineHeight = 28.sp),
+                color = GoaTheme.colors.heading,
                 modifier = Modifier.weight(1f).semantics { heading() },
             )
             TextButton(onClick = onClear, enabled = filter.activeCount > 0) { Text("Clear all") }
@@ -81,6 +86,7 @@ internal fun CatalogFilterContent(
                         val selected = level in filter.complexities
                         FilterChip(
                             colors = goaFilterChipColors(),
+                            border = goaChipBorder(selected),
                             selected = selected,
                             onClick = { onFilterChange(filter.copy(complexities = filter.complexities.toggle(level))) },
                             label = {
@@ -101,6 +107,7 @@ internal fun CatalogFilterContent(
                         val selected = role in filter.roles
                         FilterChip(
                             colors = goaFilterChipColors(),
+                            border = goaChipBorder(selected),
                             selected = selected,
                             onClick = { onFilterChange(filter.copy(roles = filter.roles.toggle(role))) },
                             label = { Text(role.label) },
@@ -114,6 +121,7 @@ internal fun CatalogFilterContent(
                     val selected = filter.attackStyle == style
                     FilterChip(
                         colors = goaFilterChipColors(),
+                        border = goaChipBorder(selected),
                         selected = selected,
                         onClick = { onFilterChange(filter.copy(attackStyle = if (selected) null else style)) },
                         label = { Text(style.label) },
@@ -127,6 +135,7 @@ internal fun CatalogFilterContent(
                         val selected = product.id in filter.products
                         FilterChip(
                             colors = goaFilterChipColors(),
+                            border = goaChipBorder(selected),
                             selected = selected,
                             onClick = { onFilterChange(filter.copy(products = filter.products.toggle(product.id))) },
                             label = { Text(product.name) },
@@ -178,8 +187,8 @@ internal fun CatalogFilterContent(
 private fun FilterGroup(title: String, note: String? = null, content: @Composable () -> Unit) {
     Text(
         title,
-        style = MaterialTheme.typography.titleSmall,
-        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        style = GoaTextStyles.sectionHead,
+        color = GoaTheme.colors.heading,
         modifier = Modifier.padding(top = Spacing.lg, bottom = Spacing.xs).semantics { heading() },
     )
     if (note != null) {
