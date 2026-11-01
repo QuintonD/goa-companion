@@ -9,6 +9,8 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
@@ -71,15 +73,21 @@ import dev.quinton.goa.feature.board.board.NewPiece
 import dev.quinton.goa.feature.board.board.PiecesContent
 import dev.quinton.goa.feature.board.list.BoardsScreen
 import dev.quinton.goa.feature.board.list.BoardsViewModel
+import dev.quinton.goa.feature.board.map.MapLayout
+import dev.quinton.goa.feature.board.map.MapOrientation
+import dev.quinton.goa.feature.board.map.MapViewport
+import dev.quinton.goa.feature.board.map.resolveTap
 import dev.quinton.goa.feature.board.setup.NewBoardAction
 import dev.quinton.goa.feature.board.setup.NewBoardScreen
 import dev.quinton.goa.feature.board.setup.NewBoardUiState
 import dev.quinton.goa.feature.board.setup.NewBoardViewModel
 import dev.quinton.goa.feature.board.setup.SourcesContent
+import dev.quinton.goa.feature.board.ui.PieceLook
 import java.time.LocalDateTime
 import java.time.ZoneId
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import org.junit.Assert.assertEquals
 import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
@@ -509,6 +517,33 @@ class BoardScreenshotTest {
     @Test
     fun boardTwoLanesPushDark() = boardViewModel(mapId = "across-the-river", board = sixHeroes).let { vm ->
         capture(ThemeMode.DARK) { Board(vm, overlay = BoardOverlay.PUSH) }
+    }
+
+    /**
+     * A Heavy's head is over the space behind it: with nothing selected a tap there is the Heavy, in the miniature
+     * style only, and with a piece selected that space is somewhere to go, so it stays the space.
+     */
+    @Test
+    fun aTapOnAHeavysHeadIsTheHeavy() {
+        val state = boardViewModel(mapId = "across-the-river", board = sixHeroes).ready()
+        val layout = MapLayout(state.map, MapOrientation.PORTRAIT, Team.RED)
+        val viewport = MapViewport().apply {
+            setUp(layout, Size(1000f, 2000f), null, false, minHexPx = 100f, maxHexPx = 300f)
+        }
+        val occupied = BoardRules.occupancy(state.board.state)
+        val (heavy, behind) = state.pieces.filterIsInstance<MinionPiece>().filter { it.type == MinionType.HEAVY }
+            .firstNotNullOf { piece ->
+                val head = layout.center(piece.at!!) - Offset(0f, 1.25f)
+                piece.takeIf { layout.hexAt(head) !in occupied }?.let { it to head }
+            }
+        val screen = viewport.mapToScreen(behind)
+        val hex = layout.hexAt(behind)
+        fun tap(look: PieceLook, on: BoardUiState.Ready = state) = resolveTap(on, layout, viewport, screen, 1f, look)
+
+        assertEquals(MapTap.Piece(heavy.id), tap(PieceLook.MINIATURE))
+        assertEquals(MapTap.Space(hex), tap(PieceLook.DISC))
+        val selected = state.copy(selectedId = state.pieces.first { it.id != heavy.id && it.at != null }.id)
+        assertEquals(MapTap.Space(hex), tap(PieceLook.MINIATURE, selected))
     }
 
     /** A map not checked against the official art: badged Unverified on the board. */
