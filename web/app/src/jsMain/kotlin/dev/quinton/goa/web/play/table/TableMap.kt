@@ -39,8 +39,8 @@ fun rememberTableScene(table: TableUi, landscape: Boolean): MapScene {
  * asked for a space or a piece every option is a dashed teal space (on a painting, in the light, a space
  * a move reaches shows its number in a chip), the chosen one outlined with the engine's path drawn to it,
  * the question's other highlights (a card's range) violet, the acting hero outlined in bronze with "NOW"
- * over it, immune minions ringed. A tap goes to [onTap] as the option
- * it is, else the piece (to read about it); VoiceOver gets one button per option and per piece.
+ * on its ring, immune minions ringed. A tap goes to [onTap] as the option it is, else the piece (to read about
+ * it), else the miniature whose body rises to the finger; VoiceOver gets one button per option and per piece.
  */
 @Composable
 fun TableMap(table: TableUi, scene: MapScene, camera: MapCamera, onTap: (TableTap) -> Unit) {
@@ -104,8 +104,8 @@ fun TableMap(table: TableUi, scene: MapScene, camera: MapCamera, onTap: (TableTa
         bottomTeam = table.bottomTeam,
         litAlso = listOfNotNull(mover),
         label = "The board, ${table.map.name}",
-        onTap = { hex, _ ->
-            val tap = resolveTableTap(table, hex)
+        onTap = { hex, _, figure ->
+            val tap = resolveTableTap(table, hex) ?: figure?.let { resolveTableTap(table, it) }
             if (tap != null) onTap(tap)
             tap != null
         },

@@ -40,8 +40,8 @@ function url(path) {
 }
 
 function isImage(path) {
-  // official/ui and the team marks are the app's chrome (ADR-053): part of the shell, precached, so they work offline at once.
-  return path.startsWith("official/") && !path.startsWith("official/ui/") && !path.startsWith("official/board/spawn-hero-") && !path.endsWith(".md");
+  // official/ui, the miniatures and the team marks are the app's chrome (ADR-053): part of the shell, precached, so they work offline at once.
+  return path.startsWith("official/") && !path.startsWith("official/ui/") && !path.startsWith("official/pieces/") && !path.startsWith("official/board/spawn-hero-") && !path.endsWith(".md");
 }
 
 /**

@@ -46,11 +46,7 @@
   -webkit-user-drag: none;
 }
 .goa-map:not(.painted) .goa-map-art { visibility: hidden; }
-.goa-map-art.feather .edge { position: absolute; }
-.goa-map-art.feather .edge.l { left: 0; top: 0; bottom: 0; width: var(--band-x); background: linear-gradient(to right, var(--sea), transparent); }
-.goa-map-art.feather .edge.r { right: 0; top: 0; bottom: 0; width: var(--band-x); background: linear-gradient(to left, var(--sea), transparent); }
-.goa-map-art.feather .edge.t { left: 0; right: 0; top: 0; height: var(--band-y); background: linear-gradient(to bottom, var(--sea), transparent); }
-.goa-map-art.feather .edge.b { left: 0; right: 0; bottom: 0; height: var(--band-y); background: linear-gradient(to top, var(--sea), transparent); }
+.goa-map-art.dim canvas { display: block; }
 
 /* The light's edge: mock-up 01's 2.6 px of white on 5.2 px of dark, on a hex of corner radius 20. */
 .m-lit-halo { fill: none; stroke: #0A0F14; stroke-opacity: 0.8; stroke-width: 0.26; stroke-linecap: round; }
@@ -60,8 +56,6 @@
 .m-zone-line { fill: none; stroke: #FFFFFF; stroke-opacity: 0.7; stroke-width: 0.06; stroke-linecap: round; }
 /* Mock-up 02's grid. */
 .m-grid { fill: none; stroke: #08121A; stroke-opacity: 0.55; stroke-width: 0.06; stroke-linejoin: round; }
-/* An uncovered space outside the light: what the dimmed picture loses. */
-.m-shade { fill: #000; fill-opacity: 0.42; }
 
 /* Overlays on a painting: no tint on the ground, a halo under each line. */
 .goa-map.painted .o-radius-fill,
@@ -71,10 +65,11 @@
 .o-radius-halo { fill: #0A0F14; fill-opacity: 0.85; }
 .o-range-halo { fill: none; stroke: #0A0F14; stroke-opacity: 0.85; stroke-width: 0.21; stroke-linejoin: round; }
 .o-target-halo { fill: none; stroke: #0A0F14; stroke-opacity: 0.85; stroke-width: 0.23; stroke-linejoin: round; }
-.goa-map.painted .o-hatch-bg { fill: none; }
-.goa-map.painted .o-hatch { stroke-opacity: 1; }
-.o-hatch-under { stroke: none; stroke-width: 0.16; }
-.goa-map.painted .o-hatch-under { stroke: #0A0F14; stroke-opacity: 0.85; }
+/* Fast Travel: thin, far apart and see-through, so the ground and its Spawn symbols still show. */
+.goa-map.painted .o-fast { fill: url(#goa-hatch-art); }
+.goa-map.painted .o-hatch { stroke-opacity: 0.55; stroke-width: 0.05; }
+.o-hatch-under { stroke: none; stroke-width: 0.1; }
+.goa-map.painted .o-hatch-under { stroke: #0A0F14; stroke-opacity: 0.35; }
 .goa-map.painted .o-sel { stroke: var(--primary); fill: var(--primary); fill-opacity: 0.25; }
 .goa-map.painted .o-drop { stroke: var(--secondary); paint-order: stroke; }
 .goa-map.painted .o-measure { stroke: var(--primary); paint-order: stroke; }
@@ -99,12 +94,19 @@
 .p-type-glyph { fill: #FFFFFF; }
 .p-immune-halo { fill: none; stroke: #0A0F14; stroke-width: 0.2; }
 
-/* Labels and the NOW tag over a painting: the rulebook's bevelled title, the official mark. */
+/* The NOW tag: a tab on the acting hero's ring, in its colour. */
+.goa-map-tag {
+  transform: translate(-50%, -100%); border: 1px solid var(--map-halo); border-radius: 6px 6px 2px 2px;
+  padding: 0 6px; color: var(--map-on-team);
+}
+.goa-map-tag.red { background: var(--team-red); }
+.goa-map-tag.blue { background: var(--team-blue); }
+
+/* Labels over a painting: the rulebook's bevelled title, the official mark. */
 .goa-map.painted .goa-map-label {
   background: none; border: 0; padding: 0; font: 700 15px/20px var(--font-display); letter-spacing: 0.02em; gap: 4px;
 }
 .goa-map-label-mark { width: 16px; height: 16px; flex: none; }
-.goa-map.painted .goa-map-tag { background: #C9A35B; color: #0B1622; }
 
 /* Pieces off the board: lists, the tray, sheets. */
 .goa-board-portrait-wrap { position: relative; display: inline-flex; flex: none; }
@@ -135,7 +137,7 @@
   box-shadow: inset 0 0 0 2px #FFFFFF, inset 0 0 0 4px rgba(10, 15, 20, 0.85);
 }
 .goa-board-swatch.fast {
-  background: repeating-linear-gradient(45deg, #F0CF8A 0 2px, #0A0F14 2px 3.5px, #B08D62 3.5px 5px, #0A0F14 5px 6.5px);
+  background: repeating-linear-gradient(45deg, rgba(240, 207, 138, 0.8) 0 1px, rgba(10, 15, 20, 0.35) 1px 2px, #B08D62 2px 8px);
 }
 .goa-board-swatch.range {
   background: radial-gradient(circle, #B08D62 34%, #0A0F14 36%, #D3B6FF 39% 47%, #0A0F14 50% 52%, #B08D62 54%);

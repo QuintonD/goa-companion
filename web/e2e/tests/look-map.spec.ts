@@ -284,3 +284,127 @@ test("puzzles: the board on a painting, nudges and all", async ({ page }, info) 
   await shot(page, info, "puzzle");
   errors();
 });
+
+/** Where each piece stands now, in px on the page, by its node: a re-inserted node is the same object. */
+async function pieceCentres(page: Page) {
+  return page.evaluate(() =>
+    [...document.querySelectorAll(".goa-piece")].map((g) => {
+      const m = new DOMMatrix(getComputedStyle(g).transform);
+      return { x: m.e, y: m.f, figure: !!g.querySelector(".p-figure") };
+    }),
+  );
+}
+
+test("a piece moving up the screen past others glides: it isn't re-inserted mid-way", async ({ page }) => {
+  const errors = watchErrors(page);
+  await board(page, "forgotten-island");
+  await painted(page);
+  await node(page, /^Arien, Red/).first().evaluate((b: HTMLElement) => b.click());
+  await expect(page.locator(".goa-board-panel h2")).toContainText("Arien");
+  await page.waitForTimeout(600);
+  // The first empty space listed is in the top row in view: past every piece between.
+  const target = page.locator(".goa-map .goa-visually-hidden button").filter({ hasText: /^Empty space/ }).first();
+  // A transition that runs its course ends with an event; a node re-inserted mid-way loses it and never does.
+  const glide = await target.evaluate(
+    (button: HTMLElement) =>
+      new Promise<{ from: number; to: number; ended: boolean }>((resolve) => {
+        const pieces = [...document.querySelectorAll(".goa-piece")] as HTMLElement[];
+        const before = pieces.map((g) => g.style.transform);
+        const y = (g: Element) => new DOMMatrix(getComputedStyle(g).transform).f;
+        const from = pieces.map(y);
+        const ended = new Set<Element>();
+        pieces.forEach((g) => g.addEventListener("transitionend", () => ended.add(g)));
+        button.click();
+        setTimeout(() => {
+          const moved = pieces.findIndex((g, i) => g.style.transform !== before[i]);
+          resolve({ from: from[moved], to: y(pieces[moved]), ended: ended.has(pieces[moved]) });
+        }, 900);
+      }),
+  );
+  expect(glide.to).toBeLessThan(glide.from - 2);
+  expect(glide.ended).toBe(true);
+  // The depth order follows once it has landed: the piece now stands behind what is below it on the screen.
+  const order = await pieceCentres(page);
+  for (let i = 1; i < order.length - 1; i++) expect(order[i].y).toBeGreaterThanOrEqual(order[i - 1].y - 0.01);
+  errors();
+});
+
+test("a tap on a Heavy's head, over an empty space, selects the Heavy", async ({ page }) => {
+  await board(page, "forgotten-island");
+  await painted(page);
+  // Each figure: its base's centre gives the space's on screen, its picture's height tells a Heavy.
+  const heads = await page.evaluate(() => {
+    const group = document.querySelector(".goa-map-svg > g:not(.goa-map-defs)") as SVGGElement;
+    const scale = Number(group.getAttribute("transform")!.match(/scale\(([\d.]+)\)/)![1]);
+    const pieces = [...document.querySelectorAll(".goa-piece")].map((g) => {
+      const box = g.querySelector(".p-base, .p-coin, .p-token")?.getBoundingClientRect();
+      const figure = g.querySelector(".p-figure");
+      const y = box ? box.top + box.height / 2 - (figure ? 0.45 * scale : 0) : 0;
+      return { x: box ? box.left + box.width / 2 : 0, y, heavy: figure ? Number(figure.getAttribute("height")) > 2 : false };
+    });
+    return pieces
+      .filter((p) => p.heavy)
+      .map((p) => ({ x: p.x, y: p.y - 1.25 * scale }))
+      .filter((head) => pieces.every((o) => Math.hypot(o.x - head.x, o.y - head.y) > 1.1 * scale));
+  });
+  expect(heads.length).toBeGreaterThan(0);
+  await page.mouse.click(heads[0].x, heads[0].y);
+  await expect(page.locator(".goa-board-panel h2")).toContainText(/Heavy/);
+});
+
+test("the dimmed picture survives leaving the screen, and a lost canvas comes back", async ({ page }) => {
+  await board(page, "forgotten-island");
+  await painted(page);
+  await page.locator(".goa-map-art.dim canvas").evaluate((c) => ((c as HTMLCanvasElement & { goaMark?: boolean }).goaMark = true));
+  const url = page.url();
+  await page.goto(url.replace(/#.*$/, "#/boards"));
+  await expect(page.locator(".goa-map")).toHaveCount(0);
+  await page.evaluate((to) => {
+    location.hash = to;
+  }, new URL(url).hash);
+  await painted(page);
+  expect(await page.locator(".goa-map-art.dim canvas").evaluate((c) => (c as HTMLCanvasElement & { goaMark?: boolean }).goaMark)).toBe(true);
+  // Lost: the drawn map stands in. Restored: baked again, and the picture is back.
+  await page.locator(".goa-map-art.dim canvas").evaluate((c) => c.dispatchEvent(new Event("contextlost")));
+  await expect(page.locator(".goa-map.painted")).toHaveCount(0);
+  await expect(page.locator(".m-water")).not.toHaveCount(0);
+  await page.locator(".goa-map-art.dim canvas").evaluate((c) => {
+    (c as HTMLCanvasElement).getContext("2d")!.clearRect(0, 0, 4, 4);
+    c.dispatchEvent(new Event("contextrestored"));
+  });
+  await painted(page);
+  const alpha = await page.locator(".goa-map-art.dim canvas").evaluate((c) => (c as HTMLCanvasElement).getContext("2d")!.getImageData(0, 0, 1, 1).data[3]);
+  expect(alpha).toBe(255);
+});
+
+test.describe("without the service worker", () => {
+  test.use({ serviceWorkers: "block" });
+
+  test("a miniature that fails to load is a disc", async ({ page }) => {
+    await page.route("**/official/pieces/**", (route) => route.abort());
+    await board(page, "forgotten-island");
+    await painted(page);
+    await page.waitForTimeout(500);
+    await expect(page.locator(".p-figure")).toHaveCount(0);
+    await expect(page.locator(".p-disc-red").first()).toBeVisible();
+    await expect(page.locator(".p-disc-blue").first()).toBeVisible();
+  });
+});
+
+test("the sea past the picture is one colour: the picture has no edge on the canvas", async ({ page }, info) => {
+  await board(page, "across-the-river", "brogan,arien,xargatha", "wasp,tigerclaw,sabina");
+  await painted(page);
+  const pixels = await page.locator(".goa-map-art.dim canvas").evaluate((c) => {
+    const canvas = c as HTMLCanvasElement;
+    const context = canvas.getContext("2d")!;
+    const at = (x: number, y: number) => [...context.getImageData(x, y, 1, 1).data].slice(0, 3);
+    const background = getComputedStyle(canvas.closest(".goa-map")!).backgroundColor.match(/\d+/g)!.map(Number);
+    return { background, corners: [at(0, 0), at(canvas.width - 1, 0), at(0, canvas.height - 1), at(canvas.width - 1, canvas.height - 1)] };
+  });
+  for (const corner of pixels.corners) {
+    corner.forEach((v, i) => expect(Math.abs(v - pixels.background[i])).toBeLessThanOrEqual(3));
+  }
+  await page.getByRole("button", { name: /Fit/ }).first().click();
+  await page.waitForTimeout(500);
+  await shot(page, info, "across-fit");
+});
