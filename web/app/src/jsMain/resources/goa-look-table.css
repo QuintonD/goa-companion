@@ -49,10 +49,19 @@
     #1D2124;
   border-radius: 7px;
 }
+.goa-over-card .goa-title-plate { align-self: stretch; }
 .goa-over-card.red { border: 2px solid var(--team-red); }
 .goa-over-card.blue { border: 2px solid var(--team-blue); }
 .goa-board-resume { border: 1px solid #3FC1B0; }
-.goa-board-team.filling { border: 2px solid #3FC1B0; }
+.goa-board-team.filling {
+  border: 2px solid #3FC1B0;
+  /* Teal over the slate: left see-through, the light canvas came through under its light words. */
+  background:
+    linear-gradient(rgba(63, 193, 176, 0.08), rgba(63, 193, 176, 0.08)),
+    linear-gradient(rgba(0, 0, 0, 0.18), rgba(0, 0, 0, 0.18)),
+    url("official/ui/slate.webp") center / 420px,
+    #1D2124;
+}
 .goa-focus-details { border-radius: 14px 14px 0 0; }
 .goa-focus-text .goa-cardtext { color: inherit; }
 
@@ -392,6 +401,13 @@
 }
 
 /* ---------- The sandbox, the lists ---------- */
+/* The line-up's search and team switch are plate-dark in both themes, as the sheets' search. */
+.goa-board-search input { background: #1E2327; color: #E8E2D6; border-color: #5D6B70; }
+.goa-board-search input::placeholder { color: #B4BEC8; }
+.goa-board-search .goa-icon { color: #B4BEC8; }
+.goa-board-switch-row .goa-segmented { background: #1E2327; border-color: #5D6B70; }
+.goa-board-switch-row .goa-segmented > button { color: #E8E2D6; }
+.goa-board-switch-row .goa-segmented > button[aria-checked="true"] { background: #3D3018; color: #F0DDB0; }
 /* Large text (under 22 rem wide): picks wrap instead of being cut to a letter, the map's name goes above Set up. */
 .goa-board-new { container-type: inline-size; }
 @container (max-width: 22rem) {
