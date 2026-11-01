@@ -95,6 +95,8 @@ test("one plate per list, bronze for what's selected", async ({ page }, info) =>
   await expect(page.locator(".goa-rules-list .goa-row.goa-plate")).toHaveCount(0);
   await shot(page, info, "fix-rest-rules-list");
 
+  // Let the catalog finish loading first: a reload cancels its fetches, which WebKit reports as errors.
+  await page.waitForLoadState("networkidle");
   await seedStorage(page, { "group/document": seedDocument() });
   await page.goto("./#/matches");
   await page.reload();
