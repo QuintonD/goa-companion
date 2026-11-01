@@ -3,6 +3,7 @@ package dev.quinton.goa.feature.board.map
 import dev.quinton.goa.core.domain.board.BoardGeometry
 import dev.quinton.goa.core.domain.board.HexGrid
 import dev.quinton.goa.core.model.board.BoardMap
+import dev.quinton.goa.core.model.board.BoardMapArt
 import dev.quinton.goa.core.model.board.Hex
 import dev.quinton.goa.core.model.board.ZoneKind
 import dev.quinton.goa.core.model.match.Team
@@ -115,6 +116,14 @@ class HexLayout(map: BoardMap, val orientation: MapOrientation, val bottomTeam: 
         val q = (SQRT3 / 3f * x - y / 3f)
         val r = (2f / 3f * y)
         return roundHex(q, r)
+    }
+
+    /** Where [art] lies on this layout: its image pixels in map units, through this rotation and origin. */
+    fun artPlacement(art: BoardMapArt): ArtPlacement {
+        // A pixel is at px / pxPerUnit + art's origin in the plain layout; then rotate() and the origin, as center().
+        val scale = (1.0 / art.pxPerUnit).toFloat()
+        val (x, y) = rotate(art.originX.toFloat(), art.originY.toFloat())
+        return ArtPlacement(cosR * scale, sinR * scale, -sinR * scale, cosR * scale, x - originX, y - originY)
     }
 
     /** The rectangle (map units) around the centres of [hexes], [pad] units wider on every side. */
