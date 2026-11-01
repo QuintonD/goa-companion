@@ -178,9 +178,10 @@ fun GoaPlateTheme(content: @Composable () -> Unit) {
 /**
  * The dark plate the cards and dashboards are printed on, as a background: the slate, a steel edge
  * and, with [brackets], the small teal corner brackets. Pair it with [GoaPlateTheme] (or use
- * [GoaPlate]): its text must be themed dark in the light theme too.
+ * [GoaPlate]): its text must be themed dark in the light theme too. Without [edge], just the slate, for
+ * parts that continue one another (a sheet's drag handle and its body).
  */
-fun Modifier.slatePlate(shape: Shape = PlateShape, brackets: Boolean = true): Modifier = composed {
+fun Modifier.slatePlate(shape: Shape = PlateShape, brackets: Boolean = true, edge: Boolean = true): Modifier = composed {
     val slate = rememberOfficialBitmap(LookArt.SLATE)
     val corners = if (brackets) LookArt.corners().map { rememberOfficialBitmap(it) } else emptyList()
     drawWithCache {
@@ -203,9 +204,9 @@ fun Modifier.slatePlate(shape: Shape = PlateShape, brackets: Boolean = true): Mo
                     drawRect(texture)
                     drawRect(PLATE_SHADE)
                 }
-                drawPath(clip, PLATE_DARK_EDGE, style = Stroke(width = 3.dp.toPx()))
+                if (edge) drawPath(clip, PLATE_DARK_EDGE, style = Stroke(width = 3.dp.toPx()))
             }
-            drawPath(clip, PLATE_EDGE, style = outer)
+            if (edge) drawPath(clip, PLATE_EDGE, style = outer)
             corners.forEachIndexed { i, image ->
                 if (image == null) return@forEachIndexed
                 val x = if (i % 2 == 0) inset else size.width - bracket - inset
@@ -253,15 +254,22 @@ fun GoaSheet(
     GoaPlateTheme {
         ModalBottomSheet(
             onDismissRequest = onDismissRequest,
-            // The slate under the drag handle too: a box inside the sheet left a seam below the handle.
-            modifier = modifier.slatePlate(SheetShape, brackets = false),
+            modifier = modifier,
             sheetState = sheetState,
             shape = SheetShape,
-            containerColor = Color.Transparent,
+            containerColor = PLATE_GROUND,
             contentColor = DarkColors.onSurface,
-            dragHandle = { BottomSheetDefaults.DragHandle(color = DarkColors.onSurfaceVariant) },
+            // The slate under the drag handle too, with no edge between them: no seam below the handle.
+            dragHandle = {
+                Box(
+                    Modifier.fillMaxWidth().slatePlate(RoundedCornerShape(0.dp), brackets = false, edge = false),
+                    contentAlignment = Alignment.Center,
+                ) { BottomSheetDefaults.DragHandle(color = DarkColors.onSurfaceVariant) }
+            },
         ) {
-            Column(Modifier.fillMaxWidth().navigationBarsPadding(), content = content)
+            Box(Modifier.fillMaxWidth().slatePlate(RoundedCornerShape(0.dp), brackets = false, edge = false)) {
+                Column(Modifier.fillMaxWidth().navigationBarsPadding(), content = content)
+            }
         }
     }
 }
