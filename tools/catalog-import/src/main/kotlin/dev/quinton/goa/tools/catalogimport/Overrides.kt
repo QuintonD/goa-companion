@@ -142,6 +142,8 @@ data class MapArt(
     val url: String,
     val anchors: List<List<Double>>,
     val model: String = "similarity",
+    /** The mat's outline in a photo, in the plain hex layout's map units; empty = the whole image (ADR-053). */
+    val mat: List<List<Double>> = emptyList(),
 )
 
 /** The overlay of a map on its art was compared space by space ([checked] = date, what). */

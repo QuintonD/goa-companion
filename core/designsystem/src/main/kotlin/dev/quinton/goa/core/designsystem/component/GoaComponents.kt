@@ -167,7 +167,12 @@ fun StatBar(label: String, range: StatRange?, modifier: Modifier = Modifier, sca
  * action (e.g. "See all").
  */
 @Composable
-fun SectionHeader(title: String, modifier: Modifier = Modifier, trailing: (@Composable () -> Unit)? = null) {
+fun SectionHeader(
+    title: String,
+    modifier: Modifier = Modifier,
+    ribbon: PlateColor? = null,
+    trailing: (@Composable () -> Unit)? = null,
+) {
     val copper = GoaTheme.colors.heading
     Row(
         modifier
@@ -175,6 +180,10 @@ fun SectionHeader(title: String, modifier: Modifier = Modifier, trailing: (@Comp
             .padding(top = Spacing.lg, bottom = Spacing.sm),
         verticalAlignment = Alignment.CenterVertically,
     ) {
+        if (ribbon != null) {
+            ColourRibbon(ribbon)
+            Spacer(Modifier.width(Spacing.sm))
+        }
         Text(
             text = title,
             style = GoaTextStyles.sectionHead,
@@ -206,39 +215,9 @@ fun GoaCard(
     contentPadding: PaddingValues = PaddingValues(Spacing.lg),
     content: @Composable ColumnScope.() -> Unit,
 ) {
-    val shape = MaterialTheme.shapes.medium
-    val border = BorderStroke(1.dp, GoaTheme.colors.engravedBorder)
-    val inner: @Composable () -> Unit = {
-        Column(
-            Modifier
-                .background(
-                    Brush.verticalGradient(listOf(GoaTheme.colors.bronzeGlow.copy(alpha = 0.10f), Color.Transparent)),
-                )
-                .padding(contentPadding),
-            content = content,
-        )
-    }
-    if (onClick != null) {
-        Surface(
-            onClick = onClick,
-            modifier = modifier,
-            shape = shape,
-            color = MaterialTheme.colorScheme.surface,
-            border = border,
-            content = inner,
-        )
-    } else {
-        Surface(
-            modifier = modifier,
-            shape = shape,
-            color = MaterialTheme.colorScheme.surface,
-            border = border,
-            content = inner,
-        )
-    }
+    GoaPlate(modifier = modifier, onClick = onClick, contentPadding = contentPadding, content = content)
 }
 
-/** Horizontally scrolling multi-select chips (filters). Selected chips show a check. */
 @Composable
 fun <T> FilterChipRow(
     options: List<T>,

@@ -51,15 +51,30 @@ fun main(args: Array<String>) {
         val rulebook = lock.document("rulebook")
         val pdf = cache.document(rulebook)
         val pdfImages = RulebookImages.extract(pdf, cache.output("documents/rulebook/${rulebook.sha256}-images"))
+        val seaArt = overrides.mapArt["forgotten-island"]?.firstOrNull()?.let { art ->
+            cache.url(art.url, "maps/art/forgotten-island-0.${art.url.substringAfterLast('.')}")
+        }
+        val look = LookAssets.build(pdf, cache.output("documents/rulebook/${rulebook.sha256}-look"), seaArt)
         val extracted = pdfImages.entries.associate { (spec, file) ->
             spec.out to ExtractedAsset(
                 key = "rulebook@${rulebook.sha256}:p${spec.pdfPage}/obj${spec.obj}",
                 file = file,
                 maxEdge = RULEBOOK_IMAGE_MAX_EDGE,
             )
+        } + look.associate {
+            it.source.out to ExtractedAsset(
+                key = "rulebook@${rulebook.sha256}:look1:${it.source.out}",
+                file = it.file,
+                maxEdge = it.maxEdge,
+            )
         }
         val encoded = AssetWriter(assetsDir, cache, manifest).write(result.assetSources, extracted)
-        output.writeSources(result, lock.documents, rulebook to pdfImages.keys.toList())
+        output.writeSources(
+            result,
+            lock.documents,
+            rulebook to pdfImages.keys.toList() + look.map { it.source },
+            overrides.mapArt,
+        )
         println("Images: ${result.assetSources.size + extracted.size} total, $encoded re-encoded")
     }
     ReportWriter(result, version, lock, overrides).write(File(toolDir, "REPORT.md"))
@@ -79,7 +94,7 @@ private const val EXIT_RULES = 3
 
 /** The maps stage: map JSON + index, overlay images in the cache, the "Maps" section of REPORT.md. */
 private fun importMaps(lock: SourcesLock, cache: SourceCache, overrides: Overrides, assetsDir: File, report: File) {
-    val maps = MapStage(lock, cache, overrides).run()
+    val maps = MapStage(lock, cache, overrides, assetsDir).run()
     MapStage.write(assetsDir, maps.map { it.map })
     MapStage.replaceSection(report, MapStage.report(maps, lock))
     maps.forEach { r ->

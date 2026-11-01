@@ -1,5 +1,6 @@
 package dev.quinton.goa.core.designsystem
 
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
@@ -95,6 +96,12 @@ class GalleryScreenshotTest {
         compose.waitUntil(IMAGE_TIMEOUT_MS) { BundledAssetImages.idle }
         compose.onRoot().captureRoboImage()
     }
+
+    @Test fun lookPartsDark() = capture(ThemeMode.DARK) { LookGallery() }
+
+    @Test fun lookPartsLight() = capture(ThemeMode.LIGHT) { LookGallery() }
+
+    @Test fun lookPartsLightFontScale2() = capture(ThemeMode.LIGHT, fontScale = 2f) { LookGallery() }
 
     @Test fun officialArtDark() = capture(ThemeMode.DARK) { OfficialArtGallery() }
 
@@ -294,4 +301,61 @@ private fun Components() {
         modifier = Modifier.fillMaxWidth(),
         action = { TextButton(onClick = {}) { Text("Add player") } },
     )
+}
+
+@androidx.compose.runtime.Composable
+private fun LookGallery() {
+    androidx.compose.foundation.layout.Column(
+        androidx.compose.ui.Modifier.verticalScroll(androidx.compose.foundation.rememberScrollState()),
+        verticalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(12.dp),
+    ) {
+        dev.quinton.goa.core.designsystem.component.SteelBanner {
+            dev.quinton.goa.core.designsystem.component.BevelText(
+                "Round 1 · Turn 1",
+                androidx.compose.ui.Modifier.padding(start = 16.dp, top = 12.dp, bottom = 12.dp),
+            )
+        }
+        dev.quinton.goa.core.designsystem.component.GoaPlate {
+            dev.quinton.goa.core.designsystem.component.TitlePlate(
+                "Play a card facedown",
+                androidx.compose.ui.Modifier.fillMaxWidth(),
+            )
+            androidx.compose.material3.Text(
+                "Plate text in the theme's onSurface, on the dark plate in both themes.",
+                modifier = androidx.compose.ui.Modifier.padding(top = 8.dp),
+            )
+            androidx.compose.foundation.layout.Row(
+                androidx.compose.ui.Modifier.padding(top = 8.dp),
+                horizontalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(8.dp),
+            ) {
+                Team.entries.forEach {
+                    dev.quinton.goa.core.designsystem.component.TeamMark(it)
+                    dev.quinton.goa.core.designsystem.component.LifeCounterIcon(it)
+                    dev.quinton.goa.core.designsystem.component.LifeCounterIcon(it, spent = true)
+                }
+            }
+            androidx.compose.foundation.layout.Row(
+                androidx.compose.ui.Modifier.padding(top = 8.dp),
+                horizontalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(8.dp),
+            ) {
+                dev.quinton.goa.core.designsystem.component.WaveCounterIcon()
+                dev.quinton.goa.core.designsystem.component.CoinIcon()
+                dev.quinton.goa.core.designsystem.component.LookAction.entries.forEach {
+                    dev.quinton.goa.core.designsystem.component.ActionIcon(it)
+                }
+            }
+        }
+        dev.quinton.goa.core.designsystem.component.PlateColor.entries.forEach { color ->
+            dev.quinton.goa.core.designsystem.component.CardTextBox(color, cap = color.name.lowercase()) {
+                androidx.compose.material3.Text(
+                    "Move up to 3 spaces. Tap a lit space on the map.",
+                    style = dev.quinton.goa.core.designsystem.theme.GoaTextStyles.printedSmall,
+                )
+            }
+        }
+        dev.quinton.goa.core.designsystem.component.SectionHeader(
+            "Red",
+            ribbon = dev.quinton.goa.core.designsystem.component.PlateColor.RED,
+        )
+    }
 }

@@ -1328,5 +1328,14 @@
    "name": "Checked against: Forgotten Island top-down art (CasperCB/Guards_Replay assets/maps/forbidden_island.webp, 1400 px)",
    "url": "https://raw.githubusercontent.com/CasperCB/Guards_Replay/210ff0cae374cdeda2f60680aea5990e85841332/assets/maps/forbidden_island.webp"
   }
- ]
+ ],
+ "art": {
+  "image": "official/maps/forgotten-island.webp",
+  "width": 1970,
+  "height": 1656,
+  "pxPerUnit": 47.999,
+  "originX": -20.954,
+  "originY": -22.5,
+  "sea": "#194353"
+ }
 }

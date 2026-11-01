@@ -132,6 +132,12 @@ object GoaTextStyles {
     /** Top-bar titles on the steel banner (Cinzel, engraved caps). */
     val bannerTitle: TextStyle = display(21, 28, FontWeight.Bold, 0.8)
 
+    /** The parchment title plate's words: hero names, questions, timer phases (ADR-053). */
+    val plateTitle: TextStyle = display(17, 21, FontWeight.Bold, 0.3)
+
+    /** The word on a text box's coloured tab, as the cards print "Attack" or "Skill". */
+    val plateCap: TextStyle = display(11, 14, FontWeight.Bold, 0.6)
+
     /**
      * Text the game prints (card text, rulebook excerpts), in Crimson Pro: slightly larger than
      * Inter body text, as a serif needs at the same reading distance.

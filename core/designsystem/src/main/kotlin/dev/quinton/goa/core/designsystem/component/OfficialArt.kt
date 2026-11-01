@@ -76,7 +76,7 @@ object OfficialArt {
         get() = Stat.entries.map(::itemIcon) +
             Team.entries.flatMap { team ->
                 listOf(heroSpawn(team), tieBreaker(team)) + MinionType.entries.map { minionSpawn(it, team) }
-            }
+            } + LookArt.all
 
     private val Team.slug: String get() = if (this == Team.RED) "red" else "blue"
 }

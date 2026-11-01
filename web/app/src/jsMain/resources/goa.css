@@ -73,10 +73,10 @@
 :root, :root[data-theme="dark"] {
   color-scheme: dark;
   --bg: #0B1622;
-  --surface: #122334;
-  --surface-high: #1A2E44;
+  --surface: #1E2327;
+  --surface-high: #2A3136;
   --on-surface: #E8E2D6;
-  --on-surface-variant: #A9B4C2;
+  --on-surface-variant: #B4BEC8;
   --primary: #C9A35B;
   --on-primary: #0B1622;
   --primary-container: #3D3018;
@@ -3635,3 +3635,117 @@ html:has(.goa-app.has-timerbar) {
 /* The draft's coin step shows the coin bigger (as on the phone's draft): the printed face grows with it. */
 .goa-draft-coin-stage .goa-table-coin .goa-tb-coin { width: 88px; height: 88px; }
 .goa-draft-coin-stage .goa-table-coin .goa-tb-badge { max-width: 30px; max-height: 30px; }
+
+
+/* ---------- The game's own look (ADR-053): the rulebook's and the cards' parts as frames ---------- */
+/* Plates stay dark in both themes, like the banner: what sits on one takes the dark tokens. */
+.goa-plate, .goa-card, .goa-sheet, .goa-tabbar {
+  color-scheme: dark;
+  --surface: #1E2327;
+  --surface-high: #2A3136;
+  --on-surface: #E8E2D6;
+  --on-surface-variant: #B4BEC8;
+  --primary: #C9A35B;
+  --on-primary: #0B1622;
+  --primary-container: #3D3018;
+  --on-primary-container: #F0DDB0;
+  --secondary: #3FC1B0;
+  --on-secondary: #0B1622;
+  --secondary-container: #123F3B;
+  --on-secondary-container: #BDEFE7;
+  --error: #FF6B6B;
+  --on-error: #0B1622;
+  --error-container: #4D1C1C;
+  --heading: #E39B5F;
+  --outline-engraved: rgba(201, 163, 91, 0.3);
+  color: var(--on-surface);
+}
+.goa-plate, .goa-card {
+  background:
+    url("official/ui/corner-tl.webp") left 2px top 2px / 16px no-repeat,
+    url("official/ui/corner-tr.webp") right 2px top 2px / 16px no-repeat,
+    url("official/ui/corner-bl.webp") left 2px bottom 2px / 16px no-repeat,
+    url("official/ui/corner-br.webp") right 2px bottom 2px / 16px no-repeat,
+    linear-gradient(rgba(0, 0, 0, 0.18), rgba(0, 0, 0, 0.18)),
+    url("official/ui/slate.webp") center / 420px,
+    #1D2124;
+  border: 1px solid #5D6B70;
+  box-shadow: inset 0 0 0 1px #15191B, 0 3px 10px rgba(0, 0, 0, 0.45);
+  border-radius: 8px;
+}
+.goa-sheet {
+  background: linear-gradient(rgba(0, 0, 0, 0.18), rgba(0, 0, 0, 0.18)), url("official/ui/slate.webp") center / 420px, #1D2124;
+  box-shadow: inset 0 1px 0 #5D6B70;
+}
+.goa-tabbar {
+  background: linear-gradient(rgba(0, 0, 0, 0.18), rgba(0, 0, 0, 0.18)), url("official/ui/slate.webp") center / 420px, #1D2124;
+  border-top: 1px solid #5D6B70;
+}
+.goa-topbar {
+  background: linear-gradient(var(--banner-top), var(--banner-bottom));
+  border-style: solid;
+  border-width: 0 60px 0 0;
+  border-image: url("official/ui/banner.webp") 0 247 0 0 fill stretch;
+}
+.goa-topbar::after { display: none; }
+/* White metal with a dark outline, as the rulebook sets its page banners. */
+.goa-bevel {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-variant: small-caps;
+  color: #fff;
+  background: linear-gradient(#fff 42%, #a9b4bf 58%, #fff 78%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  filter: drop-shadow(0 1px 0 #05090D) drop-shadow(1px 0 0 #05090D) drop-shadow(-1px 0 0 #05090D) drop-shadow(0 -1px 0 #05090D);
+}
+.goa-topbar-title { -webkit-text-fill-color: transparent; font-variant: small-caps; color: #fff; background: linear-gradient(#fff 42%, #a9b4bf 58%, #fff 78%); -webkit-background-clip: text; background-clip: text; filter: drop-shadow(0 1px 0 #05090D) drop-shadow(1px 0 0 #05090D) drop-shadow(-1px 0 0 #05090D) drop-shadow(0 -1px 0 #05090D); }
+/* The cards' parchment title plate: pill and gear. Grows with its text. */
+.goa-title-plate {
+  display: block;
+  box-sizing: border-box;
+  min-height: 34px;
+  border-style: solid;
+  border-width: 7px 25px 7px 12px;
+  border-image: url("official/ui/title-plate.webp") 7 36 7 16 fill stretch;
+  color: var(--on-parchment);
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-variant: small-caps;
+  font-size: 1.0625rem;
+  line-height: 1.2;
+  text-align: center;
+}
+/* The cards' text box in a frame colour; .cap is the word on its coloured tab. */
+.goa-text-box {
+  position: relative;
+  box-sizing: border-box;
+  border-style: solid;
+  border-width: 15px 11px 9px;
+  color: var(--on-parchment);
+  font-family: var(--font-printed);
+  font-size: 1.0625rem;
+  line-height: 1.22;
+}
+.goa-text-box.blue { border-image: url("official/ui/textbox-blue.webp") 20 16 13 16 fill stretch; }
+.goa-text-box.silver { border-image: url("official/ui/textbox-silver.webp") 20 16 13 16 fill stretch; }
+.goa-text-box.green { border-image: url("official/ui/textbox-green.webp") 26 20 16 20 fill stretch; }
+.goa-text-box.gold { border-image: url("official/ui/textbox-gold.webp") 28 20 16 20 fill stretch; }
+.goa-text-box.red { border-image: url("official/ui/textbox-red.webp") 16 14 11 14 fill stretch; }
+.goa-text-box .cap {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: -14px;
+  text-align: center;
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-variant: small-caps;
+  font-size: 0.6875rem;
+  letter-spacing: 0.6px;
+  color: #fff;
+  text-shadow: 0 1px 1px rgba(0, 0, 0, 0.7);
+}
+.goa-text-box.gold .cap, .goa-text-box.silver .cap { color: var(--on-parchment); text-shadow: none; }
+.goa-ribbon { display: inline-block; width: 12px; height: 24px; object-fit: cover; object-position: bottom; }

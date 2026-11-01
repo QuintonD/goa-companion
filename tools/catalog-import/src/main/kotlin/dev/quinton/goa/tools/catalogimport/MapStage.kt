@@ -16,7 +16,12 @@ data class MapIndex(val maps: List<String>)
  * them ([MapImport]), renders the overlay check images into `cache/maps/`, writes
  * `assets/catalog/maps/<id>.json` + `index.json` and the "Maps" section of REPORT.md.
  */
-class MapStage(lock: SourcesLock, private val cache: SourceCache, private val overrides: Overrides) {
+class MapStage(
+    lock: SourcesLock,
+    private val cache: SourceCache,
+    private val overrides: Overrides,
+    private val assetsDir: File,
+) {
     private val backend = lock.source("goa2-backend")
     private val json = Json { ignoreUnknownKeys = false }
 
@@ -41,7 +46,12 @@ class MapStage(lock: SourcesLock, private val cache: SourceCache, private val ov
             val err = MapOverlay.render(report.map, file, art, out)
             "`tools/catalog-import/cache/maps/${out.name}` on ${art.name} (worst anchor ${"%.1f".format(err)} px)"
         }
-        report.copy(overlays = overlays)
+        val painting = arts.firstOrNull()?.let { art ->
+            val ext = art.url.substringBefore('?').substringAfterLast('.', "img").take(EXT_MAX)
+            val file = cache.url(art.url, "maps/art/${spec.id}-0.$ext")
+            MapPainting.paint(report.map, file, art, assetsDir, cache.output("maps/painted"))
+        }
+        report.copy(overlays = overlays, map = report.map.copy(art = painting))
     }
 
     companion object {

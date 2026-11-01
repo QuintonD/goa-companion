@@ -126,6 +126,27 @@ data class BoardMap(
     val printing: Int,
     val verified: Boolean,
     val sources: List<SourceRef> = emptyList(),
+    /** The painting the board draws under the pieces; null = the app's drawn map (ADR-053). */
+    val art: BoardMapArt? = null,
+)
+
+/**
+ * A map's painting, in a frame that lines up with the plain hex layout (`x = √3 (q + r / 2)`,
+ * `y = 3/2 r`, 1 = a hex's corner radius): a layout point is at pixel
+ * `((x - originX) * pxPerUnit, (y - originY) * pxPerUnit)`. [sea] fills the canvas past the image,
+ * `#RRGGBB`. [uncovered] are spaces and terrain the art doesn't show (past the edge of a photo of the
+ * mat): the app draws those itself.
+ */
+@Serializable
+data class BoardMapArt(
+    val image: String,
+    val width: Int,
+    val height: Int,
+    val pxPerUnit: Double,
+    val originX: Double,
+    val originY: Double,
+    val sea: String,
+    val uncovered: List<Hex> = emptyList(),
 )
 
 /**

@@ -19,7 +19,7 @@ import org.apache.pdfbox.pdmodel.graphics.image.PDImageXObject
  */
 
 /** Output folders the UI-asset stage writes (stale files in them are deleted like card images). */
-val UI_ASSET_DIRS = listOf("official/icons", "official/board")
+val UI_ASSET_DIRS = listOf("official/icons", "official/board") + LOOK_ASSET_DIRS
 
 /** Long edge of a hero deck symbol (source 250-290 px; shown at up to ~120 dp). */
 const val SYMBOL_MAX_EDGE = 256

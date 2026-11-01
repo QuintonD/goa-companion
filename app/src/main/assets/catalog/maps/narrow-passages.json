@@ -1184,5 +1184,14 @@
    "name": "Checked against: Photo of the official Narrow Passages neoprene mat (BGG image 9704864)",
    "url": "https://cf.geekdo-images.com/pRUryaVDshPV8JMEGJa0tQ__original/img/VOkpixXYrr4RjCpCsrxRJkUuHcI=/0x0/filters:format(jpeg)/pic9704864.jpg"
   }
- ]
+ ],
+ "art": {
+  "image": "official/maps/narrow-passages.webp",
+  "width": 1596,
+  "height": 1872,
+  "pxPerUnit": 48.002,
+  "originX": -14.026,
+  "originY": -22.5,
+  "sea": "#1B2C39"
+ }
 }

@@ -741,3 +741,54 @@ Graphics extracted from the rulebook PDF (SHA-256 `2c19b11d632759e9e3517e6a1450d
 | `official/board/spawn-ranged-red.webp` | p.6 | 7 · 1335 | Red ranged minion Spawn point, p.6 |
 | `official/board/tie-breaker-blue.webp` | p.5 | 6 · 602 | Tie Breaker coin, Blue side (star), p.5 |
 | `official/board/tie-breaker-red.webp` | p.5 | 6 · 608 | Tie Breaker coin, Red side (gear), p.5 |
+| `official/pieces/mini-heavy-blue.webp` | p.6 | 7 · 8457 | Blue heavy minion miniature, toned as printed, p.6 |
+| `official/pieces/mini-heavy-red.webp` | p.6 | 7 · 8464 | Red heavy minion miniature, toned as printed, p.6 |
+| `official/pieces/mini-melee-blue.webp` | p.6 | 7 · 8453 | Blue melee minion miniature, toned as printed, p.6 |
+| `official/pieces/mini-melee-red.webp` | p.6 | 7 · 8463 | Red melee minion miniature, toned as printed, p.6 |
+| `official/pieces/mini-ranged-blue.webp` | p.6 | 7 · 8449 | Blue ranged minion miniature, toned as printed, p.6 |
+| `official/pieces/mini-ranged-red.webp` | p.6 | 7 · 8467 | Red ranged minion miniature, toned as printed, p.6 |
+| `official/rules/push-1.webp` | p.8 | page render | Push the Lane diagram 1, a region of the page, p.8 |
+| `official/rules/push-2.webp` | p.8 | page render | Push the Lane diagram 2, a region of the page, p.8 |
+| `official/ui/action-attack.webp` | p.6 | 7 · 1305 | Attack action symbol, p.6 |
+| `official/ui/action-defense.webp` | p.6 | 7 · 1270 | Defense action symbol, p.6 |
+| `official/ui/action-movement.webp` | p.6 | 7 · 1272 | Movement action symbol, p.6 |
+| `official/ui/action-range.webp` | p.6 | 7 · 1268 | Range symbol, p.6 |
+| `official/ui/action-skill.webp` | p.6 | 7 · 1266 | Skill action symbol, p.6 |
+| `official/ui/banner.webp` | p.8 | page render | The page banner, composed from a page footer's band and a header's medallion, p.8 |
+| `official/ui/coin.webp` | p.5 | page render | The bronze coin, cut from the page's coin picture, p.5 |
+| `official/ui/corner-bl.webp` | p.21 | 22 · 7728 | Bottom left bracket of the dark card plate, p.21 |
+| `official/ui/corner-br.webp` | p.21 | 22 · 7728 | Bottom right bracket of the dark card plate, p.21 |
+| `official/ui/corner-tl.webp` | p.21 | 22 · 7728 | Top left bracket of the dark card plate, p.21 |
+| `official/ui/corner-tr.webp` | p.21 | 22 · 7728 | Top right bracket of the dark card plate, p.21 |
+| `official/ui/dashboard-frame.webp` | p.16 | 17 · 6750 | The hero dashboard's frame, p.16 |
+| `official/ui/dashboard-tigerclaw.webp` | p.16 | 17 · 6748 | Tigerclaw's dashboard art, p.16 |
+| `official/ui/life-blue-spent.webp` | p.5 | 6 · 616 | Blue Life counter, spent, p.5 |
+| `official/ui/life-blue.webp` | p.5 | 6 · 582 | Blue Life counter, unspent, p.5 |
+| `official/ui/life-red-spent.webp` | p.5 | 6 · 614 | Red Life counter, spent, p.5 |
+| `official/ui/life-red.webp` | p.5 | 6 · 580 | Red Life counter, unspent, p.5 |
+| `official/ui/ribbon-blue.webp` | p.7 | 8 · 2102 | Action card anatomy layers: blue ribbon, p.7 |
+| `official/ui/ribbon-gold.webp` | p.7 | 8 · 2069 | Action card anatomy layers: gold ribbon, p.7 |
+| `official/ui/ribbon-green.webp` | p.6 | 7 · 1262 | Action card anatomy layers: green ribbon, p.6 |
+| `official/ui/ribbon-red.webp` | p.9 | 10 · 2902 | Action card anatomy layers: red ribbon, p.9 |
+| `official/ui/ribbon-silver.webp` | p.12 | 13 · 4363 | Action card anatomy layers: silver ribbon, p.12 |
+| `official/ui/sea.webp` | p.-1 | page render | Open sea, a region of the Forgotten Island painting (see the map art below) |
+| `official/ui/silhouette.webp` | p.0 | 1 · 8940 | The cover's battlefield silhouette |
+| `official/ui/slate.webp` | p.16 | 17 · 6747 | The dashboard's dark plate, p.16 |
+| `official/ui/textbox-blue.webp` | p.7 | 8 · 2100 | Action card anatomy layers: blue text box, p.7 |
+| `official/ui/textbox-gold.webp` | p.6 | 7 · 1299 | Action card anatomy layers: gold text box, p.6 |
+| `official/ui/textbox-green.webp` | p.6 | 7 · 1260 | Action card anatomy layers: green text box, p.6 |
+| `official/ui/textbox-red.webp` | p.9 | 10 · 2900 | Action card anatomy layers: red text box, p.9 |
+| `official/ui/textbox-silver.webp` | p.12 | 13 · 4359 | Action card anatomy layers: silver text box, p.12 |
+| `official/ui/title-plate.webp` | p.6 | 7 · 1257 | Action card anatomy layers: the title plate, p.6 |
+| `official/ui/wave-spent.webp` | p.5 | 6 · 578 | Wave counter, facedown, p.5 |
+| `official/ui/wave.webp` | p.5 | 6 · 604 | Wave counter, faceup, p.5 |
+
+The board paintings, resampled to line up with the hex layout (ADR-053). A photo of a mat is
+flattened by homography and what isn't the mat is filled with a dim blur of the painting:
+
+| File | Source |
+|---|---|
+| `official/maps/across-the-river.webp` | Photo of the official Across the River neoprene mat (BGG image 9704865): https://cf.geekdo-images.com/duuFQRU-fSOiUNQpoNsLBA__original/img/nueSTgAtszvojc1HUpIdwcE5zco=/0x0/filters:format(jpeg)/pic9704865.jpg |
+| `official/maps/forgotten-island.webp` | Forgotten Island top-down art (CasperCB/Guards_Replay assets/maps/forbidden_island.webp, 1400 px): https://raw.githubusercontent.com/CasperCB/Guards_Replay/210ff0cae374cdeda2f60680aea5990e85841332/assets/maps/forbidden_island.webp |
+| `official/maps/magma-and-ice.webp` | Photo of the official Magma and Ice neoprene mat (BGG image 9704867): https://cf.geekdo-images.com/HgZeX9Czel4vAHjTVNn1Pw__original/img/_bmxWfLzFGsIe0E4ysw9Rm_DA1U=/0x0/filters:format(jpeg)/pic9704867.jpg |
+| `official/maps/narrow-passages.webp` | Photo of the official Narrow Passages neoprene mat (BGG image 9704864): https://cf.geekdo-images.com/pRUryaVDshPV8JMEGJa0tQ__original/img/VOkpixXYrr4RjCpCsrxRJkUuHcI=/0x0/filters:format(jpeg)/pic9704864.jpg |

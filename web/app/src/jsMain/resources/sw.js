@@ -40,7 +40,8 @@ function url(path) {
 }
 
 function isImage(path) {
-  return path.startsWith("official/") && !path.endsWith(".md");
+  // official/ui is the app's chrome (ADR-053): part of the shell, precached, so it works offline at once.
+  return path.startsWith("official/") && !path.startsWith("official/ui/") && !path.endsWith(".md");
 }
 
 /**

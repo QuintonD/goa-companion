@@ -2201,5 +2201,116 @@
    "name": "Checked against: Photo of the official Across the River neoprene mat (BGG image 9704865)",
    "url": "https://cf.geekdo-images.com/duuFQRU-fSOiUNQpoNsLBA__original/img/nueSTgAtszvojc1HUpIdwcE5zco=/0x0/filters:format(jpeg)/pic9704865.jpg"
   }
- ]
+ ],
+ "art": {
+  "image": "official/maps/across-the-river.webp",
+  "width": 1862,
+  "height": 2048,
+  "pxPerUnit": 42.666,
+  "originX": -21.821,
+  "originY": -25.5,
+  "sea": "#20251F",
+  "uncovered": [
+   {
+    "q": 9,
+    "r": -14
+   },
+   {
+    "q": 10,
+    "r": -14
+   },
+   {
+    "q": 11,
+    "r": -14
+   },
+   {
+    "q": 6,
+    "r": -13
+   },
+   {
+    "q": 7,
+    "r": -13
+   },
+   {
+    "q": 9,
+    "r": -13
+   },
+   {
+    "q": 10,
+    "r": -13
+   },
+   {
+    "q": 11,
+    "r": -13
+   },
+   {
+    "q": 4,
+    "r": -12
+   },
+   {
+    "q": 7,
+    "r": -12
+   },
+   {
+    "q": 8,
+    "r": -12
+   },
+   {
+    "q": 9,
+    "r": -12
+   },
+   {
+    "q": 10,
+    "r": -12
+   },
+   {
+    "q": 11,
+    "r": -12
+   },
+   {
+    "q": 9,
+    "r": -11
+   },
+   {
+    "q": 10,
+    "r": -11
+   },
+   {
+    "q": 11,
+    "r": -11
+   },
+   {
+    "q": 0,
+    "r": -10
+   },
+   {
+    "q": 10,
+    "r": -10
+   },
+   {
+    "q": 11,
+    "r": -10
+   },
+   {
+    "q": -2,
+    "r": -9
+   },
+   {
+    "q": -4,
+    "r": -8
+   },
+   {
+    "q": -10,
+    "r": 12
+   },
+   {
+    "q": -9,
+    "r": 12
+   },
+   {
+    "q": -8,
+    "r": 12
+   }
+  ]
+ }
 }

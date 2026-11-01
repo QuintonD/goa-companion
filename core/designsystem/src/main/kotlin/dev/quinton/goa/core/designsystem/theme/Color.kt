@@ -9,10 +9,10 @@ import androidx.compose.ui.graphics.Color
 /** "Steel and bronze" tokens from docs/DESIGN.md (ADR-042). Re-check contrast for any new pair. */
 internal object Tokens {
     val DarkBackground = Color(0xFF0B1622)
-    val DarkSurface = Color(0xFF122334)
-    val DarkSurfaceHigh = Color(0xFF1A2E44)
+    val DarkSurface = Color(0xFF1E2327)
+    val DarkSurfaceHigh = Color(0xFF2A3136)
     val DarkOnSurface = Color(0xFFE8E2D6)
-    val DarkOnSurfaceVariant = Color(0xFFA9B4C2)
+    val DarkOnSurfaceVariant = Color(0xFFB4BEC8)
     val DarkPrimary = Color(0xFFC9A35B)
     val DarkOnPrimary = Color(0xFF0B1622)
     val DarkSecondary = Color(0xFF3FC1B0)

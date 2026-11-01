@@ -47,6 +47,10 @@ object MapOverlay {
         return t to error(t, src, dst)
     }
 
+    /** Fits a transform from points in any plane (the map painting's, the plain layout) to pixels. */
+    fun fitPoints(src: List<DoubleArray>, dst: List<DoubleArray>, model: String): Transform =
+        if (model == "homography") homography(src, dst) else similarity(src, dst)
+
     private fun error(t: Transform, src: List<DoubleArray>, dst: List<DoubleArray>): Double =
         src.indices.maxOf { i -> t.apply(src[i][0], src[i][1]).let { hypot(it[0] - dst[i][0], it[1] - dst[i][1]) } }
 

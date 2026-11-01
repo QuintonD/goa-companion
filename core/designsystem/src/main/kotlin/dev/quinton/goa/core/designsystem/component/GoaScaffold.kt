@@ -23,17 +23,19 @@ import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.composed
 import androidx.compose.ui.draw.drawWithCache
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.FilterQuality
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.IntOffset
+import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import dev.quinton.goa.core.designsystem.theme.GoaExtendedColors
-import dev.quinton.goa.core.designsystem.theme.GoaTextStyles
 import dev.quinton.goa.core.designsystem.theme.GoaTheme
 
 /**
@@ -59,13 +61,7 @@ fun GoaScreen(
             SteelBanner {
                 TopAppBar(
                     title = {
-                        Text(
-                            text = title,
-                            style = GoaTextStyles.bannerTitle,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                            modifier = Modifier.semantics { heading() },
-                        )
+                        BevelText(text = title, modifier = Modifier.semantics { heading() })
                     },
                     navigationIcon = {
                         if (onBack != null) {
@@ -74,7 +70,10 @@ fun GoaScreen(
                             }
                         }
                     },
-                    actions = actions,
+                    actions = {
+                        actions()
+                        BannerEndSpacer()
+                    },
                     colors = TopAppBarDefaults.topAppBarColors(
                         containerColor = Color.Transparent,
                         scrolledContainerColor = Color.Transparent,
@@ -93,9 +92,9 @@ fun GoaScreen(
 }
 
 /**
- * The rulebook's steel banner as a background: a steel-blue band, darker toward the bottom, with
- * a bright steel edge on top and a dark edge plus a bronze hairline below. Text and icons on it use
- * `GoaTheme.colors.onBanner` / `onBannerVariant` (checked in both themes, docs/DESIGN.md).
+ * The rulebook's steel banner as a background: its band stretched across, its star medallion at the
+ * end, whatever the bar's size (the gradient only while it loads). Text and icons on it use
+ * `GoaTheme.colors.onBanner` / `onBannerVariant`; keep them clear of the medallion ([BannerEndSpacer]).
  */
 @Composable
 fun SteelBanner(modifier: Modifier = Modifier, content: @Composable ColumnScope.() -> Unit) {
@@ -103,14 +102,10 @@ fun SteelBanner(modifier: Modifier = Modifier, content: @Composable ColumnScope.
 }
 
 /** [SteelBanner]'s background for a layout of the caller's own (pass `GoaTheme.colors` and primary). */
-fun Modifier.steelBanner(colors: GoaExtendedColors, bronze: Color): Modifier = this.then(
-    Modifier.drawWithCache {
+fun Modifier.steelBanner(colors: GoaExtendedColors, bronze: Color): Modifier = composed {
+    val art = rememberOfficialBitmap(LookArt.BANNER)
+    drawWithCache {
         val band = Brush.verticalGradient(listOf(colors.bannerTop, colors.bannerBottom))
-        val sheen = Brush.horizontalGradient(
-            0f to Color.Transparent,
-            0.5f to colors.bannerHighlight.copy(alpha = 0.10f),
-            1f to Color.Transparent,
-        )
         val rule = Brush.horizontalGradient(
             0f to bronze.copy(alpha = 0.15f),
             0.5f to bronze.copy(alpha = 0.75f),
@@ -118,18 +113,39 @@ fun Modifier.steelBanner(colors: GoaExtendedColors, bronze: Color): Modifier = t
         )
         val edge = 1.dp.toPx()
         onDrawBehind {
-            drawRect(band)
-            drawRect(sheen, size = Size(size.width, size.height / 2f))
-            drawRect(colors.bannerHighlight.copy(alpha = 0.45f), size = Size(size.width, edge))
-            drawRect(
-                colors.bannerShadow,
-                topLeft = Offset(0f, size.height - 2 * edge),
-                size = Size(size.width, edge),
-            )
-            drawRect(rule, topLeft = Offset(0f, size.height - edge), size = Size(size.width, edge))
+            if (art == null) {
+                drawRect(band)
+                drawRect(colors.bannerHighlight.copy(alpha = 0.45f), size = Size(size.width, edge))
+                drawRect(rule, topLeft = Offset(0f, size.height - edge), size = Size(size.width, edge))
+            } else {
+                drawRect(colors.bannerBottom)
+                val h = size.height.toInt()
+                val capPx = (art.height * BANNER_CAP_RATIO).toInt()
+                val capW = (h * BANNER_CAP_RATIO).toInt()
+                val bodyW = (size.width.toInt() - capW).coerceAtLeast(0)
+                drawImage(
+                    art,
+                    srcOffset = IntOffset.Zero,
+                    srcSize = IntSize(art.width - capPx, art.height),
+                    dstOffset = IntOffset.Zero,
+                    dstSize = IntSize(bodyW, h),
+                    filterQuality = FilterQuality.Medium,
+                )
+                drawImage(
+                    art,
+                    srcOffset = IntOffset(art.width - capPx, 0),
+                    srcSize = IntSize(capPx, art.height),
+                    dstOffset = IntOffset(bodyW, 0),
+                    dstSize = IntSize(capW, h),
+                    filterQuality = FilterQuality.Medium,
+                )
+            }
         }
-    },
-)
+    }
+}
+
+/** How wide the medallion is, in banner heights. */
+private const val BANNER_CAP_RATIO = 1.35f
 
 /** Hairline bronze rule that fades out at both ends; separates bars from content. */
 @Composable

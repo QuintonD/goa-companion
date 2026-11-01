@@ -15,6 +15,16 @@ enum class TimerLayout {
     ROUND,
 }
 
+/** How pieces and spaces look on the painted board (a device preference, ADR-053). */
+@Serializable
+enum class BoardStyle {
+    /** The rulebook's miniatures with a small type badge; the painting's own spaces, no grid. */
+    MINIATURES,
+
+    /** A hairline hex grid over the painting, and discs with the type's glyph. */
+    GRID_AND_DISCS,
+}
+
 @Serializable
 data class AppSettings(
     val theme: ThemeMode = ThemeMode.DARK,
@@ -29,4 +39,5 @@ data class AppSettings(
     val puzzleNudges: Boolean = true,
     /** The computer strength (1..10, ADR-039) last chosen on New game; the next game starts there. */
     val computerStrength: Int = 5,
+    val boardStyle: BoardStyle = BoardStyle.MINIATURES,
 )

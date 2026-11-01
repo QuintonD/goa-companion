@@ -57,6 +57,7 @@ class Output(private val assetsDir: File) {
         result: ImportResult,
         documents: List<PinnedDocument> = emptyList(),
         rulebookImages: Pair<PinnedDocument, List<RulebookImage>>? = null,
+        mapArt: Map<String, List<MapArt>> = emptyMap(),
     ) {
         val sb = StringBuilder()
         sb.appendLine("# Official assets — sources")
@@ -109,7 +110,19 @@ class Output(private val assetsDir: File) {
             sb.appendLine("| File | Page (printed) | PDF page · object | What |")
             sb.appendLine("|---|---|---|---|")
             images.sortedBy { it.out }.forEach {
-                sb.appendLine("| `${it.out}` | p.${it.printedPage} | ${it.pdfPage} · ${it.obj} | ${it.what} |")
+                val where = if (it.obj == 0) "page render" else "${it.pdfPage} · ${it.obj}"
+                sb.appendLine("| `${it.out}` | p.${it.printedPage} | $where | ${it.what} |")
+            }
+        }
+        if (mapArt.isNotEmpty()) {
+            sb.appendLine()
+            sb.appendLine("The board paintings, resampled to line up with the hex layout (ADR-053). A photo of a mat is")
+            sb.appendLine("flattened by homography and what isn't the mat is filled with a dim blur of the painting:")
+            sb.appendLine()
+            sb.appendLine("| File | Source |")
+            sb.appendLine("|---|---|")
+            mapArt.toSortedMap().forEach { (id, arts) ->
+                arts.firstOrNull()?.let { sb.appendLine("| `official/maps/$id.webp` | ${it.name}: ${it.url} |") }
             }
         }
         File(assetsDir, "official").mkdirs()

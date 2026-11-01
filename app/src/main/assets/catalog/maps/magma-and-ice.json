@@ -1829,5 +1829,64 @@
    "name": "Checked against: Photo of the official Magma and Ice neoprene mat (BGG image 9704867)",
    "url": "https://cf.geekdo-images.com/HgZeX9Czel4vAHjTVNn1Pw__original/img/_bmxWfLzFGsIe0E4ysw9Rm_DA1U=/0x0/filters:format(jpeg)/pic9704867.jpg"
   }
- ]
+ ],
+ "art": {
+  "image": "official/maps/magma-and-ice.webp",
+  "width": 2048,
+  "height": 1795,
+  "pxPerUnit": 47.878,
+  "originX": -21.821,
+  "originY": -19.5,
+  "sea": "#291E1D",
+  "uncovered": [
+   {
+    "q": 12,
+    "r": -8
+   },
+   {
+    "q": 12,
+    "r": -7
+   },
+   {
+    "q": -11,
+    "r": 3
+   },
+   {
+    "q": -12,
+    "r": 4
+   },
+   {
+    "q": -12,
+    "r": 5
+   },
+   {
+    "q": -12,
+    "r": 6
+   },
+   {
+    "q": -12,
+    "r": 7
+   },
+   {
+    "q": -11,
+    "r": 7
+   },
+   {
+    "q": -10,
+    "r": 8
+   },
+   {
+    "q": -9,
+    "r": 8
+   },
+   {
+    "q": -8,
+    "r": 9
+   },
+   {
+    "q": -7,
+    "r": 9
+   }
+  ]
+ }
 }

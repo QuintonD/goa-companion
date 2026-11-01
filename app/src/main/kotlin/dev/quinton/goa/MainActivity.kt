@@ -12,6 +12,7 @@ import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.graphics.toArgb
@@ -22,7 +23,9 @@ import androidx.lifecycle.DefaultLifecycleObserver
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dagger.hilt.android.AndroidEntryPoint
+import dev.quinton.goa.core.designsystem.component.LocalBoardStyle
 import dev.quinton.goa.core.designsystem.theme.GoaTheme
+import dev.quinton.goa.core.model.settings.BoardStyle
 import dev.quinton.goa.core.model.settings.ThemeMode
 import dev.quinton.goa.core.navigation.EXTRA_OPEN_TAB
 import dev.quinton.goa.core.navigation.TopLevelTab
@@ -87,7 +90,10 @@ class MainActivity : ComponentActivity() {
                     window.setBackgroundDrawable(canvas.toDrawable())
                     onDispose {}
                 }
-                GoaApp(tabRequests = tabRequests, syncFileRequests = syncFileRequests, coldStart = coldStart)
+                val boardStyle = (state as? MainUiState.Ready)?.boardStyle ?: BoardStyle.MINIATURES
+                CompositionLocalProvider(LocalBoardStyle provides boardStyle) {
+                    GoaApp(tabRequests = tabRequests, syncFileRequests = syncFileRequests, coldStart = coldStart)
+                }
             }
         }
     }

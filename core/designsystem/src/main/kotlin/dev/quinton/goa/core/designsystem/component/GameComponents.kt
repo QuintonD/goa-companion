@@ -6,6 +6,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
@@ -272,24 +273,37 @@ fun TeamBadge(team: Team, modifier: Modifier = Modifier, showLabel: Boolean = tr
     }
 }
 
-/** The team's shape mark alone: diamond for Red, disc for Blue. */
+/**
+ * The team's mark: Red's gear or Blue's star, the rulebook's own (ADR-053). Shape as well as colour,
+ * so team is never colour alone. The old diamond and disc draw while it loads and at the tiniest sizes.
+ */
 @Composable
 fun TeamMark(team: Team, modifier: Modifier = Modifier, color: Color = teamColor(team), markSize: Dp = 12.dp) {
-    Canvas(modifier.size(markSize).clearAndSetSemantics {}) {
-        if (team == Team.RED) {
-            val path = Path().apply {
-                moveTo(size.width / 2f, 0f)
-                lineTo(size.width, size.height / 2f)
-                lineTo(size.width / 2f, size.height)
-                lineTo(0f, size.height / 2f)
-                close()
+    val fallback: @Composable BoxScope.() -> Unit = {
+        Canvas(Modifier.matchParentSize()) {
+            if (team == Team.RED) {
+                val path = Path().apply {
+                    moveTo(size.width / 2f, 0f)
+                    lineTo(size.width, size.height / 2f)
+                    lineTo(size.width / 2f, size.height)
+                    lineTo(0f, size.height / 2f)
+                    close()
+                }
+                drawPath(path, color)
+            } else {
+                drawCircle(color, radius = size.minDimension * 0.44f, center = Offset(size.width / 2f, size.height / 2f))
             }
-            drawPath(path, color)
-        } else {
-            drawCircle(color, radius = size.minDimension * 0.44f, center = Offset(size.width / 2f, size.height / 2f))
         }
     }
+    OfficialIcon(
+        OfficialArt.heroSpawn(team),
+        modifier.size(markSize * TEAM_MARK_GROWTH).clearAndSetSemantics {},
+        fallback = fallback,
+    )
 }
+
+/** The gear and star are busier than the old shapes: they get a little more room at the same call. */
+private const val TEAM_MARK_GROWTH = 1.25f
 
 @Composable
 fun teamColor(team: Team): Color = if (team == Team.RED) GoaTheme.colors.teamRed else GoaTheme.colors.teamBlue

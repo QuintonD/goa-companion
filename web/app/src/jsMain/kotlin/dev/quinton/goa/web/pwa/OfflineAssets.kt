@@ -46,7 +46,10 @@ object OfflinePlan {
      * Not the lists' small copies ([Thumbnails]): offline, a list falls back to the full image.
      */
     fun images(manifest: AssetManifest): List<AssetFile> =
-        manifest.files.filter { it.p.startsWith("official/") && !it.p.endsWith(".md") && !Thumbnails.isThumbnail(it.p) }
+        manifest.files.filter {
+            it.p.startsWith("official/") && !it.p.startsWith("official/ui/") && !it.p.endsWith(".md") &&
+                !Thumbnails.isThumbnail(it.p)
+        }
 
     /** [images] not cached with their current content ([cached]: path → hash of the cached copy). */
     fun missing(images: List<AssetFile>, cached: Map<String, String>): List<AssetFile> =
