@@ -410,9 +410,16 @@
 .goa-board-switch-row .goa-segmented > button[aria-checked="true"] { background: #3D3018; color: #F0DDB0; }
 /* Large text (under 22 rem wide): picks wrap instead of being cut to a letter, the map's name goes above Set up. */
 .goa-board-new { container-type: inline-size; }
+@media (orientation: portrait) {
+  .goa-board-new { overflow-y: auto; }
+}
 @container (max-width: 22rem) {
   .goa-board-slots { flex-wrap: wrap; overflow-x: visible; }
   .goa-board-slot { max-width: none; flex: none; }
+  /* Everything above and below would leave the heroes a sliver: the whole screen scrolls instead. */
+  .goa-board-new-side, .goa-board-new-main { flex: none; }
+  .goa-board-grid-box { flex: none; height: 16rem; overscroll-behavior: auto; }
+  .goa-board-slot-empty { white-space: normal; }
   .goa-board-setup-bar { flex-wrap: wrap; }
   .goa-board-setup-bar .goa-board-map-pick { flex: 1 0 100%; max-width: none; }
   .goa-board-setup-bar .goa-button { flex: 1 0 100%; }

@@ -92,10 +92,13 @@ fun PlayScaffold(
 /** Tells [onTall] as [panel] (portrait only) grows past or falls under about a third of the screen. */
 private fun observePanelShare(panel: HTMLElement, onTall: (Boolean) -> Unit): () -> Unit {
     val callback: () -> Unit = {
-        val play = panel.closest(".goa-play") as? HTMLElement
-        val body = panel.parentElement as? HTMLElement
-        val portrait = body != null && window.getComputedStyle(body).flexDirection == "column"
-        if (play != null) onTall(portrait && panel.offsetHeight > play.clientHeight * TALL_PANEL_SHARE)
+        // In the next frame: its answer can resize the panel, and inside the observer that's a reported loop.
+        window.requestAnimationFrame {
+            val play = panel.closest(".goa-play") as? HTMLElement
+            val body = panel.parentElement as? HTMLElement
+            val portrait = body != null && window.getComputedStyle(body).flexDirection == "column"
+            if (play != null) onTall(portrait && panel.offsetHeight > play.clientHeight * TALL_PANEL_SHARE)
+        }
     }
     val observer: dynamic = js("new ResizeObserver(callback)")
     observer.observe(panel)
@@ -109,14 +112,25 @@ private fun observePanelShare(panel: HTMLElement, onTall: (Boolean) -> Unit): ()
 fun reportQuestionEnd(question: HTMLElement): () -> Unit {
     val panel = question.closest(".goa-play-panel") as? HTMLElement ?: return {}
     val content = question.closest(".goa-play-panel-content") as? HTMLElement ?: return {}
+    var stopped = false
     val callback: () -> Unit = {
-        val end = question.getBoundingClientRect().bottom - content.getBoundingClientRect().top + content.scrollTop
-        panel.style.setProperty("--question-end", "${end.toInt()}px")
+        // In the next frame: this resizes the panel, and inside the observer that's a reported loop.
+        window.requestAnimationFrame {
+            if (!stopped) {
+                val end = question.getBoundingClientRect().bottom - content.getBoundingClientRect().top +
+                    content.scrollTop
+                val value = "${end.toInt()}px"
+                if (panel.style.getPropertyValue("--question-end") != value) {
+                    panel.style.setProperty("--question-end", value)
+                }
+            }
+        }
     }
     val observer: dynamic = js("new ResizeObserver(callback)")
     observer.observe(question)
     (question.parentElement as? HTMLElement)?.let { observer.observe(it) }
     return {
+        stopped = true
         observer.disconnect()
         panel.style.removeProperty("--question-end")
     }
