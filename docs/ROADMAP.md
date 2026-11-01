@@ -503,6 +503,14 @@ passes (including an in-place upgrade from the morning build with real data). Ev
   2026-10-31, JVM tests and screenshots; not run on a device or an emulator
 - [ ] On the S25 Ultra: run the measure twice, send back the higher line, and read the phone factor off AI.md
 
+## M25 — The game's own look (ADR-053)
+- [x] Importer: the rulebook's parts, hero card backs, a painting per map lined up with the hex layout — 2026-11-01
+- [x] The painted board with lighting, overlays on art and the board style setting, Android and web — 2026-11-01, JVM and Playwright
+- [x] The table, hero sheet, catalog, rules, timer, draft, players, trivia, sync, settings and shell on the parts, Android and web — 2026-11-01, JVM and Playwright
+- [x] Text contrast checked on the art itself (`LookArtContrastTest`) — 2026-11-01
+- [ ] On the S25 Ultra: pan a double-lane map with about 30 miniatures; read the board in table light in both styles
+- [ ] On an iPhone: pan the painted map, memory, slate-card scrolling on the match log, the banner under a real safe area
+
 ## M5 — Polish & release readiness
 - [x] Accessibility pass: ATF checks on 25 screens (no errors), contrast fixes, TalkBack labels, font scale 2.0 screenshots — 2026-10-17 (emulator/JVM)
 - [ ] Tablet sanity check

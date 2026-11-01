@@ -610,7 +610,7 @@ time measures from question shown to answer, so a slow card-scan reader isn't pe
 Alternatives rejected: ranking by numbers learned (per-phone, can't sync without merging mastery
 per fact); a per-setup board for every quiz configuration (too many boards to mean anything).
 
-## ADR-033 — Board sandbox: community hex maps checked against the official art; measure, never play (2026-10-19)
+## ADR-033 — Board sandbox: community hex maps checked against the official art; measure, never play (2026-10-19) — point 5 (no map art) SUPERSEDED by ADR-053
 **Context:** The owner asked for a virtual board to try out board states, e.g. the opening for a
 line-up, with set-up "as easy and intuitive as possible". The rulebook shows the board only in
 perspective, so a playable hex grid can't be read from it. Its rules give everything needed to
@@ -2171,6 +2171,62 @@ links the web app for iPhones, the root is the web app.
 **Decision:** Additive on `Coach` with defaults, so the web and existing callers keep working: `suggest` (ranked options, chance, confidence, line, reasons, threats, round plan, the hero's official tips) and `review` (every decision of a game marked, from the save). `prepare` stays as it was and pays for no words; `suggest` adds samples on the same seeds. Win chance by Platt scaling per team size on stored self-play, shown to the nearest 5, used by the turning points too. The coach keeps the hand evaluation (`learned = HAND`). Confidence from the paired samples: "too close to rank" rather than ranking noise. Reasons only from events and printed values, each with its page, and silence stays allowed. `Hero.advice` joins the catalog through the importer, verbatim from source 3 (dataVersion 5). Text in the engine, as the nudges' is; the sheet's own words in string resources (the first in `:feature:board`). Android only: the web table keeps compiling and its controller ignores the new actions.
 **Consequences:** A strength-4 player following the top suggestion wins 79.7% (68.3–87.7%) against strength 6 in 3v3. The sheet's advice is as strong as a strength-8 look: it lifts a weak player and does not improve a strong one (AI.md "Known weaknesses"). Three in four decisions are honestly "too close to rank". Marks are relative to that look, so strength 10 is told of mistakes too. On a slow phone fewer samples and then no round plan, never a late sheet. The phone factor is still an assumption. Android builds of a checkout on C: with output on D: fail in Hilt's KSP ("this and base files have different roots"): this stream built Android from a detached checkout on D:.
 **Rules audit (independent, same day):** 22 findings, all fixed with `CoachTruthTest` holding the worst. Teammates' hidden cards reached the text and the chances (only enemies were resampled, so `NoPeekingTest` missed it: the coach now guesses teammates too). The Life cost ignored card text such as the Bounty marker and could hide a game loss. Block cards counted as "no defense"; threats' numbers now come from the Defend question's own previews, immunity removes a threat this turn, and a card whose text sets what it takes gets no number. "But Y is" could name a card that also falls. Also: token placements read as the hero moving, the Pity coin as card text, persistent runes as going back, the Minion Battle's removals past what a team has, and wording throughout.
+
+## ADR-053 — The game's own look: the painted board and the rulebook's parts as the app's frames (v0.11, 2026-11-01)
+**Context:** The owner: "Can you get closer to the original game aesthetics within the app? Using the original
+assets e.g. board, cards etc." Mock-ups (`design/mockups/original-look/`) were approved: "This is the right
+direction. Create and implement a visual overhaul... For the dashboard you can have a setting to switch between
+the two styles you presented." ADR-042 had put the cards and a steel-coloured banner in, inside our own frames, on
+a board the app drew. The two styles shown were the board's (screens 1 and 2), so "the dashboard" was read as that.
+
+**Decision:**
+1. **The painting is the board.** Each map has `BoardMap.art`: an image in a frame that lines up with the plain
+   hex layout, placed through `HexLayout`'s rotation (`artPlacement`, tested against every space on every map in
+   every orientation). Forgotten Island is the top-down art the map import checked space by space; the other
+   three are the checked photos of the mats, flattened by their homographies (`MapPainting`, the `mat` outlines in
+   `overrides.json`). This supersedes ADR-033 point 5. The drawn map stays as the fallback while it loads and if
+   it fails, and the map's rules data is untouched: the art is a picture under the same spaces.
+2. **Spaces past a photo's edge** (25 on Across the River, 12 on Magma and Ice) take their ground from a nearby
+   space of their Zone, hex onto hex so the printed lattice carries on, keeping whatever the photo does show. Their
+   Spawn points and Zone edges are drawn by the app from the data (`art.uncovered`), so nothing printed there is
+   made up and no space is missing.
+3. **Lighting is the board's language**, from rulebook p.8: the Battle Zone in full colour with a thick white edge,
+   the rest dimmed and desaturated; a question's spaces take the light the same way (`MapLighting`). Overlays use one
+   theme-independent palette (`ArtBoardPalette`) with a dark halo, checked against the paintings: the printed
+   art under them doesn't change with the theme.
+4. **A setting between two board looks:** `AppSettings.boardStyle` (device preference, in the backup like
+   `timerLayout`): **Miniatures**, no grid, the rulebook's minion miniatures with a small type badge, because
+   Blue's Melee and Heavy are too alike at board size without it; **Grid and discs**, hex hairlines and the discs.
+   Heroes are portrait tokens in both: only one hero miniature appears in the rulebook.
+5. **The rulebook's and the cards' parts are the app's frames**, through the importer, by PDF page and object
+   (`LookAssets`, `official/SOURCES.md`): the real banner, the slate plate and its brackets, the title plate, the
+   coloured text boxes, ribbons, Life and Wave counters, the coin, action symbols, the dashboard frame, the
+   battlefield silhouette, each hero's card back from source 2. This relaxes the asset policy's "our own frames".
+   Three things go beyond a crop, each recorded in `SOURCES.md`: the banner is composed from a footer's band and a
+   header's medallion, the miniatures are toned as the page prints them (the PDF holds them grey and colours them with
+   a blend), and the title plate and brackets are masked. Fonts stay OFL stand-ins (ADR-042).
+6. **Plates are dark in both themes**, like the banner and the cards themselves; what sits on one is themed dark
+   (`GoaPlateTheme`, `GoaPlate`, `GoaSheet`; web: the tokens are set on `.goa-plate`, `.goa-card`, `.goa-sheet`). The
+   light theme keeps its warm page around them. The running timer stays dark in both themes, so it doesn't light up a
+   dim room. Rules pages read on the dimmed parchment in both.
+7. **The official gear and star are the team marks** (`TeamMark`), replacing the diamond and disc: shape as well as
+   colour, the game's own. **Contrast is checked on the art**, not only on tokens (`LookArtContrastTest`): the slate at
+   its lightest pixels, the parchment at its darkest. It moved dark team red to `#E76C61`. Surfaces moved from navy to the
+   slate's tone (`#1E2327`, `#2A3136`); the canvas stays navy.
+8. **Web:** the same parts in CSS, with the painting in its own composited layer under the SVG board, because a gesture
+   rewrites the SVG's transform every frame. `official/ui/` and the team marks are in the shell's precache; maps load on demand.
+
+**Deviations kept on purpose:** dark canvas; the zoom cap on art maps (88 dp a hex, 120 before) because the paintings go
+soft; the top bar's width rule gives way to the medallion, so some actions move into More on narrow phones; deck rows stay
+three named columns rather than the mock-up's five; the turn track keeps hero names.
+
+**Consequences:** About 3 MB more assets. The catalog fingerprint in `GameParityTest` was re-pinned for the maps' art (no
+transcript of play changed). Every screenshot baseline changed. The Forgotten Island source is a community repo
+(CasperCB/Guards_Replay, pinned by commit in `overrides.json`); the three flattened maps are a BGG user's photographs of
+the mats (attributed in `SOURCES.md`), so those are a person's photographs of Wolff Designa's art, on the public site: a
+higher-quality file from Wolff Designa would replace them with no code change, because `BoardMap.art` is all the app reads.
+**To verify on hardware:** panning a double-lane map with about 30 miniatures on the S25 Ultra; panning and memory (about 15 MB) on
+an iPhone; slate-card scrolling on an iPhone (Playwright's software WebKit measured 72 ms a frame on the match log, which may overstate it).
 
 ## ADR-052 — Full-round puzzles: what is known about the enemy, and how far (2026-10-31)
 **Context:** The owner: "The puzzles should be expanded to a full round." Every puzzle was a turn or less.
