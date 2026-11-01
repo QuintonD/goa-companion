@@ -1,9 +1,11 @@
 package dev.quinton.goa.web.play.map
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
+import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -29,6 +31,7 @@ import dev.quinton.goa.web.LocalServices
 import kotlin.math.exp
 import kotlin.math.roundToInt
 import kotlin.math.sqrt
+import kotlinx.browser.document
 import kotlinx.browser.window
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
@@ -558,14 +561,71 @@ private fun SvgScope.Figure(type: MinionType, team: Team) {
     val slug = if (team == Team.RED) "red" else "blue"
     Ellipse(0, 0.45f, 0.75f, 0.325f, { classes("p-base", "m-stroke-$slug") })
     val height = if (type == MinionType.HEAVY) 2.0f else 1.55f
-    Image(miniatureArt(type, team), {
+    val path = miniatureArt(type, team)
+    val baked = bakedFigure(path)
+    // The baked figure has a margin for its edge, the same share all round.
+    val drawn = if (baked != null) height * FIGURE_MARGIN else height
+    val foot = 0.6f + (drawn - height) / 2f
+    Image(baked ?: path, {
         classes("p-figure")
         attr("x", n(-FIGURE_BOX / 2f))
-        attr("y", n(0.6f - height))
+        attr("y", n(foot - drawn))
         attr("width", n(FIGURE_BOX))
-        attr("height", n(height))
+        attr("height", n(drawn))
         attr("preserveAspectRatio", "xMidYMax meet")
     })
+}
+
+/** The miniatures with a dark edge, by path: one image each, whatever the number of figures on the board. */
+private val bakedFigures = mutableStateMapOf<String, String>()
+
+/**
+ * The miniature at [path] with a dark edge, so a figure holds on sand and on lava as on the phone. Baked once
+ * into a single image rather than filtered or layered in the SVG: gestures repaint the SVG every frame, and a
+ * filter or five images per figure is what would jank an iPhone. Null until it is ready (and if it fails).
+ */
+@Composable
+private fun bakedFigure(path: String): String? {
+    val baked = bakedFigures[path]
+    if (baked == null) {
+        DisposableEffect(path) {
+            val image = HtmlImage()
+            image.onload = {
+                runCatching { bakeFigure(image) }.getOrNull()?.let { bakedFigures[path] = it }
+            }
+            image.src = path
+            onDispose { image.onload = null }
+        }
+    }
+    return baked
+}
+
+private fun bakeFigure(image: HTMLImageElement): String {
+    val w = image.naturalWidth
+    val h = image.naturalHeight
+    val canvas = document.createElement("canvas") as HTMLCanvasElement
+    val mx = (h * (FIGURE_MARGIN - 1f) / 2f).toDouble()
+    val my = mx
+    canvas.width = w + 2 * mx.toInt()
+    canvas.height = h + 2 * my.toInt()
+    val shape = document.createElement("canvas") as HTMLCanvasElement
+    shape.width = w
+    shape.height = h
+    val tint = shape.getContext("2d") as CanvasRenderingContext2D
+    tint.drawImage(image, 0.0, 0.0)
+    tint.globalCompositeOperation = "source-in"
+    tint.fillStyle = "rgba(0, 0, 0, 0.85)"
+    tint.fillRect(0.0, 0.0, w.toDouble(), h.toDouble())
+    val out = canvas.getContext("2d") as CanvasRenderingContext2D
+    val x = mx.toInt().toDouble()
+    val y = my.toInt().toDouble()
+    // As the phone's figure: 0.035 of a hex radius all round, 0.05 below; a figure is 1.55 radii tall.
+    val edge = h * FIGURE_EDGE
+    listOf(edge to 0.0, -edge to 0.0, 0.0 to edge, 0.0 to -edge, 0.0 to edge * FIGURE_DROP).forEach { (dx, dy) ->
+        out.drawImage(shape, x + dx, y + dy)
+    }
+    out.drawImage(image, x, y)
+    return canvas.toDataURL("image/png")
 }
 
 /** A miniature's type at its lower right: dark team tone, white hairline, the glyph in white. */
@@ -817,6 +877,11 @@ private const val COIN_R = 0.86f
 
 /** Wide enough for any miniature, which is fitted to its height and centred. */
 private const val FIGURE_BOX = 3.2f
+
+/** A baked figure's height against the miniature's, for the room its edge takes. */
+private const val FIGURE_MARGIN = 1.1f
+private const val FIGURE_EDGE = 0.035 / 1.55
+private const val FIGURE_DROP = 1.4
 
 /** How much smaller the feather layer is laid out than the picture. */
 private const val FEATHER_SCALE = 8f
