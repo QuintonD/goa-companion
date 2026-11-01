@@ -2220,7 +2220,7 @@ a board the app drew. The two styles shown were the board's (screens 1 and 2), s
 soft; the top bar's width rule gives way to the medallion, so some actions move into More on narrow phones; deck rows stay
 three named columns rather than the mock-up's five; the turn track keeps hero names.
 
-**Consequences:** About 3 MB more assets. The catalog fingerprint in `GameParityTest` was re-pinned for the maps' art (no
+**Consequences:** About 2 MB more assets (36 MB of official images, from 34). The catalog fingerprint in `GameParityTest` was re-pinned for the maps' art (no
 transcript of play changed). Every screenshot baseline changed. The Forgotten Island source is a community repo
 (CasperCB/Guards_Replay, pinned by commit in `overrides.json`); the three flattened maps are a BGG user's photographs of
 the mats (attributed in `SOURCES.md`), so those are a person's photographs of Wolff Designa's art, on the public site: a
