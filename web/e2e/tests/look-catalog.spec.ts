@@ -71,8 +71,7 @@ test("a rules page: parchment, the book's boxes, the p.8 diagram multiplied into
   const check = watchErrors(page);
   await open(page, "#/rules/pushing-the-lane");
   const main = page.locator("main.goa-content");
-  const parchment = await main.evaluate((el) => getComputedStyle(el).backgroundColor);
-  expect(parchment).toBe("rgb(217, 210, 193)");
+  await expect(main).toHaveCSS("background-color", "rgb(217, 210, 193)");
   await expect(page.locator(".goa-rules-excerpt.box-blue")).toHaveCount(2);
   await expect(page.locator(".goa-rules-diagram")).toHaveCount(2);
   const diagram = page.locator(".goa-rules-diagram").first();

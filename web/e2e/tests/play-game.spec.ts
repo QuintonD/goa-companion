@@ -166,7 +166,8 @@ test("play: a game through the card viewer, every kind of question, take back, g
       await page.locator(".goa-play-show").click();
     }
     if (seen.has("action") && seen.has("board") && seen.has("track") && seen.has("defend")) break;
-    await answer(page, k);
+    // Looked at again: the panel can show a question a moment before its answers, and the screens above take time.
+    await answer(page, await kind(page));
     await yourTurn(page);
   }
   // A hero's sheet: tap a hero chip or slot.
