@@ -13,13 +13,19 @@ export async function shot(page: Page, info: TestInfo, name: string) {
   await page.screenshot({ path: join(shotsDir(), `${info.project.name}-${name}.png`) });
 }
 
-/** Fails the test on any console error or uncaught exception in the page. */
-export function watchErrors(page: Page): () => void {
+/**
+ * Fails the test on any console error or uncaught exception in the page, but for what [ignore] matches
+ * (a test that reloads on purpose while the catalog loads cancels those fetches, and WebKit reports them).
+ */
+export function watchErrors(page: Page, ignore: RegExp[] = []): () => void {
   const errors: string[] = [];
+  const add = (text: string) => {
+    if (!ignore.some((pattern) => pattern.test(text))) errors.push(text);
+  };
   page.on("console", (msg) => {
-    if (msg.type() === "error") errors.push(`console: ${msg.text()}`);
+    if (msg.type() === "error") add(`console: ${msg.text()}`);
   });
-  page.on("pageerror", (err) => errors.push(`page: ${err.message}`));
+  page.on("pageerror", (err) => add(`page: ${err.message}`));
   return () => expect(errors, errors.join("\n")).toEqual([]);
 }
 

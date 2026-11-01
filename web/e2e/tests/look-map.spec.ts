@@ -41,6 +41,24 @@ async function painted(page: Page) {
   await expect(page.locator(".goa-map.painted")).toBeVisible({ timeout: 30_000 });
 }
 
+/** Until the board's opening move has ended: the same camera twice, a moment apart. */
+async function cameraAtRest(page: Page) {
+  const camera = () =>
+    page.evaluate(() => document.querySelector(".goa-map-svg > g:not(.goa-map-defs)")?.getAttribute("transform"));
+  let last = await camera();
+  await expect
+    .poll(
+      async () => {
+        const now = await camera();
+        const same = now === last;
+        last = now;
+        return same;
+      },
+      { timeout: 20_000, intervals: [400] },
+    )
+    .toBe(true);
+}
+
 /** The button VoiceOver gets for the piece or space whose label matches. */
 function node(page: Page, label: RegExp) {
   return page.locator(".goa-map .goa-visually-hidden button").filter({ hasText: label });
@@ -122,6 +140,7 @@ test("painted map: a gesture moves the picture and the SVG by the same transform
   const errors = watchErrors(page);
   await board(page, "forgotten-island");
   await painted(page);
+  await cameraAtRest(page);
   const before = await transforms(page);
   expect(before.lit).toEqual(before.img);
   const box = (await page.locator(".goa-map").boundingBox())!;
@@ -337,22 +356,27 @@ test("a piece moving up the screen past others glides: it isn't re-inserted mid-
 test("a tap on a Heavy's head, over an empty space, selects the Heavy", async ({ page }) => {
   await board(page, "forgotten-island");
   await painted(page);
+  await cameraAtRest(page);
   // Each figure: its base's centre gives the space's on screen, its picture's height tells a Heavy.
-  const heads = await page.evaluate(() => {
-    const group = document.querySelector(".goa-map-svg > g:not(.goa-map-defs)") as SVGGElement;
-    const scale = Number(group.getAttribute("transform")!.match(/scale\(([\d.]+)\)/)![1]);
-    const pieces = [...document.querySelectorAll(".goa-piece")].map((g) => {
-      const box = g.querySelector(".p-base, .p-coin, .p-token")?.getBoundingClientRect();
-      const figure = g.querySelector(".p-figure");
-      const y = box ? box.top + box.height / 2 - (figure ? 0.45 * scale : 0) : 0;
-      return { x: box ? box.left + box.width / 2 : 0, y, heavy: figure ? Number(figure.getAttribute("height")) > 2 : false };
+  const findHeads = () =>
+    page.evaluate(() => {
+      const group = document.querySelector(".goa-map-svg > g:not(.goa-map-defs)") as SVGGElement;
+      const scale = Number(group.getAttribute("transform")!.match(/scale\(([\d.]+)\)/)![1]);
+      const pieces = [...document.querySelectorAll(".goa-piece")].map((g) => {
+        const box = g.querySelector(".p-base, .p-coin, .p-token")?.getBoundingClientRect();
+        const figure = g.querySelector(".p-figure");
+        const y = box ? box.top + box.height / 2 - (figure ? 0.45 * scale : 0) : 0;
+        return { x: box ? box.left + box.width / 2 : 0, y, heavy: figure ? Number(figure.getAttribute("height")) > 2 : false };
+      });
+      return pieces
+        .filter((p) => p.heavy)
+        .map((p) => ({ x: p.x, y: p.y - 1.25 * scale }))
+        .filter((head) => pieces.every((o) => Math.hypot(o.x - head.x, o.y - head.y) > 1.1 * scale));
     });
-    return pieces
-      .filter((p) => p.heavy)
-      .map((p) => ({ x: p.x, y: p.y - 1.25 * scale }))
-      .filter((head) => pieces.every((o) => Math.hypot(o.x - head.x, o.y - head.y) > 1.1 * scale));
-  });
-  expect(heads.length).toBeGreaterThan(0);
+  // The figures arrive after the painting, on a slow machine well after: keep looking until one is there.
+  await expect.poll(async () => (await findHeads()).length, { timeout: 30_000 }).toBeGreaterThan(0);
+  await cameraAtRest(page);
+  const heads = await findHeads();
   await page.mouse.click(heads[0].x, heads[0].y);
   await expect(page.locator(".goa-board-panel h2")).toContainText(/Heavy/);
 });

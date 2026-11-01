@@ -89,7 +89,8 @@ test("hero tiles are one height, without the product chip", async ({ page }, inf
 });
 
 test("one plate per list, bronze for what's selected", async ({ page }, info) => {
-  const check = watchErrors(page);
+  // It reloads several screens, cancelling the catalog's fetches: only those errors are expected.
+  const check = watchErrors(page, [/catalog\/.*access control checks/, /Expected start of the object .* but had 'EOF'/]);
   await open(page, "#/rules");
   await expect(page.locator(".goa-rules-list.goa-plate")).toHaveCount(1);
   await expect(page.locator(".goa-rules-list .goa-row.goa-plate")).toHaveCount(0);
@@ -99,6 +100,7 @@ test("one plate per list, bronze for what's selected", async ({ page }, info) =>
   await page.waitForLoadState("networkidle");
   await seedStorage(page, { "group/document": seedDocument() });
   await page.goto("./#/matches");
+  await page.waitForLoadState("networkidle");
   await page.reload();
   await expect(page.getByRole("button", { name: "Log a match" })).toBeVisible();
   await shot(page, info, "fix-rest-matches");
@@ -108,6 +110,7 @@ test("one plate per list, bronze for what's selected", async ({ page }, info) =>
   await shot(page, info, "fix-rest-match-edit");
 
   await page.goto("./#/timer/presets/new");
+  await page.waitForLoadState("networkidle");
   await page.reload();
   const group = page.locator(".goa-table-phase-group").first();
   await expect(group).toBeVisible();
@@ -115,6 +118,7 @@ test("one plate per list, bronze for what's selected", async ({ page }, info) =>
   await shot(page, info, "fix-rest-preset");
 
   await page.goto("./#/trivia/leaderboard");
+  await page.waitForLoadState("networkidle");
   await page.reload();
   await page.waitForTimeout(400);
   await shot(page, info, "fix-rest-trivia-board");
