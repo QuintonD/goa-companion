@@ -74,7 +74,8 @@ test("a rules page: parchment, the book's boxes, the p.8 diagram multiplied into
   const parchment = await main.evaluate((el) => getComputedStyle(el).backgroundColor);
   expect(parchment).toBe("rgb(217, 210, 193)");
   await expect(page.locator(".goa-rules-excerpt.box-blue")).toHaveCount(2);
-  const diagram = page.locator(".goa-rules-diagram");
+  await expect(page.locator(".goa-rules-diagram")).toHaveCount(2);
+  const diagram = page.locator(".goa-rules-diagram").first();
   await diagram.scrollIntoViewIfNeeded();
   await expect.poll(() => diagram.evaluate((img: HTMLImageElement) => img.complete && img.naturalWidth)).toBeGreaterThan(0);
   expect(await diagram.evaluate((img) => getComputedStyle(img).mixBlendMode)).toBe("multiply");
