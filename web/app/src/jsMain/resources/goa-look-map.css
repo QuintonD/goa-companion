@@ -1,1 +1,147 @@
 /* The look round (ADR-053), stream "map": see docs/DESIGN.md. Overrides goa.css. */
+
+/*
+ * The painted map. A painting doesn't change with the theme, so neither does what lies on it: every overlay
+ * is a light colour on a dark halo and holds 3:1 for graphics on sand, jungle, ice and lava alike (the light
+ * colour against a dark ground, the halo against a bright one). The map's own tokens are overridden here, for
+ * this subtree only.
+ */
+.goa-map.painted {
+  --map-canvas: #0B1622;
+  --map-lane-a: #1B3046;
+  --map-lane-b: #213A53;
+  --map-side: #17303A;
+  --map-throne-red: #57404C;
+  --map-throne-blue: #2C4E77;
+  --map-battle: #3B6A7C;
+  --map-zone-border: #C9A35B;
+  --map-terrain: #0A1118;
+  --map-water: #0E1D2B;
+  --map-water-line: #1A2F44;
+  --map-rock: #2B3743;
+  --map-ridge: #3B4957;
+  --map-movement: #7BD88F;
+  --map-range: #D3B6FF;
+  --map-token: #D8CBB0;
+  --map-on-token: #0B1622;
+  --map-on-team: #0B1622;
+  --map-halo: #0A0F14;
+  --map-label-bg: rgba(11, 22, 34, 0.86);
+  --team-red: #E26459;
+  --team-blue: #6FB6F0;
+  --primary: #F0CF8A;
+  --on-primary: #0B1622;
+  --secondary: #62E6D6;
+  --on-surface: #FFFFFF;
+  --medallion: #15252F;
+}
+
+/*
+ * The picture's layers (BoardSvg.PaintingLayers), under the SVG. Each is its own compositing layer, moved
+ * only by a transform: a pan or pinch repaints none of them.
+ */
+.goa-map-art {
+  position: absolute; left: 0; top: 0; max-width: none; margin: 0; pointer-events: none;
+  transform-origin: 0 0; will-change: transform;
+  -webkit-user-drag: none;
+}
+.goa-map:not(.painted) .goa-map-art { visibility: hidden; }
+.goa-map-art.feather .edge { position: absolute; }
+.goa-map-art.feather .edge.l { left: 0; top: 0; bottom: 0; width: var(--band-x); background: linear-gradient(to right, var(--sea), transparent); }
+.goa-map-art.feather .edge.r { right: 0; top: 0; bottom: 0; width: var(--band-x); background: linear-gradient(to left, var(--sea), transparent); }
+.goa-map-art.feather .edge.t { left: 0; right: 0; top: 0; height: var(--band-y); background: linear-gradient(to bottom, var(--sea), transparent); }
+.goa-map-art.feather .edge.b { left: 0; right: 0; bottom: 0; height: var(--band-y); background: linear-gradient(to top, var(--sea), transparent); }
+
+/* The light's edge: mock-up 01's 2.6 px of white on 5.2 px of dark, on a hex of corner radius 20. */
+.m-lit-halo { fill: none; stroke: #0A0F14; stroke-opacity: 0.8; stroke-width: 0.26; stroke-linecap: round; }
+.m-lit { fill: none; stroke: #FFFFFF; stroke-width: 0.13; stroke-linecap: round; }
+/* A Battle Zone's line while a question has the light. */
+.m-zone-halo { fill: none; stroke: #0A0F14; stroke-opacity: 0.8; stroke-width: 0.13; stroke-linecap: round; }
+.m-zone-line { fill: none; stroke: #FFFFFF; stroke-opacity: 0.7; stroke-width: 0.06; stroke-linecap: round; }
+/* Mock-up 02's grid. */
+.m-grid { fill: none; stroke: #08121A; stroke-opacity: 0.55; stroke-width: 0.06; stroke-linejoin: round; }
+/* An uncovered space outside the light: what the dimmed picture loses. */
+.m-shade { fill: #000; fill-opacity: 0.42; }
+
+/* Overlays on a painting: no tint on the ground, a halo under each line. */
+.goa-map.painted .o-radius-fill,
+.goa-map.painted .o-range-fill,
+.goa-map.painted .o-target-fill { display: none; }
+.goa-map.painted .o-radius-dot { fill-opacity: 1; }
+.o-radius-halo { fill: #0A0F14; fill-opacity: 0.85; }
+.o-range-halo { fill: none; stroke: #0A0F14; stroke-opacity: 0.85; stroke-width: 0.21; stroke-linejoin: round; }
+.o-target-halo { fill: none; stroke: #0A0F14; stroke-opacity: 0.85; stroke-width: 0.23; stroke-linejoin: round; }
+.goa-map.painted .o-hatch-bg { fill: none; }
+.goa-map.painted .o-hatch { stroke-opacity: 1; }
+.o-hatch-under { stroke: none; stroke-width: 0.16; }
+.goa-map.painted .o-hatch-under { stroke: #0A0F14; stroke-opacity: 0.85; }
+.goa-map.painted .o-sel { stroke: var(--primary); fill: var(--primary); fill-opacity: 0.25; }
+.goa-map.painted .o-drop { stroke: var(--secondary); paint-order: stroke; }
+.goa-map.painted .o-measure { stroke: var(--primary); paint-order: stroke; }
+.o-chip { fill: #0B1622; stroke: #F3EBD6; stroke-width: 0.05; }
+.o-chip.chosen { fill: #C9A35B; stroke: #0B1622; }
+.o-chip-n { fill: #FFFFFF; font: 700 10px var(--font-body); text-anchor: middle; dominant-baseline: central; }
+.o-chip-n.chosen { fill: #0B1622; }
+
+/* Pieces on a painting (as the phone's PieceToken). A type badge glides with its figure. */
+.goa-piece-badge { transition: transform var(--dur-long) var(--ease-emphasized); }
+.goa-piece-badge.lifted { transition: none; }
+@media (prefers-reduced-motion: reduce) { .goa-piece-badge { transition: none; } }
+.p-coin { fill: #10181E; }
+.p-coin-ring { fill: none; stroke-width: 0.11; }
+.p-badge { fill: #10181E; }
+.p-badge-edge { fill: #000; fill-opacity: 0.55; }
+.p-disc-red { fill: #D9574B; }
+.p-disc-blue { fill: #3F7FD6; }
+.p-base { fill: rgba(0, 0, 0, 0.65); stroke-width: 0.08; }
+.p-type-red { fill: #7A1D14; stroke: #FFFFFF; stroke-width: 0.05; }
+.p-type-blue { fill: #0D3A66; stroke: #FFFFFF; stroke-width: 0.05; }
+.p-type-glyph { fill: #FFFFFF; }
+.p-immune-halo { fill: none; stroke: #0A0F14; stroke-width: 0.2; }
+
+/* Labels and the NOW tag over a painting: the rulebook's bevelled title, the official mark. */
+.goa-map.painted .goa-map-label {
+  background: none; border: 0; padding: 0; font: 700 15px/20px var(--font-display); letter-spacing: 0.02em; gap: 4px;
+}
+.goa-map-label-mark { width: 16px; height: 16px; flex: none; }
+.goa-map.painted .goa-map-tag { background: #C9A35B; color: #0B1622; }
+
+/* Pieces off the board: lists, the tray, sheets. */
+.goa-board-portrait-wrap { position: relative; display: inline-flex; flex: none; }
+.goa-board-portrait-wrap.fill { width: 100%; height: 100%; }
+.goa-board-team-badge {
+  position: absolute; right: -4px; bottom: -4px; width: 42%; height: 42%; min-width: 14px; min-height: 14px;
+  border-radius: 50%; background: #10181E; box-shadow: 0 0 0 1px #000;
+  display: flex; align-items: center; justify-content: center;
+}
+.goa-board-team-badge > img { width: 86%; height: 86%; }
+.goa-board-figure {
+  position: relative; display: inline-flex; flex: none; width: 28px; height: 28px;
+  align-items: flex-end; justify-content: center;
+}
+.goa-board-figure > img { width: 100%; height: 100%; object-fit: contain; object-position: center bottom; }
+.goa-board-figure-badge {
+  position: absolute; right: -3px; bottom: -3px; width: 14px; height: 14px; border-radius: 50%;
+  box-shadow: 0 0 0 1px #FFFFFF; color: #FFFFFF; display: flex; align-items: center; justify-content: center;
+}
+.goa-board-figure.red .goa-board-figure-badge { background: #7A1D14; }
+.goa-board-figure.blue .goa-board-figure-badge { background: #0D3A66; }
+.goa-board-figure-badge svg { width: 11px; height: 11px; }
+
+/* A swatch shows its cue as the painted map draws it. */
+.goa-board-swatch { background: #B08D62; position: relative; }
+.goa-board-swatch.movement {
+  background: radial-gradient(circle, #0B1622 0 25%, #F3EBD6 26% 31%, transparent 32%), #B08D62;
+  box-shadow: inset 0 0 0 2px #FFFFFF, inset 0 0 0 4px rgba(10, 15, 20, 0.85);
+}
+.goa-board-swatch.fast {
+  background: repeating-linear-gradient(45deg, #F0CF8A 0 2px, #0A0F14 2px 3.5px, #B08D62 3.5px 5px, #0A0F14 5px 6.5px);
+}
+.goa-board-swatch.range {
+  background: radial-gradient(circle, #B08D62 34%, #0A0F14 36%, #D3B6FF 39% 47%, #0A0F14 50% 52%, #B08D62 54%);
+}
+.goa-board-swatch.radius {
+  background: radial-gradient(circle at 50% 22%, #FFFFFF 2.5px, #0A0F14 3px 4.5px, transparent 5px),
+    radial-gradient(circle at 25% 66%, #FFFFFF 2.5px, #0A0F14 3px 4.5px, transparent 5px),
+    radial-gradient(circle at 75% 66%, #FFFFFF 2.5px, #0A0F14 3px 4.5px, transparent 5px), #B08D62;
+}

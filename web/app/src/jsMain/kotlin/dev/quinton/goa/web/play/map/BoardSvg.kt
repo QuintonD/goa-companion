@@ -1,6 +1,7 @@
 package dev.quinton.goa.web.play.map
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
@@ -9,32 +10,50 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import dev.quinton.goa.core.model.board.BoardMap
+import dev.quinton.goa.core.model.board.BoardMapArt
 import dev.quinton.goa.core.model.board.Hex
 import dev.quinton.goa.core.model.board.MinionType
+import dev.quinton.goa.core.model.board.SpawnKind
+import dev.quinton.goa.core.model.board.SpawnPoint
 import dev.quinton.goa.core.model.match.Team
+import dev.quinton.goa.core.model.settings.BoardStyle
+import dev.quinton.goa.feature.board.map.ART_FEATHER
+import dev.quinton.goa.feature.board.map.DIM_BRIGHTNESS
+import dev.quinton.goa.feature.board.map.DIM_SATURATION
 import dev.quinton.goa.feature.board.map.HexLayout
+import dev.quinton.goa.feature.board.map.LitArea
+import dev.quinton.goa.feature.board.map.MapLighting
 import dev.quinton.goa.feature.board.map.MapPoint
 import dev.quinton.goa.feature.board.map.MapRect
+import dev.quinton.goa.web.LocalServices
 import kotlin.math.exp
 import kotlin.math.roundToInt
 import kotlin.math.sqrt
 import kotlinx.browser.window
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.web.ExperimentalComposeWebSvgApi
 import org.jetbrains.compose.web.attributes.AttrsScope
 import org.jetbrains.compose.web.dom.Button
+import org.jetbrains.compose.web.dom.Canvas
 import org.jetbrains.compose.web.dom.Div
+import org.jetbrains.compose.web.dom.Img
 import org.jetbrains.compose.web.dom.Span
 import org.jetbrains.compose.web.dom.Text
 import org.jetbrains.compose.web.svg.Circle
+import org.jetbrains.compose.web.svg.Ellipse
 import org.jetbrains.compose.web.svg.G
 import org.jetbrains.compose.web.svg.Image
 import org.jetbrains.compose.web.svg.Path
 import org.jetbrains.compose.web.svg.Rect
 import org.jetbrains.compose.web.svg.Svg
 import org.jetbrains.compose.web.svg.SvgText
+import org.w3c.dom.CanvasRenderingContext2D
 import org.w3c.dom.Element
+import org.w3c.dom.HTMLCanvasElement
 import org.w3c.dom.HTMLDivElement
+import org.w3c.dom.HTMLImageElement
+import org.w3c.dom.Image as HtmlImage
 import org.w3c.dom.events.Event
 
 /** The map a board shows: its layout (turned for the screen), the Lanes' Battle Zones, what it opens on. */
@@ -50,6 +69,17 @@ class MapScene(
     val laneMayCrop: Boolean get() = map.lanes.size < 2
 
     val baseMarkup: String by lazy { mapMarkup(map, layout, battleZones.toSet()) }
+}
+
+/** How pieces are drawn: on a map with no painting as ever, on a painting as the board style says. */
+enum class PieceStyle { DRAWN, DISC, MINIATURE }
+
+/** The device's board style, from the app's settings (Android: LocalBoardStyle). */
+@Composable
+fun rememberBoardStyle(): BoardStyle {
+    val settings = LocalServices.current.data.content.settings
+    val current by remember(settings) { settings.settings.map { it.boardStyle } }.collectAsState(BoardStyle.MINIATURES)
+    return current
 }
 
 /** What a piece looks like. */
@@ -91,11 +121,13 @@ class DragPolicy(
 data class MapNode(val key: String, val label: String, val pressed: Boolean = false, val onActivate: (() -> Unit)?)
 
 /**
- * The board as SVG: crisp at any zoom, the phone's look. One finger pans (or drags a piece, see
- * [drag]), two pinch-zoom, a wheel zooms; a tap reports the space under it to [onTap] (true = it did
- * something), and a second tap on the same space when the first did nothing zooms in. [marks] and
- * [lines] are the overlays, [pieces] glide from space to space. [nodes] are what VoiceOver reads and
- * activates (the map itself is one image to it).
+ * The board as SVG: crisp at any zoom, the phone's look, over the map's painting once that has loaded
+ * ([PaintingLayers]; until then, if it fails, or with none, the drawn map). One finger pans (or drags a
+ * piece, see [drag]), two pinch-zoom, a wheel zooms; a tap reports the space under it to [onTap] (true =
+ * it did something), and a second tap on the same space when the first did nothing zooms in. [marks] and
+ * [lines] are the overlays, [pieces] glide from space to space. On a painting the spaces marks offer take
+ * the light, with [litAlso] (the mover's own space). [nodes] are what VoiceOver reads and activates (the
+ * map itself is one image to it).
  */
 @OptIn(ExperimentalComposeWebSvgApi::class)
 @Composable
@@ -112,6 +144,7 @@ fun BoardSvg(
     nodes: List<MapNode> = emptyList(),
     showLabels: Boolean = true,
     bottomTeam: Team = Team.RED,
+    litAlso: List<Hex> = emptyList(),
     attrs: (AttrsScope<HTMLDivElement>.() -> Unit)? = null,
 ) {
     val scope = rememberCoroutineScope()
@@ -121,9 +154,23 @@ fun BoardSvg(
     var dragging by remember { mutableStateOf<String?>(null) }
     var dragAt by remember { mutableStateOf(MapPoint(0f, 0f)) }
     val layout = scene.layout
+    val art = scene.map.art
+    var painted by remember(art?.image) { mutableStateOf(false) }
+    val boardStyle = rememberBoardStyle()
+    val style = when {
+        !painted -> PieceStyle.DRAWN
+        boardStyle == BoardStyle.MINIATURES -> PieceStyle.MINIATURE
+        else -> PieceStyle.DISC
+    }
+    val spotlight = remember(marks, litAlso) { spotlightOf(marks, litAlso) }
+    val maxHex = if (art != null) MapCamera.MAX_HEX_ON_ART else MapCamera.MAX_HEX
 
     Div({
         classes("goa-map")
+        if (painted && art != null) {
+            classes("painted")
+            style { property("background", art.sea) }
+        }
         attrs?.invoke(this)
     }) {
         DisposableRefEffect { element ->
@@ -140,7 +187,14 @@ fun BoardSvg(
                 },
             )
             val resize = observeSize(element) { w, h ->
-                camera.setUp(currentScene.layout, w, h, currentScene.lane, currentScene.laneMayCrop)
+                camera.setUp(
+                    currentScene.layout,
+                    w,
+                    h,
+                    currentScene.lane,
+                    currentScene.laneMayCrop,
+                    if (currentScene.map.art != null) MapCamera.MAX_HEX_ON_ART else MapCamera.MAX_HEX,
+                )
             }
             onDispose {
                 gestures.dispose()
@@ -148,7 +202,13 @@ fun BoardSvg(
             }
         }
         // Keep the framing when the layout changes (Flip, rotation) without a resize.
-        if (camera.width > 0f) camera.setUp(layout, camera.width, camera.height, scene.lane, scene.laneMayCrop)
+        if (camera.width > 0f) camera.setUp(layout, camera.width, camera.height, scene.lane, scene.laneMayCrop, maxHex)
+
+        val zones = remember(scene) { MapLighting.zones(scene.map, scene.battleZones) }
+        val lit = remember(scene, zones, spotlight) {
+            if (spotlight.isEmpty()) zones else MapLighting.spaces(scene.map, spotlight)
+        }
+        if (art != null) PaintingLayers(art, layout, camera, lit, onLoaded = { painted = true })
 
         Svg(attrs = {
             classes("goa-map-svg")
@@ -162,13 +222,38 @@ fun BoardSvg(
                     "translate(${n(camera.pan.x)} ${n(camera.pan.y)}) scale(${camera.scale})",
                 )
             }) {
-                Markup(scene.baseMarkup, "goa-map-base")
+                val grid = boardStyle == BoardStyle.GRID_AND_DISCS
+                val base = if (painted) {
+                    remember(scene, lit, zones, spotlight, grid) {
+                        val zoneLine = if (spotlight.isEmpty()) null else zones
+                        paintedMapMarkup(scene.map, layout, scene.battleZones.toSet(), lit, zoneLine, grid)
+                    }
+                } else {
+                    scene.baseMarkup
+                }
+                Markup(base, "goa-map-base")
                 val dropMark = dragging?.let { listOf(HexMark(layout.hexAt(dragAt), MarkStyle.DROP)) }.orEmpty()
-                Markup(marksMarkup(layout, marks + dropMark, lines), "goa-map-marks")
-                pieces.sortedBy { it.raised || it.id == dragging }.forEach { piece ->
+                Markup(marksMarkup(layout, marks + dropMark, lines, painted), "goa-map-marks")
+                // Figures stand: the one nearer the bottom of the screen in front; the selection above all.
+                val ordered = pieces.sortedBy { layout.center(it.at).y }.sortedBy { it.raised || it.id == dragging }
+                ordered.forEach { piece ->
                     key(piece.id) {
                         val at = if (piece.id == dragging) dragAt else layout.center(piece.at)
-                        PieceSvg(piece, at, lifted = piece.id == dragging)
+                        PieceSvg(piece, at, lifted = piece.id == dragging, style = style)
+                    }
+                }
+                // A type badge is how a figure is read: every badge above every figure.
+                if (style == PieceStyle.MINIATURE) {
+                    ordered.forEach { piece ->
+                        val look = piece.look as? PieceLook.Minion ?: return@forEach
+                        key("badge-${piece.id}") {
+                            val at = if (piece.id == dragging) dragAt else layout.center(piece.at)
+                            G({
+                                classes("goa-piece-badge")
+                                if (piece.id == dragging) classes("lifted")
+                                style { property("transform", "translate(${n(at.x)}px, ${n(at.y)}px)") }
+                            }) { TypeBadge(look.type, piece.team) }
+                        }
                     }
                 }
             }
@@ -176,7 +261,7 @@ fun BoardSvg(
         if (showLabels &&
             camera.unit > 0f
         ) {
-            ZoneLabels(scene, camera, bottomTeam, busy = pieces.map { it.at } + marks.map { it.hex })
+            ZoneLabels(scene, camera, bottomTeam, busy = pieces.map { it.at } + marks.map { it.hex }, painted = painted)
         }
         tags.forEach { tag ->
             val piece = pieces.firstOrNull { it.id == tag.pieceId } ?: return@forEach
@@ -207,6 +292,115 @@ fun BoardSvg(
     }
 }
 
+/** What takes the light on a painting: where a piece can go or a question offers; nothing else marked does. */
+private fun spotlightOf(marks: List<HexMark>, litAlso: List<Hex>): Set<Hex> {
+    val reach = marks.filter { it.style in LIT_STYLES }.map { it.hex }.toSet()
+    if (reach.isEmpty()) return emptySet()
+    return reach + litAlso + marks.filter { it.style == MarkStyle.SELECTION }.map { it.hex }
+}
+
+private val LIT_STYLES = setOf(MarkStyle.MOVEMENT, MarkStyle.FAST_TRAVEL, MarkStyle.TARGET)
+
+/**
+ * The painting, as HTML layers under the SVG, not inside it: gestures rewrite the SVG's transform every
+ * frame, which repaints an SVG, and an image inside it would jank on an iPhone. Each element here is its
+ * own composited layer, moved by the same matrix, so a pan or a pinch only changes a transform: the dimmed
+ * picture, baked once into a canvas at the image's size (no filter to run; WebKit dropped a CSS filter on a
+ * layer this large), a band that fades its edge into the sea, and the picture in full colour clipped to the
+ * [lit] spaces (in the image's own pixels, so a new orientation doesn't touch it). The picture loads on
+ * demand (the service worker keeps `official/maps` once seen, it isn't precached); [onLoaded] switches the
+ * board over, and if it never comes the drawn map stays.
+ */
+@Composable
+private fun PaintingLayers(art: BoardMapArt, layout: HexLayout, camera: MapCamera, lit: LitArea, onLoaded: () -> Unit) {
+    val p = remember(layout, art) { layout.artPlacement(art) }
+    val s = camera.scale
+    fun matrix(factor: Float) =
+        "matrix(${p.a * s * factor},${p.b * s * factor},${p.c * s * factor},${p.d * s * factor}," +
+            "${camera.pan.x + p.e * s},${camera.pan.y + p.f * s})"
+    val clip = remember(art, lit) { litClipPath(art, lit) }
+    val loaded by rememberUpdatedState(onLoaded)
+    Canvas({
+        classes("goa-map-art", "dim")
+        attr("width", art.width.toString())
+        attr("height", art.height.toString())
+        attr("aria-hidden", "true")
+        style { property("transform", matrix(1f)) }
+    }) {
+        DisposableRefEffect(art.image) { canvas ->
+            val image = HtmlImage()
+            image.onload = {
+                // After a frame: the drawn map stays up while the picture is baked.
+                window.setTimeout({
+                    bakeDimmed(canvas, image)
+                    loaded()
+                }, 0)
+            }
+            image.src = art.image
+            onDispose { image.onload = null }
+        }
+    }
+    // A small layer scaled up: gradients need no resolution, so this costs next to no memory.
+    Div({
+        classes("goa-map-art", "feather")
+        attr("aria-hidden", "true")
+        style {
+            property("width", "${art.width / FEATHER_SCALE}px")
+            property("height", "${art.height / FEATHER_SCALE}px")
+            property("--sea", art.sea)
+            property("--band-x", "${100f * art.pxPerUnit.toFloat() * ART_FEATHER / art.width}%")
+            property("--band-y", "${100f * art.pxPerUnit.toFloat() * ART_FEATHER / art.height}%")
+            property("transform", matrix(FEATHER_SCALE))
+        }
+    }) {
+        listOf("l", "r", "t", "b").forEach { edge -> Div({ classes("edge", edge) }) }
+    }
+    Img(art.image, "") {
+        classes("goa-map-art", "lit")
+        attr("decoding", "async")
+        attr("draggable", "false")
+        style {
+            property("clip-path", clip)
+            property("-webkit-clip-path", clip)
+            property("transform", matrix(1f))
+        }
+    }
+}
+
+/** Draws [image] on [canvas] as it looks outside the light: brightness and saturation as MapArt's DIM_*. */
+private fun bakeDimmed(canvas: HTMLCanvasElement, image: HTMLImageElement) {
+    val context = canvas.getContext("2d") as CanvasRenderingContext2D
+    context.drawImage(image, 0.0, 0.0)
+    val width = canvas.width.toDouble()
+    val height = canvas.height.toDouble()
+    try {
+        val pixels = context.getImageData(0.0, 0.0, width, height)
+        dimPixels(pixels.data, DIM_SATURATION, DIM_BRIGHTNESS)
+        context.putImageData(pixels, 0.0, 0.0)
+    } catch (_: Throwable) {
+        // The pixels can't be read: dim without taking the colour down.
+        context.fillStyle = "rgba(0, 0, 0, ${1f - DIM_BRIGHTNESS})"
+        context.fillRect(0.0, 0.0, width, height)
+    }
+}
+
+/** CSS's saturate() then brightness() on RGBA bytes: a plain loop, some 3 million pixels, once per map. */
+@Suppress("UNUSED_PARAMETER")
+private fun dimPixels(data: dynamic, saturation: Float, brightness: Float) {
+    js(
+        """
+        var n = data.length;
+        for (var i = 0; i < n; i += 4) {
+            var r = data[i], g = data[i + 1], b = data[i + 2];
+            var grey = 0.2126 * r + 0.7152 * g + 0.0722 * b;
+            data[i] = (grey + (r - grey) * saturation) * brightness;
+            data[i + 1] = (grey + (g - grey) * saturation) * brightness;
+            data[i + 2] = (grey + (b - grey) * saturation) * brightness;
+        }
+        """,
+    )
+}
+
 /** A group whose children are [markup] (set as one string: hundreds of hexes, no component each). */
 @OptIn(ExperimentalComposeWebSvgApi::class)
 @Composable
@@ -219,13 +413,17 @@ private fun org.jetbrains.compose.web.dom.ElementScope<org.w3c.dom.svg.SVGElemen
     }
 }
 
-/** A piece: a hero's portrait in its team's ring, a minion's team disc with its glyph, a token's label. */
+/**
+ * A piece: a hero's portrait in its team's ring, a minion's team disc with its glyph or, by [style], its
+ * miniature (the badge of its type drawn apart, above every figure), a token's label.
+ */
 @OptIn(ExperimentalComposeWebSvgApi::class)
 @Composable
 private fun org.jetbrains.compose.web.dom.ElementScope<org.w3c.dom.svg.SVGElement>.PieceSvg(
     piece: MapPiece,
     at: MapPoint,
     lifted: Boolean,
+    style: PieceStyle,
 ) {
     val r = PIECE_SIZE / 2f
     val team = piece.team?.let { if (it == Team.RED) "red" else "blue" }
@@ -235,7 +433,9 @@ private fun org.jetbrains.compose.web.dom.ElementScope<org.w3c.dom.svg.SVGElemen
         style { property("transform", "translate(${n(at.x)}px, ${n(at.y)}px)") }
     }) {
         when (val look = piece.look) {
-            is PieceLook.Hero -> {
+            is PieceLook.Hero -> if (style != PieceStyle.DRAWN) {
+                HeroCoin(look, piece.team)
+            } else {
                 Circle(0, 0, r, { classes("p-halo") })
                 Circle(0, 0, r * 0.82f, { classes("p-medallion") })
                 // Text at 10 px scaled down: WebKit's minimum font size would blow up a 0.5 px font.
@@ -257,7 +457,13 @@ private fun org.jetbrains.compose.web.dom.ElementScope<org.w3c.dom.svg.SVGElemen
                 piece.team?.let { Mark(it, MapPoint(r - 0.34f * 0.55f * 2f, r - 0.34f * 0.55f * 2f), 0.34f * 2f * r) }
             }
 
-            is PieceLook.Minion -> {
+            is PieceLook.Minion -> if (style == PieceStyle.MINIATURE && piece.team != null) {
+                Figure(look.type, piece.team)
+                if (piece.immune) ImmuneRing()
+            } else if (style == PieceStyle.DISC && piece.team != null) {
+                PaintedDisc(look.type, piece.team)
+                if (piece.immune) ImmuneRing()
+            } else {
                 Circle(0, 0, r * 0.86f, { classes("p-halo") })
                 Circle(0, 0, r * 0.78f, { classes("m-fill-$team") })
                 Circle(0, 0, r * 0.66f, { classes("p-inner") })
@@ -288,6 +494,101 @@ private fun org.jetbrains.compose.web.dom.ElementScope<org.w3c.dom.svg.SVGElemen
     }
 }
 
+/** A hero on the painting (mock-ups 01–03): the portrait in its rings, the official mark on a dark badge. */
+@OptIn(ExperimentalComposeWebSvgApi::class)
+@Composable
+private fun SvgScope.HeroCoin(look: PieceLook.Hero, team: Team?) {
+    val slug = team?.let { if (it == Team.RED) "red" else "blue" }
+    Circle(0, 0, COIN_R, { classes("p-coin") })
+    Circle(0, 0, COIN_R * 0.82f, { classes("p-coin-ring", "m-stroke-$slug") })
+    Circle(0, 0, COIN_R * 0.71f, { classes("p-medallion") })
+    SvgText(look.initials, 0, 0, {
+        classes("p-initials")
+        attr("transform", "scale(0.05)")
+    })
+    if (look.portrait != null) {
+        Image(look.portrait, {
+            attr("x", n(-COIN_R * 0.71f))
+            attr("y", n(-COIN_R * 0.71f))
+            attr("width", n(COIN_R * 1.42f))
+            attr("height", n(COIN_R * 1.42f))
+            attr("clip-path", "url(#goa-piece-clip)")
+            attr("preserveAspectRatio", "xMidYMid slice")
+        })
+    }
+    if (team != null) TeamBadge(team, COIN_R * 0.68f, COIN_R * 0.42f)
+}
+
+/** The official gear or star on a dark round badge. */
+@OptIn(ExperimentalComposeWebSvgApi::class)
+@Composable
+private fun SvgScope.TeamBadge(team: Team, at: Float, r: Float) {
+    Circle(at, at, r * 1.1f, { classes("p-badge-edge") })
+    Circle(at, at, r, { classes("p-badge") })
+    val side = r * 1.74f
+    Image(spawnArt(SpawnPoint(team, SpawnKind.HERO)), {
+        attr("x", n(at - side / 2f))
+        attr("y", n(at - side / 2f))
+        attr("width", n(side))
+        attr("height", n(side))
+    })
+}
+
+/** A minion disc on the painting (mock-up 02). */
+@OptIn(ExperimentalComposeWebSvgApi::class)
+@Composable
+private fun SvgScope.PaintedDisc(type: MinionType, team: Team) {
+    val slug = if (team == Team.RED) "red" else "blue"
+    Circle(0, 0, 0.72f, { classes("p-coin") })
+    Circle(0, 0, 0.65f, { classes("p-disc-$slug") })
+    Path(Glyph.of(type).path, {
+        classes("p-glyph")
+        attr("transform", "translate(-0.425 -0.425) scale(${0.85f / 24f})")
+    })
+    TeamBadge(team, 0.58f, 0.34f)
+}
+
+/**
+ * The rulebook's miniature on a small team-coloured base (mock-up 09 B), the Heavy clearly larger; mock-up
+ * 01's sizes on a hex of radius 20: a figure 31 px tall (the Heavy 38), its foot 12 px below the centre.
+ */
+@OptIn(ExperimentalComposeWebSvgApi::class)
+@Composable
+private fun SvgScope.Figure(type: MinionType, team: Team) {
+    val slug = if (team == Team.RED) "red" else "blue"
+    Ellipse(0, 0.45f, 0.75f, 0.325f, { classes("p-base", "m-stroke-$slug") })
+    val height = if (type == MinionType.HEAVY) 2.0f else 1.55f
+    Image(miniatureArt(type, team), {
+        classes("p-figure")
+        attr("x", n(-FIGURE_BOX / 2f))
+        attr("y", n(0.6f - height))
+        attr("width", n(FIGURE_BOX))
+        attr("height", n(height))
+        attr("preserveAspectRatio", "xMidYMax meet")
+    })
+}
+
+/** A miniature's type at its lower right: dark team tone, white hairline, the glyph in white. */
+@OptIn(ExperimentalComposeWebSvgApi::class)
+@Composable
+private fun SvgScope.TypeBadge(type: MinionType, team: Team?) {
+    val slug = if (team == Team.RED) "red" else "blue"
+    Circle(0.68f, 0.57f, 0.41f, { classes("p-badge-edge") })
+    Circle(0.68f, 0.53f, 0.37f, { classes("p-type-$slug") })
+    val side = 0.555f
+    Path(Glyph.of(type).path, {
+        classes("p-type-glyph")
+        attr("transform", "translate(${n4(0.68f - side / 2f)} ${n4(0.53f - side / 2f)}) scale(${n4(side / 24f)})")
+    })
+}
+
+@OptIn(ExperimentalComposeWebSvgApi::class)
+@Composable
+private fun SvgScope.ImmuneRing() {
+    Circle(0, 0, 0.84f, { classes("p-immune-halo") })
+    Circle(0, 0, 0.84f, { classes("p-immune") })
+}
+
 @OptIn(ExperimentalComposeWebSvgApi::class)
 @Composable
 private fun org.jetbrains.compose.web.dom.ElementScope<org.w3c.dom.svg.SVGElement>.Mark(
@@ -310,6 +611,8 @@ private fun tokenEm(label: String): Float {
     val longest = label.split(' ').maxOfOrNull { it.length }?.coerceAtLeast(1) ?: 1
     return (TOKEN_WIDTH / (CHAR_EM * longest)).coerceIn(MIN_EM, MAX_EM)
 }
+
+private typealias SvgScope = org.jetbrains.compose.web.dom.ElementScope<org.w3c.dom.svg.SVGElement>
 
 /** Watches [element]'s size (rotation, a panel opening); returns the way to stop. */
 private fun observeSize(element: Element, onSize: (Float, Float) -> Unit): () -> Unit {
@@ -508,6 +811,15 @@ private class MapGestureHandler(
 
 /** Diameter of a piece in map units (a hex is √3 ≈ 1.73 across its flats), as on the phone. */
 const val PIECE_SIZE = 1.46f
+
+/** A hero's coin on a painting: as wide as a hex across its flats. */
+private const val COIN_R = 0.86f
+
+/** Wide enough for any miniature, which is fitted to its height and centred. */
+private const val FIGURE_BOX = 3.2f
+
+/** How much smaller the feather layer is laid out than the picture. */
+private const val FEATHER_SCALE = 8f
 
 private const val TOKEN_CHARS = 16
 private const val TOKEN_WIDTH = 0.66f

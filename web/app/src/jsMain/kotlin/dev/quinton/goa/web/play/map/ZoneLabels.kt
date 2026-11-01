@@ -4,11 +4,14 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import dev.quinton.goa.core.domain.board.BoardGeometry
 import dev.quinton.goa.core.model.board.Hex
+import dev.quinton.goa.core.model.board.SpawnKind
+import dev.quinton.goa.core.model.board.SpawnPoint
 import dev.quinton.goa.core.model.board.ZoneKind
 import dev.quinton.goa.core.model.match.Team
 import dev.quinton.goa.feature.board.BoardText
 import dev.quinton.goa.feature.board.map.MapOrientation
 import dev.quinton.goa.feature.board.map.MapPoint
+import org.jetbrains.compose.web.dom.Img
 import org.jetbrains.compose.web.dom.Span
 import org.jetbrains.compose.web.dom.Text
 
@@ -25,14 +28,24 @@ private data class ZoneLabel(val text: String, val team: Team?, val places: List
  * with none free it stays hidden rather than cover what is on the board.
  */
 @Composable
-internal fun ZoneLabels(scene: MapScene, camera: MapCamera, bottomTeam: Team, busy: List<Hex>) {
+internal fun ZoneLabels(
+    scene: MapScene,
+    camera: MapCamera,
+    bottomTeam: Team,
+    busy: List<Hex>,
+    painted: Boolean = false,
+) {
     val labels = remember(scene, bottomTeam) { zoneLabels(scene, bottomTeam) }
     val view = camera.visible
     val hexPx = camera.scale * BUSY_REACH
     val busyPoints = busy.distinct().map { camera.mapToScreen(scene.layout.center(it)) }
     labels.forEach { label ->
-        val w = (label.text.length * CHAR_PX + if (label.team != null) MARK_PX else 0f) + PAD_PX
-        val h = LABEL_PX
+        val w = if (painted) {
+            label.text.length * BEVEL_CHAR_PX + if (label.team != null) BEVEL_MARK_PX else 0f
+        } else {
+            (label.text.length * CHAR_PX + if (label.team != null) MARK_PX else 0f) + PAD_PX
+        }
+        val h = if (painted) BEVEL_LABEL_PX else LABEL_PX
         val spot = label.places.firstNotNullOfOrNull { (anchor, side) ->
             val at = camera.mapToScreen(anchor)
             val (x, y) = when (side) {
@@ -59,8 +72,13 @@ internal fun ZoneLabels(scene: MapScene, camera: MapCamera, bottomTeam: Team, bu
                 property("top", "${n(spot.second)}px")
             }
         }) {
-            label.team?.let { Span({ classes("goa-team-mark", if (it == Team.RED) "red" else "blue") }) }
-            Text(label.text)
+            if (painted) {
+                label.team?.let { Img(spawnArt(SpawnPoint(it, SpawnKind.HERO)), "") { classes("goa-map-label-mark") } }
+                Span({ classes("goa-bevel") }) { Text(label.text) }
+            } else {
+                label.team?.let { Span({ classes("goa-team-mark", if (it == Team.RED) "red" else "blue") }) }
+                Text(label.text)
+            }
         }
     }
 }
@@ -131,5 +149,10 @@ private const val MARK_PX = 12f
 private const val PAD_PX = 16f
 private const val LABEL_PX = 16f
 private const val BUSY_REACH = 0.8f
+
+/** A chunky bevel label over a painting: Cinzel at 15 px. */
+private const val BEVEL_CHAR_PX = 11f
+private const val BEVEL_MARK_PX = 20f
+private const val BEVEL_LABEL_PX = 20f
 private const val BUTTONS_W = 64f
 private const val BUTTONS_H = 124f

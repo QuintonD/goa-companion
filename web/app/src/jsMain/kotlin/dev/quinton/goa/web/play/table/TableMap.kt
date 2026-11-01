@@ -36,9 +36,10 @@ fun rememberTableScene(table: TableUi, landscape: Boolean): MapScene {
 
 /**
  * The game board (the phone's GameMapView): the map with the pieces of [table]; when the person is
- * asked for a space or a piece every option is a dashed teal space, the chosen one outlined with the
- * engine's path drawn to it, the question's other highlights (a card's range) violet, the acting hero
- * outlined in bronze with "NOW" over it, immune minions ringed. A tap goes to [onTap] as the option
+ * asked for a space or a piece every option is a dashed teal space (on a painting, in the light, a space
+ * a move reaches shows its number in a chip), the chosen one outlined with the engine's path drawn to it,
+ * the question's other highlights (a card's range) violet, the acting hero outlined in bronze with "NOW"
+ * over it, immune minions ringed. A tap goes to [onTap] as the option
  * it is, else the piece (to read about it); VoiceOver gets one button per option and per piece.
  */
 @Composable
@@ -75,7 +76,12 @@ fun TableMap(table: TableUi, scene: MapScene, camera: MapCamera, onTap: (TableTa
     val marks = buildList {
         table.decision?.context?.highlight.orEmpty().forEach { add(HexMark(it, MarkStyle.RANGE)) }
         if (table.asking) {
-            table.spaceOptions.keys.forEach { add(HexMark(it, MarkStyle.TARGET)) }
+            // A space a move reaches carries its number: on a painting a chip, instead of the dashes.
+            val from = (table.subject ?: table.decision?.seat)?.let(table::at)
+            table.spaceOptions.keys.forEach { hex ->
+                val steps = table.pathTo(hex).filter { it != from }.size
+                add(HexMark(hex, MarkStyle.TARGET, steps.takeIf { it > 0 }))
+            }
             table.pieceOptions.keys.mapNotNull(table::at).forEach { add(HexMark(it, MarkStyle.TARGET)) }
         }
         view.acting?.let(table::at)?.let { add(HexMark(it, MarkStyle.ACTING)) }
@@ -85,6 +91,9 @@ fun TableMap(table: TableUi, scene: MapScene, camera: MapCamera, onTap: (TableTa
     }
     val lines = listOfNotNull(pathLine(table))
     val tags = listOfNotNull(view.acting?.takeIf { table.at(it) != null }?.let { PieceTag(it, "NOW") })
+    // A move's piece stands in the light with the spaces it can reach.
+    val mover = (table.subject ?: table.decision?.seat)?.let(table::at)
+        ?.takeIf { table.spaceOptions.keys.any { hex -> table.pathTo(hex).isNotEmpty() } }
     BoardSvg(
         scene = scene,
         camera = camera,
@@ -93,6 +102,7 @@ fun TableMap(table: TableUi, scene: MapScene, camera: MapCamera, onTap: (TableTa
         lines = lines,
         tags = tags,
         bottomTeam = table.bottomTeam,
+        litAlso = listOfNotNull(mover),
         label = "The board, ${table.map.name}",
         onTap = { hex, _ ->
             val tap = resolveTableTap(table, hex)

@@ -3,6 +3,7 @@ package dev.quinton.goa.web.play.map
 import dev.quinton.goa.core.domain.board.BoardGeometry
 import dev.quinton.goa.core.domain.board.HexGrid
 import dev.quinton.goa.core.model.board.BoardMap
+import dev.quinton.goa.core.model.board.BoardMapArt
 import dev.quinton.goa.core.model.board.Hex
 import dev.quinton.goa.core.model.board.MinionType
 import dev.quinton.goa.core.model.board.SpawnKind
@@ -10,7 +11,9 @@ import dev.quinton.goa.core.model.board.SpawnPoint
 import dev.quinton.goa.core.model.board.ZoneKind
 import dev.quinton.goa.core.model.match.Team
 import dev.quinton.goa.feature.board.map.HexLayout
+import dev.quinton.goa.feature.board.map.LitArea
 import dev.quinton.goa.feature.board.map.MapPoint
+import dev.quinton.goa.feature.board.map.cornersInPixels
 import kotlin.math.PI
 import kotlin.math.cos
 import kotlin.math.roundToInt
@@ -130,6 +133,82 @@ fun mapMarkup(map: BoardMap, layout: HexLayout, battleZones: Set<String>): Strin
     map.spaces.forEach { space -> space.spawn?.let { append(spawn(it, layout.center(space.hex))) } }
 }
 
+/**
+ * What the SVG draws over a map's painting (the picture itself is an HTML layer under it, see BoardSvg):
+ * the spaces a photo of the mat doesn't show, drawn as [mapMarkup] draws them and shaded when outside the
+ * light; the hex grid when the board style asks for it; a thick white outline on the lit area's outer edge
+ * over a dark halo; and, while a question has the light, a thin line around the Battle Zones.
+ */
+fun paintedMapMarkup(
+    map: BoardMap,
+    layout: HexLayout,
+    battleZones: Set<String>,
+    lit: LitArea,
+    zoneLine: LitArea?,
+    grid: Boolean,
+): String =
+    buildString {
+        val geometry = BoardGeometry.of(map)
+        val uncovered = map.art?.uncovered.orEmpty()
+        uncovered.mapNotNull(geometry.spaces::get).forEach { space ->
+            val zone = geometry.zones[space.zone]
+            val fill = when {
+                space.zone in battleZones -> "m-battle"
+                zone?.kind == ZoneKind.THRONE -> "m-throne-${teamSlug(zone.team ?: Team.RED)}"
+                zone?.kind == ZoneKind.SIDE -> "m-side"
+                else -> "m-lane-a"
+            }
+            append("<polygon class=\"$fill m-space\" points=\"${hexPoints(layout, space.hex)}\"/>")
+        }
+        uncovered.filter(geometry::isTerrain).forEachIndexed { i, hex ->
+            append(
+                terrain(
+                    layout,
+                    hex,
+                    hex.q * 7 + hex.r * 13 + i,
+                ),
+            )
+        }
+        uncovered.mapNotNull(geometry.spaces::get).forEach { space ->
+            space.spawn?.let { append(spawn(it, layout.center(space.hex))) }
+        }
+        uncovered.filter { it !in lit.hexes }.forEach {
+            append("<polygon class=\"m-shade\" points=\"${hexPoints(layout, it)}\"/>")
+        }
+        if (grid) {
+            val hairlines = map.spaces.joinToString("") { space ->
+                val corners = layout.corners(space.hex)
+                "M" + corners.joinToString("L") { "${n(it.x)} ${n(it.y)}" } + "Z"
+            }
+            append("<path class=\"m-grid\" d=\"$hairlines\"/>")
+        }
+        if (zoneLine != null) {
+            val d = edgePath(layout, zoneLine)
+            append("<path class=\"m-zone-halo\" d=\"$d\"/><path class=\"m-zone-line\" d=\"$d\"/>")
+        }
+        val d = edgePath(layout, lit)
+        append("<path class=\"m-lit-halo\" d=\"$d\"/><path class=\"m-lit\" d=\"$d\"/>")
+    }
+
+private fun edgePath(layout: HexLayout, area: LitArea): String = area.edges.joinToString("") { (hex, d) ->
+    val (a, b) = layout.edge(hex, d)
+    "M${n(a.x)} ${n(a.y)}L${n(b.x)} ${n(b.y)}"
+}
+
+/** The lit spaces as a CSS `clip-path: path()` in the painting's own pixels: it holds in any orientation. */
+fun litClipPath(art: BoardMapArt, lit: LitArea): String {
+    val d = lit.hexes.joinToString("") { hex ->
+        "M" + art.cornersInPixels(hex).joinToString("L") { "${n(it.x)} ${n(it.y)}" } + "Z"
+    }
+    return "path('$d')"
+}
+
+/** A minion's rulebook miniature, as the phone's LookArt. */
+fun miniatureArt(
+    type: MinionType,
+    team: Team,
+): String = "official/pieces/mini-${type.name.lowercase()}-${teamSlug(team)}.webp"
+
 /** Printed terrain: a dark rock with a faceted top (original; no map art is used). */
 private fun terrain(layout: HexLayout, hex: Hex, seed: Int): String {
     val c = layout.center(hex)
@@ -204,8 +283,17 @@ data class HexMark(val hex: Hex, val style: MarkStyle, val number: Int? = null)
 /** A line over the map: a move's path (dots at the steps), a measure ([dashed] when not straight). */
 data class MapLine(val hexes: List<Hex>, val dashed: Boolean = false, val stepDots: Boolean = false)
 
-/** The overlays, in the phone's drawing order (radius, range, Fast Travel, movement, targets, …). */
-fun marksMarkup(layout: HexLayout, marks: List<HexMark>, lines: List<MapLine>): String = buildString {
+/**
+ * The overlays, in the phone's drawing order (radius, range, Fast Travel, movement, targets, …). On a
+ * painting ([painted]) each carries a dark halo (goa-look-map.css) so it reads on any ground, and a
+ * numbered space shows its number in a small dark chip, bronze when chosen (mock-up 03).
+ */
+fun marksMarkup(
+    layout: HexLayout,
+    marks: List<HexMark>,
+    lines: List<MapLine>,
+    painted: Boolean = false,
+): String = buildString {
     val byStyle = marks.groupBy { it.style }
     fun each(style: MarkStyle, draw: (HexMark) -> Unit) = byStyle[style].orEmpty().forEach(draw)
     each(MarkStyle.RADIUS) { m ->
@@ -213,15 +301,15 @@ fun marksMarkup(layout: HexLayout, marks: List<HexMark>, lines: List<MapLine>): 
         append("<polygon class=\"o-radius-fill\" points=\"${hexPoints(layout, m.hex, 0.92f)}\"/>")
         listOf(-90f, 30f, 150f).forEach { deg ->
             val a = deg * PI.toFloat() / 180f
-            append(
-                "<circle class=\"o-radius-dot\" cx=\"${n(
-                    c.x + cos(a) * 0.42f,
-                )}\" cy=\"${n(c.y + sin(a) * 0.42f)}\" r=\"0.09\"/>",
-            )
+            val cx = n(c.x + cos(a) * 0.42f)
+            val cy = n(c.y + sin(a) * 0.42f)
+            if (painted) append("<circle class=\"o-radius-halo\" cx=\"$cx\" cy=\"$cy\" r=\"0.15\"/>")
+            append("<circle class=\"o-radius-dot\" cx=\"$cx\" cy=\"$cy\" r=\"0.09\"/>")
         }
     }
     each(MarkStyle.RANGE) { m ->
         append("<polygon class=\"o-range-fill\" points=\"${hexPoints(layout, m.hex, 0.92f)}\"/>")
+        if (painted) append("<polygon class=\"o-range-halo\" points=\"${hexPoints(layout, m.hex, 0.7f)}\"/>")
         append("<polygon class=\"o-range\" points=\"${hexPoints(layout, m.hex, 0.7f)}\"/>")
     }
     each(MarkStyle.FAST_TRAVEL) { m ->
@@ -229,13 +317,17 @@ fun marksMarkup(layout: HexLayout, marks: List<HexMark>, lines: List<MapLine>): 
     }
     each(MarkStyle.MOVEMENT) { m ->
         val c = layout.center(m.hex)
-        append("<polygon class=\"o-move\" points=\"${hexPoints(layout, m.hex, 0.9f)}\"/>")
-        m.number?.let {
-            append("<text class=\"o-move-n\" transform=\"translate(${n(c.x)} ${n(c.y)}) scale(0.078)\">$it</text>")
+        if (!painted) {
+            append("<polygon class=\"o-move\" points=\"${hexPoints(layout, m.hex, 0.9f)}\"/>")
+            m.number?.let {
+                append("<text class=\"o-move-n\" transform=\"translate(${n(c.x)} ${n(c.y)}) scale(0.078)\">$it</text>")
+            }
         }
     }
     each(MarkStyle.TARGET) { m ->
+        if (painted && m.number != null) return@each
         append("<polygon class=\"o-target-fill\" points=\"${hexPoints(layout, m.hex, 0.92f)}\"/>")
+        if (painted) append("<polygon class=\"o-target-halo\" points=\"${hexPoints(layout, m.hex, 0.82f)}\"/>")
         append("<polygon class=\"o-target\" points=\"${hexPoints(layout, m.hex, 0.82f)}\"/>")
     }
     each(MarkStyle.DROP) { m -> append("<polygon class=\"o-drop\" points=\"${hexPoints(layout, m.hex, 0.96f)}\"/>") }
@@ -253,6 +345,21 @@ fun marksMarkup(layout: HexLayout, marks: List<HexMark>, lines: List<MapLine>): 
         append("<polygon class=\"o-sel\" points=\"${hexPoints(layout, m.hex)}\"/>")
     }
     each(MarkStyle.MEASURE) { m -> append("<polygon class=\"o-measure\" points=\"${hexPoints(layout, m.hex)}\"/>") }
+    if (painted) {
+        val chosen = byStyle[MarkStyle.SELECTION].orEmpty().map { it.hex }
+        marks.filter {
+            it.number != null && (it.style == MarkStyle.MOVEMENT || it.style == MarkStyle.TARGET)
+        }.forEach { m ->
+            append(numberChip(layout.center(m.hex), m.number!!, m.hex in chosen))
+        }
+    }
+}
+
+/** A number on a painting: white in a small dark chip, or dark on bronze for the chosen space. */
+private fun numberChip(at: MapPoint, number: Int, chosen: Boolean): String {
+    val state = if (chosen) " chosen" else ""
+    return "<circle class=\"o-chip$state\" cx=\"${n(at.x)}\" cy=\"${n(at.y)}\" r=\"0.42\"/>" +
+        "<text class=\"o-chip-n$state\" transform=\"translate(${n(at.x)} ${n(at.y)}) scale(0.052)\">$number</text>"
 }
 
 private fun lineMarkup(layout: HexLayout, line: MapLine): String {
@@ -277,6 +384,7 @@ const val MAP_DEFS: String =
         "<circle cx=\"0.5\" cy=\"0.5\" r=\"0.5\"/></clipPath>" +
         "<pattern id=\"goa-hatch\" patternUnits=\"userSpaceOnUse\" width=\"0.36\" height=\"0.36\" " +
         "patternTransform=\"rotate(45)\"><rect class=\"o-hatch-bg\" width=\"0.36\" height=\"0.36\"/>" +
+        "<line class=\"o-hatch-under\" x1=\"0\" y1=\"0\" x2=\"0\" y2=\"0.36\"/>" +
         "<line class=\"o-hatch\" x1=\"0\" y1=\"0\" x2=\"0\" y2=\"0.36\"/></pattern>"
 
 private const val GLYPH_GRID = 24f

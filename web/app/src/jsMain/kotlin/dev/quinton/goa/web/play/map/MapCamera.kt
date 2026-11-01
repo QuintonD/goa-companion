@@ -78,7 +78,7 @@ class MapCamera {
      * Lays [layout] out in a view of [w] × [h] px and frames the [lane] region, the first time and
      * again when the layout or the view's size changes (rotation, flip).
      */
-    fun setUp(layout: HexLayout, w: Float, h: Float, lane: MapRect?, laneMayCrop: Boolean) {
+    fun setUp(layout: HexLayout, w: Float, h: Float, lane: MapRect?, laneMayCrop: Boolean, maxHex: Float = MAX_HEX) {
         if (w <= 0f || h <= 0f) return
         if (layout === this.layout && w == width && h == height) return
         val sameLayout = layout === this.layout
@@ -91,7 +91,7 @@ class MapCamera {
         unit = minOf(w / layout.width, h / layout.height)
         // A view the person (or a reveal) moved keeps its scale on screen when the map is resized.
         if (sameLayout && mode == ViewMode.MOVED && oldUnit > 0f) zoom *= oldUnit / unit
-        maxZoom = (MAX_HEX / (2f * unit)).coerceAtLeast(MIN_MAX_ZOOM)
+        maxZoom = (maxHex / (2f * unit)).coerceAtLeast(MIN_MAX_ZOOM)
         if (zoom > maxZoom) zoom = maxZoom
         if (!sameLayout) {
             userMoved = false
@@ -346,6 +346,9 @@ class MapCamera {
 
         /** The largest hex (px across) at full zoom. */
         const val MAX_HEX = 120f
+
+        /** ... on a painted map, as on the phone: a painting has about 96 px across a hex and goes soft past this. */
+        const val MAX_HEX_ON_ART = 88f
     }
 }
 
