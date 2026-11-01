@@ -116,15 +116,10 @@ private fun TimerStart(state: StartUiState, model: TimerModel) {
 private fun ReadyCard(state: StartUiState, model: TimerModel) {
     val router = LocalServices.current.router
     Div({ classes("goa-card", "goa-table-ready") }) {
-        Div({ classes("goa-table-ready-head") }) {
-            Span({ classes("goa-table-medallion") }) { Icon("hourglass") }
-            Div {
-                H2({ classes("t-headline-small", "goa-table-tight") }) { Text("Phase timer") }
-                P({
-                    classes("t-title-small", "c-primary", "goa-table-tight")
-                }) { Text(state.selected?.name ?: "No preset") }
-            }
-        }
+        H2({ classes("goa-title-plate") }) { Text("Phase timer") }
+        P({
+            classes("t-title-medium", "c-primary", "goa-table-tight")
+        }) { Text(state.selected?.name ?: "No preset") }
         P({ classes("t-body-medium", "c-variant") }) { Text(state.selected?.summary.orEmpty()) }
         state.tonight?.let { tonight ->
             Div({
@@ -255,7 +250,7 @@ private fun MatchSummary(state: SummaryUiState, model: TimerModel) {
     Screen("Timer", actions = { IconLink("settings", "Settings", Route.Settings) }) {
         Div({ classes("goa-card", "goa-table-summary") }) {
             Span({ classes("goa-table-medallion", "large") }) { Icon("trophy") }
-            H2({ classes("t-headline-small", "goa-table-tight") }) { Text("Match over") }
+            H2({ classes("goa-title-plate", "goa-table-summary-title") }) { Text("Match over") }
             P({ classes("goa-table-summary-time", "t-numeric") }) { Text(state.duration) }
             P({ classes("t-body-medium", "c-variant", "goa-table-center") }) {
                 Text(

@@ -1,11 +1,11 @@
 package dev.quinton.goa.feature.timer.ui.timer
 
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -15,14 +15,11 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.EmojiEvents
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -34,15 +31,16 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.semantics.heading
-import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import dev.quinton.goa.core.designsystem.component.GoaPlate
 import dev.quinton.goa.core.designsystem.component.GoaScreen
 import dev.quinton.goa.core.designsystem.component.SettingsActionButton
+import dev.quinton.goa.core.designsystem.component.TitlePlate
 import dev.quinton.goa.core.designsystem.theme.GoaTheme
 import dev.quinton.goa.core.designsystem.theme.Spacing
 import dev.quinton.goa.feature.timer.TimerText
+import dev.quinton.goa.feature.timer.ui.components.MetalButton
 import dev.quinton.goa.feature.timer.ui.components.timerDigits
 
 @Composable
@@ -53,11 +51,7 @@ internal fun MatchSummary(state: SummaryUiState, actions: TimerActions) {
             Modifier.fillMaxSize().padding(padding).verticalScroll(rememberScrollState()).padding(Spacing.screen),
             verticalArrangement = Arrangement.Center,
         ) {
-            Card(
-                shape = MaterialTheme.shapes.large,
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                border = BorderStroke(1.dp, GoaTheme.colors.engravedBorder),
-            ) {
+            GoaPlate(Modifier.fillMaxWidth(), contentPadding = PaddingValues(0.dp)) {
                 Column(
                     Modifier.fillMaxWidth().padding(Spacing.xl),
                     horizontalAlignment = Alignment.CenterHorizontally,
@@ -77,11 +71,7 @@ internal fun MatchSummary(state: SummaryUiState, actions: TimerActions) {
                         )
                     }
                     Spacer(Modifier.height(Spacing.md))
-                    Text(
-                        "Match over",
-                        style = MaterialTheme.typography.headlineMedium,
-                        modifier = Modifier.semantics { heading() },
-                    )
+                    TitlePlate("Match over", Modifier.fillMaxWidth())
                     Spacer(Modifier.height(Spacing.lg))
                     Text(state.duration, style = timerDigits(MaterialTheme.typography.displayMedium))
                     Spacer(Modifier.height(Spacing.xs))
@@ -97,10 +87,10 @@ internal fun MatchSummary(state: SummaryUiState, actions: TimerActions) {
                         textAlign = TextAlign.Center,
                     )
                     Spacer(Modifier.height(Spacing.xl))
-                    Button(
+                    MetalButton(
                         onClick = actions.onLogResult,
+                        bronze = true,
                         modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp),
-                        shape = RoundedCornerShape(16.dp),
                     ) { Text("Log result", style = MaterialTheme.typography.titleMedium) }
                     Spacer(Modifier.height(Spacing.sm))
                     Text(

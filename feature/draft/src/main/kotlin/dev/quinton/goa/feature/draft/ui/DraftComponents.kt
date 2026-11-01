@@ -4,7 +4,6 @@ import android.provider.Settings
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -13,7 +12,9 @@ import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
@@ -25,9 +26,11 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Block
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material3.ButtonColors
 import androidx.compose.material3.ButtonDefaults
@@ -39,7 +42,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SegmentedButtonColors
 import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.SelectableChipColors
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -51,8 +53,11 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.RectangleShape
+import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalInspectionMode
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
@@ -62,9 +67,20 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import dev.quinton.goa.core.designsystem.component.GoaPlate
+import dev.quinton.goa.core.designsystem.component.GoaPlateTheme
 import dev.quinton.goa.core.designsystem.component.HeroPortrait
+import dev.quinton.goa.core.designsystem.component.HeroSymbol
+import dev.quinton.goa.core.designsystem.component.LARGE_FONT_SCALE
+import dev.quinton.goa.core.designsystem.component.PlateGround
+import dev.quinton.goa.core.designsystem.component.PlateShape
+import dev.quinton.goa.core.designsystem.component.TeamMark
+import dev.quinton.goa.core.designsystem.component.slatePlate
 import dev.quinton.goa.core.designsystem.component.teamColor
+import dev.quinton.goa.core.designsystem.theme.GoaTextStyles
 import dev.quinton.goa.core.designsystem.theme.GoaTheme
 import dev.quinton.goa.core.designsystem.theme.Spacing
 import dev.quinton.goa.core.model.draft.DraftAction
@@ -87,7 +103,9 @@ internal fun rememberReducedMotion(): Boolean {
 }
 
 /**
- * A hero tile: official art in our frame, name, and its draft state (struck/dimmed when banned).
+ * A hero tile as on the Heroes grid, in small: the portrait with the deck symbol, the name on a
+ * parchment plate, on the dark plate. Flat rather than slate, so a full roster stays cheap to scroll.
+ * Out of play it loses the parchment; banned it is crossed out and dimmed, never colour alone.
  * [onLongClick] opens the hero peek; a tile without [onClick] then opens it on tap too.
  */
 @Composable
@@ -99,6 +117,19 @@ internal fun HeroTile(
     selected: Boolean = false,
     onLongClick: (() -> Unit)? = null,
     compact: Boolean = false,
+) {
+    GoaPlateTheme { HeroTileBody(hero, state, onClick, modifier, selected, onLongClick, compact) }
+}
+
+@Composable
+private fun HeroTileBody(
+    hero: HeroInfo,
+    state: TileState,
+    onClick: (() -> Unit)?,
+    modifier: Modifier,
+    selected: Boolean,
+    onLongClick: (() -> Unit)?,
+    compact: Boolean,
 ) {
     val reduced = rememberReducedMotion()
     val alpha by animateFloatAsState(
@@ -115,16 +146,18 @@ internal fun HeroTile(
         targetValue = when {
             selected -> MaterialTheme.colorScheme.secondary
             state is TileState.Picked -> teamColor(state.team)
-            else -> Color.Transparent
+            else -> TILE_EDGE
         },
         animationSpec = tween(if (reduced) 0 else DraftMotion.SHORT),
         label = "tileBorder",
     )
     val stateText = state.description()
-    val shape = MaterialTheme.shapes.medium
+    val emphasised = selected || state is TileState.Picked
     Column(
         modifier
-            .clip(shape)
+            .clip(TILE_SHAPE)
+            .background(PlateGround)
+            .border(if (emphasised) 2.dp else 1.dp, borderColor, TILE_SHAPE)
             .then(
                 when {
                     onLongClick != null -> Modifier.combinedClickable(
@@ -149,98 +182,156 @@ internal fun HeroTile(
                 contentDescription = hero.name
                 stateDescription = stateText
             }
-            .padding(Spacing.xs),
+            .padding(TILE_INSET),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        Box(
-            Modifier
-                .fillMaxWidth()
-                .aspectRatio(0.8f)
-                .border(BorderStroke(2.dp, borderColor), shape),
-        ) {
+        Box(Modifier.fillMaxWidth().aspectRatio(0.8f)) {
+            // The cross stays bright over the dimmed art: it is what says "banned" at a glance.
             HeroPortrait(
                 heroId = hero.id,
                 portrait = hero.portrait,
                 contentDescription = null,
+                shape = TILE_ART_SHAPE,
+                framed = false,
                 modifier = Modifier
                     .matchParentSize()
-                    .alpha(alpha)
-                    .then(
-                        if (state is TileState.Banned) Modifier.strike(MaterialTheme.colorScheme.error) else Modifier,
-                    ),
+                    .then(if (state is TileState.Banned) Modifier.crossedOut() else Modifier)
+                    .alpha(alpha),
             )
+            if (hero.symbol != null) {
+                HeroSymbol(
+                    hero.id,
+                    hero.symbol,
+                    Modifier
+                        .align(Alignment.TopStart)
+                        .padding(2.dp)
+                        .fillMaxWidth(TILE_SYMBOL)
+                        .aspectRatio(1f)
+                        .alpha(alpha),
+                )
+            }
+            if (selected) {
+                Icon(
+                    Icons.Filled.Check,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onSecondary,
+                    modifier = Modifier
+                        .align(Alignment.TopEnd)
+                        .padding(2.dp)
+                        .size(18.dp)
+                        .background(MaterialTheme.colorScheme.secondary, CircleShape)
+                        .padding(2.dp),
+                )
+            }
             when (state) {
+                // Small: the cross already says "banned"; the chip keeps the team's mark and the ban's symbol.
                 is TileState.Banned -> StateChip(
-                    text = "Banned",
+                    text = "Banned".takeUnless { compact },
                     team = state.team,
                     icon = true,
-                    modifier = Modifier.align(Alignment.BottomCenter).padding(Spacing.xs),
+                    modifier = Modifier.align(Alignment.BottomCenter).padding(2.dp),
                 )
 
                 is TileState.Picked -> StateChip(
                     text = teamName(state.team),
                     team = state.team,
                     icon = false,
-                    modifier = Modifier.align(Alignment.BottomCenter).padding(Spacing.xs),
+                    modifier = Modifier.align(Alignment.BottomCenter).padding(2.dp),
                 )
 
                 else -> Unit
             }
         }
-        Spacer(Modifier.height(if (compact) 2.dp else Spacing.xs))
-        Text(
-            text = hero.name,
-            style = if (compact) MaterialTheme.typography.labelMedium else MaterialTheme.typography.labelLarge,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-            textAlign = TextAlign.Center,
-            textDecoration = if (state is TileState.Banned) TextDecoration.LineThrough else null,
-            color = if (state == TileState.Available) {
-                MaterialTheme.colorScheme.onSurface
-            } else {
-                MaterialTheme.colorScheme.onSurfaceVariant
-            },
-        )
+        Spacer(Modifier.height(TILE_INSET))
+        TileName(hero.name, state, compact)
     }
 }
 
-private fun Modifier.strike(color: Color): Modifier = drawWithContent {
-    drawContent()
-    drawLine(
-        color = color.copy(alpha = 0.85f),
-        start = Offset(size.width * 0.12f, size.height * 0.12f),
-        end = Offset(size.width * 0.88f, size.height * 0.88f),
-        strokeWidth = 3.dp.toPx(),
-        cap = StrokeCap.Round,
+/** The name on a parchment plate while the hero is in play; plain on the dark plate once out of it. */
+@Composable
+private fun TileName(name: String, state: TileState, compact: Boolean) {
+    val parchment = state == TileState.Available || state is TileState.Picked
+    // Cinzel is wide: past the large-text point the plate keeps Inter, so a name stays whole.
+    val large = LocalDensity.current.fontScale > LARGE_FONT_SCALE
+    val style = when {
+        large -> MaterialTheme.typography.labelMedium
+
+        // The longest names (Silverarrow) step down so the whole name still fits a dense tile.
+        compact -> GoaTextStyles.plateCap.copy(
+            letterSpacing = 0.sp,
+            fontSize = if (name.length > LONG_NAME) 9.5.sp else GoaTextStyles.plateCap.fontSize,
+        )
+
+        else -> GoaTextStyles.plateTitle.copy(fontSize = 14.sp, lineHeight = 18.sp)
+    }
+    val colors = GoaTheme.colors
+    Text(
+        text = name,
+        style = style,
+        maxLines = 1,
+        overflow = TextOverflow.Ellipsis,
+        textAlign = TextAlign.Center,
+        textDecoration = if (state is TileState.Banned) TextDecoration.LineThrough else null,
+        color = if (parchment) colors.onParchment else MaterialTheme.colorScheme.onSurfaceVariant,
+        modifier = Modifier
+            .fillMaxWidth()
+            .then(if (parchment) Modifier.background(colors.parchment, TILE_ART_SHAPE) else Modifier)
+            .padding(horizontal = 1.dp, vertical = 2.dp),
     )
 }
 
+/** Crossed out, in red with a dark edge so it shows on any art: banned without relying on colour. */
+internal fun Modifier.crossedOut(): Modifier = drawWithContent {
+    drawContent()
+    val a = size.width * 0.14f
+    val b = size.width - a
+    val top = size.height * 0.14f
+    val bottom = size.height - top
+    listOf(CROSS_EDGE to 5.dp, CROSS to 3.dp).forEach { (color, width) ->
+        drawLine(color, Offset(a, top), Offset(b, bottom), strokeWidth = width.toPx(), cap = StrokeCap.Round)
+        drawLine(color, Offset(b, top), Offset(a, bottom), strokeWidth = width.toPx(), cap = StrokeCap.Round)
+    }
+}
+
+private val TILE_SHAPE = RoundedCornerShape(6.dp)
+private val TILE_ART_SHAPE = RoundedCornerShape(3.dp)
+private val TILE_INSET = 3.dp
+private val TILE_EDGE = Color(0xFF5D6B70)
+private val CROSS = Color(0xFFFF6B6B)
+private val CROSS_EDGE = Color(0xE6060C12)
+private const val TILE_SYMBOL = 0.32f
+private const val LONG_NAME = 9
+
 @Composable
-private fun StateChip(text: String, team: Team, icon: Boolean, modifier: Modifier = Modifier) {
+private fun StateChip(text: String?, team: Team, icon: Boolean, modifier: Modifier = Modifier) {
     val color = teamColor(team)
-    Surface(
-        modifier = modifier,
-        shape = RoundedCornerShape(50),
-        color = MaterialTheme.colorScheme.background.copy(alpha = 0.88f),
-        border = BorderStroke(1.dp, color),
+    Row(
+        modifier
+            .background(CHIP_GROUND, RoundedCornerShape(50))
+            .border(1.dp, color, RoundedCornerShape(50))
+            .padding(horizontal = Spacing.xs, vertical = 1.dp),
+        verticalAlignment = Alignment.CenterVertically,
     ) {
-        Row(
-            Modifier.padding(horizontal = Spacing.sm, vertical = 2.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            if (icon) {
-                Icon(Icons.Filled.Block, contentDescription = null, tint = color, modifier = Modifier.size(12.dp))
-                Spacer(Modifier.width(2.dp))
-            }
+        // The team's mark as well as its colour; a banned chip has the ban's symbol too.
+        TeamMark(team, markSize = 9.dp)
+        if (icon) {
+            Spacer(Modifier.width(1.dp))
+            Icon(Icons.Filled.Block, contentDescription = null, tint = color, modifier = Modifier.size(10.dp))
+        }
+        if (text != null) {
+            Spacer(Modifier.width(2.dp))
             Text(
-                "${teamGlyph(team)} $text",
+                text,
                 style = MaterialTheme.typography.labelSmall,
-                color = color,
+                color = MaterialTheme.colorScheme.onSurface,
                 maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
             )
         }
     }
 }
+
+private val CHIP_GROUND = Color(0xE6060C12)
 
 /** A concealed (hidden) pick: shown as a lock until the hidden run ends. */
 @Composable
@@ -293,52 +384,56 @@ private fun StepChipView(token: StepToken, index: Int, current: Int?) {
     val done = current != null && index < current
     val active = current == index
     val isBan = token.action == DraftAction.BAN
-    Surface(
-        shape = RoundedCornerShape(8.dp),
-        color = when {
-            active -> accent.copy(alpha = 0.28f)
-            isBan -> Color.Transparent
-            else -> accent.copy(alpha = 0.12f)
+    val shape = RoundedCornerShape(6.dp)
+    Text(
+        text = (if (token.hidden) "🔒 " else "") + token.label,
+        style = MaterialTheme.typography.labelMedium,
+        fontWeight = if (active) FontWeight.Bold else FontWeight.Medium,
+        color = if (isBan &&
+            !active
+        ) {
+            MaterialTheme.colorScheme.onSurfaceVariant
+        } else {
+            MaterialTheme.colorScheme.onSurface
         },
-        border = BorderStroke(if (active) 2.dp else 1.dp, accent.copy(alpha = if (done) 0.3f else 0.8f)),
-        modifier = Modifier.alpha(if (done) 0.5f else 1f),
-    ) {
-        Text(
-            text = (if (token.hidden) "🔒 " else "") + token.label,
-            style = MaterialTheme.typography.labelMedium,
-            fontWeight = if (active) FontWeight.Bold else FontWeight.Medium,
-            color = if (isBan &&
-                !active
-            ) {
-                MaterialTheme.colorScheme.onSurfaceVariant
-            } else {
-                MaterialTheme.colorScheme.onSurface
-            },
-            modifier = Modifier.padding(horizontal = Spacing.sm, vertical = Spacing.xs),
-        )
-    }
+        modifier = Modifier
+            .alpha(if (done) 0.5f else 1f)
+            .background(
+                when {
+                    active -> accent.copy(alpha = 0.28f)
+                    isBan -> Color.Transparent
+                    else -> accent.copy(alpha = 0.12f)
+                },
+                shape,
+            )
+            .border(if (active) 2.dp else 1.dp, accent.copy(alpha = if (done) 0.3f else 0.8f), shape)
+            .padding(horizontal = Spacing.sm, vertical = Spacing.xs),
+    )
 }
 
-/** Section card with an engraved border, used across draft screens. */
+/** Section card on the dark plate, used across draft screens. [titleTeam] heads it with a team's mark. */
 @Composable
 internal fun SectionCard(
     title: String,
     modifier: Modifier = Modifier,
     subtitle: String? = null,
     trailing: (@Composable () -> Unit)? = null,
-    titleColor: Color = MaterialTheme.colorScheme.primary,
+    titleTeam: Team? = null,
     content: @Composable () -> Unit,
 ) {
-    Surface(
-        modifier = modifier.fillMaxWidth(),
-        shape = MaterialTheme.shapes.large,
-        color = MaterialTheme.colorScheme.surface,
-        border = BorderStroke(1.dp, GoaTheme.colors.engravedBorder),
-    ) {
+    GoaPlate(modifier.fillMaxWidth(), contentPadding = PaddingValues(0.dp)) {
         Column(Modifier.padding(Spacing.lg)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
+                if (titleTeam != null) {
+                    TeamMark(titleTeam, markSize = 14.dp)
+                    Spacer(Modifier.width(Spacing.xs))
+                }
                 Column(Modifier.weight(1f)) {
-                    Text(title, style = MaterialTheme.typography.titleMedium, color = titleColor)
+                    Text(
+                        title,
+                        style = GoaTextStyles.sectionHead,
+                        color = titleTeam?.let { teamColor(it) } ?: GoaTheme.colors.heading,
+                    )
                     if (subtitle != null) {
                         Text(
                             subtitle,
@@ -366,22 +461,14 @@ internal fun ChoiceCard(
     badge: String? = null,
     extra: (@Composable () -> Unit)? = null,
 ) {
-    val border = if (selected) MaterialTheme.colorScheme.primary else GoaTheme.colors.engravedBorder
-    Surface(
-        onClick = onClick,
+    GoaPlate(
         modifier = modifier
             .fillMaxWidth()
             .heightIn(min = 56.dp)
+            .plateEdge(if (selected) PLATE_BRONZE else null)
             .semantics { stateDescription = if (selected) "Selected" else "Not selected" },
-        shape = MaterialTheme.shapes.medium,
-        color = if (selected) {
-            MaterialTheme.colorScheme.primary.copy(
-                alpha = 0.10f,
-            )
-        } else {
-            MaterialTheme.colorScheme.surface
-        },
-        border = BorderStroke(if (selected) 2.dp else 1.dp, border),
+        onClick = onClick,
+        contentPadding = PaddingValues(0.dp),
     ) {
         Column(Modifier.padding(Spacing.md)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -466,6 +553,23 @@ internal fun goaTonalIconColors(): IconButtonColors = IconButtonDefaults.filledT
     containerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.16f),
     contentColor = MaterialTheme.colorScheme.primary,
 )
+
+/** An accent edge on a plate: the team on the clock, the selected option. Null draws none. */
+internal fun Modifier.plateEdge(color: Color?, width: Dp = 2.dp, shape: Shape = PlateShape): Modifier =
+    if (color == null) this else border(width, color, shape)
+
+/** Plates are dark in both themes: a bronze edge picked outside one is the dark theme's. */
+internal val PLATE_BRONZE = Color(0xFFC9A35B)
+
+/**
+ * The bar pinned under a screen's content, on the dark plate; its contents are themed dark.
+ */
+@Composable
+internal fun PlateBar(modifier: Modifier = Modifier, content: @Composable ColumnScope.() -> Unit) {
+    GoaPlateTheme {
+        Column(modifier.fillMaxWidth().slatePlate(RectangleShape, brackets = false), content = content)
+    }
+}
 
 /** Centered full-size loading/blank helper. */
 @Composable

@@ -88,23 +88,27 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.text.font.FontFamily
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dev.quinton.goa.core.designsystem.component.ComplexityStars
 import dev.quinton.goa.core.designsystem.component.EmptyState
 import dev.quinton.goa.core.designsystem.component.GoaFilterChip
+import dev.quinton.goa.core.designsystem.component.GoaPlate
+import dev.quinton.goa.core.designsystem.component.GoaPlateTheme
 import dev.quinton.goa.core.designsystem.component.GoaScreen
 import dev.quinton.goa.core.designsystem.component.HeroPortrait
 import dev.quinton.goa.core.designsystem.component.LARGE_FONT_SCALE
+import dev.quinton.goa.core.designsystem.component.PlateGround
 import dev.quinton.goa.core.designsystem.component.TeamMark
+import dev.quinton.goa.core.designsystem.component.TitlePlate
 import dev.quinton.goa.core.designsystem.component.teamColor
+import dev.quinton.goa.core.designsystem.theme.GoaTextStyles
 import dev.quinton.goa.core.designsystem.theme.GoaTheme
 import dev.quinton.goa.core.designsystem.theme.Spacing
 import dev.quinton.goa.core.domain.draft.DraftEngine
@@ -121,8 +125,10 @@ import dev.quinton.goa.feature.draft.ui.SequenceStrip
 import dev.quinton.goa.feature.draft.ui.StepToken
 import dev.quinton.goa.feature.draft.ui.TileState
 import dev.quinton.goa.feature.draft.ui.actionName
+import dev.quinton.goa.feature.draft.ui.crossedOut
 import dev.quinton.goa.feature.draft.ui.info
 import dev.quinton.goa.feature.draft.ui.label
+import dev.quinton.goa.feature.draft.ui.plateEdge
 import dev.quinton.goa.feature.draft.ui.rememberReducedMotion
 import dev.quinton.goa.feature.draft.ui.teamGlyph
 import dev.quinton.goa.feature.draft.ui.teamLabel
@@ -539,7 +545,8 @@ private fun PoolHeader(left: Int, total: Int, filters: PoolFilters, searchable: 
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text(
                 "Pool · $left of $total left",
-                style = MaterialTheme.typography.titleMedium,
+                style = GoaTextStyles.sectionHead,
+                color = GoaTheme.colors.heading,
                 modifier = Modifier.weight(1f).semantics { heading() },
             )
             GoaFilterChip(
@@ -590,8 +597,8 @@ private fun PoolHeader(left: Int, total: Int, filters: PoolFilters, searchable: 
 private fun SubHeading(text: String) {
     Text(
         text,
-        style = MaterialTheme.typography.titleSmall,
-        color = MaterialTheme.colorScheme.primary,
+        style = GoaTextStyles.sectionHead,
+        color = GoaTheme.colors.heading,
         modifier = Modifier.padding(top = Spacing.sm).semantics { heading() },
     )
 }
@@ -620,43 +627,48 @@ private fun TakenChip(hero: HeroInfo, state: TileState, onClick: () -> Unit) {
         else -> return
     }
     val banned = state is TileState.Banned
-    val color = teamColor(team)
-    Surface(
-        onClick = onClick,
-        shape = RoundedCornerShape(10.dp),
-        color = MaterialTheme.colorScheme.surface,
-        border = BorderStroke(1.dp, color.copy(alpha = if (banned) 0.5f else 0.9f)),
-        modifier = Modifier
-            .heightIn(min = 48.dp)
-            .semantics {
-                contentDescription = "${hero.name}, ${if (banned) "banned" else "picked"} by ${teamName(team)}"
-            },
-    ) {
-        Row(
-            Modifier.padding(start = Spacing.xs, end = Spacing.sm),
-            verticalAlignment = Alignment.CenterVertically,
+    GoaPlateTheme {
+        val color = teamColor(team)
+        Surface(
+            onClick = onClick,
+            shape = RoundedCornerShape(6.dp),
+            color = PlateGround,
+            border = BorderStroke(1.dp, color.copy(alpha = if (banned) 0.5f else 0.9f)),
+            modifier = Modifier
+                .heightIn(min = 48.dp)
+                .semantics {
+                    contentDescription = "${hero.name}, ${if (banned) "banned" else "picked"} by ${teamName(team)}"
+                },
         ) {
-            HeroPortrait(
-                hero.id,
-                hero.portrait,
-                null,
-                Modifier.size(32.dp).alpha(if (banned) 0.45f else 1f),
-            )
-            Spacer(Modifier.width(Spacing.xs))
-            if (banned) {
-                Icon(Icons.Filled.Block, contentDescription = null, tint = color, modifier = Modifier.size(14.dp))
+            Row(
+                Modifier.padding(start = Spacing.xs, end = Spacing.sm),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                HeroPortrait(
+                    hero.id,
+                    hero.portrait,
+                    null,
+                    Modifier
+                        .size(32.dp)
+                        .then(if (banned) Modifier.crossedOut() else Modifier)
+                        .alpha(if (banned) 0.45f else 1f),
+                    framed = false,
+                )
+                Spacer(Modifier.width(Spacing.xs))
+                TeamMark(team, markSize = 10.dp)
                 Spacer(Modifier.width(2.dp))
-            } else {
-                Text(teamGlyph(team), color = color, style = MaterialTheme.typography.labelMedium)
-                Spacer(Modifier.width(2.dp))
+                if (banned) {
+                    Icon(Icons.Filled.Block, contentDescription = null, tint = color, modifier = Modifier.size(14.dp))
+                    Spacer(Modifier.width(2.dp))
+                }
+                Text(
+                    hero.name,
+                    style = MaterialTheme.typography.labelLarge,
+                    textDecoration = if (banned) TextDecoration.LineThrough else null,
+                    color = with(MaterialTheme.colorScheme) { if (banned) onSurfaceVariant else onSurface },
+                    maxLines = 1,
+                )
             }
-            Text(
-                hero.name,
-                style = MaterialTheme.typography.labelLarge,
-                textDecoration = if (banned) TextDecoration.LineThrough else null,
-                color = if (banned) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onSurface,
-                maxLines = 1,
-            )
         }
     }
 }
@@ -670,21 +682,19 @@ private fun StepBanner(
     modifier: Modifier = Modifier,
 ) {
     val step = session.currentStep ?: return
-    val color = teamColor(step.team)
     val reduced = rememberReducedMotion()
-    Surface(
-        shape = MaterialTheme.shapes.large,
-        color = color.copy(alpha = 0.14f),
-        border = BorderStroke(2.dp, color),
-        modifier = modifier.fillMaxWidth().semantics(mergeDescendants = true) {
-            liveRegion = LiveRegionMode.Polite
-        },
+    // A slate plate edged in the team's colour, the step on its title plate, the team's mark beside it.
+    GoaPlate(
+        modifier
+            .fillMaxWidth()
+            .plateEdge(teamColor(step.team))
+            .semantics(mergeDescendants = true) { liveRegion = LiveRegionMode.Polite },
+        contentPadding = PaddingValues(0.dp),
     ) {
-        Row(
-            Modifier.padding(horizontal = Spacing.lg, vertical = if (compact) Spacing.sm else Spacing.md),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Column(Modifier.weight(1f)) {
+        Column(Modifier.padding(horizontal = Spacing.md, vertical = if (compact) Spacing.xs else Spacing.sm)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                TeamMark(step.team, markSize = if (compact) 20.dp else 26.dp)
+                Spacer(Modifier.width(Spacing.sm))
                 AnimatedContent(
                     targetState = DraftBoardText.bannerTitle(session).orEmpty(),
                     transitionSpec = {
@@ -692,24 +702,28 @@ private fun StepBanner(
                         (fadeIn(tween(d)) + slideInVertically(tween(d)) { it / 3 }) togetherWith fadeOut(tween(d))
                     },
                     label = "banner",
+                    modifier = Modifier.weight(1f),
                 ) { text ->
-                    val typography = MaterialTheme.typography
-                    Text(
+                    TitlePlate(
                         text,
-                        style = if (compact) typography.titleLarge else typography.headlineSmall,
-                        color = color,
-                        fontWeight = FontWeight.Bold,
+                        style = if (compact) GoaTextStyles.plateTitle else STEP_STYLE,
+                        heading = false,
+                        modifier = Modifier.fillMaxWidth(),
                     )
                 }
+            }
+            Spacer(Modifier.height(Spacing.xs))
+            Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
                     DraftBoardText.bannerDetail(session, playerName).orEmpty(),
                     style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    modifier = Modifier.weight(1f),
                 )
-            }
-            if (remaining != null) {
-                Spacer(Modifier.width(Spacing.sm))
-                StepClock(remaining)
+                if (remaining != null) {
+                    Spacer(Modifier.width(Spacing.sm))
+                    StepClock(remaining)
+                }
             }
         }
     }
@@ -721,12 +735,12 @@ private fun StepClock(remaining: Int) {
     val text = DraftBoardText.stepClock(remaining)
     Box(
         Modifier
-            .clip(RoundedCornerShape(12.dp))
-            .background(MaterialTheme.colorScheme.surface)
+            .clip(RoundedCornerShape(7.dp))
+            .background(CLOCK_FACE)
             .border(
                 1.dp,
                 if (over) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.secondary,
-                RoundedCornerShape(12.dp),
+                RoundedCornerShape(7.dp),
             )
             .padding(horizontal = Spacing.md, vertical = Spacing.sm)
             .semantics {
@@ -735,7 +749,7 @@ private fun StepClock(remaining: Int) {
     ) {
         Text(
             text,
-            style = MaterialTheme.typography.titleLarge.copy(fontFamily = FontFamily.Monospace),
+            style = GoaTextStyles.timerDigitsSmall.copy(fontSize = 22.sp, lineHeight = 28.sp),
             color = if (over) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.secondary,
         )
     }
@@ -743,11 +757,7 @@ private fun StepClock(remaining: Int) {
 
 @Composable
 private fun PoolEditBanner(session: DraftSession, actions: BoardActions) {
-    Surface(
-        shape = MaterialTheme.shapes.medium,
-        color = MaterialTheme.colorScheme.secondary.copy(alpha = 0.10f),
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.secondary.copy(alpha = 0.5f)),
-    ) {
+    GoaPlate(Modifier.fillMaxWidth(), contentPadding = PaddingValues(0.dp)) {
         Row(Modifier.fillMaxWidth().padding(Spacing.md), verticalAlignment = Alignment.CenterVertically) {
             Column(Modifier.weight(1f)) {
                 Text("Pool of ${session.pool.size} dealt", style = MaterialTheme.typography.titleSmall)
@@ -792,7 +802,6 @@ private fun TeamColumn(
     concealed: Set<String>,
     modifier: Modifier,
 ) {
-    val color = teamColor(team)
     val onClock = session.currentStep?.team
     val active = onClock == team
     // Only the team on the clock may peek at its own concealed choices: the pass-the-phone gate
@@ -804,17 +813,18 @@ private fun TeamColumn(
     val covered = picks.mapNotNull { it.heroId?.takeIf { id -> id !in concealed } }
         .flatMap { state.heroes.info(it).roles }
         .toSet()
-    Surface(
-        modifier = modifier,
-        shape = MaterialTheme.shapes.medium,
-        color = MaterialTheme.colorScheme.surface,
-        border = BorderStroke(if (active) 2.dp else 1.dp, if (active) color else GoaTheme.colors.engravedBorder),
+    GoaPlate(
+        modifier.plateEdge(if (active) teamColor(team) else null),
+        contentPadding = PaddingValues(0.dp),
     ) {
+        val color = teamColor(team)
         Column(Modifier.padding(Spacing.sm), verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
+                TeamMark(team, markSize = 14.dp)
+                Spacer(Modifier.width(Spacing.xs))
                 Text(
-                    teamLabel(team),
-                    style = MaterialTheme.typography.titleSmall,
+                    teamName(team),
+                    style = GoaTextStyles.sectionHead,
                     color = color,
                     modifier = Modifier.weight(1f),
                 )
@@ -907,24 +917,24 @@ internal fun PilotLine(team: Team, text: String) {
 @Composable
 private fun BanChip(team: Team, name: String, hidden: Boolean, canPeek: Boolean) {
     val color = teamColor(team)
-    Surface(
-        shape = RoundedCornerShape(6.dp),
-        color = Color.Transparent,
-        border = BorderStroke(1.dp, color.copy(alpha = 0.6f)),
+    Row(
+        Modifier
+            .border(1.dp, color.copy(alpha = 0.6f), RoundedCornerShape(6.dp))
+            .padding(horizontal = 6.dp, vertical = 2.dp),
+        verticalAlignment = Alignment.CenterVertically,
     ) {
-        Row(Modifier.padding(horizontal = 6.dp, vertical = 2.dp), verticalAlignment = Alignment.CenterVertically) {
-            Icon(Icons.Filled.Block, contentDescription = null, tint = color, modifier = Modifier.size(12.dp))
-            Spacer(Modifier.width(Spacing.xs))
-            if (hidden) {
-                HiddenChoice("Hidden ban", name, canPeek, small = true)
-            } else {
-                Text(
-                    name,
-                    style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.onSurface,
-                    modifier = Modifier.semantics { contentDescription = "Banned: $name" },
-                )
-            }
+        Icon(Icons.Filled.Block, contentDescription = null, tint = color, modifier = Modifier.size(12.dp))
+        Spacer(Modifier.width(Spacing.xs))
+        if (hidden) {
+            HiddenChoice("Hidden ban", name, canPeek, small = true)
+        } else {
+            Text(
+                name,
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurface,
+                textDecoration = TextDecoration.LineThrough,
+                modifier = Modifier.semantics { contentDescription = "Banned: $name" },
+            )
         }
     }
 }
@@ -1054,12 +1064,11 @@ private fun PrivacyGate(session: DraftSession, actions: BoardActions) {
             Icon(Icons.Outlined.Lock, contentDescription = null, tint = color, modifier = Modifier.size(44.dp))
         }
         Spacer(Modifier.height(Spacing.xl))
-        Text(
+        TitlePlate(
             "Pass the phone to ${teamLabel(step.team)}",
-            style = MaterialTheme.typography.headlineSmall,
-            color = color,
-            textAlign = TextAlign.Center,
-            modifier = Modifier.semantics { heading() },
+            Modifier.fillMaxWidth(),
+            style = STEP_STYLE,
+            maxLines = 3,
         )
         Spacer(Modifier.height(Spacing.sm))
         Text(
@@ -1079,6 +1088,9 @@ private fun PrivacyGate(session: DraftSession, actions: BoardActions) {
         ) { Text("I'm ${teamName(step.team)} — show the board") }
     }
 }
+
+private val STEP_STYLE = GoaTextStyles.plateTitle.copy(fontSize = 19.sp, lineHeight = 24.sp)
+private val CLOCK_FACE = Color(0xFF060C12)
 
 private const val LARGE_FONT = 1.5f
 private const val DISABLED_ALPHA = 0.3f

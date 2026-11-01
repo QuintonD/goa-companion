@@ -45,8 +45,32 @@ fun TeamBadge(team: Team, showLabel: Boolean = true, extraClass: String? = null)
         extraClass?.let { classes(it) }
         if (!showLabel) attr("aria-label", teamName(team))
     }) {
-        Span({ attr("aria-hidden", "true") }) { Text(teamGlyph(team)) }
+        TeamMark(team)
         if (showLabel) Text(" ${teamName(team)}")
+    }
+}
+
+/**
+ * The team's mark: Red's gear or Blue's star, the rulebook's own (ADR-053). Shape as well as colour, so
+ * team is never colour alone; the old diamond and disc stand in if the image fails. Decorative.
+ */
+@Composable
+fun TeamMark(team: Team, extraClass: String? = null) {
+    var failed by remember(team) { mutableStateOf(false) }
+    Span({
+        classes("goa-team-mark")
+        extraClass?.let { classes(it) }
+        attr("aria-hidden", "true")
+    }) {
+        if (failed) {
+            Text(teamGlyph(team))
+        } else {
+            Img("official/board/spawn-hero-${teamClass(team)}.webp", "") {
+                attr("decoding", "async")
+                attr("draggable", "false")
+                addEventListener("error") { failed = true }
+            }
+        }
     }
 }
 
@@ -130,7 +154,7 @@ fun TeamChip(team: Team, label: String, selected: Boolean, onClick: () -> Unit) 
         onClick { onClick() }
     }) {
         if (selected) Icon("check", IconSize.SMALL)
-        Span({ attr("aria-hidden", "true") }) { Text(teamGlyph(team)) }
+        TeamMark(team)
         Text(" $label")
     }
 }
@@ -203,7 +227,7 @@ fun SectionCard(
         Div({ classes("goa-table-section-head") }) {
             Div({ classes("goa-table-row-text") }) {
                 H3({
-                    classes("t-title-medium", "goa-table-section-title")
+                    classes("goa-look-head", "goa-table-section-title")
                     titleClass?.let { classes(it) }
                 }) { Text(title) }
                 subtitle?.let { P({ classes("t-body-small", "c-variant") }) { Text(it) } }

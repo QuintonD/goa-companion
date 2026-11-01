@@ -1,12 +1,12 @@
 package dev.quinton.goa.feature.timer.ui.presets
 
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -26,6 +26,7 @@ import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.Timer
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.AssistChipDefaults
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.FilterChip
@@ -34,7 +35,6 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -55,7 +55,9 @@ import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import dev.quinton.goa.core.designsystem.component.GoaPlate
 import dev.quinton.goa.core.designsystem.component.GoaScreen
+import dev.quinton.goa.core.designsystem.component.SectionHeader
 import dev.quinton.goa.core.designsystem.theme.GoaTheme
 import dev.quinton.goa.core.designsystem.theme.Spacing
 import dev.quinton.goa.core.domain.setup.EndOfRoundStep
@@ -65,9 +67,10 @@ import dev.quinton.goa.core.domain.timer.PhaseSpec
 import dev.quinton.goa.core.domain.timer.PresetIssue
 import dev.quinton.goa.core.domain.timer.TimerPresetValidator
 import dev.quinton.goa.feature.timer.TimerText
+import dev.quinton.goa.feature.timer.ui.components.PlateError
 import dev.quinton.goa.feature.timer.ui.components.goaChipBorder
 import dev.quinton.goa.feature.timer.ui.components.goaChipColors
-import dev.quinton.goa.feature.timer.ui.timer.SectionHeader
+import dev.quinton.goa.feature.timer.ui.components.plateEdge
 import dev.quinton.goa.feature.timer.ui.timer.Stepper
 
 data class PresetEditActions(
@@ -128,7 +131,17 @@ fun PresetEditScreen(state: PresetEditUiState, actions: PresetEditActions) {
     GoaScreen(
         title = if (state.isNew) "New preset" else "Edit preset",
         onBack = actions.onBack,
-        actions = { TextButton(onClick = actions.onSave, enabled = state.preset != null) { Text("Save") } },
+        actions = {
+            // On the banner: the banner's ink, not bronze on steel.
+            TextButton(
+                onClick = actions.onSave,
+                enabled = state.preset != null,
+                colors = ButtonDefaults.textButtonColors(
+                    contentColor = GoaTheme.colors.onBanner,
+                    disabledContentColor = GoaTheme.colors.onBannerVariant.copy(alpha = 0.6f),
+                ),
+            ) { Text("Save") }
+        },
     ) { padding ->
         val preset = state.preset ?: return@GoaScreen
         Column(
@@ -140,22 +153,25 @@ fun PresetEditScreen(state: PresetEditUiState, actions: PresetEditActions) {
             // A new preset starts blank: only flag the name once the user tries to save.
             val nameError = state.issuesFor(null).any { it.kind == PresetIssue.Kind.BLANK_NAME } &&
                 (state.showIssues || !state.isNew)
-            OutlinedTextField(
-                value = preset.name,
-                onValueChange = actions.onRename,
-                label = { Text("Preset name") },
-                placeholder = { Text("e.g. Fast game") },
-                singleLine = true,
-                isError = nameError,
-                supportingText = if (nameError) ({ Text("Give the preset a name") }) else null,
-                modifier = Modifier.fillMaxWidth().padding(top = Spacing.sm),
-            )
-            ToggleRow(
-                title = "Auto-advance",
-                subtitle = "Move on when a timed phase hits zero. Off: overtime counts up until you tap Next.",
-                checked = preset.autoAdvance,
-                onChange = actions.onAutoAdvance,
-            )
+            GoaPlate(Modifier.fillMaxWidth().padding(top = Spacing.sm)) {
+                OutlinedTextField(
+                    value = preset.name,
+                    onValueChange = actions.onRename,
+                    label = { Text("Preset name") },
+                    placeholder = { Text("e.g. Fast game") },
+                    singleLine = true,
+                    isError = nameError,
+                    supportingText = if (nameError) ({ Text("Give the preset a name") }) else null,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+                Spacer(Modifier.height(Spacing.sm))
+                ToggleRow(
+                    title = "Auto-advance",
+                    subtitle = "Move on when a timed phase hits zero. Off: overtime counts up until you tap Next.",
+                    checked = preset.autoAdvance,
+                    onChange = actions.onAutoAdvance,
+                )
+            }
             if (state.showIssues && state.issues.isNotEmpty()) {
                 Text(
                     "Fix the highlighted items to save.",
@@ -235,43 +251,45 @@ private fun TableRulesSection(
         style = MaterialTheme.typography.bodySmall,
         color = colors.onSurfaceVariant,
     )
-    RuleRow(
-        title = "Hurry up",
-        subtitle = "On-demand countdown for a slow decision, in any phase or in overtime.",
-        value = preset.shotClockSeconds?.let { TimerText.durationLabel(it) } ?: "Off",
-        onClick = { onEditDuration(RuleDuration.SHOT_CLOCK) },
-    )
-    Row(Modifier.fillMaxWidth().heightIn(min = 56.dp), verticalAlignment = Alignment.CenterVertically) {
-        Column(Modifier.weight(1f).padding(end = Spacing.md)) {
-            Text("Time-outs per team per round", style = MaterialTheme.typography.titleSmall)
-            Text(
-                "Each adds time to the current phase. 0 = off.",
-                style = MaterialTheme.typography.bodySmall,
-                color = colors.onSurfaceVariant,
+    GoaPlate(Modifier.fillMaxWidth(), contentPadding = PaddingValues(horizontal = Spacing.md, vertical = Spacing.sm)) {
+        RuleRow(
+            title = "Hurry up",
+            subtitle = "On-demand countdown for a slow decision, in any phase or in overtime.",
+            value = preset.shotClockSeconds?.let { TimerText.durationLabel(it) } ?: "Off",
+            onClick = { onEditDuration(RuleDuration.SHOT_CLOCK) },
+        )
+        Row(Modifier.fillMaxWidth().heightIn(min = 56.dp), verticalAlignment = Alignment.CenterVertically) {
+            Column(Modifier.weight(1f).padding(end = Spacing.md)) {
+                Text("Time-outs per team per round", style = MaterialTheme.typography.titleSmall)
+                Text(
+                    "Each adds time to the current phase. 0 = off.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+            Stepper(
+                value = preset.timeOutsPerRound,
+                range = TimerPresetValidator.TIME_OUTS_RANGE,
+                onChange = actions.onTimeOuts,
+                label = "time-outs",
             )
         }
-        Stepper(
-            value = preset.timeOutsPerRound,
-            range = TimerPresetValidator.TIME_OUTS_RANGE,
-            onChange = actions.onTimeOuts,
-            label = "time-outs",
+        if (preset.timeOutsPerRound > 0) {
+            RuleRow(
+                title = "Time-out length",
+                subtitle = "Added to the current phase.",
+                value = "+" + TimerText.durationLabel(preset.timeOutSeconds),
+                onClick = { onEditDuration(RuleDuration.TIME_OUT) },
+            )
+        }
+        ToggleRow(
+            title = "Volume keys control the timer",
+            subtitle = "While the timer shows: volume up = Next, volume down = Pause/Resume. Works with most " +
+                "Bluetooth camera shutters. The keys won't change the volume then.",
+            checked = preset.volumeKeys,
+            onChange = actions.onVolumeKeys,
         )
     }
-    if (preset.timeOutsPerRound > 0) {
-        RuleRow(
-            title = "Time-out length",
-            subtitle = "Added to the current phase.",
-            value = "+" + TimerText.durationLabel(preset.timeOutSeconds),
-            onClick = { onEditDuration(RuleDuration.TIME_OUT) },
-        )
-    }
-    ToggleRow(
-        title = "Volume keys control the timer",
-        subtitle = "While the timer shows: volume up = Next, volume down = Pause/Resume. Works with most " +
-            "Bluetooth camera shutters. The keys won't change the volume then.",
-        checked = preset.volumeKeys,
-        onChange = actions.onVolumeKeys,
-    )
     if (state.showIssues) {
         state.issuesFor(null).filter {
             it.kind == PresetIssue.Kind.SHOT_CLOCK_OUT_OF_RANGE || it.kind == PresetIssue.Kind.TIME_OUTS_OUT_OF_RANGE
@@ -372,14 +390,12 @@ private fun PhaseCard(
     actions: PresetEditActions,
     onEditDuration: () -> Unit,
 ) {
-    val colors = MaterialTheme.colorScheme
     val hasError = showIssues && issues.isNotEmpty()
-    Surface(
-        shape = MaterialTheme.shapes.medium,
-        color = colors.surface,
-        border = BorderStroke(1.dp, if (hasError) colors.error else GoaTheme.colors.engravedBorder),
-        modifier = Modifier.fillMaxWidth(),
+    GoaPlate(
+        Modifier.fillMaxWidth().plateEdge(if (hasError) PlateError else null, 1.dp),
+        contentPadding = PaddingValues(0.dp),
     ) {
+        val colors = MaterialTheme.colorScheme
         Column(Modifier.padding(Spacing.md)) {
             Row(
                 Modifier
@@ -392,7 +408,7 @@ private fun PhaseCard(
                 Column(Modifier.weight(1f)) {
                     Text(
                         TimerText.kindLabel(phase.kind).uppercase(),
-                        style = MaterialTheme.typography.labelSmall,
+                        style = MaterialTheme.typography.labelMedium,
                         color = colors.primary,
                     )
                 }

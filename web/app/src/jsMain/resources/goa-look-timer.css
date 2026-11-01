@@ -1,1 +1,514 @@
 /* The look round (ADR-053), stream "timer": see docs/DESIGN.md. Overrides goa.css. */
+
+/* ---------- Shared by the timer and the draft ---------- */
+/* Plates are dark in both themes: a team's colour on one is the dark theme's, or it fails its contrast. */
+.goa-plate, .goa-card, .goa-sheet, .goa-table-timer, .goa-table-radio-card, .goa-table-info-card,
+.goa-table-footer, .goa-table-running-bar, .goa-draft-banner, .goa-draft-team, .goa-draft-tile,
+.goa-draft-taken-chip, .goa-table-static-card, .goa-draft-pool-edit {
+  --team-red: #E26459;
+  --team-blue: #4F8FE0;
+}
+/* The dark tokens for what is a plate here but isn't one of the foundation's classes. */
+.goa-table-timer, .goa-table-radio-card, .goa-table-info-card, .goa-table-footer, .goa-table-running-bar,
+.goa-draft-banner, .goa-draft-team, .goa-draft-tile, .goa-draft-taken-chip, .goa-table-static-card,
+.goa-draft-pool-edit {
+  color-scheme: dark;
+  --surface: #1E2327;
+  --surface-high: #2A3136;
+  --on-surface: #E8E2D6;
+  --on-surface-variant: #B4BEC8;
+  --primary: #C9A35B;
+  --on-primary: #0B1622;
+  --primary-container: #3D3018;
+  --on-primary-container: #F0DDB0;
+  --secondary: #3FC1B0;
+  --on-secondary: #0B1622;
+  --secondary-container: #123F3B;
+  --on-secondary-container: #BDEFE7;
+  --error: #FF6B6B;
+  --on-error: #0B1622;
+  --error-container: #4D1C1C;
+  --heading: #E39B5F;
+  --outline-engraved: rgba(201, 163, 91, 0.3);
+  --engraved: rgba(201, 163, 91, 0.3);
+  color: var(--on-surface);
+}
+/* The slate plate without its corner brackets, for rows and small plates. */
+.goa-table-radio-card, .goa-table-info-card, .goa-draft-banner, .goa-draft-team, .goa-table-static-card,
+.goa-draft-pool-edit, .goa-table-round-row, .goa-table-step-detail, .goa-table-checklist-step, .goa-table-shot, .goa-table-seat,
+.goa-table-timer .goa-button.outlined, .goa-table-timer .goa-table-screen-note {
+  background: linear-gradient(rgba(0, 0, 0, 0.18), rgba(0, 0, 0, 0.18)), url("official/ui/slate.webp") center / 420px, #1D2124;
+  border: 1px solid #5D6B70;
+  box-shadow: inset 0 0 0 1px #15191B;
+}
+.goa-table-radio-card, .goa-draft-banner, .goa-draft-team, .goa-table-static-card {
+  background:
+    url("official/ui/corner-tl.webp") left 2px top 2px / 16px no-repeat,
+    url("official/ui/corner-tr.webp") right 2px top 2px / 16px no-repeat,
+    url("official/ui/corner-bl.webp") left 2px bottom 2px / 16px no-repeat,
+    url("official/ui/corner-br.webp") right 2px bottom 2px / 16px no-repeat,
+    linear-gradient(rgba(0, 0, 0, 0.18), rgba(0, 0, 0, 0.18)),
+    url("official/ui/slate.webp") center / 420px,
+    #1D2124;
+  border-radius: 8px;
+}
+/* Section heads as the rulebook sets them. */
+.goa-look-head {
+  margin: 0;
+  font: 700 1rem/1.375rem var(--font-display);
+  letter-spacing: 0.0375rem;
+  color: var(--heading);
+}
+.goa-team-mark { display: inline-flex; align-items: center; justify-content: center; width: 1.05em; height: 1.05em; flex: none; }
+.goa-team-mark img { width: 100%; height: 100%; object-fit: contain; display: block; }
+.goa-table-team { gap: 4px; }
+.goa-table-small-heading { font: 700 1rem/1.375rem var(--font-display); letter-spacing: 0.0375rem; color: var(--heading); }
+.goa-table-section-title.red { color: var(--team-red); }
+.goa-table-section-title.blue { color: var(--team-blue); }
+.goa-table-info-title { color: var(--heading); }
+
+/* ---------- The running timer (mock-up 07) ---------- */
+.goa-table-timer { position: relative; isolation: isolate; background: #0B1622; }
+/* The painted sea under a radial navy veil: the digits stay the brightest thing, a dim room stays dim. */
+.goa-table-timer::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -2;
+  background:
+    radial-gradient(ellipse at 50% 40%, rgba(11, 22, 34, 0.5) 0, rgba(11, 22, 34, 0.86) 75%),
+    url("official/ui/sea.webp") center / cover no-repeat,
+    #0B1622;
+}
+/* The rulebook's battlefield along the foot, behind the buttons. Not on the round view: its list covers it. */
+.goa-table-timer.step-view::after {
+  content: "";
+  position: absolute;
+  left: -7.3%;
+  right: -7.3%;
+  bottom: 70px;
+  height: min(61vw, 42%);
+  z-index: -1;
+  background: url("official/ui/silhouette.webp") center bottom / contain no-repeat;
+  filter: brightness(1.5);
+  pointer-events: none;
+}
+.goa-table-timer.step-view.landscape::after { bottom: 0; }
+.goa-table-timer.round-view.landscape .goa-table-timer-left { border-right: 1px solid #5D6B70; }
+.goa-table-timer-subtitle { color: var(--on-banner); text-shadow: 0 1px 2px #000; }
+/* "Round N" must never be cut, and the banner's medallion takes room: End match goes into the More menu
+   (it is there too) while the coin's Undo shows, on a small phone and at large text; then the chip keeps its mark. */
+.goa-topbar-actions:has(.goa-table-on-banner) .goa-table-end-flag { display: none; }
+@container topbar (max-width: 19rem) {
+  .goa-table-timer-header .goa-table-end-flag { display: none; }
+}
+@container topbar (max-width: 16rem) {
+  .goa-table-coin-chip .goa-table-team { font-size: 0; }
+  .goa-table-coin-chip .goa-team-mark { width: 18px; height: 18px; }
+}
+
+.goa-table-timer.portrait.step-view .goa-table-timer-scroll { justify-content: flex-start; padding-top: var(--sp-lg); }
+.goa-table-phase-chip-row { width: 100%; }
+.goa-table-previous { color: var(--on-surface); }
+.goa-table-phase-title {
+  flex: 1 1 auto;
+  min-width: 0;
+  margin: 0;
+  font-size: 1.25rem;
+  line-height: 1.5rem;
+  overflow-wrap: anywhere;
+}
+.goa-table-timer.landscape .goa-table-phase-title { font-size: 1.0625rem; line-height: 1.3rem; }
+.goa-table-context-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: var(--sp-xs) var(--sp-md);
+  text-align: center;
+}
+.goa-table-context {
+  font: 700 0.9375rem/1.25rem var(--font-display);
+  letter-spacing: 0.0375rem;
+  color: var(--on-surface);
+  text-shadow: 0 1px 3px #000;
+}
+.goa-table-hint { color: var(--on-surface); text-shadow: 0 1px 3px #000; }
+/* Bronze diamonds, filled up to the current turn; the current one larger. */
+.goa-table-pips { gap: 8px; padding-top: 0; }
+.goa-table-pip {
+  display: block;
+  width: 9px;
+  height: 9px;
+  min-width: 0;
+  padding: 0;
+  border: 1.5px solid var(--primary);
+  border-radius: 0;
+  background: none;
+  box-shadow: none;
+  font-size: 0;
+  transform: rotate(45deg);
+}
+.goa-table-pip.done { background: var(--primary); border-color: var(--primary); }
+.goa-table-pip.current { width: 12px; height: 12px; background: var(--primary); border-color: var(--primary); box-shadow: none; }
+
+/* The steel double ring around the arc, the digits on a near-black disc. */
+.goa-table-dial { --dial: min(82cqw, 54cqh, 440px); color: #F3F6F9; }
+.goa-table-dial-ring .bezel { fill: #0A1219; stroke: url(#goa-steel); stroke-width: 5; }
+.goa-table-dial-ring .disc { fill: #060C12; stroke: url(#goa-steel); stroke-width: 3; }
+.goa-table-dial-ring .track { fill: none; stroke: #17242E; stroke-width: 16; }
+.goa-table-dial-ring .arc {
+  fill: none;
+  stroke-width: 16;
+  stroke-linecap: butt;
+  transform-origin: 144.5px 144.5px;
+}
+/* The digits keep the dial's centre; the words sit above and below, so nothing jumps. */
+.goa-table-dial-face { display: block; }
+.goa-table-dial-digits {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font: 600 31cqw/1 var(--font-body);
+  font-feature-settings: "tnum", "lnum";
+  font-variant-numeric: tabular-nums lining-nums;
+  letter-spacing: 0;
+  text-shadow: 0 2px 3px #000;
+  white-space: nowrap;
+}
+.goa-table-dial-digits.medium { font-size: 25.5cqw; }
+.goa-table-dial-digits.long { font-size: 19.5cqw; }
+.goa-table-dial-paused {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 20%;
+  text-align: center;
+  font: 700 max(14px, 7.5cqw)/1 var(--font-display);
+  font-variant: small-caps;
+  color: var(--primary);
+  white-space: nowrap;
+}
+.goa-table-dial-status {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 20%;
+  text-align: center;
+  font: 600 max(11px, 4.2cqw)/1.1 var(--font-body);
+  letter-spacing: 0.04em;
+  color: var(--on-surface-variant);
+  white-space: nowrap;
+}
+
+/* Plates on the sea */
+.goa-table-step-detail { border-radius: 8px; color: var(--on-surface); }
+.goa-table-checklist-step { border-radius: 8px; }
+.goa-table-checklist-head { padding: var(--sp-sm) var(--sp-lg); }
+.goa-table-shot { border: 2px solid var(--primary); border-radius: 8px; box-shadow: none; }
+.goa-table-shot.over { border-color: var(--error); }
+.goa-table-shot-digits { font-family: var(--font-body); }
+.goa-table-round-digits { font-family: var(--font-body); }
+.goa-table-seat { border-radius: 8px; box-shadow: none; }
+.goa-table-seat.red { border-color: color-mix(in srgb, var(--team-red) 60%, transparent); }
+.goa-table-seat.blue { border-color: color-mix(in srgb, var(--team-blue) 60%, transparent); }
+.goa-table-seat.acting {
+  border: 2px solid var(--secondary);
+  background: linear-gradient(rgba(63, 193, 176, 0.16), rgba(63, 193, 176, 0.16)), url("official/ui/slate.webp") center / 420px, #1D2124;
+}
+.goa-table-timer .goa-button.outlined { border-radius: 7px; color: var(--on-surface); }
+.goa-table-timer .goa-table-screen-note { border-radius: 8px; color: var(--on-surface); }
+.goa-table-coin-chip {
+  border-color: #5D6B70;
+  background: linear-gradient(rgba(0, 0, 0, 0.18), rgba(0, 0, 0, 0.18)), url("official/ui/slate.webp") center / 420px, #1D2124;
+}
+.goa-table-coin-chip.red { color: #E26459; }
+.goa-table-coin-chip.blue { color: #7FB0EE; }
+
+/* The round view's rows: thin plates */
+.goa-table-round-list { border-top: 0; }
+.goa-table-round-group { margin: var(--sp-md) 0 var(--sp-xs) var(--sp-sm); color: var(--heading); }
+.goa-table-round-row { margin: 2px 0; border-radius: 8px; }
+.goa-table-round-row.current { background: linear-gradient(rgba(0, 0, 0, 0.18), rgba(0, 0, 0, 0.18)), url("official/ui/slate.webp") center / 420px, #1D2124; box-shadow: none; }
+.goa-table-round-row.expanded { border-radius: 8px; }
+.goa-table-round-row.expanded .goa-table-round-title .t-title-large { color: var(--heading); }
+
+/* Pause and Next: large and clear, Next filled bronze with a metal sheen */
+.goa-table-timer-controls {
+  background: linear-gradient(rgba(11, 22, 34, 0), #0B1622 45%);
+  box-shadow: none;
+  align-items: stretch;
+}
+.goa-table-pause, .goa-table-next {
+  min-height: 68px;
+  border-radius: 7px;
+  font: 600 1.0625rem/1.35rem var(--font-body);
+}
+.goa-table-pause {
+  flex: 38 1 0;
+  width: auto;
+  height: auto;
+  gap: var(--sp-xs);
+  min-width: 56px;
+  padding: var(--sp-xs);
+  color: #E8E2D6;
+  background: linear-gradient(#34424B, #222C33);
+  box-shadow: inset 0 1px rgba(255, 255, 255, 0.18), 0 0 0 1px #0E1215, 0 2px 5px rgba(0, 0, 0, 0.6);
+}
+.goa-table-next {
+  flex: 62 1 0;
+  min-width: 0;
+  color: #0B1622;
+  background: linear-gradient(#E4C47E, #C9A35B 55%, #A98744);
+  box-shadow: inset 0 1px rgba(255, 255, 255, 0.6), inset 0 -1px rgba(0, 0, 0, 0.35), 0 0 0 1px #15191B, 0 2px 5px rgba(0, 0, 0, 0.6);
+}
+.goa-table-timer.landscape .goa-table-pause, .goa-table-timer.landscape .goa-table-next { min-height: 56px; }
+/* A small phone or large text: Pause is its icon alone, leaving the width to Next's words. (A container
+   query's rem follows the root's size, so this answers to the text size as well as to the width.) */
+.goa-table-timer-controls { container-type: inline-size; }
+@container (max-width: 16rem) {
+  .goa-table-pause { flex: 0 0 68px; }
+  .goa-table-pause-word { display: none; }
+}
+.goa-table-timer-title { container-type: inline-size; }
+@container (max-width: 11rem) {
+  .goa-table-timer-preset { display: none; }
+}
+
+/* The bronze primary action on the timer's and the draft's plates */
+.goa-table-ready .goa-button.filled, .goa-table-summary .goa-button.filled, .goa-table-footer .goa-button.filled {
+  border-radius: 7px;
+  color: #0B1622;
+  background: linear-gradient(#E4C47E, #C9A35B 55%, #A98744);
+  box-shadow: inset 0 1px rgba(255, 255, 255, 0.6), inset 0 -1px rgba(0, 0, 0, 0.35), 0 0 0 1px #15191B;
+}
+.goa-table-ready .goa-button.filled:disabled, .goa-table-footer .goa-button.filled:disabled {
+  color: rgba(232, 226, 214, 0.5);
+  background: #222C33;
+  box-shadow: none;
+}
+
+/* ---------- Timer start, setup, presets ---------- */
+.goa-table-ready .goa-title-plate { margin: 0; }
+.goa-table-ready .goa-button { border-radius: 7px; }
+.goa-table-radio-card { border-color: #5D6B70; background-color: #1D2124; }
+.goa-table-radio-card[aria-checked="true"] {
+  border: 2px solid var(--secondary);
+  background:
+    url("official/ui/corner-tl.webp") left 2px top 2px / 16px no-repeat,
+    url("official/ui/corner-tr.webp") right 2px top 2px / 16px no-repeat,
+    url("official/ui/corner-bl.webp") left 2px bottom 2px / 16px no-repeat,
+    url("official/ui/corner-br.webp") right 2px bottom 2px / 16px no-repeat,
+    linear-gradient(rgba(0, 0, 0, 0.18), rgba(0, 0, 0, 0.18)),
+    url("official/ui/slate.webp") center / 420px,
+    #1D2124;
+}
+.goa-table-info-card { border-radius: 8px; }
+.goa-table-summary-title { align-self: stretch; margin: 0; }
+.goa-table-summary-time { font-family: var(--font-body); }
+/* The bar pinned under a screen's content, on the dark plate */
+.goa-table-footer {
+  background: linear-gradient(rgba(0, 0, 0, 0.18), rgba(0, 0, 0, 0.18)), url("official/ui/slate.webp") center / 420px, #1D2124;
+  box-shadow: 0 -1px 0 #5D6B70, 0 -8px 16px rgba(0, 0, 0, 0.12);
+}
+/* The official counters (the ×N beside them says the number whatever the art does). */
+.goa-table-token.official {
+  width: 26px;
+  height: 26px;
+  background-color: transparent;
+  background-size: contain;
+  background-position: center;
+  background-repeat: no-repeat;
+  border: 0;
+  border-radius: 0;
+  clip-path: none;
+  opacity: 1;
+}
+.goa-table-tokens { gap: 4px; }
+
+/* The "timer running" bar over other screens */
+.goa-table-running-bar {
+  background: linear-gradient(rgba(0, 0, 0, 0.18), rgba(0, 0, 0, 0.18)), url("official/ui/slate.webp") center / 420px, #1D2124;
+  border-top: 1px solid #5D6B70;
+}
+.goa-table-running-clock { font-family: var(--font-body); }
+
+/* ---------- The draft ---------- */
+/* The step: a slate plate edged in the team's colour, the step on its title plate. */
+.goa-draft-banner { display: flex; flex-direction: column; align-items: stretch; gap: var(--sp-xs); padding: var(--sp-sm) var(--sp-md); border: 2px solid var(--primary); box-shadow: none; }
+.goa-draft-banner.red { border-color: var(--team-red); background-color: #1D2124; }
+.goa-draft-banner.blue { border-color: var(--team-blue); background-color: #1D2124; }
+.goa-draft-banner.tall .goa-table-row-text { display: flex; flex-direction: column; gap: var(--sp-xs); }
+.goa-draft-banner-plate { display: flex; align-items: center; gap: var(--sp-sm); }
+.goa-draft-banner-plate .goa-team-mark { width: 30px; height: 30px; }
+.goa-draft-banner-detail { display: flex; align-items: center; gap: var(--sp-sm); }
+.goa-draft-banner-detail > p { flex: 1; min-width: 0; color: var(--on-surface); }
+.goa-draft-banner-title, .goa-draft-banner.red .goa-draft-banner-title, .goa-draft-banner.blue .goa-draft-banner-title, .goa-draft-banner.neutral .goa-draft-banner-title {
+  flex: 1;
+  min-width: 0;
+  font: 700 1.1875rem/1.5rem var(--font-display);
+  font-variant: small-caps;
+  color: var(--on-parchment);
+}
+.goa-draft-step-clock {
+  border-radius: 7px;
+  background: #060C12;
+  color: var(--secondary);
+  border-color: var(--secondary);
+  font-family: var(--font-body);
+}
+.goa-draft-step-clock.over { color: var(--error); border-color: var(--error); }
+
+.goa-draft-pool-edit { border-radius: 8px; }
+.goa-draft-pool-header > :first-child .t-title-medium, .goa-draft-pool-header .goa-table-heading-row > :first-child {
+  font: 700 1rem/1.375rem var(--font-display);
+  letter-spacing: 0.0375rem;
+  color: var(--heading);
+}
+.goa-draft-pilot-mark { margin-right: 3px; vertical-align: -2px; }
+
+/* Team columns: plates with the team's official mark and colour */
+.goa-draft-team { border-color: #5D6B70; }
+.goa-draft-team.active.red { border: 2px solid var(--team-red); }
+.goa-draft-team.active.blue { border: 2px solid var(--team-blue); }
+.goa-draft-team-head, .goa-draft-result-head {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-xs);
+  font: 700 1rem/1.375rem var(--font-display);
+  letter-spacing: 0.0375rem;
+}
+.goa-draft-result-head { font-size: 1.25rem; line-height: 1.625rem; }
+.goa-draft-ban .t-label-medium { text-decoration: line-through; }
+
+/* Pool tiles: like the Heroes grid, in small. Flat, not slate: a full roster stays cheap to scroll. */
+.goa-draft-grid { grid-template-columns: repeat(auto-fill, minmax(68px, 1fr)); }
+.goa-draft-grid.wide { grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); }
+.goa-sheet-body .goa-draft-grid { grid-template-columns: repeat(auto-fill, minmax(84px, 1fr)); }
+.goa-draft-tile {
+  gap: 3px;
+  padding: 3px;
+  border: 1px solid #5D6B70;
+  border-radius: 6px;
+  background: #1D2124;
+}
+.goa-draft-tile:active { background: #2A3136; }
+.goa-draft-tile.selected { border: 2px solid var(--secondary); padding: 2px; }
+.goa-draft-tile.picked.red { border: 2px solid var(--team-red); padding: 2px; }
+.goa-draft-tile.picked.blue { border: 2px solid var(--team-blue); padding: 2px; }
+.goa-draft-tile-art .goa-table-art { border: 0; border-radius: 3px; }
+.goa-draft-tile.selected .goa-table-art, .goa-draft-tile.picked.red .goa-table-art, .goa-draft-tile.picked.blue .goa-table-art { border: 0; }
+.goa-draft-tile-symbol {
+  position: absolute;
+  left: 2px;
+  top: 2px;
+  width: 32%;
+  aspect-ratio: 1;
+  object-fit: contain;
+  filter: drop-shadow(0 1px 1px #000);
+  pointer-events: none;
+}
+.goa-draft-tile.inactive .goa-draft-tile-symbol { opacity: 0.45; }
+.goa-draft-tile.banned .goa-draft-tile-symbol { opacity: 0.38; }
+.goa-draft-tile.picked .goa-draft-tile-symbol { opacity: 0.6; }
+.goa-draft-tile-check {
+  position: absolute;
+  right: 2px;
+  top: 2px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--secondary);
+  color: var(--on-secondary);
+}
+.goa-draft-tile-check .goa-icon { width: 14px; height: 14px; }
+/* Crossed out as well as dimmed: never colour alone. */
+.goa-draft-tile.banned .goa-table-art::after {
+  content: "";
+  position: absolute;
+  inset: 8%;
+  left: 8%;
+  right: 8%;
+  top: 8%;
+  height: auto;
+  border-radius: 0;
+  transform: none;
+  background:
+    linear-gradient(to top right, transparent calc(50% - 2px), #FF6B6B calc(50% - 2px), #FF6B6B calc(50% + 2px), transparent calc(50% + 2px)),
+    linear-gradient(to bottom right, transparent calc(50% - 2px), #FF6B6B calc(50% - 2px), #FF6B6B calc(50% + 2px), transparent calc(50% + 2px));
+  filter: drop-shadow(0 0 1px #060C12) drop-shadow(0 0 1px #060C12);
+}
+.goa-draft-tile-state {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  bottom: 2px;
+  padding: 0 var(--sp-xs);
+  max-width: calc(100% - 4px);
+  overflow: hidden;
+  color: var(--on-surface);
+  background: rgba(6, 12, 18, 0.9);
+}
+.goa-draft-tile-state.red, .goa-draft-tile-state.blue { color: var(--on-surface); }
+.goa-draft-tile-state.red { border-color: var(--team-red); }
+.goa-draft-tile-state.blue { border-color: var(--team-blue); }
+.goa-draft-tile-state .goa-icon { width: 11px; height: 11px; }
+.goa-draft-tile-state.red .goa-icon { color: var(--team-red); }
+.goa-draft-tile-state.blue .goa-icon { color: var(--team-blue); }
+/* The name on a parchment plate while the hero is in play. */
+.goa-draft-tile-name {
+  padding: 2px 1px;
+  border-radius: 3px;
+  background: var(--parchment, #D9D2C1);
+  color: var(--on-parchment);
+  font: 700 0.875rem/1.125rem var(--font-display);
+  font-variant: small-caps;
+}
+.goa-draft-tile.compact .goa-draft-tile-name { font-size: 0.6875rem; line-height: 0.9375rem; }
+.goa-draft-tile.compact .goa-draft-tile-name.long { font-size: 0.59375rem; }
+.goa-draft-tile.picked .goa-draft-tile-name { color: var(--on-parchment); }
+.goa-draft-tile.inactive .goa-draft-tile-name, .goa-draft-tile.banned .goa-draft-tile-name { background: none; color: var(--on-surface-variant); }
+
+/* Banned and picked heroes as small chips */
+.goa-draft-taken-chip { border-radius: 6px; background: #1D2124; }
+.goa-draft-taken-art { border-radius: 3px; }
+.goa-draft-taken-chip.banned .goa-draft-taken-art { position: relative; }
+.goa-draft-taken-chip.banned .goa-draft-taken-art::after {
+  content: "";
+  position: absolute;
+  inset: 4px;
+  background:
+    linear-gradient(to top right, transparent calc(50% - 1.5px), #FF6B6B calc(50% - 1.5px), #FF6B6B calc(50% + 1.5px), transparent calc(50% + 1.5px)),
+    linear-gradient(to bottom right, transparent calc(50% - 1.5px), #FF6B6B calc(50% - 1.5px), #FF6B6B calc(50% + 1.5px), transparent calc(50% + 1.5px));
+}
+
+/* Completed draft, the phone-passing gate, the peek */
+.goa-draft-complete-title { align-self: stretch; margin: 0; }
+.goa-draft-seat-row { border-radius: 6px; border-color: var(--engraved); background: none; }
+.goa-draft-seat-row.selected { background: rgba(63, 193, 176, 0.14); }
+.goa-draft-seat-hero { font: 700 1.0625rem/1.3125rem var(--font-display); font-variant: small-caps; }
+.goa-draft-peek-title { font: italic 400 1rem/1.25rem var(--font-printed); color: var(--on-surface); }
+.goa-draft-result-art { border-radius: 3px; }
+.goa-draft-privacy-title { align-self: stretch; margin: 0; font-size: 1.1875rem; line-height: 1.5rem; }
+.goa-draft-peek-portrait { position: relative; flex: none; display: block; }
+.goa-draft-peek-portrait .goa-draft-symbol { position: absolute; left: 2px; top: 2px; width: 28px; height: 28px; filter: drop-shadow(0 1px 1px #000); }
+/* The peek's and the hero chooser's titles on the cards' title plate, as on the phone. */
+.goa-sheet:has(.goa-draft-peek-head) .goa-sheet-header h2, .goa-sheet:has(.goa-draft-grid) .goa-sheet-header h2 {
+  flex: 1;
+  box-sizing: border-box;
+  min-width: 0;
+  margin: 0;
+  min-height: 34px;
+  border-style: solid;
+  border-width: 7px 25px 7px 12px;
+  border-image: url("official/ui/title-plate.webp") 7 36 7 16 fill stretch;
+  color: var(--on-parchment);
+  font: 700 1.0625rem/1.2 var(--font-display);
+  font-variant: small-caps;
+  text-align: center;
+}

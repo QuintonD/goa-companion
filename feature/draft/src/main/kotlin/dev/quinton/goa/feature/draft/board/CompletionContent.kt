@@ -17,10 +17,10 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.EventNote
 import androidx.compose.material.icons.outlined.Casino
-import androidx.compose.material.icons.outlined.CheckCircle
 import androidx.compose.material.icons.outlined.Hexagon
 import androidx.compose.material.icons.outlined.Timer
 import androidx.compose.material3.Button
@@ -33,28 +33,35 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
-import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
+import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import dev.quinton.goa.core.designsystem.component.EngravedRule
+import androidx.compose.ui.unit.sp
+import dev.quinton.goa.core.designsystem.component.GoaPlate
 import dev.quinton.goa.core.designsystem.component.HeroPortrait
+import dev.quinton.goa.core.designsystem.component.HeroSymbol
 import dev.quinton.goa.core.designsystem.component.PlayerAvatar
 import dev.quinton.goa.core.designsystem.component.TeamMark
+import dev.quinton.goa.core.designsystem.component.TitlePlate
 import dev.quinton.goa.core.designsystem.component.teamColor
+import dev.quinton.goa.core.designsystem.theme.GoaTextStyles
 import dev.quinton.goa.core.designsystem.theme.GoaTheme
 import dev.quinton.goa.core.designsystem.theme.Spacing
 import dev.quinton.goa.core.domain.draft.DraftEngine
 import dev.quinton.goa.core.domain.draft.DraftSession
 import dev.quinton.goa.core.domain.draft.SeatAssignment
 import dev.quinton.goa.core.model.match.Team
+import dev.quinton.goa.feature.draft.ui.PlateBar
 import dev.quinton.goa.feature.draft.ui.goaFilterChipColors
 import dev.quinton.goa.feature.draft.ui.info
-import dev.quinton.goa.feature.draft.ui.teamLabel
+import dev.quinton.goa.feature.draft.ui.plateEdge
+import dev.quinton.goa.feature.draft.ui.teamName
 
 /**
  * Finished draft: arrange heroes on seats/pilots, then save and hand off to match setup. On a
@@ -68,17 +75,14 @@ internal fun CompletionContent(state: BoardUiState, session: DraftSession, actio
         if (maxHeight >= PINNED_MIN_HEIGHT) {
             Column(Modifier.fillMaxSize()) {
                 CompletionList(state, session, actions, withActions = false, modifier = Modifier.weight(1f))
-                Surface(color = MaterialTheme.colorScheme.background) {
-                    Column {
-                        EngravedRule()
-                        CompletionActions(
-                            state,
-                            session,
-                            actions,
-                            dealAgain = false,
-                            modifier = Modifier.padding(horizontal = Spacing.screen, vertical = Spacing.sm),
-                        )
-                    }
+                PlateBar {
+                    CompletionActions(
+                        state,
+                        session,
+                        actions,
+                        dealAgain = false,
+                        modifier = Modifier.padding(horizontal = Spacing.screen, vertical = Spacing.sm),
+                    )
                 }
             }
         } else {
@@ -103,18 +107,8 @@ private fun CompletionList(
     ) {
         item {
             Column(Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
-                Icon(
-                    Icons.Outlined.CheckCircle,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.secondary,
-                    modifier = Modifier.size(48.dp),
-                )
-                Spacer(Modifier.height(Spacing.sm))
-                Text(
-                    "Draft complete",
-                    style = MaterialTheme.typography.headlineSmall,
-                    modifier = Modifier.semantics { heading() },
-                )
+                TitlePlate("Draft complete", Modifier.fillMaxWidth())
+                Spacer(Modifier.height(Spacing.xs))
                 Text(
                     DraftBoardText.completionHint(session),
                     style = MaterialTheme.typography.bodyMedium,
@@ -226,18 +220,15 @@ private fun TeamResult(
     seats: List<SeatAssignment>,
     actions: BoardActions,
 ) {
-    val color = teamColor(team)
-    Surface(
-        shape = MaterialTheme.shapes.large,
-        color = MaterialTheme.colorScheme.surface,
-        border = BorderStroke(1.dp, color.copy(alpha = 0.7f)),
-    ) {
+    GoaPlate(Modifier.fillMaxWidth().plateEdge(teamColor(team), 1.dp), contentPadding = PaddingValues(0.dp)) {
         Column(Modifier.padding(Spacing.md), verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
+                TeamMark(team, markSize = 18.dp)
+                Spacer(Modifier.width(Spacing.xs))
                 Text(
-                    teamLabel(team),
-                    style = MaterialTheme.typography.titleLarge,
-                    color = color,
+                    teamName(team),
+                    style = GoaTextStyles.sectionHead.copy(fontSize = 20.sp, lineHeight = 26.sp),
+                    color = teamColor(team),
                     modifier = Modifier.weight(1f),
                 )
                 Text(
@@ -260,14 +251,8 @@ private fun SeatRow(state: BoardUiState, assignment: SeatAssignment, swappable: 
     Surface(
         onClick = { actions.selectSeat(seat.id) },
         enabled = swappable,
-        shape = MaterialTheme.shapes.medium,
-        color = if (selected) {
-            MaterialTheme.colorScheme.secondary.copy(
-                alpha = 0.14f,
-            )
-        } else {
-            MaterialTheme.colorScheme.surfaceVariant
-        },
+        shape = RoundedCornerShape(6.dp),
+        color = if (selected) MaterialTheme.colorScheme.secondary.copy(alpha = 0.14f) else Color.Transparent,
         border = BorderStroke(
             if (selected) 2.dp else 1.dp,
             if (selected) MaterialTheme.colorScheme.secondary else GoaTheme.colors.engravedBorder,
@@ -284,17 +269,20 @@ private fun SeatRow(state: BoardUiState, assignment: SeatAssignment, swappable: 
         Row(Modifier.padding(Spacing.sm), verticalAlignment = Alignment.CenterVertically) {
             Box(Modifier.size(width = 56.dp, height = 70.dp)) {
                 if (hero != null) {
-                    HeroPortrait(hero.id, hero.portrait, null, Modifier.matchParentSize())
+                    HeroPortrait(hero.id, hero.portrait, null, Modifier.matchParentSize(), framed = false)
+                    if (hero.symbol != null) {
+                        HeroSymbol(hero.id, hero.symbol, Modifier.padding(1.dp).size(20.dp))
+                    }
                 }
             }
             Spacer(Modifier.width(Spacing.md))
             Column(Modifier.weight(1f)) {
-                Text(hero?.name ?: "Open seat", style = MaterialTheme.typography.titleMedium)
+                Text(hero?.name ?: "Open seat", style = GoaTextStyles.plateTitle)
                 if (hero != null && hero.title.isNotEmpty()) {
                     Text(
                         hero.title,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        style = GoaTextStyles.printedSmall.copy(fontStyle = FontStyle.Italic, lineHeight = 18.sp),
+                        color = MaterialTheme.colorScheme.onSurface,
                     )
                 }
                 Spacer(Modifier.height(Spacing.xs))

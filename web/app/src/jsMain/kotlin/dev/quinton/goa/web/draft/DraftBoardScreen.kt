@@ -33,6 +33,7 @@ import dev.quinton.goa.web.table.HeroArt
 import dev.quinton.goa.web.table.MenuItem
 import dev.quinton.goa.web.table.MenuSheet
 import dev.quinton.goa.web.table.SequenceStrip
+import dev.quinton.goa.web.table.TeamMark
 import dev.quinton.goa.web.table.teamClass
 import dev.quinton.goa.web.ui.AlertDialog
 import dev.quinton.goa.web.ui.ButtonKind
@@ -319,7 +320,7 @@ private fun PoolHeader(
 /** Banned and picked heroes as small chips: they stay visible but leave the grid to open heroes. */
 @Composable
 private fun TakenStrip(state: BoardUiState, taken: List<PoolTile>, onPeek: (String) -> Unit) {
-    H2({ classes("t-title-small", "c-primary", "goa-draft-subheading") }) { Text("Taken") }
+    H2({ classes("goa-look-head", "goa-draft-subheading") }) { Text("Taken") }
     Div({ classes("goa-draft-taken") }) {
         taken.forEach { tile ->
             val team = when (val s = tile.state) {
@@ -338,13 +339,8 @@ private fun TakenStrip(state: BoardUiState, taken: List<PoolTile>, onPeek: (Stri
                     onClick { onPeek(tile.heroId) }
                 }) {
                     HeroArt(hero.id, hero.portrait, hero.name, extraClass = "goa-draft-taken-art")
-                    if (banned) {
-                        Icon("block", IconSize.SMALL)
-                    } else {
-                        Span({
-                            classes("goa-table-team-text", teamClass(team))
-                        }) { Text(teamGlyph(team)) }
-                    }
+                    TeamMark(team)
+                    if (banned) Icon("block", IconSize.SMALL)
                     Span({ classes("t-label-large") }) { Text(hero.name) }
                 }
             }
@@ -359,20 +355,23 @@ private fun StepBanner(session: DraftSession, state: BoardUiState) {
         classes("goa-draft-banner", teamClass(step.team))
         attr("aria-live", "polite")
     }) {
-        Div({ classes("goa-table-row-text") }) {
+        Div({ classes("goa-draft-banner-plate") }) {
+            TeamMark(step.team)
             P({
-                classes("goa-draft-banner-title", "goa-table-tight")
+                classes("goa-title-plate", "goa-draft-banner-title", "goa-table-tight")
             }) { Text(DraftBoardText.bannerTitle(session).orEmpty()) }
-            P({
-                classes("t-body-medium", "c-variant", "goa-table-tight")
-            }) { Text(DraftBoardText.bannerDetail(session, state::playerName).orEmpty()) }
         }
-        state.local.remainingSeconds?.let { remaining ->
-            Span({
-                classes("goa-draft-step-clock", "t-numeric")
-                if (remaining < 0) classes("over")
-                attr("aria-label", DraftBoardText.spokenStepClock(remaining))
-            }) { Text(DraftBoardText.stepClock(remaining)) }
+        Div({ classes("goa-draft-banner-detail") }) {
+            P({
+                classes("t-body-medium", "goa-table-tight")
+            }) { Text(DraftBoardText.bannerDetail(session, state::playerName).orEmpty()) }
+            state.local.remainingSeconds?.let { remaining ->
+                Span({
+                    classes("goa-draft-step-clock", "t-numeric")
+                    if (remaining < 0) classes("over")
+                    attr("aria-label", DraftBoardText.spokenStepClock(remaining))
+                }) { Text(DraftBoardText.stepClock(remaining)) }
+            }
         }
     }
 }
@@ -414,7 +413,10 @@ private fun TeamColumn(state: BoardUiState, session: DraftSession, team: Team, c
         if (active) classes("active")
     }) {
         Div({ classes("goa-table-heading-row") }) {
-            Span({ classes("t-title-small", "goa-table-team-text", teamClass(team)) }) { Text(teamLabel(team)) }
+            Span({ classes("goa-draft-team-head", "goa-table-team-text", teamClass(team)) }) {
+                TeamMark(team)
+                Text(teamName(team))
+            }
             Span({
                 classes("t-label-medium", "c-variant")
                 attr("aria-label", if (team == session.teamA) "Team A" else "Team B")
@@ -459,7 +461,7 @@ private fun TeamColumn(state: BoardUiState, session: DraftSession, team: Team, c
                         }
                     }
                     Span({ classes("t-label-medium", "c-variant", "goa-table-ellipsis") }) {
-                        Span({ classes("goa-table-team-text", teamClass(team)) }) { Text(teamGlyph(team) + " ") }
+                        TeamMark(team, "goa-draft-pilot-mark")
                         Text(state.playerName(seat.pilotId) + if (seat.handicap) " · H" else "")
                     }
                 }
@@ -559,7 +561,7 @@ private fun PrivacyGate(session: DraftSession, model: DraftBoardModel) {
     val step = session.currentStep ?: return
     Div({ classes("goa-draft-privacy", teamClass(step.team)) }) {
         Span({ classes("goa-draft-privacy-mark") }) { Icon("lock", IconSize.LARGE) }
-        H2({ classes("t-headline-small", "goa-table-team-text", teamClass(step.team), "goa-table-center") }) {
+        H2({ classes("goa-title-plate", "goa-draft-privacy-title") }) {
             Text("Pass the phone to ${teamLabel(step.team)}")
         }
         P({

@@ -19,10 +19,12 @@ import dev.quinton.goa.feature.draft.ui.heroLabel
 import dev.quinton.goa.feature.draft.ui.info
 import dev.quinton.goa.feature.draft.ui.teamGlyph
 import dev.quinton.goa.feature.draft.ui.teamLabel
+import dev.quinton.goa.feature.draft.ui.teamName
 import dev.quinton.goa.web.LocalServices
 import dev.quinton.goa.web.nav.Route
 import dev.quinton.goa.web.table.HeroArt
 import dev.quinton.goa.web.table.TableFooter
+import dev.quinton.goa.web.table.TeamMark
 import dev.quinton.goa.web.table.teamClass
 import dev.quinton.goa.web.ui.AlertDialog
 import dev.quinton.goa.web.ui.BottomSheet
@@ -53,8 +55,7 @@ internal fun CompletionContent(state: BoardUiState, session: DraftSession, model
     val assignments = DraftEngine.assignments(session)
     Div({ classes("goa-table-stack", "goa-draft-completion", "goa-table-has-footer") }) {
         Div({ classes("goa-draft-complete-head") }) {
-            Span({ classes("goa-table-medallion", "teal") }) { Icon("check") }
-            H2({ classes("t-headline-small", "goa-table-tight") }) { Text("Draft complete") }
+            H2({ classes("goa-title-plate", "goa-draft-complete-title") }) { Text("Draft complete") }
             P({
                 classes("t-body-medium", "c-variant", "goa-table-center")
             }) { Text(DraftBoardText.completionHint(session)) }
@@ -119,8 +120,11 @@ private fun TeamResult(
     Div({ classes("goa-card", "goa-draft-result", teamClass(team)) }) {
         Div({ classes("goa-table-heading-row") }) {
             H2({
-                classes("t-title-large", "goa-table-tight", "goa-table-team-text", teamClass(team))
-            }) { Text(teamLabel(team)) }
+                classes("goa-draft-result-head", "goa-table-tight", "goa-table-team-text", teamClass(team))
+            }) {
+                TeamMark(team)
+                Text(teamName(team))
+            }
             Span({ classes("t-label-medium", "c-variant") }) {
                 Text(
                     if (team ==
@@ -170,17 +174,14 @@ private fun SeatRow(state: BoardUiState, assignment: SeatAssignment, swappable: 
                 Span({ classes("goa-draft-result-art") })
             }
             Span({ classes("goa-table-row-text") }) {
-                Span({ classes("t-title-medium") }) { Text(hero?.name ?: "Open seat") }
+                Span({ classes("goa-draft-seat-hero") }) { Text(hero?.name ?: "Open seat") }
                 if (hero != null &&
                     hero.title.isNotEmpty()
                 ) {
-                    Span({ classes("t-body-small", "c-variant") }) { Text(hero.title) }
+                    Span({ classes("goa-draft-peek-title") }) { Text(hero.title) }
                 }
                 Span({ classes("goa-table-inline") }) {
-                    Span({
-                        classes("goa-table-team-text", teamClass(seat.team))
-                        attr("aria-hidden", "true")
-                    }) { Text(teamGlyph(seat.team)) }
+                    TeamMark(seat.team)
                     PlayerAvatar(pilot, size = 24)
                     Span({ classes("t-label-large") }) { Text(state.playerName(seat.pilotId)) }
                 }
@@ -210,7 +211,7 @@ internal fun PlayerDraftContent(
 
             PlayerDraftPhase.CAPTAINS, PlayerDraftPhase.DONE -> {
                 CaptainTeams(state, session)
-                H2({ classes("t-title-medium", "goa-table-tight") }) { Text("Still to draft") }
+                H2({ classes("goa-look-head", "goa-table-tight") }) { Text("Still to draft") }
                 session.captains.remaining.forEach { playerId ->
                     key(playerId) { PlayerCard(state, session, playerId) { drafting = playerId } }
                 }
@@ -249,8 +250,8 @@ private fun PhaseBanner(state: BoardUiState, session: PlayerDraftSession) {
         attr("aria-live", "polite")
     }) {
         Div({ classes("goa-table-row-text") }) {
-            P({ classes("goa-draft-banner-title", "goa-table-tight") }) { Text(title) }
-            if (body.isNotEmpty()) P({ classes("t-body-medium", "c-variant", "goa-table-tight") }) { Text(body) }
+            P({ classes("goa-title-plate", "goa-draft-banner-title", "goa-table-tight") }) { Text(title) }
+            if (body.isNotEmpty()) P({ classes("t-body-medium", "goa-table-tight") }) { Text(body) }
         }
     }
 }
@@ -299,8 +300,9 @@ private fun CaptainTeams(state: BoardUiState, session: PlayerDraftSession) {
                 classes("goa-draft-team", teamClass(team))
                 if (session.captains.nextTeam == team) classes("active")
             }) {
-                Span({ classes("t-title-small", "goa-table-team-text", teamClass(team)) }) {
-                    Text(teamLabel(team) + if (team == session.teamA) " · A" else " · B")
+                Span({ classes("goa-draft-team-head", "goa-table-team-text", teamClass(team)) }) {
+                    TeamMark(team)
+                    Text(teamName(team) + if (team == session.teamA) " · A" else " · B")
                 }
                 members.forEach { id ->
                     Div({ classes("goa-draft-seat-line") }) {

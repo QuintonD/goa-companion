@@ -1,7 +1,5 @@
 package dev.quinton.goa.feature.timer.ui.timer
 
-import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -26,19 +24,14 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Remove
 import androidx.compose.material.icons.outlined.Flag
-import androidx.compose.material.icons.outlined.HourglassTop
 import androidx.compose.material.icons.outlined.Tune
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.FilledTonalIconButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.RadioButton
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -48,22 +41,29 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
-import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import dev.quinton.goa.core.designsystem.component.GoaPlate
 import dev.quinton.goa.core.designsystem.component.GoaScreen
+import dev.quinton.goa.core.designsystem.component.PlateColor
+import dev.quinton.goa.core.designsystem.component.PlateShape
+import dev.quinton.goa.core.designsystem.component.SectionHeader
 import dev.quinton.goa.core.designsystem.component.SettingsActionButton
 import dev.quinton.goa.core.designsystem.component.TeamBadge
+import dev.quinton.goa.core.designsystem.component.TitlePlate
 import dev.quinton.goa.core.designsystem.theme.GoaTheme
 import dev.quinton.goa.core.designsystem.theme.Spacing
 import dev.quinton.goa.core.model.match.Team
 import dev.quinton.goa.feature.timer.TimerText
+import dev.quinton.goa.feature.timer.ui.components.MetalButton
+import dev.quinton.goa.feature.timer.ui.components.PlateTeal
 import dev.quinton.goa.feature.timer.ui.components.goaTonalIconColors
+import dev.quinton.goa.feature.timer.ui.components.plateEdge
 import dev.quinton.goa.feature.timer.ui.components.timerDigits
 
 @Composable
@@ -97,10 +97,11 @@ internal fun TimerStart(state: StartUiState, actions: TimerActions) {
                 }
             }
             item {
-                Row(Modifier.padding(top = Spacing.md), verticalAlignment = Alignment.CenterVertically) {
-                    SectionHeader("Presets", Modifier.weight(1f), topPadding = false)
-                    TextButton(onClick = actions.onManagePresets) { Text("Manage") }
-                }
+                SectionHeader(
+                    "Presets",
+                    ribbon = PlateColor.GOLD,
+                    trailing = { TextButton(onClick = actions.onManagePresets) { Text("Manage") } },
+                )
             }
             item {
                 Column(Modifier.selectableGroup(), verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
@@ -126,81 +127,52 @@ internal fun TimerStart(state: StartUiState, actions: TimerActions) {
 
 @Composable
 private fun ReadyCard(state: StartUiState, actions: TimerActions) {
-    val colors = MaterialTheme.colorScheme
-    Card(
-        shape = MaterialTheme.shapes.large,
-        colors = CardDefaults.cardColors(containerColor = colors.surface),
-        border = BorderStroke(1.dp, GoaTheme.colors.engravedBorder),
-    ) {
-        Box(
-            Modifier
-                .fillMaxWidth()
-                .background(
-                    Brush.verticalGradient(listOf(colors.secondary.copy(alpha = 0.10f), colors.surface)),
-                ),
-        ) {
-            Column(Modifier.padding(Spacing.xl)) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Box(
-                        Modifier
-                            .size(48.dp)
-                            .background(colors.secondary.copy(alpha = 0.16f), RoundedCornerShape(16.dp)),
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        Icon(Icons.Outlined.HourglassTop, contentDescription = null, tint = colors.secondary)
-                    }
-                    Spacer(Modifier.width(Spacing.md))
-                    Column(Modifier.weight(1f)) {
-                        Text(
-                            "Phase timer",
-                            style = MaterialTheme.typography.headlineSmall,
-                            modifier = Modifier.semantics { heading() },
-                        )
-                        Text(
-                            state.selected?.name ?: "No preset",
-                            style = MaterialTheme.typography.titleSmall,
-                            color = colors.primary,
-                        )
-                    }
-                }
-                Spacer(Modifier.height(Spacing.md))
-                Text(
-                    state.selected?.summary.orEmpty(),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = colors.onSurfaceVariant,
-                )
-                state.tonight?.let { tonight ->
-                    Spacer(Modifier.height(Spacing.md))
-                    TonightTurn(tonight, actions)
-                }
-                Spacer(Modifier.height(Spacing.xl))
-                Button(
-                    onClick = actions.onStart,
-                    modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp),
-                    shape = RoundedCornerShape(16.dp),
-                ) {
-                    Icon(Icons.Filled.PlayArrow, contentDescription = null)
-                    Spacer(Modifier.width(Spacing.sm))
-                    Text("Start timer", style = MaterialTheme.typography.titleMedium)
-                }
-                Spacer(Modifier.height(Spacing.sm))
-                OutlinedButton(
-                    onClick = { actions.onOpenSetup(null) },
-                    modifier = Modifier.fillMaxWidth().heightIn(min = 52.dp),
-                    shape = RoundedCornerShape(16.dp),
-                ) {
-                    Icon(Icons.Outlined.Flag, contentDescription = null)
-                    Spacer(Modifier.width(Spacing.sm))
-                    Text("Match setup")
-                }
-                Text(
-                    "Mode, counters to lay out and the Tie Breaker coin.",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = colors.onSurfaceVariant,
-                    modifier = Modifier.padding(top = Spacing.xs).align(Alignment.CenterHorizontally),
-                )
-            }
+    GoaPlate(Modifier.fillMaxWidth(), contentPadding = PaddingValues(Spacing.lg)) {
+        val colors = MaterialTheme.colorScheme
+        TitlePlate("Phase timer", Modifier.fillMaxWidth())
+        Spacer(Modifier.height(Spacing.md))
+        Text(
+            state.selected?.name ?: "No preset",
+            style = MaterialTheme.typography.titleMedium,
+            color = colors.primary,
+        )
+        Spacer(Modifier.height(Spacing.xs))
+        Text(
+            state.selected?.summary.orEmpty(),
+            style = MaterialTheme.typography.bodyMedium,
+            color = colors.onSurfaceVariant,
+        )
+        state.tonight?.let { tonight ->
+            Spacer(Modifier.height(Spacing.md))
+            TonightTurn(tonight, actions)
         }
+        Spacer(Modifier.height(Spacing.lg))
+        MetalButton(
+            onClick = actions.onStart,
+            bronze = true,
+            modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp),
+        ) {
+            Icon(Icons.Filled.PlayArrow, contentDescription = null)
+            Spacer(Modifier.width(Spacing.sm))
+            Text("Start timer", style = MaterialTheme.typography.titleMedium)
+        }
+        Spacer(Modifier.height(Spacing.sm))
+        OutlinedButton(
+            onClick = { actions.onOpenSetup(null) },
+            modifier = Modifier.fillMaxWidth().heightIn(min = 52.dp),
+            shape = RoundedCornerShape(7.dp),
+        ) {
+            Icon(Icons.Outlined.Flag, contentDescription = null)
+            Spacer(Modifier.width(Spacing.sm))
+            Text("Match setup")
+        }
+        Text(
+            "Mode, counters to lay out and the Tie Breaker coin.",
+            style = MaterialTheme.typography.bodySmall,
+            color = colors.onSurfaceVariant,
+            textAlign = TextAlign.Center,
+            modifier = Modifier.padding(top = Spacing.xs).fillMaxWidth(),
+        )
     }
 }
 
@@ -208,10 +180,14 @@ private fun ReadyCard(state: StartUiState, actions: TimerActions) {
 @Composable
 private fun TonightTurn(tonight: TonightUi, actions: TimerActions) {
     val colors = MaterialTheme.colorScheme
-    Surface(
-        shape = MaterialTheme.shapes.medium,
-        color = colors.surface,
-        border = BorderStroke(1.dp, if (tonight.adjusted) colors.secondary else GoaTheme.colors.engravedBorder),
+    Box(
+        Modifier
+            .fillMaxWidth()
+            .plateEdge(
+                if (tonight.adjusted) colors.secondary else GoaTheme.colors.engravedBorder,
+                1.dp,
+                MaterialTheme.shapes.medium,
+            ),
     ) {
         Column(Modifier.padding(horizontal = Spacing.md, vertical = Spacing.sm)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -273,11 +249,7 @@ private fun TonightTurn(tonight: TonightUi, actions: TimerActions) {
 
 @Composable
 private fun SeatsStepper(seats: Int, onChange: (Int) -> Unit) {
-    Surface(
-        shape = MaterialTheme.shapes.medium,
-        color = MaterialTheme.colorScheme.surface,
-        border = BorderStroke(1.dp, GoaTheme.colors.engravedBorder),
-    ) {
+    GoaPlate(Modifier.fillMaxWidth(), contentPadding = PaddingValues(0.dp)) {
         Row(
             Modifier.padding(horizontal = Spacing.lg, vertical = Spacing.md),
             verticalAlignment = Alignment.CenterVertically,
@@ -334,26 +306,11 @@ internal fun Stepper(
     }
 }
 
-@Composable
-internal fun SectionHeader(text: String, modifier: Modifier = Modifier, topPadding: Boolean = true) {
-    Text(
-        text.uppercase(),
-        style = MaterialTheme.typography.labelLarge,
-        color = MaterialTheme.colorScheme.primary,
-        modifier = modifier.padding(top = if (topPadding) Spacing.md else 0.dp).semantics { heading() },
-    )
-}
-
 /** A pending match: its heroes per team and when it was set up, with Set up (the card) and Discard. */
 @Composable
 private fun PendingMatchCard(match: PendingMatchItem, onClick: () -> Unit, onDiscard: () -> Unit) {
     var confirm by rememberSaveable(match.id) { mutableStateOf(false) }
-    Card(
-        onClick = onClick,
-        shape = MaterialTheme.shapes.medium,
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        border = BorderStroke(1.dp, GoaTheme.colors.engravedBorder),
-    ) {
+    GoaPlate(Modifier.fillMaxWidth(), onClick = onClick, contentPadding = PaddingValues(0.dp)) {
         Column(Modifier.fillMaxWidth().padding(start = Spacing.lg, end = Spacing.sm, top = Spacing.md)) {
             Text(match.title, style = MaterialTheme.typography.titleSmall)
             match.red?.let { TeamHeroesLine(Team.RED, it) }
@@ -409,18 +366,15 @@ private fun TeamHeroesLine(team: Team, heroes: String) {
 
 @Composable
 private fun PresetRadioCard(preset: PresetOption, selected: Boolean, onClick: () -> Unit) {
-    val colors = MaterialTheme.colorScheme
-    Surface(
-        shape = MaterialTheme.shapes.medium,
-        color = if (selected) colors.secondary.copy(alpha = 0.10f) else colors.surface,
-        border = BorderStroke(
-            if (selected) 1.5.dp else 1.dp,
-            if (selected) colors.secondary else GoaTheme.colors.engravedBorder,
-        ),
-        modifier = Modifier
+    GoaPlate(
+        Modifier
             .fillMaxWidth()
+            .plateEdge(if (selected) PlateTeal else null)
+            .clip(PlateShape)
             .selectable(selected = selected, onClick = onClick, role = Role.RadioButton),
+        contentPadding = PaddingValues(0.dp),
     ) {
+        val colors = MaterialTheme.colorScheme
         Row(
             Modifier.heightIn(min = 64.dp).padding(horizontal = Spacing.sm, vertical = Spacing.md),
             verticalAlignment = Alignment.CenterVertically,

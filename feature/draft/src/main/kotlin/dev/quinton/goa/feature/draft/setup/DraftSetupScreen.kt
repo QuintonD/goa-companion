@@ -52,7 +52,6 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.SegmentedButton
@@ -91,11 +90,16 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dev.quinton.goa.core.designsystem.component.ConfirmDialog
 import dev.quinton.goa.core.designsystem.component.EmptyState
+import dev.quinton.goa.core.designsystem.component.GoaPlate
 import dev.quinton.goa.core.designsystem.component.GoaScreen
+import dev.quinton.goa.core.designsystem.component.GoaSheet
+import dev.quinton.goa.core.designsystem.component.PlateShape
 import dev.quinton.goa.core.designsystem.component.PlayerAvatar
 import dev.quinton.goa.core.designsystem.component.SettingsActionButton
 import dev.quinton.goa.core.designsystem.component.TeamBadge
+import dev.quinton.goa.core.designsystem.component.TitlePlate
 import dev.quinton.goa.core.designsystem.component.teamColor
+import dev.quinton.goa.core.designsystem.theme.GoaTextStyles
 import dev.quinton.goa.core.designsystem.theme.GoaTheme
 import dev.quinton.goa.core.designsystem.theme.Spacing
 import dev.quinton.goa.core.domain.draft.DraftPlanner
@@ -108,6 +112,8 @@ import dev.quinton.goa.core.model.match.Team
 import dev.quinton.goa.core.model.settings.ThemeMode
 import dev.quinton.goa.feature.draft.ui.ChoiceCard
 import dev.quinton.goa.feature.draft.ui.HeroTile
+import dev.quinton.goa.feature.draft.ui.PLATE_BRONZE
+import dev.quinton.goa.feature.draft.ui.PlateBar
 import dev.quinton.goa.feature.draft.ui.PreviewData
 import dev.quinton.goa.feature.draft.ui.SectionCard
 import dev.quinton.goa.feature.draft.ui.SequenceStrip
@@ -116,6 +122,7 @@ import dev.quinton.goa.feature.draft.ui.TileState
 import dev.quinton.goa.feature.draft.ui.goaFilterChipColors
 import dev.quinton.goa.feature.draft.ui.goaSegmentedColors
 import dev.quinton.goa.feature.draft.ui.goaTonalButtonColors
+import dev.quinton.goa.feature.draft.ui.plateEdge
 import dev.quinton.goa.feature.draft.ui.plural
 import dev.quinton.goa.feature.draft.ui.teamFilterChipColors
 import dev.quinton.goa.feature.draft.ui.teamLabel
@@ -340,7 +347,7 @@ private fun StageIndicator(current: SetupStage, onSelect: (SetupStage) -> Unit) 
 
 @Composable
 private fun BottomBar(state: SetupUiState, actions: SetupActions) {
-    Surface(color = MaterialTheme.colorScheme.surface, tonalElevation = 2.dp) {
+    PlateBar {
         Column(Modifier.fillMaxWidth().padding(horizontal = Spacing.screen, vertical = Spacing.md)) {
             state.blocker?.let {
                 Text(
@@ -431,16 +438,12 @@ private fun androidx.compose.foundation.lazy.LazyListScope.playersStage(state: S
 @Composable
 private fun ResumeCard(resume: ResumeInfo, actions: SetupActions) {
     var confirmDiscard by rememberSaveable { mutableStateOf(false) }
-    Surface(
-        shape = MaterialTheme.shapes.large,
-        color = MaterialTheme.colorScheme.primary.copy(alpha = 0.12f),
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary),
-    ) {
+    GoaPlate(Modifier.fillMaxWidth().plateEdge(PLATE_BRONZE, 1.dp), contentPadding = PaddingValues(0.dp)) {
         Column(Modifier.fillMaxWidth().padding(Spacing.lg)) {
             Text(
                 if (resume.complete) "Draft complete" else "Draft in progress",
-                style = MaterialTheme.typography.titleMedium,
-                color = MaterialTheme.colorScheme.primary,
+                style = GoaTextStyles.sectionHead,
+                color = GoaTheme.colors.heading,
             )
             Text("${resume.title} · ${resume.detail}", style = MaterialTheme.typography.bodyMedium)
             Spacer(Modifier.height(Spacing.md))
@@ -509,22 +512,13 @@ private fun QuickAddRow(actions: SetupActions) {
 
 @Composable
 private fun PlayerRow(option: PlayerOption, selected: Boolean, onToggle: () -> Unit) {
-    Surface(
-        shape = MaterialTheme.shapes.medium,
-        color = if (selected) {
-            MaterialTheme.colorScheme.primary.copy(
-                alpha = 0.10f,
-            )
-        } else {
-            MaterialTheme.colorScheme.surface
-        },
-        border = BorderStroke(
-            1.dp,
-            if (selected) MaterialTheme.colorScheme.primary else GoaTheme.colors.engravedBorder,
-        ),
-        modifier = Modifier
+    GoaPlate(
+        Modifier
             .fillMaxWidth()
+            .plateEdge(if (selected) PLATE_BRONZE else null)
+            .clip(PlateShape)
             .toggleable(value = selected, role = Role.Checkbox, onValueChange = { onToggle() }),
+        contentPadding = PaddingValues(0.dp),
     ) {
         Row(
             Modifier.padding(horizontal = Spacing.md, vertical = Spacing.sm),
@@ -644,7 +638,7 @@ private fun TeamMemberChip(
     Surface(
         onClick = onMove,
         enabled = !locked,
-        shape = MaterialTheme.shapes.small,
+        shape = RoundedCornerShape(6.dp),
         color = color.copy(alpha = 0.10f),
         border = BorderStroke(1.dp, color.copy(alpha = 0.6f)),
         modifier = Modifier
@@ -752,7 +746,7 @@ private fun PlayerDraftSetup(state: SetupUiState, actions: SetupActions) {
             DraftSetupPresenter.playerDraftExplanation(state.playerCount),
         )
         for (team in Team.entries) {
-            SectionCard(title = "${teamLabel(team)} captain", titleColor = teamColor(team)) {
+            SectionCard(title = "${teamName(team)} captain", titleTeam = team) {
                 FlowRow(
                     horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
                     verticalArrangement = Arrangement.spacedBy(Spacing.xs),
@@ -776,13 +770,9 @@ private fun PlayerDraftSetup(state: SetupUiState, actions: SetupActions) {
 
 @Composable
 private fun InfoCard(title: String, body: String) {
-    Surface(
-        shape = MaterialTheme.shapes.medium,
-        color = MaterialTheme.colorScheme.secondary.copy(alpha = 0.10f),
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.secondary.copy(alpha = 0.5f)),
-    ) {
+    GoaPlate(Modifier.fillMaxWidth(), contentPadding = PaddingValues(0.dp)) {
         Column(Modifier.fillMaxWidth().padding(Spacing.md)) {
-            Text(title, style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.secondary)
+            Text(title, style = GoaTextStyles.sectionHead, color = GoaTheme.colors.heading)
             Spacer(Modifier.height(2.dp))
             Text(body, style = MaterialTheme.typography.bodyMedium)
         }
@@ -937,17 +927,13 @@ private fun Hint(text: String) {
 @Composable
 private fun HeroChooserSheet(state: SetupUiState, onDone: (Set<String>) -> Unit) {
     var selection by rememberSaveable { mutableStateOf(state.form.customSelection.toList()) }
-    ModalBottomSheet(
+    GoaSheet(
         onDismissRequest = { onDone(selection.toSet()) },
         sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
     ) {
         Column(Modifier.padding(horizontal = Spacing.screen)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(
-                    "Custom pool · ${selection.size}",
-                    style = MaterialTheme.typography.titleLarge,
-                    modifier = Modifier.weight(1f),
-                )
+                TitlePlate("Custom pool · ${selection.size}", Modifier.weight(1f))
                 TextButton(onClick = { selection = state.heroes.map { it.id } }) { Text("All") }
                 TextButton(onClick = { selection = emptyList() }) { Text("None") }
             }
@@ -956,6 +942,7 @@ private fun HeroChooserSheet(state: SetupUiState, onDone: (Set<String>) -> Unit)
                 // Takes the room left over; the button below always stays on screen.
                 modifier = Modifier.weight(1f, fill = false),
                 horizontalArrangement = Arrangement.spacedBy(Spacing.xs),
+                verticalArrangement = Arrangement.spacedBy(Spacing.xs),
             ) {
                 items(state.heroes, key = { it.id }) { hero ->
                     val on = hero.id in selection

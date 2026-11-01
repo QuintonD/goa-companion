@@ -9,7 +9,6 @@ import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.togetherWith
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -17,6 +16,9 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
@@ -38,10 +40,8 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.automirrored.outlined.MenuBook
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Pause
@@ -60,15 +60,14 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.FilledTonalIconButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -78,9 +77,13 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Shadow
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.liveRegion
@@ -94,7 +97,17 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.min
+import androidx.compose.ui.unit.sp
+import dev.quinton.goa.core.designsystem.component.BannerEndSpacer
+import dev.quinton.goa.core.designsystem.component.BannerMedallionWidth
+import dev.quinton.goa.core.designsystem.component.BevelText
+import dev.quinton.goa.core.designsystem.component.GoaPlate
+import dev.quinton.goa.core.designsystem.component.GoaPlateTheme
 import dev.quinton.goa.core.designsystem.component.LARGE_FONT_SCALE
+import dev.quinton.goa.core.designsystem.component.PlateShape
+import dev.quinton.goa.core.designsystem.component.TitlePlate
+import dev.quinton.goa.core.designsystem.component.steelBanner
+import dev.quinton.goa.core.designsystem.theme.GoaTextStyles
 import dev.quinton.goa.core.designsystem.theme.GoaTheme
 import dev.quinton.goa.core.designsystem.theme.Spacing
 import dev.quinton.goa.core.domain.timer.RoundSection
@@ -102,9 +115,11 @@ import dev.quinton.goa.core.model.settings.TimerLayout
 import dev.quinton.goa.feature.timer.ui.components.AlertsOffBanner
 import dev.quinton.goa.feature.timer.ui.components.CountdownRing
 import dev.quinton.goa.feature.timer.ui.components.KeepScreenOn
+import dev.quinton.goa.feature.timer.ui.components.MetalButton
 import dev.quinton.goa.feature.timer.ui.components.RingTone
 import dev.quinton.goa.feature.timer.ui.components.RoundPips
-import dev.quinton.goa.feature.timer.ui.components.goaTonalIconColors
+import dev.quinton.goa.feature.timer.ui.components.SlateButton
+import dev.quinton.goa.feature.timer.ui.components.TimerBackdrop
 import dev.quinton.goa.feature.timer.ui.components.rememberReducedMotion
 import dev.quinton.goa.feature.timer.ui.components.teamName
 import dev.quinton.goa.feature.timer.ui.components.timerDigits
@@ -120,31 +135,35 @@ internal fun ActiveTimer(state: ActiveUiState, actions: TimerActions) {
         onNext = actions.onNext,
         onTogglePause = actions.onTogglePause,
     ) {
-        Surface(color = MaterialTheme.colorScheme.background, modifier = Modifier.fillMaxSize()) {
-            BoxWithConstraints(
-                Modifier
-                    .fillMaxSize()
-                    .windowInsetsPadding(
-                        WindowInsets.statusBars.union(WindowInsets.displayCutout)
-                            .only(WindowInsetsSides.Top + WindowInsetsSides.Horizontal),
-                    ),
-            ) {
-                val header: @Composable () -> Unit = {
-                    TimerHeader(state, actions, onEnd = { confirmEnd = true }, onCoin = { coinDialog = true })
-                    if (state.alertsOff) {
-                        AlertsOffBanner(
-                            onOpenSettings = actions.onOpenNotificationSettings,
-                            onDismiss = actions.onDismissAlertsBanner,
-                            modifier = Modifier.padding(horizontal = Spacing.screen, vertical = Spacing.sm),
-                        )
-                    }
-                }
+        // Dark in both themes: the dim sea, so the running timer never lights up a dim room.
+        GoaPlateTheme {
+            Box(Modifier.fillMaxSize()) {
                 val round = state.layout == TimerLayout.ROUND
-                when {
-                    maxWidth > maxHeight && round -> LandscapeRoundTimer(state, actions, header)
-                    maxWidth > maxHeight -> LandscapeTimer(state, actions, header)
-                    round -> PortraitRoundTimer(state, actions, header)
-                    else -> PortraitTimer(state, actions, header)
+                TimerBackdrop(silhouette = !round)
+                BoxWithConstraints(
+                    Modifier
+                        .fillMaxSize()
+                        .windowInsetsPadding(
+                            WindowInsets.statusBars.union(WindowInsets.displayCutout)
+                                .only(WindowInsetsSides.Top + WindowInsetsSides.Horizontal),
+                        ),
+                ) {
+                    val header: @Composable () -> Unit = {
+                        TimerHeader(state, actions, onEnd = { confirmEnd = true }, onCoin = { coinDialog = true })
+                        if (state.alertsOff) {
+                            AlertsOffBanner(
+                                onOpenSettings = actions.onOpenNotificationSettings,
+                                onDismiss = actions.onDismissAlertsBanner,
+                                modifier = Modifier.padding(horizontal = Spacing.screen, vertical = Spacing.sm),
+                            )
+                        }
+                    }
+                    when {
+                        maxWidth > maxHeight && round -> LandscapeRoundTimer(state, actions, header)
+                        maxWidth > maxHeight -> LandscapeTimer(state, actions, header)
+                        round -> PortraitRoundTimer(state, actions, header)
+                        else -> PortraitTimer(state, actions, header)
+                    }
                 }
             }
         }
@@ -181,24 +200,23 @@ internal fun ActiveTimer(state: ActiveUiState, actions: TimerActions) {
     }
 }
 
-/** Portrait: header, then a scrolling column (pips, phase, dial, extras), controls at the bottom. */
+/**
+ * Portrait: header, then a scrolling column from the top (the phase on its plate, round and turn, dial,
+ * extras) with the battlefield showing below it; controls at the bottom.
+ */
 @Composable
 private fun PortraitTimer(state: ActiveUiState, actions: TimerActions, header: @Composable () -> Unit) {
     Column(Modifier.fillMaxSize()) {
         header()
         BoxWithConstraints(Modifier.weight(1f).fillMaxWidth()) {
-            val ringMax = min(maxWidth - Spacing.xl * 2, maxHeight * 0.62f).coerceAtLeast(160.dp)
-            val viewport = maxHeight
+            val ringMax = min(maxWidth * RING_WIDTH, maxHeight * RING_HEIGHT).coerceAtLeast(160.dp)
             Column(
                 Modifier
                     .fillMaxSize()
                     .verticalScroll(rememberScrollState())
-                    .heightIn(min = viewport)
                     .padding(horizontal = Spacing.screen),
                 horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.Center,
             ) {
-                RoundPips(state.pips, state.round, Modifier.padding(top = Spacing.sm))
                 Spacer(Modifier.height(Spacing.lg))
                 PhaseHeading(state, actions.onBack)
                 Spacer(Modifier.height(Spacing.lg))
@@ -260,7 +278,7 @@ private fun LandscapeTimer(state: ActiveUiState, actions: TimerActions, header: 
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
                 // Compact heading: the step text must fit above the controls in a short window.
-                RoundPips(state.pips, state.round)
+                Spacer(Modifier.height(Spacing.xs))
                 PhaseHeading(state, actions.onBack, compact = true)
                 StepDetail(state, actions.onOpenLevels)
                 SecondaryArea(state, actions, tableRules = false)
@@ -292,17 +310,12 @@ private fun PrimaryArea(state: ActiveUiState, actions: TimerActions, size: Dp) {
 private fun StepDetail(state: ActiveUiState, onOpenLevels: () -> Unit) {
     val detail = state.currentDetail?.takeIf { state.timed } ?: return
     Spacer(Modifier.height(Spacing.md))
-    Surface(
-        shape = MaterialTheme.shapes.medium,
-        color = MaterialTheme.colorScheme.primary.copy(alpha = 0.08f),
-        border = BorderStroke(1.dp, GoaTheme.colors.engravedBorder),
-        modifier = Modifier.fillMaxWidth(),
-    ) {
+    GoaPlate(Modifier.fillMaxWidth(), contentPadding = PaddingValues(horizontal = Spacing.lg, vertical = Spacing.md)) {
         Text(
             detail,
             style = MaterialTheme.typography.titleMedium,
             textAlign = TextAlign.Center,
-            modifier = Modifier.padding(horizontal = Spacing.lg, vertical = Spacing.md),
+            modifier = Modifier.fillMaxWidth(),
         )
     }
     // Timed Level Up: the level ladder sits right under the rule, above the fold.
@@ -326,27 +339,30 @@ private fun SecondaryArea(state: ActiveUiState, actions: TimerActions, tableRule
     }
 }
 
+/** The steel banner, as on every screen, holding the round: "Round N" must never be clipped. */
 @Composable
 private fun TimerHeader(state: ActiveUiState, actions: TimerActions, onEnd: () -> Unit, onCoin: () -> Unit) {
     var coinUndo by remember { mutableStateOf(false) }
-    BoxWithConstraints(Modifier.fillMaxWidth()) {
+    val banner = GoaTheme.colors
+    val largeText = LocalDensity.current.fontScale > LARGE_FONT_SCALE
+    BoxWithConstraints(Modifier.fillMaxWidth().steelBanner(banner, MaterialTheme.colorScheme.primary)) {
         val tools = headerTools(state, maxWidth, coinUndo)
         Row(
-            Modifier.fillMaxWidth().padding(start = Spacing.screen, end = Spacing.xs, top = Spacing.sm),
+            Modifier.fillMaxWidth().padding(start = Spacing.screen, top = Spacing.xs, bottom = Spacing.xs),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Column(Modifier.weight(1f)) {
-                Text(
+                BevelText(
                     "Round ${state.round}",
-                    style = MaterialTheme.typography.headlineSmall,
-                    maxLines = 1,
-                    softWrap = false,
+                    style = headerTitleStyle(),
+                    overflow = TextOverflow.Visible,
                     modifier = Modifier.semantics { heading() },
                 )
+                // Large text: the match clock alone, so it isn't what gets cut (TalkBack still hears both).
                 Text(
-                    "${state.presetName} · ${state.matchClock}",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    if (largeText) state.matchClock else "${state.presetName} · ${state.matchClock}",
+                    style = MaterialTheme.typography.bodySmall.copy(shadow = TEXT_SHADOW),
+                    color = banner.onBanner,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                     modifier = Modifier.semantics {
@@ -355,37 +371,63 @@ private fun TimerHeader(state: ActiveUiState, actions: TimerActions, onEnd: () -
                     },
                 )
             }
-            TimerTopActions(state, actions, tools, onEnd, onCoin, onCoinUndo = { coinUndo = it })
+            CompositionLocalProvider(LocalContentColor provides banner.onBanner) {
+                TimerTopActions(state, actions, tools, onEnd, onCoin, onCoinUndo = { coinUndo = it })
+            }
+            BannerEndSpacer()
         }
     }
 }
 
-/** Which optional top-bar icons sit in the bar; the others are in the overflow menu. */
-private data class HeaderTools(val levels: Boolean, val viewSwitch: Boolean)
+private val TEXT_SHADOW = Shadow(Color.Black, Offset(0f, 1f), 3f)
+private const val HEADER_TITLE_MAX_SCALE = 1.5f
+
+/** Which optional top-bar parts sit in the bar; the icons that don't are in the overflow menu. */
+private data class HeaderTools(
+    val levels: Boolean,
+    val viewSwitch: Boolean,
+    val endMatch: Boolean,
+    val coinLabel: Boolean,
+)
 
 /**
- * "Round N" must never be clipped (S25 Ultra: 384 dp wide, where Blue's coin chip plus four icons
- * left too little room). The title, coin chip and its Undo are measured; the view switch moves into
- * the menu first (it is also in Settings), then Levels & defeats. Large text: both are in the menu.
+ * "Round N" must never be clipped (S25 Ultra: 384 dp wide, where Blue's coin chip plus four icons left
+ * too little room; a small phone has less). The title, coin chip and its Undo are measured; the view
+ * switch moves into the menu first (it is also in Settings), then Levels & defeats, then End match, and
+ * last the coin chip keeps only its mark. Large text: the view switch and Levels are in the menu.
  */
 @Composable
 private fun headerTools(state: ActiveUiState, width: Dp, coinUndo: Boolean): HeaderTools {
     val density = LocalDensity.current
-    if (density.fontScale > LARGE_FONT_SCALE) return HeaderTools(levels = false, viewSwitch = false)
     val measurer = rememberTextMeasurer()
-    val titleStyle = MaterialTheme.typography.headlineSmall
+    val titleStyle = headerTitleStyle()
     val labelStyle = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.SemiBold)
     val team = state.tieBreaker
     val undo = coinUndo && team != null
     return remember(state.round, team, undo, width, density, titleStyle, labelStyle) {
         fun textWidth(text: String, style: TextStyle) =
             with(density) { measurer.measure(text, style, maxLines = 1, softWrap = false).size.width.toDp() }
-        val chip = team?.let { CHIP_CHROME * density.fontScale + textWidth(teamName(it), labelStyle) } ?: 0.dp
+        val chipMark = if (team != null) CHIP_CHROME * density.fontScale else 0.dp
+        val chip = team?.let { chipMark + textWidth(teamName(it), labelStyle) } ?: 0.dp
         val undoButton = if (undo) maxOf(UNDO_MIN_WIDTH, textWidth("Undo", labelStyle) + UNDO_PADDING) else 0.dp
-        val fixed = Spacing.screen + Spacing.xs + HEADER_SLACK + chip + undoButton + HEADER_ICON * 2
+        val fixed = Spacing.screen + BannerMedallionWidth + HEADER_SLACK + undoButton + HEADER_ICON
         val room = width - fixed - textWidth("Round ${state.round}", titleStyle)
-        HeaderTools(levels = room >= HEADER_ICON, viewSwitch = room >= HEADER_ICON * 2)
+        val large = density.fontScale > LARGE_FONT_SCALE
+        val endMatch = room - chip >= HEADER_ICON
+        HeaderTools(
+            levels = !large && room - chip >= HEADER_ICON * 2,
+            viewSwitch = !large && room - chip >= HEADER_ICON * 3,
+            endMatch = endMatch,
+            coinLabel = room >= chip,
+        )
     }
+}
+
+/** Capped: at large text the round must still fit whole beside the coin chip. */
+@Composable
+private fun headerTitleStyle(): TextStyle = with(LocalDensity.current) {
+    val scale = fontScale.coerceAtMost(HEADER_TITLE_MAX_SCALE) / fontScale
+    GoaTextStyles.bannerTitle.copy(fontSize = GoaTextStyles.bannerTitle.fontSize * scale)
 }
 
 private val HEADER_ICON = 48.dp
@@ -418,6 +460,7 @@ private fun RowScope.TimerTopActions(
             coin,
             actions.onFlipCoin,
             actionKey = "${state.round}:${state.title}:${state.paused}",
+            showLabel = tools.coinLabel,
             onUndoShown = onCoinUndo,
         )
     } else {
@@ -439,7 +482,9 @@ private fun RowScope.TimerTopActions(
             )
         }
     }
-    IconButton(onClick = onEnd) { Icon(Icons.Outlined.Flag, contentDescription = "End match") }
+    if (tools.endMatch) {
+        IconButton(onClick = onEnd) { Icon(Icons.Outlined.Flag, contentDescription = "End match") }
+    }
     Box {
         IconButton(onClick = { menu = true }) { Icon(Icons.Outlined.MoreVert, contentDescription = "More options") }
         DropdownMenu(expanded = menu, onDismissRequest = { menu = false }) {
@@ -522,67 +567,79 @@ private fun RowScope.TimerTopActions(
 }
 
 /**
- * The step chip with "Previous phase" beside it, and the step title and hint. Previous sits up here,
- * away from the bottom edge: with no tab bar on the running timer, a habitual tap where the Heroes
- * tab usually is went back a phase (game night).
+ * The step on its title plate with "Previous phase" beside it, then where in the round and the hint.
+ * Previous sits up here, away from the bottom edge: with no tab bar on the running timer, a habitual
+ * tap where the Heroes tab usually is went back a phase (game night).
  */
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun PhaseHeading(state: ActiveUiState, onBack: () -> Unit, compact: Boolean = false) {
     val reduced = rememberReducedMotion()
+    val fontScale = LocalDensity.current.fontScale
+    // Capped, so a one-word step ("Resolve") never breaks mid-word on a small phone at large text.
+    val capped = (fontScale.coerceAtMost(PHASE_MAX_SCALE) / fontScale)
+    val plateStyle = if (compact) GoaTextStyles.plateTitle else PHASE_STYLE
     Row(verticalAlignment = Alignment.CenterVertically) {
         IconButton(onClick = onBack, modifier = Modifier.size(48.dp)) {
             Icon(
                 Icons.Filled.SkipPrevious,
                 contentDescription = "Previous phase",
-                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                tint = MaterialTheme.colorScheme.onSurface,
             )
         }
-        Surface(
-            shape = RoundedCornerShape(50),
-            color = MaterialTheme.colorScheme.primary.copy(alpha = 0.12f),
-            border = BorderStroke(1.dp, GoaTheme.colors.engravedBorder),
-            modifier = Modifier.weight(1f, fill = false),
-        ) {
-            Text(
-                state.context.uppercase(),
-                style = MaterialTheme.typography.labelLarge,
-                color = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.padding(
-                    horizontal = Spacing.lg,
-                    vertical = if (compact) Spacing.xs else Spacing.sm,
+        AnimatedContent(
+            targetState = state.title,
+            transitionSpec = {
+                val ms = if (reduced) 0 else 250
+                fadeIn(tween(ms)) togetherWith fadeOut(tween(ms))
+            },
+            label = "phase",
+            modifier = Modifier.weight(1f),
+        ) { title ->
+            TitlePlate(
+                title,
+                style = plateStyle.copy(
+                    fontSize = plateStyle.fontSize * capped,
+                    lineHeight =
+                        plateStyle.lineHeight * capped,
                 ),
-                textAlign = TextAlign.Center,
+                heading = false,
+                maxLines = 3,
+                modifier = Modifier.fillMaxWidth().semantics { liveRegion = LiveRegionMode.Polite },
             )
         }
-        // Balances the button so the chip stays centred.
-        Spacer(Modifier.width(48.dp))
+        // Balances the button so the plate stays centred; large text needs that room for the words.
+        if (fontScale <= LARGE_FONT_SCALE) Spacer(Modifier.width(48.dp))
     }
     Spacer(Modifier.height(if (compact) Spacing.xs else Spacing.sm))
-    AnimatedContent(
-        targetState = state.title,
-        transitionSpec = {
-            val ms = if (reduced) 0 else 250
-            fadeIn(tween(ms)) togetherWith fadeOut(tween(ms))
-        },
-        label = "phase",
-    ) { title ->
+    FlowRow(
+        horizontalArrangement = Arrangement.spacedBy(Spacing.md, Alignment.CenterHorizontally),
+        verticalArrangement = Arrangement.spacedBy(Spacing.xs),
+        itemVerticalAlignment = Alignment.CenterVertically,
+        modifier = Modifier.fillMaxWidth(),
+    ) {
         Text(
-            title,
-            style = if (compact) MaterialTheme.typography.headlineSmall else MaterialTheme.typography.headlineMedium,
+            state.context.uppercase(),
+            style = CONTEXT_STYLE,
+            color = MaterialTheme.colorScheme.onSurface,
             textAlign = TextAlign.Center,
-            modifier = Modifier.fillMaxWidth().semantics { liveRegion = LiveRegionMode.Polite },
         )
+        RoundPips(state.pips, state.round)
     }
     state.hint?.let { hint ->
         Text(
             hint,
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            style = MaterialTheme.typography.bodyMedium.copy(shadow = TEXT_SHADOW),
+            color = MaterialTheme.colorScheme.onSurface,
             textAlign = TextAlign.Center,
             modifier = Modifier.fillMaxWidth().padding(top = Spacing.xs),
         )
     }
 }
+
+private val PHASE_STYLE = GoaTextStyles.plateTitle.copy(fontSize = 20.sp, lineHeight = 25.sp)
+private const val PHASE_MAX_SCALE = 1.5f
+private val CONTEXT_STYLE = GoaTextStyles.sectionHead.copy(fontSize = 15.sp, lineHeight = 20.sp, shadow = TEXT_SHADOW)
 
 @Composable
 private fun TimerDial(state: ActiveUiState, size: Dp, onToggle: () -> Unit) {
@@ -593,23 +650,29 @@ private fun TimerDial(state: ActiveUiState, size: Dp, onToggle: () -> Unit) {
         state.warning -> RingTone.WARNING
         else -> RingTone.NORMAL
     }
+    // Paused, overtime and elapsed say so in words; otherwise the digits alone, as the mock-up.
     val status = when {
         state.paused -> "Tap to resume"
         state.overtime -> "Overtime"
         !state.timed -> "Elapsed · tap to pause"
-        else -> "Tap to pause"
+        else -> null
     }
     val digitColor = when (tone) {
         RingTone.OVERTIME -> MaterialTheme.colorScheme.error
         RingTone.WARNING -> MaterialTheme.colorScheme.primary
         RingTone.PAUSED -> MaterialTheme.colorScheme.onSurfaceVariant
-        else -> MaterialTheme.colorScheme.onSurface
+        else -> DIGITS
     }
     val density = LocalDensity.current
     // Sized from the ring, not the font scale: the digits are already as big as they can be.
-    val digitSize = with(density) { (size * if (state.clock.length > 5) 0.2f else 0.24f).toSp() }
-    val labelSize = with(density) { (size * 0.05f).coerceAtLeast(12.dp).toSp() }
-    val pausedSize = with(density) { (size * 0.085f).coerceAtLeast(16.dp).toSp() }
+    val digitScale = when {
+        state.clock.length <= SHORT_CLOCK -> DIGITS_SHORT
+        state.clock.length == SHORT_CLOCK + 1 -> DIGITS_MEDIUM
+        else -> DIGITS_LONG
+    }
+    val digitSize = with(density) { (size * digitScale).toSp() }
+    val labelSize = with(density) { (size * 0.042f).coerceAtLeast(11.dp).toSp() }
+    val pausedSize = with(density) { (size * 0.075f).coerceAtLeast(14.dp).toSp() }
     // Paused must read from across the table: the digits blink slowly (unless reduced motion).
     val reduced = rememberReducedMotion()
     val blink = if (state.paused && !reduced) {
@@ -634,57 +697,84 @@ private fun TimerDial(state: ActiveUiState, size: Dp, onToggle: () -> Unit) {
                 stateDescription = if (state.paused) "Paused" else "Running"
             },
     ) {
-        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            if (state.paused) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(
-                        Icons.Filled.Pause,
-                        contentDescription = null,
-                        modifier = Modifier.size(with(density) { pausedSize.toDp() }),
-                        tint = MaterialTheme.colorScheme.primary,
-                    )
-                    Text(
-                        "PAUSED",
-                        style = MaterialTheme.typography.titleLarge.copy(fontSize = pausedSize),
-                        color = MaterialTheme.colorScheme.primary,
-                    )
-                }
+        // The digits keep the dial's centre; the words sit above and below, so nothing jumps.
+        Text(
+            state.clock,
+            style = timerDigits(
+                MaterialTheme.typography.displayLarge,
+            ).copy(fontSize = digitSize, lineHeight = digitSize, shadow = DIGIT_SHADOW),
+            color = digitColor,
+            maxLines = 1,
+            softWrap = false,
+            modifier = Modifier.alpha(blink),
+        )
+        if (state.paused) {
+            Row(
+                Modifier.align(Alignment.TopCenter).padding(top = size * WORD_INSET),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Icon(
+                    Icons.Filled.Pause,
+                    contentDescription = null,
+                    modifier = Modifier.size(with(density) { pausedSize.toDp() }),
+                    tint = MaterialTheme.colorScheme.primary,
+                )
+                Text(
+                    "PAUSED",
+                    style = GoaTextStyles.plateTitle.copy(fontSize = pausedSize, lineHeight = pausedSize),
+                    color = MaterialTheme.colorScheme.primary,
+                    maxLines = 1,
+                    softWrap = false,
+                )
             }
-            Text(
-                state.clock,
-                style = timerDigits(
-                    MaterialTheme.typography.displayLarge,
-                ).copy(fontSize = digitSize, lineHeight = digitSize),
-                color = digitColor,
-                modifier = Modifier.alpha(blink),
-            )
-            Spacer(Modifier.height(Spacing.xs))
+        }
+        if (status != null) {
             Text(
                 status.uppercase(),
-                style = MaterialTheme.typography.labelLarge.copy(fontSize = labelSize),
+                style = MaterialTheme.typography.labelLarge.copy(fontSize = labelSize, lineHeight = labelSize),
                 color = with(MaterialTheme.colorScheme) { if (state.overtime) error else onSurfaceVariant },
+                textAlign = TextAlign.Center,
+                maxLines = 1,
+                softWrap = false,
+                modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = size * WORD_INSET),
             )
         }
     }
 }
+
+private val DIGITS = Color(0xFFF3F6F9)
+private val DIGIT_SHADOW = Shadow(Color.Black, Offset(0f, 2f), 4f)
+
+/** "0:23" is four characters: up to there the digits take a third of the dial, longer clocks less. */
+private const val SHORT_CLOCK = 4
+private const val DIGITS_SHORT = 0.31f
+private const val DIGITS_MEDIUM = 0.255f
+private const val DIGITS_LONG = 0.195f
+
+/** The steel ring and arc take this much of the dial before the words start. */
+private const val WORD_INSET = 0.2f
+
+/** The dial's width against the screen's: mock-up 07 leaves the sea around it. */
+private const val RING_WIDTH = 0.82f
+
+/** Leaves a small phone room for the heading and Hurry up without scrolling. */
+private const val RING_HEIGHT = 0.55f
 
 /** Untimed end-of-round step: a medallion with the step number and the rule text; tap = Next. */
 @Composable
 private fun ChecklistStepCard(state: ActiveUiState, onNext: () -> Unit) {
     val current = state.checklist?.firstOrNull { it.state == ChecklistState.CURRENT }
     val colors = MaterialTheme.colorScheme
-    Column(
+    GoaPlate(
         Modifier
             .fillMaxWidth()
-            .clip(MaterialTheme.shapes.large)
-            .background(colors.surface)
-            .border(1.dp, GoaTheme.colors.engravedBorder, MaterialTheme.shapes.large)
-            .clickable(onClickLabel = "Step done, next", role = Role.Button, onClick = onNext)
-            .padding(Spacing.xl),
-        horizontalAlignment = Alignment.CenterHorizontally,
+            .clip(PlateShape)
+            .clickable(onClickLabel = "Step done, next", role = Role.Button, onClick = onNext),
+        contentPadding = PaddingValues(Spacing.xl),
     ) {
         Box(
             Modifier
+                .align(Alignment.CenterHorizontally)
                 .size(72.dp)
                 .clip(CircleShape)
                 .background(colors.primary.copy(alpha = 0.14f))
@@ -699,7 +789,12 @@ private fun ChecklistStepCard(state: ActiveUiState, onNext: () -> Unit) {
         }
         Spacer(Modifier.height(Spacing.md))
         current?.detail?.let {
-            Text(it, style = MaterialTheme.typography.bodyLarge, textAlign = TextAlign.Center)
+            Text(
+                it,
+                style = MaterialTheme.typography.bodyLarge,
+                textAlign = TextAlign.Center,
+                modifier = Modifier.fillMaxWidth(),
+            )
             Spacer(Modifier.height(Spacing.sm))
         }
         Text(
@@ -707,24 +802,18 @@ private fun ChecklistStepCard(state: ActiveUiState, onNext: () -> Unit) {
             style = MaterialTheme.typography.titleSmall.copy(fontFeatureSettings = "tnum"),
             color = colors.onSurfaceVariant,
             textAlign = TextAlign.Center,
+            modifier = Modifier.fillMaxWidth(),
         )
     }
 }
 
 @Composable
 private fun EndOfRoundChecklist(items: List<ChecklistItemUi>, onOpenLevels: (() -> Unit)?) {
-    Column(
-        Modifier
-            .fillMaxWidth()
-            .clip(MaterialTheme.shapes.large)
-            .background(MaterialTheme.colorScheme.surface)
-            .border(1.dp, GoaTheme.colors.engravedBorder, MaterialTheme.shapes.large)
-            .padding(vertical = Spacing.sm),
-    ) {
+    GoaPlate(Modifier.fillMaxWidth(), contentPadding = PaddingValues(vertical = Spacing.sm)) {
         Text(
             "END OF ROUND",
-            style = MaterialTheme.typography.labelMedium,
-            color = MaterialTheme.colorScheme.primary,
+            style = GoaTextStyles.sectionHead,
+            color = GoaTheme.colors.heading,
             modifier = Modifier.padding(horizontal = Spacing.lg, vertical = Spacing.sm).semantics { heading() },
         )
         items.forEach { item ->
@@ -746,7 +835,13 @@ private fun ChecklistRow(item: ChecklistItemUi, onOpenLevels: (() -> Unit)? = nu
         Modifier
             .fillMaxWidth()
             .background(
-                if (item.state == ChecklistState.CURRENT) colors.secondary.copy(alpha = 0.10f) else colors.surface,
+                if (item.state ==
+                    ChecklistState.CURRENT
+                ) {
+                    colors.secondary.copy(alpha = 0.14f)
+                } else {
+                    Color.Transparent
+                },
             )
             .padding(horizontal = Spacing.lg, vertical = Spacing.sm)
             .semantics(mergeDescendants = true) { stateDescription = stateText },
@@ -761,7 +856,7 @@ private fun ChecklistRow(item: ChecklistItemUi, onOpenLevels: (() -> Unit)? = nu
             Modifier
                 .size(28.dp)
                 .clip(CircleShape)
-                .background(if (item.state == ChecklistState.UPCOMING) colors.surface else badge)
+                .background(if (item.state == ChecklistState.UPCOMING) Color.Transparent else badge)
                 .border(1.5.dp, badge, CircleShape),
             contentAlignment = Alignment.Center,
         ) {
@@ -803,53 +898,73 @@ internal const val LEVEL_UP_STEP = "level_up"
 /** On the current Level Up step: the level ladder (costs, max Tier) one tap away. */
 @Composable
 internal fun LevelLadderButton(onClick: () -> Unit, label: String = "Levels") {
-    OutlinedButton(onClick = onClick, contentPadding = PaddingValues(horizontal = Spacing.md)) {
+    SlateButton(onClick = onClick, contentPadding = PaddingValues(horizontal = Spacing.md)) {
         Icon(Icons.Outlined.MilitaryTech, contentDescription = null, modifier = Modifier.size(18.dp))
         Spacer(Modifier.width(Spacing.xs))
         Text(label)
     }
 }
 
-/** Pause and Next. "Previous phase" is up by the step chip ([PhaseHeading]), away from the edge. */
+/**
+ * Pause and Next, large and clear; Next in filled bronze, with the width a long label needs. With
+ * large text Pause is its icon alone, leaving that width to Next's words. "Previous phase" is up by
+ * the step's plate ([PhaseHeading]), away from the edge.
+ */
 @Composable
 internal fun TimerControls(state: ActiveUiState, actions: TimerActions, compact: Boolean = false) {
-    Surface(color = MaterialTheme.colorScheme.surface, tonalElevation = 2.dp) {
-        Row(
-            Modifier.fillMaxWidth().padding(
-                horizontal = Spacing.screen,
-                vertical = if (compact) Spacing.sm else Spacing.md,
-            ),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(Spacing.md),
+    val pauseWord = if (state.paused) "Resume" else "Pause"
+    val iconOnly = LocalDensity.current.fontScale > LARGE_FONT_SCALE
+    val height = if (compact) 56.dp else CONTROL_HEIGHT
+    Row(
+        Modifier
+            .fillMaxWidth()
+            .padding(horizontal = Spacing.screen, vertical = if (compact) Spacing.sm else Spacing.md)
+            .height(IntrinsicSize.Min),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(Spacing.md),
+    ) {
+        MetalButton(
+            onClick = actions.onTogglePause,
+            bronze = false,
+            contentPadding = PaddingValues(horizontal = Spacing.sm),
+            modifier = (if (iconOnly) Modifier.width(height) else Modifier.weight(PAUSE_SHARE))
+                .fillMaxHeight()
+                .heightIn(min = height),
         ) {
-            FilledTonalIconButton(
-                onClick = actions.onTogglePause,
-                modifier = Modifier.size(56.dp),
-                colors = goaTonalIconColors(),
-            ) {
-                Icon(
-                    if (state.paused) Icons.Filled.PlayArrow else Icons.Filled.Pause,
-                    contentDescription = if (state.paused) "Resume" else "Pause",
-                )
-            }
-            Button(
-                onClick = actions.onNext,
-                modifier = Modifier.weight(1f).heightIn(min = if (compact) 56.dp else 64.dp),
-                shape = RoundedCornerShape(20.dp),
-            ) {
+            Icon(
+                if (state.paused) Icons.Filled.PlayArrow else Icons.Filled.Pause,
+                contentDescription = if (iconOnly) pauseWord else null,
+            )
+            if (!iconOnly) {
+                Spacer(Modifier.width(Spacing.xs))
+                // One name for TalkBack (and the instrumented tests): the word, as the button's description.
                 Text(
-                    state.nextLabel,
-                    style = MaterialTheme.typography.titleMedium,
-                    maxLines = 3,
-                    overflow = TextOverflow.Ellipsis,
-                    textAlign = TextAlign.Center,
-                    modifier = Modifier.weight(1f, fill = false),
+                    pauseWord,
+                    style = MaterialTheme.typography.titleMedium.copy(fontSize = CONTROL_TEXT),
+                    maxLines = 1,
+                    softWrap = false,
+                    modifier = Modifier.clearAndSetSemantics { contentDescription = pauseWord },
                 )
-                Spacer(Modifier.width(Spacing.sm))
-                Icon(Icons.AutoMirrored.Filled.ArrowForward, contentDescription = null)
             }
+        }
+        MetalButton(
+            onClick = actions.onNext,
+            bronze = true,
+            modifier = Modifier.weight(1f - PAUSE_SHARE).fillMaxHeight().heightIn(min = height),
+        ) {
+            Text(
+                state.nextLabel,
+                style = MaterialTheme.typography.titleMedium.copy(fontSize = CONTROL_TEXT),
+                maxLines = 3,
+                overflow = TextOverflow.Ellipsis,
+                textAlign = TextAlign.Center,
+            )
         }
     }
 }
+
+private val CONTROL_HEIGHT = 68.dp
+private val CONTROL_TEXT = 17.sp
+private const val PAUSE_SHARE = 0.38f
 
 internal const val PAUSE_BLINK_MS = 900
