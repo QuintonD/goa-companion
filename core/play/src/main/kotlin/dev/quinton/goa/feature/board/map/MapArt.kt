@@ -45,7 +45,7 @@ private fun BoardMapArt.pixelAt(x: Float, y: Float): MapPoint =
 const val DIM_BRIGHTNESS = 0.58f
 const val DIM_SATURATION = 0.5f
 
-/** The picture's edge fades into [BoardMapArt.sea] over this many map units: its edge colours vary too much to match. */
+/** The picture's edge fades into the sea over this many map units: its edge colours vary too much to match. */
 const val ART_FEATHER = 1f
 
 /**
@@ -87,21 +87,23 @@ object MapLighting {
         val seen = HashSet<Hex>()
         val enclosed = HashSet<Hex>()
         spaces.flatMap(::neighbours).filter(geometry::isTerrain).forEach { start ->
-            if (!seen.add(start)) return@forEach
-            val group = mutableListOf(start)
-            var closed = true
-            var i = 0
-            while (i < group.size) {
-                neighbours(group[i++]).forEach { n ->
-                    when {
-                        geometry.isTerrain(n) -> if (seen.add(n)) group += n
-                        n !in spaces -> closed = false
-                    }
-                }
-            }
-            if (closed) enclosed += group
+            if (start in seen) return@forEach
+            val rock = connectedTerrain(geometry, start)
+            seen += rock
+            val closed = rock.all { hex -> neighbours(hex).all { it in rock || it in spaces } }
+            if (closed) enclosed += rock
         }
         return enclosed
+    }
+
+    /** The terrain hexes joined to [start]: one rock on the mat. */
+    private fun connectedTerrain(geometry: BoardGeometry, start: Hex): Set<Hex> {
+        val rock = linkedSetOf(start)
+        val queue = ArrayDeque(listOf(start))
+        while (queue.isNotEmpty()) {
+            neighbours(queue.removeFirst()).filter(geometry::isTerrain).filter(rock::add).forEach(queue::addLast)
+        }
+        return rock
     }
 
     private fun neighbours(hex: Hex): List<Hex> = HexGrid.DIRECTIONS.map { hex + it }

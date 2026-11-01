@@ -204,7 +204,13 @@ private fun DrawScope.drawCentred(
     drawScaled(image, center.x - image.width * scale / 2f, center.y - image.height * scale / 2f, scale, filter)
 }
 
-private fun DrawScope.drawScaled(image: ImageBitmap, left: Float, top: Float, scale: Float, filter: ColorFilter? = null) {
+private fun DrawScope.drawScaled(
+    image: ImageBitmap,
+    left: Float,
+    top: Float,
+    scale: Float,
+    filter: ColorFilter? = null,
+) {
     withTransform({
         translate(left, top)
         scale(scale, scale, pivot = Offset.Zero)
