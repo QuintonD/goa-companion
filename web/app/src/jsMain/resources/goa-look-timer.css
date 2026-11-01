@@ -96,6 +96,16 @@
 .goa-table-timer.step-view.landscape::after { bottom: 0; }
 .goa-table-timer.round-view.landscape .goa-table-timer-left { border-right: 1px solid #5D6B70; }
 .goa-table-timer-subtitle { color: var(--on-banner); text-shadow: 0 1px 2px #000; }
+/* "Round N" must never be cut, and the banner's medallion takes room: End match goes into the More menu
+   (it is there too) while the coin's Undo shows, on a small phone and at large text; then the chip keeps its mark. */
+.goa-topbar-actions:has(.goa-table-on-banner) .goa-table-end-flag { display: none; }
+@container topbar (max-width: 19rem) {
+  .goa-table-timer-header .goa-table-end-flag { display: none; }
+}
+@container topbar (max-width: 16rem) {
+  .goa-table-coin-chip .goa-table-team { font-size: 0; }
+  .goa-table-coin-chip .goa-team-mark { width: 18px; height: 18px; }
+}
 
 .goa-table-timer.portrait.step-view .goa-table-timer-scroll { justify-content: flex-start; padding-top: var(--sp-lg); }
 .goa-table-phase-chip-row { width: 100%; }

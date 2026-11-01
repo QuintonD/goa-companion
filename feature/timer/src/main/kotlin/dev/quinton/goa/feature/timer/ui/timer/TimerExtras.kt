@@ -128,6 +128,7 @@ internal fun TieBreakerChip(
     team: Team,
     onFlip: () -> Unit,
     actionKey: Any? = null,
+    showLabel: Boolean = true,
     onUndoShown: (Boolean) -> Unit = {},
 ) {
     var flips by remember { mutableIntStateOf(0) }
@@ -178,7 +179,7 @@ internal fun TieBreakerChip(
             Modifier.padding(horizontal = Spacing.md, vertical = Spacing.sm),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            TeamBadge(team)
+            TeamBadge(team, showLabel = showLabel)
         }
     }
 }

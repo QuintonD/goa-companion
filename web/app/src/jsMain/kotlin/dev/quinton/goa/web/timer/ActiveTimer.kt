@@ -305,7 +305,7 @@ private fun TimerHeader(state: ActiveUiState, model: TimerModel, onEnd: () -> Un
                     onClick = { model.setTimerLayout(if (roundView) TimerLayout.STEPS else TimerLayout.ROUND) },
                     extraClass = "collapsible",
                 )
-                IconButton("flag", "End match", onClick = onEnd)
+                IconButton("flag", "End match", onClick = onEnd, extraClass = "goa-table-end-flag")
                 IconButton("more", "More options", onClick = onMenu)
             }
         }

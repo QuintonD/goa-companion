@@ -185,6 +185,10 @@ class DraftScreenshotTest {
 
     @Test fun boardMidFontScale2() = capture(fontScale = 2f) { DraftBoardScreen(board(session(3)), BoardActions.None) }
 
+    @Test
+    @Config(qualifiers = "w320dp-h568dp-xhdpi")
+    fun boardMidSmallPhoneDark() = capture { DraftBoardScreen(board(session(3)), BoardActions.None) }
+
     @Test fun boardSingleDraftDark() = capture {
         // 2 v 2 × 3 dealt heroes = 12, the test catalog's size.
         val ids = PreviewData.players.map { it.id }

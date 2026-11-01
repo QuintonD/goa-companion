@@ -209,7 +209,7 @@ private fun PortraitTimer(state: ActiveUiState, actions: TimerActions, header: @
     Column(Modifier.fillMaxSize()) {
         header()
         BoxWithConstraints(Modifier.weight(1f).fillMaxWidth()) {
-            val ringMax = min(maxWidth * RING_WIDTH, maxHeight * 0.62f).coerceAtLeast(160.dp)
+            val ringMax = min(maxWidth * RING_WIDTH, maxHeight * RING_HEIGHT).coerceAtLeast(160.dp)
             Column(
                 Modifier
                     .fillMaxSize()
@@ -352,13 +352,9 @@ private fun TimerHeader(state: ActiveUiState, actions: TimerActions, onEnd: () -
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Column(Modifier.weight(1f)) {
-                // Capped: at large text the round must still fit whole beside the coin chip.
                 BevelText(
                     "Round ${state.round}",
-                    style = with(LocalDensity.current) {
-                        val scale = fontScale.coerceAtMost(HEADER_TITLE_MAX_SCALE) / fontScale
-                        GoaTextStyles.bannerTitle.copy(fontSize = GoaTextStyles.bannerTitle.fontSize * scale)
-                    },
+                    style = headerTitleStyle(),
                     overflow = TextOverflow.Visible,
                     modifier = Modifier.semantics { heading() },
                 )
@@ -386,32 +382,52 @@ private fun TimerHeader(state: ActiveUiState, actions: TimerActions, onEnd: () -
 private val TEXT_SHADOW = Shadow(Color.Black, Offset(0f, 1f), 3f)
 private const val HEADER_TITLE_MAX_SCALE = 1.5f
 
-/** Which optional top-bar icons sit in the bar; the others are in the overflow menu. */
-private data class HeaderTools(val levels: Boolean, val viewSwitch: Boolean)
+/** Which optional top-bar parts sit in the bar; the icons that don't are in the overflow menu. */
+private data class HeaderTools(
+    val levels: Boolean,
+    val viewSwitch: Boolean,
+    val endMatch: Boolean,
+    val coinLabel: Boolean,
+)
 
 /**
- * "Round N" must never be clipped (S25 Ultra: 384 dp wide, where Blue's coin chip plus four icons
- * left too little room). The title, coin chip and its Undo are measured; the view switch moves into
- * the menu first (it is also in Settings), then Levels & defeats. Large text: both are in the menu.
+ * "Round N" must never be clipped (S25 Ultra: 384 dp wide, where Blue's coin chip plus four icons left
+ * too little room; a small phone has less). The title, coin chip and its Undo are measured; the view
+ * switch moves into the menu first (it is also in Settings), then Levels & defeats, then End match, and
+ * last the coin chip keeps only its mark. Large text: the view switch and Levels are in the menu.
  */
 @Composable
 private fun headerTools(state: ActiveUiState, width: Dp, coinUndo: Boolean): HeaderTools {
     val density = LocalDensity.current
-    if (density.fontScale > LARGE_FONT_SCALE) return HeaderTools(levels = false, viewSwitch = false)
     val measurer = rememberTextMeasurer()
-    val titleStyle = GoaTextStyles.bannerTitle
+    val titleStyle = headerTitleStyle()
     val labelStyle = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.SemiBold)
     val team = state.tieBreaker
     val undo = coinUndo && team != null
     return remember(state.round, team, undo, width, density, titleStyle, labelStyle) {
         fun textWidth(text: String, style: TextStyle) =
             with(density) { measurer.measure(text, style, maxLines = 1, softWrap = false).size.width.toDp() }
-        val chip = team?.let { CHIP_CHROME * density.fontScale + textWidth(teamName(it), labelStyle) } ?: 0.dp
+        val chipMark = if (team != null) CHIP_CHROME * density.fontScale else 0.dp
+        val chip = team?.let { chipMark + textWidth(teamName(it), labelStyle) } ?: 0.dp
         val undoButton = if (undo) maxOf(UNDO_MIN_WIDTH, textWidth("Undo", labelStyle) + UNDO_PADDING) else 0.dp
-        val fixed = Spacing.screen + BannerMedallionWidth + HEADER_SLACK + chip + undoButton + HEADER_ICON * 2
+        val fixed = Spacing.screen + BannerMedallionWidth + HEADER_SLACK + undoButton + HEADER_ICON
         val room = width - fixed - textWidth("Round ${state.round}", titleStyle)
-        HeaderTools(levels = room >= HEADER_ICON, viewSwitch = room >= HEADER_ICON * 2)
+        val large = density.fontScale > LARGE_FONT_SCALE
+        val endMatch = room - chip >= HEADER_ICON
+        HeaderTools(
+            levels = !large && room - chip >= HEADER_ICON * 2,
+            viewSwitch = !large && room - chip >= HEADER_ICON * 3,
+            endMatch = endMatch,
+            coinLabel = room >= chip,
+        )
     }
+}
+
+/** Capped: at large text the round must still fit whole beside the coin chip. */
+@Composable
+private fun headerTitleStyle(): TextStyle = with(LocalDensity.current) {
+    val scale = fontScale.coerceAtMost(HEADER_TITLE_MAX_SCALE) / fontScale
+    GoaTextStyles.bannerTitle.copy(fontSize = GoaTextStyles.bannerTitle.fontSize * scale)
 }
 
 private val HEADER_ICON = 48.dp
@@ -444,6 +460,7 @@ private fun RowScope.TimerTopActions(
             coin,
             actions.onFlipCoin,
             actionKey = "${state.round}:${state.title}:${state.paused}",
+            showLabel = tools.coinLabel,
             onUndoShown = onCoinUndo,
         )
     } else {
@@ -465,8 +482,7 @@ private fun RowScope.TimerTopActions(
             )
         }
     }
-    // Large text: End match is in the menu with the others, leaving the room to the round.
-    if (LocalDensity.current.fontScale <= LARGE_FONT_SCALE) {
+    if (tools.endMatch) {
         IconButton(onClick = onEnd) { Icon(Icons.Outlined.Flag, contentDescription = "End match") }
     }
     Box {
@@ -559,6 +575,10 @@ private fun RowScope.TimerTopActions(
 @Composable
 private fun PhaseHeading(state: ActiveUiState, onBack: () -> Unit, compact: Boolean = false) {
     val reduced = rememberReducedMotion()
+    val fontScale = LocalDensity.current.fontScale
+    // Capped, so a one-word step ("Resolve") never breaks mid-word on a small phone at large text.
+    val capped = (fontScale.coerceAtMost(PHASE_MAX_SCALE) / fontScale)
+    val plateStyle = if (compact) GoaTextStyles.plateTitle else PHASE_STYLE
     Row(verticalAlignment = Alignment.CenterVertically) {
         IconButton(onClick = onBack, modifier = Modifier.size(48.dp)) {
             Icon(
@@ -578,14 +598,18 @@ private fun PhaseHeading(state: ActiveUiState, onBack: () -> Unit, compact: Bool
         ) { title ->
             TitlePlate(
                 title,
-                style = if (compact) GoaTextStyles.plateTitle else PHASE_STYLE,
+                style = plateStyle.copy(
+                    fontSize = plateStyle.fontSize * capped,
+                    lineHeight =
+                        plateStyle.lineHeight * capped,
+                ),
                 heading = false,
                 maxLines = 3,
                 modifier = Modifier.fillMaxWidth().semantics { liveRegion = LiveRegionMode.Polite },
             )
         }
-        // Balances the button so the plate stays centred.
-        Spacer(Modifier.width(48.dp))
+        // Balances the button so the plate stays centred; large text needs that room for the words.
+        if (fontScale <= LARGE_FONT_SCALE) Spacer(Modifier.width(48.dp))
     }
     Spacer(Modifier.height(if (compact) Spacing.xs else Spacing.sm))
     FlowRow(
@@ -614,6 +638,7 @@ private fun PhaseHeading(state: ActiveUiState, onBack: () -> Unit, compact: Bool
 }
 
 private val PHASE_STYLE = GoaTextStyles.plateTitle.copy(fontSize = 20.sp, lineHeight = 25.sp)
+private const val PHASE_MAX_SCALE = 1.5f
 private val CONTEXT_STYLE = GoaTextStyles.sectionHead.copy(fontSize = 15.sp, lineHeight = 20.sp, shadow = TEXT_SHADOW)
 
 @Composable
@@ -731,6 +756,9 @@ private const val WORD_INSET = 0.2f
 
 /** The dial's width against the screen's: mock-up 07 leaves the sea around it. */
 private const val RING_WIDTH = 0.82f
+
+/** Leaves a small phone room for the heading and Hurry up without scrolling. */
+private const val RING_HEIGHT = 0.55f
 
 /** Untimed end-of-round step: a medallion with the step number and the rule text; tap = Next. */
 @Composable

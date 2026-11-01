@@ -78,6 +78,15 @@ class TimerScreenshotTest {
     fun roundViewLandscapeShortLight() =
         active(TimerPreviewData.roundTurn.copy(paused = true, tieBreaker = Team.BLUE), ThemeMode.LIGHT)
 
+    /** A small phone: the digits, Hurry up and Pause and Next must all still be there. */
+    @Test
+    @Config(qualifiers = "w320dp-h568dp-xhdpi")
+    fun turnSmallPhoneDark() = active(TimerPreviewData.turn.copy(tieBreaker = Team.BLUE))
+
+    @Test
+    @Config(qualifiers = "w320dp-h568dp-xhdpi", fontScale = 2f)
+    fun resolveHurryUpSmallPhoneFontScale2() = active(TimerPreviewData.resolveHurryUp)
+
     @Test fun alertsOffBannerDark() = active(TimerPreviewData.turn.copy(alertsOff = true))
 
     @Test fun pausedWarningDark() = active(TimerPreviewData.paused)
