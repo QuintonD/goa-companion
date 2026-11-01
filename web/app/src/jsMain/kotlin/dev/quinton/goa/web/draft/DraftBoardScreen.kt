@@ -25,7 +25,6 @@ import dev.quinton.goa.feature.draft.ui.actionName
 import dev.quinton.goa.feature.draft.ui.info
 import dev.quinton.goa.feature.draft.ui.label
 import dev.quinton.goa.feature.draft.ui.teamGlyph
-import dev.quinton.goa.feature.draft.ui.teamLabel
 import dev.quinton.goa.feature.draft.ui.teamName
 import dev.quinton.goa.web.LocalServices
 import dev.quinton.goa.web.nav.Route
@@ -34,7 +33,9 @@ import dev.quinton.goa.web.table.MenuItem
 import dev.quinton.goa.web.table.MenuSheet
 import dev.quinton.goa.web.table.SequenceStrip
 import dev.quinton.goa.web.table.TeamMark
+import dev.quinton.goa.web.table.TeamText
 import dev.quinton.goa.web.table.teamClass
+import dev.quinton.goa.web.table.withoutTeamGlyph
 import dev.quinton.goa.web.ui.AlertDialog
 import dev.quinton.goa.web.ui.ButtonKind
 import dev.quinton.goa.web.ui.Chip
@@ -359,7 +360,7 @@ private fun StepBanner(session: DraftSession, state: BoardUiState) {
             TeamMark(step.team)
             P({
                 classes("goa-title-plate", "goa-draft-banner-title", "goa-table-tight")
-            }) { Text(DraftBoardText.bannerTitle(session).orEmpty()) }
+            }) { Text(DraftBoardText.bannerTitle(session).orEmpty().withoutTeamGlyph()) }
         }
         Div({ classes("goa-draft-banner-detail") }) {
             P({
@@ -534,8 +535,9 @@ private fun ConfirmDialog(
             Button({
                 type(ButtonType.Button)
                 classes("goa-button", "goa-draft-team-button", teamClass(step.team))
+                attr("aria-label", "${teamName(step.team)} ${if (ban) "Ban" else "Pick"}")
                 onClick { model.confirm() }
-            }) { Text("${teamGlyph(step.team)} ${if (ban) "Ban" else "Pick"}") }
+            }) { TeamText("${teamGlyph(step.team)} ${if (ban) "Ban" else "Pick"}") }
         },
     ) {
         Div({ classes("goa-draft-confirm") }) {
@@ -545,7 +547,7 @@ private fun ConfirmDialog(
             RoleChips(hero.roles)
             P({
                 classes("t-body-medium", "goa-table-tight")
-            }) { Text(DraftBoardText.confirmText(session, pilot).orEmpty()) }
+            }) { TeamText(DraftBoardText.confirmText(session, pilot).orEmpty()) }
             GoaButton("Stats and starting cards", { onPeek(heroId) }, ButtonKind.TEXT, icon = "info")
             if (session.canEditPool) {
                 GoaButton("Swap out of the pool instead", {
@@ -561,8 +563,9 @@ private fun PrivacyGate(session: DraftSession, model: DraftBoardModel) {
     val step = session.currentStep ?: return
     Div({ classes("goa-draft-privacy", teamClass(step.team)) }) {
         Span({ classes("goa-draft-privacy-mark") }) { Icon("lock", IconSize.LARGE) }
+        TeamMark(step.team, "goa-draft-privacy-team")
         H2({ classes("goa-title-plate", "goa-draft-privacy-title") }) {
-            Text("Pass the phone to ${teamLabel(step.team)}")
+            Text("Pass the phone to ${teamName(step.team)}")
         }
         P({
             classes("t-body-large", "c-variant", "goa-table-center")

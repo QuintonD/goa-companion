@@ -45,6 +45,7 @@ import dev.quinton.goa.web.table.SwitchRow
 import dev.quinton.goa.web.table.TableFooter
 import dev.quinton.goa.web.table.TeamBadge
 import dev.quinton.goa.web.table.TeamChip
+import dev.quinton.goa.web.table.TeamText
 import dev.quinton.goa.web.table.TextField
 import dev.quinton.goa.web.table.resilient
 import dev.quinton.goa.web.table.resilientStarting
@@ -799,7 +800,7 @@ private fun CoinStage(state: SetupUiState, model: DraftSetupModel) {
             classes("t-headline-small", "goa-table-center", "goa-table-tight")
             teamA?.let { classes(teamClass(it), "goa-table-team-text") } ?: classes("c-variant")
             attr("aria-live", "polite")
-        }) { Text(if (teamA == null) "Not flipped yet" else "${teamLabel(teamA)} is Team A") }
+        }) { TeamText(if (teamA == null) "Not flipped yet" else "${teamLabel(teamA)} is Team A") }
         GoaButton(if (teamA == null) "Flip the coin" else "Flip again", model::flipCoin)
         P({ classes("t-label-large", "c-variant", "goa-table-tight") }) { Text("Flipped the real coin?") }
         Div({ classes("goa-chip-row", "wrap", "goa-table-centered-row") }) {

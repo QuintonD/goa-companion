@@ -144,7 +144,32 @@ fun StepButton(icon: String, label: String, enabled: Boolean = true, onClick: ()
     }) { Icon(icon) }
 }
 
-/** "◆ Red shows" / "● Blue shows": a toggle chip in the team's colour (never colour alone: the glyph says it). */
+/**
+ * Words that carry a team's glyph (the shared draft text: "◆ Red is Team A", "Pick ●") with the official gear or
+ * star in its place, in line. The mark is hidden from VoiceOver: a place with no word for the team says it in a label.
+ */
+@Composable
+fun TeamText(text: String) {
+    var run = StringBuilder()
+    text.forEach { char ->
+        val team = Team.entries.firstOrNull { teamGlyph(it) == char.toString() }
+        if (team == null) {
+            run.append(char)
+        } else {
+            if (run.isNotEmpty()) Text(run.toString())
+            run = StringBuilder()
+            TeamMark(team)
+        }
+    }
+    if (run.isNotEmpty()) Text(run.toString())
+}
+
+/** The same words for a place that holds plain text beside its own mark (a title plate, a dialog's title). */
+fun String.withoutTeamGlyph(): String = Team.entries.fold(this) { text, team ->
+    text.replace("${teamGlyph(team)} ", "")
+}
+
+/** "Red shows" / "Blue shows" with the team's mark: a toggle chip in the team's colour (never colour alone). */
 @Composable
 fun TeamChip(team: Team, label: String, selected: Boolean, onClick: () -> Unit) {
     Button({
@@ -229,7 +254,7 @@ fun SectionCard(
                 H3({
                     classes("goa-look-head", "goa-table-section-title")
                     titleClass?.let { classes(it) }
-                }) { Text(title) }
+                }) { TeamText(title) }
                 subtitle?.let { P({ classes("t-body-small", "c-variant") }) { Text(it) } }
             }
             trailing?.invoke()
@@ -292,7 +317,7 @@ fun SequenceStrip(tokens: List<StepToken>, current: Int? = null, wrap: Boolean =
                     current != null && i < current -> classes("done")
                 }
                 attr("aria-hidden", "true")
-            }) { Text((if (token.hidden) "🔒 " else "") + token.label) }
+            }) { TeamText((if (token.hidden) "🔒 " else "") + token.label) }
         }
     }
 }

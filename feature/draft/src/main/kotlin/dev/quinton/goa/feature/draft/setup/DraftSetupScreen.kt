@@ -117,6 +117,7 @@ import dev.quinton.goa.feature.draft.ui.PlateBar
 import dev.quinton.goa.feature.draft.ui.PreviewData
 import dev.quinton.goa.feature.draft.ui.SectionCard
 import dev.quinton.goa.feature.draft.ui.SequenceStrip
+import dev.quinton.goa.feature.draft.ui.TeamText
 import dev.quinton.goa.feature.draft.ui.TieBreakerCoin
 import dev.quinton.goa.feature.draft.ui.TileState
 import dev.quinton.goa.feature.draft.ui.goaFilterChipColors
@@ -975,7 +976,7 @@ private fun CoinStage(state: SetupUiState, actions: SetupActions) {
         )
         TieBreakerCoin(result = form.teamA, flipCount = form.flipCount)
         val teamA = form.teamA
-        Text(
+        TeamText(
             text = if (teamA == null) "Not flipped yet" else "${teamLabel(teamA)} is Team A",
             style = MaterialTheme.typography.headlineSmall,
             color = teamA?.let { teamColor(it) } ?: MaterialTheme.colorScheme.onSurfaceVariant,
@@ -1000,7 +1001,7 @@ private fun CoinStage(state: SetupUiState, actions: SetupActions) {
                     ),
                     selected = teamA == team,
                     onClick = { actions.setTeamA(team) },
-                    label = { Text("${teamLabel(team)} shows") },
+                    label = { TeamText("${teamLabel(team)} shows") },
                     modifier = Modifier.heightIn(min = 48.dp),
                 )
             }

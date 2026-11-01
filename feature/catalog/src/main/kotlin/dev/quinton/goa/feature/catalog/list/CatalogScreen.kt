@@ -472,7 +472,8 @@ private fun Results(
     }
     val minCell = if (LocalDensity.current.fontScale > LARGE_FONT_SCALE) GRID_MIN_CELL_LARGE_FONT else GRID_MIN_CELL
     val plateArt = rememberPlateArt()
-    val footnotes = remember(state.heroes, state.controls.sort) { TileFootnoteRoom.of(state.heroes, state.controls.sort) }
+    val footnotes =
+        remember(state.heroes, state.controls.sort) { TileFootnoteRoom.of(state.heroes, state.controls.sort) }
     LazyVerticalGrid(
         columns = if (grid) GridCells.Adaptive(minCell) else GridCells.Fixed(1),
         state = gridState,

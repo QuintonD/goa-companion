@@ -374,9 +374,22 @@ private fun ScopeSection(
     val phases = state.preset?.phases.orEmpty().filter { it.scope == scope }
     SmallHeading(title)
     P({ classes("t-body-small", "c-variant") }) { Text(hint) }
-    phases.forEachIndexed { index, phase ->
-        PhaseCard(phase, index > 0, index < phases.lastIndex, state.issuesFor(phase.id), state.endSteps, model) {
-            onPick(phase)
+    if (phases.isNotEmpty()) {
+        // One plate per section, the phases divided inside it.
+        Div({
+            classes("goa-card", "goa-table-phase-group")
+            if (phases.any { state.issuesFor(it.id).isNotEmpty() }) classes("error")
+        }) {
+            phases.forEachIndexed { index, phase ->
+                PhaseCard(
+                    phase,
+                    index > 0,
+                    index < phases.lastIndex,
+                    state.issuesFor(phase.id),
+                    state.endSteps,
+                    model,
+                ) { onPick(phase) }
+            }
         }
     }
     GoaButton("Add ${title.lowercase()} timer", {
@@ -396,8 +409,7 @@ private fun PhaseCard(
 ) {
     var endStepMenu by remember { mutableStateOf(false) }
     Div({
-        classes("goa-card", "goa-table-phase-card")
-        if (issues.isNotEmpty()) classes("error")
+        classes("goa-table-phase-card")
         if (!phase.enabled) classes("off")
     }) {
         SwitchRow(TimerText.kindLabel(phase.kind).uppercase(), null, phase.enabled) { on ->

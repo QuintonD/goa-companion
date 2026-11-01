@@ -82,7 +82,9 @@ fun AboutScreen() {
                     H2({ classes("t-title-medium") }) { Text("A free fan companion") }
                     BodyText(
                         "Made by a player for their play group and shared publicly, free of charge. " +
-                            "Not sold and no ads.",
+                            "Not sold and no ads. Your matches and players stay in this browser unless you join a " +
+                            "group: then they sync through the group's sync server, which only ever holds them " +
+                            "sealed and can't read them.",
                     )
                 }
             }

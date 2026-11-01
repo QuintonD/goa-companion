@@ -22,11 +22,13 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.Shadow
+import androidx.compose.ui.graphics.drawscope.clipRect
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalDensity
@@ -55,7 +57,9 @@ import dev.quinton.goa.feature.rules.RulesTopicUiState
 @Composable
 fun RulesTopicScreen(state: RulesTopicUiState, onBack: () -> Unit) {
     val title = (state as? RulesTopicUiState.Ready)?.topic?.title ?: "Rules"
-    GoaScreen(title = title, onBack = onBack) { padding ->
+    // Two lines of large text don't fit the banner: its head alone there. The topic list has the whole title.
+    val large = LocalDensity.current.fontScale > LARGE_FONT_SCALE
+    GoaScreen(title = if (large) shortTitle(title) else title, onBack = onBack) { padding ->
         Box(Modifier.fillMaxSize().padding(padding)) {
             when (state) {
                 RulesTopicUiState.Loading -> CircularProgressIndicator(Modifier.align(Alignment.Center))
@@ -131,7 +135,12 @@ private fun DiagramWithCaption(diagram: RulesDiagrams.Entry, caption: RulesExcer
                     contentDescription = null,
                     contentScale = ContentScale.Fit,
                     colorFilter = ColorFilter.tint(page, BlendMode.Multiply),
-                    modifier = Modifier.fillMaxSize(),
+                    // The crop's edges hold a line of the book's page panel.
+                    modifier = Modifier.fillMaxSize().drawWithContent {
+                        clipRect(left = size.width * DIAGRAM_EDGE, right = size.width * (1 - DIAGRAM_EDGE)) {
+                            this@drawWithContent.drawContent()
+                        }
+                    },
                 )
             }
         }
@@ -163,6 +172,10 @@ private fun RulesFooter(text: String) {
     }
 }
 
+/** "End of round: the 6 steps" → "End of round"; "Turn sequence & tied initiative" → "Turn sequence". */
+private fun shortTitle(title: String): String = title.substringBefore(':').substringBefore(" & ").substringBefore(',')
+
+private const val DIAGRAM_EDGE = 0.015f
 private val PAGE_MARGIN = 18.dp
 private val FOOTER_HEIGHT = 42.dp
 

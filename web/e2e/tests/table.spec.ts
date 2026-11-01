@@ -143,7 +143,7 @@ async function pickNext(page: Page) {
   await page.locator(".goa-draft-tile:not(.inactive):not(.banned):not(.picked)").first().click();
   const dialog = page.getByRole("alertdialog");
   await expect(dialog).toBeVisible();
-  await dialog.getByRole("button", { name: /^(◆|●) (Pick|Ban)$/ }).click();
+  await dialog.getByRole("button", { name: /^(Red|Blue) (Pick|Ban)$/ }).click();
   await expect(dialog).toHaveCount(0);
 }
 

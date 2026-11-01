@@ -131,6 +131,9 @@ fun GoaButton(
     }
 }
 
+/** A title longer than this (characters) starts smaller on the banner, where it may take two lines. */
+private const val LONG_TITLE = 20
+
 /**
  * A screen: the steel-banner top bar (title in engraved Cinzel caps, Back when there is somewhere to
  * go Up to, [actions] on the right) over the content. Sets the document title.
@@ -165,6 +168,7 @@ fun Screen(
                 }
                 H1({
                     classes("goa-topbar-title", "t-banner-title")
+                    if (title.length > LONG_TITLE) classes("long")
                     tabIndex(-1)
                 }) { Text(title) }
                 Div({ classes("goa-topbar-actions") }) { actions() }
