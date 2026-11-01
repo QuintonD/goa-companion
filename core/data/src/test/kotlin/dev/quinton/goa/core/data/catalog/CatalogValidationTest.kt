@@ -214,7 +214,9 @@ class CatalogValidationTest {
     @Test
     fun `every referenced asset exists and every bundled image is referenced`() {
         val referenced = heroes.flatMap { hero ->
-            listOfNotNull(hero.portrait, hero.symbol) + hero.allCards.mapNotNull { it.image }
+            // A facedown card shows its hero's back, found by hero id rather than listed (ADR-053).
+            listOfNotNull(hero.portrait, hero.symbol, "official/heroes/${hero.id}/back.webp") +
+                hero.allCards.mapNotNull { it.image }
         }
         referenced.forEach { path ->
             assertWithMessage(path).that(RepoAssets.file(path).isFile).isTrue()
