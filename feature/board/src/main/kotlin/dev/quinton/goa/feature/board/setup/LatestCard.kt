@@ -1,6 +1,5 @@
 package dev.quinton.goa.feature.board.setup
 
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
@@ -14,7 +13,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -28,6 +26,7 @@ import dev.quinton.goa.core.designsystem.theme.GoaTextStyles
 import dev.quinton.goa.core.designsystem.theme.Spacing
 import dev.quinton.goa.core.model.match.Team
 import dev.quinton.goa.feature.board.list.LineupHeroes
+import dev.quinton.goa.feature.board.ui.PlateSurface
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
@@ -48,12 +47,7 @@ internal fun LatestCard(
     val names = listOf(source.red, source.blue).filter { it.isNotEmpty() }
         .joinToString(" vs ") { team -> team.joinToString(", ") { it.name } }
     val what = "Latest ${source.kind.label.lowercase()}"
-    Surface(
-        shape = MaterialTheme.shapes.large,
-        color = MaterialTheme.colorScheme.surface,
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.55f)),
-        modifier = modifier.fillMaxWidth(),
-    ) {
+    PlateSurface(brackets = true, modifier = modifier.fillMaxWidth()) {
         Row(
             Modifier.padding(start = Spacing.md, end = Spacing.sm, top = Spacing.sm, bottom = Spacing.sm),
             verticalAlignment = Alignment.CenterVertically,

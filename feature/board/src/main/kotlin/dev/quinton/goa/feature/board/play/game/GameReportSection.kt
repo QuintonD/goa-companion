@@ -8,11 +8,9 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -36,6 +34,7 @@ import dev.quinton.goa.core.game.DecisionMark
 import dev.quinton.goa.core.game.GameReport
 import dev.quinton.goa.core.game.ReviewMistake
 import dev.quinton.goa.feature.board.R
+import dev.quinton.goa.feature.board.ui.PlateSurface
 import dev.quinton.goa.feature.board.ui.cards.CardFocusState
 import kotlin.math.roundToInt
 
@@ -168,11 +167,7 @@ private fun SmallHead(text: String) {
 @Composable
 private fun MistakeCard(play: PlayUi, m: ReviewMistake, focus: CardFocusState?, onLogAt: (Int) -> Unit) {
     var open by rememberSaveable(m.decision.decisionId) { mutableStateOf(false) }
-    Surface(
-        shape = RoundedCornerShape(14.dp),
-        color = MaterialTheme.colorScheme.secondaryContainer,
-        modifier = Modifier.fillMaxWidth(),
-    ) {
+    PlateSurface(modifier = Modifier.fillMaxWidth()) {
         Column(Modifier.padding(Spacing.md), verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
             Column(Modifier.semantics(mergeDescendants = true) {}) {
                 Row(verticalAlignment = Alignment.CenterVertically) {

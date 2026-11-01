@@ -133,16 +133,17 @@ fun NudgeCard(nudge: NudgeUi, onMore: () -> Unit, onDismiss: () -> Unit) {
         classes("goa-puzzle-nudge")
         attr("role", "note")
     }) {
-        Div({ classes("goa-puzzle-nudge-head") }) {
-            Icon("lightbulb")
-            H3({ classes("t-section-head") }) { Text("Nudge ${nudge.level} of ${nudge.total}") }
-            IconButton("close", "Hide the nudge", onDismiss)
+        Div({ classes("goa-text-box", "green") }) {
+            H3({ classes("cap") }) { Text("Nudge ${nudge.level} of ${nudge.total}") }
+            Div({ classes("goa-puzzle-nudge-head") }) {
+                Icon("lightbulb")
+                Div {
+                    P({ attr("aria-live", "polite") }) { Text(nudge.text) }
+                    nudge.hint?.let { P({ classes("t-label-large") }) { Text("Outlined in bronze: $it") } }
+                }
+                IconButton("close", "Hide the nudge", onDismiss)
+            }
         }
-        P({
-            classes("t-body-large")
-            attr("aria-live", "polite")
-        }) { Text(nudge.text) }
-        nudge.hint?.let { P({ classes("t-label-large") }) { Text("Outlined in bronze: $it") } }
         if (nudge.more) GoaButton("Another nudge", onMore, ButtonKind.OUTLINED)
     }
 }

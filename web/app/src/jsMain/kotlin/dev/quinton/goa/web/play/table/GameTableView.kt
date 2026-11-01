@@ -44,6 +44,7 @@ fun GameTableView(
     peek: PanelPeek,
     peekActions: @Composable () -> Unit = {},
     banner: (@Composable () -> Unit)? = null,
+    panelTitle: (@Composable () -> Unit)? = null,
     panel: @Composable () -> Unit,
 ) {
     val landscape = rememberLandscape()
@@ -80,6 +81,7 @@ fun GameTableView(
         peek = peek,
         peekActions = peekActions,
         panelLabel = "The question and what happened",
+        panelTitle = panelTitle,
         top = {
             Div({
                 classes("goa-table-top")

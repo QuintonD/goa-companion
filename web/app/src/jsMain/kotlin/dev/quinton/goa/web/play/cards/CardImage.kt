@@ -6,6 +6,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import dev.quinton.goa.core.model.catalog.Card
+import dev.quinton.goa.core.model.catalog.CardColor
 import dev.quinton.goa.feature.board.board.tierLabel
 import dev.quinton.goa.feature.board.ui.cards.cardAspect
 import dev.quinton.goa.feature.board.ui.cards.isSpell
@@ -69,6 +70,15 @@ private fun CardFace(card: Card, width: Int) {
             attr("draggable", "false")
         }
     }
+}
+
+/** A card's text box colour (`.goa-text-box`); the Ultimate's purple and unknown colours use the neutral silver. */
+fun cardBoxColor(color: CardColor): String = when (color) {
+    CardColor.GOLD -> "gold"
+    CardColor.SILVER, CardColor.PURPLE, CardColor.OTHER -> "silver"
+    CardColor.RED -> "red"
+    CardColor.GREEN -> "green"
+    CardColor.BLUE -> "blue"
 }
 
 /** A card's rounded corner as a share of its width. */

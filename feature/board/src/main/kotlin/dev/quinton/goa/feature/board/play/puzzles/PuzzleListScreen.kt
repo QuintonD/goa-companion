@@ -43,6 +43,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
@@ -61,6 +62,7 @@ import dev.quinton.goa.core.designsystem.theme.GoaTextStyles
 import dev.quinton.goa.core.designsystem.theme.GoaTheme
 import dev.quinton.goa.core.designsystem.theme.Spacing
 import dev.quinton.goa.feature.board.BoardText
+import dev.quinton.goa.feature.board.ui.PlateSurface
 
 /**
  * The puzzles (PRODUCT §10): Continue with the first unsolved one at the top, "N of M solved",
@@ -223,26 +225,8 @@ private fun PuzzleList(state: PuzzleListUiState.Ready, onAction: (PuzzleListActi
 @Composable
 private fun ContinueCard(state: PuzzleListUiState.Ready, onOpen: (String) -> Unit) {
     val next = state.next
-    Surface(
-        shape = MaterialTheme.shapes.large,
-        color = if (next !=
-            null
-        ) {
-            MaterialTheme.colorScheme.secondaryContainer
-        } else {
-            MaterialTheme.colorScheme.primaryContainer
-        },
-        border = BorderStroke(
-            1.dp,
-            if (next != null) MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.primary,
-        ),
-        modifier = Modifier.fillMaxWidth(),
-    ) {
-        val content = if (next != null) {
-            MaterialTheme.colorScheme.onSecondaryContainer
-        } else {
-            MaterialTheme.colorScheme.onPrimaryContainer
-        }
+    PlateSurface(brackets = true, modifier = Modifier.fillMaxWidth()) {
+        val content = MaterialTheme.colorScheme.onSurface
         Row(
             Modifier.padding(start = Spacing.md, end = Spacing.sm, top = Spacing.md, bottom = Spacing.md),
             verticalAlignment = Alignment.CenterVertically,
@@ -304,20 +288,10 @@ private fun PuzzleRow(row: PuzzleRowUi, onClick: () -> Unit) {
         progress.nudgesUsed.takeIf { it > 0 }?.let { BoardText.count(it, "nudge") },
         "Solution seen".takeIf { progress.solutionShown },
     )
-    Surface(
+    PlateSurface(
         onClick = onClick,
-        shape = MaterialTheme.shapes.medium,
-        color = MaterialTheme.colorScheme.surface,
-        border = BorderStroke(
-            1.dp,
-            if (progress.solved) {
-                MaterialTheme.colorScheme.primary.copy(
-                    alpha = 0.6f,
-                )
-            } else {
-                GoaTheme.colors.engravedBorder
-            },
-        ),
+        brackets = true,
+        border = if (progress.solved) BorderStroke(1.dp, SOLVED_EDGE) else null,
         modifier = Modifier
             .fillMaxWidth()
             .heightIn(min = 72.dp)
@@ -415,7 +389,7 @@ private fun NumberMark(number: Int, solved: Boolean) {
     val size = scaledIconSize(40.dp, 1.4f)
     Surface(
         shape = CircleShape,
-        color = if (solved) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surface,
+        color = if (solved) MaterialTheme.colorScheme.primaryContainer else Color.Transparent,
         border = BorderStroke(1.5.dp, MaterialTheme.colorScheme.primary),
         modifier = Modifier.size(size),
     ) {
@@ -428,3 +402,5 @@ private fun NumberMark(number: Int, solved: Boolean) {
         }
     }
 }
+
+private val SOLVED_EDGE = Color(0x99C9A35B)

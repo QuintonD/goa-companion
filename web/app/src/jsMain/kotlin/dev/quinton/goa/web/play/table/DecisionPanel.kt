@@ -8,6 +8,7 @@ import dev.quinton.goa.core.game.Choice
 import dev.quinton.goa.core.game.Decision
 import dev.quinton.goa.core.game.DecisionKind
 import dev.quinton.goa.core.model.catalog.Card
+import dev.quinton.goa.core.model.catalog.PrimaryAction
 import dev.quinton.goa.feature.board.BoardText
 import dev.quinton.goa.feature.board.play.PlayText
 import dev.quinton.goa.feature.board.play.table.DefenseLine
@@ -16,6 +17,7 @@ import dev.quinton.goa.feature.board.play.table.PanelLayout
 import dev.quinton.goa.feature.board.play.table.TableUi
 import dev.quinton.goa.feature.board.play.table.actionLabel
 import dev.quinton.goa.feature.board.play.table.actionRule
+import dev.quinton.goa.feature.board.play.table.actionWord
 import dev.quinton.goa.feature.board.play.table.cardAction
 import dev.quinton.goa.feature.board.play.table.cardVerb
 import dev.quinton.goa.feature.board.play.table.defenseLine
@@ -37,6 +39,7 @@ import dev.quinton.goa.web.play.cards.CardFocusState
 import dev.quinton.goa.web.play.cards.CardImage
 import dev.quinton.goa.web.play.cards.CardSelection
 import dev.quinton.goa.web.play.cards.ItemBadge
+import dev.quinton.goa.web.play.cards.cardBoxColor
 import dev.quinton.goa.web.play.cards.verdictClass
 import dev.quinton.goa.web.play.ui.TeamMark
 import dev.quinton.goa.web.ui.Icon
@@ -66,10 +69,12 @@ fun DecisionPanel(
     onAnswer: (Choice) -> Unit,
     focus: CardFocusState,
     busy: Boolean = false,
+    who: Boolean = true,
 ) {
     val decision = table.decision ?: return
     val source = table.sourceCard
     val layout = panelLayout(decision.kind, source != null)
+    val beside = layout == PanelLayout.CARD_BESIDE && source != null
     Div({
         classes("goa-decision")
         // The question's id: a new question is a new panel (tests wait for it to change).
@@ -79,7 +84,9 @@ fun DecisionPanel(
             table,
             decision,
             focus,
-            prompt = decision.kind != DecisionKind.DEFEND,
+            who = who,
+            // Asked by a card: the prompt goes in the card's text box, beside it. Defend says it in its attack header.
+            prompt = decision.kind != DecisionKind.DEFEND && !beside,
             askedBy = layout == PanelLayout.CARDS && decision.kind != DecisionKind.DEFEND,
         )
         when {
@@ -94,9 +101,10 @@ fun DecisionPanel(
                 Div({ classes("goa-beside", if (board) "small" else "large") }) {
                     AskingCard(table, source, focus, width = if (board) 72 else 120)
                     Div({ classes("goa-beside-answers") }) {
-                        if (board) BoardHint(table, onAnswer, busy)
+                        QuestionBox(table, source, decision, board)
+                        if (board) BoardConfirm(table, onAnswer, busy)
                         Choices(table, table.buttonOptions, onAnswer, busy)
-                        Unavailable(table, decision, focus)
+                        RuleBox(cardBoxColor(source.color), table, decision, focus)
                     }
                 }
                 if (board) BoardChips(table, onSelect)
@@ -104,22 +112,74 @@ fun DecisionPanel(
 
             else -> {
                 if (hasBoardOptions(table)) {
-                    BoardHint(table, onAnswer, busy)
+                    BoardHint(table)
+                    BoardConfirm(table, onAnswer, busy)
                     BoardChips(table, onSelect)
                 }
                 Choices(table, table.buttonOptions, onAnswer, busy)
-                Unavailable(table, decision, focus)
+                RuleBox("silver", table, decision, focus)
             }
         }
-        if (decision.kind == DecisionKind.CHOOSE_ACTION && table.buttonOptions.any { it is Choice.Action }) {
-            Quiet("Only the primary action applies the card's text (p.7).")
+    }
+}
+
+/** The rule a question rests on that no card prints, in a line of its own. */
+private fun footnote(table: TableUi, decision: Decision): String? = when {
+    decision.kind == DecisionKind.CHOOSE_ACTION && table.buttonOptions.any { it is Choice.Action } ->
+        "Only the primary action applies the card's text (p.7)."
+
+    decision.kind == DecisionKind.ACT_FIRST ->
+        "Heroes of one team on the same initiative choose which of them acts first; between teams " +
+            "the Tie Breaker coin decides, then it flips (p.7)."
+
+    else -> null
+}
+
+/** The question's rule lines in the asking card's text box: the actions it can't offer, then the rule. */
+@Composable
+private fun RuleBox(color: String, table: TableUi, decision: Decision, focus: CardFocusState) {
+    val note = footnote(table, decision)
+    if (note == null && unavailableActions(decision).isEmpty()) return
+    Div({ classes("goa-text-box", color, "goa-rule-box") }) {
+        Span({ classes("cap") }) { Text("Rule") }
+        Unavailable(table, decision, focus)
+        note?.let { P { Text(it) } }
+    }
+}
+
+/**
+ * The question asked by a card, on the card's own text box (mock-up 03): the action on its tab, the
+ * rulebook's action symbol, the prompt (read aloud) and how to answer on the board.
+ */
+@Composable
+private fun QuestionBox(table: TableUi, card: Card, decision: Decision, board: Boolean) {
+    val action = table.track?.slots
+        ?.firstOrNull { it.heroId == decision.seat && it.cards.any { view -> view.cardId == card.id } }
+        ?.action
+    Div({ classes("goa-text-box", cardBoxColor(card.color), "goa-question-box") }) {
+        Span({ classes("cap") }) { Text(action?.let { actionWord(it, card) } ?: PlayText.primary(card.primary)) }
+        lookAction(action, card)?.let { LookImg("official/ui/action-$it.webp", "goa-question-icon") }
+        Div {
+            P({ attr("aria-live", "polite") }) { Text(decision.prompt) }
+            if (board) P({ classes("goa-tap-hint") }) { Text(boardHint(table)) }
         }
-        if (decision.kind == DecisionKind.ACT_FIRST) {
-            Quiet(
-                "Heroes of one team on the same initiative choose which of them acts first; between teams " +
-                    "the Tie Breaker coin decides, then it flips (p.7).",
-            )
-        }
+    }
+}
+
+/** The rulebook's symbol for the action being resolved, or the card's primary while none is chosen yet. */
+private fun lookAction(action: ActionType?, card: Card): String? = when (action) {
+    ActionType.MOVEMENT, ActionType.FAST_TRAVEL -> "movement"
+
+    ActionType.ATTACK, ActionType.CLEAR -> "attack"
+
+    ActionType.HOLD -> null
+
+    ActionType.PRIMARY, null -> when (card.primary) {
+        PrimaryAction.ATTACK -> "attack"
+        PrimaryAction.SKILL -> "skill"
+        PrimaryAction.DEFENSE -> "defense"
+        PrimaryAction.MOVEMENT -> "movement"
+        else -> null
     }
 }
 
@@ -153,17 +213,34 @@ private fun Unavailable(table: TableUi, decision: Decision, focus: CardFocusStat
 
 private fun hasBoardOptions(table: TableUi) = table.spaceOptions.isNotEmpty() || table.pieceOptions.isNotEmpty()
 
-/** Who is asked and what (in the team's colour), the prompt (read aloud), and "Asked by <card>". */
+/** Who is asked and what: small caps in the team's colour with its mark, as on the panel's bar in mock-up 01. */
 @Composable
-private fun PromptHeader(table: TableUi, decision: Decision, focus: CardFocusState, prompt: Boolean, askedBy: Boolean) {
+fun DecisionWho(table: TableUi) {
+    val decision = table.decision ?: return
     val name = table.decider?.let { table.hero(it.heroId).name } ?: BoardText.team(decision.team)
-    P({ classes("t-overline", "goa-decision-who", teamCss(decision.team)) }) {
+    P({ classes("goa-decision-who", teamCss(decision.team)) }) {
         TeamMark(decision.team)
         Text(" $name · ${kindTitle(decision.kind)}")
     }
+}
+
+/**
+ * [DecisionWho] unless the panel's bar says it ([who]), the prompt on its title plate (read aloud), and
+ * "Asked by <card>".
+ */
+@Composable
+private fun PromptHeader(
+    table: TableUi,
+    decision: Decision,
+    focus: CardFocusState,
+    who: Boolean,
+    prompt: Boolean,
+    askedBy: Boolean,
+) {
+    if (who) DecisionWho(table)
     if (prompt) {
         P({
-            classes("t-title-medium", "goa-decision-prompt")
+            classes("goa-title-plate", "goa-decision-prompt")
             attr("aria-live", "polite")
         }) { Text(decision.prompt) }
     }
@@ -199,23 +276,31 @@ private fun AskingCard(table: TableUi, card: Card, focus: CardFocusState, width:
     }
 }
 
-/** Spaces, units or tokens are tapped on the board: the hint, then Confirm with the choice spelled out. */
-@Composable
-private fun BoardHint(table: TableUi, onAnswer: (Choice) -> Unit, busy: Boolean) {
+/** How a board question is answered: spaces, units or tokens are tapped on the board. */
+private fun boardHint(table: TableUi): String {
     val spaces = table.spaceOptions
     val pieces = table.pieceOptions
-    val selected = table.selected?.takeIf { it is Choice.Space || it is Choice.Unit || it is Choice.Token }
+    return when {
+        pieces.isEmpty() && spaces.size == 1 -> "Tap the space outlined in teal."
+        pieces.isEmpty() -> "Tap one of the ${spaces.size} spaces outlined in teal."
+        spaces.isEmpty() -> "Tap an outlined piece on the board, or pick it below."
+        else -> "Tap an outlined space or piece on the board."
+    }
+}
+
+/** [boardHint] for a question no card asks, on the plate itself. */
+@Composable
+private fun BoardHint(table: TableUi) {
     P({ classes("t-body-medium", "goa-tap-hint") }) {
         Icon("touch", IconSize.SMALL)
-        Text(
-            when {
-                pieces.isEmpty() && spaces.size == 1 -> "Tap the space outlined in teal."
-                pieces.isEmpty() -> "Tap one of the ${spaces.size} spaces outlined in teal."
-                spaces.isEmpty() -> "Tap an outlined piece on the board, or pick it below."
-                else -> "Tap an outlined space or piece on the board."
-            },
-        )
+        Text(boardHint(table))
     }
+}
+
+/** Confirm with the choice spelled out, once one is tapped on the board. */
+@Composable
+private fun BoardConfirm(table: TableUi, onAnswer: (Choice) -> Unit, busy: Boolean) {
+    val selected = table.selected?.takeIf { it is Choice.Space || it is Choice.Unit || it is Choice.Token }
     if (selected != null) {
         Button({
             classes("goa-button", "filled", "block", "goa-confirm")
@@ -384,7 +469,7 @@ private fun HandPicker(table: TableUi, onAnswer: (Choice) -> Unit, focus: CardFo
         }
     }
     val offered = offeredCards(table)
-    OfferedRow(table, offered) { i -> openOffered(focus, table, offered, i, onAnswer) }
+    OfferedRow(table, offered, fan = true) { i -> openOffered(focus, table, offered, i, onAnswer) }
     if (offered.any { it.choice != null }) TapHint("Tap a card to see it large; tap it again to play it facedown.")
     if (table.buttonOptions.isNotEmpty()) {
         Div({ classes("goa-choices", "row") }) {
@@ -407,7 +492,7 @@ private fun CardPicker(table: TableUi, onAnswer: (Choice) -> Unit, focus: CardFo
     FocusLifecycle(focus, decision, busy)
     val offered = offeredCards(table)
     val keep = decision.kind == DecisionKind.KEEP_UPGRADE
-    OfferedRow(table, offered, keep) { i -> openOffered(focus, table, offered, i, onAnswer) }
+    OfferedRow(table, offered, keep, fan = !keep) { i -> openOffered(focus, table, offered, i, onAnswer) }
     if (offered.any { it.choice != null }) {
         val verb = when (decision.kind) {
             DecisionKind.UPGRADE_CARD -> "upgrade it"
@@ -429,10 +514,18 @@ private fun TapHint(text: String) {
 
 /**
  * The cards in a row, as large as fits (two to keep side by side are shown large, ADR-041); one the
- * question doesn't offer is dimmed and marked. Each opens the viewer.
+ * question doesn't offer is dimmed and marked. Each opens the viewer. [fan] lays them as a hand held in a
+ * gentle fan (mock-up 01: about 3.2° per card from the centre, the outer ones lower), each still a whole
+ * button.
  */
 @Composable
-private fun OfferedRow(table: TableUi, offered: List<OfferedCard>, keep: Boolean = false, onOpen: (Int) -> Unit) {
+private fun OfferedRow(
+    table: TableUi,
+    offered: List<OfferedCard>,
+    keep: Boolean = false,
+    fan: Boolean = false,
+    onOpen: (Int) -> Unit,
+) {
     val reason = table.decision?.kind?.let(::notOffered)
     val width = when {
         offered.size <= 2 -> 140
@@ -441,12 +534,23 @@ private fun OfferedRow(table: TableUi, offered: List<OfferedCard>, keep: Boolean
     }
     Div({
         classes("goa-offered", "n${offered.size.coerceAtMost(MAX_CLASS)}")
+        if (fan) classes("fan")
         style { property("--card-w", "${width}px") }
     }) {
         offered.forEachIndexed { i, item ->
             val card = item.card
             val offeredNow = item.choice != null
-            Div({ classes("goa-offered-cell") }) {
+            val fromCentre = i - (offered.size - 1) / 2.0
+            Div({
+                classes("goa-offered-cell")
+                if (fan) {
+                    val away = kotlin.math.abs(fromCentre)
+                    style {
+                        val drop = away * (away + 1)
+                        property("transform", "translateY(${drop}px) rotate(${fromCentre * FAN_DEGREES}deg)")
+                    }
+                }
+            }) {
                 Button({
                     classes("goa-thumb", "goa-offered-card")
                     if (!offeredNow) classes("dimmed")
@@ -491,9 +595,10 @@ private fun DefensePanel(
         context.rangedAttack?.let { if (it) "ranged" else "melee" },
     ).joinToString(" · ").ifEmpty { "Attacked" }
     Div({
-        classes("goa-attack")
+        classes("goa-attack", "goa-text-box", "red")
         attr("aria-live", "polite")
     }) {
+        Span({ classes("cap") }) { Text("Attack") }
         table.sourceCard?.let { card ->
             Button({
                 classes("goa-thumb")
@@ -589,3 +694,4 @@ private fun DefensePanel(
 
 private const val MAX_SPACE_CHIPS = 6
 private const val MAX_CLASS = 6
+private const val FAN_DEGREES = 3.2

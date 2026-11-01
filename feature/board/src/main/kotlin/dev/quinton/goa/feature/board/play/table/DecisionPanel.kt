@@ -22,15 +22,15 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.CheckCircle
 import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material.icons.outlined.TouchApp
-import androidx.compose.material3.Button
 import androidx.compose.material3.Icon
+import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.Role
@@ -45,7 +45,13 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import dev.quinton.goa.core.designsystem.component.ActionIcon
+import dev.quinton.goa.core.designsystem.component.CardTextBox
+import dev.quinton.goa.core.designsystem.component.LookAction
+import dev.quinton.goa.core.designsystem.component.PlateColor
 import dev.quinton.goa.core.designsystem.component.TeamMark
+import dev.quinton.goa.core.designsystem.component.TitlePlate
 import dev.quinton.goa.core.designsystem.component.cardColor
 import dev.quinton.goa.core.designsystem.component.scaledIconSize
 import dev.quinton.goa.core.designsystem.component.teamColor
@@ -60,6 +66,10 @@ import dev.quinton.goa.core.model.catalog.Card
 import dev.quinton.goa.core.model.catalog.PrimaryAction
 import dev.quinton.goa.feature.board.BoardText
 import dev.quinton.goa.feature.board.play.PlayText
+import dev.quinton.goa.feature.board.ui.PlateButton
+import dev.quinton.goa.feature.board.ui.PlateTone
+import dev.quinton.goa.feature.board.ui.PlateToneSurface
+import dev.quinton.goa.feature.board.ui.PlateWell
 import dev.quinton.goa.feature.board.ui.cards.CardFocusState
 import dev.quinton.goa.feature.board.ui.cards.cardFocusOrigin
 import dev.quinton.goa.feature.board.ui.cards.isSpell
@@ -90,16 +100,20 @@ fun DecisionPanel(
     focus: CardFocusState,
     modifier: Modifier = Modifier,
     busy: Boolean = false,
+    who: Boolean = true,
 ) {
     val decision = table.decision ?: return
     val source = table.sourceCard
     val layout = panelLayout(decision.kind, source != null)
+    val beside = layout == PanelLayout.CARD_BESIDE && source != null
     Column(modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
         PromptHeader(
             table,
             decision,
             focus,
-            prompt = decision.kind != DecisionKind.DEFEND,
+            who = who,
+            // Asked by a card: the prompt goes in the card's text box, beside it. Defend says it in its attack header.
+            prompt = decision.kind != DecisionKind.DEFEND && !beside,
             askedBy = layout == PanelLayout.CARDS && decision.kind != DecisionKind.DEFEND,
         )
         when {
@@ -114,9 +128,10 @@ fun DecisionPanel(
             layout == PanelLayout.CARD_BESIDE && source != null -> {
                 val board = hasBoardOptions(table)
                 CardBeside(table, source, focus, large = !board) {
-                    if (board) BoardHint(table, onAnswer, busy)
+                    QuestionBox(table, source, decision, board)
+                    if (board) BoardConfirm(table, onAnswer, busy)
                     Choices(table, table.buttonOptions, onAnswer, busy) { CastPreview(table, focus) }
-                    Unavailable(table, decision, focus)
+                    RuleBox(PlateColor.of(source.color), table, decision, focus)
                     SpellReasonsIfNoPrimary(table)
                 }
                 if (board) BoardChips(table, onSelect)
@@ -124,31 +139,89 @@ fun DecisionPanel(
 
             else -> {
                 if (hasBoardOptions(table)) {
-                    BoardHint(table, onAnswer, busy)
+                    BoardHint(table)
+                    BoardConfirm(table, onAnswer, busy)
                     BoardChips(table, onSelect)
                 }
                 Choices(table, table.buttonOptions, onAnswer, busy)
-                Unavailable(table, decision, focus)
+                RuleBox(PlateColor.SILVER, table, decision, focus)
             }
-        }
-        if (decision.kind == DecisionKind.CHOOSE_ACTION && table.buttonOptions.any { it is Choice.Action }) {
-            Footnote("Only the primary action applies the card's text (p.7).")
-        }
-        if (decision.kind == DecisionKind.ACT_FIRST) {
-            // A bare "who acts first?" over two portraits told nothing about why it was asked.
-            Footnote(
-                "Heroes of one team on the same initiative choose which of them acts first; between " +
-                    "teams the Tie Breaker coin decides, then it flips (p.7).",
-            )
         }
     }
 }
 
 private fun hasBoardOptions(table: TableUi) = table.spaceOptions.isNotEmpty() || table.pieceOptions.isNotEmpty()
 
+/** The rule a question rests on that no card prints, in a line of its own. */
+private fun footnote(table: TableUi, decision: Decision): String? = when {
+    decision.kind == DecisionKind.CHOOSE_ACTION && table.buttonOptions.any { it is Choice.Action } ->
+        "Only the primary action applies the card's text (p.7)."
+
+    // A bare "who acts first?" over two portraits told nothing about why it was asked.
+    decision.kind == DecisionKind.ACT_FIRST ->
+        "Heroes of one team on the same initiative choose which of them acts first; between " +
+            "teams the Tie Breaker coin decides, then it flips (p.7)."
+
+    else -> null
+}
+
+/** The question's rule lines in the asking card's text box: the actions it can't offer, then the rule. */
 @Composable
-private fun Footnote(text: String) {
-    Text(text, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+private fun RuleBox(color: PlateColor, table: TableUi, decision: Decision, focus: CardFocusState) {
+    val note = footnote(table, decision)
+    if (note == null && unavailableActions(decision).isEmpty()) return
+    CardTextBox(color, Modifier.fillMaxWidth(), cap = "Rule") {
+        Unavailable(table, decision, focus)
+        note?.let { Text(it, style = PrintedSmall) }
+    }
+}
+
+/**
+ * The question asked by a card, on the card's own text box (mock-up 03): the action on its tab, the
+ * rulebook's action symbol, the prompt (a live region) and how to answer on the board.
+ */
+@Composable
+private fun QuestionBox(table: TableUi, card: Card, decision: Decision, board: Boolean) {
+    val action = table.track?.slots
+        ?.firstOrNull { it.heroId == decision.seat && it.cards.any { view -> view.cardId == card.id } }
+        ?.action
+    CardTextBox(
+        PlateColor.of(card.color),
+        Modifier.fillMaxWidth(),
+        cap = action?.let { actionWord(it, card) } ?: PlayText.primary(card.primary),
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            lookAction(action, card)?.let {
+                ActionIcon(it, size = scaledIconSize(28.dp, 1.3f))
+                Spacer(Modifier.width(Spacing.sm))
+            }
+            Column(Modifier.weight(1f)) {
+                Text(
+                    decision.prompt,
+                    style = PrintedQuestion,
+                    modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite },
+                )
+                if (board) Text(boardHint(table), style = PrintedQuestion)
+            }
+        }
+    }
+}
+
+/** The rulebook's symbol for the action being resolved, or the card's primary while none is chosen yet. */
+private fun lookAction(action: ActionType?, card: Card): LookAction? = when (action) {
+    ActionType.MOVEMENT, ActionType.FAST_TRAVEL -> LookAction.MOVEMENT
+
+    ActionType.ATTACK, ActionType.CLEAR -> LookAction.ATTACK
+
+    ActionType.HOLD -> null
+
+    ActionType.PRIMARY, null -> when (card.primary) {
+        PrimaryAction.ATTACK -> LookAction.ATTACK
+        PrimaryAction.SKILL -> LookAction.SKILL
+        PrimaryAction.DEFENSE -> LookAction.DEFENSE
+        PrimaryAction.MOVEMENT -> LookAction.MOVEMENT
+        else -> null
+    }
 }
 
 /**
@@ -178,46 +251,59 @@ private fun Unavailable(table: TableUi, decision: Decision, focus: CardFocusStat
             Icon(
                 Icons.Outlined.Info,
                 null,
-                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                tint = LocalContentColor.current,
                 modifier = Modifier.padding(top = 2.dp).size(scaledIconSize(16.dp, 1.3f)),
             )
             Spacer(Modifier.width(Spacing.xs))
-            Text(
-                unavailableLine(u),
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
+            Text(unavailableLine(u), style = PrintedSmall)
         }
     }
 }
 
 /**
- * Who is asked and what: the deciding hero and the kind in the team's colour, the prompt (a live
- * region; Defend says it in its attack header), and for card questions "Asked by <card>" with a
- * thumbnail (tap to read it). Other questions show the asking card large beside their answers.
+ * Who is asked and what: the deciding hero and the kind, small caps in the team's colour with its mark,
+ * as on the panel's strip in mock-up 01.
  */
 @Composable
-private fun PromptHeader(table: TableUi, decision: Decision, focus: CardFocusState, prompt: Boolean, askedBy: Boolean) {
-    val hero = table.decider
-    val name = hero?.let { table.hero(it.heroId).name } ?: BoardText.team(decision.team)
-    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            TeamMark(decision.team, markSize = scaledIconSize(9.dp))
-            Spacer(Modifier.width(4.dp))
-            Text(
-                "${name.uppercase()} · ${kindTitle(decision.kind).uppercase()}",
-                style = GoaTextStyles.overline,
-                color = teamColor(decision.team),
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
-        }
+fun DecisionWho(table: TableUi, modifier: Modifier = Modifier) {
+    val decision = table.decision ?: return
+    val name = table.decider?.let { table.hero(it.heroId).name } ?: BoardText.team(decision.team)
+    Row(modifier, verticalAlignment = Alignment.CenterVertically) {
+        TeamMark(decision.team, markSize = scaledIconSize(13.dp, 1.3f))
+        Spacer(Modifier.width(Spacing.sm))
+        Text(
+            "$name · ${kindTitle(decision.kind)}",
+            style = GoaTextStyles.plateTitle.copy(fontSize = 15.sp, lineHeight = 20.sp),
+            color = teamColor(decision.team),
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+        )
+    }
+}
+
+/**
+ * [DecisionWho] unless the panel's strip says it ([who]), the prompt on its title plate (a live region;
+ * a question asked by a card has it in the card's text box, Defend in its attack header), and for card
+ * questions "Asked by <card>" with a thumbnail (tap to read it).
+ */
+@Composable
+private fun PromptHeader(
+    table: TableUi,
+    decision: Decision,
+    focus: CardFocusState,
+    who: Boolean,
+    prompt: Boolean,
+    askedBy: Boolean,
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+        if (who) DecisionWho(table)
         if (prompt) {
-            Text(
+            TitlePlate(
                 decision.prompt,
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.SemiBold,
-                modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite },
+                Modifier
+                    .fillMaxWidth()
+                    .semantics(mergeDescendants = true) { liveRegion = LiveRegionMode.Polite },
+                maxLines = Int.MAX_VALUE,
             )
         }
         val card = table.sourceCard
@@ -229,10 +315,8 @@ private fun PromptHeader(table: TableUi, decision: Decision, focus: CardFocusSta
 private fun AskedBy(card: Card, decision: Decision, focus: CardFocusState) {
     // "in radius", "in range" in the question are the card's own values (p.10): say them.
     val reach = sourceReach(decision.prompt, card)
-    Surface(
+    PlateToneSurface(
         onClick = { focus.show(listOf(card), title = "Asked by") },
-        shape = RoundedCornerShape(10.dp),
-        color = MaterialTheme.colorScheme.surface,
         border = BorderStroke(1.dp, cardColor(card.color).copy(alpha = 0.8f)),
         modifier = Modifier
             .heightIn(min = 48.dp)
@@ -295,7 +379,8 @@ private fun CardBeside(
                 Surface(
                     onClick = read,
                     shape = RoundedCornerShape(width * 0.08f),
-                    border = BorderStroke(1.dp, cardColor(card.color).copy(alpha = 0.8f)),
+                    color = Color.Transparent,
+                    shadowElevation = 3.dp,
                     modifier = Modifier
                         .cardFocusOrigin(focus, card.id)
                         .clearAndSetSemantics {
@@ -334,12 +419,21 @@ private fun CardBeside(
 
 // ---- Board options ----------------------------------------------------------------------
 
-/** Spaces, units or tokens are tapped on the board: the hint, then Confirm with the choice spelled out. */
-@Composable
-private fun BoardHint(table: TableUi, onAnswer: (Choice) -> Unit, busy: Boolean) {
+/** How a board question is answered: spaces, units or tokens are tapped on the board. */
+private fun boardHint(table: TableUi): String {
     val spaces = table.spaceOptions
     val pieces = table.pieceOptions
-    val selected = table.selected?.takeIf { it is Choice.Space || it is Choice.Unit || it is Choice.Token }
+    return when {
+        pieces.isEmpty() && spaces.size == 1 -> "Tap the space outlined in teal."
+        pieces.isEmpty() -> "Tap one of the ${spaces.size} spaces outlined in teal."
+        spaces.isEmpty() -> "Tap an outlined piece on the board, or pick it below."
+        else -> "Tap an outlined space or piece on the board."
+    } + longPressHint(table)
+}
+
+/** [boardHint] for a question no card asks, on the plate itself. */
+@Composable
+private fun BoardHint(table: TableUi) {
     Row(verticalAlignment = Alignment.CenterVertically) {
         Icon(
             Icons.Outlined.TouchApp,
@@ -349,18 +443,19 @@ private fun BoardHint(table: TableUi, onAnswer: (Choice) -> Unit, busy: Boolean)
         )
         Spacer(Modifier.width(Spacing.xs))
         Text(
-            when {
-                pieces.isEmpty() && spaces.size == 1 -> "Tap the space outlined in teal."
-                pieces.isEmpty() -> "Tap one of the ${spaces.size} spaces outlined in teal."
-                spaces.isEmpty() -> "Tap an outlined piece on the board, or pick it below."
-                else -> "Tap an outlined space or piece on the board."
-            } + longPressHint(table),
+            boardHint(table),
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
     }
+}
+
+/** Confirm with the choice spelled out, once one is tapped on the board. */
+@Composable
+private fun BoardConfirm(table: TableUi, onAnswer: (Choice) -> Unit, busy: Boolean) {
+    val selected = table.selected?.takeIf { it is Choice.Space || it is Choice.Unit || it is Choice.Token }
     if (selected != null) {
-        Button(
+        PlateButton(
             onClick = { onAnswer(selected) },
             enabled = !busy,
             modifier = Modifier.fillMaxWidth().heightIn(min = 52.dp),
@@ -407,8 +502,8 @@ private fun BoardChips(table: TableUi, onSelect: (Choice) -> Unit) {
 @Composable
 private fun OptionChip(label: String, selected: Boolean, onClick: () -> Unit) {
     Surface(
-        shape = RoundedCornerShape(10.dp),
-        color = if (selected) MaterialTheme.colorScheme.secondaryContainer else MaterialTheme.colorScheme.surface,
+        shape = RoundedCornerShape(7.dp),
+        color = if (selected) MaterialTheme.colorScheme.secondaryContainer else PlateWell,
         border = BorderStroke(
             if (selected) 2.dp else 1.dp,
             if (selected) MaterialTheme.colorScheme.secondary else GoaTheme.colors.engravedBorder,
@@ -458,7 +553,12 @@ private fun Choices(
             verticalArrangement = Arrangement.spacedBy(Spacing.xs),
         ) {
             numbers.forEach { n ->
-                OutlinedButton(onClick = { onAnswer(n) }, enabled = !busy, modifier = Modifier.heightIn(min = 52.dp)) {
+                PlateButton(
+                    onClick = { onAnswer(n) },
+                    enabled = !busy,
+                    tone = PlateTone.STEEL,
+                    modifier = Modifier.heightIn(min = 52.dp),
+                ) {
                     Text("${n.value}", style = MaterialTheme.typography.titleMedium)
                 }
             }
@@ -473,24 +573,23 @@ private fun Choices(
                     if (choice.action == ActionType.PRIMARY) afterPrimary()
                 }
 
-                choice is Choice.Decline || choice is Choice.Pass -> OutlinedButton(
+                choice is Choice.Decline || choice is Choice.Pass -> PlateButton(
                     onClick = { onAnswer(choice) },
                     enabled = !busy,
+                    tone = PlateTone.STEEL,
                     modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp),
                 ) { Text(table.label(choice), textAlign = TextAlign.Center) }
 
-                else -> Surface(
+                else -> PlateToneSurface(
                     onClick = { onAnswer(choice) },
                     enabled = !busy,
-                    shape = RoundedCornerShape(12.dp),
-                    color = MaterialTheme.colorScheme.primaryContainer,
+                    tone = PlateTone.GOLD,
                     modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp),
                 ) {
                     Box48 {
                         Text(
                             table.label(choice),
                             style = MaterialTheme.typography.titleSmall,
-                            color = MaterialTheme.colorScheme.onPrimaryContainer,
                             fontWeight = FontWeight.SemiBold,
                         )
                     }
@@ -519,15 +618,12 @@ private fun ActionChip(table: TableUi, action: ActionType, busy: Boolean, onClic
     val primary = action == ActionType.PRIMARY
     val label = actionLabel(action, card)
     val rule = actionRule(action)
-    val scheme = MaterialTheme.colorScheme
-    val container = if (primary) scheme.primaryContainer else scheme.surface
-    val content = if (primary) scheme.onPrimaryContainer else scheme.onSurface
-    Surface(
+    val tone = if (primary) PlateTone.GOLD else PlateTone.STEEL
+    val content = tone.content
+    PlateToneSurface(
         onClick = onClick,
         enabled = !busy,
-        shape = RoundedCornerShape(12.dp),
-        color = container,
-        border = if (primary) null else BorderStroke(1.dp, scheme.outline),
+        tone = tone,
         modifier = Modifier
             .fillMaxWidth()
             .heightIn(min = 48.dp)
@@ -550,7 +646,7 @@ private fun ActionChip(table: TableUi, action: ActionType, busy: Boolean, onClic
             Icon(
                 actionIcon(action, card).vector,
                 null,
-                tint = if (primary) content else scheme.primary,
+                tint = if (primary) content else MaterialTheme.colorScheme.primary,
                 modifier = Modifier.size(scaledIconSize(20.dp, 1.3f)),
             )
             Spacer(Modifier.width(Spacing.sm))
@@ -566,7 +662,7 @@ private fun ActionChip(table: TableUi, action: ActionType, busy: Boolean, onClic
                     Text(
                         it,
                         style = MaterialTheme.typography.bodySmall,
-                        color = if (primary) content else scheme.onSurfaceVariant,
+                        color = content,
                     )
                 }
             }
@@ -576,6 +672,8 @@ private fun ActionChip(table: TableUi, action: ActionType, busy: Boolean, onClic
 
 // ---- Cards ------------------------------------------------------------------------------
 
+private val PrintedQuestion = GoaTextStyles.printed.copy(fontSize = 17.sp, lineHeight = 21.sp)
+private val PrintedSmall = GoaTextStyles.printed.copy(fontSize = 15.sp, lineHeight = 18.sp)
 private const val MAX_SPACE_CHIPS = 6
 private const val BESIDE_SHARE = 0.36f
 private val SPELL_BESIDE = 96.dp

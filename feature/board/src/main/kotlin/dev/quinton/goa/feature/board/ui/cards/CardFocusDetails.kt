@@ -34,12 +34,11 @@ import androidx.compose.material.icons.outlined.ExpandMore
 import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material.icons.outlined.SwipeUp
 import androidx.compose.material.icons.outlined.TouchApp
-import androidx.compose.material3.Button
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
+import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -61,11 +60,16 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import dev.quinton.goa.core.designsystem.cardtext.CardTextView
 import dev.quinton.goa.core.designsystem.cardtext.GameIcons
+import dev.quinton.goa.core.designsystem.component.CardTextBox
 import dev.quinton.goa.core.designsystem.component.LARGE_FONT_SCALE
+import dev.quinton.goa.core.designsystem.component.PlateColor
+import dev.quinton.goa.core.designsystem.component.PlateGround
 import dev.quinton.goa.core.designsystem.component.cardColor
 import dev.quinton.goa.core.designsystem.component.scaledIconSize
+import dev.quinton.goa.core.designsystem.theme.GoaTextStyles
 import dev.quinton.goa.core.designsystem.theme.GoaTheme
 import dev.quinton.goa.core.designsystem.theme.Motion
 import dev.quinton.goa.core.designsystem.theme.Spacing
@@ -76,6 +80,8 @@ import dev.quinton.goa.feature.board.play.table.CARD_ASPECT
 import dev.quinton.goa.feature.board.play.table.ItemLine
 import dev.quinton.goa.feature.board.play.table.TableCard
 import dev.quinton.goa.feature.board.play.table.ValueChip
+import dev.quinton.goa.feature.board.ui.PlateButton
+import dev.quinton.goa.feature.board.ui.PlateSurface
 
 /**
  * Under the focused card, only what the card does not print (ADR-041/042: the scan is the content):
@@ -97,7 +103,7 @@ internal fun FocusDetails(
     measuring: Boolean = false,
 ) {
     val item = request.cards.getOrNull(index) ?: return
-    Surface(
+    PlateSurface(
         // Measured only: not shown, so not in the semantics tree either (TalkBack, tests).
         modifier = if (measuring) {
             modifier.clearAndSetSemantics {}
@@ -107,9 +113,8 @@ internal fun FocusDetails(
                 translationY = (1f - reveal) * 48.dp.toPx()
             }
         },
-        shape = if (landscape) RoundedCornerShape(24.dp) else RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp),
-        color = MaterialTheme.colorScheme.surface,
-        border = BorderStroke(1.dp, GoaTheme.colors.engravedBorder),
+        shape = if (landscape) RoundedCornerShape(14.dp) else RoundedCornerShape(topStart = 14.dp, topEnd = 14.dp),
+        brackets = true,
     ) {
         Column {
             Box(Modifier.weight(1f, fill = false)) {
@@ -167,7 +172,7 @@ private fun DetailsBody(
             if (asText) CardAsText(item.card, landscape)
         }
         if (scroll.canScrollForward) {
-            val surface = MaterialTheme.colorScheme.surface
+            val surface = PlateGround
             Box(
                 Modifier
                     .align(Alignment.BottomCenter)
@@ -273,16 +278,15 @@ private fun CardAsText(card: Card, landscape: Boolean) {
             card.values.radius?.let { ValueChip(GameIcons.radius, "Radius $it") }
         }
         if (card.text.isNotBlank()) {
-            Surface(
-                shape = MaterialTheme.shapes.medium,
-                color = MaterialTheme.colorScheme.surfaceVariant,
-                border = BorderStroke(1.dp, GoaTheme.colors.engravedBorder),
-            ) {
+            // Printed text on the card's own text box.
+            val printed = GoaTextStyles.printed
+            CardTextBox(PlateColor.of(card.color), Modifier.fillMaxWidth(), cap = PlayText.primary(card.primary)) {
                 CardTextView(
                     card.text,
-                    style = if (landscape) MaterialTheme.typography.bodyMedium else MaterialTheme.typography.bodyLarge,
-                    iconTint = cardColor(card.color),
-                    modifier = Modifier.fillMaxWidth().padding(if (landscape) Spacing.sm else Spacing.md),
+                    style = if (landscape) printed.copy(fontSize = 15.sp, lineHeight = 19.sp) else printed,
+                    iconTint = LocalContentColor.current,
+                    reminderColor = GoaTheme.colors.onParchmentVariant,
+                    modifier = Modifier.fillMaxWidth(),
                 )
             }
         }
@@ -417,7 +421,7 @@ private fun ConfirmBar(
                 )
             }
         }
-        Button(
+        PlateButton(
             onClick = onConfirm,
             enabled = can,
             contentPadding = PaddingValues(horizontal = Spacing.lg, vertical = Spacing.sm),

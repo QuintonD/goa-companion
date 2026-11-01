@@ -16,17 +16,14 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.EmojiEvents
 import androidx.compose.material.icons.outlined.Lightbulb
-import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -39,17 +36,20 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import dev.quinton.goa.core.designsystem.component.HeroPortrait
 import dev.quinton.goa.core.designsystem.component.TeamMark
+import dev.quinton.goa.core.designsystem.component.TitlePlate
 import dev.quinton.goa.core.designsystem.component.scaledIconSize
 import dev.quinton.goa.core.designsystem.component.teamColor
 import dev.quinton.goa.core.designsystem.theme.GoaTextStyles
-import dev.quinton.goa.core.designsystem.theme.GoaTheme
 import dev.quinton.goa.core.designsystem.theme.Spacing
 import dev.quinton.goa.core.game.Controller
 import dev.quinton.goa.core.model.match.Team
 import dev.quinton.goa.feature.board.BoardText
 import dev.quinton.goa.feature.board.play.PlayText
+import dev.quinton.goa.feature.board.ui.PlateButton
+import dev.quinton.goa.feature.board.ui.PlateSurface
 import dev.quinton.goa.feature.board.ui.cards.CardFocusState
 
 /**
@@ -68,7 +68,6 @@ internal fun GameOverContent(
     focus: CardFocusState? = null,
     onLogAt: (Int) -> Unit = {},
 ) {
-    val winColor = teamColor(over.winner)
     Box(Modifier.fillMaxSize(), contentAlignment = Alignment.TopCenter) {
         Column(
             Modifier
@@ -78,12 +77,12 @@ internal fun GameOverContent(
                 .padding(horizontal = Spacing.screen, vertical = Spacing.lg),
             verticalArrangement = Arrangement.spacedBy(Spacing.lg),
         ) {
-            Surface(
-                shape = RoundedCornerShape(20.dp),
-                color = MaterialTheme.colorScheme.surface,
-                border = BorderStroke(2.dp, winColor),
+            PlateSurface(
+                brackets = true,
+                border = BorderStroke(2.dp, teamColor(over.winner)),
                 modifier = Modifier.fillMaxWidth(),
             ) {
+                val winColor = teamColor(over.winner)
                 Column(
                     Modifier.padding(Spacing.lg).semantics(mergeDescendants = true) {},
                     horizontalAlignment = Alignment.CenterHorizontally,
@@ -95,11 +94,10 @@ internal fun GameOverContent(
                         tint = MaterialTheme.colorScheme.primary,
                         modifier = Modifier.size(40.dp),
                     )
-                    Text(
+                    TitlePlate(
                         if (over.youWon) "You won" else "The computer won",
-                        style = MaterialTheme.typography.headlineMedium,
-                        textAlign = TextAlign.Center,
-                        modifier = Modifier.semantics { heading() },
+                        Modifier.fillMaxWidth(),
+                        style = GoaTextStyles.plateTitle.copy(fontSize = 22.sp, lineHeight = 28.sp),
                     )
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         TeamMark(over.winner, markSize = scaledIconSize(12.dp))
@@ -153,11 +151,7 @@ internal fun GameOverContent(
                         )
 
                         else -> points.forEach { note ->
-                            Surface(
-                                shape = RoundedCornerShape(14.dp),
-                                color = MaterialTheme.colorScheme.secondaryContainer,
-                                modifier = Modifier.fillMaxWidth(),
-                            ) {
+                            PlateSurface(modifier = Modifier.fillMaxWidth()) {
                                 Row(Modifier.padding(Spacing.md).semantics(mergeDescendants = true) {}) {
                                     Icon(
                                         Icons.Outlined.Lightbulb,
@@ -201,7 +195,7 @@ internal fun GameOverContent(
             GameReportSection(play, onAction, focus, onLogAt)
 
             Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-                Button(onClick = {
+                PlateButton(onClick = {
                     onAction(GameAction.Rematch)
                 }, modifier = Modifier.fillMaxWidth().heightIn(min = 52.dp)) {
                     Text("Rematch", style = MaterialTheme.typography.titleMedium)
@@ -235,7 +229,6 @@ private fun Overline(text: String) {
 @Composable
 private fun HeroResultRow(play: PlayUi, result: HeroResult, onHero: (String) -> Unit) {
     val info = play.table.hero(result.heroId)
-    val color = teamColor(result.team)
     val who = if (result.controller == Controller.Human) "You" else PlayText.controller(result.controller)
     val facts = listOf(
         "Level ${result.level}",
@@ -244,11 +237,9 @@ private fun HeroResultRow(play: PlayUi, result: HeroResult, onHero: (String) -> 
         "defeated ${BoardText.count(result.defeated, "time")}",
         BoardText.count(result.coins, "coin") + " gained",
     )
-    Surface(
+    PlateSurface(
         onClick = { onHero(result.heroId) },
-        shape = RoundedCornerShape(14.dp),
-        color = MaterialTheme.colorScheme.surface,
-        border = BorderStroke(1.dp, GoaTheme.colors.engravedBorder),
+        brackets = true,
         modifier = Modifier
             .fillMaxWidth()
             .clearAndSetSemantics {
@@ -260,7 +251,7 @@ private fun HeroResultRow(play: PlayUi, result: HeroResult, onHero: (String) -> 
                 result.heroId,
                 info.portrait,
                 null,
-                Modifier.size(44.dp).border(2.dp, color, CircleShape),
+                Modifier.size(44.dp).border(2.dp, teamColor(result.team), CircleShape),
                 shape = CircleShape,
                 framed = false,
             )

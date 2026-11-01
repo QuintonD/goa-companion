@@ -45,6 +45,7 @@ import dev.quinton.goa.core.game.ExtraPlaceView
 import dev.quinton.goa.core.game.HeroView
 import dev.quinton.goa.core.model.catalog.Card
 import dev.quinton.goa.core.model.catalog.CardColor
+import dev.quinton.goa.feature.board.ui.PlateWell
 import dev.quinton.goa.feature.board.ui.cards.CardFocusState
 import dev.quinton.goa.feature.board.ui.cards.FocusCard
 import dev.quinton.goa.feature.board.ui.cards.LANDSCAPE_CARD_ASPECT
@@ -114,8 +115,8 @@ private fun ExtrasSummary(groups: List<ExtrasGroup>, onOpenSheet: () -> Unit) {
     val spoken = (groups.map { "${it.title}: ${it.count}" } + listOfNotNull(note)).joinToString(". ")
     Surface(
         onClick = onOpenSheet,
-        shape = RoundedCornerShape(12.dp),
-        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+        shape = RoundedCornerShape(8.dp),
+        color = PlateWell,
         border = BorderStroke(1.dp, GoaTheme.colors.engravedBorder),
         modifier = Modifier.fillMaxWidth().clearAndSetSemantics {
             contentDescription = spoken
@@ -375,6 +376,7 @@ private fun ExtraThumb(card: Card, width: Dp, origin: Modifier, mark: SpellMark?
         Surface(
             onClick = onClick,
             shape = RoundedCornerShape(6.dp),
+            color = Color.Transparent,
             border = if (mark?.offered == true) {
                 BorderStroke(2.dp, MaterialTheme.colorScheme.primary)
             } else {

@@ -1,0 +1,202 @@
+package dev.quinton.goa.feature.board.ui
+
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.ColumnScope
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.RowScope
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.offset
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.LocalContentColor
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Shadow
+import androidx.compose.ui.graphics.Shape
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.dp
+import dev.quinton.goa.core.designsystem.component.CardTextBox
+import dev.quinton.goa.core.designsystem.component.GoaPlateTheme
+import dev.quinton.goa.core.designsystem.component.PlateColor
+import dev.quinton.goa.core.designsystem.component.PlateShape
+import dev.quinton.goa.core.designsystem.component.TeamMark
+import dev.quinton.goa.core.designsystem.component.slatePlate
+import dev.quinton.goa.core.designsystem.theme.GoaTextStyles
+import dev.quinton.goa.core.model.match.Team
+
+/*
+ * The table's own parts on top of the design system's plates (ADR-053): what the board screens repeat.
+ * What floats over the map is a [PlateSurface]; what sits on a plate is a well ([PlateWell]) or a
+ * gold or steel button, as the mock-ups draw them (design/mockups/original-look).
+ */
+
+/**
+ * The dark plate as a surface: a [Surface]'s behaviour (a click with its ripple and 48 dp target; a plain
+ * plate takes the touches over the map) on the slate, its content themed dark.
+ */
+@Composable
+internal fun PlateSurface(
+    modifier: Modifier = Modifier,
+    onClick: (() -> Unit)? = null,
+    enabled: Boolean = true,
+    shape: Shape = PlateShape,
+    brackets: Boolean = false,
+    border: BorderStroke? = null,
+    tint: Color = Color.Transparent,
+    content: @Composable () -> Unit,
+) {
+    GoaPlateTheme {
+        val plate = modifier.slatePlate(shape, brackets)
+        if (onClick != null) {
+            Surface(
+                onClick = onClick,
+                enabled = enabled,
+                shape = shape,
+                color = tint,
+                contentColor = LocalContentColor.current,
+                border = border,
+                modifier = plate,
+                content = content,
+            )
+        } else {
+            Surface(
+                shape = shape,
+                color = tint,
+                contentColor = LocalContentColor.current,
+                border = border,
+                modifier = plate,
+                content = content,
+            )
+        }
+    }
+}
+
+/** A recess on a plate, for what groups a few lines (a flow entry, a moment's recap): the slate shows through. */
+internal val PlateWell: Color = Color.Black.copy(alpha = 0.26f)
+
+/** The mock-ups' two buttons on a plate: gold for the answer, steel for the rest. */
+internal enum class PlateTone(val brush: Brush, val content: Color) {
+    GOLD(
+        Brush.verticalGradient(0f to Color(0xFFE4C47E), 0.55f to Color(0xFFC9A35B), 1f to Color(0xFFA98744)),
+        Color(0xFF0B1622),
+    ),
+    STEEL(Brush.verticalGradient(listOf(Color(0xFF34424B), Color(0xFF222C33))), Color(0xFFE8E2D6)),
+}
+
+private val ToneShape = RoundedCornerShape(7.dp)
+private val ToneEdge = Color(0xFF0E1215)
+private const val TONE_DISABLED = 0.45f
+
+/** A filled button in a [PlateTone], with [Button]'s behaviour. */
+@Composable
+internal fun PlateButton(
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    tone: PlateTone = PlateTone.GOLD,
+    enabled: Boolean = true,
+    contentPadding: PaddingValues = ButtonDefaults.ContentPadding,
+    content: @Composable RowScope.() -> Unit,
+) {
+    Button(
+        onClick = onClick,
+        enabled = enabled,
+        shape = ToneShape,
+        colors = ButtonDefaults.buttonColors(
+            containerColor = Color.Transparent,
+            contentColor = tone.content,
+            disabledContainerColor = Color.Transparent,
+            disabledContentColor = tone.content.copy(alpha = 0.6f),
+        ),
+        elevation = null,
+        contentPadding = contentPadding,
+        border = BorderStroke(1.dp, ToneEdge),
+        modifier = modifier.background(tone.brush, ToneShape, alpha = if (enabled) 1f else TONE_DISABLED),
+        content = content,
+    )
+}
+
+/** A [Surface] in a [PlateTone], for answers with more than a label (an action chip, a "Choose one" option). */
+@Composable
+internal fun PlateToneSurface(
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    tone: PlateTone = PlateTone.STEEL,
+    enabled: Boolean = true,
+    border: BorderStroke? = BorderStroke(1.dp, ToneEdge),
+    content: @Composable () -> Unit,
+) {
+    Surface(
+        onClick = onClick,
+        enabled = enabled,
+        shape = ToneShape,
+        color = Color.Transparent,
+        contentColor = tone.content,
+        border = border,
+        modifier = modifier.background(tone.brush, ToneShape, alpha = if (enabled) 1f else TONE_DISABLED),
+    ) { CompositionLocalProvider(LocalContentColor provides tone.content, content = content) }
+}
+
+/**
+ * A [CardTextBox] whose tab is a heading (TalkBack can jump to it), for a box that stands on its own: a nudge.
+ */
+@Composable
+internal fun HeadedTextBox(
+    color: PlateColor,
+    heading: String,
+    modifier: Modifier = Modifier,
+    content: @Composable ColumnScope.() -> Unit,
+) {
+    Box(modifier) {
+        CardTextBox(color, Modifier.fillMaxWidth(), content = content)
+        Text(
+            heading,
+            style = GoaTextStyles.plateCap.copy(
+                color = Color.White,
+                shadow = Shadow(Color(0xB0000000), Offset(0f, 1f), 2f),
+            ),
+            textAlign = TextAlign.Center,
+            maxLines = 1,
+            modifier = Modifier
+                .fillMaxWidth()
+                .align(Alignment.TopCenter)
+                .padding(top = 1.dp)
+                .semantics { heading() },
+        )
+    }
+}
+
+/** The team's mark on the dark badge the mock-ups put at a portrait's foot: team is never colour alone. */
+@Composable
+internal fun TeamBadge(team: Team, modifier: Modifier = Modifier, size: Dp = 17.dp) {
+    Box(
+        modifier
+            .size(size)
+            .background(BadgeGround, CircleShape)
+            .border(1.dp, Color.Black, CircleShape),
+        contentAlignment = Alignment.Center,
+    ) { TeamMark(team, markSize = size * BADGE_MARK) }
+}
+
+/** A [TeamBadge] hung on the bottom end of a portrait in a Box: half of its overhang outside. */
+internal fun Modifier.badgeOverhang(size: Dp): Modifier = offset(x = size * BADGE_OVERHANG, y = size * BADGE_OVERHANG)
+
+private val BadgeGround = Color(0xFF10181E)
+private const val BADGE_MARK = 0.62f
+private const val BADGE_OVERHANG = 0.28f

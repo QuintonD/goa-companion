@@ -45,6 +45,7 @@ import androidx.compose.ui.graphics.TileMode
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.clipPath
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
@@ -177,9 +178,10 @@ fun GoaPlateTheme(content: @Composable () -> Unit) {
 /**
  * The dark plate the cards and dashboards are printed on, as a background: the slate, a steel edge
  * and, with [brackets], the small teal corner brackets. Pair it with [GoaPlateTheme] (or use
- * [GoaPlate]): its text must be themed dark in the light theme too.
+ * [GoaPlate]): its text must be themed dark in the light theme too. Without [edge], just the slate, for
+ * parts that continue one another (a sheet's drag handle and its body).
  */
-fun Modifier.slatePlate(shape: Shape = PlateShape, brackets: Boolean = true): Modifier = composed {
+fun Modifier.slatePlate(shape: Shape = PlateShape, brackets: Boolean = true, edge: Boolean = true): Modifier = composed {
     val slate = rememberOfficialBitmap(LookArt.SLATE)
     val corners = if (brackets) LookArt.corners().map { rememberOfficialBitmap(it) } else emptyList()
     drawWithCache {
@@ -202,9 +204,9 @@ fun Modifier.slatePlate(shape: Shape = PlateShape, brackets: Boolean = true): Mo
                     drawRect(texture)
                     drawRect(PLATE_SHADE)
                 }
-                drawPath(clip, PLATE_DARK_EDGE, style = Stroke(width = 3.dp.toPx()))
+                if (edge) drawPath(clip, PLATE_DARK_EDGE, style = Stroke(width = 3.dp.toPx()))
             }
-            drawPath(clip, PLATE_EDGE, style = outer)
+            if (edge) drawPath(clip, PLATE_EDGE, style = outer)
             corners.forEachIndexed { i, image ->
                 if (image == null) return@forEachIndexed
                 val x = if (i % 2 == 0) inset else size.width - bracket - inset
@@ -254,11 +256,18 @@ fun GoaSheet(
             onDismissRequest = onDismissRequest,
             modifier = modifier,
             sheetState = sheetState,
+            shape = SheetShape,
             containerColor = PLATE_GROUND,
             contentColor = DarkColors.onSurface,
-            dragHandle = { BottomSheetDefaults.DragHandle(color = DarkColors.onSurfaceVariant) },
+            // The slate under the drag handle too, with no edge between them: no seam below the handle.
+            dragHandle = {
+                Box(
+                    Modifier.fillMaxWidth().slatePlate(RoundedCornerShape(0.dp), brackets = false, edge = false),
+                    contentAlignment = Alignment.Center,
+                ) { BottomSheetDefaults.DragHandle(color = DarkColors.onSurfaceVariant) }
+            },
         ) {
-            Box(Modifier.fillMaxWidth().slatePlate(RoundedCornerShape(0.dp), brackets = false)) {
+            Box(Modifier.fillMaxWidth().slatePlate(RoundedCornerShape(0.dp), brackets = false, edge = false)) {
                 Column(Modifier.fillMaxWidth().navigationBarsPadding(), content = content)
             }
         }
@@ -351,9 +360,10 @@ fun CardTextBox(
     val box = rememberOfficialBitmap(LookArt.textBox(color))
     val colors = GoaTheme.colors
     val slice = BOX_SLICES.getValue(color)
+    val fontScale = LocalDensity.current.fontScale
     Box(
         modifier.drawWithCache {
-            val dst = SliceInsets(11.dp.roundToPx(), 15.dp.roundToPx(), 11.dp.roundToPx(), 9.dp.roundToPx())
+            val dst = SliceInsets(11.dp.roundToPx(), 20.dp.roundToPx(), 11.dp.roundToPx(), 9.dp.roundToPx())
             onDrawBehind {
                 if (box != null) {
                     drawNineSlice(box, slice, dst)
@@ -367,6 +377,8 @@ fun CardTextBox(
             Text(
                 cap,
                 style = GoaTextStyles.plateCap.copy(
+                    // The tab doesn't grow: its word stops at 1.4× instead of running over the text.
+                    fontSize = GoaTextStyles.plateCap.fontSize * (minOf(fontScale, CAP_MAX_SCALE) / fontScale),
                     color = if (color == PlateColor.GOLD || color == PlateColor.SILVER) colors.onParchment else Color.White,
                     shadow = if (color == PlateColor.GOLD || color == PlateColor.SILVER) null else CAP_SHADOW,
                 ),
@@ -377,7 +389,7 @@ fun CardTextBox(
         }
         CompositionLocalProvider(LocalContentColor provides colors.onParchment) {
             Column(
-                Modifier.fillMaxWidth().padding(start = 12.dp, end = 12.dp, top = 18.dp, bottom = 10.dp),
+                Modifier.fillMaxWidth().padding(start = 12.dp, end = 12.dp, top = 22.dp, bottom = 10.dp),
                 content = content,
             )
         }
@@ -466,6 +478,7 @@ fun BannerEndSpacer() {
 }
 
 val PlateShape = RoundedCornerShape(8.dp)
+private val SheetShape = RoundedCornerShape(topStart = 14.dp, topEnd = 14.dp)
 
 private val PLATE_GROUND = Color(0xFF1D2124)
 private val PLATE_SHADE = Color(0x2E000000)
@@ -473,11 +486,12 @@ private val PLATE_EDGE = Color(0xFF5D6B70)
 private val PLATE_DARK_EDGE = Color(0xFF15191B)
 private val TITLE_SLICE = SliceInsets(16, 7, 36, 7)
 private val BOX_SLICES = mapOf(
-    PlateColor.BLUE to SliceInsets(16, 20, 16, 13),
-    PlateColor.SILVER to SliceInsets(16, 20, 16, 13),
-    PlateColor.GREEN to SliceInsets(20, 26, 20, 16),
-    PlateColor.GOLD to SliceInsets(20, 28, 20, 16),
-    PlateColor.RED to SliceInsets(14, 16, 14, 11),
+    // The top inset takes in the tab and the rim under it, so a tall box doesn't stretch the rim over its text.
+    PlateColor.BLUE to SliceInsets(16, 28, 16, 13),
+    PlateColor.SILVER to SliceInsets(16, 24, 16, 13),
+    PlateColor.GREEN to SliceInsets(20, 35, 20, 16),
+    PlateColor.GOLD to SliceInsets(20, 34, 20, 16),
+    PlateColor.RED to SliceInsets(14, 26, 14, 11),
 )
 private val CAP_SHADOW = Shadow(Color(0xB0000000), Offset(0f, 1f), 2f)
 private val BEVEL_OUTLINE = Color(0xFF05090D)
@@ -487,6 +501,7 @@ private val BEVEL_FILL = Brush.verticalGradient(
     0.78f to Color.White,
 )
 private const val BEVEL_STROKE = 0.14f
+private const val CAP_MAX_SCALE = 1.4f
 
 /** The plate's flat tone, for what can't draw the slate (a canvas's backing, a fallback). */
 val PlateGround: Color get() = PLATE_GROUND

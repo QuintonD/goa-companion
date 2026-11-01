@@ -50,6 +50,17 @@ fun HeroPortrait(hero: BoardHero, team: Team?, size: Int, dim: Boolean = false) 
     }
 }
 
+/** One of the look's graphics or official icons (`official/`), decorative; the caller labels what it means. */
+@Composable
+fun LookImg(path: String, cssClass: String) {
+    Img(path, alt = "", attrs = {
+        classes(cssClass)
+        attr("aria-hidden", "true")
+        attr("decoding", "async")
+        attr("draggable", "false")
+    })
+}
+
 /** A copper small-caps heading inside a panel or sheet. */
 @Composable
 fun Overline(text: String, extraClass: String? = null) {

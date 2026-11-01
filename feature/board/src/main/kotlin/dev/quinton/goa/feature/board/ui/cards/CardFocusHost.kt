@@ -106,6 +106,7 @@ import dev.quinton.goa.core.model.catalog.CardText
 import dev.quinton.goa.feature.board.play.table.CARD_ASPECT
 import dev.quinton.goa.feature.board.play.table.TableCard
 import dev.quinton.goa.feature.board.play.table.spokenCard
+import dev.quinton.goa.feature.board.ui.PlateSurface
 import kotlin.coroutines.cancellation.CancellationException
 import kotlin.math.abs
 import kotlinx.coroutines.coroutineScope
@@ -707,7 +708,7 @@ private fun FocusPage(
 @Composable
 private fun NotAnOption(modifier: Modifier) {
     Box(Modifier.fillMaxSize().background(ScrimColor.copy(alpha = 0.5f)))
-    Surface(shape = RoundedCornerShape(50), color = MaterialTheme.colorScheme.surface, modifier = modifier) {
+    PlateSurface(shape = RoundedCornerShape(50), modifier = modifier) {
         Row(
             Modifier.padding(horizontal = Spacing.md, vertical = 6.dp),
             verticalAlignment = Alignment.CenterVertically,
@@ -722,12 +723,12 @@ private fun NotAnOption(modifier: Modifier) {
 /** "✓ Holds" / "! Falls" on the card's corner: word and shape, never colour alone. */
 @Composable
 internal fun VerdictBadge(verdict: CardVerdict, modifier: Modifier = Modifier) {
-    val color = when (verdict.holds) {
-        true -> MaterialTheme.colorScheme.secondary
-        false -> MaterialTheme.colorScheme.error
-        null -> MaterialTheme.colorScheme.onSurfaceVariant
-    }
-    Surface(shape = RoundedCornerShape(50), color = MaterialTheme.colorScheme.surface, modifier = modifier) {
+    PlateSurface(shape = RoundedCornerShape(50), modifier = modifier) {
+        val color = when (verdict.holds) {
+            true -> MaterialTheme.colorScheme.secondary
+            false -> MaterialTheme.colorScheme.error
+            null -> MaterialTheme.colorScheme.onSurfaceVariant
+        }
         Row(Modifier.padding(horizontal = 10.dp, vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
             if (verdict.holds != null) {
                 Icon(

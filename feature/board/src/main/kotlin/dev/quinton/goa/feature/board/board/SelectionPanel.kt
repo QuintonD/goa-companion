@@ -64,6 +64,7 @@ import dev.quinton.goa.core.designsystem.cardtext.CardTextView
 import dev.quinton.goa.core.designsystem.cardtext.GameIcon
 import dev.quinton.goa.core.designsystem.cardtext.GameIcons
 import dev.quinton.goa.core.designsystem.component.CardColorDot
+import dev.quinton.goa.core.designsystem.component.PlateGround
 import dev.quinton.goa.core.designsystem.component.UnverifiedBadge
 import dev.quinton.goa.core.designsystem.component.cardColor
 import dev.quinton.goa.core.designsystem.component.cardColorName
@@ -86,6 +87,7 @@ import dev.quinton.goa.feature.board.ui.ArtBoardPalette
 import dev.quinton.goa.feature.board.ui.ArtSwatchGround
 import dev.quinton.goa.feature.board.ui.BoardPalette
 import dev.quinton.goa.feature.board.ui.PieceToken
+import dev.quinton.goa.feature.board.ui.PlateWell
 import dev.quinton.goa.feature.board.ui.boardPalette
 import dev.quinton.goa.feature.board.ui.cards.isSpell
 import dev.quinton.goa.feature.board.ui.drawFastTravelCell
@@ -419,7 +421,7 @@ private fun CardStrip(cards: List<Card>, selectedId: String?, onSelect: (String?
         val index = cards.indexOfFirst { it.id == selectedId }
         if (index > 0) listState.animateScrollToItem(index - 1)
     }
-    val fade = MaterialTheme.colorScheme.surface
+    val fade = PlateGround
     LazyRow(
         state = listState,
         horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
@@ -475,7 +477,7 @@ private fun CardChip(card: Card, selected: Boolean, onClick: () -> Unit) {
     }
     Surface(
         shape = RoundedCornerShape(10.dp),
-        color = if (selected) accent.copy(alpha = 0.16f) else MaterialTheme.colorScheme.surface,
+        color = if (selected) accent.copy(alpha = 0.16f) else PlateWell,
         border = BorderStroke(if (selected) 2.dp else 1.dp, if (selected) accent else GoaTheme.colors.engravedBorder),
         modifier = Modifier
             .widthIn(min = 96.dp, max = 168.dp)

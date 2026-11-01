@@ -52,6 +52,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.contentDescription
@@ -63,6 +64,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import dev.quinton.goa.core.designsystem.component.EmptyState
+import dev.quinton.goa.core.designsystem.component.TitlePlate
 import dev.quinton.goa.core.designsystem.theme.GoaTextStyles
 import dev.quinton.goa.core.designsystem.theme.GoaTheme
 import dev.quinton.goa.core.designsystem.theme.Spacing
@@ -77,6 +79,7 @@ import dev.quinton.goa.feature.board.play.review.ReviewButton
 import dev.quinton.goa.feature.board.play.review.ReviewOpenEffect
 import dev.quinton.goa.feature.board.play.review.ReviewSheet
 import dev.quinton.goa.feature.board.play.table.DecisionPanel
+import dev.quinton.goa.feature.board.play.table.DecisionWho
 import dev.quinton.goa.feature.board.play.table.EventLog
 import dev.quinton.goa.feature.board.play.table.GameTable
 import dev.quinton.goa.feature.board.play.table.HeroDetail
@@ -90,6 +93,8 @@ import dev.quinton.goa.feature.board.play.table.TableTap
 import dev.quinton.goa.feature.board.play.table.YourHand
 import dev.quinton.goa.feature.board.play.table.spellbookUi
 import dev.quinton.goa.feature.board.ui.BoardScaffold
+import dev.quinton.goa.feature.board.ui.PlateButton
+import dev.quinton.goa.feature.board.ui.PlateWell
 import dev.quinton.goa.feature.board.ui.cards.CardFocusHost
 import dev.quinton.goa.feature.board.ui.cards.CardFocusState
 import dev.quinton.goa.feature.board.ui.cards.cardFocusOrigin
@@ -186,6 +191,11 @@ fun PuzzleScreen(
                         initialPanelHidden = initialPanelHidden,
                         focus = focus,
                         onSpellbook = { sheet = PlaySheet.Spellbook(it) },
+                        panelTitle = if (p.asksOnPanel()) {
+                            { DecisionWho(p.table) }
+                        } else {
+                            null
+                        },
                     ) {
                         PuzzlePanel(p, onAction, onNext, onList, focus)
                     }
@@ -213,10 +223,14 @@ fun PuzzleScreen(
             }
 
             is PlaySheet.Hero -> BoardSheet(onDismiss = { sheet = null }) {
-                Column(Modifier.fillMaxWidth().fillMaxHeight(SHEET_HEIGHT)) {
-                    SheetTitle(puzzle.table.hero(open.heroId).name, "Open information (p.4)", onDone = { sheet = null })
-                    HeroDetail(puzzle.table, open.heroId, focus, onSpellbook = { sheet = PlaySheet.Spellbook(it) })
-                }
+                HeroDetail(
+                    puzzle.table,
+                    open.heroId,
+                    focus,
+                    onDone = { sheet = null },
+                    modifier = Modifier.fillMaxHeight(SHEET_HEIGHT),
+                    onSpellbook = { sheet = PlaySheet.Spellbook(it) },
+                )
             }
 
             is PlaySheet.Review ->
@@ -301,6 +315,10 @@ private fun PuzzleMenu(puzzle: PuzzleUi, expanded: Boolean, onDismiss: () -> Uni
     }
 }
 
+/** The panel holds the question (who is asked goes on its strip): not during a replay, a reply, or once it is over. */
+private fun PuzzleUi.asksOnPanel(): Boolean = replay == null && table.decision != null &&
+    phase != PuzzlePhase.SOLVED && phase != PuzzlePhase.REPLYING && phase != PuzzlePhase.MISSED
+
 /** The panel's content for where the puzzle stands. */
 @Composable
 private fun ColumnScope.PuzzlePanel(
@@ -338,6 +356,7 @@ private fun ColumnScope.PuzzlePanel(
                 onAnswer = { onAction(PuzzleAction.Answer(it)) },
                 focus = focus,
                 busy = puzzle.busy,
+                who = false,
             )
             ResolutionFlowView(puzzle.flow, puzzle.table, focus, Modifier.padding(top = Spacing.xs))
             puzzle.round?.let {
@@ -369,7 +388,7 @@ private fun PuzzleHeader(info: PuzzleInfo, total: Int, round: RoundUi?) {
             Spacer(Modifier.width(Spacing.sm))
             DifficultyMark(info.difficulty)
         }
-        Text(info.title, style = MaterialTheme.typography.titleLarge, modifier = Modifier.semantics { heading() })
+        TitlePlate(info.title, Modifier.fillMaxWidth())
         Text(
             info.theme,
             style = MaterialTheme.typography.labelMedium,
@@ -391,8 +410,8 @@ private fun PuzzleHeader(info: PuzzleInfo, total: Int, round: RoundUi?) {
 private fun Intro(text: String, open: Boolean, onAction: (PuzzleAction) -> Unit) {
     Surface(
         onClick = { onAction(PuzzleAction.SetIntroOpen(!open)) },
-        shape = RoundedCornerShape(12.dp),
-        color = MaterialTheme.colorScheme.surfaceVariant,
+        shape = RoundedCornerShape(8.dp),
+        color = PlateWell,
         modifier = Modifier
             .fillMaxWidth()
             .semantics { stateDescription = if (open) "Expanded" else "Collapsed" },
@@ -440,17 +459,13 @@ private fun Replies(replying: ReplyingUi) {
 @Composable
 private fun MissCard(puzzle: PuzzleUi, onAction: (PuzzleAction) -> Unit) {
     Surface(
-        shape = RoundedCornerShape(16.dp),
-        color = MaterialTheme.colorScheme.surfaceVariant,
+        shape = RoundedCornerShape(8.dp),
+        color = PlateWell,
         border = BorderStroke(1.dp, GoaTheme.colors.engravedBorder),
         modifier = Modifier.fillMaxWidth(),
     ) {
         Column(Modifier.padding(Spacing.md), verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-            Text(
-                "Not quite",
-                style = MaterialTheme.typography.titleLarge,
-                modifier = Modifier.semantics { heading() },
-            )
+            TitlePlate("Not quite", Modifier.fillMaxWidth())
             Text(
                 puzzle.miss.orEmpty().removePrefix("Not quite — ").replaceFirstChar { it.uppercase() },
                 style = MaterialTheme.typography.bodyLarge,
@@ -461,7 +476,7 @@ private fun MissCard(puzzle: PuzzleUi, onAction: (PuzzleAction) -> Unit) {
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
-            Button(
+            PlateButton(
                 onClick = { onAction(PuzzleAction.TryAgain) },
                 enabled = !puzzle.busy,
                 modifier = Modifier.fillMaxWidth().heightIn(min = 52.dp),
@@ -499,8 +514,8 @@ private fun SolvedPanel(
     onList: () -> Unit,
 ) {
     Surface(
-        shape = RoundedCornerShape(16.dp),
-        color = MaterialTheme.colorScheme.primaryContainer,
+        shape = RoundedCornerShape(8.dp),
+        color = PlateWell,
         border = BorderStroke(2.dp, MaterialTheme.colorScheme.primary),
         modifier = Modifier.fillMaxWidth(),
     ) {
@@ -515,24 +530,16 @@ private fun SolvedPanel(
                 Text(
                     "Solved",
                     style = MaterialTheme.typography.headlineSmall,
-                    color = MaterialTheme.colorScheme.onPrimaryContainer,
+                    color = GoaTheme.colors.heading,
                     modifier = Modifier.semantics { heading() },
                 )
-                Text(
-                    puzzle.info.title,
-                    style = MaterialTheme.typography.titleSmall,
-                    color = MaterialTheme.colorScheme.onPrimaryContainer,
-                )
-                Text(
-                    PuzzleText.record(puzzle.attempts, puzzle.nudgesUsed),
-                    style = MaterialTheme.typography.labelLarge,
-                    color = MaterialTheme.colorScheme.onPrimaryContainer,
-                )
+                Text(puzzle.info.title, style = MaterialTheme.typography.titleSmall)
+                Text(PuzzleText.record(puzzle.attempts, puzzle.nudgesUsed), style = MaterialTheme.typography.labelLarge)
             }
         }
     }
     Explanation(puzzle.info)
-    Button(
+    PlateButton(
         onClick = { onAction(PuzzleAction.ShowSolution) },
         enabled = !puzzle.busy,
         modifier = Modifier.fillMaxWidth().heightIn(min = 52.dp),
@@ -614,6 +621,7 @@ private fun ReplayPanel(puzzle: PuzzleUi, replay: ReplayUi, onAction: (PuzzleAct
             Surface(
                 onClick = { focus.show(listOf(card), title = "Solution · step ${replay.index + 1}") },
                 shape = RoundedCornerShape(4.dp),
+                color = Color.Transparent,
                 modifier = Modifier.cardFocusOrigin(focus, card.id).semantics {
                     contentDescription = "${card.name}. Look at the card"
                 },

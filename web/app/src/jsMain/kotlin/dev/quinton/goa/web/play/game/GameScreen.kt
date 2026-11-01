@@ -39,6 +39,7 @@ import dev.quinton.goa.web.play.cards.CardFocusState
 import dev.quinton.goa.web.play.cards.CardImage
 import dev.quinton.goa.web.play.table.Announce
 import dev.quinton.goa.web.play.table.DecisionPanel
+import dev.quinton.goa.web.play.table.DecisionWho
 import dev.quinton.goa.web.play.table.EventLog
 import dev.quinton.goa.web.play.table.GameReviewSheet
 import dev.quinton.goa.web.play.table.GameTableView
@@ -142,7 +143,7 @@ fun GameScreen() {
                 val view = s.play.table.view
                 val fontScale = fontScale()
                 GameTableView(
-                    title = roundTitle(view.round, view.turn, window.innerWidth / fontScale),
+                    title = roundTitle(view.round, view.turn, (window.innerWidth - BANNER_MEDALLION) / fontScale),
                     actions = {
                         Button({
                             classes("goa-icon-button")
@@ -178,6 +179,11 @@ fun GameScreen() {
                         if (s.play.status is TurnStatus.YourTurn && s.play.nudge == null) {
                             PeekConfirm(s.play.table, s.play.busy) { onAction(GameAction.Answer(it)) }
                         }
+                    },
+                    panelTitle = if (s.play.status is TurnStatus.YourTurn && s.play.nudge == null) {
+                        { DecisionWho(s.play.table) }
+                    } else {
+                        null
                     },
                 ) { Panel(s.play, onAction, focus) }
             }
@@ -299,6 +305,7 @@ private fun Panel(play: PlayUi, onAction: (GameAction) -> Unit, focus: CardFocus
                 onAnswer = { onAction(GameAction.Answer(it)) },
                 focus = focus,
                 busy = play.busy,
+                who = false,
             )
             if (play.busy && play.coach) CoachLooking()
         }
@@ -485,7 +492,7 @@ private fun GameOver(
     Div({ classes("goa-game-over") }) {
         Div({ classes("goa-over-card", teamCss(over.winner)) }) {
             Icon("swords", IconSize.LARGE)
-            H2({ classes("t-headline-small") }) { Text(if (over.youWon) "You won" else "The computer won") }
+            H2({ classes("goa-title-plate") }) { Text(if (over.youWon) "You won" else "The computer won") }
             P({ classes("t-title-medium", "goa-over-winner", teamCss(over.winner)) }) {
                 TeamMark(over.winner)
                 Text(" ${BoardText.team(over.winner)} wins · ${PlayText.winTitle(over.reason)}")
@@ -565,3 +572,6 @@ private fun HeroResultRow(play: PlayUi, result: HeroResult, onHero: (String) -> 
         }
     }
 }
+
+/** Room the banner's medallion and the actions' padding take on the top bar (`.goa-topbar`), in CSS px. */
+private const val BANNER_MEDALLION = 100

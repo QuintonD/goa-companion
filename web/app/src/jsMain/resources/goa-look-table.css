@@ -1,1 +1,334 @@
 /* The look round (ADR-053), stream "table": see docs/DESIGN.md. Overrides goa.css. */
+
+/* ---------- What floats over the board, and the board's panels, are slate plates (dark tokens, as .goa-plate) ---------- */
+.goa-table-hud, .goa-hero-chip, .goa-track-slot, .goa-play-panel, .goa-play-peek, .goa-map-button,
+.goa-icon-button.goa-board-map-button, .goa-over-card, .goa-result-row, .goa-puzzle-goal, .goa-puzzle-continue,
+.goa-puzzle-row, .goa-board-entry, .goa-board-resume, .goa-board-latest, .goa-board-row-card, .goa-board-tools,
+.goa-board-tray, .goa-board-banner, .goa-board-panel, .goa-source-row, .goa-play-radio-row, .goa-focus-details,
+.goa-board-team {
+  color-scheme: dark;
+  --surface: #1E2327;
+  --surface-high: #2A3136;
+  --on-surface: #E8E2D6;
+  --on-surface-variant: #B4BEC8;
+  --primary: #C9A35B;
+  --on-primary: #0B1622;
+  --primary-container: #3D3018;
+  --on-primary-container: #F0DDB0;
+  --secondary: #3FC1B0;
+  --on-secondary: #0B1622;
+  --secondary-container: #123F3B;
+  --on-secondary-container: #BDEFE7;
+  --error: #FF6B6B;
+  --on-error: #0B1622;
+  --error-container: #4D1C1C;
+  --heading: #E39B5F;
+  --team-red: #E26459;
+  --team-blue: #6FB6F0;
+  --outline-engraved: rgba(201, 163, 91, 0.3);
+  --engraved: rgba(201, 163, 91, 0.3);
+  --bg: #10181E;
+  color: var(--on-surface);
+  background:
+    linear-gradient(rgba(0, 0, 0, 0.18), rgba(0, 0, 0, 0.18)),
+    url("official/ui/slate.webp") center / 420px,
+    #1D2124;
+  border: 1px solid #5D6B70;
+  box-shadow: inset 0 0 0 1px #15191B, 0 2px 6px rgba(0, 0, 0, 0.4);
+}
+.goa-table-hud, .goa-hero-chip, .goa-board-banner, .goa-puzzle-goal, .goa-play-panel, .goa-board-entry,
+.goa-board-resume, .goa-board-latest, .goa-board-row-card, .goa-puzzle-continue, .goa-puzzle-row, .goa-over-card,
+.goa-result-row, .goa-board-tools, .goa-board-tray {
+  background:
+    url("official/ui/corner-tl.webp") left 2px top 2px / 16px no-repeat,
+    url("official/ui/corner-tr.webp") right 2px top 2px / 16px no-repeat,
+    url("official/ui/corner-bl.webp") left 2px bottom 2px / 16px no-repeat,
+    url("official/ui/corner-br.webp") right 2px bottom 2px / 16px no-repeat,
+    linear-gradient(rgba(0, 0, 0, 0.18), rgba(0, 0, 0, 0.18)),
+    url("official/ui/slate.webp") center / 420px,
+    #1D2124;
+  border-radius: 7px;
+}
+.goa-over-card.red { border: 2px solid var(--team-red); }
+.goa-over-card.blue { border: 2px solid var(--team-blue); }
+.goa-board-resume { border: 1px solid #3FC1B0; }
+.goa-board-team.filling { border: 2px solid #3FC1B0; }
+.goa-focus-details { border-radius: 14px 14px 0 0; }
+.goa-focus-text .goa-cardtext { color: inherit; }
+
+/* What groups a few lines on a plate is a recess: the slate shows through. */
+.goa-review-box, .goa-review-hero, .goa-review-turn, .goa-puzzle-intro, .goa-puzzle-miss, .goa-puzzle-solved,
+.goa-option-chip, .goa-decline, .goa-order-chip, .goa-board-tray-piece, .goa-play-panel .goa-board-tray {
+  background: rgba(0, 0, 0, 0.26);
+  border-radius: 8px;
+}
+.goa-option-chip.selected, .goa-decline.selected, .goa-board-tray-piece[aria-checked="true"] { background: var(--secondary-container); }
+.goa-order-chip { border-radius: 999px; }
+.goa-order-chip.strong { background: var(--primary-container); }
+
+/* ---------- The text boxes: the top slice takes in the tab and the rim, so a tall box doesn't stretch the rim over its text ---------- */
+.goa-text-box { border-width: 20px 11px 9px; }
+.goa-text-box.blue { border-image: url("official/ui/textbox-blue.webp") 28 16 13 16 fill stretch; }
+.goa-text-box.silver { border-image: url("official/ui/textbox-silver.webp") 24 16 13 16 fill stretch; }
+.goa-text-box.green { border-image: url("official/ui/textbox-green.webp") 35 20 16 20 fill stretch; }
+.goa-text-box.gold { border-image: url("official/ui/textbox-gold.webp") 34 20 16 20 fill stretch; }
+.goa-text-box.red { border-image: url("official/ui/textbox-red.webp") 26 14 11 14 fill stretch; }
+.goa-text-box .cap { top: -19px; margin: 0; }
+.goa-text-box p { margin: 0; }
+
+/* ---------- The mock-ups' two buttons on a plate: gold for the answer, steel for the rest ---------- */
+.goa-play-panel .goa-button.filled, .goa-confirm, .goa-peek-confirm, .goa-action-chip.primary, .goa-choice, .goa-over-actions .goa-button.filled {
+  background: linear-gradient(#E4C47E, #C9A35B 55%, #A98744);
+  color: #0B1622;
+  border: 1px solid #0E1215;
+  border-radius: 7px;
+  box-shadow: inset 0 1px rgba(255, 255, 255, 0.35), 0 2px 5px rgba(0, 0, 0, 0.5);
+}
+.goa-action-chip.primary .goa-icon, .goa-action-chip.primary .t-body-small { color: #0B1622; }
+.goa-play-panel .goa-button.outlined, .goa-play-panel .goa-button.tonal, .goa-play-show, .goa-action-chip:not(.primary), .goa-number {
+  background: linear-gradient(#34424B, #222C33);
+  color: #E8E2D6;
+  border: 1px solid #0E1215;
+  border-radius: 7px;
+  box-shadow: inset 0 1px rgba(255, 255, 255, 0.18), 0 2px 5px rgba(0, 0, 0, 0.5);
+}
+.goa-action-chip:not(.primary) .t-body-small { color: #E8E2D6; }
+
+/* ---------- The top: the round at a glance, the heroes ---------- */
+.goa-table-top { background: #0B1622; border-bottom: 0; }
+.goa-table-hud {
+  align-self: stretch;
+  min-height: 40px;
+  gap: 2px 12px;
+  padding: 3px 10px;
+  /* Read at a glance: with large text the numbers stop growing at 22 px, and the coin keeps its row. */
+  font: 600 min(1rem, 22px)/1.25 var(--font-body);
+}
+.goa-table-hud.compact, .goa-table-hud.two-lanes { gap: 2px 8px; }
+.goa-table-hud.compact { align-self: auto; }
+.goa-table-hud > .goa-tb-coin { margin-left: auto; width: 28px; height: 28px; }
+.goa-hud-item { gap: 3px; }
+.goa-table-hud .t-numeric { font: inherit; font-variant-numeric: tabular-nums lining-nums; }
+.goa-hud-counter { width: 25px; height: 25px; object-fit: contain; flex: none; }
+.two-lanes .goa-hud-item.waves .goa-hud-counter { width: 22px; height: 22px; }
+.goa-hud-lane { font: 500 0.6875rem/1 var(--font-body); color: var(--on-surface-variant); margin: 0 1px; }
+.goa-hud-round { font: 700 min(1rem, 22px)/1.25 var(--font-display); }
+/* Four bronze diamonds: done turns filled, the current one ringed and larger, later ones hollow. */
+.goa-pips { gap: 4px; margin-left: 5px; }
+.goa-pip, .goa-pip.done, .goa-pip.now { border-radius: 1px; border: 1.25px solid var(--primary); transform: rotate(45deg); background: none; box-sizing: border-box; }
+.goa-pip { width: 8px; height: 8px; }
+.goa-pip.done { background: var(--primary); }
+.goa-pip.now { width: 11px; height: 11px; margin: 0 1px; border-width: 1.5px; background: radial-gradient(var(--primary) 34%, transparent 38%); }
+
+.goa-team-mark, .goa-team-mark.red, .goa-team-mark.blue {
+  width: 14px; height: 14px; transform: none; border-radius: 0;
+  background: center / contain no-repeat;
+}
+.goa-team-mark.red { background-image: url("official/board/spawn-hero-red.webp"); }
+.goa-team-mark.blue { background-image: url("official/board/spawn-hero-blue.webp"); }
+
+.goa-hero-strip { gap: 4px; }
+.goa-hero-chip {
+  flex: 1 0 auto;
+  min-height: 48px;
+  gap: 4px;
+  padding: 3px 3px 3px 6px;
+}
+/* A small phone: four chips still fit side by side. */
+@media (max-width: 379px) {
+  .goa-hero-chip:not(.compact) .goa-portrait { width: 26px !important; height: 26px !important; }
+  .goa-chip-name { font-size: 0.75rem; }
+  .goa-hero-strip { gap: 3px; }
+  .goa-hero-chip:not(.compact) { padding: 3px 2px 3px 5px; gap: 3px; }
+  .goa-chip-stats { gap: 2px; }
+  .goa-chip-coin { width: 11px; margin-right: 1px; }
+}
+.goa-hero-chip.compact { flex: none; padding: 2px; border-radius: 50%; background: url("official/ui/slate.webp") center / 420px, #1D2124; }
+.goa-hero-chip.acting { border: 2px solid var(--primary); }
+.goa-chip-badge {
+  position: absolute; right: -4px; bottom: -4px; width: 15px; height: 15px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  background: #10181E; box-shadow: 0 0 0 1px #000;
+}
+.goa-chip-badge .goa-team-mark { width: 11px; height: 11px; }
+.goa-hero-chip.compact .goa-chip-badge { right: 2px; bottom: 2px; }
+.goa-chip-hand {
+  position: absolute; left: -4px; top: -3px; min-width: 12px; height: 15px; padding: 0 2px; box-sizing: border-box;
+  background: #10181E; border: 1px solid #C9A35B; border-radius: 2px;
+  font: 600 0.625rem/13px var(--font-body); text-align: center; color: var(--on-surface);
+}
+.goa-hero-chip .goa-order-badge { left: auto; right: -3px; }
+.goa-chip-name { font: 600 0.8125rem/1.1rem var(--font-body); }
+.goa-chip-name .name { max-width: none; overflow: visible; }
+.goa-chip-stats { gap: 3px; color: var(--on-surface); align-items: center; }
+.goa-chip-coin { width: 12px; height: 12px; object-fit: contain; vertical-align: -2px; margin-right: 2px; }
+
+/* ---------- The turn track: real cards, the state on a band across the foot, the portrait on the art ---------- */
+.goa-track-slot {
+  --track-w: 64px;
+  position: relative; padding: 3px; border-radius: 6px; gap: 2px;
+}
+@media (max-height: 720px) { .goa-track-slot { --track-w: 50px; } }
+.goa-turn-track.compact .goa-track-slot { --track-w: 34px; }
+.goa-track-slot.now { border: 2px solid #C9A35B; }
+.goa-track-slot.next { border: 2px solid #3FC1B0; }
+.goa-track-slot .goa-play-card { width: var(--track-w) !important; }
+.goa-track-slot.done .goa-play-card, .goa-track-slot.skipped .goa-play-card { opacity: 1; filter: brightness(0.6); }
+.goa-track-band {
+  bottom: 0; background: #2A343B; color: #E8E2D6;
+  font: 600 0.625rem/15px var(--font-body); letter-spacing: 0.08em;
+  border-radius: 0 0 3px 3px;
+}
+.goa-track-slot.now .goa-track-band { background: #C9A35B; color: #0B1622; }
+.goa-track-slot.next .goa-track-band { background: #3FC1B0; color: #0B1622; }
+.goa-track-init { left: 1px; top: 1px; background: #10181E; color: var(--on-surface); border: 1px solid #C9A35B; line-height: 14px; }
+.goa-track-action {
+  position: absolute; right: 1px; top: 22%; width: 16px; height: 16px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  background: #10181E; color: var(--primary);
+}
+.goa-track-action .goa-icon.small { width: 12px; height: 12px; }
+/* The portrait over the card's art at its right edge, below the name, above the band (mock-up 03). */
+.goa-track-hero { max-width: calc(var(--track-w) + 10px); justify-content: center; }
+.goa-track-hero .goa-team-mark { width: 11px; height: 11px; }
+.goa-turn-track:not(.compact) .goa-track-hero > .goa-portrait {
+  position: absolute; right: 0; top: calc(var(--track-w) * 0.5);
+  width: calc(var(--track-w) * 0.44) !important; height: calc(var(--track-w) * 0.44) !important;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.6);
+}
+.goa-track-name { font-size: 0.6875rem; }
+.goa-track-pass { width: var(--track-w); height: calc(var(--track-w) * 1.407); }
+
+/* ---------- The panel ---------- */
+.goa-play-panel {
+  border-radius: 14px 14px 0 0;
+  background:
+    url("official/ui/corner-tl.webp") left 2px top 2px / 16px no-repeat,
+    url("official/ui/corner-tr.webp") right 2px top 2px / 16px no-repeat,
+    url("official/ui/corner-bl.webp") left 2px bottom 2px / 16px no-repeat,
+    url("official/ui/corner-br.webp") right 2px bottom 2px / 16px no-repeat,
+    linear-gradient(rgba(0, 0, 0, 0.18), rgba(0, 0, 0, 0.18)),
+    url("official/ui/slate.webp") center / 420px,
+    #1D2124;
+}
+.goa-play-panel-bar { position: relative; align-items: center; justify-content: flex-end; min-height: 40px; padding-left: var(--sp-md); }
+.goa-play-panel-title { flex: 1; min-width: 0; }
+.goa-play-hide { min-width: 48px; min-height: 44px; justify-content: center; padding: 0 var(--sp-sm); }
+.goa-play-hide .t-label-medium { display: none; }
+.goa-play-grip { left: 50%; top: 3px; position: absolute; }
+.goa-play-panel-bar { --grip-x: 50%; }
+.goa-play-panel-content { padding: 0 12px var(--sp-md); }
+.goa-play-peek { border-radius: 14px 14px 0 0; }
+.goa-play-peek.attention { border: 1.5px solid #3FC1B0; }
+.goa-play-peek-label { font-family: var(--font-display); }
+
+.goa-decision-who {
+  display: flex; align-items: center; gap: 8px; margin: 0;
+  font: 700 0.9375rem/1.25rem var(--font-display); font-variant: small-caps; letter-spacing: 0.3px;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.goa-decision-who .goa-team-mark { width: 16px; height: 16px; }
+.goa-decision-who.red { color: var(--team-red); }
+.goa-decision-who.blue { color: var(--team-blue); }
+.goa-play-panel-bar .goa-decision-who.red { color: #E26459; }
+.goa-play-panel-bar .goa-decision-who.blue { color: #6FB6F0; }
+.goa-decision-prompt.goa-title-plate { margin: 0 2px; }
+
+.goa-question-box { display: flex; align-items: center; gap: var(--sp-sm); }
+.goa-question-box p { margin: 0; }
+.goa-question-box .goa-tap-hint { display: block; color: inherit; font-size: inherit; }
+.goa-question-icon { width: 28px; height: 28px; object-fit: contain; flex: none; }
+.goa-rule-box { font-size: 0.9375rem; line-height: 1.2; }
+.goa-rule-box .goa-unavailable { color: inherit; background: none; border: 0; padding: 0; text-align: left; font: inherit; }
+.goa-rule-box .goa-unavailable .goa-icon { color: inherit; }
+
+.goa-attack.goa-text-box { padding: 0; border-radius: 0; background: none; align-items: center; color: var(--on-parchment); gap: var(--sp-sm); }
+.goa-attack.goa-text-box .t-body-small, .goa-attack.goa-text-box .t-label-large { font-family: var(--font-body); }
+
+/* The hand, a gentle fan: the row keeps room for the outer cards' corners and how far they drop. */
+.goa-offered.fan { gap: 0; justify-content: center; padding: 4px 6px 10px; overflow-x: auto; overflow-y: hidden; }
+.goa-offered.fan .goa-offered-cell { flex: 1 1 0; transform-origin: 50% 100%; }
+.goa-play-card { box-shadow: 0 2px 6px rgba(0, 0, 0, 0.65); }
+.goa-tap-hint { font-size: 0.8125rem; }
+
+/* Moments, nudges: the gold and green boxes. */
+.goa-moment { padding: 0; background: none; border: 0; border-radius: 0; }
+.goa-moment .goa-text-box { font-size: 1rem; line-height: 1.25; }
+.goa-nudge { background: rgba(0, 0, 0, 0.26); border-radius: 8px; }
+.goa-puzzle-nudge { background: none; border: 0; padding: 0; display: flex; flex-direction: column; gap: var(--sp-xs); color: inherit; }
+.goa-puzzle-nudge-head { display: flex; align-items: flex-start; gap: var(--sp-sm); }
+.goa-puzzle-nudge-head > div { flex: 1; min-width: 0; }
+.goa-puzzle-nudge .cap { font-weight: 700; }
+.goa-puzzle-nudge .goa-text-box .goa-icon-button { color: var(--on-parchment); }
+
+/* ---------- Sheets ---------- */
+.goa-sheet { border-radius: 14px 14px 0 0; }
+.goa-sheet-header h2 { font-family: var(--font-display); font-variant: small-caps; color: var(--heading); font-weight: 700; }
+.goa-hero-detail .goa-table-overline { margin-top: var(--sp-md); }
+.goa-table-overline { font-family: var(--font-display); font-variant: small-caps; color: var(--heading); font-size: 1rem; letter-spacing: 0.3px; text-transform: none; }
+
+/* ---------- The hero sheet: the real dashboard ---------- */
+.goa-hero-head p { display: flex; flex-wrap: wrap; align-items: center; gap: 3px; }
+.goa-hero-where .off { color: var(--error); }
+.goa-dashboard {
+  position: relative;
+  aspect-ratio: 821 / 416;
+  container-type: inline-size;
+  overflow: hidden;
+  background: #1D2124;
+  /* Edge to edge in the sheet, as in mock-up 05. */
+  margin: var(--sp-xs) calc(-1 * var(--sp-xl) - var(--safe-right)) var(--sp-xs) calc(-1 * var(--sp-xl) - var(--safe-left));
+}
+.goa-dashboard-art, .goa-dashboard-frame, .goa-dashboard-portrait, .goa-dashboard-shade { position: absolute; inset: 0; width: 100%; height: 100%; }
+.goa-dashboard-art, .goa-dashboard-frame { object-fit: fill; }
+.goa-dashboard-portrait { object-fit: cover; object-position: 50% 22%; }
+.goa-dashboard-shade { background: radial-gradient(farthest-side at 50% 50%, rgba(0, 0, 0, 0.12) 15%, rgba(0, 0, 0, 0.78) 115%); }
+.goa-dashboard-name, .goa-dashboard-turn {
+  position: absolute; transform: translate(-50%, -50%); white-space: nowrap;
+  font-family: var(--font-display); font-weight: 700; font-variant: small-caps; color: #1B1610; line-height: 1.1;
+}
+.goa-dashboard-name { left: 50%; top: 19%; font-size: 10px; font-size: 2.6cqw; }
+.goa-dashboard-turn { top: 27.2%; font-size: 9px; font-size: 2.3cqw; }
+.goa-dashboard-turn.t1, .goa-dashboard-slot.t1 { left: 17%; }
+.goa-dashboard-turn.t2, .goa-dashboard-slot.t2 { left: 38.9%; }
+.goa-dashboard-turn.t3, .goa-dashboard-slot.t3 { left: 60.7%; }
+.goa-dashboard-turn.t4, .goa-dashboard-slot.t4 { left: 82.9%; }
+.goa-dashboard-slot {
+  position: absolute; top: 33.5%; height: 49.5%; aspect-ratio: 729 / 1026; transform: translateX(-50%);
+  padding: 0; border: 0; background: none; color: inherit; cursor: pointer; border-radius: 5%;
+}
+.goa-dashboard-slot:disabled { cursor: default; }
+.goa-dashboard-slot .goa-play-card { --card-w: 100%; width: 100% !important; position: relative; }
+.goa-dashboard-slot .second { position: absolute; left: 17%; top: 0; width: 100%; opacity: 0.9; }
+.goa-dashboard-slot:has(.second) { transform: translateX(-58%); }
+.goa-dashboard-slot.stepped .goa-play-card { filter: brightness(0.62); }
+.goa-dashboard-slot .band {
+  position: absolute; left: 0; right: 0; bottom: 0; z-index: 1; text-align: center;
+  background: #2A343B; color: #E8E2D6; font: 600 9.5px/14px var(--font-body); font-size: 2.3cqw; letter-spacing: 0.06em;
+  border-radius: 0 0 3px 3px;
+}
+.goa-dashboard-slot.now .band { background: #C9A35B; color: #0B1622; }
+.goa-dashboard-slot.next .band { background: #3FC1B0; color: #0B1622; }
+.goa-dashboard-slot.now .goa-play-card:last-of-type { outline: 2px solid #C9A35B; }
+.goa-dashboard-slot.next .goa-play-card:last-of-type { outline: 2px solid #3FC1B0; }
+.goa-turn-state {
+  align-self: flex-start; padding: 2px 6px; border-radius: 4px;
+  background: #2A343B; color: #E8E2D6; font: 700 0.75rem/1rem var(--font-display); letter-spacing: 0.1em;
+}
+.goa-turn-state.now { background: #C9A35B; color: #0B1622; }
+.goa-turn-state.next { background: #3FC1B0; color: #0B1622; }
+.goa-items { display: flex; flex-wrap: wrap; gap: var(--sp-xs) var(--sp-md); }
+.goa-item { display: inline-flex; align-items: center; gap: 3px; }
+.goa-item-icon { width: 36px; height: 27px; object-fit: contain; }
+.goa-ultimate-hand { display: flex; gap: var(--sp-md); align-items: flex-start; }
+.goa-ultimate-hand-rest { flex: 1; min-width: 0; }
+
+/* ---------- The compact top bar: clear of the medallion (the banner's end), a title too long for its line wraps ---------- */
+.goa-screen.fill:has(.goa-play) .goa-topbar-title {
+  display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; white-space: normal;
+  font-size: min(1.0625rem, 20px); line-height: 1.1; padding: 0 var(--sp-xs);
+}
+
+/* ---------- The sandbox, the lists ---------- */
+.goa-map-button, .goa-icon-button.goa-board-map-button { border-radius: 50%; }
+.goa-board-tools { border-radius: 14px 14px 0 0; }

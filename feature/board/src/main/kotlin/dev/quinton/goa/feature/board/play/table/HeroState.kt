@@ -1,274 +1,101 @@
 package dev.quinton.goa.feature.board.play.table
 
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.Immutable
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.BiasAlignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.clipToBounds
+import androidx.compose.ui.draw.drawWithCache
+import androidx.compose.ui.geometry.center
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.onClick
+import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
+import coil3.compose.AsyncImage
+import dev.quinton.goa.core.designsystem.component.LookArt
 import dev.quinton.goa.core.designsystem.component.OfficialArt
 import dev.quinton.goa.core.designsystem.component.OfficialIcon
+import dev.quinton.goa.core.designsystem.component.PlateGround
+import dev.quinton.goa.core.designsystem.component.assetUrl
 import dev.quinton.goa.core.designsystem.theme.GoaTextStyles
+import dev.quinton.goa.core.designsystem.theme.GoaTheme
 import dev.quinton.goa.core.designsystem.theme.Spacing
-import dev.quinton.goa.core.game.ActionType
 import dev.quinton.goa.core.game.CardView
-import dev.quinton.goa.core.game.GamePhase
 import dev.quinton.goa.core.game.HeroView
-import dev.quinton.goa.core.model.catalog.Stat
-import dev.quinton.goa.feature.board.BoardText
 import dev.quinton.goa.feature.board.play.PlayText
 import dev.quinton.goa.feature.board.ui.cards.CardFocusState
 import dev.quinton.goa.feature.board.ui.cards.FocusCard
 import dev.quinton.goa.feature.board.ui.cards.cardFocusOrigin
 
 /*
- * A hero's game state on the hero sheet (ADR-044): where the hero is in this turn, the cards of this
- * round on their Turn slots, the discard, the items (icons for everyone, the tucked cards for the
- * hero's own player), where the hero stands. Built only from the engine's view (p.4 open information:
- * a facedown card stays a card back, an enemy's hand and tucked cards are never named) and the turn
- * track (ADR-041), so it can't show more than the table does.
+ * A hero's game state on the hero sheet (ADR-044): the real dashboard with this round's cards in its
+ * Turn slots, the items (icons for everyone, the tucked cards for the hero's own player), where the hero
+ * stands. What it says comes from HeroFacts.kt, built only from the engine's view: it can't show more
+ * than the table does.
  */
-
-/** Where a hero is in this turn, as the sheet says it. */
-enum class HeroTurnState {
-    /** Before the reveal: a card is down, facedown (p.7). */
-    PLAYED,
-
-    /** Before the reveal: no card down yet. */
-    CHOOSING,
-
-    /** Before the reveal: no cards in hand, so the hero passes (p.7). */
-    NO_CARDS,
-
-    DONE,
-    NOW,
-    NEXT,
-    LATER,
-    PASSED,
-    SKIPPED,
-}
-
-/**
- * A hero's card this turn: [cards] as the person may see them ([CardView.cardId] null = facedown to
- * them), [initiative] as it counts after the reveal (items and effects, p.7), [printed] the printed
- * initiative of the first faceup card, [place] the order among the heroes with a card, [action] the
- * action chosen.
- */
-@Immutable
-data class HeroTurn(
-    val state: HeroTurnState,
-    val cards: List<CardView>,
-    val initiative: Int? = null,
-    val printed: Int? = null,
-    val place: Int? = null,
-    val tied: Boolean = false,
-    val action: ActionType? = null,
-)
-
-/** [hero]'s card this turn, or null outside the play and resolve phases. */
-fun heroTurn(table: TableUi, hero: HeroView): HeroTurn? = when (table.view.phase) {
-    GamePhase.PLAY_CARDS -> {
-        val played = hero.played
-        when {
-            played != null -> HeroTurn(HeroTurnState.PLAYED, listOf(played) + hero.alsoPlayed)
-            hero.handCount == 0 -> HeroTurn(HeroTurnState.NO_CARDS, emptyList())
-            else -> HeroTurn(HeroTurnState.CHOOSING, emptyList())
-        }
-    }
-
-    GamePhase.RESOLVE -> table.track?.slots?.firstOrNull { it.heroId == hero.heroId }?.let { slot ->
-        val first = slot.cards.firstOrNull()?.takeIf { !it.facedown }?.cardId?.let(table::card)
-        HeroTurn(
-            state = when (slot.state) {
-                SlotState.DONE -> HeroTurnState.DONE
-                SlotState.NOW -> HeroTurnState.NOW
-                SlotState.NEXT -> HeroTurnState.NEXT
-                SlotState.LATER -> HeroTurnState.LATER
-                SlotState.PASSED -> HeroTurnState.PASSED
-                SlotState.SKIPPED -> HeroTurnState.SKIPPED
-            },
-            cards = slot.cards,
-            initiative = slot.initiative,
-            printed = first?.initiative,
-            place = slot.place,
-            tied = slot.tied,
-            action = slot.action,
-        )
-    }
-
-    GamePhase.END_OF_ROUND, GamePhase.GAME_OVER -> null
-}
-
-/** The state as the word on the card's band (as on the turn track). */
-internal fun turnWord(state: HeroTurnState): String = when (state) {
-    HeroTurnState.PLAYED -> "FACEDOWN"
-    HeroTurnState.CHOOSING -> "CHOOSING"
-    HeroTurnState.NO_CARDS -> "PASS"
-    HeroTurnState.DONE -> "DONE"
-    HeroTurnState.NOW -> "NOW"
-    HeroTurnState.NEXT -> "NEXT"
-    HeroTurnState.LATER -> "LATER"
-    HeroTurnState.PASSED -> "PASS"
-    HeroTurnState.SKIPPED -> "OUT"
-}
-
-/** The lines beside the card: what the state means, the action, the initiative, the order. */
-internal fun turnLines(table: TableUi, hero: HeroView, turn: HeroTurn): List<String> {
-    val first = turn.cards.firstOrNull()
-    val card = first?.takeIf { !it.facedown }?.cardId?.let(table::card)
-    val own = hero.heroId in table.mine
-    return buildList {
-        add(
-            when (turn.state) {
-                HeroTurnState.PLAYED -> when {
-                    own -> "Played facedown: the others see it at the reveal (p.7)."
-                    card != null -> "Played facedown; open in this puzzle."
-                    else -> "Played facedown: revealed when everyone has played (p.7)."
-                }
-
-                HeroTurnState.CHOOSING -> if (own) {
-                    "No card played yet: choose one from your hand."
-                } else {
-                    "No card played yet."
-                }
-
-                HeroTurnState.NO_CARDS -> "No cards in hand: passes this turn (p.7)."
-
-                HeroTurnState.DONE -> "Resolved: on the Turn ${table.view.turn} slot."
-
-                HeroTurnState.NOW -> "Resolving this card now."
-
-                HeroTurnState.NEXT -> "Acts next."
-
-                HeroTurnState.LATER -> "Acts later."
-
-                HeroTurnState.PASSED -> "Passed: no card this turn (p.7)."
-
-                HeroTurnState.SKIPPED -> "The card left the table unresolved (p.10)."
-            },
-        )
-        turn.action?.let { add("Chose ${actionWord(it, card)}.") }
-        turn.initiative?.let { counted ->
-            val printed = turn.printed?.takeIf { it != counted }?.let { " · printed $it" }.orEmpty()
-            add("Initiative $counted$printed")
-        }
-        val upcoming = turn.state == HeroTurnState.NEXT || turn.state == HeroTurnState.LATER
-        turn.place?.takeIf { upcoming }?.let { add("${PlayText.ordinal(it)} to act this turn") }
-        if (turn.tied) add("Tied on initiative: the coin or the team decides (p.7).")
-    }
-}
-
-/** Where the hero is: its Zone, or off the board with when it may come back. */
-internal fun heroWhere(table: TableUi, hero: HeroView): String {
-    val at = hero.at ?: return "Off the board: may respawn in their Throne Zone before acting on their next card (p.7)."
-    return "On the board · ${BoardText.zone(table.map, table.geometry.zoneOf(at))}"
-}
-
-/** The item icons grouped by stat, in the engine's (stat) order: "+1 Defense ×2". */
-internal fun itemGroups(stats: List<Stat>): List<Pair<Stat, Int>> =
-    stats.groupingBy { it }.eachCount().entries.sortedBy { it.key.ordinal }.map { it.key to it.value }
-
-internal fun itemText(stat: Stat, count: Int): String =
-    "+1 ${PlayText.stat(stat)}" + if (count > 1) " ×$count" else ""
 
 // ---- Sections ---------------------------------------------------------------------------------
 
-/** This turn: the card large (a card back when it is facedown to the person), its state and initiative. */
+/** What this turn's state means, in lines beside the card's band: the card itself lies on the dashboard. */
 @Composable
-internal fun ThisTurnSection(table: TableUi, hero: HeroView, focus: CardFocusState) {
+internal fun ThisTurnSection(table: TableUi, hero: HeroView) {
     val turn = heroTurn(table, hero) ?: return
-    val name = table.hero(hero.heroId).name
-    val title = "$name · Round ${table.view.round}, turn ${table.view.turn}"
-    HeroSection("This turn · Round ${table.view.round}, turn ${table.view.turn}")
     val lines = turnLines(table, hero, turn)
-    val open = turn.cards.mapNotNull { view -> view.cardId?.takeIf { !view.facedown }?.let(table::card) }
-    val viewable = open.map { FocusCard(it, key = "$title/${it.id}", caption = lines.first()) }
-    val spoken = buildList {
-        add(turnWord(turn.state).lowercase().replaceFirstChar { it.uppercase() })
-        turn.cards.forEach { view ->
-            add(view.cardId?.takeIf { !view.facedown }?.let(table::card)?.name ?: "a facedown card")
-        }
-        addAll(lines)
-    }.joinToString(", ")
-    Row(
-        verticalAlignment = Alignment.Top,
-        modifier = Modifier.clearAndSetSemantics {
-            contentDescription = spoken
-            if (viewable.isNotEmpty()) {
-                onClick(label = "Look at the card") {
-                    focus.open(viewable, 0, title = title)
-                    true
-                }
-            }
-        },
+    Column(
+        Modifier.semantics(mergeDescendants = true) {},
+        verticalArrangement = Arrangement.spacedBy(4.dp),
     ) {
-        Row(horizontalArrangement = Arrangement.spacedBy(Spacing.xs)) {
-            if (turn.cards.isEmpty()) {
-                EmptySlot(EMPTY_TURN_CARD)
-            } else {
-                turn.cards.forEachIndexed { i, view ->
-                    val card = view.cardId?.takeIf { !view.facedown }?.let(table::card)
-                    val width = if (i == 0) THIS_TURN_CARD else THIS_TURN_SECOND
-                    Surface(
-                        onClick = { focus.open(viewable, open.indexOf(card).coerceAtLeast(0), title = title) },
-                        enabled = card != null,
-                        shape = RoundedCornerShape(8.dp),
-                        modifier = if (card != null) Modifier.cardFocusOrigin(focus, "$title/${card.id}") else Modifier,
-                    ) {
-                        TableCard(card, width = width)
-                    }
-                }
-            }
-        }
-        Spacer(Modifier.width(Spacing.md))
-        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            StateTag(turn.state)
-            lines.forEachIndexed { i, line ->
-                Text(
-                    line,
-                    style = if (line.startsWith(
-                            "Initiative",
-                        )
-                    ) {
-                        MaterialTheme.typography.titleMedium
-                    } else {
-                        MaterialTheme.typography.bodyMedium
-                    },
-                    fontWeight = if (line.startsWith("Initiative")) FontWeight.SemiBold else null,
-                    color = if (i == 0 || line.startsWith("Initiative")) {
-                        MaterialTheme.colorScheme.onSurface
-                    } else {
-                        MaterialTheme.colorScheme.onSurfaceVariant
-                    },
-                )
-            }
+        HeroSection("This turn · Round ${table.view.round}, turn ${table.view.turn}")
+        StateTag(turn.state)
+        lines.forEachIndexed { i, line ->
+            val counted = line.startsWith("Initiative")
+            Text(
+                line,
+                style = if (counted) MaterialTheme.typography.titleMedium else MaterialTheme.typography.bodyMedium,
+                fontWeight = if (counted) FontWeight.SemiBold else null,
+                color = if (i == 0 || counted) {
+                    MaterialTheme.colorScheme.onSurface
+                } else {
+                    MaterialTheme.colorScheme.onSurfaceVariant
+                },
+            )
         }
     }
 }
@@ -276,12 +103,7 @@ internal fun ThisTurnSection(table: TableUi, hero: HeroView, focus: CardFocusSta
 /** The state in a word, as the turn track's band (never colour alone). */
 @Composable
 private fun StateTag(state: HeroTurnState) {
-    val scheme = MaterialTheme.colorScheme
-    val (background, content) = when (state) {
-        HeroTurnState.NOW -> scheme.primary to scheme.onPrimary
-        HeroTurnState.NEXT -> scheme.secondaryContainer to scheme.onSecondaryContainer
-        else -> scheme.surfaceVariant to scheme.onSurface
-    }
+    val (background, content) = bandColors(state == HeroTurnState.NOW, state == HeroTurnState.NEXT)
     Text(
         turnWord(state),
         style = GoaTextStyles.overline,
@@ -294,100 +116,189 @@ private fun StateTag(state: HeroTurnState) {
 }
 
 /**
- * This round's four Turn slots as on the dashboard (p.7): the card resolved on each (a card resolved
- * facedown stays a back), an empty outline for a turn without one. Tap a card to read it.
+ * The hero's real dashboard (rulebook p.16, mock-up 05): the frame over the hero's art, "Hero the Title" on
+ * its big plate, "Turn n" on its small ones and the round's cards lying in its slots, each slot one
+ * TalkBack node. Tap a card to read it. It scales with the sheet, as printed: its words don't grow with
+ * the font scale (TalkBack and the lines under it say them).
  */
 @Composable
-internal fun RoundSlotsSection(table: TableUi, hero: HeroView, focus: CardFocusState) {
-    val name = table.hero(hero.heroId).name
-    HeroSection("This round · Turn slots")
-    if (hero.resolved.isEmpty()) {
-        Quiet("No card resolved yet this round.")
-        return
+internal fun HeroDashboard(table: TableUi, hero: HeroView, focus: CardFocusState, modifier: Modifier = Modifier) {
+    val info = table.hero(hero.heroId)
+    val slots = dashboardSlots(table, hero)
+    val title = "${info.name} · Round ${table.view.round}"
+    val viewable = slots.flatMap { slot ->
+        slot.cards.mapNotNull { view ->
+            val card = view.cardId?.takeIf { !view.facedown }?.let(table::card) ?: return@mapNotNull null
+            FocusCard(card, key = "$title/${card.id}", caption = "Turn ${slot.turn}")
+        }
     }
-    val title = "$name · Resolved"
-    val bySlot = (1..TURNS_IN_ROUND).associateWith { t -> hero.resolved.filter { it.slot == t } }
-    val unslotted = hero.resolved.filter { it.slot == null || it.slot !in 1..TURNS_IN_ROUND }
-    val shown = bySlot.values.flatten() + unslotted
-    val open = shown.mapNotNull { v -> v.cardId?.takeIf { !v.facedown }?.let(table::card) }
-    val viewable = shown.mapNotNull { v ->
-        val card = v.cardId?.takeIf { !v.facedown }?.let(table::card) ?: return@mapNotNull null
-        FocusCard(card, key = "$title/${card.id}", caption = v.slot?.let { "Turn $it" })
-    }
-    Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-        bySlot.forEach { (turn, cards) ->
-            if (cards.isEmpty()) {
-                SlotColumn("Turn $turn", "Turn $turn, empty slot", null) { EmptySlot(SLOT_CARD) }
-            } else {
-                cards.forEach { view ->
-                    val card = view.cardId?.takeIf { !view.facedown }?.let(table::card)
-                    val spoken = listOfNotNull(
-                        "Turn $turn",
-                        card?.let(::spokenCard) ?: "facedown card",
-                        "Active".takeIf { view.active },
-                    ).joinToString(", ")
-                    val show = card?.let { c ->
-                        { focus.open(viewable, open.indexOf(c).coerceAtLeast(0), title = title) }
-                    }
-                    SlotColumn(
-                        listOfNotNull(
-                            "Turn $turn",
-                            "Active".takeIf {
-                                view.active
-                            },
-                        ).joinToString(" · "),
-                        spoken,
-                        show,
-                    ) {
-                        Surface(
-                            onClick = { show?.invoke() },
-                            enabled = show != null,
-                            shape = RoundedCornerShape(6.dp),
-                            border = if (view.active) BorderStroke(2.dp, MaterialTheme.colorScheme.secondary) else null,
-                            modifier = if (card !=
-                                null
-                            ) {
-                                Modifier.cardFocusOrigin(focus, "$title/${card.id}")
-                            } else {
-                                Modifier
-                            },
-                        ) { TableCard(card, width = SLOT_CARD) }
-                    }
-                }
-            }
+    BoxWithConstraints(modifier.aspectRatio(FRAME_ASPECT).clipToBounds().background(PlateGround)) {
+        val w = maxWidth
+        val h = maxHeight
+        val scale = w.value / FRAME_REFERENCE
+        val ink = GoaTheme.colors.onParchment
+        DashboardArt(hero.heroId, info.portrait, Modifier.fillMaxSize())
+        OfficialIcon(LookArt.DASHBOARD_FRAME, Modifier.fillMaxSize().clearAndSetSemantics {})
+        val name = listOf(info.name, info.title).filter { it.isNotBlank() }.joinToString(" ")
+        // The big plate is about a third of the frame: a long title gets smaller rather than cut.
+        val nameSize = dpToSp(minOf(NAME_SP * scale, (w * BIG_PLATE_TEXT).value / (name.length * CINZEL_EM)))
+        Text(
+            name,
+            style = GoaTextStyles.plateTitle.copy(fontSize = nameSize, lineHeight = nameSize * 1.2f, color = ink),
+            maxLines = 1,
+            modifier = Modifier
+                .align(Alignment.TopCenter)
+                .offset(y = h * BIG_PLATE_Y - (nameSize.value * 0.6f).dp)
+                .clearAndSetSemantics {},
+        )
+        val slotHeight = h * (SLOTS_BOTTOM - SLOTS_TOP)
+        val cardWidth = slotHeight * CARD_ASPECT
+        slots.forEachIndexed { i, slot ->
+            val centre = w * SLOT_CENTRES[i]
+            val turnSize = dpToSp(TURN_SP * scale)
+            Text(
+                "Turn ${slot.turn}",
+                style = GoaTextStyles.plateTitle.copy(fontSize = turnSize, lineHeight = turnSize * 1.2f, color = ink),
+                textAlign = TextAlign.Center,
+                maxLines = 1,
+                modifier = Modifier
+                    .width(cardWidth)
+                    .offset(x = centre - cardWidth / 2, y = h * TURN_PLATE_Y - (turnSize.value * 0.6f).dp)
+                    .clearAndSetSemantics {},
+            )
+            val extra = if (slot.cards.size > 1) cardWidth * SECOND_CARD else 0.dp
+            SlotOnFrame(
+                table,
+                slot,
+                cardWidth,
+                scale,
+                focus,
+                title,
+                viewable,
+                Modifier.offset(x = centre - (cardWidth + extra) / 2, y = h * SLOTS_TOP),
+            )
         }
     }
 }
 
+/** The cards in one slot of the frame (a second card peeks out behind the first), its band and state. */
 @Composable
-private fun SlotColumn(caption: String, spoken: String, onOpen: (() -> Unit)?, content: @Composable () -> Unit) {
-    Column(
-        horizontalAlignment = Alignment.CenterHorizontally,
-        modifier = Modifier.clearAndSetSemantics {
-            contentDescription = spoken
-            if (onOpen != null) {
-                onClick(label = "Look at the card") {
-                    onOpen()
-                    true
+private fun SlotOnFrame(
+    table: TableUi,
+    slot: DashboardSlot,
+    width: Dp,
+    scale: Float,
+    focus: CardFocusState,
+    title: String,
+    viewable: List<FocusCard>,
+    modifier: Modifier,
+) {
+    val faces = slot.cards.map { view -> view.cardId?.takeIf { !view.facedown }?.let(table::card) }
+    val first = faces.firstOrNull()
+    val show = faces.firstNotNullOfOrNull { it }?.let { card ->
+        val at = viewable.indexOfFirst { it.key == "$title/${card.id}" }.coerceAtLeast(0)
+        ({ focus.open(viewable, at, title = title) })
+    }
+    val spoken = buildList {
+        add("Turn ${slot.turn}")
+        if (slot.cards.isEmpty() && slot.word == null) add("empty slot")
+        slot.word?.let { word -> add(word.lowercase()) }
+        faces.forEach { add(it?.let(::spokenCard) ?: "facedown card") }
+    }.joinToString(", ")
+    val shape = RoundedCornerShape(width * 0.08f)
+    val extra = if (slot.cards.size > 1) width * SECOND_CARD else 0.dp
+    Box(
+        modifier
+            .width(width + extra)
+            .clearAndSetSemantics {
+                contentDescription = spoken
+                if (show != null) {
+                    role = Role.Button
+                    onClick(label = "Look at the card") {
+                        show()
+                        true
+                    }
                 }
-            }
-        },
+            },
     ) {
-        content()
-        Text(caption, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        if (slot.cards.size > 1) {
+            // Emmitt's Ultimate: the frame holds the second card, peeking out behind the first.
+            TableCard(faces[1], Modifier.align(Alignment.TopEnd).alpha(SECOND_ALPHA), width = width)
+        }
+        Box(
+            Modifier
+                .width(width)
+                .aspectRatio(CARD_ASPECT)
+                .clip(shape)
+                .then(if (show != null) Modifier.clickable(onClick = show) else Modifier)
+                .then(if (first != null) Modifier.cardFocusOrigin(focus, "$title/${first.id}") else Modifier),
+        ) {
+            if (slot.cards.isNotEmpty()) {
+                TableCard(first, width = width)
+                if (slot.stepped) Box(Modifier.fillMaxSize().background(Color.Black.copy(alpha = STEPPED_SCRIM)))
+            }
+            val (background, content) = bandColors(slot.now, slot.next)
+            slot.word?.let { word ->
+                val size = dpToSp(BAND_SP * scale)
+                Text(
+                    word,
+                    style = TextStyle(
+                        fontSize = size,
+                        lineHeight = size * 1.4f,
+                        fontWeight = FontWeight.SemiBold,
+                        letterSpacing = size * 0.06f,
+                        color = content,
+                    ),
+                    textAlign = TextAlign.Center,
+                    maxLines = 1,
+                    modifier = Modifier
+                        .align(Alignment.BottomCenter)
+                        .fillMaxWidth()
+                        .background(background),
+                )
+            }
+            if (slot.now || slot.next) Box(Modifier.fillMaxSize().border(2.dp, background, shape))
+        }
     }
 }
 
-/** No card here: a hollow outline where the card would lie. */
+/**
+ * What lies under the frame: the art the rulebook prints for this hero where it has one (Tigerclaw); any
+ * other hero's portrait covering the frame, cropped around the head and darkened toward the edges, so
+ * the frame and the cards stay what is read.
+ */
 @Composable
-private fun EmptySlot(width: Dp) {
-    Box(
-        Modifier
-            .width(width)
-            .aspectRatio(CARD_ASPECT)
-            .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(6.dp)),
-    )
+private fun DashboardArt(heroId: String, portrait: String?, modifier: Modifier) {
+    val art = LookArt.dashboardArt(heroId)
+    when {
+        art != null -> OfficialIcon(art, modifier.clearAndSetSemantics {})
+
+        portrait != null -> Box(modifier) {
+            AsyncImage(
+                model = assetUrl(portrait),
+                contentDescription = null,
+                contentScale = ContentScale.Crop,
+                alignment = BiasAlignment(0f, PORTRAIT_BIAS),
+                modifier = Modifier.fillMaxSize(),
+            )
+            Box(
+                Modifier.fillMaxSize().drawWithCache {
+                    val edges = Brush.radialGradient(
+                        0.15f to Color.Black.copy(alpha = 0.12f),
+                        1f to Color.Black.copy(alpha = 0.78f),
+                        center = size.center,
+                        radius = size.maxDimension * 0.58f,
+                    )
+                    onDrawBehind { drawRect(edges) }
+                },
+            )
+        }
+    }
 }
+
+/** A size given in dp as sp: the frame's words scale with the frame, not with the font scale. */
+@Composable
+private fun dpToSp(value: Float): TextUnit = with(LocalDensity.current) { value.dp.toSp() }
 
 /**
  * Items (p.16, open information): the official item icon of each stat with what they add ("+1
@@ -400,7 +311,7 @@ internal fun ItemsSection(table: TableUi, hero: HeroView, focus: CardFocusState)
     if (hero.itemStats.isEmpty() && hero.items.isEmpty()) return
     HeroSection("Items · p.16")
     FlowRow(
-        horizontalArrangement = Arrangement.spacedBy(Spacing.lg),
+        horizontalArrangement = Arrangement.spacedBy(Spacing.md),
         verticalArrangement = Arrangement.spacedBy(4.dp),
     ) {
         itemGroups(hero.itemStats).forEach { (stat, count) ->
@@ -416,8 +327,8 @@ internal fun ItemsSection(table: TableUi, hero: HeroView, focus: CardFocusState)
                 ) {
                     ItemIcon(stat)
                 }
-                Spacer(Modifier.width(Spacing.xs))
-                Text(itemText(stat, count), style = MaterialTheme.typography.titleMedium)
+                Spacer(Modifier.width(3.dp))
+                Text("+$count", style = MaterialTheme.typography.titleSmall)
             }
         }
     }
@@ -460,9 +371,9 @@ internal fun MarkersSection(table: TableUi, hero: HeroView) {
 @Composable
 internal fun HeroSection(title: String) {
     Text(
-        title.uppercase(),
-        style = GoaTextStyles.overline,
-        color = MaterialTheme.colorScheme.primary,
+        title,
+        style = GoaTextStyles.sectionHead,
+        color = GoaTheme.colors.heading,
         modifier = Modifier.semantics { heading() },
     )
 }
@@ -472,13 +383,30 @@ private fun Quiet(text: String) {
     Text(text, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
 }
 
-private const val TURNS_IN_ROUND = 4
-private val THIS_TURN_CARD = 112.dp
-private val THIS_TURN_SECOND = 76.dp
-private val EMPTY_TURN_CARD = 40.dp
-private val SLOT_CARD = 64.dp
-private val ITEM_ICON_WIDTH = 40.dp
-private val ITEM_ICON_HEIGHT = 30.dp
+private val ITEM_ICON_WIDTH = 36.dp
+private val ITEM_ICON_HEIGHT = 27.dp
+
+// Positions as fractions of the 821 × 416 frame (official/ui/dashboard-frame).
+private const val FRAME_ASPECT = 821f / 416f
+private const val BIG_PLATE_Y = 0.19f
+private const val TURN_PLATE_Y = 0.272f
+private const val SLOTS_TOP = 0.335f
+private const val SLOTS_BOTTOM = 0.83f
+private val SLOT_CENTRES = listOf(0.170f, 0.389f, 0.607f, 0.829f)
+
+/** The frame width the words below are sized for, and how much of it the big plate's text may take. */
+private const val FRAME_REFERENCE = 411f
+private const val BIG_PLATE_TEXT = 0.29f
+private const val NAME_SP = 10.5f
+private const val CINZEL_EM = 0.6f
+private const val TURN_SP = 9.5f
+private const val BAND_SP = 10f
+private const val SECOND_CARD = 0.17f
+private const val SECOND_ALPHA = 0.9f
+private const val STEPPED_SCRIM = 0.38f
+
+/** A portrait's face sits above its middle. */
+private const val PORTRAIT_BIAS = -0.45f
 
 /** The action that opens a hero's sheet, as TalkBack says it (map piece, hero strip, turn track). */
 internal fun showGameState(name: String): String = "Show $name's game state"
