@@ -146,7 +146,8 @@ private data class Dropped(val pieceId: String, val at: Offset, val serial: Int)
 internal const val PIECE_SIZE = 1.46f
 
 /**
- * The board: the map drawn in the app's own vector style, the pieces on it, and every touch on it.
+ * The board: the map's painting (the app's own vector map while it loads, if it fails, or with none), the
+ * pieces on it, and every touch on it.
  * A tap selects or moves (resolved by [onTap]); dragging the selected piece moves it, a long press
  * lifts any piece, dropping on another piece swaps them ([onDrop]); any other drag pans, pinch
  * zooms, a double tap on a space where nothing happened zooms in. When zoomed out, a tap near a
