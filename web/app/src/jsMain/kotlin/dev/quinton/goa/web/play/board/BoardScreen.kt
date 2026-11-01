@@ -214,8 +214,8 @@ private fun BoardContent(state: BoardUiState.Ready, controller: BoardController,
                 pieces = mapPieces(state.pieces, state.heroes, state.selectedId),
                 marks = boardMarks(state),
                 lines = boardLines(state),
-                onTap = { hex, point ->
-                    val tap = resolveTap(state, layout, camera, hex, point)
+                onTap = { hex, point, figure ->
+                    val tap = resolveTap(state, layout, camera, hex, point, figure)
                     if (tap == null) {
                         services.messages.show(
                             "Two pieces are close together. Zoom in, or pick one from Pieces.",
@@ -449,9 +449,11 @@ private fun boardLines(state: BoardUiState.Ready): List<MapLine> {
 }
 
 /**
- * What a tap at [point] on [hex] means. A tap on a piece's space is that piece. With nothing
- * selected and the map zoomed out, a tap within reach of one piece selects it; between two pieces
- * about as close it is ambiguous (null) and the screen suggests zooming. Otherwise it is the space.
+ * What a tap at [point] on [hex] means. A tap on a piece's space is that piece. With a piece selected, a
+ * waiting one or a tool in hand, any other space is somewhere to go, so it stays the space. Otherwise a tap on
+ * a miniature's body above its own hex ([figure]) is that figure; with the map zoomed out, a tap within reach
+ * of one piece selects it; between two pieces about as close it is ambiguous (null) and the screen suggests
+ * zooming; else it is the space.
  */
 internal fun resolveTap(
     state: BoardUiState.Ready,
@@ -459,11 +461,13 @@ internal fun resolveTap(
     camera: MapCamera,
     hex: Hex,
     point: ScreenPoint,
+    figure: Hex? = null,
 ): MapTap? {
     val occupied = BoardRules.occupancy(state.board.state)
     occupied[hex]?.let { return MapTap.Piece(it.id) }
     val choosing = state.tool == BoardTool.Move && state.selectedId == null && !state.trayActive
     if (!choosing) return MapTap.Space(hex)
+    figure?.let(occupied::get)?.let { return MapTap.Piece(it.id) }
     val reach = maxOf(TOUCH_RADIUS_PX, PIECE_SIZE / 2f * camera.scale)
     val near = occupied.entries
         .map { (at, piece) -> piece to (camera.mapToScreen(layout.center(at)) - point).length() }

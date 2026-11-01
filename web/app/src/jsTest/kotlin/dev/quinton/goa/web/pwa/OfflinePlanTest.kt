@@ -17,11 +17,14 @@ class OfflinePlanTest {
             AssetFile("official/cards/arien-gold.webp", 60_000, "h3"),
             AssetFile("official/heroes/arien/portrait.webp", 40_000, "h4"),
             AssetFile("official/thumbs/cards/arien-gold.webp", 30_000, "h5"),
+            AssetFile("official/ui/banner.webp", 30_000, "h6"),
+            AssetFile("official/pieces/mini-heavy-red.webp", 3_000, "h7"),
+            AssetFile("official/board/spawn-hero-red.webp", 3_000, "h8"),
         ),
     )
 
     @Test
-    fun theImagesAreEverythingUnderOfficialButItsSourcesFileAndTheListsSmallCopies() {
+    fun theImagesAreEverythingUnderOfficialButItsSourcesFileTheListsSmallCopiesAndWhatIsPrecached() {
         assertEquals(
             listOf("official/cards/arien-gold.webp", "official/heroes/arien/portrait.webp"),
             OfflinePlan.images(manifest).map { it.p },

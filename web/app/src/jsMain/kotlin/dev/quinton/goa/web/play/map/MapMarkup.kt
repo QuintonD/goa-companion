@@ -135,14 +135,13 @@ fun mapMarkup(map: BoardMap, layout: HexLayout, battleZones: Set<String>): Strin
 
 /**
  * What the SVG draws over a map's painting (the picture itself is an HTML layer under it, see BoardSvg):
- * the spaces a photo of the mat doesn't show, drawn as [mapMarkup] draws them and shaded when outside the
- * light; the hex grid when the board style asks for it; a thick white outline on the lit area's outer edge
+ * the Spawn points and Zone edges of the spaces a photo of the mat doesn't show (the picture has copied ground
+ * there); the hex grid when the board style asks for it; a thick white outline on the lit area's outer edge
  * over a dark halo; and, while a question has the light, a thin line around the Battle Zones.
  */
 fun paintedMapMarkup(
     map: BoardMap,
     layout: HexLayout,
-    battleZones: Set<String>,
     lit: LitArea,
     zoneLine: LitArea?,
     grid: Boolean,
@@ -233,6 +232,17 @@ private fun spawn(spawn: SpawnPoint, at: MapPoint): String = buildString {
         append(teamMark(spawn.team, mark, MARK_SIZE, "m-spawn-mark m-stroke-$team"))
         append(glyph(Glyph.of(spawn.kind), mark, MARK_SIZE * 0.6f, "m-fill-$team m-spawn-glyph"))
     }
+}
+
+/**
+ * The order to draw in now: the order last settled for the pieces still here, new ones on top. Re-inserting a
+ * node cancels its CSS transition, and Compose re-inserts a piece that moves up the screen past another, so a
+ * new depth order waits until the glide has ended ([wanted], the order the pieces should be in).
+ */
+internal fun drawOrder(settled: List<String>, wanted: List<String>): List<String> {
+    val here = wanted.toSet()
+    val known = settled.toSet()
+    return settled.filter { it in here } + wanted.filter { it !in known }
 }
 
 /** What an overlay mark looks like (each with a pattern or number, never colour alone). */
@@ -369,14 +379,17 @@ private fun lineMarkup(layout: HexLayout, line: MapLine): String {
     return "<path class=\"o-line-halo\" d=\"$d\"/><path class=\"o-line$dashed\" d=\"$d\"/>$dots"
 }
 
-/** The shared definitions: the round clip of a hero's portrait, Fast Travel's hatching. */
+/** The shared definitions: the round clip of a hero's portrait, Fast Travel's hatching (lighter on a painting). */
 const val MAP_DEFS: String =
     "<clipPath id=\"goa-piece-clip\" clipPathUnits=\"objectBoundingBox\">" +
         "<circle cx=\"0.5\" cy=\"0.5\" r=\"0.5\"/></clipPath>" +
         "<pattern id=\"goa-hatch\" patternUnits=\"userSpaceOnUse\" width=\"0.36\" height=\"0.36\" " +
         "patternTransform=\"rotate(45)\"><rect class=\"o-hatch-bg\" width=\"0.36\" height=\"0.36\"/>" +
         "<line class=\"o-hatch-under\" x1=\"0\" y1=\"0\" x2=\"0\" y2=\"0.36\"/>" +
-        "<line class=\"o-hatch\" x1=\"0\" y1=\"0\" x2=\"0\" y2=\"0.36\"/></pattern>"
+        "<line class=\"o-hatch\" x1=\"0\" y1=\"0\" x2=\"0\" y2=\"0.36\"/></pattern>" +
+        "<pattern id=\"goa-hatch-art\" patternUnits=\"userSpaceOnUse\" width=\"0.6\" height=\"0.6\" " +
+        "patternTransform=\"rotate(45)\"><line class=\"o-hatch-under\" x1=\"0\" y1=\"0\" x2=\"0\" y2=\"0.6\"/>" +
+        "<line class=\"o-hatch\" x1=\"0\" y1=\"0\" x2=\"0\" y2=\"0.6\"/></pattern>"
 
 private const val GLYPH_GRID = 24f
 private const val ROCK_CORNERS = 7

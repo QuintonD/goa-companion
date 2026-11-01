@@ -2,6 +2,7 @@ package dev.quinton.goa.web.play.map
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
@@ -19,26 +20,31 @@ import dev.quinton.goa.core.model.board.SpawnKind
 import dev.quinton.goa.core.model.board.SpawnPoint
 import dev.quinton.goa.core.model.match.Team
 import dev.quinton.goa.core.model.settings.BoardStyle
-import dev.quinton.goa.feature.board.map.ART_FEATHER
 import dev.quinton.goa.feature.board.map.DIM_BRIGHTNESS
 import dev.quinton.goa.feature.board.map.DIM_SATURATION
+import dev.quinton.goa.feature.board.map.FIGURE_FOOT
+import dev.quinton.goa.feature.board.map.FIGURE_HEIGHT
+import dev.quinton.goa.feature.board.map.HEAVY_HEIGHT
 import dev.quinton.goa.feature.board.map.HexLayout
 import dev.quinton.goa.feature.board.map.LitArea
 import dev.quinton.goa.feature.board.map.MapLighting
 import dev.quinton.goa.feature.board.map.MapPoint
 import dev.quinton.goa.feature.board.map.MapRect
+import dev.quinton.goa.feature.board.map.StandingFigure
+import dev.quinton.goa.feature.board.map.canvasSea
+import dev.quinton.goa.feature.board.map.figureSpaceAt
 import dev.quinton.goa.web.LocalServices
 import kotlin.math.exp
 import kotlin.math.roundToInt
 import kotlin.math.sqrt
 import kotlinx.browser.document
 import kotlinx.browser.window
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.web.ExperimentalComposeWebSvgApi
 import org.jetbrains.compose.web.attributes.AttrsScope
 import org.jetbrains.compose.web.dom.Button
-import org.jetbrains.compose.web.dom.Canvas
 import org.jetbrains.compose.web.dom.Div
 import org.jetbrains.compose.web.dom.Img
 import org.jetbrains.compose.web.dom.Span
@@ -127,7 +133,9 @@ data class MapNode(val key: String, val label: String, val pressed: Boolean = fa
  * The board as SVG: crisp at any zoom, the phone's look, over the map's painting once that has loaded
  * ([PaintingLayers]; until then, if it fails, or with none, the drawn map). One finger pans (or drags a
  * piece, see [drag]), two pinch-zoom, a wheel zooms; a tap reports the space under it to [onTap] (true =
- * it did something), and a second tap on the same space when the first did nothing zooms in. [marks] and
+ * it did something), with the space of the miniature whose body rises to the finger, for the caller to prefer
+ * when the space under the finger means nothing; a second tap on the same space when the first did nothing
+ * zooms in. [marks] and
  * [lines] are the overlays, [pieces] glide from space to space. On a painting the spaces marks offer take
  * the light, with [litAlso] (the mover's own space). [nodes] are what VoiceOver reads and activates (the
  * map itself is one image to it).
@@ -139,7 +147,7 @@ fun BoardSvg(
     camera: MapCamera,
     pieces: List<MapPiece>,
     marks: List<HexMark>,
-    onTap: (hex: Hex, at: ScreenPoint) -> Boolean,
+    onTap: (hex: Hex, at: ScreenPoint, figure: Hex?) -> Boolean,
     label: String,
     lines: List<MapLine> = emptyList(),
     tags: List<PieceTag> = emptyList(),
@@ -158,13 +166,23 @@ fun BoardSvg(
     var dragAt by remember { mutableStateOf(MapPoint(0f, 0f)) }
     val layout = scene.layout
     val art = scene.map.art
-    var painted by remember(art?.image) { mutableStateOf(false) }
+    val picture = art?.let { rememberDimmedPicture(it) }
+    val painted = picture?.ready == true
     val boardStyle = rememberBoardStyle()
     val style = when {
         !painted -> PieceStyle.DRAWN
         boardStyle == BoardStyle.MINIATURES -> PieceStyle.MINIATURE
         else -> PieceStyle.DISC
     }
+    val figures by rememberUpdatedState(
+        if (style != PieceStyle.MINIATURE) {
+            emptyList()
+        } else {
+            pieces.mapNotNull { piece ->
+                (piece.look as? PieceLook.Minion)?.let { StandingFigure(piece.at, it.type == MinionType.HEAVY) }
+            }
+        },
+    )
     val spotlight = remember(marks, litAlso) { spotlightOf(marks, litAlso) }
     val maxHex = if (art != null) MapCamera.MAX_HEX_ON_ART else MapCamera.MAX_HEX
 
@@ -172,7 +190,7 @@ fun BoardSvg(
         classes("goa-map")
         if (painted && art != null) {
             classes("painted")
-            style { property("background", art.sea) }
+            style { property("background", art.canvasSea()) }
         }
         attrs?.invoke(this)
     }) {
@@ -181,7 +199,8 @@ fun BoardSvg(
                 element = element,
                 camera = camera,
                 layout = { currentScene.layout },
-                onTap = { hex, at -> tap(hex, at) },
+                onTap = { hex, at, figure -> tap(hex, at, figure) },
+                figureAt = { point -> figureSpaceAt(point, figures, currentScene.layout::center) },
                 onDoubleTap = { at -> scope.launch { camera.zoomStep(at) } },
                 drag = { dragPolicy },
                 onDrag = { id, at ->
@@ -211,7 +230,7 @@ fun BoardSvg(
         val lit = remember(scene, zones, spotlight) {
             if (spotlight.isEmpty()) zones else MapLighting.spaces(scene.map, spotlight)
         }
-        if (art != null) PaintingLayers(art, layout, camera, lit, onLoaded = { painted = true })
+        if (art != null && picture != null) PaintingLayers(art, picture, layout, camera, lit)
 
         Svg(attrs = {
             classes("goa-map-svg")
@@ -229,7 +248,7 @@ fun BoardSvg(
                 val base = if (painted) {
                     remember(scene, lit, zones, spotlight, grid) {
                         val zoneLine = if (spotlight.isEmpty()) null else zones
-                        paintedMapMarkup(scene.map, layout, scene.battleZones.toSet(), lit, zoneLine, grid)
+                        paintedMapMarkup(scene.map, layout, lit, zoneLine, grid)
                     }
                 } else {
                     scene.baseMarkup
@@ -238,7 +257,7 @@ fun BoardSvg(
                 val dropMark = dragging?.let { listOf(HexMark(layout.hexAt(dragAt), MarkStyle.DROP)) }.orEmpty()
                 Markup(marksMarkup(layout, marks + dropMark, lines, painted), "goa-map-marks")
                 // Figures stand: the one nearer the bottom of the screen in front; the selection above all.
-                val ordered = pieces.sortedBy { layout.center(it.at).y }.sortedBy { it.raised || it.id == dragging }
+                val ordered = rememberDrawOrder(pieces, layout, dragging)
                 ordered.forEach { piece ->
                     key(piece.id) {
                         val at = if (piece.id == dragging) dragAt else layout.center(piece.at)
@@ -269,12 +288,16 @@ fun BoardSvg(
         tags.forEach { tag ->
             val piece = pieces.firstOrNull { it.id == tag.pieceId } ?: return@forEach
             val at = camera.mapToScreen(layout.center(piece.at))
+            // A tab of the piece's ring, in its colour: the piece above can't be taken for its owner.
+            val ring = if (painted) COIN_RING_OUTER else DRAWN_RING_OUTER
+            val width = if (painted) COIN_RING_WIDTH else DRAWN_RING_WIDTH
             Span({
                 classes("goa-map-tag")
+                piece.team?.let { classes(if (it == Team.RED) "red" else "blue") }
                 attr("aria-hidden", "true")
                 style {
                     property("left", "${n(at.x)}px")
-                    property("top", "${n(at.y - PIECE_SIZE / 2f * camera.scale)}px")
+                    property("top", "${n(at.y - ring * camera.scale + maxOf(width * camera.scale, TAG_JOIN))}px")
                 }
             }) { Text(tag.text) }
         }
@@ -295,6 +318,25 @@ fun BoardSvg(
     }
 }
 
+/**
+ * [pieces] in the order to draw them. The one being [dragging] goes on top at once (a lifted piece has no
+ * transition to cancel), and stays there until it has settled on its space.
+ */
+@Composable
+private fun rememberDrawOrder(pieces: List<MapPiece>, layout: HexLayout, dragging: String?): List<MapPiece> {
+    val wanted = pieces.sortedBy { layout.center(it.at).y }.sortedBy { it.raised }.map { it.id }
+    var settled by remember { mutableStateOf(wanted) }
+    LaunchedEffect(wanted, pieces.map { it.at }) {
+        delay(REORDER_AFTER_MS)
+        settled = wanted
+    }
+    LaunchedEffect(dragging) {
+        if (dragging != null) settled = settled - dragging + dragging
+    }
+    val byId = pieces.associateBy { it.id }
+    return drawOrder(settled, wanted).sortedBy { it == dragging }.mapNotNull(byId::get)
+}
+
 /** What takes the light on a painting: where a piece can go or a question offers; nothing else marked does. */
 private fun spotlightOf(marks: List<HexMark>, litAlso: List<Hex>): Set<Hex> {
     val reach = marks.filter { it.style in LIT_STYLES }.map { it.hex }.toSet()
@@ -308,55 +350,37 @@ private val LIT_STYLES = setOf(MarkStyle.MOVEMENT, MarkStyle.FAST_TRAVEL, MarkSt
  * The painting, as HTML layers under the SVG, not inside it: gestures rewrite the SVG's transform every
  * frame, which repaints an SVG, and an image inside it would jank on an iPhone. Each element here is its
  * own composited layer, moved by the same matrix, so a pan or a pinch only changes a transform: the dimmed
- * picture, baked once into a canvas at the image's size (no filter to run; WebKit dropped a CSS filter on a
- * layer this large), a band that fades its edge into the sea, and the picture in full colour clipped to the
- * [lit] spaces (in the image's own pixels, so a new orientation doesn't touch it). The picture loads on
- * demand (the service worker keeps `official/maps` once seen, it isn't precached); [onLoaded] switches the
- * board over, and if it never comes the drawn map stays.
+ * picture ([DimmedPicture]) and the picture in full colour clipped to the [lit] spaces (in the image's own
+ * pixels, so a new orientation doesn't touch it). The picture's edge is the canvas's own colour, so it has no
+ * visible edge. The picture loads on demand (the service worker keeps `official/maps` once seen, it isn't
+ * precached).
  */
 @Composable
-private fun PaintingLayers(art: BoardMapArt, layout: HexLayout, camera: MapCamera, lit: LitArea, onLoaded: () -> Unit) {
+private fun PaintingLayers(
+    art: BoardMapArt,
+    picture: DimmedPicture,
+    layout: HexLayout,
+    camera: MapCamera,
+    lit: LitArea,
+) {
     val p = remember(layout, art) { layout.artPlacement(art) }
     val s = camera.scale
-    fun matrix(factor: Float) =
-        "matrix(${p.a * s * factor},${p.b * s * factor},${p.c * s * factor},${p.d * s * factor}," +
-            "${camera.pan.x + p.e * s},${camera.pan.y + p.f * s})"
+    val shift = "${camera.pan.x + p.e * s},${camera.pan.y + p.f * s}"
+    val matrix = "matrix(${p.a * s},${p.b * s},${p.c * s},${p.d * s},$shift)"
     val clip = remember(art, lit) { litClipPath(art, lit) }
-    val loaded by rememberUpdatedState(onLoaded)
-    Canvas({
-        classes("goa-map-art", "dim")
-        attr("width", art.width.toString())
-        attr("height", art.height.toString())
-        attr("aria-hidden", "true")
-        style { property("transform", matrix(1f)) }
-    }) {
-        DisposableRefEffect(art.image) { canvas ->
-            val image = HtmlImage()
-            image.onload = {
-                // After a frame: the drawn map stays up while the picture is baked.
-                window.setTimeout({
-                    bakeDimmed(canvas, image)
-                    loaded()
-                }, 0)
-            }
-            image.src = art.image
-            onDispose { image.onload = null }
-        }
-    }
-    // A small layer scaled up: gradients need no resolution, so this costs next to no memory.
     Div({
-        classes("goa-map-art", "feather")
+        classes("goa-map-art", "dim")
         attr("aria-hidden", "true")
         style {
-            property("width", "${art.width / FEATHER_SCALE}px")
-            property("height", "${art.height / FEATHER_SCALE}px")
-            property("--sea", art.sea)
-            property("--band-x", "${100f * art.pxPerUnit.toFloat() * ART_FEATHER / art.width}%")
-            property("--band-y", "${100f * art.pxPerUnit.toFloat() * ART_FEATHER / art.height}%")
-            property("transform", matrix(FEATHER_SCALE))
+            property("width", "${art.width}px")
+            property("height", "${art.height}px")
+            property("transform", matrix)
         }
     }) {
-        listOf("l", "r", "t", "b").forEach { edge -> Div({ classes("edge", edge) }) }
+        DisposableRefEffect(picture) { holder ->
+            holder.appendChild(picture.canvas)
+            onDispose { if (picture.canvas.parentNode == holder) holder.removeChild(picture.canvas) }
+        }
     }
     Img(art.image, "") {
         classes("goa-map-art", "lit")
@@ -365,9 +389,76 @@ private fun PaintingLayers(art: BoardMapArt, layout: HexLayout, camera: MapCamer
         style {
             property("clip-path", clip)
             property("-webkit-clip-path", clip)
-            property("transform", matrix(1f))
+            property("transform", matrix)
         }
     }
+}
+
+/**
+ * A map's picture as it looks outside the light, baked once into a canvas at the image's size: no filter to
+ * run (WebKit dropped a CSS filter on a layer this large), and it outlives the screen, so coming back to a
+ * board doesn't run 3 million pixels again. [ready] switches the board over; until then, if the picture fails
+ * or the canvas is lost, the drawn map stays up. A browser may take a canvas's memory away (the context is
+ * lost, or on an iPhone left in the background simply blanked): it is baked again from the file.
+ */
+private class DimmedPicture(private val art: BoardMapArt) {
+    var ready by mutableStateOf(false)
+        private set
+    private var baking = false
+    val canvas = (document.createElement("canvas") as HTMLCanvasElement).apply {
+        width = art.width
+        height = art.height
+        addEventListener("contextlost", { ready = false })
+        addEventListener("contextrestored", { bake() })
+    }
+
+    /** Loads the picture and bakes it, once at a time. A failure leaves [ready] false, for the next mount to try. */
+    fun bake() {
+        if (baking) return
+        baking = true
+        val image = HtmlImage()
+        image.onload = {
+            // After a frame: the drawn map stays up while the picture is baked.
+            window.setTimeout({
+                bakeDimmed(canvas, image)
+                baking = false
+                ready = true
+            }, 0)
+        }
+        image.onerror = { _, _, _, _, _ ->
+            baking = false
+            null
+        }
+        image.src = art.image
+    }
+
+    /** Bakes again if the canvas has gone blank: the picture's pixels are all opaque. */
+    fun checkStillThere() {
+        if (ready && (canvas.getContext("2d") as CanvasRenderingContext2D).isBlank()) {
+            ready = false
+            bake()
+        }
+    }
+}
+
+private fun CanvasRenderingContext2D.isBlank(): Boolean =
+    runCatching { getImageData(0.0, 0.0, 1.0, 1.0).data.asDynamic()[3] == 0 }.getOrDefault(false)
+
+/** One per map, for the page's life: some 15 MB each, and there are four maps. */
+private val dimmedPictures = HashMap<String, DimmedPicture>()
+
+@Composable
+private fun rememberDimmedPicture(art: BoardMapArt): DimmedPicture = remember(art.image) {
+    if (dimmedPictures.isEmpty()) {
+        document.addEventListener("visibilitychange", {
+            if (document.asDynamic().visibilityState ==
+                "visible"
+            ) {
+                dimmedPictures.values.forEach { it.checkStillThere() }
+            }
+        })
+    }
+    dimmedPictures.getOrPut(art.image) { DimmedPicture(art) }.also { if (!it.ready) it.bake() }
 }
 
 /** Draws [image] on [canvas] as it looks outside the light: brightness and saturation as MapArt's DIM_*. */
@@ -552,21 +643,24 @@ private fun SvgScope.PaintedDisc(type: MinionType, team: Team) {
 }
 
 /**
- * The rulebook's miniature on a small team-coloured base (mock-up 09 B), the Heavy clearly larger; mock-up
- * 01's sizes on a hex of radius 20: a figure 31 px tall (the Heavy 38), its foot 12 px below the centre.
+ * The rulebook's miniature on a small team-coloured base (mock-up 09 B), the Heavy clearly larger. Until the
+ * image has loaded, and if it fails, a disc, as on the phone.
  */
 @OptIn(ExperimentalComposeWebSvgApi::class)
 @Composable
 private fun SvgScope.Figure(type: MinionType, team: Team) {
+    val baked = bakedFigure(miniatureArt(type, team))
+    if (baked == null) {
+        PaintedDisc(type, team)
+        return
+    }
     val slug = if (team == Team.RED) "red" else "blue"
     Ellipse(0, 0.45f, 0.75f, 0.325f, { classes("p-base", "m-stroke-$slug") })
-    val height = if (type == MinionType.HEAVY) 2.0f else 1.55f
-    val path = miniatureArt(type, team)
-    val baked = bakedFigure(path)
-    // The baked figure has a margin for its edge, the same share all round.
-    val drawn = if (baked != null) height * FIGURE_MARGIN else height
-    val foot = 0.6f + (drawn - height) / 2f
-    Image(baked ?: path, {
+    val height = if (type == MinionType.HEAVY) HEAVY_HEIGHT else FIGURE_HEIGHT
+    // A baked figure has a margin for its edge, the same share all round.
+    val drawn = height * baked.margin
+    val foot = FIGURE_FOOT + (drawn - height) / 2f
+    Image(baked.href, {
         classes("p-figure")
         attr("x", n(-FIGURE_BOX / 2f))
         attr("y", n(foot - drawn))
@@ -576,22 +670,28 @@ private fun SvgScope.Figure(type: MinionType, team: Team) {
     })
 }
 
+/** A miniature ready to draw: [margin] is its height against the figure's. */
+private class BakedFigure(val href: String, val margin: Float)
+
 /** The miniatures with a dark edge, by path: one image each, whatever the number of figures on the board. */
-private val bakedFigures = mutableStateMapOf<String, String>()
+private val bakedFigures = mutableStateMapOf<String, BakedFigure>()
 
 /**
  * The miniature at [path] with a dark edge, so a figure holds on sand and on lava as on the phone. Baked once
  * into a single image rather than filtered or layered in the SVG: gestures repaint the SVG every frame, and a
- * filter or five images per figure is what would jank an iPhone. Null until it is ready (and if it fails).
+ * filter or five images per figure is what would jank an iPhone. Null until it is ready, and while the file
+ * can't be had; a board opened later tries again.
  */
 @Composable
-private fun bakedFigure(path: String): String? {
+private fun bakedFigure(path: String): BakedFigure? {
     val baked = bakedFigures[path]
     if (baked == null) {
         DisposableEffect(path) {
             val image = HtmlImage()
             image.onload = {
-                runCatching { bakeFigure(image) }.getOrNull()?.let { bakedFigures[path] = it }
+                // If only the bake fails (a browser with no canvas to spare) the plain figure is still a figure.
+                bakedFigures[path] = runCatching { BakedFigure(bakeFigure(image), FIGURE_MARGIN) }
+                    .getOrDefault(BakedFigure(path, 1f))
             }
             image.src = path
             onDispose { image.onload = null }
@@ -604,27 +704,28 @@ private fun bakeFigure(image: HTMLImageElement): String {
     val w = image.naturalWidth
     val h = image.naturalHeight
     val canvas = document.createElement("canvas") as HTMLCanvasElement
-    val mx = (h * (FIGURE_MARGIN - 1f) / 2f).toDouble()
-    val my = mx
-    canvas.width = w + 2 * mx.toInt()
-    canvas.height = h + 2 * my.toInt()
+    val margin = (h * (FIGURE_MARGIN - 1f) / 2f).toInt()
+    canvas.width = w + 2 * margin
+    canvas.height = h + 2 * margin
     val shape = document.createElement("canvas") as HTMLCanvasElement
     shape.width = w
     shape.height = h
     val tint = shape.getContext("2d") as CanvasRenderingContext2D
     tint.drawImage(image, 0.0, 0.0)
     tint.globalCompositeOperation = "source-in"
-    tint.fillStyle = "rgba(0, 0, 0, 0.85)"
+    tint.fillStyle = "rgba(0, 0, 0, 0.95)"
     tint.fillRect(0.0, 0.0, w.toDouble(), h.toDouble())
     val out = canvas.getContext("2d") as CanvasRenderingContext2D
-    val x = mx.toInt().toDouble()
-    val y = my.toInt().toDouble()
-    // As the phone's figure: 0.035 of a hex radius all round, 0.05 below; a figure is 1.55 radii tall.
+    val at = margin.toDouble()
+    // As the phone's figure: 0.055 of a hex radius all round, 0.09 below; a figure is 1.55 radii tall.
     val edge = h * FIGURE_EDGE
-    listOf(edge to 0.0, -edge to 0.0, 0.0 to edge, 0.0 to -edge, 0.0 to edge * FIGURE_DROP).forEach { (dx, dy) ->
-        out.drawImage(shape, x + dx, y + dy)
-    }
-    out.drawImage(image, x, y)
+    val corner = edge * FIGURE_EDGE_CORNER
+    listOf(
+        edge to 0.0, -edge to 0.0, 0.0 to edge, 0.0 to -edge,
+        corner to corner, -corner to corner, corner to -corner, -corner to -corner,
+        0.0 to edge * FIGURE_DROP,
+    ).forEach { (dx, dy) -> out.drawImage(shape, at + dx, at + dy) }
+    out.drawImage(image, at, at)
     return canvas.toDataURL("image/png")
 }
 
@@ -694,7 +795,8 @@ private class MapGestureHandler(
     private val element: Element,
     private val camera: MapCamera,
     private val layout: () -> HexLayout,
-    private val onTap: (Hex, ScreenPoint) -> Boolean,
+    private val onTap: (Hex, ScreenPoint, Hex?) -> Boolean,
+    private val figureAt: (MapPoint) -> Hex?,
     private val onDoubleTap: (ScreenPoint) -> Unit,
     private val drag: () -> DragPolicy?,
     private val onDrag: (String?, MapPoint?) -> Unit,
@@ -753,6 +855,7 @@ private class MapGestureHandler(
             travelled = 0f
             val policy = drag()
             piece = policy?.pieceAt?.invoke(hexAt(p))
+                ?: figureAt(camera.screenToMap(p))?.let { policy?.pieceAt?.invoke(it) }
             pieceIsSelected = piece != null && piece == policy?.selected?.invoke()
             if (piece != null && !pieceIsSelected) {
                 longPress = window.setTimeout({
@@ -850,7 +953,7 @@ private class MapGestureHandler(
             onDoubleTap(at)
             return
         }
-        val did = onTap(hex, at)
+        val did = onTap(hex, at, figureAt(camera.screenToMap(at)))
         lastTap = Triple(now, hex, !did)
     }
 
@@ -879,12 +982,22 @@ private const val COIN_R = 0.86f
 private const val FIGURE_BOX = 3.2f
 
 /** A baked figure's height against the miniature's, for the room its edge takes. */
-private const val FIGURE_MARGIN = 1.1f
-private const val FIGURE_EDGE = 0.035 / 1.55
-private const val FIGURE_DROP = 1.4
+private const val FIGURE_MARGIN = 1.14f
+private const val FIGURE_EDGE = 0.055 / 1.55
+private const val FIGURE_EDGE_CORNER = 0.71
+private const val FIGURE_DROP = 1.64
 
-/** How much smaller the feather layer is laid out than the picture. */
-private const val FEATHER_SCALE = 8f
+/** A hero's ring, for the tab on it: its outer radius and width in map units, on a painting and on the drawn map. */
+private const val COIN_RING_OUTER = 0.76f
+private const val COIN_RING_WIDTH = 0.11f
+private const val DRAWN_RING_OUTER = 0.715f
+private const val DRAWN_RING_WIDTH = 0.146f
+
+/** How far (px) the tab reaches over the ring at least, zoomed right out. */
+private const val TAG_JOIN = 2f
+
+/** A little over `--dur-long`, the pieces' glide. */
+private const val REORDER_AFTER_MS = 400L
 
 private const val TOKEN_CHARS = 16
 private const val TOKEN_WIDTH = 0.66f

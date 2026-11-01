@@ -48,8 +48,8 @@ object OfflinePlan {
     fun images(manifest: AssetManifest): List<AssetFile> =
         manifest.files.filter {
             it.p.startsWith("official/") && !it.p.startsWith("official/ui/") &&
-                !it.p.startsWith("official/board/spawn-hero-") && !it.p.endsWith(".md") &&
-                !Thumbnails.isThumbnail(it.p)
+                !it.p.startsWith("official/pieces/") && !it.p.startsWith("official/board/spawn-hero-") &&
+                !it.p.endsWith(".md") && !Thumbnails.isThumbnail(it.p)
         }
 
     /** [images] not cached with their current content ([cached]: path → hash of the cached copy). */

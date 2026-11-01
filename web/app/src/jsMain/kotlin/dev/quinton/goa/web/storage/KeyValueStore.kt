@@ -23,10 +23,15 @@ interface KeyValueStore {
     suspend fun keys(prefix: String = ""): List<String>
 }
 
-/** The app's JSON: lenient to fields added later, so an older build reads a newer build's values. */
+/**
+ * The app's JSON: lenient to fields and enum values added later, so an older build reads a newer build's
+ * values: an unknown enum value takes its field's default rather than losing the whole record (and the next
+ * write overwriting every other field).
+ */
 val StoreJson: Json = Json {
     ignoreUnknownKeys = true
     encodeDefaults = true
+    coerceInputValues = true
 }
 
 suspend fun <T> KeyValueStore.getJson(key: String, serializer: KSerializer<T>): T? =

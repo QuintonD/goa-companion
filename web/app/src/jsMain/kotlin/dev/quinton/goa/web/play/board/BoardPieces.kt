@@ -117,11 +117,12 @@ fun PieceAvatar(piece: BoardPiece, heroes: Map<String, BoardHero>) {
 
 /**
  * A minion: by the board style, its miniature with a badge of the type's glyph, or its team's disc with
- * the glyph (and the team's shape, never colour alone).
+ * the glyph (and the team's shape, never colour alone), which is also what shows if the miniature fails.
  */
 @Composable
 fun MinionAvatar(type: MinionType, team: Team) {
-    if (rememberBoardStyle() == BoardStyle.MINIATURES) {
+    var failed by remember(type, team) { mutableStateOf(false) }
+    if (rememberBoardStyle() == BoardStyle.MINIATURES && !failed) {
         Span({
             classes("goa-board-figure", teamClass(team))
             attr("aria-hidden", "true")
@@ -129,6 +130,7 @@ fun MinionAvatar(type: MinionType, team: Team) {
             Img(miniatureArt(type, team), "") {
                 attr("loading", "lazy")
                 attr("decoding", "async")
+                addEventListener("error") { failed = true }
             }
             Span({
                 classes("goa-board-figure-badge")
