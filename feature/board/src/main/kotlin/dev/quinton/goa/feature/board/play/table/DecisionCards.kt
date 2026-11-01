@@ -266,10 +266,14 @@ private fun OfferedRow(
         val gap = if (spread) 0.dp else Spacing.sm
         val edge = if (spread) FAN_EDGE else 0.dp
         val width = ((maxWidth - edge * 2 - gap * (n - 1)) / units).coerceIn(min, largest ?: largestCard(n))
+        // Only a row that overflows scrolls: a fanned card's corners poke past its row, and a scroller
+        // would try to bring them into view and never could (TalkBack and tests both ask it to).
+        val overflows = width * units + gap * (n - 1) + edge * 2 > maxWidth
+        val scrolling = if (overflows) Modifier.horizontalScroll(rememberScrollState()) else Modifier
         Row(
             Modifier
                 .fillMaxWidth()
-                .horizontalScroll(rememberScrollState())
+                .then(scrolling)
                 .padding(start = edge, end = edge, bottom = if (spread) FAN_DROP else 0.dp),
             horizontalArrangement = if (spread) {
                 Arrangement.spacedBy(gap, Alignment.CenterHorizontally)
