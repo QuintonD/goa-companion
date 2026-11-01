@@ -16,7 +16,7 @@ internal object Tokens {
     val DarkPrimary = Color(0xFFC9A35B)
     val DarkOnPrimary = Color(0xFF0B1622)
     val DarkSecondary = Color(0xFF3FC1B0)
-    val DarkTeamRed = Color(0xFFE26459)
+    val DarkTeamRed = Color(0xFFE76C61)
     val DarkTeamBlue = Color(0xFF4F8FE0)
     val DarkError = Color(0xFFFF6B6B)
     val DarkUnverified = Color(0xFFE8B04A)

@@ -23,7 +23,7 @@
   --on-error: #0B1622;
   --error-container: #4D1C1C;
   --heading: #E39B5F;
-  --team-red: #E26459;
+  --team-red: #E76C61;
   --team-blue: #6FB6F0;
   --outline-engraved: rgba(201, 163, 91, 0.3);
   --engraved: rgba(201, 163, 91, 0.3);
@@ -223,7 +223,7 @@
 .goa-decision-who .goa-team-mark { width: 16px; height: 16px; }
 .goa-decision-who.red { color: var(--team-red); }
 .goa-decision-who.blue { color: var(--team-blue); }
-.goa-play-panel-bar .goa-decision-who.red { color: #E26459; }
+.goa-play-panel-bar .goa-decision-who.red { color: #E76C61; }
 .goa-play-panel-bar .goa-decision-who.blue { color: #6FB6F0; }
 .goa-decision-prompt.goa-title-plate { margin: 0 2px; }
 

@@ -4,7 +4,7 @@
 /* What sits on a plate is themed dark in both themes: the foundation's block leaves these at their
    light values, which puts dark red on the dark slate. */
 .goa-plate, .goa-card, .goa-sheet, .goa-tabbar {
-  --team-red: #E26459;
+  --team-red: #E76C61;
   --team-blue: #4F8FE0;
   --on-error-container: #FFD9D6;
   --verified: #3FC1B0;

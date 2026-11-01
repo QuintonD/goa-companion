@@ -5,7 +5,7 @@
 .goa-plate, .goa-card, .goa-sheet, .goa-table-timer, .goa-table-radio-card, .goa-table-info-card,
 .goa-table-footer, .goa-table-running-bar, .goa-draft-banner, .goa-draft-team, .goa-draft-tile,
 .goa-draft-taken-chip, .goa-table-static-card, .goa-draft-pool-edit {
-  --team-red: #E26459;
+  --team-red: #E76C61;
   --team-blue: #4F8FE0;
 }
 /* The dark tokens for what is a plate here but isn't one of the foundation's classes. */
@@ -224,7 +224,7 @@
   border-color: #5D6B70;
   background: linear-gradient(rgba(0, 0, 0, 0.18), rgba(0, 0, 0, 0.18)), url("official/ui/slate.webp") center / 420px, #1D2124;
 }
-.goa-table-coin-chip.red { color: #E26459; }
+.goa-table-coin-chip.red { color: #E76C61; }
 .goa-table-coin-chip.blue { color: #7FB0EE; }
 
 /* The round view's rows: thin plates */
