@@ -45,6 +45,9 @@ import dev.quinton.goa.feature.sync.session.SessionStage
 import dev.quinton.goa.feature.sync.session.SyncSessionActions
 import dev.quinton.goa.feature.sync.session.SyncSessionSheet
 import dev.quinton.goa.feature.sync.session.SyncSessionUiState
+import androidx.test.core.app.ApplicationProvider
+import dev.quinton.goa.core.testing.BundledAssetImages
+import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -67,8 +70,11 @@ class SyncScreenshotTest {
         }
     }
 
+    @Before fun art() = BundledAssetImages.install(ApplicationProvider.getApplicationContext())
+
     private fun shot(mode: ThemeMode = ThemeMode.DARK, fontScale: Float = 1f, content: @Composable () -> Unit) {
         setContent(mode, fontScale, content)
+        compose.waitUntil(ART_TIMEOUT_MS) { BundledAssetImages.idle }
         compose.onRoot().captureRoboImage()
     }
 
@@ -121,6 +127,7 @@ class SyncScreenshotTest {
             .performTextInput("Join “Friday nights” in Atlantis Companion: goa1-abc")
         compose.waitForIdle()
         compose.onNode(hasText("Join") and hasClickAction()).assertIsDisplayed()
+        compose.waitUntil(ART_TIMEOUT_MS) { BundledAssetImages.idle }
         compose.onRoot().captureRoboImage()
     }
 
@@ -227,3 +234,5 @@ class SyncScreenshotTest {
         )
     }
 }
+
+private const val ART_TIMEOUT_MS = 15_000L

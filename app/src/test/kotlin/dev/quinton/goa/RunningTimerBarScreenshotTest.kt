@@ -10,6 +10,9 @@ import dev.quinton.goa.core.designsystem.theme.GoaTheme
 import dev.quinton.goa.core.model.settings.ThemeMode
 import dev.quinton.goa.feature.timer.ui.timer.RunningTimerUi
 import dev.quinton.goa.ui.RunningTimerBar
+import androidx.test.core.app.ApplicationProvider
+import dev.quinton.goa.core.testing.BundledAssetImages
+import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -33,6 +36,8 @@ class RunningTimerBarScreenshotTest {
         description = "",
     )
 
+    @Before fun art() = BundledAssetImages.install(ApplicationProvider.getApplicationContext())
+
     private fun shot(mode: ThemeMode) {
         compose.setContent {
             GoaTheme(themeMode = mode) {
@@ -45,6 +50,7 @@ class RunningTimerBarScreenshotTest {
                 }
             }
         }
+        compose.waitUntil(ART_TIMEOUT_MS) { BundledAssetImages.idle }
         compose.onRoot().captureRoboImage()
     }
 
@@ -52,3 +58,5 @@ class RunningTimerBarScreenshotTest {
 
     @Test fun runningTimerBarLight() = shot(ThemeMode.LIGHT)
 }
+
+private const val ART_TIMEOUT_MS = 15_000L

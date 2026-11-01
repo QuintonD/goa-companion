@@ -24,9 +24,7 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -36,6 +34,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalHapticFeedback
@@ -47,12 +46,14 @@ import androidx.lifecycle.compose.LifecycleResumeEffect
 import dev.quinton.goa.core.data.trivia.TriviaQuizUiState
 import dev.quinton.goa.core.designsystem.component.ConfirmDialog
 import dev.quinton.goa.core.designsystem.component.EmptyState
-import dev.quinton.goa.core.designsystem.component.EngravedRule
+import dev.quinton.goa.core.designsystem.component.GoaPlateTheme
 import dev.quinton.goa.core.designsystem.component.GoaScreen
+import dev.quinton.goa.core.designsystem.component.slatePlate
 import dev.quinton.goa.core.designsystem.theme.GoaTextStyles
 import dev.quinton.goa.core.designsystem.theme.Motion
 import dev.quinton.goa.core.designsystem.theme.Spacing
 import dev.quinton.goa.core.domain.trivia.TriviaAnswer
+import dev.quinton.goa.feature.trivia.ui.BannerTextButton
 
 /**
  * A quiz round: one question at a time, then the round's summary. End (top bar) shows the summary
@@ -94,9 +95,11 @@ fun TriviaQuizScreen(
         modifier = modifier,
         actions = {
             if (playing != null) {
-                TextButton(onClick = onStop, modifier = Modifier.semantics { contentDescription = "End round" }) {
-                    Text("End")
-                }
+                BannerTextButton(
+                    "End",
+                    onClick = onStop,
+                    modifier = Modifier.semantics { contentDescription = "End round" },
+                )
             }
         },
     ) { padding ->
@@ -283,9 +286,8 @@ private fun NextBar(state: TriviaQuizUiState.Playing, onNext: () -> Unit) {
         enter = fadeIn(Motion.standard(Motion.SHORT_MS)),
         exit = fadeOut(Motion.standard(Motion.SHORT_MS)),
     ) {
-        Surface(color = MaterialTheme.colorScheme.background) {
-            Column {
-                EngravedRule()
+        GoaPlateTheme {
+            Column(Modifier.slatePlate(RectangleShape, brackets = false)) {
                 Button(
                     onClick = onNext,
                     modifier = Modifier

@@ -68,6 +68,9 @@ import dev.quinton.goa.feature.players.ratings.RatingSettingsActions
 import dev.quinton.goa.feature.players.ratings.RatingSettingsScreen
 import dev.quinton.goa.feature.players.ratings.RatingSettingsUiState
 import java.time.LocalDate
+import androidx.test.core.app.ApplicationProvider
+import dev.quinton.goa.core.testing.BundledAssetImages
+import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -191,8 +194,11 @@ class PlayersScreenshotTest {
         }
     }
 
+    @Before fun art() = BundledAssetImages.install(ApplicationProvider.getApplicationContext())
+
     private fun shot(mode: ThemeMode = ThemeMode.DARK, fontScale: Float = 1f, content: @Composable () -> Unit) {
         setContent(mode, fontScale, content)
+        compose.waitUntil(ART_TIMEOUT_MS) { BundledAssetImages.idle }
         compose.onRoot().captureRoboImage()
     }
 
@@ -377,3 +383,5 @@ class WhoWonSemanticsTest {
         compose.onNode(hasText("Last push") and radio and isNotSelected()).assertExists()
     }
 }
+
+private const val ART_TIMEOUT_MS = 15_000L

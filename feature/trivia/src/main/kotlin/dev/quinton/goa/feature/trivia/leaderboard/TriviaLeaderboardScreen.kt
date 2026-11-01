@@ -31,11 +31,9 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.PrimaryTabRow
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Tab
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -69,13 +67,15 @@ import dev.quinton.goa.core.data.trivia.TriviaText
 import dev.quinton.goa.core.designsystem.component.ConfirmDialog
 import dev.quinton.goa.core.designsystem.component.EmptyState
 import dev.quinton.goa.core.designsystem.component.GoaFilterChip
+import dev.quinton.goa.core.designsystem.component.GoaPlate
 import dev.quinton.goa.core.designsystem.component.GoaScreen
+import dev.quinton.goa.core.designsystem.component.GoaSheet
+import dev.quinton.goa.core.designsystem.component.PlateShape
 import dev.quinton.goa.core.designsystem.component.PlayerAvatar
 import dev.quinton.goa.core.designsystem.component.scaledIconSize
 import dev.quinton.goa.core.designsystem.theme.GoaTextStyles
 import dev.quinton.goa.core.designsystem.theme.Spacing
 import dev.quinton.goa.core.domain.trivia.LeaderboardPeriod
-import dev.quinton.goa.core.domain.trivia.TriviaLeaderboard
 import dev.quinton.goa.feature.trivia.home.YouTag
 
 /** Callbacks of the leaderboard screen. */
@@ -212,11 +212,16 @@ private fun BoardContent(state: TriviaLeaderboardUiState.Ready, actions: Leaderb
                 item(key = "empty") { EmptyBoard(state, Modifier.fillMaxWidth()) }
             } else {
                 items(state.rows, key = { "${state.tab}-${it.player.id}" }) { row ->
-                    RankedRow(row, onClick = { actions.onOpenPlayer(row.player.id) })
-                    HorizontalDivider(
-                        color = MaterialTheme.colorScheme.outlineVariant,
-                        modifier = Modifier.padding(start = Spacing.screen + 28.dp + Spacing.md),
-                    )
+                    GoaPlate(
+                        Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = Spacing.screen, vertical = Spacing.xs)
+                            .clip(PlateShape),
+                        brackets = false,
+                        contentPadding = PaddingValues(0.dp),
+                    ) {
+                        RankedRow(row, onClick = { actions.onOpenPlayer(row.player.id) })
+                    }
                 }
             }
         }
@@ -398,10 +403,9 @@ private fun PlayerRoundsSheet(
     onRemove: (String) -> Unit,
     onDismiss: () -> Unit,
 ) {
-    ModalBottomSheet(
+    GoaSheet(
         onDismissRequest = onDismiss,
         sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
-        containerColor = MaterialTheme.colorScheme.surface,
     ) {
         PlayerRoundsContent(rounds, period, onRemove)
     }
@@ -469,7 +473,7 @@ internal fun PlayerRoundsContent(
 
 @Composable
 private fun RoundRow(round: RoundUi, onRemove: () -> Unit) {
-    Surface(color = MaterialTheme.colorScheme.surface) {
+    Box {
         Column(Modifier.fillMaxWidth().padding(horizontal = Spacing.screen, vertical = Spacing.sm)) {
             HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
             Spacer(Modifier.height(Spacing.sm))

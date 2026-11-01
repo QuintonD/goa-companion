@@ -37,6 +37,7 @@ import dev.quinton.goa.core.model.match.Team
 import dev.quinton.goa.core.model.match.WinCondition
 import dev.quinton.goa.core.model.player.Player
 import dev.quinton.goa.core.model.settings.AppSettings
+import dev.quinton.goa.core.model.settings.BoardStyle
 import dev.quinton.goa.core.model.settings.ThemeMode
 import dev.quinton.goa.core.model.settings.TimerLayout
 import dev.quinton.goa.core.model.trivia.TriviaRound
@@ -576,6 +577,7 @@ class BackupRoundTripTest {
             hapticsEnabled = false,
             soundsEnabled = false,
             timerLayout = TimerLayout.ROUND,
+            boardStyle = BoardStyle.GRID_AND_DISCS,
         )
         source.settings.update { settings }
         val presets = """[{"id":"table-rules","name":"Table rules","x":1},{"id":"mine","name":"Mine","x":[1,2]}]"""
@@ -738,6 +740,20 @@ class BackupRoundTripTest {
             assertThat(imported.hapticsEnabled).isFalse()
             assertThat(imported.timerLayout).isEqualTo(TimerLayout.STEPS)
         }
+    }
+
+    @Test
+    fun aNewerBuildsBoardStyleFallsBackToTheDefault() = runTest {
+        val source = Device()
+        val document = source.backup.export()
+        val newer = """{"boardStyle":"HOLOGRAM"}"""
+        val target = Device()
+        target.settings.update { it.copy(boardStyle = BoardStyle.GRID_AND_DISCS) }
+        val file = document.copy(extras = document.extras + ("settings" to Json.parseToJsonElement(newer)))
+
+        target.backup.import(file, ImportMode.REPLACE)
+
+        assertThat(target.settings.settings.first().boardStyle).isEqualTo(BoardStyle.MINIATURES)
     }
 
     @Test

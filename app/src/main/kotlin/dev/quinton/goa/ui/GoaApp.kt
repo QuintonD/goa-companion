@@ -14,6 +14,7 @@ import androidx.compose.animation.shrinkVertically
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.togetherWith
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.padding
@@ -35,6 +36,8 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
@@ -50,7 +53,8 @@ import androidx.navigation3.runtime.rememberSaveableStateHolderNavEntryDecorator
 import androidx.navigation3.ui.NavDisplay
 import dev.quinton.goa.SessionState
 import dev.quinton.goa.ShellViewModel
-import dev.quinton.goa.core.designsystem.component.EngravedRule
+import dev.quinton.goa.core.designsystem.component.GoaPlateTheme
+import dev.quinton.goa.core.designsystem.component.slatePlate
 import dev.quinton.goa.core.designsystem.icon.GoaIcons
 import dev.quinton.goa.core.designsystem.theme.Motion
 import dev.quinton.goa.core.navigation.BoardRoute
@@ -245,38 +249,40 @@ private fun KeepScreenOnWhile(enabled: Boolean) {
 
 @Composable
 private fun GoaBottomBar(current: TopLevelTab, onSelect: (TopLevelTab) -> Unit) {
-    Column {
-        EngravedRule()
-        NavigationBar(containerColor = MaterialTheme.colorScheme.surface, tonalElevation = 0.dp) {
-            Tabs.forEach { spec ->
-                val selected = current == spec.tab
-                NavigationBarItem(
-                    selected = selected,
-                    onClick = { onSelect(spec.tab) },
-                    // Stable hook for instrumented tests: "Players" is also an inner tab label.
-                    modifier = Modifier.testTag("nav_${spec.tab.name.lowercase()}"),
-                    icon = {
-                        Icon(
-                            painterResource(if (selected) spec.selected else spec.unselected),
-                            contentDescription = null,
-                        )
-                    },
-                    label = {
-                        Text(
-                            spec.label,
-                            fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Medium,
-                            maxLines = 1,
-                        )
-                    },
-                    alwaysShowLabel = true,
-                    colors = NavigationBarItemDefaults.colors(
-                        indicatorColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.18f),
-                        selectedIconColor = MaterialTheme.colorScheme.primary,
-                        selectedTextColor = MaterialTheme.colorScheme.primary,
-                        unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                        unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                    ),
-                )
+    GoaPlateTheme {
+        // The slate with its steel edge (mock-up 06); the plate is drawn here so it reaches under the system bar.
+        Box(Modifier.slatePlate(RectangleShape)) {
+            NavigationBar(containerColor = Color.Transparent, tonalElevation = 0.dp) {
+                Tabs.forEach { spec ->
+                    val selected = current == spec.tab
+                    NavigationBarItem(
+                        selected = selected,
+                        onClick = { onSelect(spec.tab) },
+                        // Stable hook for instrumented tests: "Players" is also an inner tab label.
+                        modifier = Modifier.testTag("nav_${spec.tab.name.lowercase()}"),
+                        icon = {
+                            Icon(
+                                painterResource(if (selected) spec.selected else spec.unselected),
+                                contentDescription = null,
+                            )
+                        },
+                        label = {
+                            Text(
+                                spec.label,
+                                fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium,
+                                maxLines = 1,
+                            )
+                        },
+                        alwaysShowLabel = true,
+                        colors = NavigationBarItemDefaults.colors(
+                            indicatorColor = Color.Transparent,
+                            selectedIconColor = MaterialTheme.colorScheme.primary,
+                            selectedTextColor = MaterialTheme.colorScheme.primary,
+                            unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                            unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                        ),
+                    )
+                }
             }
         }
     }
