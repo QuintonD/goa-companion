@@ -47,6 +47,19 @@
   pointer-events: none;
 }
 .goa-topbar-row { position: relative; z-index: 1; }
+/* A title shrinks, then takes two lines, and only then is cut: a name people navigate by isn't given up to its first
+   letters. Not the timer's "Round N", which must stay on one line beside its second line. */
+.goa-topbar-row > .goa-topbar-title {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  line-height: 1.2;
+}
+.goa-topbar-row > .goa-topbar-title.long { font-size: 0.9375rem; }
+.goa-topbar-row > .goa-topbar-title { padding-block: 5px; }
 .goa-topbar .goa-icon-button { color: var(--on-banner); filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.75)); }
 /* A word on the banner: bronze is lost on the steel. */
 .goa-topbar .goa-button.text, .goa-topbar .goa-trivia-end {
@@ -145,6 +158,8 @@
 .goa-board-style-disc.blue { background: var(--team-blue); }
 .goa-board-style-disc > .goa-official-mark { position: absolute; right: -6px; bottom: -6px; width: 16px; height: 16px; }
 .goa-board-style-label {
+  white-space: nowrap;
+  font-size: 0.875rem;
   display: flex;
   align-items: center;
   gap: var(--sp-sm);
@@ -179,10 +194,16 @@
 /* ---------- Players ---------- */
 .goa-w2-result > .goa-official-mark { margin-right: 4px; }
 .goa-w2-title-plate { width: fit-content; max-width: 100%; margin: 0 0 var(--sp-xs); overflow-wrap: anywhere; }
-.goa-w2-winner.goa-plate, .goa-w2-seat-editor.goa-plate { border-radius: 8px; }
-.goa-w2-seat-editor.goa-plate.red { border-color: color-mix(in srgb, var(--team-red) 60%, transparent); }
-.goa-w2-seat-editor.goa-plate.blue { border-color: color-mix(in srgb, var(--team-blue) 60%, transparent); }
-.goa-w2-seat-editor.goa-plate.problem { border-color: var(--error); }
+.goa-w2-winner.goa-plate, .goa-w2-team-editor.goa-plate { border-radius: 8px; }
+/* One plate per team, the seats divided inside it. */
+.goa-w2-team-editor.goa-plate { display: flex; flex-direction: column; gap: 0; padding: 0; }
+.goa-w2-team-editor.goa-plate.red { border-color: color-mix(in srgb, var(--team-red) 60%, transparent); }
+.goa-w2-team-editor.goa-plate.blue { border-color: color-mix(in srgb, var(--team-blue) 60%, transparent); }
+.goa-w2-team-editor.goa-plate.problem { border-color: var(--error); }
+.goa-w2-team-editor > .goa-w2-line { padding: 0 var(--sp-xs) 0 var(--sp-md); }
+.goa-w2-team-editor > p { padding: 0 var(--sp-md) var(--sp-sm); }
+.goa-w2-seat-editor { padding: var(--sp-sm) var(--sp-md); border: 0; border-top: 1px solid var(--outline-variant); border-radius: 0; background: none; box-shadow: none; }
+.goa-w2-fab.icon-only { width: 56px; padding: 0; justify-content: center; }
 .goa-w2-error-card.goa-plate { border-color: var(--error); }
 
 /* ---------- Trivia ---------- */
@@ -199,5 +220,41 @@
 .goa-trivia-heroes > li, .goa-trivia-board > li { margin-bottom: var(--sp-sm); }
 .goa-trivia-heroes { margin: 0; }
 .goa-trivia-hero-row { padding-left: var(--sp-md); padding-right: var(--sp-md); }
-.goa-trivia-board { border: 0; }
-.goa-trivia-board > li { border-bottom: 0; overflow: hidden; }
+/* One plate with dividers, as the Players leaderboard. */
+.goa-trivia-board { margin: 0; border-radius: 8px; overflow: hidden; }
+.goa-trivia-board > li { margin-bottom: 0; border-bottom: 0; overflow: hidden; }
+
+/* ---------- Bronze is selected and primary; teal is next, correct, "you can act" (docs/DESIGN.md) ---------- */
+.goa-chip[aria-pressed="true"], .goa-chip[aria-checked="true"] {
+  background: color-mix(in srgb, var(--primary) 20%, transparent);
+  border-color: var(--primary);
+  color: var(--on-surface);
+}
+.goa-segmented > button[aria-checked="true"] { background: color-mix(in srgb, var(--primary) 20%, transparent); color: var(--on-surface); }
+.goa-switch:checked, .goa-trivia-switch-row[aria-checked="true"] .goa-trivia-switch,
+.goa-table-switch-row[aria-checked="true"] .goa-table-switch { background: var(--primary); border-color: var(--primary); }
+.goa-table-switch-row[aria-checked="true"] .goa-table-switch::after { background: var(--on-primary); }
+.goa-table-radio-card[aria-checked="true"] .goa-table-radio { border-color: var(--primary); }
+.goa-table-round-button.tonal { background: color-mix(in srgb, var(--primary) 16%, var(--surface)); color: var(--primary); }
+.goa-table-duration-chip, .goa-table-duration-chip .goa-icon { color: var(--primary); }
+.goa-draft-tile.selected .goa-table-art { border-color: var(--primary); }
+.goa-trivia-pick[aria-checked="true"] .goa-trivia-radio { border-color: var(--primary); box-shadow: inset 0 0 0 4px var(--surface), inset 0 0 0 10px var(--primary); }
+.goa-trivia-pick[aria-checked="true"] .goa-trivia-check { background: var(--primary); border-color: var(--primary); color: var(--on-primary); }
+.goa-trivia-you, .goa-w2-you { background: var(--primary-container); color: var(--on-primary-container); }
+.goa-w2-pill.secondary { border-color: var(--outline-variant); color: var(--on-surface-variant); }
+.goa-role { background: none; border: 1px solid var(--outline-variant); color: var(--on-surface-variant); }
+.goa-rules-summary .t-overline { color: var(--primary); }
+.goa-rules-result { background: color-mix(in srgb, var(--primary) 10%, transparent); border-color: color-mix(in srgb, var(--primary) 50%, transparent); }
+.goa-rules-ladder-table tbody tr.selected { background: color-mix(in srgb, var(--primary) 16%, transparent); }
+
+/* ---------- One plate per section, dividers inside ---------- */
+.goa-table-phase-group { display: flex; flex-direction: column; padding: 0; }
+.goa-table-phase-group.error { border-color: var(--error); }
+.goa-table-phase-group > .goa-table-phase-card { padding: var(--sp-xs) var(--sp-md) var(--sp-md); }
+.goa-table-phase-group > .goa-table-phase-card + .goa-table-phase-card { border-top: 1px solid var(--outline-variant); }
+
+/* ---------- The draft's pool search: the plate's search, as on Heroes and Rules ---------- */
+.goa-draft-search { color-scheme: dark; --on-surface: #E8E2D6; --on-surface-variant: #B4BEC8; }
+.goa-draft-search .goa-table-input { min-height: 48px; border-color: #5D6B70; border-radius: 26px; background: #1D2124; color: #E8E2D6; }
+.goa-draft-search .goa-table-input::placeholder { color: #B4BEC8; }
+.goa-draft-search .goa-icon-button { color: #B4BEC8; }

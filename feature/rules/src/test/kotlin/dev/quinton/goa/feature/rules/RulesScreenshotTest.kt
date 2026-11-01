@@ -103,11 +103,11 @@ class RulesScreenshotTest {
 
     /** The p.8 diagram, multiplied into the parchment, and the book's blue boxes under it. */
     @Test
-    @Config(qualifiers = "w411dp-h1500dp-xxhdpi")
+    @Config(qualifiers = "w411dp-h2300dp-xxhdpi")
     fun topicPushingDark() = capture(ThemeMode.DARK) { Topic("pushing-the-lane") }
 
     @Test
-    @Config(qualifiers = "w411dp-h1500dp-xxhdpi")
+    @Config(qualifiers = "w411dp-h2300dp-xxhdpi")
     fun topicPushingLight() = capture(ThemeMode.LIGHT) { Topic("pushing-the-lane") }
 
     /** A green example box and a blue one with its heading. */

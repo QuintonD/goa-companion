@@ -30,6 +30,7 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.FilterChip
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -320,7 +321,7 @@ private fun RuleRow(title: String, subtitle: String, value: String, onClick: () 
             onClick = onClick,
             label = { Text(value) },
             leadingIcon = { Icon(Icons.Outlined.Timer, contentDescription = null, modifier = Modifier.height(18.dp)) },
-            colors = AssistChipDefaults.assistChipColors(labelColor = MaterialTheme.colorScheme.secondary),
+            colors = AssistChipDefaults.assistChipColors(labelColor = MaterialTheme.colorScheme.primary),
             modifier = Modifier.heightIn(min = 48.dp).semantics { contentDescription = "$title: $value. Change" },
         )
     }
@@ -359,17 +360,25 @@ private fun ScopeSection(
     val phases = state.preset?.phases.orEmpty().filter { it.scope == scope }
     SectionHeader(title)
     Text(hint, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-    phases.forEachIndexed { index, phase ->
-        PhaseCard(
-            phase = phase,
-            canMoveUp = index > 0,
-            canMoveDown = index < phases.lastIndex,
-            issues = state.issuesFor(phase.id),
-            showIssues = true,
-            endSteps = state.endSteps,
-            actions = actions,
-            onEditDuration = { onEditDuration(phase) },
-        )
+    if (phases.isNotEmpty()) {
+        val hasError = phases.any { state.issuesFor(it.id).isNotEmpty() }
+        GoaPlate(
+            Modifier.fillMaxWidth().plateEdge(if (hasError) PlateError else null, 1.dp),
+            contentPadding = PaddingValues(0.dp),
+        ) {
+            phases.forEachIndexed { index, phase ->
+                if (index > 0) HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+                PhaseCard(
+                    phase = phase,
+                    canMoveUp = index > 0,
+                    canMoveDown = index < phases.lastIndex,
+                    issues = state.issuesFor(phase.id),
+                    endSteps = state.endSteps,
+                    actions = actions,
+                    onEditDuration = { onEditDuration(phase) },
+                )
+            }
+        }
     }
     OutlinedButton(onClick = { actions.onAdd(scope) }, modifier = Modifier.heightIn(min = 48.dp)) {
         Icon(Icons.Filled.Add, contentDescription = null)
@@ -385,94 +394,87 @@ private fun PhaseCard(
     canMoveUp: Boolean,
     canMoveDown: Boolean,
     issues: List<PresetIssue>,
-    showIssues: Boolean,
     endSteps: List<EndOfRoundStep>,
     actions: PresetEditActions,
     onEditDuration: () -> Unit,
 ) {
-    val hasError = showIssues && issues.isNotEmpty()
-    GoaPlate(
-        Modifier.fillMaxWidth().plateEdge(if (hasError) PlateError else null, 1.dp),
-        contentPadding = PaddingValues(0.dp),
-    ) {
-        val colors = MaterialTheme.colorScheme
-        Column(Modifier.padding(Spacing.md)) {
-            Row(
-                Modifier
-                    .heightIn(min = 48.dp)
-                    .toggleable(value = phase.enabled, onValueChange = {
-                        actions.onEnabled(phase.id, it)
-                    }, role = Role.Switch),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Column(Modifier.weight(1f)) {
-                    Text(
-                        TimerText.kindLabel(phase.kind).uppercase(),
-                        style = MaterialTheme.typography.labelMedium,
-                        color = colors.primary,
-                    )
-                }
-                Switch(checked = phase.enabled, onCheckedChange = null)
-            }
-            Column(Modifier.alpha(if (phase.enabled) 1f else 0.55f)) {
-                Spacer(Modifier.height(Spacing.sm))
-                OutlinedTextField(
-                    value = phase.name,
-                    onValueChange = { actions.onRenamePhase(phase.id, it) },
-                    label = { Text("Name") },
-                    singleLine = true,
-                    isError = issues.any { it.kind == PresetIssue.Kind.BLANK_PHASE_NAME },
-                    modifier = Modifier.fillMaxWidth(),
+    val colors = MaterialTheme.colorScheme
+    Column(Modifier.padding(Spacing.md)) {
+        Row(
+            Modifier
+                .heightIn(min = 48.dp)
+                .toggleable(value = phase.enabled, onValueChange = {
+                    actions.onEnabled(phase.id, it)
+                }, role = Role.Switch),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Column(Modifier.weight(1f)) {
+                Text(
+                    TimerText.kindLabel(phase.kind).uppercase(),
+                    style = MaterialTheme.typography.labelMedium,
+                    color = colors.primary,
                 )
-                Spacer(Modifier.height(Spacing.sm))
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    AssistChip(
-                        onClick = onEditDuration,
-                        label = { Text(TimerText.durationLabel(phase.seconds)) },
-                        leadingIcon = {
-                            Icon(Icons.Outlined.Timer, contentDescription = null, modifier = Modifier.height(18.dp))
-                        },
-                        colors = AssistChipDefaults.assistChipColors(labelColor = colors.secondary),
-                        modifier = Modifier.heightIn(min = 48.dp),
-                    )
-                    Spacer(Modifier.weight(1f))
-                    IconButton(onClick = { actions.onMove(phase.id, -1) }, enabled = canMoveUp) {
-                        Icon(Icons.Filled.KeyboardArrowUp, contentDescription = "Move ${phase.name} up")
-                    }
-                    IconButton(onClick = { actions.onMove(phase.id, 1) }, enabled = canMoveDown) {
-                        Icon(Icons.Filled.KeyboardArrowDown, contentDescription = "Move ${phase.name} down")
-                    }
-                    if (phase.kind == PhaseKind.CUSTOM) {
-                        IconButton(onClick = { actions.onRemove(phase.id) }) {
-                            Icon(Icons.Outlined.Delete, contentDescription = "Remove ${phase.name}")
-                        }
-                    }
-                }
-                val seconds = phase.seconds
-                if (seconds != null) {
-                    Text(
-                        "Cues (seconds left)",
-                        style = MaterialTheme.typography.labelMedium,
-                        color = colors.onSurfaceVariant,
-                    )
-                    FlowRow(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-                        PresetEdits.CUE_OPTIONS.filter { it < seconds }.forEach { cue ->
-                            FilterChip(
-                                selected = cue in phase.cues,
-                                onClick = { actions.onToggleCue(phase.id, cue) },
-                                label = { Text(if (cue == 0) "Time's up" else "${cue}s") },
-                                colors = goaChipColors(),
-                                border = goaChipBorder(cue in phase.cues),
-                                modifier = Modifier.heightIn(min = 48.dp),
-                            )
-                        }
-                    }
-                }
-                if (phase.scope == PhaseScope.ROUND_END) {
-                    EndStepPicker(phase, endSteps) { actions.onEndStep(phase.id, it) }
-                }
-                IssueText(issues)
             }
+            Switch(checked = phase.enabled, onCheckedChange = null)
+        }
+        Column(Modifier.alpha(if (phase.enabled) 1f else 0.55f)) {
+            Spacer(Modifier.height(Spacing.sm))
+            OutlinedTextField(
+                value = phase.name,
+                onValueChange = { actions.onRenamePhase(phase.id, it) },
+                label = { Text("Name") },
+                singleLine = true,
+                isError = issues.any { it.kind == PresetIssue.Kind.BLANK_PHASE_NAME },
+                modifier = Modifier.fillMaxWidth(),
+            )
+            Spacer(Modifier.height(Spacing.sm))
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                AssistChip(
+                    onClick = onEditDuration,
+                    label = { Text(TimerText.durationLabel(phase.seconds)) },
+                    leadingIcon = {
+                        Icon(Icons.Outlined.Timer, contentDescription = null, modifier = Modifier.height(18.dp))
+                    },
+                    colors = AssistChipDefaults.assistChipColors(labelColor = colors.primary),
+                    modifier = Modifier.heightIn(min = 48.dp),
+                )
+                Spacer(Modifier.weight(1f))
+                IconButton(onClick = { actions.onMove(phase.id, -1) }, enabled = canMoveUp) {
+                    Icon(Icons.Filled.KeyboardArrowUp, contentDescription = "Move ${phase.name} up")
+                }
+                IconButton(onClick = { actions.onMove(phase.id, 1) }, enabled = canMoveDown) {
+                    Icon(Icons.Filled.KeyboardArrowDown, contentDescription = "Move ${phase.name} down")
+                }
+                if (phase.kind == PhaseKind.CUSTOM) {
+                    IconButton(onClick = { actions.onRemove(phase.id) }) {
+                        Icon(Icons.Outlined.Delete, contentDescription = "Remove ${phase.name}")
+                    }
+                }
+            }
+            val seconds = phase.seconds
+            if (seconds != null) {
+                Text(
+                    "Cues (seconds left)",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = colors.onSurfaceVariant,
+                )
+                FlowRow(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+                    PresetEdits.CUE_OPTIONS.filter { it < seconds }.forEach { cue ->
+                        FilterChip(
+                            selected = cue in phase.cues,
+                            onClick = { actions.onToggleCue(phase.id, cue) },
+                            label = { Text(if (cue == 0) "Time's up" else "${cue}s") },
+                            colors = goaChipColors(),
+                            border = goaChipBorder(cue in phase.cues),
+                            modifier = Modifier.heightIn(min = 48.dp),
+                        )
+                    }
+                }
+            }
+            if (phase.scope == PhaseScope.ROUND_END) {
+                EndStepPicker(phase, endSteps) { actions.onEndStep(phase.id, it) }
+            }
+            IssueText(issues)
         }
     }
 }

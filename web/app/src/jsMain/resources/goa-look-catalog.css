@@ -104,6 +104,14 @@
 .goa-hero-identity-line .goa-stars-name { margin-left: 4px; }
 .goa-hero-identity-line .goa-stars-name::after, .goa-hero-role:not(:last-child)::after { content: " ·"; color: var(--on-surface-variant); }
 .goa-hero-header > p { margin: var(--sp-xs) 0 0; }
+/* Large text: the identity line under the plate, across the width, so it isn't squeezed beside the symbol. */
+.goa-hero-header { container: hero-header / inline-size; }
+@container hero-header (max-width: 18rem) {
+  .goa-hero-identity { flex-wrap: wrap; }
+  .goa-hero-identity-text { display: contents; }
+  .goa-hero-plate.goa-title-plate { flex: 1; min-width: 0; margin-top: var(--sp-sm); }
+  .goa-hero-identity-line { flex-basis: 100%; margin-left: 0; }
+}
 .goa-hero-header-pills { margin-top: var(--sp-sm); gap: var(--sp-xs) var(--sp-sm); }
 
 .goa-stat-plate { margin-top: var(--sp-md); padding: var(--sp-md); }
@@ -150,8 +158,7 @@
 .goa-designed-text.goa-parchment { padding: var(--sp-sm) var(--sp-md); }
 
 /* ---------- Rules: topic list and ladder as plates ---------- */
-.goa-rules-list > li + li { margin-top: var(--sp-sm); }
-.goa-rules-list > li + li > .goa-row { box-shadow: 0 3px 10px rgba(0, 0, 0, 0.45), inset 0 0 0 1px #15191B; }
+.goa-rules-list.goa-plate { padding: 0; border-radius: 8px; overflow: hidden; }
 .goa-rules-list .goa-row { min-height: 64px; }
 .goa-rules-topic-title { font: 700 1.0625rem/1.4375rem var(--font-display); font-variant: small-caps; }
 .goa-rules-level { background: #2B363E; }
@@ -209,7 +216,7 @@
 .goa-rules-ladder .goa-rules-heading { font-size: 1.125rem; line-height: 1.5rem; }
 
 /* The rulebook's p.8 diagrams: the white page vanishes into the parchment; the caption under each, in italics as printed. */
-.goa-rules-diagram { display: block; width: 100%; height: auto; mix-blend-mode: multiply; }
+.goa-rules-diagram { display: block; width: 100%; height: auto; mix-blend-mode: multiply; clip-path: inset(0 1.5% 0 1%); }
 .goa-rules-figure { display: flex; flex-direction: column; gap: var(--sp-xs); }
 .goa-rules-figure .goa-rules-quote { font-style: italic; }
 

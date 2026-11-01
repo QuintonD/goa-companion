@@ -1,5 +1,6 @@
 package dev.quinton.goa.feature.rules.ui
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -22,6 +23,7 @@ import androidx.compose.material.icons.outlined.MilitaryTech
 import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material.icons.outlined.SearchOff
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -32,6 +34,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.input.ImeAction
@@ -111,7 +114,16 @@ private fun RulesList(
                 }
             }
         }
-        items(state.topics, key = { it.id }) { topic -> TopicRow(topic) { onOpenTopic(topic.id) } }
+        if (state.topics.isNotEmpty()) {
+            item(key = "topics") {
+                GoaPlate(Modifier.fillMaxWidth(), contentPadding = PaddingValues(0.dp)) {
+                    state.topics.forEachIndexed { i, topic ->
+                        if (i > 0) HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+                        TopicRow(topic) { onOpenTopic(topic.id) }
+                    }
+                }
+            }
+        }
         item(key = "source") {
             Text(
                 "Quoted word for word from the official Guards of Atlantis II rulebook (2nd printing). " +
@@ -182,32 +194,34 @@ private fun LadderCard(onClick: () -> Unit) {
 
 @Composable
 private fun TopicRow(topic: TopicItem, onClick: () -> Unit) {
-    GoaCard(
-        onClick = onClick,
-        modifier = Modifier.fillMaxWidth().semantics(mergeDescendants = true) {
-            contentDescription = "${topic.title}, ${RulesText.spokenPages(topic.pages)}"
-        },
-        contentPadding = PaddingValues(horizontal = Spacing.lg, vertical = Spacing.md),
-    ) {
-        Row(Modifier.heightIn(min = 40.dp), verticalAlignment = Alignment.CenterVertically) {
-            Column(Modifier.weight(1f)) {
-                Text(
-                    topic.title,
-                    style = GoaTextStyles.plateTitle.copy(fontSize = 17.sp, lineHeight = 23.sp),
-                    color = MaterialTheme.colorScheme.onSurface,
-                )
-                Text(
-                    RulesText.pages(topic.pages),
-                    style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
+    Row(
+        Modifier
+            .fillMaxWidth()
+            .heightIn(min = 64.dp)
+            .clickable(role = Role.Button, onClick = onClick)
+            .semantics(mergeDescendants = true) {
+                contentDescription = "${topic.title}, ${RulesText.spokenPages(topic.pages)}"
             }
-            Icon(
-                Icons.AutoMirrored.Outlined.KeyboardArrowRight,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+            .padding(horizontal = Spacing.lg, vertical = Spacing.sm),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Column(Modifier.weight(1f)) {
+            Text(
+                topic.title,
+                style = GoaTextStyles.plateTitle.copy(fontSize = 17.sp, lineHeight = 23.sp),
+                color = MaterialTheme.colorScheme.onSurface,
+            )
+            Text(
+                RulesText.pages(topic.pages),
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
+        Icon(
+            Icons.AutoMirrored.Outlined.KeyboardArrowRight,
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
     }
 }
 

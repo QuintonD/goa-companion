@@ -25,6 +25,7 @@ import dev.quinton.goa.web.nav.Route
 import dev.quinton.goa.web.table.HeroArt
 import dev.quinton.goa.web.table.TableFooter
 import dev.quinton.goa.web.table.TeamMark
+import dev.quinton.goa.web.table.TeamText
 import dev.quinton.goa.web.table.teamClass
 import dev.quinton.goa.web.ui.AlertDialog
 import dev.quinton.goa.web.ui.BottomSheet
@@ -222,18 +223,19 @@ internal fun PlayerDraftContent(
     val team = session.captains.nextTeam
     if (pending != null && team != null) {
         AlertDialog(
-            "Draft ${state.playerName(pending)} to ${teamLabel(team)}?",
+            "Draft ${state.playerName(pending)} to ${teamName(team)}?",
             onDismiss = { drafting = null },
             buttons = {
                 GoaButton("Cancel", { drafting = null }, ButtonKind.TEXT)
                 Button({
                     type(ButtonType.Button)
                     classes("goa-button", "goa-draft-team-button", teamClass(team))
+                    attr("aria-label", "${teamName(team)} Draft")
                     onClick {
                         drafting = null
                         model.draftPlayer(pending)
                     }
-                }) { Text("${teamGlyph(team)} Draft") }
+                }) { TeamText("${teamGlyph(team)} Draft") }
             },
         ) { Text("They play ${heroLabel(state.heroes, session.selection.choices[pending])}.") }
     }
@@ -267,7 +269,7 @@ private fun HeroChoiceRow(state: BoardUiState, session: PlayerDraftSession, play
             Span({
                 classes("t-label-medium")
                 if (captainOf != null) classes("goa-table-team-text", teamClass(captainOf)) else classes("c-variant")
-            }) { Text(captainOf?.let { "${teamLabel(it)} captain" } ?: "Player") }
+            }) { TeamText(captainOf?.let { "${teamLabel(it)} captain" } ?: "Player") }
         }
         if (heroId != null) {
             Div({ classes("goa-draft-choice-hero") }) {

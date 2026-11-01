@@ -20,7 +20,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.Article
-import androidx.compose.material.icons.outlined.Lock
+import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -115,13 +115,16 @@ fun AboutScreen(info: AppInfo, onBack: () -> Unit, modifier: Modifier = Modifier
             item {
                 GoaCard(Modifier.fillMaxWidth()) {
                     Row(verticalAlignment = Alignment.Top) {
-                        Icon(Icons.Outlined.Lock, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                        Icon(Icons.Outlined.Info, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
                         Spacer(Modifier.width(Spacing.md))
                         Column {
-                            Text("Private build", style = MaterialTheme.typography.titleMedium)
+                            Text("A free fan companion", style = MaterialTheme.typography.titleMedium)
                             Body(
-                                "Made for one play group. Not sold, not published, and it never goes online: " +
-                                    "everything stays on this phone.",
+                                "Made by a player for their play group and shared free of charge: not sold, no " +
+                                    "ads. Your matches and players stay " +
+                                    "on this phone unless you join a group: then they sync phone to phone at the " +
+                                    "table, or through the group's sync server, which only ever holds them sealed " +
+                                    "and can't read them.",
                             )
                         }
                     }

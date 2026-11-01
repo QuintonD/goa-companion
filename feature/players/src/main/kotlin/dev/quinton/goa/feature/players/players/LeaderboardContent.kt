@@ -273,10 +273,10 @@ private fun YouPill() {
     Text(
         "You",
         style = MaterialTheme.typography.labelMedium,
-        color = MaterialTheme.colorScheme.onSecondaryContainer,
+        color = MaterialTheme.colorScheme.onPrimaryContainer,
         modifier = Modifier
             .clip(RoundedCornerShape(10.dp))
-            .background(MaterialTheme.colorScheme.secondaryContainer)
+            .background(MaterialTheme.colorScheme.primaryContainer)
             .padding(horizontal = Spacing.sm, vertical = 2.dp),
     )
 }

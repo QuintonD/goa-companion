@@ -214,8 +214,8 @@ private fun DefeatResult(row: LevelRow) {
     Column(
         Modifier
             .fillMaxWidth()
-            .background(colors.secondary.copy(alpha = 0.10f), MaterialTheme.shapes.medium)
-            .border(1.dp, colors.secondary.copy(alpha = 0.5f), MaterialTheme.shapes.medium)
+            .background(colors.primary.copy(alpha = 0.10f), MaterialTheme.shapes.medium)
+            .border(1.dp, colors.primary.copy(alpha = 0.5f), MaterialTheme.shapes.medium)
             .padding(Spacing.lg)
             .clearAndSetSemantics { contentDescription = RulesText.spokenDefeat(row) },
     ) {
@@ -314,7 +314,7 @@ private fun LadderTable(ladder: LevelLadder, selected: Int?, onSelect: (Int) -> 
                 val isSelected = row.level == selected
                 Row(
                     Modifier
-                        .background(if (isSelected) colors.secondary.copy(alpha = 0.16f) else Color.Transparent)
+                        .background(if (isSelected) colors.primary.copy(alpha = 0.16f) else Color.Transparent)
                         .clickable(onClickLabel = "Show level ${row.level}") { onSelect(row.level) }
                         .padding(horizontal = Spacing.xs)
                         .heightIn(min = 40.dp)

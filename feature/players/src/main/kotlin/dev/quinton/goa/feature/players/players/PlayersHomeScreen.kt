@@ -116,12 +116,14 @@ fun PlayersHomeScreen(
             SettingsActionButton(actions.onOpenSettings)
         },
         floatingActionButton = {
+            // With large text the label would cover a row's numbers: the icon alone (TalkBack hears the label).
+            val expanded = fab.expanded && LocalDensity.current.fontScale <= LARGE_FONT_SCALE
             when (tab) {
                 // The empty state carries its own "Add player" call to action; don't show two.
                 PlayersTab.PLAYERS -> if (!players.isEmpty) {
                     ExtendedFloatingActionButton(
                         onClick = actions.onAddPlayer,
-                        expanded = fab.expanded,
+                        expanded = expanded,
                         icon = { Icon(Icons.Outlined.PersonAdd, contentDescription = null) },
                         text = { Text("Add player") },
                         // M3 1.4 leaves the extended FAB's text out of the semantics tree.
@@ -132,7 +134,7 @@ fun PlayersHomeScreen(
                 }
 
                 PlayersTab.MATCHES -> if (matches.undo == null && !matches.isEmpty) {
-                    LogMatchFab(actions.onLogMatch, expanded = fab.expanded)
+                    LogMatchFab(actions.onLogMatch, expanded = expanded)
                 }
 
                 PlayersTab.META -> Unit

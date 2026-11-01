@@ -71,7 +71,7 @@ private fun RulesList(reference: RulesReference, state: RulesQuery) {
         }
     }
     if (topics.isNotEmpty()) {
-        Ul({ classes("goa-list", "goa-rules-list") }) {
+        Ul({ classes("goa-list", "goa-rules-list", "goa-plate") }) {
             topics.forEach { topic -> TopicRow(topic) }
         }
     }
@@ -129,7 +129,7 @@ private fun TopicRow(topic: RulesTopic) {
     val pages = topic.pages.sorted()
     Li {
         RouteLink(Route.RulesTopic(topic.id), {
-            classes("goa-row", "goa-plate")
+            classes("goa-row")
             attr("aria-label", "${topic.title}, ${RulesText.spokenPages(pages)}")
         }) {
             Span({ classes("goa-row-text") }) {
