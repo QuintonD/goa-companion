@@ -252,15 +252,15 @@ fun GoaSheet(
     GoaPlateTheme {
         ModalBottomSheet(
             onDismissRequest = onDismissRequest,
-            modifier = modifier,
+            // The slate under the drag handle too: a box inside the sheet left a seam below the handle.
+            modifier = modifier.slatePlate(SheetShape, brackets = false),
             sheetState = sheetState,
-            containerColor = PLATE_GROUND,
+            shape = SheetShape,
+            containerColor = Color.Transparent,
             contentColor = DarkColors.onSurface,
             dragHandle = { BottomSheetDefaults.DragHandle(color = DarkColors.onSurfaceVariant) },
         ) {
-            Box(Modifier.fillMaxWidth().slatePlate(RoundedCornerShape(0.dp), brackets = false)) {
-                Column(Modifier.fillMaxWidth().navigationBarsPadding(), content = content)
-            }
+            Column(Modifier.fillMaxWidth().navigationBarsPadding(), content = content)
         }
     }
 }
@@ -466,6 +466,7 @@ fun BannerEndSpacer() {
 }
 
 val PlateShape = RoundedCornerShape(8.dp)
+private val SheetShape = RoundedCornerShape(topStart = 14.dp, topEnd = 14.dp)
 
 private val PLATE_GROUND = Color(0xFF1D2124)
 private val PLATE_SHADE = Color(0x2E000000)
