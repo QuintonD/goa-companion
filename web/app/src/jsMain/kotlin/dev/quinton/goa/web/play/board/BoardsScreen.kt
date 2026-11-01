@@ -360,7 +360,7 @@ internal fun LatestCard(source: LineupSource, onSetUp: () -> Unit, onEdit: (() -
             P({ classes("t-body-small", "goa-board-muted", "goa-board-ellipsis") }) { Text(names) }
         }
         Div({ classes("goa-board-latest-buttons") }) {
-            GoaButton("Set up", onSetUp, ButtonKind.TONAL)
+            GoaButton("Set up", onSetUp)
             onEdit?.let { GoaButton("Edit", it, ButtonKind.TEXT) }
         }
     }

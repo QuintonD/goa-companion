@@ -258,7 +258,10 @@ private fun TrackSlotView(
                     Span({
                         classes("goa-track-second")
                         attr("aria-hidden", "true")
-                    }) { CardImage(second.cardId?.takeIf { !second.facedown }?.let(table::card), width, backOf = slot.heroId) }
+                    }) {
+                        val face = second.cardId?.takeIf { !second.facedown }?.let(table::card)
+                        CardImage(face, width, backOf = slot.heroId)
+                    }
                 }
                 CardImage(card, width, backOf = slot.heroId)
             }
@@ -372,6 +375,8 @@ fun CardRow(
     title: String,
     slots: Boolean = false,
     cardWidth: Int = 64,
+    /** Whose deck's back a facedown card shows. */
+    backOf: String? = null,
 ) {
     val open = cards.indices.filter { !cards[it].facedown && table.card(cards[it].cardId) != null }
     val viewable = open.map { i ->
@@ -397,7 +402,7 @@ fun CardRow(
                     )
                     if (card == null) attr("disabled", "")
                     onClick { open.indexOf(i).takeIf { it >= 0 }?.let { focus.open(viewable, it, title = title) } }
-                }) { CardImage(card, cardWidth) }
+                }) { CardImage(card, cardWidth, backOf = backOf) }
                 if (caption.isNotEmpty()) Span({ classes("t-body-small", "goa-quiet") }) { Text(caption) }
             }
         }
@@ -548,8 +553,11 @@ private fun DashboardSlotView(
             }
         }
     }) {
-        faces.getOrNull(1)?.let { second -> Span({ classes("second") }) { CardImage(second, SLOT_CARD, "fluid", backOf = heroId) } }
-        if (slot.cards.size > 1 && faces[1] == null) Span({ classes("second") }) { CardImage(null, SLOT_CARD, "fluid", backOf = heroId) }
+        if (slot.cards.size >
+            1
+        ) {
+            Span({ classes("second") }) { CardImage(faces[1], SLOT_CARD, "fluid", backOf = heroId) }
+        }
         if (slot.cards.isNotEmpty()) CardImage(faces[0], SLOT_CARD, "fluid", backOf = heroId)
         slot.word?.let { Span({ classes("band") }) { Text(it) } }
     }
@@ -587,7 +595,14 @@ private fun ItemsSection(table: TableUi, hero: HeroView, focus: CardFocusState) 
         }
     }
     if (hero.items.isNotEmpty()) {
-        Quiet("Tucked under the dashboard: only you see which cards (p.4).")
+        // A puzzle shows the other side's too, and there "only you" isn't so.
+        Quiet(
+            if (hero.heroId in table.mine) {
+                "Tucked under the dashboard: only you see which cards (p.4)."
+            } else {
+                "Tucked under the dashboard: open in this puzzle."
+            },
+        )
         CardRow(hero.items.map { CardView(it) }, table, focus, "${table.hero(hero.heroId).name} · Items")
     }
 }
@@ -612,7 +627,7 @@ private fun UltimateAndHand(table: TableUi, hero: HeroView, focus: CardFocusStat
                 hand == null -> {
                     Overline("In hand · ${hero.handCount}")
                     val backs = List(hero.handCount) { CardView(null) }
-                    CardRow(backs, table, focus, "$name · In hand", cardWidth = SHEET_CARD)
+                    CardRow(backs, table, focus, "$name · In hand", cardWidth = SHEET_CARD, backOf = hero.heroId)
                 }
 
                 hero.heroId in table.mine -> {

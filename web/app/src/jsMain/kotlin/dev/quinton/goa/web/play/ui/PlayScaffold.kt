@@ -4,27 +4,31 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import dev.quinton.goa.core.model.match.Team
 import dev.quinton.goa.feature.board.ui.PanelPeek
 import dev.quinton.goa.web.ui.Icon
 import dev.quinton.goa.web.ui.IconSize
 import dev.quinton.goa.web.ui.Screen
+import kotlinx.browser.window
 import org.jetbrains.compose.web.dom.Button
 import org.jetbrains.compose.web.dom.Div
 import org.jetbrains.compose.web.dom.Img
 import org.jetbrains.compose.web.dom.Span
 import org.jetbrains.compose.web.dom.Text
+import org.w3c.dom.HTMLElement
 
 /**
  * The board screens' frame (the sandbox, a game, a puzzle), as on the phone (HideablePanel): a
- * compact title bar, [top] (the turn track, a goal banner), the map filling what is left, and the
+ * compact title bar, [top] (the turn track), the map filling what is left, and the
  * [panel] at the bottom in portrait or at the side in landscape (CSS decides: `.goa-play-body`).
  *
  * The panel hides ([panelShown] false) to a one-line peek bar that still says what it is about
  * ([peek]: "● Arien · Choose an action for Dangerous Current", teal when it waits for you), with
  * [peekActions] (Confirm, Deselect) and Show; the map then gets the room. A screen with no panel
- * right now passes null. [panelTitle] (who a question asks) sits on the panel's top bar, beside Hide.
+ * right now passes null. [panelTitle] (who a question asks) sits on the panel's top bar, beside Hide. [onPanelTall]
+ * says whether a shown panel in portrait takes more than about a third of the screen.
  */
 @Composable
 fun PlayScaffold(
@@ -39,7 +43,9 @@ fun PlayScaffold(
     peekActions: @Composable () -> Unit = {},
     panelLabel: String = "Details",
     panelTitle: (@Composable () -> Unit)? = null,
+    onPanelTall: (Boolean) -> Unit = {},
 ) {
+    val tall by rememberUpdatedState(onPanelTall)
     Screen(title, actions = actions, flush = true, fill = true) {
         Div({ classes("goa-play") }) {
             top()
@@ -51,6 +57,13 @@ fun PlayScaffold(
                             classes("goa-play-panel")
                             attr("role", "region")
                             attr("aria-label", panelLabel)
+                            ref { el ->
+                                val stop = observePanelShare(el) { tall(it) }
+                                onDispose {
+                                    stop()
+                                    tall(false)
+                                }
+                            }
                         }) {
                             Div({ classes("goa-play-panel-bar") }) {
                                 panelTitle?.let { title -> Div({ classes("goa-play-panel-title") }) { title() } }
@@ -75,6 +88,41 @@ fun PlayScaffold(
         }
     }
 }
+
+/** Tells [onTall] as [panel] (portrait only) grows past or falls under about a third of the screen. */
+private fun observePanelShare(panel: HTMLElement, onTall: (Boolean) -> Unit): () -> Unit {
+    val callback: () -> Unit = {
+        val play = panel.closest(".goa-play") as? HTMLElement
+        val body = panel.parentElement as? HTMLElement
+        val portrait = body != null && window.getComputedStyle(body).flexDirection == "column"
+        if (play != null) onTall(portrait && panel.offsetHeight > play.clientHeight * TALL_PANEL_SHARE)
+    }
+    val observer: dynamic = js("new ResizeObserver(callback)")
+    observer.observe(panel)
+    return { observer.disconnect() }
+}
+
+/**
+ * Tells the panel around [question] where the question ends in its content (`--question-end`), so CSS can stop the
+ * panel just past it. Nothing outside a panel (a review's replay). Returns how to stop.
+ */
+fun reportQuestionEnd(question: HTMLElement): () -> Unit {
+    val panel = question.closest(".goa-play-panel") as? HTMLElement ?: return {}
+    val content = question.closest(".goa-play-panel-content") as? HTMLElement ?: return {}
+    val callback: () -> Unit = {
+        val end = question.getBoundingClientRect().bottom - content.getBoundingClientRect().top + content.scrollTop
+        panel.style.setProperty("--question-end", "${end.toInt()}px")
+    }
+    val observer: dynamic = js("new ResizeObserver(callback)")
+    observer.observe(question)
+    (question.parentElement as? HTMLElement)?.let { observer.observe(it) }
+    return {
+        observer.disconnect()
+        panel.style.removeProperty("--question-end")
+    }
+}
+
+private const val TALL_PANEL_SHARE = 0.36
 
 /** The hidden panel's one line: who and what, its actions, Show. A tap on the line shows the panel. */
 @Composable

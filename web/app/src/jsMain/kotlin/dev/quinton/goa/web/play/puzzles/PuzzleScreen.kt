@@ -45,7 +45,9 @@ import dev.quinton.goa.web.ui.ButtonKind
 import dev.quinton.goa.web.ui.EmptyState
 import dev.quinton.goa.web.ui.GoaButton
 import dev.quinton.goa.web.ui.GoaCard
+import dev.quinton.goa.web.ui.Icon
 import dev.quinton.goa.web.ui.IconButton
+import dev.quinton.goa.web.ui.IconSize
 import dev.quinton.goa.web.ui.LinearProgress
 import dev.quinton.goa.web.ui.ListRow
 import dev.quinton.goa.web.ui.LoadingState
@@ -153,7 +155,6 @@ private fun PuzzleTable(puzzle: PuzzleUi, controller: PuzzleController) {
                 PeekConfirm(table, puzzle.busy) { onAction(PuzzleAction.Answer(it)) }
             }
         },
-        banner = { GoalBanner(puzzle.info.goal.text, puzzle.playing, compact = landscape) },
         panelTitle = if (puzzle.asksOnPanel()) {
             { DecisionWho(table) }
         } else {
@@ -266,11 +267,14 @@ private fun PuzzlePanel(puzzle: PuzzleUi, onAction: (PuzzleAction) -> Unit, focu
 
             puzzle.phase == PuzzlePhase.SOLVED -> SolvedPanel(puzzle, onAction)
 
-            puzzle.phase == PuzzlePhase.REPLYING -> puzzle.replying?.let { replying ->
-                Div({ attr("aria-live", "polite") }) {
-                    P({ classes("t-overline", "c-primary") }) { Text(replying.title) }
-                    RecentEvents(replying.lines)
-                    LinearProgress(null, "The other side is answering")
+            puzzle.phase == PuzzlePhase.REPLYING -> {
+                GoalLine(puzzle.info.goal.text, puzzle.playing)
+                puzzle.replying?.let { replying ->
+                    Div({ attr("aria-live", "polite") }) {
+                        P({ classes("t-overline", "c-primary") }) { Text(replying.title) }
+                        RecentEvents(replying.lines)
+                        LinearProgress(null, "The other side is answering")
+                    }
                 }
             }
 
@@ -283,13 +287,17 @@ private fun PuzzlePanel(puzzle: PuzzleUi, onAction: (PuzzleAction) -> Unit, focu
             }
 
             else -> {
+                GoalLine(puzzle.info.goal.text, puzzle.playing)
                 PuzzleHeader(puzzle)
                 if (puzzle.info.intro.isNotBlank()) Intro(puzzle, onAction)
                 puzzle.round?.let { P({ classes("t-title-medium", "c-primary") }) { Text(it.heading) } }
                 puzzle.nudge?.let {
                     NudgeCard(it, { onAction(PuzzleAction.Nudge) }, { onAction(PuzzleAction.DismissNudge) })
                 }
-                puzzle.table.moment?.let { MomentCard(it, puzzle.table, focus) }
+                // The person's own question first, the moment after it (as on the phone).
+                val moment = puzzle.table.moment
+                val questionFirst = puzzle.table.asking
+                if (moment != null && !questionFirst) MomentCard(moment, puzzle.table, focus)
                 DecisionPanel(
                     puzzle.table,
                     onSelect = { onAction(PuzzleAction.Select(it)) },
@@ -298,6 +306,7 @@ private fun PuzzlePanel(puzzle: PuzzleUi, onAction: (PuzzleAction) -> Unit, focu
                     busy = puzzle.busy,
                     who = false,
                 )
+                if (moment != null && questionFirst) MomentCard(moment, puzzle.table, focus)
                 RecentEvents(puzzle.recent.takeLast(2))
                 puzzle.round?.let {
                     KnownPlaysStrip(it, focus, showNote = puzzle.introOpen) { shown ->
@@ -310,20 +319,20 @@ private fun PuzzlePanel(puzzle: PuzzleUi, onAction: (PuzzleAction) -> Unit, focu
     }
 }
 
-/** "PUZZLE 3 OF 12 · ⬢⬢⬡ Harder", the title and the theme. */
+/** "Puzzle 3 of 12 · Through the Line ⬢⬢⬡ Harder" on a small line: the title plate is the question's. */
 @Composable
 private fun PuzzleHeader(puzzle: PuzzleUi) {
     Div({ classes("goa-puzzle-header") }) {
         Div({ classes("goa-inline") }) {
-            Span({ classes("t-overline", "c-primary") }) { Text(PuzzleText.place(puzzle.info, puzzle.total)) }
+            H2({ classes("t-label-medium", "c-variant", "goa-puzzle-name") }) {
+                Text("${PuzzleText.place(puzzle.info, puzzle.total)} · ${puzzle.info.title}")
+            }
             DifficultyMark(puzzle.info.difficulty)
         }
-        H2({ classes("goa-title-plate") }) { Text(puzzle.info.title) }
-        P({ classes("t-label-medium", "c-variant") }) { Text(puzzle.info.theme) }
     }
 }
 
-/** What the player knows that the board doesn't show; folds to one line once play has started. */
+/** What the player knows that the board doesn't show, under the puzzle's theme; folded, just its heading. */
 @Composable
 private fun Intro(puzzle: PuzzleUi, onAction: (PuzzleAction) -> Unit) {
     Button({
@@ -333,8 +342,14 @@ private fun Intro(puzzle: PuzzleUi, onAction: (PuzzleAction) -> Unit) {
         attr("aria-expanded", puzzle.introOpen.toString())
         onClick { onAction(PuzzleAction.SetIntroOpen(!puzzle.introOpen)) }
     }) {
-        Span({ classes("t-overline", "c-primary") }) { Text("What you know") }
-        Span({ classes("t-body-medium", "goa-puzzle-intro-text") }) { Text(puzzle.info.intro) }
+        Span({ classes("goa-puzzle-intro-head") }) {
+            Span({ classes("t-overline", "c-primary") }) { Text("What you know") }
+            Icon(if (puzzle.introOpen) "chevron_up" else "chevron_down", IconSize.SMALL)
+        }
+        if (puzzle.introOpen) {
+            Span({ classes("t-label-medium", "c-variant") }) { Text(puzzle.info.theme) }
+            Span({ classes("t-body-medium", "goa-puzzle-intro-text") }) { Text(puzzle.info.intro) }
+        }
     }
 }
 

@@ -2,8 +2,11 @@ package dev.quinton.goa.web.play.table
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import dev.quinton.goa.core.game.DecisionKind
 import dev.quinton.goa.feature.board.BoardText
 import dev.quinton.goa.feature.board.play.table.TableTap
@@ -24,7 +27,7 @@ import org.jetbrains.compose.web.dom.Div
  *
  * The panel hides ([panelShown] false) to [peek]'s one line with [peekActions] (Confirm for a tapped
  * space or piece); the map then fits the whole board unless the person moved it; taps on the map keep
- * selecting. [banner] (a puzzle's goal) sits under the heroes while the panel shows.
+ * selecting. Under a tall panel the turn track takes its small cards: a question's moment is on the map.
  *
  * [onTap] gets every tap on the map that meant something (an option, or a piece to read about);
  * [onHero] opens a hero (from a chip or a track slot); [onFlip] swaps the bottom team.
@@ -43,7 +46,6 @@ fun GameTableView(
     onPanelShown: (Boolean) -> Unit,
     peek: PanelPeek,
     peekActions: @Composable () -> Unit = {},
-    banner: (@Composable () -> Unit)? = null,
     panelTitle: (@Composable () -> Unit)? = null,
     panel: @Composable () -> Unit,
 ) {
@@ -51,6 +53,7 @@ fun GameTableView(
     val scene = rememberTableScene(table, landscape)
     val scope = rememberCoroutineScope()
     val hidden = !panelShown
+    var tallPanel by remember { mutableStateOf(false) }
     // The whole board while the panel is hidden, unless the person moved the map; back to the Lane after.
     LaunchedEffect(hidden, camera.unit > 0f) {
         if (camera.unit == 0f || camera.userMoved) return@LaunchedEffect
@@ -68,10 +71,19 @@ fun GameTableView(
         if (hidden && !camera.userMoved) return@LaunchedEffect
         if (decision.kind == DecisionKind.PLAY_CARD && !table.asking) return@LaunchedEffect
         val who = if (decision.kind == DecisionKind.PLAY_CARD) table.mine else setOf(decision.seat)
+        // Whoever else the question is about: the attacker of a Defend, the hero acting.
+        val alsoAbout = listOfNotNull(decision.context.attackerId, table.view.acting).mapNotNull(table::at)
         val hexes = table.spaceOptions.keys + table.pieceOptions.keys.mapNotNull(table::at) +
-            decision.context.highlight + listOfNotNull(table.subject?.let(table::at)) + who.mapNotNull(table::at)
+            decision.context.highlight + listOfNotNull(table.subject?.let(table::at)) + who.mapNotNull(table::at) +
+            alsoAbout
         val region = scene.layout.bounds(hexes, pad = 1.1f) ?: return@LaunchedEffect
-        camera.reveal(region, region.center)
+        // The Battle Zone around them when it fits at a comfortable size: it is where the game is.
+        val zones = table.battleZones.toSet()
+        val whole = scene.layout.bounds(hexes + table.map.spaces.filter { it.zone in zones }.map { it.hex }, pad = 1.1f)
+        val framed = whole?.takeIf { w ->
+            w.width * ZONE_UNIT <= camera.width - ZONE_MARGIN && w.height * ZONE_UNIT <= camera.height - ZONE_MARGIN
+        } ?: region
+        camera.reveal(framed, framed.center)
     }
     PlayScaffold(
         title = title,
@@ -82,6 +94,7 @@ fun GameTableView(
         peekActions = peekActions,
         panelLabel = "The question and what happened",
         panelTitle = panelTitle,
+        onPanelTall = { tallPanel = it },
         top = {
             Div({
                 classes("goa-table-top")
@@ -100,12 +113,11 @@ fun GameTableView(
                 } else {
                     TableHud(table)
                     if (track != null) {
-                        TurnTrackRow(table, track, onHero, focus, compact = hidden)
+                        TurnTrackRow(table, track, onHero, focus, compact = hidden || tallPanel)
                     } else if (!hidden) {
                         HeroStrip(table, onHero)
                     }
                 }
-                if (!hidden) banner?.invoke()
             }
         },
         map = {
@@ -129,6 +141,10 @@ fun GameTableView(
         panel = panel,
     )
 }
+
+/** Map units a comfortable hex (38 px across its flats) takes per px, and room to spare around the Battle Zone. */
+private const val ZONE_UNIT = 38f / 1.7320508f
+private const val ZONE_MARGIN = 48f
 
 /** A remembered camera for one screen's table. */
 @Composable

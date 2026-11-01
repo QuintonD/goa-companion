@@ -239,9 +239,9 @@ internal fun PushDialog(
 @Composable
 internal fun ThroneDialog(winner: Team, onDismiss: () -> Unit) {
     AlertDialog("${BoardText.team(winner)} wins", onDismiss, buttons = {
-        GoaButton("OK", onDismiss, ButtonKind.TEXT)
+        GoaButton("OK", onDismiss)
     }) {
-        P {
+        P({ classes("goa-game-won") }) {
             Text(
                 "${BoardText.team(winner)} wins: the Throne is captured. This push would make " +
                     "${BoardText.team(winner.opponent)}'s Throne Zone the Battle Zone (p.8). The board stays as it is.",

@@ -279,7 +279,7 @@ test("puzzles: the board on a painting, nudges and all", async ({ page }, info) 
   await hideUpdatePrompt(page);
   await expect(page.getByText(/of \d+ solved/i)).toBeVisible({ timeout: 30_000 });
   await page.getByRole("link", { name: /Start|Continue/ }).click();
-  await expect(page.getByRole("button", { name: /^Goal:/ })).toBeVisible({ timeout: 30_000 });
+  await expect(page.getByRole("group", { name: /^Goal:/ })).toBeVisible({ timeout: 30_000 });
   await painted(page);
   await shot(page, info, "puzzle");
   errors();

@@ -7,6 +7,7 @@ import dev.quinton.goa.core.game.ActionType
 import dev.quinton.goa.core.game.Choice
 import dev.quinton.goa.core.game.Decision
 import dev.quinton.goa.core.game.DecisionKind
+import dev.quinton.goa.core.model.board.MinionPiece
 import dev.quinton.goa.core.model.catalog.Card
 import dev.quinton.goa.core.model.catalog.PrimaryAction
 import dev.quinton.goa.feature.board.BoardText
@@ -18,15 +19,18 @@ import dev.quinton.goa.feature.board.play.table.TableUi
 import dev.quinton.goa.feature.board.play.table.actionLabel
 import dev.quinton.goa.feature.board.play.table.actionRule
 import dev.quinton.goa.feature.board.play.table.actionWord
+import dev.quinton.goa.feature.board.play.table.boardHint
 import dev.quinton.goa.feature.board.play.table.cardAction
 import dev.quinton.goa.feature.board.play.table.cardVerb
 import dev.quinton.goa.feature.board.play.table.defenseLine
 import dev.quinton.goa.feature.board.play.table.focusCard
 import dev.quinton.goa.feature.board.play.table.focusTitle
 import dev.quinton.goa.feature.board.play.table.kindTitle
+import dev.quinton.goa.feature.board.play.table.minionRowLines
 import dev.quinton.goa.feature.board.play.table.notOffered
 import dev.quinton.goa.feature.board.play.table.offeredCards
 import dev.quinton.goa.feature.board.play.table.panelLayout
+import dev.quinton.goa.feature.board.play.table.promptParts
 import dev.quinton.goa.feature.board.play.table.sourceReach
 import dev.quinton.goa.feature.board.play.table.spokenCard
 import dev.quinton.goa.feature.board.play.table.unavailableActions
@@ -34,6 +38,7 @@ import dev.quinton.goa.feature.board.play.table.unavailableLine
 import dev.quinton.goa.feature.board.play.table.upgradesOf
 import dev.quinton.goa.feature.board.ui.cards.FocusCard
 import dev.quinton.goa.feature.board.ui.cards.isSpell
+import dev.quinton.goa.web.play.board.MinionAvatar
 import dev.quinton.goa.web.play.cards.Alongside
 import dev.quinton.goa.web.play.cards.CardFocusState
 import dev.quinton.goa.web.play.cards.CardImage
@@ -42,6 +47,7 @@ import dev.quinton.goa.web.play.cards.ItemBadge
 import dev.quinton.goa.web.play.cards.cardBoxColor
 import dev.quinton.goa.web.play.cards.verdictClass
 import dev.quinton.goa.web.play.ui.TeamMark
+import dev.quinton.goa.web.play.ui.reportQuestionEnd
 import dev.quinton.goa.web.ui.Icon
 import dev.quinton.goa.web.ui.IconSize
 import org.jetbrains.compose.web.dom.Button
@@ -79,6 +85,11 @@ fun DecisionPanel(
         classes("goa-decision")
         // The question's id: a new question is a new panel (tests wait for it to change).
         attr("data-decision", decision.id.toString())
+        // The panel ends just past the question; what follows it (what happened, the hands) scrolls.
+        ref { el ->
+            val stop = reportQuestionEnd(el)
+            onDispose { stop() }
+        }
     }) {
         PromptHeader(
             table,
@@ -104,7 +115,7 @@ fun DecisionPanel(
                         QuestionBox(table, source, decision, board)
                         if (board) BoardConfirm(table, onAnswer, busy)
                         Choices(table, table.buttonOptions, onAnswer, busy)
-                        RuleBox(cardBoxColor(source.color), table, decision, focus)
+                        NoteBox(cardBoxColor(source.color), table, decision, focus)
                     }
                 }
                 if (board) BoardChips(table, onSelect)
@@ -117,13 +128,13 @@ fun DecisionPanel(
                     BoardChips(table, onSelect)
                 }
                 Choices(table, table.buttonOptions, onAnswer, busy)
-                RuleBox("silver", table, decision, focus)
+                NoteBox("silver", table, decision, focus)
             }
         }
     }
 }
 
-/** The rule a question rests on that no card prints, in a line of its own. */
+/** What a question rests on that no card prints, in the app's words, in a line of its own. */
 private fun footnote(table: TableUi, decision: Decision): String? = when {
     decision.kind == DecisionKind.CHOOSE_ACTION && table.buttonOptions.any { it is Choice.Action } ->
         "Only the primary action applies the card's text (p.7)."
@@ -135,13 +146,16 @@ private fun footnote(table: TableUi, decision: Decision): String? = when {
     else -> null
 }
 
-/** The question's rule lines in the asking card's text box: the actions it can't offer, then the rule. */
+/**
+ * The app's notes on the question in the asking card's text box, in the app's type: the actions it can't offer (a
+ * reason may be situational), then what it rests on. Its tab says "Note": these are not the rulebook's words.
+ */
 @Composable
-private fun RuleBox(color: String, table: TableUi, decision: Decision, focus: CardFocusState) {
+private fun NoteBox(color: String, table: TableUi, decision: Decision, focus: CardFocusState) {
     val note = footnote(table, decision)
     if (note == null && unavailableActions(decision).isEmpty()) return
     Div({ classes("goa-text-box", color, "goa-rule-box") }) {
-        Span({ classes("cap") }) { Text("Rule") }
+        Span({ classes("cap") }) { Text("Note") }
         Unavailable(table, decision, focus)
         note?.let { P { Text(it) } }
     }
@@ -225,8 +239,8 @@ fun DecisionWho(table: TableUi) {
 }
 
 /**
- * [DecisionWho] unless the panel's bar says it ([who]), the prompt on its title plate (read aloud), and
- * "Asked by <card>".
+ * [DecisionWho] unless the panel's bar says it ([who]), the prompt (read aloud): a few words on the title plate,
+ * anything longer in the text box under it ([promptParts]); and "Asked by <card>".
  */
 @Composable
 private fun PromptHeader(
@@ -239,10 +253,17 @@ private fun PromptHeader(
 ) {
     if (who) DecisionWho(table)
     if (prompt) {
-        P({
-            classes("goa-title-plate", "goa-decision-prompt")
+        val parts = promptParts(decision.prompt)
+        Div({
+            classes("goa-decision-prompt")
             attr("aria-live", "polite")
-        }) { Text(decision.prompt) }
+        }) {
+            parts.title?.let { P({ classes("goa-title-plate") }) { Text(it) } }
+            parts.text?.let { text ->
+                val color = table.sourceCard?.let { cardBoxColor(it.color) } ?: "silver"
+                Div({ classes("goa-text-box", color, "goa-app-box") }) { P { Text(text) } }
+            }
+        }
     }
     val card = table.sourceCard
     if (askedBy && card != null) {
@@ -277,16 +298,7 @@ private fun AskingCard(table: TableUi, card: Card, focus: CardFocusState, width:
 }
 
 /** How a board question is answered: spaces, units or tokens are tapped on the board. */
-private fun boardHint(table: TableUi): String {
-    val spaces = table.spaceOptions
-    val pieces = table.pieceOptions
-    return when {
-        pieces.isEmpty() && spaces.size == 1 -> "Tap the space lit on the map."
-        pieces.isEmpty() -> "Tap one of the ${spaces.size} lit spaces."
-        spaces.isEmpty() -> "Tap an outlined piece on the board, or pick it below."
-        else -> "Tap an outlined space or piece on the board."
-    }
-}
+private fun boardHint(table: TableUi): String = boardHint(table.spaceOptions.size, table.pieceOptions.size)
 
 /** [boardHint] for a question no card asks, on the plate itself. */
 @Composable
@@ -311,7 +323,7 @@ private fun BoardConfirm(table: TableUi, onAnswer: (Choice) -> Unit, busy: Boole
     }
 }
 
-/** Units and tokens (and a short list of spaces whose names differ) as chips too. */
+/** Units and tokens (and a short list of spaces whose names differ) as chips too; minions as rows. */
 @Composable
 private fun BoardChips(table: TableUi, onSelect: (Choice) -> Unit) {
     val spaces = table.spaceOptions.values.toList()
@@ -322,6 +334,21 @@ private fun BoardChips(table: TableUi, onSelect: (Choice) -> Unit) {
     }.orEmpty()
     val chips = pieces + spaceChips
     if (chips.isEmpty()) return
+    // Several minions read alike but for where they stand: a row each, with the team and type as marks.
+    val minions = chips.map { choice ->
+        (choice as? Choice.Unit)?.let { c -> table.pieces.firstOrNull { it.id == c.unitId } as? MinionPiece }
+    }
+    if (minions.all { it != null }) {
+        Div({
+            classes("goa-minion-rows")
+            attr("role", "radiogroup")
+        }) {
+            chips.forEachIndexed { i, choice ->
+                MinionRow(table.label(choice), minions[i]!!, choice == selected) { onSelect(choice) }
+            }
+        }
+        return
+    }
     Div({
         classes("goa-option-chips")
         attr("role", "radiogroup")
@@ -339,6 +366,29 @@ private fun BoardChips(table: TableUi, onSelect: (Choice) -> Unit) {
                 Text(table.label(choice))
             }
         }
+    }
+}
+
+/** One minion to choose, full width: its team and type as marks, what tells it apart first. Bronze when chosen. */
+@Composable
+private fun MinionRow(label: String, minion: MinionPiece, selected: Boolean, onClick: () -> Unit) {
+    val (first, second) = minionRowLines(label)
+    Button({
+        classes("goa-minion-row")
+        if (selected) classes("selected")
+        attr("type", "button")
+        attr("role", "radio")
+        attr("aria-checked", selected.toString())
+        attr("aria-label", label)
+        onClick { onClick() }
+    }) {
+        TeamMark(minion.team)
+        MinionAvatar(minion.type, minion.team)
+        Span({ classes("goa-minion-row-text") }) {
+            Span({ classes("t-title-small") }) { Text(first) }
+            second?.let { Span({ classes("t-body-small", "goa-quiet") }) { Text(it) } }
+        }
+        if (selected) Icon("check", IconSize.SMALL)
     }
 }
 
@@ -595,7 +645,7 @@ private fun DefensePanel(
         context.rangedAttack?.let { if (it) "ranged" else "melee" },
     ).joinToString(" · ").ifEmpty { "Attacked" }
     Div({
-        classes("goa-attack", "goa-text-box", "red")
+        classes("goa-attack", "goa-text-box", table.sourceCard?.let { cardBoxColor(it.color) } ?: "red")
         attr("aria-live", "polite")
     }) {
         Span({ classes("cap") }) { Text("Attack") }
