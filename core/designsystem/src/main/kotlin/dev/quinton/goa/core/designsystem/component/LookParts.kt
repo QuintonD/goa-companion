@@ -45,6 +45,7 @@ import androidx.compose.ui.graphics.TileMode
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.clipPath
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
@@ -351,6 +352,7 @@ fun CardTextBox(
     val box = rememberOfficialBitmap(LookArt.textBox(color))
     val colors = GoaTheme.colors
     val slice = BOX_SLICES.getValue(color)
+    val fontScale = LocalDensity.current.fontScale
     Box(
         modifier.drawWithCache {
             val dst = SliceInsets(11.dp.roundToPx(), 20.dp.roundToPx(), 11.dp.roundToPx(), 9.dp.roundToPx())
@@ -367,6 +369,8 @@ fun CardTextBox(
             Text(
                 cap,
                 style = GoaTextStyles.plateCap.copy(
+                    // The tab doesn't grow: its word stops at 1.4× instead of running over the text.
+                    fontSize = GoaTextStyles.plateCap.fontSize * (minOf(fontScale, CAP_MAX_SCALE) / fontScale),
                     color = if (color == PlateColor.GOLD || color == PlateColor.SILVER) colors.onParchment else Color.White,
                     shadow = if (color == PlateColor.GOLD || color == PlateColor.SILVER) null else CAP_SHADOW,
                 ),
@@ -489,6 +493,7 @@ private val BEVEL_FILL = Brush.verticalGradient(
     0.78f to Color.White,
 )
 private const val BEVEL_STROKE = 0.14f
+private const val CAP_MAX_SCALE = 1.4f
 
 /** The plate's flat tone, for what can't draw the slate (a canvas's backing, a fallback). */
 val PlateGround: Color get() = PLATE_GROUND
