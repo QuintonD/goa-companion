@@ -91,10 +91,9 @@ private fun BoardTopBar(title: String, onBack: () -> Unit, actions: @Composable 
     } else {
         base.copy(fontSize = 18.sp * capped, lineHeight = 24.sp * capped)
     }
-    val small = base.copy(fontSize = 13.sp, lineHeight = 16.sp)
+    val small = base.copy(fontSize = 13.sp * capped, lineHeight = 16.sp * capped)
     val density = LocalDensity.current
-    // Too long for one line: two smaller ones, when they fit the bar (not with large text, where
-    // the bar would have to grow; the title is cut there and TalkBack still hears it whole).
+    // Too long for one line: two smaller ones, when they fit the bar.
     val twoFit = with(density) { small.lineHeight.toDp() } * 2 + TWO_LINE_AIR <= bar
     // Large text may need more than the bar's height: one line of the title plus a little air.
     val textHeight = with(density) { oneLine.lineHeight.toDp() } + TITLE_AIR

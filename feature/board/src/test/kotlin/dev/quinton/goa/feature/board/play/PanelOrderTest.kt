@@ -21,6 +21,7 @@ import dev.quinton.goa.core.model.settings.ThemeMode
 import dev.quinton.goa.feature.board.play.game.GameScreen
 import dev.quinton.goa.feature.board.play.game.GameUiState
 import dev.quinton.goa.feature.board.play.game.PlayUi
+import dev.quinton.goa.feature.board.play.table.promptParts
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -76,7 +77,7 @@ class PanelOrderTest {
     fun `minion battle - the question comes before the round's summary`() {
         val s = EndOfRoundGame.session()
         show(GydionLevelUpGame.play(s))
-        assertThat(top(s.pending!!.prompt)).isLessThan(top("END OF ROUND"))
+        assertThat(top(promptParts(s.pending!!.prompt).text!!)).isLessThan(top("END OF ROUND"))
     }
 
     @Test

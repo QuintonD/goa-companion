@@ -176,7 +176,7 @@ private fun SpellThumb(table: TableUi, spell: Card, spells: List<Card>, index: I
 /** "Will do nothing": said plainly, in the error colours, never by colour alone (the icon and words). */
 @Composable
 private fun NoEffect(text: String) {
-    CardTextBox(PlateColor.RED, Modifier.fillMaxWidth().semantics(mergeDescendants = true) {}, cap = "Rule") {
+    CardTextBox(PlateColor.RED, Modifier.fillMaxWidth().semantics(mergeDescendants = true) {}, cap = "Note") {
         Row(verticalAlignment = Alignment.Top) {
             Icon(
                 Icons.Outlined.WarningAmber,

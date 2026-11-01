@@ -430,7 +430,7 @@ private fun HeroCard(table: TableUi, hero: HeroView, onCard: OpenCard, puzzle: B
             if (hero.resolved.isEmpty()) {
                 Quiet("None yet")
             } else {
-                CardRow(hero.resolved, table, opener(hero.resolved, table, onCard), slots = true)
+                CardRow(hero.resolved, table, opener(hero.resolved, table, onCard), slots = true, backOf = hero.heroId)
             }
             if (hero.discard.isNotEmpty()) {
                 Section("Discarded")
@@ -476,7 +476,7 @@ private fun InPlay(table: TableUi, hero: HeroView, words: ReviewHeroUi, onCard: 
     Section("This turn")
     if (played != null) {
         val cards = listOf(played) + hero.alsoPlayed
-        CardRow(cards, table, opener(cards, table, onCard))
+        CardRow(cards, table, opener(cards, table, onCard), backOf = hero.heroId)
         words.inPlayNote?.let { Quiet(it) }
     } else {
         words.noCardInPlay?.let { Quiet(it) }

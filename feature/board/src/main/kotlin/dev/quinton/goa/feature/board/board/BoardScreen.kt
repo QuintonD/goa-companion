@@ -644,13 +644,13 @@ private fun WaitingTray(state: BoardUiState.Ready, onAction: (BoardAction) -> Un
                     Surface(
                         shape = RoundedCornerShape(12.dp),
                         color = if (active) {
-                            MaterialTheme.colorScheme.secondary.copy(alpha = 0.16f)
+                            MaterialTheme.colorScheme.primary.copy(alpha = 0.16f)
                         } else {
                             PlateWell
                         },
                         border = BorderStroke(
                             if (active) 2.dp else 1.dp,
-                            if (active) MaterialTheme.colorScheme.secondary else GoaTheme.colors.engravedBorder,
+                            if (active) MaterialTheme.colorScheme.primary else GoaTheme.colors.engravedBorder,
                         ),
                         modifier = Modifier
                             .heightIn(min = 48.dp)

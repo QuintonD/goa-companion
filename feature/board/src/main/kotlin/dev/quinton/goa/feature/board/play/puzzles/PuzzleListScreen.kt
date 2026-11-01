@@ -43,6 +43,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
@@ -223,18 +224,21 @@ private fun PuzzleList(state: PuzzleListUiState.Ready, onAction: (PuzzleListActi
 
 /** The next unsolved puzzle with Continue (or Start), and how many are solved; all solved says so. */
 @Composable
+@OptIn(ExperimentalLayoutApi::class)
 private fun ContinueCard(state: PuzzleListUiState.Ready, onOpen: (String) -> Unit) {
     val next = state.next
+    // Large text: the button under the words, so they keep the width.
+    val stacked = LocalDensity.current.fontScale > LARGE_TEXT
     PlateSurface(brackets = true, modifier = Modifier.fillMaxWidth()) {
         val content = MaterialTheme.colorScheme.onSurface
-        Row(
+        FlowRow(
             Modifier.padding(start = Spacing.md, end = Spacing.sm, top = Spacing.md, bottom = Spacing.md),
-            verticalAlignment = Alignment.CenterVertically,
+            maxItemsInEachRow = if (stacked || next == null) 1 else 2,
+            horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+            verticalArrangement = Arrangement.spacedBy(Spacing.sm),
+            itemVerticalAlignment = Alignment.CenterVertically,
         ) {
-            if (next == null) {
-                SolvedSeal(size = 48.dp)
-                Spacer(Modifier.width(Spacing.md))
-            }
+            if (next == null) SolvedSeal(size = 48.dp)
             Column(Modifier.weight(1f).semantics(mergeDescendants = true) {}) {
                 Text(
                     "${state.solved} OF ${state.total} SOLVED",
@@ -258,11 +262,10 @@ private fun ContinueCard(state: PuzzleListUiState.Ready, onOpen: (String) -> Uni
                 }
             }
             if (next != null) {
-                Spacer(Modifier.width(Spacing.sm))
                 GoaButton(
                     onClick = { onOpen(next.info.id) },
                     contentPadding = PaddingValues(horizontal = Spacing.lg),
-                    modifier = Modifier.heightIn(min = 48.dp),
+                    modifier = Modifier.heightIn(min = 48.dp).then(if (stacked) Modifier.fillMaxWidth() else Modifier),
                 ) {
                     Icon(Icons.Outlined.PlayArrow, contentDescription = null, modifier = Modifier.size(18.dp))
                     Spacer(Modifier.width(4.dp))
@@ -344,7 +347,11 @@ private fun PuzzleRow(row: PuzzleRowUi, onClick: () -> Unit) {
                         }
                     }
                 }
-                Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(top = 2.dp)) {
+                FlowRow(
+                    horizontalArrangement = Arrangement.spacedBy(Spacing.xs),
+                    itemVerticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.padding(top = 2.dp),
+                ) {
                     if (progress.solved) {
                         Icon(
                             Icons.Outlined.CheckCircle,
@@ -404,3 +411,4 @@ private fun NumberMark(number: Int, solved: Boolean) {
 }
 
 private val SOLVED_EDGE = Color(0x99C9A35B)
+private const val LARGE_TEXT = 1.3f

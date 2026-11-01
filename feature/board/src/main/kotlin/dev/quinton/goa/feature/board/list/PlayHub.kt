@@ -25,6 +25,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
@@ -121,14 +122,19 @@ private fun EntryCard(icon: ImageVector, title: String, text: String, enabled: B
 private fun ResumeCard(resume: ResumeUi, now: Long, onResume: () -> Unit) {
     val names = listOf(resume.red, resume.blue).filter { it.isNotEmpty() }
         .joinToString(" vs ") { team -> team.joinToString(", ") { it.name } }
+    // Large text: the button under the words, so they keep the width.
+    val stacked = LocalDensity.current.fontScale > LARGE_TEXT
     PlateSurface(
         brackets = true,
         border = BorderStroke(1.dp, RESUME_EDGE),
         modifier = Modifier.fillMaxWidth(),
     ) {
-        Row(
+        FlowRow(
             Modifier.padding(start = Spacing.md, end = Spacing.sm, top = Spacing.sm, bottom = Spacing.sm),
-            verticalAlignment = Alignment.CenterVertically,
+            maxItemsInEachRow = if (stacked) 1 else 2,
+            horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+            verticalArrangement = Arrangement.spacedBy(Spacing.sm),
+            itemVerticalAlignment = Alignment.CenterVertically,
         ) {
             Column(
                 Modifier
@@ -176,11 +182,10 @@ private fun ResumeCard(resume: ResumeUi, now: Long, onResume: () -> Unit) {
                     modifier = Modifier.padding(top = 2.dp),
                 )
             }
-            Spacer(Modifier.width(Spacing.sm))
             GoaButton(
                 onClick = onResume,
                 contentPadding = PaddingValues(horizontal = Spacing.lg),
-                modifier = Modifier.heightIn(min = 48.dp),
+                modifier = Modifier.heightIn(min = 48.dp).then(if (stacked) Modifier.fillMaxWidth() else Modifier),
             ) {
                 Icon(Icons.Outlined.PlayArrow, contentDescription = null, modifier = Modifier.size(18.dp))
                 Spacer(Modifier.width(4.dp))
@@ -191,3 +196,4 @@ private fun ResumeCard(resume: ResumeUi, now: Long, onResume: () -> Unit) {
 }
 
 private val RESUME_EDGE = Color(0xFF3FC1B0)
+private const val LARGE_TEXT = 1.3f

@@ -54,7 +54,6 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import dev.quinton.goa.core.designsystem.cardtext.GameIcon
 import dev.quinton.goa.core.designsystem.cardtext.GameIcons
 import dev.quinton.goa.core.designsystem.component.CardTextBox
@@ -69,6 +68,7 @@ import dev.quinton.goa.core.model.catalog.Card
 import dev.quinton.goa.feature.board.BoardText
 import dev.quinton.goa.feature.board.play.PlayText
 import dev.quinton.goa.feature.board.ui.PlateSurface
+import dev.quinton.goa.feature.board.ui.boxText
 import dev.quinton.goa.feature.board.ui.cards.CardFocusState
 import dev.quinton.goa.feature.board.ui.cards.FocusCard
 import dev.quinton.goa.feature.board.ui.cards.cardFocusOrigin
@@ -95,7 +95,7 @@ fun TurnTrackRow(
     modifier: Modifier = Modifier,
     focus: CardFocusState? = null,
     compact: Boolean = false,
-    cardWidth: Dp = TRACK_CARD,
+    cardWidth: Dp = if (compact) COMPACT_CARD else TRACK_CARD,
 ) {
     val viewable = trackFocusCards(table, track)
     Row(
@@ -110,7 +110,7 @@ fun TurnTrackRow(
                 table = table,
                 slot = slot,
                 compact = compact,
-                cardWidth = if (compact) COMPACT_CARD else cardWidth,
+                cardWidth = cardWidth,
                 focus = focus,
                 onOpen = {
                     if (focus != null && index >= 0) {
@@ -384,7 +384,7 @@ fun MomentCard(moment: TableMoment, table: TableUi, modifier: Modifier = Modifie
                 .semantics(mergeDescendants = true) { liveRegion = LiveRegionMode.Polite },
             cap = moment.title.uppercase(),
         ) {
-            Text(moment.text, style = GoaTextStyles.printed.copy(fontSize = 16.sp, lineHeight = 20.sp))
+            Text(moment.text, style = boxText())
         }
         if (moment.cards.isNotEmpty()) {
             Spacer(Modifier.height(Spacing.xs))
