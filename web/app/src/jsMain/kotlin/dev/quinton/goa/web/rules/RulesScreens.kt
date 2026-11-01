@@ -6,6 +6,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import dev.quinton.goa.core.domain.rules.RulesSearch
 import dev.quinton.goa.core.domain.rules.RulesText
+import dev.quinton.goa.core.model.rules.RulesExcerpt
 import dev.quinton.goa.core.model.rules.RulesReference
 import dev.quinton.goa.core.model.rules.RulesTopic
 import dev.quinton.goa.web.LocalServices
@@ -14,7 +15,6 @@ import dev.quinton.goa.web.rememberRetained
 import dev.quinton.goa.web.ui.ButtonKind
 import dev.quinton.goa.web.ui.EmptyState
 import dev.quinton.goa.web.ui.GoaButton
-import dev.quinton.goa.web.ui.GoaCard
 import dev.quinton.goa.web.ui.Icon
 import dev.quinton.goa.web.ui.IconButton
 import dev.quinton.goa.web.ui.IconSize
@@ -28,6 +28,7 @@ import org.jetbrains.compose.web.attributes.InputType
 import org.jetbrains.compose.web.attributes.placeholder
 import org.jetbrains.compose.web.dom.Button
 import org.jetbrains.compose.web.dom.Div
+import org.jetbrains.compose.web.dom.Img
 import org.jetbrains.compose.web.dom.Input
 import org.jetbrains.compose.web.dom.Label
 import org.jetbrains.compose.web.dom.Li
@@ -65,13 +66,13 @@ private fun RulesList(reference: RulesReference, state: RulesQuery) {
     if (showLadder) LadderCard(onClick = { state.ladderOpen = true })
     SectionHeader(if (query.isBlank()) "Quick reference" else "${topics.size} of ${reference.topics.size} topics")
     if (topics.isEmpty() && !showLadder) {
-        EmptyState("search_off", "No rules match", "Try another word, such as “respawn”, “tie” or “push”.")
+        Div({ classes("goa-plate", "goa-catalog-empty") }) {
+            EmptyState("search_off", "No rules match", "Try another word, such as “respawn”, “tie” or “push”.")
+        }
     }
     if (topics.isNotEmpty()) {
-        GoaCard(flush = true) {
-            Ul({ classes("goa-list") }) {
-                topics.forEach { topic -> TopicRow(topic) }
-            }
+        Ul({ classes("goa-list", "goa-rules-list") }) {
+            topics.forEach { topic -> TopicRow(topic) }
         }
     }
     P({ classes("t-body-small", "c-variant", "goa-rules-footnote") }) {
@@ -128,7 +129,7 @@ private fun TopicRow(topic: RulesTopic) {
     val pages = topic.pages.sorted()
     Li {
         RouteLink(Route.RulesTopic(topic.id), {
-            classes("goa-row")
+            classes("goa-row", "goa-plate")
             attr("aria-label", "${topic.title}, ${RulesText.spokenPages(pages)}")
         }) {
             Span({ classes("goa-row-text") }) {
@@ -140,7 +141,10 @@ private fun TopicRow(topic: RulesTopic) {
     }
 }
 
-/** One quick-reference topic: an optional labelled summary, then the verbatim rulebook passages. */
+/**
+ * One quick-reference topic set like the rulebook's page, on the parchment in both themes: an optional
+ * labelled summary, then the verbatim passages, with the page reference in the banner at the foot.
+ */
 @Composable
 fun RulesTopicScreen(topicId: String) {
     val services = LocalServices.current
@@ -164,16 +168,41 @@ fun RulesTopicScreen(topicId: String) {
 @Composable
 private fun TopicContent(topic: RulesTopic) {
     Div({ classes("goa-rules-topic") }) {
-        P({ classes("t-label-large", "c-variant") }) {
-            Text("Rulebook ${RulesText.pages(topic.pages)} · quoted word for word")
-        }
         topic.summary?.let { SummaryNote(it) }
         topic.excerpts.forEachIndexed { i, excerpt ->
             if (i > 0 && excerpt.heading != null) Div({ classes("goa-rules-divider") })
             ExcerptBlock(excerpt)
+            if (showsPushDiagram(topic, excerpt)) PushDiagram()
         }
         P({ classes("t-body-small", "c-variant", "goa-rules-footnote") }) {
             Text("Source: the official Guards of Atlantis II rulebook, 2nd printing (printed page numbers).")
         }
     }
+    Div({ classes("goa-rules-foot") }) {
+        Text("Rulebook ${RulesText.pages(topic.pages)} · quoted word for word")
+    }
 }
+
+/** The p.8 diagram goes under the three steps of a push, where the book prints it. */
+private fun showsPushDiagram(topic: RulesTopic, excerpt: RulesExcerpt): Boolean =
+    topic.id == PUSH_TOPIC && excerpt.page == PUSH_PAGE && excerpt.heading == PUSH_HEADING
+
+/**
+ * The rulebook's "Lane Push" diagram (p.8), its white page multiplied into the parchment (goa-look-catalog.css).
+ * Its printed caption isn't in the verbatim data, so it has none; decorative for VoiceOver, the steps above say
+ * what it shows.
+ */
+@Composable
+private fun PushDiagram() {
+    Img("official/rules/push-1.webp", alt = "") {
+        classes("goa-rules-diagram")
+        attr("width", "1461")
+        attr("height", "1126")
+        attr("loading", "lazy")
+        attr("decoding", "async")
+    }
+}
+
+private const val PUSH_TOPIC = "pushing-the-lane"
+private const val PUSH_PAGE = 8
+private const val PUSH_HEADING = "Push the Lane"

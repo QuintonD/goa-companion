@@ -329,7 +329,7 @@ private val SecondaryAction.token: String
  */
 @Composable
 private fun NotOnTheCard(card: Card, isHandicap: Boolean, onShowText: () -> Unit) {
-    Div({ classes("goa-not-on-card") }) {
+    Div({ classes("goa-not-on-card", "goa-plate") }) {
         if (isHandicap) card.handicapBasis()?.let { P({ classes("t-body-medium") }) { Text(it) } }
         card.item?.let { stat ->
             Div({ classes("goa-item-note") }) {
@@ -351,7 +351,7 @@ private fun NotOnTheCard(card: Card, isHandicap: Boolean, onShowText: () -> Unit
 @Composable
 private fun DesignedCard(card: Card, isHandicap: Boolean) {
     Div({
-        classes("goa-designed-card", card.color.cssClass)
+        classes("goa-designed-card", "goa-plate", card.color.cssClass)
         attr("role", "img")
         attr("aria-label", cardDescription(card, isHandicap))
     }) {
@@ -383,9 +383,9 @@ private fun DesignedCard(card: Card, isHandicap: Boolean) {
         }
         if (card.text.isNotBlank()) {
             Div({
-                classes("goa-designed-text")
+                classes("goa-designed-text", "goa-parchment")
                 attr("aria-hidden", "true")
-            }) { CardTextView(card.text, "t-body-large") }
+            }) { CardTextView(card.text, "t-printed") }
         }
     }
 }

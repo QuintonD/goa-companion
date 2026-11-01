@@ -36,13 +36,17 @@ internal fun PageTag(pages: List<Int>) {
 }
 
 /**
- * A verbatim rulebook passage: its printed heading (if any), a bronze quote rule, the text with
- * bullets and numbered steps as printed, a printed table, and the printed page. [compact] is the
- * ladder sheet's smaller reading size.
+ * A verbatim rulebook passage set as the book sets it: on the page, or in the blue, green or orange box
+ * it is printed in ([RulesBoxes]). Its printed heading (if any), the text with bullets and numbered
+ * steps as printed, a printed table, and the printed page. [compact] is the ladder sheet's smaller
+ * reading size.
  */
 @Composable
 internal fun ExcerptBlock(excerpt: RulesExcerpt, compact: Boolean = false) {
-    Div({ classes("goa-rules-excerpt") }) {
+    Div({
+        classes("goa-rules-excerpt")
+        RulesBoxes.of(excerpt)?.let { classes("boxed", it.cssClass) }
+    }) {
         Div({ classes("goa-rules-excerpt-head") }) {
             val heading = excerpt.heading
             if (heading != null) {
@@ -133,10 +137,10 @@ private fun ExcerptTable(table: List<List<String>>) {
     }
 }
 
-/** Our own words, never a quote: always labelled "Summary". */
+/** Our own words, never a quote: always labelled "Summary", on a plate in our own face, unlike the book's page. */
 @Composable
 internal fun SummaryNote(text: String) {
-    Div({ classes("goa-rules-summary") }) {
+    Div({ classes("goa-rules-summary", "goa-plate") }) {
         Div({ classes("t-overline") }) { Text("Summary") }
         P({ classes("t-body-large") }) { Text(text) }
     }

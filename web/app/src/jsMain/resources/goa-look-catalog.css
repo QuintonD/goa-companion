@@ -1,1 +1,239 @@
 /* The look round (ADR-053), stream "catalog": see docs/DESIGN.md. Overrides goa.css. */
+
+/* ---------- Plates without their brackets: the slate alone ---------- */
+.goa-card-result.goa-plate, .goa-faq.goa-plate, .goa-card-tile.goa-plate, .goa-designed-card.goa-plate {
+  background: linear-gradient(rgba(0, 0, 0, 0.18), rgba(0, 0, 0, 0.18)), url("official/ui/slate.webp") center / 420px, #1D2124;
+}
+
+/* ---------- Search and chips: dark steel in both themes, like the banner above them ---------- */
+.goa-look-search, .goa-rules-search, .goa-catalog-controls {
+  color-scheme: dark;
+  --surface: #1D2124;
+  --on-surface: #E8E2D6;
+  --on-surface-variant: #B4BEC8;
+  --primary: #C9A35B;
+  --engraved: #5D6B70;
+}
+.goa-look-search { min-height: 0; padding: 0; border: 0; border-radius: 0; background: none; }
+.goa-look-search .goa-search-input { background: #1D2124; border-color: #5D6B70; color: #E8E2D6; }
+.goa-rules-search { border-radius: 26px; border-color: #5D6B70; background: #1D2124; color: #B4BEC8; }
+.goa-catalog-controls .goa-chip, .goa-filter-group .goa-chip {
+  background: linear-gradient(#34424B, #222C33);
+  border: 1px solid #0E1215;
+  border-radius: 6px;
+  color: #E8E2D6;
+  box-shadow: inset 0 1px rgba(255, 255, 255, 0.18), 0 2px 5px rgba(0, 0, 0, 0.45);
+}
+.goa-catalog-controls .goa-chip .goa-icon, .goa-filter-group .goa-chip .goa-icon { color: #C9A35B; }
+.goa-catalog-controls .goa-chip.active, .goa-catalog-controls .goa-chip.goa-chip-input,
+.goa-filter-group .goa-chip[aria-pressed="true"] {
+  background: linear-gradient(#5A4A28, #40341C);
+  border-color: #C9A35B;
+  color: #F0DDB0;
+}
+.goa-filter-group h3 { font: 700 1rem/1.375rem var(--font-display); letter-spacing: 0.04rem; color: var(--heading); }
+.goa-sheet-header h2 { font-family: var(--font-display); font-weight: 700; color: var(--heading); }
+.goa-catalog-empty { margin-top: var(--sp-sm); padding: var(--sp-sm); }
+.goa-results-header { display: flex; align-items: center; gap: var(--sp-sm); font: 700 1rem/1.375rem var(--font-display); letter-spacing: 0.04rem; color: var(--heading); }
+.goa-results-header > span { font-family: var(--font-body); }
+
+/* ---------- Heroes grid: the slate plate, the name on the title plate, portrait, then text ---------- */
+.goa-hero-tile.goa-plate { padding: 3px 3px var(--sp-sm); border-radius: 7px; background-size: 14px, 14px, 14px, 14px, auto, 420px, auto; }
+.goa-hero-tile .goa-title-plate {
+  position: relative;
+  z-index: 1;
+  min-height: 25px;
+  border-width: 5px 18px 5px 8px;
+  font-size: 0.8125rem;
+  line-height: 1.2;
+  overflow-wrap: anywhere;
+}
+.goa-hero-tile-art { aspect-ratio: 1.09; margin: -5px 1px 0; flex: none; }
+.goa-hero-tile-art > .goa-hero-art { border-radius: 2px; }
+/* A soft shade under the deck symbol, instead of a filter on each image: scrolling stays cheap. */
+.goa-hero-tile-art::after { background: radial-gradient(circle 24px at 16px 20px, rgba(0, 0, 0, 0.55), transparent); }
+.goa-hero-symbol.tile { top: 7px; left: 3px; right: auto; bottom: auto; width: 27px; height: 27px; }
+.goa-hero-tile-badge { top: auto; bottom: 2px; right: 2px; }
+.goa-hero-tile-text { flex: 1; padding: 3px 0 0 4px; gap: 0; }
+.goa-hero-tile-title {
+  font: italic 400 0.875rem/1.125rem var(--font-printed);
+  color: var(--on-surface);
+  /* A long title wraps rather than loses its end: the plates of a row stay level (grid stretch). */
+  overflow: visible;
+  white-space: normal;
+}
+.goa-hero-tile-meta { display: flex; flex-wrap: wrap; align-items: center; gap: 3px; min-height: 22px; }
+.goa-hero-tile-meta .goa-star { width: 10px; height: 10px; }
+.goa-hero-tile-text .goa-hero-traits { font-size: 0.65625rem; line-height: 1rem; letter-spacing: 0; color: var(--on-surface-variant); }
+.goa-hero-tile-product { margin-top: auto; padding-top: var(--sp-xs); }
+
+/* ---------- Compact list ---------- */
+.goa-hero-row.goa-plate { border-radius: 7px; background-size: 14px, 14px, 14px, 14px, auto, 420px, auto; }
+.goa-hero-row-names .goa-hero-row-name { font: 700 1rem/1.375rem var(--font-display); letter-spacing: 0.04rem; font-variant: small-caps; }
+.goa-hero-row-names .goa-hero-row-title { font: italic 400 0.875rem/1.125rem var(--font-printed); }
+.goa-hero-row .goa-hero-traits { color: var(--on-surface-variant); }
+.goa-hero-art.row { border-radius: 4px; }
+
+/* ---------- Card results: a plate under the colour's ribbon ---------- */
+.goa-card-result.goa-plate { padding: 0 var(--sp-md) var(--sp-sm) var(--sp-sm); }
+.goa-card-result .goa-ribbon { flex: none; margin-right: 2px; }
+.goa-card-result-text { padding-top: var(--sp-sm); }
+.goa-card-result .goa-initiative { margin-top: var(--sp-sm); }
+
+/* ---------- Hero page ---------- */
+.goa-hero-art.header {
+  height: auto;
+  aspect-ratio: 2;
+  max-height: 240px;
+  /* Edge to edge of the window, also where the page's column is narrower (held sideways). */
+  width: 100vw;
+  margin-left: calc(50% - 50vw);
+  margin-right: calc(50% - 50vw);
+}
+.goa-screen:has(.goa-hero-page) { overflow-x: clip; }
+.goa-hero-art.header > img { object-position: center 25%; }
+.goa-hero-art.header::after { background: linear-gradient(transparent 55%, var(--bg)); }
+.goa-hero-identity { position: relative; z-index: 1; display: flex; gap: var(--sp-sm); margin-top: -54px; }
+.goa-hero-symbol.header { width: clamp(66px, 4.125rem, 92px); height: clamp(66px, 4.125rem, 92px); }
+.goa-hero-identity-text { flex: 1; min-width: 0; padding-top: var(--sp-sm); }
+.goa-hero-plate.goa-title-plate { max-width: 440px; margin: 0; font-size: 1.125rem; line-height: 1.22; }
+.goa-hero-identity-line { display: flex; flex-wrap: wrap; align-items: center; gap: 2px 4px; margin: 6px 0 0 2px; }
+.goa-hero-identity-line .goa-star { width: 14px; height: 14px; }
+.goa-hero-identity-line .goa-stars { margin-right: 2px; }
+.goa-hero-identity-line .goa-stars-name, .goa-hero-role { font: 400 0.75rem/1rem var(--font-body); letter-spacing: 0.025rem; color: var(--on-surface); }
+.goa-hero-identity-line .goa-stars-name { margin-left: 4px; }
+.goa-hero-identity-line .goa-stars-name::after, .goa-hero-role:not(:last-child)::after { content: " ·"; color: var(--on-surface-variant); }
+.goa-hero-header > p { margin: var(--sp-xs) 0 0; }
+.goa-hero-header-pills { margin-top: var(--sp-sm); gap: var(--sp-xs) var(--sp-sm); }
+
+.goa-stat-plate { margin-top: var(--sp-md); padding: var(--sp-md); }
+.goa-stat-cells { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--sp-md) 0; }
+/* Large text (rem follows Dynamic Type): two by two, so "Movement" never breaks. */
+.goa-stat-plate { container: stat-plate / inline-size; }
+@container stat-plate (max-width: 18rem) { .goa-stat-cells { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.goa-stat-cell { display: flex; flex-direction: column; align-items: center; text-align: center; }
+.goa-stat-cell img, .goa-stat-cell .goa-gameicon { width: 40px; height: 27px; object-fit: contain; color: var(--primary); }
+.goa-stat-value { font: 600 1rem/1.375rem var(--font-body); font-variant-numeric: tabular-nums lining-nums; }
+.goa-stat-note { margin: var(--sp-sm) 0 0; text-align: center; }
+
+/* Section heads: copper, then a fading rule, then the count at the end. */
+.goa-catalog-section { font: 700 1rem/1.375rem var(--font-display); letter-spacing: 0.04rem; margin: var(--sp-lg) 0 var(--sp-sm); }
+.goa-catalog-section > span:first-child { flex: none; }
+.goa-catalog-section::before {
+  order: 1;
+  flex: 1;
+  width: auto;
+  height: 1px;
+  border-radius: 0;
+  background: linear-gradient(90deg, color-mix(in srgb, var(--heading) 50%, transparent), transparent);
+}
+.goa-catalog-section > span + span { order: 2; }
+.goa-deck-group-title { font: 700 1rem/1.375rem var(--font-display); letter-spacing: 0.04rem; color: var(--heading); margin: var(--sp-md) 0 var(--sp-sm); }
+.goa-deck-group-title::after {
+  content: "";
+  order: 1;
+  flex: 1;
+  height: 1px;
+  background: linear-gradient(90deg, color-mix(in srgb, var(--heading) 50%, transparent), transparent);
+}
+.goa-deck-group-title > span { order: 2; font-family: var(--font-body); }
+
+.goa-handicap-plate { padding: var(--sp-md); }
+.goa-handicap-plate > p { margin: 0 0 var(--sp-sm); }
+.goa-card-tile.goa-plate { border: 1px solid #5D6B70; border-left: 4px solid var(--cc); border-radius: 8px; }
+.goa-faq.goa-plate { border-radius: 8px; }
+.goa-learn-numbers { margin-top: var(--sp-md); }
+
+/* ---------- Card viewer ---------- */
+.goa-not-on-card.goa-plate { padding: var(--sp-md); }
+.goa-designed-card.goa-plate { border: 2px solid color-mix(in srgb, var(--cc) 80%, transparent); border-radius: 20px; }
+.goa-designed-text.goa-parchment { padding: var(--sp-sm) var(--sp-md); }
+
+/* ---------- Rules: topic list and ladder as plates ---------- */
+.goa-rules-list > li + li { margin-top: var(--sp-sm); }
+.goa-rules-list > li + li > .goa-row { box-shadow: 0 3px 10px rgba(0, 0, 0, 0.45), inset 0 0 0 1px #15191B; }
+.goa-rules-list .goa-row { min-height: 64px; }
+.goa-rules-topic-title { font: 700 1.0625rem/1.4375rem var(--font-display); font-variant: small-caps; }
+.goa-rules-level { background: #2B363E; }
+.goa-rules-ladder-page { padding: var(--sp-md); }
+.goa-rules-ladder { --parchment: #D9D2C1; }
+.goa-rules-card-text {
+  padding: var(--sp-sm) var(--sp-md);
+  border: 1px solid var(--parchment-edge);
+  border-radius: 8px;
+  background: var(--parchment);
+  color: var(--on-parchment);
+  font: 400 1.125rem/1.5625rem var(--font-printed);
+}
+.goa-rules-card-text .goa-rules-reminder { color: var(--on-parchment-variant); }
+.goa-rules-card-text .goa-rules-inline-icon { color: var(--parchment-ink); }
+
+/* ---------- Rules: reading pages on the parchment, in both themes ---------- */
+.goa-content:has(> .goa-rules-topic) {
+  display: flex;
+  flex-direction: column;
+  padding: 0;
+  max-width: none;
+  background: var(--parchment);
+  color: var(--on-parchment);
+}
+.goa-rules-topic {
+  flex: 1;
+  width: 100%;
+  max-width: calc(var(--content-max) + var(--safe-left) + var(--safe-right));
+  margin: 0 auto;
+  padding: var(--sp-md) calc(18px + var(--safe-right)) var(--sp-md) calc(18px + var(--safe-left));
+  --on-surface: var(--on-parchment);
+  --on-surface-variant: var(--on-parchment-variant);
+}
+.goa-rules-topic > * + * { margin-top: var(--sp-md); }
+.goa-rules-topic .goa-plate { --on-surface: #E8E2D6; --on-surface-variant: #B4BEC8; }
+.goa-rules-divider { background: var(--parchment-edge); }
+.goa-rules-excerpt { --excerpt-ink: var(--on-parchment); --excerpt-head: var(--parchment-ink); --excerpt-edge: var(--parchment-edge); color: var(--excerpt-ink); }
+.goa-rules-heading { font: 700 1.375rem/1.75rem var(--font-display); color: var(--excerpt-head); }
+.goa-rules-quote { margin-top: var(--sp-xs); padding-left: 0; border-left: 0; color: inherit; }
+.goa-rules-reading { font: 400 1.25rem/1.6875rem var(--font-printed); }
+.goa-rules-page { color: var(--excerpt-head, var(--primary)); border-color: var(--excerpt-edge, var(--engraved)); }
+.goa-rules-items > li::before { color: var(--excerpt-head); }
+.goa-rules-table, .goa-rules-table-block { border-color: var(--excerpt-edge); }
+
+/* The book's boxes. Blue is its own #0F6F99 (5.3:1); its green and orange carry white too faintly (3.0, 3.5:1), so darkened to 5.3 and 5.2:1. */
+.goa-rules-excerpt.boxed { padding: var(--sp-sm) 11px; border-radius: 2px; --excerpt-edge: rgba(255, 255, 255, 0.6); }
+.goa-rules-excerpt.box-blue { background: #0F6F99; --excerpt-ink: #F4FAFD; --excerpt-head: #F4FAFD; }
+.goa-rules-excerpt.box-green { background: #2B7A33; --excerpt-ink: #FFFFFF; --excerpt-head: #FFFFFF; }
+.goa-rules-excerpt.box-green .goa-rules-quote { font-style: italic; }
+.goa-rules-excerpt.box-orange { background: #A8560F; --excerpt-ink: #FFFFFF; --excerpt-head: #FFFFFF; }
+
+/* A passage on the ladder's dark plate: a piece of the parchment page. */
+.goa-rules-ladder .goa-rules-excerpt:not(.boxed) { padding: var(--sp-sm) var(--sp-md); border-radius: 2px; background: var(--parchment); }
+.goa-rules-ladder .goa-rules-heading { font-size: 1.125rem; line-height: 1.5rem; }
+
+/* The rulebook's p.8 diagram: its white page vanishes into the parchment. */
+.goa-rules-diagram { display: block; width: 100%; height: auto; mix-blend-mode: multiply; }
+
+.goa-rules-summary.goa-plate { padding: var(--sp-md); border: 1px solid #5D6B70; border-radius: 8px; }
+
+/* The page's foot, as the book's: the steel banner with the page reference. Grows with large text. */
+.goa-rules-foot {
+  position: sticky;
+  bottom: var(--safe-bottom);
+  z-index: 2;
+  box-sizing: border-box;
+  min-height: 42px;
+  display: flex;
+  align-items: center;
+  padding: 2px 4px 2px calc(var(--sp-md) + var(--safe-left));
+  background: linear-gradient(var(--banner-top), var(--banner-bottom));
+  border-style: solid;
+  border-width: 0 60px 0 0;
+  border-image: url("official/ui/banner.webp") 0 247 0 0 fill stretch;
+  color: var(--on-banner);
+  font: 600 0.8125rem/1.125rem var(--font-body);
+  text-shadow: 0 1px 1px #000;
+}
+.has-tabbar .goa-rules-foot { bottom: calc(var(--tabbar-height) + var(--safe-bottom)); }
+
+/* The Heroes bar at the largest text: the view switch goes to More, so the title keeps its room. */
+@container topbar (max-width: 13rem) {
+  .goa-topbar-actions .collapsible-large { display: none; }
+}

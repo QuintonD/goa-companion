@@ -17,6 +17,7 @@ import dev.quinton.goa.core.domain.catalog.catalogResults
 import dev.quinton.goa.core.domain.catalog.catalogResultsKey
 import dev.quinton.goa.core.domain.catalog.cleared
 import dev.quinton.goa.core.domain.catalog.kindLabel
+import dev.quinton.goa.core.domain.catalog.label
 import dev.quinton.goa.core.domain.catalog.matchHint
 import dev.quinton.goa.core.domain.catalog.matchingParagraph
 import dev.quinton.goa.core.domain.catalog.metricLine
@@ -102,6 +103,7 @@ fun CatalogScreen() {
                 if (listView) "grid_view" else "view_agenda",
                 if (listView) "Show as grid" else "Show as list",
                 onClick = { setListView(!listView) },
+                extraClass = "collapsible-large",
             )
             IconLink("rules", "Rules", Route.Rules)
             IconLink("board", "Board", Route.Boards, extraClass = "collapsible")
@@ -153,6 +155,14 @@ fun CatalogScreen() {
     if (sheet == CatalogSheet.More) {
         BottomSheet("More", onDismiss = { sheet = null }) {
             RowList {
+                ListRow(
+                    if (listView) "Show as grid" else "Show as list",
+                    leadingIcon = if (listView) "grid_view" else "view_agenda",
+                    onClick = {
+                        setListView(!listView)
+                        sheet = null
+                    },
+                )
                 ListRow("Board", leadingIcon = "board", route = Route.Boards)
                 ListRow("Card trivia", leadingIcon = "trivia", route = Route.Trivia())
             }
@@ -209,7 +219,7 @@ private fun ScrollToTopOn(key: String) {
 
 @Composable
 private fun SearchField(query: String, onChange: (String) -> Unit) {
-    Div({ classes("goa-search") }) {
+    Div({ classes("goa-search", "goa-look-search") }) {
         Span({ classes("goa-search-icon") }) { Icon("search", IconSize.SMALL) }
         Input(InputType.Search) {
             classes("goa-search-input", "t-body-large")
@@ -282,33 +292,35 @@ private fun NoResults(browse: CatalogBrowse, results: CatalogResults) {
     val hidden = results.hiddenByCollection
     val filtered = results.filter.activeCount > 0
     val query = browse.query
-    if (hidden > 0) {
-        // The collection (Settings → owned products) hides heroes that would match.
-        EmptyState(
-            "search_off",
-            "Not in your collection",
-            "${plural(hidden, "hero", "heroes")} from products you don't own " +
-                (if (hidden == 1) "matches" else "match") + ". Your collection is set in Settings.",
-        ) {
-            GoaButton("Show all products", {
-                browse.filter = results.filter.copy(includeUnowned = true)
-            }, ButtonKind.OUTLINED)
+    Div({ classes("goa-plate", "goa-catalog-empty") }) {
+        if (hidden > 0) {
+            // The collection (Settings → owned products) hides heroes that would match.
+            EmptyState(
+                "search_off",
+                "Not in your collection",
+                "${plural(hidden, "hero", "heroes")} from products you don't own " +
+                    (if (hidden == 1) "matches" else "match") + ". Your collection is set in Settings.",
+            ) {
+                GoaButton("Show all products", {
+                    browse.filter = results.filter.copy(includeUnowned = true)
+                }, ButtonKind.OUTLINED)
+            }
+        } else {
+            EmptyState(
+                "search_off",
+                "No heroes match",
+                when {
+                    query.isBlank() -> "No hero fits all of these filters. Remove one to widen the search."
+                    filtered -> "Nothing matches “${query.trim()}” with these filters. Try another word or clear them."
+                    else -> "Nothing matches “${query.trim()}”. Try another word, or fewer words."
+                },
+            ) {
+                GoaButton(if (filtered) "Clear search and filters" else "Clear search", {
+                    browse.query = ""
+                    browse.filter = browse.filter.cleared()
+                }, ButtonKind.OUTLINED)
+            }
         }
-        return
-    }
-    EmptyState(
-        "search_off",
-        "No heroes match",
-        when {
-            query.isBlank() -> "No hero fits all of these filters. Remove one to widen the search."
-            filtered -> "Nothing matches “${query.trim()}” with these filters. Try another word or clear them."
-            else -> "Nothing matches “${query.trim()}”. Try another word, or fewer words."
-        },
-    ) {
-        GoaButton(if (filtered) "Clear search and filters" else "Clear search", {
-            browse.query = ""
-            browse.filter = browse.filter.cleared()
-        }, ButtonKind.OUTLINED)
     }
 }
 
@@ -340,8 +352,9 @@ private fun CardResultRow(result: CardResult, query: String) {
     val snippet = remember(card.text, query) { matchingParagraph(card.text, query) }
     Div({ attr("role", "listitem") }) {
         RouteLink(Route.CardViewer(result.hero.id, card.id), {
-            classes("goa-card-result", card.color.cssClass)
+            classes("goa-card-result", "goa-plate", card.color.cssClass)
         }) {
+            ColourRibbon(card.color)
             Div({ classes("goa-card-result-text") }) {
                 Span({ classes("goa-card-result-name", "t-title-small") }) { Text(card.name) }
                 Span({ classes("t-label-medium", "c-variant", "goa-ellipsis") }) {
@@ -355,20 +368,24 @@ private fun CardResultRow(result: CardResult, query: String) {
 }
 
 /**
- * Compact grid tile (three per row on a phone): short portrait with stars and deck symbol, then
- * name, title, roles and pills. The whole tile is one link, read as [spokenLabel].
+ * Grid tile (three per row on a phone), as a card is made: the slate plate, the hero's name on the
+ * title plate, the portrait under it with the deck symbol at its corner, then the title, stars, two
+ * roles and pills. The whole tile is one link, read as [spokenLabel].
  */
 @Composable
 private fun HeroGridTile(item: HeroListItem, sort: CatalogSort) {
     val hero = item.hero
     Div({ attr("role", "listitem") }) {
         RouteLink(Route.HeroDetail(hero.id), {
-            classes("goa-hero-tile")
+            classes("goa-hero-tile", "goa-plate")
             attr("aria-label", item.spokenLabel(sort))
         }) {
+            Span({
+                classes("goa-title-plate")
+                attr("aria-hidden", "true")
+            }) { Text(hero.name) }
             Div({ classes("goa-hero-tile-art") }) {
                 HeroArt(hero, "tile")
-                Span({ classes("goa-hero-tile-stars") }) { ComplexityStars(hero.complexity) }
                 HeroSymbol(hero, "tile")
                 if (!hero.verified) Span({ classes("goa-hero-tile-badge") }) { UnverifiedBadge(compact = true) }
             }
@@ -376,14 +393,15 @@ private fun HeroGridTile(item: HeroListItem, sort: CatalogSort) {
                 classes("goa-hero-tile-text")
                 attr("aria-hidden", "true")
             }) {
-                Span({ classes("goa-hero-tile-name", "t-title-small") }) { Text(hero.name) }
-                Span({ classes("goa-hero-tile-title", "t-label-small", "c-variant") }) { Text(hero.title) }
-                val traits = item.traitsLine()
-                if (traits.isNotEmpty()) Span({ classes("goa-hero-traits", "t-label-small") }) { Text(traits) }
-                Div({ classes("goa-pills") }) {
-                    MetaPill(item.productName)
+                Span({ classes("goa-hero-tile-title") }) { Text(hero.title) }
+                Div({ classes("goa-hero-tile-meta") }) {
+                    ComplexityStars(hero.complexity)
                     item.rangedLabel?.let { MetaPill(it, primary = true) }
                 }
+                // Two roles fit a tile, as on the mock-up; the hero page and VoiceOver have them all.
+                val traits = hero.roles.take(TILE_ROLES).joinToString(" · ") { it.label }
+                if (traits.isNotEmpty()) Span({ classes("goa-hero-traits", "t-label-small") }) { Text(traits) }
+                Div({ classes("goa-pills", "goa-hero-tile-product") }) { MetaPill(item.productName) }
                 TileFootnotes(item, sort)
             }
         }
@@ -407,7 +425,7 @@ private fun HeroListRow(item: HeroListItem, sort: CatalogSort) {
     val hero = item.hero
     Div({ attr("role", "listitem") }) {
         RouteLink(Route.HeroDetail(hero.id), {
-            classes("goa-hero-row")
+            classes("goa-hero-row", "goa-plate")
             attr("aria-label", item.spokenLabel(sort))
         }) {
             Div({ classes("goa-hero-row-art") }) {
@@ -419,8 +437,8 @@ private fun HeroListRow(item: HeroListItem, sort: CatalogSort) {
                 attr("aria-hidden", "true")
             }) {
                 P({ classes("goa-hero-row-names") }) {
-                    Span({ classes("t-title-medium") }) { Text(hero.name) }
-                    Span({ classes("t-body-small", "c-variant") }) { Text(hero.title) }
+                    Span({ classes("goa-hero-row-name") }) { Text(hero.name) }
+                    Span({ classes("goa-hero-row-title", "c-variant") }) { Text(hero.title) }
                 }
                 Div({ classes("goa-pills") }) {
                     ComplexityStars(hero.complexity)
@@ -484,3 +502,4 @@ internal fun SwitchRow(title: String, subtitle: String?, checked: Boolean, onCha
 
 private const val SEARCH_HINT = "Search heroes & cards"
 private const val SNIPPET_LINES = 3
+private const val TILE_ROLES = 2
