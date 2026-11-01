@@ -299,13 +299,18 @@ test("a piece moving up the screen past others glides: it isn't re-inserted mid-
   const errors = watchErrors(page);
   await board(page, "forgotten-island");
   await painted(page);
-  await node(page, /^Arien, Red/).first().evaluate((b: HTMLElement) => b.click());
-  await expect(page.locator(".goa-board-panel h2")).toContainText("Arien");
+  // A selected piece is drawn on top, so it never changes place among the others: an unselected one has to move.
+  // A hero from the top of the screen goes to the last empty space listed, in the bottom row in view; deselected,
+  // Undo sends it back up past every piece between.
+  await node(page, /^Wasp, Blue/).first().evaluate((b: HTMLElement) => b.click());
+  await expect(page.locator(".goa-board-panel h2")).toContainText("Wasp");
   await page.waitForTimeout(600);
-  // The first empty space listed is in the top row in view: past every piece between.
-  const target = page.locator(".goa-map .goa-visually-hidden button").filter({ hasText: /^Empty space/ }).first();
+  await page.locator(".goa-map .goa-visually-hidden button").filter({ hasText: /^Empty space/ }).last().evaluate((b: HTMLElement) => b.click());
+  await page.waitForTimeout(600);
+  await page.getByRole("button", { name: "Deselect" }).click();
+  await page.waitForTimeout(600);
   // A transition that runs its course ends with an event; a node re-inserted mid-way loses it and never does.
-  const glide = await target.evaluate(
+  const glide = await page.getByRole("button", { name: "Undo" }).evaluate(
     (button: HTMLElement) =>
       new Promise<{ from: number; to: number; ended: boolean }>((resolve) => {
         const pieces = [...document.querySelectorAll(".goa-piece")] as HTMLElement[];
@@ -323,9 +328,9 @@ test("a piece moving up the screen past others glides: it isn't re-inserted mid-
   );
   expect(glide.to).toBeLessThan(glide.from - 2);
   expect(glide.ended).toBe(true);
-  // The depth order follows once it has landed: the piece now stands behind what is below it on the screen.
+  // The depth order follows once it has landed: figures nearer the bottom of the screen stand in front.
   const order = await pieceCentres(page);
-  for (let i = 1; i < order.length - 1; i++) expect(order[i].y).toBeGreaterThanOrEqual(order[i - 1].y - 0.01);
+  for (let i = 1; i < order.length; i++) expect(order[i].y).toBeGreaterThanOrEqual(order[i - 1].y - 0.01);
   errors();
 });
 
