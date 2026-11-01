@@ -129,7 +129,6 @@ internal fun ActiveTimer(state: ActiveUiState, model: TimerModel) {
                 Div({ classes("goa-table-timer-right") }) {
                     header()
                     Div({ classes("goa-table-timer-scroll") }) {
-                        RoundPips(state.pips, state.round)
                         PhaseHeading(state, model)
                         StepDetail(state)
                         state.seats?.let { ResolvingHeroes(it, model::heroResolves) }
@@ -144,7 +143,6 @@ internal fun ActiveTimer(state: ActiveUiState, model: TimerModel) {
             else -> {
                 header()
                 Div({ classes("goa-table-timer-scroll") }) {
-                    RoundPips(state.pips, state.round)
                     PhaseHeading(state, model)
                     Div({
                         classes("goa-table-timer-dial")
@@ -284,7 +282,11 @@ private fun TimerHeader(state: ActiveUiState, model: TimerModel, onEnd: () -> Un
                 Span({
                     classes("goa-table-timer-subtitle", "t-body-small", "t-numeric")
                     attr("aria-label", "${state.presetName}, match time ${state.matchClock}")
-                }) { Text("${state.presetName} · ${state.matchClock}") }
+                }) {
+                    // Large text: the match clock alone (CSS), so it isn't what gets cut.
+                    Span({ classes("goa-table-timer-preset") }) { Text("${state.presetName} · ") }
+                    Text(state.matchClock)
+                }
             }
             Div({ classes("goa-topbar-actions") }) {
                 state.tieBreaker?.let {
@@ -431,8 +433,8 @@ private fun CoinSideDialog(current: Team?, onPick: (Team?) -> Unit, onDismiss: (
 }
 
 /**
- * Round progress: ◇ round start · one pip per turn · ▢ end of round. Current = filled + ring, done =
- * filled, upcoming = outline. Shapes differ so position reads without colour.
+ * Round progress: a bronze diamond per turn, filled up to the current turn, the current one larger.
+ * Fill and size carry it, not colour; round start and end of round are named by the context line.
  */
 @Composable
 private fun RoundPips(pips: RoundPipsUi, round: Int) {
@@ -446,12 +448,6 @@ private fun RoundPips(pips: RoundPipsUi, round: Int) {
         attr("role", "img")
         attr("aria-label", "Round $round. $where")
     }) {
-        fun stateOf(pip: RoundSection) = when {
-            pips.section.ordinal > pip.ordinal -> "done"
-            pips.section == pip -> "current"
-            else -> "upcoming"
-        }
-        if (pips.hasRoundStart) Span({ classes("goa-table-pip", "start", stateOf(RoundSection.ROUND_START)) })
         for (turn in 1..pips.turns) {
             val pipState = when {
                 pips.section == RoundSection.ROUND_START -> "upcoming"
@@ -460,28 +456,31 @@ private fun RoundPips(pips: RoundPipsUi, round: Int) {
                 turn == pips.currentTurn -> "current"
                 else -> "upcoming"
             }
-            Span({ classes("goa-table-pip", "turn", pipState) }) { Text(turn.toString()) }
+            Span({ classes("goa-table-pip", pipState) })
         }
-        Span({ classes("goa-table-pip", "end", stateOf(RoundSection.ROUND_END)) })
     }
 }
 
 /**
- * The step chip with "Previous phase" beside it, and the step title and hint. Previous sits up here,
- * away from the bottom edge (game night: a habitual tap at the bottom went back a phase).
+ * The step on its title plate with "Previous phase" beside it, then where in the round and the hint.
+ * Previous sits up here, away from the bottom edge (game night: a habitual tap at the bottom went back
+ * a phase).
  */
 @Composable
 private fun PhaseHeading(state: ActiveUiState, model: TimerModel) {
     Div({ classes("goa-table-phase-chip-row") }) {
         IconButton("skip_previous", "Previous phase", onClick = model::back, extraClass = "goa-table-previous")
-        Span({ classes("goa-table-phase-chip", "t-label-large") }) { Text(state.context.uppercase()) }
+        H2({
+            classes("goa-title-plate", "goa-table-phase-title")
+            attr("aria-live", "polite")
+        }) { Text(state.title) }
         Span({ classes("goa-table-balance") })
     }
-    H2({
-        classes("goa-table-phase-title", "t-headline-small")
-        attr("aria-live", "polite")
-    }) { Text(state.title) }
-    state.hint?.let { P({ classes("goa-table-hint", "t-body-medium", "c-variant") }) { Text(it) } }
+    Div({ classes("goa-table-context-row") }) {
+        Span({ classes("goa-table-context") }) { Text(state.context.uppercase()) }
+        RoundPips(state.pips, state.round)
+    }
+    state.hint?.let { P({ classes("goa-table-hint", "t-body-medium") }) { Text(it) } }
 }
 
 /** The dial's tone: what colours the ring and digits. */
@@ -494,9 +493,9 @@ private fun tone(state: ActiveUiState): String = when {
 }
 
 /**
- * Engraved countdown ring: a bronze bezel with minute ticks, a track and a teal arc for the time left.
- * Warning turns bronze, overtime red and pulsing (unless reduced motion); the label always says it in
- * words. Tap to pause or resume.
+ * The dial of mock-up 07: a steel double ring around the progress arc, the digits on a near-black disc.
+ * Teal running, bronze in the final seconds, red and pulsing in overtime (unless reduced motion); paused,
+ * overtime and elapsed say so in words. Tap to pause or resume.
  */
 @Composable
 private fun Dial(state: ActiveUiState, model: TimerModel) {
@@ -504,7 +503,7 @@ private fun Dial(state: ActiveUiState, model: TimerModel) {
         state.paused -> "Tap to resume"
         state.overtime -> "Overtime"
         !state.timed -> "Elapsed · tap to pause"
-        else -> "Tap to pause"
+        else -> null
     }
     val sweep = when {
         !state.timed || state.overtime -> 1.0
@@ -521,17 +520,15 @@ private fun Dial(state: ActiveUiState, model: TimerModel) {
             if (state.paused) Span({ classes("goa-table-dial-paused") }) { Text("❚❚ PAUSED") }
             Span({
                 classes("goa-table-dial-digits", "t-numeric")
-                if (state.clock.length > LONG_CLOCK) classes("long")
+                if (state.clock.length > MEDIUM_CLOCK) classes("long")
+                if (state.clock.length == MEDIUM_CLOCK) classes("medium")
             }) { Text(state.clock) }
-            Span({ classes("goa-table-dial-status") }) { Text(status.uppercase()) }
+            status?.let { Span({ classes("goa-table-dial-status") }) { Text(it.uppercase()) } }
         }
     }
 }
 
-/**
- * The ring's SVG (bezel, 60 engraved ticks, track, arc) is drawn once; each tick of the clock only
- * moves the arc ([sweep], 0..1 of the circle).
- */
+/** The ring's SVG (steel rings, disc, track, arc) is drawn once; each tick only moves the arc ([sweep], 0..1). */
 @Composable
 private fun DialRing(sweep: Double) {
     var ring by remember { mutableStateOf<org.w3c.dom.Element?>(null) }
@@ -544,28 +541,28 @@ private fun DialRing(sweep: Double) {
             onDispose { ring = null }
         }
     })
-    SideEffect { ring?.querySelector(".arc")?.setAttribute("stroke-dasharray", "$sweep 1") }
-}
-
-private val RING_SVG: String = buildString {
-    append("""<svg viewBox="0 0 200 200" focusable="false">""")
-    append("""<circle class="bezel" cx="100" cy="100" r="98"/>""")
-    for (i in 0 until TICKS) {
-        val long = i % 5 == 0
-        val a = i * 6.0 * kotlin.math.PI / 180.0
-        val outer = 95.0
-        val inner = outer - if (long) 7.0 else 3.0
-        fun n(v: Double) = (kotlin.math.round(v * 100) / 100).toString()
-        append(
-            """<line class="${if (long) "tick-long" else "tick"}" x1="${n(100 + outer * kotlin.math.sin(a))}" """ +
-                """y1="${n(100 - outer * kotlin.math.cos(a))}" x2="${n(100 + inner * kotlin.math.sin(a))}" """ +
-                """y2="${n(100 - inner * kotlin.math.cos(a))}"/>""",
+    // A whole circle has no dash at all: a dash of exactly 1 leaves a seam at the top.
+    SideEffect {
+        ring?.querySelector(".arc")?.setAttribute(
+            "stroke-dasharray",
+            if (sweep >=
+                1.0
+            ) {
+                "2 0"
+            } else {
+                "$sweep 1"
+            },
         )
     }
-    append("""<circle class="track" cx="100" cy="100" r="$RING_R"/>""")
-    append("""<circle class="arc" cx="100" cy="100" r="$RING_R" pathLength="1" stroke-dasharray="1 1"/>""")
-    append("</svg>")
 }
+
+private const val RING_SVG = """<svg viewBox="0 0 289 289" focusable="false">
+<defs><linearGradient id="goa-steel" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#9fb1bd"/>
+<stop offset=".45" stop-color="#46555f"/><stop offset=".6" stop-color="#b9c6cf"/>
+<stop offset="1" stop-color="#3a4750"/></linearGradient></defs>
+<circle class="bezel" cx="144.5" cy="144.5" r="141"/><circle class="disc" cx="144.5" cy="144.5" r="116"/>
+<circle class="track" cx="144.5" cy="144.5" r="128"/>
+<circle class="arc" cx="144.5" cy="144.5" r="128" pathLength="1" stroke-dasharray="1 1"/></svg>"""
 
 /** Untimed end-of-round step: a medallion with the step number and the rule text; tap = Next. */
 @Composable
@@ -604,7 +601,7 @@ private fun LevelLadderButton(heroIds: List<String>, label: String = "Levels") {
 @Composable
 private fun EndOfRoundChecklist(items: List<ChecklistItemUi>, showLevels: Boolean, heroIds: List<String>) {
     Div({ classes("goa-card", "flush", "goa-table-checklist") }) {
-        H2({ classes("t-overline", "c-primary", "goa-table-checklist-head") }) { Text("END OF ROUND") }
+        H2({ classes("goa-look-head", "goa-table-checklist-head") }) { Text("END OF ROUND") }
         Ul({ classes("goa-list") }) {
             items.forEach { item ->
                 Li({
@@ -775,24 +772,31 @@ private fun ShotClockPanel(shot: ShotClockUi, model: TimerModel) {
     }
 }
 
-/** Pause and Next. "Previous phase" is up by the step chip, away from the edge. */
+/**
+ * Pause and Next, large and clear; Next in filled bronze, with the width a long label needs. "Previous
+ * phase" is up by the step's plate, away from the edge.
+ */
 @Composable
 private fun TimerControls(state: ActiveUiState, model: TimerModel) {
+    val pauseWord = if (state.paused) "Resume" else "Pause"
     Div({ classes("goa-table-timer-controls") }) {
         Button({
             type(ButtonType.Button)
             classes("goa-table-pause")
-            attr("aria-label", if (state.paused) "Resume" else "Pause")
+            attr("aria-label", pauseWord)
             onClick { model.togglePause() }
-        }) { Icon(if (state.paused) "play" else "pause") }
+        }) {
+            Icon(if (state.paused) "play" else "pause")
+            Span({
+                classes("goa-table-pause-word")
+                attr("aria-hidden", "true")
+            }) { Text(pauseWord) }
+        }
         Button({
             type(ButtonType.Button)
             classes("goa-table-next")
             onClick { model.next() }
-        }) {
-            Span { Text(state.nextLabel) }
-            Icon("arrow_forward")
-        }
+        }) { Span { Text(state.nextLabel) } }
     }
 }
 
@@ -818,7 +822,7 @@ private fun RoundList(state: ActiveUiState, model: TimerModel, expandCurrent: Bo
         state.rows.forEach { row ->
             if (row.group != group) {
                 group = row.group
-                H2({ classes("goa-table-round-group", "t-overline") }) { Text(row.group.uppercase()) }
+                H2({ classes("goa-table-round-group", "goa-look-head") }) { Text(row.group.uppercase()) }
             }
             when {
                 row.state == RoundRowState.CURRENT && expandCurrent -> CurrentRow(state, row, model)
@@ -974,8 +978,6 @@ private fun JumpDialog(state: ActiveUiState, target: RoundRowUi?, model: TimerMo
 /** End-of-round id of the Level Up step (match-setup.json). */
 private const val LEVEL_UP_STEP = "level_up"
 private const val COIN_UNDO_MS = 8_000L
-private const val TICKS = 60
-private const val RING_R = 74
-private const val LONG_CLOCK = 5
+private const val MEDIUM_CLOCK = 5
 private const val MILLIS_PER_SECOND = 1_000L
 private const val SCROLL_SETTLE_MS = 60L

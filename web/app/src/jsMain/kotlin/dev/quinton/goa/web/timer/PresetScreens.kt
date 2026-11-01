@@ -215,18 +215,20 @@ fun PresetEditScreen(presetId: String?) {
             val nameError =
                 state.issuesFor(null).any { it.kind == PresetIssue.Kind.BLANK_NAME } &&
                     (state.showIssues || !state.isNew)
-            TextField(
-                "Preset name",
-                preset.name,
-                onValue = { name -> model.edit { it.copy(name = name) } },
-                placeholder = "e.g. Fast game",
-                error = if (nameError) "Give the preset a name" else null,
-            )
-            SwitchRow(
-                "Auto-advance",
-                "Move on when a timed phase hits zero. Off: overtime counts up until you tap Next.",
-                preset.autoAdvance,
-            ) { on -> model.edit { it.copy(autoAdvance = on) } }
+            Div({ classes("goa-card", "goa-table-stack") }) {
+                TextField(
+                    "Preset name",
+                    preset.name,
+                    onValue = { name -> model.edit { it.copy(name = name) } },
+                    placeholder = "e.g. Fast game",
+                    error = if (nameError) "Give the preset a name" else null,
+                )
+                SwitchRow(
+                    "Auto-advance",
+                    "Move on when a timed phase hits zero. Off: overtime counts up until you tap Next.",
+                    preset.autoAdvance,
+                ) { on -> model.edit { it.copy(autoAdvance = on) } }
+            }
             if (state.showIssues && state.issues.isNotEmpty()) {
                 P({
                     classes("t-body-medium", "c-error")

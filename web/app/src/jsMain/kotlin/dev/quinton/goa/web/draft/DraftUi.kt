@@ -15,14 +15,16 @@ import dev.quinton.goa.feature.draft.ui.TileState
 import dev.quinton.goa.feature.draft.ui.cardKind
 import dev.quinton.goa.feature.draft.ui.description
 import dev.quinton.goa.feature.draft.ui.label
-import dev.quinton.goa.feature.draft.ui.teamGlyph
 import dev.quinton.goa.feature.draft.ui.teamName
 import dev.quinton.goa.web.data.Thumbnails
 import dev.quinton.goa.web.table.HeroArt
+import dev.quinton.goa.web.table.TeamMark
 import dev.quinton.goa.web.table.teamClass
 import dev.quinton.goa.web.ui.BottomSheet
 import dev.quinton.goa.web.ui.ButtonKind
 import dev.quinton.goa.web.ui.GoaButton
+import dev.quinton.goa.web.ui.Icon
+import dev.quinton.goa.web.ui.IconSize
 import dev.quinton.goa.web.ui.OfficialImg
 import kotlinx.browser.window
 import org.jetbrains.compose.web.attributes.AttrsScope
@@ -30,7 +32,6 @@ import org.jetbrains.compose.web.attributes.ButtonType
 import org.jetbrains.compose.web.attributes.type
 import org.jetbrains.compose.web.dom.Button
 import org.jetbrains.compose.web.dom.Div
-import org.jetbrains.compose.web.dom.H2
 import org.jetbrains.compose.web.dom.Img
 import org.jetbrains.compose.web.dom.P
 import org.jetbrains.compose.web.dom.Span
@@ -45,9 +46,10 @@ import org.w3c.dom.events.Event
  */
 
 /**
- * A hero tile: official art in our frame, name, and its draft state (struck/dimmed when banned).
- * [onPeek] (touch and hold, or the context menu) opens the hero peek; a tile without [onClick] opens
- * it on tap too.
+ * A hero tile as on the Heroes grid, in small: the portrait with the deck symbol, the name on a
+ * parchment plate, on the dark plate. Out of play it loses the parchment; banned it is crossed out and
+ * dimmed, never colour alone. [onPeek] (touch and hold, or the context menu) opens the hero peek; a
+ * tile without [onClick] opens it on tap too.
  */
 @Composable
 fun HeroTile(
@@ -76,19 +78,41 @@ fun HeroTile(
     }) {
         Span({ classes("goa-draft-tile-art") }) {
             HeroArt(hero.id, hero.portrait, hero.name)
+            hero.symbol?.let { symbol ->
+                Img(symbol, "") {
+                    classes("goa-draft-tile-symbol")
+                    attr("aria-hidden", "true")
+                    attr("loading", "lazy")
+                    attr("decoding", "async")
+                    attr("draggable", "false")
+                }
+            }
+            if (selected) {
+                Span({
+                    classes("goa-draft-tile-check")
+                    attr("aria-hidden", "true")
+                }) { Icon("check", IconSize.SMALL) }
+            }
             when (state) {
                 is TileState.Banned -> Span({ classes("goa-draft-tile-state", teamClass(state.team)) }) {
-                    Text("${teamGlyph(state.team)} Banned")
+                    TeamMark(state.team)
+                    Icon("block", IconSize.SMALL)
+                    // Small: the cross already says "banned".
+                    if (!compact) Text("Banned")
                 }
 
                 is TileState.Picked -> Span({ classes("goa-draft-tile-state", teamClass(state.team)) }) {
-                    Text("${teamGlyph(state.team)} ${teamName(state.team)}")
+                    TeamMark(state.team)
+                    Text(teamName(state.team))
                 }
 
                 else -> Unit
             }
         }
-        Span({ classes("goa-draft-tile-name", if (compact) "t-label-medium" else "t-label-large") }) { Text(hero.name) }
+        Span({
+            classes("goa-draft-tile-name")
+            if (hero.name.length > LONG_NAME) classes("long")
+        }) { Text(hero.name) }
     }
 }
 
@@ -273,22 +297,19 @@ fun HeroPeekSheet(hero: HeroInfo, onDismiss: () -> Unit, onOpenHero: ((String) -
     BottomSheet(hero.name, onDismiss) {
         Div({ classes("goa-table-stack") }) {
             Div({ classes("goa-draft-peek-head") }) {
-                HeroArt(hero.id, hero.portrait, hero.name, extraClass = "goa-draft-peek-art")
-                Div({ classes("goa-table-row-text") }) {
-                    Div({ classes("goa-table-inline") }) {
-                        H2({ classes("t-title-large", "goa-table-tight") }) { Text(hero.name) }
-                        hero.symbol?.let { symbol ->
-                            Img(symbol, "") {
-                                classes("goa-draft-symbol")
-                                attr("aria-hidden", "true")
-                                attr("loading", "lazy")
-                            }
+                Span({ classes("goa-draft-peek-portrait") }) {
+                    HeroArt(hero.id, hero.portrait, hero.name, extraClass = "goa-draft-peek-art")
+                    hero.symbol?.let { symbol ->
+                        Img(symbol, "") {
+                            classes("goa-draft-symbol")
+                            attr("aria-hidden", "true")
+                            attr("loading", "lazy")
                         }
                     }
+                }
+                Div({ classes("goa-table-row-text") }) {
                     if (hero.title.isNotEmpty()) {
-                        P({
-                            classes("t-body-medium", "c-variant", "goa-table-tight")
-                        }) { Text(hero.title) }
+                        P({ classes("goa-draft-peek-title", "goa-table-tight") }) { Text(hero.title) }
                     }
                     ComplexityStars(hero.complexity)
                     RoleChips(hero.roles)
@@ -297,9 +318,9 @@ fun HeroPeekSheet(hero: HeroInfo, onDismiss: () -> Unit, onOpenHero: ((String) -
             if (!hero.known) {
                 P({ classes("t-body-medium", "c-variant") }) { Text("This hero isn't in the catalog.") }
             } else {
-                P({ classes("t-title-small", "c-primary") }) { Text("Stats · base → max") }
+                P({ classes("goa-look-head", "goa-table-tight") }) { Text("Stats · base → max") }
                 PEEK_STATS.forEach { (label, stat) -> StatBar(label, hero.stats.get(stat)) }
-                P({ classes("t-title-small", "c-primary") }) { Text("Starting cards") }
+                P({ classes("goa-look-head", "goa-table-tight") }) { Text("Starting cards") }
                 if (hero.startingCards.isEmpty()) {
                     P({ classes("t-body-medium", "c-variant") }) { Text("Not in the catalog yet.") }
                 }
@@ -355,4 +376,7 @@ private val PEEK_STATS = listOf(
 )
 
 private const val MAX_STARS = 4
+
+/** The longest names (Silverarrow) step down so the whole name still fits a dense tile. */
+private const val LONG_NAME = 9
 private const val STAT_SCALE = 8

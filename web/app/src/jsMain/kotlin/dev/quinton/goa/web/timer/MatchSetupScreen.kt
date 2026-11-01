@@ -394,10 +394,13 @@ private fun TokenRow(label: String?, team: Team?, count: Int, hexagon: Boolean, 
             classes("goa-table-tokens")
             attr("aria-hidden", "true")
         }) {
+            // The official Wave and Life counters (rulebook p.5); the drawn tokens if the art fails.
+            val art = if (hexagon) "official/ui/wave.webp" else "official/ui/life-${team?.let(::teamClass)}.webp"
             repeat(count.coerceAtMost(MAX_TOKENS)) {
                 Span({
-                    classes("goa-table-token", if (hexagon) "wave" else "life")
+                    classes("goa-table-token", "official", if (hexagon) "wave" else "life")
                     team?.let { classes(teamClass(it)) }
+                    style { property("background-image", "url(\"$art\")") }
                 })
             }
         }
