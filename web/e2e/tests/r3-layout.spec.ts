@@ -119,7 +119,7 @@ test("the app's cards keep their own style (the playing card's rules no longer r
   }
   // The playing cards keep theirs.
   await open(page, "#/puzzles/p01");
-  await expect(page.getByRole("button", { name: /^Goal:/ })).toBeVisible({ timeout: 30_000 });
+  await expect(page.getByRole("group", { name: /^Goal:/ })).toBeVisible({ timeout: 30_000 });
   const playing = page.locator(".goa-play-card").first();
   await expect(playing).toBeAttached();
   expect(await playing.evaluate((el) => getComputedStyle(el).overflow)).toBe("hidden");
@@ -259,7 +259,7 @@ test("a focused control is never left under the top bar, the tab bar or a pinned
 test("a puzzle's spaces read apart for VoiceOver, and its panel's Hide is a 44 pt target", async ({ page }) => {
   const check = watchErrors(page);
   await open(page, "#/puzzles/p01");
-  await expect(page.getByRole("button", { name: /^Goal:/ })).toBeVisible({ timeout: 30_000 });
+  await expect(page.getByRole("group", { name: /^Goal:/ })).toBeVisible({ timeout: 30_000 });
   // Hide: a 36 px row with a hit area reaching 44.
   const hide = page.locator(".goa-play-hide");
   const height = (await hide.boundingBox())!.height;

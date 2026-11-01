@@ -34,7 +34,7 @@ for (const variant of variants) {
     await shot(page, info, `list-${variant.name}`);
     await expectNoHorizontalOverflow(page);
     await page.getByRole("link", { name: /Start|Continue/ }).click();
-    await expect(page.getByRole("button", { name: /^Goal:/ })).toBeVisible({ timeout: 30_000 });
+    await expect(page.getByRole("group", { name: /^Goal:/ })).toBeVisible({ timeout: 30_000 });
     await page.waitForTimeout(800);
     await shot(page, info, `table-${variant.name}`);
     await expectNoHorizontalOverflow(page);
@@ -45,7 +45,7 @@ for (const variant of variants) {
 test("puzzles: nudges, the panel hidden, the solution replayed", async ({ page }, info) => {
   const errors = watchErrors(page);
   await open(page, "#/puzzles/p01");
-  await expect(page.getByRole("button", { name: /^Goal:/ })).toBeVisible({ timeout: 30_000 });
+  await expect(page.getByRole("group", { name: /^Goal:/ })).toBeVisible({ timeout: 30_000 });
   // Nudge me from the menu; the nudge card says which of how many.
   await page.getByRole("button", { name: "More options" }).click();
   await page.getByRole("button", { name: /Nudge me/ }).click();
@@ -75,7 +75,7 @@ test("puzzles: nudges, the panel hidden, the solution replayed", async ({ page }
 
 test("puzzles: progress is remembered across a reload", async ({ page }) => {
   await open(page, "#/puzzles/p01");
-  await expect(page.getByRole("button", { name: /^Goal:/ })).toBeVisible({ timeout: 30_000 });
+  await expect(page.getByRole("group", { name: /^Goal:/ })).toBeVisible({ timeout: 30_000 });
   await page.getByRole("button", { name: "More options" }).click();
   await page.getByRole("button", { name: /Show solution/ }).click();
   await expect(page.getByText(/Solution · step 1 of/i)).toBeVisible({ timeout: 30_000 });
@@ -93,7 +93,7 @@ test("puzzles: the engine worker starts offline after the first visit", async ({
   await page.reload();
   // A fresh page: a new worker reads the catalog and maps through the service worker.
   await page.goto("./#/puzzles/p02");
-  await expect(page.getByRole("button", { name: /^Goal:/ })).toBeVisible({ timeout: 30_000 });
+  await expect(page.getByRole("group", { name: /^Goal:/ })).toBeVisible({ timeout: 30_000 });
   await context.setOffline(false);
 });
 

@@ -2,7 +2,7 @@
 
 /* ---------- What floats over the board, and the board's panels, are slate plates (dark tokens, as .goa-plate) ---------- */
 .goa-table-hud, .goa-hero-chip, .goa-track-slot, .goa-play-panel, .goa-play-peek, .goa-map-button,
-.goa-icon-button.goa-board-map-button, .goa-over-card, .goa-result-row, .goa-puzzle-goal, .goa-puzzle-continue,
+.goa-icon-button.goa-board-map-button, .goa-over-card, .goa-over-section, .goa-puzzle-continue,
 .goa-puzzle-row, .goa-board-entry, .goa-board-resume, .goa-board-latest, .goa-board-row-card, .goa-board-tools,
 .goa-board-tray, .goa-board-banner, .goa-board-panel, .goa-source-row, .goa-play-radio-row, .goa-focus-details,
 .goa-board-team {
@@ -36,9 +36,9 @@
   border: 1px solid #5D6B70;
   box-shadow: inset 0 0 0 1px #15191B, 0 2px 6px rgba(0, 0, 0, 0.4);
 }
-.goa-table-hud, .goa-hero-chip, .goa-board-banner, .goa-puzzle-goal, .goa-play-panel, .goa-board-entry,
+.goa-table-hud, .goa-hero-chip, .goa-board-banner, .goa-play-panel, .goa-board-entry,
 .goa-board-resume, .goa-board-latest, .goa-board-row-card, .goa-puzzle-continue, .goa-puzzle-row, .goa-over-card,
-.goa-result-row, .goa-board-tools, .goa-board-tray {
+.goa-over-section, .goa-board-tools, .goa-board-tray {
   background:
     url("official/ui/corner-tl.webp") left 2px top 2px / 16px no-repeat,
     url("official/ui/corner-tr.webp") right 2px top 2px / 16px no-repeat,
@@ -56,13 +56,26 @@
 .goa-focus-details { border-radius: 14px 14px 0 0; }
 .goa-focus-text .goa-cardtext { color: inherit; }
 
+/* One plate for a section, dividers between its rows: not a frame round every row. */
+.goa-over-section { display: flex; flex-direction: column; padding: 2px var(--sp-xs); }
+.goa-result-row { background: none; border: 0; border-radius: 0; color: inherit; }
+.goa-result-row + .goa-result-row, .goa-over-section .goa-nudge + .goa-nudge { border-top: 1px solid var(--engraved); }
+.goa-over-section .goa-nudge { background: none; border: 0; border-radius: 0; margin: 0; padding: var(--sp-sm); color: inherit; }
+
 /* What groups a few lines on a plate is a recess: the slate shows through. */
 .goa-review-box, .goa-review-hero, .goa-review-turn, .goa-puzzle-intro, .goa-puzzle-miss, .goa-puzzle-solved,
-.goa-option-chip, .goa-decline, .goa-order-chip, .goa-board-tray-piece, .goa-play-panel .goa-board-tray {
+.goa-option-chip, .goa-decline, .goa-minion-row, .goa-order-chip, .goa-board-tray-piece, .goa-play-panel .goa-board-tray {
   background: rgba(0, 0, 0, 0.26);
   border-radius: 8px;
 }
-.goa-option-chip.selected, .goa-decline.selected, .goa-board-tray-piece[aria-checked="true"] { background: var(--secondary-container); }
+/* Bronze is selected and primary; teal is next, correct, "you can act". */
+.goa-option-chip.selected, .goa-decline.selected, .goa-minion-row.selected, .goa-board-tray-piece[aria-checked="true"],
+.goa-play-radio-row.selected {
+  border: 2px solid var(--primary); background: var(--primary-container); color: var(--on-primary-container);
+}
+.goa-segmented > button[aria-checked="true"] { background: var(--primary-container); color: var(--on-primary-container); }
+.goa-option-chip .goa-icon, .goa-minion-row .goa-icon { color: var(--primary); }
+.goa-board-toggle:checked, .goa-switch:checked { background: var(--primary); border-color: var(--primary); }
 .goa-order-chip { border-radius: 999px; }
 .goa-order-chip.strong { background: var(--primary-container); }
 
@@ -106,12 +119,12 @@
 .two-lanes .goa-hud-item.waves .goa-hud-counter { width: 22px; height: 22px; }
 .goa-hud-lane { font: 500 0.6875rem/1 var(--font-body); color: var(--on-surface-variant); margin: 0 1px; }
 .goa-hud-round { font: 700 min(1rem, 22px)/1.25 var(--font-display); }
-/* Four bronze diamonds: done turns filled, the current one ringed and larger, later ones hollow. */
+/* Four bronze diamonds: done solid and dimmer, the current one solid and bright with a ring and larger, later ones hollow. */
 .goa-pips { gap: 4px; margin-left: 5px; }
 .goa-pip, .goa-pip.done, .goa-pip.now { border-radius: 1px; border: 1.25px solid var(--primary); transform: rotate(45deg); background: none; box-sizing: border-box; }
 .goa-pip { width: 8px; height: 8px; }
-.goa-pip.done { background: var(--primary); }
-.goa-pip.now { width: 11px; height: 11px; margin: 0 1px; border-width: 1.5px; background: radial-gradient(var(--primary) 34%, transparent 38%); }
+.goa-pip.done { background: #8F7545; border-color: #8F7545; }
+.goa-pip.now { width: 12px; height: 12px; margin: 0 1px; border: 1.5px solid #E4C47E; background: #E4C47E; background-clip: content-box; padding: 1.5px; }
 
 .goa-team-mark, .goa-team-mark.red, .goa-team-mark.blue {
   width: 14px; height: 14px; transform: none; border-radius: 0;
@@ -162,19 +175,22 @@
   position: relative; padding: 3px; border-radius: 6px; gap: 2px;
 }
 @media (max-height: 720px) { .goa-track-slot { --track-w: 50px; } }
-.goa-turn-track.compact .goa-track-slot { --track-w: 34px; }
+.goa-turn-track.compact .goa-track-slot { --track-w: 42px; }
+@media (orientation: landscape) { .goa-turn-track.compact .goa-track-slot { --track-w: 34px; } }
 .goa-track-slot.now { border: 2px solid #C9A35B; }
 .goa-track-slot.next { border: 2px solid #3FC1B0; }
 .goa-track-slot .goa-play-card { width: var(--track-w) !important; }
 .goa-track-slot.done .goa-play-card, .goa-track-slot.skipped .goa-play-card { opacity: 1; filter: brightness(0.6); }
 .goa-track-band {
   bottom: 0; background: #2A343B; color: #E8E2D6;
-  font: 600 0.625rem/15px var(--font-body); letter-spacing: 0.08em;
+  /* Text on a card stays inside the card: it doesn't grow with the font size. */
+  font: 600 10px/15px var(--font-body); letter-spacing: 0.08em;
   border-radius: 0 0 3px 3px;
 }
+.goa-turn-track.compact .goa-track-band { font-size: 8px; line-height: 12px; }
 .goa-track-slot.now .goa-track-band { background: #C9A35B; color: #0B1622; }
 .goa-track-slot.next .goa-track-band { background: #3FC1B0; color: #0B1622; }
-.goa-track-init { left: 1px; top: 1px; background: #10181E; color: var(--on-surface); border: 1px solid #C9A35B; line-height: 14px; }
+.goa-track-init { left: 1px; top: 1px; background: #10181E; color: var(--on-surface); border: 1px solid #C9A35B; font-size: 11px; line-height: 14px; }
 .goa-track-action {
   position: absolute; right: 1px; top: 22%; width: 16px; height: 16px; border-radius: 50%;
   display: flex; align-items: center; justify-content: center;
@@ -225,13 +241,32 @@
 .goa-decision-who.blue { color: var(--team-blue); }
 .goa-play-panel-bar .goa-decision-who.red { color: #E76C61; }
 .goa-play-panel-bar .goa-decision-who.blue { color: #6FB6F0; }
-.goa-decision-prompt.goa-title-plate { margin: 0 2px; }
+.goa-decision-prompt { display: flex; flex-direction: column; gap: 6px; margin: 0 2px; }
+.goa-decision-prompt .goa-title-plate { margin: 0; }
+
+/* The panel ends just past the question, what follows it scrolls: the map keeps the room. */
+@media not all and (orientation: landscape) { .goa-play-panel { max-height: min(56%, calc(var(--question-end, 100vh) + 84px)); } }
+@media (orientation: landscape) and (max-width: 559px) { .goa-play-panel { max-height: min(56%, calc(var(--question-end, 100vh) + 84px)); } }
+
+/* The app's words in a text box are the app's type: only what the game prints is in Crimson (p.3: follow card text exactly). */
+.goa-question-box, .goa-rule-box, .goa-app-box, .goa-moment .goa-text-box, .goa-puzzle-nudge .goa-text-box, .goa-attack.goa-text-box {
+  font-family: var(--font-body); font-size: 0.9375rem; line-height: 1.33;
+}
+
+/* Minions to choose: a row each. */
+.goa-minion-rows { display: flex; flex-direction: column; gap: var(--sp-xs); }
+.goa-minion-row {
+  display: flex; align-items: center; gap: var(--sp-sm); width: 100%; min-height: 48px; padding: var(--sp-xs) var(--sp-md);
+  border: 1px solid var(--engraved); color: inherit; text-align: left; cursor: pointer;
+}
+.goa-minion-row .goa-board-figure { flex: none; }
+.goa-minion-row-text { flex: 1; min-width: 0; display: flex; flex-direction: column; }
 
 .goa-question-box { display: flex; align-items: center; gap: var(--sp-sm); }
 .goa-question-box p { margin: 0; }
 .goa-question-box .goa-tap-hint { display: block; color: inherit; font-size: inherit; }
 .goa-question-icon { width: 28px; height: 28px; object-fit: contain; flex: none; }
-.goa-rule-box { font-size: 0.9375rem; line-height: 1.2; }
+.goa-rule-box { font-size: 0.8125rem; line-height: 1.3; }
 .goa-rule-box .goa-unavailable { color: inherit; background: none; border: 0; padding: 0; text-align: left; font: inherit; }
 .goa-rule-box .goa-unavailable .goa-icon { color: inherit; }
 
@@ -253,6 +288,24 @@
 .goa-puzzle-nudge-head > div { flex: 1; min-width: 0; }
 .goa-puzzle-nudge .cap { font-weight: 700; }
 .goa-puzzle-nudge .goa-text-box .goa-icon-button { color: var(--on-parchment); }
+
+/* ---------- The puzzle's panel: the goal and name on small lines, the plate is the question's ---------- */
+.goa-puzzle-goal-line { display: flex; align-items: center; gap: var(--sp-sm); margin-bottom: var(--sp-xs); }
+.goa-puzzle-goal-line .goa-icon { color: var(--primary); flex: none; }
+.goa-puzzle-goal-line .goal { font: 600 0.875rem/1.25rem var(--font-body); }
+.goa-puzzle-goal-line .you { font: 500 0.75rem/1rem var(--font-body); color: var(--on-surface-variant); }
+.goa-puzzle-name { margin: 0; font: 500 0.75rem/1rem var(--font-body); }
+.goa-puzzle-header .goa-inline { flex-wrap: wrap; }
+.goa-puzzle-intro { padding-top: var(--sp-xs); padding-bottom: var(--sp-xs); margin-top: var(--sp-xs); }
+.goa-puzzle-intro-head { display: flex; align-items: center; justify-content: space-between; width: 100%; min-height: 36px; }
+
+/* A game won on the sandbox is its biggest moment: the dialog's title on the plate. */
+.goa-dialog:has(.goa-game-won) h2 {
+  box-sizing: border-box; min-height: 34px;
+  border-style: solid; border-width: 7px 25px 7px 12px;
+  border-image: url("official/ui/title-plate.webp") 7 36 7 16 fill stretch;
+  color: var(--on-parchment); font: 700 1.0625rem/1.2 var(--font-display); font-variant: small-caps; text-align: center;
+}
 
 /* ---------- Sheets ---------- */
 .goa-sheet { border-radius: 14px 14px 0 0; }
@@ -291,6 +344,13 @@
   padding: 0; border: 0; background: none; color: inherit; cursor: pointer; border-radius: 5%;
 }
 .goa-dashboard-slot:disabled { cursor: default; }
+/* The art under an empty slot can look almost like a card. */
+.goa-dashboard-slot.empty { background: rgba(0, 0, 0, 0.4); }
+/* The frame's blank upright plate at its right edge holds nothing here, and reads as a scrollbar. */
+.goa-dashboard::after {
+  content: ""; position: absolute; left: 93.6%; top: 44.5%; width: 2.9%; height: 21.5%;
+  background: #1D2124; border-radius: 2px;
+}
 .goa-dashboard-slot .goa-play-card { --card-w: 100%; width: 100% !important; position: relative; }
 .goa-dashboard-slot .second { position: absolute; left: 17%; top: 0; width: 100%; opacity: 0.9; }
 .goa-dashboard-slot:has(.second) { transform: translateX(-58%); }
@@ -316,13 +376,31 @@
 .goa-ultimate-hand { display: flex; gap: var(--sp-md); align-items: flex-start; }
 .goa-ultimate-hand-rest { flex: 1; min-width: 0; }
 
+/* Words as actions on the banner: light with a dark edge, since bronze is lost on it. */
+.goa-topbar .goa-button.text { color: #F3F6F9; font-weight: 700; text-shadow: 0 1px 3px #000; }
+
 /* ---------- The compact top bar: clear of the medallion (the banner's end), a title too long for its line wraps ---------- */
 .goa-screen.fill:has(.goa-play) .goa-topbar-title {
   display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; white-space: normal;
   font-size: min(1.0625rem, 20px); line-height: 1.1; padding: 0 var(--sp-xs);
 }
 
+/* Sideways: the portraits on a row of their own when they don't all fit beside the round; a hand takes a wider panel. */
+.goa-table-top.row { flex-wrap: wrap; }
+@media (orientation: landscape) and (min-width: 560px) {
+  .goa-play-body:has(.goa-offered.fan) .goa-play-panel { width: min(480px, 50%); }
+}
+
 /* ---------- The sandbox, the lists ---------- */
+/* Large text (under 22 rem wide): picks wrap instead of being cut to a letter, the map's name goes above Set up. */
+.goa-board-new { container-type: inline-size; }
+@container (max-width: 22rem) {
+  .goa-board-slots { flex-wrap: wrap; overflow-x: visible; }
+  .goa-board-slot { max-width: none; flex: none; }
+  .goa-board-setup-bar { flex-wrap: wrap; }
+  .goa-board-setup-bar .goa-board-map-pick { flex: 1 0 100%; max-width: none; }
+  .goa-board-setup-bar .goa-button { flex: 1 0 100%; }
+}
 .goa-map-button, .goa-icon-button.goa-board-map-button { border-radius: 50%; }
 .goa-board-tools { border-radius: 14px 14px 0 0; }
 

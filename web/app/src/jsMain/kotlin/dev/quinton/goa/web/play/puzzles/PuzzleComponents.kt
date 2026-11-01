@@ -97,23 +97,14 @@ private const val SEAL_SVG =
         "<polygon class=\"hex\" points=\"0,-0.68 0.59,-0.34 0.59,0.34 0,0.68 -0.59,0.34 -0.59,-0.34\"/>" +
         "<path class=\"tick\" d=\"M-0.3 0.02L-0.08 0.24L0.32 -0.22\"/></svg>"
 
-/**
- * The goal, under the table's top row: what to achieve and who the player controls. [compact]
- * (landscape, where the map has little height): one line; a tap opens it in full and folds it again.
- */
+/** The goal and who the player controls, at the head of the panel: off the map, in view with the question. */
 @Composable
-fun GoalBanner(goal: String, playing: List<String>, compact: Boolean) {
+fun GoalLine(goal: String, playing: List<String>) {
     val you = if (playing.isEmpty()) "" else "You play ${PuzzleText.names(playing)}"
-    var open by remember { mutableStateOf(false) }
-    val folded = compact && !open
-    Button({
-        classes("goa-puzzle-goal")
-        if (folded) classes("folded")
-        attr("type", "button")
-        attr("aria-expanded", (!folded).toString())
+    Div({
+        classes("goa-puzzle-goal-line")
+        attr("role", "group")
         attr("aria-label", listOf("Goal: ${goal.trimEnd('.')}.", you).joinToString(" ").trim())
-        if (!compact) attr("tabindex", "-1")
-        onClick { if (compact) open = !open }
     }) {
         Icon("flag", IconSize.SMALL)
         Span({ classes("goa-puzzle-goal-text") }) {
