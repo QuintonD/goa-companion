@@ -52,6 +52,7 @@ import androidx.compose.ui.unit.sp
 import dev.quinton.goa.core.designsystem.component.ActionIcon
 import dev.quinton.goa.core.designsystem.component.CardTextBox
 import dev.quinton.goa.core.designsystem.component.LookAction
+import dev.quinton.goa.core.designsystem.component.OfficialIcon
 import dev.quinton.goa.core.designsystem.component.PlateColor
 import dev.quinton.goa.core.designsystem.component.TeamMark
 import dev.quinton.goa.core.designsystem.component.TitlePlate
@@ -662,6 +663,10 @@ private fun Choices(
                     modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp),
                 ) {
                     Box48 {
+                        (choice as? Choice.Option)?.let { table.decision?.context?.optionMarkers?.get(it.index) }?.let {
+                            OfficialIcon(markerArt(it), Modifier.size(OPTION_MARKER).clearAndSetSemantics {})
+                            Spacer(Modifier.width(Spacing.sm))
+                        }
                         Text(
                             table.label(choice),
                             style = MaterialTheme.typography.titleSmall,
@@ -748,6 +753,7 @@ private fun ActionChip(table: TableUi, action: ActionType, busy: Boolean, onClic
 // ---- Cards ------------------------------------------------------------------------------
 
 private const val MAX_SPACE_CHIPS = 6
+private val OPTION_MARKER = 36.dp
 private const val BESIDE_SHARE = 0.36f
 private val SPELL_BESIDE = 96.dp
 private const val LARGE_TEXT = 1.3f

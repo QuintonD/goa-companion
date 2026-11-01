@@ -26,11 +26,13 @@ import dev.quinton.goa.feature.board.play.table.defenseLine
 import dev.quinton.goa.feature.board.play.table.focusCard
 import dev.quinton.goa.feature.board.play.table.focusTitle
 import dev.quinton.goa.feature.board.play.table.kindTitle
+import dev.quinton.goa.feature.board.play.table.markerArt
 import dev.quinton.goa.feature.board.play.table.minionRowLines
 import dev.quinton.goa.feature.board.play.table.notOffered
 import dev.quinton.goa.feature.board.play.table.offeredCards
 import dev.quinton.goa.feature.board.play.table.panelLayout
 import dev.quinton.goa.feature.board.play.table.promptParts
+import dev.quinton.goa.feature.board.play.table.slotMarkers
 import dev.quinton.goa.feature.board.play.table.sourceReach
 import dev.quinton.goa.feature.board.play.table.spokenCard
 import dev.quinton.goa.feature.board.play.table.unavailableActions
@@ -427,7 +429,12 @@ private fun Choices(table: TableUi, choices: List<Choice>, onAnswer: (Choice) ->
                     attr("type", "button")
                     if (busy) attr("disabled", "")
                     onClick { onAnswer(choice) }
-                }) { Text(table.label(choice)) }
+                }) {
+                    (choice as? Choice.Option)?.let { table.decision?.context?.optionMarkers?.get(it.index) }?.let {
+                        LookImg(markerArt(it), "goa-marker-token")
+                    }
+                    Text(table.label(choice))
+                }
             }
         }
     }
@@ -516,6 +523,14 @@ private fun HandPicker(table: TableUi, onAnswer: (Choice) -> Unit, focus: CardFo
                 "${table.hero(hero.heroId).name} is off the board. When this card resolves you may respawn in " +
                     "your Throne Zone, then act with it (p.7).",
             )
+        }
+    }
+    table.decider?.let { hero ->
+        slotMarkers(table, hero)?.let { summary ->
+            P({ classes("t-body-medium", "goa-marker-line") }) {
+                summary.activeKind?.let { LookImg(markerArt(it), "goa-marker-token") }
+                Text(summary.line)
+            }
         }
     }
     val offered = offeredCards(table)

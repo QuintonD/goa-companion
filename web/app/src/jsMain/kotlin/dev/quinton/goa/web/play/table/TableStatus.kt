@@ -18,6 +18,7 @@ import dev.quinton.goa.feature.board.play.table.TableMoment
 import dev.quinton.goa.feature.board.play.table.TableUi
 import dev.quinton.goa.feature.board.play.table.TrackSlot
 import dev.quinton.goa.feature.board.play.table.TurnTrack
+import dev.quinton.goa.feature.board.play.table.activeMarker
 import dev.quinton.goa.feature.board.play.table.cardCaption
 import dev.quinton.goa.feature.board.play.table.cardDown
 import dev.quinton.goa.feature.board.play.table.dashboardSlots
@@ -26,12 +27,16 @@ import dev.quinton.goa.feature.board.play.table.extrasTitle
 import dev.quinton.goa.feature.board.play.table.heroTurn
 import dev.quinton.goa.feature.board.play.table.heroWhere
 import dev.quinton.goa.feature.board.play.table.itemGroups
+import dev.quinton.goa.feature.board.play.table.markerArt
+import dev.quinton.goa.feature.board.play.table.markerLine
 import dev.quinton.goa.feature.board.play.table.shownCounters
 import dev.quinton.goa.feature.board.play.table.slotBand
 import dev.quinton.goa.feature.board.play.table.slotCaption
+import dev.quinton.goa.feature.board.play.table.slotMarkers
 import dev.quinton.goa.feature.board.play.table.spokenCard
 import dev.quinton.goa.feature.board.play.table.spokenChip
 import dev.quinton.goa.feature.board.play.table.spokenSlot
+import dev.quinton.goa.feature.board.play.table.spokenSlotMarker
 import dev.quinton.goa.feature.board.play.table.turnLines
 import dev.quinton.goa.feature.board.play.table.turnWord
 import dev.quinton.goa.feature.board.play.table.ultimateCard
@@ -159,6 +164,7 @@ private fun HeroChip(table: TableUi, hero: HeroView, place: Int?, compact: Boole
         Span({ classes("goa-chip-portrait") }) {
             HeroPortrait(info, hero.team, if (compact) 38 else 32, dim = hero.at == null)
             Span({ classes("goa-chip-badge") }) { TeamMark(hero.team) }
+            activeMarker(table, hero)?.let { LookImg(markerArt(it.kind), "goa-chip-marker") }
             if (!compact) Span({ classes("goa-chip-hand", "t-numeric") }) { Text("${hero.handCount}") }
             place?.let { Span({ classes("goa-order-badge") }) { Text("$it") } }
             if (cardDown(table, hero)) Span({ classes("goa-card-down") })
@@ -440,6 +446,7 @@ fun HeroDetail(table: TableUi, heroId: String, focus: CardFocusState) {
             }
         }
         HeroDashboard(table, hero, focus)
+        SlotMarkersSection(table, hero)
         heroTurn(table, hero)?.let { turn -> ThisTurn(table, hero, turn) }
         ItemsSection(table, hero, focus)
         val counters = shownCounters(hero)
@@ -464,11 +471,15 @@ fun HeroDetail(table: TableUi, heroId: String, focus: CardFocusState) {
                 "${info.name} · Active effects",
             )
         }
-        if (hero.markers.isNotEmpty()) {
+        // Below a slot, a marker is on the dashboard and in its own section.
+        val markers = hero.markers.filter { it.slot == null }
+        if (markers.isNotEmpty()) {
             Overline("Markers")
-            hero.markers.forEach { marker ->
-                val from = marker.fromHeroId?.let { " · from ${table.hero(it).name}" }.orEmpty()
-                P({ classes("t-body-medium") }) { Text(marker.kind.replaceFirstChar { it.uppercase() } + from) }
+            markers.forEach { marker ->
+                P({ classes("t-body-medium", "goa-marker-line") }) {
+                    LookImg(markerArt(marker.kind), "goa-marker-token")
+                    Text(markerLine(table, hero, marker))
+                }
             }
         }
         ExtrasSection(table, hero, focus)
@@ -516,8 +527,32 @@ private fun HeroDashboard(table: TableUi, hero: HeroView, focus: CardFocusState)
                 attr("aria-hidden", "true")
             }) { Text("Turn ${slot.turn}") }
             DashboardSlotView(hero.heroId, table, slot, focus, title, viewable)
+            slot.marker?.let { marker ->
+                // Below its Turn slot, as on the table; the slot's label says it.
+                Span({
+                    classes("goa-dashboard-marker", "t${slot.turn}")
+                    if (marker.active) classes("active")
+                    attr("aria-hidden", "true")
+                }) {
+                    LookImg(markerArt(marker.kind), "token")
+                    if (marker.active) Span({ classes("label") }) { Text("ACTIVE") }
+                }
+            }
         }
     }
+}
+
+/** What the markers below the Turn slots mean now, beside the frame that shows them. */
+@Composable
+private fun SlotMarkersSection(table: TableUi, hero: HeroView) {
+    val summary = slotMarkers(table, hero) ?: return
+    Overline("Runes")
+    P({ classes("t-title-medium", "goa-marker-line") }) {
+        summary.activeKind?.let { LookImg(markerArt(it), "goa-marker-token") }
+        Text(summary.headline)
+    }
+    summary.next?.let { P({ classes("t-body-medium", "goa-quiet") }) { Text(it) } }
+    summary.notes.forEach { P({ classes("t-body-medium", "goa-quiet") }) { Text(it) } }
 }
 
 @Composable
@@ -536,6 +571,7 @@ private fun DashboardSlotView(
         if (slot.cards.isEmpty() && slot.word == null) add("empty slot")
         slot.word?.let { add(it.lowercase()) }
         faces.forEach { add(it?.let(::spokenCard) ?: "facedown card") }
+        slot.marker?.let { add(spokenSlotMarker(it)) }
     }.joinToString(", ")
     Button({
         classes("goa-dashboard-slot", "t${slot.turn}")

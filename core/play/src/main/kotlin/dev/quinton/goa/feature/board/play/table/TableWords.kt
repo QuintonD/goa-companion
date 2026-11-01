@@ -48,6 +48,7 @@ fun spokenChip(table: TableUi, hero: HeroView, place: Int?): String {
         add(BoardText.count(hero.coins, "coin"))
         add("${BoardText.count(hero.handCount, "card")} in hand")
         if (cardDown(table, hero)) add("card played facedown")
+        activeMarker(table, hero)?.let { add("${markerName(it.kind)} active") }
         if (hero.at == null) add("off the board")
     }.joinToString(", ")
 }

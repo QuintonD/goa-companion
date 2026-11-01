@@ -19,13 +19,20 @@ import dev.quinton.goa.core.designsystem.component.GoaPlateTheme
 import dev.quinton.goa.core.designsystem.component.slatePlate
 import dev.quinton.goa.core.designsystem.theme.GoaTheme
 import dev.quinton.goa.core.game.CardView
+import dev.quinton.goa.core.game.Choice
+import dev.quinton.goa.core.game.Decision
+import dev.quinton.goa.core.game.DecisionContext
+import dev.quinton.goa.core.game.DecisionKind
+import dev.quinton.goa.core.game.MarkerView
 import dev.quinton.goa.core.model.board.BoardLane
 import dev.quinton.goa.core.model.settings.ThemeMode
 import dev.quinton.goa.feature.board.BundledImages
 import dev.quinton.goa.feature.board.play.HeroStateGame.play
 import dev.quinton.goa.feature.board.play.HeroStateGame.session
+import dev.quinton.goa.feature.board.play.table.DecisionPanel
 import dev.quinton.goa.feature.board.play.table.HeroDashboard
 import dev.quinton.goa.feature.board.play.table.HeroStrip
+import dev.quinton.goa.feature.board.play.table.SlotMarkersSection
 import dev.quinton.goa.feature.board.play.table.TableHud
 import dev.quinton.goa.feature.board.play.table.TableUi
 import dev.quinton.goa.feature.board.play.table.dashboardSlots
@@ -93,6 +100,37 @@ class TableLookScreenshotTest {
         return table.copy(view = table.view.copy(heroes = heroes))
     }
 
+    /** Snorri's runes below the Turn slots: Wasp's seat holds them, the frame and the words read the view only. */
+    private fun runes(table: TableUi = revealed(), holder: String = "wasp"): TableUi {
+        val runes = listOf("axe", "bird", "anvil", "horn").mapIndexed { i, rune ->
+            MarkerView("marker_rune_$rune", holder, i + 1)
+        }
+        val heroes = table.view.heroes.map { if (it.heroId == holder) it.copy(markers = runes) else it }
+        return table.copy(view = table.view.copy(heroes = heroes))
+    }
+
+    /** Inscribe the Runes as the engine asks it, with two picks made. */
+    private fun runeQuestion(): TableUi {
+        val table = runes()
+        return table.copy(
+            decision = Decision(
+                id = 1,
+                seat = "wasp",
+                team = table.heroView("wasp")!!.team,
+                kind = DecisionKind.CHOOSE_OPTION,
+                prompt = "Which rune goes below turn slot 3? Turn 1: Axe · Turn 2: Bird.",
+                options = listOf(Choice.Option(0, "Anvil"), Choice.Option(1, "Horn")),
+                context = DecisionContext(optionMarkers = mapOf(0 to "marker_rune_anvil", 1 to "marker_rune_horn")),
+            ),
+        )
+    }
+
+    /** Choosing a card with runes down: the reminder over the hand. */
+    private fun runesOverHand(): TableUi {
+        val table = play(session()).table
+        return runes(table, table.decider!!.heroId)
+    }
+
     @Composable
     private fun Dashboard(table: TableUi, hero: String) {
         val focus = rememberCardFocusState()
@@ -104,6 +142,31 @@ class TableLookScreenshotTest {
     @Test fun dashboardPortraitOnly() = capture { Dashboard(revealed(), "wasp") }
 
     @Test fun dashboardEmmittsSecondCard() = capture { Dashboard(twoCards(), "wasp") }
+
+    @Test
+    fun dashboardRunes() = capture {
+        val table = runes()
+        val hero = table.heroView("wasp")!!
+        Dashboard(table, "wasp")
+        Column(Modifier.padding(16.dp)) { SlotMarkersSection(table, hero) }
+    }
+
+    @Config(qualifiers = "w360dp-h640dp-xxhdpi")
+    @Test
+    fun dashboardRunesSmallPhone() = capture { Dashboard(runes(), "wasp") }
+
+    @Test
+    fun decisionRuneOptions() = capture {
+        DecisionPanel(runeQuestion(), onSelect = {}, onAnswer = {}, focus = rememberCardFocusState())
+    }
+
+    @Test
+    fun decisionRunesOverHand() = capture {
+        DecisionPanel(runesOverHand(), onSelect = {}, onAnswer = {}, focus = rememberCardFocusState())
+    }
+
+    @Test
+    fun heroStripRunes() = capture { HeroStrip(runes(), onHero = {}, Modifier.fillMaxWidth().padding(8.dp)) }
 
     @Test
     fun `a second card shares its slot and is not lost`() {

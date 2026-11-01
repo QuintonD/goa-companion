@@ -866,7 +866,7 @@ class FakeGameSession(
                 st.round = 2
                 st.turn = 1
                 st.phase = GamePhase.PLAY_CARDS
-                st.heroes.getValue("tigerclaw").markers = listOf(MarkerView("poison", "arien"))
+                st.heroes.getValue("tigerclaw").markers = listOf(MarkerView("marker_poison", "arien"))
                 st.heroes.getValue("brogan").active = listOf("brogan-silver")
                 emit(GameEvent.RoundStarted(2, "Round 2 begins."))
                 emit(GameEvent.TurnStarted(2, 1, "Turn 1 of round 2."))

@@ -161,6 +161,8 @@ data class DashboardSlot(
     val now: Boolean = false,
     val next: Boolean = false,
     val stepped: Boolean = false,
+    /** The marker below the slot (Snorri's runes). */
+    val marker: SlotMarker? = null,
 )
 
 /**
@@ -169,10 +171,11 @@ data class DashboardSlot(
  */
 fun dashboardSlots(table: TableUi, hero: HeroView): List<DashboardSlot> {
     val turn = heroTurn(table, hero)
+    val active = activeMarker(table, hero)
     return (1..TURNS_IN_ROUND).map { t ->
         val resolved = hero.resolved.filter { it.slot == t }
         val current = turn?.takeIf { t == table.view.turn }
-        val active = resolved.any { it.active }
+        val inForce = resolved.any { it.active }
         when {
             current != null && current.state != HeroTurnState.DONE -> {
                 val played = current.cards.map { it.cardId }
@@ -189,13 +192,13 @@ fun dashboardSlots(table: TableUi, hero: HeroView): List<DashboardSlot> {
             resolved.isNotEmpty() || current != null -> DashboardSlot(
                 t,
                 resolved.ifEmpty { current?.cards.orEmpty() },
-                if (active) "ACTIVE" else "DONE",
-                next = active,
-                stepped = !active,
+                if (inForce) "ACTIVE" else "DONE",
+                next = inForce,
+                stepped = !inForce,
             )
 
             else -> DashboardSlot(t, emptyList())
-        }
+        }.copy(marker = hero.markers.firstOrNull { it.slot == t }?.let { SlotMarker(it.kind, it == active) })
     }
 }
 

@@ -405,8 +405,24 @@ private fun ChipPortrait(table: TableUi, hero: HeroView, place: Int?, size: Dp) 
             framed = false,
         )
         TeamBadge(hero.team, Modifier.align(Alignment.BottomEnd).badgeOverhang(CHIP_BADGE), size = CHIP_BADGE)
+        ActiveMarkerBadge(table, hero, Modifier.align(Alignment.BottomStart).offset(x = (-4).dp, y = 3.dp))
         HandCount(hero.handCount, Modifier.align(Alignment.TopStart).offset(x = (-4).dp, y = (-3).dp))
         if (place != null) OrderBadge(place, Modifier.align(Alignment.TopEnd))
+    }
+}
+
+/** The rune active this turn, open to everyone at a glance (TalkBack hears it with the chip). */
+@Composable
+private fun ActiveMarkerBadge(table: TableUi, hero: HeroView, modifier: Modifier) {
+    activeMarker(table, hero)?.let {
+        OfficialIcon(
+            markerArt(it.kind),
+            modifier
+                .size(CHIP_MARKER)
+                .background(BadgeCard, CircleShape)
+                .border(1.dp, BronzeEdge, CircleShape)
+                .clearAndSetSemantics {},
+        )
     }
 }
 
@@ -478,6 +494,7 @@ private fun CompactHeroChip(table: TableUi, hero: HeroView, place: Int?, onClick
             if (place != null) OrderBadge(place, Modifier.align(Alignment.TopStart))
             // Inside the chip's circle, which clips what overhangs it.
             TeamBadge(hero.team, Modifier.align(Alignment.BottomEnd).padding(5.dp), size = 15.dp)
+            ActiveMarkerBadge(table, hero, Modifier.align(Alignment.BottomStart).padding(5.dp))
             if (cardDown(table, hero)) {
                 TableCard(null, Modifier.align(Alignment.TopEnd), width = 11.dp, backOf = hero.heroId)
             }
@@ -488,6 +505,7 @@ private fun CompactHeroChip(table: TableUi, hero: HeroView, place: Int?, onClick
 private val COMPACT_CHIP = 48.dp
 private val COMPACT_PORTRAIT = 38.dp
 private val CHIP_BADGE = 15.dp
+private val CHIP_MARKER = 17.dp
 private const val TIGHT_CHIPS = 380
 private val BronzeEdge = Color(0xFFC9A35B)
 private val BadgeCard = Color(0xFF10181E)
@@ -568,7 +586,10 @@ internal fun HeroDetail(
                 Row(Modifier.verticalScroll(rememberScrollState()), horizontalArrangement = gap) {
                     Column(Modifier.weight(1f), verticalArrangement = gap) {
                         HeroDashboard(table, hero, focus, Modifier.fillMaxWidth())
-                        Column(side, verticalArrangement = gap) { ThisTurnSection(table, hero) }
+                        Column(side, verticalArrangement = gap) {
+                            SlotMarkersSection(table, hero)
+                            ThisTurnSection(table, hero)
+                        }
                     }
                     Column(
                         Modifier.weight(1f).padding(end = Spacing.screen),
@@ -580,6 +601,7 @@ internal fun HeroDetail(
                 Column(Modifier.verticalScroll(rememberScrollState()), verticalArrangement = gap) {
                     HeroDashboard(table, hero, focus, Modifier.fillMaxWidth())
                     Column(side.padding(bottom = Spacing.md), verticalArrangement = gap) {
+                        SlotMarkersSection(table, hero)
                         ThisTurnSection(table, hero)
                         theRest()
                     }

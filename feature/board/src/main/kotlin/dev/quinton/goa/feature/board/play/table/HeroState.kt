@@ -19,6 +19,7 @@ import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -54,6 +55,7 @@ import dev.quinton.goa.core.designsystem.component.OfficialArt
 import dev.quinton.goa.core.designsystem.component.OfficialIcon
 import dev.quinton.goa.core.designsystem.component.PlateGround
 import dev.quinton.goa.core.designsystem.component.assetUrl
+import dev.quinton.goa.core.designsystem.component.scaledIconSize
 import dev.quinton.goa.core.designsystem.theme.GoaTextStyles
 import dev.quinton.goa.core.designsystem.theme.GoaTheme
 import dev.quinton.goa.core.designsystem.theme.Spacing
@@ -185,6 +187,15 @@ internal fun HeroDashboard(table: TableUi, hero: HeroView, focus: CardFocusState
                 viewable,
                 Modifier.offset(x = centre - (cardWidth + extra) / 2, y = h * SLOTS_TOP),
             )
+            slot.marker?.let { marker ->
+                val size = h * if (marker.active) MARKER_ACTIVE else MARKER_SIZE
+                SlotMarkerToken(
+                    marker,
+                    scale,
+                    Modifier.offset(x = centre - size / 2, y = h * MARKER_Y - size / 2),
+                    size,
+                )
+            }
         }
     }
 }
@@ -213,6 +224,7 @@ private fun SlotOnFrame(
         if (slot.cards.isEmpty() && slot.word == null) add("empty slot")
         slot.word?.let { word -> add(word.lowercase()) }
         faces.forEach { add(it?.let(::spokenCard) ?: "facedown card") }
+        slot.marker?.let { add(spokenSlotMarker(it)) }
     }.joinToString(", ")
     val shape = RoundedCornerShape(width * 0.08f)
     val extra = if (slot.cards.size > 1) width * SECOND_CARD else 0.dp
@@ -271,6 +283,72 @@ private fun SlotOnFrame(
             }
             if (slot.now || slot.next) Box(Modifier.fillMaxSize().border(2.dp, background, shape))
         }
+    }
+}
+
+/**
+ * A marker below its Turn slot, on the frame's strip as on the table ("below each of your turn slots"): the
+ * active one larger, ringed and labelled, never by colour alone. TalkBack hears it with the slot.
+ */
+@Composable
+private fun SlotMarkerToken(marker: SlotMarker, scale: Float, modifier: Modifier, size: Dp) {
+    Row(modifier.clearAndSetSemantics {}, verticalAlignment = Alignment.CenterVertically) {
+        OfficialIcon(
+            markerArt(marker.kind),
+            Modifier
+                .size(size)
+                .then(if (marker.active) Modifier.border(2.dp, MarkerRing, CircleShape) else Modifier),
+        )
+        if (marker.active) {
+            val text = dpToSp(MARKER_LABEL_SP * scale)
+            Text(
+                "ACTIVE",
+                style = TextStyle(fontSize = text, lineHeight = text * 1.3f, fontWeight = FontWeight.Bold),
+                color = MarkerLabelInk,
+                maxLines = 1,
+                modifier = Modifier
+                    .padding(start = 3.dp)
+                    .background(MarkerRing, RoundedCornerShape(3.dp))
+                    .padding(horizontal = 3.dp),
+            )
+        }
+    }
+}
+
+/** What the markers below the Turn slots mean now, beside the frame that shows them. */
+@Composable
+internal fun SlotMarkersSection(table: TableUi, hero: HeroView) {
+    val summary = slotMarkers(table, hero) ?: return
+    Column(
+        Modifier.semantics(mergeDescendants = true) {},
+        verticalArrangement = Arrangement.spacedBy(4.dp),
+    ) {
+        HeroSection("Runes")
+        SlotMarkersLine(summary.activeKind, summary.headline, emphasised = true)
+        summary.next?.let { Quiet(it) }
+        summary.notes.forEach { Quiet(it) }
+    }
+}
+
+/** The hand's reminder: which rune this turn's card will read, and the next one. */
+@Composable
+internal fun HandRuneLine(table: TableUi, hero: HeroView) {
+    val summary = slotMarkers(table, hero) ?: return
+    SlotMarkersLine(summary.activeKind, summary.line, emphasised = false)
+}
+
+@Composable
+private fun SlotMarkersLine(kind: String?, text: String, emphasised: Boolean) {
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        kind?.let {
+            OfficialIcon(markerArt(it), Modifier.size(scaledIconSize(LINE_MARKER, 1.3f)).clearAndSetSemantics {})
+            Spacer(Modifier.width(Spacing.sm))
+        }
+        Text(
+            text,
+            style = if (emphasised) MaterialTheme.typography.titleMedium else MaterialTheme.typography.bodyMedium,
+            fontWeight = if (emphasised) FontWeight.SemiBold else null,
+        )
     }
 }
 
@@ -368,14 +446,19 @@ internal fun ItemsSection(table: TableUi, hero: HeroView, focus: CardFocusState)
 @Composable
 internal fun MarkersSection(table: TableUi, hero: HeroView) {
     val tokens = table.view.pieces.filter { it.ownerHeroId == hero.heroId && figureOf(it) == null }
-    if (hero.markers.isEmpty() && tokens.isEmpty()) return
+    // Below a slot, a marker is on the dashboard and in its own section.
+    val markers = hero.markers.filter { it.slot == null }
+    if (markers.isEmpty() && tokens.isEmpty()) return
     HeroSection("Markers and tokens")
-    hero.markers.forEach { marker ->
-        val from = marker.fromHeroId?.let { " · from ${table.hero(it).name}" }.orEmpty()
-        Text(
-            marker.kind.replaceFirstChar { it.uppercase() } + " marker" + from,
-            style = MaterialTheme.typography.bodyMedium,
-        )
+    markers.forEach { marker ->
+        Row(Modifier.semantics(mergeDescendants = true) {}, verticalAlignment = Alignment.CenterVertically) {
+            OfficialIcon(
+                markerArt(marker.kind),
+                Modifier.size(scaledIconSize(LINE_MARKER, 1.3f)).clearAndSetSemantics {},
+            )
+            Spacer(Modifier.width(Spacing.sm))
+            Text(markerLine(table, hero, marker), style = MaterialTheme.typography.bodyMedium)
+        }
     }
     if (tokens.isNotEmpty()) {
         Text(
@@ -402,6 +485,9 @@ private fun Quiet(text: String) {
     Text(text, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
 }
 
+private val LINE_MARKER = 28.dp
+private val MarkerRing = Color(0xFFC9A35B)
+private val MarkerLabelInk = Color(0xFF0B1622)
 private val ITEM_ICON_WIDTH = 36.dp
 private val ITEM_ICON_HEIGHT = 27.dp
 
@@ -411,6 +497,10 @@ private const val BIG_PLATE_Y = 0.19f
 private const val TURN_PLATE_Y = 0.272f
 private const val SLOTS_TOP = 0.335f
 private const val SLOTS_BOTTOM = 0.83f
+private const val MARKER_Y = 0.905f
+private const val MARKER_SIZE = 0.105f
+private const val MARKER_ACTIVE = 0.125f
+private const val MARKER_LABEL_SP = 7.5f
 private val SLOT_CENTRES = listOf(0.170f, 0.389f, 0.607f, 0.829f)
 
 /** The frame width the words below are sized for, and how much of it the big plate's text may take. */

@@ -373,6 +373,30 @@
 .goa-dashboard-slot.next .band { background: #3FC1B0; color: #0B1622; }
 .goa-dashboard-slot.now .goa-play-card:last-of-type { outline: 2px solid #C9A35B; }
 .goa-dashboard-slot.next .goa-play-card:last-of-type { outline: 2px solid #3FC1B0; }
+/* A marker below its Turn slot, on the frame's strip; the active one larger, ringed and labelled. */
+.goa-dashboard-marker {
+  position: absolute; top: 90.5%; display: flex; align-items: center; height: 0;
+}
+.goa-dashboard-marker.t1 { left: 17%; }
+.goa-dashboard-marker.t2 { left: 38.9%; }
+.goa-dashboard-marker.t3 { left: 60.7%; }
+.goa-dashboard-marker.t4 { left: 82.9%; }
+.goa-dashboard-marker .token { width: 5.32cqw; height: 5.32cqw; object-fit: contain; border-radius: 50%; }
+.goa-dashboard-marker:not(.active) { transform: translateX(-2.66cqw); }
+.goa-dashboard-marker.active { transform: translateX(-3.17cqw); }
+.goa-dashboard-marker.active .token { width: 6.34cqw; height: 6.34cqw; box-shadow: 0 0 0 2px #C9A35B; }
+.goa-dashboard-marker .label {
+  margin-left: 3px; padding: 0 3px; border-radius: 3px; background: #C9A35B; color: #0B1622;
+  font: 700 7.5px/1.3 var(--font-body); font-size: 1.85cqw;
+}
+.goa-marker-line { display: flex; align-items: center; gap: var(--sp-sm); }
+.goa-marker-token { width: 28px; height: 28px; object-fit: contain; flex: none; }
+.goa-choice:has(.goa-marker-token) { display: flex; align-items: center; gap: var(--sp-sm); }
+.goa-chip-marker {
+  position: absolute; left: -4px; bottom: -4px; width: 17px; height: 17px; object-fit: contain;
+  border-radius: 50%; background: #10181E; box-shadow: 0 0 0 1px #C9A35B;
+}
+.goa-hero-chip.compact .goa-chip-marker { left: 2px; bottom: 2px; }
 .goa-turn-state {
   align-self: flex-start; padding: 2px 6px; border-radius: 4px;
   background: #2A343B; color: #E8E2D6; font: 700 0.75rem/1rem var(--font-display); letter-spacing: 0.1em;

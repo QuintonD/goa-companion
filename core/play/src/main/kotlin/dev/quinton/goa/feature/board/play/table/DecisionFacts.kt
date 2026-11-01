@@ -230,8 +230,13 @@ fun focusCard(table: TableUi, offered: OfferedCard): FocusCard {
             }
         }
 
-        DecisionKind.PLAY_CARD -> if (table.decider?.at == null && offered.choice != null) {
-            notes += CardNote("You are off the board: when this card resolves you may respawn, then act with it (p.7).")
+        DecisionKind.PLAY_CARD -> {
+            if (table.decider?.at == null && offered.choice != null) {
+                notes += CardNote(
+                    "You are off the board: when this card resolves you may respawn, then act with it (p.7).",
+                )
+            }
+            table.decider?.let { hero -> runeNote(table, hero, card)?.let { notes += it } }
         }
 
         else -> Unit

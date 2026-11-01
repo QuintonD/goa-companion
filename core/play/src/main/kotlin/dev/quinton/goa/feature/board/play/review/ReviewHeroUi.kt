@@ -5,6 +5,7 @@ import dev.quinton.goa.core.game.HeroView
 import dev.quinton.goa.feature.board.play.PlayText
 import dev.quinton.goa.feature.board.play.table.TableUi
 import dev.quinton.goa.feature.board.play.table.figureOf
+import dev.quinton.goa.feature.board.play.table.markerLine
 import dev.quinton.goa.feature.board.play.table.shownCounters
 
 /**
@@ -20,7 +21,7 @@ data class ReviewHeroUi(
     val inPlayNote: String?,
     /** No card in play: why ("No card played yet.", "Resolved: on Turn slot 2."…); null with one. */
     val noCardInPlay: String?,
-    /** "Poison marker · from Bain". */
+    /** "Poison marker · from Bain", "Axe rune · below Turn 1 · active". */
     val markers: List<String>,
     /** "On the board: Totem × 2", or null. */
     val tokens: String?,
@@ -40,10 +41,7 @@ fun reviewHero(table: TableUi, hero: HeroView, puzzle: Boolean): ReviewHeroUi = 
     },
     inPlayNote = inPlayNote(table, hero),
     noCardInPlay = noCardInPlay(table, hero),
-    markers = hero.markers.map { marker ->
-        val from = marker.fromHeroId?.let { " · from ${table.hero(it).name}" }.orEmpty()
-        marker.kind.replaceFirstChar { it.uppercase() } + " marker" + from
-    },
+    markers = hero.markers.sortedBy { it.slot ?: 0 }.map { markerLine(table, hero, it) },
     tokens = tokensLine(table, hero),
     handTitle = handTitle(table, hero, puzzle),
 )

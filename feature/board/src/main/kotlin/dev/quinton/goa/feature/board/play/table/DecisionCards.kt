@@ -143,6 +143,7 @@ internal fun HandPicker(table: TableUi, onAnswer: (Choice) -> Unit, focus: CardF
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
     }
+    table.decider?.let { HandRuneLine(table, it) }
     val offered = offeredCards(table)
     OfferedRow(table, offered, focus, fan = true) { key ->
         openOffered(focus, table, offered, offered.indexOfKey(key), onAnswer)
