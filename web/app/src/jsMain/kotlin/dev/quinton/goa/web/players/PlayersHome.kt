@@ -29,6 +29,8 @@ import dev.quinton.goa.web.ui.LoadingState
 import dev.quinton.goa.web.ui.PlayerAvatar
 import dev.quinton.goa.web.ui.RouteLink
 import dev.quinton.goa.web.ui.Screen
+import kotlinx.browser.document
+import kotlinx.browser.window
 import org.jetbrains.compose.web.attributes.ButtonType
 import org.jetbrains.compose.web.attributes.type
 import org.jetbrains.compose.web.dom.A
@@ -156,18 +158,30 @@ private fun PlayersTabs(current: PlayersTab) {
     }
 }
 
-/** An extended floating action button above the tab bar. */
+/**
+ * An extended floating action button above the tab bar; the icon alone at large text, where the label
+ * would cover a row's numbers (VoiceOver still hears the label).
+ */
 @Composable
 fun Fab(icon: String, label: String, onClick: () -> Unit) {
+    val rootPx = window.getComputedStyle(document.documentElement!!).fontSize.removeSuffix("px").toDoubleOrNull()
+    val iconOnly = rootPx != null && rootPx > LARGE_TEXT_ROOT_PX
     Button({
         type(ButtonType.Button)
         classes("goa-w2-fab", "t-label-large")
+        if (iconOnly) {
+            classes("icon-only")
+            attr("aria-label", label)
+        }
         onClick { onClick() }
     }) {
         Icon(icon)
-        Span { Text(label) }
+        if (!iconOnly) Span { Text(label) }
     }
 }
+
+/** 1.3 × the 16 px root: from here a phone's compact rows stack, as on Android. */
+private const val LARGE_TEXT_ROOT_PX = 20.8
 
 /** The "Players" tab: Elo leaderboard, then unrated and (optionally) archived players. */
 @Composable

@@ -40,11 +40,17 @@ when a map has `art` (all four do); the drawn map stays as the fallback while lo
   (3.2° a card, the outer ones lower), each still one target and one TalkBack node; the turn track's cards with state bands, the portrait on the art so the name shows.
 - **Hero sheet:** the real dashboard (`official/ui/dashboard-frame`) with played cards in its Turn slots. Tigerclaw's art is the rulebook's; other heroes' portraits cover the frame, cropped around the
   head and darkened toward the edges. Items as icons with "+n", the Ultimate, the hand or card backs. Frame fractions: Turn plates y .272, x .170, .389, .607, .829; slots y .335 to .83.
-- **Heroes grid:** slate tile, name on the title plate, portrait with the deck symbol at its top left, italic Crimson title, stars, two roles. Two columns from font scale 1.3.
-- **Hero page:** art edge to edge fading into the canvas (dashboard art or the portrait cropped toward the top), symbol and name on the plate, stats as icons with base → max on a plate; the banner always names the hero.
-- **Rules:** parchment page in both themes, copper heads, passages in the box the rulebook prints them in: blue `#0F6F99`, green `#2B7A33` and orange `#A8560F` (the print's green and orange darkened to 5.3:1 and 5.2:1). Pushing the Lane has the p.8 diagram, multiplied into the page.
+- **Heroes grid:** slate tile, name on the title plate, portrait with the deck symbol at its top left, italic Crimson title, stars (a ranged hero has the game's Range icon beside them), two roles. No product chip on a tile: it is on the hero page and in the filter. Every row keeps its height, so the tiles of a line are one height. Two columns from font scale 1.3.
+- **Hero page:** art edge to edge fading into the canvas (dashboard art or the portrait cropped toward the top), symbol and name on the plate, stats as icons with base → max on a plate; the banner always names the hero. With large text the stars and roles run across the width under the plate.
+- **Rules:** parchment page in both themes, copper heads, passages in the box the rulebook prints them in: blue `#0F6F99`, green `#2B7A33` and orange `#A8560F` (the print's green and orange darkened to 5.3:1 and 5.2:1). Pushing the Lane has the p.8 diagrams, multiplied into the page, each over its printed caption (`RulesDiagrams`; verbatim, in italics, checked against the PDF as any excerpt). The topic list is one plate with dividers. A topic's foot is the steel band; sideways and with large text a plain line at the page's end instead. The ladder's table becomes one block per level with large text, so no number is off-screen.
 - **Timer:** the painted sea under a navy veil, the battlefield silhouette at the foot, phase on a title plate, steel double ring, digits in Inter on a near-black disc. Stays dark in both themes. Next (bronze) is wider than Pause (steel) because its label runs long.
-- **Draft:** step on a title plate in a team-edged plate; pool tiles with portrait, symbol and parchment name; bans crossed out, dimmed and struck through.
+- **Draft:** step on a title plate in a team-edged plate; pool tiles with portrait, symbol and parchment name; bans crossed out, dimmed and struck through. Words that name a team show its mark in line (`TeamText`). A finished draft is a plate per team with the seats divided; only the selected seat is framed.
+
+**Rules the screens keep:**
+- **Bronze is selected and primary; teal is next, correct, "you can act"** (a Hurry up or a running clock, a right answer, a rating gained). Chips, switches and picked rows are bronze on every screen. Timer's teal progress arc is the running clock.
+- **One plate per section, dividers inside, brackets on the outer plate only:** a team's seats, a preset's phases, the rules topics, both leaderboards. A floating button is its icon alone with large text, and a list under one keeps room for it at its end.
+- **A title on the banner** shrinks, then takes two lines, and only then is cut (`BannerTitle`, `.goa-topbar-title`); a rules topic shows its head alone with large text. The timer's second line goes on a phone under 360 wide (TalkBack still hears it).
+- **The search field** is the plate's dark slot in both themes.
 
 ## Direction: "Steel and bronze" — the game's own look (ADR-042)
 The app is styled on the official graphics and leans on them wherever they serve the player: the
@@ -135,12 +141,13 @@ bronze" (deep-ocean dark with bronze and teal), which stays as the canvas and th
 
 Coral and Sky sit close to team red and team blue. Draft quick add skips them, and wherever a
 player appears in a team context (draft board seats, completed draft) their name carries the
-team's shape mark, so a coral player on Blue is never read as Red.
+team's mark, so a coral player on Blue is never read as Red.
 
 All foreground colours above reach ≥ 4.5:1 against both background and surface in their
 theme (checked 2026-10-17). Note: dark-theme filled primary buttons need dark text
 (`onPrimary` = `#0B1622`); white on bronze is only 2.4:1. Re-check any new pair. Team
-identity is never colour-only — always pair with a label or shape (◆ red / ● blue).
+identity is never colour-only: pair it with a label or the team's official mark, gear for Red and star for Blue
+(`TeamMark`, ADR-053). The shared words carry a glyph for the team, which `TeamText` draws as that mark.
 
 Contrast checks added 2026-10-17 (WCAG ratio vs background / surface / surfaceHigh):
 - Player palette: dark tones 6.9–11.2 / 6.0–9.8 / 5.2–8.5; light tones 5.0–6.1 / 5.8–7.0 /
@@ -202,7 +209,7 @@ with a designed fallback; one TalkBack node with the card's values and text) · 
 
 ## Key screens
 Catalog grid (tiles carry the deck symbol at the portrait's corner) → Hero detail (the deck
-symbol beside the name; the **Deck** is the official card scans in a grid by colour, in tier order
+symbol beside the name on its title plate; the **Deck** is the official card scans in a grid by colour, in tier order
 (I, II A, II B, III A, III B), as many columns of at least 100 dp as fit (three on a phone held
 upright, a colour's five in a row held sideways; wider with large text), each named under it only
 while it is too small to read its printed name, plus what the card doesn't print (where Takahide's
@@ -223,8 +230,8 @@ role chips and "Hide taken"; taken heroes shrink to chips; landscape moves the b
 to a side column so the pool keeps the full height; long-press opens the hero peek sheet).
 Bottom nav: Heroes, Timer, Draft, Players (original icons: shield, hourglass, fanned cards,
 companions; solid variant when selected). Settings from top bar. The Heroes top bar carries
-layout, Rules, Board, Card trivia and Settings; when the five icons and the title don't fit (narrow
-screen or large text) Board and Card trivia move into "More options". The bottom nav is hidden on the
+layout, Rules and Settings on a phone, with Board and Card trivia in "More options" (from 600 dp wide
+they sit on the bar; at the largest text the layout switch joins them in the menu). The bottom nav is hidden on the
 running timer (no tab to mis-tap beside Next; back leaves to Heroes), on the draft board and on a board;
 while a session runs, every other screen shows the **timer running bar** above the nav (timer
 icon, phase, "Round · Turn" context, tabular clock in tide teal; dim when paused, error red in
@@ -275,7 +282,7 @@ the board, never as units: faded (50 %) and partly desaturated toward the Zone f
 inside a piece's disc, so a minion or hero standing on one hides it completely (an occupied Spawn
 point shows only its piece) and the pieces stay the most prominent thing on any space. A hero Spawn
 point is Red's gear or Blue's star; a minion Spawn point carries at its lower right the type's
-original glyph in a thin outline of the team's shape (◆ Red / ● Blue), no solid badge (the printed
+original glyph in a thin outline of the team's shape (a diamond for Red, a disc for Blue), no solid badge (the printed
 symbols of one team are too alike at ~38 dp to tell the types apart; TalkBack names the Spawn point).
 Until the symbols load, the original glyph on the team's shape outline. **Original glyphs** (masters `design/board/glyph_*.svg`, path data mirrored in
 `ui/BoardGlyphs.kt`): crown = hero, sword = melee, arrow = ranged, shield = heavy. Pieces: heroes are the

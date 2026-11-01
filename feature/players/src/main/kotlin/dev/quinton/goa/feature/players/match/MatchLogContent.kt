@@ -201,7 +201,7 @@ fun MatchCard(
             .fillMaxWidth()
             .then(
                 if (highlighted) {
-                    Modifier.border(2.dp, MaterialTheme.colorScheme.secondary, MaterialTheme.shapes.medium)
+                    Modifier.border(2.dp, MaterialTheme.colorScheme.primary, MaterialTheme.shapes.medium)
                 } else {
                     Modifier
                 },
@@ -323,7 +323,7 @@ fun MatchCard(
                     horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
                 ) {
                     onLogResult?.let {
-                        FilledTonalButton(onClick = it, modifier = Modifier.heightIn(min = 48.dp)) {
+                        GoaButton(onClick = it, modifier = Modifier.heightIn(min = 48.dp)) {
                             Icon(Icons.Filled.EmojiEvents, contentDescription = null, modifier = Modifier.size(18.dp))
                             Spacer(Modifier.width(Spacing.sm))
                             Text("Who won?")

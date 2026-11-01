@@ -385,7 +385,7 @@ private fun StepChipView(token: StepToken, index: Int, current: Int?) {
     val active = current == index
     val isBan = token.action == DraftAction.BAN
     val shape = RoundedCornerShape(6.dp)
-    Text(
+    TeamText(
         text = (if (token.hidden) "🔒 " else "") + token.label,
         style = MaterialTheme.typography.labelMedium,
         fontWeight = if (active) FontWeight.Bold else FontWeight.Medium,

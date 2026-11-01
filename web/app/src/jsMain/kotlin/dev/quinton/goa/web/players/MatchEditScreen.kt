@@ -576,7 +576,19 @@ private fun TeamEditor(
     val doublePilots = state.form.doublePilots(team)
     val duplicates = state.form.heroesInUse().groupingBy { it }.eachCount().filterValues { it > 1 }.keys
     val otherTeam = state.form.seats(team.opponent).mapNotNull { it.playerId }.toSet()
-    Div({ classes("goa-w2-team-editor") }) {
+    val problems = seats.associate { seat ->
+        seat.key to when {
+            state.showErrors && seat.playerId == null -> "Choose a pilot"
+            seat.heroId != null && seat.heroId in duplicates -> "Hero picked twice"
+            seat.playerId != null && seat.playerId in otherTeam -> "Also on ${team.opponent.label()}"
+            else -> null
+        }
+    }
+    // One plate per team, the seats divided inside it.
+    Div({
+        classes("goa-w2-team-editor", "goa-plate", if (team == Team.RED) "red" else "blue")
+        if (problems.values.any { it != null }) classes("problem")
+    }) {
         Div({ classes("goa-w2-line") }) {
             TeamBadge(team)
             Span({ classes("t-label-large", "c-variant", "goa-w2-grow") }) {
@@ -598,16 +610,10 @@ private fun TeamEditor(
         }
         seats.forEach { seat ->
             SeatEditor(
-                team = team,
                 seat = seat,
                 state = state,
                 doublePilot = seat.playerId != null && seat.playerId in doublePilots,
-                problem = when {
-                    state.showErrors && seat.playerId == null -> "Choose a pilot"
-                    seat.heroId != null && seat.heroId in duplicates -> "Hero picked twice"
-                    seat.playerId != null && seat.playerId in otherTeam -> "Also on ${team.opponent.label()}"
-                    else -> null
-                },
+                problem = problems[seat.key],
                 onPickHero = { onPickHero(team, seat.key) },
                 onPickPilot = { onPickPilot(team, seat.key) },
                 onToggleHandicap = { editor.updateSeat(team, seat.key) { it.copy(handicap = !it.handicap) } },
@@ -620,7 +626,6 @@ private fun TeamEditor(
 @Suppress("LongParameterList")
 @Composable
 private fun SeatEditor(
-    team: Team,
     seat: SeatDraft,
     state: MatchEditUiState,
     doublePilot: Boolean,
@@ -633,10 +638,7 @@ private fun SeatEditor(
     val hero = state.heroOption(seat.heroId)
     val heroLabel = if (seat.heroId == null) "Unknown hero" else state.heroName(seat.heroId)
     val pilot = seat.playerId?.let { state.playersById[it] }
-    Div({
-        classes("goa-w2-seat-editor", "goa-plate", "no-brackets", if (team == Team.RED) "red" else "blue")
-        if (problem != null) classes("problem")
-    }) {
+    Div({ classes("goa-w2-seat-editor") }) {
         Div({ classes("goa-w2-line") }) {
             Button({
                 type(ButtonType.Button)

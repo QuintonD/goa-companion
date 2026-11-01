@@ -140,7 +140,7 @@ test("a draft's finished line-up opens at its top", async ({ page }) => {
   while (await page.locator(".goa-draft-banner").count()) {
     await page.locator(".goa-draft-tile:not(.inactive):not(.banned):not(.picked)").last().click();
     const dialog = page.getByRole("alertdialog");
-    await dialog.getByRole("button", { name: /^(◆|●) (Pick|Ban)$/ }).click();
+    await dialog.getByRole("button", { name: /^(Red|Blue) (Pick|Ban)$/ }).click();
     await expect(dialog).toHaveCount(0);
   }
   await expect(page.getByRole("heading", { name: "Draft complete" })).toBeInViewport();

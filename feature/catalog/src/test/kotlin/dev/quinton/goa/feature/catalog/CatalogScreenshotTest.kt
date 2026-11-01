@@ -15,6 +15,7 @@ import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performScrollToKey
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
+import androidx.test.core.app.ApplicationProvider
 import com.github.takahirom.roborazzi.captureRoboImage
 import dev.quinton.goa.core.designsystem.component.GoaPlateTheme
 import dev.quinton.goa.core.designsystem.component.slatePlate
@@ -41,6 +42,7 @@ import dev.quinton.goa.core.model.player.Player
 import dev.quinton.goa.core.model.rating.HeroUsage
 import dev.quinton.goa.core.model.rating.Rating
 import dev.quinton.goa.core.model.settings.ThemeMode
+import dev.quinton.goa.core.testing.BundledAssetImages
 import dev.quinton.goa.core.testing.TestCatalog
 import dev.quinton.goa.feature.catalog.detail.CardTileGrid
 import dev.quinton.goa.feature.catalog.detail.ExtrasSection
@@ -54,6 +56,7 @@ import dev.quinton.goa.feature.catalog.list.CatalogScreen
 import dev.quinton.goa.feature.catalog.list.CatalogUiState
 import dev.quinton.goa.feature.catalog.viewer.CardViewerScreen
 import dev.quinton.goa.feature.catalog.viewer.CardViewerUiState
+import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -233,6 +236,15 @@ private object ShotData {
 class CatalogScreenshotTest {
     @get:Rule val compose = createComposeRule()
 
+    @Before fun images() = BundledAssetImages.install(ApplicationProvider.getApplicationContext())
+
+    /** Waits for the bundled art: without it the banner and the plates are their flat fallbacks. */
+    private fun capture() {
+        compose.waitUntil(IMAGE_TIMEOUT_MS) { BundledAssetImages.idle }
+        compose.waitForIdle()
+        compose.onRoot().captureRoboImage()
+    }
+
     private fun shot(mode: ThemeMode = ThemeMode.DARK, fontScale: Float = 1f, content: @Composable () -> Unit) {
         compose.setContent {
             val density = LocalDensity.current
@@ -242,7 +254,7 @@ class CatalogScreenshotTest {
                 }
             }
         }
-        compose.onRoot().captureRoboImage()
+        capture()
     }
 
     @Composable
@@ -357,7 +369,7 @@ class CatalogScreenshotTest {
             }
         }
         compose.onNode(hasScrollAction()).performScrollToKey("deck-trivia")
-        compose.onRoot().captureRoboImage()
+        capture()
     }
 
     @Test fun detailNotFoundDark() = shot {
@@ -369,4 +381,8 @@ class CatalogScreenshotTest {
     @Test fun cardViewerLight() = shot(ThemeMode.LIGHT) { CardViewerScreen(ShotData.viewer(), onBack = {}) }
 
     @Test fun cardViewerFontScale2() = shot(fontScale = 2f) { CardViewerScreen(ShotData.viewer(), onBack = {}) }
+
+    private companion object {
+        const val IMAGE_TIMEOUT_MS = 15_000L
+    }
 }

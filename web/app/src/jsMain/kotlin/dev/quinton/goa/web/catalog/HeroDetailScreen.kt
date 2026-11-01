@@ -340,7 +340,7 @@ private fun PilotRow(rank: Int, pilot: HeroPilotStat, ranked: Boolean) {
 /** Opens card trivia on this hero: an unobtrusive tonal action under the deck. */
 @Composable
 private fun LearnNumbers(hero: Hero) {
-    RouteLink(Route.Trivia(hero.id), { classes("goa-button", "tonal", "block", "goa-learn-numbers") }) {
+    RouteLink(Route.Trivia(hero.id), { classes("goa-button", "outlined", "block", "goa-learn-numbers") }) {
         Icon("trivia")
         Text("Learn ${hero.name}'s card numbers")
     }

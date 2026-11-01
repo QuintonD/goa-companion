@@ -131,7 +131,7 @@ test("on a plate the light theme keeps the dark tokens", async ({ page }, info) 
     card.remove();
     return out;
   });
-  expect(onPlate.team).toBe("#E26459");
+  expect(onPlate.team).toBe("#E76C61");
   expect(onPlate.pc).toBe("#010203");
   await shot(page, info, "look-players-light");
   check();

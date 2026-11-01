@@ -165,7 +165,7 @@ fun MatchCard(
             Div({ classes("goa-button-row", "goa-w2-start") }) {
                 GoaButton("Who won?", {
                     services.router.navigate(Route.MatchEdit(match.id, result = true))
-                }, ButtonKind.TONAL, "g_trophy")
+                }, ButtonKind.FILLED, "g_trophy")
                 GoaButton("Resume: setup & timer", {
                     // A pending match continues in Match setup, then the timer (MatchNav.OpenSetup).
                     services.router.navigate(Route.MatchSetup(matchId = match.id))

@@ -41,6 +41,7 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -58,6 +59,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
@@ -76,6 +78,7 @@ import dev.quinton.goa.core.designsystem.component.GoaPlate
 import dev.quinton.goa.core.designsystem.component.GoaScreen
 import dev.quinton.goa.core.designsystem.component.HeroPortrait
 import dev.quinton.goa.core.designsystem.component.HeroSymbol
+import dev.quinton.goa.core.designsystem.component.LARGE_FONT_SCALE
 import dev.quinton.goa.core.designsystem.component.LookArt
 import dev.quinton.goa.core.designsystem.component.PlayerAvatar
 import dev.quinton.goa.core.designsystem.component.SectionHeader
@@ -261,7 +264,7 @@ private fun LazyListScope.heroDetailContent(
 /** Opens card trivia on this hero: an unobtrusive tonal action under the deck. */
 @Composable
 private fun LearnNumbersButton(heroName: String, onClick: () -> Unit, modifier: Modifier) {
-    FilledTonalButton(
+    OutlinedButton(
         onClick = onClick,
         modifier = modifier
             .fillMaxWidth()
@@ -334,6 +337,7 @@ private fun HeroNamePlate(hero: Hero, modifier: Modifier = Modifier) {
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun HeroHeader(hero: Hero, productName: String) {
+    val largeText = LocalDensity.current.fontScale > LARGE_FONT_SCALE
     Column {
         HeroHeaderArt(hero)
         Column(Modifier.overlapUp(HEADER_OVERLAP).padding(horizontal = Spacing.screen)) {
@@ -349,9 +353,10 @@ private fun HeroHeader(hero: Hero, productName: String) {
                 }
                 Column(Modifier.weight(1f).padding(top = Spacing.sm)) {
                     HeroNamePlate(hero, Modifier.widthIn(max = HEADER_PLATE_MAX_WIDTH).fillMaxWidth())
-                    HeroIdentityLine(hero, Modifier.padding(start = 2.dp, top = 6.dp))
+                    if (!largeText) HeroIdentityLine(hero, Modifier.padding(start = 2.dp, top = 6.dp))
                 }
             }
+            if (largeText) HeroIdentityLine(hero, Modifier.padding(top = Spacing.sm), stacked = true)
             if (hero.aliases.isNotEmpty()) {
                 Text(
                     "Also known as ${hero.aliases.joinToString()}",
@@ -377,11 +382,26 @@ private fun HeroHeader(hero: Hero, productName: String) {
     }
 }
 
-/** Stars, the complexity's name and the official roles, flowing line to line with large text. */
+/**
+ * Stars, the complexity's name and the official roles, flowing line to line. [stacked], for large text: the
+ * stars and the name, then the roles as one sentence, so a separator doesn't dangle at each line's end.
+ */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-private fun HeroIdentityLine(hero: Hero, modifier: Modifier = Modifier) {
+private fun HeroIdentityLine(hero: Hero, modifier: Modifier = Modifier, stacked: Boolean = false) {
     val words = listOfNotNull(hero.complexity?.let(::complexityName)) + hero.roles.map { it.label }
+    if (stacked) {
+        Column(modifier, verticalArrangement = Arrangement.spacedBy(2.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                hero.complexity?.let {
+                    ComplexityStars(it, starSize = 14.dp, modifier = Modifier.padding(end = Spacing.sm))
+                    Text(complexityName(it).orEmpty(), style = MaterialTheme.typography.bodySmall)
+                }
+            }
+            Text(hero.roles.joinToString(" · ") { it.label }, style = MaterialTheme.typography.bodySmall)
+        }
+        return
+    }
     FlowRow(
         modifier,
         horizontalArrangement = Arrangement.spacedBy(4.dp),

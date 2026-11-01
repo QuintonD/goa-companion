@@ -273,7 +273,7 @@ private fun ListItemText(marker: String, text: String, style: TextStyle, markerC
 @Composable
 internal fun SummaryNote(text: String, modifier: Modifier = Modifier) {
     GoaPlate(modifier.fillMaxWidth()) {
-        Text("SUMMARY", style = GoaTextStyles.overline, color = MaterialTheme.colorScheme.secondary)
+        Text("SUMMARY", style = GoaTextStyles.overline, color = MaterialTheme.colorScheme.primary)
         Text(text, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.padding(top = Spacing.xs))
     }
 }

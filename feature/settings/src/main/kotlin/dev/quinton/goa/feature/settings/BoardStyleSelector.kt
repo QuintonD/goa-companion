@@ -1,5 +1,6 @@
 package dev.quinton.goa.feature.settings
 
+import android.graphics.Bitmap
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -23,27 +24,37 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.produceState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.unit.Dp
-import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
+import coil3.SingletonImageLoader
+import coil3.request.CachePolicy
+import coil3.request.ImageRequest
+import coil3.request.SuccessResult
+import coil3.request.allowHardware
+import coil3.toBitmap
 import dev.quinton.goa.core.designsystem.component.LARGE_FONT_SCALE
 import dev.quinton.goa.core.designsystem.component.LookArt
 import dev.quinton.goa.core.designsystem.component.OfficialIcon
 import dev.quinton.goa.core.designsystem.component.PlateGround
 import dev.quinton.goa.core.designsystem.component.TeamMark
-import dev.quinton.goa.core.designsystem.component.rememberOfficialBitmap
+import dev.quinton.goa.core.designsystem.component.assetUrl
 import dev.quinton.goa.core.designsystem.component.teamColor
 import dev.quinton.goa.core.designsystem.theme.GoaTheme
 import dev.quinton.goa.core.designsystem.theme.Spacing
@@ -63,19 +74,26 @@ internal val BoardStyle.label: String
 /** The two board styles as radio tiles, each with a piece of the painted map; stacked at large text. */
 @Composable
 internal fun BoardStyleSelector(selected: BoardStyle, onSelect: (BoardStyle) -> Unit) {
+    val ground = rememberPreviewGround()
     if (LocalDensity.current.fontScale > LARGE_FONT_SCALE) {
         Column(Modifier.selectableGroup(), verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-            BoardStyle.entries.forEach { BoardStyleTile(it, it == selected, onSelect, Modifier.fillMaxWidth()) }
+            BoardStyle.entries.forEach { BoardStyleTile(it, ground, it == selected, onSelect, Modifier.fillMaxWidth()) }
         }
     } else {
         Row(Modifier.selectableGroup().fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-            BoardStyle.entries.forEach { BoardStyleTile(it, it == selected, onSelect, Modifier.weight(1f)) }
+            BoardStyle.entries.forEach { BoardStyleTile(it, ground, it == selected, onSelect, Modifier.weight(1f)) }
         }
     }
 }
 
 @Composable
-private fun BoardStyleTile(style: BoardStyle, selected: Boolean, onSelect: (BoardStyle) -> Unit, modifier: Modifier) {
+private fun BoardStyleTile(
+    style: BoardStyle,
+    ground: ImageBitmap?,
+    selected: Boolean,
+    onSelect: (BoardStyle) -> Unit,
+    modifier: Modifier,
+) {
     val shape = RoundedCornerShape(8.dp)
     Column(
         modifier
@@ -87,7 +105,12 @@ private fun BoardStyleTile(style: BoardStyle, selected: Boolean, onSelect: (Boar
             )
             .selectable(selected = selected, role = Role.RadioButton, onClick = { onSelect(style) }),
     ) {
-        BoardStylePreview(style, Modifier.fillMaxWidth().height(PREVIEW_HEIGHT).clip(shape).clearAndSetSemantics {})
+        BoardStylePreview(
+            style,
+            ground,
+            Modifier.fillMaxWidth().height(PREVIEW_HEIGHT).clip(shape).clearAndSetSemantics {
+            },
+        )
         Row(
             Modifier.heightIn(min = 48.dp).padding(horizontal = Spacing.sm, vertical = Spacing.xs),
             verticalAlignment = Alignment.CenterVertically,
@@ -99,19 +122,39 @@ private fun BoardStyleTile(style: BoardStyle, selected: Boolean, onSelect: (Boar
     }
 }
 
+/**
+ * The small piece of the painting both tiles show, cut once. Software, for the canvas, and past the memory
+ * cache, so the 2048 px painting isn't kept here and doesn't replace the board's hardware copy there.
+ */
+@Composable
+private fun rememberPreviewGround(): ImageBitmap? {
+    val context = LocalContext.current
+    val ground by produceState<ImageBitmap?>(null) {
+        val request = ImageRequest.Builder(context)
+            .data(assetUrl(PREVIEW_MAP))
+            .allowHardware(false)
+            .memoryCachePolicy(CachePolicy.DISABLED)
+            .build()
+        val painting = (SingletonImageLoader.get(context).execute(request) as? SuccessResult)?.image?.toBitmap()
+        value = painting?.let {
+            Bitmap.createBitmap(it, PREVIEW_CROP_X, PREVIEW_CROP_Y, PREVIEW_CROP_WIDTH, PREVIEW_CROP_HEIGHT)
+                .asImageBitmap()
+        }
+    }
+    return ground
+}
+
 /** A corner of the painted map with two pieces on it, the way that style shows them. */
 @Composable
-private fun BoardStylePreview(style: BoardStyle, modifier: Modifier) {
-    val painting = rememberOfficialBitmap(PREVIEW_MAP)
+private fun BoardStylePreview(style: BoardStyle, ground: ImageBitmap?, modifier: Modifier) {
     Box(modifier.background(PlateGround)) {
         Canvas(Modifier.fillMaxSize()) {
-            painting?.let { image ->
+            ground?.let { image ->
                 // The sand and the hexes' faint star pattern, cropped to the tile's shape.
-                val height = (PREVIEW_CROP_WIDTH * size.height / size.width).toInt()
+                val height = (image.width * size.height / size.width).toInt().coerceAtMost(image.height)
                 drawImage(
                     image,
-                    srcOffset = IntOffset(PREVIEW_CROP_X, PREVIEW_CROP_Y),
-                    srcSize = IntSize(PREVIEW_CROP_WIDTH, height),
+                    srcSize = IntSize(image.width, height),
                     dstSize = IntSize(size.width.toInt(), size.height.toInt()),
                 )
             }
@@ -181,6 +224,7 @@ private const val PREVIEW_MAP = "official/maps/forgotten-island.webp"
 private const val PREVIEW_CROP_X = 880
 private const val PREVIEW_CROP_Y = 940
 private const val PREVIEW_CROP_WIDTH = 360
+private const val PREVIEW_CROP_HEIGHT = 240
 private const val HEX_CORNERS = 6
 private const val HEX_CORNER_DEGREES = 60.0
 private val HEX_RADIUS = 20.dp
