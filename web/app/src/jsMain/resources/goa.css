@@ -3752,3 +3752,11 @@ html:has(.goa-app.has-timerbar) {
 }
 .goa-text-box.gold .cap, .goa-text-box.silver .cap { color: var(--on-parchment); text-shadow: none; }
 .goa-ribbon { display: inline-block; width: 12px; height: 24px; object-fit: cover; object-position: bottom; }
+/* A box with no word for its tab has no tab: the parchment and a plain rim. */
+.goa-text-box:not(:has(.cap)) {
+  border: 1px solid var(--parchment-edge, #8C826E);
+  border-image: none;
+  border-radius: 6px;
+  background: var(--parchment);
+  padding: 8px 11px;
+}

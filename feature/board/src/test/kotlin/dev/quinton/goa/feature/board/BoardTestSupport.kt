@@ -124,9 +124,14 @@ val bundledMaps: List<BoardMap> by lazy {
  * counts loads in flight, so a capture can wait for every portrait.
  */
 object BundledImages {
+    private const val QUIET_MS = 250L
+
     private val pending = AtomicInteger(0)
 
-    val idle: Boolean get() = pending.get() == 0
+    @Volatile private var lastEvent = 0L
+
+    /** Nothing in flight, for a moment: a load can start because another finished (the map, then its pieces). */
+    val idle: Boolean get() = pending.get() == 0 && System.currentTimeMillis() - lastEvent > QUIET_MS
 
     /**
      * [memoryCache] false: every image decodes at its own size. A screen that shows one portrait at
@@ -136,6 +141,7 @@ object BundledImages {
     @OptIn(DelicateCoilApi::class)
     fun install(context: Context, memoryCache: Boolean = true) {
         pending.set(0)
+        lastEvent = System.currentTimeMillis()
         SingletonImageLoader.setUnsafe(
             ImageLoader.Builder(context)
                 .apply { if (!memoryCache) memoryCache(null) }
@@ -147,18 +153,22 @@ object BundledImages {
                 .eventListener(
                     object : EventListener() {
                         override fun onStart(request: ImageRequest) {
+                            lastEvent = System.currentTimeMillis()
                             pending.incrementAndGet()
                         }
 
                         override fun onSuccess(request: ImageRequest, result: SuccessResult) {
+                            lastEvent = System.currentTimeMillis()
                             pending.decrementAndGet()
                         }
 
                         override fun onError(request: ImageRequest, result: ErrorResult) {
+                            lastEvent = System.currentTimeMillis()
                             pending.decrementAndGet()
                         }
 
                         override fun onCancel(request: ImageRequest) {
+                            lastEvent = System.currentTimeMillis()
                             pending.decrementAndGet()
                         }
                     },

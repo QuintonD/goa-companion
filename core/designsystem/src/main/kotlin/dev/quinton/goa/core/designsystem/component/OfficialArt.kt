@@ -1,5 +1,6 @@
 package dev.quinton.goa.core.designsystem.component
 
+import android.util.LruCache
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -135,16 +136,30 @@ fun OfficialIcon(
 }
 
 /**
+ * The chrome and pieces already decoded, so a banner, plate or piece that appears later draws from its
+ * first frame rather than showing its fallback for one. Small images only: maps have their own loader.
+ */
+private val officialBitmaps = object : LruCache<String, ImageBitmap>(OFFICIAL_BITMAPS_BYTES) {
+    override fun sizeOf(key: String, value: ImageBitmap): Int = value.width * value.height * BYTES_PER_PIXEL
+}
+
+private const val OFFICIAL_BITMAPS_BYTES = 24 * 1024 * 1024
+private const val BYTES_PER_PIXEL = 4
+
+/**
  * An official graphic as an [ImageBitmap] for drawing on a canvas (the board's Spawn points);
  * null until it has loaded, and if it fails.
  */
 @Composable
 fun rememberOfficialBitmap(path: String): ImageBitmap? {
     val context = LocalContext.current
-    val bitmap by produceState<ImageBitmap?>(null, path) {
+    val bitmap by produceState(officialBitmaps.get(path), path) {
+        if (value != null) return@produceState
         val request = ImageRequest.Builder(context).data(assetUrl(path)).allowHardware(false).build()
         val result = SingletonImageLoader.get(context).execute(request)
-        value = (result as? SuccessResult)?.image?.toBitmap()?.asImageBitmap()
+        val loaded = (result as? SuccessResult)?.image?.toBitmap()?.asImageBitmap()
+        if (loaded != null) officialBitmaps.put(path, loaded)
+        value = loaded
     }
     return bitmap
 }
