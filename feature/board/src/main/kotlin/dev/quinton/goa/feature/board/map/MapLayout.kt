@@ -23,6 +23,9 @@ class MapLayout(map: BoardMap, val orientation: MapOrientation, val bottomTeam: 
     val width: Float get() = hexLayout.width
     val height: Float get() = hexLayout.height
 
+    /** The spaces and rocks with a little room: what "the whole map" means on screen. */
+    val extent: Rect get() = hexLayout.extent.rect
+
     /** Every hex drawn: the spaces, the printed terrain and the ring of water around the map (p.19). */
     val hexes: List<Hex> get() = hexLayout.hexes
 

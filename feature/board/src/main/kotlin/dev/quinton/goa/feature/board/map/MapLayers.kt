@@ -21,7 +21,6 @@ import androidx.compose.ui.draw.drawWithCache
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Size
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.ColorMatrix
@@ -96,7 +95,8 @@ internal fun rememberMapPainting(map: BoardMap): MapPainting? {
 /** A map's painting and its picture. */
 @Immutable
 internal class MapPainting(val art: BoardMapArt, val image: ImageBitmap) {
-    val sea: Color = Color(art.sea.removePrefix("#").toLong(HEX_RADIX) or OPAQUE)
+    /** The canvas past the picture: the picture's own edge, dimmed, so the picture has no visible edge. */
+    val sea: Color = Color(art.canvasSea().removePrefix("#").toLong(HEX_RADIX) or OPAQUE)
 }
 
 /**
@@ -173,8 +173,8 @@ internal fun MapBase(map: BoardMap, battleZones: Set<String>, layout: MapLayout,
  * All of this is a retained display list inside the map's graphics layer: panning and zooming only
  * change that layer's matrix. A frame replays two textured quads, one clip and the uncovered spaces
  * (fewer operations than the vector map's hundreds of hexes), sampled from the original bitmap, so
- * nothing is re-rasterised and a colour filter costs a shader, not a pass. The painting reaches past the
- * map's bounds (its sea), so this layer is as large as the picture, not as the content.
+ * nothing is re-rasterised and a colour filter costs a shader, not a pass. The picture, turned with the map,
+ * reaches past the content and may not cover all of it, so this layer spans the two together.
  */
 @Composable
 internal fun PaintedMap(
@@ -219,7 +219,6 @@ internal fun PaintedMap(
                     this[3, 1] = p.f * unit
                 }
             }
-            val feather = featherEdges(painting)
             val hairlines = if (grid) {
                 Path().apply {
                     map.spaces.forEach { addPath(hexPath(corners(it.hex))) }
@@ -252,7 +251,6 @@ internal fun PaintedMap(
                 translate(-bounds.left, -bounds.top) {
                     withTransform({ transform(matrix) }) {
                         drawImage(painting.image, colorFilter = DimFilter, filterQuality = FilterQuality.Medium)
-                        feather.forEach { (rect, brush) -> drawRect(brush, rect.topLeft, rect.size) }
                     }
                     clipPath(clip) {
                         withTransform({ transform(matrix) }) {
@@ -283,21 +281,6 @@ internal fun PaintedMap(
                 translationY = viewport.pan.y + bounds.top * viewport.zoom
             }
             .then(draw),
-    )
-}
-
-/** The four bands (image px) that fade the picture's edge into the sea. */
-private fun featherEdges(painting: MapPainting): List<Pair<Rect, Brush>> {
-    val w = painting.art.width.toFloat()
-    val h = painting.art.height.toFloat()
-    val band = (ART_FEATHER * painting.art.pxPerUnit).toFloat()
-    val sea = painting.sea
-    val clear = sea.copy(alpha = 0f)
-    return listOf(
-        Rect(0f, 0f, band, h) to Brush.horizontalGradient(listOf(sea, clear), 0f, band),
-        Rect(w - band, 0f, w, h) to Brush.horizontalGradient(listOf(clear, sea), w - band, w),
-        Rect(0f, 0f, w, band) to Brush.verticalGradient(listOf(sea, clear), 0f, band),
-        Rect(0f, h - band, w, h) to Brush.verticalGradient(listOf(clear, sea), h - band, h),
     )
 }
 
@@ -506,7 +489,7 @@ private val ZoneLineColor = Color(0xB3FFFFFF)
 private const val GRID_WIDTH = 0.06f
 private val GridColor = Color(0x8C08121A)
 
-/** What the dimmed painting loses, for the spaces drawn over it (brightness 0.58). */
+/** A Zone's edge drawn where the painting shows none (`uncovered`). */
 private const val CRACK_WIDTH = 0.11f
 private val CrackColor = Color(0xFF17110B)
 

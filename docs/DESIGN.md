@@ -26,7 +26,7 @@ against the art itself: the slate at its lightest 1 %, the parchment at its dark
 
 **The board** (`feature/board/map/MapLayers.kt` `PaintedMap`; web `play/map/`): replaces the zone fills, water and terrain described under "Board (sandbox)"
 when a map has `art` (all four do); the drawn map stays as the fallback while loading.
-- The painting sits under the hexes with `art.sea` past its feathered edge. The Battle Zone is full colour, the rest dimmed (brightness about .58, saturation
+- The painting sits under the hexes; its own edge is `art.sea`, one dark sea on all four maps (dimmed, it is the canvas), so it has no visible edge in any rotation. The Battle Zone is full colour, the rest dimmed (brightness about .58, saturation
   .5), with a thick white edge on a dark halo; rocks enclosed by it are lit and not outlined. Zone labels are bevelled words with no pill.
 - **Spaces a question offers take the light** (`MapLighting`): lit, white-edged, numbered in small dark chips, the chosen one bronze; the Battle Zone keeps a thin line
   meanwhile. Occupied spaces you can't end on stay dark. Range and Radius stay patterns. Overlays use `ArtBoardPalette`, the same in both themes, each with a dark halo.

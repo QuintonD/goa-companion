@@ -132,7 +132,7 @@ class MapCamera {
 
     private val minZoom: Float get() = minOf(1f, fitZoom(fullMap())) * MIN_ZOOM_SLACK
 
-    private fun fullMap(): MapRect = layout?.let { MapRect(0f, 0f, it.width, it.height) } ?: MapRect(0f, 0f, 1f, 1f)
+    private fun fullMap(): MapRect = layout?.extent ?: MapRect(0f, 0f, 1f, 1f)
 
     private fun fitZoom(region: MapRect): Float {
         val v = visible

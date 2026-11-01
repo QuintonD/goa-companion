@@ -135,7 +135,7 @@ class MapViewport {
 
     private val minZoom: Float get() = minOf(1f, fitZoom(fullMap())) * MIN_ZOOM_SLACK
 
-    private fun fullMap(): Rect = layout?.let { Rect(0f, 0f, it.width, it.height) } ?: Rect(0f, 0f, 1f, 1f)
+    private fun fullMap(): Rect = layout?.extent ?: Rect(0f, 0f, 1f, 1f)
 
     /** The zoom that fits [region] (map units) into the visible part, with a margin. */
     private fun fitZoom(region: Rect, v: Rect = visible): Float {

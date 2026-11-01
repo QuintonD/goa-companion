@@ -7,6 +7,7 @@ import dev.quinton.goa.core.model.board.BoardMapArt
 import dev.quinton.goa.core.model.board.Hex
 import kotlin.math.PI
 import kotlin.math.cos
+import kotlin.math.roundToInt
 import kotlin.math.sin
 import kotlin.math.sqrt
 
@@ -41,12 +42,29 @@ fun BoardMapArt.cornersInPixels(hex: Hex): List<MapPoint> {
 private fun BoardMapArt.pixelAt(x: Float, y: Float): MapPoint =
     MapPoint(((x - originX) * pxPerUnit).toFloat(), ((y - originY) * pxPerUnit).toFloat())
 
-/** Brightness and saturation outside the light (mock-up 01, rulebook p.8), on the phone and the web alike. */
-const val DIM_BRIGHTNESS = 0.58f
+/**
+ * Brightness and saturation outside the light (rulebook p.8), on the phone and the web alike: mock-up 01's
+ * brightness of .58 on a picture the importer has already darkened by 8 %.
+ */
+const val DIM_BRIGHTNESS = 0.63f
 const val DIM_SATURATION = 0.5f
 
-/** The picture's edge fades into the sea over this many map units: its edge colours vary too much to match. */
-const val ART_FEATHER = 1f
+/**
+ * What the canvas past a painting shows: the picture's edge ([BoardMapArt.sea]) as the dimmed picture draws it,
+ * so the picture has no visible edge however the map is turned. `#RRGGBB`.
+ */
+fun BoardMapArt.canvasSea(): String {
+    val rgb = sea.removePrefix("#").toInt(HEX_RADIX)
+    val r = (rgb shr RED_SHIFT) and MAX_BYTE
+    val g = (rgb shr GREEN_SHIFT) and MAX_BYTE
+    val b = rgb and MAX_BYTE
+    val grey = LUMA_R * r + LUMA_G * g + LUMA_B * b
+    fun dim(channel: Int): String {
+        val value = ((grey + (channel - grey) * DIM_SATURATION) * DIM_BRIGHTNESS).roundToInt().coerceIn(0, MAX_BYTE)
+        return value.toString(HEX_RADIX).padStart(2, '0').uppercase()
+    }
+    return "#${dim(r)}${dim(g)}${dim(b)}"
+}
 
 /**
  * A lit part of the map (rulebook p.8): [hexes] in the light, and [edges], the sides on its outer edge
@@ -110,3 +128,12 @@ object MapLighting {
 }
 
 private val SQRT3 = sqrt(3f)
+private const val HEX_RADIX = 16
+private const val RED_SHIFT = 16
+private const val GREEN_SHIFT = 8
+private const val MAX_BYTE = 255
+
+/** The same weights as the dimmed picture's on both platforms (the sRGB luma). */
+private const val LUMA_R = 0.2126f
+private const val LUMA_G = 0.7152f
+private const val LUMA_B = 0.0722f

@@ -57,6 +57,12 @@ class HexLayout(map: BoardMap, val orientation: MapOrientation, val bottomTeam: 
     val width: Float
     val height: Float
 
+    /**
+     * What "the whole map" means on screen: the spaces and rocks, without the ring of water around them, a piece
+     * on the outermost space still whole. [width] and [height] are larger: a double-lane map fitted to them is tiny.
+     */
+    val extent: MapRect
+
     /** Every hex drawn: the spaces, the printed terrain and the ring of water around the map (p.19). */
     val hexes: List<Hex> = map.spaces.map { it.hex } + map.terrain + BoardGeometry.of(map).edge
 
@@ -86,6 +92,17 @@ class HexLayout(map: BoardMap, val orientation: MapOrientation, val bottomTeam: 
         originY = minY - PADDING
         width = maxX - minX + 2 * PADDING
         height = maxY - minY + 2 * PADDING
+        val land = (map.spaces.map { it.hex } + map.terrain).flatMap(::corners)
+        extent = if (land.isEmpty()) {
+            MapRect(0f, 0f, width, height)
+        } else {
+            MapRect(
+                land.minOf { it.x } - EXTENT_PAD,
+                land.minOf { it.y } - EXTENT_PAD,
+                land.maxOf { it.x } + EXTENT_PAD,
+                land.maxOf { it.y } + EXTENT_PAD,
+            )
+        }
     }
 
     /** Centre of [hex] in map units. */
@@ -173,6 +190,9 @@ class HexLayout(map: BoardMap, val orientation: MapOrientation, val bottomTeam: 
 
         /** Space around the outermost hexes, in map units. */
         const val PADDING = 0.6f
+
+        /** Room around [extent]'s hexes. */
+        private const val EXTENT_PAD = 0.25f
 
         /** Room around [laneRegion]'s hexes: a hero piece on a spawn point is drawn whole. */
         private const val LANE_PAD = 1.2f

@@ -133,8 +133,8 @@ data class BoardMap(
 /**
  * A map's painting, in a frame that lines up with the plain hex layout (`x = √3 (q + r / 2)`,
  * `y = 3/2 r`, 1 = a hex's corner radius): a layout point is at pixel
- * `((x - originX) * pxPerUnit, (y - originY) * pxPerUnit)`. [sea] fills the canvas past the image,
- * `#RRGGBB`. [uncovered] are spaces and terrain the art doesn't show (past the edge of a photo of the
+ * `((x - originX) * pxPerUnit, (y - originY) * pxPerUnit)`. [sea] is the colour of the image's edge,
+ * `#RRGGBB`: what lies past the image, as dimmed outside the light. [uncovered] are spaces and terrain the art doesn't show (past the edge of a photo of the
  * mat): the app draws those itself.
  */
 @Serializable
