@@ -1,6 +1,5 @@
 package dev.quinton.goa.feature.trivia.home
 
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -40,7 +39,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -53,6 +51,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
@@ -70,16 +69,18 @@ import dev.quinton.goa.core.data.trivia.TriviaHomeUiState
 import dev.quinton.goa.core.data.trivia.TriviaText
 import dev.quinton.goa.core.designsystem.component.ConfirmDialog
 import dev.quinton.goa.core.designsystem.component.EmptyState
-import dev.quinton.goa.core.designsystem.component.EngravedRule
 import dev.quinton.goa.core.designsystem.component.GoaCard
 import dev.quinton.goa.core.designsystem.component.GoaFilterChip
+import dev.quinton.goa.core.designsystem.component.GoaPlate
+import dev.quinton.goa.core.designsystem.component.GoaPlateTheme
 import dev.quinton.goa.core.designsystem.component.GoaScreen
 import dev.quinton.goa.core.designsystem.component.HeroPortrait
+import dev.quinton.goa.core.designsystem.component.PlateShape
 import dev.quinton.goa.core.designsystem.component.SectionHeader
 import dev.quinton.goa.core.designsystem.component.UnverifiedBadge
 import dev.quinton.goa.core.designsystem.component.scaledIconSize
+import dev.quinton.goa.core.designsystem.component.slatePlate
 import dev.quinton.goa.core.designsystem.theme.GoaTextStyles
-import dev.quinton.goa.core.designsystem.theme.GoaTheme
 import dev.quinton.goa.core.designsystem.theme.Spacing
 import dev.quinton.goa.core.domain.trivia.AnswerStyle
 import dev.quinton.goa.core.domain.trivia.CardGroup
@@ -322,7 +323,16 @@ private fun HomeColumn(
                 )
             }
             items(state.heroes, key = { "hero-${it.heroId}" }) { hero ->
-                HeroProgressRow(hero, onClick = { onStartHero(hero.heroId) })
+                GoaPlate(
+                    Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = Spacing.screen, vertical = Spacing.xs)
+                        .clip(PlateShape),
+                    brackets = false,
+                    contentPadding = PaddingValues(0.dp),
+                ) {
+                    HeroProgressRow(hero, onClick = { onStartHero(hero.heroId) })
+                }
             }
         }
         // Pinned: the live count, Start and the Challenge are always in reach, however far the list is scrolled.
@@ -344,14 +354,12 @@ private fun PlayingAsRow(playing: PlayingAsState, onClick: () -> Unit, modifier:
     }
     val note = playingAsNote(playing)
     Column(modifier.fillMaxWidth()) {
-        Surface(
-            shape = MaterialTheme.shapes.medium,
-            color = MaterialTheme.colorScheme.surface,
-            border = BorderStroke(1.dp, GoaTheme.colors.engravedBorder),
+        GoaPlate(
+            contentPadding = PaddingValues(0.dp),
             modifier = Modifier
                 .fillMaxWidth()
                 .heightIn(min = 64.dp)
-                .clip(MaterialTheme.shapes.medium)
+                .clip(PlateShape)
                 .clickable(onClickLabel = "Change who's playing", role = Role.Button, onClick = onClick)
                 .semantics(mergeDescendants = true) {
                     contentDescription = "Playing as $name" + (if (isMe) ", you" else "") + ", $subtitle"
@@ -532,11 +540,9 @@ private fun HeroScopeRow(state: TriviaHomeUiState.Ready, onChooseHeroes: () -> U
     }
     // All heroes = the owned ones; the options also list a chosen hero outside them.
     val count = if (names.isEmpty()) state.ownedHeroCount else names.size
-    Surface(
+    GoaPlate(
         onClick = onChooseHeroes,
-        shape = MaterialTheme.shapes.medium,
-        color = MaterialTheme.colorScheme.surface,
-        border = BorderStroke(1.dp, GoaTheme.colors.engravedBorder),
+        contentPadding = PaddingValues(0.dp),
         modifier = Modifier
             .fillMaxWidth()
             .heightIn(min = 56.dp)
@@ -624,12 +630,11 @@ private fun StartBar(
     val line = "${TriviaText.count(selection.total, "number")} in this quiz · " +
         "${TriviaText.number(selection.mastered)} learned"
     val note = startNote(state)
-    val noteColor = MaterialTheme.colorScheme.run { if (state.canStart) onSurfaceVariant else error }
     val stacked = layout.stacked
     val wide = layout.wide
-    Surface(color = MaterialTheme.colorScheme.background) {
-        Column {
-            EngravedRule()
+    GoaPlateTheme {
+        val noteColor = MaterialTheme.colorScheme.run { if (state.canStart) onSurfaceVariant else error }
+        Column(Modifier.slatePlate(RectangleShape, brackets = false)) {
             Box(
                 Modifier
                     .fillMaxWidth()
@@ -744,8 +749,7 @@ private fun HeroProgressRow(hero: HeroProgressUi, onClick: () -> Unit) {
         append(", ${p.mastered} of ${TriviaText.count(p.total, "number")} learned")
         if (p.learning > 0) append(", ${p.learning} learning")
     }
-    Surface(
-        color = MaterialTheme.colorScheme.background,
+    Box(
         modifier = Modifier
             .fillMaxWidth()
             .clickable(enabled = canQuiz, onClickLabel = "Quiz ${hero.name}", onClick = onClick)

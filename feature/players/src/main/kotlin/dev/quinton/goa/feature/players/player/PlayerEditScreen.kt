@@ -27,7 +27,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -50,6 +49,7 @@ import dev.quinton.goa.core.designsystem.theme.GoaTheme
 import dev.quinton.goa.core.designsystem.theme.PlayerColors
 import dev.quinton.goa.core.designsystem.theme.Spacing
 import dev.quinton.goa.core.designsystem.theme.playerColor
+import dev.quinton.goa.feature.players.common.BannerTextButton
 import dev.quinton.goa.feature.players.common.LoadingState
 import dev.quinton.goa.feature.players.common.Motion
 import dev.quinton.goa.feature.players.common.SectionHeader
@@ -71,7 +71,7 @@ fun PlayerEditScreen(state: PlayerEditUiState, actions: PlayerEditActions, modif
         onBack = actions.onBack,
         actions = {
             if (!state.loading && !state.notFound) {
-                TextButton(onClick = actions.onSave, enabled = !state.saving) { Text("Save") }
+                BannerTextButton("Save", onClick = actions.onSave, enabled = !state.saving)
             }
         },
     ) { padding ->

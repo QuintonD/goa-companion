@@ -17,6 +17,7 @@ import androidx.compose.ui.test.isSelected
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.unit.Density
+import androidx.test.core.app.ApplicationProvider
 import com.github.takahirom.roborazzi.captureRoboImage
 import com.github.takahirom.roborazzi.captureScreenRoboImage
 import dev.quinton.goa.core.data.backup.BackupSummary
@@ -31,6 +32,7 @@ import dev.quinton.goa.core.model.match.MatchStatus
 import dev.quinton.goa.core.model.match.Team
 import dev.quinton.goa.core.model.match.WinCondition
 import dev.quinton.goa.core.model.settings.ThemeMode
+import dev.quinton.goa.core.testing.BundledAssetImages
 import dev.quinton.goa.core.testing.TestCatalog
 import dev.quinton.goa.feature.players.backup.BackupScreen
 import dev.quinton.goa.feature.players.backup.BackupUiState
@@ -68,6 +70,7 @@ import dev.quinton.goa.feature.players.ratings.RatingSettingsActions
 import dev.quinton.goa.feature.players.ratings.RatingSettingsScreen
 import dev.quinton.goa.feature.players.ratings.RatingSettingsUiState
 import java.time.LocalDate
+import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -191,8 +194,11 @@ class PlayersScreenshotTest {
         }
     }
 
+    @Before fun art() = BundledAssetImages.install(ApplicationProvider.getApplicationContext())
+
     private fun shot(mode: ThemeMode = ThemeMode.DARK, fontScale: Float = 1f, content: @Composable () -> Unit) {
         setContent(mode, fontScale, content)
+        compose.waitUntil(ART_TIMEOUT_MS) { BundledAssetImages.idle }
         compose.onRoot().captureRoboImage()
     }
 
@@ -377,3 +383,5 @@ class WhoWonSemanticsTest {
         compose.onNode(hasText("Last push") and radio and isNotSelected()).assertExists()
     }
 }
+
+private const val ART_TIMEOUT_MS = 15_000L

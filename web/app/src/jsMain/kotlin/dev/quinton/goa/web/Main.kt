@@ -14,6 +14,7 @@ import dev.quinton.goa.web.screens.ScreenFor
 import dev.quinton.goa.web.timer.RunningTimerBar
 import dev.quinton.goa.web.timer.TimerBackground
 import dev.quinton.goa.web.timer.TimerShell
+import dev.quinton.goa.web.ui.ProvideBoardStyle
 import dev.quinton.goa.web.ui.SnackbarHost
 import dev.quinton.goa.web.ui.TabBar
 import dev.quinton.goa.web.ui.focusWithoutScroll
@@ -70,7 +71,7 @@ fun App() {
     }) {
         // One composition per history entry: a screen opened again starts fresh, Back restores
         // scroll (ScrollRestorer) and retained state (rememberRetained).
-        key(router.entry.key) { ScreenFor(route) }
+        ProvideBoardStyle { key(router.entry.key) { ScreenFor(route) } }
         if (timerBar && session != null) RunningTimerBar(session)
         if (tabBar) TabBar(router.tab, onSelect = router::selectTab)
         SnackbarHost(services.messages, services.serviceWorker.updateReady, services.serviceWorker::applyUpdate)

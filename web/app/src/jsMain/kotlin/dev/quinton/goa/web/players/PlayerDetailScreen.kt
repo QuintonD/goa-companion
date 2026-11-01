@@ -148,7 +148,7 @@ private fun Header(state: PlayerDetailUiState) {
     Div({ classes("goa-w2-detail-head") }) {
         PlayerAvatar(player, 72)
         Div({ classes("goa-w2-grow") }) {
-            H2({ classes("t-headline-small", "goa-w2-tight0") }) { Text(player.name) }
+            H2({ classes("goa-title-plate", "goa-w2-title-plate") }) { Text(player.name) }
             Div({ classes("goa-w2-flow") }) {
                 state.rank?.let {
                     Span({ classes("t-label-large", "c-variant") }) { Text("Rank $it of ${state.rankedPlayers}") }

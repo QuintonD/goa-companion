@@ -8,12 +8,14 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -58,7 +60,6 @@ import androidx.compose.material3.SegmentedButton
 import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.SelectableDates
 import androidx.compose.material3.SingleChoiceSegmentedButtonRow
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TimePicker
@@ -73,6 +74,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
@@ -85,8 +87,10 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import dev.quinton.goa.core.designsystem.component.EmptyState
+import dev.quinton.goa.core.designsystem.component.GoaPlate
 import dev.quinton.goa.core.designsystem.component.GoaScreen
 import dev.quinton.goa.core.designsystem.component.HeroPortrait
+import dev.quinton.goa.core.designsystem.component.PlateShape
 import dev.quinton.goa.core.designsystem.component.PlayerAvatar
 import dev.quinton.goa.core.designsystem.component.TeamBadge
 import dev.quinton.goa.core.designsystem.component.teamColor
@@ -96,7 +100,9 @@ import dev.quinton.goa.core.model.match.GameMode
 import dev.quinton.goa.core.model.match.MatchStatus
 import dev.quinton.goa.core.model.match.Team
 import dev.quinton.goa.core.model.match.WinCondition
+import dev.quinton.goa.feature.players.common.BannerTextButton
 import dev.quinton.goa.feature.players.common.Dates
+import dev.quinton.goa.feature.players.common.EdgedPlate
 import dev.quinton.goa.feature.players.common.LARGE_FONT_SCALE
 import dev.quinton.goa.feature.players.common.LoadingState
 import dev.quinton.goa.feature.players.common.Motion
@@ -166,7 +172,7 @@ fun MatchEditScreen(state: MatchEditUiState, actions: MatchEditActions, modifier
         onBack = requestBack,
         actions = {
             if (!state.loading && !state.notFound && saved == null) {
-                TextButton(onClick = actions.onSave, enabled = !state.saving) { Text("Save") }
+                BannerTextButton("Save", onClick = actions.onSave, enabled = !state.saving)
             }
         },
     ) { padding ->
@@ -509,14 +515,17 @@ private fun DetailsSection(form: MatchForm, actions: MatchEditActions) {
 
 @Composable
 private fun ErrorCard(messages: List<String>) {
-    Surface(
-        color = MaterialTheme.colorScheme.error.copy(alpha = 0.12f),
-        contentColor = MaterialTheme.colorScheme.onSurface,
-        shape = MaterialTheme.shapes.medium,
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.error.copy(alpha = 0.5f)),
+    GoaPlate(
+        brackets = false,
+        contentPadding = PaddingValues(0.dp),
         modifier = Modifier.fillMaxWidth().padding(top = Spacing.md),
     ) {
-        Row(Modifier.padding(Spacing.md)) {
+        Row(
+            Modifier
+                .border(1.dp, MaterialTheme.colorScheme.error, PlateShape)
+                .fillMaxWidth()
+                .padding(Spacing.md),
+        ) {
             Icon(Icons.Outlined.ErrorOutline, contentDescription = null, tint = MaterialTheme.colorScheme.error)
             Spacer(Modifier.width(Spacing.md))
             Column(verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
@@ -677,18 +686,11 @@ private fun SeatEditor(
     val hero = state.heroOption(seat.heroId)
     val heroLabel = if (seat.heroId == null) "Unknown hero" else state.heroName(seat.heroId)
     val pilot = seat.playerId?.let { state.playersById[it] }
-    val accent = teamColor(team)
-    Surface(
-        shape = MaterialTheme.shapes.medium,
-        color = MaterialTheme.colorScheme.surface,
-        border = BorderStroke(
-            1.dp,
-            if (problem != null) {
-                MaterialTheme.colorScheme.error
-            } else {
-                accent.copy(alpha = 0.45f)
-            },
-        ),
+    EdgedPlate(
+        edge = {
+            val teamEdge = teamColor(team).copy(alpha = 0.6f)
+            BorderStroke(1.dp, if (problem != null) MaterialTheme.colorScheme.error else teamEdge)
+        },
         modifier = Modifier.fillMaxWidth(),
     ) {
         Column(Modifier.padding(start = Spacing.md, top = Spacing.sm, bottom = Spacing.sm)) {
@@ -803,8 +805,7 @@ private fun WinnerOption(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val color = teamColor(team)
-    Surface(
+    EdgedPlate(
         modifier = modifier
             .heightIn(min = 64.dp)
             .selectable(selected = selected, role = Role.RadioButton, onClick = onClick)
@@ -812,13 +813,15 @@ private fun WinnerOption(
                 contentDescription = "${team.label()} won" +
                     if (pilots.isEmpty()) "" else ": ${pilots.joinToString(", ")}"
             },
-        shape = MaterialTheme.shapes.medium,
-        color = if (selected) color.copy(alpha = 0.18f) else MaterialTheme.colorScheme.surface,
-        border = BorderStroke(
-            if (selected) 2.dp else 1.dp,
-            if (selected) color else MaterialTheme.colorScheme.outlineVariant,
-        ),
+        fill = { if (selected) teamColor(team).copy(alpha = 0.18f) else Color.Transparent },
+        edge = {
+            BorderStroke(
+                if (selected) 2.dp else 1.dp,
+                if (selected) teamColor(team) else MaterialTheme.colorScheme.outlineVariant,
+            )
+        },
     ) {
+        val color = teamColor(team)
         Column(Modifier.padding(Spacing.md), horizontalAlignment = Alignment.CenterHorizontally) {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.Center) {
                 TeamBadge(team)

@@ -11,17 +11,20 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.unit.Density
+import androidx.test.core.app.ApplicationProvider
 import com.github.takahirom.roborazzi.captureRoboImage
 import dev.quinton.goa.core.designsystem.theme.GoaTheme
 import dev.quinton.goa.core.designsystem.theme.Spacing
 import dev.quinton.goa.core.domain.sync.GroupInvite
 import dev.quinton.goa.core.model.settings.ThemeMode
+import dev.quinton.goa.core.testing.BundledAssetImages
 import dev.quinton.goa.feature.sync.TestGroup
 import dev.quinton.goa.feature.sync.group.GroupActions
 import dev.quinton.goa.feature.sync.group.GroupScreen
 import dev.quinton.goa.feature.sync.group.GroupUiState
 import dev.quinton.goa.feature.sync.group.PhoneRow
 import dev.quinton.goa.feature.sync.person
+import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -36,6 +39,8 @@ import org.robolectric.annotation.GraphicsMode
 class SyncServerScreenshotTest {
     @get:Rule val compose = createComposeRule()
 
+    @Before fun art() = BundledAssetImages.install(ApplicationProvider.getApplicationContext())
+
     private fun shot(mode: ThemeMode = ThemeMode.DARK, fontScale: Float = 1f, content: @Composable () -> Unit) {
         compose.setContent {
             val d = LocalDensity.current
@@ -43,6 +48,7 @@ class SyncServerScreenshotTest {
                 GoaTheme(themeMode = mode) { Surface(color = MaterialTheme.colorScheme.background) { content() } }
             }
         }
+        compose.waitUntil(ART_TIMEOUT_MS) { BundledAssetImages.idle }
         compose.onRoot().captureRoboImage()
     }
 
@@ -127,3 +133,5 @@ class SyncServerScreenshotTest {
     @Test fun groupWithServerOfflineLight() =
         shot(ThemeMode.LIGHT) { GroupScreen(joined.copy(server = offline), GroupActions()) }
 }
+
+private const val ART_TIMEOUT_MS = 15_000L

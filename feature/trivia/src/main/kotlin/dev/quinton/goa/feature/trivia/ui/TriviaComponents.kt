@@ -14,13 +14,17 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Shadow
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
@@ -34,6 +38,7 @@ import dev.quinton.goa.core.designsystem.component.CardColorDot
 import dev.quinton.goa.core.designsystem.component.HeroPortrait
 import dev.quinton.goa.core.designsystem.component.UnverifiedBadge
 import dev.quinton.goa.core.designsystem.component.scaledIconSize
+import dev.quinton.goa.core.designsystem.theme.GoaTheme
 import dev.quinton.goa.core.designsystem.theme.Spacing
 import dev.quinton.goa.core.domain.trivia.MasterySummary
 
@@ -160,6 +165,34 @@ internal const val UNVERIFIED_SPOKEN = TriviaText.UNVERIFIED_SPOKEN
 
 /** "Mad Dash, Arien's Red · Tier II Attack card": how TalkBack names a card. */
 internal fun spokenCard(card: TriviaCardUi): String = TriviaText.spokenCard(card)
+
+/** A word as a top-bar action: light with a dark edge, since bronze is lost on the steel banner. */
+@Composable
+internal fun BannerTextButton(
+    text: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    enabled: Boolean = true,
+) {
+    val colors = GoaTheme.colors
+    TextButton(
+        onClick = onClick,
+        modifier = modifier,
+        enabled = enabled,
+        colors = ButtonDefaults.textButtonColors(
+            contentColor = colors.onBanner,
+            disabledContentColor = colors.onBannerVariant.copy(alpha = 0.6f),
+        ),
+    ) {
+        Text(
+            text,
+            style = MaterialTheme.typography.labelLarge.copy(
+                fontWeight = FontWeight.Bold,
+                shadow = Shadow(Color.Black, Offset(0f, 1f), blurRadius = 3f),
+            ),
+        )
+    }
+}
 
 @Composable
 internal fun SetupLabel(text: String, modifier: Modifier = Modifier) {

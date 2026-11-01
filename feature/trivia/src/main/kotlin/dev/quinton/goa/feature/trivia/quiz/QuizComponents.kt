@@ -55,15 +55,19 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import coil3.compose.AsyncImage
 import dev.quinton.goa.core.data.trivia.QuizQuestionUi
 import dev.quinton.goa.core.data.trivia.TriviaCardUi
 import dev.quinton.goa.core.data.trivia.TriviaQuizUiState
 import dev.quinton.goa.core.data.trivia.TriviaText
 import dev.quinton.goa.core.designsystem.component.GoaCard
+import dev.quinton.goa.core.designsystem.component.GoaPlateTheme
 import dev.quinton.goa.core.designsystem.component.LARGE_FONT_SCALE
+import dev.quinton.goa.core.designsystem.component.TitlePlate
 import dev.quinton.goa.core.designsystem.component.assetUrl
 import dev.quinton.goa.core.designsystem.component.scaledIconSize
+import dev.quinton.goa.core.designsystem.component.slatePlate
 import dev.quinton.goa.core.designsystem.theme.GoaTextStyles
 import dev.quinton.goa.core.designsystem.theme.GoaTheme
 import dev.quinton.goa.core.designsystem.theme.Spacing
@@ -94,14 +98,13 @@ internal fun QuestionPanel(question: QuizQuestionUi, modifier: Modifier = Modifi
                 CardKindLine(question.card)
             }
             Spacer(Modifier.height(Spacing.xl))
-            Text(
+            TitlePlate(
                 "${TriviaText.stat(question.stat)}?",
-                style = MaterialTheme.typography.displaySmall,
-                color = MaterialTheme.colorScheme.primary,
-                textAlign = TextAlign.Center,
+                style = QuestionPlateStyle,
+                heading = false,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .semantics {
+                    .semantics(mergeDescendants = true) {
                         heading()
                         contentDescription = "What is its ${TriviaText.stat(question.stat)}?"
                     },
@@ -109,12 +112,7 @@ internal fun QuestionPanel(question: QuizQuestionUi, modifier: Modifier = Modifi
         }
 
         is QuizQuestionUi.Duel -> Column(modifier.fillMaxWidth()) {
-            Text(
-                "Which has the higher initiative?",
-                style = MaterialTheme.typography.headlineSmall,
-                color = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.semantics { heading() },
-            )
+            TitlePlate("Which has the higher initiative?", Modifier.fillMaxWidth(), maxLines = 3)
             Spacer(Modifier.height(Spacing.xs))
             Text(
                 "Tap a card, or Same initiative if they match.",
@@ -202,29 +200,32 @@ private fun ChoiceButton(
     style: TextStyle = GoaTextStyles.timerDigitsSmall,
     cornerMark: Boolean = false,
 ) {
-    val colors = markColors(mark)
-    Surface(
-        onClick = onClick,
-        enabled = mark == Mark.OPEN,
-        shape = MaterialTheme.shapes.medium,
-        color = colors.container,
-        contentColor = colors.content,
-        border = BorderStroke(if (mark == Mark.RIGHT || mark == Mark.WRONG) 2.dp else 1.dp, colors.border),
-        modifier = modifier
-            .heightIn(min = minHeight)
-            .semantics { contentDescription = withMark(spoken, mark) },
-    ) {
-        Box(contentAlignment = Alignment.Center) {
-            Row(
-                Modifier.padding(horizontal = Spacing.sm, vertical = Spacing.sm),
-                horizontalArrangement = Arrangement.Center,
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                if (!cornerMark) MarkIcon(mark)
-                Text(text, style = style, maxLines = 1, softWrap = false, textAlign = TextAlign.Center)
-            }
-            if (cornerMark) {
-                MarkBadge(mark, Modifier.align(Alignment.TopEnd).padding(top = BADGE_INSET, end = BADGE_INSET))
+    GoaPlateTheme {
+        val colors = markColors(mark)
+        Surface(
+            onClick = onClick,
+            enabled = mark == Mark.OPEN,
+            shape = MaterialTheme.shapes.medium,
+            color = if (mark == Mark.OPEN || mark == Mark.OTHER) Color.Transparent else colors.container,
+            contentColor = colors.content,
+            border = BorderStroke(if (mark == Mark.RIGHT || mark == Mark.WRONG) 2.dp else 1.dp, colors.border),
+            modifier = modifier
+                .slatePlate(MaterialTheme.shapes.medium, brackets = false)
+                .heightIn(min = minHeight)
+                .semantics { contentDescription = withMark(spoken, mark) },
+        ) {
+            Box(contentAlignment = Alignment.Center) {
+                Row(
+                    Modifier.padding(horizontal = Spacing.sm, vertical = Spacing.sm),
+                    horizontalArrangement = Arrangement.Center,
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    if (!cornerMark) MarkIcon(mark)
+                    Text(text, style = style, maxLines = 1, softWrap = false, textAlign = TextAlign.Center)
+                }
+                if (cornerMark) {
+                    MarkBadge(mark, Modifier.align(Alignment.TopEnd).padding(top = BADGE_INSET, end = BADGE_INSET))
+                }
             }
         }
     }
@@ -301,45 +302,50 @@ private fun DuelTile(
     modifier: Modifier,
     onClick: () -> Unit,
 ) {
-    val colors = markColors(mark)
-    val spoken = buildString {
-        append(spokenCard(card))
-        if (revealed) append(", initiative $value")
-    }
-    Surface(
-        onClick = onClick,
-        enabled = mark == Mark.OPEN,
-        shape = MaterialTheme.shapes.medium,
-        color = if (mark == Mark.OPEN || mark == Mark.OTHER) MaterialTheme.colorScheme.surface else colors.container,
-        contentColor = MaterialTheme.colorScheme.onSurface,
-        border = BorderStroke(if (mark == Mark.RIGHT || mark == Mark.WRONG) 2.dp else 1.dp, colors.border),
-        modifier = modifier
-            .heightIn(min = 140.dp)
-            .semantics { contentDescription = withMark(spoken, mark) },
-    ) {
-        Column(Modifier.padding(Spacing.md).clearAndSetSemantics {}) {
-            HeroLine(card, portraitSize = 28.dp)
-            Spacer(Modifier.height(Spacing.sm))
-            Text(
-                card.name,
-                style = MaterialTheme.typography.titleLarge,
-                color = MaterialTheme.colorScheme.onSurface,
-                maxLines = 3,
-                overflow = TextOverflow.Ellipsis,
-            )
-            Spacer(Modifier.height(Spacing.xs))
-            CardKindLine(card, showPrimary = false)
-            if (revealed) {
-                Spacer(Modifier.height(Spacing.md))
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    MarkIcon(mark)
-                    Text(
-                        "Initiative $value",
-                        style = GoaTextStyles.numeric.copy(fontSize = MaterialTheme.typography.titleMedium.fontSize),
-                        color = MaterialTheme.colorScheme.onSurface,
-                        maxLines = 1,
-                        softWrap = false,
-                    )
+    GoaPlateTheme {
+        val colors = markColors(mark)
+        val spoken = buildString {
+            append(spokenCard(card))
+            if (revealed) append(", initiative $value")
+        }
+        Surface(
+            onClick = onClick,
+            enabled = mark == Mark.OPEN,
+            shape = MaterialTheme.shapes.medium,
+            color = if (mark == Mark.OPEN || mark == Mark.OTHER) Color.Transparent else colors.container,
+            contentColor = MaterialTheme.colorScheme.onSurface,
+            border = BorderStroke(if (mark == Mark.RIGHT || mark == Mark.WRONG) 2.dp else 1.dp, colors.border),
+            modifier = modifier
+                .slatePlate(MaterialTheme.shapes.medium, brackets = false)
+                .heightIn(min = 140.dp)
+                .semantics { contentDescription = withMark(spoken, mark) },
+        ) {
+            Column(Modifier.padding(Spacing.md).clearAndSetSemantics {}) {
+                HeroLine(card, portraitSize = 28.dp)
+                Spacer(Modifier.height(Spacing.sm))
+                Text(
+                    card.name,
+                    style = MaterialTheme.typography.titleLarge,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    maxLines = 3,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                Spacer(Modifier.height(Spacing.xs))
+                CardKindLine(card, showPrimary = false)
+                if (revealed) {
+                    Spacer(Modifier.height(Spacing.md))
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        MarkIcon(mark)
+                        Text(
+                            "Initiative $value",
+                            style = GoaTextStyles.numeric.copy(
+                                fontSize = MaterialTheme.typography.titleMedium.fontSize,
+                            ),
+                            color = MaterialTheme.colorScheme.onSurface,
+                            maxLines = 1,
+                            softWrap = false,
+                        )
+                    }
                 }
             }
         }
@@ -529,3 +535,6 @@ private val BADGE_INSET = 4.dp
 
 /** Deck cards are portrait; the real ratio replaces this once the scan loads. */
 private const val CARD_ASPECT = 729f / 1026f
+
+/** The question on its title plate, large enough to read from across the table. */
+private val QuestionPlateStyle = GoaTextStyles.plateTitle.copy(fontSize = 26.sp, lineHeight = 32.sp)

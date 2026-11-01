@@ -1,1 +1,203 @@
 /* The look round (ADR-053), stream "rest": see docs/DESIGN.md. Overrides goa.css. */
+
+/* ---------- Plates: the rest of the dark tokens ---------- */
+/* What sits on a plate is themed dark in both themes: the foundation's block leaves these at their
+   light values, which puts dark red on the dark slate. */
+.goa-plate, .goa-card, .goa-sheet, .goa-tabbar {
+  --team-red: #E26459;
+  --team-blue: #4F8FE0;
+  --on-error-container: #FFD9D6;
+  --verified: #3FC1B0;
+  --unverified: #E8B04A;
+  --engraved: rgba(201, 163, 91, 0.30);
+  --bronze-glow: rgba(201, 163, 91, 0.18);
+  --outline-variant: rgba(169, 180, 194, 0.30);
+  --medallion: #07101A;
+}
+/* A player's colour has a tone per ground: on a plate it is the dark theme's. */
+:root[data-theme="light"] :is(.goa-plate, .goa-card, .goa-sheet) .goa-pc { --pc: var(--pc-d, var(--on-surface-variant)); }
+@media (prefers-color-scheme: light) {
+  :root[data-theme="system"] :is(.goa-plate, .goa-card, .goa-sheet) .goa-pc { --pc: var(--pc-d, var(--on-surface-variant)); }
+}
+/* No soft shadow under a plate: repainted for every plate on every scrolled frame, it was a quarter of
+   a long list's paint time in WebKit (96 to 72 ms a frame in the software build). The edge stays. */
+.goa-plate, .goa-card { box-shadow: inset 0 0 0 1px #15191B; }
+/* A plate without the corner brackets: small tiles and rows, where they would crowd the content. */
+.goa-plate.no-brackets {
+  background: linear-gradient(rgba(0, 0, 0, 0.18), rgba(0, 0, 0, 0.18)), url("official/ui/slate.webp") center / 420px, #1D2124;
+}
+
+/* ---------- Top bar ---------- */
+/* The medallion keeps its shape whatever the bar's height: the art is drawn in the row's own height
+   under the safe area, not stretched across it, and at the width its 247 × 182 cap needs at 56 px. */
+.goa-topbar {
+  border: 0;
+  border-image: none;
+  padding-right: calc(var(--safe-right) + 62px);
+}
+/* The timer on its side zeroes its header's padding (its screen holds the safe area): the medallion's room stays. */
+.goa-table-timer.landscape .goa-table-timer-header.goa-topbar { padding-right: 62px; }
+.goa-topbar::before {
+  content: "";
+  position: absolute;
+  inset: var(--safe-top) 0 0 0;
+  border-style: solid;
+  border-width: 0 76px 0 0;
+  border-image: url("official/ui/banner.webp") 0 247 0 0 fill stretch;
+  pointer-events: none;
+}
+.goa-topbar-row { position: relative; z-index: 1; }
+.goa-topbar .goa-icon-button { color: var(--on-banner); filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.75)); }
+/* A word on the banner: bronze is lost on the steel. */
+.goa-topbar .goa-button.text, .goa-topbar .goa-trivia-end {
+  color: var(--on-banner);
+  font-weight: 700;
+  text-shadow: 0 1px 3px #000;
+}
+.goa-topbar .goa-button.text:disabled { color: var(--on-banner-variant); opacity: 0.6; }
+/* The medallion takes 62 px of the row, so five icons leave a phone's title as "HE...": below this
+   width the secondary actions are in More (mock-up 06 shows three icons at 411 px). */
+@container topbar (max-width: 24rem) {
+  .goa-topbar-row .goa-topbar-actions .collapsible { display: none; }
+  .goa-topbar-row .goa-topbar-actions .more-only { display: inline-flex; }
+}
+/* goa.css's timer rule, which the one above must not undo. The timer's bar is the fullest in the app
+   (coin chip, Undo, End, More): with the medallion's room gone, "Round 1" only fits if its controls
+   give up their spare padding on a phone-wide bar. They stay 44 px targets. */
+@container topbar (max-width: 30rem) {
+  .goa-table-timer-header .goa-topbar-row .goa-topbar-actions .collapsible { display: none; }
+  .goa-table-timer-header .goa-table-timer-title { padding: 0 var(--sp-xs); }
+  .goa-table-timer-header .goa-topbar-actions .goa-icon-button { width: var(--tap); }
+  .goa-table-timer-header .goa-topbar-actions .goa-button.text,
+  .goa-table-timer-header .goa-topbar-actions .goa-table-coin-chip { padding-left: 6px; padding-right: 6px; min-height: var(--tap); }
+}
+.goa-table-timer-header .goa-topbar-row { gap: 0; }
+
+/* ---------- Bottom nav (mock-up 06) ---------- */
+.goa-tabbar {
+  background:
+    url("official/ui/corner-tl.webp") left 2px top 2px / 16px no-repeat,
+    url("official/ui/corner-tr.webp") right 2px top 2px / 16px no-repeat,
+    linear-gradient(rgba(0, 0, 0, 0.18), rgba(0, 0, 0, 0.18)),
+    url("official/ui/slate.webp") center / 420px,
+    #1D2124;
+}
+.goa-tabbar::before { display: none; }
+.goa-tab[aria-current="page"] { color: var(--primary); font-weight: 700; }
+.goa-tab[aria-current="page"] .goa-tab-pill { background: none; }
+
+/* The "timer running" bar above it: the same slate, its colour states kept. */
+.goa-table-running-bar {
+  --surface: #1E2327;
+  --on-surface: #E8E2D6;
+  --on-surface-variant: #B4BEC8;
+  --secondary: #3FC1B0;
+  --error: #FF6B6B;
+  color-scheme: dark;
+  background: linear-gradient(rgba(0, 0, 0, 0.18), rgba(0, 0, 0, 0.18)), url("official/ui/slate.webp") center / 420px, #1D2124;
+  border-top: 1px solid #5D6B70;
+}
+
+/* ---------- The board style setting ---------- */
+.goa-board-styles {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(9.5rem, 100%), 1fr));
+  gap: var(--sp-sm);
+  margin-top: var(--sp-md);
+}
+.goa-board-style {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  padding: 0;
+  overflow: hidden;
+  border: 1px solid var(--engraved);
+  border-radius: 8px;
+  background: none;
+  color: var(--on-surface);
+  text-align: left;
+  cursor: pointer;
+}
+.goa-board-style[aria-checked="true"] { border: 2px solid var(--primary); }
+.goa-board-style-art {
+  display: flex;
+  align-items: center;
+  justify-content: space-evenly;
+  height: 84px;
+  background: url("official/maps/forgotten-island.webp") 54.66% 63.5% / 547% auto no-repeat, #1D2124;
+}
+.goa-board-style-art.grid {
+  background:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='60' height='34.64'%3E%3Cpath fill='none' stroke='%2315191B' stroke-opacity='.8' d='M0 17.32L10 0H30L40 17.32L30 34.64H10ZM40 17.32H60'/%3E%3C/svg%3E"),
+    url("official/maps/forgotten-island.webp") 54.66% 63.5% / 547% auto no-repeat,
+    #1D2124;
+}
+.goa-board-style-mini { width: auto; height: 54px; }
+.goa-board-style-mini.small { height: 46px; }
+.goa-board-style-disc {
+  position: relative;
+  width: 32px;
+  height: 32px;
+  border: 1.5px solid #0B1622;
+  border-radius: 50%;
+}
+.goa-board-style-disc.red { background: var(--team-red); }
+.goa-board-style-disc.blue { background: var(--team-blue); }
+.goa-board-style-disc > .goa-official-mark { position: absolute; right: -6px; bottom: -6px; width: 16px; height: 16px; }
+.goa-board-style-label {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-sm);
+  min-height: 48px;
+  padding: var(--sp-xs) var(--sp-sm);
+}
+.goa-board-style-radio {
+  flex: none;
+  width: 20px;
+  height: 20px;
+  border: 2px solid var(--on-surface-variant);
+  border-radius: 50%;
+}
+.goa-board-style[aria-checked="true"] .goa-board-style-radio {
+  border-color: var(--primary);
+  box-shadow: inset 0 0 0 3px var(--surface), inset 0 0 0 10px var(--primary);
+}
+
+/* ---------- Team marks ---------- */
+/* The rulebook's gear and star (Android's TeamMark): decorative, the team's name is beside it. */
+.goa-official-mark {
+  display: inline-block;
+  flex: none;
+  width: 1.1em;
+  height: 1.1em;
+  vertical-align: -0.2em;
+  background: center / contain no-repeat;
+}
+.goa-official-mark.red { background-image: url("official/board/spawn-hero-red.webp"); }
+.goa-official-mark.blue { background-image: url("official/board/spawn-hero-blue.webp"); }
+
+/* ---------- Players ---------- */
+.goa-w2-result > .goa-official-mark { margin-right: 4px; }
+.goa-w2-title-plate { width: fit-content; max-width: 100%; margin: 0 0 var(--sp-xs); overflow-wrap: anywhere; }
+.goa-w2-winner.goa-plate, .goa-w2-seat-editor.goa-plate { border-radius: 8px; }
+.goa-w2-seat-editor.goa-plate.red { border-color: color-mix(in srgb, var(--team-red) 60%, transparent); }
+.goa-w2-seat-editor.goa-plate.blue { border-color: color-mix(in srgb, var(--team-blue) 60%, transparent); }
+.goa-w2-seat-editor.goa-plate.problem { border-color: var(--error); }
+.goa-w2-error-card.goa-plate { border-color: var(--error); }
+
+/* ---------- Trivia ---------- */
+.goa-trivia-ask.goa-title-plate { margin: var(--sp-sm) 0 0; font-size: 1.625rem; line-height: 1.25; color: var(--on-parchment); }
+.goa-trivia-duel-ask .goa-title-plate { margin: 0 0 var(--sp-xs); color: var(--on-parchment); }
+.goa-trivia-choice.goa-plate, .goa-trivia-duel-tile.goa-plate { border-color: rgba(201, 163, 91, 0.55); }
+.goa-trivia-choice.goa-plate.other, .goa-trivia-duel-tile.goa-plate.other { border-color: var(--engraved); }
+/* The pinned bars: the slate across the screen, its steel edge on top only. */
+.goa-trivia-startbar.goa-plate, .goa-trivia-nextbar.goa-plate {
+  border-width: 1px 0 0;
+  border-radius: 0;
+  box-shadow: none;
+}
+.goa-trivia-heroes > li, .goa-trivia-board > li { margin-bottom: var(--sp-sm); }
+.goa-trivia-heroes { margin: 0; }
+.goa-trivia-hero-row { padding-left: var(--sp-md); padding-right: var(--sp-md); }
+.goa-trivia-board { border: 0; }
+.goa-trivia-board > li { border-bottom: 0; overflow: hidden; }

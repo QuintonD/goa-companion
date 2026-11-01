@@ -3,6 +3,7 @@ package dev.quinton.goa.web.ui
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.key
+import dev.quinton.goa.core.model.match.Team
 import dev.quinton.goa.web.LocalServices
 import dev.quinton.goa.web.nav.Route
 import dev.quinton.goa.web.nav.Routes
@@ -249,6 +250,15 @@ fun ListRow(
             else -> Div({ classes("goa-row") }) { body() }
         }
     }
+}
+
+/** The team's mark, the rulebook's gear or star. Decorative: the team's name goes beside it. */
+@Composable
+fun OfficialTeamMark(team: Team) {
+    Span({
+        classes("goa-official-mark", if (team == Team.RED) "red" else "blue")
+        attr("aria-hidden", "true")
+    })
 }
 
 /** A filter chip (toggle button); selected = tonal teal fill. */

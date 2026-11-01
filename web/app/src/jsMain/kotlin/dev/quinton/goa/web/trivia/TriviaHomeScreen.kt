@@ -271,7 +271,7 @@ private fun PlayingAsRow(playing: PlayingAsState, onClick: () -> Unit) {
     val subtitle = if (playing.isGuest) "Not on the leaderboard" else "Rounds go on the leaderboard"
     Button({
         type(ButtonType.Button)
-        classes("goa-trivia-playing")
+        classes("goa-trivia-playing", "goa-plate")
         attr("aria-label", "Playing as $name" + (if (isMe) ", you" else "") + ", $subtitle. Change who's playing")
         onClick { onClick() }
     }) {
@@ -393,7 +393,7 @@ private fun HeroScopeRow(state: TriviaHomeUiState.Ready, onChooseHeroes: () -> U
     val count = if (names.isEmpty()) state.ownedHeroCount else names.size
     Button({
         type(ButtonType.Button)
-        classes("goa-trivia-scope")
+        classes("goa-trivia-scope", "goa-plate")
         attr("aria-label", "Heroes: $summary, ${TriviaText.count(count, "hero", "heroes")}. Choose")
         onClick { onChooseHeroes() }
     }) {
@@ -446,7 +446,7 @@ private fun StartBar(state: TriviaHomeUiState.Ready, onStart: () -> Unit, onChal
     val selection = state.selection
     val note = TriviaText.startNote(state)
     Div({
-        classes("goa-trivia-startbar")
+        classes("goa-trivia-startbar", "goa-plate", "no-brackets")
         publishHeight("--pinned-footer")
     }) {
         Div({ classes("goa-trivia-startbar-text") }) {
@@ -486,7 +486,7 @@ private fun HeroProgressRow(hero: HeroProgressUi, onClick: () -> Unit) {
     }
     Button({
         type(ButtonType.Button)
-        classes("goa-trivia-hero-row")
+        classes("goa-trivia-hero-row", "goa-plate", "no-brackets")
         attr("aria-label", spoken)
         if (!canQuiz) disabled()
         onClick { onClick() }

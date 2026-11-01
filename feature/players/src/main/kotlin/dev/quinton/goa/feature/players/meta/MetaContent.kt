@@ -48,6 +48,8 @@ import dev.quinton.goa.core.designsystem.component.EmptyState
 import dev.quinton.goa.core.designsystem.component.HeroPortrait
 import dev.quinton.goa.core.designsystem.component.PlayerAvatar
 import dev.quinton.goa.core.designsystem.component.TeamBadge
+import dev.quinton.goa.core.designsystem.theme.GoaTextStyles
+import dev.quinton.goa.core.designsystem.theme.GoaTheme
 import dev.quinton.goa.core.designsystem.theme.Spacing
 import dev.quinton.goa.core.domain.meta.WinConditionMix
 import dev.quinton.goa.core.model.match.GameMode
@@ -325,9 +327,9 @@ private fun HeroHeader(state: MetaUiState, actions: MetaActions) {
     Column(Modifier.padding(top = Spacing.lg)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text(
-                "HERO RANKING",
-                style = MaterialTheme.typography.labelLarge,
-                color = MaterialTheme.colorScheme.primary,
+                "Hero ranking",
+                style = GoaTextStyles.sectionHead,
+                color = GoaTheme.colors.heading,
                 modifier = Modifier.weight(1f).semantics { heading() },
             )
             SingleChoiceSegmentedButtonRow {

@@ -176,7 +176,7 @@ private fun QuizPlaying(state: TriviaQuizUiState.Playing, onAnswer: (TriviaAnswe
         }
     }
     if (state.answered) {
-        Div({ classes("goa-trivia-nextbar") }) {
+        Div({ classes("goa-trivia-nextbar", "goa-plate", "no-brackets") }) {
             GoaButton(if (state.lastQuestion) "See results" else "Next", onNext, block = true)
         }
     }
@@ -232,13 +232,13 @@ private fun QuestionPanel(question: QuizQuestionUi) {
                 CardKindLine(question.card)
             }
             H2({
-                classes("goa-trivia-ask", "t-display-small")
+                classes("goa-trivia-ask", "goa-title-plate")
                 attr("aria-label", "What is its ${TriviaText.stat(question.stat)}?")
             }) { Text("${TriviaText.stat(question.stat)}?") }
         }
 
         is QuizQuestionUi.Duel -> Div({ classes("goa-trivia-duel-ask") }) {
-            H2({ classes("t-headline-small", "c-primary") }) { Text("Which has the higher initiative?") }
+            H2({ classes("goa-title-plate") }) { Text("Which has the higher initiative?") }
             P({ classes("t-body-medium", "c-variant") }) { Text("Tap a card, or Same initiative if they match.") }
         }
     }
@@ -286,7 +286,7 @@ private fun NumberChoices(q: QuizQuestionUi.Number, answer: TriviaAnswer.Number?
 private fun ChoiceButton(text: String, spoken: String, mark: Mark, extraClass: String, onClick: () -> Unit) {
     Button({
         type(ButtonType.Button)
-        classes("goa-trivia-choice", extraClass, mark.css)
+        classes("goa-trivia-choice", "goa-plate", "no-brackets", extraClass, mark.css)
         attr("aria-label", withMark(spoken, mark))
         if (mark != Mark.OPEN) disabled()
         onClick { onClick() }
@@ -338,7 +338,7 @@ private fun DuelTile(card: TriviaCardUi, value: Int, revealed: Boolean, mark: Ma
     }
     Button({
         type(ButtonType.Button)
-        classes("goa-trivia-duel-tile", mark.css)
+        classes("goa-trivia-duel-tile", "goa-plate", "no-brackets", mark.css)
         attr("aria-label", withMark(spoken, mark))
         if (mark != Mark.OPEN) disabled()
         onClick { onClick() }

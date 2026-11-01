@@ -417,7 +417,7 @@ private fun MatchFormContent(
 @Composable
 private fun ErrorCard(messages: List<String>) {
     Div({
-        classes("goa-w2-error-card")
+        classes("goa-w2-error-card", "goa-plate", "no-brackets")
         attr("role", "alert")
     }) {
         Span({ classes("c-error") }) { Icon("g_error") }
@@ -514,7 +514,7 @@ private fun WinnerAndCondition(state: MatchEditUiState, editor: MatchEditor, sho
             val selected = form.winner == team
             Button({
                 type(ButtonType.Button)
-                classes("goa-w2-winner", if (team == Team.RED) "red" else "blue")
+                classes("goa-w2-winner", "goa-plate", "no-brackets", if (team == Team.RED) "red" else "blue")
                 attr("role", "radio")
                 attr("aria-checked", selected.toString())
                 attr(
@@ -634,7 +634,7 @@ private fun SeatEditor(
     val heroLabel = if (seat.heroId == null) "Unknown hero" else state.heroName(seat.heroId)
     val pilot = seat.playerId?.let { state.playersById[it] }
     Div({
-        classes("goa-w2-seat-editor", if (team == Team.RED) "red" else "blue")
+        classes("goa-w2-seat-editor", "goa-plate", "no-brackets", if (team == Team.RED) "red" else "blue")
         if (problem != null) classes("problem")
     }) {
         Div({ classes("goa-w2-line") }) {

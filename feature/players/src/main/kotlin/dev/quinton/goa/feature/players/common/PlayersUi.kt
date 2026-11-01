@@ -1,10 +1,12 @@
 package dev.quinton.goa.feature.players.common
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
@@ -22,15 +24,20 @@ import androidx.compose.material.icons.automirrored.filled.TrendingUp
 import androidx.compose.material.icons.filled.EmojiEvents
 import androidx.compose.material.icons.outlined.Block
 import androidx.compose.material.icons.outlined.HourglassEmpty
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Shadow
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
@@ -38,6 +45,12 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import dev.quinton.goa.core.designsystem.component.GoaPlate
+import dev.quinton.goa.core.designsystem.component.GoaPlateTheme
+import dev.quinton.goa.core.designsystem.component.PlateShape
+import dev.quinton.goa.core.designsystem.component.SectionHeader as RulebookSectionHeader
+import dev.quinton.goa.core.designsystem.component.TeamMark
+import dev.quinton.goa.core.designsystem.component.slatePlate
 import dev.quinton.goa.core.designsystem.component.teamColor
 import dev.quinton.goa.core.designsystem.theme.GoaTheme
 import dev.quinton.goa.core.designsystem.theme.Spacing
@@ -113,12 +126,12 @@ fun DeltaIndicator(
     }
 }
 
-/** Match result: "◆ Red won", "● Blue won", "Pending", "Abandoned". */
+/** Match result: the winner's mark and "Red won", "Pending", "Abandoned". */
 @Composable
 fun ResultChip(status: MatchStatus, winner: Team?, modifier: Modifier = Modifier) {
     val (text, color, icon) = when {
         status == MatchStatus.COMPLETED && winner != null -> Triple(
-            "${if (winner == Team.RED) "◆" else "●"} ${winner.label()} won",
+            "${winner.label()} won",
             teamColor(winner),
             Icons.Filled.EmojiEvents,
         )
@@ -145,6 +158,7 @@ fun ResultChip(status: MatchStatus, winner: Team?, modifier: Modifier = Modifier
             horizontalArrangement = Arrangement.spacedBy(Spacing.xs),
         ) {
             Icon(icon, contentDescription = null, modifier = Modifier.size(14.dp))
+            if (status == MatchStatus.COMPLETED && winner != null) TeamMark(winner, markSize = 12.dp)
             Text(text, style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.SemiBold)
         }
     }
@@ -153,9 +167,14 @@ fun ResultChip(status: MatchStatus, winner: Team?, modifier: Modifier = Modifier
 /** Big number over a caption, for stat rows. */
 @Composable
 fun StatTile(value: String, caption: String, modifier: Modifier = Modifier) {
+    GoaPlateTheme { StatTileContent(value, caption, modifier) }
+}
+
+@Composable
+private fun StatTileContent(value: String, caption: String, modifier: Modifier) {
     Column(
         modifier
-            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f), MaterialTheme.shapes.medium)
+            .slatePlate(PlateShape, brackets = false)
             .padding(horizontal = Spacing.md, vertical = Spacing.sm)
             .semantics(mergeDescendants = true) {},
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -183,41 +202,66 @@ fun StatTile(value: String, caption: String, modifier: Modifier = Modifier) {
 
 @Composable
 fun SectionHeader(title: String, modifier: Modifier = Modifier, trailing: (@Composable () -> Unit)? = null) {
-    val heading: @Composable (Modifier) -> Unit = { m ->
-        Text(
-            title.uppercase(),
-            style = MaterialTheme.typography.labelLarge,
-            color = MaterialTheme.colorScheme.primary,
-            modifier = m.semantics { heading() },
-        )
-    }
     if (trailing != null && androidx.compose.ui.platform.LocalDensity.current.fontScale >= LARGE_FONT_SCALE) {
         // Large text: stack, so the heading never breaks mid-word.
-        Column(modifier.fillMaxWidth().padding(top = Spacing.lg, bottom = Spacing.sm)) {
-            heading(Modifier)
+        Column(modifier.fillMaxWidth().padding(bottom = Spacing.sm)) {
+            RulebookSectionHeader(title)
             trailing()
         }
     } else {
-        Row(
-            modifier.fillMaxWidth().padding(top = Spacing.lg, bottom = Spacing.sm),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            heading(Modifier.weight(1f))
-            trailing?.invoke()
-        }
+        RulebookSectionHeader(title, modifier, trailing = trailing)
     }
 }
 
-/** Card frame with the engraved bronze border (docs/DESIGN.md). */
+/** A word as a top-bar action: light with a dark edge, since bronze is lost on the steel banner. */
+@Composable
+fun BannerTextButton(text: String, onClick: () -> Unit, modifier: Modifier = Modifier, enabled: Boolean = true) {
+    val colors = GoaTheme.colors
+    TextButton(
+        onClick = onClick,
+        modifier = modifier,
+        enabled = enabled,
+        colors = ButtonDefaults.textButtonColors(
+            contentColor = colors.onBanner,
+            disabledContentColor = colors.onBannerVariant.copy(alpha = 0.6f),
+        ),
+    ) {
+        Text(
+            text,
+            style = MaterialTheme.typography.labelLarge.copy(
+                fontWeight = FontWeight.Bold,
+                shadow = Shadow(Color.Black, Offset(0f, 1f), blurRadius = 3f),
+            ),
+        )
+    }
+}
+
+/**
+ * A dark plate with a coloured edge and fill for a state (a team, a problem, a choice): both are read
+ * in the plate's dark theme, as anything on a plate must be.
+ */
+@Composable
+fun EdgedPlate(
+    edge: @Composable () -> BorderStroke,
+    modifier: Modifier = Modifier,
+    fill: @Composable () -> Color = { Color.Transparent },
+    content: @Composable () -> Unit,
+) {
+    GoaPlateTheme {
+        Box(
+            modifier
+                .slatePlate(PlateShape, brackets = false)
+                .background(fill(), PlateShape)
+                .border(edge(), PlateShape)
+                .clip(PlateShape),
+        ) { content() }
+    }
+}
+
+/** A dark plate with no padding of its own (docs/DESIGN.md). */
 @Composable
 fun EngravedCard(modifier: Modifier = Modifier, content: @Composable () -> Unit) {
-    Surface(
-        modifier = modifier,
-        shape = MaterialTheme.shapes.medium,
-        color = MaterialTheme.colorScheme.surface,
-        border = androidx.compose.foundation.BorderStroke(1.dp, GoaTheme.colors.engravedBorder),
-        content = content,
-    )
+    GoaPlate(modifier, contentPadding = PaddingValues(0.dp)) { content() }
 }
 
 @Composable

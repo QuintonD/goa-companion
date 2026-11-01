@@ -13,6 +13,7 @@ import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performTextInput
 import androidx.compose.ui.unit.Density
+import androidx.test.core.app.ApplicationProvider
 import com.github.takahirom.roborazzi.ExperimentalRoborazziApi
 import com.github.takahirom.roborazzi.captureRoboImage
 import com.github.takahirom.roborazzi.captureScreenRoboImage
@@ -29,6 +30,7 @@ import dev.quinton.goa.core.domain.sync.protocol.PeerStage
 import dev.quinton.goa.core.domain.sync.protocol.SyncDevice
 import dev.quinton.goa.core.domain.sync.protocol.SyncFailure
 import dev.quinton.goa.core.model.settings.ThemeMode
+import dev.quinton.goa.core.testing.BundledAssetImages
 import dev.quinton.goa.feature.sync.group.GroupActions
 import dev.quinton.goa.feature.sync.group.GroupScreen
 import dev.quinton.goa.feature.sync.group.GroupUiState
@@ -45,6 +47,7 @@ import dev.quinton.goa.feature.sync.session.SessionStage
 import dev.quinton.goa.feature.sync.session.SyncSessionActions
 import dev.quinton.goa.feature.sync.session.SyncSessionSheet
 import dev.quinton.goa.feature.sync.session.SyncSessionUiState
+import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -67,8 +70,11 @@ class SyncScreenshotTest {
         }
     }
 
+    @Before fun art() = BundledAssetImages.install(ApplicationProvider.getApplicationContext())
+
     private fun shot(mode: ThemeMode = ThemeMode.DARK, fontScale: Float = 1f, content: @Composable () -> Unit) {
         setContent(mode, fontScale, content)
+        compose.waitUntil(ART_TIMEOUT_MS) { BundledAssetImages.idle }
         compose.onRoot().captureRoboImage()
     }
 
@@ -121,6 +127,7 @@ class SyncScreenshotTest {
             .performTextInput("Join “Friday nights” in Atlantis Companion: goa1-abc")
         compose.waitForIdle()
         compose.onNode(hasText("Join") and hasClickAction()).assertIsDisplayed()
+        compose.waitUntil(ART_TIMEOUT_MS) { BundledAssetImages.idle }
         compose.onRoot().captureRoboImage()
     }
 
@@ -227,3 +234,5 @@ class SyncScreenshotTest {
         )
     }
 }
+
+private const val ART_TIMEOUT_MS = 15_000L
