@@ -51,8 +51,8 @@ Details and acceptance criteria: [docs/PRODUCT.md](docs/PRODUCT.md).
   skill); corrections go through `fix-hero`. Memory is not a source. Unresolved → `null`,
   `"verified": false`, and the UI marks it.
 - **Official and community game assets are allowed:** card images, artwork and verbatim card
-  text may be bundled, each recorded in `official/SOURCES.md`. Our own UI and brand assets stay
-  original (see [docs/DESIGN.md](docs/DESIGN.md#asset-policy)). They belong to Wolff Designa and
+  text may be bundled, each recorded in `official/SOURCES.md`. The app's frames use the game's own parts
+  (ADR-053); our brand assets stay original (see [docs/DESIGN.md](docs/DESIGN.md#asset-policy)). They belong to Wolff Designa and
   sit in `assets/official/`; a public release with them bundled needs permission (ADR-034).
 - **2nd printing is the data baseline.** Every hero/card records its printing; a 3rd printing
   (2027) will need a refresh, not a rewrite.

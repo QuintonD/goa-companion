@@ -1,5 +1,51 @@
 # Design
 
+## Direction: the game's own look (ADR-053)
+The app looks like the game. It builds on "Steel and bronze" below (ADR-042), and where the two differ this section wins.
+Mock-ups: `design/mockups/original-look/`.
+
+**The parts** (`core/designsystem/.../component/LookParts.kt`, `LookButtons.kt`; web: the end of `goa.css`, then a stylesheet per
+area, `goa-look-*.css`). Every part falls back to a flat colour while its image loads:
+- **Steel banner** (`GoaScreen`, `Modifier.steelBanner`): the rulebook's real band, stretched, and its star medallion at the end at
+  its own proportions. Titles are `BevelText` (white metal with a dark outline). Actions stay clear of the medallion (`BannerEndSpacer`);
+  on narrow phones some move into More. Words as actions on it are `BannerTextButton`, light with a dark edge.
+- **Slate plate** (`GoaPlate`, `Modifier.slatePlate`, `GoaCard`, `.goa-plate`, `.goa-card`): the dashboard's dark plate with a steel edge and
+  small teal corner brackets. Plates are dark in both themes and what sits on one is themed dark (`GoaPlateTheme`). Bottom nav and sheets
+  (`GoaSheet`, never a bare `ModalBottomSheet`) are slate too.
+- **Title plate** (`TitlePlate`, `.goa-title-plate`): the cards' parchment pill with its gear, 3-sliced, growing with its text: a hero's name, what a
+  question asks, a timer phase. A screen's one key title, not every heading.
+- **Text box** (`CardTextBox(PlateColor, cap)`, `.goa-text-box.<colour>`): the cards' parchment box in a frame colour with the word on its tab (dark on
+  gold and silver, white on the rest): question text in the asking card's colour, moments in gold, coach and nudges in green, the attack header in red.
+- **Ribbons, counters, icons:** `ColourRibbon` on a card colour's section head (`SectionHeader(ribbon =)`); `LifeCounterIcon`, `WaveCounterIcon`,
+  `CoinIcon`, `ActionIcon`, the official item icons as stats. **Team marks** are the official gear and star (`TeamMark`).
+- **Buttons:** `GoaButton` (bronze metal with a sheen, the app's filled button), `MetalButton`, `SlateButton` over art. Team-coloured draft buttons stay Material.
+- **Card backs:** a facedown card shows its hero's own back (`official/heroes/<id>/back.webp`).
+
+**Tokens changed:** dark `surface` `#1E2327`, `surfaceHigh` `#2A3136`, `onSurfaceVariant` `#B4BEC8`, team red `#E76C61`. `LookArtContrastTest` checks text
+against the art itself: the slate at its lightest 1 %, the parchment at its darkest.
+
+**The board** (`feature/board/map/MapLayers.kt` `PaintedMap`; web `play/map/`): replaces the zone fills, water and terrain described under "Board (sandbox)"
+when a map has `art` (all four do); the drawn map stays as the fallback while loading.
+- The painting sits under the hexes with `art.sea` past its feathered edge. The Battle Zone is full colour, the rest dimmed (brightness about .58, saturation
+  .5), with a thick white edge on a dark halo; rocks enclosed by it are lit and not outlined. Zone labels are bevelled words with no pill.
+- **Spaces a question offers take the light** (`MapLighting`): lit, white-edged, numbered in small dark chips, the chosen one bronze; the Battle Zone keeps a thin line
+  meanwhile. Occupied spaces you can't end on stay dark. Range and Radius stay patterns. Overlays use `ArtBoardPalette`, the same in both themes, each with a dark halo.
+- **Board style** (Settings → Appearance; `LocalBoardStyle`): Miniatures, or Grid and discs (hex hairlines, discs with the type's glyph). Miniatures stand on a team-coloured base
+  with a small round type badge drawn above every figure; a Heavy is larger. Team on a miniature is colour plus each team's own sculpt; TalkBack names it.
+- **Hero tokens:** portrait in a team ring with the mark on a dark badge. Max zoom on art maps: 88 dp a hex.
+- Spaces in `art.uncovered` have copied ground (ADR-053); only their Spawn symbols and Zone edges are drawn.
+
+**Screens:**
+- **Table:** HUD on a plate with official counters and bronze diamond pips; hero chips on plates; panel on rounded slate with the mark and name on its top strip; the hand in a gentle fan
+  (3.2° a card, the outer ones lower), each still one target and one TalkBack node; the turn track's cards with state bands, the portrait on the art so the name shows.
+- **Hero sheet:** the real dashboard (`official/ui/dashboard-frame`) with played cards in its Turn slots. Tigerclaw's art is the rulebook's; other heroes' portraits cover the frame, cropped around the
+  head and darkened toward the edges. Items as icons with "+n", the Ultimate, the hand or card backs. Frame fractions: Turn plates y .272, x .170, .389, .607, .829; slots y .335 to .83.
+- **Heroes grid:** slate tile, name on the title plate, portrait with the deck symbol at its top left, italic Crimson title, stars, two roles. Two columns from font scale 1.3.
+- **Hero page:** art edge to edge fading into the canvas (dashboard art or the portrait cropped toward the top), symbol and name on the plate, stats as icons with base → max on a plate; the banner always names the hero.
+- **Rules:** parchment page in both themes, copper heads, passages in the box the rulebook prints them in: blue `#0F6F99`, green `#2B7A33` and orange `#A8560F` (the print's green and orange darkened to 5.3:1 and 5.2:1). Pushing the Lane has the p.8 diagram, multiplied into the page.
+- **Timer:** the painted sea under a navy veil, the battlefield silhouette at the foot, phase on a title plate, steel double ring, digits in Inter on a near-black disc. Stays dark in both themes. Next (bronze) is wider than Pause (steel) because its label runs long.
+- **Draft:** step on a title plate in a team-edged plate; pool tiles with portrait, symbol and parchment name; bans crossed out, dimmed and struck through.
+
 ## Direction: "Steel and bronze" — the game's own look (ADR-042)
 The app is styled on the official graphics and leans on them wherever they serve the player: the
 cards are shown as the cards, heroes as their art and deck symbols, the board as its printed
@@ -213,7 +259,7 @@ player looks for with the board in view, ADR-041). Hidden or shown is kept per s
 rotation.
 
 ### Board (sandbox, ADR-033)
-The map is drawn by the app, never from the map art: pointy-top hexes turned in 30° steps so the
+The drawn map (the fallback since ADR-053, see the top of this file): pointy-top hexes turned in 30° steps so the
 Lane runs up the screen in portrait (the bottom team's Throne Zone at the bottom; "Flip" swaps) and
 left to right in landscape. Zone fills are muted (`BoardPalette`, derived from the theme for dark
 and light): lane Zones alternate two tones, side Zones a sea-green tone, Throne Zones a team tint,
@@ -549,13 +595,13 @@ Two kinds of asset (ADR-006, ADR-034):
   `app/src/main/assets/official/`, every file listed with its source in `official/SOURCES.md`.
 - Card text contains inline icon tokens; render them with matching vector icons (redrawn
   originals in the game's icon style if no clean official vector exists).
-- Show them as-is (crop and resize only); don't redraw or recolour official art.
-- Present official art inside our own frames so it fits the app's look.
+- Otherwise show them as-is (crop and resize only); don't redraw or recolour official art.
+- Since ADR-053 the rulebook's and the cards' own parts may be the frames. Beyond crops, only what `official/SOURCES.md` records: the composed banner, toned miniatures, masked plate parts, flattened photos of the mats.
 
 **Original app assets** — everything that is the app itself rather than the game.
 - App icon: adaptive icon (trident-and-shield sigil on a deep-ocean gradient) plus themed
   monochrome layer.
-- UI icons not in Material Symbols, frames, backgrounds, empty-state illustrations.
+- UI icons not in Material Symbols, empty-state illustrations.
 - Hero **sigils**: small geometric emblems per hero (24-unit grid, 2-unit stroke), now only the
   fallback when official art (portrait, deck symbol) is missing or still loading.
 - Player avatars: 24 original abstract crests, colour-tinted by player colour.
