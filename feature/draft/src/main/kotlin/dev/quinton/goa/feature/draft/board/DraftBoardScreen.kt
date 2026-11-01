@@ -50,7 +50,6 @@ import androidx.compose.material.icons.outlined.Lock
 import androidx.compose.material.icons.outlined.MoreVert
 import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material.icons.outlined.SwapHoriz
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.DropdownMenu
@@ -99,6 +98,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dev.quinton.goa.core.designsystem.component.ComplexityStars
 import dev.quinton.goa.core.designsystem.component.EmptyState
 import dev.quinton.goa.core.designsystem.component.GoaButton
+import dev.quinton.goa.core.designsystem.component.GoaDialog
 import dev.quinton.goa.core.designsystem.component.GoaFilterChip
 import dev.quinton.goa.core.designsystem.component.GoaPlate
 import dev.quinton.goa.core.designsystem.component.GoaPlateTheme
@@ -336,7 +336,7 @@ fun DraftBoardScreen(state: BoardUiState, actions: BoardActions) {
         )
     }
     if (confirmDiscard) {
-        AlertDialog(
+        GoaDialog(
             onDismissRequest = { confirmDiscard = false },
             title = { Text("Discard this draft?") },
             text = { Text("Bans and picks so far are thrown away. Nothing is saved to the match log.") },
@@ -987,7 +987,7 @@ private fun ConfirmDialog(
     val color = teamColor(step.team)
     val ban = step.action == DraftAction.BAN
     val pilot = step.seatId?.let { session.seat(it) }?.pilotId?.let { state.playerName(it) }
-    AlertDialog(
+    GoaDialog(
         onDismissRequest = actions::cancelConfirm,
         icon = {
             HeroPortrait(hero.id, hero.portrait, null, Modifier.size(width = 96.dp, height = 120.dp))

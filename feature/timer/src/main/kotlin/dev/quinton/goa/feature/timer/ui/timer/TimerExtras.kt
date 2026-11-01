@@ -26,7 +26,6 @@ import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.outlined.Bolt
 import androidx.compose.material.icons.outlined.MoreTime
 import androidx.compose.material.icons.outlined.Replay
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -65,6 +64,7 @@ import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import dev.quinton.goa.core.designsystem.component.GoaDialog
 import dev.quinton.goa.core.designsystem.component.GoaPlate
 import dev.quinton.goa.core.designsystem.component.HeroPortrait
 import dev.quinton.goa.core.designsystem.component.PlateShape
@@ -187,7 +187,7 @@ internal fun TieBreakerChip(
 /** Asks which side shows instead of assuming one (rulebook p.7: the coin is flipped at setup). */
 @Composable
 internal fun CoinSideDialog(current: Team?, onPick: (Team?) -> Unit, onDismiss: () -> Unit) {
-    AlertDialog(
+    GoaDialog(
         onDismissRequest = onDismiss,
         title = { Text("Tie Breaker coin") },
         text = {

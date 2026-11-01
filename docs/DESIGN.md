@@ -87,8 +87,7 @@ bronze" (deep-ocean dark with bronze and teal), which stays as the canvas and th
 - **No commercial fonts.** Modesto and Minion are licensed fonts; Cinzel (Copperplate/Trajan
   caps) and Crimson Pro (a Minion look-alike) are OFL and stand in for them. Inter stays for the
   app's own words, so verbatim game text (Crimson) and our text (Inter) look different.
-- **Team is never colour alone.** The official red/blue (copper gear / ice star) is kept, and the
-  ◆/● shape marks stay wherever a team is shown.
+- **Team is never colour alone.** The official gear and star are the team marks wherever a team is shown (ADR-053).
 
 ## Tokens (`core:designsystem`)
 | Token | Dark | Light | Use |

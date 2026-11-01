@@ -39,7 +39,6 @@ import androidx.compose.material.icons.outlined.PhoneAndroid
 import androidx.compose.material.icons.outlined.QrCode2
 import androidx.compose.material.icons.outlined.QrCodeScanner
 import androidx.compose.material.icons.outlined.Sync
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -72,6 +71,7 @@ import androidx.compose.ui.unit.dp
 import dev.quinton.goa.core.designsystem.component.ConfirmDialog
 import dev.quinton.goa.core.designsystem.component.GoaButton
 import dev.quinton.goa.core.designsystem.component.GoaCard
+import dev.quinton.goa.core.designsystem.component.GoaDialog
 import dev.quinton.goa.core.designsystem.component.GoaScreen
 import dev.quinton.goa.core.designsystem.component.PlayerAvatar
 import dev.quinton.goa.core.designsystem.component.SectionHeader
@@ -461,7 +461,7 @@ fun InviteDialog(state: GroupUiState, onShare: () -> Unit, onDismiss: () -> Unit
     // A link to the web app with the invite in its fragment: the app's scanner finds the invite in
     // it, and an iPhone's Camera opens the web app ready to join (ADR-043).
     val qr = remember(invite) { InviteQr.bitmap(GroupInvite.link(invite)) }
-    AlertDialog(
+    GoaDialog(
         onDismissRequest = onDismiss,
         title = { Text("Invite to “${state.groupName}”") },
         text = {

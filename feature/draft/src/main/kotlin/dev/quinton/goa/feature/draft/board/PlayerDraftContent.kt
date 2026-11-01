@@ -18,7 +18,6 @@ import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -39,6 +38,7 @@ import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import dev.quinton.goa.core.designsystem.component.GoaButton
+import dev.quinton.goa.core.designsystem.component.GoaDialog
 import dev.quinton.goa.core.designsystem.component.GoaPlate
 import dev.quinton.goa.core.designsystem.component.GoaSheet
 import dev.quinton.goa.core.designsystem.component.HeroPortrait
@@ -101,7 +101,7 @@ internal fun PlayerDraftContent(
     val pending = drafting
     val team = session.captains.nextTeam
     if (pending != null && team != null) {
-        AlertDialog(
+        GoaDialog(
             onDismissRequest = { drafting = null },
             title = { Text("Draft ${state.playerName(pending)} to ${teamLabel(team)}?") },
             text = { Text("They play ${heroLabel(state.heroes, session.selection.choices[pending])}.") },

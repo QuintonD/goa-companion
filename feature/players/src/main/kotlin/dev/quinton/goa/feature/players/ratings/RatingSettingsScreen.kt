@@ -14,7 +14,6 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Calculate
 import androidx.compose.material.icons.outlined.RestartAlt
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -36,6 +35,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.unit.dp
+import dev.quinton.goa.core.designsystem.component.GoaDialog
 import dev.quinton.goa.core.designsystem.component.GoaScreen
 import dev.quinton.goa.core.designsystem.theme.Spacing
 import dev.quinton.goa.core.domain.rating.EloConfig
@@ -106,7 +106,7 @@ fun RatingSettingsScreen(state: RatingSettingsUiState, actions: RatingSettingsAc
         }
     }
     if (confirmReset) {
-        AlertDialog(
+        GoaDialog(
             onDismissRequest = { confirmReset = false },
             title = { Text(RatingSettingsText.RESET_TITLE) },
             text = { Text(RatingSettingsText.RESET_MESSAGE) },

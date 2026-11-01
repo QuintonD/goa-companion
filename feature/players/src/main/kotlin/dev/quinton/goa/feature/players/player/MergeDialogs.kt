@@ -14,7 +14,6 @@ import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.MergeType
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
@@ -31,6 +30,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
 import dev.quinton.goa.core.designsystem.component.ConfirmDialog
+import dev.quinton.goa.core.designsystem.component.GoaDialog
 import dev.quinton.goa.core.designsystem.component.PlayerAvatar
 import dev.quinton.goa.core.designsystem.theme.Spacing
 import dev.quinton.goa.feature.players.common.plural
@@ -61,7 +61,7 @@ internal fun MergeSection(state: PlayerDetailUiState, actions: PlayerDetailActio
         modifier = Modifier.padding(top = Spacing.sm),
     )
     if (picking) {
-        AlertDialog(
+        GoaDialog(
             onDismissRequest = { picking = false },
             title = { Text("Merge ${player.name} into…") },
             text = {
@@ -124,7 +124,7 @@ internal fun MergeSection(state: PlayerDetailUiState, actions: PlayerDetailActio
         )
     }
     (state.mergeOutcome as? MergeOutcome.PlayedTogether)?.let { refused ->
-        AlertDialog(
+        GoaDialog(
             onDismissRequest = actions.onMergeOutcomeShown,
             title = { Text("Can't merge") },
             text = {

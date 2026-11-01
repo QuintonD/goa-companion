@@ -36,7 +36,6 @@ import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.SkipPrevious
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
@@ -66,6 +65,7 @@ import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import dev.quinton.goa.core.designsystem.component.GoaButton
+import dev.quinton.goa.core.designsystem.component.GoaDialog
 import dev.quinton.goa.core.designsystem.component.GoaPlate
 import dev.quinton.goa.core.designsystem.component.PlateShape
 import dev.quinton.goa.core.designsystem.component.slatePlate
@@ -511,7 +511,7 @@ private fun JumpDialog(state: ActiveUiState, target: RoundRowUi?, actions: Timer
     LaunchedEffect(state.round) { onDismiss() }
     if (target == null) return
     val from = state.rows.firstOrNull { it.state == RoundRowState.CURRENT }?.jumpName ?: state.title
-    AlertDialog(
+    GoaDialog(
         onDismissRequest = onDismiss,
         title = { Text("Jump to ${target.jumpName}?") },
         text = {

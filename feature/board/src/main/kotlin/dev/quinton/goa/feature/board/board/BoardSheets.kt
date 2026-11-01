@@ -23,7 +23,6 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.outlined.Search
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -56,6 +55,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import dev.quinton.goa.core.designsystem.component.GoaButton
+import dev.quinton.goa.core.designsystem.component.GoaDialog
 import dev.quinton.goa.core.designsystem.component.GoaFilterChip
 import dev.quinton.goa.core.designsystem.component.GoaSheet
 import dev.quinton.goa.core.designsystem.component.HeroPortrait
@@ -332,7 +332,7 @@ internal fun PushDialog(
     onDismiss: () -> Unit,
 ) {
     val lanes = state.map.lanes
-    AlertDialog(
+    GoaDialog(
         onDismissRequest = onDismiss,
         title = {
             Text(
@@ -379,8 +379,6 @@ internal fun PushDialog(
         },
         confirmButton = {},
         dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } },
-        containerColor = MaterialTheme.colorScheme.surface,
-        shape = MaterialTheme.shapes.extraLarge,
     )
 }
 
@@ -415,7 +413,7 @@ private fun PushButtons(lane: String?, onPush: (Team) -> Unit) {
 /** Pushing into a Throne Zone: that team wins (p.8). Nothing on the board changes. */
 @Composable
 internal fun ThroneDialog(winner: Team, onDismiss: () -> Unit) {
-    AlertDialog(
+    GoaDialog(
         onDismissRequest = onDismiss,
         icon = { TeamMark(winner, markSize = 20.dp) },
         title = { Text("${BoardText.team(winner)} wins", style = MaterialTheme.typography.headlineSmall) },
@@ -427,8 +425,6 @@ internal fun ThroneDialog(winner: Team, onDismiss: () -> Unit) {
             )
         },
         confirmButton = { TextButton(onClick = onDismiss) { Text("OK") } },
-        containerColor = MaterialTheme.colorScheme.surface,
-        shape = MaterialTheme.shapes.extraLarge,
     )
 }
 

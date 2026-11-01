@@ -61,7 +61,7 @@ fun GoaScreen(
             SteelBanner {
                 TopAppBar(
                     title = {
-                        BevelText(text = title, modifier = Modifier.semantics { heading() })
+                        BannerTitle(text = title, modifier = Modifier.semantics { heading() })
                     },
                     navigationIcon = {
                         if (onBack != null) {

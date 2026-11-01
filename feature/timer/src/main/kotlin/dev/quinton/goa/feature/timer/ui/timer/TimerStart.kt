@@ -25,7 +25,6 @@ import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Remove
 import androidx.compose.material.icons.outlined.Flag
 import androidx.compose.material.icons.outlined.Tune
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.FilledTonalIconButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -48,6 +47,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import dev.quinton.goa.core.designsystem.component.GoaDialog
 import dev.quinton.goa.core.designsystem.component.GoaPlate
 import dev.quinton.goa.core.designsystem.component.GoaScreen
 import dev.quinton.goa.core.designsystem.component.MetalButton
@@ -334,7 +334,7 @@ private fun PendingMatchCard(match: PendingMatchItem, onClick: () -> Unit, onDis
         }
     }
     if (confirm) {
-        AlertDialog(
+        GoaDialog(
             onDismissRequest = { confirm = false },
             title = { Text("Discard this pending match?") },
             text = { Text("It leaves this list and the match log. Matches with a result aren't affected.") },

@@ -21,7 +21,6 @@ import androidx.compose.material.icons.outlined.CloudDone
 import androidx.compose.material.icons.outlined.FileDownload
 import androidx.compose.material.icons.outlined.FileUpload
 import androidx.compose.material.icons.outlined.Lock
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LinearProgressIndicator
@@ -47,6 +46,7 @@ import androidx.compose.ui.unit.dp
 import dev.quinton.goa.core.data.backup.BackupSummary
 import dev.quinton.goa.core.data.backup.ImportMode
 import dev.quinton.goa.core.designsystem.component.GoaButton
+import dev.quinton.goa.core.designsystem.component.GoaDialog
 import dev.quinton.goa.core.designsystem.component.GoaScreen
 import dev.quinton.goa.core.designsystem.theme.Spacing
 import dev.quinton.goa.feature.players.common.Dates
@@ -201,7 +201,7 @@ fun ImportDialog(
 ) {
     var mode by rememberSaveable { mutableStateOf(if (phoneIsEmpty) ImportMode.REPLACE else ImportMode.MERGE) }
     var useSettings by rememberSaveable { mutableStateOf(false) }
-    AlertDialog(
+    GoaDialog(
         onDismissRequest = onCancel,
         icon = { Icon(Icons.Outlined.FileDownload, contentDescription = null) },
         title = { Text("Import backup?") },
