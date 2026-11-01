@@ -135,7 +135,7 @@ fun AboutScreen(info: AppInfo, onBack: () -> Unit, modifier: Modifier = Modifier
                 GoaCard(Modifier.fillMaxWidth()) {
                     Body(
                         "Guards of Atlantis II, its heroes, card text, card images and artwork are by " +
-                            "Wolff Designa. They appear here for private, non-commercial play.",
+                            "Wolff Designa. They appear here for non-commercial play by fans of the game.",
                     )
                     Spacer(Modifier.size(Spacing.sm))
                     Text(
