@@ -3,13 +3,13 @@ package dev.quinton.goa.feature.timer.ui.setup
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.tween
-import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -27,13 +27,11 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.outlined.Info
-import androidx.compose.material3.Button
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.RadioButton
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -41,10 +39,9 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.Path
-import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.Role
@@ -53,26 +50,31 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import dev.quinton.goa.core.designsystem.component.GoaPlate
+import dev.quinton.goa.core.designsystem.component.GoaPlateTheme
 import dev.quinton.goa.core.designsystem.component.GoaScreen
+import dev.quinton.goa.core.designsystem.component.LifeCounterIcon
+import dev.quinton.goa.core.designsystem.component.PlateShape
+import dev.quinton.goa.core.designsystem.component.SectionHeader
 import dev.quinton.goa.core.designsystem.component.TeamBadge
+import dev.quinton.goa.core.designsystem.component.WaveCounterIcon
+import dev.quinton.goa.core.designsystem.component.slatePlate
 import dev.quinton.goa.core.designsystem.component.teamColor
-import dev.quinton.goa.core.designsystem.theme.GoaTheme
 import dev.quinton.goa.core.designsystem.theme.Spacing
 import dev.quinton.goa.core.model.match.GameMode
 import dev.quinton.goa.core.model.match.Team
 import dev.quinton.goa.feature.timer.ui.components.CoinFace
+import dev.quinton.goa.feature.timer.ui.components.MetalButton
+import dev.quinton.goa.feature.timer.ui.components.PlateTeal
 import dev.quinton.goa.feature.timer.ui.components.goaChipBorder
 import dev.quinton.goa.feature.timer.ui.components.goaChipColors
+import dev.quinton.goa.feature.timer.ui.components.plateEdge
 import dev.quinton.goa.feature.timer.ui.components.rememberReducedMotion
 import dev.quinton.goa.feature.timer.ui.components.rememberStartWithNotificationPermission
 import dev.quinton.goa.feature.timer.ui.components.teamName
-import dev.quinton.goa.feature.timer.ui.timer.SectionHeader
 import dev.quinton.goa.feature.timer.ui.timer.Stepper
-import kotlin.math.cos
-import kotlin.math.sin
 
 data class SetupActions(
     val onBack: () -> Unit = {},
@@ -175,8 +177,13 @@ fun MatchSetupScreen(state: MatchSetupUiState, actions: SetupActions) {
                 }
                 Spacer(Modifier.height(Spacing.lg))
             }
-            Surface(color = MaterialTheme.colorScheme.surface, tonalElevation = 2.dp) {
-                Column(Modifier.fillMaxWidth().padding(horizontal = Spacing.screen, vertical = Spacing.md)) {
+            GoaPlateTheme {
+                Column(
+                    Modifier
+                        .fillMaxWidth()
+                        .slatePlate(RectangleShape, brackets = false)
+                        .padding(horizontal = Spacing.screen, vertical = Spacing.md),
+                ) {
                     if (state.replacesRunningTimer) {
                         Text(
                             "A timer is already running; starting replaces it.",
@@ -185,10 +192,10 @@ fun MatchSetupScreen(state: MatchSetupUiState, actions: SetupActions) {
                             modifier = Modifier.padding(bottom = Spacing.sm),
                         )
                     }
-                    Button(
+                    MetalButton(
                         onClick = actions.onStart,
+                        bronze = true,
                         modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp),
-                        shape = RoundedCornerShape(16.dp),
                     ) {
                         Icon(Icons.Filled.PlayArrow, contentDescription = null)
                         Spacer(Modifier.width(Spacing.sm))
@@ -206,17 +213,14 @@ private fun SetupCard(
     highlighted: Boolean = false,
     content: @Composable () -> Unit,
 ) {
-    val colors = MaterialTheme.colorScheme
-    Surface(
-        shape = MaterialTheme.shapes.medium,
-        color = if (highlighted) colors.secondary.copy(alpha = 0.10f) else colors.surface,
-        border = BorderStroke(
-            if (highlighted) 1.5.dp else 1.dp,
-            if (highlighted) colors.secondary else GoaTheme.colors.engravedBorder,
-        ),
-        modifier = modifier.fillMaxWidth(),
-        content = content,
-    )
+    GoaPlate(
+        Modifier
+            .fillMaxWidth()
+            .plateEdge(if (highlighted) PlateTeal else null)
+            .clip(PlateShape)
+            .then(modifier),
+        contentPadding = PaddingValues(0.dp),
+    ) { content() }
 }
 
 @Composable
@@ -294,14 +298,14 @@ private fun Note(text: String) {
 
 @Composable
 private fun Badge(text: String, color: Color) {
-    Surface(shape = RoundedCornerShape(50), color = color.copy(alpha = 0.14f)) {
-        Text(
-            text,
-            style = MaterialTheme.typography.labelSmall,
-            color = color,
-            modifier = Modifier.padding(horizontal = Spacing.sm, vertical = 2.dp),
-        )
-    }
+    Text(
+        text,
+        style = MaterialTheme.typography.labelSmall,
+        color = color,
+        modifier = Modifier
+            .background(color.copy(alpha = 0.14f), RoundedCornerShape(50))
+            .padding(horizontal = Spacing.sm, vertical = 2.dp),
+    )
 }
 
 @Composable
@@ -345,7 +349,6 @@ private fun LayoutCard(layout: LayoutOptionUi, selected: Boolean, selectable: Bo
 
 @Composable
 private fun ModeCard(mode: ModeOptionUi, selected: Boolean, onClick: () -> Unit) {
-    val colors = MaterialTheme.colorScheme
     SetupCard(
         modifier = Modifier
             // No alpha dimming: the "why unavailable" text must stay readable (>= 4.5:1). The disabled
@@ -353,6 +356,7 @@ private fun ModeCard(mode: ModeOptionUi, selected: Boolean, onClick: () -> Unit)
             .selectable(selected = selected, enabled = mode.available, onClick = onClick, role = Role.RadioButton),
         highlighted = selected,
     ) {
+        val colors = MaterialTheme.colorScheme
         Row(Modifier.padding(Spacing.md), verticalAlignment = Alignment.Top) {
             RadioButton(
                 selected = selected,
@@ -397,7 +401,7 @@ private fun CountersBoard(counters: CountersUi) {
                     label = if (counters.lanes > 1) "Lane ${lane + 1}" else null,
                     count = counters.wavesPerLane,
                     color = MaterialTheme.colorScheme.primary,
-                    hexagon = true,
+                    token = { WaveCounterIcon(size = TOKEN) },
                     description = if (counters.lanes > 1) {
                         "Lane ${lane + 1}: ${counters.wavesPerLane} Wave counters"
                     } else {
@@ -416,7 +420,7 @@ private fun CountersBoard(counters: CountersUi) {
                         leading = { TeamBadge(team) },
                         count = life,
                         color = teamColor(team),
-                        hexagon = false,
+                        token = { LifeCounterIcon(team, size = TOKEN) },
                         description = "${teamName(team)}: $life Life counters",
                     )
                 }
@@ -469,27 +473,25 @@ private fun RulesNoteBlock(title: String, points: List<String>) {
 /** A house-rule label next to the counters it changes (secondary colour, like the layout's badge). */
 @Composable
 private fun HouseRuleNote(text: String) {
-    Surface(
-        shape = MaterialTheme.shapes.small,
-        color = MaterialTheme.colorScheme.secondary.copy(alpha = 0.10f),
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.secondary.copy(alpha = 0.5f)),
-        modifier = Modifier.fillMaxWidth(),
-    ) {
-        Text(
-            text,
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurface,
-            modifier = Modifier.padding(Spacing.sm),
-        )
-    }
+    Text(
+        text,
+        style = MaterialTheme.typography.bodySmall,
+        color = MaterialTheme.colorScheme.onSurface,
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(MaterialTheme.colorScheme.secondary.copy(alpha = 0.10f), MaterialTheme.shapes.small)
+            .plateEdge(MaterialTheme.colorScheme.secondary.copy(alpha = 0.5f), 1.dp, MaterialTheme.shapes.small)
+            .padding(Spacing.sm),
+    )
 }
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun TokenRow(
     label: String?,
     count: Int,
     color: Color,
-    hexagon: Boolean,
+    token: @Composable () -> Unit,
     description: String,
     leading: (@Composable () -> Unit)? = null,
 ) {
@@ -508,37 +510,15 @@ private fun TokenRow(
                 )
             }
         }
-        Row(
+        // Wraps: the official counters must never be squeezed out on a small phone.
+        FlowRow(
             Modifier.weight(1f),
-            horizontalArrangement = Arrangement.spacedBy(6.dp),
-            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(TOKEN_GAP),
+            verticalArrangement = Arrangement.spacedBy(TOKEN_GAP),
         ) {
-            repeat(count.coerceAtMost(MAX_TOKENS)) { Token(color, hexagon) }
+            repeat(count.coerceAtMost(MAX_TOKENS)) { token() }
         }
         Text("×$count", style = MaterialTheme.typography.titleSmall, color = color)
-    }
-}
-
-@Composable
-private fun Token(color: Color, hexagon: Boolean, size: Dp = 22.dp) {
-    Canvas(Modifier.size(size)) {
-        val r = this.size.minDimension / 2f
-        val c = Offset(this.size.width / 2, this.size.height / 2)
-        if (hexagon) {
-            val path = Path()
-            for (i in 0 until 6) {
-                val a = Math.toRadians((60.0 * i) - 30.0)
-                val p = Offset(c.x + r * cos(a).toFloat(), c.y + r * sin(a).toFloat())
-                if (i == 0) path.moveTo(p.x, p.y) else path.lineTo(p.x, p.y)
-            }
-            path.close()
-            drawPath(path, color.copy(alpha = 0.22f))
-            drawPath(path, color, style = Stroke(1.5.dp.toPx()))
-        } else {
-            drawCircle(color.copy(alpha = 0.22f), r, c)
-            drawCircle(color, r - 0.75.dp.toPx(), c, style = Stroke(1.5.dp.toPx()))
-            drawCircle(color, r * 0.35f, c)
-        }
     }
 }
 
@@ -628,5 +608,7 @@ private fun CoinSideChips(selected: Team?, label: String, onSet: (Team) -> Unit)
 }
 
 private const val MAX_TOKENS = 8
+private val TOKEN = 26.dp
+private val TOKEN_GAP = 4.dp
 private const val COIN_SPIN = 1440f
 private const val COIN_SPIN_MS = 900

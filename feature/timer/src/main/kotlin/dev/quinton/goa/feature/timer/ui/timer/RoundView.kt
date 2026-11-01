@@ -5,7 +5,6 @@ import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -43,7 +42,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -68,10 +66,14 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import dev.quinton.goa.core.designsystem.component.EngravedRule
+import dev.quinton.goa.core.designsystem.component.GoaPlate
+import dev.quinton.goa.core.designsystem.component.PlateShape
+import dev.quinton.goa.core.designsystem.component.slatePlate
+import dev.quinton.goa.core.designsystem.theme.GoaTextStyles
 import dev.quinton.goa.core.designsystem.theme.GoaTheme
 import dev.quinton.goa.core.designsystem.theme.Spacing
 import dev.quinton.goa.core.domain.timer.TimerEngine
+import dev.quinton.goa.feature.timer.ui.components.plateEdge
 import dev.quinton.goa.feature.timer.ui.components.rememberReducedMotion
 import dev.quinton.goa.feature.timer.ui.components.timerDigits
 
@@ -87,8 +89,6 @@ internal fun PortraitRoundTimer(state: ActiveUiState, actions: TimerActions, hea
     var jump by remember { mutableStateOf<RoundRowUi?>(null) }
     Column(Modifier.fillMaxSize()) {
         header()
-        // Rows scroll under the header: the rule keeps a clipped row from reading as part of it.
-        EngravedRule(Modifier.padding(top = Spacing.xs))
         RoundList(state, actions, expandCurrent = true, onJump = { jump = it }, Modifier.weight(1f).fillMaxWidth())
         PinnedTableRules(state, actions)
         PinnedShotClock(state, actions, compact = false)
@@ -241,8 +241,8 @@ private fun RoundList(
 private fun GroupHeading(title: String) {
     Text(
         title.uppercase(),
-        style = MaterialTheme.typography.labelMedium,
-        color = MaterialTheme.colorScheme.primary,
+        style = GoaTextStyles.sectionHead,
+        color = GoaTheme.colors.heading,
         modifier = Modifier
             .fillMaxWidth()
             .padding(start = Spacing.sm, top = Spacing.md, bottom = Spacing.xs)
@@ -268,11 +268,12 @@ private fun RoundRow(row: RoundRowUi, state: ActiveUiState, onClick: () -> Unit)
     val current = row.state == RoundRowState.CURRENT
     Row(
         Modifier
+            .padding(vertical = ROW_GAP)
             .fillMaxWidth()
             .heightIn(min = 48.dp)
-            .clip(MaterialTheme.shapes.medium)
-            .background(if (current) colors.secondary.copy(alpha = 0.12f) else Color.Transparent)
-            .then(if (current) Modifier.border(2.dp, accent(state), MaterialTheme.shapes.medium) else Modifier)
+            .plateEdge(if (current) accent(state) else null)
+            .slatePlate(PlateShape, brackets = false)
+            .clip(PlateShape)
             .clickable(
                 onClickLabel = when {
                     !current -> "Jump to this step"
@@ -356,11 +357,9 @@ private fun StateBadge(state: RoundRowState, paused: Boolean) {
 @Composable
 private fun CurrentRow(state: ActiveUiState, row: RoundRowUi, actions: TimerActions) {
     val colors = MaterialTheme.colorScheme
-    Surface(
-        shape = MaterialTheme.shapes.large,
-        color = colors.secondary.copy(alpha = 0.10f),
-        border = BorderStroke(2.dp, accent(state)),
-        modifier = Modifier.fillMaxWidth().padding(vertical = Spacing.xs),
+    GoaPlate(
+        Modifier.padding(vertical = Spacing.xs).fillMaxWidth().plateEdge(accent(state)),
+        contentPadding = PaddingValues(0.dp),
     ) {
         Column(Modifier.padding(start = Spacing.lg, end = Spacing.lg, bottom = Spacing.md)) {
             StepTitle(row, actions.onBack, Modifier.padding(top = Spacing.md))
@@ -388,7 +387,7 @@ private fun StepTitle(row: RoundRowUi, onBack: () -> Unit, modifier: Modifier) {
                 .weight(1f)
                 .semantics(mergeDescendants = true) { liveRegion = LiveRegionMode.Polite },
         ) {
-            Text(row.title, style = MaterialTheme.typography.titleLarge)
+            Text(row.title, style = MaterialTheme.typography.titleLarge, color = GoaTheme.colors.heading)
             row.context?.let {
                 Text(it, style = MaterialTheme.typography.bodyMedium, color = colors.onSurfaceVariant)
             }
@@ -491,9 +490,7 @@ private fun CurrentStepExtras(state: ActiveUiState, actions: TimerActions) {
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(top = Spacing.sm)
-                .clip(MaterialTheme.shapes.medium)
-                .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.08f))
-                .border(1.dp, GoaTheme.colors.engravedBorder, MaterialTheme.shapes.medium)
+                .slatePlate(MaterialTheme.shapes.medium, brackets = false)
                 .padding(horizontal = Spacing.md, vertical = Spacing.sm),
         )
     }
@@ -534,3 +531,4 @@ private fun JumpDialog(state: ActiveUiState, target: RoundRowUi?, actions: Timer
 }
 
 private const val MILLIS_PER_SECOND = 1_000L
+private val ROW_GAP = 2.dp

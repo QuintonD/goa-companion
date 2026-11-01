@@ -8,9 +8,9 @@ import android.os.Build
 import android.provider.Settings
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -23,7 +23,6 @@ import androidx.compose.material.icons.outlined.NotificationsOff
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -38,6 +37,7 @@ import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
+import dev.quinton.goa.core.designsystem.component.GoaPlate
 import dev.quinton.goa.core.designsystem.theme.Spacing
 
 /** True on API 33+ while POST_NOTIFICATIONS hasn't been granted. */
@@ -73,13 +73,12 @@ fun rememberStartWithNotificationPermission(start: () -> Unit): () -> Unit {
 /** Shown on the running timer when notifications are denied or blocked. Dismissible. */
 @Composable
 fun AlertsOffBanner(onOpenSettings: () -> Unit, onDismiss: () -> Unit, modifier: Modifier = Modifier) {
-    val colors = MaterialTheme.colorScheme
-    Surface(
-        shape = MaterialTheme.shapes.medium,
-        color = colors.errorContainer,
-        contentColor = colors.onErrorContainer,
-        border = BorderStroke(1.dp, colors.error.copy(alpha = 0.4f)),
-        modifier = modifier.fillMaxWidth().semantics { liveRegion = LiveRegionMode.Polite },
+    GoaPlate(
+        modifier.fillMaxWidth().plateEdge(MaterialTheme.colorScheme.error, width = 1.dp).semantics {
+            liveRegion =
+                LiveRegionMode.Polite
+        },
+        contentPadding = PaddingValues(0.dp),
     ) {
         Row(Modifier.padding(start = Spacing.md, top = Spacing.sm), verticalAlignment = Alignment.Top) {
             Icon(

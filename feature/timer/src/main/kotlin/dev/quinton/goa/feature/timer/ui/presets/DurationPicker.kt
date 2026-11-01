@@ -8,17 +8,13 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
-import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.toggleable
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
@@ -36,9 +32,12 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
+import dev.quinton.goa.core.designsystem.component.GoaSheet
+import dev.quinton.goa.core.designsystem.component.TitlePlate
 import dev.quinton.goa.core.designsystem.theme.Spacing
 import dev.quinton.goa.core.domain.timer.TimerPresetValidator
 import dev.quinton.goa.feature.timer.TimerText
+import dev.quinton.goa.feature.timer.ui.components.MetalButton
 import dev.quinton.goa.feature.timer.ui.components.goaChipBorder
 import dev.quinton.goa.feature.timer.ui.components.goaChipColors
 import dev.quinton.goa.feature.timer.ui.components.timerDigits
@@ -60,7 +59,7 @@ fun DurationPickerSheet(
     val sheet = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     var untimed by remember { mutableStateOf(initialSeconds == null && off != null) }
     var seconds by remember { mutableIntStateOf(initialSeconds ?: 30) }
-    ModalBottomSheet(onDismissRequest = onDismiss, sheetState = sheet) {
+    GoaSheet(onDismissRequest = onDismiss, sheetState = sheet) {
         DurationPickerContent(
             title = title,
             seconds = seconds,
@@ -93,10 +92,10 @@ internal fun DurationPickerContent(
     maxSeconds: Int = TimerPresetValidator.MAX_SECONDS,
 ) {
     Column(
-        Modifier.fillMaxWidth().navigationBarsPadding().padding(horizontal = Spacing.xl, vertical = Spacing.md),
+        Modifier.fillMaxWidth().padding(horizontal = Spacing.xl, vertical = Spacing.md),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        Text(title, style = MaterialTheme.typography.titleLarge)
+        TitlePlate(title, Modifier.fillMaxWidth())
         Spacer(Modifier.height(Spacing.lg))
         val label = if (untimed) "—:—" else TimerText.duration(seconds * 1000L, roundUp = false)
         Text(
@@ -178,10 +177,10 @@ internal fun DurationPickerContent(
             }
         }
         Spacer(Modifier.height(Spacing.lg))
-        Button(
+        MetalButton(
             onClick = onDone,
+            bronze = true,
             modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp),
-            shape = RoundedCornerShape(16.dp),
         ) { Text("Done") }
         Spacer(Modifier.width(Spacing.md))
     }

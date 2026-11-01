@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -31,6 +32,7 @@ import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
@@ -48,6 +50,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.key.KeyEventType
 import androidx.compose.ui.input.key.key
 import androidx.compose.ui.input.key.nativeKeyCode
@@ -62,12 +65,17 @@ import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import dev.quinton.goa.core.designsystem.component.GoaPlate
 import dev.quinton.goa.core.designsystem.component.HeroPortrait
+import dev.quinton.goa.core.designsystem.component.PlateShape
 import dev.quinton.goa.core.designsystem.component.TeamBadge
+import dev.quinton.goa.core.designsystem.component.slatePlate
 import dev.quinton.goa.core.designsystem.component.teamColor
 import dev.quinton.goa.core.designsystem.theme.Spacing
 import dev.quinton.goa.core.model.match.Team
 import dev.quinton.goa.feature.timer.TimerText
+import dev.quinton.goa.feature.timer.ui.components.SlateButton
+import dev.quinton.goa.feature.timer.ui.components.plateEdge
 import dev.quinton.goa.feature.timer.ui.components.teamName
 import dev.quinton.goa.feature.timer.ui.components.timerDigits
 import kotlinx.coroutines.delay
@@ -139,21 +147,23 @@ internal fun TieBreakerChip(
                 showUndo = false
                 onFlip()
             },
+            // It sits on the banner: the banner's own ink, not bronze on steel.
+            colors = ButtonDefaults.textButtonColors(contentColor = LocalContentColor.current),
             modifier = Modifier.heightIn(min = 48.dp),
         ) { Text("Undo") }
     }
-    val color = teamColor(team)
+    // On the banner: a slate chip keeps the team's colour readable on the steel.
     Surface(
         onClick = {
             onFlip()
             flips++
         },
         shape = RoundedCornerShape(50),
-        color = color.copy(alpha = 0.12f),
-        border = BorderStroke(1.dp, color.copy(alpha = 0.6f)),
+        color = Color.Transparent,
         modifier = Modifier
             .heightIn(min = 48.dp)
             .padding(vertical = Spacing.xs)
+            .slatePlate(RoundedCornerShape(50), brackets = false)
             .semantics {
                 contentDescription = "Tie Breaker coin shows ${teamName(team)}"
                 stateDescription = teamName(team)
@@ -223,7 +233,7 @@ internal fun TableRulesBar(state: ActiveUiState, actions: TimerActions) {
     ) {
         val seconds = state.shotClockSeconds
         if (seconds != null && shot == null) {
-            OutlinedButton(onClick = actions.onShotClock, modifier = Modifier.heightIn(min = 48.dp)) {
+            SlateButton(onClick = actions.onShotClock, modifier = Modifier.heightIn(min = 48.dp)) {
                 Icon(Icons.Outlined.Bolt, contentDescription = null, modifier = Modifier.size(18.dp))
                 Spacer(Modifier.width(Spacing.xs))
                 Text("Hurry up ${TimerText.durationLabel(seconds)}", maxLines = 1)
@@ -247,12 +257,7 @@ internal fun ShotClockPanel(
 ) {
     val colors = MaterialTheme.colorScheme
     val accent = if (shot.over) colors.error else colors.primary
-    Surface(
-        shape = MaterialTheme.shapes.large,
-        color = accent.copy(alpha = 0.10f),
-        border = BorderStroke(2.dp, accent),
-        modifier = modifier.fillMaxWidth(),
-    ) {
+    GoaPlate(modifier.fillMaxWidth().plateEdge(accent), contentPadding = PaddingValues(0.dp)) {
         Row(
             Modifier.padding(start = Spacing.lg, end = Spacing.xs, top = Spacing.xs, bottom = Spacing.xs),
             verticalAlignment = Alignment.CenterVertically,
@@ -291,7 +296,7 @@ private fun TimeOutButton(timeOuts: TimeOutsUi, onTimeOut: (Team) -> Unit) {
     var open by remember { mutableStateOf(false) }
     val any = timeOuts.redLeft + timeOuts.blueLeft > 0
     Box {
-        OutlinedButton(
+        SlateButton(
             onClick = { open = true },
             enabled = timeOuts.usable && any,
             modifier = Modifier.heightIn(min = 48.dp),
@@ -363,15 +368,16 @@ private fun SeatChip(seat: SeatUi, modifier: Modifier, onClick: () -> Unit) {
     Surface(
         onClick = onClick,
         enabled = !seat.resolved && !seat.acting,
-        shape = MaterialTheme.shapes.medium,
-        color = if (seat.acting) colors.secondary.copy(alpha = 0.16f) else colors.surface,
+        shape = PlateShape,
+        color = if (seat.acting) colors.secondary.copy(alpha = 0.16f) else Color.Transparent,
         border = BorderStroke(
             if (seat.acting) 2.dp else 1.dp,
-            if (seat.acting) colors.secondary else team.copy(alpha = 0.5f),
+            if (seat.acting) colors.secondary else team.copy(alpha = 0.6f),
         ),
         modifier = modifier
             .heightIn(min = 48.dp)
             .alpha(if (seat.resolved) 0.5f else 1f)
+            .slatePlate(PlateShape, brackets = false)
             .semantics(mergeDescendants = true) {
                 contentDescription = "${seat.heroName}, ${teamName(seat.team)} team" +
                     (seat.playerName?.let { ", $it" } ?: "")

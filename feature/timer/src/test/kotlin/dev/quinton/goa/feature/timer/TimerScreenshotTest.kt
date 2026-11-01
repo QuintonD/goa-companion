@@ -3,10 +3,12 @@ package dev.quinton.goa.feature.timer
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onRoot
+import androidx.test.core.app.ApplicationProvider
 import com.github.takahirom.roborazzi.captureRoboImage
 import dev.quinton.goa.core.designsystem.theme.GoaTheme
 import dev.quinton.goa.core.model.match.Team
 import dev.quinton.goa.core.model.settings.ThemeMode
+import dev.quinton.goa.core.testing.BundledAssetImages
 import dev.quinton.goa.feature.timer.ui.presets.PresetEditActions
 import dev.quinton.goa.feature.timer.ui.presets.PresetEditScreen
 import dev.quinton.goa.feature.timer.ui.presets.PresetsActions
@@ -18,6 +20,7 @@ import dev.quinton.goa.feature.timer.ui.timer.ActiveUiState
 import dev.quinton.goa.feature.timer.ui.timer.TimerActions
 import dev.quinton.goa.feature.timer.ui.timer.TimerScreen
 import dev.quinton.goa.feature.timer.ui.timer.TimerUiState
+import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -31,8 +34,12 @@ import org.robolectric.annotation.GraphicsMode
 class TimerScreenshotTest {
     @get:Rule val compose = createComposeRule()
 
+    @Before fun images() = BundledAssetImages.install(ApplicationProvider.getApplicationContext())
+
     private fun capture(mode: ThemeMode = ThemeMode.DARK, content: @Composable () -> Unit) {
         compose.setContent { GoaTheme(themeMode = mode, content = content) }
+        compose.waitUntil(IMAGE_TIMEOUT_MS) { BundledAssetImages.idle }
+        compose.waitForIdle()
         compose.onRoot().captureRoboImage()
     }
 
@@ -193,3 +200,5 @@ class TimerScreenshotTest {
     @Config(fontScale = 2f)
     fun editPresetFontScale2() = capture { PresetEditScreen(TimerPreviewData.editPreset, PresetEditActions()) }
 }
+
+private const val IMAGE_TIMEOUT_MS = 10_000L
