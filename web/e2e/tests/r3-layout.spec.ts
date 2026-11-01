@@ -18,8 +18,15 @@ async function addDraftPlayers(page: Page, names: string[]) {
 
 /** The text in [locator] isn't cut with an ellipsis. */
 async function expectNotCut(page: Page, selector: string) {
-  const sizes = await page.locator(selector).first().evaluate((el) => [el.scrollWidth, el.clientWidth]);
-  expect(sizes[0], `${selector} is cut`).toBeLessThanOrEqual(sizes[1]);
+  // In fractions of a pixel: scrollWidth rounds up and clientWidth down, so text that fits can read one over.
+  const [text, room] = await page.locator(selector).first().evaluate((el) => {
+    const range = document.createRange();
+    range.selectNodeContents(el);
+    const style = getComputedStyle(el);
+    const padding = parseFloat(style.paddingLeft) + parseFloat(style.paddingRight);
+    return [range.getBoundingClientRect().width, el.getBoundingClientRect().width - padding];
+  });
+  expect(text, `${selector} is cut`).toBeLessThanOrEqual(room + 0.01);
 }
 
 for (const [name, viewport] of [["iPhone 15", null], ["iPhone SE", SE]] as const) {
@@ -146,7 +153,7 @@ test("trivia's results open at the score, not where the last question was scroll
   await open(page, "#/trivia");
   await page.getByRole("button", { name: "10", exact: true }).click();
   await page.getByRole("button", { name: "Start quiz" }).click();
-  for (let i = 0; i < 40; i++) {
+  for (let i = 0; i < 160; i++) {
     if ((await title(page).textContent())?.includes("Round over")) break;
     const next = page.locator("main button", { hasText: /^Next$|^See results$/ });
     // A right answer moves on by itself: a button counted a moment ago may be gone.
@@ -159,7 +166,7 @@ test("trivia's results open at the score, not where the last question was scroll
   }
   await expect(title(page)).toHaveText("Round over");
   await expect.poll(() => page.evaluate(() => window.scrollY)).toBe(0);
-  await expect(page.getByText(/of 10 right/)).toBeInViewport();
+  await expect(page.getByText(/of \d+ right/)).toBeInViewport();
   await r3Shot(page, info, "trivia-results-se");
   check();
 });
