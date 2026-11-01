@@ -115,7 +115,7 @@ object Views {
             itemStats = (h.cards.filter { it.zone == Zone.ITEM }.mapNotNull { g.card(it.id).item } + h.spareItems)
                 .sortedBy { it.ordinal },
             ultimate = h.cards.any { it.zone == Zone.ULTIMATE },
-            markers = h.markers.map { MarkerView(it.kind, it.from) },
+            markers = h.markers.map { MarkerView(it.kind, it.from, it.data[Marker.SLOT]?.toIntOrNull()) },
             activeEffects = active.toList(),
             counters = LinkedHashMap(h.counters),
             initiative = if (state.revealed) g.initiativeOf(h.id) else null,

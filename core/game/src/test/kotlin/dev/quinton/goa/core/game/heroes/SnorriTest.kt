@@ -75,6 +75,64 @@ class SnorriTest {
     }
 
     @Test
+    fun `Inscribe the Runes - the question names the picks so far and shows each option's token`() {
+        val d = pos {
+            clearMinions()
+            hero("snorri", Team.BLUE, Hex(1, -2)) { played("snorri-silver") }
+            hero("wasp", Team.RED, Hex(-5, -4))
+            phase = PositionPhase.Resolving(next = "snorri")
+        }
+        d.action("snorri", ActionType.PRIMARY)
+        d.expect(DecisionKind.CHOOSE_OPTION, "snorri")
+        assertThat(d.d.prompt).isEqualTo("Which rune goes below turn slot 1?")
+        assertThat(d.d.context.optionMarkers.values).containsExactlyElementsIn(Rune.entries.map { it.kind })
+        d.answer(d.d.options.first { (it as Choice.Option).label == "Horn" })
+        assertThat(d.d.prompt).isEqualTo("Which rune goes below turn slot 2? Turn 1: Horn.")
+        val axe = d.d.options.first { (it as Choice.Option).label == "Axe" } as Choice.Option
+        assertThat(d.d.context.optionMarkers[axe.index]).isEqualTo(Rune.AXE.kind)
+        d.answer(axe)
+        assertThat(d.d.prompt).isEqualTo("Which rune goes below turn slot 3? Turn 1: Horn · Turn 2: Axe.")
+    }
+
+    @Test
+    fun `The view tells which Turn slot each rune lies below`() {
+        val d = pos {
+            clearMinions()
+            turn = 2
+            hero("snorri", Team.BLUE, Hex(1, -2)) {
+                played("snorri-gold")
+                runes(*order)
+            }
+            hero("wasp", Team.RED, Hex(-5, -4))
+            phase = PositionPhase.Resolving(next = "snorri")
+        }
+        val markers = d.s.view("wasp").heroes.first { it.heroId == "snorri" }.markers
+        assertThat(markers.associate { it.kind to it.slot }).containsExactly(
+            Rune.AXE.kind,
+            1,
+            Rune.BIRD.kind,
+            2,
+            Rune.ANVIL.kind,
+            3,
+            Rune.HORN.kind,
+            4,
+        )
+    }
+
+    @Test
+    fun `Oaths - the Defend question tells up front whether the active rune's Block holds`() {
+        val holds = oath("snorri-green-1", Rune.HORN, "wasp-gold")
+        holds.action("wasp", ActionType.PRIMARY)
+        holds.expect(DecisionKind.DEFEND, "snorri")
+        assertThat(holds.d.context.blockPreview["snorri-green-1"]).isTrue()
+        // Oath of Endurance has no line at all for the Anvil: the Block fails, and the question says so.
+        val noLine = oath("snorri-green-1", Rune.ANVIL, "wasp-gold")
+        noLine.action("wasp", ActionType.PRIMARY)
+        noLine.expect(DecisionKind.DEFEND, "snorri")
+        assertThat(noLine.d.context.blockPreview["snorri-green-1"]).isFalse()
+    }
+
+    @Test
     fun `Inscribe the Runes - Rune markers are not removed at the end of round`() {
         val d = pos {
             clearMinions()

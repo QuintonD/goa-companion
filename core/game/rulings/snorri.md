@@ -83,3 +83,9 @@ Readings of Snorri's cards (`heroes/SnorriHero.kt`, tests in `heroes/SnorriTest.
 | Rune Mastery prompt | Asked before every action and every defense | Asked only when the action's text reads runes (ruling 3) |
 | Runetrap / Runebomb hero | Choosing the enemy hero is optional | Mandatory when one is in radius (no "up to"/"may") |
 | Repeats and Rune Mastery | The repeat reuses the first instance's active runes | A repeat is a separate action (p.10), so Rune Mastery's second rune is chosen again |
+
+## How the table shows the runes (ADR-054)
+
+The view gives each marker's Turn slot (`MarkerView.slot`); `core:play`'s `MarkerFacts.kt` applies ruling 2 to it for the
+dashboard, the hero strip and the hand. Between turns no rune is shown as active. Rune Mastery's second rune is chosen per action
+(ruling 3), so it is never drawn: the sheet and a card's note only say it exists.

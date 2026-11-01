@@ -76,6 +76,11 @@ class Marker(
     val data: MutableMap<String, String> = LinkedHashMap(),
 ) {
     fun copy(): Marker = Marker(kind, from, persistent, LinkedHashMap(data))
+
+    companion object {
+        /** [data] key: the Turn slot the marker lies below (Snorri's runes). */
+        const val SLOT = "slot"
+    }
 }
 
 @Serializable

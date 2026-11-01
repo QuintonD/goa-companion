@@ -99,7 +99,8 @@ class GameParityTest {
                 appendLine("game $game: $four round ${view.round} phase ${view.phase} winner ${view.winner}")
             }
         }
-        assertTranscript("c6d83cb1604aaeeba6a6e45ec7b87873de3824288ecd4f4942035f2ec7f72c6d", transcript, "random game")
+        // Re-pinned for ADR-054: Inscribe the Runes' question names the picks so far; the course is unchanged.
+        assertTranscript("7e56373ee41abd144cdb7f287e0427a6c92fdacc000a1b1774613d1a582ac9cc", transcript, "random game")
     }
 
     @Test

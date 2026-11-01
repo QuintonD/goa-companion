@@ -122,9 +122,15 @@ class ActionScope internal constructor(
     }
 
     /** "Choose one —" bullets (p.10): returns the index, or null when declined. */
-    fun chooseOption(prompt: String, labels: List<String>, optional: Boolean = false, chooser: String = heroId): Int? {
+    fun chooseOption(
+        prompt: String,
+        labels: List<String>,
+        optional: Boolean = false,
+        chooser: String = heroId,
+        context: DecisionContext = DecisionContext(),
+    ): Int? {
         val opts = labels.mapIndexed { i, l -> Choice.Option(i, l) as Choice } + declineIf(optional)
-        return (g.ask(chooser, DecisionKind.CHOOSE_OPTION, prompt, opts, cardId) as? Choice.Option)?.index
+        return (g.ask(chooser, DecisionKind.CHOOSE_OPTION, prompt, opts, cardId, context) as? Choice.Option)?.index
     }
 
     /** An optional step ("you may", p.10): asks Yes / Skip. */

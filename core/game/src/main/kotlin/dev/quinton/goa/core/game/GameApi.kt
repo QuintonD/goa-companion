@@ -336,6 +336,11 @@ data class DecisionContext(
      * nothing and changes nothing, so saves replay as before.
      */
     val primaryPreview: PrimaryPreview? = null,
+    /**
+     * CHOOSE_OPTION: the marker kind an option stands for, by [Choice.Option.index] (Snorri's runes), so
+     * the panel can show its token. In the context, not on the option: saved answers replay as before.
+     */
+    val optionMarkers: Map<Int, String> = emptyMap(),
 )
 
 /**
@@ -510,7 +515,12 @@ data class ExtraPlaceView(
 )
 
 @Serializable
-data class MarkerView(val kind: String, val fromHeroId: String?)
+data class MarkerView(
+    val kind: String,
+    val fromHeroId: String?,
+    /** The Turn slot 1..4 the marker lies below (Snorri's runes), else null. */
+    val slot: Int? = null,
+)
 
 @Serializable
 data class MinionView(

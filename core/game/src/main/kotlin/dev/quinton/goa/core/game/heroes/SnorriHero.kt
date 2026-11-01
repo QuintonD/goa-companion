@@ -1,6 +1,7 @@
 package dev.quinton.goa.core.game.heroes
 
 import dev.quinton.goa.core.game.Choice
+import dev.quinton.goa.core.game.DecisionContext
 import dev.quinton.goa.core.game.DecisionKind
 import dev.quinton.goa.core.game.effects.AffectQuery
 import dev.quinton.goa.core.game.effects.Behavior
@@ -23,6 +24,7 @@ import dev.quinton.goa.core.game.engine.ActionScope
 import dev.quinton.goa.core.game.engine.AttackInfo
 import dev.quinton.goa.core.game.engine.DefenseScope
 import dev.quinton.goa.core.game.engine.Game
+import dev.quinton.goa.core.game.engine.Marker
 import dev.quinton.goa.core.game.engine.RunMode
 import dev.quinton.goa.core.game.engine.Timing
 import dev.quinton.goa.core.game.engine.Zone
@@ -59,7 +61,6 @@ object SnorriHero : HeroModule {
     }
 
     private const val ULTIMATE = "snorri-purple-4"
-    private const val SLOT = "slot"
     private const val NOTE = "snorri.runes"
     const val IMMUNE = "snorri.immune"
     const val IGNORE_OBSTACLES = "snorri.ignoreObstacles"
@@ -141,7 +142,7 @@ object SnorriHero : HeroModule {
         for (m in h.markers) {
             if (m.from != holder) continue
             val rune = Rune.entries.firstOrNull { it.kind == m.kind } ?: continue
-            m.data[SLOT]?.toIntOrNull()?.let { out[it] = rune }
+            m.data[Marker.SLOT]?.toIntOrNull()?.let { out[it] = rune }
         }
         return out
     }
@@ -186,9 +187,14 @@ object SnorriHero : HeroModule {
             "Rune Mastery: choose an inactive rune; it counts as a second active rune for this action",
             inactive.mapIndexed { i, r -> Choice.Option(i, r.label) },
             cardId,
+            tokens(inactive),
         ) as Choice.Option
         return inactive[c.index]
     }
+
+    /** A rune question's options as marker tokens, for the panel. */
+    private fun tokens(runes: List<Rune>) =
+        DecisionContext(optionMarkers = runes.withIndex().associate { (i, r) -> i to r.kind })
 
     /** The active runes for this action (asked once per action). */
     @Suppress("UNCHECKED_CAST")
@@ -210,6 +216,7 @@ object SnorriHero : HeroModule {
             "Choose one active rune",
             among.mapIndexed { i, r -> Choice.Option(i, r.label) },
             cardId,
+            tokens(among),
         ) as Choice.Option
         return among[c.index]
     }
@@ -224,7 +231,10 @@ object SnorriHero : HeroModule {
             val rune = if (left.size == 1) {
                 left.single()
             } else {
-                left[a.chooseOption("Which rune goes below turn slot $slot?", left.map { it.label })!!]
+                // The markers go down together below: until then the question is the only place to see the picks.
+                val placed = bySlot.entries.joinToString(" · ") { (s, r) -> "Turn $s: ${r.label}" }
+                val prompt = "Which rune goes below turn slot $slot?" + if (placed.isEmpty()) "" else " $placed."
+                left[a.chooseOption(prompt, left.map { it.label }, context = tokens(left))!!]
             }
             bySlot[slot] = rune
             left -= rune
@@ -233,7 +243,7 @@ object SnorriHero : HeroModule {
         // moves them (one marker of a kind per giver).
         for ((slot, rune) in bySlot) {
             val m = a.g.giveMarker(a.heroId, rune.kind, a.heroId, persistent = true)
-            m.data[SLOT] = slot.toString()
+            m.data[Marker.SLOT] = slot.toString()
         }
     }
 
