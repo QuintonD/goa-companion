@@ -3630,6 +3630,8 @@ html:has(.goa-app.has-timerbar) {
    on any phone-width bar, as the other bars' secondary actions do on narrow ones. */
 @container topbar (max-width: 30rem) {
   .goa-table-timer-header .goa-topbar-actions .collapsible { display: none; }
+  /* "Round 1" beside the coin chip and its Undo: a pixel over cut it on some browsers' fonts. */
+  .goa-table-timer-header .goa-topbar-title { padding-right: var(--sp-xs); }
 }
 
 /* The draft's coin step shows the coin bigger (as on the phone's draft): the printed face grows with it. */
