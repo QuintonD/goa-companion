@@ -69,6 +69,34 @@ class MapArtTest {
         }
     }
 
+    /** The canvas past the picture is its edge as the dimmed layer draws it: worked by hand at brightness .63. */
+    @Test
+    fun theCanvasIsThePicturesEdgeDimmed() {
+        val art = BoardMapArt("x", 1, 1, pxPerUnit = 1.0, originX = 0.0, originY = 0.0, sea = "#808080")
+        assertEquals("#51" + "5151", art.canvasSea())
+        val red = BoardMapArt("x", 1, 1, pxPerUnit = 1.0, originX = 0.0, originY = 0.0, sea = "#FF0000")
+        // grey 54.2, halfway to 255 is 154.6, to 0 is 27.1; times .63.
+        assertEquals("#61" + "1111", red.canvasSea())
+    }
+
+    /** "The whole map" is the land: the ring of water is left out, every space and rock is in. */
+    @Test
+    fun theExtentHoldsTheLandAndIsTighterThanTheLayout() {
+        maps.forEach { map ->
+            MapOrientation.entries.forEach { orientation ->
+                val layout = HexLayout(map, orientation, Team.RED)
+                val extent = layout.extent
+                assertTrue(extent.width < layout.width && extent.height < layout.height, map.id)
+                (map.spaces.map { it.hex } + map.terrain).flatMap(layout::corners).forEach { corner ->
+                    assertTrue(
+                        corner.x in extent.left..extent.right && corner.y in extent.top..extent.bottom,
+                        "${map.id} $orientation $corner",
+                    )
+                }
+            }
+        }
+    }
+
     /** A frame worked by hand: hex (0, 0) is the plain layout's origin, hex (0, 2) is 3 units below it. */
     @Test
     fun aPixelIsWhereTheModelSays() {
