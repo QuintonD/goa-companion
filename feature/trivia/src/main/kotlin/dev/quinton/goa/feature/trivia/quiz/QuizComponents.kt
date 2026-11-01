@@ -338,7 +338,9 @@ private fun DuelTile(
                         MarkIcon(mark)
                         Text(
                             "Initiative $value",
-                            style = GoaTextStyles.numeric.copy(fontSize = MaterialTheme.typography.titleMedium.fontSize),
+                            style = GoaTextStyles.numeric.copy(
+                                fontSize = MaterialTheme.typography.titleMedium.fontSize,
+                            ),
                             color = MaterialTheme.colorScheme.onSurface,
                             maxLines = 1,
                             softWrap = false,

@@ -248,7 +248,7 @@ private fun KeepScreenOnWhile(enabled: Boolean) {
 }
 
 @Composable
-private fun GoaBottomBar(current: TopLevelTab, onSelect: (TopLevelTab) -> Unit) {
+internal fun GoaBottomBar(current: TopLevelTab, onSelect: (TopLevelTab) -> Unit) {
     GoaPlateTheme {
         // The slate with its steel edge (mock-up 06); the plate is drawn here so it reaches under the system bar.
         Box(Modifier.slatePlate(RectangleShape)) {

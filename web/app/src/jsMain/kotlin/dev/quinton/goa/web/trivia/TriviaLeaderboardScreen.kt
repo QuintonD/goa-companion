@@ -198,7 +198,11 @@ private fun BoardContent(
             classes("goa-trivia-board")
             attr("role", "tabpanel")
         }) {
-            state.rows.forEach { row -> Li { RankedRow(row, onClick = { onOpenPlayer(row.player.id) }) } }
+            state.rows.forEach { row ->
+                Li({ classes("goa-plate", "no-brackets") }) {
+                    RankedRow(row, onClick = { onOpenPlayer(row.player.id) })
+                }
+            }
         }
     }
 }

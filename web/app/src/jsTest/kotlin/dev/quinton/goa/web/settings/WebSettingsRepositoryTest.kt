@@ -1,6 +1,7 @@
 package dev.quinton.goa.web.settings
 
 import dev.quinton.goa.core.model.settings.AppSettings
+import dev.quinton.goa.core.model.settings.BoardStyle
 import dev.quinton.goa.core.model.settings.TimerLayout
 import dev.quinton.goa.web.storage.MemoryKeyValueStore
 import kotlin.test.Test
@@ -26,6 +27,19 @@ class WebSettingsRepositoryTest {
         assertEquals(setOf("base"), reloaded.ownedProducts)
         assertEquals(true, reloaded.catalogListView)
         assertEquals(TimerLayout.ROUND, reloaded.timerLayout)
+    }
+
+    @Test
+    fun theBoardStyleSurvivesAReloadAndAnOldStoreGetsTheDefault() = runTest {
+        val store = MemoryKeyValueStore()
+        assertEquals(BoardStyle.MINIATURES, WebSettingsRepository(store).settings.first().boardStyle)
+
+        WebSettingsRepository(store).update { it.copy(boardStyle = BoardStyle.GRID_AND_DISCS) }
+
+        assertEquals(BoardStyle.GRID_AND_DISCS, WebSettingsRepository(store).settings.first().boardStyle)
+
+        store.put("settings/app", """{"soundsEnabled":false}""")
+        assertEquals(BoardStyle.MINIATURES, WebSettingsRepository(store).settings.first().boardStyle)
     }
 
     @Test

@@ -168,7 +168,12 @@ internal fun spokenCard(card: TriviaCardUi): String = TriviaText.spokenCard(card
 
 /** A word as a top-bar action: light with a dark edge, since bronze is lost on the steel banner. */
 @Composable
-internal fun BannerTextButton(text: String, onClick: () -> Unit, modifier: Modifier = Modifier, enabled: Boolean = true) {
+internal fun BannerTextButton(
+    text: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    enabled: Boolean = true,
+) {
     val colors = GoaTheme.colors
     TextButton(
         onClick = onClick,

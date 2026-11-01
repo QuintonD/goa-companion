@@ -8,6 +8,7 @@ import dev.quinton.goa.feature.players.common.formatDelta
 import dev.quinton.goa.feature.players.common.label
 import dev.quinton.goa.web.ui.Icon
 import dev.quinton.goa.web.ui.IconSize
+import dev.quinton.goa.web.ui.OfficialTeamMark
 import kotlin.js.Date
 import kotlin.math.roundToInt
 import kotlin.time.ExperimentalTime
@@ -79,22 +80,27 @@ object WebDateLabels : DateLabels {
     }
 }
 
-/** Team identity is never colour alone: ◆ Red / ● Blue (docs/DESIGN.md). */
+/** Team identity is never colour alone: the gear and Red, the star and Blue (docs/DESIGN.md). */
 @Composable
 fun TeamBadge(team: Team, showLabel: Boolean = true) {
-    Span({ classes("goa-w2-team", if (team == Team.RED) "c-team-red" else "c-team-blue", "t-label-large") }) {
-        Text(if (team == Team.RED) "◆" else "●")
+    Span({
+        classes("goa-w2-team", if (team == Team.RED) "c-team-red" else "c-team-blue", "t-label-large")
+        if (!showLabel) {
+            attr("role", "img")
+            attr("aria-label", "Team ${team.label()}")
+        }
+    }) {
+        OfficialTeamMark(team)
         if (showLabel) Text(" " + team.label())
     }
 }
 
-/** Match result: "◆ Red won", "● Blue won", "Pending", "Abandoned", "No winner". */
+/** Match result: the winner's mark and "Red won", "Pending", "Abandoned", "No winner". */
 @Composable
 fun ResultChip(status: MatchStatus, winner: Team?) {
     val (text, kind) = when {
         status == MatchStatus.COMPLETED && winner != null ->
-            "${if (winner == Team.RED) "◆" else "●"} ${winner.label()} won" to
-                (if (winner == Team.RED) "red" else "blue")
+            "${winner.label()} won" to (if (winner == Team.RED) "red" else "blue")
 
         status == MatchStatus.ABANDONED -> "Abandoned" to "muted"
 
@@ -102,7 +108,10 @@ fun ResultChip(status: MatchStatus, winner: Team?) {
 
         else -> "Pending" to "pending"
     }
-    Span({ classes("goa-w2-result", kind, "t-label-medium") }) { Text(text) }
+    Span({ classes("goa-w2-result", kind, "t-label-medium") }) {
+        if (status == MatchStatus.COMPLETED && winner != null) OfficialTeamMark(winner)
+        Text(text)
+    }
 }
 
 /** Rating change with an arrow and a signed number ("↗ +24"), then what it covers ("last 5"). */
@@ -147,7 +156,7 @@ fun Pill(text: String, kind: String? = null) {
 fun StatRow(tiles: List<Pair<String, String>>) {
     Div({ classes("goa-w2-stats") }) {
         tiles.forEach { (value, caption) ->
-            Div({ classes("goa-w2-stat") }) {
+            Div({ classes("goa-w2-stat", "goa-plate", "no-brackets") }) {
                 Span({ classes("goa-w2-stat-value", "t-title-large") }) { Text(value) }
                 Span({ classes("goa-w2-stat-caption", "t-label-medium", "c-variant") }) { Text(caption) }
             }

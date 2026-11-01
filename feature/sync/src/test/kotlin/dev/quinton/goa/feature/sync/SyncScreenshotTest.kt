@@ -13,6 +13,7 @@ import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performTextInput
 import androidx.compose.ui.unit.Density
+import androidx.test.core.app.ApplicationProvider
 import com.github.takahirom.roborazzi.ExperimentalRoborazziApi
 import com.github.takahirom.roborazzi.captureRoboImage
 import com.github.takahirom.roborazzi.captureScreenRoboImage
@@ -29,6 +30,7 @@ import dev.quinton.goa.core.domain.sync.protocol.PeerStage
 import dev.quinton.goa.core.domain.sync.protocol.SyncDevice
 import dev.quinton.goa.core.domain.sync.protocol.SyncFailure
 import dev.quinton.goa.core.model.settings.ThemeMode
+import dev.quinton.goa.core.testing.BundledAssetImages
 import dev.quinton.goa.feature.sync.group.GroupActions
 import dev.quinton.goa.feature.sync.group.GroupScreen
 import dev.quinton.goa.feature.sync.group.GroupUiState
@@ -45,8 +47,6 @@ import dev.quinton.goa.feature.sync.session.SessionStage
 import dev.quinton.goa.feature.sync.session.SyncSessionActions
 import dev.quinton.goa.feature.sync.session.SyncSessionSheet
 import dev.quinton.goa.feature.sync.session.SyncSessionUiState
-import androidx.test.core.app.ApplicationProvider
-import dev.quinton.goa.core.testing.BundledAssetImages
 import org.junit.Before
 import org.junit.Rule
 import org.junit.Test

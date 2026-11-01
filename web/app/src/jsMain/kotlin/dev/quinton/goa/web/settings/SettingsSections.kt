@@ -9,7 +9,9 @@ import dev.quinton.goa.core.data.SettingsRepository
 import dev.quinton.goa.core.domain.settings.ProductOption
 import dev.quinton.goa.core.domain.settings.ProductOwnership
 import dev.quinton.goa.core.model.catalog.Catalog
+import dev.quinton.goa.core.model.match.Team
 import dev.quinton.goa.core.model.settings.AppSettings
+import dev.quinton.goa.core.model.settings.BoardStyle
 import dev.quinton.goa.core.model.settings.TimerLayout
 import dev.quinton.goa.web.LocalServices
 import dev.quinton.goa.web.nav.Route
@@ -18,6 +20,7 @@ import dev.quinton.goa.web.ui.GoaCard
 import dev.quinton.goa.web.ui.Icon
 import dev.quinton.goa.web.ui.ListRow
 import dev.quinton.goa.web.ui.Load
+import dev.quinton.goa.web.ui.OfficialTeamMark
 import dev.quinton.goa.web.ui.RowList
 import dev.quinton.goa.web.ui.SectionHeader
 import dev.quinton.goa.web.ui.Segmented
@@ -25,10 +28,14 @@ import dev.quinton.goa.web.ui.rememberLoad
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
+import org.jetbrains.compose.web.attributes.ButtonType
 import org.jetbrains.compose.web.attributes.InputType
 import org.jetbrains.compose.web.attributes.disabled
+import org.jetbrains.compose.web.attributes.type
+import org.jetbrains.compose.web.dom.Button
 import org.jetbrains.compose.web.dom.Div
 import org.jetbrains.compose.web.dom.H3
+import org.jetbrains.compose.web.dom.Img
 import org.jetbrains.compose.web.dom.Input
 import org.jetbrains.compose.web.dom.Label
 import org.jetbrains.compose.web.dom.Li
@@ -58,6 +65,12 @@ internal fun AppSettingsSections() {
     val scope = rememberCoroutineScope()
     val current = settings ?: return
     val edit = SettingsEdits(repository, scope)
+
+    GoaCard {
+        H3({ classes("t-title-medium", "goa-card-title") }) { Text("Board style") }
+        BodyText("How pieces and spaces look on the painted maps.")
+        BoardStyleChoice(current.boardStyle) { style -> edit { it.copy(boardStyle = style) } }
+    }
 
     SectionHeader("Collection")
     CollectionCard(current, (catalog.state as? Load.Ready)?.value, edit, failed = catalog.state is Load.Failed)
@@ -121,6 +134,58 @@ internal fun AppSettingsSections() {
     GoaCard(flush = true) {
         RowList {
             ListRow("Group sync", "Share matches and players with your friends' phones", "sync", route = Route.Group)
+        }
+    }
+}
+
+/** "Miniatures" / "Grid and discs", the phone's labels. */
+private val BoardStyle.label: String
+    get() = when (this) {
+        BoardStyle.MINIATURES -> "Miniatures"
+        BoardStyle.GRID_AND_DISCS -> "Grid and discs"
+    }
+
+/** The two board styles as radio tiles, each with a corner of the painted map and two pieces on it. */
+@Composable
+private fun BoardStyleChoice(selected: BoardStyle, onSelect: (BoardStyle) -> Unit) {
+    Div({
+        classes("goa-board-styles")
+        attr("role", "radiogroup")
+        attr("aria-label", "Board style")
+    }) {
+        BoardStyle.entries.forEach { style ->
+            Button({
+                type(ButtonType.Button)
+                classes("goa-board-style")
+                attr("role", "radio")
+                attr("aria-checked", (style == selected).toString())
+                onClick { onSelect(style) }
+            }) {
+                Span({
+                    classes("goa-board-style-art")
+                    if (style == BoardStyle.GRID_AND_DISCS) classes("grid")
+                    attr("aria-hidden", "true")
+                }) {
+                    when (style) {
+                        BoardStyle.MINIATURES -> {
+                            Img("official/pieces/mini-heavy-red.webp", alt = "") { classes("goa-board-style-mini") }
+                            Img("official/pieces/mini-ranged-blue.webp", alt = "") {
+                                classes("goa-board-style-mini", "small")
+                            }
+                        }
+
+                        BoardStyle.GRID_AND_DISCS -> Team.entries.forEach { team ->
+                            Span({ classes("goa-board-style-disc", if (team == Team.RED) "red" else "blue") }) {
+                                OfficialTeamMark(team)
+                            }
+                        }
+                    }
+                }
+                Span({ classes("goa-board-style-label", "t-body-large") }) {
+                    Span({ classes("goa-board-style-radio") })
+                    Text(style.label)
+                }
+            }
         }
     }
 }

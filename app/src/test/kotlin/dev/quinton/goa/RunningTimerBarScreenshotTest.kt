@@ -5,13 +5,13 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onRoot
+import androidx.test.core.app.ApplicationProvider
 import com.github.takahirom.roborazzi.captureRoboImage
 import dev.quinton.goa.core.designsystem.theme.GoaTheme
 import dev.quinton.goa.core.model.settings.ThemeMode
+import dev.quinton.goa.core.testing.BundledAssetImages
 import dev.quinton.goa.feature.timer.ui.timer.RunningTimerUi
 import dev.quinton.goa.ui.RunningTimerBar
-import androidx.test.core.app.ApplicationProvider
-import dev.quinton.goa.core.testing.BundledAssetImages
 import org.junit.Before
 import org.junit.Rule
 import org.junit.Test

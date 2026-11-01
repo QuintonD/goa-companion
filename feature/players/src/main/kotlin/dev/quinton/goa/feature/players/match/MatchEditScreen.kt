@@ -688,7 +688,8 @@ private fun SeatEditor(
     val pilot = seat.playerId?.let { state.playersById[it] }
     EdgedPlate(
         edge = {
-            BorderStroke(1.dp, if (problem != null) MaterialTheme.colorScheme.error else teamColor(team).copy(alpha = 0.6f))
+            val teamEdge = teamColor(team).copy(alpha = 0.6f)
+            BorderStroke(1.dp, if (problem != null) MaterialTheme.colorScheme.error else teamEdge)
         },
         modifier = Modifier.fillMaxWidth(),
     ) {
