@@ -89,6 +89,7 @@ import dev.quinton.goa.feature.board.ui.BoardPalette
 import dev.quinton.goa.feature.board.ui.PieceToken
 import dev.quinton.goa.feature.board.ui.PlateWell
 import dev.quinton.goa.feature.board.ui.boardPalette
+import dev.quinton.goa.feature.board.ui.bronzeSegments
 import dev.quinton.goa.feature.board.ui.cards.isSpell
 import dev.quinton.goa.feature.board.ui.drawFastTravelCell
 import dev.quinton.goa.feature.board.ui.drawMovementCell
@@ -217,15 +218,15 @@ private fun PanelChip(selected: Boolean, label: String, icon: @Composable () -> 
         modifier = Modifier.heightIn(min = 40.dp),
         colors = FilterChipDefaults.filterChipColors(
             containerColor = MaterialTheme.colorScheme.surface,
-            selectedContainerColor = MaterialTheme.colorScheme.secondary.copy(alpha = 0.18f),
+            selectedContainerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.18f),
             selectedLabelColor = MaterialTheme.colorScheme.onSurface,
-            selectedLeadingIconColor = MaterialTheme.colorScheme.secondary,
+            selectedLeadingIconColor = MaterialTheme.colorScheme.primary,
         ),
         border = FilterChipDefaults.filterChipBorder(
             enabled = true,
             selected = selected,
             borderColor = GoaTheme.colors.engravedBorder,
-            selectedBorderColor = MaterialTheme.colorScheme.secondary,
+            selectedBorderColor = MaterialTheme.colorScheme.primary,
         ),
     )
 }
@@ -371,6 +372,7 @@ private fun MovementRules(settings: OverlaySettings, onAction: (BoardAction) -> 
                     selected = settings.path == path,
                     onClick = { onAction(BoardAction.SetPath(path)) },
                     shape = SegmentedButtonDefaults.itemShape(i, paths.size),
+                    colors = bronzeSegments(),
                     icon = {},
                     modifier = Modifier.heightIn(min = 48.dp),
                 ) {

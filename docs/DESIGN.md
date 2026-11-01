@@ -13,12 +13,13 @@ area, `goa-look-*.css`). Every part falls back to a flat colour while its image 
   small teal corner brackets. Plates are dark in both themes and what sits on one is themed dark (`GoaPlateTheme`). Bottom nav and sheets
   (`GoaSheet`, never a bare `ModalBottomSheet`) are slate too.
 - **Title plate** (`TitlePlate`, `.goa-title-plate`): the cards' parchment pill with its gear, 3-sliced, growing with its text: a hero's name, what a
-  question asks, a timer phase. A screen's one key title, not every heading.
+  question asks, a timer phase. A screen's one key title, not every heading. A plate holds a short title (a few words: "Minion Battle"); anything longer goes in the text box below it.
 - **Text box** (`CardTextBox(PlateColor, cap)`, `.goa-text-box.<colour>`): the cards' parchment box in a frame colour with the word on its tab (dark on
-  gold and silver, white on the rest): question text in the asking card's colour, moments in gold, coach and nudges in green, the attack header in red.
+  gold and silver, white on the rest): question text and the attack header in the asking card's colour, moments in gold, coach and nudges in green. The app's own words in a box are Inter (and its tab says "Note", never "Rule"); only text the game prints is Crimson.
 - **Ribbons, counters, icons:** `ColourRibbon` on a card colour's section head (`SectionHeader(ribbon =)`); `LifeCounterIcon`, `WaveCounterIcon`,
   `CoinIcon`, `ActionIcon`, the official item icons as stats. **Team marks** are the official gear and star (`TeamMark`).
 - **Buttons:** `GoaButton` (bronze metal with a sheen, the app's filled button), `MetalButton`, `SlateButton` over art. Team-coloured draft buttons stay Material.
+- **Bronze and teal:** bronze is selected and primary; teal is next, correct, "you can act".
 - **Card backs:** a facedown card shows its hero's own back (`official/heroes/<id>/back.webp`).
 
 **Tokens changed:** dark `surface` `#1E2327`, `surfaceHigh` `#2A3136`, `onSurfaceVariant` `#B4BEC8`, team red `#E76C61`. `LookArtContrastTest` checks text
@@ -36,8 +37,9 @@ when a map has `art` (all four do); the drawn map stays as the fallback while lo
 - Spaces in `art.uncovered` have copied ground (ADR-053); only their Spawn symbols and Zone edges are drawn.
 
 **Screens:**
-- **Table:** HUD on a plate with official counters and bronze diamond pips; hero chips on plates; panel on rounded slate with the mark and name on its top strip; the hand in a gentle fan
-  (3.2° a card, the outer ones lower), each still one target and one TalkBack node; the turn track's cards with state bands, the portrait on the art so the name shows.
+- **Table:** HUD on a plate with official counters and bronze diamond pips (done: solid, dimmer; current: solid, bright, ringed; later: hollow); hero chips on plates; panel on rounded slate with the mark and name on its top strip; the hand in a gentle fan
+  (3.2° a card, the outer ones lower), each still one target and one TalkBack node; the turn track's cards with state bands, the portrait on the art so the name shows. The panel ends just past the question, what follows it scrolls; under a tall panel the track takes its small cards. Minions to choose are full-width rows: team mark, type badge, what tells them apart first.
+- **Puzzle:** the goal and the puzzle's name on small lines at the panel's head, off the map; the title plate is the question's; "What you know" folds once played.
 - **Hero sheet:** the real dashboard (`official/ui/dashboard-frame`) with played cards in its Turn slots. Tigerclaw's art is the rulebook's; other heroes' portraits cover the frame, cropped around the
   head and darkened toward the edges. Items as icons with "+n", the Ultimate, the hand or card backs. Frame fractions: Turn plates y .272, x .170, .389, .607, .829; slots y .335 to .83.
 - **Heroes grid:** slate tile, name on the title plate, portrait with the deck symbol at its top left, italic Crimson title, stars (a ranged hero has the game's Range icon beside them), two roles. No product chip on a tile: it is on the hero page and in the filter. Every row keeps its height, so the tiles of a line are one height. Two columns from font scale 1.3.
@@ -259,7 +261,7 @@ gives the peek a teal border and a teal tap mark (TalkBack: "Your move"), and th
 live region, so a new question is heard while the panel is hidden. Hiding fits the whole board into
 the larger view once, unless the person has pinched or panned since the view was last framed; the
 Fit button then reads "Zoom to the lane". While hidden the map no longer zooms to each question (the
-whole board is in view), and the game hides the hero strip and the puzzle's goal banner (back with the
+whole board is in view), and the game hides the hero strip (back with the
 panel), keeping the HUD pill and, after the reveal, the turn track (compact: the turn's state is what a
 player looks for with the board in view, ADR-041). Hidden or shown is kept per screen (`rememberSaveable`) and survives
 rotation.
@@ -333,9 +335,10 @@ Spellbook; when the options fit beside it), above the panel. Hexes stay at least
 down to about 30 dp when that is what it takes for every option to be in view (a Move 3 under the turn
 track); with still more, the middle of the options. It frames again as what floats over the map settles
 (the turn track appears at the reveal, the panel grows) — but never once the person has dragged, pinched
-or double-tapped since the question came: their view wins.
+or double-tapped since the question came: their view wins. The attacker and the acting hero are framed too, and
+the whole Battle Zone with them when it fits the free area.
 **Top, floating:** one HUD pill (each team's Life counters as heart + number by its shape, Wave
-counters per Lane, "R2" and four turn pips: done filled, current ringed, later hollow; the Tie
+counters per Lane, "R2" and four turn pips: done solid and dimmer, current solid and ringed, later hollow; the Tie
 Breaker coin as printed, the showing face (Red's gear, Blue's star, `OfficialArt.tieBreaker`) with the
 team's shape on a small surface badge at its foot; the same coin, 64 dp, heads New game's "Blue
 shows" dialog), then, before the reveal, the hero strip:
@@ -517,12 +520,10 @@ THE ROUND (the cards at 56 dp in order, the sentence, its reasoning) and TIPS FO
 **Your decisions** (`play/game/GameReportSection.kt`): on the game-over screen, above Rematch, under COACH · YOUR DECISIONS: an outlined "Review your decisions" with its hint; then a line with the count and a determinate bar, and Cancel (a live region); then the accuracy as a title ("78% best or good, over 112 decisions"), the five marks with their counts in small text (words, not colours), "By hero" (with more than one hero) and "By kind of decision" one line per row, and "The biggest mistakes": a secondaryContainer card per mistake with ROUND 2 · TURN 3, the mark, the question, what was chosen and the points given up, the position in small text, "Show what the coach suggests" (the sheet's content in place) and "See it in the log" (the log sheet opens at that moment, its line marked).
 
 ### Puzzles (ADR-035, PRODUCT §10)
-The puzzle screen is the game table (above) plus: the **goal banner** floating under the hero strip
-(surface at 94 %, bronze border, flag icon, goal in titleSmall, "You play …" under it; in landscape one
-line, "goal · You play …", with a chevron to open it in full when it is cut); the panel opens
-with "PUZZLE n OF m", the **difficulty mark** (three small hexes, filled up to the level, and the
-word Hard / Harder / Hardest: shape and word, never colour alone), the title in Cinzel and the theme,
-then "What you know" (surfaceVariant, folds to one line). A **nudge** is a secondary-container card
+The puzzle screen is the game table (above); its panel opens with the **goal** (flag icon, goal in titleSmall,
+"You play …" under it), then "Puzzle n of m · title" on a small line with the **difficulty mark** (three small hexes,
+filled up to the level, and the word Hard / Harder / Hardest: shape and word, never colour alone),
+then "What you know" (the theme and the intro; folded, just its heading; with large text, after the question). A **nudge** is a secondary-container card
 like the Coach's ("NUDGE 2 OF 3", ×, Another nudge); the last nudge's move is a **dashed bronze ring**
 around its space on the map (apart from the teal options and the white selection; TalkBack: "hint").
 The other side's replies appear line by line under "<HERO> ANSWERS" with a progress bar; once they are

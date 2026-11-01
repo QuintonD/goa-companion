@@ -73,8 +73,9 @@ import dev.quinton.goa.feature.board.ui.cards.cardWidth
 /**
  * A card as it lies on the table: the official card image (`file:///android_asset/official/…`), or
  * a designed face with its name and initiative when there is no image; [card] null = facedown: the
- * back of [backOf]'s deck when the hero is known, the app's plain back otherwise. Decorative for TalkBack: the caller describes it. [width] is a portrait card's:
- * a landscape card (Gydion's spells) keeps the same height and is wider ([cardWidth]), never squeezed.
+ * back of [backOf]'s deck when the hero is known, the app's plain back otherwise. Decorative for TalkBack: the caller
+ * describes it. [width] is a portrait card's: a landscape card (Gydion's spells) keeps the same height and is wider
+ * ([cardWidth]), never squeezed.
  */
 @Composable
 fun TableCard(card: Card?, modifier: Modifier = Modifier, width: Dp = 76.dp, backOf: String? = null) {

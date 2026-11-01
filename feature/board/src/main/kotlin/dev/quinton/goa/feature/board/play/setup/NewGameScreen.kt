@@ -68,10 +68,12 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import dev.quinton.goa.core.designsystem.component.BannerTextButton
 import dev.quinton.goa.core.designsystem.component.EmptyState
 import dev.quinton.goa.core.designsystem.component.EngravedRule
 import dev.quinton.goa.core.designsystem.component.GoaButton
 import dev.quinton.goa.core.designsystem.component.GoaDialog
+import dev.quinton.goa.core.designsystem.component.GoaPlateTheme
 import dev.quinton.goa.core.designsystem.component.GoaScreen
 import dev.quinton.goa.core.designsystem.component.HeroPortrait
 import dev.quinton.goa.core.designsystem.component.TeamMark
@@ -98,6 +100,7 @@ import dev.quinton.goa.feature.board.setup.SourcesContent
 import dev.quinton.goa.feature.board.setup.TeamSwitch
 import dev.quinton.goa.feature.board.setup.Teams
 import dev.quinton.goa.feature.board.ui.PlateSurface
+import dev.quinton.goa.feature.board.ui.bronzeSegments
 import dev.quinton.goa.feature.board.ui.cards.CardFocusHost
 import dev.quinton.goa.feature.board.ui.cards.rememberCardFocusState
 import kotlin.math.roundToInt
@@ -131,7 +134,7 @@ fun NewGameScreen(
         actions = {
             if (ready != null && !options) {
                 if (ready.red.isNotEmpty() || ready.blue.isNotEmpty()) {
-                    TextButton(onClick = { onAction(NewGameAction.Lineup(NewBoardAction.Clear)) }) { Text("Clear") }
+                    BannerTextButton("Clear", onClick = { onAction(NewGameAction.Lineup(NewBoardAction.Clear)) })
                 }
                 IconButton(onClick = { sources = true }, enabled = ready.sources.isNotEmpty()) {
                     Icon(Icons.Outlined.History, contentDescription = "Use a draft or match")
@@ -206,25 +209,28 @@ private fun LineupStep(
     val large = LocalDensity.current.fontScale > LARGE_FONT
     val lineup: (NewBoardAction) -> Unit = { onAction(NewGameAction.Lineup(it)) }
     val search = @Composable { mod: Modifier ->
-        if (large) {
-            Column(mod) {
-                SearchField(query, {
-                    query = it
-                }, onSearch = { focus.clearFocus() }, horizontalPadding = 0.dp, placeholder = "Search")
-                TeamSwitch(state.form.lineup.filling, onPick = { lineup(NewBoardAction.Fill(it)) })
-            }
-        } else {
-            Row(mod, verticalAlignment = Alignment.CenterVertically) {
-                SearchField(
-                    query,
-                    { query = it },
-                    onSearch = { focus.clearFocus() },
-                    modifier = Modifier.weight(1f),
-                    horizontalPadding = 0.dp,
-                    placeholder = "Search",
-                )
-                Spacer(Modifier.width(Spacing.sm))
-                TeamSwitch(state.form.lineup.filling, onPick = { lineup(NewBoardAction.Fill(it)) })
+        // Plate-dark in both themes, as on New board.
+        GoaPlateTheme {
+            if (large) {
+                Column(mod) {
+                    SearchField(query, {
+                        query = it
+                    }, onSearch = { focus.clearFocus() }, horizontalPadding = 0.dp, placeholder = "Search")
+                    TeamSwitch(state.form.lineup.filling, onPick = { lineup(NewBoardAction.Fill(it)) })
+                }
+            } else {
+                Row(mod, verticalAlignment = Alignment.CenterVertically) {
+                    SearchField(
+                        query,
+                        { query = it },
+                        onSearch = { focus.clearFocus() },
+                        modifier = Modifier.weight(1f),
+                        horizontalPadding = 0.dp,
+                        placeholder = "Search",
+                    )
+                    Spacer(Modifier.width(Spacing.sm))
+                    TeamSwitch(state.form.lineup.filling, onPick = { lineup(NewBoardAction.Fill(it)) })
+                }
             }
         }
     }
@@ -393,6 +399,7 @@ private fun OptionsStep(
                             selected = state.form.length == length,
                             onClick = { onAction(NewGameAction.SetLength(length)) },
                             shape = SegmentedButtonDefaults.itemShape(i, GameLength.entries.size),
+                            colors = bronzeSegments(),
                             modifier = Modifier.heightIn(min = 48.dp),
                         ) { Text(PlayText.length(length)) }
                     }

@@ -59,6 +59,7 @@ import dev.quinton.goa.core.designsystem.component.GoaSheet
 import dev.quinton.goa.core.designsystem.component.HeroPortrait
 import dev.quinton.goa.core.designsystem.component.SectionHeader
 import dev.quinton.goa.core.designsystem.component.TeamMark
+import dev.quinton.goa.core.designsystem.component.TitlePlate
 import dev.quinton.goa.core.designsystem.component.scaledIconSize
 import dev.quinton.goa.core.designsystem.component.teamColor
 import dev.quinton.goa.core.designsystem.theme.GoaTextStyles
@@ -272,7 +273,7 @@ internal fun PiecesContent(
                     Surface(
                         onClick = { onSelect(piece.id) },
                         color = if (piece.id == state.selectedId) {
-                            MaterialTheme.colorScheme.secondary.copy(alpha = 0.12f)
+                            MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)
                         } else {
                             Color.Transparent
                         },
@@ -411,8 +412,8 @@ private fun PushButtons(lane: String?, onPush: (Team) -> Unit) {
 internal fun ThroneDialog(winner: Team, onDismiss: () -> Unit) {
     GoaDialog(
         onDismissRequest = onDismiss,
-        icon = { TeamMark(winner, markSize = 20.dp) },
-        title = { Text("${BoardText.team(winner)} wins", style = MaterialTheme.typography.headlineSmall) },
+        icon = { TeamMark(winner, markSize = 40.dp) },
+        title = { TitlePlate("${BoardText.team(winner)} wins", Modifier.fillMaxWidth(), heading = false) },
         text = {
             Text(
                 "${BoardText.team(winner)} wins: the Throne is captured. This push would make " +
@@ -420,7 +421,7 @@ internal fun ThroneDialog(winner: Team, onDismiss: () -> Unit) {
                 style = MaterialTheme.typography.bodyMedium,
             )
         },
-        confirmButton = { TextButton(onClick = onDismiss) { Text("OK") } },
+        confirmButton = { GoaButton(onClick = onDismiss, modifier = Modifier.heightIn(min = 48.dp)) { Text("OK") } },
     )
 }
 

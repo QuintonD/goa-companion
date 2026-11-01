@@ -52,6 +52,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.contentDescription
@@ -101,9 +102,9 @@ import dev.quinton.goa.feature.board.ui.cards.cardFocusOrigin
 import dev.quinton.goa.feature.board.ui.cards.rememberCardFocusState
 
 /**
- * One puzzle (PRODUCT §10): the game table with the goal floating at the top; in the panel the
- * puzzle's name and difficulty, "What you know" (folds after the first move), a nudge when there is
- * one, then the question. The other side's replies are narrated in the panel; a miss explains
+ * One puzzle (PRODUCT §10): the game table; in the panel the goal, the puzzle's name and difficulty on a small line,
+ * "What you know" (open the first time, folded once played), a nudge when there is one, then the
+ * question, which alone has the title plate. The other side's replies are narrated in the panel; a miss explains
  * itself gently with Try again from before that move, Restart and Show solution; solving shows the
  * seal, then why it works. The solution is replayed on the board step by step. [onTap] reports
  * whether a tap was an option (otherwise a tap on a hero opens its status).
@@ -181,7 +182,6 @@ fun PuzzleScreen(
                         },
                         onHero = { sheet = PlaySheet.Hero(it) },
                         onFlip = { onAction(PuzzleAction.Flip) },
-                        banner = { compact -> GoalBanner(p.info.goal.text, p.playing, compact = compact) },
                         peek = puzzlePeek(p),
                         peekTrailing = {
                             if (p.phase == PuzzlePhase.SOLVING && p.replay == null) {
@@ -334,7 +334,10 @@ private fun ColumnScope.PuzzlePanel(
 
         puzzle.phase == PuzzlePhase.SOLVED -> SolvedPanel(puzzle, onAction, onNext, onList)
 
-        puzzle.phase == PuzzlePhase.REPLYING -> puzzle.replying?.let { Replies(it) }
+        puzzle.phase == PuzzlePhase.REPLYING -> {
+            GoalLine(puzzle.info.goal.text, puzzle.playing)
+            puzzle.replying?.let { Replies(it) }
+        }
 
         puzzle.phase == PuzzlePhase.MISSED -> {
             MissCard(puzzle, onAction)
@@ -343,8 +346,11 @@ private fun ColumnScope.PuzzlePanel(
         }
 
         else -> {
+            GoalLine(puzzle.info.goal.text, puzzle.playing)
             PuzzleHeader(puzzle.info, puzzle.total, puzzle.round)
-            if (puzzle.info.intro.isNotBlank()) Intro(puzzle.info.intro, puzzle.introOpen, onAction)
+            // Large text: open, it fills the panel, so the question comes first.
+            val introAfter = LocalDensity.current.fontScale > LARGE_TEXT
+            if (!introAfter && puzzle.info.intro.isNotBlank()) Intro(puzzle.info, puzzle.introOpen, onAction)
             puzzle.nudge?.let { Nudge(it, onAction) }
             // The person's own question first, the moment after it (as in the game).
             val moment = puzzle.table.moment
@@ -358,6 +364,7 @@ private fun ColumnScope.PuzzlePanel(
                 busy = puzzle.busy,
                 who = false,
             )
+            if (introAfter && puzzle.info.intro.isNotBlank()) Intro(puzzle.info, puzzle.introOpen, onAction)
             ResolutionFlowView(puzzle.flow, puzzle.table, focus, Modifier.padding(top = Spacing.xs))
             puzzle.round?.let {
                 KnownPlaysStrip(it, focus, showNote = puzzle.introOpen, onLater = { shown ->
@@ -375,25 +382,22 @@ private fun Nudge(nudge: NudgeUi, onAction: (PuzzleAction) -> Unit) {
     NudgeCard(nudge, onMore = { onAction(PuzzleAction.Nudge) }, onDismiss = { onAction(PuzzleAction.DismissNudge) })
 }
 
-/** "PUZZLE 3 OF 12 · ◆◆◇ Harder", the title and the theme. */
+/** "Puzzle 3 of 12 · Through the Line ◆◆◇ Harder" on a small line: the title plate is the question's. */
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun PuzzleHeader(info: PuzzleInfo, total: Int, round: RoundUi?) {
     Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
+        FlowRow(
+            horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+            itemVerticalAlignment = Alignment.CenterVertically,
+        ) {
             Text(
-                PuzzleText.place(info, total).uppercase(),
-                style = GoaTextStyles.overline,
-                color = MaterialTheme.colorScheme.primary,
+                "${PuzzleText.place(info, total)} · ${info.title}",
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
-            Spacer(Modifier.width(Spacing.sm))
             DifficultyMark(info.difficulty)
         }
-        TitlePlate(info.title, Modifier.fillMaxWidth())
-        Text(
-            info.theme,
-            style = MaterialTheme.typography.labelMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
         round?.let {
             Text(
                 it.heading,
@@ -405,9 +409,9 @@ private fun PuzzleHeader(info: PuzzleInfo, total: Int, round: RoundUi?) {
     }
 }
 
-/** What the player knows that the board doesn't show; folds to one line once play has started. */
+/** What the player knows that the board doesn't show, under the puzzle's theme; folded, just its heading. */
 @Composable
-private fun Intro(text: String, open: Boolean, onAction: (PuzzleAction) -> Unit) {
+private fun Intro(info: PuzzleInfo, open: Boolean, onAction: (PuzzleAction) -> Unit) {
     Surface(
         onClick = { onAction(PuzzleAction.SetIntroOpen(!open)) },
         shape = RoundedCornerShape(8.dp),
@@ -416,8 +420,8 @@ private fun Intro(text: String, open: Boolean, onAction: (PuzzleAction) -> Unit)
             .fillMaxWidth()
             .semantics { stateDescription = if (open) "Expanded" else "Collapsed" },
     ) {
-        Column(Modifier.padding(horizontal = Spacing.md, vertical = Spacing.sm)) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
+        Column(Modifier.padding(horizontal = Spacing.md, vertical = Spacing.xs)) {
+            Row(Modifier.heightIn(min = 40.dp), verticalAlignment = Alignment.CenterVertically) {
                 Text(
                     "WHAT YOU KNOW",
                     style = GoaTextStyles.overline,
@@ -430,13 +434,19 @@ private fun Intro(text: String, open: Boolean, onAction: (PuzzleAction) -> Unit)
                     tint = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
-            Text(
-                text,
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                maxLines = if (open) Int.MAX_VALUE else 1,
-                overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
-            )
+            if (open) {
+                Text(
+                    info.theme,
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                Text(
+                    info.intro,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(bottom = Spacing.xs),
+                )
+            }
         }
     }
 }
@@ -666,3 +676,4 @@ private fun ReplayPanel(puzzle: PuzzleUi, replay: ReplayUi, onAction: (PuzzleAct
 }
 
 private const val SHEET_HEIGHT = 0.9f
+private const val LARGE_TEXT = 1.3f

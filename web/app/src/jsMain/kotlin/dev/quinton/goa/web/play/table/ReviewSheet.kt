@@ -248,7 +248,7 @@ private fun HeroCard(table: TableUi, hero: HeroView, focus: CardFocusState, puzz
         Overline("This turn")
         val played = hero.played
         if (played != null) {
-            CardRow(listOf(played) + hero.alsoPlayed, table, focus, "${info.name} · This turn")
+            CardRow(listOf(played) + hero.alsoPlayed, table, focus, "${info.name} · This turn", backOf = hero.heroId)
             words.inPlayNote?.let { Quiet(it) }
         } else {
             words.noCardInPlay?.let { Quiet(it) }
@@ -257,7 +257,7 @@ private fun HeroCard(table: TableUi, hero: HeroView, focus: CardFocusState, puzz
         if (hero.resolved.isEmpty()) {
             Quiet("None yet")
         } else {
-            CardRow(hero.resolved, table, focus, "${info.name} · Resolved", slots = true)
+            CardRow(hero.resolved, table, focus, "${info.name} · Resolved", slots = true, backOf = hero.heroId)
         }
         if (hero.discard.isNotEmpty()) {
             Overline("Discarded")

@@ -68,6 +68,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.compositeOver
 import androidx.compose.ui.layout.SubcomposeLayout
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalFocusManager
@@ -83,8 +84,10 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import dev.quinton.goa.core.designsystem.component.BannerTextButton
 import dev.quinton.goa.core.designsystem.component.EngravedRule
 import dev.quinton.goa.core.designsystem.component.GoaButton
+import dev.quinton.goa.core.designsystem.component.GoaPlateTheme
 import dev.quinton.goa.core.designsystem.component.GoaScreen
 import dev.quinton.goa.core.designsystem.component.HeroPortrait
 import dev.quinton.goa.core.designsystem.component.HeroSymbol
@@ -137,7 +140,7 @@ fun NewBoardScreen(
         actions = {
             if (ready != null) {
                 if (ready.form.lineup.red.isNotEmpty() || ready.form.lineup.blue.isNotEmpty()) {
-                    TextButton(onClick = { onAction(NewBoardAction.Clear) }) { Text("Clear") }
+                    BannerTextButton("Clear", onClick = { onAction(NewBoardAction.Clear) })
                 }
                 IconButton(onClick = { sources = true }, enabled = ready.sources.isNotEmpty()) {
                     Icon(Icons.Outlined.History, contentDescription = "Use a draft or match")
@@ -199,16 +202,19 @@ private fun NewBoardContent(
                 placeholder = "Search",
             )
         }
-        if (large) {
-            Column(mod) {
-                field(Modifier)
-                TeamSwitch(state.form.filling, onPick = { onAction(NewBoardAction.Fill(it)) })
-            }
-        } else {
-            Row(mod, verticalAlignment = Alignment.CenterVertically) {
-                field(Modifier.weight(1f))
-                Spacer(Modifier.width(Spacing.sm))
-                TeamSwitch(state.form.filling, onPick = { onAction(NewBoardAction.Fill(it)) })
+        // Plate-dark in both themes, as the sheets' search and the teams above it.
+        GoaPlateTheme {
+            if (large) {
+                Column(mod) {
+                    field(Modifier)
+                    TeamSwitch(state.form.filling, onPick = { onAction(NewBoardAction.Fill(it)) })
+                }
+            } else {
+                Row(mod, verticalAlignment = Alignment.CenterVertically) {
+                    field(Modifier.weight(1f))
+                    Spacer(Modifier.width(Spacing.sm))
+                    TeamSwitch(state.form.filling, onPick = { onAction(NewBoardAction.Fill(it)) })
+                }
             }
         }
     }
@@ -377,7 +383,8 @@ internal fun TeamSwitch(filling: Team, onPick: (Team) -> Unit) {
                 shape = SegmentedButtonDefaults.itemShape(i, Team.entries.size),
                 icon = { TeamMark(team, markSize = 10.dp) },
                 colors = SegmentedButtonDefaults.colors(
-                    activeContainerColor = color.copy(alpha = 0.18f),
+                    // Opaque: over the light canvas a see-through tint left its light words unreadable.
+                    activeContainerColor = color.copy(alpha = 0.18f).compositeOver(MaterialTheme.colorScheme.surface),
                     activeBorderColor = color,
                     activeContentColor = MaterialTheme.colorScheme.onSurface,
                     inactiveContainerColor = MaterialTheme.colorScheme.surface,
@@ -401,6 +408,7 @@ internal fun Teams(state: LineupPicker, onAction: (NewBoardAction) -> Unit, onSp
 }
 
 /** One team's heroes in pick order; tap the row to pick for this team next. */
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun TeamRow(
     state: LineupPicker,
@@ -442,25 +450,26 @@ private fun TeamRow(
                     modifier = Modifier.weight(1f),
                 )
             } else {
-                // Every pick stays in sight: the chips share the row, a long name gives way first.
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(Spacing.xs),
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.weight(1f).padding(vertical = Spacing.xs),
-                ) {
-                    heroes.forEachIndexed { index, hero ->
-                        key(hero.id) {
-                            SlotChip(
-                                hero,
-                                team,
-                                index,
-                                heroes.size,
-                                state,
-                                onAction,
-                                Modifier.weight(1f, fill = false),
-                                onSpellbook,
-                            )
-                        }
+                val chip = @Composable { index: Int, hero: BoardHero, chipModifier: Modifier ->
+                    key(hero.id) {
+                        SlotChip(hero, team, index, heroes.size, state, onAction, chipModifier, onSpellbook)
+                    }
+                }
+                if (LocalDensity.current.fontScale > LARGE_FONT) {
+                    // Large text: chips sharing a row are cut to a letter, so each keeps its name and they wrap.
+                    FlowRow(
+                        horizontalArrangement = Arrangement.spacedBy(Spacing.xs),
+                        verticalArrangement = Arrangement.spacedBy(Spacing.xs),
+                        modifier = Modifier.weight(1f).padding(vertical = Spacing.xs),
+                    ) { heroes.forEachIndexed { index, hero -> chip(index, hero, Modifier) } }
+                } else {
+                    // Every pick stays in sight: the chips share the row, a long name gives way first.
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(Spacing.xs),
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.weight(1f).padding(vertical = Spacing.xs),
+                    ) {
+                        heroes.forEachIndexed { index, hero -> chip(index, hero, Modifier.weight(1f, fill = false)) }
                     }
                 }
             }
@@ -701,15 +710,20 @@ private fun ComingLater(modifier: Modifier = Modifier) {
 
 /** The map ("Map: Forgotten Island ▾", a menu of the bundled maps) and Set up. */
 @Composable
+@OptIn(ExperimentalLayoutApi::class)
 private fun SetUpBar(state: NewBoardUiState.Ready, onAction: (NewBoardAction) -> Unit, onSetUp: () -> Unit) {
     var menu by remember { mutableStateOf(false) }
+    // Large text: the map's name above Set up, not cut to its first letters beside it.
+    val stacked = LocalDensity.current.fontScale > LARGE_FONT
     Column(Modifier.fillMaxWidth()) {
         EngravedRule()
-        Row(
+        FlowRow(
             Modifier
                 .fillMaxWidth()
                 .padding(start = Spacing.sm, end = Spacing.screen, top = Spacing.sm, bottom = Spacing.sm),
-            verticalAlignment = Alignment.CenterVertically,
+            maxItemsInEachRow = if (stacked) 1 else 2,
+            horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+            itemVerticalAlignment = Alignment.CenterVertically,
         ) {
             Box(Modifier.weight(1f)) {
                 val map = state.map
@@ -772,11 +786,10 @@ private fun SetUpBar(state: NewBoardUiState.Ready, onAction: (NewBoardAction) ->
                     }
                 }
             }
-            Spacer(Modifier.width(Spacing.sm))
             GoaButton(
                 onClick = onSetUp,
                 enabled = state.canSetUp,
-                modifier = Modifier.heightIn(min = 56.dp),
+                modifier = Modifier.heightIn(min = 56.dp).then(if (stacked) Modifier.fillMaxWidth() else Modifier),
                 contentPadding = PaddingValues(horizontal = Spacing.xl),
             ) {
                 Text(
