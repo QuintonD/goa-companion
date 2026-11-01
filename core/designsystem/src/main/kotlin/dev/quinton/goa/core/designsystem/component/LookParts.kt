@@ -290,9 +290,9 @@ fun GoaSheet(
 }
 
 /** Draws [image] into [size], the corners kept and the edges stretched; insets in source pixels and in px. */
-private fun DrawScope.drawNineSlice(image: ImageBitmap, src: SliceInsets, dst: SliceInsets) {
+private fun DrawScope.drawNineSlice(image: ImageBitmap, src: SliceInsets, dst: SliceInsets, srcTop: Int = 0) {
     val xs = intArrayOf(0, src.left, image.width - src.right, image.width)
-    val ys = intArrayOf(0, src.top, image.height - src.bottom, image.height)
+    val ys = intArrayOf(srcTop, src.top, image.height - src.bottom, image.height)
     val dx = intArrayOf(0, dst.left, size.width.toInt() - dst.right, size.width.toInt())
     val dy = intArrayOf(0, dst.top, size.height.toInt() - dst.bottom, size.height.toInt())
     for (row in 0..2) {
@@ -379,10 +379,12 @@ fun CardTextBox(
     val fontScale = LocalDensity.current.fontScale
     Box(
         modifier.drawWithCache {
-            val dst = SliceInsets(11.dp.roundToPx(), 20.dp.roundToPx(), 11.dp.roundToPx(), 9.dp.roundToPx())
+            val top = if (cap != null) 20.dp else 8.dp
+            val dst = SliceInsets(11.dp.roundToPx(), top.roundToPx(), 11.dp.roundToPx(), 9.dp.roundToPx())
             onDrawBehind {
                 if (box != null) {
-                    drawNineSlice(box, slice, dst)
+                    // No word for the tab: no tab, the box starts at its rim.
+                    drawNineSlice(box, slice, dst, srcTop = if (cap != null) 0 else BOX_TAB_ROWS.getValue(color))
                 } else {
                     drawRoundRect(colors.parchment, cornerRadius = CornerRadius(8.dp.toPx()))
                 }
@@ -405,7 +407,7 @@ fun CardTextBox(
         }
         CompositionLocalProvider(LocalContentColor provides colors.onParchment) {
             Column(
-                Modifier.fillMaxWidth().padding(start = 12.dp, end = 12.dp, top = 22.dp, bottom = 10.dp),
+                Modifier.fillMaxWidth().padding(start = 12.dp, end = 12.dp, top = if (cap != null) 22.dp else 10.dp, bottom = 10.dp),
                 content = content,
             )
         }
@@ -512,6 +514,15 @@ private val BOX_SLICES = mapOf(
     PlateColor.GREEN to SliceInsets(20, 35, 20, 16),
     PlateColor.GOLD to SliceInsets(20, 34, 20, 16),
     PlateColor.RED to SliceInsets(14, 26, 14, 11),
+)
+
+/** Where each box's rim starts under its tab, in source pixels. */
+private val BOX_TAB_ROWS = mapOf(
+    PlateColor.BLUE to 17,
+    PlateColor.SILVER to 15,
+    PlateColor.GREEN to 21,
+    PlateColor.GOLD to 20,
+    PlateColor.RED to 15,
 )
 private val CAP_SHADOW = Shadow(Color(0xB0000000), Offset(0f, 1f), 2f)
 private val BEVEL_OUTLINE = Color(0xFF05090D)
