@@ -1,8 +1,10 @@
 package dev.quinton.goa.feature.rules
 
 import androidx.compose.ui.graphics.luminance
+import dev.quinton.goa.core.designsystem.component.LookArt
 import dev.quinton.goa.feature.rules.ui.RulesBox
 import dev.quinton.goa.feature.rules.ui.RulesBoxes
+import dev.quinton.goa.feature.rules.ui.RulesDiagrams
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
@@ -25,9 +27,19 @@ class RulesBoxesTest {
     }
 
     @Test
+    fun `each diagram has its printed caption, under the push's steps`() {
+        val lane = bundledReference.topics.first { it.id == "pushing-the-lane" }.excerpts
+        assertEquals(
+            listOf(LookArt.PUSH_DIAGRAM_1, LookArt.PUSH_DIAGRAM_2),
+            lane.mapNotNull { RulesDiagrams.of(it)?.art },
+        )
+        assertEquals("Push the Lane", lane[lane.indexOfFirst { RulesDiagrams.of(it) != null } - 1].heading)
+    }
+
+    @Test
     fun `the book's boxes come out as printed`() {
         val lane = bundledReference.topics.first { it.id == "pushing-the-lane" }.excerpts
-        assertEquals(listOf(null, null, RulesBox.BLUE, RulesBox.BLUE), lane.map(RulesBoxes::of))
+        assertEquals(listOf(null, null, null, null, RulesBox.BLUE, RulesBox.BLUE), lane.map(RulesBoxes::of))
         val endOfRound = bundledReference.topics.first { it.id == "end-of-round" }.excerpts
         assertEquals(RulesBox.GREEN, RulesBoxes.of(endOfRound[1]))
         assertNull(RulesBoxes.of(endOfRound[0]))

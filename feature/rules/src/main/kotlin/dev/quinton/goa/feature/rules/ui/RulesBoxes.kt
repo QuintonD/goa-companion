@@ -1,6 +1,7 @@
 package dev.quinton.goa.feature.rules.ui
 
 import androidx.compose.ui.graphics.Color
+import dev.quinton.goa.core.designsystem.component.LookArt
 import dev.quinton.goa.core.model.rules.RulesExcerpt
 
 /**
@@ -58,4 +59,21 @@ internal object RulesBoxes {
     }
 
     private const val BULLET = "• "
+}
+
+/**
+ * The diagrams the rulebook prints, and the caption it prints under each. A caption is a verbatim passage
+ * of `rules-reference.json` (so the importer checks it against the PDF); the picture goes above it, and
+ * `RulesBoxesTest` fails if a caption named here is no longer in the reference.
+ */
+internal object RulesDiagrams {
+    internal class Entry(val page: Int, val opening: String, val art: String, val aspect: Float)
+
+    val entries = listOf(
+        Entry(8, "The Red team has 4 minions", LookArt.PUSH_DIAGRAM_1, 1461f / 1126f),
+        Entry(8, "All minions remaining in the old", LookArt.PUSH_DIAGRAM_2, 1437f / 1126f),
+    )
+
+    fun of(excerpt: RulesExcerpt): Entry? =
+        entries.firstOrNull { it.page == excerpt.page && excerpt.text.startsWith(it.opening) }
 }

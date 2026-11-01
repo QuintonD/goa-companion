@@ -53,6 +53,7 @@ import org.jetbrains.compose.web.attributes.InputType
 import org.jetbrains.compose.web.attributes.type
 import org.jetbrains.compose.web.dom.Button
 import org.jetbrains.compose.web.dom.Div
+import org.jetbrains.compose.web.dom.Img
 import org.jetbrains.compose.web.dom.H2
 import org.jetbrains.compose.web.dom.Input
 import org.jetbrains.compose.web.dom.Label
@@ -394,14 +395,16 @@ private fun HeroGridTile(item: HeroListItem, sort: CatalogSort) {
                 attr("aria-hidden", "true")
             }) {
                 Span({ classes("goa-hero-tile-title") }) { Text(hero.title) }
+                // A ranged hero has the game's Range icon beside the stars (the word on the list row and the page).
                 Div({ classes("goa-hero-tile-meta") }) {
                     ComplexityStars(hero.complexity)
-                    item.rangedLabel?.let { MetaPill(it, primary = true) }
+                    if (item.rangedLabel != null) {
+                        Img("official/ui/action-range.webp", alt = "") { classes("goa-hero-tile-ranged") }
+                    }
                 }
                 // Two roles fit a tile, as on the mock-up; the hero page and VoiceOver have them all.
                 val traits = hero.roles.take(TILE_ROLES).joinToString(" · ") { it.label }
                 if (traits.isNotEmpty()) Span({ classes("goa-hero-traits", "t-label-small") }) { Text(traits) }
-                Div({ classes("goa-pills", "goa-hero-tile-product") }) { MetaPill(item.productName) }
                 TileFootnotes(item, sort)
             }
         }

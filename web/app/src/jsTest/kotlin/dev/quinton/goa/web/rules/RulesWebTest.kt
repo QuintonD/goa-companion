@@ -33,7 +33,11 @@ class RulesWebTest {
             )
         }
         val lane = reference.topics.first { it.id == "pushing-the-lane" }.excerpts
-        assertEquals(listOf(null, null, RulesBox.BLUE, RulesBox.BLUE), lane.map(RulesBoxes::of))
+        assertEquals(listOf(null, null, null, null, RulesBox.BLUE, RulesBox.BLUE), lane.map(RulesBoxes::of))
+        assertEquals(
+            listOf("official/rules/push-1.webp", "official/rules/push-2.webp"),
+            lane.mapNotNull { RulesDiagrams.of(it)?.art },
+        )
     }
 
     @Test
