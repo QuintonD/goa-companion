@@ -353,7 +353,7 @@ fun CardTextBox(
     val slice = BOX_SLICES.getValue(color)
     Box(
         modifier.drawWithCache {
-            val dst = SliceInsets(11.dp.roundToPx(), 15.dp.roundToPx(), 11.dp.roundToPx(), 9.dp.roundToPx())
+            val dst = SliceInsets(11.dp.roundToPx(), 20.dp.roundToPx(), 11.dp.roundToPx(), 9.dp.roundToPx())
             onDrawBehind {
                 if (box != null) {
                     drawNineSlice(box, slice, dst)
@@ -377,7 +377,7 @@ fun CardTextBox(
         }
         CompositionLocalProvider(LocalContentColor provides colors.onParchment) {
             Column(
-                Modifier.fillMaxWidth().padding(start = 12.dp, end = 12.dp, top = 18.dp, bottom = 10.dp),
+                Modifier.fillMaxWidth().padding(start = 12.dp, end = 12.dp, top = 22.dp, bottom = 10.dp),
                 content = content,
             )
         }
@@ -473,11 +473,12 @@ private val PLATE_EDGE = Color(0xFF5D6B70)
 private val PLATE_DARK_EDGE = Color(0xFF15191B)
 private val TITLE_SLICE = SliceInsets(16, 7, 36, 7)
 private val BOX_SLICES = mapOf(
-    PlateColor.BLUE to SliceInsets(16, 20, 16, 13),
-    PlateColor.SILVER to SliceInsets(16, 20, 16, 13),
-    PlateColor.GREEN to SliceInsets(20, 26, 20, 16),
-    PlateColor.GOLD to SliceInsets(20, 28, 20, 16),
-    PlateColor.RED to SliceInsets(14, 16, 14, 11),
+    // The top inset takes in the tab and the rim under it, so a tall box doesn't stretch the rim over its text.
+    PlateColor.BLUE to SliceInsets(16, 28, 16, 13),
+    PlateColor.SILVER to SliceInsets(16, 24, 16, 13),
+    PlateColor.GREEN to SliceInsets(20, 35, 20, 16),
+    PlateColor.GOLD to SliceInsets(20, 34, 20, 16),
+    PlateColor.RED to SliceInsets(14, 26, 14, 11),
 )
 private val CAP_SHADOW = Shadow(Color(0xB0000000), Offset(0f, 1f), 2f)
 private val BEVEL_OUTLINE = Color(0xFF05090D)
