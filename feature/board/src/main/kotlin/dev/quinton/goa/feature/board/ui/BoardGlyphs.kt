@@ -291,24 +291,33 @@ private val ChipGround = Color(0xFF0B1622)
 private val ChipEdge = Color(0xFFF3EBD6)
 private val ChipChosen = Color(0xFFC9A35B)
 
-/** Fast Travel: diagonal bronze hatching. */
+/**
+ * Fast Travel: diagonal bronze hatching. On a painting the lines are thin, far apart and see-through, so the
+ * ground and its Spawn symbols still show; a pale line on a faint dark one reads on sand as on jungle.
+ */
 fun DrawScope.drawFastTravelCell(corners: List<Offset>, center: Offset, u: Float, palette: BoardPalette) {
     val path = hexPath(corners, 0.92f, center)
     if (!palette.onArt) drawPath(path, palette.fastTravel.copy(alpha = 0.12f))
     clipPath(path) {
-        val step = u * 0.36f
-        val under = palette.halo.copy(alpha = HALO_ALPHA)
-        val line = palette.fastTravel.copy(alpha = if (palette.onArt) 1f else 0.85f)
+        val step = u * if (palette.onArt) HATCH_STEP_ON_ART else 0.36f
+        val under = palette.halo.copy(alpha = HATCH_UNDER_ALPHA)
+        val line = palette.fastTravel.copy(alpha = if (palette.onArt) HATCH_ALPHA_ON_ART else 0.85f)
         var x = -u * 2f
         while (x < u * 2f) {
             val from = center + Offset(x - u, -u)
             val to = center + Offset(x + u, u)
-            if (palette.onArt) drawLine(under, from, to, strokeWidth = u * 0.16f)
-            drawLine(line, from, to, strokeWidth = u * 0.07f)
+            if (palette.onArt) drawLine(under, from, to, strokeWidth = u * HATCH_UNDER_WIDTH)
+            drawLine(line, from, to, strokeWidth = u * if (palette.onArt) HATCH_WIDTH_ON_ART else 0.07f)
             x += step
         }
     }
 }
+
+private const val HATCH_STEP_ON_ART = 0.6f
+private const val HATCH_WIDTH_ON_ART = 0.05f
+private const val HATCH_ALPHA_ON_ART = 0.55f
+private const val HATCH_UNDER_WIDTH = 0.1f
+private const val HATCH_UNDER_ALPHA = 0.35f
 
 /** Range: an inner outline. */
 fun DrawScope.drawRangeCell(corners: List<Offset>, center: Offset, u: Float, palette: BoardPalette) {

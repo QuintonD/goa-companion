@@ -60,6 +60,9 @@ import dev.quinton.goa.core.model.board.TokenPiece
 import dev.quinton.goa.core.model.match.Team
 import dev.quinton.goa.core.model.settings.BoardStyle
 import dev.quinton.goa.feature.board.BoardHero
+import dev.quinton.goa.feature.board.map.FIGURE_FOOT
+import dev.quinton.goa.feature.board.map.FIGURE_HEIGHT
+import dev.quinton.goa.feature.board.map.HEAVY_HEIGHT
 
 /** How a piece looks: on a map with no painting as drawn, on a painting as the board style says. */
 enum class PieceLook { DRAWN, DISC, MINIATURE }
@@ -323,12 +326,20 @@ private fun DrawScope.drawFigure(piece: MinionPiece, image: ImageBitmap, c: Offs
     val scale = height / image.height
     val left = c.x - image.width * scale / 2f
     val top = c.y + u * FIGURE_FOOT - height
-    // A dark edge, four offset copies: the figure's outline holds on sand as on lava. No blur to pay for.
-    val edge = u * 0.035f
-    listOf(Offset(edge, 0f), Offset(-edge, 0f), Offset(0f, edge), Offset(0f, -edge)).forEach { d ->
-        drawScaled(image, left + d.x, top + d.y, scale, FigureEdge)
-    }
-    drawScaled(image, left, top + u * 0.05f, scale, FigureEdge)
+    // A dark edge, offset copies all round: a red figure's outline holds on salmon lava as on sand. No blur to pay for.
+    val edge = u * FIGURE_EDGE
+    val corner = edge * FIGURE_EDGE_CORNER
+    listOf(
+        Offset(edge, 0f),
+        Offset(-edge, 0f),
+        Offset(0f, edge),
+        Offset(0f, -edge),
+        Offset(corner, corner),
+        Offset(-corner, corner),
+        Offset(corner, -corner),
+        Offset(-corner, -corner),
+    ).forEach { d -> drawScaled(image, left + d.x, top + d.y, scale, FigureEdge) }
+    drawScaled(image, left, top + u * FIGURE_DROP, scale, FigureEdge)
     drawScaled(image, left, top, scale)
 }
 
@@ -408,10 +419,10 @@ private const val COIN_ON_BOARD = 1.18f
 /** Hex radii in the box of a disc off the board: the badge stays inside. */
 private const val DISC_OFF_BOARD_UNITS = 2.2f
 
-/** Mock-up 01 on a hex of radius 20: a figure 31 px tall (the Heavy 38), its foot 12 px below the centre. */
-private const val FIGURE_HEIGHT = 1.55f
-private const val HEAVY_HEIGHT = 2.0f
-private const val FIGURE_FOOT = 0.6f
+/** A figure's dark contour in hex radii, its reach on the diagonals, and how far it drops below the figure. */
+private const val FIGURE_EDGE = 0.055f
+private const val FIGURE_EDGE_CORNER = 0.71f
+private const val FIGURE_DROP = 0.09f
 private const val BASE_Y = 0.45f
 private const val BASE_WIDTH = 1.5f
 private const val BASE_HEIGHT = 0.65f
@@ -430,7 +441,7 @@ private val BADGE_BLUE = Color(0xFF0D3A66)
 private val DISC_RED = Color(0xFFD9574B)
 private val DISC_BLUE = Color(0xFF3F7FD6)
 private val BASE_SHADE = Color(0xA6000000)
-private val FigureEdge = ColorFilter.tint(Color(0xD9000000))
+private val FigureEdge = ColorFilter.tint(Color(0xF2000000))
 
 /** The label's font size as a share of the piece: as large as fits its longest word on one line. */
 internal fun tokenEm(label: String): Float {

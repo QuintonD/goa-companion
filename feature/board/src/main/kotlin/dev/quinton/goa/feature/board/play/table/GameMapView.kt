@@ -4,6 +4,7 @@ import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.VectorConverter
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.gestures.calculateCentroid
@@ -16,7 +17,6 @@ import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -32,7 +32,6 @@ import androidx.compose.ui.draw.drawWithCache
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Size
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.StrokeJoin
@@ -71,11 +70,14 @@ import dev.quinton.goa.feature.board.BoardText
 import dev.quinton.goa.feature.board.map.BADGE_LAYER
 import dev.quinton.goa.feature.board.map.MapBase
 import dev.quinton.goa.feature.board.map.MapLayout
+import dev.quinton.goa.feature.board.map.MapPoint
 import dev.quinton.goa.feature.board.map.MapViewport
 import dev.quinton.goa.feature.board.map.PaintedMap
 import dev.quinton.goa.feature.board.map.ZoneLabels
+import dev.quinton.goa.feature.board.map.figureSpaceAt
 import dev.quinton.goa.feature.board.map.maxHex
 import dev.quinton.goa.feature.board.map.rememberMapPainting
+import dev.quinton.goa.feature.board.map.standingFigures
 import dev.quinton.goa.feature.board.ui.ArtBoardPalette
 import dev.quinton.goa.feature.board.ui.BoardPalette
 import dev.quinton.goa.feature.board.ui.CHIP_TEXT
@@ -117,6 +119,7 @@ fun GameMapView(
     val painting = rememberMapPainting(table.map)
     val palette = if (painting != null) ArtBoardPalette else boardPalette()
     val look = pieceLook(painted = painting != null)
+    val currentLook by rememberUpdatedState(look)
     val haptics = LocalHapticFeedback.current
     val longPress by rememberUpdatedState(onLongPressHero)
     val density = LocalDensity.current
@@ -195,8 +198,16 @@ fun GameMapView(
                         return@awaitEachGesture
                     }
                     if (!gesture) {
-                        val hex = layout.hexAt(viewport.screenToMap(down.position))
-                        val did = resolve(current, hex)?.let {
+                        val point = viewport.screenToMap(down.position)
+                        val hex = layout.hexAt(point)
+                        val figure = if (currentLook == PieceLook.MINIATURE) {
+                            figureSpaceAt(MapPoint(point.x, point.y), standingFigures(current.pieces)) { at ->
+                                layout.center(at).let { MapPoint(it.x, it.y) }
+                            }
+                        } else {
+                            null
+                        }
+                        val did = resolveAt(current, hex, figure)?.let {
                             tap(it)
                             true
                         } ?: false
@@ -247,31 +258,35 @@ fun GameMapView(
 }
 
 /**
- * "NOW" over the acting hero's piece, at a fixed size outside the zoom (ADR-041): with the bronze
- * outline of its space it says on the map who is resolving a card. Map furniture: TalkBack hears
- * "acting now" on the space.
+ * "NOW", at a fixed size outside the zoom (ADR-041): a tab of the acting hero's ring, in the ring's colour and
+ * joined to it, so it can't be read as belonging to the piece on the space above. With the bronze outline of
+ * its space it says on the map who is resolving a card. Map furniture: TalkBack hears "acting now" on the space.
  */
 @Composable
 private fun ActingTag(table: TableUi, layout: MapLayout, viewport: MapViewport, palette: BoardPalette) {
-    val hex = table.view.acting?.let { id -> table.view.heroes.firstOrNull { it.heroId == id }?.at } ?: return
+    val hero = table.view.acting?.let { id -> table.view.heroes.firstOrNull { it.heroId == id } } ?: return
+    val hex = hero.at ?: return
     val density = LocalDensity.current
-    val gap = with(density) { 1.dp.toPx() }
+    val join = with(density) { 2.dp.toPx() }
+    val ring = if (palette.onArt) RING_ON_ART else RING_DRAWN
+    val ringWidth = if (palette.onArt) RING_WIDTH_ON_ART else RING_WIDTH_DRAWN
     Box(
         Modifier
             .layout { measurable, constraints ->
                 val placeable = measurable.measure(constraints.copy(minWidth = 0, minHeight = 0))
                 layout(constraints.maxWidth, constraints.maxHeight) {
                     val at = viewport.mapToScreen(layout.center(hex))
-                    val radius = PIECE * viewport.scale / 2f
                     val x = at.x - placeable.width / 2f
-                    val y = at.y - radius - placeable.height + gap
+                    val y = at.y - ring * viewport.scale - placeable.height +
+                        maxOf(ringWidth * viewport.scale, join)
                     if (x >= 0f && y >= 0f && x + placeable.width <= viewport.viewport.width) {
                         placeable.place(x.roundToInt(), y.roundToInt())
                     }
                 }
             }
-            .background(if (palette.onArt) NOW_ON_ART else MaterialTheme.colorScheme.primary, RoundedCornerShape(50))
-            .padding(horizontal = 5.dp)
+            .background(palette.team(hero.team), TabShape)
+            .border(1.dp, palette.halo, TabShape)
+            .padding(horizontal = 6.dp, vertical = 1.dp)
             .clearAndSetSemantics {},
     ) {
         Text(
@@ -281,7 +296,7 @@ private fun ActingTag(table: TableUi, layout: MapLayout, viewport: MapViewport, 
                 fontWeight = FontWeight.Bold,
                 letterSpacing = with(density) { 0.5.dp.toSp() },
             ),
-            color = if (palette.onArt) palette.onToken else MaterialTheme.colorScheme.onPrimary,
+            color = palette.onTeam,
             maxLines = 1,
         )
     }
@@ -302,6 +317,13 @@ internal fun resolve(table: TableUi, hex: Hex): TableTap? {
     if (occupant != null) return TableTap.Piece(occupant)
     return null
 }
+
+/**
+ * A tap at [hex], with [figure] the space of a miniature whose body rises to the finger: the option or piece
+ * on the hex under the finger if there is one, else that figure (its head is over the space behind it).
+ */
+internal fun resolveAt(table: TableUi, hex: Hex, figure: Hex?): TableTap? =
+    resolve(table, hex) ?: figure?.let { resolve(table, it) }
 
 /** Pieces and highlighted spaces: the Zone labels keep clear of them. */
 @Composable
@@ -550,7 +572,13 @@ private fun spacesOnAPath(table: TableUi): Map<Hex, Int> {
 /** Diameter of a piece in map units (a hex is √3 across its flats); as the sandbox. */
 private const val PIECE = 1.46f
 
-private val NOW_ON_ART = Color(0xFFC9A35B)
+/** A hero's ring: its outer radius and width in map units, on a painting (PieceToken.HeroCoin) and off one. */
+private const val RING_ON_ART = 0.81f
+private const val RING_WIDTH_ON_ART = 0.1f
+private const val RING_DRAWN = 0.69f
+private const val RING_WIDTH_DRAWN = 0.15f
+
+private val TabShape = RoundedCornerShape(topStart = 6.dp, topEnd = 6.dp, bottomStart = 2.dp, bottomEnd = 2.dp)
 
 /** Side of a space's TalkBack node in map units: neighbours never overlap (see BoardMapView). */
 private const val SPACE_NODE = 1.46f
