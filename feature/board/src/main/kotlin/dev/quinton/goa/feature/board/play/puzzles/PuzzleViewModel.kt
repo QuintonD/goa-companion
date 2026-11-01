@@ -144,6 +144,9 @@ class PuzzleViewModel internal constructor(
     private var nudgeVisible = false
     private var nudgesOn = true
     private var introOpen = true
+
+    /** The first word from the stored progress: a puzzle already tried opens with "What you know" folded. */
+    private var progressKnown = false
     private var laterShown = false
 
     /** The turn the nudges are for: a full round's come per turn, each turn gentle first again. */
@@ -218,6 +221,10 @@ class PuzzleViewModel internal constructor(
         viewModelScope.launch {
             progressRepository.progress.catch { emit(emptyMap()) }.collect { all ->
                 stored = all[puzzleId] ?: PuzzleProgress()
+                if (!progressKnown) {
+                    progressKnown = true
+                    if (stored.attempts > 0) introOpen = false
+                }
                 publish()
             }
         }

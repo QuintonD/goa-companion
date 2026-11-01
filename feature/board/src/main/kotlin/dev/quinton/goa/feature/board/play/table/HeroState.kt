@@ -139,6 +139,13 @@ internal fun HeroDashboard(table: TableUi, hero: HeroView, focus: CardFocusState
         val ink = GoaTheme.colors.onParchment
         DashboardArt(hero.heroId, info.portrait, Modifier.fillMaxSize())
         OfficialIcon(LookArt.DASHBOARD_FRAME, Modifier.fillMaxSize().clearAndSetSemantics {})
+        // The frame's blank upright plate at its right edge holds nothing here, and reads as a scrollbar.
+        Box(
+            Modifier
+                .offset(x = w * BLANK_PLATE_X, y = h * BLANK_PLATE_Y)
+                .size(w * BLANK_PLATE_WIDTH, h * BLANK_PLATE_HEIGHT)
+                .background(PlateGround, RoundedCornerShape(2.dp)),
+        )
         val name = listOf(info.name, info.title).filter { it.isNotBlank() }.joinToString(" ")
         // The big plate is about a third of the frame: a long title gets smaller rather than cut.
         val nameSize = dpToSp(minOf(NAME_SP * scale, (w * BIG_PLATE_TEXT).value / (name.length * CINZEL_EM)))
@@ -238,6 +245,9 @@ private fun SlotOnFrame(
             if (slot.cards.isNotEmpty()) {
                 TableCard(first, width = width, backOf = heroId)
                 if (slot.stepped) Box(Modifier.fillMaxSize().background(Color.Black.copy(alpha = STEPPED_SCRIM)))
+            } else {
+                // The art under an empty slot can look almost like a card.
+                Box(Modifier.fillMaxSize().background(Color.Black.copy(alpha = EMPTY_SCRIM)))
             }
             val (background, content) = bandColors(slot.now, slot.next)
             slot.word?.let { word ->
@@ -336,7 +346,14 @@ internal fun ItemsSection(table: TableUi, hero: HeroView, focus: CardFocusState)
     }
     if (hero.items.isNotEmpty()) {
         val name = table.hero(hero.heroId).name
-        Quiet("Tucked under the dashboard: only you see which cards (p.4).")
+        // A puzzle shows the other side's too, and there "only you" isn't so.
+        Quiet(
+            if (hero.heroId in table.mine) {
+                "Tucked under the dashboard: only you see which cards (p.4)."
+            } else {
+                "Tucked under the dashboard: open in this puzzle."
+            },
+        )
         CardRow(
             hero.items.map { CardView(it) },
             table,
@@ -406,6 +423,11 @@ private const val BAND_SP = 10f
 private const val SECOND_CARD = 0.17f
 private const val SECOND_ALPHA = 0.9f
 private const val STEPPED_SCRIM = 0.38f
+private const val EMPTY_SCRIM = 0.4f
+private const val BLANK_PLATE_X = 0.936f
+private const val BLANK_PLATE_Y = 0.445f
+private const val BLANK_PLATE_WIDTH = 0.029f
+private const val BLANK_PLATE_HEIGHT = 0.215f
 
 /** A portrait's face sits above its middle. */
 private const val PORTRAIT_BIAS = -0.45f

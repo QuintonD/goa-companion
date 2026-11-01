@@ -65,6 +65,49 @@ fun kindTitle(kind: DecisionKind): String = when (kind) {
     DecisionKind.KEEP_UPGRADE -> "Level up"
 }
 
+/** A question's words for the title plate and the text box under it (docs/DESIGN.md: a plate holds a few words). */
+data class PromptParts(val title: String?, val text: String?)
+
+/**
+ * "Minion Battle: remove a minion" is a title and a sentence, split at the colon; a short question is its own
+ * title ("Play a card facedown"); any other sentence has no title, and all of it goes in the box.
+ */
+fun promptParts(prompt: String): PromptParts {
+    val head = prompt.substringBefore(": ", "")
+    return when {
+        head.isNotEmpty() && head.length <= PLATE_TITLE ->
+            PromptParts(head, prompt.substringAfter(": ").replaceFirstChar { it.uppercase() })
+
+        prompt.length <= PLATE_TITLE -> PromptParts(prompt, null)
+
+        else -> PromptParts(null, prompt)
+    }
+}
+
+private const val PLATE_TITLE = 30
+
+/**
+ * How a board question is answered, in words true of every case: what a question offers is highlighted (lit on a
+ * painting, dashed on the drawn map, numbered or not), and the count is of what can be chosen, not of what is lit
+ * (the mover's own space and the rock it encloses are lit too).
+ */
+fun boardHint(spaces: Int, pieces: Int): String = when {
+    pieces == 0 && spaces == 1 -> "Tap the highlighted space."
+    pieces == 0 -> "$spaces spaces to choose from: tap a highlighted one."
+    spaces == 0 && pieces == 1 -> "Tap the highlighted piece, or pick it below."
+    spaces == 0 -> "Tap a highlighted piece, or pick it below."
+    else -> "Tap a highlighted space or piece."
+}
+
+/**
+ * A minion option's two lines, what tells it apart first: "Blue Melee minion · Lane Zone 2 · 9 spaces from Wasp" is
+ * "9 spaces from Wasp" over the rest; a minion that needs no telling apart is just its name.
+ */
+fun minionRowLines(label: String): Pair<String, String?> {
+    val parts = label.split(" · ")
+    return if (parts.size < 2) label to null else parts.last() to parts.dropLast(1).joinToString(" · ")
+}
+
 /** An action chip's words: the action and the card's value for it ("Attack 6", "Movement 4", "Hold"). */
 fun actionLabel(action: ActionType, card: Card?): String = when (action) {
     ActionType.PRIMARY -> {

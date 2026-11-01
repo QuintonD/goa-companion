@@ -210,19 +210,19 @@ class PuzzleScreenshotTest {
     }
 
     /** A tempting thrust at Arien: he defends, the reply is narrated line by line. */
-    private fun missing(nudges: Boolean = true, narrating: Boolean = false) = drive("p14", nudges = nudges) {
-        val wrong = puzzleFile("p14").wrongTries.first().moves
+    private fun missing(nudges: Boolean = true, narrating: Boolean = false) = drive("p01", nudges = nudges) {
+        val wrong = puzzleFile("p01").wrongTries.first().moves
         wrong.dropLast(1).forEach { play(it) }
         vm.onAction(PuzzleAction.Answer(ui().table.choiceOf(wrong.last())))
         if (narrating) settle(REPLY_MS) else settle()
     }
 
-    @Test fun puzzleReplyingDark() = shot(ThemeMode.DARK, needs = listOf("p14")) { missing(narrating = true) }
+    @Test fun puzzleReplyingDark() = shot(ThemeMode.DARK, needs = listOf("p01")) { missing(narrating = true) }
 
     /** The miss, gently, with Try again from before that move, and the first nudge. */
-    @Test fun puzzleMissDark() = shot(ThemeMode.DARK, needs = listOf("p14")) { missing() }
+    @Test fun puzzleMissDark() = shot(ThemeMode.DARK, needs = listOf("p01")) { missing() }
 
-    @Test fun puzzleMissLight() = shot(ThemeMode.LIGHT, needs = listOf("p14")) { missing() }
+    @Test fun puzzleMissLight() = shot(ThemeMode.LIGHT, needs = listOf("p01")) { missing() }
 
     /** Every nudge asked: the last names the move and outlines the space on the board. */
     private fun lastNudge() = drive("p34") {
