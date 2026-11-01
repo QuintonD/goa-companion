@@ -656,68 +656,100 @@ the document by `--rules-only`):
 | `official/cards/xargatha-red-3a.webp` | https://raw.githubusercontent.com/dmrediger/goa2/23544c3a8545edc03954c3d4334989803d42afff/public/hero-cards/base/xargatha/xargatha-12.jpeg |
 | `official/cards/xargatha-red-3b.webp` | https://raw.githubusercontent.com/dmrediger/goa2/23544c3a8545edc03954c3d4334989803d42afff/public/hero-cards/base/xargatha/xargatha-13.jpeg |
 | `official/cards/xargatha-silver.webp` | https://raw.githubusercontent.com/dmrediger/goa2/23544c3a8545edc03954c3d4334989803d42afff/public/hero-cards/base/xargatha/xargatha-2.jpeg |
+| `official/heroes/arien/back.webp` | https://raw.githubusercontent.com/dmrediger/goa2/23544c3a8545edc03954c3d4334989803d42afff/public/hero-cards/base/arien/arien-20.jpeg |
 | `official/heroes/arien/portrait.webp` | https://raw.githubusercontent.com/yvo-niedrich/goa2-faq/b841b76c466b1a88323579737080f0a7bbf596b0/public/hero/arien.png |
 | `official/heroes/arien/symbol.webp` | https://raw.githubusercontent.com/QuasiStellar/Stats-of-Atlantis/3d5e8b5692bdee58a69b234d4f3b489bb2fecfe4/src/lib/images/logos/arien.png |
+| `official/heroes/bain/back.webp` | https://raw.githubusercontent.com/dmrediger/goa2/23544c3a8545edc03954c3d4334989803d42afff/public/hero-cards/defiant/bain/bain-20.jpeg |
 | `official/heroes/bain/portrait.webp` | https://raw.githubusercontent.com/yvo-niedrich/goa2-faq/b841b76c466b1a88323579737080f0a7bbf596b0/public/hero/bain.png |
 | `official/heroes/bain/symbol.webp` | https://raw.githubusercontent.com/QuasiStellar/Stats-of-Atlantis/3d5e8b5692bdee58a69b234d4f3b489bb2fecfe4/src/lib/images/logos/bain.png |
+| `official/heroes/brogan/back.webp` | https://raw.githubusercontent.com/dmrediger/goa2/23544c3a8545edc03954c3d4334989803d42afff/public/hero-cards/base/brogan/brogan-20.jpeg |
 | `official/heroes/brogan/portrait.webp` | https://raw.githubusercontent.com/yvo-niedrich/goa2-faq/b841b76c466b1a88323579737080f0a7bbf596b0/public/hero/brogan.png |
 | `official/heroes/brogan/symbol.webp` | https://raw.githubusercontent.com/QuasiStellar/Stats-of-Atlantis/3d5e8b5692bdee58a69b234d4f3b489bb2fecfe4/src/lib/images/logos/brogan.png |
+| `official/heroes/brynn/back.webp` | https://raw.githubusercontent.com/dmrediger/goa2/23544c3a8545edc03954c3d4334989803d42afff/public/hero-cards/wayward/brynn/brynn-24.jpeg |
 | `official/heroes/brynn/portrait.webp` | https://raw.githubusercontent.com/yvo-niedrich/goa2-faq/b841b76c466b1a88323579737080f0a7bbf596b0/public/hero/brynn.png |
 | `official/heroes/brynn/symbol.webp` | https://raw.githubusercontent.com/QuasiStellar/Stats-of-Atlantis/3d5e8b5692bdee58a69b234d4f3b489bb2fecfe4/src/lib/images/logos/brynn.png |
+| `official/heroes/cutter/back.webp` | https://raw.githubusercontent.com/dmrediger/goa2/23544c3a8545edc03954c3d4334989803d42afff/public/hero-cards/defiant/cutter/cutter-20.jpeg |
 | `official/heroes/cutter/portrait.webp` | https://raw.githubusercontent.com/yvo-niedrich/goa2-faq/b841b76c466b1a88323579737080f0a7bbf596b0/public/hero/cutter.png |
 | `official/heroes/cutter/symbol.webp` | https://raw.githubusercontent.com/QuasiStellar/Stats-of-Atlantis/3d5e8b5692bdee58a69b234d4f3b489bb2fecfe4/src/lib/images/logos/cutter.png |
+| `official/heroes/dodger/back.webp` | https://raw.githubusercontent.com/dmrediger/goa2/23544c3a8545edc03954c3d4334989803d42afff/public/hero-cards/base/dodger/dodger-20.jpeg |
 | `official/heroes/dodger/portrait.webp` | https://raw.githubusercontent.com/yvo-niedrich/goa2-faq/b841b76c466b1a88323579737080f0a7bbf596b0/public/hero/dodger.png |
 | `official/heroes/dodger/symbol.webp` | https://raw.githubusercontent.com/QuasiStellar/Stats-of-Atlantis/3d5e8b5692bdee58a69b234d4f3b489bb2fecfe4/src/lib/images/logos/dodger.png |
+| `official/heroes/emmitt/back.webp` | https://raw.githubusercontent.com/dmrediger/goa2/23544c3a8545edc03954c3d4334989803d42afff/public/hero-cards/wayward/emmitt/emmitt-20.jpeg |
 | `official/heroes/emmitt/portrait.webp` | https://raw.githubusercontent.com/yvo-niedrich/goa2-faq/b841b76c466b1a88323579737080f0a7bbf596b0/public/hero/emmitt.png |
 | `official/heroes/emmitt/symbol.webp` | https://raw.githubusercontent.com/QuasiStellar/Stats-of-Atlantis/3d5e8b5692bdee58a69b234d4f3b489bb2fecfe4/src/lib/images/logos/emmitt.png |
+| `official/heroes/garrus/back.webp` | https://raw.githubusercontent.com/dmrediger/goa2/23544c3a8545edc03954c3d4334989803d42afff/public/hero-cards/defiant/garrus/garrus-20.jpeg |
 | `official/heroes/garrus/portrait.webp` | https://raw.githubusercontent.com/yvo-niedrich/goa2-faq/b841b76c466b1a88323579737080f0a7bbf596b0/public/hero/garrus.png |
 | `official/heroes/garrus/symbol.webp` | https://raw.githubusercontent.com/QuasiStellar/Stats-of-Atlantis/3d5e8b5692bdee58a69b234d4f3b489bb2fecfe4/src/lib/images/logos/garrus.png |
+| `official/heroes/gydion/back.webp` | https://raw.githubusercontent.com/dmrediger/goa2/23544c3a8545edc03954c3d4334989803d42afff/public/hero-cards/arcane/gydion/gydion-20.jpeg |
 | `official/heroes/gydion/portrait.webp` | https://raw.githubusercontent.com/yvo-niedrich/goa2-faq/b841b76c466b1a88323579737080f0a7bbf596b0/public/hero/gydion.png |
 | `official/heroes/gydion/symbol.webp` | https://raw.githubusercontent.com/QuasiStellar/Stats-of-Atlantis/3d5e8b5692bdee58a69b234d4f3b489bb2fecfe4/src/lib/images/logos/gydion.png |
+| `official/heroes/hanu/back.webp` | https://raw.githubusercontent.com/dmrediger/goa2/23544c3a8545edc03954c3d4334989803d42afff/public/hero-cards/renowned/hanu/hanu-20.jpeg |
 | `official/heroes/hanu/portrait.webp` | https://raw.githubusercontent.com/yvo-niedrich/goa2-faq/b841b76c466b1a88323579737080f0a7bbf596b0/public/hero/hanu.png |
 | `official/heroes/hanu/symbol.webp` | https://raw.githubusercontent.com/QuasiStellar/Stats-of-Atlantis/3d5e8b5692bdee58a69b234d4f3b489bb2fecfe4/src/lib/images/logos/hanu.png |
+| `official/heroes/ignatia/back.webp` | https://raw.githubusercontent.com/dmrediger/goa2/23544c3a8545edc03954c3d4334989803d42afff/public/hero-cards/renowned/ignatia/ignatia-20.jpeg |
 | `official/heroes/ignatia/portrait.webp` | https://raw.githubusercontent.com/yvo-niedrich/goa2-faq/b841b76c466b1a88323579737080f0a7bbf596b0/public/hero/ignatia.png |
 | `official/heroes/ignatia/symbol.webp` | https://raw.githubusercontent.com/QuasiStellar/Stats-of-Atlantis/3d5e8b5692bdee58a69b234d4f3b489bb2fecfe4/src/lib/images/logos/ignatia.png |
+| `official/heroes/min/back.webp` | https://raw.githubusercontent.com/dmrediger/goa2/23544c3a8545edc03954c3d4334989803d42afff/public/hero-cards/renowned/min/min-20.jpeg |
 | `official/heroes/min/portrait.webp` | https://raw.githubusercontent.com/yvo-niedrich/goa2-faq/b841b76c466b1a88323579737080f0a7bbf596b0/public/hero/min.png |
 | `official/heroes/min/symbol.webp` | https://raw.githubusercontent.com/QuasiStellar/Stats-of-Atlantis/3d5e8b5692bdee58a69b234d4f3b489bb2fecfe4/src/lib/images/logos/min.png |
+| `official/heroes/misa/back.webp` | https://raw.githubusercontent.com/dmrediger/goa2/23544c3a8545edc03954c3d4334989803d42afff/public/hero-cards/devoted/misa/misa-20.jpeg |
 | `official/heroes/misa/portrait.webp` | https://raw.githubusercontent.com/yvo-niedrich/goa2-faq/b841b76c466b1a88323579737080f0a7bbf596b0/public/hero/misa.png |
 | `official/heroes/misa/symbol.webp` | https://raw.githubusercontent.com/QuasiStellar/Stats-of-Atlantis/3d5e8b5692bdee58a69b234d4f3b489bb2fecfe4/src/lib/images/logos/misa.png |
+| `official/heroes/mortimer/back.webp` | https://raw.githubusercontent.com/dmrediger/goa2/23544c3a8545edc03954c3d4334989803d42afff/public/hero-cards/wayward/mortimer/mortimer-20.jpeg |
 | `official/heroes/mortimer/portrait.webp` | https://raw.githubusercontent.com/yvo-niedrich/goa2-faq/b841b76c466b1a88323579737080f0a7bbf596b0/public/hero/mortimer.png |
 | `official/heroes/mortimer/symbol.webp` | https://raw.githubusercontent.com/QuasiStellar/Stats-of-Atlantis/3d5e8b5692bdee58a69b234d4f3b489bb2fecfe4/src/lib/images/logos/mortimer.png |
+| `official/heroes/mrak/back.webp` | https://raw.githubusercontent.com/dmrediger/goa2/23544c3a8545edc03954c3d4334989803d42afff/public/hero-cards/arcane/mrak/mrak-20.jpeg |
 | `official/heroes/mrak/portrait.webp` | https://raw.githubusercontent.com/yvo-niedrich/goa2-faq/b841b76c466b1a88323579737080f0a7bbf596b0/public/hero/mrak.png |
 | `official/heroes/mrak/symbol.webp` | https://raw.githubusercontent.com/QuasiStellar/Stats-of-Atlantis/3d5e8b5692bdee58a69b234d4f3b489bb2fecfe4/src/lib/images/logos/mrak.png |
+| `official/heroes/nebkher/back.webp` | https://raw.githubusercontent.com/dmrediger/goa2/23544c3a8545edc03954c3d4334989803d42afff/public/hero-cards/defiant/nebkher/nebkher-20.jpeg |
 | `official/heroes/nebkher/portrait.webp` | https://raw.githubusercontent.com/yvo-niedrich/goa2-faq/b841b76c466b1a88323579737080f0a7bbf596b0/public/hero/nebkher.png |
 | `official/heroes/nebkher/symbol.webp` | https://raw.githubusercontent.com/QuasiStellar/Stats-of-Atlantis/3d5e8b5692bdee58a69b234d4f3b489bb2fecfe4/src/lib/images/logos/nebkher.png |
+| `official/heroes/razzle/back.webp` | https://raw.githubusercontent.com/dmrediger/goa2/23544c3a8545edc03954c3d4334989803d42afff/public/hero-cards/arcane/razzle/razzle-20.jpeg |
 | `official/heroes/razzle/portrait.webp` | https://raw.githubusercontent.com/yvo-niedrich/goa2-faq/b841b76c466b1a88323579737080f0a7bbf596b0/public/hero/razzle.png |
 | `official/heroes/razzle/symbol.webp` | https://raw.githubusercontent.com/QuasiStellar/Stats-of-Atlantis/3d5e8b5692bdee58a69b234d4f3b489bb2fecfe4/src/lib/images/logos/razzle.png |
+| `official/heroes/rowenna/back.webp` | https://raw.githubusercontent.com/dmrediger/goa2/23544c3a8545edc03954c3d4334989803d42afff/public/hero-cards/arcane/rowenna/rowenna-20.jpeg |
 | `official/heroes/rowenna/portrait.webp` | https://raw.githubusercontent.com/yvo-niedrich/goa2-faq/b841b76c466b1a88323579737080f0a7bbf596b0/public/hero/rowenna.png |
 | `official/heroes/rowenna/symbol.webp` | https://raw.githubusercontent.com/QuasiStellar/Stats-of-Atlantis/3d5e8b5692bdee58a69b234d4f3b489bb2fecfe4/src/lib/images/logos/rowenna.png |
+| `official/heroes/sabina/back.webp` | https://raw.githubusercontent.com/dmrediger/goa2/23544c3a8545edc03954c3d4334989803d42afff/public/hero-cards/base/sabina/sabina-20.jpeg |
 | `official/heroes/sabina/portrait.webp` | https://raw.githubusercontent.com/yvo-niedrich/goa2-faq/b841b76c466b1a88323579737080f0a7bbf596b0/public/hero/sabina.png |
 | `official/heroes/sabina/symbol.webp` | https://raw.githubusercontent.com/QuasiStellar/Stats-of-Atlantis/3d5e8b5692bdee58a69b234d4f3b489bb2fecfe4/src/lib/images/logos/sabina.png |
+| `official/heroes/silverarrow/back.webp` | https://raw.githubusercontent.com/dmrediger/goa2/23544c3a8545edc03954c3d4334989803d42afff/public/hero-cards/devoted/silverarrow/silverarrow-20.jpeg |
 | `official/heroes/silverarrow/portrait.webp` | https://raw.githubusercontent.com/yvo-niedrich/goa2-faq/b841b76c466b1a88323579737080f0a7bbf596b0/public/hero/silverarrow.png |
 | `official/heroes/silverarrow/symbol.webp` | https://raw.githubusercontent.com/QuasiStellar/Stats-of-Atlantis/3d5e8b5692bdee58a69b234d4f3b489bb2fecfe4/src/lib/images/logos/silverarrow.png |
+| `official/heroes/snorri/back.webp` | https://raw.githubusercontent.com/dmrediger/goa2/23544c3a8545edc03954c3d4334989803d42afff/public/hero-cards/arcane/snorri/snorri-20.jpeg |
 | `official/heroes/snorri/portrait.webp` | https://raw.githubusercontent.com/yvo-niedrich/goa2-faq/b841b76c466b1a88323579737080f0a7bbf596b0/public/hero/snorri.png |
 | `official/heroes/snorri/symbol.webp` | https://raw.githubusercontent.com/QuasiStellar/Stats-of-Atlantis/3d5e8b5692bdee58a69b234d4f3b489bb2fecfe4/src/lib/images/logos/snorri.png |
+| `official/heroes/swift/back.webp` | https://raw.githubusercontent.com/dmrediger/goa2/23544c3a8545edc03954c3d4334989803d42afff/public/hero-cards/renowned/swift/swift-20.jpeg |
 | `official/heroes/swift/portrait.webp` | https://raw.githubusercontent.com/yvo-niedrich/goa2-faq/b841b76c466b1a88323579737080f0a7bbf596b0/public/hero/swift.png |
 | `official/heroes/swift/symbol.webp` | https://raw.githubusercontent.com/QuasiStellar/Stats-of-Atlantis/3d5e8b5692bdee58a69b234d4f3b489bb2fecfe4/src/lib/images/logos/swift.png |
+| `official/heroes/takahide/back.webp` | https://raw.githubusercontent.com/dmrediger/goa2/23544c3a8545edc03954c3d4334989803d42afff/public/hero-cards/wayward/takahide/takahide-22.jpeg |
 | `official/heroes/takahide/portrait.webp` | https://raw.githubusercontent.com/yvo-niedrich/goa2-faq/b841b76c466b1a88323579737080f0a7bbf596b0/public/hero/takahide.png |
 | `official/heroes/takahide/symbol.webp` | https://raw.githubusercontent.com/QuasiStellar/Stats-of-Atlantis/3d5e8b5692bdee58a69b234d4f3b489bb2fecfe4/src/lib/images/logos/takahide.png |
+| `official/heroes/tali/back.webp` | https://raw.githubusercontent.com/dmrediger/goa2/23544c3a8545edc03954c3d4334989803d42afff/public/hero-cards/devoted/tali/tali-20.jpeg |
 | `official/heroes/tali/portrait.webp` | https://raw.githubusercontent.com/yvo-niedrich/goa2-faq/b841b76c466b1a88323579737080f0a7bbf596b0/public/hero/tali.png |
 | `official/heroes/tali/symbol.webp` | https://raw.githubusercontent.com/QuasiStellar/Stats-of-Atlantis/3d5e8b5692bdee58a69b234d4f3b489bb2fecfe4/src/lib/images/logos/tali.png |
+| `official/heroes/tigerclaw/back.webp` | https://raw.githubusercontent.com/dmrediger/goa2/23544c3a8545edc03954c3d4334989803d42afff/public/hero-cards/base/tigerclaw/tigerclaw-20.jpeg |
 | `official/heroes/tigerclaw/portrait.webp` | https://raw.githubusercontent.com/yvo-niedrich/goa2-faq/b841b76c466b1a88323579737080f0a7bbf596b0/public/hero/tigerclaw.png |
 | `official/heroes/tigerclaw/symbol.webp` | https://raw.githubusercontent.com/QuasiStellar/Stats-of-Atlantis/3d5e8b5692bdee58a69b234d4f3b489bb2fecfe4/src/lib/images/logos/tigerclaw.png |
+| `official/heroes/trinkets/back.webp` | https://raw.githubusercontent.com/dmrediger/goa2/23544c3a8545edc03954c3d4334989803d42afff/public/hero-cards/defiant/trinkets/trinkets-20.jpeg |
 | `official/heroes/trinkets/portrait.webp` | https://raw.githubusercontent.com/yvo-niedrich/goa2-faq/b841b76c466b1a88323579737080f0a7bbf596b0/public/hero/trinkets.png |
 | `official/heroes/trinkets/symbol.webp` | https://raw.githubusercontent.com/QuasiStellar/Stats-of-Atlantis/3d5e8b5692bdee58a69b234d4f3b489bb2fecfe4/src/lib/images/logos/trinkets.png |
+| `official/heroes/ursafar/back.webp` | https://raw.githubusercontent.com/dmrediger/goa2/23544c3a8545edc03954c3d4334989803d42afff/public/hero-cards/devoted/ursafar/ursafar-20.jpeg |
 | `official/heroes/ursafar/portrait.webp` | https://raw.githubusercontent.com/yvo-niedrich/goa2-faq/b841b76c466b1a88323579737080f0a7bbf596b0/public/hero/ursafar.png |
 | `official/heroes/ursafar/symbol.webp` | https://raw.githubusercontent.com/QuasiStellar/Stats-of-Atlantis/3d5e8b5692bdee58a69b234d4f3b489bb2fecfe4/src/lib/images/logos/ursafar.png |
+| `official/heroes/wasp/back.webp` | https://raw.githubusercontent.com/dmrediger/goa2/23544c3a8545edc03954c3d4334989803d42afff/public/hero-cards/base/wasp/wasp-20.jpeg |
 | `official/heroes/wasp/portrait.webp` | https://raw.githubusercontent.com/yvo-niedrich/goa2-faq/b841b76c466b1a88323579737080f0a7bbf596b0/public/hero/wasp.png |
 | `official/heroes/wasp/symbol.webp` | https://raw.githubusercontent.com/QuasiStellar/Stats-of-Atlantis/3d5e8b5692bdee58a69b234d4f3b489bb2fecfe4/src/lib/images/logos/wasp.png |
+| `official/heroes/whisper/back.webp` | https://raw.githubusercontent.com/dmrediger/goa2/23544c3a8545edc03954c3d4334989803d42afff/public/hero-cards/devoted/whisper/whisper-20.jpeg |
 | `official/heroes/whisper/portrait.webp` | https://raw.githubusercontent.com/yvo-niedrich/goa2-faq/b841b76c466b1a88323579737080f0a7bbf596b0/public/hero/whisper.png |
 | `official/heroes/whisper/symbol.webp` | https://raw.githubusercontent.com/QuasiStellar/Stats-of-Atlantis/3d5e8b5692bdee58a69b234d4f3b489bb2fecfe4/src/lib/images/logos/whisper.png |
+| `official/heroes/widget/back.webp` | https://raw.githubusercontent.com/dmrediger/goa2/23544c3a8545edc03954c3d4334989803d42afff/public/hero-cards/wayward/widget/widget-20.jpeg |
 | `official/heroes/widget/portrait.webp` | https://raw.githubusercontent.com/yvo-niedrich/goa2-faq/b841b76c466b1a88323579737080f0a7bbf596b0/public/hero/widget.png |
 | `official/heroes/widget/symbol.webp` | https://raw.githubusercontent.com/QuasiStellar/Stats-of-Atlantis/3d5e8b5692bdee58a69b234d4f3b489bb2fecfe4/src/lib/images/logos/widget.png |
+| `official/heroes/wuk/back.webp` | https://raw.githubusercontent.com/dmrediger/goa2/23544c3a8545edc03954c3d4334989803d42afff/public/hero-cards/renowned/wuk/wuk-20.jpeg |
 | `official/heroes/wuk/portrait.webp` | https://raw.githubusercontent.com/yvo-niedrich/goa2-faq/b841b76c466b1a88323579737080f0a7bbf596b0/public/hero/wuk.png |
 | `official/heroes/wuk/symbol.webp` | https://raw.githubusercontent.com/QuasiStellar/Stats-of-Atlantis/3d5e8b5692bdee58a69b234d4f3b489bb2fecfe4/src/lib/images/logos/wuk.png |
+| `official/heroes/xargatha/back.webp` | https://raw.githubusercontent.com/dmrediger/goa2/23544c3a8545edc03954c3d4334989803d42afff/public/hero-cards/base/xargatha/xargatha-20.jpeg |
 | `official/heroes/xargatha/portrait.webp` | https://raw.githubusercontent.com/yvo-niedrich/goa2-faq/b841b76c466b1a88323579737080f0a7bbf596b0/public/hero/xargatha.png |
 | `official/heroes/xargatha/symbol.webp` | https://raw.githubusercontent.com/QuasiStellar/Stats-of-Atlantis/3d5e8b5692bdee58a69b234d4f3b489bb2fecfe4/src/lib/images/logos/xargatha.png |
 | `official/icons/item-attack.webp` | https://raw.githubusercontent.com/QuasiStellar/Stats-of-Atlantis/3d5e8b5692bdee58a69b234d4f3b489bb2fecfe4/src/lib/images/item_attack.png |
@@ -784,7 +816,9 @@ Graphics extracted from the rulebook PDF (SHA-256 `2c19b11d632759e9e3517e6a1450d
 | `official/ui/wave.webp` | p.5 | 6 · 604 | Wave counter, faceup, p.5 |
 
 The board paintings, resampled to line up with the hex layout (ADR-053). A photo of a mat is
-flattened by homography and what isn't the mat is filled with a dim blur of the painting:
+flattened by homography and what isn't the mat is filled with a dim blur of the painting. Spaces
+past a photo's edge take their ground from the nearest space of the same Zone (the app draws
+their Spawn points and Zone edges):
 
 | File | Source |
 |---|---|

@@ -101,6 +101,10 @@ class Importer(lock: SourcesLock, private val cache: SourceCache, private val ov
         passed.forEach { id ->
             assets[symbolPath(id)] = AssetSource(soa, logoPath(id), SYMBOL_MAX_EDGE)
         }
+        // The hero's card back, the last scan: what a facedown card shows (ADR-053).
+        data.scans.forEach { (id, scans) ->
+            assets[cardBackPath(id)] = AssetSource(dm, scans.maxBy { it.first }.second, CARD_BACK_MAX_EDGE)
+        }
         ITEM_ICONS.forEach { (stat, file) ->
             val path = "src/lib/images/$file"
             if (path in data.soaPaths) assets[itemIconPath(stat)] = AssetSource(soa, path, ITEM_ICON_MAX_EDGE)

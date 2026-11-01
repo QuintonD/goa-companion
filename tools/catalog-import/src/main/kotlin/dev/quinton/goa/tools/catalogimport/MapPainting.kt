@@ -22,7 +22,9 @@ import kotlinx.serialization.json.Json
  * space by space (top-down art by similarity, a photo of the mat by homography) into a frame that
  * lines up with the hex layout, so one scale and origin place it. Whatever isn't the mat (the table
  * in a photo, past the art's edge) is filled with a dim blur of the nearest painting. Spaces the art
- * doesn't show are recorded as `uncovered`: the app draws those itself, so no space is ever missing.
+ * doesn't show are recorded as `uncovered`: their ground is copied from the nearest space of the same
+ * Zone (the printed lattice lines up, hex onto hex), and the app draws their Spawn points and Zone edges,
+ * so no space is ever missing and nothing printed there is made up.
  */
 object MapPainting {
     private val SQRT3 = sqrt(3.0)
@@ -37,11 +39,17 @@ object MapPainting {
 
     /** How much of a space must show on the art: its corners pulled in toward its centre. */
     private const val COVER = 0.45
+
+    /** A donor must show right out to its corners. */
+    private const val WHOLE = 1.0
+    private const val DONOR_CHOICE = 5
+    private const val DONOR_Q = 3
+    private const val DONOR_R = 7
     private const val FILL_DIM = 0.72f
     private const val FEATHER = 2
     private const val FILL_BAND = 24
     private const val BAND_SLACK = 0.001f
-    private const val KEY_VERSION = 5
+    private const val KEY_VERSION = 7
     private const val HEX_CORNERS = 6
     private const val CORNER_STEP = PI / 3
     private const val CORNER_START = -PI / 6
@@ -92,14 +100,6 @@ object MapPainting {
             return p[0] >= 1 && p[1] >= 1 && p[0] < image.width - 2 && p[1] < image.height - 2
         }
 
-        val out = render(image, transform, w, h, x0, y0, finalScale, ::onArt)
-        val sea = seaColor(out)
-        target.parentFile.mkdirs()
-        val rendered = File(work, "${map.id}-art.png")
-        rendered.parentFile.mkdirs()
-        ImageIO.write(out, "png", rendered)
-        ImageIo.writeWebp(rendered, target, MAX_EDGE)
-
         val uncovered = hexes.filterNot { hex ->
             val c = plain(hex.q, hex.r)
             onArt(c[0], c[1]) && (0 until HEX_CORNERS).all { i ->
@@ -107,6 +107,23 @@ object MapPainting {
                 onArt(c[0] + cos(a) * COVER, c[1] + sin(a) * COVER)
             }
         }
+        fun whole(hex: Hex): Boolean {
+            val c = plain(hex.q, hex.r)
+            return (0 until HEX_CORNERS).all { i ->
+                val a = CORNER_START + i * CORNER_STEP
+                onArt(c[0] + cos(a) * WHOLE, c[1] + sin(a) * WHOLE)
+            }
+        }
+        val patches = patches(map, uncovered.toSet(), ::whole)
+        val frame = Frame(w, h, x0, y0, finalScale)
+        val out = render(image, transform, frame, patches, ::onArt)
+        val sea = seaColor(out)
+        target.parentFile.mkdirs()
+        val rendered = File(work, "${map.id}-art.png")
+        rendered.parentFile.mkdirs()
+        ImageIO.write(out, "png", rendered)
+        ImageIo.writeWebp(rendered, target, MAX_EDGE)
+
         val art = BoardMapArt(
             image = path,
             width = w,
@@ -123,16 +140,69 @@ object MapPainting {
 
     private fun round3(v: Double) = (v * ROUND).roundToInt() / ROUND
 
+    private data class Frame(val w: Int, val h: Int, val x0: Double, val y0: Double, val scale: Double)
+
+    /** Each space the art doesn't show, with the shown space whose ground it takes. */
+    private fun patches(map: BoardMap, uncovered: Set<Hex>, whole: (Hex) -> Boolean): List<Pair<Hex, Hex>> {
+        fun distance(a: Hex, b: Hex): Double {
+            val pa = plain(a.q, a.r)
+            val pb = plain(b.q, b.r)
+            return (pa[0] - pb[0]) * (pa[0] - pb[0]) + (pa[1] - pb[1]) * (pa[1] - pb[1])
+        }
+        val plainGround = map.spaces.filter { it.spawn == null && it.hex !in uncovered && whole(it.hex) }
+        val rocks = map.terrain.filter { it !in uncovered && whole(it) }
+        return uncovered.mapNotNull { hex ->
+            val zone = map.spaces.firstOrNull { it.hex == hex }?.zone
+            val candidates = if (zone != null) plainGround.filter { it.zone == zone }.map { it.hex } else rocks
+            val donors = candidates.ifEmpty { plainGround.map { it.hex } }
+            // One of the nearest few, varied by place, so a run of patches doesn't repeat one space.
+            val near = donors.sortedBy { distance(hex, it) }.take(DONOR_CHOICE)
+            near.getOrNull(((hex.q * DONOR_Q + hex.r * DONOR_R) % DONOR_CHOICE + DONOR_CHOICE) % max(near.size, 1))
+                ?.let { hex to it }
+        }
+    }
+
+    /** Copies a donor hex's pixels onto each patched hex, hex onto hex, so the printed lattice carries on. */
+    private fun applyPatches(rgb: FloatArray, weight: FloatArray, frame: Frame, patches: List<Pair<Hex, Hex>>) {
+        val (w, h, x0, y0, scale) = frame
+        val source = rgb.copyOf()
+        val shown = weight.copyOf()
+        patches.forEach { (hex, donor) ->
+            val c = plain(hex.q, hex.r)
+            val d = plain(donor.q, donor.r)
+            val dx = ((d[0] - c[0]) * scale).roundToInt()
+            val dy = ((d[1] - c[1]) * scale).roundToInt()
+            val yFrom = ((c[1] - 1 - y0) * scale).toInt().coerceAtLeast(0)
+            val yTo = ((c[1] + 1 - y0) * scale).toInt().coerceAtMost(h - 1)
+            val xFrom = ((c[0] - SQRT3 / 2 - x0) * scale).toInt().coerceAtLeast(0)
+            val xTo = ((c[0] + SQRT3 / 2 - x0) * scale).toInt().coerceAtMost(w - 1)
+            for (y in yFrom..yTo) {
+                for (x in xFrom..xTo) {
+                    val u = kotlin.math.abs(x0 + x / scale - c[0])
+                    val v = kotlin.math.abs(y0 + y / scale - c[1])
+                    if (u > SQRT3 / 2 || u / SQRT3 + v > 1) continue
+                    val sx = x + dx
+                    val sy = y + dy
+                    if (sx !in 0 until w || sy !in 0 until h) continue
+                    val at = y * w + x
+                    val from = sy * w + sx
+                    // What the art does show of this space stays; only the rest takes the donor's ground.
+                    if (shown[at] >= 1f || shown[from] < 1f) continue
+                    for (ch in 0 until CHANNELS) rgb[at * CHANNELS + ch] = source[from * CHANNELS + ch]
+                    weight[at] = 1f
+                }
+            }
+        }
+    }
+
     private fun render(
         image: BufferedImage,
         t: MapOverlay.Transform,
-        w: Int,
-        h: Int,
-        x0: Double,
-        y0: Double,
-        scale: Double,
+        frame: Frame,
+        patches: List<Pair<Hex, Hex>>,
         onArt: (Double, Double) -> Boolean,
     ): BufferedImage {
+        val (w, h, x0, y0, scale) = frame
         val pixels = image.getRGB(0, 0, image.width, image.height, null, 0, image.width)
         val ss = SUPERSAMPLE
         val rgb = FloatArray(w * h * CHANNELS)
@@ -161,6 +231,7 @@ object MapPainting {
                 }
             }
         }
+        applyPatches(rgb, weight, frame, patches)
         // Only the art's outer band feeds the fill, so past the mat it's sea rather than the board's average.
         val band = blur(weight, w, h, FILL_BAND)
         val edgeOnly = FloatArray(weight.size) { if (band[it] < 1f - BAND_SLACK) weight[it] else 0f }

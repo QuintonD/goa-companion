@@ -424,8 +424,8 @@ private fun boardHint(table: TableUi): String {
     val spaces = table.spaceOptions
     val pieces = table.pieceOptions
     return when {
-        pieces.isEmpty() && spaces.size == 1 -> "Tap the space outlined in teal."
-        pieces.isEmpty() -> "Tap one of the ${spaces.size} spaces outlined in teal."
+        pieces.isEmpty() && spaces.size == 1 -> "Tap the space lit on the map."
+        pieces.isEmpty() -> "Tap one of the ${spaces.size} lit spaces."
         spaces.isEmpty() -> "Tap an outlined piece on the board, or pick it below."
         else -> "Tap an outlined space or piece on the board."
     } + longPressHint(table)

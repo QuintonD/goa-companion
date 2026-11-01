@@ -150,30 +150,21 @@ fun paintedMapMarkup(
     buildString {
         val geometry = BoardGeometry.of(map)
         val uncovered = map.art?.uncovered.orEmpty()
-        uncovered.mapNotNull(geometry.spaces::get).forEach { space ->
-            val zone = geometry.zones[space.zone]
-            val fill = when {
-                space.zone in battleZones -> "m-battle"
-                zone?.kind == ZoneKind.THRONE -> "m-throne-${teamSlug(zone.team ?: Team.RED)}"
-                zone?.kind == ZoneKind.SIDE -> "m-side"
-                else -> "m-lane-a"
+        // The importer gave these spaces ground from their Zone; nothing printed shows their Zone's edge.
+        val cracks = uncovered.mapNotNull(geometry.spaces::get).joinToString("") { space ->
+            HexGrid.DIRECTIONS.indices.joinToString("") { d ->
+                val neighbour = geometry.spaces[space.hex + HexGrid.DIRECTIONS[d]]
+                if (neighbour != null && neighbour.zone != space.zone) {
+                    val (a, e) = layout.edge(space.hex, d)
+                    "M${n(a.x)} ${n(a.y)}L${n(e.x)} ${n(e.y)}"
+                } else {
+                    ""
+                }
             }
-            append("<polygon class=\"$fill m-space\" points=\"${hexPoints(layout, space.hex)}\"/>")
         }
-        uncovered.filter(geometry::isTerrain).forEachIndexed { i, hex ->
-            append(
-                terrain(
-                    layout,
-                    hex,
-                    hex.q * 7 + hex.r * 13 + i,
-                ),
-            )
-        }
+        if (cracks.isNotEmpty()) append("<path class=\"m-crack\" d=\"$cracks\"/>")
         uncovered.mapNotNull(geometry.spaces::get).forEach { space ->
             space.spawn?.let { append(spawn(it, layout.center(space.hex))) }
-        }
-        uncovered.filter { it !in lit.hexes }.forEach {
-            append("<polygon class=\"m-shade\" points=\"${hexPoints(layout, it)}\"/>")
         }
         if (grid) {
             val hairlines = map.spaces.joinToString("") { space ->

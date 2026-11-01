@@ -117,7 +117,9 @@ class Output(private val assetsDir: File) {
         if (mapArt.isNotEmpty()) {
             sb.appendLine()
             sb.appendLine("The board paintings, resampled to line up with the hex layout (ADR-053). A photo of a mat is")
-            sb.appendLine("flattened by homography and what isn't the mat is filled with a dim blur of the painting:")
+            sb.appendLine("flattened by homography and what isn't the mat is filled with a dim blur of the painting. Spaces")
+            sb.appendLine("past a photo's edge take their ground from the nearest space of the same Zone (the app draws")
+            sb.appendLine("their Spawn points and Zone edges):")
             sb.appendLine()
             sb.appendLine("| File | Source |")
             sb.appendLine("|---|---|")

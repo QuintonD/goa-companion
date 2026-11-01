@@ -13,6 +13,7 @@ import dev.quinton.goa.feature.board.ui.cards.isSpell
 import dev.quinton.goa.web.data.Thumbnails
 import dev.quinton.goa.web.ui.OfficialImg
 import org.jetbrains.compose.web.dom.Div
+import org.jetbrains.compose.web.dom.Img
 import org.jetbrains.compose.web.dom.Span
 import org.jetbrains.compose.web.dom.Text
 
@@ -23,7 +24,7 @@ import org.jetbrains.compose.web.dom.Text
  * keeps the same height and is wider, never squeezed. Decorative: the caller labels it.
  */
 @Composable
-fun CardImage(card: Card?, width: Int, extraClass: String? = null) {
+fun CardImage(card: Card?, width: Int, extraClass: String? = null, backOf: String? = null) {
     val aspect = cardAspect(card)
     val w = if (card?.isSpell == true) (width / cardAspect(null) * aspect).toInt() else width
     Div({
@@ -39,6 +40,9 @@ fun CardImage(card: Card?, width: Int, extraClass: String? = null) {
         when {
             card == null -> Div({ classes("goa-card-back") }) {
                 Span({ classes("goa-card-back-mark") })
+                if (backOf != null) {
+                    Img(src = "official/heroes/$backOf/back.webp", alt = "") { classes("goa-card-back-art") }
+                }
             }
 
             else -> CardFace(card, w)

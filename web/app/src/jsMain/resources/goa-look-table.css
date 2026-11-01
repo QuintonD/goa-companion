@@ -332,3 +332,6 @@
 /* ---------- The sandbox, the lists ---------- */
 .goa-map-button, .goa-icon-button.goa-board-map-button { border-radius: 50%; }
 .goa-board-tools { border-radius: 14px 14px 0 0; }
+
+/* A facedown card: the back of the hero's own deck. */
+.goa-card-back-art { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }

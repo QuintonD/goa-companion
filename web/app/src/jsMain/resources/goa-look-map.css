@@ -145,3 +145,6 @@
     radial-gradient(circle at 25% 66%, #FFFFFF 2.5px, #0A0F14 3px 4.5px, transparent 5px),
     radial-gradient(circle at 75% 66%, #FFFFFF 2.5px, #0A0F14 3px 4.5px, transparent 5px), #B08D62;
 }
+
+/* A Zone's edge between spaces past a photo's edge, where nothing printed shows it. */
+.m-crack { fill: none; stroke: #17110B; stroke-width: 0.11; stroke-linecap: round; }

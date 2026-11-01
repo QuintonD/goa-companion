@@ -224,6 +224,7 @@ private fun SlotCards(table: TableUi, slot: TrackSlot, width: Dp, compact: Boole
                 second.cardId?.takeIf { !second.facedown }?.let(table::card),
                 Modifier.align(Alignment.TopEnd).alpha(STACKED_ALPHA),
                 width = width,
+                backOf = slot.heroId,
             )
         }
         Box(
@@ -240,7 +241,7 @@ private fun SlotCards(table: TableUi, slot: TrackSlot, width: Dp, compact: Boole
                 } else {
                     Modifier
                 }
-                TableCard(firstCard, origin, width = width)
+                TableCard(firstCard, origin, width = width, backOf = slot.heroId)
             }
             if (slot.state == SlotState.DONE || slot.state == SlotState.SKIPPED) {
                 // Stepped back, as a resolved card moved to the dashboard: dimmed by an overlay, the band says why.

@@ -167,7 +167,8 @@ internal fun MapBase(map: BoardMap, battleZones: Set<String>, layout: MapLayout,
  * white outline on their outer edge, everything else dimmed and desaturated. A [spotlight] (the spaces a
  * question offers) takes the light instead, as on mock-up 03, and the Battle Zones keep a thin line, so
  * the player doesn't lose them. The app draws no water, fills, terrain or Spawn points here: the
- * painting has them, but for the spaces it doesn't show (`uncovered`), drawn as the vector map does.
+ * painting has them. For the spaces it doesn't show (`uncovered`) the importer copied ground from their Zone,
+ * and only their Spawn points and Zone edges are drawn here.
  *
  * All of this is a retained display list inside the map's graphics layer: panning and zooming only
  * change that layer's matrix. A frame replays two textured quads, one clip and the uncovered spaces
@@ -228,22 +229,20 @@ internal fun PaintedMap(
             }
             val uncovered = painting.art.uncovered
             val spaces = uncovered.mapNotNull(geometry.spaces::get)
-            val fills = spaces.groupBy { space ->
-                val zone = geometry.zones[space.zone]
-                when {
-                    space.zone in battleZones -> palette.battle
-                    zone?.kind == ZoneKind.THRONE -> palette.throne(zone.team ?: Team.RED)
-                    zone?.kind == ZoneKind.SIDE -> palette.side
-                    else -> palette.laneA
+            // The importer gave these spaces ground from their Zone; nothing printed shows their Zone's edge.
+            val cracks = Path()
+            spaces.forEach { space ->
+                HexGrid.DIRECTIONS.indices.forEach { d ->
+                    val neighbour = geometry.spaces[space.hex + HexGrid.DIRECTIONS[d]]
+                    if (neighbour != null && neighbour.zone != space.zone) {
+                        val (a, b) = layout.edge(space.hex, d)
+                        cracks.moveTo(a.x * unit, a.y * unit)
+                        cracks.lineTo(b.x * unit, b.y * unit)
+                    }
                 }
-            }.mapValues { (_, list) -> Path().apply { list.forEach { addPath(hexPath(corners(it.hex))) } } }
-            val outlines = Path().apply { spaces.forEach { addPath(hexPath(corners(it.hex))) } }
-            val rocks = uncovered.filter(geometry::isTerrain).mapIndexed { i, hex ->
-                Triple(corners(hex), layout.center(hex) * unit, hex.q * 7 + hex.r * 13 + i)
             }
             val spawns = spaces.mapNotNull { space -> space.spawn?.let { it to layout.center(space.hex) * unit } }
-            val shade = Path().apply { uncovered.filter { it !in lit.hexes }.forEach { addPath(hexPath(corners(it))) } }
-            val gap = Stroke(width = unit * 0.1f, join = StrokeJoin.Round)
+            val crack = Stroke(width = unit * CRACK_WIDTH, cap = StrokeCap.Round)
             val hairline = Stroke(width = unit * GRID_WIDTH, join = StrokeJoin.Round)
             val white = Stroke(width = unit * OUTLINE_WIDTH, cap = StrokeCap.Round)
             val halo = Stroke(width = unit * OUTLINE_HALO, cap = StrokeCap.Round)
@@ -260,11 +259,8 @@ internal fun PaintedMap(
                             drawImage(painting.image, filterQuality = FilterQuality.Medium)
                         }
                     }
-                    fills.forEach { (color, path) -> drawPath(path, color) }
-                    drawPath(outlines, palette.gap, style = gap)
-                    rocks.forEach { (c, m, seed) -> drawTerrain(c, m, unit, palette, seed) }
+                    drawPath(cracks, CrackColor, style = crack)
                     spawns.forEach { (spawn, at) -> drawSpawn(spawn, at, unit, palette, spawnArt[spawn]) }
-                    drawPath(shade, Color.Black.copy(alpha = UNCOVERED_SHADE))
                     hairlines?.let { drawPath(it, GridColor, style = hairline) }
                     if (zoneLine != null) {
                         drawPath(zoneLine, OutlineHalo, style = thinHalo)
@@ -511,7 +507,8 @@ private const val GRID_WIDTH = 0.06f
 private val GridColor = Color(0x8C08121A)
 
 /** What the dimmed painting loses, for the spaces drawn over it (brightness 0.58). */
-private const val UNCOVERED_SHADE = 0.42f
+private const val CRACK_WIDTH = 0.11f
+private val CrackColor = Color(0xFF17110B)
 
 /** Outside the light: mock-up 01's brightness 0.58, saturation 0.5. */
 private val DimFilter = ColorFilter.colorMatrix(

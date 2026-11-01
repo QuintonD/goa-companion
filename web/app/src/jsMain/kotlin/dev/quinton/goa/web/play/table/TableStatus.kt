@@ -258,9 +258,9 @@ private fun TrackSlotView(
                     Span({
                         classes("goa-track-second")
                         attr("aria-hidden", "true")
-                    }) { CardImage(second.cardId?.takeIf { !second.facedown }?.let(table::card), width) }
+                    }) { CardImage(second.cardId?.takeIf { !second.facedown }?.let(table::card), width, backOf = slot.heroId) }
                 }
-                CardImage(card, width)
+                CardImage(card, width, backOf = slot.heroId)
             }
             // The phone's band: DONE (with a tick), NOW, NEXT, PASS, OUT; none for the later ones.
             slotBand(slot.state)?.let { band ->

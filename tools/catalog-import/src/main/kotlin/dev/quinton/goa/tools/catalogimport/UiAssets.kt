@@ -49,6 +49,11 @@ fun itemIconPath(stat: String): String = "official/icons/item-$stat.webp"
 
 fun symbolPath(heroId: String): String = "official/heroes/$heroId/symbol.webp"
 
+/** A card back is shown small, face down on the table or in a hand. */
+const val CARD_BACK_MAX_EDGE = 384
+
+fun cardBackPath(heroId: String): String = "official/heroes/$heroId/back.webp"
+
 /**
  * One raster image embedded in the pinned rulebook PDF, addressed by its PDF object number on a
  * PDF page (PDF page N+1 = printed page N). [width]×[height] are the image's own pixels: a
