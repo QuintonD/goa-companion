@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.KeyboardArrowRight
@@ -25,10 +26,12 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.input.ImeAction
@@ -36,9 +39,13 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import dev.quinton.goa.core.designsystem.component.EmptyState
 import dev.quinton.goa.core.designsystem.component.GoaCard
+import dev.quinton.goa.core.designsystem.component.GoaPlate
+import dev.quinton.goa.core.designsystem.component.GoaPlateTheme
 import dev.quinton.goa.core.designsystem.component.GoaScreen
+import dev.quinton.goa.core.designsystem.component.PlateGround
 import dev.quinton.goa.core.designsystem.component.SectionHeader
 import dev.quinton.goa.core.designsystem.component.scaledIconSize
+import dev.quinton.goa.core.designsystem.theme.GoaTextStyles
 import dev.quinton.goa.core.designsystem.theme.Spacing
 import dev.quinton.goa.core.domain.rules.RulesText
 import dev.quinton.goa.feature.rules.RulesUiState
@@ -94,12 +101,14 @@ private fun RulesList(
         }
         if (state.topics.isEmpty() && !showLadder) {
             item(key = "empty") {
-                EmptyState(
-                    icon = Icons.Outlined.SearchOff,
-                    title = "No rules match",
-                    message = "Try another word, such as “respawn”, “tie” or “push”.",
-                    modifier = Modifier.fillMaxWidth(),
-                )
+                GoaPlate(Modifier.fillMaxWidth()) {
+                    EmptyState(
+                        icon = Icons.Outlined.SearchOff,
+                        title = "No rules match",
+                        message = "Try another word, such as “respawn”, “tie” or “push”.",
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                }
             }
         }
         items(state.topics, key = { it.id }) { topic -> TopicRow(topic) { onOpenTopic(topic.id) } }
@@ -117,23 +126,31 @@ private fun RulesList(
 
 @Composable
 private fun SearchField(query: String, onQueryChange: (String) -> Unit) {
-    OutlinedTextField(
-        value = query,
-        onValueChange = onQueryChange,
-        modifier = Modifier.fillMaxWidth(),
-        singleLine = true,
-        placeholder = { Text("Search rules") },
-        leadingIcon = { Icon(Icons.Outlined.Search, contentDescription = null) },
-        trailingIcon = {
-            if (query.isNotEmpty()) {
-                IconButton(onClick = { onQueryChange("") }) {
-                    Icon(Icons.Outlined.Close, contentDescription = "Clear search")
+    // A dark steel slot in both themes, like the plates and the banner above it.
+    GoaPlateTheme {
+        OutlinedTextField(
+            value = query,
+            onValueChange = onQueryChange,
+            modifier = Modifier.fillMaxWidth(),
+            singleLine = true,
+            placeholder = { Text("Search rules") },
+            leadingIcon = { Icon(Icons.Outlined.Search, contentDescription = null) },
+            trailingIcon = {
+                if (query.isNotEmpty()) {
+                    IconButton(onClick = { onQueryChange("") }) {
+                        Icon(Icons.Outlined.Close, contentDescription = "Clear search")
+                    }
                 }
-            }
-        },
-        keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
-        shape = MaterialTheme.shapes.medium,
-    )
+            },
+            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
+            shape = CircleShape,
+            colors = OutlinedTextFieldDefaults.colors(
+                focusedContainerColor = PlateGround,
+                unfocusedContainerColor = PlateGround,
+                unfocusedBorderColor = SEARCH_EDGE,
+            ),
+        )
+    }
 }
 
 @Composable
@@ -176,7 +193,8 @@ private fun TopicRow(topic: TopicItem, onClick: () -> Unit) {
             Column(Modifier.weight(1f)) {
                 Text(
                     topic.title,
-                    style = MaterialTheme.typography.titleMedium.copy(fontSize = 18.sp, lineHeight = 24.sp),
+                    style = GoaTextStyles.plateTitle.copy(fontSize = 17.sp, lineHeight = 23.sp),
+                    color = MaterialTheme.colorScheme.onSurface,
                 )
                 Text(
                     RulesText.pages(topic.pages),
@@ -192,3 +210,5 @@ private fun TopicRow(topic: TopicItem, onClick: () -> Unit) {
         }
     }
 }
+
+private val SEARCH_EDGE = Color(0xFF5D6B70)
