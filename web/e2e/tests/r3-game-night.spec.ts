@@ -300,7 +300,7 @@ test("the computer: three turns at strength 5, then 10", async ({ browser }, inf
 
 test("puzzle 1 solved with its nudges", async ({}, info) => {
   await open(c, "#/puzzles/p01");
-  await expect(c.getByRole("button", { name: /^Goal:/ })).toBeVisible({ timeout: 30_000 });
+  await expect(c.getByRole("group", { name: /^Goal:/ })).toBeVisible({ timeout: 30_000 });
   await c.getByRole("button", { name: "More options" }).click();
   await c.getByRole("button", { name: /Nudge me/ }).click();
   for (const n of [2, 3]) {

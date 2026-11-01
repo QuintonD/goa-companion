@@ -26,7 +26,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.Immutable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
@@ -35,10 +35,12 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.layout.Layout
 import androidx.compose.ui.layout.boundsInRoot
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.onSizeChanged
@@ -48,6 +50,7 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import dev.quinton.goa.core.designsystem.theme.GoaTextStyles
@@ -64,18 +67,24 @@ import dev.quinton.goa.feature.board.ui.FitWhileHidden
 import dev.quinton.goa.feature.board.ui.HideablePanel
 import dev.quinton.goa.feature.board.ui.PanelCover
 import dev.quinton.goa.feature.board.ui.PanelPeek
+import dev.quinton.goa.feature.board.ui.PanelStripHeight
 import dev.quinton.goa.feature.board.ui.PlateButton
 import dev.quinton.goa.feature.board.ui.cards.CardFocusState
 import kotlinx.coroutines.launch
+
+/**
+ * Where the question ends in the panel's content, px, reported by [DecisionPanel]; null when none is asked. The panel
+ * stops a little past it, so what follows (what happened, the hands) doesn't take the map's room: it scrolls.
+ */
+internal val LocalPanelQuestionEnd = staticCompositionLocalOf<((Int?) -> Unit)?> { null }
 
 /**
  * The game table: the map full screen (the Lane up the screen in portrait, left to right in
  * landscape), the round at a glance and every hero's status floating at the top, Fit and Flip at
  * the right, and [panel] (the question, the computer's move, the coach…) at the bottom in portrait
  * or on the right in landscape. The map frames the Lane between them and brings the spaces asked
- * for into view. [banner] (a puzzle's goal) floats under the hero strip, and the map keeps clear of it;
- * it is told to be compact (one line) in landscape, where the map has little height. There the hero
- * strip is portraits only, beside the round at a glance, so the top keeps to about two rows.
+ * for into view. In landscape the hero strip is portraits only, beside the round at a glance when they all fit there.
+ * Under a tall panel the turn track shrinks to small cards: a question's most important moment is on the map.
  *
  * The panel hides ([HideablePanel]) to show the whole board: then it is [peek]'s one line (with
  * [peekTrailing], e.g. Confirm), only the round at a glance stays at the top, and the map fits the
@@ -92,7 +101,6 @@ fun GameTable(
     onHero: (String) -> Unit,
     onFlip: () -> Unit,
     modifier: Modifier = Modifier,
-    banner: (@Composable (compact: Boolean) -> Unit)? = null,
     peek: PanelPeek = PanelPeek(""),
     peekTrailing: (@Composable () -> Unit)? = null,
     initialPanelHidden: Boolean = false,
@@ -107,7 +115,6 @@ fun GameTable(
     var buttons by remember { mutableStateOf<Rect?>(null) }
     BoxWithConstraints(modifier.fillMaxSize().onGloballyPositioned { origin = it.positionInRoot() }) {
         val landscape = maxWidth > maxHeight
-        val trackCard = if (maxHeight < TALL_TABLE) TRACK_CARD_SHORT else TRACK_CARD_TALL
         val orientation = if (landscape) MapOrientation.LANDSCAPE else MapOrientation.PORTRAIT
         val layout =
             remember(table.map, orientation, table.bottomTeam) { MapLayout(table.map, orientation, table.bottomTeam) }
@@ -118,9 +125,27 @@ fun GameTable(
         var topHeight by remember { mutableIntStateOf(0) }
         // The map buttons' column (Fit, Flip, the Spellbook), with the gap to the screen's edge.
         var buttonsWidth by remember { mutableIntStateOf(0) }
-        val sideWidth: Dp = if (landscape) minOf(maxWidth * SIDE_SHARE, SIDE_PANEL) else 0.dp
+        // Choosing a card sideways, the cards are what is read: a wider panel, so they aren't small over an empty one.
+        val sideWidth: Dp = when {
+            !landscape -> 0.dp
+            table.handDecision && table.asking -> minOf(maxWidth * HAND_SIDE_SHARE, HAND_SIDE_PANEL)
+            else -> minOf(maxWidth * SIDE_SHARE, SIDE_PANEL)
+        }
         // The floating overlays keep clear of the side panel only while it is shown.
         val overlayEnd = if (landscape && !hidden) sideWidth else 0.dp
+        // Where the question ends in the panel: the panel needn't be taller than that and a look at what follows.
+        var questionEnd by remember { mutableStateOf<Int?>(null) }
+        val panelShare = questionEnd?.let { end ->
+            val height = with(density) { end.toDp() } + PanelStripHeight + PANEL_PAST_QUESTION
+            (height / maxHeight).coerceAtMost(PANEL_SHARE)
+        } ?: PANEL_SHARE
+        val tallPanel = !landscape && !hidden && with(density) { cover.bottom.toDp() } > maxHeight * TALL_PANEL_SHARE
+        val compactTrack = hidden || tallPanel
+        val trackCard = when {
+            compactTrack -> TRACK_CARD_COMPACT
+            maxHeight < TALL_TABLE -> TRACK_CARD_SHORT
+            else -> TRACK_CARD_TALL
+        }
 
         LaunchedEffect(cover, topHeight) {
             viewport.updateInsets(bottom = cover.bottom.toFloat(), end = cover.end.toFloat(), top = topHeight.toFloat())
@@ -150,11 +175,24 @@ fun GameTable(
             // Choosing a card: the person's own heroes (the others choose theirs hidden, p.7).
             if (decision.kind == DecisionKind.PLAY_CARD && !table.asking) return@LaunchedEffect
             val who = if (decision.kind == DecisionKind.PLAY_CARD) table.mine else setOf(decision.seat)
+            // Whoever else the question is about: the attacker of a Defend, the hero acting.
+            val alsoAbout = listOfNotNull(decision.context.attackerId, table.view.acting).mapNotNull(table::at)
             val hexes = table.spaceOptions.keys + table.pieceOptions.keys.mapNotNull(table::at) +
                 decision.context.highlight + listOfNotNull(table.subject?.let(table::at)) +
-                who.mapNotNull(table::at)
+                who.mapNotNull(table::at) + alsoAbout
             val region = layout.bounds(hexes, pad = 1.1f) ?: return@LaunchedEffect
-            viewport.reveal(region, region.center, shrink = OPTIONS_SHRINK, clearEnd = buttonsWidth.toFloat())
+            // The Battle Zone around them when it fits in the free area: it is where the game is. A question answered
+            // on the map keeps its spaces comfortable to tap; any other may take the smaller size for it.
+            val zones = table.battleZones.toSet()
+            val zone = table.map.spaces.filter { it.zone in zones }.map { it.hex }
+            val whole = layout.bounds(hexes + zone, pad = 1.1f)
+            val onMap = table.spaceOptions.isNotEmpty() || table.pieceOptions.isNotEmpty()
+            val hex = with(density) { (if (onMap) ZONE_HEX_TAP else ZONE_HEX_READ).toPx() } / SQRT3
+            val framed = whole?.takeIf { w ->
+                w.width * hex <= viewport.visible.width - ZONE_MARGIN &&
+                    w.height * hex <= viewport.visible.height - ZONE_MARGIN
+            } ?: region
+            viewport.reveal(framed, framed.center, shrink = OPTIONS_SHRINK, clearEnd = buttonsWidth.toFloat())
         }
 
         // A new question (another decision) starts at the top of the panel, its header in view; the
@@ -201,12 +239,11 @@ fun GameTable(
                     TableHud(table, if (landscape) Modifier else Modifier.fillMaxWidth(), spread = !landscape)
                     if (track != null) {
                         // [trackCard]: a small phone keeps the map's height, the question framed under it.
-                        TurnTrackRow(table, track, onHero, focus = focus, compact = hidden, cardWidth = trackCard)
+                        TurnTrackRow(table, track, onHero, focus = focus, compact = compactTrack, cardWidth = trackCard)
                     } else if (!hidden) {
                         HeroStrip(table, onHero)
                     }
                 }
-                if (!hidden) banner?.invoke(landscape)
             }
             Column(
                 Modifier
@@ -244,25 +281,28 @@ fun GameTable(
             onHiddenChange = { hidden = it },
             peek = peek,
             sideWidth = sideWidth,
-            maxShare = PANEL_SHARE,
+            maxShare = panelShare,
             onCover = { cover = it },
             peekTrailing = peekTrailing,
             title = panelTitle,
         ) {
-            Column(
-                Modifier
-                    .verticalScroll(panelScroll)
-                    .padding(start = PANEL_INSET, end = PANEL_INSET, bottom = Spacing.md),
-                verticalArrangement = Arrangement.spacedBy(Spacing.sm),
-                content = panel,
-            )
+            CompositionLocalProvider(LocalPanelQuestionEnd provides { questionEnd = it }) {
+                Column(
+                    Modifier
+                        .verticalScroll(panelScroll)
+                        .padding(start = PANEL_INSET, end = PANEL_INSET, bottom = Spacing.md),
+                    verticalArrangement = Arrangement.spacedBy(Spacing.sm),
+                    content = panel,
+                )
+            }
         }
     }
 }
 
 /**
- * Landscape: the round at a glance and the heroes as portraits on one row (the portraits scroll
- * if they don't fit beside it); after the reveal, the turn's cards in their place.
+ * Landscape: the round at a glance and the heroes as portraits; after the reveal, the turn's cards in their place. On
+ * one row when they all fit; otherwise on a row of their own, rather than the last of them cut by the panel (they
+ * scroll only if they don't fit there either).
  */
 @Composable
 internal fun TableTopRow(
@@ -271,17 +311,39 @@ internal fun TableTopRow(
     modifier: Modifier = Modifier,
     focus: CardFocusState? = null,
 ) {
-    Row(
-        modifier,
-        horizontalArrangement = Arrangement.spacedBy(Spacing.xs),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        TableHud(table, compact = true)
-        val track = table.track
-        if (track != null) {
-            TurnTrackRow(table, track, onHero, Modifier.weight(1f, fill = false), focus = focus, compact = true)
+    Layout(
+        content = {
+            TableHud(table, compact = true)
+            val track = table.track
+            if (track != null) {
+                TurnTrackRow(table, track, onHero, focus = focus, compact = true)
+            } else {
+                HeroStrip(table, onHero, compact = true)
+            }
+        },
+        modifier = modifier,
+    ) { (hud, strip), constraints ->
+        val gap = Spacing.xs.roundToPx()
+        val loose = constraints.copy(minWidth = 0, minHeight = 0)
+        val hudPlaced = hud.measure(loose)
+        val beside = hudPlaced.width + gap + strip.maxIntrinsicWidth(Constraints.Infinity) <= constraints.maxWidth
+        val stripPlaced = strip.measure(
+            if (beside) loose.copy(maxWidth = constraints.maxWidth - hudPlaced.width - gap) else loose,
+        )
+        val width = if (beside) hudPlaced.width + gap + stripPlaced.width else maxOf(hudPlaced.width, stripPlaced.width)
+        val height = if (beside) {
+            maxOf(hudPlaced.height, stripPlaced.height)
         } else {
-            HeroStrip(table, onHero, Modifier.weight(1f, fill = false), compact = true)
+            hudPlaced.height + gap + stripPlaced.height
+        }
+        layout(width, height) {
+            if (beside) {
+                hudPlaced.place(0, (height - hudPlaced.height) / 2)
+                stripPlaced.place(hudPlaced.width + gap, (height - stripPlaced.height) / 2)
+            } else {
+                hudPlaced.place(0, 0)
+                stripPlaced.place(0, hudPlaced.height + gap)
+            }
         }
     }
 }
@@ -390,5 +452,20 @@ private val PANEL_INSET = 12.dp
 private val TALL_TABLE = 720.dp
 private val TRACK_CARD_TALL = 64.dp
 private val TRACK_CARD_SHORT = 50.dp
+
+/** Small cards with their portrait and initiative: still a 48 dp target with the slot's padding. */
+private val TRACK_CARD_COMPACT = 42.dp
+
+/** A panel taller than this share of the table takes the turn track down to its small cards. */
+private const val TALL_PANEL_SHARE = 0.36f
+
+/** How much of what follows the question the panel shows, so it reads as more to scroll to. */
+private val PANEL_PAST_QUESTION = 44.dp
+private val HAND_SIDE_PANEL = 480.dp
+private const val HAND_SIDE_SHARE = 0.5f
+private val ZONE_HEX_TAP = 38.dp
+private val ZONE_HEX_READ = 31.dp
+private const val SQRT3 = 1.7320508f
+private const val ZONE_MARGIN = 48f
 private const val SIDE_SHARE = 0.42f
 private const val PANEL_SHARE = 0.56f

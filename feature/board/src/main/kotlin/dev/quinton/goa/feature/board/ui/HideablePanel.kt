@@ -329,6 +329,9 @@ internal fun FitWhileHidden(viewport: MapViewport, hidden: Boolean) {
 }
 
 private val STRIP = 40.dp
+
+/** The height of the shown panel's top strip, for a caller that sizes the panel to its content. */
+internal val PanelStripHeight: Dp = STRIP
 private val PANEL_CORNER = 14.dp
 private val PEEK_ATTENTION = Color(0xFF3FC1B0)
 

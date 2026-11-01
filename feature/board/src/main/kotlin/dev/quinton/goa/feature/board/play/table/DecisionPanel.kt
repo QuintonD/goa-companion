@@ -28,9 +28,12 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.onPlaced
+import androidx.compose.ui.layout.positionInParent
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.Role
@@ -62,17 +65,21 @@ import dev.quinton.goa.core.game.ActionType
 import dev.quinton.goa.core.game.Choice
 import dev.quinton.goa.core.game.Decision
 import dev.quinton.goa.core.game.DecisionKind
+import dev.quinton.goa.core.model.board.MinionPiece
 import dev.quinton.goa.core.model.catalog.Card
 import dev.quinton.goa.core.model.catalog.PrimaryAction
 import dev.quinton.goa.feature.board.BoardText
 import dev.quinton.goa.feature.board.play.PlayText
+import dev.quinton.goa.feature.board.ui.MinionTypeBadge
 import dev.quinton.goa.feature.board.ui.PlateButton
 import dev.quinton.goa.feature.board.ui.PlateTone
 import dev.quinton.goa.feature.board.ui.PlateToneSurface
 import dev.quinton.goa.feature.board.ui.PlateWell
+import dev.quinton.goa.feature.board.ui.boxText
 import dev.quinton.goa.feature.board.ui.cards.CardFocusState
 import dev.quinton.goa.feature.board.ui.cards.cardFocusOrigin
 import dev.quinton.goa.feature.board.ui.cards.isSpell
+import dev.quinton.goa.feature.board.ui.smallBoxText
 
 /**
  * The question being asked and its answers, by kind (PRODUCT §9: "every question says what is
@@ -106,7 +113,15 @@ fun DecisionPanel(
     val source = table.sourceCard
     val layout = panelLayout(decision.kind, source != null)
     val beside = layout == PanelLayout.CARD_BESIDE && source != null
-    Column(modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+    // The table sizes its panel to where the question ends; what follows it (what happened, the hands) scrolls.
+    val questionEnd = LocalPanelQuestionEnd.current
+    DisposableEffect(questionEnd) { onDispose { questionEnd?.invoke(null) } }
+    Column(
+        modifier
+            .fillMaxWidth()
+            .onPlaced { questionEnd?.invoke(it.positionInParent().y.toInt() + it.size.height) },
+        verticalArrangement = Arrangement.spacedBy(Spacing.sm),
+    ) {
         PromptHeader(
             table,
             decision,
@@ -131,7 +146,7 @@ fun DecisionPanel(
                     QuestionBox(table, source, decision, board)
                     if (board) BoardConfirm(table, onAnswer, busy)
                     Choices(table, table.buttonOptions, onAnswer, busy) { CastPreview(table, focus) }
-                    RuleBox(PlateColor.of(source.color), table, decision, focus)
+                    NoteBox(PlateColor.of(source.color), table, decision, focus)
                     SpellReasonsIfNoPrimary(table)
                 }
                 if (board) BoardChips(table, onSelect)
@@ -144,7 +159,7 @@ fun DecisionPanel(
                     BoardChips(table, onSelect)
                 }
                 Choices(table, table.buttonOptions, onAnswer, busy)
-                RuleBox(PlateColor.SILVER, table, decision, focus)
+                NoteBox(PlateColor.SILVER, table, decision, focus)
             }
         }
     }
@@ -152,7 +167,7 @@ fun DecisionPanel(
 
 private fun hasBoardOptions(table: TableUi) = table.spaceOptions.isNotEmpty() || table.pieceOptions.isNotEmpty()
 
-/** The rule a question rests on that no card prints, in a line of its own. */
+/** What a question rests on that no card prints, in the app's words, in a line of its own. */
 private fun footnote(table: TableUi, decision: Decision): String? = when {
     decision.kind == DecisionKind.CHOOSE_ACTION && table.buttonOptions.any { it is Choice.Action } ->
         "Only the primary action applies the card's text (p.7)."
@@ -165,14 +180,17 @@ private fun footnote(table: TableUi, decision: Decision): String? = when {
     else -> null
 }
 
-/** The question's rule lines in the asking card's text box: the actions it can't offer, then the rule. */
+/**
+ * The app's notes on the question in the asking card's text box, in the app's type: the actions it can't offer (a
+ * reason may be situational), then what it rests on. Its tab says "Note": these are not the rulebook's words.
+ */
 @Composable
-private fun RuleBox(color: PlateColor, table: TableUi, decision: Decision, focus: CardFocusState) {
+private fun NoteBox(color: PlateColor, table: TableUi, decision: Decision, focus: CardFocusState) {
     val note = footnote(table, decision)
     if (note == null && unavailableActions(decision).isEmpty()) return
-    CardTextBox(color, Modifier.fillMaxWidth(), cap = "Rule") {
+    CardTextBox(color, Modifier.fillMaxWidth(), cap = "Note") {
         Unavailable(table, decision, focus)
-        note?.let { Text(it, style = PrintedSmall) }
+        note?.let { Text(it, style = smallBoxText()) }
     }
 }
 
@@ -198,10 +216,10 @@ private fun QuestionBox(table: TableUi, card: Card, decision: Decision, board: B
             Column(Modifier.weight(1f)) {
                 Text(
                     decision.prompt,
-                    style = PrintedQuestion,
+                    style = boxText(),
                     modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite },
                 )
-                if (board) Text(boardHint(table), style = PrintedQuestion)
+                if (board) Text(boardHint(table), style = boxText())
             }
         }
     }
@@ -255,7 +273,7 @@ private fun Unavailable(table: TableUi, decision: Decision, focus: CardFocusStat
                 modifier = Modifier.padding(top = 2.dp).size(scaledIconSize(16.dp, 1.3f)),
             )
             Spacer(Modifier.width(Spacing.xs))
-            Text(unavailableLine(u), style = PrintedSmall)
+            Text(unavailableLine(u), style = smallBoxText())
         }
     }
 }
@@ -282,9 +300,9 @@ fun DecisionWho(table: TableUi, modifier: Modifier = Modifier) {
 }
 
 /**
- * [DecisionWho] unless the panel's strip says it ([who]), the prompt on its title plate (a live region;
- * a question asked by a card has it in the card's text box, Defend in its attack header), and for card
- * questions "Asked by <card>" with a thumbnail (tap to read it).
+ * [DecisionWho] unless the panel's strip says it ([who]), the prompt (a live region; a question asked by a card
+ * has it in the card's text box, Defend in its attack header): a few words on the title plate, anything longer in
+ * the text box under it ([promptParts]); for card questions "Asked by <card>" with a thumbnail (tap to read it).
  */
 @Composable
 private fun PromptHeader(
@@ -298,13 +316,19 @@ private fun PromptHeader(
     Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
         if (who) DecisionWho(table)
         if (prompt) {
-            TitlePlate(
-                decision.prompt,
+            val parts = promptParts(decision.prompt)
+            Column(
                 Modifier
                     .fillMaxWidth()
                     .semantics(mergeDescendants = true) { liveRegion = LiveRegionMode.Polite },
-                maxLines = Int.MAX_VALUE,
-            )
+                verticalArrangement = Arrangement.spacedBy(6.dp),
+            ) {
+                parts.title?.let { TitlePlate(it, Modifier.fillMaxWidth(), maxLines = Int.MAX_VALUE) }
+                parts.text?.let { text ->
+                    val color = table.sourceCard?.let { PlateColor.of(it.color) } ?: PlateColor.SILVER
+                    CardTextBox(color, Modifier.fillMaxWidth()) { Text(text, style = boxText()) }
+                }
+            }
         }
         val card = table.sourceCard
         if (askedBy && card != null) AskedBy(card, decision, focus)
@@ -420,16 +444,8 @@ private fun CardBeside(
 // ---- Board options ----------------------------------------------------------------------
 
 /** How a board question is answered: spaces, units or tokens are tapped on the board. */
-private fun boardHint(table: TableUi): String {
-    val spaces = table.spaceOptions
-    val pieces = table.pieceOptions
-    return when {
-        pieces.isEmpty() && spaces.size == 1 -> "Tap the space lit on the map."
-        pieces.isEmpty() -> "Tap one of the ${spaces.size} lit spaces."
-        spaces.isEmpty() -> "Tap an outlined piece on the board, or pick it below."
-        else -> "Tap an outlined space or piece on the board."
-    } + longPressHint(table)
-}
+private fun boardHint(table: TableUi): String =
+    boardHint(table.spaceOptions.size, table.pieceOptions.size) + longPressHint(table)
 
 /** [boardHint] for a question no card asks, on the plate itself. */
 @Composable
@@ -477,7 +493,7 @@ internal fun longPressHint(table: TableUi): String {
     return if (heroOption) " Long-press a hero for their game state." else ""
 }
 
-/** Units and tokens (and a short list of spaces whose names differ) as chips too. */
+/** Units and tokens (and a short list of spaces whose names differ) as chips too; minions as rows. */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun BoardChips(table: TableUi, onSelect: (Choice) -> Unit) {
@@ -491,6 +507,18 @@ private fun BoardChips(table: TableUi, onSelect: (Choice) -> Unit) {
     }.orEmpty()
     val chips = pieces + spaceChips
     if (chips.isEmpty()) return
+    // Several minions read alike but for where they stand: a row each, with the team and type as marks.
+    val minions = chips.map { choice ->
+        (choice as? Choice.Unit)?.let { c -> table.pieces.firstOrNull { it.id == c.unitId } as? MinionPiece }
+    }
+    if (minions.all { it != null }) {
+        Column(verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
+            chips.forEachIndexed { i, choice ->
+                MinionRow(table.label(choice), minions[i]!!, choice == selected) { onSelect(choice) }
+            }
+        }
+        return
+    }
     FlowRow(
         horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
         verticalArrangement = Arrangement.spacedBy(Spacing.xs),
@@ -499,14 +527,61 @@ private fun BoardChips(table: TableUi, onSelect: (Choice) -> Unit) {
     }
 }
 
+/** One minion to choose, full width: its team and type as marks, what tells it apart first. Bronze when chosen. */
+@Composable
+private fun MinionRow(label: String, minion: MinionPiece, selected: Boolean, onClick: () -> Unit) {
+    val (first, second) = minionRowLines(label)
+    Surface(
+        shape = RoundedCornerShape(7.dp),
+        color = if (selected) MaterialTheme.colorScheme.primaryContainer else PlateWell,
+        border = BorderStroke(
+            if (selected) 2.dp else 1.dp,
+            if (selected) MaterialTheme.colorScheme.primary else GoaTheme.colors.engravedBorder,
+        ),
+        modifier = Modifier
+            .fillMaxWidth()
+            .heightIn(min = 48.dp)
+            .selectable(selected = selected, role = Role.RadioButton, onClick = onClick)
+            .semantics(mergeDescendants = true) { contentDescription = label },
+    ) {
+        Row(
+            Modifier.padding(horizontal = Spacing.md, vertical = Spacing.xs),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            TeamMark(minion.team, markSize = scaledIconSize(14.dp, 1.3f))
+            Spacer(Modifier.width(Spacing.xs))
+            MinionTypeBadge(minion, size = scaledIconSize(28.dp, 1.3f))
+            Spacer(Modifier.width(Spacing.sm))
+            Column(Modifier.weight(1f).clearAndSetSemantics {}) {
+                Text(first, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
+                second?.let {
+                    Text(
+                        it,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            }
+            if (selected) {
+                Icon(
+                    Icons.Outlined.CheckCircle,
+                    null,
+                    modifier = Modifier.size(scaledIconSize(18.dp, 1.3f)),
+                    tint = MaterialTheme.colorScheme.primary,
+                )
+            }
+        }
+    }
+}
+
 @Composable
 private fun OptionChip(label: String, selected: Boolean, onClick: () -> Unit) {
     Surface(
         shape = RoundedCornerShape(7.dp),
-        color = if (selected) MaterialTheme.colorScheme.secondaryContainer else PlateWell,
+        color = if (selected) MaterialTheme.colorScheme.primaryContainer else PlateWell,
         border = BorderStroke(
             if (selected) 2.dp else 1.dp,
-            if (selected) MaterialTheme.colorScheme.secondary else GoaTheme.colors.engravedBorder,
+            if (selected) MaterialTheme.colorScheme.primary else GoaTheme.colors.engravedBorder,
         ),
         modifier = Modifier
             .heightIn(min = 48.dp)
@@ -521,7 +596,7 @@ private fun OptionChip(label: String, selected: Boolean, onClick: () -> Unit) {
                     Icons.Outlined.CheckCircle,
                     null,
                     modifier = Modifier.size(16.dp),
-                    tint = MaterialTheme.colorScheme.secondary,
+                    tint = MaterialTheme.colorScheme.primary,
                 )
                 Spacer(Modifier.width(4.dp))
             }
@@ -672,8 +747,6 @@ private fun ActionChip(table: TableUi, action: ActionType, busy: Boolean, onClic
 
 // ---- Cards ------------------------------------------------------------------------------
 
-private val PrintedQuestion = GoaTextStyles.printed.copy(fontSize = 17.sp, lineHeight = 21.sp)
-private val PrintedSmall = GoaTextStyles.printed.copy(fontSize = 15.sp, lineHeight = 18.sp)
 private const val MAX_SPACE_CHIPS = 6
 private const val BESIDE_SHARE = 0.36f
 private val SPELL_BESIDE = 96.dp

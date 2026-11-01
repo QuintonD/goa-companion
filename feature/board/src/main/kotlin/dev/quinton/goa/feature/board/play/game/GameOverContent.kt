@@ -21,14 +21,18 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.EmojiEvents
 import androidx.compose.material.icons.outlined.Lightbulb
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
+import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
@@ -43,7 +47,9 @@ import dev.quinton.goa.core.designsystem.component.TitlePlate
 import dev.quinton.goa.core.designsystem.component.scaledIconSize
 import dev.quinton.goa.core.designsystem.component.teamColor
 import dev.quinton.goa.core.designsystem.theme.GoaTextStyles
+import dev.quinton.goa.core.designsystem.theme.GoaTheme
 import dev.quinton.goa.core.designsystem.theme.Spacing
+import dev.quinton.goa.core.game.CoachNote
 import dev.quinton.goa.core.game.Controller
 import dev.quinton.goa.core.model.match.Team
 import dev.quinton.goa.feature.board.BoardText
@@ -128,8 +134,15 @@ internal fun GameOverContent(
 
             Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
                 Overline("How each hero did")
-                Team.entries.forEach { team ->
-                    over.heroes.filter { it.team == team }.forEach { result -> HeroResultRow(play, result, onHero) }
+                // One plate for the section, dividers between its rows: not a frame round every row.
+                PlateSurface(brackets = true, modifier = Modifier.fillMaxWidth()) {
+                    Column {
+                        val heroes = Team.entries.flatMap { team -> over.heroes.filter { it.team == team } }
+                        heroes.forEachIndexed { i, result ->
+                            if (i > 0) HorizontalDivider(color = GoaTheme.colors.engravedBorder)
+                            HeroResultRow(play, result, onHero)
+                        }
+                    }
                 }
             }
 
@@ -150,41 +163,11 @@ internal fun GameOverContent(
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
 
-                        else -> points.forEach { note ->
-                            PlateSurface(modifier = Modifier.fillMaxWidth()) {
-                                Row(Modifier.padding(Spacing.md).semantics(mergeDescendants = true) {}) {
-                                    Icon(
-                                        Icons.Outlined.Lightbulb,
-                                        null,
-                                        tint = MaterialTheme.colorScheme.onSecondaryContainer,
-                                    )
-                                    Spacer(Modifier.width(Spacing.sm))
-                                    Column {
-                                        val at = listOfNotNull(
-                                            note.round?.let { "Round $it" },
-                                            note.turn?.let { "Turn $it" },
-                                        ).joinToString(" · ")
-                                        if (at.isNotEmpty()) {
-                                            Text(
-                                                at.uppercase(),
-                                                style = GoaTextStyles.overline,
-                                                color = MaterialTheme.colorScheme.onSecondaryContainer,
-                                            )
-                                        }
-                                        Text(
-                                            // The heading already says when: no "Round 1, turn 1:" again.
-                                            if (at.isNotEmpty()) withoutWhen(note.text) else note.text,
-                                            style = MaterialTheme.typography.titleSmall,
-                                            color = MaterialTheme.colorScheme.onSecondaryContainer,
-                                        )
-                                        if (note.detail.isNotBlank()) {
-                                            Text(
-                                                note.detail,
-                                                style = MaterialTheme.typography.bodyMedium,
-                                                color = MaterialTheme.colorScheme.onSecondaryContainer,
-                                            )
-                                        }
-                                    }
+                        else -> PlateSurface(brackets = true, modifier = Modifier.fillMaxWidth()) {
+                            Column {
+                                points.forEachIndexed { i, note ->
+                                    if (i > 0) HorizontalDivider(color = GoaTheme.colors.engravedBorder)
+                                    TurningPoint(note)
                                 }
                             }
                         }
@@ -227,6 +210,37 @@ private fun Overline(text: String) {
 }
 
 @Composable
+private fun TurningPoint(note: CoachNote) {
+    Row(Modifier.padding(Spacing.md).semantics(mergeDescendants = true) {}) {
+        Icon(Icons.Outlined.Lightbulb, null, tint = MaterialTheme.colorScheme.onSecondaryContainer)
+        Spacer(Modifier.width(Spacing.sm))
+        Column {
+            val at = listOfNotNull(note.round?.let { "Round $it" }, note.turn?.let { "Turn $it" }).joinToString(" · ")
+            if (at.isNotEmpty()) {
+                Text(
+                    at.uppercase(),
+                    style = GoaTextStyles.overline,
+                    color = MaterialTheme.colorScheme.onSecondaryContainer,
+                )
+            }
+            Text(
+                // The heading already says when: no "Round 1, turn 1:" again.
+                if (at.isNotEmpty()) withoutWhen(note.text) else note.text,
+                style = MaterialTheme.typography.titleSmall,
+                color = MaterialTheme.colorScheme.onSecondaryContainer,
+            )
+            if (note.detail.isNotBlank()) {
+                Text(
+                    note.detail,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSecondaryContainer,
+                )
+            }
+        }
+    }
+}
+
+@Composable
 private fun HeroResultRow(play: PlayUi, result: HeroResult, onHero: (String) -> Unit) {
     val info = play.table.hero(result.heroId)
     val who = if (result.controller == Controller.Human) "You" else PlayText.controller(result.controller)
@@ -237,9 +251,10 @@ private fun HeroResultRow(play: PlayUi, result: HeroResult, onHero: (String) -> 
         "defeated ${BoardText.count(result.defeated, "time")}",
         BoardText.count(result.coins, "coin") + " gained",
     )
-    PlateSurface(
+    Surface(
         onClick = { onHero(result.heroId) },
-        brackets = true,
+        color = Color.Transparent,
+        contentColor = LocalContentColor.current,
         modifier = Modifier
             .fillMaxWidth()
             .clearAndSetSemantics {

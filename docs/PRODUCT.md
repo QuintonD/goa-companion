@@ -509,8 +509,8 @@ opponents (and teammates) at a strength from 1 to 10. One phone, one human team.
   track stay at the top (the hero strip returns with the panel), and a space or piece tapped on the map is answered with Confirm in the
   peek bar, without opening the panel. Show (or a tap on the peek bar, or dragging it up) brings the
   panel back. In landscape the side panel hides to a small card at the bottom end; while it is shown,
-  the heroes are portraits beside the round at a glance (a tap still opens each one) and a puzzle's
-  goal is one line, so a phone held sideways keeps most of its map.
+  the heroes are portraits beside the round at a glance (on a row of their own when they don't all fit there; a tap
+  still opens each one), so a phone held sideways keeps most of its map.
 - **The options in view:** when a question asks for a space or a piece, the map brings every option
   (and the hero asked) into the part of the map nothing covers — under the round at a glance and the
   hero strip or turn track, clear of the map buttons, above the panel — hexes down to about 30 dp if
@@ -562,10 +562,10 @@ turn", "Push the lane before the round ends", "Survive this turn"), one way (or 
   chips, and theme chips for themes two or more puzzles share; then every puzzle by number with
   title, theme, difficulty (three hexes and the word: hard / harder / hardest), heroes, and Solved /
   Tried N times / Not tried yet, nudges used, "Solution seen". Reset progress in the menu, confirmed.
-- **Solving:** the game table with the goal banner floating under the hero strip ("Win the game this
-  turn." · "You play Wasp and Xargatha"); in the panel the number, difficulty, title and theme, "What
-  you know" (the intro: what the board doesn't show; it folds after the first move), then the
-  question, card questions answered with the card focus viewer (§9). Every hero's hand is open (tap a hero). The other side answers at once with its best
+- **Solving:** the game table; in the panel the goal ("Win the game this
+  turn." · "You play Wasp and Xargatha"), the number, title and difficulty on a small line, "What
+  you know" (the theme and the intro: what the board doesn't show; it folds after the first move, and starts folded on a
+  puzzle already tried), then the question, card questions answered with the card focus viewer (§9). Every hero's hand is open (tap a hero). The other side answers at once with its best
   reply; its replies are narrated line by line ("Arien answers") over the board as it was after your
   move, then the board catches up. A move that loses the forced line says so gently, with the reason
   taken from what followed where it can ("Not quite — that lets Arien defend with Aspiring
@@ -573,7 +573,7 @@ turn", "Push the lane before the round ends", "Survive this turn"), one way (or 
   move, Restart and Show solution. Tries are counted. Any winning line counts, not just the stored one.
   The panel hides as in a game (9): the whole board with the question, the latest reply, the miss,
   "Solved" or the replay's step in the peek bar, Confirm there for a tapped space or piece; the goal
-  banner returns with the panel.
+  returns with the panel.
 - **Nudges** (on by default; switch in the puzzle's menu and in Settings → Learning → Puzzle
   nudges, one preference): when you're stuck (a miss, or 90 s without progress on the question) a
   gentle nudge card appears in the panel (not a dialog; close it with ×); "Another nudge" gives the

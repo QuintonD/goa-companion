@@ -294,7 +294,10 @@ private fun Panel(play: PlayUi, onAction: (GameAction) -> Unit, focus: CardFocus
     val table = play.table
     val nudge = play.nudge
     val status = play.status
-    table.moment.takeIf { nudge == null }?.let { MomentCard(it, table, focus) }
+    val moment = table.moment.takeIf { nudge == null }
+    // The person's own question before the moment (the reveal, a turn or the round ending), as on the phone.
+    val questionFirst = status is TurnStatus.YourTurn
+    if (moment != null && !questionFirst) MomentCard(moment, table, focus)
     when {
         nudge != null -> CoachNudge(nudge, onAction)
 
@@ -316,6 +319,7 @@ private fun Panel(play: PlayUi, onAction: (GameAction) -> Unit, focus: CardFocus
 
         else -> Unit
     }
+    if (moment != null && questionFirst) MomentCard(moment, table, focus)
     if (nudge == null) {
         RecentEvents(play.recent, if (status is TurnStatus.YourTurn) play.recentStrong else emptySet())
         if (!table.handDecision) YourHand(table, focus)
@@ -509,8 +513,11 @@ private fun GameOver(
             }
         }
         Overline("How each hero did")
-        Team.entries.forEach { team ->
-            over.heroes.filter { it.team == team }.forEach { HeroResultRow(play, it, onHero) }
+        // One plate for the section, dividers between its rows: not a frame round every row.
+        Div({ classes("goa-over-section") }) {
+            Team.entries.forEach { team ->
+                over.heroes.filter { it.team == team }.forEach { HeroResultRow(play, it, onHero) }
+            }
         }
         if (over.coach) {
             Overline("Coach · turning points")
@@ -522,19 +529,21 @@ private fun GameOver(
 
                 points.isEmpty() -> Quiet("No single moment decided this one.")
 
-                else -> points.forEach { note ->
-                    Div({ classes("goa-nudge") }) {
-                        val at = listOfNotNull(
-                            note.round?.let {
-                                "Round $it"
-                            },
-                            note.turn?.let { "Turn $it" },
-                        ).joinToString(" · ")
-                        if (at.isNotEmpty()) P({ classes("t-overline") }) { Text(at) }
-                        P({
-                            classes("t-title-small")
-                        }) { Text(if (at.isNotEmpty()) withoutWhen(note.text) else note.text) }
-                        if (note.detail.isNotBlank()) P({ classes("t-body-medium") }) { Text(note.detail) }
+                else -> Div({ classes("goa-over-section") }) {
+                    points.forEach { note ->
+                        Div({ classes("goa-nudge") }) {
+                            val at = listOfNotNull(
+                                note.round?.let {
+                                    "Round $it"
+                                },
+                                note.turn?.let { "Turn $it" },
+                            ).joinToString(" · ")
+                            if (at.isNotEmpty()) P({ classes("t-overline") }) { Text(at) }
+                            P({
+                                classes("t-title-small")
+                            }) { Text(if (at.isNotEmpty()) withoutWhen(note.text) else note.text) }
+                            if (note.detail.isNotBlank()) P({ classes("t-body-medium") }) { Text(note.detail) }
+                        }
                     }
                 }
             }
@@ -574,4 +583,4 @@ private fun HeroResultRow(play: PlayUi, result: HeroResult, onHero: (String) -> 
 }
 
 /** Room the banner's medallion and the actions' padding take on the top bar (`.goa-topbar`), in CSS px. */
-private const val BANNER_MEDALLION = 100
+private const val BANNER_MEDALLION = 120

@@ -173,7 +173,10 @@ fun TableHud(table: TableUi, modifier: Modifier = Modifier, compact: Boolean = f
     }
 }
 
-/** Four bronze diamonds: done turns filled, the current one ringed and larger, later ones hollow. */
+/**
+ * Four bronze diamonds: done turns solid in a dimmer bronze, the current one solid in bright bronze with a ring and
+ * larger, later ones hollow.
+ */
 @Composable
 private fun TurnPips(turn: Int) {
     val bronze = MaterialTheme.colorScheme.primary
@@ -183,11 +186,11 @@ private fun TurnPips(turn: Int) {
             Canvas(Modifier.size(if (current) 16.dp else 12.dp)) {
                 val c = size.minDimension / 2f
                 when {
-                    t < turn -> drawPath(diamond(c, c * 0.92f), bronze)
+                    t < turn -> drawPath(diamond(c, c * 0.92f), bronze.copy(alpha = PIP_DONE_ALPHA))
 
                     current -> {
-                        drawPath(diamond(c, c * 0.42f), bronze)
-                        drawPath(diamond(c, c * 0.9f), bronze, style = Stroke(width = 1.5.dp.toPx()))
+                        drawPath(diamond(c, c * 0.56f), PipBright)
+                        drawPath(diamond(c, c * 0.96f), PipBright, style = Stroke(width = 1.5.dp.toPx()))
                     }
 
                     else -> drawPath(diamond(c, c * 0.8f), bronze, style = Stroke(width = 1.2.dp.toPx()))
@@ -234,6 +237,8 @@ internal fun TieBreakerMark(team: Team, size: Dp = 22.dp) {
 }
 
 private const val HUD_MAX_SCALE = 1.6f
+private const val PIP_DONE_ALPHA = 0.62f
+private val PipBright = Color(0xFFE4C47E)
 private const val COIN_BADGE = 0.48f
 private val MAX_COIN_BADGE = 24.dp
 
@@ -473,11 +478,7 @@ private fun CompactHeroChip(table: TableUi, hero: HeroView, place: Int?, onClick
             if (place != null) OrderBadge(place, Modifier.align(Alignment.TopStart))
             // Inside the chip's circle, which clips what overhangs it.
             TeamBadge(hero.team, Modifier.align(Alignment.BottomEnd).padding(5.dp), size = 15.dp)
-            if (cardDown(
-                    table,
-                    hero,
-                )
-            ) {
+            if (cardDown(table, hero)) {
                 TableCard(null, Modifier.align(Alignment.TopEnd), width = 11.dp, backOf = hero.heroId)
             }
         }
@@ -685,7 +686,7 @@ private fun UltimateAndHand(table: TableUi, hero: HeroView, focus: CardFocusStat
                 hand == null -> {
                     Section("In hand · ${hero.handCount}")
                     val backs = List(hero.handCount) { CardView(null) }
-                    CardRow(backs, table, focus, "$name · In hand", width = SHEET_CARD)
+                    CardRow(backs, table, focus, "$name · In hand", width = SHEET_CARD, backOf = hero.heroId)
                 }
 
                 hero.heroId in table.mine -> {
@@ -745,6 +746,8 @@ internal fun CardRow(
     /** Captions under the cards instead of the Turn slot / Active ones. */
     captions: List<String>? = null,
     width: Dp = THUMB_CARD,
+    /** Whose deck's back a facedown card shows. */
+    backOf: String? = null,
 ) {
     val captions = captions ?: cards.map { cardCaption(it, slots) }
     val open = cards.indices.filter { !cards[it].facedown && table.card(cards[it].cardId) != null }
@@ -759,12 +762,19 @@ internal fun CardRow(
         origin = { card -> Modifier.cardFocusOrigin(focus, "$title/${card.id}") },
         onOpen = { i, _ -> open.indexOf(i).takeIf { it >= 0 }?.let { focus.open(viewable, it, title = title) } },
         width = width,
+        backOf = backOf,
     )
 }
 
 /** Small cards in a row; a tap on a face-up one goes to [onCard] (the caller decides how it is read). */
 @Composable
-internal fun CardRow(cards: List<CardView>, table: TableUi, onCard: (Card) -> Unit, slots: Boolean = false) {
+internal fun CardRow(
+    cards: List<CardView>,
+    table: TableUi,
+    onCard: (Card) -> Unit,
+    slots: Boolean = false,
+    backOf: String? = null,
+) {
     ThumbRow(
         cards,
         table,
@@ -773,6 +783,7 @@ internal fun CardRow(cards: List<CardView>, table: TableUi, onCard: (Card) -> Un
         },
         origin = { Modifier },
         onOpen = { _, card -> onCard(card) },
+        backOf = backOf,
     )
 }
 
@@ -784,6 +795,7 @@ private fun ThumbRow(
     origin: (Card) -> Modifier,
     onOpen: (index: Int, card: Card) -> Unit,
     width: Dp = THUMB_CARD,
+    backOf: String? = null,
 ) {
     Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
         cards.forEachIndexed { i, view ->
@@ -813,7 +825,7 @@ private fun ThumbRow(
                     border = if (view.active) BorderStroke(2.dp, MaterialTheme.colorScheme.secondary) else null,
                     modifier = if (card != null) origin(card) else Modifier,
                 ) {
-                    TableCard(card, width = width)
+                    TableCard(card, width = width, backOf = backOf)
                 }
                 val caption = captions.getOrNull(i).orEmpty()
                 if (caption.isNotEmpty()) {

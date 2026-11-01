@@ -117,6 +117,9 @@ class PuzzleController(
     /** Nudges switched here while the settings store can't be written (it then lives for this visit). */
     private var nudgesOverride: Boolean? = null
     private var introOpen = true
+
+    /** The first word from the stored progress: a puzzle already tried opens with "What you know" folded. */
+    private var progressKnown = false
     private var laterShown = false
     private var moved = false
     private var stored = PuzzleProgress()
@@ -176,6 +179,10 @@ class PuzzleController(
         scope.launch {
             progressRepository.progress.catch { emit(emptyMap()) }.collect { all ->
                 stored = all[puzzleId] ?: PuzzleProgress()
+                if (!progressKnown) {
+                    progressKnown = true
+                    if (stored.attempts > 0) introOpen = false
+                }
                 publish()
             }
         }

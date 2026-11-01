@@ -1,6 +1,7 @@
 package dev.quinton.goa.feature.board.ui
 
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Box
@@ -16,10 +17,14 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.LocalContentColor
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.SegmentedButtonColors
+import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.ReadOnlyComposable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
@@ -27,11 +32,15 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shadow
 import androidx.compose.ui.graphics.Shape
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import dev.quinton.goa.core.designsystem.component.CardTextBox
 import dev.quinton.goa.core.designsystem.component.GoaPlateTheme
 import dev.quinton.goa.core.designsystem.component.PlateColor
@@ -39,6 +48,7 @@ import dev.quinton.goa.core.designsystem.component.PlateShape
 import dev.quinton.goa.core.designsystem.component.TeamMark
 import dev.quinton.goa.core.designsystem.component.slatePlate
 import dev.quinton.goa.core.designsystem.theme.GoaTextStyles
+import dev.quinton.goa.core.model.board.MinionPiece
 import dev.quinton.goa.core.model.match.Team
 
 /*
@@ -104,6 +114,28 @@ private val ToneShape = RoundedCornerShape(7.dp)
 private val ToneEdge = Color(0xFF0E1215)
 private const val TONE_DISABLED = 0.45f
 
+/** A minion's type on its small round badge, as on the board: the team's dark tone, the type's glyph in white. */
+@Composable
+internal fun MinionTypeBadge(piece: MinionPiece, modifier: Modifier = Modifier, size: Dp = 28.dp) {
+    Canvas(modifier.size(size).clearAndSetSemantics {}) {
+        val r = this.size.minDimension / 2f
+        drawCircle(if (piece.team == Team.RED) TypeBadgeRed else TypeBadgeBlue)
+        drawCircle(Color.White, radius = r - 0.5.dp.toPx(), style = Stroke(1.dp.toPx()))
+        drawGlyph(BoardGlyph.of(piece.type), center, r * 1.5f, Color.White)
+    }
+}
+
+private val TypeBadgeRed = Color(0xFF7A1D14)
+private val TypeBadgeBlue = Color(0xFF0D3A66)
+
+/** A segmented button's colours: bronze is selected (teal is next, correct, "you can act"). */
+@Composable
+internal fun bronzeSegments(): SegmentedButtonColors = SegmentedButtonDefaults.colors(
+    activeContainerColor = MaterialTheme.colorScheme.primaryContainer,
+    activeContentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+    activeBorderColor = MaterialTheme.colorScheme.primary,
+)
+
 /** A filled button in a [PlateTone], with [Button]'s behaviour. */
 @Composable
 internal fun PlateButton(
@@ -152,6 +184,19 @@ internal fun PlateToneSurface(
         modifier = modifier.background(tone.brush, ToneShape, alpha = if (enabled) 1f else TONE_DISABLED),
     ) { CompositionLocalProvider(LocalContentColor provides tone.content, content = content) }
 }
+
+/**
+ * The app's own words in a text box (a question, a hint, a note): Inter. Crimson is for what the game prints, and the
+ * game says to follow card text exactly (p.3), so words of ours must not look printed.
+ */
+@Composable
+@ReadOnlyComposable
+internal fun boxText(): TextStyle = MaterialTheme.typography.bodyMedium.copy(fontSize = 15.sp, lineHeight = 20.sp)
+
+/** [boxText] for a note. */
+@Composable
+@ReadOnlyComposable
+internal fun smallBoxText(): TextStyle = MaterialTheme.typography.bodyMedium.copy(fontSize = 13.sp, lineHeight = 17.sp)
 
 /**
  * A [CardTextBox] whose tab is a heading (TalkBack can jump to it), for a box that stands on its own: a nudge.

@@ -27,6 +27,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
@@ -35,6 +36,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.clearAndSetSemantics
@@ -47,6 +49,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -73,6 +76,7 @@ import dev.quinton.goa.feature.board.ui.cards.cardAspect
 import dev.quinton.goa.feature.board.ui.cards.cardFocusOrigin
 import dev.quinton.goa.feature.board.ui.cards.cardWidth
 import dev.quinton.goa.feature.board.ui.cards.isSpell
+import dev.quinton.goa.feature.board.ui.isLandscape
 
 /*
  * Card questions (play, defend, discard, retrieve, upgrade, keep) answered with the card focus
@@ -252,6 +256,8 @@ private fun OfferedRow(
 ) {
     val reason = table.decision?.kind?.let(::notOffered)
     val spread = fan && offered.none { it.card.isSpell }
+    // Sideways the panel is tall and wide: a hand takes its width, up to what still fits its height.
+    val largest = if (isLandscape()) LANDSCAPE_HAND_CARD else null
     BoxWithConstraints(Modifier.fillMaxWidth()) {
         val n = offered.size.coerceAtLeast(1)
         // A landscape spell card (Gydion) is as tall as the others and about twice as wide (CardShape.kt).
@@ -259,7 +265,7 @@ private fun OfferedRow(
         val min = if (offered.any { it.card.isSpell }) MIN_SPELL_CARD else MIN_HAND_CARD
         val gap = if (spread) 0.dp else Spacing.sm
         val edge = if (spread) FAN_EDGE else 0.dp
-        val width = ((maxWidth - edge * 2 - gap * (n - 1)) / units).coerceIn(min, largestCard(n))
+        val width = ((maxWidth - edge * 2 - gap * (n - 1)) / units).coerceIn(min, largest ?: largestCard(n))
         Row(
             Modifier
                 .fillMaxWidth()
@@ -415,7 +421,9 @@ internal fun DefensePanel(
 
 /**
  * The attack: the attacker's card (tap to read it), who attacks and how, the Attack total, and the
- * minion defense modifier counted. It carries the question for TalkBack (a polite live region).
+ * minion defense modifier counted, on the text box in the attacking card's colour, as every question asked by a card.
+ * It carries the question for TalkBack (a polite live region). Its text stops growing at 1.3×: with more it pushed
+ * the cards to defend with off the screen.
  */
 @Composable
 private fun AttackHeader(
@@ -426,7 +434,24 @@ private fun AttackHeader(
     prompt: String,
     focus: CardFocusState,
 ) {
-    CardTextBox(PlateColor.RED, Modifier.fillMaxWidth(), cap = "Attack") {
+    val density = LocalDensity.current
+    val capped = Density(density.density, minOf(density.fontScale, ATTACK_MAX_SCALE))
+    CompositionLocalProvider(LocalDensity provides capped) {
+        AttackBox(heading, attack, minionModifier, card, prompt, focus)
+    }
+}
+
+@Composable
+private fun AttackBox(
+    heading: String,
+    attack: Int?,
+    minionModifier: Int?,
+    card: Card?,
+    prompt: String,
+    focus: CardFocusState,
+) {
+    val color = card?.let { PlateColor.of(it.color) } ?: PlateColor.RED
+    CardTextBox(color, Modifier.fillMaxWidth(), cap = "Attack") {
         Row(verticalAlignment = Alignment.CenterVertically) {
             if (card != null) {
                 Surface(
@@ -548,10 +573,10 @@ private fun Verdict(verdict: Boolean?, text: String) {
 private fun DeclineRow(label: String, selected: Boolean, onClick: () -> Unit) {
     Surface(
         shape = RoundedCornerShape(7.dp),
-        color = if (selected) MaterialTheme.colorScheme.secondaryContainer else PlateWell,
+        color = if (selected) MaterialTheme.colorScheme.primaryContainer else PlateWell,
         border = BorderStroke(
             if (selected) 2.dp else 1.dp,
-            if (selected) MaterialTheme.colorScheme.secondary else GoaTheme.colors.engravedBorder,
+            if (selected) MaterialTheme.colorScheme.primary else GoaTheme.colors.engravedBorder,
         ),
         modifier = Modifier
             .fillMaxWidth()
@@ -585,6 +610,7 @@ private fun Modifier.fanned(fromCentre: Float): Modifier = graphicsLayer {
 }
 
 private val HAND_CARD = 84.dp
+private val LANDSCAPE_HAND_CARD = 124.dp
 private const val FAN_DEGREES = 3.2f
 
 /** Room for the outer cards' corners and for how far they drop. */
@@ -592,6 +618,7 @@ private val FAN_EDGE = 6.dp
 private val FAN_DROP = 6.dp
 private val MIN_HAND_CARD = 60.dp
 private val ATTACK_CARD = 56.dp
+private const val ATTACK_MAX_SCALE = 1.3f
 
 /** A row with spells: a landscape card this tall (≈ 90 × 62 dp) is still easy to tap and read. */
 private val MIN_SPELL_CARD = 44.dp
