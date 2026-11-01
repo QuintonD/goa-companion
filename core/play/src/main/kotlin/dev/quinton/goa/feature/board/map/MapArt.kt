@@ -41,6 +41,13 @@ fun BoardMapArt.cornersInPixels(hex: Hex): List<MapPoint> {
 private fun BoardMapArt.pixelAt(x: Float, y: Float): MapPoint =
     MapPoint(((x - originX) * pxPerUnit).toFloat(), ((y - originY) * pxPerUnit).toFloat())
 
+/** Brightness and saturation outside the light (mock-up 01, rulebook p.8), on the phone and the web alike. */
+const val DIM_BRIGHTNESS = 0.58f
+const val DIM_SATURATION = 0.5f
+
+/** The picture's edge fades into [BoardMapArt.sea] over this many map units: its edge colours vary too much to match. */
+const val ART_FEATHER = 1f
+
 /**
  * A lit part of the map (rulebook p.8): [hexes] in the light, and [edges], the sides on its outer edge
  * as a hex and a direction of [HexGrid.DIRECTIONS].

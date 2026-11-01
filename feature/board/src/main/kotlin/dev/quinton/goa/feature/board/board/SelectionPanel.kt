@@ -82,6 +82,8 @@ import dev.quinton.goa.core.model.catalog.Stat
 import dev.quinton.goa.feature.board.BoardHero
 import dev.quinton.goa.feature.board.BoardText
 import dev.quinton.goa.feature.board.hero
+import dev.quinton.goa.feature.board.ui.ArtBoardPalette
+import dev.quinton.goa.feature.board.ui.ArtSwatchGround
 import dev.quinton.goa.feature.board.ui.BoardPalette
 import dev.quinton.goa.feature.board.ui.PieceToken
 import dev.quinton.goa.feature.board.ui.boardPalette
@@ -118,9 +120,9 @@ internal fun SelectionPanel(
             if (piece.at == null) {
                 Note("Waiting in the tray: tap a highlighted space on the board to put it there (p.8).")
             } else if (hero != null) {
-                HeroMeasures(state, hero, palette, onAction)
+                HeroMeasures(state, hero, swatchPalette(state, palette), onAction)
             } else {
-                StepsMeasure(state, piece, palette, onAction)
+                StepsMeasure(state, piece, swatchPalette(state, palette), onAction)
             }
         }
     }
@@ -589,7 +591,9 @@ private fun OverlayRow(
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Canvas(Modifier.size(scaledIconSize(28.dp, maxScale = 1.4f)).clearAndSetSemantics {}) {
-                drawSwatch(palette.laneA, palette.gap) { c, m, u -> if (enabled) swatch(c, m, u) }
+                drawSwatch(if (palette.onArt) ArtSwatchGround else palette.laneA, palette.gap) { c, m, u ->
+                    if (enabled) swatch(c, m, u)
+                }
             }
             Spacer(Modifier.width(Spacing.md))
             Column(Modifier.weight(1f)) {
@@ -681,3 +685,7 @@ internal fun Note(text: String, modifier: Modifier = Modifier) {
         modifier = modifier.padding(vertical = Spacing.xs),
     )
 }
+
+/** A swatch shows its cue as the map draws it: over a painting, the art palette's. */
+private fun swatchPalette(state: BoardUiState.Ready, palette: BoardPalette): BoardPalette =
+    if (state.map.art != null) ArtBoardPalette else palette

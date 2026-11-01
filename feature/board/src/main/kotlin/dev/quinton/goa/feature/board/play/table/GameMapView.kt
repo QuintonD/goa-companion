@@ -32,6 +32,7 @@ import androidx.compose.ui.draw.drawWithCache
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.StrokeJoin
@@ -55,26 +56,40 @@ import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.zIndex
 import dev.quinton.goa.core.designsystem.theme.Motion
 import dev.quinton.goa.core.game.Choice
 import dev.quinton.goa.core.model.board.HeroPiece
 import dev.quinton.goa.core.model.board.Hex
+import dev.quinton.goa.core.model.board.MinionPiece
 import dev.quinton.goa.feature.board.BoardText
+import dev.quinton.goa.feature.board.map.BADGE_LAYER
 import dev.quinton.goa.feature.board.map.MapBase
 import dev.quinton.goa.feature.board.map.MapLayout
 import dev.quinton.goa.feature.board.map.MapViewport
+import dev.quinton.goa.feature.board.map.PaintedMap
 import dev.quinton.goa.feature.board.map.ZoneLabels
+import dev.quinton.goa.feature.board.map.maxHex
+import dev.quinton.goa.feature.board.map.rememberMapPainting
+import dev.quinton.goa.feature.board.ui.ArtBoardPalette
 import dev.quinton.goa.feature.board.ui.BoardPalette
+import dev.quinton.goa.feature.board.ui.CHIP_TEXT
+import dev.quinton.goa.feature.board.ui.MiniatureBadge
+import dev.quinton.goa.feature.board.ui.PieceLook
 import dev.quinton.goa.feature.board.ui.PieceToken
 import dev.quinton.goa.feature.board.ui.boardPalette
+import dev.quinton.goa.feature.board.ui.drawNumberChip
 import dev.quinton.goa.feature.board.ui.drawRangeCell
 import dev.quinton.goa.feature.board.ui.drawSelectionCell
 import dev.quinton.goa.feature.board.ui.drawTargetCell
 import dev.quinton.goa.feature.board.ui.hexPath
+import dev.quinton.goa.feature.board.ui.pieceLook
+import dev.quinton.goa.feature.board.ui.showsGrid
 import kotlin.math.roundToInt
 import kotlinx.coroutines.launch
 
@@ -99,20 +114,23 @@ fun GameMapView(
     onLongPressHero: ((String) -> Unit)? = null,
     buttons: Rect? = null,
 ) {
-    val palette = boardPalette()
+    val painting = rememberMapPainting(table.map)
+    val palette = if (painting != null) ArtBoardPalette else boardPalette()
+    val look = pieceLook(painted = painting != null)
     val haptics = LocalHapticFeedback.current
     val longPress by rememberUpdatedState(onLongPressHero)
     val density = LocalDensity.current
     val scope = rememberCoroutineScope()
     val current by rememberUpdatedState(table)
     val tap by rememberUpdatedState(onTap)
-    val maxHexPx = with(density) { MAX_HEX.toPx() }
+    val maxHexPx = with(density) { maxHex(table.map).toPx() }
     val minHexPx = with(density) { COMFORTABLE_HEX.toPx() }
     val battleZones = table.battleZones
+    val spotlight = remember(table.decision, table.asking, table.view) { questionSpotlight(table) }
     Box(
         modifier
             .clipToBounds()
-            .background(palette.canvas)
+            .background(painting?.sea ?: palette.canvas)
             .onSizeChanged {
                 val size = Size(it.width.toFloat(), it.height.toFloat())
                 viewport.setUp(layout, size, lane, table.map.lanes.size < 2, minHexPx, maxHexPx)
@@ -202,7 +220,11 @@ fun GameMapView(
                     translationX = viewport.pan.x
                     translationY = viewport.pan.y
                 }
-            Box(transform) { MapBase(table.map, battleZones.toSet(), layout, unit, palette) }
+            if (painting != null) {
+                PaintedMap(painting, table.map, battleZones.toSet(), layout, viewport, spotlight, showsGrid())
+            } else {
+                Box(transform) { MapBase(table.map, battleZones.toSet(), layout, unit, palette) }
+            }
             ZoneLabels(
                 table.map,
                 battleZones,
@@ -212,13 +234,14 @@ fun GameMapView(
                 palette,
                 labelBusy(table, layout),
                 buttons = buttons,
+                painted = painting != null,
             )
             Box(transform.semantics { isTraversalGroup = true }) {
                 DecisionOverlay(table, layout, unit, palette)
-                GamePieces(table, layout, unit, palette)
+                GamePieces(table, layout, unit, palette, look)
                 GameSpaceNodes(table, layout, viewport, onTap = { tap(it) }, onHero = longPress)
             }
-            ActingTag(table, layout, viewport)
+            ActingTag(table, layout, viewport, palette)
         }
     }
 }
@@ -229,7 +252,7 @@ fun GameMapView(
  * "acting now" on the space.
  */
 @Composable
-private fun ActingTag(table: TableUi, layout: MapLayout, viewport: MapViewport) {
+private fun ActingTag(table: TableUi, layout: MapLayout, viewport: MapViewport, palette: BoardPalette) {
     val hex = table.view.acting?.let { id -> table.view.heroes.firstOrNull { it.heroId == id }?.at } ?: return
     val density = LocalDensity.current
     val gap = with(density) { 1.dp.toPx() }
@@ -247,7 +270,7 @@ private fun ActingTag(table: TableUi, layout: MapLayout, viewport: MapViewport) 
                     }
                 }
             }
-            .background(MaterialTheme.colorScheme.primary, RoundedCornerShape(50))
+            .background(if (palette.onArt) NOW_ON_ART else MaterialTheme.colorScheme.primary, RoundedCornerShape(50))
             .padding(horizontal = 5.dp)
             .clearAndSetSemantics {},
     ) {
@@ -258,7 +281,7 @@ private fun ActingTag(table: TableUi, layout: MapLayout, viewport: MapViewport) 
                 fontWeight = FontWeight.Bold,
                 letterSpacing = with(density) { 0.5.dp.toSp() },
             ),
-            color = MaterialTheme.colorScheme.onPrimary,
+            color = if (palette.onArt) palette.onToken else MaterialTheme.colorScheme.onPrimary,
             maxLines = 1,
         )
     }
@@ -294,11 +317,19 @@ private fun DecisionOverlay(table: TableUi, layout: MapLayout, unit: Float, pale
     val selected = table.selected
     val view = table.view
     val hint = table.hintAt
+    val measurer = rememberTextMeasurer(cacheSize = 16)
     val draw = remember(decision, table.asking, selected, hint, table.planned, view, layout, unit, palette) {
         Modifier.drawWithCache {
             fun cell(hex: Hex) = layout.corners(hex).map { it * unit } to layout.center(hex) * unit
             val highlight = decision?.context?.highlight.orEmpty().map(::cell)
-            val options = (table.spaceOptions.keys + table.pieceOptions.keys.mapNotNull(table::at)).map(::cell)
+            // On a painting a space that a move reaches shows its number in a chip, the rest their dashes.
+            val numbered = if (palette.onArt) spacesOnAPath(table) else emptyMap()
+            val options = (table.spaceOptions.keys + table.pieceOptions.keys.mapNotNull(table::at))
+                .filter { it !in numbered }.map(::cell)
+            val chipStyle = TextStyle(fontWeight = FontWeight.Bold, fontSize = (unit * CHIP_TEXT).toSp())
+            val chips = numbered.map { (hex, steps) ->
+                Triple(layout.center(hex) * unit, measurer.measure(steps.toString(), chipStyle), hex)
+            }
             val chosen = when (selected) {
                 is Choice.Space -> selected.hex
                 is Choice.Unit -> table.at(selected.unitId)
@@ -349,7 +380,11 @@ private fun DecisionOverlay(table: TableUi, layout: MapLayout, unit: Float, pale
                     )
                 }
                 chosenCell?.let { (c, m) -> drawSelectionCell(c, m, unit, palette) }
+                chips.forEach { (at, text, hex) -> drawNumberChip(text, at, unit, chosen = hex == chosen) }
                 immune.forEach { m ->
+                    if (palette.onArt) {
+                        drawCircle(palette.halo, radius = unit * 0.84f, center = m, style = Stroke(width = unit * 0.2f))
+                    }
                     drawCircle(
                         palette.selection,
                         radius = unit * 0.84f,
@@ -364,25 +399,30 @@ private fun DecisionOverlay(table: TableUi, layout: MapLayout, unit: Float, pale
 }
 
 @Composable
-private fun GamePieces(table: TableUi, layout: MapLayout, unit: Float, palette: BoardPalette) {
+private fun GamePieces(table: TableUi, layout: MapLayout, unit: Float, palette: BoardPalette, look: PieceLook) {
     val density = LocalDensity.current
     val sizePx = PIECE * unit
     val sizeDp = with(density) { sizePx.toDp() }
     val half = Offset(sizePx / 2f, sizePx / 2f)
-    table.pieces.forEach { piece ->
+    // Figures stand: the one nearer the bottom of the screen in front.
+    table.pieces.sortedBy { layout.center(it.at!!).y }.forEach { piece ->
         key(piece.id) {
             val target = layout.center(piece.at!!) * unit - half
             val position = remember { Animatable(target, Offset.VectorConverter) }
             LaunchedEffect(target) { position.animateTo(target, tween(Motion.LONG_MS, easing = Motion.Emphasized)) }
+            val placed = Modifier.offset { IntOffset(position.value.x.roundToInt(), position.value.y.roundToInt()) }
             PieceToken(
                 piece = piece,
                 hero = (piece as? HeroPiece)?.let { table.hero(it.heroId) },
                 size = sizeDp,
                 palette = palette,
-                modifier = Modifier
-                    .offset { IntOffset(position.value.x.roundToInt(), position.value.y.roundToInt()) }
-                    .clearAndSetSemantics {},
+                look = look,
+                onBoard = true,
+                modifier = placed.clearAndSetSemantics {},
             )
+            if (look == PieceLook.MINIATURE && piece is MinionPiece) {
+                MiniatureBadge(piece, sizeDp, placed.zIndex(BADGE_LAYER))
+            }
         }
     }
 }
@@ -480,13 +520,40 @@ private fun GameSpaceNodes(
     }
 }
 
+/**
+ * What takes the light while a question is open: every space or piece it offers, and the mover's own
+ * space, so the moving piece stands in the light too. Empty when it offers nothing on the map (then the
+ * Battle Zones keep the light).
+ */
+private fun questionSpotlight(table: TableUi): Set<Hex> {
+    val options = table.spaceOptions.keys + table.pieceOptions.keys.mapNotNull(table::at)
+    if (options.isEmpty()) return emptySet()
+    val mover = (table.subject ?: table.decision?.seat)?.let(table::at)
+    return if (table.spaceOptions.keys.any {
+            table.pathTo(it).isNotEmpty()
+        }
+    ) {
+        options + listOfNotNull(mover)
+    } else {
+        options
+    }
+}
+
+/** The option spaces a move reaches, with how many spaces the engine's path to each takes. */
+private fun spacesOnAPath(table: TableUi): Map<Hex, Int> {
+    val from = (table.subject ?: table.decision?.seat)?.let(table::at)
+    return table.spaceOptions.keys.mapNotNull { hex ->
+        table.pathTo(hex).filter { it != from }.size.takeIf { it > 0 }?.let { hex to it }
+    }.toMap()
+}
+
 /** Diameter of a piece in map units (a hex is √3 across its flats); as the sandbox. */
 private const val PIECE = 1.46f
 
+private val NOW_ON_ART = Color(0xFFC9A35B)
+
 /** Side of a space's TalkBack node in map units: neighbours never overlap (see BoardMapView). */
 private const val SPACE_NODE = 1.46f
-
-private val MAX_HEX = 120.dp
 
 /** Hexes at least this wide (dp) when the board frames the Lane; as the sandbox. */
 private val COMFORTABLE_HEX = 38.dp

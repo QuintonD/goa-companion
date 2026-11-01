@@ -25,6 +25,7 @@ import dev.quinton.goa.core.data.GameSaveRepository
 import dev.quinton.goa.core.data.PuzzleProgressRepository
 import dev.quinton.goa.core.data.game.StoredGame
 import dev.quinton.goa.core.data.puzzle.PuzzleProgress
+import dev.quinton.goa.core.designsystem.component.LocalBoardStyle
 import dev.quinton.goa.core.designsystem.theme.GoaTheme
 import dev.quinton.goa.core.domain.board.BoardGeometry
 import dev.quinton.goa.core.domain.board.BoardRules
@@ -47,6 +48,7 @@ import dev.quinton.goa.core.model.match.MatchStatus
 import dev.quinton.goa.core.model.match.Participant
 import dev.quinton.goa.core.model.match.Team
 import dev.quinton.goa.core.model.settings.AppSettings
+import dev.quinton.goa.core.model.settings.BoardStyle
 import dev.quinton.goa.core.model.settings.ThemeMode
 import dev.quinton.goa.core.navigation.BoardRoute
 import dev.quinton.goa.core.navigation.NewBoardRoute
@@ -510,6 +512,57 @@ class BoardScreenshotTest {
     }
 
     /** A map not checked against the official art: badged Unverified on the board. */
+    @Test
+    fun boardMagmaAndIceDark() = boardViewModel(mapId = "magma-and-ice", board = sixHeroes).let { vm ->
+        capture(ThemeMode.DARK) { Board(vm) }
+    }
+
+    /**
+     * Every overlay on the mats' brightest and busiest grounds: Arien in a Battle Zone of [mapId], with
+     * Movement, Range, Radius and Fast Travel on. [lane] picks the Battle Zone: ice and lava on Magma and Ice.
+     */
+    private fun overlaysInBattleZone(vm: BoardViewModel, lane: Int) {
+        val state = vm.ready()
+        val zone = state.battleZones[lane]
+        val occupied = BoardRules.occupancy(state.board.state)
+        val space = state.geometry.zoneSpaces.getValue(zone).first { it !in occupied }
+        vm.onAction(BoardAction.Select(vm.hero("arien").id))
+        vm.tap(MapTap.Space(space))
+        vm.onAction(BoardAction.ChooseCard("arien-red-2b"))
+        vm.onAction(BoardAction.ToggleFastTravel)
+    }
+
+    @Test
+    fun boardOverlaysOnLane1MagmaDark() = boardViewModel(mapId = "magma-and-ice", board = sixHeroes).let { vm ->
+        capture(ThemeMode.DARK, before = { overlaysInBattleZone(vm, 0) }) { Board(vm) }
+    }
+
+    @Test
+    fun boardOverlaysOnLane2MagmaLight() = boardViewModel(mapId = "magma-and-ice", board = sixHeroes).let { vm ->
+        capture(ThemeMode.LIGHT, before = { overlaysInBattleZone(vm, 1) }) { Board(vm) }
+    }
+
+    @Test
+    fun boardOverlaysOnJungleDark() = boardViewModel(mapId = "narrow-passages").let { vm ->
+        capture(ThemeMode.DARK, before = { overlaysInBattleZone(vm, 0) }) { Board(vm) }
+    }
+
+    /** The other board style: hex grid and discs on the painting. */
+    @Test
+    fun boardGridAndDiscsDark() = capture(ThemeMode.DARK) {
+        CompositionLocalProvider(LocalBoardStyle provides BoardStyle.GRID_AND_DISCS) {
+            Board(remember { boardViewModel() })
+        }
+    }
+
+    @Test
+    fun boardGridAndDiscsOverlaysLight() = boardViewModel().let { vm ->
+        selectedHero(vm)
+        capture(ThemeMode.LIGHT) {
+            CompositionLocalProvider(LocalBoardStyle provides BoardStyle.GRID_AND_DISCS) { Board(vm) }
+        }
+    }
+
     @Test
     fun boardUnverifiedDark() = boardViewModel(mapId = "narrow-passages").let { vm ->
         capture(ThemeMode.DARK) { Board(vm) }

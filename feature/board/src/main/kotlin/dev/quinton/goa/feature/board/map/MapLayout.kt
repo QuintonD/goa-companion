@@ -4,6 +4,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import dev.quinton.goa.core.domain.board.BoardGeometry
 import dev.quinton.goa.core.model.board.BoardMap
+import dev.quinton.goa.core.model.board.BoardMapArt
 import dev.quinton.goa.core.model.board.Hex
 import dev.quinton.goa.core.model.match.Team
 
@@ -46,6 +47,9 @@ class MapLayout(map: BoardMap, val orientation: MapOrientation, val bottomTeam: 
      * Lane's starting Battle Zone included.
      */
     fun laneRegion(map: BoardMap, geometry: BoardGeometry): Rect? = hexLayout.laneRegion(map, geometry)?.rect
+
+    /** Where [art] lies on this layout, from its image pixels to map units. */
+    fun artPlacement(art: BoardMapArt): ArtPlacement = hexLayout.artPlacement(art)
 
     /** Distance from [point] to the centre of [hex], in map units. */
     fun distanceTo(point: Offset, hex: Hex): Float = (center(hex) - point).getDistance()

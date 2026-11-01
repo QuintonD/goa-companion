@@ -19,6 +19,8 @@ import androidx.compose.ui.graphics.drawscope.clipPath
 import androidx.compose.ui.graphics.drawscope.translate
 import androidx.compose.ui.graphics.drawscope.withTransform
 import androidx.compose.ui.graphics.vector.PathParser
+import androidx.compose.ui.text.TextLayoutResult
+import androidx.compose.ui.text.drawText
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntSize
 import dev.quinton.goa.core.designsystem.component.OfficialArt
@@ -237,33 +239,72 @@ fun DrawScope.drawTerrain(corners: List<Offset>, center: Offset, u: Float, palet
 
 // ---- Overlay cues (each with a pattern, never colour alone) ------------------------------
 
-/** Movement: a green fill and outline, and the fewest spaces needed as a number. */
-fun DrawScope.drawMovementCell(corners: List<Offset>, center: Offset, palette: BoardPalette) {
-    drawPath(hexPath(corners, 0.9f, center), palette.movement.copy(alpha = 0.34f))
+/** How strong, and how much wider than its line, an overlay's dark halo is over a painting. */
+private const val HALO_ALPHA = 0.85f
+private const val HALO_EXTRA = 0.11f
+
+/** Over a painting: the dark line under an overlay's stroke, so it holds on any ground. */
+private fun DrawScope.drawHalo(path: Path, u: Float, stroke: Float, palette: BoardPalette) {
+    if (!palette.onArt) return
     drawPath(
-        hexPath(corners, 0.9f, center),
-        palette.movement,
-        style = Stroke(
-            width =
-                (corners[0] - center).getDistance() * 0.06f,
-        ),
+        path,
+        palette.halo.copy(alpha = HALO_ALPHA),
+        style = Stroke(width = stroke + u * HALO_EXTRA, join = StrokeJoin.Round, cap = StrokeCap.Round),
     )
 }
+
+/**
+ * Movement: a green fill and outline, the fewest spaces needed as a number. On a painting the map shows
+ * movement with light and numbers in chips (mock-up 03), so this is only its legend swatch: a lit space
+ * with an outline and a chip.
+ */
+fun DrawScope.drawMovementCell(corners: List<Offset>, center: Offset, palette: BoardPalette) {
+    val u = (corners[0] - center).getDistance()
+    val path = hexPath(corners, 0.9f, center)
+    if (palette.onArt) {
+        drawHalo(path, u, u * 0.1f, palette)
+        drawPath(path, Color.White, style = Stroke(width = u * 0.1f, join = StrokeJoin.Round))
+        drawCircle(ChipGround, radius = u * CHIP_RADIUS, center = center)
+        drawCircle(ChipEdge, radius = u * CHIP_RADIUS, center = center, style = Stroke(width = u * 0.05f))
+        return
+    }
+    drawPath(path, palette.movement.copy(alpha = 0.34f))
+    drawPath(path, palette.movement, style = Stroke(width = u * 0.06f))
+}
+
+/** A number on a painting: white in a small dark chip, or dark on bronze for the [chosen] space (mock-up 03). */
+fun DrawScope.drawNumberChip(text: TextLayoutResult, center: Offset, u: Float, chosen: Boolean = false) {
+    val r = u * CHIP_RADIUS
+    drawCircle(if (chosen) ChipChosen else ChipGround, radius = r, center = center)
+    drawCircle(if (chosen) ChipGround else ChipEdge, radius = r, center = center, style = Stroke(width = u * 0.05f))
+    drawText(
+        text,
+        color = if (chosen) ChipGround else Color.White,
+        topLeft = center - Offset(text.size.width / 2f, text.size.height / 2f),
+    )
+}
+
+/** A number chip's text size in map units, for the callers that measure it. */
+const val CHIP_TEXT = 0.52f
+private const val CHIP_RADIUS = 0.42f
+private val ChipGround = Color(0xFF0B1622)
+private val ChipEdge = Color(0xFFF3EBD6)
+private val ChipChosen = Color(0xFFC9A35B)
 
 /** Fast Travel: diagonal bronze hatching. */
 fun DrawScope.drawFastTravelCell(corners: List<Offset>, center: Offset, u: Float, palette: BoardPalette) {
     val path = hexPath(corners, 0.92f, center)
-    drawPath(path, palette.fastTravel.copy(alpha = 0.12f))
+    if (!palette.onArt) drawPath(path, palette.fastTravel.copy(alpha = 0.12f))
     clipPath(path) {
         val step = u * 0.36f
+        val under = palette.halo.copy(alpha = HALO_ALPHA)
+        val line = palette.fastTravel.copy(alpha = if (palette.onArt) 1f else 0.85f)
         var x = -u * 2f
         while (x < u * 2f) {
-            drawLine(
-                palette.fastTravel.copy(alpha = 0.85f),
-                center + Offset(x - u, -u),
-                center + Offset(x + u, u),
-                strokeWidth = u * 0.07f,
-            )
+            val from = center + Offset(x - u, -u)
+            val to = center + Offset(x + u, u)
+            if (palette.onArt) drawLine(under, from, to, strokeWidth = u * 0.16f)
+            drawLine(line, from, to, strokeWidth = u * 0.07f)
             x += step
         }
     }
@@ -271,30 +312,32 @@ fun DrawScope.drawFastTravelCell(corners: List<Offset>, center: Offset, u: Float
 
 /** Range: an inner outline. */
 fun DrawScope.drawRangeCell(corners: List<Offset>, center: Offset, u: Float, palette: BoardPalette) {
-    drawPath(hexPath(corners, 0.92f, center), palette.range.copy(alpha = 0.12f))
-    drawPath(hexPath(corners, 0.7f, center), palette.range, style = Stroke(width = u * 0.1f, join = StrokeJoin.Round))
+    if (!palette.onArt) drawPath(hexPath(corners, 0.92f, center), palette.range.copy(alpha = 0.12f))
+    val inner = hexPath(corners, 0.7f, center)
+    drawHalo(inner, u, u * 0.1f, palette)
+    drawPath(inner, palette.range, style = Stroke(width = u * 0.1f, join = StrokeJoin.Round))
 }
 
 /** Radius: three dots. */
 fun DrawScope.drawRadiusCell(corners: List<Offset>, center: Offset, u: Float, palette: BoardPalette) {
-    drawPath(hexPath(corners, 0.92f, center), palette.radius.copy(alpha = 0.08f))
+    if (!palette.onArt) drawPath(hexPath(corners, 0.92f, center), palette.radius.copy(alpha = 0.08f))
     val d = u * 0.42f
+    val dot = palette.radius.copy(alpha = if (palette.onArt) 1f else 0.8f)
     listOf(-90f, 30f, 150f).forEach { deg ->
         val a = deg * PI.toFloat() / 180f
-        drawCircle(
-            palette.radius.copy(alpha = 0.8f),
-            radius = u * 0.09f,
-            center =
-                center + Offset(cos(a) * d, sin(a) * d),
-        )
+        val at = center + Offset(cos(a) * d, sin(a) * d)
+        if (palette.onArt) drawCircle(palette.halo.copy(alpha = HALO_ALPHA), radius = u * 0.15f, center = at)
+        drawCircle(dot, radius = u * 0.09f, center = at)
     }
 }
 
 /** A space a piece should go to (a waiting minion, a minion back to its Battle Zone): a dashed teal outline. */
 fun DrawScope.drawTargetCell(corners: List<Offset>, center: Offset, u: Float, palette: BoardPalette) {
-    drawPath(hexPath(corners, 0.92f, center), palette.selection.copy(alpha = 0.22f))
+    val outline = hexPath(corners, 0.82f, center)
+    if (!palette.onArt) drawPath(hexPath(corners, 0.92f, center), palette.selection.copy(alpha = 0.22f))
+    drawHalo(outline, u, u * 0.12f, palette)
     drawPath(
-        hexPath(corners, 0.82f, center),
+        outline,
         palette.selection,
         style = Stroke(
             width = u * 0.12f,
@@ -304,10 +347,16 @@ fun DrawScope.drawTargetCell(corners: List<Offset>, center: Offset, u: Float, pa
     )
 }
 
-/** The selected piece's space: a bright outline on a dark halo (reads over any overlay). */
+/** The selected piece's space: a bright outline on a dark halo (reads over any overlay); bronze on a painting. */
 fun DrawScope.drawSelectionCell(corners: List<Offset>, center: Offset, u: Float, palette: BoardPalette) {
-    drawPath(hexPath(corners, 1.0f, center), palette.halo, style = Stroke(width = u * 0.3f, join = StrokeJoin.Round))
-    drawPath(hexPath(corners, 1.0f, center), palette.label, style = Stroke(width = u * 0.14f, join = StrokeJoin.Round))
+    val path = hexPath(corners, 1.0f, center)
+    if (palette.onArt) drawPath(path, palette.measure.copy(alpha = 0.25f))
+    drawPath(path, palette.halo, style = Stroke(width = u * 0.3f, join = StrokeJoin.Round))
+    drawPath(
+        path,
+        if (palette.onArt) palette.measure else palette.label,
+        style = Stroke(width = u * 0.14f, join = StrokeJoin.Round),
+    )
 }
 
 /** The water around the map (p.19 terrain): a faint hex of the printed grid, drawn below everything. */

@@ -68,6 +68,7 @@ import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.zIndex
 import dev.quinton.goa.core.designsystem.component.TeamMark
 import dev.quinton.goa.core.designsystem.theme.GoaTextStyles
 import dev.quinton.goa.core.designsystem.theme.Motion
@@ -78,6 +79,7 @@ import dev.quinton.goa.core.model.board.BoardMap
 import dev.quinton.goa.core.model.board.BoardPiece
 import dev.quinton.goa.core.model.board.HeroPiece
 import dev.quinton.goa.core.model.board.Hex
+import dev.quinton.goa.core.model.board.MinionPiece
 import dev.quinton.goa.core.model.board.ZoneKind
 import dev.quinton.goa.core.model.match.Team
 import dev.quinton.goa.feature.board.BoardText
@@ -85,11 +87,16 @@ import dev.quinton.goa.feature.board.board.BoardTool
 import dev.quinton.goa.feature.board.board.BoardUiState
 import dev.quinton.goa.feature.board.board.MapTap
 import dev.quinton.goa.feature.board.hero
+import dev.quinton.goa.feature.board.ui.ArtBoardPalette
 import dev.quinton.goa.feature.board.ui.BoardPalette
+import dev.quinton.goa.feature.board.ui.CHIP_TEXT
+import dev.quinton.goa.feature.board.ui.MiniatureBadge
+import dev.quinton.goa.feature.board.ui.PieceLook
 import dev.quinton.goa.feature.board.ui.PieceToken
 import dev.quinton.goa.feature.board.ui.boardPalette
 import dev.quinton.goa.feature.board.ui.drawFastTravelCell
 import dev.quinton.goa.feature.board.ui.drawMovementCell
+import dev.quinton.goa.feature.board.ui.drawNumberChip
 import dev.quinton.goa.feature.board.ui.drawRadiusCell
 import dev.quinton.goa.feature.board.ui.drawRangeCell
 import dev.quinton.goa.feature.board.ui.drawSelectionCell
@@ -98,6 +105,8 @@ import dev.quinton.goa.feature.board.ui.drawTargetCell
 import dev.quinton.goa.feature.board.ui.drawTerrain
 import dev.quinton.goa.feature.board.ui.drawWaterCell
 import dev.quinton.goa.feature.board.ui.hexPath
+import dev.quinton.goa.feature.board.ui.pieceLook
+import dev.quinton.goa.feature.board.ui.showsGrid
 import kotlin.math.roundToInt
 import kotlinx.coroutines.launch
 
@@ -154,7 +163,9 @@ fun BoardMapView(
     modifier: Modifier = Modifier,
     lane: Rect? = null,
 ) {
-    val palette = boardPalette()
+    val painting = rememberMapPainting(state.map)
+    val palette = if (painting != null) ArtBoardPalette else boardPalette()
+    val look = pieceLook(painted = painting != null)
     val density = LocalDensity.current
     val scope = rememberCoroutineScope()
     val haptics = LocalHapticFeedback.current
@@ -163,15 +174,16 @@ fun BoardMapView(
     val tap by rememberUpdatedState(onTap)
     val drop by rememberUpdatedState(onDrop)
     val ambiguous by rememberUpdatedState(onAmbiguous)
-    val maxHexPx = with(density) { MAX_HEX.toPx() }
+    val maxHexPx = with(density) { maxHex(state.map).toPx() }
     val minHexPx = with(density) { COMFORTABLE_HEX.toPx() }
     val touchPx = with(density) { TOUCH_RADIUS.toPx() }
     val battleZones = remember(state.board.state.battleZones, state.map) { state.battleZones.toSet() }
+    val spotlight = remember(state.overlay, state.trayTargets, state.selected?.at) { sandboxSpotlight(state) }
 
     Box(
         modifier
             .clipToBounds()
-            .background(palette.canvas)
+            .background(painting?.sea ?: palette.canvas)
             .onSizeChanged {
                 val size = Size(it.width.toFloat(), it.height.toFloat())
                 viewport.setUp(layout, size, lane, state.map.lanes.size < 2, minHexPx, maxHexPx)
@@ -283,7 +295,11 @@ fun BoardMapView(
                     translationY = viewport.pan.y
                 }
             // The map, then the Zone labels (fixed size, below every piece and overlay), then the rest.
-            Box(transform) { MapBase(state.map, battleZones, layout, unit, palette) }
+            if (painting != null) {
+                PaintedMap(painting, state.map, battleZones, layout, viewport, spotlight, showsGrid())
+            } else {
+                Box(transform) { MapBase(state.map, battleZones, layout, unit, palette) }
+            }
             ZoneLabels(
                 state.map,
                 state.battleZones,
@@ -292,11 +308,12 @@ fun BoardMapView(
                 viewport,
                 palette,
                 labelBusy(state, layout),
+                painted = painting != null,
             )
             Box(transform.semantics { isTraversalGroup = true }) {
                 MapOverlays(state, layout, unit, palette)
                 DropTarget(state.geometry, layout, unit, palette, drag)
-                Pieces(state, layout, unit, palette, drag)
+                Pieces(state, layout, unit, palette, look, drag)
                 SpaceNodes(state, layout, viewport, onTap = { tap(it) })
             }
         }
@@ -366,7 +383,8 @@ private fun MapOverlays(state: BoardUiState.Ready, layout: MapLayout, unit: Floa
             fun cell(hex: Hex) = layout.corners(hex).map { it * unit } to layout.center(hex) * unit
             val numbers = HashMap<Int, TextLayoutResult>()
             fun number(n: Int): TextLayoutResult = numbers.getOrPut(n) {
-                measurer.measure(n.toString(), numberStyle.copy(fontSize = (unit * 0.78f).toSp()))
+                val size = unit * if (palette.onArt) CHIP_TEXT else 0.78f
+                measurer.measure(n.toString(), numberStyle.copy(fontSize = size.toSp()))
             }
             val radius = overlay?.radius.orEmpty().map(::cell)
             val range = overlay?.range.orEmpty().map(::cell)
@@ -382,8 +400,12 @@ private fun MapOverlays(state: BoardUiState.Ready, layout: MapLayout, unit: Floa
                 fast.forEach { (c, m) -> drawFastTravelCell(c, m, unit, palette) }
                 movement.forEach { (cell, text) ->
                     val (c, m) = cell
-                    drawMovementCell(c, m, palette)
-                    drawText(text, topLeft = m - Offset(text.size.width / 2f, text.size.height / 2f))
+                    if (palette.onArt) {
+                        drawNumberChip(text, m, unit)
+                    } else {
+                        drawMovementCell(c, m, palette)
+                        drawText(text, topLeft = m - Offset(text.size.width / 2f, text.size.height / 2f))
+                    }
                 }
                 goTo.forEach { (c, m) -> drawTargetCell(c, m, unit, palette) }
                 selected?.let { (c, m) -> drawSelectionCell(c, m, unit, palette) }
@@ -429,20 +451,31 @@ private fun DropTarget(
             val m = layout.center(hex) * unit
             val path = hexPath(corners, 0.96f, m)
             drawPath(path, palette.selection.copy(alpha = 0.25f))
+            if (palette.onArt) drawPath(path, palette.halo, style = Stroke(width = unit * 0.26f))
             drawPath(path, palette.selection, style = Stroke(width = unit * 0.14f))
         },
     )
 }
 
 @Composable
-private fun Pieces(state: BoardUiState.Ready, layout: MapLayout, unit: Float, palette: BoardPalette, drag: DragState) {
+private fun Pieces(
+    state: BoardUiState.Ready,
+    layout: MapLayout,
+    unit: Float,
+    palette: BoardPalette,
+    look: PieceLook,
+    drag: DragState,
+) {
     val density = LocalDensity.current
     val sizePx = PIECE_SIZE * unit
     val sizeDp = with(density) { sizePx.toDp() }
     val half = Offset(sizePx / 2f, sizePx / 2f)
     val dragging = drag.pieceId
-    // Draw the selected and the dragged piece last, above their neighbours.
-    val ordered = state.pieces.filter { it.at != null }.sortedBy { it.id == state.selectedId || it.id == dragging }
+    // Figures stand: the one nearer the bottom of the screen in front. The selected and the dragged piece
+    // last, above their neighbours.
+    val ordered = state.pieces.filter { it.at != null }
+        .sortedBy { layout.center(it.at!!).y }
+        .sortedBy { it.id == state.selectedId || it.id == dragging }
     ordered.forEach { piece ->
         key(piece.id) {
             val target = layout.center(piece.at!!) * unit - half
@@ -454,19 +487,23 @@ private fun Pieces(state: BoardUiState.Ready, layout: MapLayout, unit: Float, pa
                 position.animateTo(target, tween(Motion.MEDIUM_MS, easing = Motion.Emphasized))
             }
             val lifted = dragging == piece.id
+            val placed = Modifier.offset {
+                val at = if (drag.pieceId == piece.id) drag.at - half else position.value
+                IntOffset(at.x.roundToInt(), at.y.roundToInt())
+            }
             PieceToken(
                 piece = piece,
                 hero = (piece as? HeroPiece)?.let { state.heroes.hero(it.heroId) },
                 size = sizeDp,
                 palette = palette,
                 lifted = lifted,
-                modifier = Modifier
-                    .offset {
-                        val at = if (drag.pieceId == piece.id) drag.at - half else position.value
-                        IntOffset(at.x.roundToInt(), at.y.roundToInt())
-                    }
-                    .clearAndSetSemantics {},
+                look = look,
+                onBoard = true,
+                modifier = placed.clearAndSetSemantics {},
             )
+            if (look == PieceLook.MINIATURE && piece is MinionPiece) {
+                MiniatureBadge(piece, sizeDp, placed.zIndex(BADGE_LAYER))
+            }
         }
     }
 }
@@ -545,8 +582,28 @@ private fun labelBusy(state: BoardUiState.Ready, layout: MapLayout): List<Offset
     }
 }
 
+/** What takes the light in the sandbox: where the selected piece can go, or where a waiting one should. */
+private fun sandboxSpotlight(state: BoardUiState.Ready): Set<Hex> {
+    val overlay = state.overlay
+    val reach = overlay?.movement?.keys.orEmpty() + overlay?.fastTravel.orEmpty() + overlay?.returnTo.orEmpty() +
+        state.trayTargets
+    return if (reach.isEmpty()) emptySet() else reach + listOfNotNull(state.selected?.at)
+}
+
+/** Above every figure and overlay of the board: a minion's type badge is never hidden by a neighbour. */
+internal const val BADGE_LAYER = 1f
+
 /** A hex as large as this (dp) at the largest zoom. */
 private val MAX_HEX = 120.dp
+
+/**
+ * A painting has about 96 px across a hex; a hex 88 dp across on a large phone (3.75 px per dp) shows it
+ * at 3.4×, as far as it stays pleasant. Hexes that large are still far easier to tap than they need be.
+ */
+private val MAX_HEX_ON_ART = 88.dp
+
+/** The largest hex for [map]: decided by the map, not by whether its painting has loaded yet. */
+internal fun maxHex(map: BoardMap): Dp = if (map.art != null) MAX_HEX_ON_ART else MAX_HEX
 
 /** Hexes at least this wide (dp, across the flats) when the board frames the Lane or a selection. */
 internal val COMFORTABLE_HEX = 38.dp

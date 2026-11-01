@@ -50,11 +50,56 @@ data class BoardPalette(
     val token: Color,
     val onToken: Color,
     val halo: Color,
+    /** Drawn over a map's painting: every overlay carries a dark halo, so it reads on any ground. */
+    val onArt: Boolean = false,
 ) {
     fun team(team: Team): Color = if (team == Team.RED) teamRed else teamBlue
 
     fun throne(team: Team): Color = if (team == Team.RED) throneRed else throneBlue
 }
+
+/**
+ * The colours over a painted map. The painting doesn't change with the theme, so neither do these:
+ * each overlay is a light colour on a dark halo, so the 3:1 for graphics holds on sand, jungle, ice and
+ * lava alike (the light colour against a dark ground, the halo against a bright one). The vector fills
+ * are for the spaces a photo of the mat doesn't show (`BoardMapArt.uncovered`).
+ */
+val ArtBoardPalette = BoardPalette(
+    canvas = Color(0xFF0B1622),
+    gap = Color(0xFF0B1622),
+    laneA = Color(0xFF1B3046),
+    laneB = Color(0xFF213A53),
+    side = Color(0xFF17303A),
+    throneRed = Color(0xFF57404C),
+    throneBlue = Color(0xFF2C4E77),
+    battle = Color(0xFF3B6A7C),
+    zoneBorder = Color(0xFFC9A35B),
+    battleBorder = Color.White,
+    terrain = Color(0xFF0A1118),
+    water = Color(0xFF0E1D2B),
+    waterLine = Color(0xFF1A2F44),
+    terrainFacet = Color(0xFF2B3743),
+    terrainEdge = Color(0xFF3B4957),
+    teamRed = Color(0xFFE26459),
+    teamBlue = Color(0xFF6FB6F0),
+    onTeam = Color(0xFF0B1622),
+    movement = Color(0xFF7BD88F),
+    onMovement = Color.White,
+    fastTravel = Color(0xFFF0CF8A),
+    range = Color(0xFFD3B6FF),
+    radius = Color.White,
+    selection = Color(0xFF62E6D6),
+    measure = Color(0xFFF0CF8A),
+    label = Color.White,
+    labelBackground = Color(0xDB0B1622),
+    token = Color(0xFFD8CBB0),
+    onToken = Color(0xFF0B1622),
+    halo = Color(0xFF0A0F14),
+    onArt = true,
+)
+
+/** The ground of an overlay's legend swatch when the map is painted: a space of the mat's sand. */
+val ArtSwatchGround = Color(0xFFB08D62)
 
 @Composable
 fun boardPalette(): BoardPalette {
