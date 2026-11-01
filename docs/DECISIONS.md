@@ -2379,3 +2379,26 @@ Two-turn kills stay unplanned, so what the owner exploits is not answered here. 
 measurable, a slower phone than assumed costs wait, not visible strength, within that test's wide interval. The phone
 factor stays an assumption until the owner sends back the line: run it twice and keep the higher, as one desktop run in
 five read 45% low for an unknown reason. Not on a device or an emulator yet.
+
+## ADR-054 — Snorri's runes on the table: below the Turn slots, in the game's own tokens (2026-11-01)
+**Context:** Owner: "Look into snorri and how we can better represent his totems in the ui" (Snorri has runes; Totems are
+Tali's), then "Good go ahead" on the proposal. The hero sheet printed the marker kind ("Marker_rune_axe marker · from Snorri"),
+the view dropped each rune's Turn slot, and nothing said which rune was active, though most of his cards read it. A test
+fixture used a kind the engine never gives (`poison`), which hid the raw names; Poison and Bounty had them too.
+
+**Decision:**
+1. The marker tokens come from the pinned Stats-of-Atlantis commit through the importer (`MARKER_ICONS`,
+   `official/icons/marker-*.webp`, listed in `official/SOURCES.md`).
+2. `MarkerView.slot` carries the Turn slot, generically: the UI draws any marker that has one below its slot and names no
+   hero. The words and the rule "the marker below the current turn's slot is active" are in `core:play` (`MarkerFacts.kt`),
+   shared by the phone and the web. Between turns (end of round, game over) none is shown as active: no action reads it then.
+3. The rune questions carry their tokens in `DecisionContext.optionMarkers`, not on `Choice.Option`: answers in a saved game
+   are compared with the options, so a new field on the option would stop old answers matching.
+4. A card in the hand says whether it has a line for the active rune, read from the catalog's `{rune_*}` markup: nothing is
+   hand-written per card. The Defend question needs no such note: its Block preview already says when an Oath falls (`SnorriTest`).
+5. Runes are not drawn on the map: they lie on the dashboard, not on the board.
+
+**Consequences:** Inline symbols in card text are still the Material stand-ins (`GameIcons`): the source has the plain rune art
+(`rune_axe.png`…), not imported, as that is a separate change to how card text draws icons. The tokens are small on a phone (about
+22 dp on the dashboard, 17 dp on the chip), so the words under the frame carry the detail; not yet read on the S25 Ultra. No
+`SyncDocument.VERSION` bump: no synced type changed.

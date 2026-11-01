@@ -511,6 +511,12 @@ passes (including an in-place upgrade from the morning build with real data). Ev
 - [ ] On the S25 Ultra: pan a double-lane map with about 30 miniatures; read the board in table light in both styles
 - [ ] On an iPhone: pan the painted map, memory, slate-card scrolling on the match log, the banner under a real safe area
 
+## M26 — Snorri's runes on the table (ADR-054)
+- [x] Marker tokens imported from the pinned source; markers named in words everywhere, Poison and Bounty too — 2026-11-01, importer and shared tests
+- [x] The engine's view tells a marker's Turn slot; rune questions say which token each option is and name the picks so far — 2026-11-01, `SnorriTest`
+- [x] Runes below the dashboard's Turn slots, the active one on the hero strip and over the hand, each card's note on the active rune, Android and web — 2026-11-01, JVM, screenshots and Playwright (`snorri-runes.spec.ts`)
+- [ ] On the S25 Ultra: read the small tokens on the dashboard and the hero strip in table light
+
 ## M5 — Polish & release readiness
 - [x] Accessibility pass: ATF checks on 25 screens (no errors), contrast fixes, TalkBack labels, font scale 2.0 screenshots — 2026-10-17 (emulator/JVM)
 - [ ] Tablet sanity check
