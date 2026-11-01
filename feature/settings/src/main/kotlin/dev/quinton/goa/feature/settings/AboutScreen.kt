@@ -16,8 +16,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.Article
 import androidx.compose.material.icons.outlined.Lock
@@ -243,7 +241,6 @@ private fun LicenseDialog(font: FontLicense, onDismiss: () -> Unit) {
             Text(
                 text,
                 style = MaterialTheme.typography.bodySmall.copy(fontFamily = FontFamily.Monospace),
-                modifier = Modifier.verticalScroll(rememberScrollState()),
             )
         },
         confirmButton = { TextButton(onClick = onDismiss) { Text("Close") } },

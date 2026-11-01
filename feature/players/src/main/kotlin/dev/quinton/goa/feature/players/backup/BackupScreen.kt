@@ -206,10 +206,8 @@ fun ImportDialog(
         icon = { Icon(Icons.Outlined.FileDownload, contentDescription = null) },
         title = { Text("Import backup?") },
         text = {
-            Column(
-                Modifier.verticalScroll(rememberScrollState()),
-                verticalArrangement = Arrangement.spacedBy(Spacing.sm),
-            ) {
+            // GoaDialog scrolls its text: a second scroll here would be measured without a limit and crash.
+            Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
                 Text(
                     "Exported ${Dates.day(summary.exportedAt)} · ${plural(summary.players, "player")} · " +
                         "${plural(summary.matches, "match", "matches")} · ${plural(summary.drafts, "draft")}" +
