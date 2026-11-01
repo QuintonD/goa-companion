@@ -103,4 +103,17 @@ class UiAssetsTest {
         assertThat(ITEM_ICONS.keys).containsExactly("attack", "defense", "initiative", "movement", "range", "radius")
         assertThat(itemIconPath("radius")).isEqualTo("official/icons/item-radius.webp")
     }
+
+    @Test
+    fun `marker icons cover the engine's marker kinds`() {
+        assertThat(MARKER_ICONS.keys).containsExactly(
+            "marker_rune_axe",
+            "marker_rune_bird",
+            "marker_rune_anvil",
+            "marker_rune_horn",
+            "marker_poison",
+            "marker_bounty",
+        )
+        assertThat(markerIconPath("marker_rune_axe")).isEqualTo("official/icons/marker-rune-axe.webp")
+    }
 }

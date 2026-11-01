@@ -69,7 +69,8 @@ class Output(private val assetsDir: File) {
         sb.appendLine(
             "WebP q${ImageIo.QUALITY} (cards ≤ ${ImageIo.CARD_MAX_EDGE} px, " +
                 "portraits ≤ ${ImageIo.PORTRAIT_MAX_EDGE} px, deck symbols ≤ $SYMBOL_MAX_EDGE px, " +
-                "item icons ≤ $ITEM_ICON_MAX_EDGE px on the long edge; rulebook graphics at their own size).",
+                "item icons ≤ $ITEM_ICON_MAX_EDGE px, markers ≤ $MARKER_ICON_MAX_EDGE px on the long edge; " +
+                "rulebook graphics at their own size).",
         )
         sb.appendLine()
         sb.appendLine(

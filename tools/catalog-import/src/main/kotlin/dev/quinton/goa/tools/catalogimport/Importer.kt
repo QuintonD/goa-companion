@@ -109,6 +109,10 @@ class Importer(lock: SourcesLock, private val cache: SourceCache, private val ov
             val path = "src/lib/images/$file"
             if (path in data.soaPaths) assets[itemIconPath(stat)] = AssetSource(soa, path, ITEM_ICON_MAX_EDGE)
         }
+        MARKER_ICONS.forEach { (kind, file) ->
+            val path = "src/lib/images/$file"
+            if (path in data.soaPaths) assets[markerIconPath(kind)] = AssetSource(soa, path, MARKER_ICON_MAX_EDGE)
+        }
         return ImportResult(
             heroes = sorted.map { (hero, _) -> hero.copy(symbol = symbolPath(hero.id).takeIf { hero.id in passed }) },
             products = PRODUCTS,

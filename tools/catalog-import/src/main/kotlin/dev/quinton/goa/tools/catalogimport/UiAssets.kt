@@ -47,6 +47,25 @@ val ITEM_ICONS: Map<String, String> = linkedMapOf(
 
 fun itemIconPath(stat: String): String = "official/icons/item-$stat.webp"
 
+/** Marker tokens are 222 px (runes) and 557 px (Poison, Bounty) in source 1; shown at up to ~48 dp. */
+const val MARKER_ICON_MAX_EDGE = 222
+
+/**
+ * The marker tokens as published by source 1 (`src/lib/images/`), by the engine's marker kind. Checked
+ * by eye against the card scans (`snorri-silver`, `snorri-green-3a`: axe, bird, anvil, horn).
+ * Marker kind → source file name.
+ */
+val MARKER_ICONS: Map<String, String> = linkedMapOf(
+    "marker_rune_axe" to "rune_axe_marker.png",
+    "marker_rune_bird" to "rune_bird_marker.png",
+    "marker_rune_anvil" to "rune_anvil_marker.png",
+    "marker_rune_horn" to "rune_horn_marker.png",
+    "marker_poison" to "marker_poison.png",
+    "marker_bounty" to "marker_bounty.png",
+)
+
+fun markerIconPath(kind: String): String = "official/icons/${kind.replace('_', '-')}.webp"
+
 fun symbolPath(heroId: String): String = "official/heroes/$heroId/symbol.webp"
 
 /** A card back is shown small, face down on the table or in a hand. */
