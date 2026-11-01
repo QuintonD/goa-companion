@@ -110,16 +110,29 @@ class Output(private val assetsDir: File) {
             sb.appendLine("| File | Page (printed) | PDF page · object | What |")
             sb.appendLine("|---|---|---|---|")
             images.sortedBy { it.out }.forEach {
-                val where = if (it.obj == 0) "page render" else "${it.pdfPage} · ${it.obj}"
-                sb.appendLine("| `${it.out}` | p.${it.printedPage} | $where | ${it.what} |")
+                val page = if (it.pdfPage == 0) "not from the rulebook" else "p.${it.printedPage}"
+                val where = when {
+                    it.pdfPage == 0 -> "map art"
+                    it.obj == 0 -> "page render"
+                    else -> "${it.pdfPage} · ${it.obj}"
+                }
+                sb.appendLine("| `${it.out}` | $page | $where | ${it.what} |")
             }
         }
         if (mapArt.isNotEmpty()) {
             sb.appendLine()
-            sb.appendLine("The board paintings, resampled to line up with the hex layout (ADR-053). A photo of a mat is")
-            sb.appendLine("flattened by homography and what isn't the mat is filled with a dim blur of the painting. Spaces")
-            sb.appendLine("past a photo's edge take their ground from the nearest space of the same Zone (the app draws")
-            sb.appendLine("their Spawn points and Zone edges):")
+            sb.appendLine(
+                "The board paintings, resampled to line up with the hex layout (ADR-053). A photo of a mat is",
+            )
+            sb.appendLine(
+                "flattened by homography; what isn't the mat is a plain dark sea, and the art fades into it. The",
+            )
+            sb.appendLine(
+                "whole picture is darkened by 8 %. Spaces past a photo's edge take their ground from a space of",
+            )
+            sb.appendLine(
+                "the same Zone with no Zone edge beside it (the app draws their Spawn points and Zone edges):",
+            )
             sb.appendLine()
             sb.appendLine("| File | Source |")
             sb.appendLine("|---|---|")

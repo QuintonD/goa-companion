@@ -46,12 +46,16 @@ class MapStage(
             val err = MapOverlay.render(report.map, file, art, out)
             "`tools/catalog-import/cache/maps/${out.name}` on ${art.name} (worst anchor ${"%.1f".format(err)} px)"
         }
-        val painting = arts.firstOrNull()?.let { art ->
+        val painted = arts.firstOrNull()?.let { art ->
             val ext = art.url.substringBefore('?').substringAfterLast('.', "img").take(EXT_MAX)
             val file = cache.url(art.url, "maps/art/${spec.id}-0.$ext")
             MapPainting.paint(report.map, file, art, assetsDir, cache.output("maps/painted"))
         }
-        report.copy(overlays = overlays, map = report.map.copy(art = painting))
+        report.copy(
+            overlays = overlays,
+            map = report.map.copy(art = painted?.art),
+            weakDonors = painted?.weakDonors.orEmpty(),
+        )
     }
 
     companion object {
@@ -73,6 +77,9 @@ class MapStage(
             dir.listFiles { f -> f.extension == "json" && f.name != "index.json" }.orEmpty()
                 .filter { it.name !in files }.forEach { it.delete() }
             files.forEach { (name, text) -> File(dir, name).writeText(text) }
+            val paintings = maps.mapNotNull { it.art?.image?.substringAfterLast('/') }
+            File(assetsDir, "official/maps").listFiles { f -> f.isFile && f.name !in paintings }.orEmpty()
+                .forEach { it.delete() }
             File(dir, "index.json").writeText(
                 pretty.encodeToString(
                     MapIndex.serializer(),
@@ -130,6 +137,16 @@ class MapStage(
                 if (r.overrides.isEmpty()) appendLine("- Overrides: none.")
                 r.overrides.forEach { appendLine("- Override: $it") }
                 r.overlays.forEach { appendLine("- Overlay: $it") }
+                r.map.art?.let { art ->
+                    appendLine(
+                        "- Painting: ${art.uncovered.size} spaces and rocks past the art's edge, drawn by the app; " +
+                            if (r.weakDonors.isEmpty()) {
+                                "every patched space took clean ground of its own Zone."
+                            } else {
+                                "**no clean ground in their Zone for** ${r.weakDonors.joinToString()}."
+                            },
+                    )
+                }
                 val check = r.check
                 if (check != null) {
                     appendLine("- Space-by-space check (${check.checked}): ${check.evidence}")

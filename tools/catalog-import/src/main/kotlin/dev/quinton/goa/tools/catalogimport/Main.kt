@@ -52,9 +52,10 @@ fun main(args: Array<String>) {
         val pdf = cache.document(rulebook)
         val pdfImages = RulebookImages.extract(pdf, cache.output("documents/rulebook/${rulebook.sha256}-images"))
         val seaArt = overrides.mapArt["forgotten-island"]?.firstOrNull()?.let { art ->
-            cache.url(art.url, "maps/art/forgotten-island-0.${art.url.substringAfterLast('.')}")
+            SeaArt(cache.url(art.url, "maps/art/forgotten-island-0.${art.url.substringAfterLast('.')}"), art.url)
         }
-        val look = LookAssets.build(pdf, cache.output("documents/rulebook/${rulebook.sha256}-look"), seaArt)
+        val lookDir = cache.output("documents/rulebook/${rulebook.sha256}-look$LOOK_VERSION")
+        val look = LookAssets.build(pdf, lookDir, seaArt)
         val extracted = pdfImages.entries.associate { (spec, file) ->
             spec.out to ExtractedAsset(
                 key = "rulebook@${rulebook.sha256}:p${spec.pdfPage}/obj${spec.obj}",
@@ -63,7 +64,7 @@ fun main(args: Array<String>) {
             )
         } + look.associate {
             it.source.out to ExtractedAsset(
-                key = "rulebook@${rulebook.sha256}:look1:${it.source.out}",
+                key = "${it.origin ?: "rulebook@${rulebook.sha256}"}:look$LOOK_VERSION:${it.source.out}",
                 file = it.file,
                 maxEdge = it.maxEdge,
             )
