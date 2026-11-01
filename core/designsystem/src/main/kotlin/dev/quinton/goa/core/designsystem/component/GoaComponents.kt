@@ -24,7 +24,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.HelpOutline
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.outlined.Verified
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
@@ -348,7 +347,7 @@ fun ConfirmDialog(
     icon: ImageVector? = null,
     onDismissButton: (() -> Unit)? = null,
 ) {
-    AlertDialog(
+    GoaDialog(
         onDismissRequest = onDismiss,
         modifier = modifier,
         icon = icon?.let { { Icon(it, contentDescription = null) } },
@@ -364,9 +363,6 @@ fun ConfirmDialog(
             }
         },
         dismissButton = { TextButton(onClick = onDismissButton ?: onDismiss) { Text(dismissLabel) } },
-        containerColor = MaterialTheme.colorScheme.surface,
-        iconContentColor = MaterialTheme.colorScheme.primary,
-        shape = MaterialTheme.shapes.extraLarge,
     )
 }
 

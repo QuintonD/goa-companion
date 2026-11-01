@@ -38,9 +38,9 @@ import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.ImageShader
 import androidx.compose.ui.graphics.Outline
 import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.ShaderBrush
 import androidx.compose.ui.graphics.Shadow
 import androidx.compose.ui.graphics.Shape
-import androidx.compose.ui.graphics.ShaderBrush
 import androidx.compose.ui.graphics.TileMode
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
@@ -119,10 +119,21 @@ object LookArt {
 
     /** Every path above, for the bundled-asset check. */
     val all: List<String>
-        get() = listOf(BANNER, SLATE, TITLE_PLATE, COIN, DASHBOARD_FRAME, SILHOUETTE, SEA, PUSH_DIAGRAM_1, PUSH_DIAGRAM_2) +
+        get() = listOf(
+            BANNER,
+            SLATE,
+            TITLE_PLATE,
+            COIN,
+            DASHBOARD_FRAME,
+            SILHOUETTE,
+            SEA,
+            PUSH_DIAGRAM_1,
+            PUSH_DIAGRAM_2,
+        ) +
             corners() + PlateColor.entries.flatMap { listOf(textBox(it), ribbon(it)) } +
             Team.entries.flatMap { team ->
-                listOf(lifeCounter(team), lifeCounter(team, spent = true)) + MinionType.entries.map { miniature(it, team) }
+                listOf(lifeCounter(team), lifeCounter(team, spent = true)) +
+                    MinionType.entries.map { miniature(it, team) }
             } +
             listOf(waveCounter(), waveCounter(spent = true)) + LookAction.entries.map(::actionIcon) +
             listOfNotNull(dashboardArt(DASHBOARD_HERO))
@@ -181,7 +192,11 @@ fun GoaPlateTheme(content: @Composable () -> Unit) {
  * [GoaPlate]): its text must be themed dark in the light theme too. Without [edge], just the slate, for
  * parts that continue one another (a sheet's drag handle and its body).
  */
-fun Modifier.slatePlate(shape: Shape = PlateShape, brackets: Boolean = true, edge: Boolean = true): Modifier = composed {
+fun Modifier.slatePlate(
+    shape: Shape = PlateShape,
+    brackets: Boolean = true,
+    edge: Boolean = true,
+): Modifier = composed {
     val slate = rememberOfficialBitmap(LookArt.SLATE)
     val corners = if (brackets) LookArt.corners().map { rememberOfficialBitmap(it) } else emptyList()
     drawWithCache {
@@ -286,7 +301,7 @@ private fun DrawScope.drawNineSlice(image: ImageBitmap, src: SliceInsets, dst: S
             val sh = ys[row + 1] - ys[row]
             val w = dx[col + 1] - dx[col]
             val h = dy[row + 1] - dy[row]
-            if (sw <= 0 || sh <= 0 || w <= 0 || h <= 0) continue
+            if (minOf(sw, sh, w, h) <= 0) continue
             drawImage(
                 image,
                 srcOffset = IntOffset(xs[col], ys[row]),
@@ -360,6 +375,7 @@ fun CardTextBox(
     val box = rememberOfficialBitmap(LookArt.textBox(color))
     val colors = GoaTheme.colors
     val slice = BOX_SLICES.getValue(color)
+    val darkCap = color == PlateColor.GOLD || color == PlateColor.SILVER
     val fontScale = LocalDensity.current.fontScale
     Box(
         modifier.drawWithCache {
@@ -379,8 +395,8 @@ fun CardTextBox(
                 style = GoaTextStyles.plateCap.copy(
                     // The tab doesn't grow: its word stops at 1.4× instead of running over the text.
                     fontSize = GoaTextStyles.plateCap.fontSize * (minOf(fontScale, CAP_MAX_SCALE) / fontScale),
-                    color = if (color == PlateColor.GOLD || color == PlateColor.SILVER) colors.onParchment else Color.White,
-                    shadow = if (color == PlateColor.GOLD || color == PlateColor.SILVER) null else CAP_SHADOW,
+                    color = if (darkCap) colors.onParchment else Color.White,
+                    shadow = if (darkCap) null else CAP_SHADOW,
                 ),
                 textAlign = TextAlign.Center,
                 maxLines = 1,
@@ -459,7 +475,7 @@ fun BevelText(
 }
 
 /** Room the banner's medallion takes at the end of a top bar: actions stay clear of it. */
-val BannerMedallionWidth: Dp = 46.dp
+val BannerMedallionWidth: Dp = 58.dp
 
 /** A label over the map or art: a [BevelText] that doesn't take a line of its own. */
 @Composable
@@ -467,7 +483,11 @@ fun BevelLabel(text: String, modifier: Modifier = Modifier, fontSize: Int = 17) 
     BevelText(
         text,
         modifier,
-        style = GoaTextStyles.plateTitle.copy(fontSize = fontSize.sp, lineHeight = (fontSize + 3).sp, fontWeight = FontWeight.Bold),
+        style = GoaTextStyles.plateTitle.copy(
+            fontSize = fontSize.sp,
+            lineHeight = (fontSize + 3).sp,
+            fontWeight = FontWeight.Bold,
+        ),
     )
 }
 

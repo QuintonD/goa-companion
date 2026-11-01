@@ -33,7 +33,6 @@ import androidx.compose.material.icons.outlined.ExpandMore
 import androidx.compose.material.icons.outlined.Hexagon
 import androidx.compose.material.icons.outlined.History
 import androidx.compose.material.icons.outlined.Info
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -72,6 +71,7 @@ import androidx.compose.ui.unit.dp
 import dev.quinton.goa.core.designsystem.component.EmptyState
 import dev.quinton.goa.core.designsystem.component.EngravedRule
 import dev.quinton.goa.core.designsystem.component.GoaButton
+import dev.quinton.goa.core.designsystem.component.GoaDialog
 import dev.quinton.goa.core.designsystem.component.GoaScreen
 import dev.quinton.goa.core.designsystem.component.HeroPortrait
 import dev.quinton.goa.core.designsystem.component.TeamMark
@@ -705,7 +705,7 @@ private fun MapChoice(state: NewGameUiState.Ready, onAction: (NewGameAction) -> 
 /** The app flipped the Tie Breaker coin (p.5 step 3): its side, what it decides, and Start. */
 @Composable
 private fun CoinDialog(coin: Team, starting: Boolean, onStart: () -> Unit, onDismiss: () -> Unit) {
-    AlertDialog(
+    GoaDialog(
         onDismissRequest = onDismiss,
         icon = { TieBreakerMark(coin, size = 64.dp) },
         title = { Text("${BoardText.team(coin)} shows", textAlign = TextAlign.Center) },
@@ -730,8 +730,6 @@ private fun CoinDialog(coin: Team, starting: Boolean, onStart: () -> Unit, onDis
             }
         },
         dismissButton = { TextButton(onClick = onDismiss) { Text("Back") } },
-        containerColor = MaterialTheme.colorScheme.surface,
-        shape = RoundedCornerShape(28.dp),
         modifier = Modifier.widthIn(max = 420.dp),
     )
 }

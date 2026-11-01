@@ -291,7 +291,11 @@ fun TeamMark(team: Team, modifier: Modifier = Modifier, color: Color = teamColor
                 }
                 drawPath(path, color)
             } else {
-                drawCircle(color, radius = size.minDimension * 0.44f, center = Offset(size.width / 2f, size.height / 2f))
+                drawCircle(
+                    color,
+                    radius = size.minDimension * 0.44f,
+                    center = Offset(size.width / 2f, size.height / 2f),
+                )
             }
         }
     }

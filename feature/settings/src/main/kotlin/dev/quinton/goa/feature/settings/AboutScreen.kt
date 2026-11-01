@@ -21,7 +21,6 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.Article
 import androidx.compose.material.icons.outlined.Lock
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -47,6 +46,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.DialogProperties
 import dev.quinton.goa.core.designsystem.component.GoaCard
+import dev.quinton.goa.core.designsystem.component.GoaDialog
 import dev.quinton.goa.core.designsystem.component.GoaScreen
 import dev.quinton.goa.core.designsystem.component.SectionHeader
 import dev.quinton.goa.core.designsystem.icon.GoaIcons
@@ -234,7 +234,7 @@ private fun LicenseDialog(font: FontLicense, onDismiss: () -> Unit) {
     val text = remember(font) {
         resources.openRawResource(font.textRes).bufferedReader().use { it.readText() }
     }
-    AlertDialog(
+    GoaDialog(
         onDismissRequest = onDismiss,
         properties = DialogProperties(usePlatformDefaultWidth = false),
         modifier = Modifier.padding(Spacing.lg),
@@ -247,7 +247,6 @@ private fun LicenseDialog(font: FontLicense, onDismiss: () -> Unit) {
             )
         },
         confirmButton = { TextButton(onClick = onDismiss) { Text("Close") } },
-        containerColor = MaterialTheme.colorScheme.surface,
     )
 }
 

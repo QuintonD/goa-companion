@@ -3639,7 +3639,7 @@ html:has(.goa-app.has-timerbar) {
 
 /* ---------- The game's own look (ADR-053): the rulebook's and the cards' parts as frames ---------- */
 /* Plates stay dark in both themes, like the banner: what sits on one takes the dark tokens. */
-.goa-plate, .goa-card, .goa-sheet, .goa-tabbar {
+.goa-plate, .goa-card, .goa-sheet, .goa-tabbar, .goa-dialog {
   color-scheme: dark;
   --surface: #1E2327;
   --surface-high: #2A3136;
@@ -3660,7 +3660,7 @@ html:has(.goa-app.has-timerbar) {
   --outline-engraved: rgba(201, 163, 91, 0.3);
   color: var(--on-surface);
 }
-.goa-plate, .goa-card {
+.goa-plate, .goa-card, .goa-dialog {
   background:
     url("official/ui/corner-tl.webp") left 2px top 2px / 16px no-repeat,
     url("official/ui/corner-tr.webp") right 2px top 2px / 16px no-repeat,

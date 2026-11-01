@@ -22,7 +22,6 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.outlined.ContentCopy
 import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.Edit
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
@@ -43,6 +42,7 @@ import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import dev.quinton.goa.core.designsystem.component.GoaDialog
 import dev.quinton.goa.core.designsystem.component.GoaPlate
 import dev.quinton.goa.core.designsystem.component.GoaScreen
 import dev.quinton.goa.core.designsystem.theme.Spacing
@@ -159,7 +159,7 @@ fun DraftMethodsScreen(state: MethodsUiState, actions: MethodsActions) {
     }
     deleting?.let { id ->
         val name = state.custom.firstOrNull { it.method.id == id }?.method?.name ?: "this method"
-        AlertDialog(
+        GoaDialog(
             onDismissRequest = { deleting = null },
             title = { Text("Delete $name?") },
             text = { Text("Past drafts keep their record; the method just won't be offered again.") },

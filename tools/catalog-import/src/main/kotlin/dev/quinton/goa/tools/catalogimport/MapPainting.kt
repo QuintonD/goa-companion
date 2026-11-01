@@ -72,7 +72,8 @@ object MapPainting {
         val path = "official/maps/${map.id}.webp"
         val target = File(assetsDir, path)
         val metaFile = File(work, "${map.id}-art.json")
-        val key = "v$KEY_VERSION|${spec.url}|${spec.model}|${spec.anchors}|${spec.mat}|${map.spaces.size}|q${ImageIo.QUALITY}"
+        val key = "v$KEY_VERSION|${spec.url}|${spec.model}|${spec.anchors}|${spec.mat}|${map.spaces}|" +
+            "q${ImageIo.QUALITY}"
         if (target.isFile && metaFile.isFile) {
             val meta = json.decodeFromString(Meta.serializer(), metaFile.readText())
             if (meta.key == key) return meta.art

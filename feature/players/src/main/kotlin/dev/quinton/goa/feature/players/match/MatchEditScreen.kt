@@ -43,7 +43,6 @@ import androidx.compose.material.icons.outlined.Hexagon
 import androidx.compose.material.icons.outlined.People
 import androidx.compose.material.icons.outlined.Schedule
 import androidx.compose.material.icons.outlined.SwapVert
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDefaults
@@ -88,6 +87,7 @@ import androidx.compose.ui.unit.dp
 import dev.quinton.goa.core.designsystem.component.BannerTextButton
 import dev.quinton.goa.core.designsystem.component.EmptyState
 import dev.quinton.goa.core.designsystem.component.GoaButton
+import dev.quinton.goa.core.designsystem.component.GoaDialog
 import dev.quinton.goa.core.designsystem.component.GoaPlate
 import dev.quinton.goa.core.designsystem.component.GoaScreen
 import dev.quinton.goa.core.designsystem.component.HeroPortrait
@@ -241,7 +241,7 @@ fun MatchEditScreen(state: MatchEditUiState, actions: MatchEditActions, modifier
 
     if (confirmDiscard) {
         val words = MatchEditing.leaveDialog(state.unsavedResult)
-        AlertDialog(
+        GoaDialog(
             onDismissRequest = { confirmDiscard = false },
             title = { Text(words.title) },
             text = { Text(words.body) },
@@ -255,7 +255,7 @@ fun MatchEditScreen(state: MatchEditUiState, actions: MatchEditActions, modifier
         )
     }
     if (confirmDelete) {
-        AlertDialog(
+        GoaDialog(
             onDismissRequest = { confirmDelete = false },
             icon = { Icon(Icons.Outlined.Delete, contentDescription = null) },
             title = { Text("Delete this match?") },
@@ -593,7 +593,7 @@ private fun WhenRow(playedAt: Long, onPlayedAt: (Long) -> Unit) {
     }
     if (pickTime) {
         val timeState = rememberTimePickerState(initialHour = dateTime.hour, initialMinute = dateTime.minute)
-        AlertDialog(
+        GoaDialog(
             onDismissRequest = { pickTime = false },
             confirmButton = {
                 TextButton(onClick = {
