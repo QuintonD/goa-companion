@@ -251,8 +251,8 @@ private fun ExcerptTable(table: List<List<String>>, style: TextStyle, edge: Colo
 private fun ExcerptLineText(line: ExcerptLine, style: TextStyle, markerColor: Color) {
     when (line) {
         is ExcerptLine.Paragraph -> Text(line.text, style = style)
-        is ExcerptLine.Bullet -> ListItemText(marker = "•", text = line.text, style = style, markerColor)
-        is ExcerptLine.Numbered -> ListItemText(marker = "${line.number}.", text = line.text, style = style, markerColor)
+        is ExcerptLine.Bullet -> ListItemText("•", line.text, style, markerColor)
+        is ExcerptLine.Numbered -> ListItemText("${line.number}.", line.text, style, markerColor)
     }
 }
 
@@ -269,7 +269,7 @@ private fun ListItemText(marker: String, text: String, style: TextStyle, markerC
     }
 }
 
-/** Our own words, never a quote: always labelled "Summary", on a plate in our own face, unlike the book's page. */
+/** Our own words, never a quote: always labelled "Summary", on a plate in our own face, unlike the book. */
 @Composable
 internal fun SummaryNote(text: String, modifier: Modifier = Modifier) {
     GoaPlate(modifier.fillMaxWidth()) {

@@ -132,6 +132,8 @@ fun CatalogScreen(
     // don't (narrow screen, large text), Board and Card trivia move into "More options".
     val widthDp = LocalConfiguration.current.screenWidthDp
     val compact = TOP_BAR_ICONS_DP + TITLE_DP * LocalDensity.current.fontScale > widthDp
+    // At the largest text, with the banner's medallion, the title needs the view switch's room too.
+    val switchInMenu = TOP_BAR_ICONS_DP - ICON_DP + TITLE_DP * LocalDensity.current.fontScale > widthDp
     val ready = state as? CatalogUiState.Ready
     // Back with a search typed clears the search instead of leaving the app.
     BackHandler(enabled = query.isNotEmpty()) { onAction(CatalogAction.Search("")) }
@@ -139,13 +141,12 @@ fun CatalogScreen(
         title = "Heroes",
         modifier = modifier,
         actions = {
-            if (ready != null) {
-                val grid = ready.controls.layout == CatalogLayout.GRID
-                IconButton(
-                    onClick = {
-                        onAction(CatalogAction.SetLayout(if (grid) CatalogLayout.LIST else CatalogLayout.GRID))
-                    },
-                ) {
+            val grid = ready?.controls?.layout == CatalogLayout.GRID
+            val switchLayout = {
+                onAction(CatalogAction.SetLayout(if (grid) CatalogLayout.LIST else CatalogLayout.GRID))
+            }
+            if (ready != null && !switchInMenu) {
+                IconButton(onClick = switchLayout) {
                     Icon(
                         if (grid) Icons.Outlined.ViewAgenda else Icons.Outlined.GridView,
                         contentDescription = if (grid) "Show as list" else "Show as grid",
@@ -161,6 +162,21 @@ fun CatalogScreen(
                         Icon(Icons.Outlined.MoreVert, contentDescription = "More options")
                     }
                     DropdownMenu(expanded = more, onDismissRequest = { more = false }) {
+                        if (ready != null && switchInMenu) {
+                            DropdownMenuItem(
+                                text = { Text(if (grid) "Show as list" else "Show as grid") },
+                                leadingIcon = {
+                                    Icon(
+                                        if (grid) Icons.Outlined.ViewAgenda else Icons.Outlined.GridView,
+                                        contentDescription = null,
+                                    )
+                                },
+                                onClick = {
+                                    more = false
+                                    switchLayout()
+                                },
+                            )
+                        }
                         DropdownMenuItem(
                             text = { Text("Board") },
                             leadingIcon = { Icon(Icons.Outlined.Hexagon, contentDescription = null) },
@@ -573,6 +589,7 @@ private const val LARGE_FONT_SCALE = 1.2f
 
 /** Width (dp) of the top bar's five action icons, its padding and the banner's medallion (46). */
 private const val TOP_BAR_ICONS_DP = 5 * 48 + 24 + 46
+private const val ICON_DP = 48
 
 /** Width (dp) the "Heroes" title needs at font scale 1. */
 private const val TITLE_DP = 100

@@ -32,7 +32,7 @@ import dev.quinton.goa.core.domain.catalog.kindLabel
 import dev.quinton.goa.core.domain.catalog.matchingParagraph
 import dev.quinton.goa.feature.catalog.ui.InitiativeBadge
 
-/** One card in the search results, a plate under its colour's ribbon: name, hero and kind, the paragraph that matched. */
+/** One card in the results, a plate under its colour's ribbon: name, hero and kind, the paragraph that matched. */
 @Composable
 internal fun CardResultRow(result: CardResult, query: String, onClick: () -> Unit, modifier: Modifier = Modifier) {
     val card = result.card

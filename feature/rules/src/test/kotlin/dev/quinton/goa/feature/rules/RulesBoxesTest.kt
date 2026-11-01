@@ -17,7 +17,9 @@ class RulesBoxesTest {
         RulesBoxes.entries.forEach { entry ->
             assertTrue(
                 "p.${entry.page} \"${entry.opening}\" is not in the reference",
-                excerpts.any { RulesBoxes.of(it) == entry.box && it.page == entry.page && it.text.contains(entry.opening) },
+                excerpts.any {
+                    RulesBoxes.of(it) == entry.box && it.page == entry.page && it.text.contains(entry.opening)
+                },
             )
         }
     }

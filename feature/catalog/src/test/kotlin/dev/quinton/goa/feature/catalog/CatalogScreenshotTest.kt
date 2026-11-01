@@ -314,15 +314,21 @@ class CatalogScreenshotTest {
         CatalogFilter(complexities = setOf(3), roles = setOf(ShotData.options.roles[1]), products = setOf("test-core"))
 
     @Test fun filterSheetDark() = shot {
-        OnSheet { CatalogFilterContent(sheetFilter, ShotData.options, 4, {}, {}, {}, Modifier.padding(vertical = 16.dp)) }
+        OnSheet {
+            CatalogFilterContent(sheetFilter, ShotData.options, 4, {}, {}, {}, Modifier.padding(vertical = 16.dp))
+        }
     }
 
     @Test fun filterSheetLight() = shot(ThemeMode.LIGHT) {
-        OnSheet { CatalogFilterContent(sheetFilter, ShotData.options, 4, {}, {}, {}, Modifier.padding(vertical = 16.dp)) }
+        OnSheet {
+            CatalogFilterContent(sheetFilter, ShotData.options, 4, {}, {}, {}, Modifier.padding(vertical = 16.dp))
+        }
     }
 
     @Test fun filterSheetFontScale2() = shot(fontScale = 2f) {
-        OnSheet { CatalogFilterContent(sheetFilter, ShotData.options, 4, {}, {}, {}, Modifier.padding(vertical = 16.dp)) }
+        OnSheet {
+            CatalogFilterContent(sheetFilter, ShotData.options, 4, {}, {}, {}, Modifier.padding(vertical = 16.dp))
+        }
     }
 
     @Test

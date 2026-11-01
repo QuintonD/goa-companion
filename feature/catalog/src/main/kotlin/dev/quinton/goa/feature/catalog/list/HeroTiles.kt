@@ -224,7 +224,7 @@ private fun TileFootnotes(item: HeroListItem, sort: CatalogSort) {
     }
 }
 
-/** Compact list row (six or more per screen), a plate like the tile: portrait, name and title, stars and pills, roles. */
+/** Compact list row (six or more per screen), a plate like the tile: portrait, name, title, stars, pills, roles. */
 @Composable
 internal fun HeroListRow(
     item: HeroListItem,
