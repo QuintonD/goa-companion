@@ -464,6 +464,7 @@ was compared space by space (`mapChecks`). Overlays: `tools/catalog-import/cache
 - pass — Terrain holes and spaces are disjoint: 14 enclosed terrain spaces
 - Overrides: none.
 - Overlay: `tools/catalog-import/cache/maps/forgotten-island-0-overlay.png` on Forgotten Island top-down art (CasperCB/Guards_Replay assets/maps/forbidden_island.webp, 1400 px) (worst anchor 13.9 px)
+- Painting: 0 spaces and rocks past the art's edge, drawn by the app; every patched space took clean ground of its own Zone.
 - Space-by-space check (2026-10-19, overlay cache/maps/forgotten-island-0-overlay.png): Overlay on the official top-down art compared space by space: all 210 spaces sit on the printed grid, the 14 enclosed terrain spaces are the rocks inside the island, Zone borders follow the printed cracks and terrain edges, all 40 spawn icons (3 gears, 3 stars, 34 minion icons) are on the tagged spaces with the right team and type and no icon is untagged. Rulebook p.5-6 setup images show the same board.
 
 ### Across the River (`across-the-river`)
@@ -494,6 +495,7 @@ was compared space by space (`mapChecks`). Overlays: `tools/catalog-import/cache
 - pass — Terrain holes and spaces are disjoint: 38 enclosed terrain spaces
 - Overrides: none.
 - Overlay: `tools/catalog-import/cache/maps/across-the-river-0-overlay.png` on Photo of the official Across the River neoprene mat (BGG image 9704865) (worst anchor 3.2 px)
+- Painting: 25 spaces and rocks past the art's edge, drawn by the app; every patched space took clean ground of its own Zone.
 - Space-by-space check (2026-10-19, overlay cache/maps/across-the-river-0-overlay.png): Overlay on a photo of the official mat compared space by space: spaces on the printed grid, rocks as terrain, Zone borders on the printed edges, every visible spawn icon (team and type) on its tagged space with none untagged (the tower icons are decoration, ignored per the designer, BGG 3527919/3741412). The corner of lane-2-2 (lane 2's Red-side middle Zone) outside the photo was checked against the rulebook p.20 image (icon positions) and the map's point symmetry (types). Rulebook p.20 labels this map's starting Battle Zones 1 and 2 (lane-1, lane-2).
 
 ### Narrow Passages (`narrow-passages`)
@@ -533,6 +535,7 @@ was compared space by space (`mapChecks`). Overlays: `tools/catalog-import/cache
 - Override: (7,-9) BlueBeach: spawn BlueMeleeSpawn → none
 - Override: (8,-3) BlueBeach: spawn none → RedMeleeSpawn
 - Overlay: `tools/catalog-import/cache/maps/narrow-passages-0-overlay.png` on Photo of the official Narrow Passages neoprene mat (BGG image 9704864) (worst anchor 5.9 px)
+- Painting: 0 spaces and rocks past the art's edge, drawn by the app; every patched space took clean ground of its own Zone.
 - **Not verified**: the community data disagreed with the art and was corrected from the art alone (overrides above), so the corrected spaces rest on one source. The map ships badged Unverified.
 
 ### Magma and Ice (`magma-and-ice`)
@@ -580,6 +583,7 @@ was compared space by space (`mapChecks`). Overlays: `tools/catalog-import/cache
 - Override: (-4,-4) RedBBeach: spawn RedHeavySpawn → none
 - Override: (-5,-4) RedBBeach: spawn none → BlueMeleeSpawn
 - Overlay: `tools/catalog-import/cache/maps/magma-and-ice-0-overlay.png` on Photo of the official Magma and Ice neoprene mat (BGG image 9704867) (worst anchor 8.2 px)
+- Painting: 12 spaces and rocks past the art's edge, drawn by the app; every patched space took clean ground of its own Zone.
 - **Not verified**: the community data disagreed with the art and was corrected from the art alone (overrides above), so the corrected spaces rest on one source. The map ships badged Unverified.
 
 ### Not shipped

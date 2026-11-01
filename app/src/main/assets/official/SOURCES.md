@@ -803,7 +803,7 @@ Graphics extracted from the rulebook PDF (SHA-256 `2c19b11d632759e9e3517e6a1450d
 | `official/ui/ribbon-green.webp` | p.6 | 7 · 1262 | Action card anatomy layers: green ribbon, p.6 |
 | `official/ui/ribbon-red.webp` | p.9 | 10 · 2902 | Action card anatomy layers: red ribbon, p.9 |
 | `official/ui/ribbon-silver.webp` | p.12 | 13 · 4363 | Action card anatomy layers: silver ribbon, p.12 |
-| `official/ui/sea.webp` | p.-1 | page render | Open sea, a region of the Forgotten Island painting (see the map art below) |
+| `official/ui/sea.webp` | not from the rulebook | map art | Open sea, a region of the Forgotten Island painting (see the map art below) |
 | `official/ui/silhouette.webp` | p.0 | 1 · 8940 | The cover's battlefield silhouette |
 | `official/ui/slate.webp` | p.16 | 17 · 6747 | The dashboard's dark plate, p.16 |
 | `official/ui/textbox-blue.webp` | p.7 | 8 · 2100 | Action card anatomy layers: blue text box, p.7 |
@@ -816,9 +816,9 @@ Graphics extracted from the rulebook PDF (SHA-256 `2c19b11d632759e9e3517e6a1450d
 | `official/ui/wave.webp` | p.5 | 6 · 604 | Wave counter, faceup, p.5 |
 
 The board paintings, resampled to line up with the hex layout (ADR-053). A photo of a mat is
-flattened by homography and what isn't the mat is filled with a dim blur of the painting. Spaces
-past a photo's edge take their ground from the nearest space of the same Zone (the app draws
-their Spawn points and Zone edges):
+flattened by homography; what isn't the mat is a plain dark sea, and the art fades into it. The
+whole picture is darkened by 8 %. Spaces past a photo's edge take their ground from a space of
+the same Zone with no Zone edge beside it (the app draws their Spawn points and Zone edges):
 
 | File | Source |
 |---|---|
