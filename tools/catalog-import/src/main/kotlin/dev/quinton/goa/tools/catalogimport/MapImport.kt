@@ -22,6 +22,8 @@ data class MapReport(
     val overrides: List<String>,
     val check: MapCheck?,
     val overlays: List<String> = emptyList(),
+    /** Spaces whose ground had no clean donor in their Zone (MapPainting). */
+    val weakDonors: List<Hex> = emptyList(),
 ) {
     val rulebookPass: Boolean get() = findings.filter { it.required }.all { it.pass }
 }

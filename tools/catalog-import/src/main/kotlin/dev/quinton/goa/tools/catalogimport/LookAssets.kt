@@ -24,14 +24,26 @@ import org.apache.pdfbox.rendering.PDFRenderer
  * them (the PDF holds them grey and colours them with a blend), and pieces of the card frame are masked.
  */
 
+/**
+ * What the cuts below make: part of the cached PNGs' folder and of each image's manifest key, because neither
+ * can see this code. Bump it whenever a cut changes.
+ */
+const val LOOK_VERSION = 2
+
 /** Output folders of this stage (stale files in them are deleted, see [UI_ASSET_DIRS]). */
 val LOOK_ASSET_DIRS = listOf("official/ui", "official/pieces", "official/rules")
 
 /** Long edge of the look's larger pieces: a phone's width at 3×. */
 const val LOOK_MAX_EDGE = 1600
 
-/** One finished image and where it came from. [source] keeps the page and object for SOURCES.md. */
-data class LookAsset(val source: RulebookImage, val file: File, val maxEdge: Int)
+/**
+ * One finished image and where it came from. [source] keeps the page and object for SOURCES.md; [origin] names
+ * what it is made from, for its manifest key, when that isn't the rulebook.
+ */
+data class LookAsset(val source: RulebookImage, val file: File, val maxEdge: Int, val origin: String? = null)
+
+/** The map art the sea texture is cut from. */
+data class SeaArt(val file: File, val url: String)
 
 /** How a part is cleaned up after extraction. */
 private enum class Cut {
@@ -107,8 +119,8 @@ private val PARTS: List<Part> = listOf(
 )
 
 object LookAssets {
-    /** Builds every part into [dir] (kept between runs: the PDF is pinned) and returns the finished list. */
-    fun build(pdf: File, dir: File, seaArt: File?): List<LookAsset> {
+    /** Builds every part into [dir] (kept between runs: the PDF is pinned, [LOOK_VERSION] names the code). */
+    fun build(pdf: File, dir: File, seaArt: SeaArt?): List<LookAsset> {
         dir.mkdirs()
         val raw = RulebookImages.extract(pdf, File(dir, "raw"), PARTS.map { it.image }.distinctBy { it.obj })
             .entries.associate { it.key.obj to it.value }
@@ -135,7 +147,7 @@ object LookAssets {
         Cut.MINI_BLUE -> miniature(image, BLUE_TONE)
     }
 
-    private fun trim(image: BufferedImage): BufferedImage {
+    internal fun trim(image: BufferedImage): BufferedImage {
         var x0 = image.width
         var y0 = image.height
         var x1 = -1
@@ -197,7 +209,7 @@ object LookAssets {
     }
 
     /** One corner's teal bracket: the plate's dark ground goes transparent. */
-    private fun bracket(plate: BufferedImage, left: Boolean, top: Boolean): BufferedImage {
+    internal fun bracket(plate: BufferedImage, left: Boolean, top: Boolean): BufferedImage {
         val solid = trim(plate)
         val x = if (left) 0 else solid.width - BRACKET
         val y = if (top) BRACKET_TOP else solid.height - BRACKET
@@ -319,7 +331,8 @@ object LookAssets {
         val g = out.createGraphics()
         g.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BICUBIC)
         val bodyEnd = width - capW + CAP_BLEND
-        g.drawImage(footer, 0, 0, bodyEnd, h, page.width / BODY_START, 0, page.width / BODY_START + bodyEnd, footer.height, null)
+        val from = page.width / BODY_START
+        g.drawImage(footer, 0, 0, bodyEnd, h, from, 0, from + bodyEnd, footer.height, null)
         g.dispose()
         val cap = copy(header, right - capW, 0, capW, h)
         for (y in 0 until h) {
@@ -337,7 +350,7 @@ object LookAssets {
     }
 
     /** Source-over of opaque [top] at [a] on [under], which may be transparent. */
-    private fun over(top: Int, under: Int, a: Float): Int {
+    internal fun over(top: Int, under: Int, a: Float): Int {
         val ua = (under ushr ALPHA_SHIFT) / FULL.toFloat()
         val oa = a + ua * (1 - a)
         if (oa <= 0f) return 0
@@ -370,17 +383,16 @@ object LookAssets {
         return out
     }
 
-    private fun seaTexture(art: File, dir: File): LookAsset {
+    /** Made afresh each run: a quick crop of the map art, whose URL its manifest key names. */
+    private fun seaTexture(art: SeaArt, dir: File): LookAsset {
         val out = File(dir, "sea.png")
-        if (!out.isFile) {
-            val image = ImageIo.load(art).awt()
-            val scaled = BufferedImage(SEA_W, SEA_H, BufferedImage.TYPE_INT_RGB)
-            val g = scaled.createGraphics()
-            g.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BICUBIC)
-            g.drawImage(image, 0, 0, SEA_W, SEA_H, SEA_X0, SEA_Y0, SEA_X1, SEA_Y1, null)
-            g.dispose()
-            ImageIO.write(scaled, "png", out)
-        }
+        val image = ImageIo.load(art.file).awt()
+        val scaled = BufferedImage(SEA_W, SEA_H, BufferedImage.TYPE_INT_RGB)
+        val g = scaled.createGraphics()
+        g.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BICUBIC)
+        g.drawImage(image, 0, 0, SEA_W, SEA_H, SEA_X0, SEA_Y0, SEA_X1, SEA_Y1, null)
+        g.dispose()
+        ImageIO.write(scaled, "png", out)
         return LookAsset(
             RulebookImage(
                 "official/ui/sea.webp",
@@ -392,6 +404,7 @@ object LookAssets {
             ),
             out,
             SEA_H,
+            origin = art.url,
         )
     }
 
@@ -440,8 +453,8 @@ object LookAssets {
     private const val PLATE_GEAR_ROOM = 26
     private const val PLATE_GEAR = 40
 
-    private const val BRACKET = 30
-    private const val BRACKET_TOP = 6
+    internal const val BRACKET = 30
+    internal const val BRACKET_TOP = 6
     private const val BRACKET_FLOOR = 12f
     private const val BRACKET_RAMP = 18f
 
