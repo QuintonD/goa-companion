@@ -35,6 +35,8 @@
   border-image: none;
   padding-right: calc(var(--safe-right) + 62px);
 }
+/* The timer on its side zeroes its header's padding (its screen holds the safe area): the medallion's room stays. */
+.goa-table-timer.landscape .goa-table-timer-header.goa-topbar { padding-right: 62px; }
 .goa-topbar::before {
   content: "";
   position: absolute;

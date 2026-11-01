@@ -137,6 +137,19 @@ test("on a plate the light theme keeps the dark tokens", async ({ page }, info) 
   check();
 });
 
+test("the running timer's actions clear the medallion on a phone on its side", async ({ page }, info) => {
+  const check = watchErrors(page);
+  await page.setViewportSize(LANDSCAPE);
+  await open(page, "#/timer/setup");
+  await page.getByRole("button", { name: "Flip coin" }).click();
+  await page.getByRole("button", { name: "Start timer" }).click();
+  await expect(title(page)).toHaveText("Round 1");
+  const { end, width } = await actionsEnd(page);
+  expect(end).toBeLessThanOrEqual(width - MEDALLION);
+  await shot(page, info, "look-timer-landscape");
+  check();
+});
+
 // A walk over the screens this stream restyled, for looking at; each must render without an error.
 for (const theme of ["dark", "light"] as const) {
   test(`the screens render on their plates, ${theme}`, async ({ page }, info) => {
