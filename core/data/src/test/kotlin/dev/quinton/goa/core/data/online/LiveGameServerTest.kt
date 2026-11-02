@@ -201,7 +201,11 @@ class LiveGameServerTest {
      * Answers each of the person's questions with a random option, at a person's pace. Always the first option can
      * go on for ever: a game ends by a push or by Life counters, and nobody need ever attack.
      */
-    private fun CoroutineScope.play(driver: OnlineGameDriver, seen: Seen, states: StateFlow<OnlineState>): Job = launch {
+    private fun CoroutineScope.play(
+        driver: OnlineGameDriver,
+        seen: Seen,
+        states: StateFlow<OnlineState>,
+    ): Job = launch {
         val random = Random(seen.hashCode())
         states.collectLatest { state ->
             if (state is OnlineState.Reconnecting) seen.reconnecting = true
@@ -281,7 +285,8 @@ class LiveGameServerTest {
         println(
             "LIVE: ${annEnd.over?.rounds} rounds, ${annEnd.log.size} log lines, " +
                 "answers Ann ${annSeen.answers} Bob ${bobSeen.answers}, " +
-                "${annEnd.over?.winner} by ${annEnd.over?.reason}, statuses ${annSeen.statuses} / ${bobSeen.statuses}, " +
+                "${annEnd.over?.winner} by ${annEnd.over?.reason}, " +
+                "statuses ${annSeen.statuses} / ${bobSeen.statuses}, " +
                 "Ann's hellos ${ann.connector.hellos.size}",
         )
         assertThat(annEnd.online?.rated).isTrue()
