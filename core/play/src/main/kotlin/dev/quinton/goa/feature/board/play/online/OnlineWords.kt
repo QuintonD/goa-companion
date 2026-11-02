@@ -68,7 +68,9 @@ object OnlineWords {
 
             Refusal.TOO_MANY_GAMES -> "You already have 3 games running. Finish or leave one first."
 
-            Refusal.TOO_MANY_ROOMS -> "You already have 3 open rooms. Start or leave one first."
+            // Counted per address as well: it may be someone else on the same network.
+            Refusal.TOO_MANY_ROOMS ->
+                "There are already 3 open rooms from you or your network. Start or leave one, or try again soon."
         }
         return if (retryAfterSeconds == null) words else "$words ${tryAgainIn(retryAfterSeconds)}"
     }

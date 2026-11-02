@@ -152,8 +152,11 @@ class SocketTest {
             while (true) {
                 var welcomed = false
                 ws.webSocket("/v1/play") {
-                    sendMessage(hello(token))
-                    welcomed = next() is ServerMessage.Welcome
+                    // Until the first socket's slot is free, this one is refused and may be closed under it.
+                    welcomed = runCatching {
+                        sendMessage(hello(token))
+                        next() is ServerMessage.Welcome
+                    }.getOrDefault(false)
                 }
                 if (welcomed) break
                 delay(10)

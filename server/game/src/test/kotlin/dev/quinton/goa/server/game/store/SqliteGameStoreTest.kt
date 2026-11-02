@@ -304,7 +304,7 @@ class SqliteGameStoreTest {
         DriverManager.getConnection(databaseUrl()).use {
             it.createStatement().execute("INSERT INTO schema_version (version, applied_at) VALUES (999, 0)")
         }
-        assertThrows(IllegalStateException::class.java) { SqliteGameStore.open(dir) }
+        assertThrows(NewerDatabase::class.java) { SqliteGameStore.open(dir) }
         DriverManager.getConnection(databaseUrl()).use {
             it.createStatement().execute("DELETE FROM schema_version WHERE version = 999")
         }
