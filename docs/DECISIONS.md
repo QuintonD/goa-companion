@@ -2482,4 +2482,9 @@ would change how much it searches in its think time); web first load (R3 in ADR-
 
 **Consequences:** One more module; about 7 MB of profile text in the repo, regenerated per release. `:app:assembleRelease` is
 unchanged for the release key. Gradle's own pull of the benchmark's traces fails on Windows here (the path is too long); the
-results JSON still arrives.
+results JSON still arrives. The draft board's screenshot flake (a few hundred pixels in a 30 px team gear, largest colour
+difference 30) is more frequent: that screen asks for one image at five sizes and Coil's memory cache serves whichever decoded
+first, so a capture depends on load order; with the crowd of plate requests gone the order shifted. `main` passed 3 of 3 runs of
+the module alone, this branch failed 4 of 4, with a different set of `board*` tests. Baselines weren't re-recorded: that wouldn't
+cure a race. Turning the cache off in `DraftScreenshotTest` makes it stable (the same nine tests differ every run), at the price
+of re-recording those nine.
