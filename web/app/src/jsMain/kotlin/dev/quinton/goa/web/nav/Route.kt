@@ -432,7 +432,10 @@ object Routes {
         // An invite link: everything after "join=" is the invite, kept exactly as written.
         return when {
             raw.startsWith(JOIN) -> Route.Join(raw.removePrefix(JOIN))
-            raw.startsWith(OnlineRoutes.INVITE_FRAGMENT) -> parseInvite(raw)?.let(Route::OnlineJoin) ?: Route.NotFound(raw)
+
+            raw.startsWith(OnlineRoutes.INVITE_FRAGMENT) -> parseInvite(raw)?.let(Route::OnlineJoin)
+                ?: Route.NotFound(raw)
+
             else -> parsePath(raw)
         }
     }

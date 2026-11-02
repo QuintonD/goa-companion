@@ -54,7 +54,11 @@ private class FakeSocket : BrowserSocket {
     }
 }
 
-private class Reply(override val code: Int, private val text: String = "", val headers: Map<String, String> = emptyMap()) :
+private class Reply(
+    override val code: Int,
+    private val text: String = "",
+    val headers: Map<String, String> = emptyMap(),
+) :
     RelayResponse {
     override fun header(name: String) = headers[name]
 
@@ -83,7 +87,12 @@ class OnlineSeamsTest {
         assertFailsWith<IllegalStateException> { gameSocketUrl("ftp://game.example") }
     }
 
-    private fun hello(token: String = "secret-token") = ClientMessage.Hello(OnlineProtocol.VERSION, token, "web/test", 7)
+    private fun hello(token: String = "secret-token") = ClientMessage.Hello(
+        OnlineProtocol.VERSION,
+        token,
+        "web/test",
+        7,
+    )
 
     @Test
     fun helloIsTheFirstFrameAndTheTokenNeverInTheAddress() = runTest {
@@ -186,8 +195,9 @@ class OnlineSeamsTest {
     @Test
     fun theRoutesGoWhereTheContractSays() = runTest {
         val http = FakeHttp()
-        val room = """{"code":"ABCD2345","hostAccountId":"a1","mapId":"m","length":"quick","teamSize":1,"ranked":false,""" +
-            """"seats":[],"status":"open","expiresAt":1}"""
+        val room =
+            """{"code":"ABCD2345","hostAccountId":"a1","mapId":"m","length":"quick","teamSize":1,"ranked":false,""" +
+                """"seats":[],"status":"open","expiresAt":1}"""
         http.replies["$HOST/v1/rooms"] = Reply(201, """{"code":"ABCD2345"}""")
         http.replies["$HOST/v1/rooms/ABCD2345/join"] = Reply(200, room)
         http.replies["$HOST/v1/rooms/ABCD2345/leave"] = Reply(200, room)
@@ -367,7 +377,8 @@ class OnlineSeamsTest {
     @Test
     fun aHostTheFileClosedIsSkippedForTheNextOne() = runTest {
         val http = FakeHttp()
-        http.replies[OnlineRoutes.NETWORK_FILE] = Reply(200, networkFile("https://shut" to "closed", "https://b" to "open"))
+        http.replies[OnlineRoutes.NETWORK_FILE] =
+            Reply(200, networkFile("https://shut" to "closed", "https://b" to "open"))
         http.replies["https://shut${OnlineRoutes.LEADERBOARD}"] = Reply(200, board)
         http.replies["https://b${OnlineRoutes.LEADERBOARD}"] = Reply(200, board)
         val load = repository(http).load()

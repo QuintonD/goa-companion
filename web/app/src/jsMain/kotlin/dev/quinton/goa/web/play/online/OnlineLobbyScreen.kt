@@ -121,7 +121,9 @@ private fun Lobby(code: String, inputs: LobbyInputs) {
             } else {
                 Div({ classes("goa-w2-stack") }) {
                     GoaButton("Try again", presenter::start, ButtonKind.TONAL, icon = "refresh", block = true)
-                    GoaButton("Back to Online", { router.navigate(Route.OnlineHome, replace = true) }, ButtonKind.TEXT, block = true)
+                    GoaButton("Back to Online", {
+                        router.navigate(Route.OnlineHome, replace = true)
+                    }, ButtonKind.TEXT, block = true)
                 }
             }
         } else {

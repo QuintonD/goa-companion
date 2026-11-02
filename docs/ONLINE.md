@@ -200,6 +200,29 @@ already draw; the home and lobby presenters do the rest; screens implement `Game
 - A room code is 8 characters of Crockford base 32 in upper case (no I, L, O or U), so that what people
   retype reads back: O as 0, I and L as 1.
 
+### The web client
+
+`web/app/.../play/online/` implements the seams over the browser. What is particular to it:
+
+- **Which host.** `OnlineHosts` reads `network.json` before connecting and keeps it 5 minutes. It takes the first
+  host that isn't `closed` and that this page's `connect-src` names, else the built-in `goa.gameServer`; every
+  listed host closed means no host, and the screens say the server can't be reached. A host only `network.json`
+  knows of can't be reached from a browser until a site rebuild with `-Pgoa.gameServer` adds it to the CSP, so it is
+  not tried until then. The leaderboard's fetcher skips closed hosts the same way, and reads no `network.json` while
+  the Pages file answers.
+- **CSP.** `connect-src` names the game server explicitly as `wss://`, even beside the relay's `https://` on the same
+  origin: not every browser lets `https://` cover `wss://`. The leaderboard files share the PWA's Pages origin, so
+  they need no source. `web/e2e/serve.mjs` adds local `ws://` for tests, and Pages' origin since a test isn't on it.
+- **An invite** `#play=<code>` normalises to `#/online/join/<code>` in place, then the room's `#/online/room/<code>`,
+  so a reload at any point finds the same place. The code isn't a secret, so nothing needs index.html's trick for
+  `#join=`. On an Android browser the join screen offers `goa-companion://play/<code>`.
+- **Storage.** The account is `online/identity` in IndexedDB, in no export. Safari may clear it unless the app is on
+  the Home Screen, and the screens say plainly that the recovery code is how to get back. `online/testServer`, a test
+  server's address, is honoured only on a localhost page: on Pages, other sites of the account can write this storage.
+- **The table** is `GameTable` (`play/game/GameScreen.kt`), the same one a game against the computer uses. The
+  resolution flow view shows when the game supplies a flow; `GameController` doesn't publish one yet, so a game against
+  the computer on the web keeps its recent lines.
+
 A new account is saved on the device only after "I've saved it": if the app dies before that, the person
 starts again with nothing lost. Linking a device burns the old code, so its new one must be saved too.
 

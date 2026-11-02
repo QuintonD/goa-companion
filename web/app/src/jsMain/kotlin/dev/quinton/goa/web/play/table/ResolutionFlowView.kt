@@ -36,7 +36,11 @@ import org.jetbrains.compose.web.dom.Text
 fun ResolutionFlowView(flow: ResolutionFlow, table: TableUi, focus: CardFocusState) {
     if (flow.isEmpty) return
     Div({ classes("goa-flow") }) {
-        if (flow.earlier > 0) Quiet("${flow.earlier} earlier ${if (flow.earlier == 1) "card" else "cards"} in the game log")
+        if (flow.earlier >
+            0
+        ) {
+            Quiet("${flow.earlier} earlier ${if (flow.earlier == 1) "card" else "cards"} in the game log")
+        }
         flow.entries.forEach { entry ->
             key(entry.key) { FlowEntryView(entry, table, focus, earlier = !flow.fresh) }
         }

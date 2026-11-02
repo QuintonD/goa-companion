@@ -101,7 +101,12 @@ class RoutesTest {
     fun onlineScreensSitOnThePlayTabAndGoUpToOnlineHome() {
         assertEquals(Tab.PLAY, Route.OnlineHome.tab)
         assertEquals(Route.PlayHome, Route.OnlineHome.parent)
-        listOf(Route.OnlineJoin("ABCD2345"), Route.OnlineRoom("ABCD2345"), Route.OnlineGame("g"), Route.OnlineLeaderboard)
+        listOf(
+            Route.OnlineJoin("ABCD2345"),
+            Route.OnlineRoom("ABCD2345"),
+            Route.OnlineGame("g"),
+            Route.OnlineLeaderboard,
+        )
             .forEach {
                 assertEquals(Tab.PLAY, it.tab, it.path)
                 assertEquals(Route.OnlineHome, it.parent, it.path)

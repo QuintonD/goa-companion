@@ -48,7 +48,7 @@ import org.jetbrains.compose.web.dom.P
 import org.jetbrains.compose.web.dom.Text
 import org.w3c.dom.events.Event
 
-private const val GAME_FAILED = "Something went wrong in this game. It is safe on the server: leave it and open it again."
+private const val GAME_FAILED = "Something went wrong in this game. It is safe on the server: open it again."
 
 /**
  * An online game (ADR-056): the same table as a game against the computer, drawn from [OnlineGameDriver]'s frames.
@@ -98,7 +98,11 @@ fun OnlineGameScreen(gameId: String) {
 
         state is OnlineState.Refused -> Screen("Online game") {
             val refused = state as OnlineState.Refused
-            EmptyState("cloud_off", "This game can't be opened", OnlineWords.refusal(refused.reason, refused.retryAfterSeconds)) {
+            EmptyState(
+                "cloud_off",
+                "This game can't be opened",
+                OnlineWords.refusal(refused.reason, refused.retryAfterSeconds),
+            ) {
                 Div({ classes("goa-button-row") }) {
                     GoaButton("Back to Online", { router.navigate(Route.OnlineHome, replace = true) }, ButtonKind.TEXT)
                     if (refused.reason == Refusal.BAD_TOKEN) {

@@ -249,7 +249,12 @@ private fun NewRoom(ui: OnlineHomeUi, presenter: OnlineHomePresenter, mapName: (
             Segmented("Length", form.option.lengths, form.length, GameLength::label, presenter::setLength)
             FormLabel("Team size")
             Segmented("Team size", form.option.teamSizes, form.teamSize, { "${it}v$it" }, presenter::setTeamSize)
-            SwitchRow("Ranked: the result counts on the leaderboard", form.ranked, presenter::setRanked, "online-ranked")
+            SwitchRow(
+                "Ranked: the result counts on the leaderboard",
+                form.ranked,
+                presenter::setRanked,
+                "online-ranked",
+            )
             GoaButton("Create room", presenter::createRoom, enabled = !ui.working, block = true)
         }
     }
@@ -385,7 +390,9 @@ private fun LinkSheet(ui: OnlineHomeUi, presenter: OnlineHomePresenter, onDismis
             )
         }
         P({ classes("t-body-medium", "c-variant") }) {
-            Text("To bring another account to this device instead, enter its code here. This device then uses that account.")
+            Text(
+                "To bring another account to this device instead, enter its code here. This device then uses it.",
+            )
         }
         TextField(
             label = "Recovery code",

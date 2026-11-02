@@ -65,7 +65,11 @@ private data class RecordedStep(
 )
 
 @Serializable
-private data class RecordedGame(val start: Map<String, JsonElement>, val steps: List<RecordedStep>, val end: JsonElement)
+private data class RecordedGame(
+    val start: Map<String, JsonElement>,
+    val steps: List<RecordedStep>,
+    val end: JsonElement,
+)
 
 private fun readRepo(path: String): String {
     val root = js("process.env.GOA_REPO_ROOT") as String
@@ -85,7 +89,9 @@ private fun stub(decision: Decision) =
 private fun record(): RecordedGame {
     val setup = GameSetup(
         mapId = "forgotten-island",
-        seats = listOf("wasp" to Team.RED, "arien" to Team.BLUE).map { (id, team) -> SeatSetup(id, team, Controller.Human) },
+        seats = listOf("wasp" to Team.RED, "arien" to Team.BLUE).map { (id, team) ->
+            SeatSetup(id, team, Controller.Human)
+        },
         tieBreaker = Team.RED,
     )
     val session = GameEngine(catalog(), maps()).newGame(setup)
@@ -111,7 +117,10 @@ private fun record(): RecordedGame {
             ticket = ticket,
             kind = pending.kind.name,
             events = session.events.drop(have).map { json.encodeToJsonElement(GameEvent.serializer(), it) },
-            views = setup.seats.associate { it.heroId to json.encodeToJsonElement(GameView.serializer(), session.view(it.heroId)) },
+            views = setup.seats.associate {
+                it.heroId to
+                    json.encodeToJsonElement(GameView.serializer(), session.view(it.heroId))
+            },
             decisions = setup.seats.associate {
                 val own = if (it.heroId == pending.seat) pending.copy(id = ticket) else stub(pending)
                 it.heroId to json.encodeToJsonElement(Decision.serializer(), own)
@@ -204,7 +213,9 @@ class OnlineRecordedGameTest {
         assertEquals(STEPS, game.steps.size)
         game.start.values.forEach { assertIs<ServerMessage.GameStart>(decodeServerFrame(it.toString())) }
         game.steps.indices.forEach { step ->
-            listOf("wasp", "arien").forEach { assertIs<ServerMessage.Table>(decodeServerFrame(table(game, it, step, 0))) }
+            listOf("wasp", "arien").forEach {
+                assertIs<ServerMessage.Table>(decodeServerFrame(table(game, it, step, 0)))
+            }
         }
         assertIs<ServerMessage.End>(decodeServerFrame(game.end.toString()))
     }
