@@ -49,6 +49,8 @@ data class TableUi(
     val turnLog: List<GameEvent> = emptyList(),
     /** A full-round puzzle: the spaces the enemy's known plans go to this turn (ADR-052). */
     val planned: Set<Hex> = emptySet(),
+    /** Online (ADR-056): the person playing each hero, by hero id. */
+    val players: Map<String, String> = emptyMap(),
 ) {
     /** After the reveal: every played card in acting order, with who is done, acting and next (ADR-041). */
     val track: TurnTrack? by lazy { turnTrack(view, turnLog) { card(it)?.initiative } }
@@ -64,10 +66,12 @@ data class TableUi(
 
     /**
      * Who plays [hero], in words: "You" for the person's heroes; a puzzle's other side (seated as
-     * human in the engine, its replies come from the solver) is "The other side", not "You".
+     * human in the engine, its replies come from the solver) is "The other side", not "You". Online,
+     * the person's name.
      */
     fun controllerLabel(hero: HeroView): String = when {
         hero.heroId in mine -> "You"
+        hero.heroId in players -> players.getValue(hero.heroId)
         hero.controller == Controller.Human -> "The other side"
         else -> PlayText.controller(hero.controller)
     }
@@ -232,9 +236,13 @@ data class TableUi(
     /** The cards a hero shows face up on its dashboard (p.4 open information), newest last. */
     fun openCards(hero: HeroView): List<CardView> = hero.resolved + hero.discard
 
-    /** True when [decision] is about cards in a hand (play, defend) rather than the board. */
+    /**
+     * True when [decision] is about cards in a hand (play, defend) rather than the board. An online stub
+     * has no options: another person's DEFEND says nothing about the hand here, which stays on show.
+     */
     val handDecision: Boolean
-        get() = decision?.kind == DecisionKind.PLAY_CARD || decision?.kind == DecisionKind.DEFEND
+        get() = decision?.options?.isNotEmpty() == true &&
+            (decision.kind == DecisionKind.PLAY_CARD || decision.kind == DecisionKind.DEFEND)
 }
 
 /**

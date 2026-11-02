@@ -8,6 +8,7 @@ import dev.quinton.goa.core.game.Controller
 import dev.quinton.goa.core.game.GameReport
 import dev.quinton.goa.core.game.WinReason
 import dev.quinton.goa.core.model.match.Team
+import dev.quinton.goa.core.online.Presence
 import dev.quinton.goa.feature.board.play.review.ReviewAction
 import dev.quinton.goa.feature.board.play.review.ReviewUi
 import dev.quinton.goa.feature.board.play.table.LogLine
@@ -76,6 +77,23 @@ data class SuggestUi(val seat: String, val looking: Boolean = false, val suggest
 /** The post-game review of the person's decisions (ADR-051): running with its progress, or its [report]. */
 data class ReportUi(val done: Int = 0, val total: Int = 0, val running: Boolean = false, val report: GameReport? = null)
 
+/** What an online game adds to the table (ADR-056). */
+data class OnlineUi(
+    /** The person playing each hero, by hero id. */
+    val players: Map<String, String> = emptyMap(),
+    /** Who is here, away or being answered for, by hero id; `OnlineWords.presence` says it. */
+    val presence: Map<String, Presence> = emptyMap(),
+    /** The seat on the clock and its whole seconds left, ticking; null when nothing is running. */
+    val clockSeat: String? = null,
+    val clockSeconds: Int? = null,
+    /** From a ranked room: a result feeds the board. */
+    val ranked: Boolean = false,
+    /** Once the game has ended: whether it counted. */
+    val rated: Boolean? = null,
+    /** Why the game ended without a result, in words; [PlayUi.over] is null then. */
+    val closed: String? = null,
+)
+
 /** What TalkBack reads after something happens; [id] makes each one new. */
 data class PlayAnnouncement(val text: String, val id: Long)
 
@@ -114,6 +132,8 @@ data class PlayUi(
     val canSuggest: Boolean = false,
     /** The post-game review of the person's decisions, once asked for (ADR-051). */
     val report: ReportUi? = null,
+    /** An online game's extras (ADR-056); null at the table against the computer. */
+    val online: OnlineUi? = null,
 )
 
 /** Why there is no game to show. */
