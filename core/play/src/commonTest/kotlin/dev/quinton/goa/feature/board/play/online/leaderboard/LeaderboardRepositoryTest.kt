@@ -49,7 +49,7 @@ class LeaderboardRepositoryTest {
 
     private fun network(vararg hosts: String, schema: Int = 1) = OnlineProtocol.json.encodeToString(
         NetworkInfo.serializer(),
-        NetworkInfo(schema, 1, hosts.map { GameHost(it, "up") }, OnlineRoutes.LEADERBOARD_FILE),
+        NetworkInfo(schema, 1, hosts.map { GameHost(it, "open") }),
     )
 
     private fun repository(web: LeaderboardFetcher, cache: LeaderboardCache = FakeCache()) =

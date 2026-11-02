@@ -138,17 +138,20 @@ def validate(raw):
 
 
 def is_new(incoming, current, now_ms):
-    """True for a newer match log, False for the same one; a clock running backwards is rejected."""
+    """True when the board says something new; a clock running backwards is rejected.
+
+    A rename or a deleted account changes the rows and not the log, and a deleted name must leave this file.
+    """
     if incoming["generatedAt"] > now_ms + MAX_FUTURE_MS:
         raise Rejected("generatedAt is more than a day in the future")
     if current is None:
         return True
     if incoming["generatedAt"] < current["generatedAt"]:
         raise Rejected("generatedAt is older than the published copy")
-    if incoming["logSha256"] == current["logSha256"]:
+    if all(incoming[k] == current[k] for k in ("logSha256", "matches", "eloConfig", "players", "heroes")):
         return False
     if incoming["generatedAt"] == current["generatedAt"]:
-        raise Rejected("a different match log with the same generatedAt")
+        raise Rejected("a different board with the same generatedAt")
     return True
 
 

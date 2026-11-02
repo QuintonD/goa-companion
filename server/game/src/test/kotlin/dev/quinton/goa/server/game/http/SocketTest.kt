@@ -273,7 +273,7 @@ class SocketTest {
         val code = room(host.token)
         ws.play(host.token) {
             sendMessage(ClientMessage.Ready(code, true))
-            assertThat((next() as ServerMessage.Refused).reason).isEqualTo(Refusal.ROOM_TAKEN)
+            assertThat((next() as ServerMessage.Refused).reason).isEqualTo(Refusal.NOT_READY)
             next()
             sendMessage(ClientMessage.PickSeat(code, Team.RED, 0, "wasp"))
             nextOf<ServerMessage.Lobby> { lobby -> lobby.room.seats.any { it.heroId == "wasp" } }
@@ -292,7 +292,7 @@ class SocketTest {
         val code = room(host.token)
         ws.play(host.token) {
             sendMessage(ClientMessage.Start(code))
-            assertThat(nextOf<ServerMessage.Refused>().reason).isEqualTo(Refusal.ROOM_TAKEN)
+            assertThat(nextOf<ServerMessage.Refused>().reason).isEqualTo(Refusal.NOT_READY)
             assertThat(rooms.games).isEmpty()
 
             join(guest.token, code)
@@ -304,10 +304,10 @@ class SocketTest {
                 sendMessage(ClientMessage.PickSeat(code, Team.BLUE, 0, "arien"))
                 nextOf<ServerMessage.Lobby> { lobby -> lobby.room.seats.any { it.heroId == "arien" } }
                 sendMessage(ClientMessage.Start(code))
-                assertThat(nextOf<ServerMessage.Refused>().reason).isEqualTo(Refusal.ROOM_TAKEN)
+                assertThat(nextOf<ServerMessage.Refused>().reason).isEqualTo(Refusal.NOT_HOST)
             }
             sendMessage(ClientMessage.Start(code))
-            assertThat(nextOf<ServerMessage.Refused>().reason).isEqualTo(Refusal.ROOM_TAKEN)
+            assertThat(nextOf<ServerMessage.Refused>().reason).isEqualTo(Refusal.NOT_READY)
             assertThat(rooms.games).isEmpty()
         }
     }

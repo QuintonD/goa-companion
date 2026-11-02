@@ -143,8 +143,8 @@ native clients send none. CORS follows the relay: an exact list, no credentials.
   limit (1009), an unreadable frame (1003), a queue that fell too far behind or a socket stuck for 30 s
   (1013): reconnect and `Resume` from the events you hold.
 - **Refused, socket stays:** too many frames (`RATE_LIMITED`, with seconds), and anything the lobby says no
-  to, followed by a `Lobby` frame with the room as it stands. A socket can only say a `Refusal`: every "not
-  now" of the lobby is `ROOM_TAKEN` there (not the host, not ready, seat or hero taken, 3 games running).
+  to, followed by a `Lobby` frame with the room as it stands: `NOT_HOST`, `NOT_READY`, `TOO_MANY_GAMES`,
+  `TOO_MANY_ROOMS`, and `ROOM_TAKEN` for a seat or hero that is gone or a request the lobby can't use.
 - **The outbound queue** keeps the latest `Table` of each game and moves it to the tail, with the events of
   the tables it replaced in front of its own: a client that misses an event can't get it back. So a `Table`
   can start earlier than the last one ended; apply it from `eventsFrom` and skip what you hold.

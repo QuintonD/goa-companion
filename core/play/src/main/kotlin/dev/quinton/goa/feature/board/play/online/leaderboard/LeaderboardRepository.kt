@@ -72,17 +72,12 @@ class LeaderboardRepository(
 
     private fun networkOf(text: String): NetworkInfo? =
         decoded { OnlineProtocol.json.decodeFromString(NetworkInfo.serializer(), text) }
-            ?.takeIf { it.schema in 1..NETWORK_SCHEMA }
+            ?.takeIf { it.schema in 1..NetworkInfo.SCHEMA }
 
     /** kotlinx.serialization's errors are all [IllegalArgumentException]s. */
     private inline fun <T> decoded(decode: () -> T): T? = try {
         decode()
     } catch (_: IllegalArgumentException) {
         null
-    }
-
-    private companion object {
-        /** The `network.json` schema this app reads. */
-        const val NETWORK_SCHEMA = 1
     }
 }

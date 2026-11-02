@@ -195,6 +195,19 @@ enum class Refusal {
     /** No new rooms while a deploy waits for running games to finish. */
     @SerialName("draining")
     DRAINING,
+
+    @SerialName("not_host")
+    NOT_HOST,
+
+    /** Every seat must be taken, with a hero, and ready. */
+    @SerialName("not_ready")
+    NOT_READY,
+
+    @SerialName("too_many_games")
+    TOO_MANY_GAMES,
+
+    @SerialName("too_many_rooms")
+    TOO_MANY_ROOMS,
 }
 
 @Serializable
@@ -316,9 +329,13 @@ data class NetworkInfo(
     val schema: Int,
     val minProtocol: Int,
     val games: List<GameHost>,
-    val leaderboard: String,
-)
+) {
+    companion object {
+        const val SCHEMA: Int = 1
+    }
+}
 
+/** [status] is `open` or `closed`, a person's choice and not a health check: a dead host just fails. */
 @Serializable
 data class GameHost(val origin: String, val status: String, val note: String? = null)
 
@@ -327,7 +344,10 @@ data class GameHost(val origin: String, val status: String, val note: String? = 
 data class LeaderboardSnapshot(
     val schema: Int,
     val generatedAt: Long,
-    /** Hash of the match log it was derived from: the publisher commits only when this changes. */
+    /**
+     * Hash of the match log it was derived from. A rename or a deleted account changes the board and not
+     * the log, so "is this board new?" compares the rows too: a deleted name must leave the public file.
+     */
     val logSha256: String,
     val matches: Int,
     val eloConfig: Int,

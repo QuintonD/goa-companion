@@ -25,7 +25,8 @@ sudo tailscale funnel status    # "https://oldboi.taila4d38d.ts.net:8443 (Funnel
 Before Funnel, the same port was tailnet-only with
 `sudo tailscale serve --bg --https=8443 http://127.0.0.1:8787`. To take the relay off the public
 internet again without touching 443: `sudo tailscale funnel --https=8443 off` (the tailnet-only
-serve can then be put back with the command above). Tailscale adds `X-Forwarded-For`, so the
+serve can then be put back with the command above). **That removes every handler on the port,
+the game server's `/game` too (ADR-056)**: put it back with `deploy/game/funnel.sh`. Tailscale adds `X-Forwarded-For`, so the
 relay's per-client rate limit sees each phone separately.
 
 ## Deploy and update
@@ -84,5 +85,5 @@ Losing the directory is not a disaster: phones keep the full log and the next sy
 
 ```sh
 docker compose -f ~/goa-companion/deploy/relay/compose.yaml down     # stop (data stays)
-sudo tailscale funnel --https=8443 off                               # unpublish
+sudo tailscale funnel --https=8443 off                               # unpublish, /game too (ADR-056)
 ```

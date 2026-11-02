@@ -57,6 +57,7 @@ import io.ktor.server.websocket.webSocket
 import io.ktor.util.AttributeKey
 import io.ktor.utils.io.readBuffer
 import java.nio.file.Files
+import java.security.MessageDigest
 import java.sql.SQLException
 import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.Duration.Companion.seconds
@@ -314,7 +315,7 @@ private fun Route.rooms(services: GameServices) {
 private fun Route.leaderboard(services: GameServices) {
     get(OnlineRoutes.LEADERBOARD) {
         val board = services.leaderboard.snapshot()
-        val etag = "\"${board.logSha256}\""
+        val etag = "\"${boardTag(board)}\""
         call.response.header(HttpHeaders.ETag, etag)
         val asked = call.request.headers[HttpHeaders.IfNoneMatch].orEmpty()
             .split(',').map { it.trim().removePrefix("W/") }
@@ -324,6 +325,12 @@ private fun Route.leaderboard(services: GameServices) {
             call.respondJson(LeaderboardSnapshot.serializer(), board)
         }
     }
+}
+
+/** What the board says, whenever it was made: a rename or a deleted name changes it, the log's hash doesn't. */
+private fun boardTag(board: LeaderboardSnapshot): String {
+    val text = OnlineProtocol.json.encodeToString(LeaderboardSnapshot.serializer(), board.copy(generatedAt = 0))
+    return MessageDigest.getInstance("SHA-256").digest(text.toByteArray()).joinToString("") { "%02x".format(it) }
 }
 
 private suspend fun ApplicationCall.respondRoom(room: RoomView) = respondJson(RoomView.serializer(), room)

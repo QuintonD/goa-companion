@@ -8,6 +8,7 @@ import dev.quinton.goa.core.online.ApiError
 import dev.quinton.goa.core.online.ClientMessage
 import dev.quinton.goa.core.online.CreateRoom
 import dev.quinton.goa.core.online.HealthInfo
+import dev.quinton.goa.core.online.LeaderRow
 import dev.quinton.goa.core.online.LeaderboardSnapshot
 import dev.quinton.goa.core.online.RoomCreated
 import dev.quinton.goa.core.online.RoomStatus
@@ -274,18 +275,31 @@ class RoomRoutesTest {
     fun theLeaderboardIsOpenAndAnswersItsETag() = serverTest(leaderboard = LeaderboardSource { board("sha-1") }) {
         val first = http.get("/v1/leaderboard")
         assertThat(first.status).isEqualTo(HttpStatusCode.OK)
-        assertThat(first.headers[HttpHeaders.ETag]).isEqualTo("\"sha-1\"")
+        val etag = first.headers[HttpHeaders.ETag]!!
         assertThat(first.headers[HttpHeaders.CacheControl]).isEqualTo("no-cache")
         assertThat(LeaderboardSnapshot.serializer().parse(first.bodyAsText()).logSha256).isEqualTo("sha-1")
 
-        for (asked in listOf("\"sha-1\"", "W/\"sha-1\"", "\"other\", \"sha-1\"", "*")) {
+        for (asked in listOf(etag, "W/$etag", "\"other\", $etag", "*")) {
             val same = http.get("/v1/leaderboard") { header(HttpHeaders.IfNoneMatch, asked) }
             assertThat(same.status).isEqualTo(HttpStatusCode.NotModified)
-            assertThat(same.headers[HttpHeaders.ETag]).isEqualTo("\"sha-1\"")
+            assertThat(same.headers[HttpHeaders.ETag]).isEqualTo(etag)
             assertThat(same.bodyAsText()).isEmpty()
         }
         val other = http.get("/v1/leaderboard") { header(HttpHeaders.IfNoneMatch, "\"sha-0\"") }
         assertThat(other.status).isEqualTo(HttpStatusCode.OK)
+    }
+
+    @Test
+    fun theETagFollowsWhatTheBoardSaysAndNotWhenItWasMade() {
+        var now = board("sha-1").copy(generatedAt = 1, players = listOf(LeaderRow("a1", "Sam", 1000, 5, 3)))
+        serverTest(leaderboard = LeaderboardSource { now }) {
+            val first = http.get("/v1/leaderboard").headers[HttpHeaders.ETag]
+            now = now.copy(generatedAt = 2)
+            assertThat(http.get("/v1/leaderboard").headers[HttpHeaders.ETag]).isEqualTo(first)
+            // A deleted account leaves the log as it is: the name must still leave every copy.
+            now = now.copy(players = listOf(LeaderRow("a1", "Former player", 1000, 5, 3)))
+            assertThat(http.get("/v1/leaderboard").headers[HttpHeaders.ETag]).isNotEqualTo(first)
+        }
     }
 
     @Test

@@ -57,6 +57,14 @@ object OnlineWords {
 
             Refusal.DRAINING ->
                 "The server is about to be updated, so there are no new rooms for now. Running games carry on."
+
+            Refusal.NOT_HOST -> "Only the person who made the room can start it."
+
+            Refusal.NOT_READY -> "Every seat needs a player with a hero, and everyone ready."
+
+            Refusal.TOO_MANY_GAMES -> "You already have 3 games running. Finish or leave one first."
+
+            Refusal.TOO_MANY_ROOMS -> "You already have 3 open rooms. Start or leave one first."
         }
         return if (retryAfterSeconds == null) words else "$words ${tryAgainIn(retryAfterSeconds)}"
     }

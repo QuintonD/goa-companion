@@ -221,6 +221,12 @@ class Monotonic(unittest.TestCase):
         with self.assertRaisesRegex(v.Rejected, "older"):
             v.is_new(snapshot(), snapshot(generatedAt=NOW + 1), NOW + 1)
 
+    def test_a_deleted_name_is_new_though_the_log_is_the_same(self):
+        row = {"id": "a1", "name": "Sam", "rating": 1000, "games": 5, "wins": 3}
+        current = snapshot(generatedAt=NOW - 1000, players=[row])
+        gone = snapshot(players=[dict(row, name="Former player")])
+        self.assertTrue(v.is_new(gone, current, NOW))
+
     def test_different_log_same_time(self):
         with self.assertRaisesRegex(v.Rejected, "same generatedAt"):
             v.is_new(snapshot(), snapshot(logSha256=HASH_B), NOW)
@@ -286,10 +292,9 @@ class Template(unittest.TestCase):
     def test_network_file(self):
         with open(os.path.join(ROOT, "network.json"), encoding="utf-8") as f:
             network = json.load(f)
-        self.assertEqual(set(network), {"schema", "minProtocol", "games", "leaderboard"})
+        self.assertEqual(set(network), {"schema", "minProtocol", "games"})
         self.assertEqual((network["schema"], network["minProtocol"]), (1, 1))
         self.assertEqual(network["games"], [{"origin": "https://oldboi.taila4d38d.ts.net:8443/game", "status": "open"}])
-        self.assertEqual(network["leaderboard"], "https://quintond.github.io/goa-leaderboards/leaderboard.json")
 
     def test_every_action_is_pinned_to_a_commit(self):
         with open(os.path.join(ROOT, ".github", "workflows", "publish.yml"), encoding="utf-8") as f:

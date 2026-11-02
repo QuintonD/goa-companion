@@ -5,6 +5,7 @@ import dev.quinton.goa.core.game.GameSetup
 import dev.quinton.goa.core.online.SeatPlayer
 import dev.quinton.goa.core.online.TurnRef
 import dev.quinton.goa.server.game.http.gameServerModule
+import dev.quinton.goa.server.game.ratings.MatchLogLeaderboard
 import dev.quinton.goa.server.game.room.GameRooms
 import dev.quinton.goa.server.game.room.LeaderboardSource
 import dev.quinton.goa.server.game.room.SeatLink
@@ -21,7 +22,12 @@ fun main() {
     val engine = loadEngine(config.assetsDir)
     // The other streams join here (docs/ONLINE.md "Streams"): the room core takes the ratings' MatchMapper.
     val rooms: GameRooms = RoomsNotJoined
-    val leaderboard: LeaderboardSource = LeaderboardSource { error("The leaderboard stream has not joined yet") }
+    val leaderboard: LeaderboardSource = MatchLogLeaderboard(
+        matches = store::matches,
+        names = { store.names(store.matches().flatMap { m -> m.participants.map { it.playerId } }.toSet()) },
+        heroName = { engine.data.catalog.hero(it)?.name },
+        clock = System::currentTimeMillis,
+    )
     runBlocking {
         store.markStartedRooms()
         rooms.restore()
