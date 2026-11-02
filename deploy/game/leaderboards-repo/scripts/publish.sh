@@ -43,7 +43,7 @@ main() {
     # server that is away must not end the publishing.
     last="$(git log -1 --format=%ct)"
     if (($(date +%s) - last > KEEPALIVE_SECONDS)); then
-        date -u +%F >heartbeat
+        date -u +%FT%TZ >heartbeat
         commit "keepalive" heartbeat
     fi
 
