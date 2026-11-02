@@ -14,6 +14,7 @@ import dev.quinton.goa.server.game.store.GameRow
 import dev.quinton.goa.server.game.store.GameSeatRow
 import dev.quinton.goa.server.game.store.GameStore
 import dev.quinton.goa.server.game.store.RunningGame
+import java.sql.SQLException
 import java.util.UUID
 import java.util.concurrent.ConcurrentHashMap
 import kotlin.coroutines.cancellation.CancellationException
@@ -93,35 +94,59 @@ class RoomCore(
         }
     }
 
+    /** Each game on its own: one that can't be brought back must not keep the server, or the others, down. */
+    @Suppress("TooGenericExceptionCaught") // whatever a store does here, the server must still come up
     override suspend fun restore() {
-        val running = store.runningGames()
-        for (game in running) restoreOne(game)
-        log.info("Restored {} games of {} found", live.size, running.size)
+        val ids = try {
+            store.runningGameIds()
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            log.error("Running games can't be listed, so none are restored", e)
+            return
+        }
+        for (id in ids) restoreGame(id)
+        log.info("Restored {} games of {} found", live.size, ids.size)
     }
 
-    @Suppress("TooGenericExceptionCaught") // an answer that no longer fits may throw anything a card script can
+    /** An answer that no longer fits may throw anything a card script can, a row that can't be read likewise. */
+    @Suppress("TooGenericExceptionCaught")
+    private suspend fun restoreGame(id: String) {
+        try {
+            restoreOne(store.runningGame(id))
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: SQLException) {
+            log.error("Game {} can't be read from the store, so it is skipped: {}", id, e.javaClass.simpleName)
+        } catch (e: Exception) {
+            voidBroken(id, e)
+        } catch (e: StackOverflowError) {
+            voidBroken(id, e)
+        }
+    }
+
+    /** Failures quote what they failed on, which may be a hidden card: only a replay's own words get logged. */
+    @Suppress("TooGenericExceptionCaught")
+    private suspend fun voidBroken(id: String, failure: Throwable) {
+        log.warn("Game {} is void: {}", id, (failure as? PastChanged)?.message ?: failure.javaClass.simpleName)
+        try {
+            val accounts = store.accountsOf(id)
+            store.void(id, VoidReason.RULES_CHANGED, now())
+            val end = ServerMessage.End(id, winner = null, reason = null, rated = false, voided = VoidReason.RULES_CHANGED)
+            rememberClosed(id, end, accounts)
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            log.error("Game {} can't be voided either, so it is skipped: {}", id, e.javaClass.simpleName)
+        }
+    }
+
     private suspend fun restoreOne(game: RunningGame) {
         val id = game.game.id
         if (game.game.rulesBuild != rulesBuild) {
             log.info("Game {} began on rules {}, now {}: checking its past", id, game.game.rulesBuild, rulesBuild)
         }
-        val replayed = try {
-            Replay.run(engine, game.game, game.answers)
-        } catch (e: CancellationException) {
-            throw e
-        } catch (e: Exception) {
-            log.warn("Game {} is void: {}", id, e.message)
-            store.void(id, VoidReason.RULES_CHANGED, now())
-            val end = ServerMessage.End(
-                id,
-                winner = null,
-                reason = null,
-                rated = false,
-                voided = VoidReason.RULES_CHANGED,
-            )
-            rememberClosed(id, end, game.seats.map { it.accountId }.toSet())
-            return
-        }
+        val replayed = Replay.run(engine, game.game, game.answers)
         val players = game.seats.sortedBy { it.seatOrder }.map { s ->
             SeatPlayer(s.heroId, s.accountId, names.nameOf(s.accountId) ?: DEFAULT_NAME, s.team)
         }

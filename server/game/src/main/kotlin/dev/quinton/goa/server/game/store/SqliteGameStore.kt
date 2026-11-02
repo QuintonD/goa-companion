@@ -21,6 +21,7 @@ import java.util.concurrent.TimeUnit
 import kotlinx.coroutines.asCoroutineDispatcher
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.Json
+import org.slf4j.LoggerFactory
 
 /**
  * SQLite on one connection, on one thread: JDBC never blocks a CIO thread and writes never interleave.
@@ -186,39 +187,58 @@ class SqliteGameStore private constructor(private val connection: Connection) :
         Unit
     }
 
-    /** Oldest game first, each with its seats in seat order and its answers in the order they were given. */
-    override suspend fun runningGames(): List<RunningGame> = read {
-        val games = query(
-            """
-            SELECT id, room_code, setup_json, start_save_json, rules_build, engine_version, ranked, created_at
-            FROM games WHERE status = 'running' ORDER BY created_at, id
-            """,
-        ) { rows -> rows.toList(::gameRow) }
-        games.map { game ->
-            RunningGame(
-                game = game,
-                seats = gameSeats(game.id),
-                answers = query(
-                    """
-                    SELECT seq, decision_id, seat, choice_json, origin, at, events_hash, state_hash
-                    FROM answers WHERE game_id = ? ORDER BY seq
-                    """,
-                    game.id,
-                ) { rows -> rows.toList { storedAnswer(game.id, it) } },
-                locks = query(
-                    """
-                    SELECT seat, ordinal, round, turn, grp, choice_json, origin, at
-                    FROM locks WHERE game_id = ? ORDER BY seat, ordinal
-                    """,
-                    game.id,
-                ) { rows -> rows.toList { storedLock(game.id, it) } },
-            )
+    override suspend fun runningGameIds(): List<String> = read {
+        query("SELECT id FROM games WHERE status = 'running' ORDER BY created_at, id") { rows ->
+            rows.toList { it.getString(1) }
         }
     }
 
+    /** With its seats in seat order and its answers in the order they were given. */
+    override suspend fun runningGame(id: String): RunningGame = read {
+        val game = query(
+            """
+            SELECT id, room_code, setup_json, start_save_json, rules_build, engine_version, ranked, created_at
+            FROM games WHERE id = ? AND status = 'running'
+            """,
+            id,
+        ) { rows -> rows.toList(::gameRow) }.single()
+        RunningGame(
+            game = game,
+            seats = gameSeats(id),
+            answers = query(
+                """
+                SELECT seq, decision_id, seat, choice_json, origin, at, events_hash, state_hash
+                FROM answers WHERE game_id = ? ORDER BY seq
+                """,
+                id,
+            ) { rows -> rows.toList { storedAnswer(id, it) } },
+            locks = query(
+                """
+                SELECT seat, ordinal, round, turn, grp, choice_json, origin, at
+                FROM locks WHERE game_id = ? ORDER BY seat, ordinal
+                """,
+                id,
+            ) { rows -> rows.toList { storedLock(id, it) } },
+        )
+    }
+
+    override suspend fun accountsOf(gameId: String): Set<String> = read {
+        query("SELECT account_id FROM game_seats WHERE game_id = ?", gameId) { rows ->
+            rows.toList { it.getString(1) }.toSet()
+        }
+    }
+
+    /** A row that can't be read is left out and logged: one must not take the whole board with it. */
     override suspend fun matches(): List<Match> = read {
-        query("SELECT match_json FROM matches ORDER BY played_at, created_at, id") { rows ->
-            rows.toList { JSON.decodeFromString(Match.serializer(), it.getString(1)) }
+        query("SELECT id, match_json FROM matches ORDER BY played_at, created_at, id") { rows ->
+            rows.toList { row ->
+                try {
+                    JSON.decodeFromString(Match.serializer(), row.getString(2))
+                } catch (failure: IllegalArgumentException) {
+                    log.error("Match {} can't be read: {}", row.getString(1), failure.javaClass.simpleName)
+                    null
+                }
+            }.filterNotNull()
         }
     }
 
@@ -454,14 +474,17 @@ class SqliteGameStore private constructor(private val connection: Connection) :
     override suspend fun gameSummaries(gameIds: List<String>): List<GameSummary> = read {
         gameIds.mapNotNull { id ->
             query("SELECT room_code, setup_json FROM games WHERE id = ?", id) { rows ->
-                if (rows.next()) {
-                    val mapId = JSON.decodeFromString(GameSetup.serializer(), rows.getString(2)).mapId
-                    rows.getString(1) to mapId
-                } else {
-                    null
-                }
+                if (rows.next()) rows.getString(1) to mapOfSetup(id, rows.getString(2)) else null
             }?.let { (roomCode, mapId) -> GameSummary(id, roomCode, mapId, gameSeats(id)) }
         }
+    }
+
+    /** A game too damaged to replay is still listed, so that its players can open it and hear it was voided. */
+    private fun mapOfSetup(gameId: String, setupJson: String): String = try {
+        JSON.decodeFromString(GameSetup.serializer(), setupJson).mapId
+    } catch (failure: IllegalArgumentException) {
+        log.warn("Game {}: its setup can't be read: {}", gameId, failure.javaClass.simpleName)
+        ""
     }
 
     override suspend fun isAvailable(): Boolean = try {
@@ -521,6 +544,7 @@ class SqliteGameStore private constructor(private val connection: Connection) :
     }.sortedWith(compareBy({ it.team.ordinal }, { it.index }))
 
     companion object {
+        private val log = LoggerFactory.getLogger(SqliteGameStore::class.java)
         private const val DATABASE_FILE = "games.sqlite"
         private const val TEMP_DIR_PROPERTY = "org.sqlite.tmpdir"
         private const val BUSY_TIMEOUT_MILLIS = 5_000

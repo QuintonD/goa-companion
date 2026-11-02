@@ -59,6 +59,7 @@ import io.ktor.utils.io.readBuffer
 import java.nio.file.Files
 import java.security.MessageDigest
 import java.sql.SQLException
+import kotlin.coroutines.cancellation.CancellationException
 import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.Duration.Companion.seconds
 import kotlinx.coroutines.delay
@@ -226,9 +227,12 @@ fun Application.gameServerModule(
     launch {
         while (isActive) {
             delay(SWEEP_MILLIS.milliseconds)
+            @Suppress("TooGenericExceptionCaught") // A bad row must not end the sweeps for good.
             try {
                 services.lobby.sweep()
-            } catch (failure: SQLException) {
+            } catch (failure: CancellationException) {
+                throw failure
+            } catch (failure: Exception) {
                 log.warn("room sweep failed: {}", failure.javaClass.simpleName)
             }
         }

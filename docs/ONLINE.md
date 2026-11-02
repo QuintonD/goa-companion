@@ -120,6 +120,11 @@ past. Each game stores `rules_build` (a hash of the rules sources and catalog) a
 hash of the event text; each `TurnStarted`, a hash of the state. On restart: replay and compare. On a
 match, carry on, even across builds. On a mismatch or a throw, void the game, unrated, and tell the
 players in words. A deploy drains first: new rooms are refused for up to `GOA_GAME_DRAIN_HOURS`.
+
+A game that can't be read or rebuilt at all (a damaged row, an exception anywhere in bringing it back) is
+voided the same way, and the rest are restored; if it can't even be voided it is logged and skipped, with
+no effect on the others. The server always comes up.
+
 The signal is a file, `drain` in the data directory, which can come and go while the server runs. While
 it exists the server refuses new rooms (`Refusal.DRAINING`) and `/v1/health` says `"status":"draining"`;
 `rooms` there counts running games only, because that is what the deploy waits for. Open rooms are in

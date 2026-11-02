@@ -90,7 +90,16 @@ interface GameStore {
 
     suspend fun void(gameId: String, reason: VoidReason, at: Long)
 
-    suspend fun runningGames(): List<RunningGame>
+    /** Oldest first. Reads ids only, so one game's bad row can't stop the others being looked at. */
+    suspend fun runningGameIds(): List<String>
+
+    /** One game, whole: throws if any of its rows can't be read, and the room decides what that means. */
+    suspend fun runningGame(id: String): RunningGame
+
+    /** Who sits in a game, from the plain ids alone: readable when the game itself is not. */
+    suspend fun accountsOf(gameId: String): Set<String>
+
+    suspend fun runningGames(): List<RunningGame> = runningGameIds().map { runningGame(it) }
 
     /** The rated log, in [dev.quinton.goa.core.domain.rating.EloCalculator]'s replay order. */
     suspend fun matches(): List<Match>
@@ -134,9 +143,14 @@ class InMemoryGameStore : GameStore {
         games.remove(gameId)
     }
 
-    override suspend fun runningGames(): List<RunningGame> = games.values.map { g ->
-        RunningGame(g, seats[g.id].orEmpty(), answers[g.id].orEmpty().toList(), locks[g.id].orEmpty().toList())
+    override suspend fun runningGameIds(): List<String> = games.keys.toList()
+
+    override suspend fun runningGame(id: String): RunningGame {
+        val g = games.getValue(id)
+        return RunningGame(g, seats[id].orEmpty(), answers[id].orEmpty().toList(), locks[id].orEmpty().toList())
     }
+
+    override suspend fun accountsOf(gameId: String): Set<String> = seats[gameId].orEmpty().map { it.accountId }.toSet()
 
     override suspend fun matches(): List<Match> =
         log.sortedWith(compareBy({ it.playedAt }, { it.createdAt }, { it.id }))
