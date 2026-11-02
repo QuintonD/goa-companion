@@ -526,6 +526,15 @@ passes (including an in-place upgrade from the morning build with real data). Ev
 - [x] Reopening a game and taking back no longer replay the whole game to learn whether there is a move to take back; the coach no longer builds the engine on the main thread; the web game's screen stays awake after an app switch — 2026-11-02, `SessionTest`, suites green; the wake lock not yet seen on an iPhone
 - [ ] On the S25 Ultra: five labels and the Play tab in the hand
 
+## M28 — Online games and public leaderboards (ADR-056, [ONLINE.md](ONLINE.md))
+- [ ] Wire contract, server skeleton, client seam
+- [ ] Rooms: simultaneous questions, seat projection, clocks, takeover, replay; hidden information proven by byte-identical frames
+- [ ] Server: accounts, lobby, SQLite, WebSocket, CORS and Origin rules
+- [ ] Leaderboards derived from the match log; Pages first, oldboi second
+- [ ] Android and web online modes
+- [ ] Live on oldboi and Pages; a full game through the real server
+- [ ] On the S25 Ultra and a real iPhone: a full online game on mobile data
+
 ## M5 — Polish & release readiness
 - [x] Accessibility pass: ATF checks on 25 screens (no errors), contrast fixes, TalkBack labels, font scale 2.0 screenshots — 2026-10-17 (emulator/JVM)
 - [ ] Tablet sanity check

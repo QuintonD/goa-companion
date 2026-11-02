@@ -26,6 +26,9 @@ sealed interface TurnStatus {
     /** Simultaneous card play (p.7): the person's card is down, the computer's heroes still choose theirs. */
     data class Waiting(val heroIds: List<String>) : TurnStatus
 
+    /** Online (ADR-056): another person is being asked; only who, never what. */
+    data class OtherPlayer(val heroId: String, val name: String) : TurnStatus
+
     data object Over : TurnStatus
 }
 

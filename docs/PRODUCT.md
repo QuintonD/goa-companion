@@ -619,13 +619,13 @@ with the sync group), Group sync, export/import, a measure of the computer's spe
 30 s at strength 10, cancellable, a line to copy and send back; ADR-050), About/credits.
 
 ## Non-goals (v1)
-- Online play, accounts, cloud sync, ads, analytics SDKs: not in v1, no longer ruled out
-  (ADR-034). Group sync is phone to phone at the table (ADR-025) and through the group's own
-  encrypted sync server (ADR-036); no third-party cloud.
+- Cloud sync, ads, analytics SDKs: not in v1, no longer ruled out (ADR-034). Group sync is phone to
+  phone at the table (ADR-025) and through the group's own encrypted sync server (ADR-036); no
+  third-party cloud. Online games have their own accounts, with no personal data (ADR-056).
 - Play Store release: not in v1 (sideloaded); bundled official assets would need permission
   (ADR-034).
-- Online play and pass-and-play between several humans on opposing teams in Play (9); one human
-  team per game.
+- Pass-and-play between several humans on opposing teams in Play (9); one human team per game on
+  one phone. Opposing humans play online instead, each on their own phone (ADR-056).
 - A native iOS app: iPhones use the web app instead (below). Tablet-first layouts (phone-first;
   tablets must not break).
 

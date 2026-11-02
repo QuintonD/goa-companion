@@ -48,6 +48,10 @@ fakeIndexedDb = "6.2.6"
 # Invite QR codes in the web app (W2): drawing (MIT) and reading with the camera (Apache-2.0).
 qrcodeGenerator = "2.0.4"
 jsQr = "1.4.0"
+# Game server (ADR-056): the relay's Ktor; SQLite for answers and the match log.
+ktor = "3.6.0"
+sqliteJdbc = "3.54.1.0"
+slf4j = "2.0.17"
 
 [libraries]
 androidx-core-ktx = { module = "androidx.core:core-ktx", version.ref = "coreKtx" }
@@ -121,6 +125,13 @@ pdfbox = { module = "org.apache.pdfbox:pdfbox", version.ref = "pdfbox" }
 compose-html-core = { module = "org.jetbrains.compose.html:html-core", version.ref = "composeHtml" }
 compose-html-svg = { module = "org.jetbrains.compose.html:html-svg", version.ref = "composeHtml" }
 compose-runtime = { module = "org.jetbrains.compose.runtime:runtime", version.ref = "composeHtml" }
+ktor-server-core = { module = "io.ktor:ktor-server-core", version.ref = "ktor" }
+ktor-server-cio = { module = "io.ktor:ktor-server-cio", version.ref = "ktor" }
+ktor-server-websockets = { module = "io.ktor:ktor-server-websockets", version.ref = "ktor" }
+ktor-server-status-pages = { module = "io.ktor:ktor-server-status-pages", version.ref = "ktor" }
+ktor-server-test-host = { module = "io.ktor:ktor-server-test-host", version.ref = "ktor" }
+sqlite-jdbc = { module = "org.xerial:sqlite-jdbc", version.ref = "sqliteJdbc" }
+slf4j-simple = { module = "org.slf4j:slf4j-simple", version.ref = "slf4j" }
 
 # build-logic
 android-gradlePlugin = { module = "com.android.tools.build:gradle", version.ref = "agp" }

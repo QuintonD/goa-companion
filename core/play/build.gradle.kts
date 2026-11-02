@@ -14,6 +14,7 @@ kotlin {
             api(projects.core.domain)
             api(projects.core.game)
             api(projects.core.dataContracts)
+            api(projects.core.online)
             api(libs.kotlinx.serialization.json)
         }
     }

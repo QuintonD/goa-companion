@@ -51,6 +51,15 @@ class GameEngine(
         return EngineSession.replay(data, saved.setup, payload.initial, payload.answers)
     }
 
+    /**
+     * [start], a save made when the game began, with [answers] replayed on it: the game server keeps
+     * answers one row at a time (ADR-056). Throws if an answer no longer fits this engine.
+     */
+    fun restoreFrom(start: SavedGame, answers: List<AnswerRecord>): GameSession {
+        val payload = EngineSession.JSON.decodeFromString(SavedPayload.serializer(), start.payload)
+        return EngineSession.replay(data, start.setup, payload.initial, payload.answers + answers)
+    }
+
     private fun validate(setup: GameSetup) {
         require(setup.mapId in data.maps) { "Unknown map ${setup.mapId}" }
         for (s in setup.seats) {

@@ -32,6 +32,9 @@ fun gamePeek(play: PlayUi): PanelPeek {
 
         is TurnStatus.Waiting -> PanelPeek("Your card is down · waiting for the others to play (p.7)")
 
+        is TurnStatus.OtherPlayer ->
+            PanelPeek(text = "is choosing", label = status.name, team = table.heroView(status.heroId)?.team)
+
         TurnStatus.Over -> PanelPeek(play.recent.lastOrNull().orEmpty())
     }
 }

@@ -1,0 +1,135 @@
+package dev.quinton.goa.server.game.store
+
+import dev.quinton.goa.core.game.Choice
+import dev.quinton.goa.core.game.GameLength
+import dev.quinton.goa.core.game.GameSetup
+import dev.quinton.goa.core.game.SavedGame
+import dev.quinton.goa.core.game.engine.AnswerRecord
+import dev.quinton.goa.core.model.match.Match
+import dev.quinton.goa.core.model.match.Team
+import dev.quinton.goa.core.online.VoidReason
+
+/** Who produced an answer: the person, the clock's computer, or the server's lone-option pass. */
+enum class AnswerOrigin { HUMAN, CLOCK, AUTO }
+
+data class GameRow(
+    val id: String,
+    val roomCode: String,
+    val setup: GameSetup,
+    /** The game at its start: replaying [StoredAnswer]s on this rebuilds it. Never leaves the server. */
+    val start: SavedGame,
+    val rulesBuild: String,
+    val engineVersion: Int,
+    val ranked: Boolean,
+    val mapId: String,
+    val length: GameLength,
+    val createdAt: Long,
+)
+
+data class GameSeatRow(
+    val gameId: String,
+    val heroId: String,
+    val accountId: String,
+    val team: Team,
+    val handicap: Boolean,
+    val seatOrder: Int,
+)
+
+data class StoredAnswer(
+    val gameId: String,
+    val seq: Long,
+    val record: AnswerRecord,
+    val origin: AnswerOrigin,
+    val at: Long,
+    /** Rolling hash of the event text so far; [stateHash] at turn starts. Replay compares both. */
+    val eventsHash: String,
+    val stateHash: String?,
+)
+
+/** An answer to a simultaneous question that the engine has not asked yet (docs/ONLINE.md). */
+data class StoredLock(
+    val gameId: String,
+    val seat: String,
+    val ordinal: Int,
+    val round: Int,
+    val turn: Int,
+    val group: String,
+    val choice: Choice,
+    val origin: AnswerOrigin,
+    val at: Long,
+)
+
+data class RunningGame(
+    val game: GameRow,
+    val seats: List<GameSeatRow>,
+    val answers: List<StoredAnswer>,
+    val locks: List<StoredLock>,
+)
+
+data class GameResult(val finishedAt: Long, val rated: Boolean)
+
+/**
+ * The durable side of games. An append is on disk when it returns: a frame about an answer goes out
+ * only afterwards. Ratings are not here on purpose: they are derived from [matches].
+ */
+interface GameStore {
+    suspend fun createGame(game: GameRow, seats: List<GameSeatRow>)
+
+    suspend fun appendAnswer(answer: StoredAnswer)
+
+    suspend fun putLock(lock: StoredLock)
+
+    suspend fun clearLocks(gameId: String, seat: String)
+
+    /** One transaction: the game closes and, when rated, its match joins the log. */
+    suspend fun finish(gameId: String, result: GameResult, match: Match?)
+
+    suspend fun void(gameId: String, reason: VoidReason, at: Long)
+
+    suspend fun runningGames(): List<RunningGame>
+
+    /** The rated log, in [dev.quinton.goa.core.domain.rating.EloCalculator]'s replay order. */
+    suspend fun matches(): List<Match>
+}
+
+/** For tests of the rooms and the ratings. Nothing survives the process. */
+class InMemoryGameStore : GameStore {
+    private val games = LinkedHashMap<String, GameRow>()
+    private val seats = HashMap<String, List<GameSeatRow>>()
+    private val answers = HashMap<String, MutableList<StoredAnswer>>()
+    private val locks = HashMap<String, MutableList<StoredLock>>()
+    private val log = ArrayList<Match>()
+
+    override suspend fun createGame(game: GameRow, seats: List<GameSeatRow>) {
+        games[game.id] = game
+        this.seats[game.id] = seats
+    }
+
+    override suspend fun appendAnswer(answer: StoredAnswer) {
+        answers.getOrPut(answer.gameId) { ArrayList() } += answer
+    }
+
+    override suspend fun putLock(lock: StoredLock) {
+        locks.getOrPut(lock.gameId) { ArrayList() } += lock
+    }
+
+    override suspend fun clearLocks(gameId: String, seat: String) {
+        locks[gameId]?.removeAll { it.seat == seat }
+    }
+
+    override suspend fun finish(gameId: String, result: GameResult, match: Match?) {
+        games.remove(gameId)
+        if (match != null) log += match
+    }
+
+    override suspend fun void(gameId: String, reason: VoidReason, at: Long) {
+        games.remove(gameId)
+    }
+
+    override suspend fun runningGames(): List<RunningGame> = games.values.map { g ->
+        RunningGame(g, seats[g.id].orEmpty(), answers[g.id].orEmpty().toList(), locks[g.id].orEmpty().toList())
+    }
+
+    override suspend fun matches(): List<Match> =
+        log.sortedWith(compareBy({ it.playedAt }, { it.createdAt }, { it.id }))
+}
