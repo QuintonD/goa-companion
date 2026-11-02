@@ -116,7 +116,7 @@ private fun record(): RecordedGame {
                 val own = if (it.heroId == pending.seat) pending.copy(id = ticket) else stub(pending)
                 it.heroId to json.encodeToJsonElement(Decision.serializer(), own)
             },
-            locked = locked,
+            locked = locked.takeIf { pending.kind == DecisionKind.PLAY_CARD }.orEmpty(),
         )
         have = session.events.size
         locked = if (pending.kind == DecisionKind.PLAY_CARD) locked + pending.seat else emptyList()

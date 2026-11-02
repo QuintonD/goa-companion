@@ -45,7 +45,12 @@ import org.jetbrains.compose.web.dom.Span
 import org.jetbrains.compose.web.dom.Text
 
 /** What the lobby needs before it can show anything. */
-private class LobbyInputs(val playable: List<String>, val heroes: Map<String, BoardHero>, val mapName: (String) -> String)
+private class LobbyInputs(
+    val hasAccount: Boolean,
+    val playable: List<String>,
+    val heroes: Map<String, BoardHero>,
+    val mapName: (String) -> String,
+)
 
 /**
  * A room's lobby (ADR-056): the seats by team, picking a hero, ready and start, the invite. Seats and heroes are the
@@ -57,8 +62,12 @@ fun OnlineLobbyScreen(code: String) {
     val online = services.data.online
     val loaded = rememberLoad(code) {
         val maps = services.data.play.boardMaps.maps.first().associate { it.id to it.name }
-        LobbyInputs(online.playableHeroes(), online.catalog().boardHeroes()) { maps[it] ?: it }
+        val hasAccount = online.identities.load() != null
+        LobbyInputs(hasAccount, online.playableHeroes(), online.catalog().boardHeroes()) { maps[it] ?: it }
     }
+    // A room's address with no account here (the browser cleared its data, a link copied across): name first.
+    val noAccount = (loaded.state as? Load.Ready)?.value?.hasAccount == false
+    LaunchedEffect(noAccount) { if (noAccount) services.router.navigate(Route.OnlineJoin(code), replace = true) }
     Screen("Room $code") {
         when (val state = loaded.state) {
             Load.Loading -> LoadingState("Opening the room")
@@ -69,7 +78,7 @@ fun OnlineLobbyScreen(code: String) {
                 onRetry = loaded.retry,
             )
 
-            is Load.Ready -> Lobby(code, state.value)
+            is Load.Ready -> if (state.value.hasAccount) Lobby(code, state.value)
         }
     }
 }
@@ -110,7 +119,10 @@ private fun Lobby(code: String, inputs: LobbyInputs) {
             if (ui.message == null) {
                 LoadingState("Opening the room")
             } else {
-                GoaButton("Try again", presenter::start, ButtonKind.TONAL, icon = "refresh")
+                Div({ classes("goa-w2-stack") }) {
+                    GoaButton("Try again", presenter::start, ButtonKind.TONAL, icon = "refresh", block = true)
+                    GoaButton("Back to Online", { router.navigate(Route.OnlineHome, replace = true) }, ButtonKind.TEXT, block = true)
+                }
             }
         } else {
             GoaCard {
@@ -167,7 +179,15 @@ private fun Lobby(code: String, inputs: LobbyInputs) {
                 presenter.leave()
             }, ButtonKind.DANGER)
         }) {
-            P { Text(if (ui.isHost) "The next person becomes the host. The last one out closes the room." else "Your seat opens up again.") }
+            P {
+                Text(
+                    if (ui.isHost) {
+                        "The next person becomes the host. The last one out closes the room."
+                    } else {
+                        "Your seat opens up again."
+                    },
+                )
+            }
         }
     }
 }
@@ -235,12 +255,20 @@ private fun SeatRow(seat: RoomSeat, ui: LobbyUi, inputs: LobbyInputs, onSit: () 
 private const val SEAT_PORTRAIT = 40
 private const val PICK_PORTRAIT = 48
 
-/** The heroes still free; your own pick stays lit until you change it. */
+/**
+ * The heroes still free; once one is picked the grid folds away, so Ready isn't a long scroll below it. Tapping
+ * your own pick again gives it up.
+ */
 @Composable
 private fun HeroPicker(ui: LobbyUi, inputs: LobbyInputs, presenter: OnlineLobbyPresenter) {
     val seat = ui.yourSeat ?: return
     val own = seat.heroId
+    var changing by remember(own) { mutableStateOf(false) }
     SectionHeader("Your hero")
+    if (own != null && !changing) {
+        GoaButton("Change hero", { changing = true }, ButtonKind.TEXT)
+        return
+    }
     Div({ classes("goa-online-heroes") }) {
         (listOfNotNull(own) + ui.heroes).forEach { id ->
             val hero = inputs.heroes.hero(id)

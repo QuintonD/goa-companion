@@ -28,6 +28,7 @@ import dev.quinton.goa.web.ui.ButtonKind
 import dev.quinton.goa.web.ui.GoaButton
 import dev.quinton.goa.web.ui.GoaCard
 import dev.quinton.goa.web.ui.ListRow
+import dev.quinton.goa.web.ui.Load
 import dev.quinton.goa.web.ui.LoadingState
 import dev.quinton.goa.web.ui.RowList
 import dev.quinton.goa.web.ui.Screen
@@ -106,10 +107,10 @@ private fun JoinNotice(code: String, ui: OnlineHomeUi) {
         H2({ classes("t-title-medium", "goa-w2-tight0") }) { Text("Room $code") }
         P({ classes("t-body-medium", "c-variant") }) {
             Text(
-                if (ui.stage == AccountStage.READY) {
-                    "Going to the room…"
-                } else {
-                    "Choose a name for this device and the room opens."
+                when {
+                    ui.stage != AccountStage.READY -> "Choose a name for this device and the room opens."
+                    ui.message != null -> "It couldn't be opened from here."
+                    else -> "Going to the room…"
                 },
             )
         }
@@ -202,7 +203,7 @@ private const val NAME_MAX = 24
 @Composable
 private fun Ready(ui: OnlineHomeUi, presenter: OnlineHomePresenter, services: AppServices) {
     val maps = rememberLoad(Unit) { services.data.play.boardMaps.maps.first().associate { it.id to it.name } }
-    val names = (maps.state as? dev.quinton.goa.web.ui.Load.Ready)?.value.orEmpty()
+    val names = (maps.state as? Load.Ready)?.value.orEmpty()
     val mapName = { id: String -> names[id] ?: id }
     if (ui.games.isNotEmpty()) {
         SectionHeader("My games")
