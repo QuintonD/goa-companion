@@ -131,10 +131,44 @@ WebSocket and a URL would be logged). Inbound frames up to 4 KiB, a ping every 2
 channel per connection that keeps only the latest `Table`. `Origin` must be on the list when present;
 native clients send none. CORS follows the relay: an exact list, no credentials.
 
+- **Refused, then closed:** protocol or catalog too old (`UPDATE_APP`), a bad token (`BAD_TOKEN`).
+- **Closed with no frame:** no `Hello` in time or a first frame that is not one (1008), a frame over the
+  limit (1009), an unreadable frame (1003), a queue that fell too far behind or a socket stuck for 30 s
+  (1013): reconnect and `Resume` from the events you hold.
+- **Refused, socket stays:** too many frames (`RATE_LIMITED`, with seconds), and anything the lobby says no
+  to, followed by a `Lobby` frame with the room as it stands. A socket can only say a `Refusal`: every "not
+  now" of the lobby is `ROOM_TAKEN` there (not the host, not ready, seat or hero taken, 3 games running).
+- **The outbound queue** keeps the latest `Table` of each game and moves it to the tail, with the events of
+  the tables it replaced in front of its own: a client that misses an event can't get it back. So a `Table`
+  can start earlier than the last one ended; apply it from `eventsFrom` and skip what you hold.
+- A person has at most 4 sockets (the newest wins) and each watches its 8 latest rooms. A socket gets the
+  frames of every room its person sits in, and is linked to a room's game when it starts.
+- A repeat of the same answer (game, ticket, choice) on one socket gets the first `Ack` again; the room
+  is not asked twice. Answering with another choice is a new answer.
+
+REST errors are `ApiError`. Beyond those above: `bad_request`, `bad_name`, `bad_recovery_code`, `bad_room`,
+`map_unavailable`, `no_such_room`, `room_taken`, `too_many_games`, `too_many_rooms`, `too_large`,
+`unauthorized`, `rate_limited`, `store_unavailable`, `draining`.
+
+## The lobby
+
+- The creator sits down with the room, in the first Red seat; `join` then changes nothing for them, and
+  joining seats anyone else on the emptier team. One seat per person, one hero per game.
+- A change of seat or hero takes back your Ready; Ready needs a hero. The host starts, once every seat is
+  filled and ready. Leaving passes the host on; the last one out closes the room.
+- An open room lasts 2 hours. A person hosts at most 3 open rooms and plays at most 3 running games.
+- **Drain:** while `GOA_GAME_DRAIN_FILE` (default `<data>/drain`) exists, no room opens and no room starts,
+  because a game begun now could outlast the drain and be replayed under new rules. Running games continue
+  and health says `status: "draining"`.
+
 ## Storage
 
-SQLite on `/var/lib/goa-game`, WAL, `synchronous=FULL`, foreign keys on. An answer is durable before
-any frame about it is sent. No rating column anywhere. Schema in `server/game/.../store/Schema.kt`.
+SQLite at `/var/lib/goa-game/games.sqlite`, WAL, `synchronous=FULL`, foreign keys on, on one connection on
+one thread. An answer is durable before any frame about it is sent. No rating column anywhere. Schema in
+`server/game/.../store/Schema.kt`. A repeat of a stored answer or lock changes nothing, and a different
+answer at the same `seq` is an error: the past is not rewritten. sqlite-jdbc unpacks its native library into
+the data directory, which must allow execution (a container's `/tmp` may not), unless `-Dorg.sqlite.tmpdir`
+says otherwise; SQLite's own temporary tables stay in memory.
 
 ## Streams
 
