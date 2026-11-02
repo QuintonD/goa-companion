@@ -67,6 +67,6 @@ class LeaveRestartTest {
         game.tick()
         val wasp = TestGame.account("wasp")
         assertThat(game.core.gamesOf(wasp)).containsExactly(TestGame.GAME_ID)
-        assertThat(game.core.runningGamesOf(wasp)).isEmpty()
+        assertThat(game.core.runningOf(wasp)).isEmpty()
     }
 }

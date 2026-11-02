@@ -170,10 +170,9 @@ class OnlineLobbyPresenter(
             !stopped
         }
 
-        is ServerMessage.GameStart -> {
-            opened(frame.gameId)
-            false
-        }
+        // A socket gets the games of everyone seated, so this may be another game of the person's: only the
+        // room's own frame, just before this one when it is this room's, says the room has started.
+        is ServerMessage.GameStart -> true
 
         is ServerMessage.Refused -> {
             if (frame.reason == Refusal.UPDATE_APP || frame.reason == Refusal.BAD_TOKEN) {

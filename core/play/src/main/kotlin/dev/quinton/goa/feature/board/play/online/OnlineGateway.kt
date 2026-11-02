@@ -19,7 +19,7 @@ sealed interface OnlineResult<out T> {
     /** The server said no, in a way people can be told ([OnlineWords.refusal]). */
     data class Refused(val reason: Refusal, val retryAfter: Int? = null) : OnlineResult<Nothing>
 
-    /** No answer ([message] null), or an error the server explained for people. */
+    /** No answer ([message] null), or an error with words for people. */
     data class Failed(val message: String? = null) : OnlineResult<Nothing>
 }
 
@@ -56,18 +56,24 @@ fun onlineFailure(body: String, retryAfter: Int?): OnlineResult<Nothing> {
     } catch (_: SerializationException) {
         return OnlineResult.Failed()
     }
-    // REST says a token is dead this way; the socket says bad_token.
-    val reason = Refusal.entries.firstOrNull { refusalCode(it) == error.error }
-        ?: Refusal.BAD_TOKEN.takeIf { error.error == UNAUTHORIZED }
+    val reason = if (error.error == UNAUTHORIZED) {
+        Refusal.BAD_TOKEN
+    } else {
+        Refusal.entries.firstOrNull { refusalCode(it) == error.error }
+    }
     return if (reason != null) {
         OnlineResult.Refused(reason, retryAfter)
     } else {
-        OnlineResult.Failed(error.message ?: OnlineWords.apiError(error.error))
+        // It answered, so "can't be reached" would be untrue.
+        OnlineResult.Failed(error.message ?: OnlineWords.apiError(error.error) ?: OnlineWords.SERVER_SAID_NO)
     }
 }
 
 private fun refusalCode(reason: Refusal): String =
     OnlineProtocol.json.encodeToString(Refusal.serializer(), reason).trim('"')
+
+/** REST's word for a token it doesn't know, or none at all; the socket says [Refusal.BAD_TOKEN]. */
+private const val UNAUTHORIZED = "unauthorized"
 
 /** The words for a call that didn't work. */
 fun OnlineResult<*>.words(): String? = when (this) {
@@ -97,6 +103,5 @@ private fun normalised(c: Char): Char = when (c) {
 /** The address someone follows to join a room. */
 fun inviteLink(code: String): String = OnlineRoutes.INVITE_BASE + code
 
-private const val UNAUTHORIZED = "unauthorized"
 const val ROOM_CODE_LENGTH: Int = 8
 private const val CROCKFORD = "0123456789ABCDEFGHJKMNPQRSTVWXYZ"

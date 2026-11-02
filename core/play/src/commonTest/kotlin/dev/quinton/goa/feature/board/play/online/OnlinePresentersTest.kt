@@ -518,6 +518,14 @@ class OnlinePresentersTest {
     }
 
     @Test
+    fun anotherGameOfThePersonsDoesNotOpenThisRoom() = runTest {
+        val rig = lobby()
+        rig.feed(ServerMessage.GameStart("other-game", OnlineFixture.setup, emptyList(), emptySet(), ranked = false))
+        assertNull(rig.lobby.state.value.gameId)
+        assertFalse(rig.connector.last.closed)
+    }
+
+    @Test
     fun theStartedRoomOpensTheGameAndClosesTheLobbysSocket() = runTest {
         val rig = lobby()
         rig.lobbyFrame(room().seats, RoomStatus.STARTED, gameId = "game-9")

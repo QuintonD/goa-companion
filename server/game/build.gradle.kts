@@ -47,3 +47,13 @@ dependencies {
     testImplementation(libs.kotlin.test)
     testImplementation(libs.kotest.property)
 }
+
+// The load test (e2e/LoadE2eTest) is opt-in: `-Pgoa.e2e.load=true`. It also needs room for its bots.
+tasks.withType<Test>().configureEach {
+    val load = providers.gradleProperty("goa.e2e.load").orNull
+    if (load != null) {
+        systemProperty("goa.e2e.load", load)
+        providers.gradleProperty("goa.e2e.load.bots").orNull?.let { systemProperty("goa.e2e.load.bots", it) }
+        maxHeapSize = "2g"
+    }
+}

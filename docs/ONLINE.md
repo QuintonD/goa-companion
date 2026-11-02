@@ -220,12 +220,17 @@ native clients send none. CORS follows the relay: an exact list, no credentials.
   to a game that starts in a room it watches, if its person sits there. Being linked is what makes a person
   `HERE` in that game and what sends its log, so a socket looking at one game doesn't show them present in
   another.
+- **A person connecting to a game that is over** gets `GameStart`, the last table with the events from their
+  `Resume`, and `End`, read from the disk, so a restart doesn't lose it. A seat given up gets nothing, as it
+  doesn't while the game runs, and neither does anyone else. A game whose past no longer replays has no table
+  to send, only `End`, and the driver says so in words.
 - A repeat of the same answer (game, ticket, choice) on one socket gets the first `Ack` again; the room
   is not asked twice. Answering with another choice is a new answer.
 
 REST errors are `ApiError`. Beyond those above: `bad_request`, `bad_name`, `bad_recovery_code`, `bad_room`,
 `map_unavailable`, `no_such_room`, `room_taken`, `too_many_games`, `too_many_rooms`, `too_large`,
-`unauthorized`, `rate_limited`, `store_unavailable`, `draining`.
+`unauthorized`, `rate_limited`, `store_unavailable`, `draining`. The client words them with `onlineFailure`:
+`unauthorized` is `Refusal.BAD_TOKEN`, and "can't be reached" is only for no answer at all.
 
 ## The lobby
 
@@ -243,6 +248,8 @@ REST errors are `ApiError`. Beyond those above: `bad_request`, `bad_name`, `bad_
   One client address (the last `X-Forwarded-For` hop, as the rate limiter sees it) has made at most 3 of the
   open rooms too (`TOO_MANY_ROOMS`), however many accounts it has. That count is in memory: no address goes
   on disk, and a restart forgets it until those rooms have gone.
+- A game that ended before a person heard is one to go back to (`/v1/me/games`) but no longer running. After
+  retention has taken its answers, 30 days on, it has gone.
 - **Drain:** while `GOA_GAME_DRAIN_FILE` (default `<data>/drain`) exists, no room opens and no room starts,
   because a game begun now could outlast the drain and be replayed under new rules. Running games continue
   and health says `status: "draining"`.
@@ -344,6 +351,23 @@ Kept for good: the `matches` log, because every rating is derived from it, and e
 who sat where; deleting an account changes its name there to "Former player" and keeps the rest. Nothing reads
 a finished game's answers, as only a running game is ever replayed. Backups keep the old state for 14 days more.
 
+## What fits
+
+Measured by `e2e/LoadE2eTest` (opt-in, `-Pgoa.e2e.load=true`): `main` in its own JVM at `-Xmx512m`, with
+bots on real local sockets, on the Windows build machine (2026-11-02). 20 rooms of 2v2 and 3 of 5v5, no
+failures, nothing refused, no socket closed. These bots answer far faster than people, who would be nearer
+7 answers/s over 20 rooms.
+
+| Bots answer after | Answers | Rate | Ack p50 / p99 / max | Server CPU (one core) | Heap after GC | Restart |
+|---|---|---|---|---|---|---|
+| 300-1000 ms | 7,604 | 47/s | 1 / 10 / 70 ms | 29% | 38 MB | 4.2 s for 23 games, 7,632 answers |
+| 100-300 ms | 23,210 | 139/s | 2 / 26 / 130 ms | 54% | 69 MB | 6.2 s for 19 games, 23,271 answers |
+
+Frames: mean 3.3 KB, largest 13.7 KB, in a run with no reconnects (a resume from nothing sends the whole log,
+and a review is larger). The restart times include about 1.8 s of the JVM starting. So 512 MB holds far more
+than the cap of 20 rooms; the cap stays until the same is measured on oldboi, whose disk sets the cost of the
+`synchronous=FULL` write behind every answer. Not measured: Funnel in front, TLS, oldboi itself.
+
 ## Streams
 
 Foundation (this commit): `core/online`, `server/game` skeleton, `GameEngine.restoreFrom`, the seam in
@@ -358,6 +382,6 @@ Foundation (this commit): `core/online`, `server/game` skeleton, `GameEngine.res
 | Deploy | `feature/online-deploy` | `deploy/game/`, the `goa-leaderboards` repo template | `deploy/relay`, Funnel on 443 and 10000 |
 | Android | `feature/online-android` | `core/data/.../online/`, `core/datastore/.../online/`, `feature/board/.../online/`, new routes, hides in the game screen | `GameViewModel.kt`, sync, `core/game` |
 | Web | `feature/online-web` | `web/app/.../play/online/`, the `GameScreen` split, the `ResolutionFlowView` port, routes, CSP, `online.spec.ts` | `GameController.kt`, `EngineHost`, sync |
-| End to end | `feature/online-e2e` | `server/game/src/test/.../EndToEndTest.kt` | production code unless it finds a bug |
+| End to end | `feature/online-e2e` | `server/game/src/test/.../e2e/` | production code unless it finds a bug |
 
 Android and Web start once Client core has landed, so they build on the real driver. End to end is last.

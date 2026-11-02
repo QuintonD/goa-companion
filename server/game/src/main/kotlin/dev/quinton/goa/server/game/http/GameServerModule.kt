@@ -81,7 +81,6 @@ private const val MAX_BODY_BYTES = 4 * 1024
 private const val STORE_RETRY_SECONDS = "30"
 private const val PING_SECONDS = 20L
 private const val PONG_TIMEOUT_SECONDS = 45L
-private const val SWEEP_MILLIS = 60_000L
 private const val RETENTION_FIRST_MILLIS = 10 * 60_000L
 private const val RETENTION_EVERY_MILLIS = 24 * 60 * 60_000L
 private const val PLAY_FRAME_LIMIT = MAX_FRAME_BYTES.toLong()
@@ -225,6 +224,8 @@ fun Application.gameServerModule(
             call.error(HttpStatusCode.ServiceUnavailable, "store_unavailable")
         }
         exception<Throwable> { call, cause ->
+            // A socket ended by a shutdown or by its person leaving: nothing failed, and nobody is listening.
+            if (cause is CancellationException) throw cause
             log.error("unexpected failure: {}", cause.javaClass.name)
             call.error(HttpStatusCode.InternalServerError, "internal")
         }
@@ -243,7 +244,7 @@ fun Application.gameServerModule(
 
     launch {
         while (isActive) {
-            delay(SWEEP_MILLIS.milliseconds)
+            delay(config.roomSweepMillis.milliseconds)
             @Suppress("TooGenericExceptionCaught") // A bad row must not end the sweeps for good.
             try {
                 services.lobby.sweep()
@@ -284,11 +285,12 @@ private fun Route.api(services: GameServices) {
 private fun Route.health(services: GameServices) {
     get(OnlineRoutes.HEALTH) {
         val ok = services.store.isAvailable()
+        val draining = services.draining()
         val health = HealthInfo(
             ok = ok,
             protocol = OnlineProtocol.VERSION,
             rulesBuild = services.config.rulesBuild,
-            status = if (services.draining()) "draining" else "open",
+            status = if (draining) "draining" else "open",
             // A deploy waits for this to reach 0: running games only. An open room can't start during a
             // drain and survives the restart, so waiting for it would only hold the deploy up.
             rooms = if (ok) services.rooms.runningCount else 0,
