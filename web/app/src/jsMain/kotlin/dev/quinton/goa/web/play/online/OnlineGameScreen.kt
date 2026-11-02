@@ -42,6 +42,7 @@ import dev.quinton.goa.web.ui.rememberGuardedScope
 import kotlinx.browser.document
 import kotlinx.browser.window
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
 import org.jetbrains.compose.web.dom.Div
 import org.jetbrains.compose.web.dom.H2
 import org.jetbrains.compose.web.dom.P
@@ -152,7 +153,8 @@ fun OnlineGameScreen(gameId: String) {
                 GoaButton("Leave", {
                     leaving = false
                     driver.leave()
-                    router.navigate(Route.OnlineHome, replace = true)
+                    // After the driver's own job, which sends Leave: leaving the screen cancels this scope.
+                    scope.launch { router.navigate(Route.OnlineHome, replace = true) }
                 }, ButtonKind.DANGER)
             },
         ) {
