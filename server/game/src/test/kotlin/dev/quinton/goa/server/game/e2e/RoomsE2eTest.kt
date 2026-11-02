@@ -32,7 +32,7 @@ class RoomsE2eTest {
 
     @Test
     fun aFullServerSaysSoInWords(): Unit = runBlocking {
-        World(configure = { it.copy(maxRooms = 2) }).use { world ->
+        World(configure = { it.copy(maxOpenRooms = 2) }).use { world ->
             val (ana, bo, cy) = world.signedUp("Ana", "Bo", "Cy")
             assertThat(ana.createsRoom().openRoom).isNotNull()
             assertThat(bo.createsRoom().openRoom).isNotNull()
@@ -40,7 +40,7 @@ class RoomsE2eTest {
             assertThat(refused.openRoom).isNull()
             assertThat(refused.message).isEqualTo(OnlineWords.refusal(Refusal.ROOMS_FULL, FULL_RETRY_SECONDS))
             assertThat(refused.message).contains("5 minutes")
-            assertThat(world.health().rooms).isEqualTo(2)
+            assertThat(world.health().openRooms).isEqualTo(2)
         }
     }
 
@@ -233,7 +233,7 @@ class RoomsE2eTest {
                     it.connected && it.message == null && it.yourSeat?.ready == true
                 }
             }
-            assertThat(world.health().rooms).isEqualTo(1)
+            assertThat(world.health().openRooms).isEqualTo(1)
             val gameId = room.started()
             val players = people.map { Player(it, gameId) }
             playToEnd(players)

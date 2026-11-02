@@ -44,6 +44,7 @@ class GameServer(
         names = store::names,
         heroName = { engine.data.catalog.hero(it)?.name },
         clock = clock,
+        ttlMillis = config.boardCacheMillis,
     )
     private val clocks = CoroutineScope(SupervisorJob() + Dispatchers.Default)
     private val server = embeddedServer(CIO, port = config.port, host = config.host) {

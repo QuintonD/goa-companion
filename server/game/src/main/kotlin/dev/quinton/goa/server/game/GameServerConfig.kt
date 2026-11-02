@@ -34,6 +34,8 @@ data class GameServerConfig(
     val helloTimeoutMillis: Long = DEFAULT_HELLO_TIMEOUT_MILLIS,
     /** How often rooms nobody started in time are closed. */
     val roomSweepMillis: Long = DEFAULT_ROOM_SWEEP_MILLIS,
+    /** How long `/v1/leaderboard` serves one board: reading the log runs on the thread that saves answers. */
+    val boardCacheMillis: Long = DEFAULT_BOARD_CACHE_MILLIS,
 ) {
     companion object {
         const val DEFAULT_PORT = 8788
@@ -50,6 +52,7 @@ data class GameServerConfig(
         const val DEFAULT_SOCKET_FRAMES_PER_MINUTE = 300
         const val DEFAULT_HELLO_TIMEOUT_MILLIS = 5_000L
         const val DEFAULT_ROOM_SWEEP_MILLIS = 60_000L
+        const val DEFAULT_BOARD_CACHE_MILLIS = 30_000L
         val DEFAULT_ORIGINS = setOf("https://quintond.github.io")
 
         fun fromEnv(env: Map<String, String> = System.getenv()): GameServerConfig {

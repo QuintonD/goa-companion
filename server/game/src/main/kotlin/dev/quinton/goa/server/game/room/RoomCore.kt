@@ -210,7 +210,13 @@ class RoomCore(
             if (game != null && game.accounts.remove(accountId) && game.accounts.isEmpty()) closed.remove(gameId)
             game?.end
         }
-        val past = store.closedGame(gameId)
+        val past = try {
+            store.closedGame(gameId)
+        } catch (e: IllegalArgumentException) {
+            // A game voided because it couldn't be read can't be read now either: the End above says all there is.
+            log.info("Closed game {} can't be read: {}", gameId, e.javaClass.simpleName)
+            null
+        }
         val own = past?.game?.seats.orEmpty().filter { it.accountId == accountId && !it.left }
         val pruned = past != null && past.voided == null && past.game.answers.isEmpty()
         if (past == null || own.isEmpty() || pruned) {

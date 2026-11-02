@@ -149,6 +149,7 @@ internal class World(
                 accountsPerClientPerHour = ROOMY,
                 accountsGlobalPerHour = ROOMY,
                 socketFramesPerMinute = ROOMY,
+                boardCacheMillis = 0,
             ),
         )
         repeat(BIND_TRIES) { attempt ->

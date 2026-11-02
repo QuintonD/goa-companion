@@ -101,15 +101,20 @@ internal class WireScan(private val truth: GameTruth) {
         }
     }
 
-    /** Tickets count only the seat's own questions, one step at a time: gaps would show questions skipped. */
+    /**
+     * Tickets count only the seat's own questions and its team's, one step at a time: any other gap would show
+     * questions skipped. A team's questions are its own people's to know, whoever of them was asked.
+     */
     private fun scanTickets(seat: String, tickets: List<Long>): List<String> {
         val index = truth.seats.indexOf(seat).toLong()
         val leaks = tickets.filter { it % TICKET_STEP != index }.map { "$seat got the ticket $it, not of its seat" }
         val skipped = tickets.distinct().sorted().zipWithNext { a, b -> (b - a) / TICKET_STEP - 1 }.sum()
         // The seat's own questions answered for it (a lone pass, the clock) count and aren't sent. Nothing else may.
         val answeredForIt = truth.answers.count { it.seat == seat && it.origin != "human" }
-        return if (skipped > answeredForIt) {
-            leaks + "$seat's tickets skip $skipped, and only $answeredForIt of its answers were not its own"
+        val team = truth.positions.first().views.getValue(seat).heroes.first { it.heroId == seat }.team
+        val teamQuestions = truth.positions.count { it.pending?.teamDecision == true && it.pending.team == team }
+        return if (skipped > answeredForIt + teamQuestions) {
+            leaks + "$seat's tickets skip $skipped, with $answeredForIt answers not its own, $teamQuestions its team's"
         } else {
             leaks
         }
