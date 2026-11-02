@@ -193,6 +193,13 @@ class EngineSession internal constructor(
     }
 
     /**
+     * A fork that stops before a step whose start state matches [stop], as at the end of a game ([pending]
+     * null). The game server forecasts simultaneous questions on these (ADR-056): the last seat's answer
+     * must not run on into the reveal or the next round, with placeholders for everyone else's cards.
+     */
+    fun forkHalting(stop: (GameState) -> Boolean): EngineSession = forkSession().also { it.haltWhen = stop }
+
+    /**
      * A fork that is answered at once (the puzzle solver): like [forkSession] but shares the displayed
      * state instead of copying it, since the next answer replaces it. Don't read its state before answering.
      */
