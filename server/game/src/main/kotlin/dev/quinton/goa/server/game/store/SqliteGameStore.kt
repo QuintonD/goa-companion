@@ -56,8 +56,8 @@ class SqliteGameStore private constructor(private val connection: Connection) :
         update(
             """
             INSERT INTO games (id, room_code, setup_json, start_save_json, rules_build, engine_version, ranked,
-                status, created_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?, 'running', ?)
+                status, created_at, away_since)
+            VALUES (?, ?, ?, ?, ?, ?, ?, 'running', ?, ?)
             """,
             game.id,
             game.roomCode,
@@ -67,6 +67,7 @@ class SqliteGameStore private constructor(private val connection: Connection) :
             game.engineVersion,
             game.ranked,
             game.createdAt,
+            game.awaySince,
         )
         for (seat in seats) {
             update(
@@ -124,6 +125,11 @@ class SqliteGameStore private constructor(private val connection: Connection) :
             gameId,
             heroId,
         )
+        Unit
+    }
+
+    override suspend fun setAwaySince(gameId: String, at: Long?) = write {
+        update("UPDATE games SET away_since = ? WHERE id = ?", at, gameId)
         Unit
     }
 
@@ -197,7 +203,8 @@ class SqliteGameStore private constructor(private val connection: Connection) :
     override suspend fun runningGame(id: String): RunningGame = read {
         val game = query(
             """
-            SELECT id, room_code, setup_json, start_save_json, rules_build, engine_version, ranked, created_at
+            SELECT id, room_code, setup_json, start_save_json, rules_build, engine_version, ranked, created_at,
+                away_since
             FROM games WHERE id = ? AND status = 'running'
             """,
             id,
@@ -255,6 +262,7 @@ class SqliteGameStore private constructor(private val connection: Connection) :
             mapId = setup.mapId,
             length = setup.length,
             createdAt = rows.getLong(8),
+            awaySince = rows.longOrNull(9),
         )
     }
 

@@ -67,7 +67,9 @@ internal class GameRoom(
     private val connections = ArrayList<SeatConnection>()
     private val left = seats.filter { it.left }.mapTo(HashSet()) { it.heroId }
     private val takenOver = HashSet<String>()
-    private var allAwaySince: Long? = env.now()
+
+    /** From the store on a restart: a person being away doesn't start again because the server did. */
+    private var allAwaySince: Long? = row.awaySince ?: env.now()
 
     private val lastTable = HashMap<String, ServerMessage.Table>()
     private val lastSeq = HashMap<String, Long>()
@@ -318,6 +320,7 @@ internal class GameRoom(
         if (own.isEmpty()) return emptyList()
         val now = env.now()
         if (paused(now)) clocks.restart()
+        if (allAwaySince != null) saveAway(null)
         allAwaySince = null
         sink.send(ServerMessage.GameStart(row.id, setup, players, own.toSet(), row.ranked))
         val added = own.map { seat ->
@@ -333,13 +336,13 @@ internal class GameRoom(
     private val setup get() = row.setup
 
     /** Anyone connected on a seat may be gone; the last one out starts the away clock. */
-    fun disconnect(gone: List<SeatConnection>) {
+    suspend fun disconnect(gone: List<SeatConnection>) {
         if (!connections.removeAll(gone)) return
         val now = env.now()
         for (c in gone) {
             if (connections.none { it.seat == c.seat }) clocks.disconnected(c.seat, now)
         }
-        if (connections.isEmpty() && order.any { it !in left }) allAwaySince = now
+        if (connections.isEmpty() && order.any { it !in left }) goneAway(now)
         // A team's question moves on to a teammate who is here, with a clock of its own.
         syncClocks(now)
         publish()
@@ -406,11 +409,28 @@ internal class GameRoom(
         own.forEach { env.store.markLeft(row.id, it, env.now()) }
         left += own
         connections.removeAll { it.accountId == accountId }
-        if (connections.isEmpty() && order.any { it !in left } && allAwaySince == null) allAwaySince = env.now()
+        if (connections.isEmpty() && order.any { it !in left } && allAwaySince == null) goneAway(env.now())
         settleAndPublish()
     }
 
     // ---- the clock ------------------------------------------------------------------------------
+
+    private suspend fun goneAway(now: Long) {
+        allAwaySince = now
+        saveAway(now)
+    }
+
+    /** Losing this can only make a pause come late: not worth the game, or the person's socket. */
+    @Suppress("TooGenericExceptionCaught")
+    private suspend fun saveAway(at: Long?) {
+        try {
+            env.store.setAwaySince(row.id, at)
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            log.warn("Game {}: could not save who is away: {}", row.id, e.javaClass.simpleName)
+        }
+    }
 
     private fun paused(now: Long): Boolean =
         allAwaySince?.let { now - it >= env.rules.allAwayPauseMillis } == true && order.any { it !in left }
@@ -447,10 +467,24 @@ internal class GameRoom(
         clocks.sync(asked(), window, now) { seat -> connections.none { it.seat == seat } }
     }
 
-    /** A new game, or one back from a restart: nobody can have connected yet, so everyone has the whole clock. */
+    /**
+     * A new game, or one back from a restart: nobody can have connected yet. Those who were away are still
+     * away: past the pause it stays asleep, with no clocks, until someone comes, and past a day it is over.
+     * Otherwise everyone has the whole clock, since the server's being gone was not their doing.
+     */
     suspend fun begin() {
-        settle()
-        if (ended == null) clocks.sync(asked(), window, env.now()) { false }
+        val now = env.now()
+        if (row.awaySince == null) saveAway(allAwaySince)
+        when {
+            abandoned(now) -> void(VoidReason.ABANDONED)
+
+            paused(now) && session.pending != null -> Unit
+
+            else -> {
+                settle()
+                if (ended == null) clocks.sync(asked(), window, now) { false }
+            }
+        }
     }
 
     suspend fun settleAndPublish() {

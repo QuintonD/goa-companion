@@ -171,6 +171,7 @@ class RoomCore(
             mapId = human.mapId,
             length = human.length,
             createdAt = now(),
+            awaySince = now(),
         )
         val seats = human.seats.mapIndexed { i, s ->
             val account = players.first { it.seat == s.heroId }.accountId

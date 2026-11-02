@@ -44,9 +44,11 @@ The server answers on both `/v1/...` and `/game/v1/...`, whichever way the path 
 - **Clocks (defaults, in `RoomRules`):** `PLAY_CARD` 60 s, anything else 45 s; a disconnected seat 15 s.
   On expiry the computer answers that one question (`AiPlayers.forStrength(4, seed)`: no search,
   bounded CPU, on one dispatcher). The person can return at any moment. If every seat is away for
-  10 minutes the clocks pause; after 24 hours the game is `ABANDONED`, unrated. A server restart gives
-  the current question its whole clock again, and so does coming back from a pause. A seat given up with
-  `leave` is answered at once, not on a clock.
+  10 minutes the clocks pause; after 24 hours the game is `ABANDONED`, unrated. Since when nobody has been
+  there is on disk (`games.away_since`), so neither survives a restart any differently: a paused game comes
+  back paused, and the 24 hours run on, even while the server is down. A restart gives the current question
+  its whole clock again only if the game wasn't paused; coming back from a pause does too. A seat given up
+  with `leave` is answered at once, not on a clock.
 - **Rated:** a game from a ranked room, finished by the rules. Leaving does not dodge a result: the
   computer plays on, the team still wins or loses. A voided or abandoned game is unrated.
 - **Ratings** are `EloCalculator.replay(matches, EloConfig.DEFAULT)` over the `matches` table and are

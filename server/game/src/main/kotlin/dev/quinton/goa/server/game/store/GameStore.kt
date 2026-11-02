@@ -24,6 +24,8 @@ data class GameRow(
     val mapId: String,
     val length: GameLength,
     val createdAt: Long,
+    /** Since when nobody has been connected; null while someone is. Survives a restart, as a pause must. */
+    val awaySince: Long? = null,
 )
 
 data class GameSeatRow(
@@ -81,6 +83,9 @@ interface GameStore {
 
     suspend fun markLeft(gameId: String, heroId: String, at: Long)
 
+    /** When the last person went, or null when someone came back. */
+    suspend fun setAwaySince(gameId: String, at: Long?)
+
     suspend fun putLock(lock: StoredLock)
 
     suspend fun clearLocks(gameId: String, seat: String)
@@ -124,6 +129,10 @@ class InMemoryGameStore : GameStore {
 
     override suspend fun markLeft(gameId: String, heroId: String, at: Long) {
         seats[gameId] = seats[gameId].orEmpty().map { if (it.heroId == heroId) it.copy(left = true) else it }
+    }
+
+    override suspend fun setAwaySince(gameId: String, at: Long?) {
+        games[gameId]?.let { games[gameId] = it.copy(awaySince = at) }
     }
 
     override suspend fun putLock(lock: StoredLock) {
