@@ -7,3 +7,4 @@
 
 ## 2026-11-02 (online games, ADR-056)
 - `GameEngine.restoreFrom(start, answers)`: a save from the start of a game plus answers kept one row at a time. Additive.
+- `EngineSession.forkHalting(stop)`: a fork that stops before a matching step, so a forecast on it can't cross the reveal or the pity coin (`server/game/.../room/SimultaneousWindow`). Additive; no rule changed.
