@@ -5,6 +5,7 @@ import dev.quinton.goa.core.game.GameEvent
 import dev.quinton.goa.core.game.engine.EngineSession
 import dev.quinton.goa.core.game.engine.GameEngine
 import dev.quinton.goa.core.game.engine.GameState
+import dev.quinton.goa.core.model.match.Team
 import dev.quinton.goa.server.game.store.GameRow
 import dev.quinton.goa.server.game.store.StoredAnswer
 import java.security.MessageDigest
@@ -41,14 +42,19 @@ internal class AnswerTally {
     private val total = HashMap<String, Long>()
     private var window: WindowKey? = null
     private val inWindow = HashMap<String, Int>()
+    private val teams = HashMap<Team, Long>()
 
     fun total(seat: String): Long = total[seat] ?: 0
 
     fun inWindow(seat: String, key: WindowKey): Int = if (window == key) inWindow[seat] ?: 0 else 0
 
+    /** How many of [team]'s questions have been answered, by whichever of its people was asked. */
+    fun team(team: Team): Long = teams[team] ?: 0
+
     /** Called before an answer with the window it answers, null for a sequential question. */
-    fun note(seat: String, key: WindowKey?) {
+    fun note(seat: String, key: WindowKey?, teamOf: Team? = null) {
         total[seat] = total(seat) + 1
+        teamOf?.let { teams[it] = team(it) + 1 }
         if (key == null) return
         if (window != key) {
             window = key
@@ -84,7 +90,7 @@ internal object Replay {
             if (pending.seat != a.record.seat) throw PastChanged("Answer ${a.seq} is for another seat")
             val result = session.answer(a.record.decisionId, a.record.choice)
             if (result !is AnswerResult.Accepted) throw PastChanged("Answer ${a.seq} no longer fits: $result")
-            tally.note(a.record.seat, key)
+            tally.note(a.record.seat, key, pending.team.takeIf { pending.teamDecision })
             hash = GameHashes.events(hash, result.events)
             if (hash != a.eventsHash) throw PastChanged("The log differs at answer ${a.seq}")
             if (GameHashes.state(session, result.events) != a.stateHash) {

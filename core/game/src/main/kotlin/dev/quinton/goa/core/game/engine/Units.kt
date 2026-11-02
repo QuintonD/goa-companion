@@ -214,6 +214,7 @@ private fun Game.chooseMinionSpace(m: MinionState, options: Collection<Hex>, pro
         prompt,
         options.sortedHexes().map { Choice.Space(it) },
         context = dev.quinton.goa.core.game.DecisionContext(subjectId = m.id),
+        teamDecision = true,
     ) as Choice.Space
     return choice.hex
 }

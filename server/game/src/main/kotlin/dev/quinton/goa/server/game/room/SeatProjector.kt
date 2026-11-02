@@ -20,6 +20,8 @@ internal class FrameInputs(
     val events: List<GameEvent> = emptyList(),
     val presence: Map<String, Presence> = emptyMap(),
     val clock: (Decision?) -> DecisionClock? = { null },
+    /** Who answers the pending question, when that isn't the engine's seat: a team's question goes to someone there. */
+    val answering: String? = null,
 )
 
 /**
@@ -42,8 +44,16 @@ internal object SeatProjector {
         return view.copy(heroes = view.heroes.map { if (it.heroId == seat) own else it })
     }
 
-    fun decision(session: GameSession, window: SimultaneousWindow?, seat: String, ticket: Long): Decision? {
-        val pending = session.pending ?: return null
+    fun decision(
+        session: GameSession,
+        window: SimultaneousWindow?,
+        seat: String,
+        ticket: Long,
+        answering: String? = null,
+    ): Decision? {
+        val engine = session.pending ?: return null
+        // On the wire `seat` is who is being asked: only the room's records keep the engine's seat.
+        val pending = if (answering == null) engine else engine.copy(seat = answering)
         val own = if (window == null) pending.takeIf { it.seat == seat } else window.forecast(seat).question
         if (own != null) return question(own, ticket)
         return window?.let { windowStub(session, it) } ?: stub(pending.seat, pending.team, pending.kind)
@@ -61,7 +71,7 @@ internal object SeatProjector {
         seat: String,
         inputs: FrameInputs,
     ): ServerMessage.Table {
-        val decision = decision(session, window, seat, inputs.ticket)
+        val decision = decision(session, window, seat, inputs.ticket, inputs.answering)
         return ServerMessage.Table(
             gameId = inputs.gameId,
             seq = inputs.seq,

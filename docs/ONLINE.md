@@ -88,11 +88,29 @@ forecasts each seat's question on a `fork()` and queues the answers:
    question; showing that to others would count its questions. A frame goes out only when its content
    changes, so private steps don't show in `seq` either.
 
+## Team questions
+
+p.7 says the team decides who acts first in a tie, and the engine asks its first hero of the team: `ACT_FIRST`,
+`REMOVE_MINION`, `MINION_RETURN`, and the order of effects from several heroes of the team (`CHOOSE_OPTION`).
+Those carry `Decision.teamDecision`; the engine's seat, replays and answer records stay as they are.
+
+- The room asks the first teammate in seat order who hasn't left and is connected, else the first who hasn't
+  left. The frame's `seat` is that person: every client shows and answers it as they would their own question,
+  and the others' stub names them. Only the person's own question carries `teamDecision`, for words like "your
+  team decides"; a stub stays as it is.
+- It stays with them until they drop or leave and a teammate is connected. Then it moves, with a new ticket and
+  a whole clock. Someone coming back does not take it away again. The disconnected clock follows the person
+  asked.
+- The computer answers only on expiry, or when the whole team has left. The answer is recorded under the
+  engine's seat, with the origin of whoever gave it.
+- The options are public choices: units on the board or spaces, and the names of cards already played. The
+  frame is that person's own table, so it holds their hand and nobody else's.
+
 ## Hidden information
 
 | Surface | Rule |
 |---|---|
-| `Decision` options, prompt, context, source card | The deciding seat only. Everyone else gets a stub: `seat`, `team`, `kind`, `id = 0`, `options = []` |
+| `Decision` options, prompt, context, source card | The person asked only. Everyone else gets a stub: `seat`, `team`, `kind`, `id = 0`, `options = []` |
 | `Decision.id` | Never on the wire |
 | `SavedGame`, `GameSnapshot.saved`, `GameState`, `AnswerRecord` | Never on the wire |
 | `setup.humans`, `mergedView(setup.humans)`, `review(setup.humans)` | Banned online: with every seat human this merges every hand. Always the viewer's own seats |

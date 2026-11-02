@@ -141,6 +141,11 @@ data class Decision(
     val options: List<Choice>,
     /** Extra facts the UI shows next to the options (attack total, defense previews, highlights). */
     val context: DecisionContext = DecisionContext(),
+    /**
+     * The team decides this (p.7), and [seat] only names who answers for it. An online room asks a teammate
+     * who is there and records the answer under [seat]; playing on one screen, nothing changes.
+     */
+    val teamDecision: Boolean = false,
 )
 
 @Serializable

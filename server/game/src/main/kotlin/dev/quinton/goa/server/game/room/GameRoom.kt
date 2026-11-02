@@ -73,6 +73,9 @@ internal class GameRoom(
     private val lastSeq = HashMap<String, Long>()
     private val recent = LinkedHashMap<Long, Choice>()
 
+    /** Who has the team's question open (its engine id, the seat), so that it doesn't jump between people. */
+    private var teamAsked: Pair<Long, String>? = null
+
     /** Set once the game is closed in the store; [RoomCore] then drops this room. */
     var ended: ServerMessage.End? = null
         private set
@@ -101,10 +104,33 @@ internal class GameRoom(
     fun seatsOf(accountId: String): List<String> =
         seats.filter { it.accountId == accountId && it.heroId !in left }.map { it.heroId }
 
-    /** Unique across the game's seats, counts only this seat's own questions: it tells no one anything. */
+    /**
+     * Unique across the game's seats, counts only this seat's own questions and its team's: it tells no one
+     * anything. A team's answer goes on the engine's seat, whoever gave it, and a person's next question must
+     * still have a new ticket.
+     */
     private fun ticketOf(seat: String): Long {
-        val asked = tally.total(seat) + locks[seat].orEmpty().size + (dropped[seat] ?: 0)
+        val asked = tally.total(seat) + tally.team(seatRow(seat).team) + locks[seat].orEmpty().size +
+            (dropped[seat] ?: 0)
         return (asked + 1) * TICKET_STEP + order.indexOf(seat)
+    }
+
+    private fun connected(seat: String): Boolean = connections.any { it.seat == seat }
+
+    /**
+     * Who answers [d]: its seat, unless it is a team's question (p.7: the team decides). Then the first in seat
+     * order who hasn't left and is here, else the first who hasn't left. It stays with them until they go and
+     * someone else is here. With the whole team gone it is the seat's, and the computer answers.
+     */
+    private fun answering(d: Decision): String {
+        if (!d.teamDecision) return d.seat
+        val team = order.filter { it !in left && seatRow(it).team == d.team }
+        if (team.isEmpty()) return d.seat
+        val current = teamAsked?.takeIf { it.first == d.id }?.second?.takeIf { it in team }
+        if (current != null && (connected(current) || team.none(::connected))) return current
+        val next = team.firstOrNull(::connected) ?: team.first()
+        teamAsked = d.id to next
+        return next
     }
 
     private fun seatOfTicket(ticket: Long): String? = order.getOrNull(ticket.mod(TICKET_STEP).toInt())
@@ -112,7 +138,7 @@ internal class GameRoom(
     private fun questionOf(seat: String): Decision? {
         val w = window
         if (w != null) return w.forecast(seat).question
-        return session.pending?.takeIf { it.seat == seat }
+        return session.pending?.takeIf { answering(it) == seat }
     }
 
     private fun asked(): Map<String, AskedQuestion> = order.filter { it !in left }.mapNotNull { seat ->
@@ -134,7 +160,7 @@ internal class GameRoom(
         session = next
         eventsHash = hash
         answers++
-        tally.note(d.seat, key)
+        tally.note(d.seat, key, d.team.takeIf { d.teamDecision })
         changed()
     }
 
@@ -143,7 +169,7 @@ internal class GameRoom(
         val now = env.now()
         val pending = session.pending
         val queued = locks[seat].orEmpty()
-        if (pending != null && pending.seat == seat && queued.isEmpty()) {
+        if (pending != null && answering(pending) == seat && queued.isEmpty()) {
             apply(pending, choice, origin, now)
             return
         }
@@ -314,6 +340,8 @@ internal class GameRoom(
             if (connections.none { it.seat == c.seat }) clocks.disconnected(c.seat, now)
         }
         if (connections.isEmpty() && order.any { it !in left }) allAwaySince = now
+        // A team's question moves on to a teammate who is here, with a clock of its own.
+        syncClocks(now)
         publish()
     }
 
@@ -454,7 +482,13 @@ internal class GameRoom(
         session,
         window,
         seat,
-        FrameInputs(row.id, ticket = ticketOf(seat), presence = presence(), clock = { clockFor(seat, it) }),
+        FrameInputs(
+            row.id,
+            ticket = ticketOf(seat),
+            presence = presence(),
+            clock = { clockFor(seat, it) },
+            answering = session.pending?.let(::answering),
+        ),
     )
 
     private fun publish() {
