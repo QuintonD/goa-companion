@@ -285,8 +285,11 @@ data class HealthInfo(
     val protocol: Int,
     val rulesBuild: String,
     val status: String,
+    /** Running games: what a deploy waits for. */
     val rooms: Int,
     val maxRooms: Int,
+    /** Rooms still waiting for players; a drain doesn't wait for them, and they survive a restart. */
+    val openRooms: Int = 0,
 )
 
 /** Every REST error: `error` is stable for code, `message` is for people. */

@@ -98,8 +98,9 @@ Reinstall it after a change to `backup.sh`.
 What it does, in order:
 
 1. Fetches `<ref>` and checks out exactly that commit.
-2. Pauses new rooms and waits for `rooms` in `/v1/health` to reach 0, for up to `GOA_GAME_DRAIN_HOURS`
-   (default 3). No Gradle build runs during the wait. It skips this if the server isn't up.
+2. Pauses new rooms and waits for `rooms` in `/v1/health`, the running games, to reach 0, for up to
+   `GOA_GAME_DRAIN_HOURS` (default 3). Rooms still waiting for players don't count: they can't start now and
+   survive the restart. No Gradle build runs during the wait. It skips this if the server isn't up.
 3. Runs `goa-gradle :server:game:test :server:game:installDist`. Red tests stop here, the old container
    keeps running and rooms reopen.
 4. Computes the rules build, a hash of the tree ids of `core/game`, `core/domain`, `core/model` and

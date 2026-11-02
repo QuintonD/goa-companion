@@ -21,7 +21,8 @@ services:
       GOA_GAME_PORT: "8788"
       GOA_GAME_DATA: /var/lib/goa-game
       GOA_GAME_ASSETS: /opt/goa-game/assets # holds catalog/, from the distribution
-      GOA_GAME_MAX_ROOMS: "20"
+      GOA_GAME_MAX_ROOMS: "20" # running games
+      GOA_GAME_MAX_OPEN_ROOMS: "10" # rooms waiting for players
       GOA_GAME_ORIGINS: https://quintond.github.io
       JAVA_TOOL_OPTIONS: -Xmx512m -XX:+ExitOnOutOfMemoryError -XX:-UsePerfData -Djava.io.tmpdir=/tmp
     volumes:

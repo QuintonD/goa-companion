@@ -122,7 +122,8 @@ match, carry on, even across builds. On a mismatch or a throw, void the game, un
 players in words. A deploy drains first: new rooms are refused for up to `GOA_GAME_DRAIN_HOURS`.
 The signal is a file, `drain` in the data directory, which can come and go while the server runs. While
 it exists the server refuses new rooms (`Refusal.DRAINING`) and `/v1/health` says `"status":"draining"`;
-`rooms` there counts what the deploy waits for, so it must reach 0 once running games have finished.
+`rooms` there counts running games only, because that is what the deploy waits for. Open rooms are in
+`openRooms`: none can start during a drain and they survive the restart, so the deploy doesn't wait for them.
 
 ## Protocol versions
 
@@ -141,7 +142,7 @@ REST, under the base address. Bearer token on all but the ones marked.
 | `POST /v1/accounts` (open) `{name}` | `201 AccountCreated`. Per-client limit |
 | `POST /v1/accounts/link` (open) `{recoveryCode}` | `200 AccountCreated`, burns the code, issues a new one |
 | `GET`, `PATCH`, `DELETE /v1/me` | `Me`; rename; delete anonymises the name and keeps match rows |
-| `POST /v1/rooms` `CreateRoom` | `201 RoomCreated`; `503 {"error":"rooms_full"}` + `Retry-After` |
+| `POST /v1/rooms` `CreateRoom` | `201 RoomCreated`; `503 {"error":"rooms_full"}` + `Retry-After` when the open rooms are full |
 | `POST /v1/rooms/{code}/join`, `/leave` | `RoomView` |
 | `GET /v1/me/games` | `MyGames`: games to go back to |
 | `GET /v1/leaderboard` (open) | `LeaderboardSnapshot`, with `ETag` |
@@ -176,7 +177,14 @@ REST errors are `ApiError`. Beyond those above: `bad_request`, `bad_name`, `bad_
   joining seats anyone else on the emptier team. One seat per person, one hero per game.
 - A change of seat or hero takes back your Ready; Ready needs a hero. The host starts, once every seat is
   filled and ready. Leaving passes the host on; the last one out closes the room.
-- An open room lasts 2 hours. A person hosts at most 3 open rooms and plays at most 3 running games.
+- An open room nobody else has joined closes after 10 minutes. Once someone has, it lasts 2 hours from when
+  it was made. Left alone again, it has 10 more minutes.
+- **Budgets, apart so that waiting rooms can't stop games:** `GOA_GAME_MAX_ROOMS` (20) running games, past
+  which a start is refused (`ROOMS_FULL`, try again in 5 minutes), and `GOA_GAME_MAX_OPEN_ROOMS` (10) open
+  rooms, past which a new room is. A person hosts at most 3 open rooms and plays at most 3 running games.
+  One client address (the last `X-Forwarded-For` hop, as the rate limiter sees it) has made at most 3 of the
+  open rooms too (`TOO_MANY_ROOMS`), however many accounts it has. That count is in memory: no address goes
+  on disk, and a restart forgets it until those rooms have gone.
 - **Drain:** while `GOA_GAME_DRAIN_FILE` (default `<data>/drain`) exists, no room opens and no room starts,
   because a game begun now could outlast the drain and be replayed under new rules. Running games continue
   and health says `status: "draining"`.

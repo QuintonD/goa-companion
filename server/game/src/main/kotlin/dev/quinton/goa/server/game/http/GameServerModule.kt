@@ -142,6 +142,7 @@ fun Application.gameServerModule(
             draining = { Files.exists(config.drainFile) },
             clock = clock,
             onChange = hub::roomChanged,
+            maxOpenRooms = config.maxOpenRooms,
         ),
         rooms = rooms,
         leaderboard = leaderboard,
@@ -250,8 +251,11 @@ private fun Route.health(services: GameServices) {
             protocol = OnlineProtocol.VERSION,
             rulesBuild = services.config.rulesBuild,
             status = if (services.draining()) "draining" else "open",
-            rooms = if (ok) services.lobby.roomCount() else 0,
+            // A deploy waits for this to reach 0: running games only. An open room can't start during a
+            // drain and survives the restart, so waiting for it would only hold the deploy up.
+            rooms = if (ok) services.rooms.runningCount else 0,
             maxRooms = services.config.maxRooms,
+            openRooms = if (ok) services.lobby.openCount() else 0,
         )
         val status = if (ok) HttpStatusCode.OK else HttpStatusCode.ServiceUnavailable
         call.respondJson(HealthInfo.serializer(), health, status)
@@ -299,7 +303,7 @@ private fun Route.accounts(services: GameServices) {
 private fun Route.rooms(services: GameServices) {
     post(OnlineRoutes.ROOMS) {
         val account = call.account(services) ?: return@post
-        val room = services.lobby.create(account.id, call.body(CreateRoom.serializer()))
+        val room = services.lobby.create(account.id, call.body(CreateRoom.serializer()), clientKey(call))
         call.respondJson(RoomCreated.serializer(), RoomCreated(room.code), HttpStatusCode.Created)
     }
     post(OnlineRoutes.join("{code}")) {

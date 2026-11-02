@@ -9,7 +9,10 @@ data class GameServerConfig(
     val assetsDir: Path,
     val host: String = "127.0.0.1",
     val port: Int = DEFAULT_PORT,
+    /** Running games at once. */
     val maxRooms: Int = DEFAULT_MAX_ROOMS,
+    /** Rooms waiting for players at once: they cost little, and can't use up the games' budget. */
+    val maxOpenRooms: Int = DEFAULT_MAX_OPEN_ROOMS,
     /** Browser origins allowed to call (CORS) and to open the socket: exact `scheme://host[:port]`. */
     val origins: Set<String> = DEFAULT_ORIGINS,
     /** Hash of the rules sources and catalog, set by the deploy; stamped on each game (docs/ONLINE.md). */
@@ -27,6 +30,7 @@ data class GameServerConfig(
     companion object {
         const val DEFAULT_PORT = 8788
         const val DEFAULT_MAX_ROOMS = 20
+        const val DEFAULT_MAX_OPEN_ROOMS = 10
         const val DEFAULT_DRAIN_FILE = "drain"
         const val DEFAULT_PER_CLIENT_PER_MINUTE = 120
         const val DEFAULT_GLOBAL_PER_MINUTE = 1200
@@ -45,6 +49,7 @@ data class GameServerConfig(
                 host = env["GOA_GAME_HOST"] ?: "127.0.0.1",
                 port = int("GOA_GAME_PORT", DEFAULT_PORT),
                 maxRooms = int("GOA_GAME_MAX_ROOMS", DEFAULT_MAX_ROOMS),
+                maxOpenRooms = int("GOA_GAME_MAX_OPEN_ROOMS", DEFAULT_MAX_OPEN_ROOMS),
                 origins = env["GOA_GAME_ORIGINS"]
                     ?.split(',')
                     ?.map { it.trim().removeSuffix("/") }

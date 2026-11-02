@@ -52,15 +52,22 @@ class Lobby(
     private val store: LobbyStore,
     private val engine: GameFactory,
     private val rooms: GameRooms,
+    /** Running games at once: what [start] refuses past. */
     private val maxRooms: Int,
     private val draining: () -> Boolean,
     private val clock: () -> Long = System::currentTimeMillis,
     private val coin: () -> Boolean = Secrets::coin,
     private val onChange: (RoomView) -> Unit = {},
+    /** Open rooms at once: what [create] refuses past, so a waiting room never holds up a game. */
+    private val maxOpenRooms: Int = DEFAULT_MAX_OPEN_ROOMS,
 ) {
     private val lock = Mutex()
 
-    suspend fun create(accountId: String, request: CreateRoom): RoomView = change {
+    /** Who made each open room, by client key: in memory, so no address is ever on disk. A restart forgets it. */
+    private val madeBy = HashMap<String, String>()
+
+    /** [client] is where the call came from: many accounts on one address share one host's limit. */
+    suspend fun create(accountId: String, request: CreateRoom, client: String = accountId): RoomView = change {
         if (draining()) throw LobbyRefused(LobbyError.DRAINING)
         if (request.teamSize !in TEAM_SIZES || request.mapId != mapFor(request.teamSize)) {
             throw LobbyRefused(LobbyError.BAD_ROOM)
@@ -68,23 +75,28 @@ class Lobby(
         if (request.mapId !in engine.playableMaps) throw LobbyRefused(LobbyError.MAP_UNAVAILABLE)
         val now = clock()
         val open = store.openRooms().filter { it.expiresAt > now }
-        if (open.count { it.hostAccount == accountId } >= MAX_OPEN_ROOMS_PER_HOST) {
+        madeBy.keys.retainAll(open.map { it.code }.toSet())
+        if (open.count { it.hostAccount == accountId } >= MAX_OPEN_ROOMS_PER_HOST ||
+            madeBy.values.count { it == client } >= MAX_OPEN_ROOMS_PER_HOST
+        ) {
             throw LobbyRefused(LobbyError.TOO_MANY_ROOMS)
         }
         requireRoomForGames(accountId)
-        if (open.size + rooms.runningCount >= maxRooms) throw LobbyRefused(LobbyError.ROOMS_FULL)
+        if (open.size >= maxOpenRooms) throw LobbyRefused(LobbyError.ROOMS_FULL)
         val seats = Team.entries.flatMap { team -> List(request.teamSize) { RoomSeatRow(team, it) } }
         // The host sits down with the room; joining it afterwards changes nothing.
         val seated = seats.mapIndexed { i, seat -> if (i == 0) seat.copy(accountId = accountId) else seat }
+        val code = freshCode()
+        madeBy[code] = client
         RoomRow(
-            code = freshCode(),
+            code = code,
             hostAccount = accountId,
             mapId = request.mapId,
             length = request.length,
             teamSize = request.teamSize,
             ranked = request.ranked,
             createdAt = now,
-            expiresAt = now + OPEN_MILLIS,
+            expiresAt = now + ALONE_MILLIS,
             status = RoomStatus.OPEN,
             seats = seated,
         )
@@ -154,6 +166,7 @@ class Lobby(
             throw LobbyRefused(LobbyError.NOT_READY)
         }
         room.seats.forEach { requireRoomForGames(it.accountId.orEmpty()) }
+        if (rooms.runningCount >= maxRooms) throw LobbyRefused(LobbyError.ROOMS_FULL)
         val setup = setupOf(room, if (coin()) Team.RED else Team.BLUE)
         preflight(setup)
         val names = store.names(room.seats.mapNotNull { it.accountId })
@@ -202,12 +215,12 @@ class Lobby(
         }
     }
 
-    /** Open rooms still waiting plus running games: what the cap and `/v1/health` count. */
-    suspend fun roomCount(): Int = store.openRooms().count { it.expiresAt > clock() } + rooms.runningCount
+    /** Open rooms still waiting: what [maxOpenRooms] counts, and `/v1/health` says beside the running games. */
+    suspend fun openCount(): Int = store.openRooms().count { it.expiresAt > clock() }
 
     private suspend fun change(block: suspend () -> RoomRow): RoomView {
         val (view, changed) = lock.withLock {
-            val after = block()
+            val after = block().withExpiry(clock())
             val changed = store.room(after.code) != after
             if (changed) store.putRoom(after)
             viewOf(after) to changed
@@ -271,7 +284,13 @@ class Lobby(
     companion object {
         const val MAX_RUNNING_GAMES = 3
         const val MAX_OPEN_ROOMS_PER_HOST = 3
+        const val DEFAULT_MAX_OPEN_ROOMS = 10
+
+        /** An open room with someone besides its host in it. */
         const val OPEN_MILLIS = 2 * 60 * 60_000L
+
+        /** An open room nobody else is in. */
+        const val ALONE_MILLIS = 10 * 60_000L
         const val FORGOTTEN_ISLAND = "forgotten-island"
         const val ACROSS_THE_RIVER = "across-the-river"
         val TEAM_SIZES = 1..5
@@ -293,6 +312,21 @@ class Lobby(
         private fun freeSeat(room: RoomRow): RoomSeatRow? {
             val team = Team.entries.minByOrNull { team -> room.seats.count { it.team == team && it.accountId != null } }
             return room.seats.firstOrNull { it.team == team && it.accountId == null }
+        }
+
+        /**
+         * Someone joining gives a room its whole time. Left alone again it goes back to the short clock from
+         * then, or two accounts could hold a room for hours by joining and leaving once.
+         */
+        private fun RoomRow.withExpiry(now: Long): RoomRow {
+            val full = createdAt + OPEN_MILLIS
+            val company = seats.any { it.accountId != null && it.accountId != hostAccount }
+            return when {
+                status != RoomStatus.OPEN -> this
+                company -> copy(expiresAt = full)
+                expiresAt == full -> copy(expiresAt = minOf(full, now + ALONE_MILLIS))
+                else -> this
+            }
         }
 
         private fun RoomRow.withSeat(seat: RoomSeatRow): RoomRow =

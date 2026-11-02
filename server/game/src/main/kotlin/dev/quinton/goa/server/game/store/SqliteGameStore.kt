@@ -398,7 +398,7 @@ class SqliteGameStore private constructor(private val connection: Connection) :
                 status)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             ON CONFLICT (code) DO UPDATE SET host_account = excluded.host_account, game_id = excluded.game_id,
-                status = excluded.status
+                status = excluded.status, expires_at = excluded.expires_at
             """,
             room.code,
             room.hostAccount,

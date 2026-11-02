@@ -376,7 +376,7 @@ class SocketTest {
 
     @Test
     fun aSocketWatchesItsMostRecentRoomsOnly() = serverTest {
-        val codes = List(MAX_WATCHED_ROOMS + 1) { room(account().token) }
+        val codes = List(MAX_WATCHED_ROOMS + 1) { room(account().token, from = "203.0.113.$it") }
         ws.play(account().token) {
             codes.forEach { code ->
                 sendMessage(ClientMessage.WatchRoom(code))
