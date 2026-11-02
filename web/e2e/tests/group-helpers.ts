@@ -207,7 +207,11 @@ export class FakeRelay {
 
 /** Every request to the production relay fails: tests never touch it. */
 export async function blockProduction(page: Page) {
-  await page.route(`${RELAY}/**`, (route) => route.abort("blockedbyclient"));
+  // A run against the real game server names it in GOA_GAME_SERVER_URL; that path only, never the relay beside it.
+  const game = process.env.GOA_GAME_SERVER_URL;
+  await page.route(`${RELAY}/**`, (route) =>
+    game && route.request().url().startsWith(`${game}/`) ? route.continue() : route.abort("blockedbyclient"),
+  );
 }
 
 /**

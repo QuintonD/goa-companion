@@ -537,6 +537,26 @@ test("a room's address with no account here asks for a name, then opens the room
   await expect(title(page)).toHaveText(`Room ${room.code}`);
 });
 
+test("a hero can't be picked while the room's socket is still opening: the tap would be lost", async ({ page }) => {
+  // Found on the live server: the socket takes a second through Funnel, and a tap in that second went nowhere.
+  const room = server.seedGameless(server.addAccount("Host"));
+  await useServer(page, server);
+  await page.addInitScript(() => {
+    window.WebSocket = class {
+      readyState = 0;
+      send() {}
+      close() {}
+      addEventListener() {}
+      removeEventListener() {}
+    } as unknown as typeof WebSocket;
+  });
+  await page.goto(`./#/online/room/${room.code}`);
+  await createAccount(page, "Ann");
+  await expect(title(page)).toHaveText(`Room ${room.code}`);
+  await expect(page.getByText("Connecting to the room…")).toBeVisible();
+  await expect(page.getByRole("button", { name: "Wasp", exact: true })).toBeDisabled();
+});
+
 test("an invite to a room that's gone says so where the room would be", async ({ page }) => {
   await useServer(page, server, server.addAccount("Ann"));
   await page.goto("./#play=ABCD2345");

@@ -535,7 +535,9 @@ passes (including an in-place upgrade from the morning build with real data). Ev
 - [x] Web online mode: socket, REST and account seams, the `GameTable` split, the resolution flow, the Online screens, the CSP, `online.spec.ts` (WebKit + Chromium against a fake server; two browsers through to a result against a local `:server:game:run`)
 - [x] Android online mode: home, recovery-code gate, lobby, table, result, leaderboards, deep link — 2026-11-02, builds and tests on JVM; one full rated game through the real local server (`LiveGameServerTest`); screens by screenshot only, not yet run on an emulator or the S25 Ultra
 - [x] End to end: whole games through the real server, store, room core and client driver, on real local sockets (Windows JVM; `server/game/.../e2e/`)
-- [ ] Live on oldboi and Pages; a full game through the real server
+- [x] Live on oldboi, behind Funnel beside the relay; real games through it: two browsers to a rated result (Chromium over Funnel's public address, WebKit over the tailnet) and the Android client's seams from the JVM over the tailnet; deploy tests 161/161 and the server suite on Ubuntu under `goa-gradle` — 2026-11-02
+- [x] `goa-leaderboards` on Pages, published by its Action — 2026-11-02, the seed board so far
+- [ ] The app's online mode on Pages and in a release: waits on the owner, since merging to main publishes it
 - [ ] On the S25 Ultra and a real iPhone: a full online game on mobile data
 
 ## M5 — Polish & release readiness

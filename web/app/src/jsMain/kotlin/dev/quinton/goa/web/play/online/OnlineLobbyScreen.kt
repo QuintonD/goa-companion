@@ -37,6 +37,7 @@ import dev.quinton.goa.web.ui.SectionHeader
 import dev.quinton.goa.web.ui.rememberGuardedScope
 import dev.quinton.goa.web.ui.rememberLoad
 import kotlinx.coroutines.flow.first
+import org.jetbrains.compose.web.attributes.disabled
 import org.jetbrains.compose.web.dom.Button
 import org.jetbrains.compose.web.dom.Div
 import org.jetbrains.compose.web.dom.H2
@@ -244,6 +245,8 @@ private fun SeatRow(seat: RoomSeat, ui: LobbyUi, inputs: LobbyInputs, onSit: () 
             classes("goa-online-seat", "free")
             attr("type", "button")
             attr("aria-label", "Sit in ${BoardText.team(seat.team)} seat ${seat.index + 1}")
+            // A tap with the socket still opening would be lost, and on mobile data that takes a second.
+            if (!ui.connected) disabled()
             onClick { onSit() }
         }) { body() }
     } else {
@@ -281,6 +284,7 @@ private fun HeroPicker(ui: LobbyUi, inputs: LobbyInputs, presenter: OnlineLobbyP
                 attr("type", "button")
                 attr("aria-pressed", selected.toString())
                 attr("aria-label", hero.name)
+                if (!ui.connected) disabled()
                 onClick { presenter.pickHero(if (selected) null else id) }
             }) {
                 HeroPortrait(hero, seat.team, PICK_PORTRAIT)

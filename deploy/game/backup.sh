@@ -15,7 +15,8 @@ as_game() {
 }
 
 is_sqlite() {
-    [[ "$(head -c 15 "$1" 2>/dev/null)" == "SQLite format 3" ]]
+    # tr: the WAL and the native library hold NUL bytes, which a command substitution warns about in cron's log.
+    [[ "$(head -c 15 "$1" 2>/dev/null | tr -d '\0')" == "SQLite format 3" ]]
 }
 
 main() {

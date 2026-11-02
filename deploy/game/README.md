@@ -88,6 +88,29 @@ Reinstall it after a change to `backup.sh`.
 
 **8. The public repo.** See [goa-leaderboards](#the-goa-leaderboards-repo) below.
 
+## Play through it
+
+After a deploy that changes the protocol, play real games through Funnel. Browsers on this repository's test
+page need its origin allowed, and the account limit raised for the run, so restart with an override and take it
+away afterwards. On oldboi, with `GOA_GAME_RULES_BUILD` set to what `/v1/health` reports:
+
+```sh
+docker compose -f compose.yaml -f /tmp/test-origin.yaml up -d --no-build --force-recreate
+# /tmp/test-origin.yaml: services.game.environment: GOA_GAME_ORIGINS "https://quintond.github.io,http://localhost:4191"
+#                                                   GOA_GAME_ACCOUNTS_PER_CLIENT "1000"
+```
+
+On a machine with the repository, from `web/e2e` after `:web:app:site`, with Funnel's public address from a public
+resolver, since a machine on the tailnet resolves the name to the tailnet:
+
+```sh
+GOA_PORT=4191 GOA_FUNNEL_IP=<public address> GOA_GAME_SERVER_URL=https://oldboi.taila4d38d.ts.net:8443/game \
+  npx playwright test --config playwright.live.config.ts tests/online-real.spec.ts
+```
+
+These games are real rows, and some rated. **Only do this before there are players**, or on a copy: to clean up,
+stop the container, delete the contents of `/var/lib/goa-game` and that day's backup, and run `deploy.sh` again.
+
 ## Update
 
 ```sh

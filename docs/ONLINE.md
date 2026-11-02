@@ -26,7 +26,7 @@ to publish HTML there could read them. The Action writes one validated JSON file
 also deploys the site (Pages source "GitHub Actions"), because a `GITHUB_TOKEN` push does not trigger
 a Pages build from a branch; only `network.json` and `leaderboard.json` go on the site.
 
-Ports: 443 and 10000 on oldboi are other apps' and are never touched. The game server is a new path
+Ports: 443 and 10000 on oldboi are other apps' (tailnet-only, not public) and are never touched. The game server is a new path
 on the relay's public port, `tailscale funnel --bg --https=8443 --set-path /game http://127.0.0.1:8788`.
 The server answers on both `/v1/...` and `/game/v1/...`, whichever way the path arrives.
 
