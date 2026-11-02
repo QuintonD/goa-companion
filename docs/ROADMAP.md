@@ -526,6 +526,10 @@ passes (including an in-place upgrade from the morning build with real data). Ev
 - [x] Reopening a game and taking back no longer replay the whole game to learn whether there is a move to take back; the coach no longer builds the engine on the main thread; the web game's screen stays awake after an app switch — 2026-11-02, `SessionTest`, suites green; the wake lock not yet seen on an iPhone
 - [ ] On the S25 Ultra: five labels and the Play tab in the hand
 
+## M28 — Sharp frames (ADR-057)
+- [x] Banner, title plate and gear, text boxes and plate brackets redrawn at high resolution, the dashboard frame and timer silhouette upscaled; the gear is round; Android and web — 2026-11-02, JVM, screenshots and Playwright
+- [ ] On the S25 Ultra: the banner, plates and text boxes at table distance, next to a real card
+
 ## M5 — Polish & release readiness
 - [x] Accessibility pass: ATF checks on 25 screens (no errors), contrast fixes, TalkBack labels, font scale 2.0 screenshots — 2026-10-17 (emulator/JVM)
 - [ ] Tablet sanity check

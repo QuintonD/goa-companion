@@ -2,14 +2,14 @@ package dev.quinton.goa.tools.catalogimport
 
 import com.google.common.truth.Truth.assertThat
 import java.awt.image.BufferedImage
+import java.io.File
+import javax.imageio.ImageIO
 import org.junit.Assert.assertThrows
 import org.junit.Test
 
 class LookAssetsTest {
     private val clear = 0
     private val red = 0xFFFF0000.toInt()
-    private val teal = 0xFF0080C0.toInt()
-    private val dark = 0xFF101010.toInt()
 
     private fun image(w: Int, h: Int, pixel: (Int, Int) -> Int) = BufferedImage(
         w,
@@ -18,6 +18,8 @@ class LookAssetsTest {
     ).apply {
         for (y in 0 until h) for (x in 0 until w) setRGB(x, y, pixel(x, y))
     }
+
+    private fun master(name: String) = ImageIO.read(File("../../design/look/parts/$name.png"))
 
     @Test
     fun `trim takes the transparent margins off`() {
@@ -32,21 +34,34 @@ class LookAssetsTest {
         assertThrows(IllegalStateException::class.java) { LookAssets.trim(image(4, 4) { _, _ -> clear }) }
     }
 
+    /** LookParts.kt, HeroPlates.kt, GoaScaffold.kt and the web's border-images slice these parts by these numbers. */
     @Test
-    fun `a bracket keeps the teal and drops the plate's dark ground`() {
-        val side = LookAssets.BRACKET * 2 + LookAssets.BRACKET_TOP
-        val plate = image(side, side) { x, y -> if (x < 4 || y < LookAssets.BRACKET_TOP + 4) teal else dark }
-        val bracket = LookAssets.bracket(plate, left = true, top = true)
-        assertThat(bracket.width).isEqualTo(LookAssets.BRACKET)
-        assertThat(bracket.getRGB(1, 10) ushr 24).isEqualTo(255)
-        assertThat(bracket.getRGB(20, 20) ushr 24).isEqualTo(0)
+    fun `the redrawn masters keep the sizes the frames slice them by`() {
+        val banner = master("banner")
+        assertThat(banner.height).isEqualTo(240)
+        assertThat(banner.width).isEqualTo(1896)
+        val plate = master("title-plate")
+        assertThat(plate.width).isEqualTo(525)
+        assertThat(plate.height).isEqualTo(149)
+        listOf("green", "gold", "blue", "red", "silver").forEach {
+            val box = master("textbox-$it")
+            assertThat(box.width).isEqualTo(600)
+            assertThat(box.height).isEqualTo(240)
+        }
+        listOf("tl", "tr", "bl", "br").forEach { assertThat(master("corner-$it").width).isEqualTo(64) }
+        // HeroState.kt places the Turn slots by fractions of the frame: its shape can't change.
+        val frame = master("dashboard-frame")
+        assertThat(frame.width.toDouble() / frame.height).isWithin(0.01).of(821.0 / 416)
     }
 
+    /** A plate's gear stays round at its minimum height: the right slice and the rows scale alike at 34 dp. */
     @Test
-    fun `over blends onto a transparent ground without darkening`() {
-        assertThat(LookAssets.over(red, 0, 1f)).isEqualTo(red)
-        val half = LookAssets.over(red, 0, 0.5f)
-        assertThat(half ushr 24).isIn(127..128)
-        assertThat((half shr 16) and 0xFF).isEqualTo(255)
+    fun `the title plate's gear is in its right slice`() {
+        val plate = master("title-plate")
+        val sliceStart = plate.width - 132
+        // Nothing above the pill left of the slice: the middle column, which stretches, holds no cog.
+        (0 until 16).forEach { y -> assertThat(plate.getRGB(sliceStart - 2, y) ushr 24).isEqualTo(0) }
+        // The top tooth overhangs the pill, as on a card.
+        assertThat(plate.getRGB(plate.width - 66, 14) ushr 24).isEqualTo(255)
     }
 }

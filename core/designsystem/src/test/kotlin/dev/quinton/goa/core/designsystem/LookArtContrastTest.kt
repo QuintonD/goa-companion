@@ -77,7 +77,7 @@ class LookArtContrastTest {
 
     /** The middle of the pill, where the words go. */
     @Test fun wordsOnTheTitlePlate() {
-        val l = luminances(LookArt.TITLE_PLATE, listOf(0.1f, 0.3f, 0.82f, 0.7f))
+        val l = luminances(LookArt.TITLE_PLATE, listOf(0.1f, 0.3f, 0.72f, 0.7f))
         check("onParchment on the plate", DarkExtended.onParchment, l[(l.size * WORST_DARK).toInt()], TEXT)
     }
 

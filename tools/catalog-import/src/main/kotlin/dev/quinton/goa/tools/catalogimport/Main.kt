@@ -55,7 +55,7 @@ fun main(args: Array<String>) {
             SeaArt(cache.url(art.url, "maps/art/forgotten-island-0.${art.url.substringAfterLast('.')}"), art.url)
         }
         val lookDir = cache.output("documents/rulebook/${rulebook.sha256}-look$LOOK_VERSION")
-        val look = LookAssets.build(pdf, lookDir, seaArt)
+        val look = LookAssets.build(pdf, lookDir, seaArt, File(root, "design/look/parts"))
         val extracted = pdfImages.entries.associate { (spec, file) ->
             spec.out to ExtractedAsset(
                 key = "rulebook@${rulebook.sha256}:p${spec.pdfPage}/obj${spec.obj}",

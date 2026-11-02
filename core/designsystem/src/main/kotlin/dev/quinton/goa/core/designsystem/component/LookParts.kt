@@ -232,6 +232,7 @@ fun Modifier.slatePlate(
                     srcSize = IntSize(image.width, image.height),
                     dstOffset = IntOffset(x.toInt(), y.toInt()),
                     dstSize = IntSize(bracket.toInt(), bracket.toInt()),
+                    filterQuality = FilterQuality.Medium,
                 )
             }
         }
@@ -334,7 +335,7 @@ fun TitlePlate(
         modifier
             .defaultMinSize(minHeight = 34.dp)
             .drawWithCache {
-                val dst = SliceInsets(12.dp.roundToPx(), 7.dp.roundToPx(), 25.dp.roundToPx(), 7.dp.roundToPx())
+                val dst = SliceInsets(12.dp.roundToPx(), 7.dp.roundToPx(), 30.dp.roundToPx(), 7.dp.roundToPx())
                 onDrawBehind {
                     if (plate != null) {
                         drawNineSlice(plate, TITLE_SLICE, dst)
@@ -374,7 +375,6 @@ fun CardTextBox(
 ) {
     val box = rememberOfficialBitmap(LookArt.textBox(color))
     val colors = GoaTheme.colors
-    val slice = BOX_SLICES.getValue(color)
     val darkCap = color == PlateColor.GOLD || color == PlateColor.SILVER
     val fontScale = LocalDensity.current.fontScale
     Box(
@@ -384,7 +384,7 @@ fun CardTextBox(
             onDrawBehind {
                 if (box != null) {
                     // No word for the tab: no tab, the box starts at its rim.
-                    drawNineSlice(box, slice, dst, srcTop = if (cap != null) 0 else BOX_TAB_ROWS.getValue(color))
+                    drawNineSlice(box, BOX_SLICE, dst, srcTop = if (cap != null) 0 else BOX_TAB_ROWS)
                 } else {
                     drawRoundRect(colors.parchment, cornerRadius = CornerRadius(8.dp.toPx()))
                 }
@@ -511,24 +511,19 @@ private val PLATE_GROUND = Color(0xFF1D2124)
 private val PLATE_SHADE = Color(0x2E000000)
 private val PLATE_EDGE = Color(0xFF5D6B70)
 private val PLATE_DARK_EDGE = Color(0xFF15191B)
-private val TITLE_SLICE = SliceInsets(16, 7, 36, 7)
-private val BOX_SLICES = mapOf(
-    // The top inset takes in the tab and the rim under it, so a tall box doesn't stretch the rim over its text.
-    PlateColor.BLUE to SliceInsets(16, 28, 16, 13),
-    PlateColor.SILVER to SliceInsets(16, 24, 16, 13),
-    PlateColor.GREEN to SliceInsets(20, 35, 20, 16),
-    PlateColor.GOLD to SliceInsets(20, 34, 20, 16),
-    PlateColor.RED to SliceInsets(14, 26, 14, 11),
-)
 
-/** Where each box's rim starts under its tab, in source pixels. */
-private val BOX_TAB_ROWS = mapOf(
-    PlateColor.BLUE to 17,
-    PlateColor.SILVER to 15,
-    PlateColor.GREEN to 21,
-    PlateColor.GOLD to 20,
-    PlateColor.RED to 15,
-)
+// The redrawn parts' slices (design/look/render_parts.py): corners and middle scale alike at a plate's minimum
+// height, so its gear stays round.
+private val TITLE_SLICE = SliceInsets(52, 31, 132, 31)
+
+/**
+ * All the colours share one geometry. The top inset takes in the tab and the rim under it, so a tall box doesn't
+ * stretch the rim over its text.
+ */
+private val BOX_SLICE = SliceInsets(48, 87, 48, 39)
+
+/** Where a box's rim starts under its tab, in source pixels. */
+private const val BOX_TAB_ROWS = 52
 private val CAP_SHADOW = Shadow(Color(0xB0000000), Offset(0f, 1f), 2f)
 private val BEVEL_OUTLINE = Color(0xFF05090D)
 private val BEVEL_FILL = Brush.verticalGradient(

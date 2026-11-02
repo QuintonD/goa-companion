@@ -88,10 +88,10 @@ internal fun Modifier.tilePlate(art: PlateArt): Modifier = drawWithCache {
 internal class PlateInsets(val start: Dp, val vertical: Dp, val end: Dp, val minHeight: Dp)
 
 /** On a grid tile: the mock-up's small plate; the tile shrinks a long name to fit it on one line. */
-internal val SmallPlate = PlateInsets(start = 8.dp, vertical = 5.dp, end = 18.dp, minHeight = 25.dp)
+internal val SmallPlate = PlateInsets(start = 9.dp, vertical = 5.dp, end = 22.dp, minHeight = 25.dp)
 
 /** On the hero page: the same proportions as the design system's `TitlePlate`. */
-internal val LargePlate = PlateInsets(start = 12.dp, vertical = 7.dp, end = 25.dp, minHeight = 34.dp)
+internal val LargePlate = PlateInsets(start = 12.dp, vertical = 7.dp, end = 30.dp, minHeight = 34.dp)
 
 /**
  * The cards' parchment title plate from a shared bitmap, grown by what it holds. Takes any content,
@@ -170,6 +170,6 @@ private val PLATE_EDGE = Color(0xFF5D6B70)
 private val PLATE_DARK_EDGE = Color(0xFF15191B)
 
 /** The title plate's slices in its source pixels (the same as the design system's). */
-private const val SLICE_START = 16
-private const val SLICE_END = 36
-private const val SLICE_VERTICAL = 7
+private const val SLICE_START = 52
+private const val SLICE_END = 132
+private const val SLICE_VERTICAL = 31

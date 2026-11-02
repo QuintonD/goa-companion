@@ -792,13 +792,13 @@ Graphics extracted from the rulebook PDF (SHA-256 `2c19b11d632759e9e3517e6a1450d
 | `official/ui/action-movement.webp` | p.6 | 7 · 1272 | Movement action symbol, p.6 |
 | `official/ui/action-range.webp` | p.6 | 7 · 1268 | Range symbol, p.6 |
 | `official/ui/action-skill.webp` | p.6 | 7 · 1266 | Skill action symbol, p.6 |
-| `official/ui/banner.webp` | p.8 | page render | The page banner, composed from a page footer's band and a header's medallion, p.8 |
+| `official/ui/banner.webp` | p.1 | design/look | The page banner with its star medallion, redrawn after the page's |
 | `official/ui/coin.webp` | p.5 | page render | The bronze coin, cut from the page's coin picture, p.5 |
-| `official/ui/corner-bl.webp` | p.21 | 22 · 7728 | Bottom left bracket of the dark card plate, p.21 |
-| `official/ui/corner-br.webp` | p.21 | 22 · 7728 | Bottom right bracket of the dark card plate, p.21 |
-| `official/ui/corner-tl.webp` | p.21 | 22 · 7728 | Top left bracket of the dark card plate, p.21 |
-| `official/ui/corner-tr.webp` | p.21 | 22 · 7728 | Top right bracket of the dark card plate, p.21 |
-| `official/ui/dashboard-frame.webp` | p.16 | 17 · 6750 | The hero dashboard's frame, p.16 |
+| `official/ui/corner-bl.webp` | p.21 | design/look | Bottom left bracket of the dark plate, redrawn after p.21 |
+| `official/ui/corner-br.webp` | p.21 | design/look | Bottom right bracket of the dark plate, redrawn after p.21 |
+| `official/ui/corner-tl.webp` | p.21 | design/look | Top left bracket of the dark plate, redrawn after p.21 |
+| `official/ui/corner-tr.webp` | p.21 | design/look | Top right bracket of the dark plate, redrawn after p.21 |
+| `official/ui/dashboard-frame.webp` | p.16 | design/look | The hero dashboard's frame, object 6750, upscaled with Real-ESRGAN x4plus, p.16 |
 | `official/ui/dashboard-tigerclaw.webp` | p.16 | 17 · 6748 | Tigerclaw's dashboard art, p.16 |
 | `official/ui/life-blue-spent.webp` | p.5 | 6 · 616 | Blue Life counter, spent, p.5 |
 | `official/ui/life-blue.webp` | p.5 | 6 · 582 | Blue Life counter, unspent, p.5 |
@@ -810,14 +810,14 @@ Graphics extracted from the rulebook PDF (SHA-256 `2c19b11d632759e9e3517e6a1450d
 | `official/ui/ribbon-red.webp` | p.9 | 10 · 2902 | Action card anatomy layers: red ribbon, p.9 |
 | `official/ui/ribbon-silver.webp` | p.12 | 13 · 4363 | Action card anatomy layers: silver ribbon, p.12 |
 | `official/ui/sea.webp` | not from the rulebook | map art | Open sea, a region of the Forgotten Island painting (see the map art below) |
-| `official/ui/silhouette.webp` | p.0 | 1 · 8940 | The cover's battlefield silhouette |
+| `official/ui/silhouette.webp` | p.0 | design/look | The cover's battlefield silhouette, object 8940, upscaled with Real-ESRGAN x4plus |
 | `official/ui/slate.webp` | p.16 | 17 · 6747 | The dashboard's dark plate, p.16 |
-| `official/ui/textbox-blue.webp` | p.7 | 8 · 2100 | Action card anatomy layers: blue text box, p.7 |
-| `official/ui/textbox-gold.webp` | p.6 | 7 · 1299 | Action card anatomy layers: gold text box, p.6 |
-| `official/ui/textbox-green.webp` | p.6 | 7 · 1260 | Action card anatomy layers: green text box, p.6 |
-| `official/ui/textbox-red.webp` | p.9 | 10 · 2900 | Action card anatomy layers: red text box, p.9 |
-| `official/ui/textbox-silver.webp` | p.12 | 13 · 4359 | Action card anatomy layers: silver text box, p.12 |
-| `official/ui/title-plate.webp` | p.6 | 7 · 1257 | Action card anatomy layers: the title plate, p.6 |
+| `official/ui/textbox-blue.webp` | p.7 | design/look | The cards' blue text box, redrawn after Action card anatomy layers, p.7 |
+| `official/ui/textbox-gold.webp` | p.6 | design/look | The cards' gold text box, redrawn after Action card anatomy layers, p.6 |
+| `official/ui/textbox-green.webp` | p.6 | design/look | The cards' green text box, redrawn after Action card anatomy layers, p.6 |
+| `official/ui/textbox-red.webp` | p.9 | design/look | The cards' red text box, redrawn after Action card anatomy layers, p.9 |
+| `official/ui/textbox-silver.webp` | p.12 | design/look | The cards' silver text box, redrawn after Action card anatomy layers, p.12 |
+| `official/ui/title-plate.webp` | p.6 | design/look | The cards' title plate and gear, redrawn after Action card anatomy layers, p.6 |
 | `official/ui/wave-spent.webp` | p.5 | 6 · 578 | Wave counter, facedown, p.5 |
 | `official/ui/wave.webp` | p.5 | 6 · 604 | Wave counter, faceup, p.5 |
 
