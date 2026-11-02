@@ -10,6 +10,9 @@ object OnlineWords {
     const val UNREACHABLE: String =
         "The server can't be reached; your games wait for it. Playing against the computer still works."
 
+    /** The server answered, and wouldn't do it, for a reason there is nothing a person can do about. */
+    const val SERVER_SAID_NO: String = "The server couldn't do that. Try again in a moment."
+
     const val RECONNECTING: String = "Connection lost. Getting back to your game…"
 
     /** The answer reached the server after the question had moved on, or wasn't accepted. */
@@ -23,6 +26,10 @@ object OnlineWords {
     const val NAME_NEEDED: String = "Pick a name for the others to see."
 
     const val RECOVERY_CODE_NEEDED: String = "Enter the recovery code from your other device."
+
+    const val BAD_NAME: String = "That name can't be used. It needs 2 to 24 letters and numbers."
+
+    const val BAD_RECOVERY_CODE: String = "That recovery code doesn't work. Each code works once."
 
     const val SEAT_FIRST: String = "Take a seat first."
 

@@ -19,7 +19,7 @@ sealed interface OnlineResult<out T> {
     /** The server said no, in a way people can be told ([OnlineWords.refusal]). */
     data class Refused(val reason: Refusal, val retryAfter: Int? = null) : OnlineResult<Nothing>
 
-    /** No answer ([message] null), or an error the server explained for people. */
+    /** No answer ([message] null), or an error with words for people. */
     data class Failed(val message: String? = null) : OnlineResult<Nothing>
 }
 
@@ -56,12 +56,30 @@ fun onlineFailure(body: String, retryAfter: Int?): OnlineResult<Nothing> {
     } catch (_: SerializationException) {
         return OnlineResult.Failed()
     }
-    val reason = Refusal.entries.firstOrNull { refusalCode(it) == error.error }
-    return if (reason != null) OnlineResult.Refused(reason, retryAfter) else OnlineResult.Failed(error.message)
+    val reason = if (error.error == UNAUTHORIZED) {
+        Refusal.BAD_TOKEN
+    } else {
+        Refusal.entries.firstOrNull { refusalCode(it) == error.error }
+    }
+    return if (reason != null) {
+        OnlineResult.Refused(reason, retryAfter)
+    } else {
+        // It answered, so "can't be reached" would be untrue: its errors have no words of their own.
+        OnlineResult.Failed(error.message ?: wordsFor(error.error))
+    }
 }
 
 private fun refusalCode(reason: Refusal): String =
     OnlineProtocol.json.encodeToString(Refusal.serializer(), reason).trim('"')
+
+private fun wordsFor(code: String): String = when (code) {
+    "bad_name" -> OnlineWords.BAD_NAME
+    "bad_recovery_code" -> OnlineWords.BAD_RECOVERY_CODE
+    else -> OnlineWords.SERVER_SAID_NO
+}
+
+/** REST's word for a token it doesn't know, or none at all; the socket says [Refusal.BAD_TOKEN]. */
+private const val UNAUTHORIZED = "unauthorized"
 
 /** The words for a call that didn't work. */
 fun OnlineResult<*>.words(): String? = when (this) {
