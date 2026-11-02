@@ -1,0 +1,11 @@
+{
+  "schema": 1,
+  "minProtocol": 1,
+  "games": [
+    {
+      "origin": "https://oldboi.taila4d38d.ts.net:8443/game",
+      "status": "open"
+    }
+  ],
+  "leaderboard": "https://quintond.github.io/goa-leaderboards/leaderboard.json"
+}
