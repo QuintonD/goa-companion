@@ -50,7 +50,10 @@ The server answers on both `/v1/...` and `/game/v1/...`, whichever way the path 
   its whole clock again only if the game wasn't paused; coming back from a pause does too. A seat given up
   with `leave` is answered at once, not on a clock.
 - **Rated:** a game from a ranked room, finished by the rules. Leaving does not dodge a result: the
-  computer plays on, the team still wins or loses. A voided or abandoned game is unrated.
+  computer plays on, the team still wins or loses. A voided or abandoned game is unrated. So is a game where
+  a team gave no answer of a person's own at all, or where two people on opposite sides have already met in 10
+  rated games in the last 7 days. That is decided at the finish, from the answers and the match log
+  (`room/RatedRule`), and `End.rated` says how it came out. The rule is read from the log, not stored.
 - **Ratings** are `EloCalculator.replay(matches, EloConfig.DEFAULT)` over the `matches` table and are
   never stored: the board is derived on demand, and deleting everything except `matches` reproduces it.
   A player or a hero appears on the board after 5 rated games; each board has at most 200 rows, by

@@ -108,6 +108,9 @@ interface GameStore {
 
     /** The rated log, in [dev.quinton.goa.core.domain.rating.EloCalculator]'s replay order. */
     suspend fun matches(): List<Match>
+
+    /** The log from [at] on, for a look at recent games that needn't read it all. */
+    suspend fun matchesSince(at: Long): List<Match> = matches().filter { it.playedAt >= at }
 }
 
 /** For tests of the rooms and the ratings. Nothing survives the process. */

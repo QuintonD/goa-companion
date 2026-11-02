@@ -6,6 +6,7 @@ import dev.quinton.goa.core.game.engine.EngineSession
 import dev.quinton.goa.core.game.engine.GameEngine
 import dev.quinton.goa.core.game.engine.GameState
 import dev.quinton.goa.core.model.match.Team
+import dev.quinton.goa.server.game.store.AnswerOrigin
 import dev.quinton.goa.server.game.store.GameRow
 import dev.quinton.goa.server.game.store.StoredAnswer
 import java.security.MessageDigest
@@ -65,7 +66,14 @@ internal class AnswerTally {
 }
 
 /** A game rebuilt from its answers, up to the question it was waiting on. */
-internal class Replayed(val session: EngineSession, val tally: AnswerTally, val eventsHash: String, val answers: Long)
+internal class Replayed(
+    val session: EngineSession,
+    val tally: AnswerTally,
+    val eventsHash: String,
+    val answers: Long,
+    /** The teams that have given an answer of a person's own: what it takes to be rated ([RatedRule]). */
+    val humanTeams: Set<Team> = emptySet(),
+)
 
 /** Why a game's past no longer stands, in words for the log. */
 internal class PastChanged(message: String) : Exception(message)
@@ -84,6 +92,7 @@ internal object Replay {
         val session = engine.restoreFrom(row.start, emptyList()) as EngineSession
         val tally = AnswerTally()
         var hash = begin(session)
+        val humanTeams = HashSet<Team>()
         for (a in answers.sortedBy { it.seq }) {
             val key = SimultaneousWindow.keyOf(session)
             val pending = session.pending ?: throw PastChanged("Answer ${a.seq} after the end of the game")
@@ -91,12 +100,13 @@ internal object Replay {
             val result = session.answer(a.record.decisionId, a.record.choice)
             if (result !is AnswerResult.Accepted) throw PastChanged("Answer ${a.seq} no longer fits: $result")
             tally.note(a.record.seat, key, pending.team.takeIf { pending.teamDecision })
+            if (a.origin == AnswerOrigin.HUMAN) humanTeams += pending.team
             hash = GameHashes.events(hash, result.events)
             if (hash != a.eventsHash) throw PastChanged("The log differs at answer ${a.seq}")
             if (GameHashes.state(session, result.events) != a.stateHash) {
                 throw PastChanged("The state differs at answer ${a.seq}")
             }
         }
-        return Replayed(session, tally, hash, answers.size.toLong())
+        return Replayed(session, tally, hash, answers.size.toLong(), humanTeams)
     }
 }

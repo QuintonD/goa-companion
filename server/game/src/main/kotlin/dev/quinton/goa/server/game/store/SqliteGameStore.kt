@@ -235,9 +235,13 @@ class SqliteGameStore private constructor(private val connection: Connection) :
         }
     }
 
+    override suspend fun matches(): List<Match> = matchesFrom(Long.MIN_VALUE)
+
+    override suspend fun matchesSince(at: Long): List<Match> = matchesFrom(at)
+
     /** A row that can't be read is left out and logged: one must not take the whole board with it. */
-    override suspend fun matches(): List<Match> = read {
-        query("SELECT id, match_json FROM matches ORDER BY played_at, created_at, id") { rows ->
+    private suspend fun matchesFrom(at: Long): List<Match> = read {
+        query("SELECT id, match_json FROM matches WHERE played_at >= ? ORDER BY played_at, created_at, id", at) { rows ->
             rows.toList { row ->
                 try {
                     JSON.decodeFromString(Match.serializer(), row.getString(2))

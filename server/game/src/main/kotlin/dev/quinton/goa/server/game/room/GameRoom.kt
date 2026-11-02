@@ -56,6 +56,7 @@ internal class GameRoom(
     private val tally: AnswerTally = replayed.tally
     private var eventsHash: String = replayed.eventsHash
     private var answers: Long = replayed.answers
+    private val humanTeams = replayed.humanTeams.toMutableSet()
 
     private val order: List<String> = seats.sortedBy { it.seatOrder }.map { it.heroId }
     private val locks = HashMap<String, MutableList<LockEntry>>()
@@ -163,6 +164,7 @@ internal class GameRoom(
         eventsHash = hash
         answers++
         tally.note(d.seat, key, d.team.takeIf { d.teamDecision })
+        if (origin == AnswerOrigin.HUMAN) humanTeams += d.team
         changed()
     }
 
@@ -292,11 +294,10 @@ internal class GameRoom(
         val view = session.view(null)
         val winner = view.winner
         val reason = view.winReason
-        val match = if (row.ranked && winner != null && reason != null) {
-            env.mapper.matchOf(row, seats, winner, reason, at)
-        } else {
-            null
-        }
+        val rated = row.ranked && winner != null && reason != null &&
+            RatedRule.counts(seats, humanTeams, env.store.matchesSince(at - RatedRule.WINDOW_MILLIS), at)
+        // The match row is the decision, on disk with the game's closing; the log it was read from only grows.
+        val match = if (rated) env.mapper.matchOf(row, seats, checkNotNull(winner), checkNotNull(reason), at) else null
         env.store.finish(row.id, GameResult(at, match != null), match)
         publish()
         close(ServerMessage.End(row.id, winner, reason, match != null))
