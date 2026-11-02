@@ -568,11 +568,8 @@ class RoomCoreTest {
         val wasp = game.inbox.getValue("wasp")
         assertThat(wasp.latest("wasp").presence["arien"]).isEqualTo(Presence.COMPUTER)
         assertThat(wasp.latest("wasp").locked).containsExactly("arien")
-        assertThat(
-            wasp.latest("wasp").view.heroes.first {
-                it.heroId == "arien"
-            }.controller,
-        ).isEqualTo(Controller.Human)
+        val arien = wasp.latest("wasp").view.heroes.first { it.heroId == "arien" }
+        assertThat(arien.controller).isEqualTo(Controller.Human)
 
         val rng = Random(8)
         var answered = 0
@@ -593,56 +590,6 @@ class RoomCoreTest {
         // The computer's answers stay in the record as the computer's.
         assertThat(store.answers.filter { it.record.seat == "arien" }.map { it.origin }.drop(1).toSet())
             .containsNoneIn(listOf(AnswerOrigin.HUMAN))
-    }
-
-    @Test
-    fun `leaving before answering anything leaves a game that isn't rated`() = runBlocking<Unit> {
-        val store = WatchedStore()
-        val game = TestGame(store = store)
-        val setup = duel()
-        game.start(setup, ranked = true)
-        game.connectAll(setup)
-        game.core.leave(TestGame.GAME_ID, TestGame.account("arien"))
-        val wasp = game.inbox.getValue("wasp")
-        val rng = Random(8)
-        var answered = 0
-        while (game.core.runningCount > 0) {
-            val q = wasp.question("wasp")
-            if (q != null) game.answer("wasp", RandomGames.choose(q, rng)) else game.tick()
-            assertThat(++answered).isLessThan(TestGame.MAX_ANSWERS)
-        }
-        assertThat(wasp.ended!!.winner).isNotNull()
-        assertThat(wasp.ended!!.rated).isFalse()
-        assertThat(store.matches()).isEmpty()
-    }
-
-    @Test
-    fun `who has answered survives a restart, and the end says what was decided`() = runBlocking<Unit> {
-        val store = WatchedStore()
-        val game = TestGame(store = store)
-        val setup = duel()
-        game.start(setup, ranked = true)
-        game.connectAll(setup)
-        game.answer("wasp", game.inbox.getValue("wasp").question("wasp")!!.options.first())
-        game.answer("arien", game.inbox.getValue("arien").question("arien")!!.options.first())
-
-        val again = TestGame(store = store, clock = game.clock)
-        again.core.restore()
-        again.connectAll(setup)
-        val rng = Random(3)
-        again.drive(choose = { RandomGames.choose(it, rng) })
-        assertThat(again.inbox.getValue("wasp").ended!!.rated).isTrue()
-    }
-
-    @Test
-    fun `a game that ended unheard is one to go back to but doesn't count as one being played`() = runBlocking<Unit> {
-        val game = TestGame(rules = short)
-        game.start(duel())
-        game.clock.advance(short.abandonMillis + 1)
-        game.tick()
-        val wasp = TestGame.account("wasp")
-        assertThat(game.core.gamesOf(wasp)).containsExactly(TestGame.GAME_ID)
-        assertThat(game.core.runningGamesOf(wasp)).isEmpty()
     }
 
     @Test

@@ -23,10 +23,11 @@ import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.Json
 import org.slf4j.LoggerFactory
 
-/** A rollback across a schema bump: this build can't read the database, and must not touch it (deploy/game/README.md). */
+/** A rollback across a schema bump: this build can't read the database and must not touch it. */
 class NewerDatabase(found: Long, mine: Int) : Exception(
     "The database is schema $found and this server only knows up to $mine. Nothing was changed. " +
-        "Deploy a newer build, or restore the backup from before the upgrade: see \"Roll back\" in deploy/game/README.md.",
+        "Deploy a newer build, or restore the backup from before the upgrade: " +
+        "see \"Roll back\" in deploy/game/README.md.",
 )
 
 /**
@@ -247,7 +248,10 @@ class SqliteGameStore private constructor(private val connection: Connection) :
 
     /** A row that can't be read is left out and logged: one must not take the whole board with it. */
     private suspend fun matchesFrom(at: Long): List<Match> = read {
-        query("SELECT id, match_json FROM matches WHERE played_at >= ? ORDER BY played_at, created_at, id", at) { rows ->
+        query(
+            "SELECT id, match_json FROM matches WHERE played_at >= ? ORDER BY played_at, created_at, id",
+            at,
+        ) { rows ->
             rows.toList { row ->
                 try {
                     JSON.decodeFromString(Match.serializer(), row.getString(2))

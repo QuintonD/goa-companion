@@ -111,7 +111,8 @@ class TeamQuestionTest {
         // The same answer given directly to the engine makes the same game.
         val direct = tied()
         direct.answer(direct.pending!!.id, Choice.Unit(other))
-        assertThat(answer.eventsHash).isEqualTo(GameHashes.events(Replay.begin(tied()), direct.events.drop(tied().events.size)))
+        val fresh = direct.events.drop(tied().events.size)
+        assertThat(answer.eventsHash).isEqualTo(GameHashes.events(Replay.begin(tied()), fresh))
 
         val again = TestGame(store = store)
         again.core.restore()

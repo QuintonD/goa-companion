@@ -133,7 +133,8 @@ class RetentionTest {
 
         store.createGame(StoreFixtures.game("recent"), StoreFixtures.seats("recent"))
         store.appendAnswer(StoreFixtures.answer("recent", 0))
-        store.finish("recent", GameResult(now - 29 * day, rated = true), StoreFixtures.match("recent", now - 29 * day, 1))
+        val recent = now - 29 * day
+        store.finish("recent", GameResult(recent, rated = true), StoreFixtures.match("recent", recent, 1))
 
         store.createGame(StoreFixtures.game("running", createdAt = 1), StoreFixtures.seats("running"))
         store.appendAnswer(StoreFixtures.answer("running", 0))

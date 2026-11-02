@@ -139,7 +139,11 @@ class LongLogTest {
             val http = HttpClient.newHttpClient()
             val created = http.send(
                 HttpRequest.newBuilder(URI("http://127.0.0.1:$port/v1/accounts"))
-                    .POST(HttpRequest.BodyPublishers.ofString(CreateAccount.serializer().json(CreateAccount("Someone"))))
+                    .POST(
+                        HttpRequest.BodyPublishers.ofString(
+                            CreateAccount.serializer().json(CreateAccount("Someone")),
+                        ),
+                    )
                     .build(),
                 HttpResponse.BodyHandlers.ofString(),
             )

@@ -132,7 +132,13 @@ class RoomCore(
         try {
             val accounts = store.accountsOf(id)
             store.void(id, VoidReason.RULES_CHANGED, now())
-            val end = ServerMessage.End(id, winner = null, reason = null, rated = false, voided = VoidReason.RULES_CHANGED)
+            val end = ServerMessage.End(
+                id,
+                winner = null,
+                reason = null,
+                rated = false,
+                voided = VoidReason.RULES_CHANGED,
+            )
             rememberClosed(id, end, accounts)
         } catch (e: CancellationException) {
             throw e

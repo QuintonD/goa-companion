@@ -58,7 +58,8 @@ class GameHostsTest {
             opened += base
             FakeGameConnection { 0 }
         }
-        assertTrue(assertFailsWith<HostUnavailable> { connector(HostChoice(builtIn, tooOld = true)).open(hello) }.tooOld)
+        val tooOld = assertFailsWith<HostUnavailable> { connector(HostChoice(builtIn, tooOld = true)).open(hello) }
+        assertTrue(tooOld.tooOld)
         assertEquals(
             "Soon",
             assertFailsWith<HostUnavailable> { connector(HostChoice(null, note = "Soon")).open(hello) }.note,

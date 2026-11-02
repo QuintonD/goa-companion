@@ -69,7 +69,8 @@ data class GameServerConfig(
                 drainFile = env["GOA_GAME_DRAIN_FILE"]?.let { Paths.get(it) } ?: dataDir.resolve(DEFAULT_DRAIN_FILE),
                 perClientPerMinute = int("GOA_GAME_RATE_PER_CLIENT", DEFAULT_PER_CLIENT_PER_MINUTE),
                 globalPerMinute = int("GOA_GAME_RATE_GLOBAL", DEFAULT_GLOBAL_PER_MINUTE),
-                upgradesPerClientPerMinute = int("GOA_GAME_UPGRADES_PER_CLIENT", DEFAULT_UPGRADES_PER_CLIENT_PER_MINUTE),
+                upgradesPerClientPerMinute =
+                    int("GOA_GAME_UPGRADES_PER_CLIENT", DEFAULT_UPGRADES_PER_CLIENT_PER_MINUTE),
                 upgradesGlobalPerMinute = int("GOA_GAME_UPGRADES_GLOBAL", DEFAULT_UPGRADES_GLOBAL_PER_MINUTE),
                 accountsPerClientPerHour = int("GOA_GAME_ACCOUNTS_PER_CLIENT", DEFAULT_ACCOUNTS_PER_CLIENT_PER_HOUR),
                 accountsGlobalPerHour = int("GOA_GAME_ACCOUNTS_GLOBAL", DEFAULT_ACCOUNTS_GLOBAL_PER_HOUR),

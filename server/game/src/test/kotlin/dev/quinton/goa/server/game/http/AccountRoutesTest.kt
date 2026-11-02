@@ -119,7 +119,9 @@ class AccountRoutesTest {
     }
 
     @Test
-    fun healthIsNeverLimitedOnEitherPath() = serverTest(configure = { it.copy(perClientPerMinute = 1, globalPerMinute = 1) }) {
+    fun healthIsNeverLimitedOnEitherPath() = serverTest(
+        configure = { it.copy(perClientPerMinute = 1, globalPerMinute = 1) },
+    ) {
         repeat(5) {
             assertThat(http.get("/v1/health").status).isEqualTo(HttpStatusCode.OK)
             assertThat(http.get("/game/v1/health").status).isEqualTo(HttpStatusCode.OK)

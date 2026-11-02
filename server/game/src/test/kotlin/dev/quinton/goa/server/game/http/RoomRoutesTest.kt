@@ -10,8 +10,8 @@ import dev.quinton.goa.core.online.CreateRoom
 import dev.quinton.goa.core.online.HealthInfo
 import dev.quinton.goa.core.online.LeaderRow
 import dev.quinton.goa.core.online.LeaderboardSnapshot
-import dev.quinton.goa.core.online.RoomCreated
 import dev.quinton.goa.core.online.Resume
+import dev.quinton.goa.core.online.RoomCreated
 import dev.quinton.goa.core.online.RoomStatus
 import dev.quinton.goa.core.online.RoomView
 import dev.quinton.goa.core.online.ServerMessage
