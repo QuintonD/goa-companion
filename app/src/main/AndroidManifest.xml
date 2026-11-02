@@ -1,12 +1,15 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- Group sync (ADR-025) goes phone to phone over Nearby; its permissions come from feature/sync's
-     manifest. The one server the app talks to is the group's sync server (ADR-036), over HTTPS only
-     in release builds (network_security_config). -->
+     manifest. The servers the app talks to are the group's sync server (ADR-036) and the game server
+     with its public files (ADR-056), over HTTPS only in release builds (network_security_config). -->
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
 
-    <!-- The group's sync server (ADR-036): WorkManager fetches and uploads the sealed document. -->
+    <!-- The group's sync server (ADR-036): WorkManager fetches and uploads the sealed document. Online
+         games (ADR-056): the rooms, the leaderboard and a game's socket. -->
     <uses-permission android:name="android.permission.INTERNET" />
+    <!-- An online game reconnects at once when the network returns, rather than waiting out its backoff. -->
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <!-- WorkManager's foreground-worker support: server sync never runs as a foreground service
          (no setForeground, no expedited work), and the timer has none either (ADR-007). -->
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" tools:node="remove" />
@@ -81,6 +84,15 @@
                 <data android:host="*" />
                 <data android:mimeType="application/octet-stream" />
                 <data android:pathPattern=".*\\.goasync" />
+            </intent-filter>
+            <!-- An online invite the web app or a message offers: goa-companion://play/<code> (ADR-056).
+                 A custom scheme, because a project's Pages site can't hold a verified App Link's
+                 assetlinks.json, which must be at the origin's root. Opens the room's lobby. -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="goa-companion" android:host="play" />
             </intent-filter>
         </activity>
     </application>

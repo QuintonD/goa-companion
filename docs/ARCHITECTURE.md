@@ -170,7 +170,7 @@ Features never depend on each other; cross-feature navigation goes through `app`
   `tools/catalog-import` and bundled. The network uses are the group's sync server
   (ADR-036, below) and online games (ADR-056, [ONLINE.md](ONLINE.md)): the app declares `INTERNET`, release builds speak HTTPS only to system CAs
   (`res/xml/network_security_config.xml`; the debug copy adds plain HTTP to `10.0.2.2` /
-  `localhost`), and the manifest removes the datatransport `CctBackendFactory` registration, so
+  `localhost`; `ACCESS_NETWORK_STATE` lets an online game reconnect when the network returns), and the manifest removes the datatransport `CctBackendFactory` registration, so
   the code scanner's Google usage logger has no backend to upload through.
 
 ## Group sync (ADR-025)

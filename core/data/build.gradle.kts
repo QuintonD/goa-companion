@@ -11,6 +11,8 @@ dependencies {
     api(projects.core.game)
     // The repository interfaces and their pure parts, shared with the web app (ADR-043).
     api(projects.core.dataContracts)
+    // The seams of online games (ADR-056): this module implements them over OkHttp and DataStore.
+    implementation(projects.core.play)
     implementation(projects.core.database)
     implementation(projects.core.datastore)
     implementation(libs.kotlinx.coroutines.android)

@@ -139,6 +139,11 @@ class OnlinePresentersTest {
         assertEquals(OnlineResult.Refused(Refusal.BAD_TOKEN), onlineFailure("""{"error":"bad_token"}""", null))
         assertEquals(OnlineResult.Failed("No."), onlineFailure("""{"error":"other","message":"No."}""", null))
         assertEquals(OnlineResult.Failed(), onlineFailure("<html>Bad gateway</html>", null))
+        assertEquals(OnlineResult.Refused(Refusal.BAD_TOKEN), onlineFailure("""{"error":"unauthorized"}""", null))
+        assertEquals(
+            OnlineResult.Failed(OnlineWords.apiError("bad_recovery_code")),
+            onlineFailure("""{"error":"bad_recovery_code"}""", null),
+        )
     }
 
     @Test

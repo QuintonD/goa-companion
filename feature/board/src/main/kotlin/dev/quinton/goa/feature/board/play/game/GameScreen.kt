@@ -4,6 +4,7 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
@@ -84,7 +85,10 @@ import dev.quinton.goa.feature.board.BoardText
 import dev.quinton.goa.feature.board.board.BoardSheet
 import dev.quinton.goa.feature.board.board.SheetTitle
 import dev.quinton.goa.feature.board.map.MapViewport
+import dev.quinton.goa.feature.board.online.OnlineStrip
+import dev.quinton.goa.feature.board.online.OtherPlayerMove
 import dev.quinton.goa.feature.board.play.PlayText
+import dev.quinton.goa.feature.board.play.online.OnlineWords
 import dev.quinton.goa.feature.board.play.review.ReviewButton
 import dev.quinton.goa.feature.board.play.review.ReviewOpenEffect
 import dev.quinton.goa.feature.board.play.review.ReviewSheet
@@ -116,6 +120,10 @@ import dev.quinton.goa.feature.board.ui.cards.rememberCardFocusState
  * The game against the computer: the table, the question or the computer's move in the panel, the
  * log, Take back and the Coach; then the game-over summary. [onTap] reports whether a tap on the
  * board was an option (otherwise a tap on a hero opens its status).
+ *
+ * An online game (`PlayUi.online`, ADR-056) is the same table with its players, presence and clock over it,
+ * without what needs a whole game (take back, Coach, pace, suggestions); [onDelete] then gives up the seat.
+ * [banner] floats over the table: online, "getting back to your game".
  */
 @Composable
 fun GameScreen(
@@ -129,8 +137,13 @@ fun GameScreen(
     modifier: Modifier = Modifier,
     initialSheet: PlaySheet? = null,
     initialPanelHidden: Boolean = false,
+    banner: @Composable BoxScope.() -> Unit = {},
 ) {
     val play = (state as? GameUiState.Playing)?.play
+    // Why an online game ended with no result to show; a finished game has its summary instead.
+    val closed = play?.takeIf { it.online != null && it.over == null }?.let { shown ->
+        shown.online?.closed ?: OnlineWords.GAME_GONE.takeIf { shown.status == TurnStatus.Over }
+    }
     var sheet by remember { mutableStateOf(initialSheet) }
     var menu by remember { mutableStateOf(false) }
     var ending by rememberSaveable { mutableStateOf(false) }
@@ -138,7 +151,7 @@ fun GameScreen(
     val snackbar = remember { SnackbarHostState() }
     val viewport = remember { MapViewport() }
     val focus = rememberCardFocusState()
-    KeepScreenOn(play != null && play.over == null)
+    KeepScreenOn(play != null && play.over == null && closed == null)
     val message = play?.message
     LaunchedEffect(play?.messageId) {
         if (message != null) {
@@ -153,16 +166,18 @@ fun GameScreen(
     BoardScaffold(
         title = when {
             play == null -> "Play"
-            play.over != null -> "Game over"
+            play.over != null || closed != null -> "Game over"
             else -> roundTitle(play.table.view.round, play.table.view.turn, room)
         },
         onBack = onBack,
         modifier = modifier,
         snackbarHost = { SnackbarHost(snackbar) },
         actions = {
-            if (play != null && play.over == null) {
-                IconButton(onClick = { onAction(GameAction.TakeBack) }, enabled = play.canTakeBack && !play.busy) {
-                    Icon(Icons.AutoMirrored.Outlined.Undo, contentDescription = "Take back")
+            if (play != null && play.over == null && closed == null) {
+                if (play.online == null) {
+                    IconButton(onClick = { onAction(GameAction.TakeBack) }, enabled = play.canTakeBack && !play.busy) {
+                        Icon(Icons.AutoMirrored.Outlined.Undo, contentDescription = "Take back")
+                    }
                 }
                 ReviewButton(onClick = { sheet = PlaySheet.Review() })
                 IconButton(onClick = { sheet = PlaySheet.Log }) {
@@ -202,6 +217,16 @@ fun GameScreen(
                             logAt = it
                             sheet = PlaySheet.Log
                         })
+                    } else if (closed != null) {
+                        EmptyState(
+                            icon = Icons.Outlined.Flag,
+                            title = "This game has ended",
+                            message = closed,
+                            modifier = Modifier.align(Alignment.Center),
+                            action = {
+                                GoaButton(onClick = onDone, modifier = Modifier.heightIn(min = 48.dp)) { Text("Done") }
+                            },
+                        )
                     } else {
                         GameTable(
                             table = state.play.table,
@@ -229,10 +254,12 @@ fun GameScreen(
                             } else {
                                 null
                             },
+                            topStrip = state.play.online?.let { online -> { OnlineStrip(online, state.play.table) } },
                         ) {
                             Panel(state.play, onAction, focus)
                         }
                     }
+                    banner()
                     // TalkBack hears what just happened.
                     state.play.announcement?.let { said ->
                         Box(
@@ -287,12 +314,16 @@ fun GameScreen(
     play?.suggest?.let { open -> SuggestionsSheet(play, open, focus, onAction) }
     CardFocusHost(focus)
     if (ending) {
+        val online = play?.online != null
         ConfirmDialog(
-            title = "End this game?",
-            message =
+            title = if (online) "Leave this game?" else "End this game?",
+            message = if (online) {
+                "The computer plays your seat from here on, and your team still wins or loses. You can't come back."
+            } else {
                 "The game is deleted from this phone. It is saved after every move, so you can also just leave it " +
-                    "and resume later from Boards.",
-            confirmLabel = "End game",
+                    "and resume later from Boards."
+            },
+            confirmLabel = if (online) "Leave game" else "End game",
             destructive = true,
             icon = Icons.Outlined.Flag,
             onConfirm = {
@@ -322,47 +353,49 @@ private fun GameMenu(
     onEnd: () -> Unit,
 ) {
     DropdownMenu(expanded = expanded, onDismissRequest = onDismiss) {
-        DropdownMenuItem(
-            text = {
-                Column {
-                    Text("Coach")
-                    Text(
-                        if (play.coach) "Nudges before a clearly worse choice" else "Off",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
-            },
-            leadingIcon = { Icon(Icons.Outlined.Lightbulb, contentDescription = null) },
-            trailingIcon = { Switch(checked = play.coach, onCheckedChange = null) },
-            onClick = { onAction(GameAction.SetCoach(!play.coach)) },
-        )
-        HorizontalDivider()
-        Text(
-            "COMPUTER SPEED",
-            style = GoaTextStyles.overline,
-            color = MaterialTheme.colorScheme.primary,
-            modifier = Modifier.padding(horizontal = Spacing.lg, vertical = Spacing.xs),
-        )
-        AiPace.entries.forEach { pace ->
+        if (play.online == null) {
             DropdownMenuItem(
-                text = { Text(PlayText.pace(pace)) },
-                leadingIcon = {
-                    if (pace ==
-                        play.pace
-                    ) {
-                        Icon(Icons.Outlined.Check, contentDescription = "Chosen")
-                    } else {
-                        Spacer(Modifier.size(24.dp))
+                text = {
+                    Column {
+                        Text("Coach")
+                        Text(
+                            if (play.coach) "Nudges before a clearly worse choice" else "Off",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
                     }
                 },
-                onClick = {
-                    onAction(GameAction.SetPace(pace))
-                    onDismiss()
-                },
+                leadingIcon = { Icon(Icons.Outlined.Lightbulb, contentDescription = null) },
+                trailingIcon = { Switch(checked = play.coach, onCheckedChange = null) },
+                onClick = { onAction(GameAction.SetCoach(!play.coach)) },
             )
+            HorizontalDivider()
+            Text(
+                "COMPUTER SPEED",
+                style = GoaTextStyles.overline,
+                color = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.padding(horizontal = Spacing.lg, vertical = Spacing.xs),
+            )
+            AiPace.entries.forEach { pace ->
+                DropdownMenuItem(
+                    text = { Text(PlayText.pace(pace)) },
+                    leadingIcon = {
+                        if (pace ==
+                            play.pace
+                        ) {
+                            Icon(Icons.Outlined.Check, contentDescription = "Chosen")
+                        } else {
+                            Spacer(Modifier.size(24.dp))
+                        }
+                    },
+                    onClick = {
+                        onAction(GameAction.SetPace(pace))
+                        onDismiss()
+                    },
+                )
+            }
+            HorizontalDivider()
         }
-        HorizontalDivider()
         DropdownMenuItem(
             text = { Text("Flip the board") },
             leadingIcon = { Icon(Icons.Outlined.SwapVert, contentDescription = null) },
@@ -372,7 +405,12 @@ private fun GameMenu(
             },
         )
         DropdownMenuItem(
-            text = { Text("End this game", color = MaterialTheme.colorScheme.error) },
+            text = {
+                Text(
+                    if (play.online != null) "Leave this game" else "End this game",
+                    color = MaterialTheme.colorScheme.error,
+                )
+            },
             leadingIcon = {
                 Icon(Icons.Outlined.Flag, contentDescription = null, tint = MaterialTheme.colorScheme.error)
             },
@@ -418,6 +456,9 @@ private fun ColumnScope.Panel(play: PlayUi, onAction: (GameAction) -> Unit, focu
         play.status is TurnStatus.Computer -> ComputerMove(table, play.status as TurnStatus.Computer, focus)
 
         play.status is TurnStatus.Waiting -> Waiting(table, play.status as TurnStatus.Waiting)
+
+        play.status is TurnStatus.OtherPlayer ->
+            OtherPlayerMove(table, play.status as TurnStatus.OtherPlayer, play.online)
 
         else -> Unit
     }

@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Debug only: as release (HTTPS, system CAs), plus plain HTTP to a test sync server on this
-     machine or the emulator's host, the same hosts SyncServerAddress accepts over http (ADR-036). -->
+<!-- Debug only: as release (HTTPS, system CAs), plus plain HTTP to a test sync or game server on
+     this machine or the emulator's host, the same hosts SyncServerAddress and isGameOrigin accept over
+     http (ADR-036, ADR-056). -->
 <network-security-config>
     <base-config cleartextTrafficPermitted="false">
         <trust-anchors>

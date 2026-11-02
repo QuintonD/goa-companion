@@ -63,6 +63,8 @@ import dev.quinton.goa.core.navigation.BoardRoute
 import dev.quinton.goa.core.navigation.DraftBoardRoute
 import dev.quinton.goa.core.navigation.GameRoute
 import dev.quinton.goa.core.navigation.NavSheet
+import dev.quinton.goa.core.navigation.OnlineGameRoute
+import dev.quinton.goa.core.navigation.OnlineHomeRoute
 import dev.quinton.goa.core.navigation.PuzzleRoute
 import dev.quinton.goa.core.navigation.SyncFileImportRoute
 import dev.quinton.goa.core.navigation.TimerRoute
@@ -110,6 +112,9 @@ data class TabRequest(val tab: TopLevelTab, val id: Long)
 /** A sync file another app handed to this one ([uri], content scheme); opens the import on the Players tab. */
 data class SyncFileRequest(val uri: String, val id: Long)
 
+/** An online invite opened from outside the app ([code], a room's); goes to the Play tab's online home. */
+data class OnlineInviteRequest(val code: String, val id: Long)
+
 /**
  * App shell: bottom navigation over one Navigation 3 back stack per top-level tab.
  *
@@ -123,6 +128,7 @@ data class SyncFileRequest(val uri: String, val id: Long)
 fun GoaApp(
     tabRequests: StateFlow<TabRequest?>? = null,
     syncFileRequests: StateFlow<SyncFileRequest?>? = null,
+    onlineInvites: StateFlow<OnlineInviteRequest?>? = null,
     coldStart: Boolean = false,
 ) {
     val navigator = rememberAppNavigator()
@@ -139,8 +145,13 @@ fun GoaApp(
         val file = syncFile ?: return@LaunchedEffect
         navigator.navigateToTab(TopLevelTab.PLAYERS, SyncFileImportRoute(file.uri))
     }
+    val invite = onlineInvites?.collectAsStateWithLifecycle()?.value
+    LaunchedEffect(invite?.id) {
+        val code = invite?.code ?: return@LaunchedEffect
+        navigator.navigateToTab(TopLevelTab.PLAY, OnlineHomeRoute(code))
+    }
     LaunchedEffect(Unit) {
-        val asked = request != null || syncFile != null
+        val asked = request != null || syncFile != null || invite != null
         if (coldStart && !asked && shell.session.first { it != SessionState.LOADING }.active) {
             navigator.openTimer()
         }
@@ -179,7 +190,8 @@ fun GoaApp(
     // The running timer, the draft board, a sandbox board, a game against the computer and a puzzle are
     // full-screen table tools: no tab bar to mis-tap next to Next, a pick or the map. System back
     // leaves them (timer → Heroes, draft board → draft setup, board or game → where it was opened from).
-    val fullScreenTool = top == DraftBoardRoute || top is BoardRoute || top == GameRoute || top is PuzzleRoute
+    val fullScreenTool = top == DraftBoardRoute || top is BoardRoute || top == GameRoute || top is PuzzleRoute ||
+        top is OnlineGameRoute
     val showBottomBar = !(onRunningTimer && session.active) && !fullScreenTool
     val showTimerBar = session.active && !onRunningTimer && !fullScreenTool
     KeepScreenOnWhile(session == SessionState.RUNNING && showTimerBar)

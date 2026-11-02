@@ -81,6 +81,23 @@ object OnlineWords {
         else -> "Try again in about ${seconds / 60} minutes."
     }
 
+    /**
+     * The server sends a REST error's code and no words; these are the ones that aren't a [Refusal]. Null for a
+     * code this build doesn't know. Without this a mistyped recovery code would read as "can't be reached".
+     */
+    fun apiError(code: String): String? = when (code) {
+        "bad_name" -> "That name can't be used. Pick another."
+
+        "bad_recovery_code" -> "That recovery code isn't right, or it has already been used."
+
+        "bad_room", "map_unavailable", "bad_request", "too_large" ->
+            "The server can't use that. Update the app and try again."
+
+        "store_unavailable" -> "The server can't save anything just now. Try again in a moment."
+
+        else -> null
+    }
+
     fun voided(reason: VoidReason): String = when (reason) {
         VoidReason.RULES_CHANGED -> "A rules fix changed this game's past, so it can't go on. It won't count."
         VoidReason.ABANDONED -> "Nobody came back for a day, so this game was closed. It won't count."

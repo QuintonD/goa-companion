@@ -8,6 +8,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Hexagon
+import androidx.compose.material.icons.outlined.Public
 import androidx.compose.material.icons.outlined.Quiz
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
@@ -15,10 +16,14 @@ import dev.quinton.goa.core.designsystem.component.GoaScreen
 import dev.quinton.goa.core.designsystem.component.SettingsActionButton
 import dev.quinton.goa.core.designsystem.theme.Spacing
 
-/** The Play tab's first screen (ADR-055): Board, which leads on to games and puzzles, and Card trivia. */
+/**
+ * The Play tab's first screen (ADR-055): Board, which leads on to games and puzzles, Online (ADR-056), and
+ * Card trivia.
+ */
 @Composable
 fun PlayHomeScreen(
     onBoard: () -> Unit,
+    onOnline: () -> Unit,
     onTrivia: () -> Unit,
     onSettings: () -> Unit,
     modifier: Modifier = Modifier,
@@ -38,6 +43,13 @@ fun PlayHomeScreen(
                 text = "The real map for any line-up, games against the computer, and puzzles.",
                 enabled = true,
                 onClick = onBoard,
+            )
+            EntryCard(
+                icon = Icons.Outlined.Public,
+                title = "Online",
+                text = "Play people on other phones, with a public leaderboard. Needs a connection.",
+                enabled = true,
+                onClick = onOnline,
             )
             EntryCard(
                 icon = Icons.Outlined.Quiz,

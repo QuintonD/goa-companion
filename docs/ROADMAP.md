@@ -534,6 +534,8 @@ passes (including an in-place upgrade from the morning build with real data). Ev
 - [x] Client core: `OnlineGameDriver`, the home and lobby presenters, words (shared, tested on JVM + Node against fakes)
 - [ ] Android online mode
 - [x] Web online mode: socket, REST and account seams, the `GameTable` split, the resolution flow, the Online screens, the CSP, `online.spec.ts` (WebKit + Chromium against a fake server; two browsers through to a result against a local `:server:game:run`)
+- [x] Android online mode: home, recovery-code gate, lobby, table, result, leaderboards, deep link — 2026-11-02, builds and tests on JVM; one full rated game through the real local server (`LiveGameServerTest`); screens by screenshot only, not yet run on an emulator or the S25 Ultra
+- [ ] Web online mode
 - [ ] Live on oldboi and Pages; a full game through the real server
 - [ ] On the S25 Ultra and a real iPhone: a full online game on mobile data
 

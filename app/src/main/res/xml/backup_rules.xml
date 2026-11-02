@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Android Auto Backup (API < 31): database + settings. -->
+<!-- Android Auto Backup (API < 31): database + settings. The online account (token) is in
+     noBackupFilesDir, never backed up (OnlineAccountStore, ADR-056): don't add a rule for it. -->
 <full-backup-content>
     <include domain="database" path="." />
     <include domain="file" path="datastore/" />

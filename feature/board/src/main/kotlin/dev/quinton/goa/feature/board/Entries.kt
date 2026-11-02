@@ -22,6 +22,7 @@ import dev.quinton.goa.core.navigation.GameRoute
 import dev.quinton.goa.core.navigation.Navigator
 import dev.quinton.goa.core.navigation.NewBoardRoute
 import dev.quinton.goa.core.navigation.NewGameRoute
+import dev.quinton.goa.core.navigation.OnlineHomeRoute
 import dev.quinton.goa.core.navigation.PlayHomeRoute
 import dev.quinton.goa.core.navigation.PuzzleRoute
 import dev.quinton.goa.core.navigation.PuzzlesRoute
@@ -32,6 +33,7 @@ import dev.quinton.goa.feature.board.board.BoardViewModel
 import dev.quinton.goa.feature.board.list.BoardsScreen
 import dev.quinton.goa.feature.board.list.BoardsViewModel
 import dev.quinton.goa.feature.board.list.PlayHomeScreen
+import dev.quinton.goa.feature.board.online.onlineEntries
 import dev.quinton.goa.feature.board.play.game.GameScreen
 import dev.quinton.goa.feature.board.play.game.GameUiState
 import dev.quinton.goa.feature.board.play.game.GameViewModel
@@ -53,6 +55,7 @@ fun EntryProviderScope<NavKey>.boardEntries(navigator: Navigator) {
     entry<PlayHomeRoute> {
         PlayHomeScreen(
             onBoard = { navigator.navigate(BoardsRoute) },
+            onOnline = { navigator.navigate(OnlineHomeRoute()) },
             onTrivia = { navigator.navigate(TriviaRoute()) },
             onSettings = { navigator.navigate(SettingsRoute) },
         )
@@ -129,6 +132,7 @@ fun EntryProviderScope<NavKey>.boardEntries(navigator: Navigator) {
         )
     }
     playEntries(navigator)
+    onlineEntries(navigator)
     puzzleEntries(navigator)
 }
 
