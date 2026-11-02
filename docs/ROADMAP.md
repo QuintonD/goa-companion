@@ -531,6 +531,7 @@ passes (including an in-place upgrade from the morning build with real data). Ev
 - [ ] Rooms: simultaneous questions, seat projection, clocks, takeover, replay; hidden information proven by byte-identical frames
 - [ ] Server: accounts, lobby, SQLite, WebSocket, CORS and Origin rules
 - [ ] Leaderboards derived from the match log; Pages first, oldboi second
+- [x] Client core: `OnlineGameDriver`, the home and lobby presenters, words (shared, tested on JVM + Node against fakes)
 - [ ] Android and web online modes
 - [ ] Live on oldboi and Pages; a full game through the real server
 - [ ] On the S25 Ultra and a real iPhone: a full online game on mobile data
