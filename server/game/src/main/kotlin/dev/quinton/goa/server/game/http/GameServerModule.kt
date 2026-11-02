@@ -255,7 +255,11 @@ private fun Route.health(services: GameServices) {
             status = if (draining) "draining" else "open",
             // A deploy waits for this to reach 0. A room still waiting can't start while it drains, and
             // survives the restart, so it would only hold the deploy up for the two hours it has left.
-            rooms = if (!ok) 0 else if (draining) services.rooms.runningCount else services.lobby.roomCount(),
+            rooms = when {
+                !ok -> 0
+                draining -> services.rooms.runningCount
+                else -> services.lobby.roomCount()
+            },
             maxRooms = services.config.maxRooms,
         )
         val status = if (ok) HttpStatusCode.OK else HttpStatusCode.ServiceUnavailable

@@ -326,7 +326,7 @@ class RoomCoreTest {
         assertThat(fixed.core.runningCount).isEqualTo(0)
         assertThat(store.voids).containsExactly(VoidReason.RULES_CHANGED)
         assertThat(store.matches()).isEmpty()
-        // Told when they come back, once each.
+        // Told when they come back; after that it is no longer a game to go back to.
         assertThat(fixed.core.gamesOf(TestGame.account("wasp"))).containsExactly(TestGame.GAME_ID)
         val box = fixed.connect("wasp")
         val end = box.ended!!
@@ -334,7 +334,8 @@ class RoomCoreTest {
         assertThat(end.rated).isFalse()
         assertThat(end.winner).isNull()
         assertThat(fixed.core.gamesOf(TestGame.account("wasp"))).isEmpty()
-        assertThat(fixed.core.connect(TestGame.GAME_ID, TestGame.account("wasp"), 0, Inbox())).isNull()
+        // Coming back hears the same again: it is on the disk, and a past that can't replay has no table.
+        assertThat(fixed.connect("wasp").frames.filterIsInstance<ServerMessage.End>()).hasSize(2)
     }
 
     @Test

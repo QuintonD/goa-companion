@@ -187,9 +187,7 @@ class RoomCore(
         val session = withContext(computer) { replayed(past) }
         if (session != null) sendLastTables(past, own.map { it.heroId }, session, haveEvents, sink)
         val view = session?.view(null)
-        sink.send(
-            ServerMessage.End(gameId, view?.winner.takeIf { past.voided == null }, view?.winReason, past.rated, past.voided),
-        )
+        sink.send(ServerMessage.End(gameId, view?.winner, view?.winReason, past.rated, past.voided))
         return SeatLink {}
     }
 
@@ -217,7 +215,13 @@ class RoomCore(
         for (seat in own) {
             val events = session.events.drop(cursor)
             cursor += events.size
-            val inputs = FrameInputs(game.id, seq = now(), ticket = 0, eventsFrom = cursor - events.size, events = events)
+            val inputs = FrameInputs(
+                game.id,
+                seq = now(),
+                ticket = 0,
+                eventsFrom = cursor - events.size,
+                events = events,
+            )
             sink.send(SeatProjector.table(session, null, seat, inputs).copy(decision = null))
         }
     }
