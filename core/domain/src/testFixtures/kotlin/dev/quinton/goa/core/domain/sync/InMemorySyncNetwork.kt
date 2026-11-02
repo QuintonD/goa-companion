@@ -17,6 +17,8 @@ import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 
 /**
  * Phones in one room for protocol tests: [transport] gives each phone a [SyncTransport]; hosts
@@ -34,6 +36,7 @@ class InMemorySyncNetwork(val maxMessageBytes: Int = 32 * 1024) {
 
     /** Every link end created, in order. */
     val links = mutableListOf<InMemoryLink>()
+    private val linking = Mutex()
 
     var relayInTheMiddle = false
 
@@ -73,6 +76,13 @@ class InMemorySyncNetwork(val maxMessageBytes: Int = 32 * 1024) {
 
         override suspend fun connect(endpointName: String, host: SyncPeer): SyncLink {
             val advert = adverts.value[host.id] ?: throw SyncLinkClosedException("Host gone")
+            val (clientEnd, hostEnd) = linking.withLock { newLinks(endpointName, host, advert) }
+            advert.incoming.send(hostEnd)
+            return clientEnd
+        }
+
+        /** Several phones connect at once: the ids and [links] are shared between them. */
+        private fun newLinks(endpointName: String, host: SyncPeer, advert: Advert): Pair<InMemoryLink, InMemoryLink> {
             val token = byteArrayOf((nextToken++).toByte(), 7, 7, 7)
             val hostToken = if (relayInTheMiddle) byteArrayOf(token[0], 9, 9, 9) else token
             val toHost = Channel<ByteArray>(Channel.UNLIMITED)
@@ -91,8 +101,7 @@ class InMemorySyncNetwork(val maxMessageBytes: Int = 32 * 1024) {
             hostEnd.other = clientEnd
             links += clientEnd
             links += hostEnd
-            advert.incoming.send(hostEnd)
-            return clientEnd
+            return clientEnd to hostEnd
         }
     }
 }
