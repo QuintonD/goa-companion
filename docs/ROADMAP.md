@@ -527,15 +527,13 @@ passes (including an in-place upgrade from the morning build with real data). Ev
 - [ ] On the S25 Ultra: five labels and the Play tab in the hand
 
 ## M28 — Online games and public leaderboards (ADR-056, [ONLINE.md](ONLINE.md))
-- [ ] Wire contract, server skeleton, client seam
-- [ ] Rooms: simultaneous questions, seat projection, clocks, takeover, replay; hidden information proven by byte-identical frames
-- [ ] Server: accounts, lobby, SQLite, WebSocket, CORS and Origin rules
-- [ ] Leaderboards derived from the match log; Pages first, oldboi second
+- [x] Wire contract, server skeleton, client seam — 2026-11-02, JVM + Node
+- [x] Rooms: simultaneous questions, seat projection, clocks, takeover, replay; hidden information proven by byte-identical frames — 2026-11-02, `HiddenInformationTest`, `ForecastTest` (1,200 games), an adversarial review
+- [x] Server: accounts, lobby, SQLite, WebSocket, CORS and Origin rules; the review's findings fixed — 2026-11-02, JVM on Windows, not yet in the container on oldboi
+- [x] Leaderboards derived from the match log; Pages first, oldboi second — 2026-11-02, tests only until the repo is live
 - [x] Client core: `OnlineGameDriver`, the home and lobby presenters, words (shared, tested on JVM + Node against fakes)
-- [ ] Android online mode
 - [x] Web online mode: socket, REST and account seams, the `GameTable` split, the resolution flow, the Online screens, the CSP, `online.spec.ts` (WebKit + Chromium against a fake server; two browsers through to a result against a local `:server:game:run`)
 - [x] Android online mode: home, recovery-code gate, lobby, table, result, leaderboards, deep link — 2026-11-02, builds and tests on JVM; one full rated game through the real local server (`LiveGameServerTest`); screens by screenshot only, not yet run on an emulator or the S25 Ultra
-- [ ] Web online mode
 - [ ] Live on oldboi and Pages; a full game through the real server
 - [ ] On the S25 Ultra and a real iPhone: a full online game on mobile data
 

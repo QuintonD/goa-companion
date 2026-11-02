@@ -101,9 +101,12 @@ class Rejects(unittest.TestCase):
                 self.assert_rejected(snapshot(players=[row(name=f"a{ch}b")]), "control character")
 
     def test_the_characters_of_html_and_quotes(self):
-        for ch in "<>\"'&`":
+        for ch in "<>\"&`":
             with self.subTest(ch=ch):
                 self.assert_rejected(snapshot(players=[row(name=f"a{ch}b")]), "players[0].name")
+
+    def test_an_apostrophe_is_a_name(self):
+        self.assertEqual(v.validate(raw(snapshot(players=[row(name="O'Neil")])))["players"][0]["name"], "O'Neil")
 
     def test_a_name_with_nothing_to_see(self):
         for name in ["   ", "\u3000\u3000", "\u00a0 ", "\u0301\u0301"]:

@@ -5,6 +5,7 @@ import dev.quinton.goa.core.online.OnlineRoutes
 import dev.quinton.goa.core.online.ServerMessage
 import dev.quinton.goa.feature.board.play.online.GameConnection
 import dev.quinton.goa.feature.board.play.online.GameConnector
+import dev.quinton.goa.feature.board.play.online.HostUnavailable
 import dev.quinton.goa.feature.board.play.online.decodeServerFrame
 import dev.quinton.goa.feature.board.play.online.encodeClientFrame
 import kotlin.coroutines.resume
@@ -49,10 +50,12 @@ fun gameSocketUrl(base: String): String {
  */
 class WebGameConnector(
     private val base: suspend () -> String?,
+    private val tooOld: suspend () -> Boolean = { false },
     private val socket: (url: String) -> BrowserSocket = ::browserSocket,
 ) : GameConnector {
     override suspend fun open(hello: ClientMessage.Hello): GameConnection {
-        val address = base() ?: error("Every game host is closed")
+        if (tooOld()) throw HostUnavailable(tooOld = true)
+        val address = base() ?: throw HostUnavailable(tooOld = false)
         val opened = socket(gameSocketUrl(address))
         val frames = Channel<String>(Channel.UNLIMITED)
         opened.onText = { frames.trySend(it) }

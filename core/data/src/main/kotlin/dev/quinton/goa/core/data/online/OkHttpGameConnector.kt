@@ -5,6 +5,7 @@ import dev.quinton.goa.core.online.OnlineRoutes
 import dev.quinton.goa.core.online.ServerMessage
 import dev.quinton.goa.feature.board.play.online.GameConnection
 import dev.quinton.goa.feature.board.play.online.GameConnector
+import dev.quinton.goa.feature.board.play.online.HostUnavailable
 import dev.quinton.goa.feature.board.play.online.decodeServerFrame
 import dev.quinton.goa.feature.board.play.online.encodeClientFrame
 import java.io.IOException
@@ -34,7 +35,9 @@ class OkHttpGameConnector @Inject constructor(
     private val hosts: GameHosts,
 ) : GameConnector {
     override suspend fun open(hello: ClientMessage.Hello): GameConnection {
-        val base = hosts.current().base ?: throw IOException("No game host is open")
+        val host = hosts.current()
+        if (host.tooOld) throw HostUnavailable(tooOld = true)
+        val base = host.base ?: throw HostUnavailable(tooOld = false, note = host.note)
         val request = Request.Builder().url(base + OnlineRoutes.PLAY).build()
         val frames = Channel<String>(Channel.UNLIMITED)
         val socket = suspendCancellableCoroutine<WebSocket> { continuation ->

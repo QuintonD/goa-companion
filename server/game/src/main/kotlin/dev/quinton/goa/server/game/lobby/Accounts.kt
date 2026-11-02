@@ -72,9 +72,12 @@ class Accounts(private val store: AccountStore, private val clock: () -> Long = 
 
         private val SPACES = Regex("\\p{Zs}+")
 
-        /** The characters of HTML and of a quoted attribute, and those that look blank though they are letters. */
+        /**
+         * The characters of HTML, and those that look blank though they are letters. An apostrophe stays: O'Neil
+         * is a name, and names only ever render as text.
+         */
         private val REFUSED_CHARS: Set<Int> =
-            "<>\"'&`".map { it.code }.toSet() + setOf(0x115F, 0x1160, 0x2800, 0x3164, 0xFFA0)
+            "<>\"&`".map { it.code }.toSet() + setOf(0x115F, 0x1160, 0x2800, 0x3164, 0xFFA0)
 
         /**
          * Bidi overrides, zero-width marks, control characters and line breaks make a name lie about itself;

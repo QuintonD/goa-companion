@@ -187,7 +187,6 @@ class AccountRoutesTest {
             "a<b",
             "a>b",
             "a\"b",
-            "O'Neil",
             "R&D",
             "a`b",
             "    ",
@@ -218,7 +217,7 @@ class AccountRoutesTest {
     fun spacesCollapseAndOrdinaryNamesPass() {
         assertThat(Accounts.cleanName("  Ada   Lovelace ")).isEqualTo("Ada Lovelace")
         assertThat(Accounts.cleanName("Ada\u00A0\u00A0L")).isEqualTo("Ada L")
-        for (name in listOf("Zo\u00EB", "\u674E\u96F7", "\uD83D\uDC69 Ada", "Jos\u0065\u0301")) {
+        for (name in listOf("Zo\u00EB", "\u674E\u96F7", "\uD83D\uDC69 Ada", "Jos\u0065\u0301", "O'Neil")) {
             assertThat(Accounts.cleanName(name)).isEqualTo(name)
         }
     }

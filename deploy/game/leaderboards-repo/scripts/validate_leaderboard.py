@@ -29,7 +29,7 @@ MAX_FUTURE_MS = 5 * 60 * 1000
 SHA256 = re.compile(r"[0-9a-f]{64}\Z")
 FORMER_PLAYER = "Former player"
 # As Accounts.cleanName on the server: a name it lets through and this refuses would stop the whole board.
-REFUSED_CHARS = "<>\"'&`\u115f\u1160\u2800\u3164\uffa0"
+REFUSED_CHARS = "<>\"&`\u115f\u1160\u2800\u3164\uffa0"
 REFUSED_CATEGORIES = ("Cf", "Cs", "Cn", "Cc", "Co", "Zl", "Zp")
 INVISIBLE_CATEGORIES = ("Zs", "Mn", "Me")
 TOP_FIELDS = {"schema", "generatedAt", "logSha256", "matches", "eloConfig", "players", "heroes"}

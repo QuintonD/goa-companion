@@ -40,7 +40,7 @@ class OnlineData(private val services: WebServices) {
 
     val gateway: OnlineGateway = WebOnlineGateway(http, identities, hosts::base)
 
-    val connector: GameConnector = WebGameConnector(hosts::base)
+    val connector: GameConnector = WebGameConnector(hosts::base, hosts::tooOld)
 
     val leaderboard = LeaderboardRepository(
         fetcher = WebLeaderboardFetcher(fileHttp, hosts),

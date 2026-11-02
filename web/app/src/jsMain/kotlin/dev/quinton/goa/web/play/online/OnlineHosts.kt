@@ -64,6 +64,9 @@ class OnlineHosts(
     /** The address of the game server, or null when every host is closed. */
     suspend fun base(): String? = override() ?: chooseHost(network(), builtIn, allowed)
 
+    /** `network.json` asks for a newer protocol than this build's: the app needs updating. */
+    suspend fun tooOld(): Boolean = (network()?.minProtocol ?: 0) > OnlineProtocol.VERSION
+
     /** Reads `network.json` again and returns its text as read, for the leaderboard's fallback. */
     suspend fun networkFile(): String? {
         val text = read(OnlineRoutes.NETWORK_FILE)

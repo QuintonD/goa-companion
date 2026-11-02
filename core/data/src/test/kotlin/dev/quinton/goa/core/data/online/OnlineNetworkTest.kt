@@ -8,6 +8,7 @@ import dev.quinton.goa.core.online.OnlineProtocol
 import dev.quinton.goa.core.online.OnlineRoutes
 import dev.quinton.goa.core.online.Refusal
 import dev.quinton.goa.core.online.ServerMessage
+import dev.quinton.goa.feature.board.play.online.HostUnavailable
 import dev.quinton.goa.feature.board.play.online.OnlineIdentity
 import dev.quinton.goa.feature.board.play.online.OnlineIdentityStore
 import dev.quinton.goa.feature.board.play.online.OnlineResult
@@ -327,7 +328,7 @@ class OnlineNetworkTest {
             OnlineHttpClients.socket(),
             GameHosts(closed, GameServerDefaults(base, allowLocalHttp = true)) { 0L },
         )
-        assertThrows(IOException::class.java) { runBlocking { none.open(hello) } }
+        assertThrows(HostUnavailable::class.java) { runBlocking { none.open(hello) } }
     }
 
     @Test

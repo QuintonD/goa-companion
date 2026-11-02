@@ -4,7 +4,6 @@ import dev.quinton.goa.core.data.sync.RelayHttp
 import dev.quinton.goa.core.data.sync.RelayNetworkException
 import dev.quinton.goa.core.data.sync.RelayRequest
 import dev.quinton.goa.core.online.AccountCreated
-import dev.quinton.goa.core.online.ApiError
 import dev.quinton.goa.core.online.CreateAccount
 import dev.quinton.goa.core.online.CreateRoom
 import dev.quinton.goa.core.online.LinkAccount
@@ -25,7 +24,6 @@ import kotlinx.serialization.SerializationException
 import kotlinx.serialization.builtins.serializer
 import kotlinx.serialization.serializer
 
-private const val UNAUTHORIZED = 401
 private const val MAX_BODY_BYTES = 1024L * 1024
 private const val JSON = "application/json"
 
@@ -103,7 +101,7 @@ class WebOnlineGateway(
                 if (response.code in 200..299) {
                     decoded(text, reply)
                 } else {
-                    failure(response.code, text, response.header("Retry-After")?.toIntOrNull())
+                    onlineFailure(text, response.header("Retry-After")?.toIntOrNull())
                 }
             }
         } catch (_: RelayNetworkException) {
@@ -121,25 +119,5 @@ class WebOnlineGateway(
         }
     } catch (_: SerializationException) {
         OnlineResult.Failed()
-    }
-
-    /**
-     * The server's errors carry a code and no words, and only those [onlineFailure] knows as a [Refusal] have
-     * words here. A 401 that isn't about a recovery code is a token the server no longer knows.
-     */
-    private fun failure(code: Int, body: String, retryAfter: Int?): OnlineResult<Nothing> {
-        val error = runCatching { OnlineProtocol.json.decodeFromString(ApiError.serializer(), body) }.getOrNull()
-        ACCOUNT_WORDS[error?.error]?.let { return OnlineResult.Failed(it) }
-        if (code == UNAUTHORIZED) return OnlineResult.Refused(Refusal.BAD_TOKEN)
-        return onlineFailure(body, retryAfter)
-    }
-
-    private companion object {
-        val ACCOUNT_WORDS = mapOf(
-            "bad_recovery_code" to "That recovery code isn't right, or it has already been used.",
-            "bad_name" to "That name can't be used. Try a shorter one, with letters or numbers.",
-            "bad_room" to "A room can't be set up like that. Check the map, length and team size.",
-            "map_unavailable" to "That map can't be played online yet.",
-        )
     }
 }
