@@ -27,6 +27,8 @@ data class GameServerConfig(
     val upgradesGlobalPerMinute: Int = DEFAULT_UPGRADES_GLOBAL_PER_MINUTE,
     val accountsPerClientPerHour: Int = DEFAULT_ACCOUNTS_PER_CLIENT_PER_HOUR,
     val accountsGlobalPerHour: Int = DEFAULT_ACCOUNTS_GLOBAL_PER_HOUR,
+    /** Sockets open at once, past which a new one is told to try again. */
+    val maxSockets: Int = DEFAULT_MAX_SOCKETS,
     /** Frames one person may send per minute over all their sockets. */
     val socketFramesPerMinute: Int = DEFAULT_SOCKET_FRAMES_PER_MINUTE,
     val helloTimeoutMillis: Long = DEFAULT_HELLO_TIMEOUT_MILLIS,
@@ -35,6 +37,7 @@ data class GameServerConfig(
         const val DEFAULT_PORT = 8788
         const val DEFAULT_MAX_ROOMS = 20
         const val DEFAULT_MAX_OPEN_ROOMS = 10
+        const val DEFAULT_MAX_SOCKETS = 300
         const val DEFAULT_DRAIN_FILE = "drain"
         const val DEFAULT_PER_CLIENT_PER_MINUTE = 120
         const val DEFAULT_GLOBAL_PER_MINUTE = 1200
@@ -70,6 +73,7 @@ data class GameServerConfig(
                 upgradesGlobalPerMinute = int("GOA_GAME_UPGRADES_GLOBAL", DEFAULT_UPGRADES_GLOBAL_PER_MINUTE),
                 accountsPerClientPerHour = int("GOA_GAME_ACCOUNTS_PER_CLIENT", DEFAULT_ACCOUNTS_PER_CLIENT_PER_HOUR),
                 accountsGlobalPerHour = int("GOA_GAME_ACCOUNTS_GLOBAL", DEFAULT_ACCOUNTS_GLOBAL_PER_HOUR),
+                maxSockets = int("GOA_GAME_MAX_SOCKETS", DEFAULT_MAX_SOCKETS),
                 socketFramesPerMinute = int("GOA_GAME_SOCKET_FRAMES", DEFAULT_SOCKET_FRAMES_PER_MINUTE),
             )
         }

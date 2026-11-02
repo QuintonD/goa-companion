@@ -206,6 +206,9 @@ native clients send none. CORS follows the relay: an exact list, no credentials.
   client wasn't keeping up; how long the log is has nothing to do with it.
 - **A long table comes in pages** of at most 1000 events, each a whole `Table` with `more = true` but the last.
   A client applies a page's events from `eventsFrom` as ever and takes the rest of the table from the last.
+- **Refused, then closed, with no `Hello` needed:** more than `GOA_GAME_MAX_SOCKETS` (300) sockets open
+  (`RATE_LIMITED`, with seconds, 30 to 60). `SocketHeapTest` measures a real socket at about 44 KB of heap, so
+  300 are about 13 MB of the 512 MB; what limits the server is running games, not sockets.
 - **Refused, socket stays:** too many frames (`RATE_LIMITED`, with seconds), and anything the lobby says no
   to, followed by a `Lobby` frame with the room as it stands: `NOT_HOST`, `NOT_READY`, `TOO_MANY_GAMES`,
   `TOO_MANY_ROOMS`, and `ROOM_TAKEN` for a seat or hero that is gone or a request the lobby can't use.

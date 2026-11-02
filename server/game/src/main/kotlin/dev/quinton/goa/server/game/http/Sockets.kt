@@ -18,6 +18,7 @@ import io.ktor.websocket.Frame
 import io.ktor.websocket.close
 import io.ktor.websocket.readText
 import kotlin.coroutines.cancellation.CancellationException
+import kotlin.random.Random
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
@@ -35,6 +36,7 @@ internal const val MAX_SOCKETS_PER_ACCOUNT = 4
 private const val SEND_TIMEOUT_MILLIS = 30_000L
 private const val CLOSE_TIMEOUT_MILLIS = 1_000L
 private const val HELLO_TYPE = "hello"
+private const val FULL_RETRY_SECONDS = 30
 private val CLIENT_LABEL = Regex("[A-Za-z0-9._/-]{1,40}")
 
 /** One person's socket: its queue, and the games it is linked to. */
@@ -205,6 +207,20 @@ internal class SocketHub {
 internal suspend fun pump(outbound: Outbound, send: suspend (ServerMessage) -> Unit) {
     while (true) {
         send(outbound.next() ?: return)
+    }
+}
+
+/** One more socket, if there is room: the wait is spread, so that those refused don't all come back together. */
+internal suspend fun DefaultWebSocketServerSession.playWithinTheCap(services: GameServices) {
+    try {
+        if (services.sockets.incrementAndGet() > services.config.maxSockets) {
+            val wait = FULL_RETRY_SECONDS + Random.nextInt(FULL_RETRY_SECONDS)
+            refuse(ServerMessage.Refused(Refusal.RATE_LIMITED, wait))
+        } else {
+            play(services)
+        }
+    } finally {
+        services.sockets.decrementAndGet()
     }
 }
 

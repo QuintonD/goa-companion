@@ -60,6 +60,7 @@ import java.net.Inet6Address
 import java.net.InetAddress
 import java.nio.file.Files
 import java.security.MessageDigest
+import java.util.concurrent.atomic.AtomicInteger
 import java.sql.SQLException
 import kotlin.coroutines.cancellation.CancellationException
 import kotlin.time.Duration.Companion.milliseconds
@@ -119,6 +120,9 @@ internal class GameServices(
     val accountLimiter: RateLimiter,
     val clock: () -> Long,
 ) {
+    /** Sockets open now, counted from before their Hello, as each takes memory from that moment on. */
+    val sockets = AtomicInteger()
+
     fun draining(): Boolean = Files.exists(config.drainFile)
 }
 
@@ -274,7 +278,7 @@ private fun Route.api(services: GameServices) {
     accounts(services)
     rooms(services)
     leaderboard(services)
-    webSocket(OnlineRoutes.PLAY) { play(services) }
+    webSocket(OnlineRoutes.PLAY) { playWithinTheCap(services) }
 }
 
 private fun Route.health(services: GameServices) {

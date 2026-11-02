@@ -131,6 +131,38 @@ class SocketTest {
     }
 
     @Test
+    fun pastTheCapASocketIsToldToTryAgainAndRoomComesBack() = serverTest(configure = { it.copy(maxSockets = 2) }) {
+        val token = account().token
+        val first = ws.webSocketSession("/v1/play")
+        val second = ws.webSocketSession("/v1/play")
+        first.send(Frame.Text(ClientMessage.serializer().json(hello(token))))
+        second.send(Frame.Text(ClientMessage.serializer().json(hello(token))))
+        assertThat(first.next()).isInstanceOf(ServerMessage.Welcome::class.java)
+        assertThat(second.next()).isInstanceOf(ServerMessage.Welcome::class.java)
+
+        ws.webSocket("/v1/play") {
+            val refused = next() as ServerMessage.Refused
+            assertThat(refused.reason).isEqualTo(Refusal.RATE_LIMITED)
+            assertThat(refused.retryAfterSeconds).isAtLeast(1)
+            expectClosed()
+        }
+
+        first.close()
+        withTimeout(WAIT_MILLIS) {
+            while (true) {
+                var welcomed = false
+                ws.webSocket("/v1/play") {
+                    sendMessage(hello(token))
+                    welcomed = next() is ServerMessage.Welcome
+                }
+                if (welcomed) break
+                delay(10)
+            }
+        }
+        second.close()
+    }
+
+    @Test
     fun aBadTokenIsRefusedThenClosed() = serverTest {
         ws.webSocket("/v1/play") {
             sendMessage(hello("not-the-token-of-anyone"))
