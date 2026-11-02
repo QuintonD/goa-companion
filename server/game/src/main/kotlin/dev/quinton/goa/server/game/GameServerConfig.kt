@@ -23,6 +23,8 @@ data class GameServerConfig(
     /** Frames one person may send per minute over all their sockets. */
     val socketFramesPerMinute: Int = DEFAULT_SOCKET_FRAMES_PER_MINUTE,
     val helloTimeoutMillis: Long = DEFAULT_HELLO_TIMEOUT_MILLIS,
+    /** How often rooms nobody started in time are closed. */
+    val roomSweepMillis: Long = DEFAULT_ROOM_SWEEP_MILLIS,
 ) {
     companion object {
         const val DEFAULT_PORT = 8788
@@ -34,6 +36,7 @@ data class GameServerConfig(
         const val DEFAULT_ACCOUNTS_GLOBAL_PER_HOUR = 200
         const val DEFAULT_SOCKET_FRAMES_PER_MINUTE = 300
         const val DEFAULT_HELLO_TIMEOUT_MILLIS = 5_000L
+        const val DEFAULT_ROOM_SWEEP_MILLIS = 60_000L
         val DEFAULT_ORIGINS = setOf("https://quintond.github.io")
 
         fun fromEnv(env: Map<String, String> = System.getenv()): GameServerConfig {

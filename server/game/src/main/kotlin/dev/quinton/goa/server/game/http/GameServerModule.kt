@@ -77,7 +77,6 @@ private const val MAX_BODY_BYTES = 4 * 1024
 private const val STORE_RETRY_SECONDS = "30"
 private const val PING_SECONDS = 20L
 private const val PONG_TIMEOUT_SECONDS = 45L
-private const val SWEEP_MILLIS = 60_000L
 private const val PLAY_FRAME_LIMIT = MAX_FRAME_BYTES.toLong()
 internal const val OTHER_PATH = "(other)"
 private val ROOM_ACTION = Regex("/v1/rooms/[^/]+/(join|leave)")
@@ -224,7 +223,7 @@ fun Application.gameServerModule(
 
     launch {
         while (isActive) {
-            delay(SWEEP_MILLIS.milliseconds)
+            delay(config.roomSweepMillis.milliseconds)
             try {
                 services.lobby.sweep()
             } catch (failure: SQLException) {
@@ -245,12 +244,15 @@ private fun Route.api(services: GameServices) {
 private fun Route.health(services: GameServices) {
     get(OnlineRoutes.HEALTH) {
         val ok = services.store.isAvailable()
+        val draining = services.draining()
         val health = HealthInfo(
             ok = ok,
             protocol = OnlineProtocol.VERSION,
             rulesBuild = services.config.rulesBuild,
-            status = if (services.draining()) "draining" else "open",
-            rooms = if (ok) services.lobby.roomCount() else 0,
+            status = if (draining) "draining" else "open",
+            // A deploy waits for this to reach 0. A room still waiting can't start while it drains, and
+            // survives the restart, so it would only hold the deploy up for the two hours it has left.
+            rooms = if (!ok) 0 else if (draining) services.rooms.runningCount else services.lobby.roomCount(),
             maxRooms = services.config.maxRooms,
         )
         val status = if (ok) HttpStatusCode.OK else HttpStatusCode.ServiceUnavailable
