@@ -205,13 +205,13 @@ class BoardScreenshotTest {
     }
 
     /** No boards and no draft yet: play is coming soon, and New board. */
-    @Test fun playHomeDark() = capture(ThemeMode.DARK) { PlayHomeScreen({}, {}, {}) }
+    @Test fun playHomeDark() = capture(ThemeMode.DARK) { PlayHomeScreen({}, {}, {}, {}) }
 
-    @Test fun playHomeLight() = capture(ThemeMode.LIGHT) { PlayHomeScreen({}, {}, {}) }
+    @Test fun playHomeLight() = capture(ThemeMode.LIGHT) { PlayHomeScreen({}, {}, {}, {}) }
 
     @Test
     @Config(qualifiers = "w384dp-h832dp-xxhdpi")
-    fun playHomeW384DarkFontScale2() = capture(ThemeMode.DARK, 2f) { PlayHomeScreen({}, {}, {}) }
+    fun playHomeW384DarkFontScale2() = capture(ThemeMode.DARK, 2f) { PlayHomeScreen({}, {}, {}, {}) }
 
     @Test fun boardsEmptyDark() = capture(ThemeMode.DARK) { Boards(emptyList(), withDraft = false) }
 

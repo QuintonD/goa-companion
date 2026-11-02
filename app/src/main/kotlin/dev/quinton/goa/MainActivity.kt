@@ -29,8 +29,10 @@ import dev.quinton.goa.core.model.settings.BoardStyle
 import dev.quinton.goa.core.model.settings.ThemeMode
 import dev.quinton.goa.core.navigation.EXTRA_OPEN_TAB
 import dev.quinton.goa.core.navigation.TopLevelTab
+import dev.quinton.goa.feature.board.online.onlineInviteCode
 import dev.quinton.goa.feature.sync.server.SyncServerScheduler
 import dev.quinton.goa.ui.GoaApp
+import dev.quinton.goa.ui.OnlineInviteRequest
 import dev.quinton.goa.ui.SyncFileRequest
 import dev.quinton.goa.ui.TabRequest
 import javax.inject.Inject
@@ -45,6 +47,9 @@ class MainActivity : ComponentActivity() {
 
     /** Sync files opened from another app or shared to this one (ADR-025). */
     private val syncFileRequests = MutableStateFlow<SyncFileRequest?>(null)
+
+    /** Online invites opened from the web app or a message (ADR-056). */
+    private val onlineInvites = MutableStateFlow<OnlineInviteRequest?>(null)
     private var requestCount = 0L
 
     @Inject lateinit var serverSync: SyncServerScheduler
@@ -92,7 +97,12 @@ class MainActivity : ComponentActivity() {
                 }
                 val boardStyle = (state as? MainUiState.Ready)?.boardStyle ?: BoardStyle.MINIATURES
                 CompositionLocalProvider(LocalBoardStyle provides boardStyle) {
-                    GoaApp(tabRequests = tabRequests, syncFileRequests = syncFileRequests, coldStart = coldStart)
+                    GoaApp(
+                        tabRequests = tabRequests,
+                        syncFileRequests = syncFileRequests,
+                        onlineInvites = onlineInvites,
+                        coldStart = coldStart,
+                    )
                 }
             }
         }
@@ -106,6 +116,10 @@ class MainActivity : ComponentActivity() {
     private fun handle(intent: Intent?) {
         syncFileUri(intent)?.let { uri ->
             syncFileRequests.value = SyncFileRequest(uri.toString(), requestCount++)
+            return
+        }
+        intent?.takeIf { it.action == Intent.ACTION_VIEW }?.dataString?.let(::onlineInviteCode)?.let { code ->
+            onlineInvites.value = OnlineInviteRequest(code, requestCount++)
             return
         }
         val name = intent?.getStringExtra(EXTRA_OPEN_TAB) ?: return

@@ -107,6 +107,8 @@ fun GameTable(
     focus: CardFocusState? = null,
     onSpellbook: ((String) -> Unit)? = null,
     panelTitle: (@Composable () -> Unit)? = null,
+    /** Goes at the head of the table, above the HUD: an online game's players and clock (ADR-056). */
+    topStrip: (@Composable () -> Unit)? = null,
     panel: @Composable ColumnScope.() -> Unit,
 ) {
     var hidden by rememberSaveable { mutableStateOf(initialPanelHidden) }
@@ -230,6 +232,7 @@ fun GameTable(
                     .onSizeChanged { topHeight = it.height + with(density) { Spacing.sm.roundToPx() } },
                 verticalArrangement = Arrangement.spacedBy(Spacing.xs),
             ) {
+                topStrip?.invoke()
                 // After the reveal the turn's cards stay in view, the panel shown or hidden (ADR-041);
                 // before it, the hero strip comes back with the panel (one tap).
                 val track = table.track

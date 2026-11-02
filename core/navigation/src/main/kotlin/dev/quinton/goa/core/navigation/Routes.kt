@@ -224,6 +224,23 @@ object NavSheet {
 /** One puzzle ([puzzleId] = `PuzzleInfo.id`, e.g. `p17`): the table, nudges, then the explanation. */
 @Serializable data class PuzzleRoute(val puzzleId: String) : NavKey
 
+// Online games and leaderboards (ADR-056, owner: board)
+
+/**
+ * The online home: the account, a new room, joining, the games to go back to. [invite] is a room code to
+ * join once there is an account (a `goa-companion://play/<code>` link).
+ */
+@Serializable data class OnlineHomeRoute(val invite: String? = null) : NavKey
+
+/** A room before its game: seats, heroes, ready, start. Joins it if the person isn't in it yet. */
+@Serializable data class OnlineLobbyRoute(val code: String) : NavKey
+
+/** A running online game: the table, then the result. */
+@Serializable data class OnlineGameRoute(val gameId: String) : NavKey
+
+/** The public leaderboards: Players and Heroes. */
+@Serializable data object OnlineLeaderboardRoute : NavKey
+
 // Group sync (ADR-025, owner: sync)
 
 /** The group: start or join one; once joined, invite, sync, share or import a sync file, leave. */

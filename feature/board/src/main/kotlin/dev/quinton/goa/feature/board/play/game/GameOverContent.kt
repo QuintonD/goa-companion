@@ -61,7 +61,8 @@ import dev.quinton.goa.feature.board.ui.cards.CardFocusState
 /**
  * Game over: who won and how, in the rulebook's words; how each hero did; take backs and nudges;
  * the coach's turning points (when Coach is on), each with its round and turn; Rematch (same
- * setup, a new coin flip), New game, Done.
+ * setup, a new coin flip), New game, Done. Online (ADR-056): whose team won and whether it counted, with
+ * no report, rematch or new game: those need a whole game, which a phone doesn't hold.
  */
 @Composable
 internal fun GameOverContent(
@@ -101,7 +102,11 @@ internal fun GameOverContent(
                         modifier = Modifier.size(40.dp),
                     )
                     TitlePlate(
-                        if (over.youWon) "You won" else "The computer won",
+                        when {
+                            play.online != null -> if (over.youWon) "Your team won" else "Your team lost"
+                            over.youWon -> "You won"
+                            else -> "The computer won"
+                        },
                         Modifier.fillMaxWidth(),
                         style = GoaTextStyles.plateTitle.copy(fontSize = 22.sp, lineHeight = 28.sp),
                     )
@@ -121,14 +126,23 @@ internal fun GameOverContent(
                         textAlign = TextAlign.Center,
                     )
                     Text(
-                        listOf(
-                            BoardText.count(over.rounds, "round"),
-                            BoardText.count(over.takeBacks, "take back"),
-                            if (over.coach) BoardText.count(over.nudges, "coach nudge") else "Coach off",
-                        ).joinToString(" · "),
+                        if (play.online != null) {
+                            BoardText.count(over.rounds, "round")
+                        } else {
+                            listOf(
+                                BoardText.count(over.rounds, "round"),
+                                BoardText.count(over.takeBacks, "take back"),
+                                if (over.coach) BoardText.count(over.nudges, "coach nudge") else "Coach off",
+                            ).joinToString(" · ")
+                        },
                         style = MaterialTheme.typography.labelLarge,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
+                    play.online?.let { online ->
+                        ratedWords(online)?.let {
+                            Text(it, style = MaterialTheme.typography.labelLarge, textAlign = TextAlign.Center)
+                        }
+                    }
                 }
             }
 
@@ -175,28 +189,43 @@ internal fun GameOverContent(
                 }
             }
 
-            GameReportSection(play, onAction, focus, onLogAt)
+            if (play.online != null) {
+                PlateButton(onClick = onDone, modifier = Modifier.fillMaxWidth().heightIn(min = 52.dp)) {
+                    Text("Done", style = MaterialTheme.typography.titleMedium)
+                }
+            } else {
+                GameReportSection(play, onAction, focus, onLogAt)
 
-            Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-                PlateButton(onClick = {
-                    onAction(GameAction.Rematch)
-                }, modifier = Modifier.fillMaxWidth().heightIn(min = 52.dp)) {
-                    Text("Rematch", style = MaterialTheme.typography.titleMedium)
+                Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+                    PlateButton(onClick = {
+                        onAction(GameAction.Rematch)
+                    }, modifier = Modifier.fillMaxWidth().heightIn(min = 52.dp)) {
+                        Text("Rematch", style = MaterialTheme.typography.titleMedium)
+                    }
+                    Text(
+                        "Same heroes and seats; the app flips the Tie Breaker coin again.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                    OutlinedButton(onClick = onNewGame, modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp)) {
+                        Text("New game")
+                    }
+                    TextButton(onClick = onDone, modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp)) {
+                        Text("Done")
+                    }
                 }
-                Text(
-                    "Same heroes and seats; the app flips the Tie Breaker coin again.",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    textAlign = TextAlign.Center,
-                    modifier = Modifier.fillMaxWidth(),
-                )
-                OutlinedButton(onClick = onNewGame, modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp)) {
-                    Text("New game")
-                }
-                TextButton(onClick = onDone, modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp)) { Text("Done") }
             }
         }
     }
+}
+
+/** Whether the result counts on the leaderboard; null until the server has said. */
+private fun ratedWords(online: OnlineUi): String? = when (online.rated) {
+    true -> "Rated: this result counts on the leaderboard."
+    false -> if (online.ranked) "Not rated: this result doesn't count." else "A friendly room: not rated."
+    null -> null
 }
 
 @Composable
@@ -243,7 +272,15 @@ private fun TurningPoint(note: CoachNote) {
 @Composable
 private fun HeroResultRow(play: PlayUi, result: HeroResult, onHero: (String) -> Unit) {
     val info = play.table.hero(result.heroId)
-    val who = if (result.controller == Controller.Human) "You" else PlayText.controller(result.controller)
+    val who = when {
+        // Online every seat is a person: the player's name, not "You" on all of them.
+        play.online != null && result.heroId !in play.table.mine ->
+            play.online?.players?.get(result.heroId) ?: PlayText.controller(result.controller)
+
+        result.controller == Controller.Human -> "You"
+
+        else -> PlayText.controller(result.controller)
+    }
     val facts = listOf(
         "Level ${result.level}",
         BoardText.count(result.heroDefeats, "hero defeated", "heroes defeated"),
