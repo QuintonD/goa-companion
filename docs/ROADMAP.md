@@ -548,7 +548,9 @@ passes (including an in-place upgrade from the morning build with real data). Ev
 - [x] End to end: whole games through the real server, store, room core and client driver, on real local sockets (Windows JVM; `server/game/.../e2e/`)
 - [x] Live on oldboi, behind Funnel beside the relay; real games through it: two browsers to a rated result (Chromium over Funnel's public address, WebKit over the tailnet) and the Android client's seams from the JVM over the tailnet; deploy tests 161/161 and the server suite on Ubuntu under `goa-gradle` — 2026-11-02
 - [x] `goa-leaderboards` on Pages, published by its Action — 2026-11-02, the seed board so far
-- [ ] The app's online mode on Pages and in a release: waits on the owner, since merging to main publishes it
+- [x] The web app's online mode live on Pages, with the sharp frames and smoothness: real sessions from the published site, on the real origin, CSP and game server (Chromium over Funnel's public address, WebKit over the tailnet) — 2026-11-02, Playwright on Windows, not a phone
+- [ ] Android's online mode in a release: on main, not in any published APK
+- [ ] The Android online screens on an emulator: `device_open` still refuses
 - [ ] On the S25 Ultra and a real iPhone: a full online game on mobile data
 
 
