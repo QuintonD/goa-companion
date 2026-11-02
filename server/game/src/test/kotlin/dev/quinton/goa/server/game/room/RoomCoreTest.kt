@@ -595,6 +595,17 @@ class RoomCoreTest {
     }
 
     @Test
+    fun `a game that ended unheard is one to go back to but doesn't count as one being played`() = runBlocking<Unit> {
+        val game = TestGame(rules = short)
+        game.start(duel())
+        game.clock.advance(short.abandonMillis + 1)
+        game.tick()
+        val wasp = TestGame.account("wasp")
+        assertThat(game.core.gamesOf(wasp)).containsExactly(TestGame.GAME_ID)
+        assertThat(game.core.runningGamesOf(wasp)).isEmpty()
+    }
+
+    @Test
     fun `when everyone has left the computer finishes the game a little per tick`() = runBlocking<Unit> {
         val store = WatchedStore()
         val game = TestGame(store = store)

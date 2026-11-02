@@ -152,6 +152,8 @@ class Lobby(
         val room = openRoom(rawCode)
         val seat = room.seats.firstOrNull { it.accountId == accountId } ?: throw LobbyRefused(LobbyError.NOT_READY)
         if (ready && seat.heroId == null) throw LobbyRefused(LobbyError.NOT_READY)
+        // Here as well as at the start, so that one person can't make the host's start fail for everyone.
+        if (ready) requireRoomForGames(accountId)
         room.withSeat(seat.copy(ready = ready))
     }
 
@@ -230,7 +232,7 @@ class Lobby(
     }
 
     private suspend fun requireRoomForGames(accountId: String) {
-        if (rooms.gamesOf(accountId).size >= MAX_RUNNING_GAMES) throw LobbyRefused(LobbyError.TOO_MANY_GAMES)
+        if (rooms.runningGamesOf(accountId).size >= MAX_RUNNING_GAMES) throw LobbyRefused(LobbyError.TOO_MANY_GAMES)
     }
 
     private suspend fun liveRoom(rawCode: String): RoomRow {

@@ -209,6 +209,8 @@ REST errors are `ApiError`. Beyond those above: `bad_request`, `bad_name`, `bad_
 
 ## The lobby
 
+- **No kick in v1:** if someone sits and stalls, the host can leave and make a new room. Being at the limit of
+  running games is refused at Ready as well as at Start, so one person can't make the start fail.
 - The creator sits down with the room, in the first Red seat; `join` then changes nothing for them, and
   joining seats anyone else on the emptier team. One seat per person, one hero per game.
 - A change of seat or hero takes back your Ready; Ready needs a hero. The host starts, once every seat is

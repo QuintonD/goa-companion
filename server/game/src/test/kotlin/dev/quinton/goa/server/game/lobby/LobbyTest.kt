@@ -4,6 +4,7 @@ import com.google.common.truth.Truth.assertThat
 import dev.quinton.goa.core.game.Controller
 import dev.quinton.goa.core.game.GameLength
 import dev.quinton.goa.core.game.GameSetup
+import dev.quinton.goa.core.game.SeatSetup
 import dev.quinton.goa.core.model.match.Team
 import dev.quinton.goa.core.online.CreateRoom
 import dev.quinton.goa.core.online.RoomStatus
@@ -269,6 +270,41 @@ class LobbyTest {
         assertThat(limited.view(code).status).isEqualTo(RoomStatus.OPEN)
         rooms.extraRunning = 0
         assertThat(limited.start(everyone[0], code).status).isEqualTo(RoomStatus.STARTED)
+    }
+
+    /** Someone who is already playing as many games as they may. */
+    private fun playingFully(person: String) {
+        repeat(Lobby.MAX_RUNNING_GAMES) { i ->
+            val heroes = listOf(
+                SeatPlayer("wasp", person, "P", Team.RED),
+                SeatPlayer("arien", "other-$i", "O", Team.BLUE),
+            )
+            runBlocking { rooms.start("ROOM$i", setupOfPlayers(), heroes, false) }
+        }
+    }
+
+    private fun setupOfPlayers() = GameSetup(
+        mapId = Lobby.FORGOTTEN_ISLAND,
+        seats = listOf(
+            SeatSetup("wasp", Team.RED, Controller.Human),
+            SeatSetup("arien", Team.BLUE, Controller.Human),
+        ),
+        tieBreaker = Team.RED,
+    )
+
+    @Test
+    fun someoneAlreadyPlayingAllTheirGamesCantReadyUpAndSoCantFailTheHostsStart(): Unit = runBlocking {
+        val everyone = people(2)
+        val code = lobby.create(everyone[0], CreateRoom(Lobby.FORGOTTEN_ISLAND, GameLength.QUICK, 1, false)).code
+        val seat = lobby.join(everyone[1], code).seats.first { it.accountId == everyone[1] }
+        val heroes = testEngine.playableHeroes.sorted()
+        lobby.pickSeat(everyone[1], code, seat.team, seat.index, heroes[1])
+        playingFully(everyone[1])
+
+        assertThat(refused { lobby.ready(everyone[1], code, true) }).isEqualTo(LobbyError.TOO_MANY_GAMES)
+        assertThat(lobby.view(code).seats.first { it.accountId == everyone[1] }.ready).isFalse()
+        // Taking it back is always allowed.
+        assertThat(lobby.ready(everyone[1], code, false).seats.first { it.accountId == everyone[1] }.ready).isFalse()
     }
 
     @Test

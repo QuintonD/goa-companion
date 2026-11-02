@@ -221,12 +221,14 @@ class RoomCore(
     }
 
     override suspend fun gamesOf(accountId: String): List<String> {
-        val running = live.values.filter { it.room.seats.any { s -> s.accountId == accountId } }
+        val ended = closedMutex.withLock { closed.filterValues { accountId in it.accounts }.keys.toList() }
+        return runningGamesOf(accountId) + ended
+    }
+
+    override suspend fun runningGamesOf(accountId: String): List<String> =
+        live.values.filter { it.room.seats.any { s -> s.accountId == accountId } }
             .filter { entry -> entry.mutex.withLock { entry.room.seatsOf(accountId).isNotEmpty() } }
             .map { it.room.row.id }
-        val ended = closedMutex.withLock { closed.filterValues { accountId in it.accounts }.keys.toList() }
-        return running + ended
-    }
 
     /** One beat of every game's clocks. A game that fails here is left as it was for the next beat. */
     @Suppress("TooGenericExceptionCaught")

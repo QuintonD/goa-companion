@@ -57,7 +57,11 @@ interface GameRooms {
     /** The person gives up their seat for good: the computer plays it to the end. */
     suspend fun leave(gameId: String, accountId: String)
 
+    /** Games to go back to: those running, and those that ended with this person not there to hear it. */
     suspend fun gamesOf(accountId: String): List<String>
+
+    /** Those still running: what the limit on games counts. A game that is over takes up nobody's time. */
+    suspend fun runningGamesOf(accountId: String): List<String> = gamesOf(accountId)
 }
 
 /** Builds the log's [Match] for a finished game. In `ratings/`, passed to `RoomCore`. */
