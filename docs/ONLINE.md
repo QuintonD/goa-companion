@@ -195,7 +195,10 @@ native clients send none. CORS follows the relay: an exact list, no credentials.
   the tables it replaced in front of its own: a client that misses an event can't get it back. So a `Table`
   can start earlier than the last one ended; apply it from `eventsFrom` and skip what you hold.
 - A person has at most 4 sockets (the newest wins) and each watches its 8 latest rooms. A socket gets the
-  frames of every room its person sits in, and is linked to a room's game when it starts.
+  `Lobby` frames of every room its person sits in. It is linked only to the games named in `Hello.resume`, and
+  to a game that starts in a room it watches, if its person sits there. Being linked is what makes a person
+  `HERE` in that game and what sends its log, so a socket looking at one game doesn't show them present in
+  another.
 - A repeat of the same answer (game, ticket, choice) on one socket gets the first `Ack` again; the room
   is not asked twice. Answering with another choice is a new answer.
 
@@ -226,6 +229,9 @@ REST errors are `ApiError`. Beyond those above: `bad_request`, `bad_name`, `bad_
 already draw; the home and lobby presenters do the rest; screens implement `GameConnector`,
 `OnlineGateway` and `OnlineIdentityStore`. What it relies on from the server:
 
+- A driver's `Hello` must name its game in `resume`: a socket gets no frames of a game it doesn't name, unless
+  the game starts in a room it watches. A lobby socket gets `GameStart` for its own room and opens the game with
+  a driver on a socket of its own.
 - A connection starts with `GameStart`, then a `Table` with events from `Hello.resume`'s `haveEvents`.
   A table whose `eventsFrom` is past what the client holds makes it reconnect and ask again, so a
   conflated frame must not lose events for good. The online log only grows: an overlap is not replayed.
@@ -234,8 +240,8 @@ already draw; the home and lobby presenters do the rest; screens implement `Game
 - A question is real when `id` is not 0 and it has options, and only then can it be answered.
 - `POST /v1/rooms/{code}/join` is also how the creator and someone already seated come in, and changes
   nothing for them: home calls it after creating a room.
-- `Welcome.activeGames` lists the person's running games. A game not listed that sends no frame within
-  5 s is shown as gone; a game that sends its frames is fine whatever the list says.
+- `Welcome.activeGames` lists all the person's running games, linked or not. A game not listed that sends no
+  frame within 5 s is shown as gone; a game that sends its frames is fine whatever the list says.
 - A frame the client can't decode means a newer server: it shows `Refused(UPDATE_APP)` and stops.
 - A room code is 8 characters of Crockford base 32 in upper case (no I, L, O or U), so that what people
   retype reads back: O as 0, I and L as 1.

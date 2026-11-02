@@ -11,6 +11,7 @@ import dev.quinton.goa.core.online.HealthInfo
 import dev.quinton.goa.core.online.LeaderRow
 import dev.quinton.goa.core.online.LeaderboardSnapshot
 import dev.quinton.goa.core.online.RoomCreated
+import dev.quinton.goa.core.online.Resume
 import dev.quinton.goa.core.online.RoomStatus
 import dev.quinton.goa.core.online.RoomView
 import dev.quinton.goa.core.online.ServerMessage
@@ -155,7 +156,7 @@ class RoomRoutesTest {
         assertThat(HealthInfo.serializer().parse(http.get("/v1/health").bodyAsText()).status).isEqualTo("draining")
 
         // A person can still go back to a running game and answer in it.
-        ws.play(started.red.token) {
+        ws.play(started.red.token, listOf(Resume(started.gameId, 0))) {
             nextOf<ServerMessage.GameStart>()
             sendMessage(ClientMessage.Answer(started.gameId, 1, Choice.Pass))
             assertThat(nextOf<ServerMessage.Ack>().accepted).isTrue()

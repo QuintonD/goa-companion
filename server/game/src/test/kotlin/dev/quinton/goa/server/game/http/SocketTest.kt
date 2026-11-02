@@ -417,7 +417,7 @@ class SocketTest {
     // Games over the socket ------------------------------------------------------------------------
 
     @Test
-    fun afterHelloEachActiveOrResumedGameIsConnected() = serverTest {
+    fun afterHelloOnlyTheGamesItNamesAreConnected() = serverTest {
         val started = startedGame()
         rooms.connects.clear()
         val other = startedGame()
@@ -436,11 +436,67 @@ class SocketTest {
     }
 
     @Test
-    fun theWelcomeListsActiveGames() = serverTest {
+    fun aSocketIsNotLinkedToTheGamesItDoesntNameThoughTheWelcomeListsThem() = serverTest {
         val started = startedGame()
+        rooms.connects.clear()
         ws.webSocket("/v1/play") {
             sendMessage(hello(started.blue.token))
             assertThat((next() as ServerMessage.Welcome).activeGames).containsExactly(started.gameId)
+            sendMessage(ClientMessage.Ping(1))
+            // Nothing of the game comes first: no GameStart, no table, and nobody here for its clock.
+            assertThat(next()).isInstanceOf(ServerMessage.Pong::class.java)
+            sendMessage(ClientMessage.Answer(started.gameId, 1, Choice.Pass))
+            assertThat((nextOf<ServerMessage.Ack>()).reason).isEqualTo("not_in_game")
+        }
+        assertThat(rooms.connects).isEmpty()
+        assertThat(rooms.answers).isEmpty()
+    }
+
+    @Test
+    fun oneSocketPerGameShowsPresenceInOnlyThatGame() = serverTest {
+        val a = startedGame()
+        val b = startedGame()
+        rooms.connects.clear()
+        ws.play(a.red.token, listOf(Resume(a.gameId, 0))) {
+            nextOf<ServerMessage.Table>()
+            // Linked to the game it asked for; the same person's other game knows nothing of this socket.
+            assertThat(rooms.connects.map { it.first }).containsExactly(a.gameId)
+            assertThat(rooms.games.getValue(b.gameId).sinks).isEmpty()
+        }
+    }
+
+    @Test
+    fun aGameThatStartsLinksTheSocketsWatchingItsRoomAndNoOtherOfThatPerson() = serverTest {
+        val red = account()
+        val blue = account()
+        val code = room(red.token)
+        join(blue.token, code)
+        ws.play(blue.token) {
+            sendMessage(ClientMessage.PickSeat(code, Team.BLUE, 0, "arien"))
+            sendMessage(ClientMessage.Ready(code, true))
+            nextOf<ServerMessage.Lobby> { lobby -> lobby.room.seats.any { it.ready } }
+            ws.play(red.token) {
+                // At home, not watching the room: this one hears of it and is not linked.
+                val home = this
+                ws.play(red.token) {
+                    sendMessage(ClientMessage.PickSeat(code, Team.RED, 0, "wasp"))
+                    sendMessage(ClientMessage.Ready(code, true))
+                    nextOf<ServerMessage.Lobby> { lobby -> lobby.room.seats.all { it.ready } }
+                    sendMessage(ClientMessage.Start(code))
+                    assertThat(nextOf<ServerMessage.GameStart>().you).containsExactly("wasp")
+                }
+                home.sendMessage(ClientMessage.Ping(5))
+                val seen = ArrayList<ServerMessage>()
+                while (true) {
+                    val frame = home.next()
+                    seen += frame
+                    if (frame is ServerMessage.Pong) break
+                }
+                assertThat(seen.filterIsInstance<ServerMessage.GameStart>()).isEmpty()
+                assertThat(seen.filterIsInstance<ServerMessage.Lobby>()).isNotEmpty()
+            }
+            // The other player's socket watches the room too.
+            assertThat(nextOf<ServerMessage.GameStart>().you).containsExactly("arien")
         }
     }
 
@@ -448,14 +504,14 @@ class SocketTest {
     fun aSocketClosingClosesItsLinks() = serverTest {
         val started = startedGame()
         val before = rooms.closedLinks.get()
-        ws.play(started.red.token) { nextOf<ServerMessage.GameStart>() }
+        ws.play(started.red.token, listOf(Resume(started.gameId, 0))) { nextOf<ServerMessage.GameStart>() }
         withTimeout(WAIT_MILLIS) { while (rooms.closedLinks.get() == before) delay(10) }
     }
 
     @Test
     fun aDuplicateAnswerReachesTheRoomOnceAndGetsTheSameAck() = serverTest {
         val started = startedGame()
-        ws.play(started.red.token) {
+        ws.play(started.red.token, listOf(Resume(started.gameId, 0))) {
             nextOf<ServerMessage.Table>()
             val answer = ClientMessage.Answer(started.gameId, 5, Choice.Pass)
             sendMessage(answer)
@@ -498,7 +554,7 @@ class SocketTest {
     @Test
     fun reviewAndLeaveGoToTheRoom() = serverTest {
         val started = startedGame()
-        ws.play(started.blue.token) {
+        ws.play(started.blue.token, listOf(Resume(started.gameId, 0))) {
             nextOf<ServerMessage.Table>()
             sendMessage(ClientMessage.AskReview(started.gameId, TurnRef(1, 2)))
             nextOf<ServerMessage.Reviewed>()
@@ -516,9 +572,9 @@ class SocketTest {
         val started = startedGame()
         val game = rooms.games.getValue(started.gameId)
         val events = List(2_000) { GameEvent.RoundStarted(it, "event $it") }
-        ws.play(started.red.token) {
+        ws.play(started.red.token, listOf(Resume(started.gameId, 0))) {
             nextOf<ServerMessage.Table>()
-            ws.play(started.blue.token) {
+            ws.play(started.blue.token, listOf(Resume(started.gameId, 0))) {
                 nextOf<ServerMessage.Table>()
                 events.forEachIndexed { i, event ->
                     rooms.sendAll(game) { accountId ->

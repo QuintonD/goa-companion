@@ -176,17 +176,20 @@ internal class SocketHub {
         }
     }
 
-    /** Sends the room to its watchers and to everyone seated; a started room links the seated to the game. */
+    /**
+     * Sends the room to its watchers and to everyone seated. A started room links only the sockets watching it:
+     * a socket looking at another game must not count as present in this one.
+     */
     fun roomChanged(view: RoomView) {
-        val (seated, audience) = synchronized(guard) {
+        val (players, audience) = synchronized(guard) {
             val seated = view.seats.mapNotNull { it.accountId }.flatMap { sockets[it].orEmpty() }
-            val audience = (watchers[view.code].orEmpty() + seated).toList()
+            val watching = watchers[view.code].orEmpty().toList()
             if (view.status == RoomStatus.CLOSED) watchers.remove(view.code)
-            seated to audience
+            watching.filter { it in seated } to (watching + seated).distinct()
         }
         audience.forEach { it.send(ServerMessage.Lobby(view)) }
         val gameId = view.gameId
-        if (view.status == RoomStatus.STARTED && gameId != null) seated.forEach { it.attachLater(gameId) }
+        if (view.status == RoomStatus.STARTED && gameId != null) players.forEach { it.attachLater(gameId) }
     }
 
     fun disconnect(accountId: String) {
@@ -223,10 +226,9 @@ internal suspend fun DefaultWebSocketServerSession.play(services: GameServices) 
             ServerMessage.Welcome(OnlineProtocol.VERSION, account.id, account.name, services.clock(), active),
         )
         services.hub.add(socket)
-        // Asked again now it can hear of starts: a game that began since the Welcome is not missed.
-        val have = hello.resume.associate { it.gameId to it.haveEvents.coerceAtLeast(0) }
-        (services.rooms.gamesOf(account.id) + have.keys).distinct().take(MAX_RESUMED_GAMES).forEach {
-            socket.attach(it, have[it] ?: 0)
+        // Only the games it names: being linked is what makes a person present, and sends the log.
+        hello.resume.distinctBy { it.gameId }.take(MAX_RESUMED_GAMES).forEach {
+            socket.attach(it.gameId, it.haveEvents.coerceAtLeast(0))
         }
         serve(services, socket)
     } finally {
