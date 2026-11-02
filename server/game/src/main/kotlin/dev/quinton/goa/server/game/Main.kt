@@ -28,7 +28,7 @@ fun main() {
     )
     val leaderboard: LeaderboardSource = MatchLogLeaderboard(
         matches = store::matches,
-        names = { store.names(store.matches().flatMap { m -> m.participants.map { it.playerId } }.toSet()) },
+        names = store::names,
         heroName = { engine.data.catalog.hero(it)?.name },
         clock = System::currentTimeMillis,
     )

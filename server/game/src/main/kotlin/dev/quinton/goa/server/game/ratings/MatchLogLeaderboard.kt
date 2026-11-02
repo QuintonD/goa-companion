@@ -10,6 +10,8 @@ import dev.quinton.goa.core.online.LeaderboardSnapshot
 import dev.quinton.goa.server.game.room.LeaderboardSource
 import java.security.MessageDigest
 import kotlin.math.roundToInt
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.serialization.json.Json
 
 /** What a deleted account's rows show: its match rows stay in the log (docs/ONLINE.md). */
@@ -25,19 +27,22 @@ const val BOARD_ROWS: Int = 200
 const val ELO_CONFIG_VERSION: Int = 1
 
 /**
- * The public board, derived from the match log on demand (docs/ONLINE.md "Ratings"). The replay is
- * remembered per log hash, in memory only: nothing here is ever written down, and a new source over the
- * same log gives the same board. Names are read on every call, because a rename or a deleted account
- * changes the board without changing the log.
+ * The public board, derived from the match log on demand (docs/ONLINE.md "Ratings"). Each snapshot is kept
+ * for [ttlMillis] and the replay per log hash, in memory only: nothing here is ever written down, and a new
+ * source over the same log gives the same board. Reading the log decodes every match on the thread that
+ * saves answers, so a stream of GETs must not do it each time. Names are read with each new snapshot,
+ * because a rename or a deleted account changes the board without changing the log; they may take
+ * [ttlMillis] to show.
  */
 class MatchLogLeaderboard(
     private val matches: suspend () -> List<Match>,
-    /** Account id to display name. An account that is gone shows as [FORMER_PLAYER]. */
-    private val names: suspend () -> Map<String, String>,
+    /** The display names of these account ids, the ones on the board. One that is gone shows as [FORMER_PLAYER]. */
+    private val names: suspend (Collection<String>) -> Map<String, String>,
     /** The catalog's name of a hero; one it no longer has shows its id. */
     private val heroName: (heroId: String) -> String?,
     private val clock: () -> Long,
     private val replay: (List<Match>) -> RatingsResult = { EloCalculator.replay(it, EloConfig.DEFAULT) },
+    private val ttlMillis: Long = DEFAULT_TTL_MILLIS,
 ) : LeaderboardSource {
     private class Derived(val logSha256: String, val matches: Int, val players: List<Ranked>, val heroes: List<Ranked>)
 
@@ -47,11 +52,25 @@ class MatchLogLeaderboard(
     @Volatile
     private var derived: Derived? = null
 
-    override suspend fun snapshot(): LeaderboardSnapshot {
+    private class Kept(val at: Long, val snapshot: LeaderboardSnapshot)
+
+    @Volatile
+    private var kept: Kept? = null
+    private val making = Mutex()
+
+    /** One at a time: whoever waits gets the snapshot that was being made. */
+    override suspend fun snapshot(): LeaderboardSnapshot = fresh() ?: making.withLock {
+        fresh() ?: make().also { kept = Kept(clock(), it) }
+    }
+
+    private fun fresh(): LeaderboardSnapshot? =
+        kept?.takeIf { clock() - it.at in 0 until ttlMillis }?.snapshot
+
+    private suspend fun make(): LeaderboardSnapshot {
         val log = ratedLog(matches())
         val sha = logSha256(log)
         val board = derived?.takeIf { it.logSha256 == sha } ?: derive(sha, log).also { derived = it }
-        val known = names()
+        val known = names(board.players.map { it.id })
         return LeaderboardSnapshot(
             schema = LeaderboardSnapshot.SCHEMA,
             generatedAt = clock(),
@@ -77,6 +96,8 @@ class MatchLogLeaderboard(
     private fun Ranked.row(name: String) = LeaderRow(id = id, name = name, rating = rating, games = games, wins = wins)
 
     companion object {
+        const val DEFAULT_TTL_MILLIS: Long = 30_000
+
         /** Every field, nulls and defaults too, in declaration order: one match has one text. */
         private val canonical = Json {
             encodeDefaults = true

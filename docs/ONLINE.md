@@ -55,8 +55,9 @@ The server answers on both `/v1/...` and `/game/v1/...`, whichever way the path 
   never stored: the board is derived on demand, and deleting everything except `matches` reproduces it.
   A player or a hero appears on the board after 5 rated games; each board has at most 200 rows, by
   rating, then id. A deleted account keeps its match rows and shows as "Former player". The server
-  remembers a replay in memory per log hash and reads names on every call. `eloConfig` in the snapshot
-  is a version number that goes up when `EloConfig.DEFAULT` changes.
+  keeps a snapshot in memory for 30 s and a replay per log hash, so a rename or a deletion may take 30 s to
+  show; it is never written down. `eloConfig` in the snapshot is a version number that goes up when
+  `EloConfig.DEFAULT` changes.
 - **Off online:** undo, Coach, suggestions, pace and the post-game report. Local play, puzzles and
   group sync are untouched.
 - **Accepted limits.** Nobody can be stopped from consulting another device's AI, so the board is
