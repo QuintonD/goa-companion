@@ -2435,3 +2435,82 @@ top bar, on a phone behind "More options", so the app's biggest features took th
 **Addendum (hardening, 2026-11-02):** after an adversarial review of the server, in [ONLINE.md](ONLINE.md). Running games and open rooms have separate budgets, and a room nobody joined closes in 10 minutes. A game that can't be restored is voided alone. A team's question goes to a teammate who is there (`Decision.teamDecision`, the engine's seat unchanged). Being away is durable. Health is outside the rate limits and socket upgrades have their own. A long catch-up comes in pages (`Table.more`, a plain added field: the driver needs to tell a page from news). A socket links only the games it names. Unrated: a team with no answer of a person's own, and the eleventh meeting of two people in 7 days, read from the log. No kick in v1. Tokens can't be revoked except by deleting the account.
 **Addendum (Web, 2026-11-02):** The PWA side, in `web/app/.../play/online/`; details in [ONLINE.md](ONLINE.md) "The web client". (1) `GameScreen` split: a `GameTable` draws a `PlayUi` for whoever runs the game, and both `GameController` and `OnlineGameDriver` feed it, so the online table can't drift from the local one. Take back, Coach and the computer's speed hide when `play.online` is set. (2) The resolution flow view (ADR-046) is ported, and shows when `play.flow` isn't empty: online always, locally not until `GameController` publishes a flow, which this stream was told not to change. (3) A host only `network.json` names is skipped rather than tried, because this build's CSP can't reach it and every browser would otherwise fail on it. (4) The server's REST errors carry a code and no words, and `onlineFailure` reads only `Refusal` codes, so `bad_recovery_code`, `bad_name`, `bad_room` and `map_unavailable` would all read "can't be reached", and `unauthorized` would never reach the home screen's `BAD_TOKEN` path. `WebOnlineGateway` handles these for now; the shared `OnlineGateway.kt` is the better home, so Android doesn't redo it. (5) The fake game server of `online.spec.ts` plays a recording of the real engine (`fixtures/online-game.json`, re-recorded with `GOA_WRITE_ONLINE_FIXTURE=1 :web:app:jsNodeTest`); `OnlineRecordedGameTest` decodes it with this build's wire types and drives the real driver with it, so the fake can't drift from the contract unnoticed. `online-real.spec.ts` plays the real rules when `GOA_GAME_SERVER_URL` names a local `:server:game:run`.
 **Addendum (Android, 2026-11-02):** `core:data` implements the seams of `core:play`, so it now depends on it (`core:play` depends only on `core:data-contracts`, so no cycle). The account lives in `noBackupFilesDir` rather than under an exclude rule: Android guarantees that directory is never backed up, whatever the rules become, and `no_backup` isn't a domain a rule could name anyway. Invites use the custom scheme `goa-companion://play/<code>`: a verified App Link needs `assetlinks.json` at the origin's root, which a project's Pages site can't serve; any app can fire the link, and all it does is seat the person in a room they can leave, since a game can't start until they say Ready. The server's REST errors carry a code and no words, so the words are the client's (`OnlineWords.apiError`). The QR and scanner code is a small copy of feature/sync's, because features don't depend on each other. Details in [ONLINE.md](ONLINE.md) "On Android".
+
+## ADR-057 — Smoothness: a Baseline Profile, one decode per image, nothing per pan step (2026-11-02)
+**Context:** Owner: "see if we can make any efficiency gains/optimisations to smoothen the app ux". We measured before
+changing anything. The release APK had only the libraries' profile (`baseline.prof` 13 KB), so all the app's own code ran
+interpreted and JITted at every first use. A screen of 40 plates asked Coil for 200 images. On the web, one pointer move of
+a pan on the board recomposed the whole map. The list screens, the card scans (Coil sizes them to the tile), the catalog
+parse, the ratings replay and the engine were already off the main thread or sized correctly.
+
+**Decision:**
+1. **Baseline Profile.** `:baselineprofile` (`com.android.test`, `androidx.baselineprofile` 1.5, which works with AGP 9.4)
+   collects a player's first minutes: the start and the Heroes tab (also the startup profile, which orders the dex), the hero
+   page, every tab, Puzzles and a game on the painted board. The result is committed in
+   `app/src/release/generated/baselineProfiles/`; regenerate it for a release with `:app:generateBaselineProfile` on an
+   emulator (stale rules are ignored, new code just isn't precompiled). `profileinstaller` is declared directly: the APK is
+   sideloaded (ADR-048), so no store delivers the profile; the phone applies it at its next idle maintenance. The measuring
+   build types the plugin adds (`benchmarkRelease`, `nonMinifiedRelease`) sign with the debug key and install as
+   `dev.quinton.goa.bench`, beside the release app and its data.
+2. **`ReportDrawnWhen`** on the Heroes list, so "fully drawn" means something to the system and the startup measure.
+3. **`OfficialBitmaps`** (`OfficialArt.kt`): one load per image however many parts ask, off the composition. It decodes at the
+   file's own size because slices and tiling are in source pixels, whatever size the art grows to.
+4. **`slatePlate`** is a modifier node, so plates in lists add nothing to composition.
+5. **`TableUi`** builds `occupancy`, `pieces`, `spaceOptions` and `pieceOptions` once per table (the board's nodes asked per space).
+6. **Map paintings** come from Coil's memory cache on the first composition, and New game and New board decode the chosen map
+   ahead of time, so the table isn't composed twice (vector map and drawn pieces, then the painted board). A painting not yet
+   decoded still shows the vector map, as ADR-053 says; Coil's cache holds it, so nothing new stays in memory.
+7. **EmojiCompat isn't initialised.** The app's words have no emoji; it cost a font lookup and a relayout of every text.
+   A very new emoji in a player's name on an old phone may now show as a box.
+8. **The catalog parse starts in `MainActivity.onCreate`**, not when the first frame has subscribed.
+9. **Web board:** which spaces are in view is derived state, in the phone's reading order (map units, so a pan doesn't
+   reorder the hidden buttons); the table's NOW tag reads the camera in a composable of its own.
+
+**Measured.** Startup on the `goa_s25a` emulator (x86_64, software GPU, median of 10, other builds running: compare one
+column, not with a phone). The "libraries only" column is 0.12.0's state after the phone's maintenance:
+
+| Cold start | no compiled code | libraries only | + the app's profile |
+|---|---|---|---|
+| Time to first display | 1841 ms | 1580 ms | 1448 ms |
+| Time to the hero list | 2809 ms | 2414 ms | 2176 ms |
+| Main thread CPU | 1105 ms | 782 ms | 602 ms |
+| JIT CPU (methods compiled) | 243 ms (110) | 71 ms (37) | 28 ms (12) |
+
+| Other | before | after | how |
+|---|---|---|---|
+| Coil requests for 40 plates | 200 | 5 | Robolectric; `OfficialBitmapsTest` holds it |
+| Entering a screen of 40 plates, art cached | 18.4 ms | 13.3 ms | Robolectric, JIT warmed |
+| The board's nodes, one pass over 210 spaces | 0.41 ms | 0.013 ms | JVM, real game, 41 options |
+| Map recomposition on a selection / a pan step | 2.72 / 2.43 ms | 2.50 / 2.11 ms | Robolectric |
+| Text measures in a cold start | 78 | 40 | emulator traces, without EmojiCompat |
+| First frame to the hero list | 1096 ms | 1032 ms | emulator, noisy; 1300 to 1047 ms with no compiled code |
+| Web: script per pan step | 56.4 ms | 14.3 ms | `web/e2e/scripts/pan-cost.mjs`, Chromium at 4x CPU slowdown |
+| Web: the same with a hero selected | 50.3 ms | 24.5 ms | same; layout per step 5.0 to 0.8 ms |
+
+**Not measured:** frame timing while scrolling or panning on Android. `device_open` refuses the emulator on this machine
+(ffmpeg with libx264 isn't on the T3 server's path), so nothing UI-driven was timed there; the emulator's software GPU would
+say little anyway (shader compiles alone took 450 ms of a first frame). No number here comes from the S25 Ultra or an iPhone.
+
+**Left as they are, on purpose:** the running timer recomposes at each 100 ms tick (2.5 ms per tick on the JVM: well under a
+frame, and splitting its state is a refactor nobody would notice); `BevelText`'s two Texts (composed once, not per frame);
+the painted map's clip path while panning (a GPU cost the emulator can't measure); the AI's threads' priority (changing it
+would change how much it searches in its think time); web first load (R3 in ADR-043 already took it as far as Kotlin/JS goes).
+
+**Consequences:** One more module; about 7 MB of profile text in the repo, regenerated per release. `:app:assembleRelease` is
+unchanged for the release key. Gradle's own pull of the benchmark's traces fails on Windows here (the path is too long); the
+results JSON still arrives. The draft board's screenshot flake (a few hundred pixels in a 30 px team gear, largest colour
+difference 30) is more frequent: that screen asks for one image at five sizes and Coil's memory cache serves whichever decoded
+first, so a capture depends on load order; with the crowd of plate requests gone the order shifted. `main` passed 3 of 3 runs of
+the module alone, this branch failed 4 of 4, with a different set of `board*` tests. The screenshot tests' image loader
+(`BundledAssetImages`) now has no memory cache, which removes that race from every module.
+
+## ADR-058 — Frames the print has too few pixels for are redrawn (2026-11-02)
+**Context:** Owner, with screenshots of the banner's medallion and a title plate's gear: "improving the quality of assets either through higher quality scrapes or if needed recreation... not all the assets just those of very low resolution". The cards, portraits and boards are good. An audit against what each part is drawn at on a 1080 and a 1440 wide phone found the real sizes: the banner is 827 x 45 in the PDF (object 8861, on every page) with a medallion of about 60 x 45, so our 6x page render gained nothing and a phone scales it nearly 4x; the title plate's gear is 40 px, JPEG artefacts included; the text boxes are 234 to 350 px wide; the brackets 30 px. The nine-slice also squashed the gear to about 25 x 30 dp. Counters and action icons (66 to 80 px, drawn at 26 to 28 dp) hold up and stay. The largest layers in the PDF are 1.3x at best; web searches found no sharper official file; the scans of the cards hold a tier numeral in the gear and text on the plate and tabs.
+
+**Decision:**
+1. The banner, title plate, five text boxes and four plate brackets are redrawn by `design/look/render_parts.py`: signed distance fields and height maps lit like metal, from the printed geometry, colours and motifs, supersampled 3x. Deterministic, needs numpy and Pillow. Masters are committed in `design/look/parts/` and come through the import like every other asset (`LookAssets.REDRAWN`), each recorded in `official/SOURCES.md` as redrawn, with the page it is drawn after. This narrows the asset policy's "don't redraw official art" for frames only: never a card, a portrait, a symbol or a board, and never anything carrying game data.
+2. A master is its part's size at 4x, not as large as possible: a bilinear draw aliases thin rims when it shrinks a bitmap much past 2x, and these bitmaps are all in memory while on screen.
+3. The title plate's slices (52, 31, 132, 31) scale alike at its minimum height, so the gear is round; its right inset grows from 25 to 30 dp on the large plate and 18 to 22 on a tile, which the gear now really fills. All five boxes share one geometry, so the per-colour slice tables go.
+4. The dashboard frame (821 x 416, 1.3x to 1.75x on a phone) and the cover's silhouette (830 wide, as wide as a phone) are illustrations, not suited to this method. They are upscaled from the PDF's own objects with Real-ESRGAN (x4plus: the anime model drew hard outlines the print doesn't have), to 1600 wide, with the same masters and record. The Turn slots are placed by fractions of the frame, so its size doesn't move them. The tool is a one-off on this PC (`design/README.md` has the command), not a build dependency.
+
+**Consequences:** The whole app's top bar and plates change, so every screenshot baseline is re-recorded once. The art is ours in execution but still derives from Wolff Designa's design: ADR-034's permission note covers it as before. A new printing's frames need a look by eye, as the renderer doesn't read the PDF. Decoded memory while on screen: the banner 1.8 MB (was 1 MB), the dashboard frame 5.2 MB (was 1.4 MB), only while a hero sheet is open.

@@ -83,8 +83,8 @@ data class TableUi(
         get() = map.lanes.map { lane -> view.battleZones[lane.id] ?: lane.startingBattleZone }
 
     /** The pieces as the board draws them (heroes off the board are left out). */
-    val pieces: List<BoardPiece>
-        get() = buildList {
+    val pieces: List<BoardPiece> by lazy {
+        buildList {
             view.minions.forEach { add(MinionPiece(it.id, it.at, it.team, it.type, it.lane)) }
             view.pieces.forEach { p ->
                 val figureOf = figureOf(p)
@@ -97,32 +97,35 @@ data class TableUi(
             }
             view.heroes.forEach { h -> h.at?.let { add(HeroPiece(h.heroId, it, h.heroId, h.team)) } }
         }
+    }
 
-    /** Where every unit and token stands. */
-    val occupancy: Map<Hex, String>
-        get() = buildMap {
+    /** Where every unit and token stands; the board's nodes ask for each space, so it is built once. */
+    val occupancy: Map<Hex, String> by lazy {
+        buildMap {
             view.minions.forEach { put(it.at, it.id) }
             view.pieces.forEach { put(it.at, it.id) }
             view.heroes.forEach { h -> h.at?.let { put(it, h.heroId) } }
         }
+    }
 
     fun at(pieceId: String): Hex? = view.heroes.firstOrNull { it.heroId == pieceId }?.at
         ?: view.minions.firstOrNull { it.id == pieceId }?.at
         ?: view.pieces.firstOrNull { it.id == pieceId }?.at
 
     /** Spaces the person can tap to answer, with the choice each one is. */
-    val spaceOptions: Map<Hex, Choice.Space>
-        get() = if (!asking) {
+    val spaceOptions: Map<Hex, Choice.Space> by lazy {
+        if (!asking) {
             emptyMap()
         } else {
             decision?.options.orEmpty().filterIsInstance<Choice.Space>().associateBy {
                 it.hex
             }
         }
+    }
 
     /** Units and tokens the person can tap to answer, by piece id. */
-    val pieceOptions: Map<String, Choice>
-        get() = if (!asking) {
+    val pieceOptions: Map<String, Choice> by lazy {
+        if (!asking) {
             emptyMap()
         } else {
             decision?.options.orEmpty().mapNotNull { choice ->
@@ -133,6 +136,7 @@ data class TableUi(
                 }
             }.toMap()
         }
+    }
 
     /** Cards offered as answers (to play, defend with, upgrade, keep…). */
     val cardOptions: List<Choice.Card>

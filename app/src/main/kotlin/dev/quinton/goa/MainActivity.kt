@@ -22,7 +22,9 @@ import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.lifecycle.DefaultLifecycleObserver
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.lifecycleScope
 import dagger.hilt.android.AndroidEntryPoint
+import dev.quinton.goa.core.data.CatalogRepository
 import dev.quinton.goa.core.designsystem.component.LocalBoardStyle
 import dev.quinton.goa.core.designsystem.theme.GoaTheme
 import dev.quinton.goa.core.model.settings.BoardStyle
@@ -37,6 +39,8 @@ import dev.quinton.goa.ui.SyncFileRequest
 import dev.quinton.goa.ui.TabRequest
 import javax.inject.Inject
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
@@ -54,6 +58,8 @@ class MainActivity : ComponentActivity() {
 
     @Inject lateinit var serverSync: SyncServerScheduler
 
+    @Inject lateinit var catalog: CatalogRepository
+
     override fun onCreate(savedInstanceState: Bundle?) {
         val splash = installSplashScreen()
         super.onCreate(savedInstanceState)
@@ -68,6 +74,8 @@ class MainActivity : ComponentActivity() {
         // A recreated activity (rotation, process restore) keeps its tab; only a real launch obeys the intent.
         val coldStart = savedInstanceState == null
         if (coldStart) handle(intent)
+        // Every first screen reads the catalog: parse it now, not once the first frame has subscribed (ADR-057).
+        lifecycleScope.launch { catalog.catalog.first() }
         splash.setKeepOnScreenCondition { viewModel.uiState.value is MainUiState.Loading }
         enableEdgeToEdge()
         setContent {

@@ -11,7 +11,8 @@
 | Catalog data | Bundled JSON in `assets/catalog/`, kotlinx.serialization, held in memory (no DB) |
 | Async | Coroutines + Flow; `StateFlow<UiState>` per screen |
 | Charts | Vico 3.x (`compose`, `compose-m3`) |
-| Images | Coil 3 — `AsyncImage(model = "file:///android_asset/official/…")` |
+| Images | Coil 3 — `AsyncImage(model = "file:///android_asset/official/…")`; the look's parts through `OfficialBitmaps` (one decode per image, ADR-057) |
+| Startup | Baseline and startup profile in `app/src/release/generated/baselineProfiles`, `profileinstaller` (the APK is sideloaded), ADR-057 |
 | Group sync | Google Nearby Connections 19.5.1 (`P2P_STAR`), Google code scanner 16.1.0 (invite QR, no CAMERA permission), ZXing core 3.5.4 (draws the QR), `javax.crypto` only (ADR-025; SHA-256/HMAC/HKDF are shared plain Kotlin and AES-GCM a platform `SyncCipher` since ADR-043); sync server client: OkHttp 5.5 + WorkManager 2.12 with Hilt workers (ADR-036) |
 | Web app (ADR-043) | Kotlin/JS (IR) + Compose HTML 1.12.2 (`html-core`, `runtime`), a PWA (service worker, IndexedDB) on GitHub Pages; Playwright (WebKit + Chromium) for browser tests |
 | Quality | Android Lint, ktlint (`org.jlleitschuh.gradle.ktlint`), detekt 2.0 (`dev.detekt`, alpha — see ADR-008), Roborazzi, JUnit + Turbine + Truth |
@@ -70,6 +71,8 @@ and the web's tests use the same fakes.
 ```
 app/                     # Application, MainActivity, Navigation 3 back stack + entry provider, DI root,
                          #   BottomSheetSceneStrategy (entries tagged NavSheet.metadata open as a sheet)
+baselineprofile/         # com.android.test (ADR-057): BaselineProfileGenerator (a player's first minutes) and
+                         #   StartupBenchmark; writes app/src/release/generated/baselineProfiles
 build-logic/             # convention plugins (android-library, compose, feature, hilt, jvm-library,
                          #   kmp-library) and EmbedTextFiles (files → Kotlin source for shared code)
 core/model/              # KMP jvm+js: data classes (Hero, Card, Player, Match, DraftMethod…)

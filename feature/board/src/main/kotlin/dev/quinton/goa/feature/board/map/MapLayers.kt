@@ -1,5 +1,6 @@
 package dev.quinton.goa.feature.board.map
 
+import android.content.Context
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Row
@@ -12,9 +13,11 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Immutable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.produceState
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawWithCache
@@ -46,6 +49,7 @@ import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil3.SingletonImageLoader
+import coil3.memory.MemoryCache
 import coil3.request.ImageRequest
 import coil3.request.SuccessResult
 import coil3.toBitmap
@@ -78,18 +82,37 @@ import kotlin.math.roundToInt
 /**
  * A map's painting once it has loaded; null while it loads, if it fails, and for a map that has none:
  * the board then draws its vector map and works exactly as before. On a device Coil decodes it off the
- * main thread to a hardware bitmap, so the first frame has no 2048 px texture to upload.
+ * main thread to a hardware bitmap, so the first frame has no 2048 px texture to upload. One Coil still
+ * holds is there from the first frame: coming back to a board composes the table once, not as a vector
+ * map with drawn pieces and then again as the painted one.
  */
 @Composable
 internal fun rememberMapPainting(map: BoardMap): MapPainting? {
     val art = map.art ?: return null
     val context = LocalContext.current
-    val image by produceState<ImageBitmap?>(null, art.image) {
-        val request = ImageRequest.Builder(context).data(assetUrl(art.image)).build()
-        val result = SingletonImageLoader.get(context).execute(request)
-        value = (result as? SuccessResult)?.image?.toBitmap()?.asImageBitmap()
-    }
+    var image by remember(art.image) { mutableStateOf(heldPainting(context, art.image)) }
+    if (image == null) LaunchedEffect(art.image) { image = loadPainting(context, art.image) }
     return remember(art, image) { image?.let { MapPainting(art, it) } }
+}
+
+/** Decodes a map's painting ([image], its path) ahead of the board opening on it, so that its first frame has it. */
+@Composable
+internal fun PreloadMapPainting(image: String?) {
+    if (image == null) return
+    val context = LocalContext.current
+    LaunchedEffect(image) { if (heldPainting(context, image) == null) loadPainting(context, image) }
+}
+
+private fun heldPainting(context: Context, image: String): ImageBitmap? {
+    val cache = SingletonImageLoader.get(context).memoryCache ?: return null
+    return cache[MemoryCache.Key(assetUrl(image))]?.image?.toBitmap()?.asImageBitmap()
+}
+
+private suspend fun loadPainting(context: Context, image: String): ImageBitmap? {
+    val url = assetUrl(image)
+    val request = ImageRequest.Builder(context).data(url).memoryCacheKey(url).build()
+    val result = SingletonImageLoader.get(context).execute(request)
+    return (result as? SuccessResult)?.image?.toBitmap()?.asImageBitmap()
 }
 
 /** A map's painting and its picture. */

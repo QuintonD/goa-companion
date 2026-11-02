@@ -3,11 +3,14 @@ package dev.quinton.goa.web.play.board
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import dev.quinton.goa.core.domain.board.BoardRules
+import dev.quinton.goa.core.model.board.BoardMap
+import dev.quinton.goa.core.model.board.BoardSpace
 import dev.quinton.goa.core.model.board.Hex
 import dev.quinton.goa.feature.board.BoardHero
 import dev.quinton.goa.feature.board.BoardText
@@ -50,6 +53,7 @@ import dev.quinton.goa.web.ui.IconSize
 import dev.quinton.goa.web.ui.LoadingState
 import dev.quinton.goa.web.ui.Screen
 import dev.quinton.goa.web.ui.rememberGuardedScope
+import kotlin.math.roundToInt
 import kotlinx.browser.document
 import kotlinx.browser.window
 import kotlinx.coroutines.launch
@@ -208,6 +212,11 @@ private fun BoardContent(state: BoardUiState.Ready, controller: BoardController,
         peekActions = { IconButton("close", "Deselect", onClick = { onAction(BoardAction.Deselect) }) },
         panelLabel = "Selected piece",
         map = {
+            // Only when a space enters or leaves the view: a pan step must not recompose the board.
+            val inView by remember(state.map, layout, camera) {
+                val ordered = spacesInReadingOrder(state.map, layout)
+                derivedStateOf { spacesInView(ordered, layout, camera) }
+            }
             BoardSvg(
                 scene = scene,
                 camera = camera,
@@ -243,7 +252,7 @@ private fun BoardContent(state: BoardUiState.Ready, controller: BoardController,
                     selected = { state.selectedId },
                     onDrop = { id, hex -> onAction(BoardAction.Drop(id, hex)) },
                 ),
-                nodes = spaceNodes(state, layout, camera, controller),
+                nodes = remember(inView, state, controller) { spaceNodes(state, inView, controller) },
                 bottomTeam = state.bottomTeam,
             )
             MapChrome(state, camera, onAction) { overlay = it }
@@ -487,32 +496,44 @@ internal fun resolveTap(
  */
 private fun spaceNodes(
     state: BoardUiState.Ready,
-    layout: HexLayout,
-    camera: MapCamera,
+    inView: List<BoardSpace>,
     controller: BoardController,
 ): List<MapNode> {
-    if (camera.unit == 0f) return emptyList()
     val occupied = BoardRules.occupancy(state.board.state)
+    return inView.map { space ->
+        val occupant = occupied[space.hex]
+        val action = SpaceText.action(state, space.hex, occupant)
+        MapNode(
+            key = "${space.q},${space.r}",
+            label = SpaceText.describe(state, space.hex, occupant) + (action?.let { ". $it" } ?: ""),
+            pressed = occupant != null && occupant.id == state.selectedId,
+            onActivate = action?.let {
+                {
+                    controller.tap(occupant?.let { MapTap.Piece(it.id) } ?: MapTap.Space(space.hex))
+                    Unit
+                }
+            },
+        )
+    }
+}
+
+/** Row by row, as the phone orders its nodes: in the map's units, so a pan doesn't reorder them. */
+private fun spacesInReadingOrder(map: BoardMap, layout: HexLayout): List<BoardSpace> = map.spaces.sortedWith(
+    compareBy({ (layout.center(it.hex).y / NODE_ROW).roundToInt() }, { layout.center(it.hex).x }),
+)
+
+private fun spacesInView(ordered: List<BoardSpace>, layout: HexLayout, camera: MapCamera): List<BoardSpace> {
+    if (camera.unit == 0f) return emptyList()
     val view = camera.visible
-    return state.map.spaces
-        .map { it to camera.mapToScreen(layout.center(it.hex)) }
-        .filter { (_, p) -> p.x in view.left..view.right && p.y in view.top..view.bottom }
-        .sortedWith(compareBy({ (it.second.y / NODE_ROW).toInt() }, { it.second.x }))
-        .map { (space, _) ->
-            val occupant = occupied[space.hex]
-            val action = SpaceText.action(state, space.hex, occupant)
-            MapNode(
-                key = "${space.q},${space.r}",
-                label = SpaceText.describe(state, space.hex, occupant) + (action?.let { ". $it" } ?: ""),
-                pressed = occupant != null && occupant.id == state.selectedId,
-                onActivate = action?.let {
-                    {
-                        controller.tap(occupant?.let { MapTap.Piece(it.id) } ?: MapTap.Space(space.hex))
-                        Unit
-                    }
-                },
-            )
-        }
+    // Read once: this runs at every pan step, for every space.
+    val pan = camera.pan
+    val scale = camera.scale
+    return ordered.filter { space ->
+        val c = layout.center(space.hex)
+        val x = pan.x + c.x * scale
+        val y = pan.y + c.y * scale
+        x in view.left..view.right && y in view.top..view.bottom
+    }
 }
 
 /** The window is wider than tall: the Lane runs left to right and the panel sits at the side. */
@@ -531,4 +552,4 @@ internal fun rememberLandscape(): Boolean {
 private const val TOOLS_PX = 76f
 private const val TOUCH_RADIUS_PX = 24f
 private const val AMBIGUITY = 1.4f
-private const val NODE_ROW = 24f
+private const val NODE_ROW = 1.2f

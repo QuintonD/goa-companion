@@ -43,7 +43,7 @@
   inset: var(--safe-top) 0 0 0;
   border-style: solid;
   border-width: 0 76px 0 0;
-  border-image: url("official/ui/banner.webp") 0 247 0 0 fill stretch;
+  border-image: url("official/ui/banner.webp") 0 324 0 0 fill stretch;
   pointer-events: none;
 }
 .goa-topbar-row { position: relative; z-index: 1; }

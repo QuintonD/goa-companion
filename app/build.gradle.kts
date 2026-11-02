@@ -5,6 +5,7 @@ plugins {
     alias(libs.plugins.goa.android.compose)
     alias(libs.plugins.goa.android.hilt)
     alias(libs.plugins.kotlin.serialization)
+    alias(libs.plugins.baselineprofile)
 }
 
 android {
@@ -94,6 +95,8 @@ dependencies {
 
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.core.splashscreen)
+    // Installs the bundled Baseline Profile on a sideloaded APK: there is no Play Store to do it (ADR-057).
+    implementation(libs.androidx.profileinstaller)
     implementation(libs.androidx.activity.compose)
     implementation(libs.androidx.lifecycle.runtime.compose)
     implementation(libs.androidx.lifecycle.viewmodel.compose)
@@ -106,6 +109,8 @@ dependencies {
     implementation(libs.androidx.work.runtime)
     implementation(libs.androidx.hilt.work)
 
+    baselineProfile(projects.baselineprofile)
+
     testImplementation(projects.core.testing)
 
     androidTestImplementation(libs.androidx.test.runner)
@@ -115,6 +120,19 @@ dependencies {
     androidTestImplementation(libs.androidx.compose.ui.test.junit4.accessibility)
     androidTestUtil(libs.androidx.test.orchestrator)
     androidTestUtil(libs.androidx.test.services)
+}
+
+// The measuring builds of the Baseline Profile plugin sign with the debug key, so they need no keystore, and
+// install beside the release app, whose QA data on the emulators they must not touch (ADR-057).
+androidComponents {
+    finalizeDsl { android ->
+        listOf("benchmarkRelease", "nonMinifiedRelease").forEach { name ->
+            android.buildTypes.findByName(name)?.apply {
+                applicationIdSuffix = ".bench"
+                signingConfig = android.signingConfigs.getByName("debug")
+            }
+        }
+    }
 }
 
 // The Accessibility Test Framework (behind Compose's enableAccessibilityChecks) drags in an old

@@ -3686,7 +3686,7 @@ html:has(.goa-app.has-timerbar) {
   background: linear-gradient(var(--banner-top), var(--banner-bottom));
   border-style: solid;
   border-width: 0 60px 0 0;
-  border-image: url("official/ui/banner.webp") 0 247 0 0 fill stretch;
+  border-image: url("official/ui/banner.webp") 0 324 0 0 fill stretch;
 }
 .goa-topbar::after { display: none; }
 /* White metal with a dark outline, as the rulebook sets its page banners. */
@@ -3708,8 +3708,8 @@ html:has(.goa-app.has-timerbar) {
   box-sizing: border-box;
   min-height: 34px;
   border-style: solid;
-  border-width: 7px 25px 7px 12px;
-  border-image: url("official/ui/title-plate.webp") 7 36 7 16 fill stretch;
+  border-width: 7px 30px 7px 12px;
+  border-image: url("official/ui/title-plate.webp") 31 132 31 52 fill stretch;
   background: var(--parchment) padding-box; /* Under the art while it loads: dark text never sits on slate. */
   color: var(--on-parchment);
   font-family: var(--font-display);
@@ -3731,11 +3731,11 @@ html:has(.goa-app.has-timerbar) {
   font-size: 1.0625rem;
   line-height: 1.22;
 }
-.goa-text-box.blue { border-image: url("official/ui/textbox-blue.webp") 28 16 13 16 fill stretch; }
-.goa-text-box.silver { border-image: url("official/ui/textbox-silver.webp") 24 16 13 16 fill stretch; }
-.goa-text-box.green { border-image: url("official/ui/textbox-green.webp") 35 20 16 20 fill stretch; }
-.goa-text-box.gold { border-image: url("official/ui/textbox-gold.webp") 34 20 16 20 fill stretch; }
-.goa-text-box.red { border-image: url("official/ui/textbox-red.webp") 26 14 11 14 fill stretch; }
+.goa-text-box.blue { border-image: url("official/ui/textbox-blue.webp") 87 48 39 48 fill stretch; }
+.goa-text-box.silver { border-image: url("official/ui/textbox-silver.webp") 87 48 39 48 fill stretch; }
+.goa-text-box.green { border-image: url("official/ui/textbox-green.webp") 87 48 39 48 fill stretch; }
+.goa-text-box.gold { border-image: url("official/ui/textbox-gold.webp") 87 48 39 48 fill stretch; }
+.goa-text-box.red { border-image: url("official/ui/textbox-red.webp") 87 48 39 48 fill stretch; }
 .goa-text-box .cap {
   position: absolute;
   left: 0;

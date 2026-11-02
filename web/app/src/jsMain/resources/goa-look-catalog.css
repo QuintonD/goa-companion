@@ -43,10 +43,10 @@
   position: relative;
   z-index: 1;
   min-height: 25px;
-  border-width: 5px 18px 5px 8px;
+  border-width: 5px 22px 5px 9px;
   font-size: 0.8125rem;
-  /* One line on every tile, so they stay one height: a long name ("Silverarrow") gets smaller. 28px: the plate's ends. */
-  font-size: min(0.8125rem, calc((100cqw - 28px) / (var(--name-chars) * 0.66)));
+  /* One line on every tile, so they stay one height: a long name ("Silverarrow") gets smaller. 33px: the plate's ends. */
+  font-size: min(0.8125rem, calc((100cqw - 33px) / (var(--name-chars) * 0.66)));
   line-height: 0.975rem;
   white-space: nowrap;
   overflow: hidden;
@@ -264,7 +264,7 @@
   background: linear-gradient(var(--banner-top), var(--banner-bottom));
   border-style: solid;
   border-width: 0 60px 0 0;
-  border-image: url("official/ui/banner.webp") 0 247 0 0 fill stretch;
+  border-image: url("official/ui/banner.webp") 0 324 0 0 fill stretch;
   color: var(--on-banner);
   font: 600 0.8125rem/1.125rem var(--font-body);
   text-shadow: 0 1px 1px #000;

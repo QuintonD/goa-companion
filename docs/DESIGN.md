@@ -6,13 +6,13 @@ Mock-ups: `design/mockups/original-look/`.
 
 **The parts** (`core/designsystem/.../component/LookParts.kt`, `LookButtons.kt`; web: the end of `goa.css`, then a stylesheet per
 area, `goa-look-*.css`). Every part falls back to a flat colour while its image loads:
-- **Steel banner** (`GoaScreen`, `Modifier.steelBanner`): the rulebook's real band, stretched, and its star medallion at the end at
+- **Steel banner** (`GoaScreen`, `Modifier.steelBanner`): the rulebook's band redrawn (ADR-058), stretched, and its star medallion at the end at
   its own proportions. Titles are `BevelText` (white metal with a dark outline). Actions stay clear of the medallion (`BannerEndSpacer`);
   on narrow phones some move into More. Words as actions on it are `BannerTextButton`, light with a dark edge.
 - **Slate plate** (`GoaPlate`, `Modifier.slatePlate`, `GoaCard`, `.goa-plate`, `.goa-card`): the dashboard's dark plate with a steel edge and
   small teal corner brackets. Plates are dark in both themes and what sits on one is themed dark (`GoaPlateTheme`). Bottom nav and sheets
   (`GoaSheet`, never a bare `ModalBottomSheet`) are slate too.
-- **Title plate** (`TitlePlate`, `.goa-title-plate`): the cards' parchment pill with its gear, 3-sliced, growing with its text: a hero's name, what a
+- **Title plate** (`TitlePlate`, `.goa-title-plate`): the cards' parchment pill with its gear (redrawn, ADR-058), 9-sliced so the gear is round at the plate's minimum height, growing with its text: a hero's name, what a
   question asks, a timer phase. A screen's one key title, not every heading. A plate holds a short title (a few words: "Minion Battle"); anything longer goes in the text box below it.
 - **Text box** (`CardTextBox(PlateColor, cap)`, `.goa-text-box.<colour>`): the cards' parchment box in a frame colour with the word on its tab (dark on
   gold and silver, white on the rest): question text and the attack header in the asking card's colour, moments in gold, coach and nudges in green. The app's own words in a box are Inter (and its tab says "Note", never "Rule"); only text the game prints is Crimson.
@@ -40,7 +40,7 @@ when a map has `art` (all four do); the drawn map stays as the fallback while lo
 - **Table:** HUD on a plate with official counters and bronze diamond pips (done: solid, dimmer; current: solid, bright, ringed; later: hollow); hero chips on plates; panel on rounded slate with the mark and name on its top strip; the hand in a gentle fan
   (3.2° a card, the outer ones lower), each still one target and one TalkBack node; the turn track's cards with state bands, the portrait on the art so the name shows. The panel ends just past the question, what follows it scrolls; under a tall panel the track takes its small cards. Minions to choose are full-width rows: team mark, type badge, what tells them apart first.
 - **Puzzle:** the goal and the puzzle's name on small lines at the panel's head, off the map; the title plate is the question's; "What you know" folds once played.
-- **Hero sheet:** the real dashboard (`official/ui/dashboard-frame`) with played cards in its Turn slots. Tigerclaw's art is the rulebook's; other heroes' portraits cover the frame, cropped around the
+- **Hero sheet:** the real dashboard (`official/ui/dashboard-frame`, upscaled, ADR-058) with played cards in its Turn slots. Tigerclaw's art is the rulebook's; other heroes' portraits cover the frame, cropped around the
   head and darkened toward the edges. Items as icons with "+n", the Ultimate, the hand or card backs. Frame fractions: Turn plates y .272, x .170, .389, .607, .829; slots y .335 to .83.
   A marker with a Turn slot (Snorri's runes, ADR-054) lies on the frame's lower strip, y .905, centred under its slot: .105 of the frame's height, the active one .125 with a bronze ring and "ACTIVE" beside it, never by colour alone. "Runes" under the frame says it in words. The active rune also rides on the hero chip (bottom left of the portrait) and over the hand.
 - **Heroes grid:** slate tile, name on the title plate, portrait with the deck symbol at its top left, italic Crimson title, stars (a ranged hero has the game's Range icon beside them), two roles. No product chip on a tile: it is on the hero page and in the filter. Every row keeps its height, so the tiles of a line are one height. Two columns from font scale 1.3.
@@ -604,7 +604,7 @@ Two kinds of asset (ADR-006, ADR-034):
 - Card text contains inline icon tokens; render them with matching vector icons (redrawn
   originals in the game's icon style if no clean official vector exists).
 - Otherwise show them as-is (crop and resize only); don't redraw or recolour official art.
-- Since ADR-053 the rulebook's and the cards' own parts may be the frames. Beyond crops, only what `official/SOURCES.md` records: the composed banner, toned miniatures, masked plate parts, flattened photos of the mats.
+- Since ADR-053 the rulebook's and the cards' own parts may be the frames. Beyond crops, only what `official/SOURCES.md` records: toned miniatures, flattened photos of the mats, and the frames the print has too few pixels for (ADR-058): redrawn after it (banner, title plate, text boxes, plate brackets; `design/look/render_parts.py`) or, where illustrated, upscaled (dashboard frame, silhouette). Redraw a frame when it's visibly soft at its size on a phone and no sharper copy is published; never a card, a portrait, a symbol or a board, and never anything that carries game data.
 
 **Original app assets** — everything that is the app itself rather than the game.
 - App icon: adaptive icon (trident-and-shield sigil on a deep-ocean gradient) plus themed

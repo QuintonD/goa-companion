@@ -114,6 +114,7 @@ class Output(private val assetsDir: File) {
                 val page = if (it.pdfPage == 0) "not from the rulebook" else "p.${it.printedPage}"
                 val where = when {
                     it.pdfPage == 0 -> "map art"
+                    it.obj == REDRAWN_OBJ -> "design/look"
                     it.obj == 0 -> "page render"
                     else -> "${it.pdfPage} · ${it.obj}"
                 }

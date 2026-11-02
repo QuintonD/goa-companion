@@ -56,7 +56,7 @@ Details and acceptance criteria: [docs/PRODUCT.md](docs/PRODUCT.md).
   `"verified": false`, and the UI marks it.
 - **Official and community game assets are allowed:** card images, artwork and verbatim card
   text may be bundled, each recorded in `official/SOURCES.md`. The app's frames use the game's own parts
-  (ADR-053); our brand assets stay original (see [docs/DESIGN.md](docs/DESIGN.md#asset-policy)). They belong to Wolff Designa and
+  (ADR-053), redrawn where the print has too few pixels (ADR-058); our brand assets stay original (see [docs/DESIGN.md](docs/DESIGN.md#asset-policy)). They belong to Wolff Designa and
   sit in `assets/official/`; a public release with them bundled needs permission (ADR-034).
 - **2nd printing is the data baseline.** Every hero/card records its printing; a 3rd printing
   (2027) will need a refresh, not a rewrite.
@@ -89,6 +89,8 @@ ADR-038) and run one build at a time.
 .\gradlew.bat lintDebug detekt ktlintCheck
 .\gradlew.bat connectedDebugAndroidTest  # end-to-end UI tests (orchestrator, clean data per test)
 .\gradlew.bat :app:assembleRelease        # signed release APK (needs keystore.properties, see README)
+.\gradlew.bat :app:generateBaselineProfile  # regenerate the Baseline Profile on an emulator, before a release (ADR-057)
+.\gradlew.bat :baselineprofile:connectedBenchmarkReleaseAndroidTest  # cold start with and without it
 .\gradlew.bat :web:app:jsBrowserDevelopmentRun  # web app dev server (ADR-043)
 .\gradlew.bat :web:app:site              # deployable web app in web/app/build/site (what Pages serves)
 .\gradlew.bat :web:app:jsTest :web:app:detekt :web:app:ktlintCheck  # web unit tests + lint

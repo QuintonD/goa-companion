@@ -118,7 +118,7 @@ class NewBoardViewModel @AssistedInject constructor(
     /** The board for [source] (the Latest card): set up in one tap, on the default map. */
     fun setUp(source: LineupSource): BoardRoute = BoardRoute(red = source.lineup.red, blue = source.lineup.blue)
 
-    private fun BoardMap.option() = MapOption(id, name, lanes.size, verified)
+    private fun BoardMap.option() = MapOption(id, name, lanes.size, verified, art?.image)
 
     internal companion object {
         private const val KEY_RED = "newBoard.red"

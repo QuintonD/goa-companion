@@ -7,7 +7,14 @@ import dev.quinton.goa.feature.board.hero
 import dev.quinton.goa.feature.board.size
 
 /** A bundled map the board can use; [verified] false = badged Unverified. */
-data class MapOption(val id: String, val name: String, val lanes: Int, val verified: Boolean)
+data class MapOption(
+    val id: String,
+    val name: String,
+    val lanes: Int,
+    val verified: Boolean,
+    /** Its painting's path, so the screen can have it decoded before the board opens. */
+    val painting: String? = null,
+)
 
 /** The line-up being chosen. Kept in the SavedStateHandle, so it survives process death. */
 data class NewBoardForm(

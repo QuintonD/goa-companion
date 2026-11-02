@@ -173,7 +173,7 @@ class NewGameViewModel internal constructor(
         val controls = controls(form.lineup)
         val control = form.control?.takeIf { it in controls } ?: controls.firstOrNull()
         val map = (playableMaps.firstOrNull { it.id == form.mapId } ?: playableMaps.first()).let {
-            MapOption(it.id, it.name, it.lanes.size, it.verified)
+            MapOption(it.id, it.name, it.lanes.size, it.verified, it.art?.image)
         }
         NewGameUiState.Ready(
             form = form,
