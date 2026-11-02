@@ -4,9 +4,11 @@ import com.google.common.truth.Truth.assertThat
 import com.google.common.truth.Truth.assertWithMessage
 import dev.quinton.goa.core.game.Choice
 import dev.quinton.goa.core.game.DecisionKind
+import dev.quinton.goa.core.online.VoidReason
 import dev.quinton.goa.feature.board.play.game.GameAction
 import dev.quinton.goa.feature.board.play.game.TurnStatus
 import dev.quinton.goa.feature.board.play.online.OnlineState
+import dev.quinton.goa.feature.board.play.online.OnlineWords
 import dev.quinton.goa.server.game.store.SqliteGameStore
 import kotlin.random.Random
 import kotlinx.coroutines.runBlocking
@@ -100,11 +102,55 @@ class RestartE2eTest {
                 val winner = truth.positions.last().spectator.winner
                 assertThat(player.seen?.over?.youWon).isEqualTo(winner == room.teamOf(player.person))
             }
+            // The whole of what the server logged: nothing that would let a reader of the logs in.
+            val secrets = people.flatMap { listOfNotNull(it.identities.identity?.token, it.lastRecoveryCode) }
+            val logged = host.output.toList()
+            assertThat(secrets.filter { secret -> logged.any { secret in it } }).isEmpty()
+            assertThat(logged.filter { room.code in it }).isEmpty()
+            assertThat(logged.filter { " ERROR " in it }).isEmpty()
             host.kill()
             SqliteGameStore.open(host.dir).use { store ->
                 val match = store.matches().single { it.id == gameId }
                 assertThat(match.winner).isEqualTo(truth.positions.last().spectator.winner)
             }
+        }
+    }
+
+    /** A rules fix that changes nothing of a game's past goes on; one that changes it is void, and said in words. */
+    @Test
+    fun aNewRulesBuildCarriesOnUnlessTheGamesPastChanged(): Unit = runBlocking {
+        var build = "build-1"
+        World(configure = { it.copy(rulesBuild = build) }).use { world ->
+            val people = world.signedUp("Ana", "Bo")
+            val room = openRoom(people, teamSize = 1)
+            room.pickAndReady(lineup(2, Random(31)))
+            val gameId = room.started()
+            val players = people.map { Player(it, gameId) }
+            players.forEach { player ->
+                player.hold = { ui -> ui.table.decision?.kind == DecisionKind.PLAY_CARD && ui.table.view.round >= STOP_AT_ROUND }
+            }
+            players.forEach { it.start() }
+            eventually("a past to check", GAME_LIMIT_MILLIS) { players.all { it.seen?.table?.view?.round == STOP_AT_ROUND } }
+            eventually("a question to wait on") { players.any { it.seen?.table?.asking == true } }
+
+            build = "build-2"
+            world.restart()
+            assertWithMessage("the same past on a new build").that(world.rooms.runningCount).isEqualTo(1)
+            eventually("the phones back", RECONNECT_MILLIS) { players.all { it.screens is OnlineState.InGame } }
+
+            world.stopServer()
+            world.log.tamperWith(gameId)
+            build = "build-3"
+            world.startServer()
+            assertWithMessage("a changed past").that(world.rooms.runningCount).isEqualTo(0)
+            assertThat(world.log.status(gameId)).isEqualTo("voided")
+            players.forEach { player ->
+                val ui = player.driver.state.until("the words", RECONNECT_MILLIS) { it.play?.online?.closed != null }.play!!
+                assertThat(ui.online?.closed).isEqualTo(OnlineWords.voided(VoidReason.RULES_CHANGED))
+                assertThat(ui.online?.rated).isFalse()
+                assertThat(ui.over).isNull()
+            }
+            assertThat(world.store.matches()).isEmpty()
         }
     }
 

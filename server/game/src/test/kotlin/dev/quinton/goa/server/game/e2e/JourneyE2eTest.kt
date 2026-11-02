@@ -5,8 +5,10 @@ import com.google.common.truth.Truth.assertWithMessage
 import dev.quinton.goa.core.model.match.Team
 import dev.quinton.goa.core.online.OnlineProtocol
 import dev.quinton.goa.core.online.OnlineRoutes
+import dev.quinton.goa.core.online.Refusal
 import dev.quinton.goa.core.online.ServerMessage
 import dev.quinton.goa.feature.board.play.game.GameAction
+import dev.quinton.goa.feature.board.play.online.OnlineState
 import dev.quinton.goa.feature.board.play.review.ReviewAction
 import dev.quinton.goa.server.game.ratings.FORMER_PLAYER
 import kotlin.random.Random
@@ -37,6 +39,16 @@ class JourneyE2eTest {
             reviewing.person.onPhone { reviewing.start() }
             eventually("a table") { reviewing.seen != null }
             reviewing.person.onPhone { reviewing.driver.onAction(GameAction.Review(ReviewAction.Open(true))) }
+
+            // Someone with the game's id and no seat in it: nothing at all, whatever they ask for.
+            val stranger = world.signedUp("Ed").single()
+            val peeking = stranger.driver(gameId)
+            stranger.onPhone { peeking.start() }
+            peeking.state.until("being told") { it !is OnlineState.Connecting }
+            assertThat(peeking.state.value).isEqualTo(OnlineState.Refused(Refusal.NO_SUCH_ROOM))
+            assertThat(stranger.tables(gameId)).isEmpty()
+            assertThat(stranger.connector.wire.none { it.raw.contains(gameId) }).isTrue()
+
             playToEnd(players)
 
             val truth = world.log.truth(gameId)
@@ -59,6 +71,8 @@ class JourneyE2eTest {
             assertThat(truth.answers.map { it.origin }).doesNotContain("clock")
 
             val scan = WireScan(truth)
+            assertWithMessage("the review went over the wire")
+                .that(reviewing.person.connector.wire.any { it.message is ServerMessage.Reviewed }).isTrue()
             people.forEach { person ->
                 val tables = person.tables(gameId)
                 assertWithMessage("the frames of ${person.name}").that(tables.size).isGreaterThan(truth.answers.size / 2)

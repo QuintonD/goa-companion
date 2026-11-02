@@ -59,6 +59,7 @@ import io.ktor.utils.io.readBuffer
 import java.nio.file.Files
 import java.security.MessageDigest
 import java.sql.SQLException
+import kotlin.coroutines.cancellation.CancellationException
 import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.Duration.Companion.seconds
 import kotlinx.coroutines.delay
@@ -207,6 +208,8 @@ fun Application.gameServerModule(
             call.error(HttpStatusCode.ServiceUnavailable, "store_unavailable")
         }
         exception<Throwable> { call, cause ->
+            // A socket ended by a shutdown or by its person leaving: nothing failed, and nobody is listening.
+            if (cause is CancellationException) throw cause
             log.error("unexpected failure: {}", cause.javaClass.name)
             call.error(HttpStatusCode.InternalServerError, "internal")
         }

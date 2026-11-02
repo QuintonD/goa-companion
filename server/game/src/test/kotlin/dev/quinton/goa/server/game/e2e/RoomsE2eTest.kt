@@ -10,6 +10,10 @@ import dev.quinton.goa.feature.board.play.online.AccountStage
 import dev.quinton.goa.feature.board.play.online.OnlineIdentity
 import dev.quinton.goa.feature.board.play.online.OnlineState
 import dev.quinton.goa.feature.board.play.online.OnlineWords
+import dev.quinton.goa.server.game.lobby.Lobby
+import dev.quinton.goa.server.game.room.RoomRules
+import java.io.ByteArrayOutputStream
+import java.io.PrintStream
 import java.nio.file.Files
 import java.util.concurrent.atomic.AtomicLong
 import kotlin.random.Random
@@ -215,7 +219,101 @@ class RoomsE2eTest {
         }
     }
 
+    @Test
+    fun aRoomWaitsThroughARestartAndStillStarts(): Unit = runBlocking {
+        World().use { world ->
+            val people = world.signedUp("Ana", "Bo")
+            val room = openRoom(people, teamSize = 1)
+            room.pickAndReady(lineup(2, Random(14)))
+            room.hostLobby.until("everyone ready") { it.canStart }
+            world.restart()
+            room.sitting.forEach { sitting ->
+                sitting.lobby.state.until("the room back", RECONNECT_MILLIS) {
+                    it.connected && it.message == null && it.yourSeat?.ready == true
+                }
+            }
+            assertThat(world.health().rooms).isEqualTo(1)
+            val gameId = room.started()
+            val players = people.map { Player(it, gameId) }
+            playToEnd(players)
+            assertThat(players.map { it.seen?.online?.rated }.toSet()).containsExactly(true)
+        }
+    }
+
+    /** A deploy stops the server with people connected: an ERROR per socket would hide a real one. */
+    @Test
+    fun aStopWithPeopleConnectedIsNotAFailureInTheLog(): Unit = runBlocking {
+        World().use { world ->
+            openRoom(world.signedUp("Ana", "Bo"), teamSize = 1)
+            val original = System.out
+            val captured = ByteArrayOutputStream()
+            System.setOut(PrintStream(captured, true, Charsets.UTF_8))
+            try {
+                world.stopServer()
+            } finally {
+                System.setOut(original)
+            }
+            assertThat(captured.toString(Charsets.UTF_8)).contains("socket closed")
+            assertThat(captured.toString(Charsets.UTF_8)).doesNotContain("unexpected failure")
+        }
+    }
+
+    /** Games that ended with nobody told aren't running: they don't use up the 3 a person may play at once. */
+    @Test
+    fun gamesThatEndedWhileAwayDontCountAsRunning(): Unit = runBlocking {
+        World(rules = RoomRules(disconnectedMillis = AWAY_MILLIS), beatMillis = FAST_BEAT_MILLIS).use { world ->
+            val (ana, bo) = world.signedUp("Ana", "Bo")
+            val games = List(Lobby.MAX_RUNNING_GAMES) { n ->
+                val room = openRoom(listOf(ana, bo), teamSize = 1)
+                room.pickAndReady(lineup(2, Random(40 + n)))
+                room.started()
+            }
+            // Bo's phone stays in their pocket: Ana plays, the computer answers for Bo, all three games end.
+            val players = games.map { Player(ana, it) }
+            players.forEach { it.start() }
+            players.forEach { assertThat(it.finished(GAME_LIMIT_MILLIS)).isTrue() }
+            eventually("the games to close") { world.rooms.runningCount == 0 }
+            assertThat(world.rooms.gamesOf(bo.accountId)).hasSize(Lobby.MAX_RUNNING_GAMES)
+            val told = bo.createsRoom()
+            assertWithMessage("words: ${told.message}").that(told.openRoom).isNotNull()
+        }
+    }
+
+    /** The recovery code links a second phone; either plays the seat, and the other keeps up. */
+    @Test
+    fun twoPhonesOfOnePersonPlayOneSeat(): Unit = runBlocking {
+        World().use { world ->
+            val (ana, bo) = world.signedUp("Ana", "Bo")
+            val second = world.person("Ana's tablet")
+            second.onPhone {
+                second.home.start()
+                second.home.state.until("the name field") { it.stage == AccountStage.PICK_NAME }
+                second.home.setLinkCode(checkNotNull(ana.lastRecoveryCode))
+                second.home.linkDevice()
+                second.home.state.until("the new code") { it.stage == AccountStage.SAVE_CODE }
+                second.home.recoveryCodeSaved()
+                second.home.state.until("the home screen") { it.stage == AccountStage.READY }
+            }
+            assertThat(second.accountId).isEqualTo(ana.accountId)
+            val room = openRoom(listOf(ana, bo), teamSize = 1)
+            room.pickAndReady(lineup(2, Random(15)))
+            val gameId = room.started()
+            val first = Player(ana, gameId, hold = { it.table.view.turn % 2 == 0 })
+            val tablet = Player(second, gameId, hold = { it.table.view.turn % 2 == 1 })
+            val other = Player(bo, gameId)
+            val players = listOf(first, tablet, other)
+            playToEnd(players)
+            val truth = world.log.truth(gameId)
+            assertThat(truth.answers.filter { it.origin == "clock" }).isEmpty()
+            assertThat(rebuiltLog(second.tables(gameId))).isEqualTo(truth.events)
+            assertThat(rebuiltLog(ana.tables(gameId))).isEqualTo(truth.events)
+            assertThat(players.map { it.seen?.online?.rated }.toSet()).containsExactly(true)
+        }
+    }
+
     private companion object {
+        const val AWAY_MILLIS = 50L
+        const val RECONNECT_MILLIS = 40_000L
         const val FULL_RETRY_SECONDS = 300
         const val DRAIN_RETRY_SECONDS = 3600
         const val TWO_HOURS = 2 * 60 * 60_000L

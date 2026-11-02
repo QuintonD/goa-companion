@@ -105,6 +105,14 @@ internal class GameLogs(dir: Path) {
         }
     }
 
+    /** What a rules fix would do to a stored game: the first answer's hash no longer matches its replay. */
+    fun tamperWith(gameId: String) = connection { db ->
+        db.prepareStatement("UPDATE answers SET events_hash = 'changed' WHERE game_id = ? AND seq = 1").use { update ->
+            update.setString(1, gameId)
+            check(update.executeUpdate() == 1) { "No first answer in $gameId" }
+        }
+    }
+
     /** Replays the game's log, keeping every seat's view after each answer. */
     fun truth(gameId: String): GameTruth {
         val (save, ranked) = start(gameId)
