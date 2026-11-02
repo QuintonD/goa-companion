@@ -207,6 +207,11 @@ export class FakeRelay {
 
 /** Every request to the production relay fails: tests never touch it. */
 export async function blockProduction(page: Page) {
+  // The app's two public files are off this machine too, and WebKit on Linux reports the guard's refusal as a
+  // console error. Tests of them route them themselves; a later route wins.
+  await page.route("https://quintond.github.io/goa-leaderboards/**", (route) =>
+    route.fulfill({ status: 404, headers: { "Access-Control-Allow-Origin": "*" }, body: "" }),
+  );
   // A run against the real game server names it in GOA_GAME_SERVER_URL; that path only, never the relay beside it.
   const game = process.env.GOA_GAME_SERVER_URL;
   await page.route(`${RELAY}/**`, (route) =>

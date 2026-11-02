@@ -16,7 +16,7 @@ let server: FakeGameServer;
 /** Console errors fail a test, but for how a browser reports a server that says no or isn't there. */
 function watchAppErrors(page: Page): () => void {
   const errors: string[] = [];
-  const expected = /Service Worker|.waiting|reading 'waiting'|Failed to load resource|WebSocket connection to|Fetch API cannot load|access control checks|WebSocket network error|Server returned nothing|Could not connect|ERR_BLOCKED_BY_CLIENT|oldboi/;
+  const expected = /Service Worker|.waiting|reading 'waiting'|Failed to load resource|WebSocket connection to|Connection terminated unexpectedly|Fetch API cannot load|access control checks|WebSocket network error|Server returned nothing|Could not connect|ERR_BLOCKED_BY_CLIENT|oldboi/;
   const add = (text: string) => {
     if (!expected.test(text)) errors.push(text);
   };
