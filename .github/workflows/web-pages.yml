@@ -66,7 +66,9 @@ jobs:
       - uses: gradle/actions/setup-gradle@3f5f9adaf7d9fecd50b5935e54106014257a94e6 # v6.4.0
 
       - name: Unit tests, lint and the production site
-        run: ./gradlew :web:app:jsTest :web:app:detekt :web:app:ktlintCheck :web:app:site
+        # The production Kotlin/JS compile ran out of memory at the repository's 1536 MB (online games, sharp frames).
+        # Here only: oldboi's builds stay under their cap (ADR-038).
+        run: ./gradlew -Pkotlin.daemon.jvmargs=-Xmx3g :web:app:jsTest :web:app:detekt :web:app:ktlintCheck :web:app:site
 
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
