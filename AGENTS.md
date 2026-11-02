@@ -85,6 +85,8 @@ ADR-038) and run one build at a time.
 .\gradlew.bat lintDebug detekt ktlintCheck
 .\gradlew.bat connectedDebugAndroidTest  # end-to-end UI tests (orchestrator, clean data per test)
 .\gradlew.bat :app:assembleRelease        # signed release APK (needs keystore.properties, see README)
+.\gradlew.bat :app:generateBaselineProfile  # regenerate the Baseline Profile on an emulator, before a release (ADR-057)
+.\gradlew.bat :baselineprofile:connectedBenchmarkReleaseAndroidTest  # cold start with and without it
 .\gradlew.bat :web:app:jsBrowserDevelopmentRun  # web app dev server (ADR-043)
 .\gradlew.bat :web:app:site              # deployable web app in web/app/build/site (what Pages serves)
 .\gradlew.bat :web:app:jsTest :web:app:detekt :web:app:ktlintCheck  # web unit tests + lint

@@ -526,6 +526,13 @@ passes (including an in-place upgrade from the morning build with real data). Ev
 - [x] Reopening a game and taking back no longer replay the whole game to learn whether there is a move to take back; the coach no longer builds the engine on the main thread; the web game's screen stays awake after an app switch — 2026-11-02, `SessionTest`, suites green; the wake lock not yet seen on an iPhone
 - [ ] On the S25 Ultra: five labels and the Play tab in the hand
 
+## M28 — Smoothness (ADR-057)
+- [x] A Baseline Profile of the first minutes: main thread CPU at a cold start 782 to 602 ms, the hero list 2414 to 2176 ms — 2026-11-02, macrobenchmark on the `goa_s25a` emulator, not a phone
+- [x] One decode per look image, plates as modifier nodes, `TableUi` built once, paintings at hand on a board's first frame, no EmojiCompat, the catalog parse started earlier — 2026-11-02, JVM and emulator traces
+- [x] Web board: a pan step no longer recomposes the map, script per step 56 to 14 ms at 4x slowdown — 2026-11-02, `pan-cost.mjs`, Chromium
+- [ ] On the S25 Ultra: a cold start and a pan on the painted board, after the phone's idle maintenance has applied the profile
+- [ ] On an iPhone: panning the board
+
 ## M5 — Polish & release readiness
 - [x] Accessibility pass: ATF checks on 25 screens (no errors), contrast fixes, TalkBack labels, font scale 2.0 screenshots — 2026-10-17 (emulator/JVM)
 - [ ] Tablet sanity check

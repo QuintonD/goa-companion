@@ -2419,3 +2419,67 @@ top bar, on a phone behind "More options", so the app's biggest features took th
 4. Five labels share a phone's width: at large text they share one size, capped by the screen's width, so none loses letters.
 
 **Consequences:** One more tap to a board from Heroes on a wide screen, where the icon was on the bar; one fewer on a phone.
+
+## ADR-057 — Smoothness: a Baseline Profile, one decode per image, nothing per pan step (2026-11-02)
+**Context:** Owner: "see if we can make any efficiency gains/optimisations to smoothen the app ux". We measured before
+changing anything. The release APK had only the libraries' profile (`baseline.prof` 13 KB), so all the app's own code ran
+interpreted and JITted at every first use. A screen of 40 plates asked Coil for 200 images. On the web, one pointer move of
+a pan on the board recomposed the whole map. The list screens, the card scans (Coil sizes them to the tile), the catalog
+parse, the ratings replay and the engine were already off the main thread or sized correctly.
+
+**Decision:**
+1. **Baseline Profile.** `:baselineprofile` (`com.android.test`, `androidx.baselineprofile` 1.5, which works with AGP 9.4)
+   collects a player's first minutes: the start and the Heroes tab (also the startup profile, which orders the dex), the hero
+   page, every tab, Puzzles and a game on the painted board. The result is committed in
+   `app/src/release/generated/baselineProfiles/`; regenerate it for a release with `:app:generateBaselineProfile` on an
+   emulator (stale rules are ignored, new code just isn't precompiled). `profileinstaller` is declared directly: the APK is
+   sideloaded (ADR-048), so no store delivers the profile; the phone applies it at its next idle maintenance. The measuring
+   build types the plugin adds (`benchmarkRelease`, `nonMinifiedRelease`) sign with the debug key and install as
+   `dev.quinton.goa.bench`, beside the release app and its data.
+2. **`ReportDrawnWhen`** on the Heroes list, so "fully drawn" means something to the system and the startup measure.
+3. **`OfficialBitmaps`** (`OfficialArt.kt`): one load per image however many parts ask, off the composition. It decodes at the
+   file's own size because slices and tiling are in source pixels, whatever size the art grows to.
+4. **`slatePlate`** is a modifier node, so plates in lists add nothing to composition.
+5. **`TableUi`** builds `occupancy`, `pieces`, `spaceOptions` and `pieceOptions` once per table (the board's nodes asked per space).
+6. **Map paintings** come from Coil's memory cache on the first composition, and New game and New board decode the chosen map
+   ahead of time, so the table isn't composed twice (vector map and drawn pieces, then the painted board). A painting not yet
+   decoded still shows the vector map, as ADR-053 says; Coil's cache holds it, so nothing new stays in memory.
+7. **EmojiCompat isn't initialised.** The app's words have no emoji; it cost a font lookup and a relayout of every text.
+   A very new emoji in a player's name on an old phone may now show as a box.
+8. **The catalog parse starts in `MainActivity.onCreate`**, not when the first frame has subscribed.
+9. **Web board:** which spaces are in view is derived state, in the phone's reading order (map units, so a pan doesn't
+   reorder the hidden buttons); the table's NOW tag reads the camera in a composable of its own.
+
+**Measured.** Startup on the `goa_s25a` emulator (x86_64, software GPU, median of 10, other builds running: compare one
+column, not with a phone). The "libraries only" column is 0.12.0's state after the phone's maintenance:
+
+| Cold start | no compiled code | libraries only | + the app's profile |
+|---|---|---|---|
+| Time to first display | 1841 ms | 1580 ms | 1448 ms |
+| Time to the hero list | 2809 ms | 2414 ms | 2176 ms |
+| Main thread CPU | 1105 ms | 782 ms | 602 ms |
+| JIT CPU (methods compiled) | 243 ms (110) | 71 ms (37) | 28 ms (12) |
+
+| Other | before | after | how |
+|---|---|---|---|
+| Coil requests for 40 plates | 200 | 5 | Robolectric; `OfficialBitmapsTest` holds it |
+| Entering a screen of 40 plates, art cached | 18.4 ms | 13.3 ms | Robolectric, JIT warmed |
+| The board's nodes, one pass over 210 spaces | 0.41 ms | 0.013 ms | JVM, real game, 41 options |
+| Map recomposition on a selection / a pan step | 2.72 / 2.43 ms | 2.50 / 2.11 ms | Robolectric |
+| Text measures in a cold start | 78 | 40 | emulator traces, without EmojiCompat |
+| First frame to the hero list | 1096 ms | 1032 ms | emulator, noisy; 1300 to 1047 ms with no compiled code |
+| Web: script per pan step | 56.4 ms | 14.3 ms | `web/e2e/scripts/pan-cost.mjs`, Chromium at 4x CPU slowdown |
+| Web: the same with a hero selected | 50.3 ms | 24.5 ms | same; layout per step 5.0 to 0.8 ms |
+
+**Not measured:** frame timing while scrolling or panning on Android. `device_open` refuses the emulator on this machine
+(ffmpeg with libx264 isn't on the T3 server's path), so nothing UI-driven was timed there; the emulator's software GPU would
+say little anyway (shader compiles alone took 450 ms of a first frame). No number here comes from the S25 Ultra or an iPhone.
+
+**Left as they are, on purpose:** the running timer recomposes at each 100 ms tick (2.5 ms per tick on the JVM: well under a
+frame, and splitting its state is a refactor nobody would notice); `BevelText`'s two Texts (composed once, not per frame);
+the painted map's clip path while panning (a GPU cost the emulator can't measure); the AI's threads' priority (changing it
+would change how much it searches in its think time); web first load (R3 in ADR-043 already took it as far as Kotlin/JS goes).
+
+**Consequences:** One more module; about 7 MB of profile text in the repo, regenerated per release. `:app:assembleRelease` is
+unchanged for the release key. Gradle's own pull of the benchmark's traces fails on Windows here (the path is too long); the
+results JSON still arrives.
