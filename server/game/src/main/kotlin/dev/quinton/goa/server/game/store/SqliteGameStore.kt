@@ -115,6 +115,17 @@ class SqliteGameStore private constructor(private val connection: Connection) :
         }
     }
 
+    /** The first leaving stands: a repeat changes nothing. */
+    override suspend fun markLeft(gameId: String, heroId: String, at: Long) = write {
+        update(
+            "UPDATE game_seats SET left_at = ? WHERE game_id = ? AND hero_id = ? AND left_at IS NULL",
+            at,
+            gameId,
+            heroId,
+        )
+        Unit
+    }
+
     /** The first answer stands; a room that wants another clears the lock first. */
     override suspend fun putLock(lock: StoredLock) = write {
         update(
@@ -255,7 +266,7 @@ class SqliteGameStore private constructor(private val connection: Connection) :
 
     private fun Connection.gameSeats(gameId: String): List<GameSeatRow> = query(
         """
-        SELECT hero_id, account_id, team, handicap, seat_order
+        SELECT hero_id, account_id, team, handicap, seat_order, left_at
         FROM game_seats WHERE game_id = ? ORDER BY seat_order
         """,
         gameId,
@@ -268,6 +279,7 @@ class SqliteGameStore private constructor(private val connection: Connection) :
                 team = teamOf(it.getString(3)),
                 handicap = it.getInt(4) != 0,
                 seatOrder = it.getInt(5),
+                left = it.longOrNull(6) != null,
             )
         }
     }

@@ -207,6 +207,17 @@ class SqliteGameStoreTest {
     }
 
     @Test
+    fun aSeatGivenUpStaysGivenUpAfterAReopen(): Unit = runBlocking {
+        store.createGame(StoreFixtures.game("a"), StoreFixtures.seats("a"))
+        val seat = StoreFixtures.seats("a").first().heroId
+        store.markLeft("a", seat, 5)
+        store.markLeft("a", seat, 9)
+        reopen()
+        val seats = store.runningGames().single().seats
+        assertThat(seats.filter { it.left }.map { it.heroId }).containsExactly(seat)
+    }
+
+    @Test
     fun aRepeatedAnswerChangesNothingAndADifferentOneIsRefused(): Unit = runBlocking {
         store.createGame(StoreFixtures.game("a"), StoreFixtures.seats("a"))
         store.appendAnswer(StoreFixtures.answer("a", 0))

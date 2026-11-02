@@ -65,7 +65,7 @@ internal class GameRoom(
 
     private val clocks = SeatClocks(env.rules)
     private val connections = ArrayList<SeatConnection>()
-    private val left = HashSet<String>()
+    private val left = seats.filter { it.left }.mapTo(HashSet()) { it.heroId }
     private val takenOver = HashSet<String>()
     private var allAwaySince: Long? = env.now()
 
@@ -374,6 +374,8 @@ internal class GameRoom(
     suspend fun leave(accountId: String) {
         val own = seatsOf(accountId)
         if (own.isEmpty()) return
+        // On disk first: a restart must not hand the seat back, or leaving would dodge the result.
+        own.forEach { env.store.markLeft(row.id, it, env.now()) }
         left += own
         connections.removeAll { it.accountId == accountId }
         if (connections.isEmpty() && order.any { it !in left } && allAwaySince == null) allAwaySince = env.now()

@@ -33,6 +33,8 @@ data class GameSeatRow(
     val team: Team,
     val handicap: Boolean,
     val seatOrder: Int,
+    /** The person gave this seat up for good: a restart must not hand it back, or leaving would dodge a result. */
+    val left: Boolean = false,
 )
 
 data class StoredAnswer(
@@ -77,6 +79,8 @@ interface GameStore {
 
     suspend fun appendAnswer(answer: StoredAnswer)
 
+    suspend fun markLeft(gameId: String, heroId: String, at: Long)
+
     suspend fun putLock(lock: StoredLock)
 
     suspend fun clearLocks(gameId: String, seat: String)
@@ -107,6 +111,10 @@ class InMemoryGameStore : GameStore {
 
     override suspend fun appendAnswer(answer: StoredAnswer) {
         answers.getOrPut(answer.gameId) { ArrayList() } += answer
+    }
+
+    override suspend fun markLeft(gameId: String, heroId: String, at: Long) {
+        seats[gameId] = seats[gameId].orEmpty().map { if (it.heroId == heroId) it.copy(left = true) else it }
     }
 
     override suspend fun putLock(lock: StoredLock) {

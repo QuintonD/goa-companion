@@ -1,33 +1,19 @@
 package dev.quinton.goa.server.game
 
-import dev.quinton.goa.core.domain.setup.MatchRules
 import dev.quinton.goa.core.game.engine.GameEngine
-import dev.quinton.goa.core.model.board.BoardMap
-import dev.quinton.goa.core.model.catalog.Catalog
-import dev.quinton.goa.core.model.catalog.CatalogIndex
-import dev.quinton.goa.core.model.catalog.Hero
-import java.nio.file.Files
+import dev.quinton.goa.core.model.catalog.CatalogFiles
 import java.nio.file.Path
-import kotlinx.serialization.Serializable
-import kotlinx.serialization.json.Json
 
-private val assetJson = Json { ignoreUnknownKeys = true }
-
-@Serializable
-private data class MapIndex(val maps: List<String>)
-
-/** The rules engine over `<assets>/catalog`, the same files the app bundles. */
+/**
+ * The rules on a plain JVM, from the same catalog files the apps bundle: [assetsDir] holds `catalog/`.
+ * No match rules are passed, exactly as on the phones and in the browser (`PlayEngineModule`, `EngineHost`):
+ * the engine's built-in counter table is the same rulebook data, and one rules build means one game.
+ */
 fun loadEngine(assetsDir: Path): GameEngine {
-    val root = assetsDir.resolve("catalog")
-    fun text(name: String) = Files.readString(root.resolve(name))
-    val index = assetJson.decodeFromString(CatalogIndex.serializer(), text("index.json"))
-    val heroes = index.heroes.map { assetJson.decodeFromString(Hero.serializer(), text("heroes/$it.json")) }
-    val maps = assetJson.decodeFromString(MapIndex.serializer(), text("maps/index.json")).maps.map {
-        assetJson.decodeFromString(BoardMap.serializer(), text("maps/$it.json"))
+    fun read(path: String): String = assetsDir.resolve(path).toFile().readText()
+    val catalog = CatalogFiles.load(::read)
+    val maps = CatalogFiles.parseMapIndex(read(CatalogFiles.MAPS_INDEX_PATH)).map {
+        CatalogFiles.parseMap(it, read(CatalogFiles.mapPath(it)))
     }
-    return GameEngine(
-        Catalog(index.dataVersion, index.printing, index.products, heroes),
-        maps,
-        MatchRules.parse(text("match-setup.json")),
-    )
+    return GameEngine(catalog, maps)
 }

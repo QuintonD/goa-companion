@@ -95,6 +95,7 @@ internal object Schema {
             team TEXT NOT NULL,
             handicap INTEGER NOT NULL,
             seat_order INTEGER NOT NULL,
+            left_at INTEGER,
             PRIMARY KEY (game_id, hero_id)
         )
         """,

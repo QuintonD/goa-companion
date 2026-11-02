@@ -1,18 +1,17 @@
 package dev.quinton.goa.server.game
 
-import dev.quinton.goa.core.game.Choice
-import dev.quinton.goa.core.game.GameSetup
-import dev.quinton.goa.core.online.SeatPlayer
-import dev.quinton.goa.core.online.TurnRef
 import dev.quinton.goa.server.game.http.gameServerModule
+import dev.quinton.goa.server.game.ratings.LogMatchMapper
 import dev.quinton.goa.server.game.ratings.MatchLogLeaderboard
-import dev.quinton.goa.server.game.room.GameRooms
 import dev.quinton.goa.server.game.room.LeaderboardSource
-import dev.quinton.goa.server.game.room.SeatLink
-import dev.quinton.goa.server.game.room.SeatSink
+import dev.quinton.goa.server.game.room.PlayerNames
+import dev.quinton.goa.server.game.room.RoomCore
 import dev.quinton.goa.server.game.store.SqliteGameStore
 import io.ktor.server.cio.CIO
 import io.ktor.server.engine.embeddedServer
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.runBlocking
 import org.slf4j.LoggerFactory
 
@@ -20,8 +19,13 @@ fun main() {
     val config = GameServerConfig.fromEnv()
     val store = SqliteGameStore.open(config.dataDir)
     val engine = loadEngine(config.assetsDir)
-    // The other streams join here (docs/ONLINE.md "Streams"): the room core takes the ratings' MatchMapper.
-    val rooms: GameRooms = RoomsNotJoined
+    val rooms = RoomCore(
+        engine = engine,
+        store = store,
+        rulesBuild = config.rulesBuild,
+        mapper = LogMatchMapper { engine.data.maps[it]?.lanes?.size ?: 1 },
+        names = PlayerNames { store.names(listOf(it))[it] },
+    )
     val leaderboard: LeaderboardSource = MatchLogLeaderboard(
         matches = store::matches,
         names = { store.names(store.matches().flatMap { m -> m.participants.map { it.playerId } }.toSet()) },
@@ -32,6 +36,7 @@ fun main() {
         store.markStartedRooms()
         rooms.restore()
     }
+    rooms.launchClocks(CoroutineScope(SupervisorJob() + Dispatchers.Default))
     LoggerFactory.getLogger("goa-game").info(
         "goa-game on {}:{}, data in {}, at most {} rooms, rules build {}, {} running",
         config.host,
@@ -55,23 +60,3 @@ fun main() {
 
 private const val SHUTDOWN_GRACE_MILLIS = 1_000L
 private const val SHUTDOWN_TIMEOUT_MILLIS = 5_000L
-
-/** Refuses every game until the room core joins: an honest failure, and lobby and accounts still run. */
-private object RoomsNotJoined : GameRooms {
-    override val runningCount: Int = 0
-
-    override suspend fun restore() = Unit
-
-    override suspend fun start(roomCode: String, setup: GameSetup, players: List<SeatPlayer>, ranked: Boolean): String =
-        error("The room core has not joined yet")
-
-    override suspend fun connect(gameId: String, accountId: String, haveEvents: Int, sink: SeatSink): SeatLink? = null
-
-    override suspend fun answer(gameId: String, accountId: String, ticket: Long, choice: Choice) = Unit
-
-    override suspend fun review(gameId: String, accountId: String, rewind: TurnRef?) = Unit
-
-    override suspend fun leave(gameId: String, accountId: String) = Unit
-
-    override suspend fun gamesOf(accountId: String): List<String> = emptyList()
-}

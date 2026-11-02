@@ -19,6 +19,7 @@ import dev.quinton.goa.core.model.match.Team
 import dev.quinton.goa.core.online.OnlineProtocol
 import dev.quinton.goa.core.online.SeatPlayer
 import dev.quinton.goa.core.online.ServerMessage
+import dev.quinton.goa.server.game.loadEngine
 import dev.quinton.goa.server.game.store.GameRow
 import dev.quinton.goa.server.game.store.GameSeatRow
 import dev.quinton.goa.server.game.store.GameStore
@@ -42,7 +43,7 @@ object TestRules {
     fun repoFile(path: String): Path =
         listOf(Paths.get("../..", path), Paths.get(path)).first { Files.exists(it) }
 
-    val engine: GameEngine by lazy { RulesLoader.engine(assets) }
+    val engine: GameEngine by lazy { loadEngine(assets) }
 }
 
 class FakeClock(var now: Long = 1_000_000) {
