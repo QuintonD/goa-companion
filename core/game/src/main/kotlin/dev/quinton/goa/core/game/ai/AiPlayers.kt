@@ -11,6 +11,7 @@ import dev.quinton.goa.core.game.GameSession
 import dev.quinton.goa.core.game.engine.EngineData
 import dev.quinton.goa.core.game.engine.EngineSession
 import dev.quinton.goa.core.model.match.Team
+import kotlin.coroutines.cancellation.CancellationException
 import kotlin.random.Random
 
 /**
@@ -225,6 +226,17 @@ internal class SearchAi(
     override fun choose(session: GameSession, decision: Decision, cancelled: () -> Boolean): Choice {
         if (decision.options.size == 1) return decision.options.single()
         val es = session as? EngineSession ?: return Fallback.choose(decision)
+        @Suppress("TooGenericExceptionCaught") // whatever a sampled position that real play never reaches throws
+        return try {
+            search(es, decision, cancelled)
+        } catch (e: CancellationException) {
+            throw e
+        } catch (_: Exception) {
+            Fallback.choose(decision)
+        }
+    }
+
+    private fun search(es: EngineSession, decision: Decision, cancelled: () -> Boolean): Choice {
         if (profile.hunt != null && team != decision.team) {
             team = decision.team
             searchers = null

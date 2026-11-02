@@ -33,7 +33,7 @@ class TriviaChallengeFlowTest {
         rule.createPlayerViaProfile("Sam")
         rule.openTab("catalog")
         rule.waitForText("32 heroes")
-        rule.tapHeroesAction("Card trivia")
+        rule.openFromPlay("Card trivia")
 
         // A fresh phone plays as Guest until someone is picked.
         rule.waitForDescription("Playing as Guest", substring = true)

@@ -5,7 +5,6 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import dev.quinton.goa.core.data.game.StoredGame
 import dev.quinton.goa.core.model.board.SavedBoard
@@ -38,6 +37,7 @@ import dev.quinton.goa.web.ui.LoadingState
 import dev.quinton.goa.web.ui.RowList
 import dev.quinton.goa.web.ui.Screen
 import dev.quinton.goa.web.ui.SectionHeader
+import dev.quinton.goa.web.ui.rememberGuardedScope
 import kotlin.js.Date
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.Flow
@@ -77,7 +77,7 @@ fun BoardsScreen() {
     val services = LocalServices.current
     val router = services.router
     val data = services.data
-    val scope = rememberCoroutineScope()
+    val scope = rememberGuardedScope()
     val flow = remember { boardsData(data) }
     val state by flow.collectAsState(null)
     var renaming by remember { mutableStateOf<BoardRowUi?>(null) }
@@ -275,7 +275,7 @@ private fun PlayHub(play: PlayHubUi, now: Long) {
 }
 
 @Composable
-private fun EntryCard(icon: String, title: String, text: String, enabled: Boolean, onClick: () -> Unit) {
+internal fun EntryCard(icon: String, title: String, text: String, enabled: Boolean, onClick: () -> Unit) {
     Button({
         classes("goa-board-entry")
         if (!enabled) classes("coming")

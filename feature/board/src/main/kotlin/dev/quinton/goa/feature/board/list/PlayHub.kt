@@ -83,7 +83,7 @@ internal fun PlayHub(
 }
 
 @Composable
-private fun EntryCard(icon: ImageVector, title: String, text: String, enabled: Boolean, onClick: () -> Unit) {
+internal fun EntryCard(icon: ImageVector, title: String, text: String, enabled: Boolean, onClick: () -> Unit) {
     PlateSurface(
         onClick = onClick,
         enabled = enabled,

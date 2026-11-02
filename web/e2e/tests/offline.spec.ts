@@ -22,6 +22,21 @@ test("after the first visit the app opens offline, deep link included", async ({
   await context.setOffline(false);
 });
 
+test("opening Settings leaves the worker's file list in place, which offline launch depends on", async ({ page }) => {
+  await open(page, "#/settings");
+  await waitForServiceWorker(page);
+  await page.reload();
+  await expect(page.getByRole("button", { name: "Download everything" })).toBeVisible({ timeout: 30_000 });
+  // Asked for through the worker, as the screen does; a deleted list would make a restarted worker distrust everything.
+  expect(await page.evaluate(() => fetch("asset-manifest.json").then((r) => r.ok))).toBe(true);
+  const kept = await page.evaluate(async () => {
+    const shell = (await caches.keys()).filter((n) => n.startsWith("goa-shell-"));
+    const hits = await Promise.all(shell.map(async (n) => !!(await (await caches.open(n)).match("asset-manifest.json"))));
+    return hits.some(Boolean);
+  });
+  expect(kept).toBe(true);
+});
+
 test("Download everything puts every image on the device", async ({ page, context }, info) => {
   test.slow();
   await open(page, "#/settings");

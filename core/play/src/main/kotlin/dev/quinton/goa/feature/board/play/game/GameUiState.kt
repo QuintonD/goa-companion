@@ -126,6 +126,9 @@ enum class NoGame {
 
     /** Its map is not in this build. */
     MAP_MISSING,
+
+    /** The rules engine failed during play; the save is kept up to the last move. */
+    FAILED,
 }
 
 sealed interface GameUiState {

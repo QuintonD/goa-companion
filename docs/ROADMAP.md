@@ -515,7 +515,16 @@ passes (including an in-place upgrade from the morning build with real data). Ev
 - [x] Marker tokens imported from the pinned source; markers named in words everywhere, Poison and Bounty too — 2026-11-01, importer and shared tests
 - [x] The engine's view tells a marker's Turn slot; rune questions say which token each option is and name the picks so far — 2026-11-01, `SnorriTest`
 - [x] Runes below the dashboard's Turn slots, the active one on the hero strip and over the hand, each card's note on the active rune, Android and web — 2026-11-01, JVM, screenshots and Playwright (`snorri-runes.spec.ts`)
+- [x] A hero tile's name stays on one line, a long one ("Silverarrow") smaller, so the tiles of a row are one height; Android and web — 2026-11-02, `OfficialLookScreenshotTest.gridLongName*`, `look-catalog.spec.ts`
 - [ ] On the S25 Ultra: read the small tokens on the dashboard and the hero strip in table light
+
+## M27 — The Play tab; a robustness round (ADR-055)
+- [x] Play in the bottom bar with Board and Card trivia; the Heroes bar is Layout, Rules, Settings; Android and web — 2026-11-02, JVM, screenshots, Playwright (`shell.spec.ts`) and the instrumented flows on the `goa_s25a` emulator
+- [x] Offline launch survives opening Settings: the worker no longer deletes its own file list; a full cache no longer loses an image that arrived — 2026-11-02, Playwright (`offline.spec.ts`)
+- [x] A failure no longer closes the app or stops the page: the game says so and keeps its save; a search that fails plays the fallback's answer; the web's game, Boards, board and Heroes screens report a failed job — 2026-11-02, `GameViewModelTest`, `AiFailureTest`
+- [x] Damaged timer, draft, rating and trivia stores start empty instead of crashing every launch; a backup has a size cap and a restore finishes once started; a refused content URI or a database failure on import or backup is a message; sharing a sync file writes off the main thread — 2026-11-02, the size cap by `BackupRoundTripTest`; the others by reading the code, suites green, no test of their own
+- [x] Reopening a game and taking back no longer replay the whole game to learn whether there is a move to take back; the coach no longer builds the engine on the main thread; the web game's screen stays awake after an app switch — 2026-11-02, `SessionTest`, suites green; the wake lock not yet seen on an iPhone
+- [ ] On the S25 Ultra: five labels and the Play tab in the hand
 
 ## M5 — Polish & release readiness
 - [x] Accessibility pass: ATF checks on 25 screens (no errors), contrast fixes, TalkBack labels, font scale 2.0 screenshots — 2026-10-17 (emulator/JVM)

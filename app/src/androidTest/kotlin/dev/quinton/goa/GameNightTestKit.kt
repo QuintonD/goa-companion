@@ -119,7 +119,7 @@ fun AppRule.waitGone(matcher: SemanticsMatcher, timeout: Long = TIMEOUT) {
     waitUntilOrDump("${matcher.description} is gone", timeout) { !exists(matcher) }
 }
 
-/** Bottom navigation: "catalog", "timer", "draft" or "players". */
+/** Bottom navigation: "catalog", "timer", "draft", "play" or "players". */
 fun AppRule.openTab(tab: String) {
     onNodeWithTagSafe("nav_$tab").performClick()
     waitForIdle()
@@ -163,17 +163,10 @@ fun AppRule.tapLabel(label: String) = tap((hasText(label) or hasContentDescripti
 fun AppRule.tapDescription(text: String, substring: Boolean = false) =
     tap(hasContentDescription(text, substring = substring) and hasClickAction())
 
-/**
- * A Heroes top-bar action ("Board", "Card trivia"): an item of "More options" on a phone, an icon
- * from 600 dp wide.
- */
-fun AppRule.tapHeroesAction(label: String) {
-    if (exists(hasContentDescription(label) and hasClickAction())) {
-        tapDescription(label)
-    } else {
-        tapDescription("More options")
-        tapText(label)
-    }
+/** An entry of the Play tab's first screen ("Board", "Card trivia"). */
+fun AppRule.openFromPlay(label: String) {
+    openTab("play")
+    tapText(label)
 }
 
 fun AppRule.typeInto(label: String, value: String) {

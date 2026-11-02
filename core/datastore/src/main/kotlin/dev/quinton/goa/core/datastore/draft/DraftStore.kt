@@ -2,9 +2,11 @@ package dev.quinton.goa.core.datastore.draft
 
 import android.content.Context
 import androidx.datastore.core.DataStore
+import androidx.datastore.core.handlers.ReplaceFileCorruptionHandler
 import androidx.datastore.preferences.core.PreferenceDataStoreFactory
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.edit
+import androidx.datastore.preferences.core.emptyPreferences
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStoreFile
 import dagger.Module
@@ -73,5 +75,10 @@ internal object DraftStoreModule {
     @Provides
     @Singleton
     fun draftStore(@ApplicationContext context: Context): DraftStore =
-        DraftStore(PreferenceDataStoreFactory.create(produceFile = { context.preferencesDataStoreFile("draft") }))
+        DraftStore(
+            PreferenceDataStoreFactory.create(
+                corruptionHandler = ReplaceFileCorruptionHandler { emptyPreferences() },
+                produceFile = { context.preferencesDataStoreFile("draft") },
+            ),
+        )
 }

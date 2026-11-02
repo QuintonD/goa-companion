@@ -1,5 +1,6 @@
 package dev.quinton.goa.feature.sync.importfile
 
+import android.database.sqlite.SQLiteException
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.assisted.Assisted
@@ -83,7 +84,11 @@ class SyncFileImportViewModel @AssistedInject constructor(
         } catch (e: SyncFileException) {
             ImportStage.Failed(e.message.orEmpty(), e.problem)
         } catch (e: IOException) {
-            ImportStage.Failed("This file can't be read. Save it again and pick it from the file list.", null)
+            ImportStage.Failed(UNREADABLE, null)
+        } catch (e: SecurityException) { // the app sharing it didn't grant reading it
+            ImportStage.Failed(UNREADABLE, null)
+        } catch (e: IllegalArgumentException) { // a content address no provider answers to
+            ImportStage.Failed(UNREADABLE, null)
         }
         state.value = SyncFileImportUiState(stage)
     }
@@ -93,7 +98,17 @@ class SyncFileImportViewModel @AssistedInject constructor(
         if (state.value.stage !is ImportStage.Ready) return
         state.value = SyncFileImportUiState(ImportStage.Importing)
         viewModelScope.launch {
-            state.value = SyncFileImportUiState(ImportStage.Done(sync.apply(doc).changes))
+            val stage = try {
+                ImportStage.Done(sync.apply(doc).changes)
+            } catch (@Suppress("SwallowedException") e: SQLiteException) {
+                // One transaction: nothing of the file was written.
+                ImportStage.Failed(NOT_SAVED, null)
+            }
+            state.value = SyncFileImportUiState(stage)
         }
     }
 }
+
+private const val UNREADABLE = "This file can't be read. Save it again and pick it from the file list."
+private const val NOT_SAVED =
+    "The file couldn't be saved on this phone, so nothing changed. Free some storage and try again."

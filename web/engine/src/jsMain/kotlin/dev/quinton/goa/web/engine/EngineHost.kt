@@ -196,10 +196,8 @@ class EngineHost(private val load: suspend () -> Pair<Catalog, List<BoardMap>>) 
         return snapshot(g, revealed = revealed)
     }
 
-    /** Whether the person has an answer to take back: tried on a copy, so the game is untouched. */
-    private fun canUndo(
-        g: GameSession,
-    ): Boolean = runCatching { g.fork().undoToLastHumanDecision() }.getOrDefault(false)
+    /** Whether the person has an answer to take back. */
+    private fun canUndo(g: GameSession): Boolean = runCatching { g.canTakeBack() }.getOrDefault(false)
 
     private fun snapshot(
         g: GameSession,

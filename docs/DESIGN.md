@@ -231,10 +231,10 @@ Meta dashboard · Draft setup → Draft board (sticky step banner over a scrolli
 chips, two team columns with role coverage and ban chips, then a dense pool grid with search,
 role chips and "Hide taken"; taken heroes shrink to chips; landscape moves the banner and teams
 to a side column so the pool keeps the full height; long-press opens the hero peek sheet).
-Bottom nav: Heroes, Timer, Draft, Players (original icons: shield, hourglass, fanned cards,
-companions; solid variant when selected). Settings from top bar. The Heroes top bar carries
-layout, Rules and Settings on a phone, with Board and Card trivia in "More options" (from 600 dp wide
-they sit on the bar; at the largest text the layout switch joins them in the menu). The bottom nav is hidden on the
+Bottom nav: Heroes, Timer, Draft, Play, Players (original icons: shield, hourglass, fanned cards, a board
+space with a play mark, companions; solid variant when selected; labels share one size, capped by the width,
+at large text). Settings from top bar. The Heroes top bar carries layout, Rules and Settings. The Play tab
+opens on two cards, Board and Card trivia (ADR-055). The bottom nav is hidden on the
 running timer (no tab to mis-tap beside Next; back leaves to Heroes), on the draft board and on a board;
 while a session runs, every other screen shows the **timer running bar** above the nav (timer
 icon, phase, "Round · Turn" context, tabular clock in tide teal; dim when paused, error red in

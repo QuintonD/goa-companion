@@ -6,7 +6,6 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import dev.quinton.goa.core.domain.board.BoardRules
 import dev.quinton.goa.core.model.board.Hex
@@ -50,6 +49,7 @@ import dev.quinton.goa.web.ui.IconButton
 import dev.quinton.goa.web.ui.IconSize
 import dev.quinton.goa.web.ui.LoadingState
 import dev.quinton.goa.web.ui.Screen
+import dev.quinton.goa.web.ui.rememberGuardedScope
 import kotlinx.browser.document
 import kotlinx.browser.window
 import kotlinx.coroutines.launch
@@ -75,7 +75,7 @@ fun BoardScreen(boardId: String) {
     val services = LocalServices.current
     val data = services.data
     val keep = rememberRetained("board-keep") { BoardController.Keep() }
-    val scope = rememberCoroutineScope()
+    val scope = rememberGuardedScope()
     val controller = remember(boardId) {
         BoardController(
             boardId = boardId,
@@ -118,7 +118,7 @@ fun BoardScreen(boardId: String) {
 @Composable
 private fun BoardContent(state: BoardUiState.Ready, controller: BoardController, keep: BoardController.Keep) {
     val services = LocalServices.current
-    val scope = rememberCoroutineScope()
+    val scope = rememberGuardedScope()
     val onAction: (BoardAction) -> Unit = controller::onAction
     val landscape = rememberLandscape()
     val orientation = if (landscape) MapOrientation.LANDSCAPE else MapOrientation.PORTRAIT
@@ -326,7 +326,7 @@ private fun MapChrome(
     onAction: (BoardAction) -> Unit,
     onOpen: (BoardOverlay) -> Unit,
 ) {
-    val scope = rememberCoroutineScope()
+    val scope = rememberGuardedScope()
     Div({ classes("goa-board-top") }) {
         Div({ classes("goa-board-top-left") }) {
             if (!state.map.verified) {

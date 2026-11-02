@@ -77,6 +77,9 @@ class FakeGameSession(
 ) : GameSession {
     private val geometry = BoardGeometry.of(map)
     private val answers = mutableListOf<Answer>()
+
+    /** Set: the next answer throws, as a bug in the rules would. */
+    var failAnswers = false
     private var s = start()
     private val log = mutableListOf<GameEvent>()
     private var beat = 0
@@ -145,6 +148,7 @@ class FakeGameSession(
     }
 
     override fun answer(decisionId: Long, choice: Choice): AnswerResult {
+        check(!failAnswers) { "A rules failure" }
         val decision = current ?: return AnswerResult.Rejected("The game is over.")
         if (decisionId != decision.id) return AnswerResult.Rejected("Stale decision $decisionId")
         if (choice !in decision.options) return AnswerResult.Rejected("Not an option: $choice")

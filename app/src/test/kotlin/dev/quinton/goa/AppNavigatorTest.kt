@@ -10,6 +10,7 @@ import dev.quinton.goa.core.navigation.HeroDetailRoute
 import dev.quinton.goa.core.navigation.MatchEditRoute
 import dev.quinton.goa.core.navigation.MatchLogRoute
 import dev.quinton.goa.core.navigation.MatchSetupRoute
+import dev.quinton.goa.core.navigation.PlayHomeRoute
 import dev.quinton.goa.core.navigation.PlayersRoute
 import dev.quinton.goa.core.navigation.TimerPresetsRoute
 import dev.quinton.goa.core.navigation.TimerRoute
@@ -23,6 +24,7 @@ class AppNavigatorTest {
             TopLevelTab.CATALOG to NavBackStack<NavKey>(CatalogRoute),
             TopLevelTab.TIMER to NavBackStack<NavKey>(TimerRoute),
             TopLevelTab.DRAFT to NavBackStack<NavKey>(DraftRoute),
+            TopLevelTab.PLAY to NavBackStack<NavKey>(PlayHomeRoute),
             TopLevelTab.PLAYERS to NavBackStack<NavKey>(PlayersRoute),
         ),
         initialTab = TopLevelTab.CATALOG,

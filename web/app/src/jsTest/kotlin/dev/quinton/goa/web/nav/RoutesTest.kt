@@ -142,11 +142,22 @@ class RoutesTest {
 
     @Test
     fun screensBelongToTheAndroidTabs() {
-        assertEquals(Tab.HEROES, Route.Puzzle("p1").tab)
+        assertEquals(Tab.PLAY, Route.Puzzle("p1").tab)
+        assertEquals(Tab.PLAY, Route.Boards.tab)
+        assertEquals(Tab.PLAY, Route.Trivia().tab)
+        assertEquals(Route.PlayHome, Route.Trivia().parent)
+        assertEquals(Route.PlayHome, Route.Boards.parent)
+        assertEquals(null, Route.PlayHome.parent)
+        // From a hero's page: stays on Heroes, and a quiz stays on the tab that opened it.
+        assertEquals(Tab.HEROES, Route.Trivia("arien").tab)
+        assertEquals(Route.HeroDetail("arien"), Route.Trivia("arien").parent)
+        assertEquals(null, Route.TriviaLeaderboard.tab)
+        assertEquals(Route.PlayHome, Routes.parse("#/play/home"))
+        assertEquals("play/home", Route.PlayHome.path)
         assertEquals(Tab.PLAYERS, Route.Group.tab)
         assertEquals(null, Route.Settings.tab)
         assertEquals(null, Route.Rules.tab)
-        assertEquals(listOf("Heroes", "Timer", "Draft", "Players"), Tab.entries.map { it.label })
+        assertEquals(listOf("Heroes", "Timer", "Draft", "Play", "Players"), Tab.entries.map { it.label })
     }
 
     @Test

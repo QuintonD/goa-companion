@@ -219,7 +219,7 @@ self.addEventListener("fetch", (event) => {
   if (request.mode === "navigate") {
     event.respondWith(shellResponse(url("index.html"), request));
   } else if (isImage(path)) {
-    event.respondWith(imageResponse(path, request));
+    event.respondWith(imageResponse(path, event));
   } else if (path !== "sw.js") {
     event.respondWith(shellResponse(url(path), request));
   }
@@ -231,13 +231,17 @@ async function shellResponse(key, request) {
   if (!hit) return fetch(request);
   const path = relativePath(key);
   const bytes = await hit.arrayBuffer();
-  if (await matches(bytes, (await buildHashes()).get(path))) return rebuilt(bytes, hit);
-  // Not the file this build installed (changed by something else on the origin): never serve it.
-  await cache.delete(key, { ignoreSearch: true });
+  // The manifest can't list its own hash: it is checked against the one stamped into this worker.
+  const current = path === MANIFEST ? null : await buildHashes();
+  if (current ? await matches(bytes, current.get(path)) : await isOurManifest(bytes)) return rebuilt(bytes, hit);
+  // Not the file this build installed (changed by something else on the origin): never serve it. With no
+  // manifest to judge by (an empty map) the copy stays: nothing says it is wrong, and offline it is all there is.
+  if (!current || current.size > 0) await cache.delete(key, { ignoreSearch: true });
   return fetch(request);
 }
 
-async function imageResponse(path, request) {
+async function imageResponse(path, event) {
+  const request = event.request;
   const hash = (await buildHashes()).get(path);
   if (!hash) return fetch(request);
   const images = await caches.open(IMAGE_CACHE);
@@ -245,6 +249,7 @@ async function imageResponse(path, request) {
   const hit = await images.match(key);
   if (hit) return hit;
   const response = await fetch(request);
-  if (response.ok && response.status === 200) await images.put(key, response.clone());
+  // In the background: a full cache must not lose an image that arrived.
+  if (response.ok && response.status === 200) event.waitUntil(images.put(key, response.clone()).catch(() => {}));
   return response;
 }

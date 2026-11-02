@@ -89,6 +89,8 @@ class SessionTest {
         s.answer(2, Choice.Card("arien-gold")) // ai
         val before = s.pending!!.id
         assertThat(before).isEqualTo(3L)
+        assertThat(s.canTakeBack()).isTrue()
+        assertThat(s.pending!!.id).isEqualTo(before) // asking changes nothing
         assertThat(s.undoToLastHumanDecision()).isTrue()
         assertThat(s.pending!!.id).isEqualTo(1L)
         assertThat(s.pending!!.seat).isEqualTo("xargatha")

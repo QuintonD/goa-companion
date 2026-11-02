@@ -13,6 +13,7 @@ import androidx.navigation3.runtime.rememberNavBackStack
 import dev.quinton.goa.core.navigation.CatalogRoute
 import dev.quinton.goa.core.navigation.DraftRoute
 import dev.quinton.goa.core.navigation.Navigator
+import dev.quinton.goa.core.navigation.PlayHomeRoute
 import dev.quinton.goa.core.navigation.PlayersRoute
 import dev.quinton.goa.core.navigation.TimerRoute
 import dev.quinton.goa.core.navigation.TopLevelTab
@@ -100,14 +101,16 @@ fun rememberAppNavigator(): AppNavigator {
     val catalog = rememberNavBackStack(CatalogRoute)
     val timer = rememberNavBackStack(TimerRoute)
     val draft = rememberNavBackStack(DraftRoute)
+    val play = rememberNavBackStack(PlayHomeRoute)
     val players = rememberNavBackStack(PlayersRoute)
     var savedTab by rememberSaveable { mutableStateOf(TopLevelTab.CATALOG) }
-    return remember(catalog, timer, draft, players) {
+    return remember(catalog, timer, draft, play, players) {
         AppNavigator(
             stacks = mapOf(
                 TopLevelTab.CATALOG to catalog,
                 TopLevelTab.TIMER to timer,
                 TopLevelTab.DRAFT to draft,
+                TopLevelTab.PLAY to play,
                 TopLevelTab.PLAYERS to players,
             ),
             initialTab = savedTab,

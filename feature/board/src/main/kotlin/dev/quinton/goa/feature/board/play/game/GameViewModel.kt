@@ -1,5 +1,6 @@
 package dev.quinton.goa.feature.board.play.game
 
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -47,6 +48,7 @@ import javax.inject.Provider
 import kotlin.random.Random
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.CoroutineExceptionHandler
 import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -119,6 +121,12 @@ class GameViewModel internal constructor(
     private val state = MutableStateFlow<GameUiState>(GameUiState.Loading)
     val uiState: StateFlow<GameUiState> = state.asStateFlow()
 
+    /** A rules failure during play ends on the screen that says so, with the save kept, not with the app closing. */
+    private val failures = CoroutineExceptionHandler { _, error ->
+        Log.e("GameViewModel", "The game failed", error)
+        unavailable(NoGame.FAILED)
+    }
+
     /** The game being played; only touched on [engine]. */
     private var session: GameSession? = null
     private var progress: GameInProgress? = null
@@ -169,7 +177,7 @@ class GameViewModel internal constructor(
     private var report: ReportUi? = null
 
     init {
-        viewModelScope.launch { load() }
+        viewModelScope.launch(failures) { load() }
     }
 
     private suspend fun load() {
@@ -223,9 +231,9 @@ class GameViewModel internal constructor(
 
     private val review = ReviewKeeper()
 
-    /** Whether the person has an answer to take back: tried on a copy, so the game is untouched. */
+    /** Whether the person has an answer to take back. */
     private suspend fun canUndo(game: GameSession): Boolean = withContext(engine) {
-        runCatching { game.fork().undoToLastHumanDecision() }.getOrDefault(false)
+        runCatching { game.canTakeBack() }.getOrDefault(false)
     }
 
     // ---- Actions -------------------------------------------------------------------------
@@ -250,26 +258,26 @@ class GameViewModel internal constructor(
 
             GameAction.Flip -> {
                 bottomTeam = bottomTeam.opponent
-                viewModelScope.launch { publish() }
+                viewModelScope.launch(failures) { publish() }
             }
 
             GameAction.Rematch -> rematch()
 
             is GameAction.MessageShown -> if (action.id == messageId) {
                 message = null
-                viewModelScope.launch { publish() }
+                viewModelScope.launch(failures) { publish() }
             }
 
             is GameAction.Review -> {
                 val turns = (uiState.value as? GameUiState.Playing)?.play?.review?.turns
-                if (review.handle(action.action, turns)) viewModelScope.launch { publish() }
+                if (review.handle(action.action, turns)) viewModelScope.launch(failures) { publish() }
             }
 
             GameAction.AskSuggestions -> askSuggestions()
 
             GameAction.CloseSuggestions -> {
                 suggestOpen = false
-                viewModelScope.launch { publish() }
+                viewModelScope.launch(failures) { publish() }
             }
 
             GameAction.StartReport -> startReport()
@@ -290,14 +298,14 @@ class GameViewModel internal constructor(
         val play = (uiState.value as? GameUiState.Playing)?.play ?: return
         if (!play.table.asking || choice !in play.table.decision?.options.orEmpty()) return
         selected = choice
-        viewModelScope.launch { publish() }
+        viewModelScope.launch(failures) { publish() }
     }
 
     private fun answer(choice: Choice) {
         val game = session ?: return
         if (busy || nudge != null) return
         busy = true
-        viewModelScope.launch {
+        viewModelScope.launch(failures) {
             publish()
             val decision = withContext(engine) { game.pending }
             if (decision == null || decision.seat !in humans || choice !in decision.options) {
@@ -385,7 +393,7 @@ class GameViewModel internal constructor(
     private fun askSuggestions() {
         val game = session ?: return
         if (nudge != null) return
-        viewModelScope.launch {
+        viewModelScope.launch(failures) {
             val decision = withContext(engine) { game.pending } ?: return@launch
             if (decision.seat !in humans || decision.options.size < 2) return@launch
             suggestOpen = true
@@ -418,7 +426,7 @@ class GameViewModel internal constructor(
         val game = session ?: return
         if (reporting?.isActive == true || report?.report != null) return
         report = ReportUi(running = true)
-        reporting = viewModelScope.launch {
+        reporting = viewModelScope.launch(failures) {
             publish()
             val saved = withContext(engine) { game.save() }
             val done = withContext(analysis) {
@@ -434,21 +442,21 @@ class GameViewModel internal constructor(
 
     private fun reportProgress(done: Int, total: Int) {
         report = ReportUi(done, total, running = true)
-        if (done % REPORT_PUBLISH_EVERY == 0) viewModelScope.launch { publish() }
+        if (done % REPORT_PUBLISH_EVERY == 0) viewModelScope.launch(failures) { publish() }
     }
 
     private fun cancelReport() {
         reporting?.cancel()
         reporting = null
         report = null
-        viewModelScope.launch { publish() }
+        viewModelScope.launch(failures) { publish() }
     }
 
     private fun setCoach(on: Boolean) {
         update { it.copy(coach = on) }
         if (!on) return dropLookahead()
         val game = session ?: return
-        viewModelScope.launch { withContext(engine) { game.pending }?.let { lookAhead(game, it) } }
+        viewModelScope.launch(failures) { withContext(engine) { game.pending }?.let { lookAhead(game, it) } }
     }
 
     private fun chooseAnyway() {
@@ -456,7 +464,7 @@ class GameViewModel internal constructor(
         val game = session ?: return
         nudge = null
         busy = true
-        viewModelScope.launch {
+        viewModelScope.launch(failures) {
             val decision = withContext(engine) { game.pending }
             if (decision == null || pending.choice !in decision.options) {
                 busy = false
@@ -496,7 +504,7 @@ class GameViewModel internal constructor(
         if (busy) return
         dropLookahead()
         dropSuggestions()
-        viewModelScope.launch {
+        viewModelScope.launch(failures) {
             driver?.let {
                 it.cancel()
                 it.join()
@@ -531,7 +539,7 @@ class GameViewModel internal constructor(
         dropSuggestions()
         reporting?.cancel()
         report = null
-        viewModelScope.launch {
+        viewModelScope.launch(failures) {
             driver?.let {
                 it.cancel()
                 it.join()
@@ -558,14 +566,14 @@ class GameViewModel internal constructor(
     /** Leaving the game-over summary (Done, New game): the finished game is no longer kept. */
     fun discardFinished() {
         if ((uiState.value as? GameUiState.Playing)?.play?.over == null) return
-        viewModelScope.launch { withContext(NonCancellable) { saves.clear() } }
+        viewModelScope.launch(failures) { withContext(NonCancellable) { saves.clear() } }
     }
 
     /** Deletes an unreadable or incompatible save (or ends the game in progress). */
     fun deleteSaved() {
         driver?.cancel()
         dropLookahead()
-        viewModelScope.launch {
+        viewModelScope.launch(failures) {
             withContext(NonCancellable) { saves.clear() }
             session = null
             unavailable(NoGame.NONE)
@@ -576,7 +584,7 @@ class GameViewModel internal constructor(
         val current = progress ?: return
         val next = transform(current)
         progress = next
-        viewModelScope.launch {
+        viewModelScope.launch(failures) {
             withContext(NonCancellable) { saves.save(next) }
             if (publish) publish()
         }
@@ -588,7 +596,7 @@ class GameViewModel internal constructor(
     private fun drive() {
         val game = session ?: return
         driver?.cancel()
-        driver = viewModelScope.launch {
+        driver = viewModelScope.launch(failures) {
             while (isActive) {
                 val decision = withContext(engine) { game.pending }
                 if (decision == null) {
@@ -611,7 +619,7 @@ class GameViewModel internal constructor(
         thinking = false
         publish()
         // "Thinking…" once the computer takes a while.
-        val slow = viewModelScope.launch {
+        val slow = viewModelScope.launch(failures) {
             delay(THINKING_MS)
             thinking = true
             publish()
@@ -684,7 +692,7 @@ class GameViewModel internal constructor(
     private fun say(text: String) {
         message = text
         messageId++
-        viewModelScope.launch { publish() }
+        viewModelScope.launch(failures) { publish() }
     }
 
     private suspend fun save() {

@@ -2,9 +2,11 @@ package dev.quinton.goa.core.datastore.timer
 
 import android.content.Context
 import androidx.datastore.core.DataStore
+import androidx.datastore.core.handlers.ReplaceFileCorruptionHandler
 import androidx.datastore.preferences.core.PreferenceDataStoreFactory
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.edit
+import androidx.datastore.preferences.core.emptyPreferences
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStoreFile
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -41,7 +43,10 @@ interface TimerStateStore {
 @Singleton
 class DataStoreTimerStateStore internal constructor(private val store: DataStore<Preferences>) : TimerStateStore {
     @Inject constructor(@ApplicationContext context: Context) : this(
-        PreferenceDataStoreFactory.create { context.preferencesDataStoreFile(FILE_NAME) },
+        PreferenceDataStoreFactory.create(
+            corruptionHandler = ReplaceFileCorruptionHandler { emptyPreferences() },
+            produceFile = { context.preferencesDataStoreFile(FILE_NAME) },
+        ),
     )
 
     override val snapshotJson: Flow<String?> = store.data.map { it[SNAPSHOT] }

@@ -236,6 +236,11 @@ class EngineSession internal constructor(
         return f
     }
 
+    override fun canTakeBack(): Boolean {
+        val humans = setup.seats.filter { it.controller == Controller.Human }.map { it.heroId }.toSet()
+        return Chain.toList(history).any { it.seat in humans }
+    }
+
     override fun undoToLastHumanDecision(): Boolean {
         val records = Chain.toList(history)
         val humans = setup.seats.filter { it.controller == Controller.Human }.map { it.heroId }.toSet()

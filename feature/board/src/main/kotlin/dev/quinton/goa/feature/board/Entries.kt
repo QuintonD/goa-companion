@@ -22,12 +22,16 @@ import dev.quinton.goa.core.navigation.GameRoute
 import dev.quinton.goa.core.navigation.Navigator
 import dev.quinton.goa.core.navigation.NewBoardRoute
 import dev.quinton.goa.core.navigation.NewGameRoute
+import dev.quinton.goa.core.navigation.PlayHomeRoute
 import dev.quinton.goa.core.navigation.PuzzleRoute
 import dev.quinton.goa.core.navigation.PuzzlesRoute
+import dev.quinton.goa.core.navigation.SettingsRoute
+import dev.quinton.goa.core.navigation.TriviaRoute
 import dev.quinton.goa.feature.board.board.BoardScreen
 import dev.quinton.goa.feature.board.board.BoardViewModel
 import dev.quinton.goa.feature.board.list.BoardsScreen
 import dev.quinton.goa.feature.board.list.BoardsViewModel
+import dev.quinton.goa.feature.board.list.PlayHomeScreen
 import dev.quinton.goa.feature.board.play.game.GameScreen
 import dev.quinton.goa.feature.board.play.game.GameUiState
 import dev.quinton.goa.feature.board.play.game.GameViewModel
@@ -41,8 +45,18 @@ import dev.quinton.goa.feature.board.setup.NewBoardScreen
 import dev.quinton.goa.feature.board.setup.NewBoardViewModel
 import kotlinx.coroutines.launch
 
-/** Board sandbox (ADR-033): the Boards list, New board, and a board; play and puzzles (ADR-035). */
+/**
+ * The Play tab's first screen (ADR-055); board sandbox (ADR-033): the Boards list, New board, and a board;
+ * play and puzzles (ADR-035).
+ */
 fun EntryProviderScope<NavKey>.boardEntries(navigator: Navigator) {
+    entry<PlayHomeRoute> {
+        PlayHomeScreen(
+            onBoard = { navigator.navigate(BoardsRoute) },
+            onTrivia = { navigator.navigate(TriviaRoute()) },
+            onSettings = { navigator.navigate(SettingsRoute) },
+        )
+    }
     entry<BoardsRoute> {
         val viewModel = hiltViewModel<BoardsViewModel>()
         val state by viewModel.uiState.collectAsStateWithLifecycle()

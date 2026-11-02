@@ -14,6 +14,7 @@ import dev.quinton.goa.core.domain.rating.EloConfig
 import dev.quinton.goa.core.domain.sync.StampedEloConfig
 import dev.quinton.goa.core.domain.sync.SyncDocument
 import dev.quinton.goa.core.domain.sync.SyncMerge
+import java.io.ByteArrayOutputStream
 import java.io.InputStream
 import java.io.OutputStream
 import java.util.Optional
@@ -76,10 +77,26 @@ interface BackupRepository {
         output.writer(Charsets.UTF_8).use { it.write(BackupCodec.encode(export())) }
     }
 
-    /** Reads and validates a file; throws [InvalidBackupException]. */
-    suspend fun read(input: InputStream): BackupDocument =
-        BackupCodec.decode(input.reader(Charsets.UTF_8).use { it.readText() })
+    /** Reads and validates a file; throws [InvalidBackupException], for one too large to be a backup as well. */
+    suspend fun read(input: InputStream): BackupDocument = BackupCodec.decode(
+        input.use { stream ->
+            val out = ByteArrayOutputStream()
+            val buffer = ByteArray(READ_BUFFER_BYTES)
+            while (true) {
+                val read = stream.read(buffer)
+                if (read < 0) break
+                out.write(buffer, 0, read)
+                if (out.size() > MAX_BACKUP_BYTES) throw InvalidBackupException(TOO_LARGE)
+            }
+            out.toString(Charsets.UTF_8.name())
+        },
+    )
 }
+
+/** Far above years of matches (about 2 KB each), far below what would run the app out of memory. */
+private const val MAX_BACKUP_BYTES = 64L * 1024 * 1024
+private const val READ_BUFFER_BYTES = 64 * 1024
+private const val TOO_LARGE = "This file is too large to be a backup."
 
 /**
  * [boardRepository]: the board sandbox's boards (ADR-033), optional so the backup works in a build

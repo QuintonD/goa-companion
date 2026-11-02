@@ -241,7 +241,7 @@ and **through the group's sync server** whenever a phone has internet (ADR-036).
 Learn the numbers printed on the heroes' Action cards so the table doesn't have to look them up:
 Initiative, Attack, Defense, Movement, Range and Radius on every deck card (Basic, Tier I–III,
 Ultimate), about 2,150 numbers over 32 heroes. Every question is generated from the catalog.
-- **Card trivia home** (Heroes tab top bar, or "Learn <hero>'s card numbers" on a hero's page with
+- **Card trivia home** (Play tab, or "Learn <hero>'s card numbers" on a hero's page with
   that hero preselected): "N of M numbers learned" over the owned products, with Learned / Learning /
   New counts; the setup (heroes: all owned or chosen; numbers; card tiers; answer with 4 choices or
   Recall from every possible number; 10 / 20 / endless questions; initiative duels on or off) with
@@ -374,7 +374,7 @@ Life counters).
   show the hero's portrait ringed in team colour, minions by type, tokens by label. TalkBack: a
   "Pieces" list selects any piece; spaces in view read their Zone, what stands there and how far
   they are from the selected piece.
-- **Entry points:** Heroes tab top bar (Board), finished draft, a pending or logged match.
+- **Entry points:** Play tab (Board), finished draft, a pending or logged match.
 - **Done when:** hex distance, movement, Fast Travel, opening and push tests match rulebook cases;
   every bundled map passes validation (spawn counts per p.6, Lanes, Zones, no overlaps); the board,
   new-board and boards screens have light/dark, font scale 2, 384 dp and landscape screenshots (and

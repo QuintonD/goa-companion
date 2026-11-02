@@ -56,6 +56,8 @@ fun ScreenFor(route: Route) {
 
         Route.TriviaLeaderboard -> TriviaLeaderboardScreen()
 
+        Route.PlayHome -> dev.quinton.goa.web.play.board.PlayHomeScreen()
+
         Route.Boards -> dev.quinton.goa.web.play.board.BoardsScreen()
 
         is Route.Board -> dev.quinton.goa.web.play.board.BoardScreen(route.boardId)

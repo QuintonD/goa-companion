@@ -11,7 +11,7 @@ import kotlinx.serialization.Serializable
  * via `EntryProviderScope<NavKey>.<feature>Entries(navigator)`, wired in `app`.
  */
 
-enum class TopLevelTab { CATALOG, TIMER, DRAFT, PLAYERS }
+enum class TopLevelTab { CATALOG, TIMER, DRAFT, PLAY, PLAYERS }
 
 /**
  * Intent extra naming the [TopLevelTab] to show when the app opens (e.g. "TIMER" from the timer
@@ -146,6 +146,11 @@ object NavSheet {
      */
     val LocalDismissible = staticCompositionLocalOf<MutableState<Boolean>?> { null }
 }
+
+// The Play tab (ADR-055, owner: board)
+
+/** The Play tab's first screen: Board and Card trivia. */
+@Serializable data object PlayHomeRoute : NavKey
 
 // Card-number trivia (ADR-028, owner: trivia)
 

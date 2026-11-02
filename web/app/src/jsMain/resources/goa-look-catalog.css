@@ -282,7 +282,3 @@
   .goa-rules-foot-plain { display: block; }
 }
 
-/* The Heroes bar at the largest text: the view switch goes to More, so the title keeps its room. */
-@container topbar (max-width: 13rem) {
-  .goa-topbar-actions .collapsible-large { display: none; }
-}

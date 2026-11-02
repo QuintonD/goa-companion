@@ -48,8 +48,10 @@ import dev.quinton.goa.core.testing.TestCatalog
 import java.io.ByteArrayInputStream
 import java.io.ByteArrayOutputStream
 import java.io.File
+import java.io.InputStream
 import java.util.Optional
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.runTest
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonArray
@@ -754,6 +756,19 @@ class BackupRoundTripTest {
         target.backup.import(file, ImportMode.REPLACE)
 
         assertThat(target.settings.settings.first().boardStyle).isEqualTo(BoardStyle.MINIATURES)
+    }
+
+    @Test
+    fun aFileTooLargeToBeABackupIsRefusedBeforeItRunsTheAppOutOfMemory() {
+        val endless = object : InputStream() {
+            override fun read(): Int = 0
+
+            override fun read(b: ByteArray, off: Int, len: Int): Int = len
+        }
+        val refused = assertThrows(InvalidBackupException::class.java) {
+            runBlocking { Device().backup.read(endless) }
+        }
+        assertThat(refused).hasMessageThat().contains("too large")
     }
 
     @Test

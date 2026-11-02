@@ -44,7 +44,7 @@ test("the board style is a radio choice that survives a reload", async ({ page }
   check();
 });
 
-test("on a phone the title fits, the actions clear the medallion and the rest are in More", async ({ page }, info) => {
+test("on a phone the title fits and the actions clear the medallion", async ({ page }, info) => {
   const check = watchErrors(page);
   await open(page, "#/heroes");
   const { end, width } = await actionsEnd(page);
@@ -58,11 +58,6 @@ test("on a phone the title fits, the actions clear the medallion and the rest ar
     return [range.getBoundingClientRect().width, el.getBoundingClientRect().width - padding];
   });
   expect(text).toBeLessThanOrEqual(room + 0.01);
-  await expect(page.getByRole("link", { name: "Card trivia" })).toBeHidden();
-  await page.getByRole("button", { name: "More options" }).click();
-  await expect(page.getByRole("menuitem", { name: /trivia/i }).or(page.getByRole("button", { name: /trivia/i })).or(page.getByRole("link", { name: /trivia/i })).first()).toBeVisible();
-  await page.keyboard.press("Escape");
-  await expect(page.getByRole("dialog")).toBeHidden();
   await shot(page, info, "look-topbar-heroes");
 
   // The banner is really painted (WebKit too): its ::before carries the art, with the height of the bar.

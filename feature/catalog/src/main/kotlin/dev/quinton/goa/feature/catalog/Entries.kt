@@ -5,7 +5,6 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation3.runtime.EntryProviderScope
 import androidx.navigation3.runtime.NavKey
-import dev.quinton.goa.core.navigation.BoardsRoute
 import dev.quinton.goa.core.navigation.CardViewerRoute
 import dev.quinton.goa.core.navigation.CatalogRoute
 import dev.quinton.goa.core.navigation.HeroDetailRoute
@@ -33,8 +32,6 @@ fun EntryProviderScope<NavKey>.catalogEntries(navigator: Navigator) {
             onSettingsClick = { navigator.navigate(SettingsRoute) },
             onCardClick = { heroId, cardId -> navigator.navigate(CardViewerRoute(heroId, cardId)) },
             onRulesClick = { navigator.navigate(RulesRoute) },
-            onTriviaClick = { navigator.navigate(TriviaRoute()) },
-            onBoardClick = { navigator.navigate(BoardsRoute) },
         )
     }
     entry<HeroDetailRoute> { key ->

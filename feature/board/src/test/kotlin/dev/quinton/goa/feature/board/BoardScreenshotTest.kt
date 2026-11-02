@@ -73,6 +73,7 @@ import dev.quinton.goa.feature.board.board.NewPiece
 import dev.quinton.goa.feature.board.board.PiecesContent
 import dev.quinton.goa.feature.board.list.BoardsScreen
 import dev.quinton.goa.feature.board.list.BoardsViewModel
+import dev.quinton.goa.feature.board.list.PlayHomeScreen
 import dev.quinton.goa.feature.board.map.MapLayout
 import dev.quinton.goa.feature.board.map.MapOrientation
 import dev.quinton.goa.feature.board.map.MapViewport
@@ -204,6 +205,14 @@ class BoardScreenshotTest {
     }
 
     /** No boards and no draft yet: play is coming soon, and New board. */
+    @Test fun playHomeDark() = capture(ThemeMode.DARK) { PlayHomeScreen({}, {}, {}) }
+
+    @Test fun playHomeLight() = capture(ThemeMode.LIGHT) { PlayHomeScreen({}, {}, {}) }
+
+    @Test
+    @Config(qualifiers = "w384dp-h832dp-xxhdpi")
+    fun playHomeW384DarkFontScale2() = capture(ThemeMode.DARK, 2f) { PlayHomeScreen({}, {}, {}) }
+
     @Test fun boardsEmptyDark() = capture(ThemeMode.DARK) { Boards(emptyList(), withDraft = false) }
 
     /** Heroes are playable and a game is in progress: Resume on top, then Play and the boards. */

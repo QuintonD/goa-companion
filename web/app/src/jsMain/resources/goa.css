@@ -375,7 +375,8 @@ a { color: var(--primary); }
 }
 .goa-tab[aria-current="page"] { color: var(--primary); font-weight: 600; }
 .goa-tab[aria-current="page"] .goa-tab-pill { background: color-mix(in srgb, var(--primary) 18%, transparent); }
-.goa-tab-label { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* Capped by the width: five tabs at large text still spell "Players" in full. */
+.goa-tab-label { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: min(0.75rem, 3.7vw); }
 
 /* ---------- Buttons ---------- */
 .goa-icon-button {

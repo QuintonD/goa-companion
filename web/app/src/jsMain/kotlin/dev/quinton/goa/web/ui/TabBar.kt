@@ -11,7 +11,7 @@ import org.jetbrains.compose.web.dom.Span
 import org.jetbrains.compose.web.dom.Text
 
 /**
- * The bottom tab bar: the Android app's four tabs in its order, the selected one filled in bronze
+ * The bottom tab bar: the Android app's five tabs in its order, the selected one filled in bronze
  * on a soft pill. Sits above the home indicator (safe area). Another tab reopens where it was;
  * the current tab returns to its first screen ([dev.quinton.goa.web.nav.Router.selectTab]).
  */

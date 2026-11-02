@@ -791,6 +791,9 @@ interface GameSession {
     /** Undo the last answer of a [Controller.Human] seat and everything after it, if any. */
     fun undoToLastHumanDecision(): Boolean
 
+    /** Whether [undoToLastHumanDecision] has an answer to take back; this session is left as it is. */
+    fun canTakeBack(): Boolean = fork().undoToLastHumanDecision()
+
     /**
      * The game so far, turn by turn, oldest first, the turn being played last, as [viewers] may see
      * it (ADR-037): each hero as it sees itself when it is one of [viewers], everyone else as the first

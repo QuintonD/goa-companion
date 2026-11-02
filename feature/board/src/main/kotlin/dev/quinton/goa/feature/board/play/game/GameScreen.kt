@@ -591,6 +591,10 @@ private fun Unavailable(
                 "The rules engine has changed since it was saved, so it can't be rebuilt move for move. Delete it to start a new one."
 
         NoGame.MAP_MISSING -> "This game's map isn't in this build" to "Delete it to start a new one."
+
+        NoGame.FAILED ->
+            "Something went wrong in this game" to
+                "The app couldn't work out the next step. Its last move is saved: go back and open it again, or delete it."
     }
     EmptyState(
         icon = Icons.Outlined.Hexagon,

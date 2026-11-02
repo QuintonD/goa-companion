@@ -1,5 +1,6 @@
 package dev.quinton.goa.feature.players.backup
 
+import android.database.sqlite.SQLiteException
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -18,6 +19,7 @@ import java.io.OutputStream
 import javax.inject.Inject
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -80,6 +82,10 @@ class BackupViewModel @Inject constructor(
                 local.update { it.copy(working = false, message = e.message) }
             } catch (e: IOException) {
                 local.update { it.copy(working = false, message = "Couldn't read the file: ${e.message}") }
+            } catch (_: SecurityException) {
+                local.update { it.copy(working = false, message = FILE_REFUSED) }
+            } catch (_: IllegalArgumentException) {
+                local.update { it.copy(working = false, message = FILE_REFUSED) }
             }
         }
     }
@@ -93,7 +99,10 @@ class BackupViewModel @Inject constructor(
         pendingDocument = null
         local.update { it.copy(pendingImport = null) }
         run {
-            withContext(io) { backup.import(document, mode, useBackupSettings || mode == ImportMode.REPLACE) }
+            // Started, it finishes: leaving the screen must not stop it between the matches and the settings.
+            withContext(io + NonCancellable) {
+                backup.import(document, mode, useBackupSettings || mode == ImportMode.REPLACE)
+            }
             val verb = if (mode == ImportMode.REPLACE) "Restored" else "Merged"
             val players = plural(document.players.size, "player")
             val matches = plural(document.matches.size, "match", "matches")
@@ -118,8 +127,15 @@ class BackupViewModel @Inject constructor(
                 "Something went wrong: ${e.message}"
             } catch (e: IllegalStateException) {
                 "Something went wrong: ${e.message}"
+            } catch (e: SQLiteException) {
+                "Something went wrong: ${e.message}"
+            } catch (_: SecurityException) {
+                FILE_REFUSED
             }
             local.update { it.copy(working = false, message = message) }
         }
     }
 }
+
+private const val FILE_REFUSED =
+    "The app that holds this file didn't allow reading it. Save it to your files and pick it there."

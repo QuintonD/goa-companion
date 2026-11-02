@@ -88,7 +88,7 @@ internal object PlayEngineModule {
     /** The coach analyses on the game factory's engine (it replays saves for the turning points). */
     @Provides
     @Singleton
-    fun coach(factory: GameFactory): Coach = AiCoach(factory, runner = AiSampleThreads)
+    fun coach(factory: Provider<GameFactory>): Coach = AiCoach({ factory.get() }, AiSampleThreads)
 
     /**
      * The bundled puzzles (PRODUCT §10) on the same engine as play (a fresh one if the factory is

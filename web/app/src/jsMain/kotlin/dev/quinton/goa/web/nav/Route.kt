@@ -8,6 +8,7 @@ enum class Tab(val label: String, val icon: String, val root: Route) {
     HEROES("Heroes", "heroes", Route.Catalog),
     TIMER("Timer", "timer", Route.Timer),
     DRAFT("Draft", "draft", Route.Draft),
+    PLAY("Play", "play", Route.PlayHome),
     PLAYERS("Players", "players", Route.Players),
 }
 
@@ -47,16 +48,26 @@ sealed interface Route {
         override val parent get() = HeroDetail(heroId)
     }
 
+    // Play tab (ADR-055)
+
+    /** The Play tab's first screen: Board and Card trivia. */
+    data object PlayHome : Route {
+        override val path = "play/home"
+        override val tab get() = Tab.PLAY
+        override val parent: Route? = null
+    }
+
+    /** Card trivia; with [heroId] it was opened from that hero's page, and stays on the Heroes tab. */
     data class Trivia(val heroId: String? = null) : Route {
         override val path get() = if (heroId == null) "trivia" else "trivia?hero=${Routes.encode(heroId)}"
-        override val tab get() = Tab.HEROES
-        override val parent get() = Catalog
+        override val tab get() = if (heroId == null) Tab.PLAY else Tab.HEROES
+        override val parent get() = if (heroId == null) PlayHome else HeroDetail(heroId)
     }
 
     /**
      * A trivia round (ADR-028) or the Challenge (ADR-032): the shared `TriviaQuizRequest` in the URL,
      * so a reload or a home-screen relaunch reopens the same quiz. Full screen: no tab bar beside the
-     * answer buttons.
+     * answer buttons. Stays on the tab that opened Card trivia, so its Back returns there.
      */
     data class TriviaQuiz(
         val config: String,
@@ -69,7 +80,7 @@ sealed interface Route {
             if (factKeys.isNotEmpty()) append("&facts=").append(Routes.encode(factKeys.joinToString(",")))
             if (challenge) append("&challenge=1")
         }
-        override val tab get() = Tab.HEROES
+        override val tab: Tab? = null
         override val parent get() = Trivia()
         override val showsTabBar get() = false
     }
@@ -77,19 +88,19 @@ sealed interface Route {
     /** The trivia leaderboard (ADR-032): Challenge and Practice boards from the group's rounds. */
     data object TriviaLeaderboard : Route {
         override val path = "trivia/leaderboard"
-        override val tab get() = Tab.HEROES
+        override val tab: Tab? = null
         override val parent get() = Trivia()
     }
 
     data object Boards : Route {
         override val path = "boards"
-        override val tab get() = Tab.HEROES
-        override val parent get() = Catalog
+        override val tab get() = Tab.PLAY
+        override val parent get() = PlayHome
     }
 
     data class Board(val boardId: String) : Route {
         override val path get() = "boards/${Routes.encode(boardId)}"
-        override val tab get() = Tab.HEROES
+        override val tab get() = Tab.PLAY
         override val parent get() = Boards
         override val showsTabBar get() = false
     }
@@ -105,7 +116,7 @@ sealed interface Route {
     ) : Route {
         override val path get() = "boards/new" +
             Routes.query("red" to red.ids(), "blue" to blue.ids(), "map" to mapId)
-        override val tab get() = Tab.HEROES
+        override val tab get() = Tab.PLAY
         override val parent get() = Boards
     }
 
@@ -129,7 +140,7 @@ sealed interface Route {
             "name" to name,
             "match" to matchId,
         )
-        override val tab get() = Tab.HEROES
+        override val tab get() = Tab.PLAY
         override val parent get() = Boards
         override val showsTabBar get() = false
     }
@@ -137,7 +148,7 @@ sealed interface Route {
     /** The game against the computer in progress (this browser's): the table, then the game-over summary. */
     data object Play : Route {
         override val path = "play"
-        override val tab get() = Tab.HEROES
+        override val tab get() = Tab.PLAY
         override val parent get() = Boards
         override val showsTabBar get() = false
     }
@@ -146,19 +157,19 @@ sealed interface Route {
     data class NewGame(val red: List<String> = emptyList(), val blue: List<String> = emptyList()) : Route {
         override val path get() = "play/new" +
             Routes.query("red" to red.ids(), "blue" to blue.ids())
-        override val tab get() = Tab.HEROES
+        override val tab get() = Tab.PLAY
         override val parent get() = Boards
     }
 
     data object Puzzles : Route {
         override val path = "puzzles"
-        override val tab get() = Tab.HEROES
+        override val tab get() = Tab.PLAY
         override val parent get() = Boards
     }
 
     data class Puzzle(val puzzleId: String) : Route {
         override val path get() = "puzzles/${Routes.encode(puzzleId)}"
-        override val tab get() = Tab.HEROES
+        override val tab get() = Tab.PLAY
         override val parent get() = Puzzles
         override val showsTabBar get() = false
     }
@@ -439,6 +450,7 @@ object Routes {
 
     private fun play(parts: List<String>, query: Map<String, String>): Route? = when {
         parts.size == 1 -> Route.Play
+        parts.size == 2 && parts[1] == "home" -> Route.PlayHome
         parts.size == 2 && parts[1] == "new" -> Route.NewGame(ids(query["red"]), ids(query["blue"]))
         else -> null
     }

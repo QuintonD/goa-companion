@@ -39,7 +39,10 @@ import dev.quinton.goa.feature.sync.session.SyncSessionActions
 import dev.quinton.goa.feature.sync.session.SyncSessionEntry
 import dev.quinton.goa.feature.sync.session.SyncSessionViewModel
 import dev.quinton.goa.feature.sync.share.SyncFiles
+import java.io.IOException
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 /** Group sync (ADR-025): the Group screen, the sync sheet, "Which player are you?" and file import. */
 fun EntryProviderScope<NavKey>.syncEntries(navigator: Navigator) {
@@ -116,9 +119,14 @@ private fun GroupEntry(navigator: Navigator) {
                     SyncSessionRoute(role = "join", firstSync = true, fromGroup = true),
                 )
 
-                is GroupEvent.Share -> context.startActivity(
-                    SyncFiles.shareIntent(context, event.bytes, event.fileName, event.title),
-                )
+                is GroupEvent.Share -> try {
+                    val share = withContext(Dispatchers.IO) {
+                        SyncFiles.shareIntent(context, event.bytes, event.fileName, event.title)
+                    }
+                    context.startActivity(share)
+                } catch (@Suppress("SwallowedException") e: IOException) {
+                    snackbar.showSnackbar("The sync file couldn't be written. Free some storage and try again.")
+                }
             }
         }
     }

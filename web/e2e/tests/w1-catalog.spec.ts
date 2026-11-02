@@ -95,6 +95,7 @@ test("a search with no answer says so and clears", async ({ page }) => {
 test("filters and sort", async ({ page }, info) => {
   const check = watchErrors(page);
   await open(page, "#/heroes");
+  await expect(page.locator(".goa-hero-tile").first()).toBeVisible({ timeout: 30_000 });
   const before = await page.locator(".goa-hero-tile").count();
   await page.getByRole("button", { name: "Filters" }).click();
   const sheet = page.getByRole("dialog", { name: "Filters" });

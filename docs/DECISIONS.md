@@ -2402,3 +2402,20 @@ fixture used a kind the engine never gives (`poison`), which hid the raw names; 
 (`rune_axe.png`…), not imported, as that is a separate change to how card text draws icons. The tokens are small on a phone (about
 22 dp on the dashboard, 17 dp on the chip), so the words under the frame carry the detail; not yet read on the S25 Ultra. No
 `SyncDocument.VERSION` bump: no synced type changed.
+
+## ADR-055 — The Play tab: Board and Card trivia in the bottom bar (2026-11-02)
+**Context:** Owner: "Lets move the board and card trivia down into the bottom bar under a 'play' icon". Both sat on the Heroes
+top bar, on a phone behind "More options", so the app's biggest features took three taps to find.
+
+**Decision:**
+1. A fifth tab, Play, between Draft and Players (`TopLevelTab.PLAY`, web `Tab.PLAY`), with its own back stack like the others
+   (ADR-020). Its first screen (`PlayHomeRoute`, `#/play/home`) has two cards: Board, whose text names the games against the
+   computer and the puzzles that still live on Boards, and Card trivia. Games and puzzles stay on Boards: moving them was not asked for.
+2. The Heroes top bar is Layout, Rules, Settings. With two icons gone, "More options" held only the layout switch, in the same
+   width as the switch itself, so it goes too, on both platforms.
+3. A hero's "Learn the numbers" stays on the Heroes tab, as a board opened from a draft or a match stays on its tab on Android:
+   Back returns to the hero. On the web, where a route names its tab, `Trivia(heroId)` is on Heroes, and the quiz and the
+   leaderboard stay on the tab that opened them. Older ADRs that place these on the Heroes tab describe their time.
+4. Five labels share a phone's width: at large text they share one size, capped by the screen's width, so none loses letters.
+
+**Consequences:** One more tap to a board from Heroes on a wide screen, where the icon was on the bar; one fewer on a phone.

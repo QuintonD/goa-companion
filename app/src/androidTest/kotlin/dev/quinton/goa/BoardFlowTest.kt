@@ -54,7 +54,7 @@ class BoardFlowTest {
         rule.tapDescription("Back")
         rule.openTab("catalog")
         rule.waitForText("32 heroes")
-        rule.tapHeroesAction("Board")
+        rule.openFromPlay("Board")
         rule.waitForText("Changed today", substring = true)
         rule.waitFor(hasText(hero, substring = true) and hasText(" vs ", substring = true))
     }

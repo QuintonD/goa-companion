@@ -4,7 +4,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import dev.quinton.goa.core.model.board.BoardPiece
 import dev.quinton.goa.core.model.board.HeroPiece
@@ -30,6 +29,7 @@ import dev.quinton.goa.web.ui.ListRow
 import dev.quinton.goa.web.ui.RowList
 import dev.quinton.goa.web.ui.SectionHeader
 import dev.quinton.goa.web.ui.Segmented
+import dev.quinton.goa.web.ui.rememberGuardedScope
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.web.attributes.InputType
 import org.jetbrains.compose.web.dom.Button
@@ -279,7 +279,7 @@ internal fun MoreSheet(
     onPick: (BoardOverlay) -> Unit,
     onAction: (BoardAction) -> Unit,
 ) {
-    val scope = rememberCoroutineScope()
+    val scope = rememberGuardedScope()
     BottomSheet("Board", onDismiss) {
         RowList {
             ListRow(

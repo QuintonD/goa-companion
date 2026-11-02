@@ -38,6 +38,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.RectangleShape
+import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
@@ -88,6 +90,7 @@ private val Tabs = listOf(
     TabSpec(TopLevelTab.CATALOG, "Heroes", GoaIcons.NavHeroesSelected, GoaIcons.NavHeroes),
     TabSpec(TopLevelTab.TIMER, "Timer", GoaIcons.NavTimerSelected, GoaIcons.NavTimer),
     TabSpec(TopLevelTab.DRAFT, "Draft", GoaIcons.NavDraftSelected, GoaIcons.NavDraft),
+    TabSpec(TopLevelTab.PLAY, "Play", GoaIcons.NavPlaySelected, GoaIcons.NavPlay),
     TabSpec(TopLevelTab.PLAYERS, "Players", GoaIcons.NavPlayersSelected, GoaIcons.NavPlayers),
 )
 
@@ -249,6 +252,10 @@ private fun KeepScreenOnWhile(enabled: Boolean) {
 
 @Composable
 internal fun GoaBottomBar(current: TopLevelTab, onSelect: (TopLevelTab) -> Unit) {
+    // Five tabs at large text: one size for all, as big as lets "Players" keep its letters in a fifth of the width.
+    val widest = (LocalConfiguration.current.screenWidthDp * TAB_LABEL_WIDTH_SHARE).dp
+    val theme = MaterialTheme.typography.labelMedium.fontSize
+    val labelSize = with(LocalDensity.current) { minOf(theme.toDp(), widest).toSp() }
     GoaPlateTheme {
         // The slate with its steel edge (mock-up 06); the plate is drawn here so it reaches under the system bar.
         Box(Modifier.slatePlate(RectangleShape)) {
@@ -270,6 +277,7 @@ internal fun GoaBottomBar(current: TopLevelTab, onSelect: (TopLevelTab) -> Unit)
                             Text(
                                 spec.label,
                                 fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium,
+                                fontSize = labelSize,
                                 maxLines = 1,
                             )
                         },
@@ -287,3 +295,6 @@ internal fun GoaBottomBar(current: TopLevelTab, onSelect: (TopLevelTab) -> Unit)
         }
     }
 }
+
+/** A tab label's largest size as a share of the screen's width: "Players" in bold is about four times its size wide. */
+private const val TAB_LABEL_WIDTH_SHARE = 0.042f

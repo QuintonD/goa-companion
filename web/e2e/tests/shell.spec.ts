@@ -9,6 +9,7 @@ const destinations: [hash: string, title: string][] = [
   ["#/rules", "Rules"],
   ["#/rules/movement", "Rules"],
   ["#/trivia", "Card trivia"],
+  ["#/play/home", "Play"],
   ["#/boards", "Boards"],
   ["#/play", "Play"],
   ["#/puzzles", "Puzzles"],
@@ -39,16 +40,16 @@ test("every destination opens without errors", async ({ page }) => {
   check();
 });
 
-test("the tab bar walks the four tabs and each remembers its screen", async ({ page }) => {
+test("the tab bar walks the five tabs and each remembers its screen", async ({ page }) => {
   const check = watchErrors(page);
   await open(page, "#/heroes");
   await page.getByRole("link", { name: /^Arien/ }).click();
   await expect(title(page)).toHaveText("Arien");
   const tabs = page.getByRole("navigation", { name: "Main" });
-  for (const [tab, name] of [["Timer", "Timer"], ["Draft", "Draft"], ["Players", "Players"]]) {
-    await tabs.getByRole("button", { name: tab }).click();
+  for (const [tab, name] of [["Timer", "Timer"], ["Draft", "Draft"], ["Play", "Play"], ["Players", "Players"]]) {
+    await tabs.getByRole("button", { name: tab, exact: true }).click();
     await expect(title(page)).toHaveText(name);
-    await expect(tabs.getByRole("button", { name: tab })).toHaveAttribute("aria-current", "page");
+    await expect(tabs.getByRole("button", { name: tab, exact: true })).toHaveAttribute("aria-current", "page");
   }
   // Back on Heroes: the hero page it was on; tapping Heroes again goes to the list.
   await tabs.getByRole("button", { name: "Heroes" }).click();
@@ -123,13 +124,64 @@ test("the theme choice is kept across a reload", async ({ page }) => {
   await expect(page.getByRole("radio", { name: "Light" })).toHaveAttribute("aria-checked", "true");
 });
 
-test("the More sheet opens, and closes with its button and with Escape", async ({ page }, info) => {
-  // Large text: Board and Card trivia move from the top bar into More (as on Android).
+test("Play holds Board and Card trivia, and Back returns to it", async ({ page }, info) => {
+  const check = watchErrors(page);
   await open(page, "#/heroes");
+  const tabs = page.getByRole("navigation", { name: "Main" });
+  // Off the Heroes bar: they live under Play now.
+  await expect(page.getByRole("link", { name: "Board", exact: true })).toHaveCount(0);
+  await expect(page.getByRole("link", { name: "Card trivia" })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "More options" })).toBeHidden();
+  await tabs.getByRole("button", { name: "Play", exact: true }).click();
+  await expect(title(page)).toHaveText("Play");
+  await expect(page).toHaveURL(/#\/play\/home$/);
+  await expect(page.getByRole("button", { name: "Back" })).toHaveCount(0);
+  await shot(page, info, "play-home-dark");
+  await page.getByRole("button", { name: /^Board/ }).click();
+  await expect(title(page)).toHaveText("Boards");
+  await expect(tabs.getByRole("button", { name: "Play", exact: true })).toHaveAttribute("aria-current", "page");
+  await page.getByRole("button", { name: "Back" }).click();
+  await expect(title(page)).toHaveText("Play");
+  await page.getByRole("button", { name: /^Card trivia/ }).click();
+  await expect(title(page)).toHaveText("Card trivia");
+  await page.getByRole("button", { name: "Back" }).click();
+  await expect(title(page)).toHaveText("Play");
+  check();
+});
+
+test("a hero's Learn the numbers stays on Heroes, and Back returns to the hero", async ({ page }) => {
+  await open(page, "#/heroes/arien");
+  await page.locator(".goa-learn-numbers").click();
+  await expect(title(page)).toHaveText("Card trivia");
+  const tabs = page.getByRole("navigation", { name: "Main" });
+  await expect(tabs.getByRole("button", { name: "Heroes" })).toHaveAttribute("aria-current", "page");
+  await page.getByRole("button", { name: "Back" }).click();
+  await expect(title(page)).toHaveText("Arien");
+});
+
+test("at the largest text every tab's label shows whole, and the Heroes bar keeps its title", async ({ page }) => {
+  await open(page, "#/heroes");
+  await page.evaluate(() => (document.documentElement.style.fontSize = "200%"));
+  const cut = await page.locator(".goa-tab-label").evaluateAll((els) =>
+    els.filter((e) => e.scrollWidth > e.clientWidth).map((e) => e.textContent),
+  );
+  expect(cut).toEqual([]);
+  await expect(page.getByRole("button", { name: "Show as list" })).toBeVisible();
+  const [text, room] = await title(page).evaluate((el) => {
+    const range = document.createRange();
+    range.selectNodeContents(el);
+    const style = getComputedStyle(el);
+    return [range.getBoundingClientRect().width, el.getBoundingClientRect().width - parseFloat(style.paddingLeft) - parseFloat(style.paddingRight)];
+  });
+  expect(text).toBeLessThanOrEqual(room + 0.01);
+});
+
+test("the More sheet opens, and closes with its button and with Escape", async ({ page }, info) => {
+  await open(page, "#/trivia");
   await page.evaluate(() => (document.documentElement.style.fontSize = "200%"));
   const more = page.getByRole("button", { name: "More options" });
   await expect(more).toBeVisible();
-  await expect(page.getByRole("link", { name: "Card trivia" })).toBeHidden();
+  await expect(page.getByRole("link", { name: "Leaderboard" })).toBeHidden();
   await more.click();
   const sheet = page.getByRole("dialog", { name: "More" });
   await expect(sheet).toBeVisible();
@@ -142,8 +194,8 @@ test("the More sheet opens, and closes with its button and with Escape", async (
   await page.keyboard.press("Escape");
   await expect(sheet).toBeHidden();
   await more.click();
-  await sheet.getByRole("link", { name: "Card trivia" }).click();
-  await expect(title(page)).toHaveText("Card trivia");
+  await sheet.getByRole("link", { name: "Leaderboard" }).click();
+  await expect(title(page)).toHaveText("Leaderboard");
 });
 
 test("About shows where every official image comes from", async ({ page }) => {

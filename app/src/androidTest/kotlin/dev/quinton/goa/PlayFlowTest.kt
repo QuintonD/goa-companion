@@ -25,7 +25,7 @@ class PlayFlowTest {
     fun startAGameFromBoardsAndPlayThroughTheFirstReveal() {
         rule.openTab("catalog")
         rule.waitForText("32 heroes")
-        rule.tapHeroesAction("Board")
+        rule.openFromPlay("Board")
         rule.tap(hasText("Play against the computer") and hasClickAction())
 
         // Alternate picks: Red, Blue, Red, Blue.

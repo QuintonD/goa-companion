@@ -7,7 +7,6 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import dev.quinton.goa.core.data.game.AiPace
 import dev.quinton.goa.core.game.Choice
@@ -63,6 +62,7 @@ import dev.quinton.goa.web.ui.IconButton
 import dev.quinton.goa.web.ui.IconSize
 import dev.quinton.goa.web.ui.LoadingState
 import dev.quinton.goa.web.ui.Screen
+import dev.quinton.goa.web.ui.rememberGuardedScope
 import kotlinx.browser.document
 import kotlinx.browser.window
 import kotlinx.coroutines.flow.first
@@ -86,7 +86,7 @@ fun GameScreen() {
     val services = LocalServices.current
     val data = services.data
     val router = services.router
-    val scope = rememberCoroutineScope()
+    val scope = rememberGuardedScope { services.messages.show(GAME_FAILED) }
     val controller = remember {
         GameController(
             engine = data.play.engine,
@@ -255,19 +255,15 @@ private fun fontScale(): Float {
 }
 
 private const val BASE_FONT = 16f
+private const val GAME_FAILED = "Something went wrong in this game. Its last move is saved: leave it and open it again."
 
 /** Keeps the screen on while a game is on the table (Screen Wake Lock, where the browser has it). */
 @Composable
 private fun KeepAwake(on: Boolean) {
+    val wakeLock = LocalServices.current.data.table.wakeLock
     DisposableEffect(on) {
-        var lock: dynamic = null
-        val wakeLock = window.navigator.asDynamic().wakeLock
-        if (on && wakeLock != undefined) {
-            runCatching {
-                wakeLock.request("screen").then({ l: dynamic -> lock = l }, { _: dynamic -> })
-            }
-        }
-        onDispose { if (lock != null) runCatching { lock.release() } }
+        wakeLock.want(on)
+        onDispose { wakeLock.want(false) }
     }
 }
 
@@ -424,6 +420,10 @@ private fun Unavailable(why: NoGame, onDelete: () -> Unit, onNewGame: () -> Unit
                 "The rules engine has changed since it was saved, so it can't be rebuilt move for move. Delete it to start a new one."
 
         NoGame.MAP_MISSING -> "This game's map isn't in this build" to "Delete it to start a new one."
+
+        NoGame.FAILED ->
+            "Something went wrong in this game" to
+                "The app couldn't work out the next step. Its last move is saved: go back and open it again, or delete it."
     }
     EmptyState("board", title, text) {
         Div({ classes("goa-button-row") }) {

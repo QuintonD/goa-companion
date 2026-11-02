@@ -26,6 +26,7 @@ import kotlin.random.Random
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.advanceTimeBy
@@ -78,6 +79,19 @@ class GameViewModelTest {
         val choice = session.preferred()!!
         vm.onAction(GameAction.Answer(choice))
         advanceUntilIdle()
+    }
+
+    @Test
+    fun `a rules failure during play says so and keeps the save, instead of closing the app`() = runTest(dispatcher) {
+        val saves = saved(coach = false)
+        val vm = viewModel(saves)
+        advanceUntilIdle()
+        val kept = saves.current.first()
+        session.failAnswers = true
+        vm.onAction(GameAction.Answer(session.preferred()!!))
+        advanceUntilIdle()
+        assertThat(vm.uiState.value).isEqualTo(GameUiState.Unavailable(NoGame.FAILED))
+        assertThat(saves.current.first()).isEqualTo(kept)
     }
 
     @Test

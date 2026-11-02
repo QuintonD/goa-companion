@@ -36,18 +36,30 @@ import kotlin.math.abs
  * seat's winning chances swung most.
  */
 class AiCoach internal constructor(
-    private val factory: GameFactory?,
+    private val factoryOf: () -> GameFactory?,
     private val seed: Long,
     budgetMs: Long,
     private val runner: SampleRunner = SampleRunner.SEQUENTIAL,
     /** Samples of a suggestion (card plays, other decisions), past the look ahead's. */
     private val suggestSamples: Pair<Int, Int> = SUGGEST_SAMPLES,
 ) : Coach {
+    internal constructor(
+        factory: GameFactory?,
+        seed: Long,
+        budgetMs: Long,
+        runner: SampleRunner = SampleRunner.SEQUENTIAL,
+        suggestSamples: Pair<Int, Int> = SUGGEST_SAMPLES,
+    ) : this({ factory }, seed, budgetMs, runner, suggestSamples)
+
     constructor(
         factory: GameFactory? = null,
-        seed: Long = 0x0C0AC4L,
+        seed: Long = COACH_SEED,
         runner: SampleRunner = SampleRunner.SEQUENTIAL,
     ) : this(factory, seed, BUDGET_MS, runner)
+
+    /** [factory] is asked only when the coach analyses (off the main thread): building the engine takes a while. */
+    constructor(factory: () -> GameFactory?, runner: SampleRunner) :
+        this(factory, COACH_SEED, BUDGET_MS, runner, SUGGEST_SAMPLES)
 
     private val profile = AiPlayers.profile(dev.quinton.goa.core.game.AiLevel.HARD).copy(
         playSamples = 6,
@@ -201,7 +213,7 @@ class AiCoach internal constructor(
         progress: (done: Int, total: Int) -> Unit,
         cancelled: () -> Boolean,
     ): GameReport? {
-        val engine = factory as? GameEngine ?: return null
+        val engine = factoryOf() as? GameEngine ?: return null
         return CoachReviewer(engine, searcher(engine.data), seed, runner).review(saved, seats, progress, cancelled)
     }
 
@@ -212,7 +224,7 @@ class AiCoach internal constructor(
     }
 
     override fun turningPoints(saved: SavedGame, seat: String, cancelled: () -> Boolean): List<CoachNote> {
-        val engine = factory as? GameEngine ?: return emptyList()
+        val engine = factoryOf() as? GameEngine ?: return emptyList()
         val payload = EngineSession.JSON.decodeFromString(SavedPayload.serializer(), saved.payload)
         val session = engine.fromState(saved.setup, payload.initial)
         val team = saved.setup.seats.firstOrNull { it.heroId == seat }?.team ?: return emptyList()
@@ -275,6 +287,8 @@ class AiCoach internal constructor(
     }
 
     companion object {
+        private const val COACH_SEED: Long = 0x0C0AC4L
+
         /** Wall-clock cap of one analysis (the samples stop early past it; at least one is always made). */
         const val BUDGET_MS: Long = 1500
 

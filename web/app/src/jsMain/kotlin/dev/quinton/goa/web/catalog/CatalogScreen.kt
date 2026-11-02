@@ -6,7 +6,6 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import dev.quinton.goa.core.domain.catalog.CardResult
 import dev.quinton.goa.core.domain.catalog.CatalogResults
@@ -37,12 +36,11 @@ import dev.quinton.goa.web.ui.Icon
 import dev.quinton.goa.web.ui.IconButton
 import dev.quinton.goa.web.ui.IconLink
 import dev.quinton.goa.web.ui.IconSize
-import dev.quinton.goa.web.ui.ListRow
 import dev.quinton.goa.web.ui.LoadContent
 import dev.quinton.goa.web.ui.LoadingState
 import dev.quinton.goa.web.ui.RouteLink
-import dev.quinton.goa.web.ui.RowList
 import dev.quinton.goa.web.ui.Screen
+import dev.quinton.goa.web.ui.rememberGuardedScope
 import dev.quinton.goa.web.ui.rememberLoad
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.emitAll
@@ -67,8 +65,6 @@ private sealed interface CatalogSheet {
     data object Filters : CatalogSheet
 
     data object Sort : CatalogSheet
-
-    data object More : CatalogSheet
 }
 
 /**
@@ -91,7 +87,7 @@ fun CatalogScreen() {
     val usage by remember { optional(emptyMap()) { services.data.group.ratings.observeHeroUsage() } }
         .collectAsState(emptyMap())
     var sheet by remember { mutableStateOf<CatalogSheet?>(null) }
-    val scope = rememberCoroutineScope()
+    val scope = rememberGuardedScope()
     val listView = settings?.catalogListView == true
     fun setListView(list: Boolean) {
         scope.launch { content.settings.update { it.copy(catalogListView = list) } }
@@ -104,12 +100,8 @@ fun CatalogScreen() {
                 if (listView) "grid_view" else "view_agenda",
                 if (listView) "Show as grid" else "Show as list",
                 onClick = { setListView(!listView) },
-                extraClass = "collapsible-large",
             )
             IconLink("rules", "Rules", Route.Rules)
-            IconLink("board", "Board", Route.Boards, extraClass = "collapsible")
-            IconLink("trivia", "Card trivia", Route.Trivia(), extraClass = "collapsible")
-            IconButton("more", "More options", onClick = { sheet = CatalogSheet.More }, extraClass = "more-only")
             IconLink("settings", "Settings", Route.Settings)
         },
     ) {
@@ -147,25 +139,9 @@ fun CatalogScreen() {
                             sheet = null
                         }, onDismiss = { sheet = null })
 
-                        else -> Unit
+                        null -> Unit
                     }
                 }
-            }
-        }
-    }
-    if (sheet == CatalogSheet.More) {
-        BottomSheet("More", onDismiss = { sheet = null }) {
-            RowList {
-                ListRow(
-                    if (listView) "Show as grid" else "Show as list",
-                    leadingIcon = if (listView) "grid_view" else "view_agenda",
-                    onClick = {
-                        setListView(!listView)
-                        sheet = null
-                    },
-                )
-                ListRow("Board", leadingIcon = "board", route = Route.Boards)
-                ListRow("Card trivia", leadingIcon = "trivia", route = Route.Trivia())
             }
         }
     }
