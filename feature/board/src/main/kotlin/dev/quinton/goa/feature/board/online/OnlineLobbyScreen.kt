@@ -191,7 +191,7 @@ private fun Invite(state: LobbyUi, actions: OnlineLobbyActions, onQr: () -> Unit
         OutlinedButton(onClick = onQr, modifier = Modifier.weight(1f).heightIn(min = 48.dp)) {
             Icon(Icons.Outlined.QrCode2, contentDescription = null)
             Spacer(Modifier.width(Spacing.xs))
-            Text("QR code")
+            Text("QR")
         }
     }
 }
@@ -248,8 +248,9 @@ private fun SeatRow(
         verticalAlignment = Alignment.CenterVertically,
     ) {
         val portrait = Modifier.size(scaledIconSize(36.dp, 1.4f)).border(2.dp, teamColor(seat.team), CircleShape)
-        if (seat.heroId != null) {
-            HeroPortrait(seat.heroId!!, heroes.hero(seat.heroId!!).portrait, null, portrait, CircleShape, framed = false)
+        val heroId = seat.heroId
+        if (heroId != null) {
+            HeroPortrait(heroId, heroes.hero(heroId).portrait, null, portrait, CircleShape, framed = false)
         } else {
             Box(portrait)
         }

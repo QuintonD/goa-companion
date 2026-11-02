@@ -118,7 +118,10 @@ private fun Seat(online: OnlineUi, table: TableUi, heroId: String, ring: Color) 
             hero.portrait,
             null,
             Modifier.size(scaledIconSize(26.dp, 1.4f)).border(
-                BorderStroke(if (onClock) 2.5.dp else 1.5.dp, if (onClock) MaterialTheme.colorScheme.secondary else ring),
+                BorderStroke(
+                    if (onClock) 2.5.dp else 1.5.dp,
+                    if (onClock) MaterialTheme.colorScheme.secondary else ring,
+                ),
                 CircleShape,
             ),
             shape = CircleShape,
@@ -165,7 +168,12 @@ private fun OnlineClock(seconds: Int, whose: String?) {
             contentDescription = "${whose ?: "The"} clock: ${spokenSeconds(seconds)} left"
         },
     ) {
-        Icon(Icons.Outlined.Timer, contentDescription = null, tint = color, modifier = Modifier.size(scaledIconSize(16.dp)))
+        Icon(
+            Icons.Outlined.Timer,
+            contentDescription = null,
+            tint = color,
+            modifier = Modifier.size(scaledIconSize(16.dp)),
+        )
         Spacer(Modifier.width(2.dp))
         Text(
             clockText(seconds),

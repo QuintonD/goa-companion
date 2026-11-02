@@ -46,11 +46,8 @@ fun OnlineGameScreen(
 ) {
     when (state) {
         is OnlineState.Connecting -> Waiting(state.note, onBack, modifier)
-
         is OnlineState.Refused -> Stopped(OnlineWords.refusal(state.reason, state.retryAfterSeconds), onBack, modifier)
-
         is OnlineState.Reconnecting -> Table(state.game, onAction, onTap, onLeave, onDone, onBack, modifier, true)
-
         is OnlineState.InGame -> Table(state.game, onAction, onTap, onLeave, onDone, onBack, modifier, false)
     }
 }

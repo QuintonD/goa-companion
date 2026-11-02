@@ -12,6 +12,8 @@ import dev.quinton.goa.core.data.rating.FakeEloConfigRepository
 import dev.quinton.goa.core.data.trivia.RoomTriviaRoundRepository
 import dev.quinton.goa.core.database.GoaDatabase
 import dev.quinton.goa.core.datastore.draft.DraftStore
+import dev.quinton.goa.core.datastore.online.OnlineAccountPrefs
+import dev.quinton.goa.core.datastore.online.OnlineAccountStore
 import dev.quinton.goa.core.datastore.settings.SettingsDataSource
 import dev.quinton.goa.core.datastore.timer.DataStoreTimerStateStore
 import dev.quinton.goa.core.datastore.timer.TimerStateStore
@@ -129,6 +131,21 @@ class BackupRoundTripTest {
 
     @After
     fun tearDown() = databases.forEach { it.close() }
+
+    @Test
+    fun `an online account on the phone doesn't reach the backup file`() = runTest {
+        val context = ApplicationProvider.getApplicationContext<android.content.Context>()
+        val account = OnlineAccountStore(
+            PreferenceDataStoreFactory.create(scope = backgroundScope) { OnlineAccountStore.file(context) },
+        )
+        account.save(OnlineAccountPrefs("acc-id-in-no-file", "token-in-no-file", "Name-in-no-file"))
+        val out = java.io.ByteArrayOutputStream()
+        Device().backup.exportTo(out)
+        val file = out.toString(Charsets.UTF_8.name())
+        listOf("acc-id-in-no-file", "token-in-no-file", "Name-in-no-file").forEach {
+            assertThat(file).doesNotContain(it)
+        }
+    }
 
     private val ann = Player("6f1c-ann", "Ann \"the Wall\" Ø", 0xFF3FC1B0, avatarId = 23, createdAt = 1_700_000_000_000)
     private val bob =

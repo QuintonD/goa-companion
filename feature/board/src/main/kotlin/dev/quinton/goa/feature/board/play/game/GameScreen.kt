@@ -87,8 +87,8 @@ import dev.quinton.goa.feature.board.board.SheetTitle
 import dev.quinton.goa.feature.board.map.MapViewport
 import dev.quinton.goa.feature.board.online.OnlineStrip
 import dev.quinton.goa.feature.board.online.OtherPlayerMove
-import dev.quinton.goa.feature.board.play.online.OnlineWords
 import dev.quinton.goa.feature.board.play.PlayText
+import dev.quinton.goa.feature.board.play.online.OnlineWords
 import dev.quinton.goa.feature.board.play.review.ReviewButton
 import dev.quinton.goa.feature.board.play.review.ReviewOpenEffect
 import dev.quinton.goa.feature.board.play.review.ReviewSheet

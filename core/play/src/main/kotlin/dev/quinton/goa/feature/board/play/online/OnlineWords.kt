@@ -81,9 +81,14 @@ object OnlineWords {
      */
     fun apiError(code: String): String? = when (code) {
         "bad_name" -> "That name can't be used. Pick another."
+
         "bad_recovery_code" -> "That recovery code isn't right, or it has already been used."
-        "bad_room", "map_unavailable", "bad_request", "too_large" -> "The server can't use that. Update the app and try again."
+
+        "bad_room", "map_unavailable", "bad_request", "too_large" ->
+            "The server can't use that. Update the app and try again."
+
         "store_unavailable" -> "The server can't save anything just now. Try again in a moment."
+
         else -> null
     }
 

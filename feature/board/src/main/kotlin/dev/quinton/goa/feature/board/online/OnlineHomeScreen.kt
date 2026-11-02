@@ -380,8 +380,8 @@ private fun Account(state: OnlineHomeUi, actions: OnlineHomeActions) {
     GoaPlate(Modifier.fillMaxWidth()) {
         Column(verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
             Text(
-                "To play on another device, enter your recovery code there. It works once, and that device gets a new " +
-                    "one to save.",
+                "To play on another device, enter your recovery code there. It works once, and that device gets a " +
+                    "new one to save.",
                 style = MaterialTheme.typography.bodySmall,
             )
             Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
@@ -397,7 +397,8 @@ private fun Account(state: OnlineHomeUi, actions: OnlineHomeActions) {
         ConfirmDialog(
             title = "Delete your account?",
             message = "Your name is removed from the server and the leaderboard: your games stay in the log as " +
-                "\"Former player\". You leave any game you're in, and your team still wins or loses. It can't be undone.",
+                "\"Former player\". You leave any game you're in, and your team still wins or loses. It can't be " +
+                "undone.",
             confirmLabel = "Delete account",
             destructive = true,
             icon = Icons.Outlined.PersonRemove,
