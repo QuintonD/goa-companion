@@ -285,22 +285,7 @@ fun BoardSvg(
         ) {
             ZoneLabels(scene, camera, bottomTeam, busy = pieces.map { it.at } + marks.map { it.hex }, painted = painted)
         }
-        tags.forEach { tag ->
-            val piece = pieces.firstOrNull { it.id == tag.pieceId } ?: return@forEach
-            val at = camera.mapToScreen(layout.center(piece.at))
-            // A tab of the piece's ring, in its colour: the piece above can't be taken for its owner.
-            val ring = if (painted) COIN_RING_OUTER else DRAWN_RING_OUTER
-            val width = if (painted) COIN_RING_WIDTH else DRAWN_RING_WIDTH
-            Span({
-                classes("goa-map-tag")
-                piece.team?.let { classes(if (it == Team.RED) "red" else "blue") }
-                attr("aria-hidden", "true")
-                style {
-                    property("left", "${n(at.x)}px")
-                    property("top", "${n(at.y - ring * camera.scale + maxOf(width * camera.scale, TAG_JOIN))}px")
-                }
-            }) { Text(tag.text) }
-        }
+        if (tags.isNotEmpty()) MapTags(tags, pieces, layout, camera, painted)
         if (nodes.isNotEmpty()) {
             Div({ classes("goa-visually-hidden") }) {
                 nodes.forEach { node ->
@@ -315,6 +300,33 @@ fun BoardSvg(
                 }
             }
         }
+    }
+}
+
+/** The tags over the pieces ("NOW"), at a fixed size: reads the camera here, so a pan step recomposes only them. */
+@Composable
+private fun MapTags(
+    tags: List<PieceTag>,
+    pieces: List<MapPiece>,
+    layout: HexLayout,
+    camera: MapCamera,
+    painted: Boolean,
+) {
+    tags.forEach { tag ->
+        val piece = pieces.firstOrNull { it.id == tag.pieceId } ?: return@forEach
+        val at = camera.mapToScreen(layout.center(piece.at))
+        // A tab of the piece's ring, in its colour: the piece above can't be taken for its owner.
+        val ring = if (painted) COIN_RING_OUTER else DRAWN_RING_OUTER
+        val width = if (painted) COIN_RING_WIDTH else DRAWN_RING_WIDTH
+        Span({
+            classes("goa-map-tag")
+            piece.team?.let { classes(if (it == Team.RED) "red" else "blue") }
+            attr("aria-hidden", "true")
+            style {
+                property("left", "${n(at.x)}px")
+                property("top", "${n(at.y - ring * camera.scale + maxOf(width * camera.scale, TAG_JOIN))}px")
+            }
+        }) { Text(tag.text) }
     }
 }
 
