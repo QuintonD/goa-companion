@@ -12,6 +12,10 @@ object OnlineWords {
 
     const val RECONNECTING: String = "Connection lost. Getting back to your game…"
 
+    /** `network.json` says the game server is closed for now, with no note of its own. */
+    const val HOST_CLOSED: String =
+        "Online games are closed for now; your games wait. Playing against the computer still works."
+
     /** The answer reached the server after the question had moved on, or wasn't accepted. */
     const val ANSWER_NOT_TAKEN: String = "That answer didn't count, so here is the question as it stands now."
 

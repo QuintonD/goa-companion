@@ -115,6 +115,22 @@ class SocketTest {
     }
 
     @Test
+    fun aHelloThisServerCantReadIsToldToUpdateNotJustClosed() = serverTest {
+        val unreadable = listOf(
+            """{"type":"hello","protocol":"two"}""",
+            """{"type":"hello"}""",
+            """{"type":"hello","protocol":9,"token":{"new":"shape"},"client":"x","catalogVersion":1}""",
+        )
+        for (text in unreadable) {
+            ws.webSocket("/v1/play") {
+                send(Frame.Text(text))
+                assertThat((next() as ServerMessage.Refused).reason).isEqualTo(Refusal.UPDATE_APP)
+                expectClosed()
+            }
+        }
+    }
+
+    @Test
     fun aBadTokenIsRefusedThenClosed() = serverTest {
         ws.webSocket("/v1/play") {
             sendMessage(hello("not-the-token-of-anyone"))

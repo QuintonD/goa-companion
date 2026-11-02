@@ -23,6 +23,12 @@ import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.Json
 import org.slf4j.LoggerFactory
 
+/** A rollback across a schema bump: this build can't read the database, and must not touch it (deploy/game/README.md). */
+class NewerDatabase(found: Long, mine: Int) : Exception(
+    "The database is schema $found and this server only knows up to $mine. Nothing was changed. " +
+        "Deploy a newer build, or restore the backup from before the upgrade: see \"Roll back\" in deploy/game/README.md.",
+)
+
 /**
  * SQLite on one connection, on one thread: JDBC never blocks a CIO thread and writes never interleave.
  * WAL with `synchronous=FULL`: a write is on disk when its call returns, so a frame about an answer can
@@ -642,7 +648,12 @@ class SqliteGameStore private constructor(private val connection: Connection) :
                 pragma.execute("PRAGMA foreign_keys = ON")
                 pragma.execute("PRAGMA temp_store = MEMORY")
             }
-            createSchema(connection)
+            try {
+                createSchema(connection)
+            } catch (failure: NewerDatabase) {
+                connection.close()
+                throw failure
+            }
             return SqliteGameStore(connection)
         }
 
@@ -653,9 +664,8 @@ class SqliteGameStore private constructor(private val connection: Connection) :
             val found = query("SELECT MAX(version) FROM schema_version") { rows ->
                 if (rows.next()) rows.longOrNull(1) else null
             }
-            check(found == null || found <= Schema.VERSION) {
-                "The database is schema $found, newer than this server's ${Schema.VERSION}"
-            }
+            // Inside the transaction, so that a database this build can't read is left as it was.
+            if (found != null && found > Schema.VERSION) throw NewerDatabase(found, Schema.VERSION)
             if (found == null) {
                 update(
                     "INSERT INTO schema_version (version, applied_at) VALUES (?, ?)",

@@ -175,7 +175,11 @@ class OnlineGameDriver(
             catalogVersion = catalogVersion,
             resume = listOf(Resume(gameId, events.size)),
         )
-        val connection = withTimeoutOrNull(OPEN_TIMEOUT_MS) { attempt { connector.open(hello) } } ?: return Next.RETRY
+        val connection = try {
+            withTimeoutOrNull(OPEN_TIMEOUT_MS) { attempt { connector.open(hello) } } ?: return Next.RETRY
+        } catch (unavailable: HostUnavailable) {
+            return hostUnavailable(unavailable)
+        }
         try {
             heardAt = clock.now()
             live = connection
@@ -194,6 +198,13 @@ class OnlineGameDriver(
             connection.close()
         }
         return verdict
+    }
+
+    private fun hostUnavailable(unavailable: HostUnavailable): Next {
+        if (unavailable.tooOld) return refuse(Refusal.UPDATE_APP)
+        retryAfterMs = HOST_CLOSED_RETRY_MS
+        mutableState.value = OnlineState.Connecting(unavailable.note ?: OnlineWords.HOST_CLOSED)
+        return Next.RETRY
     }
 
     private suspend fun read(connection: GameConnection) {
@@ -231,7 +242,7 @@ class OnlineGameDriver(
     /** Whatever goes wrong on the network is a dropped connection; being cancelled stays being cancelled. */
     private suspend fun <T : Any> attempt(block: suspend () -> T): T? {
         val result = runCatching { block() }
-        result.exceptionOrNull()?.let { if (it is CancellationException) throw it }
+        result.exceptionOrNull()?.let { if (it is CancellationException || it is HostUnavailable) throw it }
         return result.getOrNull()
     }
 
@@ -630,5 +641,6 @@ class OnlineGameDriver(
         /** Coming back to the foreground after this long, don't trust the old socket. */
         const val RESUME_SILENT_MS = 10_000L
         const val GAME_GONE_AFTER_MS = 5_000L
+        const val HOST_CLOSED_RETRY_MS = 60_000L
     }
 }

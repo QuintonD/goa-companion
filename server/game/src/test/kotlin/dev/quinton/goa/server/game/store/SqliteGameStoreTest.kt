@@ -25,6 +25,27 @@ import org.junit.Assert.assertThrows
 import org.junit.Before
 import org.junit.Test
 
+class SchemaTest {
+    @Test
+    fun aNewerDatabaseIsRefusedInWordsAndLeftAsItWas() {
+        val dir = Files.createTempDirectory("goa-schema")
+        SqliteGameStore.open(dir).close()
+        fun versions(): List<Int> = DriverManager.getConnection("jdbc:sqlite:${dir.resolve("games.sqlite")}").use { c ->
+            c.createStatement().executeQuery("SELECT version FROM schema_version ORDER BY version").use { rows ->
+                buildList { while (rows.next()) add(rows.getInt(1)) }
+            }
+        }
+        DriverManager.getConnection("jdbc:sqlite:${dir.resolve("games.sqlite")}").use {
+            it.createStatement().execute("INSERT INTO schema_version (version, applied_at) VALUES (99, 1)")
+        }
+        val failure = assertThrows(NewerDatabase::class.java) { SqliteGameStore.open(dir) }
+        assertThat(failure.message).contains("schema 99")
+        assertThat(failure.message).contains("deploy/game/README.md")
+        assertThat(versions()).containsExactly(Schema.VERSION, 99).inOrder()
+        dir.toFile().deleteRecursively()
+    }
+}
+
 /** Nothing about this reads an answer of a finished game: the board stands after the sweep. */
 class RetentionTest {
     private lateinit var dir: Path

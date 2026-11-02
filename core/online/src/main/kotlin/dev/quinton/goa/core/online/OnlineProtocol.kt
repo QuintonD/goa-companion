@@ -21,7 +21,8 @@ import kotlinx.serialization.json.Json
 object OnlineProtocol {
     /**
      * Goes up with any new sealed subtype or enum value that can reach a client: old decoders fail on
-     * them. A plain added field with a default does not need it.
+     * them. A plain added field with a default does not need it. `WireNamesTest` beside this module's
+     * tests pins every such name and fails until its list is changed along with this.
      */
     const val VERSION: Int = 1
 

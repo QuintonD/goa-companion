@@ -22,6 +22,8 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withTimeoutOrNull
+import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.jsonObject
 import org.slf4j.LoggerFactory
 
 private val log = LoggerFactory.getLogger("goa-game")
@@ -32,6 +34,7 @@ internal const val MAX_WATCHED_ROOMS = 8
 internal const val MAX_SOCKETS_PER_ACCOUNT = 4
 private const val SEND_TIMEOUT_MILLIS = 30_000L
 private const val CLOSE_TIMEOUT_MILLIS = 1_000L
+private const val HELLO_TYPE = "hello"
 private val CLIENT_LABEL = Regex("[A-Za-z0-9._/-]{1,40}")
 
 /** One person's socket: its queue, and the games it is linked to. */
@@ -207,7 +210,9 @@ internal suspend fun pump(outbound: Outbound, send: suspend (ServerMessage) -> U
 
 /** `GET /v1/play`. The token comes in the first frame only: never from a header or a URL. */
 internal suspend fun DefaultWebSocketServerSession.play(services: GameServices) {
-    val hello = withTimeoutOrNull(services.config.helloTimeoutMillis) { receiveHello() }
+    val first = withTimeoutOrNull(services.config.helloTimeoutMillis) { receiveFirst() }
+    if (first is FirstFrame.TooNew) return refuse(ServerMessage.Refused(Refusal.UPDATE_APP))
+    val hello = (first as? FirstFrame.Good)?.hello
         ?: return close(CloseReason(CloseReason.Codes.VIOLATED_POLICY, "hello"))
     val account = admit(services, hello) ?: return
     val socket = PlayerSocket(account.id, services.rooms, this)
@@ -239,10 +244,31 @@ internal suspend fun DefaultWebSocketServerSession.play(services: GameServices) 
     }
 }
 
-private suspend fun DefaultWebSocketServerSession.receiveHello(): ClientMessage.Hello? {
-    val frame = incoming.receiveCatching().getOrNull() as? Frame.Text ?: return null
-    if (frame.data.size > MAX_FRAME_BYTES) return null
-    return decode(frame) as? ClientMessage.Hello
+private sealed interface FirstFrame {
+    class Good(val hello: ClientMessage.Hello) : FirstFrame
+
+    /** It says it is a Hello and this server can't read it: a client from another time, who needs telling. */
+    data object TooNew : FirstFrame
+
+    data object NotAHello : FirstFrame
+}
+
+private suspend fun DefaultWebSocketServerSession.receiveFirst(): FirstFrame {
+    val frame = incoming.receiveCatching().getOrNull() as? Frame.Text ?: return FirstFrame.NotAHello
+    if (frame.data.size > MAX_FRAME_BYTES) return FirstFrame.NotAHello
+    val message = decode(frame)
+    return when {
+        message is ClientMessage.Hello -> FirstFrame.Good(message)
+        message == null && saysHello(frame.readText()) -> FirstFrame.TooNew
+        else -> FirstFrame.NotAHello
+    }
+}
+
+private fun saysHello(text: String): Boolean = try {
+    val type = OnlineProtocol.json.parseToJsonElement(text).jsonObject["type"]
+    (type as? JsonPrimitive)?.content == HELLO_TYPE
+} catch (_: IllegalArgumentException) {
+    false
 }
 
 /** The account behind a Hello; otherwise says why, closes, and returns null. */

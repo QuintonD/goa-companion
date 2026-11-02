@@ -126,6 +126,11 @@ It puts `goa-game:previous` back as `goa-game:latest`, recreates the container, 
 reopens rooms. The image keeps its own rules build. After a failed health check `deploy.sh` leaves new
 rooms paused on the bad server and prints this command.
 
+**A rollback across a schema bump needs the backup.** The older image refuses a database newer than it knows
+(`Schema.VERSION`): it logs `The database is schema N and this server only knows up to M`, touches nothing, and
+stays unhealthy rather than restarting in a loop. Then restore the backup from before the upgrade
+([below](#restore-a-backup)), which loses what was played since, or deploy forward again.
+
 ## Pause new rooms
 
 ```sh

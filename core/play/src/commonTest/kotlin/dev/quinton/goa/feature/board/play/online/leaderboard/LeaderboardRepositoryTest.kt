@@ -71,6 +71,21 @@ class LeaderboardRepositoryTest {
     }
 
     @Test
+    fun aClosedHostIsNotAsked() = runTest {
+        val closed = OnlineProtocol.json.encodeToString(
+            NetworkInfo.serializer(),
+            NetworkInfo(
+                1,
+                1,
+                listOf(GameHost("https://one.example", "closed"), GameHost("$builtIn/", "closed")),
+            ),
+        )
+        val web = FakeWeb(mapOf(OnlineRoutes.NETWORK_FILE to closed))
+        assertNull(repository(web).load())
+        assertEquals(listOf(OnlineRoutes.LEADERBOARD_FILE, OnlineRoutes.NETWORK_FILE), web.asked)
+    }
+
+    @Test
     fun theFullFallbackOrder() = runTest {
         val cache = FakeCache(text(board(generatedAt = now - 3 * DAY, name = "Old")))
         val web = FakeWeb(

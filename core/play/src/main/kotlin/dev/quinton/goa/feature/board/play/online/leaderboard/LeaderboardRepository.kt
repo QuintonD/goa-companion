@@ -4,6 +4,7 @@ import dev.quinton.goa.core.online.LeaderboardSnapshot
 import dev.quinton.goa.core.online.NetworkInfo
 import dev.quinton.goa.core.online.OnlineProtocol
 import dev.quinton.goa.core.online.OnlineRoutes
+import dev.quinton.goa.feature.board.play.online.HOST_STATUS_CLOSED
 
 /** The platform's HTTP GET. Null on any failure, a bad status or a timeout; it does not throw. */
 fun interface LeaderboardFetcher {
@@ -60,10 +61,11 @@ class LeaderboardRepository(
     private fun loaded(snapshot: LeaderboardSnapshot, origin: LeaderboardOrigin) =
         LeaderboardLoad(snapshot, origin, (now() - snapshot.generatedAt).coerceAtLeast(0))
 
-    /** The hosts of `network.json` in its order, the built-in address last, each once. */
+    /** The hosts of `network.json` in its order, the built-in address last, each once; none it has closed. */
     private suspend fun hosts(): List<String> {
-        val listed = fetcher.get(OnlineRoutes.NETWORK_FILE)?.let(::networkOf)?.games.orEmpty().map { it.origin }
-        return (listed + builtInHost).map { it.trimEnd('/') }.distinct()
+        val listed = fetcher.get(OnlineRoutes.NETWORK_FILE)?.let(::networkOf)?.games.orEmpty()
+        val closed = listed.filter { it.status == HOST_STATUS_CLOSED }.map { it.origin.trimEnd('/') }
+        return (listed.map { it.origin } + builtInHost).map { it.trimEnd('/') }.distinct().filter { it !in closed }
     }
 
     private fun snapshotOf(text: String): LeaderboardSnapshot? =

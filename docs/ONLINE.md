@@ -69,7 +69,10 @@ The server answers on both `/v1/...` and `/game/v1/...`, whichever way the path 
   group sync are untouched.
 - **Accepted limits.** Nobody can be stopped from consulting another device's AI, so the board is
   community fun and not a secure competition. There is no push: a backgrounded app loses its socket
-  while the clock runs, so an online game is something you sit down for.
+  while the clock runs, so an online game is something you sit down for. A token can't be revoked except by
+  deleting the account. A catalog bump refuses old APKs in the middle of their game, while the computer
+  plays their seat, so deploy catalog changes between games where possible. A person running a thousand
+  accounts on many addresses can still fill the open rooms for 10 minutes at a time.
 
 ## Simultaneous questions
 
@@ -162,8 +165,14 @@ it exists the server refuses new rooms (`Refusal.DRAINING`) and `/v1/health` say
 
 `OnlineProtocol.VERSION` goes up with any new `GameEvent`, `Choice`, `DecisionKind` or other sealed
 subtype or enum value that can reach a client (old decoders fail on them; Android updates by hand,
-ADR-048). A plain added field with a default does not need it. `Hello` carries the protocol and the
-catalog's `dataVersion`; too old gets `Refused(UPDATE_APP)`.
+ADR-048). A plain added field with a default does not need it. `WireNamesTest` in `core/online` pins every
+such name, and fails until the list beside it is changed, which is the moment to raise the version. `Hello`
+carries the protocol and the catalog's `dataVersion`; too old gets `Refused(UPDATE_APP)`, and so does a `Hello`
+this server can't read at all, rather than a bare 1008.
+
+`network.json` comes first: `minProtocol` above the client's version means `UPDATE_APP` with no socket opened,
+and a host with status `closed` is not connected to (`chooseHost`, `hostAwareConnector`). When it can't be
+read the built-in address holds, so Pages being down stops nothing.
 
 ## Routes
 
@@ -189,8 +198,9 @@ WebSocket and a URL would be logged). Inbound frames up to 4 KiB, a ping every 2
 channel per connection that keeps only the latest `Table`. `Origin` must be on the list when present;
 native clients send none. CORS follows the relay: an exact list, no credentials.
 
-- **Refused, then closed:** protocol or catalog too old (`UPDATE_APP`), a bad token (`BAD_TOKEN`).
-- **Closed with no frame:** no `Hello` in time or a first frame that is not one (1008), a frame over the
+- **Refused, then closed:** protocol or catalog too old, or a `Hello` that can't be read (`UPDATE_APP`), a bad
+  token (`BAD_TOKEN`).
+- **Closed with no frame:** no `Hello` in time or a first frame that doesn't even say it is one (1008), a frame over the
   limit (1009), an unreadable frame (1003), a queue that fell too far behind or a socket stuck for 30 s
   (1013): reconnect and `Resume` from the events you hold. Falling behind means 4096 events merged while a
   client wasn't keeping up; how long the log is has nothing to do with it.
@@ -266,7 +276,8 @@ one thread. An answer is durable before any frame about it is sent. No rating co
 `server/game/.../store/Schema.kt`. A repeat of a stored answer or lock changes nothing, and a different
 answer at the same `seq` is an error: the past is not rewritten. sqlite-jdbc unpacks its native library into
 the data directory, which must allow execution (a container's `/tmp` may not), unless `-Dorg.sqlite.tmpdir`
-says otherwise; SQLite's own temporary tables stay in memory.
+says otherwise; SQLite's own temporary tables stay in memory. A database of a newer schema than the build is
+left untouched: the server logs why every 10 minutes and serves nothing, rather than crash-looping.
 
 ## What is kept, and for how long
 

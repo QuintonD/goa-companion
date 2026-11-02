@@ -34,6 +34,41 @@ class OnlinePresentersTest {
     // ---- Invites -------------------------------------------------------------------------------------
 
     @Test
+    fun aLobbyToldByNetworkJsonIsTooOldStopsAndAClosedHostSaysSo() = runTest {
+        fun lobby(failure: HostUnavailable) = OnlineLobbyPresenter(
+            code = "ABCD1234",
+            gateway = FakeGateway(),
+            connector = { throw failure },
+            identities = FakeIdentities(),
+            playableHeroes = emptyList(),
+            catalogVersion = { 7 },
+            scope = backgroundScope,
+            client = "test/1",
+            initial = RoomView(
+                code = "ABCD1234",
+                hostAccountId = "acc",
+                mapId = "forgotten-island",
+                length = GameLength.QUICK,
+                teamSize = 1,
+                ranked = false,
+                seats = emptyList(),
+                status = RoomStatus.OPEN,
+                expiresAt = 1,
+            ),
+            random = Random(1),
+        )
+        val old = lobby(HostUnavailable(tooOld = true))
+        old.start()
+        runCurrent()
+        assertEquals(OnlineWords.refusal(Refusal.UPDATE_APP), old.state.value.message)
+
+        val closed = lobby(HostUnavailable(tooOld = false))
+        closed.start()
+        runCurrent()
+        assertEquals(OnlineWords.HOST_CLOSED, closed.state.value.message)
+    }
+
+    @Test
     fun anInviteIsReadFromALinkAFragmentOrACode() {
         val code = "ABCD1234"
         assertEquals(code, parseInvite(inviteLink(code)))
