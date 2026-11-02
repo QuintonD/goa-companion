@@ -51,6 +51,12 @@
                 android:name="androidx.work.WorkManagerInitializer"
                 android:value="androidx.startup"
                 tools:node="remove" />
+            <!-- No emoji in the app's words; the system's font draws any in a player's name. Loading
+                 EmojiCompat at every start costs a font lookup and a relayout of every text (ADR-057). -->
+            <meta-data
+                android:name="androidx.emoji2.text.EmojiCompatInitializer"
+                android:value="androidx.startup"
+                tools:node="remove" />
         </provider>
 
         <activity
