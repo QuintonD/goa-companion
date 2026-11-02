@@ -409,10 +409,10 @@ def banner():
 # ---------- The text boxes ----------
 
 # Drawn at 1000 x 400, written at 3/5: all five colours share one geometry. The written box's slices (left, top, right,
-# bottom) are 48, 87, 48, 39, and its tab is the top 52 rows: a box with no word for its tab starts there. LookParts.kt
+# bottom) are 48, 87, 48, 39, and its tab is the top 60 rows: a box with no word for its tab starts there. LookParts.kt
 # and the text box's border-image use the same numbers.
 BOX_W, BOX_H = 1000, 400
-BOX_TAB = 87  # Rows of the tab above the rim, as drawn.
+BOX_TAB = 100  # Rows of the tab above the rim, as drawn: 14 dp, room for its word.
 
 TABS = {
     "green": (rgb(58, 158, 62), rgb(40, 118, 44)),

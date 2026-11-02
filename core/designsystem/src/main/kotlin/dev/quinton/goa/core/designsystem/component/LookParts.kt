@@ -379,7 +379,7 @@ fun CardTextBox(
     val fontScale = LocalDensity.current.fontScale
     Box(
         modifier.drawWithCache {
-            val top = if (cap != null) 20.dp else 8.dp
+            val top = if (cap != null) 20.dp else 6.dp
             val dst = SliceInsets(11.dp.roundToPx(), top.roundToPx(), 11.dp.roundToPx(), 9.dp.roundToPx())
             onDrawBehind {
                 if (box != null) {
@@ -523,7 +523,7 @@ private val TITLE_SLICE = SliceInsets(52, 31, 132, 31)
 private val BOX_SLICE = SliceInsets(48, 87, 48, 39)
 
 /** Where a box's rim starts under its tab, in source pixels. */
-private const val BOX_TAB_ROWS = 52
+private const val BOX_TAB_ROWS = 60
 private val CAP_SHADOW = Shadow(Color(0xB0000000), Offset(0f, 1f), 2f)
 private val BEVEL_OUTLINE = Color(0xFF05090D)
 private val BEVEL_FILL = Brush.verticalGradient(
