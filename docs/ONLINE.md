@@ -167,6 +167,28 @@ REST errors are `ApiError`. Beyond those above: `bad_request`, `bad_name`, `bad_
 - **Drain:** while `GOA_GAME_DRAIN_FILE` (default `<data>/drain`) exists, no room opens and no room starts,
   because a game begun now could outlast the drain and be replayed under new rules. Running games continue
   and health says `status: "draining"`.
+## The client
+
+`OnlineGameDriver` (in `core/play/.../online/`) turns frames into the `GameUiState` both game screens
+already draw; the home and lobby presenters do the rest; screens implement `GameConnector`,
+`OnlineGateway` and `OnlineIdentityStore`. What it relies on from the server:
+
+- A connection starts with `GameStart`, then a `Table` with events from `Hello.resume`'s `haveEvents`.
+  A table whose `eventsFrom` is past what the client holds makes it reconnect and ask again, so a
+  conflated frame must not lose events for good. The online log only grows: an overlap is not replayed.
+- A locked seat gets a stub or its next forecast question, with a new ticket; never the question it has
+  answered, unless with the same ticket and itself in `locked`. A new ticket is always answerable.
+- A question is real when `id` is not 0 and it has options, and only then can it be answered.
+- `POST /v1/rooms/{code}/join` is also how the creator and someone already seated come in, and changes
+  nothing for them: home calls it after creating a room.
+- `Welcome.activeGames` lists the person's running games. A game not listed that sends no frame within
+  5 s is shown as gone; a game that sends its frames is fine whatever the list says.
+- A frame the client can't decode means a newer server: it shows `Refused(UPDATE_APP)` and stops.
+- A room code is 8 characters of Crockford base 32 in upper case (no I, L, O or U), so that what people
+  retype reads back: O as 0, I and L as 1.
+
+A new account is saved on the device only after "I've saved it": if the app dies before that, the person
+starts again with nothing lost. Linking a device burns the old code, so its new one must be saved too.
 
 ## Storage
 

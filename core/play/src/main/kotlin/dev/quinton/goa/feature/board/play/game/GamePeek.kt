@@ -1,5 +1,8 @@
 package dev.quinton.goa.feature.board.play.game
 
+import dev.quinton.goa.core.game.DecisionKind
+import dev.quinton.goa.core.online.Presence
+import dev.quinton.goa.feature.board.play.online.OnlineWords
 import dev.quinton.goa.feature.board.play.table.MomentKind
 import dev.quinton.goa.feature.board.play.table.questionPeek
 import dev.quinton.goa.feature.board.ui.PanelPeek
@@ -30,10 +33,23 @@ fun gamePeek(play: PlayUi): PanelPeek {
             }
         }
 
-        is TurnStatus.Waiting -> PanelPeek("Your card is down · waiting for the others to play (p.7)")
+        // Only online does a level-up wait here: what it locked in is no card played facedown.
+        is TurnStatus.Waiting -> when (table.decision?.kind) {
+            DecisionKind.UPGRADE_CARD, DecisionKind.KEEP_UPGRADE ->
+                PanelPeek("Your choice is in · waiting for the others")
 
-        is TurnStatus.OtherPlayer ->
-            PanelPeek(text = "is choosing", label = status.name, team = table.heroView(status.heroId)?.team)
+            else -> PanelPeek("Your card is down · waiting for the others to play (p.7)")
+        }
+
+        is TurnStatus.OtherPlayer -> PanelPeek(
+            text = if (play.online?.presence?.get(status.heroId) == Presence.COMPUTER) {
+                OnlineWords.presence(Presence.COMPUTER)
+            } else {
+                "is choosing"
+            },
+            label = status.name,
+            team = table.heroView(status.heroId)?.team,
+        )
 
         TurnStatus.Over -> PanelPeek(play.recent.lastOrNull().orEmpty())
     }

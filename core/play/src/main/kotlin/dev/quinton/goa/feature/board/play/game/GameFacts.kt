@@ -19,7 +19,10 @@ import dev.quinton.goa.core.model.match.Team
  * the reveal, what happened lately and the game-over summary. Pure functions of the engine's data.
  */
 
-/** The heroes the person at the phone controls (every human seat: one human team per game). */
+/**
+ * The heroes the person at the phone controls (every human seat: one human team per game). Never online:
+ * every seat is human there, so this is every hand (ADR-056); use `GameStart.you`.
+ */
 val GameSetup.humans: Set<String> get() = seats.filter { it.controller == Controller.Human }.map { it.heroId }.toSet()
 
 /** The person's team: the team of the first human seat (null for a game with none). */
@@ -84,7 +87,19 @@ fun gameOverUi(
     setup: GameSetup,
     inProgress: GameInProgress,
     turningPoints: List<CoachNote>?,
-): GameOverUi? {
+): GameOverUi? = gameOverUi(view, events, setup, setup.humanTeam)?.copy(
+    takeBacks = inProgress.takeBacks,
+    nudges = inProgress.nudges,
+    rethinks = inProgress.rethinks,
+    turningPoints = turningPoints,
+    coach = inProgress.coach,
+)
+
+/**
+ * The summary for the person on [yourTeam]. Online every seat is human, so `setup.humanTeam` would name
+ * the first seat's team to both sides (ADR-056); there is no coach and nothing to take back.
+ */
+fun gameOverUi(view: GameView, events: List<GameEvent>, setup: GameSetup, yourTeam: Team?): GameOverUi? {
     val over = events.filterIsInstance<GameEvent.GameOver>().lastOrNull()
     val winner = view.winner ?: over?.winner ?: return null
     val reason = view.winReason ?: over?.reason ?: return null
@@ -108,14 +123,13 @@ fun gameOverUi(
     return GameOverUi(
         winner = winner,
         reason = reason,
-        youWon = winner == setup.humanTeam,
+        youWon = winner == yourTeam,
         rounds = view.round,
         heroes = results,
-        takeBacks = inProgress.takeBacks,
-        nudges = inProgress.nudges,
-        rethinks = inProgress.rethinks,
-        turningPoints = turningPoints,
-        coach = inProgress.coach,
+        takeBacks = 0,
+        nudges = 0,
+        rethinks = 0,
+        coach = false,
     )
 }
 
