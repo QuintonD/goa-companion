@@ -36,6 +36,8 @@ import dev.quinton.goa.web.nav.Route
 import dev.quinton.goa.web.play.cards.CardFocusHost
 import dev.quinton.goa.web.play.cards.CardFocusState
 import dev.quinton.goa.web.play.cards.CardImage
+import dev.quinton.goa.web.play.online.OnlinePlayers
+import dev.quinton.goa.web.play.online.OtherPlayerMove
 import dev.quinton.goa.web.play.table.Announce
 import dev.quinton.goa.web.play.table.DecisionPanel
 import dev.quinton.goa.web.play.table.DecisionWho
@@ -48,6 +50,7 @@ import dev.quinton.goa.web.play.table.MomentCard
 import dev.quinton.goa.web.play.table.Overline
 import dev.quinton.goa.web.play.table.Quiet
 import dev.quinton.goa.web.play.table.RecentEvents
+import dev.quinton.goa.web.play.table.ResolutionFlowView
 import dev.quinton.goa.web.play.table.YourHand
 import dev.quinton.goa.web.play.table.rememberTableCamera
 import dev.quinton.goa.web.play.table.teamCss
@@ -102,11 +105,7 @@ fun GameScreen() {
     LaunchedEffect(controller) { controller.start() }
     val state by controller.uiState.collectAsState()
     val focus = remember { CardFocusState() }
-    val camera = rememberTableCamera()
-    var sheet by remember { mutableStateOf<PlaySheet?>(null) }
-    var menu by remember { mutableStateOf(false) }
     var ending by remember { mutableStateOf(false) }
-    var panelShown by remember { mutableStateOf(true) }
     val play = (state as? GameUiState.Playing)?.play
     KeepAwake(play != null && play.over == null)
     val onAction: (GameAction) -> Unit = controller::onAction
@@ -130,101 +129,21 @@ fun GameScreen() {
             }, onNewGame = { router.navigate(Route.NewGame(), replace = true) })
         }
 
-        is GameUiState.Playing -> {
-            val over = s.play.over
-            if (over != null) {
+        is GameUiState.Playing -> GameTable(
+            play = s.play,
+            onAction = onAction,
+            onTap = controller::tap,
+            focus = focus,
+            onEnd = { ending = true },
+            over = { over, onHero ->
                 Screen("Game over") {
                     GameOver(s.play, over, onAction, onNewGame = newGame, onDone = {
                         controller.discardFinished()
                         router.back()
-                    }, onHero = { sheet = PlaySheet.Hero(it) })
+                    }, onHero = onHero)
                 }
-            } else {
-                val view = s.play.table.view
-                val fontScale = fontScale()
-                GameTableView(
-                    title = roundTitle(view.round, view.turn, (window.innerWidth - BANNER_MEDALLION) / fontScale),
-                    actions = {
-                        Button({
-                            classes("goa-icon-button")
-                            attr("type", "button")
-                            attr("aria-label", "Take back")
-                            attr("title", "Take back")
-                            if (!s.play.canTakeBack || s.play.busy) attr("disabled", "")
-                            onClick { onAction(GameAction.TakeBack) }
-                        }) { Icon("undo") }
-                        IconButton("article", "Game state", {
-                            sheet = PlaySheet.Review()
-                            onAction(GameAction.Review(ReviewAction.Open(true)))
-                        })
-                        IconButton("list", "Game log", { sheet = PlaySheet.Log })
-                        IconButton("more", "More options", { menu = true })
-                    },
-                    table = s.play.table,
-                    camera = camera,
-                    focus = focus,
-                    onTap = { tap ->
-                        if (!controller.tap(tap) && tap is TableTap.Piece &&
-                            s.play.table.heroView(tap.pieceId) != null
-                        ) {
-                            sheet = PlaySheet.Hero(tap.pieceId)
-                        }
-                    },
-                    onHero = { sheet = PlaySheet.Hero(it) },
-                    onFlip = { onAction(GameAction.Flip) },
-                    panelShown = panelShown,
-                    onPanelShown = { panelShown = it },
-                    peek = gamePeek(s.play),
-                    peekActions = {
-                        if (s.play.status is TurnStatus.YourTurn && s.play.nudge == null) {
-                            PeekConfirm(s.play.table, s.play.busy) { onAction(GameAction.Answer(it)) }
-                        }
-                    },
-                    panelTitle = if (s.play.status is TurnStatus.YourTurn && s.play.nudge == null) {
-                        { DecisionWho(s.play.table) }
-                    } else {
-                        null
-                    },
-                ) { Panel(s.play, onAction, focus) }
-            }
-            Announce(s.play.announcement?.text)
-            when (val open = sheet) {
-                PlaySheet.Log -> BottomSheet("Game log", onDismiss = { sheet = null }) {
-                    Quiet("Every event, newest at the bottom.")
-                    EventLog(s.play.log)
-                }
-
-                // The table's Spellbook (Android) is the hero sheet's spellbook section here.
-                is PlaySheet.Spellbook -> BottomSheet(
-                    s.play.table.hero(open.heroId).name,
-                    onDismiss = { sheet = null },
-                ) {
-                    Quiet("Open information (p.4)")
-                    HeroDetail(s.play.table, open.heroId, focus)
-                }
-
-                is PlaySheet.Hero -> BottomSheet(s.play.table.hero(open.heroId).name, onDismiss = { sheet = null }) {
-                    Quiet("Open information (p.4)")
-                    HeroDetail(s.play.table, open.heroId, focus)
-                }
-
-                is PlaySheet.Review -> GameReviewSheet(
-                    table = s.play.table,
-                    review = s.play.review,
-                    tab = open.tab,
-                    onTab = { sheet = PlaySheet.Review(it) },
-                    onAction = { onAction(GameAction.Review(it)) },
-                    onDismiss = {
-                        sheet = null
-                        onAction(GameAction.Review(ReviewAction.Open(false)))
-                    },
-                    focus = focus,
-                )
-
-                null -> Unit
-            }
-            if (menu) GameMenu(s.play, onAction, onDismiss = { menu = false }, onEnd = { ending = true })
-        }
+            },
+        )
     }
     CardFocusHost(focus)
     if (ending) {
@@ -247,6 +166,117 @@ fun GameScreen() {
     }
 }
 
+/**
+ * A game on the table, fed by whoever runs it ([GameController] here, the server's frames online, ADR-056): the
+ * map and the panel, the log and the game state, the menu; [over] once the game has a result. All it remembers
+ * is which sheet is open. Take back, Coach and the computer's speed need a whole game, so online has none.
+ * [onTap] says whether the tap was an option; otherwise a tap on a hero reads about it. [overlay] lies over the map.
+ */
+@Composable
+fun GameTable(
+    play: PlayUi,
+    onAction: (GameAction) -> Unit,
+    onTap: (TableTap) -> Boolean,
+    focus: CardFocusState,
+    onEnd: () -> Unit,
+    over: @Composable (GameOverUi, onHero: (String) -> Unit) -> Unit,
+    overlay: @Composable () -> Unit = {},
+) {
+    val camera = rememberTableCamera()
+    var sheet by remember { mutableStateOf<PlaySheet?>(null) }
+    var menu by remember { mutableStateOf(false) }
+    var panelShown by remember { mutableStateOf(true) }
+    val finished = play.over
+    if (finished != null) {
+        over(finished) { sheet = PlaySheet.Hero(it) }
+    } else {
+        val view = play.table.view
+        val fontScale = fontScale()
+        GameTableView(
+            title = roundTitle(view.round, view.turn, (window.innerWidth - BANNER_MEDALLION) / fontScale),
+            actions = {
+                if (play.online == null) {
+                    Button({
+                        classes("goa-icon-button")
+                        attr("type", "button")
+                        attr("aria-label", "Take back")
+                        attr("title", "Take back")
+                        if (!play.canTakeBack || play.busy) attr("disabled", "")
+                        onClick { onAction(GameAction.TakeBack) }
+                    }) { Icon("undo") }
+                }
+                IconButton("article", "Game state", {
+                    sheet = PlaySheet.Review()
+                    onAction(GameAction.Review(ReviewAction.Open(true)))
+                })
+                IconButton("list", "Game log", { sheet = PlaySheet.Log })
+                IconButton("more", "More options", { menu = true })
+            },
+            table = play.table,
+            camera = camera,
+            focus = focus,
+            onTap = { tap ->
+                if (!onTap(tap) && tap is TableTap.Piece && play.table.heroView(tap.pieceId) != null) {
+                    sheet = PlaySheet.Hero(tap.pieceId)
+                }
+            },
+            onHero = { sheet = PlaySheet.Hero(it) },
+            onFlip = { onAction(GameAction.Flip) },
+            panelShown = panelShown,
+            onPanelShown = { panelShown = it },
+            peek = gamePeek(play),
+            peekActions = {
+                if (play.status is TurnStatus.YourTurn && play.nudge == null) {
+                    PeekConfirm(play.table, play.busy) { onAction(GameAction.Answer(it)) }
+                }
+            },
+            panelTitle = if (play.status is TurnStatus.YourTurn && play.nudge == null) {
+                { DecisionWho(play.table) }
+            } else {
+                null
+            },
+            overlay = overlay,
+        ) { Panel(play, onAction, focus) }
+    }
+    Announce(play.announcement?.text)
+    when (val open = sheet) {
+        PlaySheet.Log -> BottomSheet("Game log", onDismiss = { sheet = null }) {
+            Quiet("Every event, newest at the bottom.")
+            EventLog(play.log)
+        }
+
+        // The table's Spellbook (Android) is the hero sheet's spellbook section here.
+        is PlaySheet.Spellbook -> BottomSheet(
+            play.table.hero(open.heroId).name,
+            onDismiss = { sheet = null },
+        ) {
+            Quiet("Open information (p.4)")
+            HeroDetail(play.table, open.heroId, focus)
+        }
+
+        is PlaySheet.Hero -> BottomSheet(play.table.hero(open.heroId).name, onDismiss = { sheet = null }) {
+            Quiet("Open information (p.4)")
+            HeroDetail(play.table, open.heroId, focus)
+        }
+
+        is PlaySheet.Review -> GameReviewSheet(
+            table = play.table,
+            review = play.review,
+            tab = open.tab,
+            onTab = { sheet = PlaySheet.Review(it) },
+            onAction = { onAction(GameAction.Review(it)) },
+            onDismiss = {
+                sheet = null
+                onAction(GameAction.Review(ReviewAction.Open(false)))
+            },
+            focus = focus,
+        )
+
+        null -> Unit
+    }
+    if (menu) GameMenu(play, onAction, onDismiss = { menu = false }, onEnd = onEnd)
+}
+
 /** The root font size against 16 px: iOS text size (and the 200% check) scales it. */
 private fun fontScale(): Float {
     val size =
@@ -259,7 +289,7 @@ private const val GAME_FAILED = "Something went wrong in this game. Its last mov
 
 /** Keeps the screen on while a game is on the table (Screen Wake Lock, where the browser has it). */
 @Composable
-private fun KeepAwake(on: Boolean) {
+internal fun KeepAwake(on: Boolean) {
     val wakeLock = LocalServices.current.data.table.wakeLock
     DisposableEffect(on) {
         wakeLock.want(on)
@@ -283,7 +313,9 @@ fun PeekConfirm(table: TableUi, busy: Boolean, onAnswer: (Choice) -> Unit) {
 
 /**
  * The panel: a nudge, the moment the table is at, the question (or the computer's move, or the wait),
- * what happened lately, your hand (the turn's cards are on the track at the top, ADR-041).
+ * what happened lately, your hand (the turn's cards are on the track at the top, ADR-041). What happened
+ * lately is the resolution flow where the game supplies one (online); [GameController] doesn't publish
+ * it yet, so a game against the computer keeps its recent lines.
  */
 @Composable
 private fun Panel(play: PlayUi, onAction: (GameAction) -> Unit, focus: CardFocusState) {
@@ -313,12 +345,19 @@ private fun Panel(play: PlayUi, onAction: (GameAction) -> Unit, focus: CardFocus
 
         status is TurnStatus.Waiting -> Waiting(table, status)
 
+        status is TurnStatus.OtherPlayer -> OtherPlayerMove(table, status, play.online)
+
         else -> Unit
     }
     if (moment != null && questionFirst) MomentCard(moment, table, focus)
     if (nudge == null) {
-        RecentEvents(play.recent, if (status is TurnStatus.YourTurn) play.recentStrong else emptySet())
+        if (play.flow.isEmpty) {
+            RecentEvents(play.recent, if (status is TurnStatus.YourTurn) play.recentStrong else emptySet())
+        } else {
+            ResolutionFlowView(play.flow, table, focus)
+        }
         if (!table.handDecision) YourHand(table, focus)
+        play.online?.let { OnlinePlayers(table, it) }
     }
 }
 
@@ -383,22 +422,30 @@ private fun ComputerMove(table: TableUi, status: TurnStatus.Computer, focus: Car
     if (status.thinking) Div({ classes("goa-progress", "indeterminate") }) { Div({ classes("goa-progress-bar") }) }
 }
 
-/** Simultaneous play (p.7): the person's card is down (theirs to see only), the others still choose. */
+/**
+ * Simultaneous play (p.7): the person's card is down (theirs to see only), the others still choose. Online a
+ * level-up waits here too (only there do the seats choose at the same time): that choice is no card played.
+ */
 @Composable
 private fun Waiting(table: TableUi, status: TurnStatus.Waiting) {
+    val levelUp = table.decision?.kind == DecisionKind.UPGRADE_CARD || table.decision?.kind == DecisionKind.KEEP_UPGRADE
+    val names = status.heroIds.joinToString(" and ") { table.hero(it).name }.ifEmpty { "the others" }
     Div({
         classes("goa-computer")
         attr("aria-live", "polite")
     }) {
-        table.mine.mapNotNull(table::heroView).forEach { hero -> CardImage(table.card(hero.played?.cardId), 40) }
+        if (!levelUp) {
+            table.mine.mapNotNull(table::heroView).forEach { hero -> CardImage(table.card(hero.played?.cardId), 40) }
+        }
         Div({ classes("goa-computer-text") }) {
-            P({ classes("t-title-medium") }) { Text("Your card is down") }
+            P({ classes("t-title-medium") }) { Text(if (levelUp) "Your choice is in" else "Your card is down") }
             P({ classes("t-body-small", "goa-quiet") }) {
                 Text(
-                    "Waiting for ${status.heroIds.joinToString(" and ") {
-                        table.hero(it).name
-                    }.ifEmpty { "the others" }} " +
-                        "to play facedown. Cards are revealed together (p.7).",
+                    if (levelUp) {
+                        "Waiting for $names to choose."
+                    } else {
+                        "Waiting for $names to play facedown. Cards are revealed together (p.7)."
+                    },
                 )
             }
         }
@@ -433,38 +480,40 @@ private fun Unavailable(why: NoGame, onDelete: () -> Unit, onNewGame: () -> Unit
     }
 }
 
-/** The game's menu: Coach on/off, the computer's speed, Flip, End this game. */
+/** The game's menu: Coach on/off, the computer's speed, Flip, End this game. Online: Flip and Leave this game. */
 @Composable
 private fun GameMenu(play: PlayUi, onAction: (GameAction) -> Unit, onDismiss: () -> Unit, onEnd: () -> Unit) {
     BottomSheet("Game options", onDismiss = onDismiss) {
-        Label(attrs = { classes("goa-switch-row") }) {
-            Span({ classes("goa-switch-text") }) {
-                Span({ classes("t-title-small") }) { Text("Coach") }
-                Span({ classes("t-body-small", "goa-quiet") }) {
-                    Text(if (play.coach) "Nudges before a clearly worse choice" else "Off")
+        if (play.online == null) {
+            Label(attrs = { classes("goa-switch-row") }) {
+                Span({ classes("goa-switch-text") }) {
+                    Span({ classes("t-title-small") }) { Text("Coach") }
+                    Span({ classes("t-body-small", "goa-quiet") }) {
+                        Text(if (play.coach) "Nudges before a clearly worse choice" else "Off")
+                    }
+                }
+                Input(InputType.Checkbox) {
+                    classes("goa-switch")
+                    checked(play.coach)
+                    onChange { onAction(GameAction.SetCoach(it.value)) }
                 }
             }
-            Input(InputType.Checkbox) {
-                classes("goa-switch")
-                checked(play.coach)
-                onChange { onAction(GameAction.SetCoach(it.value)) }
-            }
-        }
-        Overline("Computer speed")
-        Div({
-            classes("goa-segmented")
-            attr("role", "radiogroup")
-            attr("aria-label", "Computer speed")
-        }) {
-            AiPace.entries.forEach { pace ->
-                Button({
-                    classes("goa-segment")
-                    if (pace == play.pace) classes("selected")
-                    attr("type", "button")
-                    attr("role", "radio")
-                    attr("aria-checked", (pace == play.pace).toString())
-                    onClick { onAction(GameAction.SetPace(pace)) }
-                }) { Text(PlayText.pace(pace)) }
+            Overline("Computer speed")
+            Div({
+                classes("goa-segmented")
+                attr("role", "radiogroup")
+                attr("aria-label", "Computer speed")
+            }) {
+                AiPace.entries.forEach { pace ->
+                    Button({
+                        classes("goa-segment")
+                        if (pace == play.pace) classes("selected")
+                        attr("type", "button")
+                        attr("role", "radio")
+                        attr("aria-checked", (pace == play.pace).toString())
+                        onClick { onAction(GameAction.SetPace(pace)) }
+                    }) { Text(PlayText.pace(pace)) }
+                }
             }
         }
         Div({ classes("goa-menu-actions") }) {
@@ -472,7 +521,7 @@ private fun GameMenu(play: PlayUi, onAction: (GameAction) -> Unit, onDismiss: ()
                 onDismiss()
                 onAction(GameAction.Flip)
             }, ButtonKind.TONAL, icon = "flip", block = true)
-            GoaButton("End this game", {
+            GoaButton(if (play.online == null) "End this game" else "Leave this game", {
                 onDismiss()
                 onEnd()
             }, ButtonKind.DANGER, icon = "flag", block = true)
@@ -558,9 +607,13 @@ private fun GameOver(
 }
 
 @Composable
-private fun HeroResultRow(play: PlayUi, result: HeroResult, onHero: (String) -> Unit) {
+internal fun HeroResultRow(play: PlayUi, result: HeroResult, onHero: (String) -> Unit) {
     val info = play.table.hero(result.heroId)
-    val who = if (result.controller == Controller.Human) "You" else PlayText.controller(result.controller)
+    // Online every seat is a person's: the table knows their names.
+    val who = when {
+        result.controller != Controller.Human -> PlayText.controller(result.controller)
+        else -> play.table.heroView(result.heroId)?.let(play.table::controllerLabel) ?: "You"
+    }
     val facts = listOf(
         "Level ${result.level}",
         BoardText.count(result.heroDefeats, "hero defeated", "heroes defeated"),

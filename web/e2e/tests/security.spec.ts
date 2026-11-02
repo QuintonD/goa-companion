@@ -51,6 +51,10 @@ test("the policy is strict and nothing the app does breaks it", async ({ page })
   expect(directives["script-src"]).toContain("'self'");
   expect(directives["script-src"].join(" ")).not.toMatch(/unsafe-inline|unsafe-eval|\*/);
   expect(directives["connect-src"]).toContain(RELAY);
+  // The game server's socket, explicit: it shares the relay's origin, and https:// doesn't cover wss:// everywhere.
+  expect(directives["connect-src"]).toContain(RELAY.replace("https://", "wss://"));
+  // Only the test server adds these local sources, and never a wildcard for the internet.
+  expect(directives["connect-src"].join(" ")).not.toMatch(/(^|\s)(\*|wss?:|https?:)(\s|$)/);
   expect(directives["object-src"]).toEqual(["'none'"]);
   expect(directives["base-uri"]).toEqual(["'none'"]);
   expect(await page.locator('meta[name="referrer"]').getAttribute("content")).toBe("no-referrer");
@@ -66,7 +70,7 @@ test("the policy is strict and nothing the app does breaks it", async ({ page })
   for (const hash of [
     "#/heroes/arien", "#/heroes/arien/cards/arien-red-1", "#/rules", "#/levels", "#/timer", "#/draft", "#/players",
     "#/matches", "#/meta", "#/group", "#/trivia", "#/boards", "#/play/new", "#/puzzles", "#/settings",
-    "#/settings/about",
+    "#/settings/about", "#/online", "#/online/leaderboard",
   ]) {
     await open(page, hash);
   }

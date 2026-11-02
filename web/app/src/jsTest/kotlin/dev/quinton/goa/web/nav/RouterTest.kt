@@ -69,6 +69,19 @@ class RouterTest {
     }
 
     @Test
+    fun anOnlineInviteOpenedColdGetsItsNormalAddressInPlace() {
+        val history = FakeHistory("#play=abcd-2345")
+        val router = router(history)
+        assertEquals(Route.OnlineJoin("ABCD2345"), router.route)
+        assertEquals("#/online/join/ABCD2345", history.hash())
+        assertEquals(1, history.entries.size)
+        // Across a reload the address stands by itself.
+        assertEquals(Route.OnlineJoin("ABCD2345"), router(FakeHistory(history.hash())).route)
+        router.back()
+        assertEquals(Route.OnlineHome, router.route)
+    }
+
+    @Test
     fun aColdDeepLinkGoesUpToItsParentWithoutLeavingTheApp() {
         val history = FakeHistory("#/heroes/arien")
         val router = router(history)

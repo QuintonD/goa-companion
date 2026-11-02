@@ -245,6 +245,14 @@ abstract class AssembleSite : DefaultTask() {
     @get:Input
     abstract val relayOrigin: Property<String>
 
+    /**
+     * The game server's address (`goa.gameServer`, ADR-056), with its path. Its origin goes in connect-src, as
+     * `wss://` for the socket and as `https://` for REST when that isn't the relay's. A host only `network.json`
+     * names can't be reached from a browser until a site rebuild with it here.
+     */
+    @get:Input
+    abstract val gameServer: Property<String>
+
     @get:OutputDirectory
     abstract val site: DirectoryProperty
 
@@ -300,8 +308,8 @@ abstract class AssembleSite : DefaultTask() {
     /**
      * [html] with its Content-Security-Policy (web review R2; Pages can't send headers, so it is a
      * `<meta>`, placed before anything it governs): scripts only from the site plus the inline
-     * scripts of this very file by hash, connections only to the site and the group relay, no
-     * plugins, no `<base>`, no frames. Inline styles stay allowed (the splash and Compose's style
+     * scripts of this very file by hash, connections only to the site, the group relay and the game
+     * server, no plugins, no `<base>`, no frames. Inline styles stay allowed (the splash and Compose's style
      * attributes). The dev server never gets it (webpack's eval source maps would need 'unsafe-eval').
      */
     private fun withPolicy(html: String): String {
@@ -318,13 +326,23 @@ abstract class AssembleSite : DefaultTask() {
         require(relay.isEmpty() || Regex("https://[A-Za-z0-9.-]+(:[0-9]{1,5})?").matches(relay)) {
             "goa.syncServer must be an https origin like https://host:8443, got \"$relay\""
         }
+        val game = gameServer.get().trim().trimEnd('/')
+        require(game.isEmpty() || Regex("https://[A-Za-z0-9.-]+(:[0-9]{1,5})?(/[A-Za-z0-9._-]+)*").matches(game)) {
+            "goa.gameServer must be an https address like https://host:8443/game, got \"$game\""
+        }
+        val gameOrigin = Regex("^https://[^/]+").find(game)?.value.orEmpty()
+        val gameSources = listOf(
+            // Explicit even beside the same https origin: not every browser lets https:// cover wss://.
+            gameOrigin.takeIf { it != relay },
+            gameOrigin.takeIf { it.isNotEmpty() }?.replaceFirst("https://", "wss://"),
+        )
         val policy = listOf(
             "default-src 'self'",
             (listOf("script-src 'self'") + inline).joinToString(" "),
             "style-src 'self' 'unsafe-inline'",
             "img-src 'self' data: blob:",
             "font-src 'self'",
-            listOf("connect-src 'self'", relay).filter { it.isNotEmpty() }.joinToString(" "),
+            (listOf("connect-src 'self'", relay) + gameSources).filterNot { it.isNullOrEmpty() }.joinToString(" "),
             "worker-src 'self'",
             "manifest-src 'self'",
             "media-src 'self' blob:",
@@ -358,6 +376,7 @@ val site = tasks.register<AssembleSite>("site") {
     distribution.set(layout.buildDirectory.dir("dist/js/productionExecutable"))
     version.set(appVersion)
     relayOrigin.set(providers.gradleProperty("goa.syncServer").orElse(""))
+    gameServer.set(providers.gradleProperty("goa.gameServer").orElse(""))
     site.set(layout.buildDirectory.dir("site"))
 }
 

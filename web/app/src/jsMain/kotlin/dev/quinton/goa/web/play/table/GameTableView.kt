@@ -30,7 +30,8 @@ import org.jetbrains.compose.web.dom.Div
  * selecting. Under a tall panel the turn track takes its small cards: a question's moment is on the map.
  *
  * [onTap] gets every tap on the map that meant something (an option, or a piece to read about);
- * [onHero] opens a hero (from a chip or a track slot); [onFlip] swaps the bottom team.
+ * [onHero] opens a hero (from a chip or a track slot); [onFlip] swaps the bottom team. [overlay] lies over
+ * the map, so it stays in sight with the panel hidden (an online game's clock).
  */
 @Composable
 fun GameTableView(
@@ -47,6 +48,7 @@ fun GameTableView(
     peek: PanelPeek,
     peekActions: @Composable () -> Unit = {},
     panelTitle: (@Composable () -> Unit)? = null,
+    overlay: @Composable () -> Unit = {},
     panel: @Composable () -> Unit,
 ) {
     val landscape = rememberLandscape()
@@ -122,6 +124,7 @@ fun GameTableView(
         },
         map = {
             TableMap(table, scene, camera, onTap)
+            overlay()
             Div({ classes("goa-map-buttons") }) {
                 if (camera.isFit) {
                     IconButton("zoom_in", "Zoom to the lane", {

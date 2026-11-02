@@ -7,8 +7,10 @@
 // through on the CDN), so the service worker's all-or-nothing install can be tested.
 // Test relays: index.html's Content-Security-Policy lets the page reach only the site and the group
 // relay; served from here it may also reach a relay on this machine (the suite's fake relay and
-// server/relay), which the app allows only on a localhost page anyway. The manifest and sw.js are
-// re-stamped to match, as the site task would (the service worker installs only files whose bytes
+// server/relay), which the app allows only on a localhost page anyway, and a game server's socket there
+// (a fake one or server/game). Pages' own origin is 'self' on Pages, not here, so it is named for the
+// leaderboard files; tests answer those with routes and the guard refuses the rest. The manifest and sw.js
+// are re-stamped to match, as the site task would (the service worker installs only files whose bytes
 // its manifest names). Nothing else is changed.
 import { createServer } from "node:http";
 import { createReadStream, statSync } from "node:fs";
@@ -43,7 +45,7 @@ const sha256 = (text) => createHash("sha256").update(text).digest("hex");
 async function localRelaySite() {
   const index = (await readFile(join(root, "index.html"), "utf8")).replace(
     /(Content-Security-Policy" content="[^"]*connect-src 'self')/,
-    "$1 http://127.0.0.1:* http://localhost:*",
+    "$1 http://127.0.0.1:* http://localhost:* ws://127.0.0.1:* ws://localhost:* https://quintond.github.io",
   );
   const built = await readFile(join(root, "asset-manifest.json"), "utf8");
   const manifest = built.replace(

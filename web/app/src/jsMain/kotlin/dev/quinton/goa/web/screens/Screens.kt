@@ -74,6 +74,17 @@ fun ScreenFor(route: Route) {
 
         is Route.Puzzle -> key(route.puzzleId) { dev.quinton.goa.web.play.puzzles.PuzzleScreen(route.puzzleId) }
 
+        // Online games (ADR-056)
+        Route.OnlineHome -> dev.quinton.goa.web.play.online.OnlineHomeScreen()
+
+        is Route.OnlineJoin -> dev.quinton.goa.web.play.online.OnlineHomeScreen(route.code)
+
+        is Route.OnlineRoom -> key(route.code) { dev.quinton.goa.web.play.online.OnlineLobbyScreen(route.code) }
+
+        is Route.OnlineGame -> key(route.gameId) { dev.quinton.goa.web.play.online.OnlineGameScreen(route.gameId) }
+
+        Route.OnlineLeaderboard -> dev.quinton.goa.web.play.online.OnlineLeaderboardScreen()
+
         // Shared
         Route.Rules -> RulesScreen()
 
