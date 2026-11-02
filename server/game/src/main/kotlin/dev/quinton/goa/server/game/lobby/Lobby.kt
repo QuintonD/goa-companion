@@ -217,7 +217,7 @@ class Lobby(
     }
 
     private suspend fun requireRoomForGames(accountId: String) {
-        if (rooms.gamesOf(accountId).size >= MAX_RUNNING_GAMES) throw LobbyRefused(LobbyError.TOO_MANY_GAMES)
+        if (rooms.runningOf(accountId).size >= MAX_RUNNING_GAMES) throw LobbyRefused(LobbyError.TOO_MANY_GAMES)
     }
 
     private suspend fun liveRoom(rawCode: String): RoomRow {

@@ -367,7 +367,12 @@ class OnlineGameDriver(
         ended = end
         answered = null
         selected = null
-        publish()
+        // No table to draw it on: a game whose past no longer replays has none to send.
+        if (latest == null) {
+            mutableState.value = OnlineState.Connecting(end.voided?.let(OnlineWords::voided) ?: OnlineWords.GAME_GONE)
+        } else {
+            publish()
+        }
     }
 
     /** Takes in the events since the last look: the reveal, the announcement. True when there were any. */

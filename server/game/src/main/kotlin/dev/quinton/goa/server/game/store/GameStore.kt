@@ -70,6 +70,9 @@ data class RunningGame(
 
 data class GameResult(val finishedAt: Long, val rated: Boolean)
 
+/** A game that is over, for whoever comes back to see how it ended. [voided] is null when the rules finished it. */
+data class ClosedGame(val game: RunningGame, val voided: VoidReason?, val rated: Boolean)
+
 /**
  * The durable side of games. An append is on disk when it returns: a frame about an answer goes out
  * only afterwards. Ratings are not here on purpose: they are derived from [matches].
@@ -92,6 +95,9 @@ interface GameStore {
 
     suspend fun runningGames(): List<RunningGame>
 
+    /** Null for a game still running and one that was never here. */
+    suspend fun closedGame(gameId: String): ClosedGame?
+
     /** The rated log, in [dev.quinton.goa.core.domain.rating.EloCalculator]'s replay order. */
     suspend fun matches(): List<Match>
 }
@@ -103,6 +109,15 @@ class InMemoryGameStore : GameStore {
     private val answers = HashMap<String, MutableList<StoredAnswer>>()
     private val locks = HashMap<String, MutableList<StoredLock>>()
     private val log = ArrayList<Match>()
+    private val closed = HashMap<String, ClosedGame>()
+
+    private fun close(gameId: String, voided: VoidReason?, rated: Boolean) {
+        val row = games.remove(gameId) ?: return
+        val game = RunningGame(row, seats[gameId].orEmpty(), answers[gameId].orEmpty().toList(), emptyList())
+        closed[gameId] = ClosedGame(game, voided, rated)
+    }
+
+    override suspend fun closedGame(gameId: String): ClosedGame? = closed[gameId]
 
     override suspend fun createGame(game: GameRow, seats: List<GameSeatRow>) {
         games[game.id] = game
@@ -126,12 +141,12 @@ class InMemoryGameStore : GameStore {
     }
 
     override suspend fun finish(gameId: String, result: GameResult, match: Match?) {
-        games.remove(gameId)
+        close(gameId, voided = null, rated = match != null)
         if (match != null) log += match
     }
 
     override suspend fun void(gameId: String, reason: VoidReason, at: Long) {
-        games.remove(gameId)
+        close(gameId, voided = reason, rated = false)
     }
 
     override suspend fun runningGames(): List<RunningGame> = games.values.map { g ->

@@ -124,6 +124,8 @@ internal class FakeRooms(private val engine: GameEngine = testEngine) : GameRoom
     override suspend fun gamesOf(accountId: String): List<String> =
         games.values.filter { game -> game.players.any { it.accountId == accountId } }.map { it.id }
 
+    override suspend fun runningOf(accountId: String): List<String> = gamesOf(accountId)
+
     fun table(game: Game, seat: String, seq: Long, from: Int, events: List<GameEvent>): ServerMessage.Table {
         val pending = game.session.pending
         return ServerMessage.Table(

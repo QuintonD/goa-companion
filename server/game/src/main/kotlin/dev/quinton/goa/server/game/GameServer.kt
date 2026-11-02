@@ -20,13 +20,14 @@ import org.slf4j.LoggerFactory
 
 /**
  * The whole server, put together once: `main` runs this and the end-to-end tests run this, so they can't
- * drift apart. [rules] and [clock] are the only things a test may pass that `main` doesn't.
+ * drift apart. [rules], [clock] and [beatMillis] are the only things a test may pass that `main` doesn't.
  */
 class GameServer(
     private val config: GameServerConfig,
     engine: GameEngine = loadEngine(config.assetsDir),
     rules: RoomRules = RoomRules(),
     clock: () -> Long = System::currentTimeMillis,
+    private val beatMillis: Long = DEFAULT_BEAT_MILLIS,
 ) {
     val store: SqliteGameStore = SqliteGameStore.open(config.dataDir)
     val rooms: RoomCore = RoomCore(
@@ -54,7 +55,7 @@ class GameServer(
             store.markStartedRooms()
             rooms.restore()
         }
-        rooms.launchClocks(clocks)
+        rooms.launchClocks(clocks, beatMillis)
         LoggerFactory.getLogger("goa-game").info(
             "goa-game on {}:{}, data in {}, at most {} rooms, rules build {}, {} running",
             config.host,
@@ -77,6 +78,7 @@ class GameServer(
     }
 
     private companion object {
+        const val DEFAULT_BEAT_MILLIS = 1_000L
         const val SHUTDOWN_GRACE_MILLIS = 1_000L
         const val SHUTDOWN_TIMEOUT_MILLIS = 5_000L
     }

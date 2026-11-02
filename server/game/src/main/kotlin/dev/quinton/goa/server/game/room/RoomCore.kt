@@ -10,6 +10,7 @@ import dev.quinton.goa.core.online.SeatPlayer
 import dev.quinton.goa.core.online.ServerMessage
 import dev.quinton.goa.core.online.TurnRef
 import dev.quinton.goa.core.online.VoidReason
+import dev.quinton.goa.server.game.store.ClosedGame
 import dev.quinton.goa.server.game.store.GameRow
 import dev.quinton.goa.server.game.store.GameSeatRow
 import dev.quinton.goa.server.game.store.GameStore
@@ -28,6 +29,7 @@ import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
+import kotlinx.coroutines.withContext
 import org.slf4j.LoggerFactory
 
 /** A display name for a restart: the store keeps accounts, the frames want names. Null: a deleted account. */
@@ -122,10 +124,7 @@ class RoomCore(
             rememberClosed(id, end, game.seats.map { it.accountId }.toSet())
             return
         }
-        val players = game.seats.sortedBy { it.seatOrder }.map { s ->
-            SeatPlayer(s.heroId, s.accountId, names.nameOf(s.accountId) ?: DEFAULT_NAME, s.team)
-        }
-        val room = GameRoom(game.game, game.seats, players, replayed, takeover(id), env)
+        val room = GameRoom(game.game, game.seats, playersOf(game.seats), replayed, takeover(id), env)
         room.restoreLocks(game.locks)
         room.begin()
         if (room.ended == null) live[id] = Live(room) else retire(room)
@@ -161,20 +160,71 @@ class RoomCore(
 
     override suspend fun connect(gameId: String, accountId: String, haveEvents: Int, sink: SeatSink): SeatLink? {
         val added = withRoom(gameId) { it.connect(accountId, haveEvents, sink) }
-        if (added == null) return tellEnd(gameId, accountId, sink)
+        if (added == null) return tellEnd(gameId, accountId, haveEvents, sink)
         if (added.isEmpty()) return null
         return SeatLink {
             closing.launch { withRoom(gameId) { it.disconnect(added) } }
         }
     }
 
-    private suspend fun tellEnd(gameId: String, accountId: String, sink: SeatSink): SeatLink? =
-        closedMutex.withLock {
-            val game = closed[gameId] ?: return null
-            if (!game.accounts.remove(accountId)) return null
-            if (game.accounts.isEmpty()) closed.remove(gameId)
-            sink.send(game.end)
-            SeatLink {}
+    /**
+     * A person coming back to a game that is over gets how it ended, with the last table and the events they
+     * missed: a phone that was away holds a board from before the end, and a freshly opened one holds nothing.
+     * From the disk, so a restart doesn't lose it. A seat given up gets nothing, as it does while it runs.
+     */
+    private suspend fun tellEnd(gameId: String, accountId: String, haveEvents: Int, sink: SeatSink): SeatLink? {
+        val unheard = closedMutex.withLock {
+            val game = closed[gameId]
+            if (game != null && game.accounts.remove(accountId) && game.accounts.isEmpty()) closed.remove(gameId)
+            game?.end
+        }
+        val past = store.closedGame(gameId)
+        val own = past?.game?.seats.orEmpty().filter { it.accountId == accountId && !it.left }
+        if (past == null || own.isEmpty()) {
+            unheard?.let(sink::send)
+            return unheard?.let { SeatLink {} }
+        }
+        val session = withContext(computer) { replayed(past) }
+        if (session != null) sendLastTables(past, own.map { it.heroId }, session, haveEvents, sink)
+        val view = session?.view(null)
+        sink.send(
+            ServerMessage.End(gameId, view?.winner.takeIf { past.voided == null }, view?.winReason, past.rated, past.voided),
+        )
+        return SeatLink {}
+    }
+
+    /** Null for a game whose past no longer replays: voided for that very reason, so there is no table to show. */
+    @Suppress("TooGenericExceptionCaught") // as in restoreOne: an answer that no longer fits may throw anything
+    private fun replayed(past: ClosedGame): EngineSession? = try {
+        Replay.run(engine, past.game.game, past.game.answers).session
+    } catch (e: CancellationException) {
+        throw e
+    } catch (e: Exception) {
+        log.info("Game {} can't be shown: {}", past.game.game.id, e.javaClass.simpleName)
+        null
+    }
+
+    private suspend fun sendLastTables(
+        past: ClosedGame,
+        own: List<String>,
+        session: EngineSession,
+        haveEvents: Int,
+        sink: SeatSink,
+    ) {
+        val game = past.game.game
+        sink.send(ServerMessage.GameStart(game.id, game.setup, playersOf(past.game.seats), own.toSet(), game.ranked))
+        var cursor = haveEvents.coerceIn(0, session.events.size)
+        for (seat in own) {
+            val events = session.events.drop(cursor)
+            cursor += events.size
+            val inputs = FrameInputs(game.id, seq = now(), ticket = 0, eventsFrom = cursor - events.size, events = events)
+            sink.send(SeatProjector.table(session, null, seat, inputs).copy(decision = null))
+        }
+    }
+
+    private suspend fun playersOf(seats: List<GameSeatRow>): List<SeatPlayer> =
+        seats.sortedBy { it.seatOrder }.map { s ->
+            SeatPlayer(s.heroId, s.accountId, names.nameOf(s.accountId) ?: DEFAULT_NAME, s.team)
         }
 
     override suspend fun answer(gameId: String, accountId: String, ticket: Long, choice: Choice) {
@@ -195,12 +245,14 @@ class RoomCore(
     }
 
     override suspend fun gamesOf(accountId: String): List<String> {
-        val running = live.values.filter { it.room.seats.any { s -> s.accountId == accountId } }
+        val ended = closedMutex.withLock { closed.filterValues { accountId in it.accounts }.keys.toList() }
+        return runningOf(accountId) + ended
+    }
+
+    override suspend fun runningOf(accountId: String): List<String> =
+        live.values.filter { it.room.seats.any { s -> s.accountId == accountId } }
             .filter { entry -> entry.mutex.withLock { entry.room.seatsOf(accountId).isNotEmpty() } }
             .map { it.room.row.id }
-        val ended = closedMutex.withLock { closed.filterValues { accountId in it.accounts }.keys.toList() }
-        return running + ended
-    }
 
     /** One beat of every game's clocks. A game that fails here is left as it was for the next beat. */
     @Suppress("TooGenericExceptionCaught")

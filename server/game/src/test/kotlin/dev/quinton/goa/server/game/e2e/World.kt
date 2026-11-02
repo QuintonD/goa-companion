@@ -59,6 +59,8 @@ internal const val ACROSS_THE_RIVER = "across-the-river"
 internal const val POLL_MILLIS = 2L
 internal const val RETRY_MILLIS = 3_000L
 internal const val GAME_LIMIT_MILLIS = 120_000L
+internal const val REAL_BEAT_MILLIS = 1_000L
+internal const val FAST_BEAT_MILLIS = 20L
 private const val WAIT_STEP_MILLIS = 20L
 
 /** Waits for what a screen would show; a state that never comes fails with what is on the screen instead. */
@@ -122,6 +124,8 @@ internal class World(
     private val rules: RoomRules = RoomRules(),
     private val configure: (GameServerConfig) -> GameServerConfig = { it },
     private val clock: () -> Long = System::currentTimeMillis,
+    /** Faster than the real second where a test waits out the computer answering one question per beat. */
+    private val beatMillis: Long = REAL_BEAT_MILLIS,
 ) : Host(Files.createTempDirectory("goa-e2e")) {
     private var server: GameServer? = null
 
@@ -148,7 +152,7 @@ internal class World(
             ),
         )
         repeat(BIND_TRIES) { attempt ->
-            val fresh = GameServer(config, TestRules.engine, rules, clock)
+            val fresh = GameServer(config, TestRules.engine, rules, clock, beatMillis)
             try {
                 fresh.start(wait = false)
                 server = fresh

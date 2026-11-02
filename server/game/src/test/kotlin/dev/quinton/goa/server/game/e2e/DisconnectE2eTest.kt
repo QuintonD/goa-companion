@@ -18,7 +18,7 @@ import org.junit.Test
 class DisconnectE2eTest {
     @Test
     fun aDroppedPersonIsAnsweredForAndComesBackToTheWholeGame(): Unit = runBlocking {
-        World(rules = RoomRules(disconnectedMillis = AWAY_MILLIS)).use { world ->
+        World(rules = RoomRules(disconnectedMillis = AWAY_MILLIS), beatMillis = FAST_BEAT_MILLIS).use { world ->
             val people = world.signedUp("Ana", "Bo", "Cy", "Di")
             val room = openRoom(people, teamSize = 2)
             val heroes = lineup(4, Random(3))

@@ -194,27 +194,43 @@ class SqliteGameStore private constructor(private val connection: Connection) :
             FROM games WHERE status = 'running' ORDER BY created_at, id
             """,
         ) { rows -> rows.toList(::gameRow) }
-        games.map { game ->
-            RunningGame(
-                game = game,
-                seats = gameSeats(game.id),
-                answers = query(
-                    """
-                    SELECT seq, decision_id, seat, choice_json, origin, at, events_hash, state_hash
-                    FROM answers WHERE game_id = ? ORDER BY seq
-                    """,
-                    game.id,
-                ) { rows -> rows.toList { storedAnswer(game.id, it) } },
-                locks = query(
-                    """
-                    SELECT seat, ordinal, round, turn, grp, choice_json, origin, at
-                    FROM locks WHERE game_id = ? ORDER BY seat, ordinal
-                    """,
-                    game.id,
-                ) { rows -> rows.toList { storedLock(game.id, it) } },
-            )
+        games.map { wholeGame(it) }
+    }
+
+    override suspend fun closedGame(gameId: String): ClosedGame? = read {
+        val found = query(
+            """
+            SELECT id, room_code, setup_json, start_save_json, rules_build, engine_version, ranked, created_at,
+                void_reason, EXISTS (SELECT 1 FROM matches WHERE matches.id = games.id)
+            FROM games WHERE id = ? AND status <> 'running'
+            """,
+            gameId,
+        ) { rows ->
+            if (rows.next()) Triple(gameRow(rows), rows.getString(9), rows.getInt(10) != 0) else null
+        }
+        found?.let { (game, voided, rated) ->
+            ClosedGame(wholeGame(game), voided?.let { VoidReason.valueOf(it.uppercase()) }, rated)
         }
     }
+
+    private fun Connection.wholeGame(game: GameRow) = RunningGame(
+        game = game,
+        seats = gameSeats(game.id),
+        answers = query(
+            """
+            SELECT seq, decision_id, seat, choice_json, origin, at, events_hash, state_hash
+            FROM answers WHERE game_id = ? ORDER BY seq
+            """,
+            game.id,
+        ) { rows -> rows.toList { storedAnswer(game.id, it) } },
+        locks = query(
+            """
+            SELECT seat, ordinal, round, turn, grp, choice_json, origin, at
+            FROM locks WHERE game_id = ? ORDER BY seat, ordinal
+            """,
+            game.id,
+        ) { rows -> rows.toList { storedLock(game.id, it) } },
+    )
 
     override suspend fun matches(): List<Match> = read {
         query("SELECT match_json FROM matches ORDER BY played_at, created_at, id") { rows ->
