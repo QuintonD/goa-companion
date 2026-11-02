@@ -236,6 +236,12 @@ class Monotonic(unittest.TestCase):
             v.is_new(snapshot(generatedAt=NOW + v.MAX_FUTURE_MS + 1), None, NOW)
         self.assertTrue(v.is_new(snapshot(generatedAt=NOW + v.MAX_FUTURE_MS), None, NOW))
 
+    def test_only_five_minutes_of_clock_difference_are_allowed(self):
+        self.assertEqual(v.MAX_FUTURE_MS, 5 * 60 * 1000)
+        with self.assertRaisesRegex(v.Rejected, "5 minutes"):
+            v.is_new(snapshot(generatedAt=NOW + 6 * 60 * 1000), None, NOW)
+        self.assertTrue(v.is_new(snapshot(generatedAt=NOW + 4 * 60 * 1000), None, NOW))
+
 
 class CommandLine(unittest.TestCase):
     """main() uses the real clock, so these snapshots are dated from a past that stays past."""

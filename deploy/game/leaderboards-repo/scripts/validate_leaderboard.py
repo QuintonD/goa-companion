@@ -25,7 +25,7 @@ MAX_TEXT = 64
 MAX_COUNT = 2**53 - 1
 MAX_RATING = 1_000_000
 # A clock far ahead would pass once and then block every honest snapshot after it.
-MAX_FUTURE_MS = 24 * 60 * 60 * 1000
+MAX_FUTURE_MS = 5 * 60 * 1000
 SHA256 = re.compile(r"[0-9a-f]{64}\Z")
 TOP_FIELDS = {"schema", "generatedAt", "logSha256", "matches", "eloConfig", "players", "heroes"}
 ROW_FIELDS = {"id", "name", "rating", "games", "wins"}
@@ -143,7 +143,7 @@ def is_new(incoming, current, now_ms):
     A rename or a deleted account changes the rows and not the log, and a deleted name must leave this file.
     """
     if incoming["generatedAt"] > now_ms + MAX_FUTURE_MS:
-        raise Rejected("generatedAt is more than a day in the future")
+        raise Rejected("generatedAt is more than 5 minutes in the future")
     if current is None:
         return True
     if incoming["generatedAt"] < current["generatedAt"]:
