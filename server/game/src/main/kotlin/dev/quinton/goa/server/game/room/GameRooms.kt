@@ -19,6 +19,7 @@ data class RoomRules(
     val disconnectedMillis: Long = 15_000,
     val allAwayPauseMillis: Long = 10 * 60_000,
     val abandonMillis: Long = 24 * 60 * 60_000,
+    val reviewEveryMillis: Long = 5_000,
 )
 
 /** Where one person's frames go; the HTTP layer keeps only the latest table per connection. */

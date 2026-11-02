@@ -43,7 +43,8 @@ The server answers on both `/v1/...` and `/game/v1/...`, whichever way the path 
   On expiry the computer answers that one question (`AiPlayers.forStrength(4, seed)`: no search,
   bounded CPU, on one dispatcher). The person can return at any moment. If every seat is away for
   10 minutes the clocks pause; after 24 hours the game is `ABANDONED`, unrated. A server restart gives
-  the current question its whole clock again.
+  the current question its whole clock again, and so does coming back from a pause. A seat given up with
+  `leave` is answered at once, not on a clock.
 - **Rated:** a game from a ranked room, finished by the rules. Leaving does not dodge a result: the
   computer plays on, the team still wins or loses. A voided or abandoned game is unrated.
 - **Ratings** are `EloCalculator.replay(matches, EloConfig.DEFAULT)` over the `matches` table and are
@@ -74,6 +75,14 @@ forecasts each seat's question on a `fork()` and queues the answers:
    whole view is never sent: its placeholders would show others as having played.
 6. When the real question arrives, compare it to the forecast, ignoring `id`. On a mismatch, log it,
    drop the lock and ask again.
+7. The forecast fork halts when the engine's step changes (`EngineSession.forkHalting`). Without that,
+   the last seat's answer would run on with placeholders into the reveal, or through the pity coin into
+   the next round, and its own view would come from a future that never happens.
+8. Others learn only that a seat is still asked or is done: `locked` lists a seat when it has **no**
+   question left, a stub always names the window's one kind (`PLAY_CARD`, or `UPGRADE_CARD` for a whole
+   level-up) and its clock is the window's fixed deadline. A seat's own clock restarts on its next
+   question; showing that to others would count its questions. A frame goes out only when its content
+   changes, so private steps don't show in `seq` either.
 
 ## Hidden information
 
@@ -91,10 +100,14 @@ Four tests make this binding, in `server/game`:
 1. Pairs of games that differ only in hidden information (`NoPeekingTest`, `ReviewTest` pairs) give each
    seat that must not see the difference **byte-identical** frames.
 2. Over random games and all heroes, frames from the real session equal frames from a determinized copy
-   for each seat of that team.
-3. Every card in an event must be in the spectator view just before or just after it.
-4. `core/online` and `server/game/.../room/SeatProjector` must not mention `SavedGame`, `GameState`,
-   `AnswerRecord` or `.humans`.
+   for each seat of that team. A copy is sampled from the start of the current step, so it does not know
+   what that step has already shown. During the reveal step the other team's played cards are left out of
+   the comparison, and a question after an enemy named a card earlier in the step is not compared.
+3. Every card in an event must be in the spectator view just before or just after it. Two exceptions,
+   both open by the rules: Bain's "Guess that card's color, then reveal it", and a card discarded faceup
+   and retrieved within one run of the engine (Tali's Commune with Spirits into Guardian Spirit).
+4. The code of `core/online` and `server/game/.../room/SeatProjector` must not mention `SavedGame`,
+   `GameState`, `AnswerRecord` or `.humans`. Comments may warn against them.
 
 ## A rules fix during a running game
 
