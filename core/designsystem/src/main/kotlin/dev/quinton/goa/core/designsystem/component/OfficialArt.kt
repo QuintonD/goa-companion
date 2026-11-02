@@ -1,6 +1,8 @@
 package dev.quinton.goa.core.designsystem.component
 
+import android.content.Context
 import android.util.LruCache
+import androidx.annotation.VisibleForTesting
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -16,9 +18,9 @@ import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -51,6 +53,12 @@ import dev.quinton.goa.core.designsystem.theme.Spacing
 import dev.quinton.goa.core.model.board.MinionType
 import dev.quinton.goa.core.model.catalog.Stat
 import dev.quinton.goa.core.model.match.Team
+import java.util.concurrent.ConcurrentHashMap
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Deferred
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.async
 
 /*
  * The official graphics the catalog import brings in (ADR-042, `official/SOURCES.md`), shown
@@ -136,11 +144,38 @@ fun OfficialIcon(
 }
 
 /**
- * The chrome and pieces already decoded, so a banner, plate or piece that appears later draws from its
- * first frame rather than showing its fallback for one. Small images only: maps have their own loader.
+ * The chrome and pieces, decoded once however many parts show them. [peek] has what is already decoded, so a
+ * banner, plate or piece that appears later draws from its first frame rather than showing its fallback for
+ * one; a screen of plates shares one decode of each image. Small images only: maps have their own loader.
  */
-private val officialBitmaps = object : LruCache<String, ImageBitmap>(OFFICIAL_BITMAPS_BYTES) {
-    override fun sizeOf(key: String, value: ImageBitmap): Int = value.width * value.height * BYTES_PER_PIXEL
+internal object OfficialBitmaps {
+    private val decoded = object : LruCache<String, ImageBitmap>(OFFICIAL_BITMAPS_BYTES) {
+        override fun sizeOf(key: String, value: ImageBitmap): Int = value.width * value.height * BYTES_PER_PIXEL
+    }
+    private val loading = ConcurrentHashMap<String, Deferred<ImageBitmap?>>()
+
+    /** The decode finishes whoever asked for it has left: the next screen wants the same image. */
+    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
+
+    fun peek(path: String): ImageBitmap? = decoded.get(path)
+
+    suspend fun load(context: Context, path: String): ImageBitmap? = peek(path) ?: loading.computeIfAbsent(path) {
+        scope.async {
+            try {
+                val request = ImageRequest.Builder(context.applicationContext)
+                    .data(assetUrl(path))
+                    .allowHardware(false)
+                    .build()
+                val result = SingletonImageLoader.get(context.applicationContext).execute(request)
+                (result as? SuccessResult)?.image?.toBitmap()?.asImageBitmap()?.also { decoded.put(path, it) }
+            } finally {
+                loading.remove(path)
+            }
+        }
+    }.await()
+
+    @VisibleForTesting
+    fun clear() = decoded.evictAll()
 }
 
 private const val OFFICIAL_BITMAPS_BYTES = 24 * 1024 * 1024
@@ -153,14 +188,8 @@ private const val BYTES_PER_PIXEL = 4
 @Composable
 fun rememberOfficialBitmap(path: String): ImageBitmap? {
     val context = LocalContext.current
-    val bitmap by produceState(officialBitmaps.get(path), path) {
-        if (value != null) return@produceState
-        val request = ImageRequest.Builder(context).data(assetUrl(path)).allowHardware(false).build()
-        val result = SingletonImageLoader.get(context).execute(request)
-        val loaded = (result as? SuccessResult)?.image?.toBitmap()?.asImageBitmap()
-        if (loaded != null) officialBitmaps.put(path, loaded)
-        value = loaded
-    }
+    var bitmap by remember(path) { mutableStateOf(OfficialBitmaps.peek(path)) }
+    if (bitmap == null) LaunchedEffect(path) { bitmap = OfficialBitmaps.load(context, path) }
     return bitmap
 }
 

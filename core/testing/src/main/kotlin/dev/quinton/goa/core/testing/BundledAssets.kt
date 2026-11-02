@@ -49,8 +49,12 @@ object BundledAssetImages {
     private const val QUIET_MS = 250L
 
     private val pending = AtomicInteger(0)
+    private val started = AtomicInteger(0)
 
     @Volatile private var lastEvent = 0L
+
+    /** How many images were asked of Coil since [install]. */
+    val requests: Int get() = started.get()
 
     /** Nothing in flight, for a moment: a load can start because another finished (the map, then its pieces). */
     val idle: Boolean get() = pending.get() == 0 && System.currentTimeMillis() - lastEvent > QUIET_MS
@@ -58,6 +62,7 @@ object BundledAssetImages {
     @OptIn(DelicateCoilApi::class)
     fun install(context: Context) {
         pending.set(0)
+        started.set(0)
         lastEvent = System.currentTimeMillis()
         SingletonImageLoader.setUnsafe(
             ImageLoader.Builder(context)
@@ -72,6 +77,7 @@ object BundledAssetImages {
                         override fun onStart(request: ImageRequest) {
                             lastEvent = System.currentTimeMillis()
                             pending.incrementAndGet()
+                            started.incrementAndGet()
                         }
 
                         override fun onSuccess(request: ImageRequest, result: SuccessResult) {
