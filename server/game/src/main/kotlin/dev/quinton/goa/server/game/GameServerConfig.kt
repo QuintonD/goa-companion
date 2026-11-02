@@ -21,6 +21,10 @@ data class GameServerConfig(
     val drainFile: Path = dataDir.resolve(DEFAULT_DRAIN_FILE),
     val perClientPerMinute: Int = DEFAULT_PER_CLIENT_PER_MINUTE,
     val globalPerMinute: Int = DEFAULT_GLOBAL_PER_MINUTE,
+    /** Socket upgrades have a budget of their own, so a flood of REST calls can't stop people reconnecting. */
+    val upgradesPerClientPerMinute: Int = DEFAULT_UPGRADES_PER_CLIENT_PER_MINUTE,
+    /** Room for everyone dropped by a restart to come back at once. */
+    val upgradesGlobalPerMinute: Int = DEFAULT_UPGRADES_GLOBAL_PER_MINUTE,
     val accountsPerClientPerHour: Int = DEFAULT_ACCOUNTS_PER_CLIENT_PER_HOUR,
     val accountsGlobalPerHour: Int = DEFAULT_ACCOUNTS_GLOBAL_PER_HOUR,
     /** Frames one person may send per minute over all their sockets. */
@@ -34,6 +38,8 @@ data class GameServerConfig(
         const val DEFAULT_DRAIN_FILE = "drain"
         const val DEFAULT_PER_CLIENT_PER_MINUTE = 120
         const val DEFAULT_GLOBAL_PER_MINUTE = 1200
+        const val DEFAULT_UPGRADES_PER_CLIENT_PER_MINUTE = 60
+        const val DEFAULT_UPGRADES_GLOBAL_PER_MINUTE = 1800
         const val DEFAULT_ACCOUNTS_PER_CLIENT_PER_HOUR = 10
         const val DEFAULT_ACCOUNTS_GLOBAL_PER_HOUR = 200
         const val DEFAULT_SOCKET_FRAMES_PER_MINUTE = 300
@@ -60,6 +66,8 @@ data class GameServerConfig(
                 drainFile = env["GOA_GAME_DRAIN_FILE"]?.let { Paths.get(it) } ?: dataDir.resolve(DEFAULT_DRAIN_FILE),
                 perClientPerMinute = int("GOA_GAME_RATE_PER_CLIENT", DEFAULT_PER_CLIENT_PER_MINUTE),
                 globalPerMinute = int("GOA_GAME_RATE_GLOBAL", DEFAULT_GLOBAL_PER_MINUTE),
+                upgradesPerClientPerMinute = int("GOA_GAME_UPGRADES_PER_CLIENT", DEFAULT_UPGRADES_PER_CLIENT_PER_MINUTE),
+                upgradesGlobalPerMinute = int("GOA_GAME_UPGRADES_GLOBAL", DEFAULT_UPGRADES_GLOBAL_PER_MINUTE),
                 accountsPerClientPerHour = int("GOA_GAME_ACCOUNTS_PER_CLIENT", DEFAULT_ACCOUNTS_PER_CLIENT_PER_HOUR),
                 accountsGlobalPerHour = int("GOA_GAME_ACCOUNTS_GLOBAL", DEFAULT_ACCOUNTS_GLOBAL_PER_HOUR),
                 socketFramesPerMinute = int("GOA_GAME_SOCKET_FRAMES", DEFAULT_SOCKET_FRAMES_PER_MINUTE),

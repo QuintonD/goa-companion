@@ -97,6 +97,7 @@ EOF
 
     cat >"$bin/curl" <<'EOF'
 #!/usr/bin/env bash
+# As curl -sS -w '\n%{http_code}' does: the body, a newline, the status.
 line=""
 if [[ -s "$T/health_queue" ]]; then
     line="$(head -n 1 "$T/health_queue")"
@@ -106,7 +107,11 @@ else
     line="$(cat "$T/health_default")"
 fi
 [[ "$line" != down ]] || exit 7
-echo "$line"
+if [[ "$line" == limited ]]; then
+    printf '%s\n429' '{"error":"rate_limited"}'
+else
+    printf '%s\n200' "$line"
+fi
 EOF
 
     cat >"$bin/sudo" <<'EOF'
@@ -286,6 +291,27 @@ test_deploy() {
         '{"ok":true,"rulesBuild":"old","status":"open","rooms":0}' >"$T/health_queue"
     run_deploy
     expect "warns when the server ignores the drain file" has <(echo "$OUT") "does not report 'draining'"
+
+    # A flood at the limiter is not a server that has stopped: the drain carries on waiting.
+    fresh
+    printf '%s\n' \
+        limited \
+        '{"ok":true,"rulesBuild":"old","status":"draining","rooms":2}' \
+        limited \
+        limited \
+        '{"ok":true,"rulesBuild":"old","status":"draining","rooms":0}' >"$T/health_queue"
+    run_deploy
+    expect "a 429 at the start still drains" has "$T/events" "exec goa-game touch /var/lib/goa-game/drain"
+    expect "a 429 during the drain is still up" has <(echo "$OUT") "says too many requests"
+    expect_not "and doesn't cut the drain short" has <(echo "$OUT") "stopped answering"
+    expect "it waits for the rooms" has <(echo "$OUT") "no rooms left"
+
+    fresh
+    echo limited >"$T/health_default"
+    export GOA_GAME_DRAIN_HOURS=0
+    run_deploy
+    expect "a 429 that never ends: the time limit still holds" has <(echo "$OUT") "refusing health checks"
+    unset GOA_GAME_DRAIN_HOURS
 
     fresh
     echo '{"ok":true,"rulesBuild":"old","status":"draining","rooms":3}' >"$T/health_default"

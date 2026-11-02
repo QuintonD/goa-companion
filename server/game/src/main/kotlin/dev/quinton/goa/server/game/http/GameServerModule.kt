@@ -56,6 +56,8 @@ import io.ktor.server.websocket.timeout
 import io.ktor.server.websocket.webSocket
 import io.ktor.util.AttributeKey
 import io.ktor.utils.io.readBuffer
+import java.net.Inet6Address
+import java.net.InetAddress
 import java.nio.file.Files
 import java.security.MessageDigest
 import java.sql.SQLException
@@ -154,6 +156,7 @@ fun Application.gameServerModule(
         clock = clock,
     )
     val limiter = RateLimiter(config.perClientPerMinute, config.globalPerMinute)
+    val upgrades = RateLimiter(config.upgradesPerClientPerMinute, config.upgradesGlobalPerMinute)
 
     install(RequestLog)
 
@@ -174,7 +177,13 @@ fun Application.gameServerModule(
             finish()
             return@intercept
         }
-        val wait = limiter.acquire(clientKey(call))
+        val path = template(call.request.path())
+        // Health is exempt: Docker and a deploy's drain read it, and neither may be locked out by a flood.
+        val wait = when (path) {
+            OnlineRoutes.HEALTH -> null
+            OnlineRoutes.PLAY -> upgrades.acquire(clientKey(call))
+            else -> limiter.acquire(clientKey(call))
+        }
         if (wait != null) {
             call.response.header(HttpHeaders.RetryAfter, wait.toString())
             call.error(HttpStatusCode.TooManyRequests, "rate_limited")
@@ -183,7 +192,7 @@ fun Application.gameServerModule(
         }
         // Browsers always say where a socket comes from; native clients say nothing.
         val origin = call.request.headers[HttpHeaders.Origin]
-        if (template(call.request.path()) == OnlineRoutes.PLAY && origin != null && origin !in config.origins) {
+        if (path == OnlineRoutes.PLAY && origin != null && origin !in config.origins) {
             call.error(HttpStatusCode.Forbidden, "origin_refused")
             finish()
         }
@@ -398,8 +407,24 @@ internal fun clientKey(call: ApplicationCall): String {
         ?.flatMap { it.split(',') }
         ?.map { it.trim() }
         ?.lastOrNull { it.isNotEmpty() }
-    return forwarded ?: call.request.local.remoteAddress
+    return clientGroup(forwarded ?: call.request.local.remoteAddress)
 }
+
+/**
+ * IPv6 clients by /64: one home or phone gets a whole /64, so per address it could never run out. A mapped
+ * IPv4 address counts as that IPv4 address. Anything else stays as it is.
+ */
+internal fun clientGroup(address: String): String {
+    val literal = address.removeSurrounding("[", "]").substringBefore('%')
+    if (':' !in literal || !IPV6_LITERAL.matches(literal)) return address
+    // A literal only: getByName would go to DNS for a name, and this comes from a header.
+    val parsed = runCatching { InetAddress.getByName(literal) }.getOrNull() ?: return address
+    if (parsed !is Inet6Address) return parsed.hostAddress
+    return parsed.address.take(IPV6_PREFIX_BYTES).joinToString("") { "%02x".format(it) } + "/64"
+}
+
+private val IPV6_LITERAL = Regex("[0-9A-Fa-f:.]+")
+private const val IPV6_PREFIX_BYTES = 8
 
 /** The path for logs and the CORS check: never a room code, whichever way the path arrived. */
 internal fun template(rawPath: String): String {

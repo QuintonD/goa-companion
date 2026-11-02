@@ -32,7 +32,7 @@ class LogSecrecyTest {
     @Test
     fun eachRequestIsLoggedWithTheStatusItReallyGot() {
         val logs = capturing {
-            serverTest(configure = { it.copy(maxRooms = 1) }) {
+            serverTest(configure = { it.copy(maxOpenRooms = 1) }) {
                 val token = account().token
                 createRoom(token, teamSize = 9)
                 room(token)

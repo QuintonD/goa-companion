@@ -172,6 +172,10 @@ REST, under the base address. Bearer token on all but the ones marked.
 | `GET /v1/me/games` | `MyGames`: games to go back to |
 | `GET /v1/leaderboard` (open) | `LeaderboardSnapshot`, with `ETag` |
 
+**Limits:** per client, by the last `X-Forwarded-For` hop, IPv6 by /64, and overall. `GET /v1/health` is exempt:
+Docker and a deploy's drain read it. Socket upgrades have a budget of their own, generous, so a flood of REST
+calls can't stop reconnects. The board counts as REST.
+
 WebSocket `GET /v1/play`: `Hello` is the first frame, within 5 s (browsers cannot set a header on a
 WebSocket and a URL would be logged). Inbound frames up to 4 KiB, a ping every 20 s, and an outbound
 channel per connection that keeps only the latest `Table`. `Origin` must be on the list when present;

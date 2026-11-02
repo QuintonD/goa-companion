@@ -20,8 +20,16 @@ die() {
     exit 1
 }
 
+# Prints the body. Returns 0 when it answers, 2 when it refuses for now (still up), 1 when it doesn't.
 health() {
-    curl -fsS --max-time 3 "$HEALTH_URL" 2>/dev/null
+    local out code
+    out="$(curl -sS --max-time 3 -w '\n%{http_code}' "$HEALTH_URL" 2>/dev/null)" || return 1
+    code="${out##*$'\n'}"
+    case "$code" in
+        200) printf '%s\n' "${out%$'\n'*}" ;;
+        429) return 2 ;;
+        *) return 1 ;;
+    esac
 }
 
 # Through the running container, as uid 10001: sudo's timestamp is long gone after hours of draining.
@@ -97,9 +105,11 @@ prepare_data_dir() {
 # (docs/ONLINE.md), so at the limit the deploy goes on.
 drain() {
     local hours="${GOA_GAME_DRAIN_HOURS:-3}" poll="${GOA_GAME_DRAIN_POLL_SECONDS:-60}" body rooms status deadline
+    local answer=0
     [[ "$hours" =~ ^[0-9]+$ ]] || die "GOA_GAME_DRAIN_HOURS must be a whole number, got '$hours'"
 
-    if ! body="$(health)"; then
+    body="$(health)" || answer=$?
+    if ((answer == 1)); then
         echo "==> the server is not up: nothing to drain"
         return 0
     fi
@@ -109,9 +119,20 @@ drain() {
 
     deadline=$((SECONDS + hours * 3600))
     while :; do
-        if ! body="$(health)"; then
+        answer=0
+        body="$(health)" || answer=$?
+        if ((answer == 1)); then
             echo "==> the server stopped answering: going on"
             return 0
+        fi
+        if ((answer == 2)); then
+            if ((SECONDS >= deadline)); then
+                echo "==> ${hours} h are up and the server is refusing health checks: going on"
+                return 0
+            fi
+            echo "    $(date +%H:%M) the server is up but says too many requests: still waiting"
+            sleep "$poll"
+            continue
         fi
         rooms="$(sed -n 's/.*"rooms":\([0-9][0-9]*\).*/\1/p' <<<"$body")"
         status="$(sed -n 's/.*"status":"\([^"]*\)".*/\1/p' <<<"$body")"
