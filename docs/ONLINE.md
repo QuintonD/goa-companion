@@ -184,7 +184,10 @@ native clients send none. CORS follows the relay: an exact list, no credentials.
 - **Refused, then closed:** protocol or catalog too old (`UPDATE_APP`), a bad token (`BAD_TOKEN`).
 - **Closed with no frame:** no `Hello` in time or a first frame that is not one (1008), a frame over the
   limit (1009), an unreadable frame (1003), a queue that fell too far behind or a socket stuck for 30 s
-  (1013): reconnect and `Resume` from the events you hold.
+  (1013): reconnect and `Resume` from the events you hold. Falling behind means 4096 events merged while a
+  client wasn't keeping up; how long the log is has nothing to do with it.
+- **A long table comes in pages** of at most 1000 events, each a whole `Table` with `more = true` but the last.
+  A client applies a page's events from `eventsFrom` as ever and takes the rest of the table from the last.
 - **Refused, socket stays:** too many frames (`RATE_LIMITED`, with seconds), and anything the lobby says no
   to, followed by a `Lobby` frame with the room as it stands: `NOT_HOST`, `NOT_READY`, `TOO_MANY_GAMES`,
   `TOO_MANY_ROOMS`, and `ROOM_TAKEN` for a seat or hero that is gone or a request the lobby can't use.

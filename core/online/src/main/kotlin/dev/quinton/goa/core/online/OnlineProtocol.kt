@@ -141,6 +141,8 @@ sealed interface ServerMessage {
         val locked: List<String> = emptyList(),
         val clock: DecisionClock? = null,
         val presence: Map<String, Presence> = emptyMap(),
+        /** A long catch-up comes in pages: this one's events count, and the rest of the table follows. */
+        val more: Boolean = false,
     ) : ServerMessage
 
     @Serializable

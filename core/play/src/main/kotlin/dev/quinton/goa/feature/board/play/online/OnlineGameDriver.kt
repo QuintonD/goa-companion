@@ -328,6 +328,8 @@ class OnlineGameDriver(
         val first = latest == null
         // The online log only grows: there is no take back, so what overlaps is already held.
         events += table.events.drop(events.size - table.eventsFrom)
+        // A page of a long catch-up: the old log isn't news, and the table it ends with says where things stand.
+        if (table.more) return true
         frames[table.view.viewer] = table
         latest = table
         attempts = 0
