@@ -1,5 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Android Auto Backup (API 31+): database + settings, cloud backup and device transfer. -->
+<!-- Android Auto Backup (API 31+): database + settings, cloud backup and device transfer. The online
+     account (token) is in noBackupFilesDir, in neither (OnlineAccountStore, ADR-056): a new phone gets
+     back in with the recovery code. Don't add a rule for it. -->
 <data-extraction-rules>
     <cloud-backup>
         <include domain="database" path="." />

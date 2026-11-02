@@ -26,6 +26,16 @@ android {
             "goa.syncServer must be an https origin like https://host:8443, got \"$syncServer\""
         }
         buildConfigField("String", "SYNC_SERVER_URL", "\"${syncServer.trimEnd('/')}\"")
+        // The game server when network.json can't be read (ADR-056): Gradle property goa.gameServer, the
+        // same rule with one path segment allowed (it is /game behind Funnel); empty = none built in.
+        val gameServer = providers.gradleProperty("goa.gameServer").orNull?.trim().orEmpty()
+        val gameOrigin = Regex(
+            """(https://[A-Za-z0-9.-]+|http://(10\.0\.2\.2|localhost|127\.0\.0\.1))(:\d+)?(/[A-Za-z0-9._-]+)?/?""",
+        )
+        require(gameServer.isEmpty() || gameOrigin.matches(gameServer)) {
+            "goa.gameServer must be an https origin like https://host:8443/game, got \"$gameServer\""
+        }
+        buildConfigField("String", "GAME_SERVER_URL", "\"${gameServer.trimEnd('/')}\"")
     }
     buildFeatures {
         buildConfig = true

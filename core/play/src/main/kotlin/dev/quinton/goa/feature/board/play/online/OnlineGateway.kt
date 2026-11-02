@@ -56,8 +56,14 @@ fun onlineFailure(body: String, retryAfter: Int?): OnlineResult<Nothing> {
     } catch (_: SerializationException) {
         return OnlineResult.Failed()
     }
+    // REST says a token is dead this way; the socket says bad_token.
     val reason = Refusal.entries.firstOrNull { refusalCode(it) == error.error }
-    return if (reason != null) OnlineResult.Refused(reason, retryAfter) else OnlineResult.Failed(error.message)
+        ?: Refusal.BAD_TOKEN.takeIf { error.error == UNAUTHORIZED }
+    return if (reason != null) {
+        OnlineResult.Refused(reason, retryAfter)
+    } else {
+        OnlineResult.Failed(error.message ?: OnlineWords.apiError(error.error))
+    }
 }
 
 private fun refusalCode(reason: Refusal): String =
@@ -91,5 +97,6 @@ private fun normalised(c: Char): Char = when (c) {
 /** The address someone follows to join a room. */
 fun inviteLink(code: String): String = OnlineRoutes.INVITE_BASE + code
 
+private const val UNAUTHORIZED = "unauthorized"
 const val ROOM_CODE_LENGTH: Int = 8
 private const val CROCKFORD = "0123456789ABCDEFGHJKMNPQRSTVWXYZ"
