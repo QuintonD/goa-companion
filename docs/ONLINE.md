@@ -37,6 +37,10 @@ The server answers on both `/v1/...` and `/game/v1/...`, whichever way the path 
 - **No accounts with personal data.** `POST /v1/accounts {name}` returns an id, a token and a recovery
   code shown once. The server stores the display name and SHA-256 hashes. There is no email and no
   third-party sign-in. The recovery code links another device or a lost one.
+- **A name** is 2 to 24 characters with runs of spaces collapsed and something to see. By code point: no format
+  characters (bidi, zero-width, so no joined emoji), surrogates, unassigned, control or private-use characters,
+  no line breaks, none of `<>"'&` and backtick, none of the letters that look blank. Nor "Former player", in
+  any case or spacing. The publisher checks the same, and lets only the exact "Former player" through.
 - **A room:** the creator picks map, length, team size and ranked or not; gets an 8-character code and
   a link `https://quintond.github.io/goa-companion/#play=<code>`, also as a QR. Each joiner takes a free
   seat and an unpicked hero. The server flips the coin (p.5 step 3). Sizes: 1v1, 2v2, 3v3 on

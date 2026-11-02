@@ -44,7 +44,7 @@ class Valid(unittest.TestCase):
         self.assertEqual(v.validate(raw(snapshot())), snapshot())
 
     def test_names_people_really_have(self):
-        for name in ["Former player", "Zoë", "李雷", "R&D", "a" * 64, "👩‍🚀 Ada", "O'Neil \"Q\""]:
+        for name in ["Former player", "Zoë", "李雷", "R and D", "a" * 64, "👩 Ada", "Q. O Neil"]:
             with self.subTest(name=name):
                 self.assertEqual(v.validate(raw(snapshot(players=[row(name=name)])))["players"][0]["name"], name)
 
@@ -87,6 +87,39 @@ class Rejects(unittest.TestCase):
         for ch in ["\n", "\x00", "\x1b", "\x7f", "\u0085", " ", " ", "‮", "⁦", "‏"]:
             with self.subTest(ch=hex(ord(ch))):
                 self.assert_rejected(snapshot(players=[row(name=f"a{ch}b")]), "control character")
+
+    def test_every_refused_category_by_code_point(self):
+        cases = {
+            "format, zero width joiner": "\u200d",
+            "format, beyond the first plane": "\U000e0001",
+            "unassigned": "\u0378",
+            "private use": "\ue000",
+            "private use, beyond the first plane": "\U00100000",
+        }
+        for label, ch in cases.items():
+            with self.subTest(label=label):
+                self.assert_rejected(snapshot(players=[row(name=f"a{ch}b")]), "control character")
+
+    def test_the_characters_of_html_and_quotes(self):
+        for ch in "<>\"'&`":
+            with self.subTest(ch=ch):
+                self.assert_rejected(snapshot(players=[row(name=f"a{ch}b")]), "players[0].name")
+
+    def test_a_name_with_nothing_to_see(self):
+        for name in ["   ", "\u3000\u3000", "\u00a0 ", "\u0301\u0301"]:
+            with self.subTest(name=name):
+                self.assert_rejected(snapshot(players=[row(name=name)]), "nothing to see")
+        for name in ["\u3164\u3164", "a\u2800"]:
+            with self.subTest(name=name):
+                self.assert_rejected(snapshot(players=[row(name=name)]), "players[0].name")
+
+    def test_only_the_servers_own_former_player(self):
+        self.assertEqual(
+            v.validate(raw(snapshot(players=[row(name="Former player")])))["players"][0]["name"], "Former player"
+        )
+        for name in ["former player", "FORMER PLAYER", " Former player", "Former  player", "Former\u00a0player "]:
+            with self.subTest(name=name):
+                self.assert_rejected(snapshot(players=[row(name=name)]), "deleted account")
 
     def test_a_lone_surrogate(self):
         self.assert_rejected(raw(snapshot()).replace(b"Quinton", b"\\ud800"), "control character")

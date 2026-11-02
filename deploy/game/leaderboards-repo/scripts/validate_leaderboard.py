@@ -27,6 +27,11 @@ MAX_RATING = 1_000_000
 # A clock far ahead would pass once and then block every honest snapshot after it.
 MAX_FUTURE_MS = 5 * 60 * 1000
 SHA256 = re.compile(r"[0-9a-f]{64}\Z")
+FORMER_PLAYER = "Former player"
+# As Accounts.cleanName on the server: a name it lets through and this refuses would stop the whole board.
+REFUSED_CHARS = "<>\"'&`\u115f\u1160\u2800\u3164\uffa0"
+REFUSED_CATEGORIES = ("Cf", "Cs", "Cn", "Cc", "Co", "Zl", "Zp")
+INVISIBLE_CATEGORIES = ("Zs", "Mn", "Me")
 TOP_FIELDS = {"schema", "generatedAt", "logSha256", "matches", "eloConfig", "players", "heroes"}
 ROW_FIELDS = {"id", "name", "rating", "games", "wins"}
 
@@ -72,14 +77,19 @@ def _text(value, where):
         raise Rejected(f"{where} must be a string")
     if not 1 <= len(value) <= MAX_TEXT:
         raise Rejected(f"{where} must be 1 to {MAX_TEXT} characters")
+    # Python strings are code points, so a lone surrogate and a character beyond the first plane are seen as such.
     for ch in value:
-        if ch in "<>":
-            raise Rejected(f"{where} contains < or >")
-        # Cc control, Cs a lone surrogate, Zl and Zp line breaks; Bidi_Control can reorder a page.
-        if unicodedata.category(ch) in ("Cc", "Cs", "Zl", "Zp") or ch in "؜‎‏" or (
-            "‪" <= ch <= "‮" or "⁦" <= ch <= "⁩"
-        ):
+        if ch in REFUSED_CHARS:
+            raise Rejected(f"{where} contains a character like < or &")
+        # Cc control, Cf format (bidi overrides, zero-width marks), Cs a lone surrogate, Cn unassigned, Co private
+        # use, Zl and Zp line breaks.
+        if unicodedata.category(ch) in REFUSED_CATEGORIES:
             raise Rejected(f"{where} contains a control character")
+    if all(unicodedata.category(ch) in INVISIBLE_CATEGORIES for ch in value):
+        raise Rejected(f"{where} has nothing to see")
+    # The exact name is what a deleted account shows as; only the server's own may look like it.
+    if value != FORMER_PLAYER and " ".join(value.split()).casefold() == FORMER_PLAYER.casefold():
+        raise Rejected(f"{where} is made to look like a deleted account")
     return value
 
 

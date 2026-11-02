@@ -172,6 +172,56 @@ class AccountRoutesTest {
     }
 
     @Test
+    fun namesAreCheckedByCodePoint() {
+        val refused = listOf(
+            "a\u200Db",
+            "a\uDB40\uDC01b",
+            "a\u0378b",
+            "a\uE000b",
+            "a\uDBC0\uDC00b",
+            "a\uD800b",
+            "a\u0001b",
+            "a\u2028b",
+            "a<b",
+            "a>b",
+            "a\"b",
+            "O'Neil",
+            "R&D",
+            "a`b",
+            "    ",
+            "\u3000\u3000\u3000",
+            "\u00A0\u00A0",
+            "\u0301\u0301",
+            "\u3164\u3164",
+            "a\u2800",
+        )
+        for (name in refused) assertThat(Accounts.cleanName(name)).isNull()
+    }
+
+    @Test
+    fun theNameOfADeletedAccountCantBeTaken() {
+        val names = listOf(
+            "Former player",
+            "former player",
+            "FORMER PLAYER",
+            "  Former player  ",
+            "Former   player",
+            "Former\u00A0player",
+            "Former\u3000\u3000Player",
+        )
+        for (name in names) assertThat(Accounts.cleanName(name)).isNull()
+    }
+
+    @Test
+    fun spacesCollapseAndOrdinaryNamesPass() {
+        assertThat(Accounts.cleanName("  Ada   Lovelace ")).isEqualTo("Ada Lovelace")
+        assertThat(Accounts.cleanName("Ada\u00A0\u00A0L")).isEqualTo("Ada L")
+        for (name in listOf("Zo\u00EB", "\u674E\u96F7", "\uD83D\uDC69 Ada", "Jos\u0065\u0301")) {
+            assertThat(Accounts.cleanName(name)).isEqualTo(name)
+        }
+    }
+
+    @Test
     fun aRecoveryCodeLinksOnceAndIssuesANewOne() = serverTest {
         val created = account()
         val typed = "  " + created.recoveryCode.lowercase().replace("-", " ") + " "
