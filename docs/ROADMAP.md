@@ -549,8 +549,8 @@ passes (including an in-place upgrade from the morning build with real data). Ev
 - [x] Live on oldboi, behind Funnel beside the relay; real games through it: two browsers to a rated result (Chromium over Funnel's public address, WebKit over the tailnet) and the Android client's seams from the JVM over the tailnet; deploy tests 161/161 and the server suite on Ubuntu under `goa-gradle` — 2026-11-02
 - [x] `goa-leaderboards` on Pages, published by its Action — 2026-11-02, the seed board so far
 - [x] The web app's online mode live on Pages, with the sharp frames and smoothness: real sessions from the published site, on the real origin, CSP and game server (Chromium over Funnel's public address, WebKit over the tailnet) — 2026-11-02, Playwright on Windows, not a phone
-- [ ] Android's online mode in a release: on main, not in any published APK
-- [ ] The Android online screens on an emulator: `device_open` still refuses
+- [x] Android's online mode released as 0.13.0: the signed APK installed over the published 0.12.0, and a real game on the live server from it on the `goa_s25a` emulator (`OnlineLiveTest`, `online-host.mjs`); the 16 instrumented tests — 2026-11-03, emulator, not a phone
+- [ ] Hand-driving the Android online screens on an emulator: `device_open` still refuses
 - [ ] On the S25 Ultra and a real iPhone: a full online game on mobile data
 
 
