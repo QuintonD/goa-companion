@@ -453,3 +453,57 @@
 
 /* A facedown card: the back of the hero's own deck. */
 .goa-card-back-art { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+
+/* The resolution flow (ADR-046): one line per card resolved, opening to its steps. */
+.goa-flow { display: flex; flex-direction: column; gap: var(--sp-xs); margin-top: var(--sp-sm); }
+.goa-flow-entry { border: 1px solid var(--outline-variant); border-radius: 8px; background: var(--surface-container, var(--surface)); }
+.goa-flow-entry.earlier { background: none; }
+.goa-flow-entry.important { border-color: var(--primary); }
+.goa-flow-entry.important, .goa-flow-entry.opened { border-width: 1.5px; }
+.goa-flow-head { display: flex; align-items: center; gap: var(--sp-sm); width: 100%; min-height: 48px; padding: var(--sp-xs) var(--sp-sm); background: none; border: 0; border-radius: 8px; color: var(--on-surface); text-align: left; cursor: pointer; }
+.goa-flow-text { flex: 1; min-width: 0; display: flex; flex-direction: column; overflow-wrap: anywhere; }
+.goa-flow-who { color: var(--primary); }
+.goa-flow-who.red { color: var(--team-red); }
+.goa-flow-who.blue { color: var(--team-blue); }
+.goa-flow-strong { font-weight: 600; color: var(--on-surface); }
+.goa-flow-mark { display: flex; align-items: center; justify-content: center; width: 32px; height: 32px; flex: none; color: var(--primary); }
+.goa-flow-steps { display: flex; flex-direction: column; gap: var(--sp-xs); padding: 0 var(--sp-sm) var(--sp-sm) var(--sp-md); }
+.goa-flow-step { display: flex; align-items: center; gap: var(--sp-sm); padding-left: var(--sp-sm); border-left: 3px solid var(--outline-variant); }
+.goa-flow-step.important { border-left-color: var(--primary); }
+.goa-flow-step-text { flex: 1; min-width: 0; color: var(--on-surface-variant); }
+.goa-flow-step-text p { margin: 0; }
+.goa-flow-verdict { display: flex; align-items: center; gap: 3px; font-weight: 700; }
+.goa-flow-verdict.held { color: var(--secondary); }
+.goa-flow-verdict.lost { color: var(--error); }
+
+/* Online games (ADR-056). A name is anyone's: long ones wrap or cut, never push the layout. */
+.goa-online-name { overflow-wrap: anywhere; }
+.goa-online-message { margin: 0; padding: var(--sp-sm) var(--sp-md); border: 1px solid var(--error); border-radius: 8px; color: var(--on-surface); }
+.goa-online-note { margin: var(--sp-md); text-align: center; }
+.goa-online-code { display: block; margin: var(--sp-md) 0; padding: var(--sp-md); border: 1px solid var(--engraved); border-radius: 8px; background: var(--surface); font-size: 1.25rem; letter-spacing: 0.08em; text-align: center; overflow-wrap: anywhere; user-select: all; -webkit-user-select: all; }
+.goa-online-form { display: flex; flex-direction: column; gap: var(--sp-sm); }
+.goa-online-status.stale { color: var(--error); font-weight: 600; }
+.goa-online-seats { display: flex; flex-direction: column; }
+.goa-online-seat { display: flex; align-items: center; gap: var(--sp-md); width: 100%; min-height: 56px; padding: var(--sp-sm) var(--sp-md); background: none; border: 0; color: var(--on-surface); text-align: left; }
+.goa-online-seat + .goa-online-seat { border-top: 1px solid var(--engraved); }
+.goa-online-seat.free { cursor: pointer; }
+.goa-online-seat-mark { display: flex; align-items: center; justify-content: center; width: 40px; height: 40px; flex: none; }
+.goa-online-player-text { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.goa-online-you { padding: 2px var(--sp-sm); border-radius: 999px; background: var(--primary-container); color: var(--on-primary-container); }
+.goa-online-ready { display: inline-flex; align-items: center; gap: 2px; color: var(--secondary); }
+.goa-online-heroes { display: grid; grid-template-columns: repeat(auto-fill, minmax(76px, 1fr)); gap: var(--sp-sm); }
+.goa-online-hero { display: flex; flex-direction: column; align-items: center; gap: var(--sp-xs); min-height: 88px; padding: var(--sp-xs); background: none; border: 1px solid var(--engraved); border-radius: 8px; color: var(--on-surface); cursor: pointer; }
+.goa-online-hero.selected { border: 2px solid var(--primary); }
+.goa-online-players { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--sp-xs); }
+.goa-online-player { display: flex; align-items: center; gap: var(--sp-sm); }
+.goa-online-bar { position: absolute; left: calc(var(--sp-sm) + var(--safe-left)); top: var(--sp-sm); right: 64px; display: flex; flex-direction: column; align-items: flex-start; gap: var(--sp-xs); z-index: 2; pointer-events: none; }
+.goa-online-reconnecting, .goa-online-clock { display: inline-flex; align-items: center; gap: var(--sp-xs); max-width: 100%; padding: var(--sp-xs) var(--sp-sm); border: 1px solid var(--engraved); border-radius: 8px; background: var(--surface); color: var(--on-surface); }
+.goa-online-reconnecting { border-color: var(--error); }
+.goa-online-clock.red { border-color: var(--team-red); }
+.goa-online-clock.blue { border-color: var(--team-blue); }
+.goa-online-clock.mine { border-width: 2px; }
+.goa-online-clock.urgent { background: var(--error); color: var(--on-error); }
+.goa-online-rank { display: flex; align-items: center; gap: var(--sp-md); min-height: 56px; padding: var(--sp-sm) var(--sp-md); }
+.goa-online-rank.you { background: var(--primary-container); }
+.goa-online-rank-place { width: 2.5ch; flex: none; text-align: right; color: var(--on-surface-variant); }
+.goa-online-rank-rating { flex: none; font-weight: 600; }

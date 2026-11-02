@@ -7,7 +7,7 @@ import dev.quinton.goa.web.ui.IconLink
 import dev.quinton.goa.web.ui.Screen
 import org.jetbrains.compose.web.dom.Div
 
-/** The Play tab's first screen (ADR-055, as on the phone): Board, with games and puzzles, and Card trivia. */
+/** The Play tab's first screen (ADR-055, as on the phone): Board, with games and puzzles, Card trivia, Online. */
 @Composable
 fun PlayHomeScreen() {
     val router = LocalServices.current.router
@@ -25,6 +25,12 @@ fun PlayHomeScreen() {
                 text = "A quiz on the numbers printed on every hero's cards, with your group's leaderboard.",
                 enabled = true,
             ) { router.navigate(Route.Trivia()) }
+            EntryCard(
+                icon = "g_groups",
+                title = "Online",
+                text = "Real games against people on other phones, with public leaderboards.",
+                enabled = true,
+            ) { router.navigate(Route.OnlineHome) }
         }
     }
 }

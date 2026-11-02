@@ -1,5 +1,8 @@
 package dev.quinton.goa.web.nav
 
+import dev.quinton.goa.core.online.OnlineRoutes
+import dev.quinton.goa.feature.board.play.online.parseInvite
+
 /**
  * The bottom bar's destinations, in the Android app's order (core:navigation `TopLevelTab`,
  * app `GoaApp.Tabs`). [icon] names the `icons/nav_<icon>.svg` / `nav_<icon>_filled.svg` pair.
@@ -159,6 +162,45 @@ sealed interface Route {
             Routes.query("red" to red.ids(), "blue" to blue.ids())
         override val tab get() = Tab.PLAY
         override val parent get() = Boards
+    }
+
+    /** Online games (ADR-056): the account, a new room, joining by code, the games to go back to. */
+    data object OnlineHome : Route {
+        override val path = "online"
+        override val tab get() = Tab.PLAY
+        override val parent get() = PlayHome
+    }
+
+    /**
+     * Following an invite (`#play=<code>`, normalised to this address, so it works cold and across a reload):
+     * the online home with an account first if there is none, then the room. The code isn't a secret.
+     */
+    data class OnlineJoin(val code: String) : Route {
+        override val path get() = "online/join/${Routes.encode(code)}"
+        override val tab get() = Tab.PLAY
+        override val parent get() = OnlineHome
+    }
+
+    /** A room's lobby: seats, heroes, ready, start, the invite. */
+    data class OnlineRoom(val code: String) : Route {
+        override val path get() = "online/room/${Routes.encode(code)}"
+        override val tab get() = Tab.PLAY
+        override val parent get() = OnlineHome
+    }
+
+    /** An online game on the table, then its result: a full-screen table tool. */
+    data class OnlineGame(val gameId: String) : Route {
+        override val path get() = "online/game/${Routes.encode(gameId)}"
+        override val tab get() = Tab.PLAY
+        override val parent get() = OnlineHome
+        override val showsTabBar get() = false
+    }
+
+    /** The public leaderboard: players and heroes from rated games. */
+    data object OnlineLeaderboard : Route {
+        override val path = "online/leaderboard"
+        override val tab get() = Tab.PLAY
+        override val parent get() = OnlineHome
     }
 
     data object Puzzles : Route {
@@ -388,7 +430,11 @@ object Routes {
     fun parse(hash: String): Route {
         val raw = hash.removePrefix("#").removePrefix("/").trimEnd('/')
         // An invite link: everything after "join=" is the invite, kept exactly as written.
-        return if (raw.startsWith(JOIN)) Route.Join(raw.removePrefix(JOIN)) else parsePath(raw)
+        return when {
+            raw.startsWith(JOIN) -> Route.Join(raw.removePrefix(JOIN))
+            raw.startsWith(OnlineRoutes.INVITE_FRAGMENT) -> parseInvite(raw)?.let(Route::OnlineJoin) ?: Route.NotFound(raw)
+            else -> parsePath(raw)
+        }
     }
 
     private fun parsePath(raw: String): Route {
@@ -402,6 +448,7 @@ object Routes {
             "trivia", "levels" -> queried(parts, query)
             "boards" -> boards(parts, query)
             "play" -> play(parts, query)
+            "online" -> online(parts)
             "puzzles" -> oneOrTwo(parts, Route.Puzzles) { Route.Puzzle(it) }
             "rules" -> oneOrTwo(parts, Route.Rules) { Route.RulesTopic(it) }
             "settings" -> settings(parts)
@@ -452,6 +499,15 @@ object Routes {
         parts.size == 1 -> Route.Play
         parts.size == 2 && parts[1] == "home" -> Route.PlayHome
         parts.size == 2 && parts[1] == "new" -> Route.NewGame(ids(query["red"]), ids(query["blue"]))
+        else -> null
+    }
+
+    private fun online(parts: List<String>): Route? = when {
+        parts.size == 1 -> Route.OnlineHome
+        parts.size == 2 && parts[1] == "leaderboard" -> Route.OnlineLeaderboard
+        parts.size == 3 && parts[1] == "join" -> parseInvite(parts[2])?.let(Route::OnlineJoin)
+        parts.size == 3 && parts[1] == "room" -> parseInvite(parts[2])?.let(Route::OnlineRoom)
+        parts.size == 3 && parts[1] == "game" -> Route.OnlineGame(parts[2])
         else -> null
     }
 

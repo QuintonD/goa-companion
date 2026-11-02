@@ -34,4 +34,6 @@ class WebServices(
     val table: TableData = TableData(this)
 
     val play: PlayData = PlayData(this)
+
+    val online: OnlineData = OnlineData(this)
 }

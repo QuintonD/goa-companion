@@ -68,7 +68,46 @@ class RoutesTest {
         Route.MatchEdit("m-1", result = true),
         Route.RatingSettings,
         Route.WhoAreYou,
+        Route.OnlineHome,
+        Route.OnlineJoin("ABCD2345"),
+        Route.OnlineRoom("ABCD2345"),
+        Route.OnlineGame("g-1 a/b"),
+        Route.OnlineLeaderboard,
     )
+
+    @Test
+    fun anOnlineInviteNormalisesToTheJoinRoute() {
+        // The link an iPhone's Camera opens, and what people type and paste.
+        assertEquals(Route.OnlineJoin("ABCD2345"), Routes.parse("#play=ABCD2345"))
+        assertEquals(Route.OnlineJoin("ABCD2345"), Routes.parse("#/play=ABCD2345"))
+        assertEquals(Route.OnlineJoin("ABCD2345"), Routes.parse("#play=abcd-2345"))
+        assertEquals(Route.OnlineJoin("0B1D2345"), Routes.parse("#play=oBlD2345"))
+        assertEquals(Route.OnlineJoin("ABCD2345"), Routes.parse("#play=ABCD2345&utm=x"))
+        // A reload finds the same screen at the normal address.
+        assertEquals("#/online/join/ABCD2345", Routes.hash(Route.OnlineJoin("ABCD2345")))
+        assertEquals(Route.OnlineJoin("ABCD2345"), Routes.parse("#/online/join/ABCD2345"))
+    }
+
+    @Test
+    fun anInviteThatHoldsNoCodeIsNotFound() {
+        listOf("#play=", "#play=abc", "#play=ABCD23456", "#play=UUUUUUUU", "#play=<script>").forEach {
+            assertIs<Route.NotFound>(Routes.parse(it), it)
+        }
+        listOf("#/online/nope", "#/online/join/abc", "#/online/room/abc", "#/online/game", "#/online/room/ABCD2345/x")
+            .forEach { assertIs<Route.NotFound>(Routes.parse(it), it) }
+    }
+
+    @Test
+    fun onlineScreensSitOnThePlayTabAndGoUpToOnlineHome() {
+        assertEquals(Tab.PLAY, Route.OnlineHome.tab)
+        assertEquals(Route.PlayHome, Route.OnlineHome.parent)
+        listOf(Route.OnlineJoin("ABCD2345"), Route.OnlineRoom("ABCD2345"), Route.OnlineGame("g"), Route.OnlineLeaderboard)
+            .forEach {
+                assertEquals(Tab.PLAY, it.tab, it.path)
+                assertEquals(Route.OnlineHome, it.parent, it.path)
+            }
+        assertEquals(false, Route.OnlineGame("g").showsTabBar)
+    }
 
     @Test
     fun everyRouteSurvivesItsOwnHash() {
