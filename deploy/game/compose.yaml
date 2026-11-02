@@ -1,0 +1,54 @@
+# The game server on oldboi (ADR-056). deploy.sh stages the host-built distribution in dist/ and writes
+# .env beside this file, then runs `docker compose up -d --build`; a build by hand stops with a message.
+# Published on host loopback only; Tailscale Funnel puts it on :8443 under /game (funnel.sh).
+name: goa-game
+
+services:
+  game:
+    build:
+      context: .
+      args:
+        # Stamped on each game (docs/ONLINE.md). It becomes GOA_GAME_RULES_BUILD in the image, so a
+        # rollback to goa-game:previous keeps the value it was built with.
+        GOA_GAME_RULES_BUILD: ${GOA_GAME_RULES_BUILD:-}
+    image: goa-game:latest
+    container_name: goa-game
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:8788:8788"
+    environment:
+      GOA_GAME_HOST: 0.0.0.0 # inside the container; the host side is loopback only (above)
+      GOA_GAME_PORT: "8788"
+      GOA_GAME_DATA: /var/lib/goa-game
+      GOA_GAME_ASSETS: /opt/goa-game/assets # holds catalog/, from the distribution
+      GOA_GAME_MAX_ROOMS: "20"
+      GOA_GAME_ORIGINS: https://quintond.github.io
+      JAVA_TOOL_OPTIONS: -Xmx512m -XX:+ExitOnOutOfMemoryError -XX:-UsePerfData -Djava.io.tmpdir=/tmp
+    volumes:
+      # SQLite: the match log and running games. Back it up with backup.sh, not as plain files.
+      - /var/lib/goa-game:/var/lib/goa-game
+    user: "10001:10001"
+    read_only: true
+    tmpfs:
+      # exec: sqlite-jdbc may extract its native library here, and Docker's default is noexec.
+      - /tmp:size=64m,mode=1777,exec
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    mem_limit: 768m
+    cpus: "2.0"
+    pids_limit: 256
+    stop_grace_period: 30s
+    healthcheck:
+      # No curl in the JRE image: a plain HTTP request over bash's /dev/tcp.
+      test: ["CMD", "bash", "-c", "exec 3<>/dev/tcp/127.0.0.1/8788; printf 'GET /v1/health HTTP/1.1\\r\\nHost: game\\r\\nConnection: close\\r\\n\\r\\n' >&3; grep -q '\"ok\":true' <&3"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 40s
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"

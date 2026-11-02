@@ -1,0 +1,90 @@
+# Publishes the leaderboard: pull a snapshot from the game server, validate it, commit one JSON file
+# (ADR-056). Supply chain: every action is pinned to a commit (the tag in the comment), the token is
+# read-only except where a job says otherwise, no secrets are used, checkout keeps no credentials, and
+# the game server holds no GitHub credential. Bump a pin by resolving the new tag's commit.
+#
+# The site is deployed from this workflow, because a commit pushed with GITHUB_TOKEN does not trigger a
+# Pages build from a branch. Set Settings > Pages > Source to "GitHub Actions". Only the two JSON files
+# are put on the site.
+name: Publish leaderboard
+
+on:
+  schedule:
+    - cron: "*/15 * * * *"
+  push:
+    branches: [main]
+    paths:
+      - network.json
+      - leaderboard.json
+      - scripts/**
+      - .github/workflows/publish.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: publish
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    name: Fetch, validate, commit
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: write
+    outputs:
+      changed: ${{ steps.publish.outputs.changed }}
+      sha: ${{ steps.push.outputs.sha }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - id: publish
+        name: Fetch and validate the snapshot
+        run: bash scripts/publish.sh
+
+      - id: push
+        name: Push what the last step committed
+        env:
+          TOKEN: ${{ github.token }}
+        run: |
+          if [ "$(git rev-parse HEAD)" != "$GITHUB_SHA" ]; then
+            git push "https://x-access-token:${TOKEN}@github.com/${GITHUB_REPOSITORY}.git" HEAD:main
+          fi
+          echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+
+  deploy:
+    name: Deploy to GitHub Pages
+    # A schedule run with the same match log (or only a keepalive) has nothing new for the site.
+    if: github.event_name != 'schedule' || needs.publish.outputs.changed == 'true'
+    needs: publish
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ needs.publish.outputs.sha }}
+          persist-credentials: false
+
+      - name: The two files of the site, the leaderboard checked again
+        run: |
+          python3 -I scripts/validate_leaderboard.py --incoming leaderboard.json
+          mkdir site
+          cp network.json leaderboard.json site/
+
+      - uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0
+        with:
+          path: site
+
+      - id: deployment
+        uses: actions/deploy-pages@368f82528645a54fb793d4d04e342629a3f51346 # v5.0.1

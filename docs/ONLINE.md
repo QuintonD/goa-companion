@@ -22,7 +22,9 @@ live machine can join later without an app update (web builds also need it in th
 **Publishing is a pull.** A scheduled GitHub Action in `goa-leaderboards` fetches `/v1/leaderboard`,
 validates it and commits JSON only. oldboi holds no GitHub credential. Pages sites of one account
 share a browser origin with the PWA and its IndexedDB (group keys, online tokens), so anything able
-to publish HTML there could read them. The Action writes one validated JSON file, nothing else.
+to publish HTML there could read them. The Action writes one validated JSON file, nothing else. It
+also deploys the site (Pages source "GitHub Actions"), because a `GITHUB_TOKEN` push does not trigger
+a Pages build from a branch; only `network.json` and `leaderboard.json` go on the site.
 
 Ports: 443 and 10000 on oldboi are other apps' and are never touched. The game server is a new path
 on the relay's public port, `tailscale funnel --bg --https=8443 --set-path /game http://127.0.0.1:8788`.
@@ -105,6 +107,9 @@ past. Each game stores `rules_build` (a hash of the rules sources and catalog) a
 hash of the event text; each `TurnStarted`, a hash of the state. On restart: replay and compare. On a
 match, carry on, even across builds. On a mismatch or a throw, void the game, unrated, and tell the
 players in words. A deploy drains first: new rooms are refused for up to `GOA_GAME_DRAIN_HOURS`.
+The signal is a file, `drain` in the data directory, which can come and go while the server runs. While
+it exists the server refuses new rooms (`Refusal.DRAINING`) and `/v1/health` says `"status":"draining"`;
+`rooms` there counts what the deploy waits for, so it must reach 0 once running games have finished.
 
 ## Protocol versions
 
