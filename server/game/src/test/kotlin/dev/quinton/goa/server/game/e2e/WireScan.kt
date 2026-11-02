@@ -60,11 +60,8 @@ internal class WireScan(private val truth: GameTruth) {
         if (table.view.viewer != viewer) leaks += "$where is the table of ${table.view.viewer}"
         val decision = table.decision
         if (decision != null && decision.seat != viewer) {
-            if (decision.options.isNotEmpty() || decision.id != 0L || decision.prompt.isNotEmpty() ||
-                decision.sourceCardId != null
-            ) {
-                leaks += "$where has ${decision.seat}'s question: $decision"
-            }
+            val stub = decision.copy(id = 0, prompt = "", sourceCardId = null, options = emptyList())
+            if (decision != stub) leaks += "$where has ${decision.seat}'s question: $decision"
         }
         table.view.heroes.filter { it.heroId != viewer }.forEach { hero ->
             if (hero.hand != null) leaks += "$where shows the hand of ${hero.heroId}"
@@ -108,8 +105,14 @@ internal class WireScan(private val truth: GameTruth) {
     private fun scanTickets(seat: String, tickets: List<Long>): List<String> {
         val index = truth.seats.indexOf(seat).toLong()
         val leaks = tickets.filter { it % TICKET_STEP != index }.map { "$seat got the ticket $it, not of its seat" }
-        val steps = tickets.distinct().sorted().zipWithNext { a, b -> b - a }.filter { it != TICKET_STEP }
-        return leaks + steps.map { "$seat's tickets jump by $it: a question it wasn't asked is counted" }
+        val skipped = tickets.distinct().sorted().zipWithNext { a, b -> (b - a) / TICKET_STEP - 1 }.sum()
+        // The seat's own questions answered for it (a lone pass, the clock) count and aren't sent. Nothing else may.
+        val answeredForIt = truth.answers.count { it.seat == seat && it.origin != "human" }
+        return if (skipped > answeredForIt) {
+            leaks + "$seat's tickets skip $skipped, and only $answeredForIt of its answers were not its own"
+        } else {
+            leaks
+        }
     }
 
     private fun sameExceptOwn(frame: GameView, truth: GameView, viewer: String): Boolean =

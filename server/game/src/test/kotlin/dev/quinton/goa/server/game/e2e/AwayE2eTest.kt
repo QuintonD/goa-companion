@@ -5,11 +5,13 @@ import com.google.common.truth.Truth.assertWithMessage
 import dev.quinton.goa.core.game.DecisionKind
 import dev.quinton.goa.core.online.Refusal
 import dev.quinton.goa.core.online.VoidReason
+import dev.quinton.goa.feature.board.play.game.PlayUi
 import dev.quinton.goa.feature.board.play.game.TurnStatus
 import dev.quinton.goa.feature.board.play.online.OnlineResult
 import dev.quinton.goa.feature.board.play.online.OnlineState
 import dev.quinton.goa.feature.board.play.online.OnlineWords
 import dev.quinton.goa.server.game.room.RoomRules
+import java.util.concurrent.CopyOnWriteArrayList
 import kotlin.random.Random
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.runBlocking
@@ -67,7 +69,7 @@ class AwayE2eTest {
 
             val reopened = away.driver(game.gameId)
             away.onPhone { reopened.start() }
-            val ui = reopened.state.until("the result") { it.play?.over != null && it.play?.online?.rated != null }.play!!
+            val ui = reopened.state.until("the result") { it.play?.online?.rated != null }.play!!
             val truth = world.log.truth(game.gameId)
             assertThat(ui.over?.winner).isEqualTo(truth.positions.last().spectator.winner)
             assertThat(ui.log.map { it.text }).isEqualTo(truth.events.map { it.text })
@@ -97,18 +99,23 @@ class AwayE2eTest {
             room.pickAndReady(lineup(2, Random(23)))
             val gameId = room.started()
             // Bo answers everything but the card of the turn; Ana answers nothing but her card.
-            val idle = Player(bo, gameId, hold = { it.table.decision?.kind == DecisionKind.PLAY_CARD })
+            val wrong = CopyOnWriteArrayList<PlayUi>()
+            val idle = Player(
+                bo,
+                gameId,
+                hold = { it.table.decision?.kind == DecisionKind.PLAY_CARD },
+                look = { ui ->
+                    val card = ui.table.decision?.kind == DecisionKind.PLAY_CARD
+                    if (card && !ui.table.asking && ui.status == TurnStatus.YourTurn) wrong += ui
+                },
+            )
             val active = Player(ana, gameId)
             listOf(idle, active).forEach { it.start() }
             val hero = room.heroOf(bo)
-            eventually("the clock's answer for the card", GAME_LIMIT_MILLIS) {
-                world.log.answers(gameId).any { it.seat == hero && it.origin == "clock" }
+            eventually("the clock answering their card, turn after turn", GAME_LIMIT_MILLIS) {
+                world.log.answers(gameId).count { it.seat == hero && it.origin == "clock" } >= CLOCK_ANSWERS
             }
-            eventually("a screen in step with it") {
-                val ui = idle.screens.play
-                ui != null && ui.table.heroView(hero)?.played != null && !ui.table.asking
-            }
-            assertThat(idle.screens.play?.status).isNotEqualTo(TurnStatus.YourTurn)
+            assertWithMessage("told it's their turn with the card already down").that(wrong).isEmpty()
             assertThat(idle.screens).isInstanceOf(OnlineState.InGame::class.java)
         }
     }
@@ -154,6 +161,7 @@ class AwayE2eTest {
         const val AWAY_MILLIS = 50L
         const val UNDER_WAY = 10
         const val CLOCK_MILLIS = 1_500L
+        const val CLOCK_ANSWERS = 2
         const val PAUSE_MILLIS = 1_500L
         const val ABANDON_MILLIS = 6_000L
         const val SLACK_MILLIS = 1_500L

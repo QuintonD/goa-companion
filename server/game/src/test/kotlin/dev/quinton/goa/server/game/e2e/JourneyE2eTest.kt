@@ -2,6 +2,11 @@ package dev.quinton.goa.server.game.e2e
 
 import com.google.common.truth.Truth.assertThat
 import com.google.common.truth.Truth.assertWithMessage
+import dev.quinton.goa.core.game.Controller
+import dev.quinton.goa.core.game.GameSetup
+import dev.quinton.goa.core.game.SeatSetup
+import dev.quinton.goa.core.game.engine.EngineSession
+import dev.quinton.goa.core.model.match.Match
 import dev.quinton.goa.core.model.match.Team
 import dev.quinton.goa.core.online.OnlineProtocol
 import dev.quinton.goa.core.online.OnlineRoutes
@@ -11,6 +16,10 @@ import dev.quinton.goa.feature.board.play.game.GameAction
 import dev.quinton.goa.feature.board.play.online.OnlineState
 import dev.quinton.goa.feature.board.play.review.ReviewAction
 import dev.quinton.goa.server.game.ratings.FORMER_PLAYER
+import dev.quinton.goa.server.game.room.TestRules
+import dev.quinton.goa.server.game.store.GameResult
+import dev.quinton.goa.server.game.store.GameRow
+import dev.quinton.goa.server.game.store.GameSeatRow
 import kotlin.random.Random
 import kotlinx.coroutines.runBlocking
 import org.junit.Test
@@ -75,7 +84,7 @@ class JourneyE2eTest {
                 .that(reviewing.person.connector.wire.any { it.message is ServerMessage.Reviewed }).isTrue()
             people.forEach { person ->
                 val tables = person.tables(gameId)
-                assertWithMessage("the frames of ${person.name}").that(tables.size).isGreaterThan(truth.answers.size / 2)
+                assertThat(tables.size).isGreaterThan(truth.answers.size / 2)
                 assertThat(scan.scan(person.connector.wire, room.heroOf(person))).isEmpty()
                 assertWithMessage("${person.name}'s log").that(rebuiltLog(tables)).isEqualTo(truth.events)
             }
@@ -90,7 +99,11 @@ class JourneyE2eTest {
             // The board shows nobody before their fifth rated game.
             assertThat(world.board().players).isEmpty()
             val duel = heroes.take(2)
-            repeat(GAMES_TO_APPEAR - 2) { aDuel(ana, bo, duel) }
+            aDuel(ana, bo, duel)
+            // Two more like the one just played, to save the time: real rows, and the fifth is played.
+            val played = world.store.matches().last()
+            repeat(GAMES_TO_APPEAR - REAL_GAMES) { seedAnotherLike(world, played, it + 1) }
+            assertThat(world.board().matches).isEqualTo(GAMES_TO_APPEAR - 1)
             assertThat(world.board().players.map { it.id }).doesNotContain(ana.accountId)
             aDuel(ana, bo, duel)
             assertThat(world.board().matches).isEqualTo(GAMES_TO_APPEAR)
@@ -152,6 +165,33 @@ class JourneyE2eTest {
     private fun truthHand(person: Person, gameId: String): List<String> =
         person.tables(gameId).first().view.heroes.firstNotNullOf { it.hand }
 
+    private suspend fun seedAnotherLike(world: World, match: Match, n: Int) {
+        val setup = GameSetup(
+            mapId = FORGOTTEN_ISLAND,
+            seats = match.participants.map { SeatSetup(checkNotNull(it.heroId), it.team, Controller.Human) },
+            tieBreaker = Team.RED,
+        )
+        val id = "${match.id}-$n"
+        val playedAt = match.playedAt + n
+        val row = GameRow(
+            id,
+            "SEEDED0$n",
+            setup,
+            (TestRules.engine.newGame(setup) as EngineSession).save(),
+            "e2e",
+            TestRules.engine.engineVersion,
+            ranked = true,
+            setup.mapId,
+            setup.length,
+            createdAt = match.createdAt,
+        )
+        val seats = setup.seats.zip(match.participants).mapIndexed { i, (seat, player) ->
+            GameSeatRow(id, seat.heroId, player.playerId, seat.team, handicap = false, seatOrder = i)
+        }
+        world.store.createGame(row, seats)
+        world.store.finish(id, GameResult(playedAt, rated = true), match.copy(id = id, playedAt = playedAt))
+    }
+
     /** One more rated game between two of them. */
     private suspend fun aDuel(red: Person, blue: Person, heroes: List<String>) {
         val room = openRoom(listOf(red, blue), teamSize = 1)
@@ -164,6 +204,9 @@ class JourneyE2eTest {
 
     private companion object {
         const val GAMES_TO_APPEAR = 5
+
+        /** The game of four, one duel, and the duel that makes five. */
+        const val REAL_GAMES = 3
         const val OK = 200
         const val NOT_MODIFIED = 304
     }

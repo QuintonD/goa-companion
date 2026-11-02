@@ -124,7 +124,7 @@ class SimultaneousE2eTest {
             assertThat(rebuiltLog(person.tables(gameId))).isEqualTo(truth.events)
         }
         return truth.positions.zip(truth.answers).count { (position, answer) ->
-            position.pending?.kind == DecisionKind.UPGRADE_CARD && answer.seat == position.pending?.seat
+            position.pending?.kind == DecisionKind.UPGRADE_CARD && answer.seat == position.pending.seat
         }
     }
 
@@ -139,18 +139,17 @@ class SimultaneousE2eTest {
         latest: Map<String, PlayUi>,
         inOrder: Boolean,
     ): Boolean {
-        val question = ui.table.decision ?: return false
-        if (!question.kind.simultaneous) return false
+        if (ui.table.decision?.kind?.simultaneous != true) return false
         val view = ui.table.view
         val here = order.mapNotNull { latest[it] }
         val allThere = here.size == order.size && here.all { other ->
             other.table.view.round == view.round && other.table.view.turn == view.turn
         }
-        if (!allThere) return true
-        if (!inOrder) return false
-        return order.drop(order.indexOf(hero) + 1).any { later ->
-            latest[later]?.let { it.table.asking && it.table.decision?.kind?.simultaneous == true } != false
-        }
+        return !allThere || (
+            inOrder && order.drop(order.indexOf(hero) + 1).any { later ->
+                latest[later]?.let { it.table.asking && it.table.decision?.kind?.simultaneous == true } != false
+            }
+            )
     }
 
     @Test
@@ -175,8 +174,6 @@ class SimultaneousE2eTest {
     fun aSeatWithNoCardsIsPassedForAndNobodyWaits(): Unit = runBlocking {
         World().use { world ->
             val people = world.signedUp("Ana", "Bo", "Cy", "Di")
-            val (ana, bo, cy, di) = people
-            val heroes = listOf("wasp", "arien", "xargatha", "brogan")
             val session = position(TestRules.engine, FORGOTTEN_ISLAND) {
                 clearMinions()
                 hero("wasp", Team.RED, Hex(1, -2)) { hand() }
@@ -185,7 +182,7 @@ class SimultaneousE2eTest {
                 hero("brogan", Team.BLUE, Hex(-4, -4)) { hand("brogan-gold", "brogan-silver") }
                 phase = PositionPhase.PlayCards(0)
             }
-            val owners = mapOf("wasp" to ana, "xargatha" to bo, "arien" to cy, "brogan" to di)
+            val owners = listOf("wasp", "xargatha", "arien", "brogan").zip(people).toMap()
             val gameId = "built-game"
             val row = GameRow(
                 gameId,
@@ -206,7 +203,6 @@ class SimultaneousE2eTest {
                 },
             )
             world.restart()
-            check(heroes.all { it in owners })
 
             val order = session.setup.seats.map { it.heroId }
             val latest = ConcurrentHashMap<String, PlayUi>()

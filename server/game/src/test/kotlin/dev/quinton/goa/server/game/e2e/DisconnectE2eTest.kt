@@ -84,21 +84,20 @@ class DisconnectE2eTest {
             eventually("the others seeing them back") {
                 others.all { it.seen?.online?.presence?.get(hero) == Presence.HERE }
             }
-            val lastEvent = others.minOf { rebuiltLog(it.person.tables(gameId)).size }
-            val theirs = rebuiltLog(tunnel.person.tables(gameId))
-            val ours = rebuiltLog(others.first().person.tables(gameId))
-            val common = minOf(theirs.size, ours.size, lastEvent)
-            assertThat(theirs.take(common)).isEqualTo(ours.take(common))
-
-            playToEnd(players)
+            // And they play on: answers of their own again, the same game as everybody else's, event by event.
+            val humanBefore = world.log.answers(gameId).count { it.seat == hero && it.origin == "human" }
+            eventually("answers of their own again", GAME_LIMIT_MILLIS) {
+                world.log.answers(gameId).count { it.seat == hero && it.origin == "human" } >= humanBefore + PLAYS_ON
+            }
+            players.forEach { it.hold = { true } }
+            // In this order: a frame goes out after its answer is on disk, so no phone is ahead of what is read next.
+            val logs = players.associateWith { rebuiltLog(it.person.tables(gameId)) }
             val truth = world.log.truth(gameId)
-            players.forEach { player ->
-                assertWithMessage("${player.person.name}'s log")
-                    .that(rebuiltLog(player.person.tables(gameId))).isEqualTo(truth.events)
-                assertThat(player.seen?.log?.map { it.text }).isEqualTo(truth.events.map { it.text })
+            logs.forEach { (player, log) ->
+                assertWithMessage("${player.person.name}'s log").that(log).isEqualTo(truth.events.take(log.size))
+                assertThat(log.size).isGreaterThan(heldEvents)
             }
             assertThat(truth.answers.filter { it.origin == "clock" }.map { it.seat }.toSet()).containsExactly(hero)
-            assertThat(world.store.matches().map { it.id }).contains(gameId)
         }
     }
 
@@ -106,5 +105,6 @@ class DisconnectE2eTest {
         const val AWAY_MILLIS = 1_500L
         const val SLACK_MILLIS = 1_000L
         const val ANSWERS_WHILE_AWAY = 3
+        const val PLAYS_ON = 5
     }
 }

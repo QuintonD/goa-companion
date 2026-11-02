@@ -47,7 +47,8 @@ class RoomsE2eTest {
     @Test
     fun drainingBlocksNewRoomsWhileAGameFinishes(): Unit = runBlocking {
         World().use { world ->
-            val (ana, bo, cy, di) = world.signedUp("Ana", "Bo", "Cy", "Di")
+            val (ana, bo) = world.signedUp("Ana", "Bo")
+            val (cy, di) = world.signedUp("Cy", "Di")
             val running = openRoom(listOf(ana, bo), teamSize = 1)
             running.pickAndReady(lineup(2, Random(11)))
             val gameId = running.started()

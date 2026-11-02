@@ -127,10 +127,14 @@ class RestartE2eTest {
             val gameId = room.started()
             val players = people.map { Player(it, gameId) }
             players.forEach { player ->
-                player.hold = { ui -> ui.table.decision?.kind == DecisionKind.PLAY_CARD && ui.table.view.round >= STOP_AT_ROUND }
+                player.hold = { ui ->
+                    ui.table.decision?.kind == DecisionKind.PLAY_CARD && ui.table.view.round >= STOP_AT_ROUND
+                }
             }
             players.forEach { it.start() }
-            eventually("a past to check", GAME_LIMIT_MILLIS) { players.all { it.seen?.table?.view?.round == STOP_AT_ROUND } }
+            eventually("a past to check", GAME_LIMIT_MILLIS) {
+                players.all { it.seen?.table?.view?.round == STOP_AT_ROUND }
+            }
             eventually("a question to wait on") { players.any { it.seen?.table?.asking == true } }
 
             build = "build-2"
@@ -145,7 +149,10 @@ class RestartE2eTest {
             assertWithMessage("a changed past").that(world.rooms.runningCount).isEqualTo(0)
             assertThat(world.log.status(gameId)).isEqualTo("voided")
             players.forEach { player ->
-                val ui = player.driver.state.until("the words", RECONNECT_MILLIS) { it.play?.online?.closed != null }.play!!
+                val shown = player.driver.state.until("the words", RECONNECT_MILLIS) {
+                    it.play?.online?.closed != null
+                }
+                val ui = checkNotNull(shown.play)
                 assertThat(ui.online?.closed).isEqualTo(OnlineWords.voided(VoidReason.RULES_CHANGED))
                 assertThat(ui.online?.rated).isFalse()
                 assertThat(ui.over).isNull()

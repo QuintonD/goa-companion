@@ -406,8 +406,9 @@ internal class Player(
                     if (ended(ui)) return@launch
                     val question = ui.table.decision
                     val again = question?.id != tried || System.currentTimeMillis() - triedAt > RETRY_MILLIS
-                    if (ui.table.asking && question != null && again && !hold(ui)) {
-                        think(question)
+                    val asked = ui.table.asking && question != null
+                    if (asked && again && !hold(ui)) {
+                        think(checkNotNull(question))
                         val now = driver.state.value.play
                         if (now?.table?.decision?.id == question.id && now.table.asking && !hold(now)) {
                             answer(now, question)
