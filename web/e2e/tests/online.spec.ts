@@ -105,7 +105,7 @@ test("a recovery code brings the account to another device, and has to be saved 
   await open(page, "#/online");
   await page.getByLabel("Recovery code").fill("wrong");
   await page.getByRole("button", { name: "Use this code" }).click();
-  await expect(page.getByRole("alert")).toContainText("recovery code isn't right");
+  await expect(page.getByRole("alert")).toContainText("recovery code doesn't work");
 
   await page.getByLabel("Recovery code").fill(old);
   await page.getByRole("button", { name: "Use this code" }).click();

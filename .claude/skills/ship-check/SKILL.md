@@ -28,6 +28,7 @@ On oldboi use `goa-gradle <tasks>` in place of `.\gradlew.bat` (memory cap, ADR-
    (`app/build/intermediates/merged_manifest/release/processReleaseMainManifest/AndroidManifest.xml`)
    has `INTERNET`, no `backend:com.google.android.datatransport.cct.CctBackendFactory` meta-data (the
    code scanner's usage logger must have no upload backend), no `FOREGROUND_SERVICE`, and the
-   HTTPS-only `networkSecurityConfig`; app code contacts no host but the group's sync server.
+   HTTPS-only `networkSecurityConfig`; app code contacts no host but the group's sync server and, for
+   online games (ADR-056), the game host and the two public files of `goa-leaderboards` on Pages.
 
 Never report "verified on device" unless step 5 actually ran on hardware.

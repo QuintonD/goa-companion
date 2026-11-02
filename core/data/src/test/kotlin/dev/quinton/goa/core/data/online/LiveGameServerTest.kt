@@ -26,6 +26,7 @@ import dev.quinton.goa.feature.board.play.online.OnlineResult
 import dev.quinton.goa.feature.board.play.online.OnlineState
 import dev.quinton.goa.feature.board.play.online.inviteLink
 import dev.quinton.goa.feature.board.play.online.leaderboard.LeaderboardCache
+import dev.quinton.goa.feature.board.play.online.leaderboard.LeaderboardFetcher
 import dev.quinton.goa.feature.board.play.online.leaderboard.LeaderboardOrigin
 import dev.quinton.goa.feature.board.play.online.leaderboard.LeaderboardRepository
 import java.io.File
@@ -306,7 +307,17 @@ class LiveGameServerTest {
         assertThat(after.value.games.map { it.gameId }).doesNotContain(gameId)
         val board = withContext(Dispatchers.IO) {
             LeaderboardRepository(
-                OkHttpLeaderboardFetcher(OnlineHttpClients.rest()),
+                // Pages down, so this reads the server under test and not the public board.
+                LeaderboardFetcher { address ->
+                    if (address.startsWith(
+                            url!!,
+                        )
+                    ) {
+                        OkHttpLeaderboardFetcher(OnlineHttpClients.rest()).get(address)
+                    } else {
+                        null
+                    }
+                },
                 object : LeaderboardCache {
                     override suspend fun read(): String? = null
 

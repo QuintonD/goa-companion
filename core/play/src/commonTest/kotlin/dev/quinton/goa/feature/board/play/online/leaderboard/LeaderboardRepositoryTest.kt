@@ -56,6 +56,20 @@ class LeaderboardRepositoryTest {
         LeaderboardRepository(web, cache, builtIn) { now }
 
     @Test
+    fun theSitesEmptySeedFileIsNotABoard() = runTest {
+        val cache = FakeCache()
+        val web = FakeWeb(
+            mapOf(
+                OnlineRoutes.LEADERBOARD_FILE to text(board(generatedAt = 0)),
+                builtInBoard to text(board(name = "Server")),
+            ),
+        )
+        val load = repository(web, cache).load()
+        assertEquals(LeaderboardOrigin.SERVER, load?.origin)
+        assertEquals("Server", load?.snapshot?.players?.single()?.name)
+    }
+
+    @Test
     fun pagesComesFirstAndAsksNothingElse() = runTest {
         val cache = FakeCache()
         val web = FakeWeb(

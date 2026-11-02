@@ -189,7 +189,7 @@ test("a wrong recovery code, a rename and a deleted account, as the real server 
   await page.goto("./#/online");
   await page.getByLabel("Recovery code").fill("not-a-code");
   await page.getByRole("button", { name: "Use this code" }).click();
-  await expect(page.getByRole("alert")).toContainText("recovery code isn't right");
+  await expect(page.getByRole("alert")).toContainText("recovery code doesn't work");
 
   const code = await createAccount(page, `Cid ${browserName}`);
   expect(code.length).toBeGreaterThan(8);
@@ -204,6 +204,6 @@ test("a wrong recovery code, a rename and a deleted account, as the real server 
   // The code died with the account.
   await page.getByLabel("Recovery code").fill(code);
   await page.getByRole("button", { name: "Use this code" }).click();
-  await expect(page.getByRole("alert")).toContainText("recovery code isn't right");
+  await expect(page.getByRole("alert")).toContainText("recovery code doesn't work");
   expect(await violations()).toEqual([]);
 });

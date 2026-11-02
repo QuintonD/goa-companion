@@ -55,7 +55,8 @@ class LeaderboardRepository(
 
     private suspend fun fetched(url: String, origin: LeaderboardOrigin): LeaderboardLoad? {
         val text = fetcher.get(url) ?: return null
-        val snapshot = snapshotOf(text) ?: return null
+        // The site starts with an empty file that no server made: the server may already have a board.
+        val snapshot = snapshotOf(text)?.takeIf { it.generatedAt > 0 } ?: return null
         cache.write(text)
         return loaded(snapshot, origin)
     }

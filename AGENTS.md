@@ -9,7 +9,7 @@ device verification on the S25 Ultra pending. See [docs/ROADMAP.md](docs/ROADMAP
 
 ## The product in one breath
 
-Ten features, offline-first, pass-and-play on one phone at the table:
+Eleven features, offline-first, pass-and-play on one phone at the table except the last:
 
 1. **Hero catalog** — browse/search/filter heroes, their cards, tiers and abilities.
 2. **Phase timer** — configurable countdowns per game phase, built for table use.
@@ -28,6 +28,9 @@ Ten features, offline-first, pass-and-play on one phone at the table:
    computer opponents at a strength from 1 to 10 (ADR-039) and an optional Coach (ADR-035).
 10. **Puzzles** — 50 difficult solver-proven positions with switchable nudges and an explanation
    at the end (ADR-035), and full rounds: four turns planned from turn 1 with the enemy's plays known (ADR-052).
+11. **Online games** — opponents on their own phones in a real game run by the server, invite rooms and public
+   leaderboards derived from the match log; Pages carries everything static, oldboi only the live rooms
+   ([docs/ONLINE.md](docs/ONLINE.md), ADR-056).
 
 iPhones use the same app as a PWA on GitHub Pages (`web/`, ADR-043).
 
@@ -43,6 +46,7 @@ Details and acceptance criteria: [docs/PRODUCT.md](docs/PRODUCT.md).
 | [docs/DESIGN.md](docs/DESIGN.md) | Any UI or asset work — design system and asset policy |
 | [docs/ROADMAP.md](docs/ROADMAP.md) | Picking the next task; update status when done |
 | [docs/DECISIONS.md](docs/DECISIONS.md) | Before changing anything architectural; append new ADRs |
+| [docs/ONLINE.md](docs/ONLINE.md) | Online games: hosting, wire contract, hidden information, deploy limits |
 
 ## Non-negotiable rules
 
@@ -88,6 +92,8 @@ ADR-038) and run one build at a time.
 .\gradlew.bat :web:app:jsBrowserDevelopmentRun  # web app dev server (ADR-043)
 .\gradlew.bat :web:app:site              # deployable web app in web/app/build/site (what Pages serves)
 .\gradlew.bat :web:app:jsTest :web:app:detekt :web:app:ktlintCheck  # web unit tests + lint
+.\gradlew.bat :server:game:test          # the game server: rooms, hidden information, end to end (about 10 min)
+.\gradlew.bat :server:game:run           # local game server (env in deploy/game/README.md, ADR-056)
 .\gradlew.bat :web:app:webE2e            # Playwright, WebKit iPhone 15 + Chromium Pixel 7 (npm ci in web/e2e once;
                                          #   PLAYWRIGHT_BROWSERS_PATH=D:\.playwright, npm_config_cache=D:\.npm-cache)
 ```
