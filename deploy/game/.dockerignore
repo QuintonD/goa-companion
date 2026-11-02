@@ -1,0 +1,4 @@
+# The build context is this directory, and the image needs only the staged distribution.
+*
+!dist
+!dist/**
