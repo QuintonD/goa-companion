@@ -21,6 +21,13 @@ distributions {
     }
 }
 
+// sqlite-jdbc unpacks a native library here; a test's own data directory couldn't be deleted after it.
+tasks.withType<Test>().configureEach {
+    val sqliteTemp = layout.buildDirectory.dir("tmp/sqlite-native").get().asFile
+    doFirst { sqliteTemp.mkdirs() }
+    systemProperty("org.sqlite.tmpdir", sqliteTemp.absolutePath)
+}
+
 dependencies {
     implementation(projects.core.model)
     implementation(projects.core.domain)
