@@ -20,7 +20,7 @@ import org.apache.pdfbox.rendering.PDFRenderer
  * here is derived from the pinned PDF by page and object, so the set can be rebuilt and checked.
  * Beyond crops, two things are changed on purpose, each recorded in official/SOURCES.md: the miniatures are toned
  * as the page prints them (the PDF holds them grey and colours them with a blend), and the parts the PDF prints too
- * small for a phone are redrawn after it (design/look/render_parts.py, ADR-057).
+ * small for a phone are redrawn after it (design/look/render_parts.py, ADR-058).
  */
 
 /**
@@ -101,7 +101,7 @@ const val REDRAWN_OBJ = -1
 
 /**
  * The parts the PDF prints too small for a phone (its banner is 827 x 45), kept as masters in design/look/parts
- * (ADR-057): redrawn after the page by design/look/render_parts.py, or upscaled where it's illustrated, as
+ * (ADR-058): redrawn after the page by design/look/render_parts.py, or upscaled where it's illustrated, as
  * design/README.md describes. Name to page and what it is.
  */
 private val REDRAWN = listOf(

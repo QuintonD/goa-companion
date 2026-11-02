@@ -26,7 +26,9 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.composed
+import androidx.compose.ui.draw.CacheDrawModifierNode
+import androidx.compose.ui.draw.CacheDrawScope
+import androidx.compose.ui.draw.DrawResult
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawWithCache
 import androidx.compose.ui.geometry.CornerRadius
@@ -45,6 +47,12 @@ import androidx.compose.ui.graphics.TileMode
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.clipPath
+import androidx.compose.ui.node.CompositionLocalConsumerModifierNode
+import androidx.compose.ui.node.DelegatingNode
+import androidx.compose.ui.node.ModifierNodeElement
+import androidx.compose.ui.node.currentValueOf
+import androidx.compose.ui.platform.InspectorInfo
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.heading
@@ -69,6 +77,9 @@ import dev.quinton.goa.core.model.board.MinionType
 import dev.quinton.goa.core.model.catalog.CardColor
 import dev.quinton.goa.core.model.match.Team
 import dev.quinton.goa.core.model.settings.BoardStyle
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.launch
 
 /*
  * The game's own look (ADR-053): the parts the rulebook's pages and the cards are made of, as the
@@ -192,14 +203,54 @@ fun GoaPlateTheme(content: @Composable () -> Unit) {
  * [GoaPlate]): its text must be themed dark in the light theme too. Without [edge], just the slate, for
  * parts that continue one another (a sheet's drag handle and its body).
  */
-fun Modifier.slatePlate(
-    shape: Shape = PlateShape,
-    brackets: Boolean = true,
-    edge: Boolean = true,
-): Modifier = composed {
-    val slate = rememberOfficialBitmap(LookArt.SLATE)
-    val corners = if (brackets) LookArt.corners().map { rememberOfficialBitmap(it) } else emptyList()
-    drawWithCache {
+fun Modifier.slatePlate(shape: Shape = PlateShape, brackets: Boolean = true, edge: Boolean = true): Modifier =
+    this then SlatePlateElement(shape, brackets, edge)
+
+private data class SlatePlateElement(val shape: Shape, val brackets: Boolean, val edge: Boolean) :
+    ModifierNodeElement<SlatePlateNode>() {
+    override fun create() = SlatePlateNode(shape, brackets, edge)
+
+    override fun update(node: SlatePlateNode) = node.update(shape, brackets, edge)
+
+    override fun InspectorInfo.inspectableProperties() {
+        name = "slatePlate"
+    }
+}
+
+/** A node, not a `composed` modifier: a screen of plates in a list adds nothing to its composition. */
+private class SlatePlateNode(private var shape: Shape, private var brackets: Boolean, private var edge: Boolean) :
+    DelegatingNode(),
+    CompositionLocalConsumerModifierNode {
+    private var slate: ImageBitmap? = null
+    private var corners: List<ImageBitmap?> = emptyList()
+    private val cache = delegate(CacheDrawModifierNode { buildDrawing() })
+
+    override fun onAttach() = takeArt()
+
+    fun update(shape: Shape, brackets: Boolean, edge: Boolean) {
+        val art = brackets != this.brackets
+        this.shape = shape
+        this.brackets = brackets
+        this.edge = edge
+        if (art) takeArt()
+        cache.invalidateDrawCache()
+    }
+
+    /** What is decoded already draws from the first frame; the rest draws when it comes. */
+    private fun takeArt() {
+        val paths = if (brackets) LookArt.corners() else emptyList()
+        slate = OfficialBitmaps.peek(LookArt.SLATE)
+        corners = paths.map(OfficialBitmaps::peek)
+        if (slate != null && corners.none { it == null }) return
+        val context = currentValueOf(LocalContext)
+        coroutineScope.launch {
+            slate = OfficialBitmaps.load(context, LookArt.SLATE)
+            corners = paths.map { path -> async { OfficialBitmaps.load(context, path) } }.awaitAll()
+            cache.invalidateDrawCache()
+        }
+    }
+
+    private fun CacheDrawScope.buildDrawing(): DrawResult {
         val outline = shape.createOutline(size, layoutDirection, this)
         val clip = Path().apply {
             when (outline) {
@@ -210,16 +261,19 @@ fun Modifier.slatePlate(
         }
         val texture = slate?.let { ShaderBrush(ImageShader(it, TileMode.Repeated, TileMode.Repeated)) }
         val outer = Stroke(width = 1.dp.toPx())
+        val inner = Stroke(width = 3.dp.toPx())
         val bracket = 16.dp.toPx()
         val inset = 2.dp.toPx()
-        onDrawBehind {
+        val edge = edge
+        val corners = corners
+        return onDrawBehind {
             clipPath(clip) {
                 drawRect(PLATE_GROUND)
                 if (texture != null) {
                     drawRect(texture)
                     drawRect(PLATE_SHADE)
                 }
-                if (edge) drawPath(clip, PLATE_DARK_EDGE, style = Stroke(width = 3.dp.toPx()))
+                if (edge) drawPath(clip, PLATE_DARK_EDGE, style = inner)
             }
             if (edge) drawPath(clip, PLATE_EDGE, style = outer)
             corners.forEachIndexed { i, image ->

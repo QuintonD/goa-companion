@@ -1,6 +1,7 @@
 package dev.quinton.goa.feature.catalog.list
 
 import androidx.activity.compose.BackHandler
+import androidx.activity.compose.ReportDrawnWhen
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
@@ -122,6 +123,8 @@ fun CatalogScreen(
 ) {
     var showFilters by rememberSaveable { mutableStateOf(false) }
     val ready = state as? CatalogUiState.Ready
+    // The first screen is usable: what "fully drawn" means to the system and the startup measure (ADR-057).
+    ReportDrawnWhen { ready != null }
     // Back with a search typed clears the search instead of leaving the app.
     BackHandler(enabled = query.isNotEmpty()) { onAction(CatalogAction.Search("")) }
     GoaScreen(

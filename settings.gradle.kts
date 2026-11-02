@@ -45,6 +45,7 @@ rootProject.name = "guards-of-atlantis"
 enableFeaturePreview("TYPESAFE_PROJECT_ACCESSORS")
 
 include(":app")
+include(":baselineprofile")
 include(":core:model")
 include(":core:domain")
 include(":core:domain-testfixtures")

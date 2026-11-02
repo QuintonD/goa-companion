@@ -89,6 +89,7 @@ import dev.quinton.goa.feature.board.BoardText
 import dev.quinton.goa.feature.board.board.BoardSheet
 import dev.quinton.goa.feature.board.board.SearchField
 import dev.quinton.goa.feature.board.list.LineupHeroes
+import dev.quinton.goa.feature.board.map.PreloadMapPainting
 import dev.quinton.goa.feature.board.play.PlayText
 import dev.quinton.goa.feature.board.play.table.SpellbookChip
 import dev.quinton.goa.feature.board.play.table.SpellbookSheet
@@ -335,6 +336,7 @@ private fun OptionsStep(
     starting: Boolean,
     onSpellbook: (String) -> Unit,
 ) {
+    PreloadMapPainting(state.map?.painting)
     Column(Modifier.fillMaxSize()) {
         Column(
             Modifier

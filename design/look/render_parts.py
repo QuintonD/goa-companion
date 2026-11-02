@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-The app's metal frames, redrawn at high resolution (ADR-057).
+The app's metal frames, redrawn at high resolution (ADR-058).
 
 The rulebook prints its page banner, the cards' title plate, the text boxes and the plate brackets far too small for
 a phone: the banner is 827 x 45 in the PDF, its medallion about 60 x 45. Nothing sharper is published, so these parts

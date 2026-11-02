@@ -105,6 +105,7 @@ import dev.quinton.goa.feature.board.board.BoardSheet
 import dev.quinton.goa.feature.board.board.SearchField
 import dev.quinton.goa.feature.board.board.SheetTitle
 import dev.quinton.goa.feature.board.list.LineupHeroes
+import dev.quinton.goa.feature.board.map.PreloadMapPainting
 import dev.quinton.goa.feature.board.play.table.SpellbookSheet
 import dev.quinton.goa.feature.board.play.table.catalogSpellbook
 import dev.quinton.goa.feature.board.ui.PlateSurface
@@ -712,6 +713,7 @@ private fun ComingLater(modifier: Modifier = Modifier) {
 @Composable
 @OptIn(ExperimentalLayoutApi::class)
 private fun SetUpBar(state: NewBoardUiState.Ready, onAction: (NewBoardAction) -> Unit, onSetUp: () -> Unit) {
+    PreloadMapPainting(state.map?.painting)
     var menu by remember { mutableStateOf(false) }
     // Large text: the map's name above Set up, not cut to its first letters beside it.
     val stacked = LocalDensity.current.fontScale > LARGE_FONT

@@ -8,7 +8,7 @@ is generated — never edit it by hand.
 - `icons/` — UI icons not covered by Material Symbols (`nav_*` bottom bar, `brand_mark`).
 - `brand/` — app icon layers (108-unit adaptive-icon grid, safe zone r33 around 54,54).
 - `tools/` — `svg2vd.py` (SVG → VectorDrawable) and `instance_fonts.py` (font instancing).
-- `look/` — `render_parts.py` and its masters in `look/parts/`: the metal frames the rulebook prints too small for a phone, redrawn at high resolution (ADR-057). `python -P design/look/render_parts.py` rewrites the masters (numpy and Pillow), then `:tools:catalog-import:run` bundles them. `dashboard-frame.png` and `silhouette.png` are the rulebook's own objects upscaled, not drawn: `realesrgan-ncnn-vulkan -i <extracted>.png -o <out>.png -n realesrgan-x4plus -s 4` (release v0.2.5.0 of xinntao/Real-ESRGAN), then Lanczos down to 1600 wide.
+- `look/` — `render_parts.py` and its masters in `look/parts/`: the metal frames the rulebook prints too small for a phone, redrawn at high resolution (ADR-058). `python -P design/look/render_parts.py` rewrites the masters (numpy and Pillow), then `:tools:catalog-import:run` bundles them. `dashboard-frame.png` and `silhouette.png` are the rulebook's own objects upscaled, not drawn: `realesrgan-ncnn-vulkan -i <extracted>.png -o <out>.png -n realesrgan-x4plus -s 4` (release v0.2.5.0 of xinntao/Real-ESRGAN), then Lanczos down to 1600 wide.
 
 ## Authoring rules
 - `viewBox="0 0 24 24"` (108 for brand), no transforms — bake coordinates.
