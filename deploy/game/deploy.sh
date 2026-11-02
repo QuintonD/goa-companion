@@ -210,7 +210,8 @@ main() {
     # Gone first, so a finished build proves Gradle ran in this tree and not in some other one.
     rm -rf "$install"
     echo "==> goa-gradle :server:game:test :server:game:installDist"
-    (cd "$checkout" && "$gradle" :server:game:test :server:game:installDist)
+    # goa-gradle goes to ~/goa-companion on its own, which this script must never touch, unless told otherwise.
+    GOA_DIR="$checkout" "$gradle" :server:game:test :server:game:installDist
     [[ -x "$install/bin/goa-game" ]] || die "the build left no $install/bin/goa-game"
     [[ -f "$install/assets/catalog/index.json" ]] || die "the distribution has no assets/catalog"
 

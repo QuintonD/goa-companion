@@ -141,6 +141,8 @@ EOF
 
     cat >"$bin/goa-gradle" <<'EOF'
 #!/usr/bin/env bash
+# As the real one does: it builds in ~/goa-companion unless GOA_DIR says otherwise.
+cd "${GOA_DIR:-$T/not-the-deploy-checkout}" || exit 1
 echo "goa-gradle $* cwd=$PWD" >>"$T/events"
 [[ ! -e "$T/gradle_fails" ]] || exit 1
 [[ -e "$T/gradle_makes_nothing" ]] && exit 0
