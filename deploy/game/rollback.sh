@@ -17,7 +17,7 @@ main() {
     "${docker[@]}" compose -f "$here/compose.yaml" up -d --no-build --force-recreate
 
     for _ in $(seq 1 "${GOA_GAME_HEALTH_TRIES:-45}"); do
-        if curl -fsS --max-time 3 "${GOA_GAME_HEALTH_URL:-http://127.0.0.1:8788/v1/health}"; then
+        if curl -fsS --max-time 3 "${GOA_GAME_HEALTH_URL:-http://127.0.0.1:8788/v1/health}" 2>/dev/null; then
             echo
             "${docker[@]}" exec goa-game rm -f /var/lib/goa-game/drain
             "${docker[@]}" compose -f "$here/compose.yaml" ps
