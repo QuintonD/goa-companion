@@ -161,6 +161,7 @@ fun Game.applyDue(due: (ActiveEffect) -> Boolean) {
                 DecisionKind.CHOOSE_OPTION,
                 "These effects apply at the same time: which one first?",
                 labels.mapIndexed { i, l -> Choice.Option(i, l) },
+                teamDecision = owners.size > 1,
             ) as Choice.Option
             same[pick.index]
         }
@@ -242,6 +243,7 @@ private fun Game.resolveNext() {
             DecisionKind.ACT_FIRST,
             "Tied initiative: who acts first?",
             pool.map { Choice.Unit(it.id) },
+            teamDecision = true,
         ) as Choice.Unit
         c.unitId
     }
@@ -412,6 +414,7 @@ private fun Game.minionBattle() {
                 DecisionKind.REMOVE_MINION,
                 "Minion Battle: remove a minion",
                 pool.map { Choice.Unit(it.id) },
+                teamDecision = true,
             ) as Choice.Unit
             val pick = pool.first { it.id == c.unitId }
             left.remove(pick)

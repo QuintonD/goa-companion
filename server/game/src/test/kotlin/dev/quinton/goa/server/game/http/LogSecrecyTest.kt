@@ -5,6 +5,7 @@ import dev.quinton.goa.core.game.Choice
 import dev.quinton.goa.core.game.Decision
 import dev.quinton.goa.core.online.ClientMessage
 import dev.quinton.goa.core.online.LinkAccount
+import dev.quinton.goa.core.online.Resume
 import dev.quinton.goa.core.online.ServerMessage
 import dev.quinton.goa.server.game.hello
 import dev.quinton.goa.server.game.jsonBody
@@ -32,7 +33,7 @@ class LogSecrecyTest {
     @Test
     fun eachRequestIsLoggedWithTheStatusItReallyGot() {
         val logs = capturing {
-            serverTest(configure = { it.copy(maxRooms = 1) }) {
+            serverTest(configure = { it.copy(maxOpenRooms = 1) }) {
                 val token = account().token
                 createRoom(token, teamSize = 9)
                 room(token)
@@ -78,7 +79,7 @@ class LogSecrecyTest {
                 val seat = pending.seat
                 val account = game.players.first { it.seat == seat }.accountId
                 val token = if (account == started.red.accountId) started.red.token else started.blue.token
-                ws.play(token) {
+                ws.play(token, listOf(Resume(started.gameId, 0))) {
                     val table = nextOf<ServerMessage.Table> { it.decision != null }
                     decision = table.decision
                     secrets += table.view.heroes.first { it.heroId == seat }.hand.orEmpty()

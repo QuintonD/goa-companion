@@ -56,9 +56,13 @@ import io.ktor.server.websocket.timeout
 import io.ktor.server.websocket.webSocket
 import io.ktor.util.AttributeKey
 import io.ktor.utils.io.readBuffer
+import java.net.Inet6Address
+import java.net.InetAddress
 import java.nio.file.Files
 import java.security.MessageDigest
 import java.sql.SQLException
+import java.util.concurrent.atomic.AtomicInteger
+import kotlin.coroutines.cancellation.CancellationException
 import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.Duration.Companion.seconds
 import kotlinx.coroutines.delay
@@ -78,6 +82,8 @@ private const val STORE_RETRY_SECONDS = "30"
 private const val PING_SECONDS = 20L
 private const val PONG_TIMEOUT_SECONDS = 45L
 private const val SWEEP_MILLIS = 60_000L
+private const val RETENTION_FIRST_MILLIS = 10 * 60_000L
+private const val RETENTION_EVERY_MILLIS = 24 * 60 * 60_000L
 private const val PLAY_FRAME_LIMIT = MAX_FRAME_BYTES.toLong()
 internal const val OTHER_PATH = "(other)"
 private val ROOM_ACTION = Regex("/v1/rooms/[^/]+/(join|leave)")
@@ -114,6 +120,9 @@ internal class GameServices(
     val accountLimiter: RateLimiter,
     val clock: () -> Long,
 ) {
+    /** Sockets open now, counted from before their Hello, as each takes memory from that moment on. */
+    val sockets = AtomicInteger()
+
     fun draining(): Boolean = Files.exists(config.drainFile)
 }
 
@@ -142,6 +151,7 @@ fun Application.gameServerModule(
             draining = { Files.exists(config.drainFile) },
             clock = clock,
             onChange = hub::roomChanged,
+            maxOpenRooms = config.maxOpenRooms,
         ),
         rooms = rooms,
         leaderboard = leaderboard,
@@ -152,6 +162,7 @@ fun Application.gameServerModule(
         clock = clock,
     )
     val limiter = RateLimiter(config.perClientPerMinute, config.globalPerMinute)
+    val upgrades = RateLimiter(config.upgradesPerClientPerMinute, config.upgradesGlobalPerMinute)
 
     install(RequestLog)
 
@@ -172,7 +183,13 @@ fun Application.gameServerModule(
             finish()
             return@intercept
         }
-        val wait = limiter.acquire(clientKey(call))
+        val path = template(call.request.path())
+        // Health is exempt: Docker and a deploy's drain read it, and neither may be locked out by a flood.
+        val wait = when (path) {
+            OnlineRoutes.HEALTH -> null
+            OnlineRoutes.PLAY -> upgrades.acquire(clientKey(call))
+            else -> limiter.acquire(clientKey(call))
+        }
         if (wait != null) {
             call.response.header(HttpHeaders.RetryAfter, wait.toString())
             call.error(HttpStatusCode.TooManyRequests, "rate_limited")
@@ -181,7 +198,7 @@ fun Application.gameServerModule(
         }
         // Browsers always say where a socket comes from; native clients say nothing.
         val origin = call.request.headers[HttpHeaders.Origin]
-        if (template(call.request.path()) == OnlineRoutes.PLAY && origin != null && origin !in config.origins) {
+        if (path == OnlineRoutes.PLAY && origin != null && origin !in config.origins) {
             call.error(HttpStatusCode.Forbidden, "origin_refused")
             finish()
         }
@@ -217,6 +234,8 @@ fun Application.gameServerModule(
         }
     }
 
+    launch { sweepOldEveryDay(services) }
+
     routing {
         api(services)
         route(PUBLIC_MOUNT) { api(services) }
@@ -225,12 +244,32 @@ fun Application.gameServerModule(
     launch {
         while (isActive) {
             delay(SWEEP_MILLIS.milliseconds)
+            @Suppress("TooGenericExceptionCaught") // A bad row must not end the sweeps for good.
             try {
                 services.lobby.sweep()
-            } catch (failure: SQLException) {
+            } catch (failure: CancellationException) {
+                throw failure
+            } catch (failure: Exception) {
                 log.warn("room sweep failed: {}", failure.javaClass.simpleName)
             }
         }
+    }
+}
+
+/** First a little after starting, so that a deploy doesn't begin with it; then daily. */
+private suspend fun sweepOldEveryDay(services: GameServices) {
+    delay(RETENTION_FIRST_MILLIS.milliseconds)
+    while (true) {
+        @Suppress("TooGenericExceptionCaught") // A failed sweep can wait for tomorrow's.
+        try {
+            val swept = services.store.sweepOld(services.clock())
+            log.info("Old data swept: {}", swept)
+        } catch (failure: CancellationException) {
+            throw failure
+        } catch (failure: Exception) {
+            log.warn("sweep of old data failed: {}", failure.javaClass.simpleName)
+        }
+        delay(RETENTION_EVERY_MILLIS.milliseconds)
     }
 }
 
@@ -239,7 +278,7 @@ private fun Route.api(services: GameServices) {
     accounts(services)
     rooms(services)
     leaderboard(services)
-    webSocket(OnlineRoutes.PLAY) { play(services) }
+    webSocket(OnlineRoutes.PLAY) { playWithinTheCap(services) }
 }
 
 private fun Route.health(services: GameServices) {
@@ -250,8 +289,11 @@ private fun Route.health(services: GameServices) {
             protocol = OnlineProtocol.VERSION,
             rulesBuild = services.config.rulesBuild,
             status = if (services.draining()) "draining" else "open",
-            rooms = if (ok) services.lobby.roomCount() else 0,
+            // A deploy waits for this to reach 0: running games only. An open room can't start during a
+            // drain and survives the restart, so waiting for it would only hold the deploy up.
+            rooms = if (ok) services.rooms.runningCount else 0,
             maxRooms = services.config.maxRooms,
+            openRooms = if (ok) services.lobby.openCount() else 0,
         )
         val status = if (ok) HttpStatusCode.OK else HttpStatusCode.ServiceUnavailable
         call.respondJson(HealthInfo.serializer(), health, status)
@@ -299,7 +341,7 @@ private fun Route.accounts(services: GameServices) {
 private fun Route.rooms(services: GameServices) {
     post(OnlineRoutes.ROOMS) {
         val account = call.account(services) ?: return@post
-        val room = services.lobby.create(account.id, call.body(CreateRoom.serializer()))
+        val room = services.lobby.create(account.id, call.body(CreateRoom.serializer()), clientKey(call))
         call.respondJson(RoomCreated.serializer(), RoomCreated(room.code), HttpStatusCode.Created)
     }
     post(OnlineRoutes.join("{code}")) {
@@ -390,8 +432,24 @@ internal fun clientKey(call: ApplicationCall): String {
         ?.flatMap { it.split(',') }
         ?.map { it.trim() }
         ?.lastOrNull { it.isNotEmpty() }
-    return forwarded ?: call.request.local.remoteAddress
+    return clientGroup(forwarded ?: call.request.local.remoteAddress)
 }
+
+/**
+ * IPv6 clients by /64: one home or phone gets a whole /64, so per address it could never run out. A mapped
+ * IPv4 address counts as that IPv4 address. Anything else stays as it is.
+ */
+internal fun clientGroup(address: String): String {
+    val literal = address.removeSurrounding("[", "]").substringBefore('%')
+    if (':' !in literal || !IPV6_LITERAL.matches(literal)) return address
+    // A literal only: getByName would go to DNS for a name, and this comes from a header.
+    val parsed = runCatching { InetAddress.getByName(literal) }.getOrNull() ?: return address
+    if (parsed !is Inet6Address) return parsed.hostAddress
+    return parsed.address.take(IPV6_PREFIX_BYTES).joinToString("") { "%02x".format(it) } + "/64"
+}
+
+private val IPV6_LITERAL = Regex("[0-9A-Fa-f:.]+")
+private const val IPV6_PREFIX_BYTES = 8
 
 /** The path for logs and the CORS check: never a room code, whichever way the path arrived. */
 internal fun template(rawPath: String): String {

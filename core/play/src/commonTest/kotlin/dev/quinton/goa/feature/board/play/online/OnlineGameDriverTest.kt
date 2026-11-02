@@ -60,6 +60,22 @@ class OnlineGameDriverTest {
     }
 
     @Test
+    fun aPageOfACatchUpAddsToTheLogAndTheLastOneShowsIt() = runTest {
+        val rig = rig()
+        val server = rig.server
+        val held = server.session.events.size
+        while (server.session.events.size < held + 2) server.answerFirst()
+        val whole = server.table("wasp", have = held)
+
+        rig.feed(whole.copy(events = whole.events.take(1), more = true))
+        // Nothing shown yet: the screen still has the last whole table, not a part of this one.
+        assertEquals(held, rig.play.log.size)
+
+        rig.feed(whole.copy(eventsFrom = held + 1, events = whole.events.drop(1)))
+        assertEquals(server.session.events.map { it.text }, rig.play.log.map { it.text })
+    }
+
+    @Test
     fun aFrameThatOverlapsWhatIsHeldAddsNothingTwice() = runTest {
         val rig = rig()
         val server = rig.server

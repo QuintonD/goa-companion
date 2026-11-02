@@ -71,6 +71,42 @@ class LeaderboardRepositoryTest {
     }
 
     @Test
+    fun aHostsAnswerOverTheLimitsIsNeitherShownNorKept() = runTest {
+        val tooMany = board().copy(players = List(401) { LeaderRow("a$it", "Name", 1000, 6, 4) })
+        val hugeName = board(name = "n".repeat(65))
+        val hugeId = board().copy(players = listOf(LeaderRow("i".repeat(65), "Ann", 1000, 6, 4)))
+        val hugeHash = board().copy(logSha256 = "a".repeat(65))
+        val hugeFile = text(board()) + " ".repeat(LeaderboardRepository.MAX_TEXT_LENGTH)
+        val emptyName = board(name = "")
+        for (bad in listOf(text(tooMany), text(hugeName), text(hugeId), text(hugeHash), hugeFile, text(emptyName))) {
+            val cache = FakeCache()
+            assertNull(repository(FakeWeb(mapOf(builtInBoard to bad)), cache).load())
+            assertNull(cache.text)
+        }
+    }
+
+    @Test
+    fun aKeptCopyOverTheLimitsIsNotBelievedEither() = runTest {
+        val cache = FakeCache(text(board(name = "n".repeat(65))))
+        assertNull(repository(FakeWeb(emptyMap()), cache).load())
+    }
+
+    @Test
+    fun aClosedHostIsNotAsked() = runTest {
+        val closed = OnlineProtocol.json.encodeToString(
+            NetworkInfo.serializer(),
+            NetworkInfo(
+                1,
+                1,
+                listOf(GameHost("https://one.example", "closed"), GameHost("$builtIn/", "closed")),
+            ),
+        )
+        val web = FakeWeb(mapOf(OnlineRoutes.NETWORK_FILE to closed))
+        assertNull(repository(web).load())
+        assertEquals(listOf(OnlineRoutes.LEADERBOARD_FILE, OnlineRoutes.NETWORK_FILE), web.asked)
+    }
+
+    @Test
     fun theFullFallbackOrder() = runTest {
         val cache = FakeCache(text(board(generatedAt = now - 3 * DAY, name = "Old")))
         val web = FakeWeb(

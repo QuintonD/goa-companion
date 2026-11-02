@@ -84,6 +84,9 @@ class OnlineLobbyPresenter(
     private var live: GameConnection? = null
     private var attempts = 0
 
+    /** Why no socket was opened, when `network.json` said not to. */
+    private var hostNote: String? = null
+
     /** No use going on: the app is too old, the account is gone, the game has begun, the person left. */
     private var stopped = false
 
@@ -102,7 +105,7 @@ class OnlineLobbyPresenter(
             watch(identity)
             mutableState.update { it.copy(connected = false) }
             if (stopped) return
-            say(OnlineWords.UNREACHABLE)
+            say(hostNote ?: OnlineWords.UNREACHABLE)
             delay(reconnectDelay(attempts++, random))
         }
     }
@@ -124,7 +127,18 @@ class OnlineLobbyPresenter(
     private suspend fun watch(identity: OnlineIdentity) {
         val hello = ClientMessage.Hello(OnlineProtocol.VERSION, identity.token, client, catalogVersion())
         val opened = runCatching { connector.open(hello) }
-        opened.exceptionOrNull()?.let { if (it is CancellationException) throw it }
+        hostNote = null
+        when (val failure = opened.exceptionOrNull()) {
+            is CancellationException -> throw failure
+
+            is HostUnavailable -> if (failure.tooOld) {
+                stop(OnlineWords.refusal(Refusal.UPDATE_APP))
+            } else {
+                hostNote = failure.note ?: OnlineWords.HOST_CLOSED
+            }
+
+            else -> Unit
+        }
         val connection = opened.getOrNull() ?: return
         try {
             live = connection

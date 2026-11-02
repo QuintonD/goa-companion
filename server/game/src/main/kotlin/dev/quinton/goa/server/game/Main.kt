@@ -6,6 +6,7 @@ import dev.quinton.goa.server.game.ratings.MatchLogLeaderboard
 import dev.quinton.goa.server.game.room.LeaderboardSource
 import dev.quinton.goa.server.game.room.PlayerNames
 import dev.quinton.goa.server.game.room.RoomCore
+import dev.quinton.goa.server.game.store.NewerDatabase
 import dev.quinton.goa.server.game.store.SqliteGameStore
 import io.ktor.server.cio.CIO
 import io.ktor.server.engine.embeddedServer
@@ -17,7 +18,7 @@ import org.slf4j.LoggerFactory
 
 fun main() {
     val config = GameServerConfig.fromEnv()
-    val store = SqliteGameStore.open(config.dataDir)
+    val store = openOrWait(config)
     val engine = loadEngine(config.assetsDir)
     val rooms = RoomCore(
         engine = engine,
@@ -28,7 +29,7 @@ fun main() {
     )
     val leaderboard: LeaderboardSource = MatchLogLeaderboard(
         matches = store::matches,
-        names = { store.names(store.matches().flatMap { m -> m.participants.map { it.playerId } }.toSet()) },
+        names = store::names,
         heroName = { engine.data.catalog.hero(it)?.name },
         clock = System::currentTimeMillis,
     )
@@ -58,5 +59,22 @@ fun main() {
     server.start(wait = true)
 }
 
+/**
+ * With a newer database there is nothing useful to do, and exiting would only have `restart: unless-stopped`
+ * start it again and again. So it says why, now and then, and stays: Docker shows it as unhealthy, and a deploy's
+ * health check fails with this in the logs it prints.
+ */
+private fun openOrWait(config: GameServerConfig): SqliteGameStore {
+    try {
+        return SqliteGameStore.open(config.dataDir)
+    } catch (failure: NewerDatabase) {
+        while (true) {
+            LoggerFactory.getLogger("goa-game").error(failure.message)
+            Thread.sleep(REFUSING_LOG_MILLIS)
+        }
+    }
+}
+
+private const val REFUSING_LOG_MILLIS = 10 * 60_000L
 private const val SHUTDOWN_GRACE_MILLIS = 1_000L
 private const val SHUTDOWN_TIMEOUT_MILLIS = 5_000L

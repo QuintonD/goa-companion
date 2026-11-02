@@ -76,11 +76,39 @@ class OutboundTest {
     }
 
     @Test
-    fun tooManyHeldEventsShutTheQueue(): Unit = runBlocking {
-        val outbound = Outbound(maxEvents = 3)
+    fun fallingTooFarBehindShutsTheQueue(): Unit = runBlocking {
+        val outbound = Outbound(maxEvents = 2)
         outbound.offer(table("a", 1, 0, 0, 1))
         outbound.offer(table("a", 2, 2, 2, 3))
+        outbound.offer(table("a", 3, 4, 4))
         assertThat(outbound.next()).isNull()
+    }
+
+    @Test
+    fun aCatchUpIsSentInPagesHoweverLongItIs(): Unit = runBlocking {
+        val outbound = Outbound(maxEvents = 3, pageEvents = 2)
+        outbound.offer(table("a", 1, 0, *(0 until 7).toList().toIntArray()))
+        val sent = outbound.drain(4).map { it as ServerMessage.Table }
+        assertThat(sent.map { it.eventsFrom }).containsExactly(0, 2, 4, 6).inOrder()
+        assertThat(sent.map { it.more }).containsExactly(true, true, true, false).inOrder()
+        assertThat(sent.flatMap { it.events }).isEqualTo((0 until 7).map(::event))
+    }
+
+    @Test
+    fun whatArrivesDuringACatchUpJoinsItsEnd(): Unit = runBlocking {
+        val outbound = Outbound(maxEvents = 3, pageEvents = 2)
+        outbound.offer(table("a", 1, 0, 0, 1, 2, 3, 4))
+        val first = outbound.next() as ServerMessage.Table
+        assertThat(first.more).isTrue()
+        outbound.offer(ack(9))
+        outbound.offer(table("a", 2, 5, 5))
+        val sent = outbound.drain(3)
+        assertThat(sent.first()).isEqualTo(ack(9))
+        val tables = sent.drop(1).map { it as ServerMessage.Table }
+        assertThat(tables.map { it.more }).containsExactly(true, false).inOrder()
+        assertThat(first.events + tables.flatMap { it.events }).isEqualTo((0..5).map(::event))
+        // Every frame carries the table as it stands by then.
+        assertThat(tables.map { it.seq }).containsExactly(2L, 2L)
     }
 
     @Test

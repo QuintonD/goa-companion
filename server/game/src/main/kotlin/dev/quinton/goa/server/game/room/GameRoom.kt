@@ -56,6 +56,7 @@ internal class GameRoom(
     private val tally: AnswerTally = replayed.tally
     private var eventsHash: String = replayed.eventsHash
     private var answers: Long = replayed.answers
+    private val humanTeams = replayed.humanTeams.toMutableSet()
 
     private val order: List<String> = seats.sortedBy { it.seatOrder }.map { it.heroId }
     private val locks = HashMap<String, MutableList<LockEntry>>()
@@ -67,11 +68,16 @@ internal class GameRoom(
     private val connections = ArrayList<SeatConnection>()
     private val left = seats.filter { it.left }.mapTo(HashSet()) { it.heroId }
     private val takenOver = HashSet<String>()
-    private var allAwaySince: Long? = env.now()
+
+    /** From the store on a restart: a person being away doesn't start again because the server did. */
+    private var allAwaySince: Long? = row.awaySince ?: env.now()
 
     private val lastTable = HashMap<String, ServerMessage.Table>()
     private val lastSeq = HashMap<String, Long>()
     private val recent = LinkedHashMap<Long, Choice>()
+
+    /** Who has the team's question open (its engine id, the seat), so that it doesn't jump between people. */
+    private var teamAsked: Pair<Long, String>? = null
 
     /** Set once the game is closed in the store; [RoomCore] then drops this room. */
     var ended: ServerMessage.End? = null
@@ -101,10 +107,33 @@ internal class GameRoom(
     fun seatsOf(accountId: String): List<String> =
         seats.filter { it.accountId == accountId && it.heroId !in left }.map { it.heroId }
 
-    /** Unique across the game's seats, counts only this seat's own questions: it tells no one anything. */
+    /**
+     * Unique across the game's seats, counts only this seat's own questions and its team's: it tells no one
+     * anything. A team's answer goes on the engine's seat, whoever gave it, and a person's next question must
+     * still have a new ticket.
+     */
     private fun ticketOf(seat: String): Long {
-        val asked = tally.total(seat) + locks[seat].orEmpty().size + (dropped[seat] ?: 0)
+        val asked = tally.total(seat) + tally.team(seatRow(seat).team) + locks[seat].orEmpty().size +
+            (dropped[seat] ?: 0)
         return (asked + 1) * TICKET_STEP + order.indexOf(seat)
+    }
+
+    private fun connected(seat: String): Boolean = connections.any { it.seat == seat }
+
+    /**
+     * Who answers [d]: its seat, unless it is a team's question (p.7: the team decides). Then the first in seat
+     * order who hasn't left and is here, else the first who hasn't left. It stays with them until they go and
+     * someone else is here. With the whole team gone it is the seat's, and the computer answers.
+     */
+    private fun answering(d: Decision): String {
+        if (!d.teamDecision) return d.seat
+        val team = order.filter { it !in left && seatRow(it).team == d.team }
+        if (team.isEmpty()) return d.seat
+        val current = teamAsked?.takeIf { it.first == d.id }?.second?.takeIf { it in team }
+        if (current != null && (connected(current) || team.none(::connected))) return current
+        val next = team.firstOrNull(::connected) ?: team.first()
+        teamAsked = d.id to next
+        return next
     }
 
     private fun seatOfTicket(ticket: Long): String? = order.getOrNull(ticket.mod(TICKET_STEP).toInt())
@@ -112,7 +141,7 @@ internal class GameRoom(
     private fun questionOf(seat: String): Decision? {
         val w = window
         if (w != null) return w.forecast(seat).question
-        return session.pending?.takeIf { it.seat == seat }
+        return session.pending?.takeIf { answering(it) == seat }
     }
 
     private fun asked(): Map<String, AskedQuestion> = order.filter { it !in left }.mapNotNull { seat ->
@@ -134,7 +163,8 @@ internal class GameRoom(
         session = next
         eventsHash = hash
         answers++
-        tally.note(d.seat, key)
+        tally.note(d.seat, key, d.team.takeIf { d.teamDecision })
+        if (origin == AnswerOrigin.HUMAN) humanTeams += d.team
         changed()
     }
 
@@ -143,7 +173,7 @@ internal class GameRoom(
         val now = env.now()
         val pending = session.pending
         val queued = locks[seat].orEmpty()
-        if (pending != null && pending.seat == seat && queued.isEmpty()) {
+        if (pending != null && answering(pending) == seat && queued.isEmpty()) {
             apply(pending, choice, origin, now)
             return
         }
@@ -264,11 +294,10 @@ internal class GameRoom(
         val view = session.view(null)
         val winner = view.winner
         val reason = view.winReason
-        val match = if (row.ranked && winner != null && reason != null) {
-            env.mapper.matchOf(row, seats, winner, reason, at)
-        } else {
-            null
-        }
+        val rated = row.ranked && winner != null && reason != null &&
+            RatedRule.counts(seats, humanTeams, env.store.matchesSince(at - RatedRule.WINDOW_MILLIS), at)
+        // The match row is the decision, on disk with the game's closing; the log it was read from only grows.
+        val match = if (rated) env.mapper.matchOf(row, seats, checkNotNull(winner), checkNotNull(reason), at) else null
         env.store.finish(row.id, GameResult(at, match != null), match)
         publish()
         close(ServerMessage.End(row.id, winner, reason, match != null))
@@ -292,6 +321,7 @@ internal class GameRoom(
         if (own.isEmpty()) return emptyList()
         val now = env.now()
         if (paused(now)) clocks.restart()
+        if (allAwaySince != null) saveAway(null)
         allAwaySince = null
         sink.send(ServerMessage.GameStart(row.id, setup, players, own.toSet(), row.ranked))
         val added = own.map { seat ->
@@ -307,13 +337,15 @@ internal class GameRoom(
     private val setup get() = row.setup
 
     /** Anyone connected on a seat may be gone; the last one out starts the away clock. */
-    fun disconnect(gone: List<SeatConnection>) {
+    suspend fun disconnect(gone: List<SeatConnection>) {
         if (!connections.removeAll(gone)) return
         val now = env.now()
         for (c in gone) {
             if (connections.none { it.seat == c.seat }) clocks.disconnected(c.seat, now)
         }
-        if (connections.isEmpty() && order.any { it !in left }) allAwaySince = now
+        if (connections.isEmpty() && order.any { it !in left }) goneAway(now)
+        // A team's question moves on to a teammate who is here, with a clock of its own.
+        syncClocks(now)
         publish()
     }
 
@@ -378,11 +410,28 @@ internal class GameRoom(
         own.forEach { env.store.markLeft(row.id, it, env.now()) }
         left += own
         connections.removeAll { it.accountId == accountId }
-        if (connections.isEmpty() && order.any { it !in left } && allAwaySince == null) allAwaySince = env.now()
+        if (connections.isEmpty() && order.any { it !in left } && allAwaySince == null) goneAway(env.now())
         settleAndPublish()
     }
 
     // ---- the clock ------------------------------------------------------------------------------
+
+    private suspend fun goneAway(now: Long) {
+        allAwaySince = now
+        saveAway(now)
+    }
+
+    /** Losing this can only make a pause come late: not worth the game, or the person's socket. */
+    @Suppress("TooGenericExceptionCaught")
+    private suspend fun saveAway(at: Long?) {
+        try {
+            env.store.setAwaySince(row.id, at)
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            log.warn("Game {}: could not save who is away: {}", row.id, e.javaClass.simpleName)
+        }
+    }
 
     private fun paused(now: Long): Boolean =
         allAwaySince?.let { now - it >= env.rules.allAwayPauseMillis } == true && order.any { it !in left }
@@ -419,10 +468,24 @@ internal class GameRoom(
         clocks.sync(asked(), window, now) { seat -> connections.none { it.seat == seat } }
     }
 
-    /** A new game, or one back from a restart: nobody can have connected yet, so everyone has the whole clock. */
+    /**
+     * A new game, or one back from a restart: nobody can have connected yet. Those who were away are still
+     * away: past the pause it stays asleep, with no clocks, until someone comes, and past a day it is over.
+     * Otherwise everyone has the whole clock, since the server's being gone was not their doing.
+     */
     suspend fun begin() {
-        settle()
-        if (ended == null) clocks.sync(asked(), window, env.now()) { false }
+        val now = env.now()
+        if (row.awaySince == null) saveAway(allAwaySince)
+        when {
+            abandoned(now) -> void(VoidReason.ABANDONED)
+
+            paused(now) && session.pending != null -> Unit
+
+            else -> {
+                settle()
+                if (ended == null) clocks.sync(asked(), window, now) { false }
+            }
+        }
     }
 
     suspend fun settleAndPublish() {
@@ -454,7 +517,13 @@ internal class GameRoom(
         session,
         window,
         seat,
-        FrameInputs(row.id, ticket = ticketOf(seat), presence = presence(), clock = { clockFor(seat, it) }),
+        FrameInputs(
+            row.id,
+            ticket = ticketOf(seat),
+            presence = presence(),
+            clock = { clockFor(seat, it) },
+            answering = session.pending?.let(::answering),
+        ),
     )
 
     private fun publish() {

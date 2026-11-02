@@ -21,9 +21,14 @@ class HealthTest {
     }
 
     @Test
-    fun countsOpenRoomsAndRunningGames() = serverTest {
+    fun roomsCountsRunningGamesOnlySoADrainCanReachZero() = serverTest {
         room(account().token)
         rooms.extraRunning = 2
-        assertThat(HealthInfo.serializer().parse(http.get("/v1/health").bodyAsText()).rooms).isEqualTo(3)
+        val health = HealthInfo.serializer().parse(http.get("/v1/health").bodyAsText())
+        assertThat(health.rooms).isEqualTo(2)
+        assertThat(health.openRooms).isEqualTo(1)
+
+        rooms.extraRunning = 0
+        assertThat(HealthInfo.serializer().parse(http.get("/v1/health").bodyAsText()).rooms).isEqualTo(0)
     }
 }

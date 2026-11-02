@@ -66,7 +66,64 @@ class MatchLogLeaderboardTest {
         names = { accounts() },
         heroName = ::heroName,
         clock = clock,
+        ttlMillis = 0,
     )
+
+    @Test
+    fun aSnapshotIsKeptThirtySecondsAndTheLogIsDecodedOnceForIt() = runBlocking<Unit> {
+        var reads = 0
+        var nameReads = 0
+        var accounts = names
+        var now = NOW
+        val board = MatchLogLeaderboard(
+            matches = {
+                reads++
+                log(6)
+            },
+            names = { ids ->
+                nameReads++
+                accounts.filterKeys { it in ids }
+            },
+            heroName = ::heroName,
+            clock = { now },
+        )
+        val first = board.snapshot()
+        repeat(50) { assertThat(board.snapshot()).isEqualTo(first) }
+        assertThat(reads).isEqualTo(1)
+        assertThat(nameReads).isEqualTo(1)
+
+        // A rename shows once the snapshot has gone.
+        accounts = names + ("ann" to "Annie")
+        now += MatchLogLeaderboard.DEFAULT_TTL_MILLIS - 1
+        assertThat(board.snapshot().players.map { it.name }).contains("Ann")
+        now += 1
+        val next = board.snapshot()
+        assertThat(next.players.map { it.name }).contains("Annie")
+        assertThat(next.generatedAt).isEqualTo(now)
+        assertThat(reads).isEqualTo(2)
+    }
+
+    @Test
+    fun namesAreAskedOnlyForThePeopleOnTheBoard() = runBlocking<Unit> {
+        var asked: Collection<String> = emptyList()
+        val rare = match("rare", 500, red = "cid" to "wasp", blue = "dee" to "xargatha")
+        MatchLogLeaderboard(
+            matches = { log(6) + rare },
+            names = { ids ->
+                asked = ids
+                names
+            },
+            heroName = ::heroName,
+            clock = { NOW },
+        ).snapshot()
+        assertThat(asked).containsExactly("ann", "bob")
+    }
+
+    @Test
+    fun aSnapshotIsNeverWrittenDown() {
+        val source = java.io.File("src/main/kotlin/dev/quinton/goa/server/game/store/Schema.kt").readText()
+        assertThat(source).doesNotContain("snapshot")
+    }
 
     private suspend fun board(log: List<Match>): LeaderboardSnapshot = source({ log }).snapshot()
 
@@ -243,6 +300,7 @@ class MatchLogLeaderboardTest {
             names = { names },
             heroName = ::heroName,
             clock = { NOW },
+            ttlMillis = 0,
             replay = {
                 replays++
                 EloCalculator.replay(it, EloConfig.DEFAULT)

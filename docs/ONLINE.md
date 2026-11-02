@@ -37,6 +37,10 @@ The server answers on both `/v1/...` and `/game/v1/...`, whichever way the path 
 - **No accounts with personal data.** `POST /v1/accounts {name}` returns an id, a token and a recovery
   code shown once. The server stores the display name and SHA-256 hashes. There is no email and no
   third-party sign-in. The recovery code links another device or a lost one.
+- **A name** is 2 to 24 characters with runs of spaces collapsed and something to see. By code point: no format
+  characters (bidi, zero-width, so no joined emoji), surrogates, unassigned, control or private-use characters,
+  no line breaks, none of `<>"'&` and backtick, none of the letters that look blank. Nor "Former player", in
+  any case or spacing. The publisher checks the same, and lets only the exact "Former player" through.
 - **A room:** the creator picks map, length, team size and ranked or not; gets an 8-character code and
   a link `https://quintond.github.io/goa-companion/#play=<code>`, also as a QR. Each joiner takes a free
   seat and an unpicked hero. The server flips the coin (p.5 step 3). Sizes: 1v1, 2v2, 3v3 on
@@ -44,22 +48,31 @@ The server answers on both `/v1/...` and `/game/v1/...`, whichever way the path 
 - **Clocks (defaults, in `RoomRules`):** `PLAY_CARD` 60 s, anything else 45 s; a disconnected seat 15 s.
   On expiry the computer answers that one question (`AiPlayers.forStrength(4, seed)`: no search,
   bounded CPU, on one dispatcher). The person can return at any moment. If every seat is away for
-  10 minutes the clocks pause; after 24 hours the game is `ABANDONED`, unrated. A server restart gives
-  the current question its whole clock again, and so does coming back from a pause. A seat given up with
-  `leave` is answered at once, not on a clock.
+  10 minutes the clocks pause; after 24 hours the game is `ABANDONED`, unrated. Since when nobody has been
+  there is on disk (`games.away_since`), so neither survives a restart any differently: a paused game comes
+  back paused, and the 24 hours run on, even while the server is down. A restart gives the current question
+  its whole clock again only if the game wasn't paused; coming back from a pause does too. A seat given up
+  with `leave` is answered at once, not on a clock.
 - **Rated:** a game from a ranked room, finished by the rules. Leaving does not dodge a result: the
-  computer plays on, the team still wins or loses. A voided or abandoned game is unrated.
+  computer plays on, the team still wins or loses. A voided or abandoned game is unrated. So is a game where
+  a team gave no answer of a person's own at all, or where two people on opposite sides have already met in 10
+  rated games in the last 7 days. That is decided at the finish, from the answers and the match log
+  (`room/RatedRule`), and `End.rated` says how it came out. The rule is read from the log, not stored.
 - **Ratings** are `EloCalculator.replay(matches, EloConfig.DEFAULT)` over the `matches` table and are
   never stored: the board is derived on demand, and deleting everything except `matches` reproduces it.
   A player or a hero appears on the board after 5 rated games; each board has at most 200 rows, by
   rating, then id. A deleted account keeps its match rows and shows as "Former player". The server
-  remembers a replay in memory per log hash and reads names on every call. `eloConfig` in the snapshot
-  is a version number that goes up when `EloConfig.DEFAULT` changes.
+  keeps a snapshot in memory for 30 s and a replay per log hash, so a rename or a deletion may take 30 s to
+  show; it is never written down. `eloConfig` in the snapshot is a version number that goes up when
+  `EloConfig.DEFAULT` changes.
 - **Off online:** undo, Coach, suggestions, pace and the post-game report. Local play, puzzles and
   group sync are untouched.
 - **Accepted limits.** Nobody can be stopped from consulting another device's AI, so the board is
   community fun and not a secure competition. There is no push: a backgrounded app loses its socket
-  while the clock runs, so an online game is something you sit down for.
+  while the clock runs, so an online game is something you sit down for. A token can't be revoked except by
+  deleting the account. A catalog bump refuses old APKs in the middle of their game, while the computer
+  plays their seat, so deploy catalog changes between games where possible. A person running a thousand
+  accounts on many addresses can still fill the open rooms for 10 minutes at a time.
 
 ## Simultaneous questions
 
@@ -88,11 +101,29 @@ forecasts each seat's question on a `fork()` and queues the answers:
    question; showing that to others would count its questions. A frame goes out only when its content
    changes, so private steps don't show in `seq` either.
 
+## Team questions
+
+p.7 says the team decides who acts first in a tie, and the engine asks its first hero of the team: `ACT_FIRST`,
+`REMOVE_MINION`, `MINION_RETURN`, and the order of effects from several heroes of the team (`CHOOSE_OPTION`).
+Those carry `Decision.teamDecision`; the engine's seat, replays and answer records stay as they are.
+
+- The room asks the first teammate in seat order who hasn't left and is connected, else the first who hasn't
+  left. The frame's `seat` is that person: every client shows and answers it as they would their own question,
+  and the others' stub names them. Only the person's own question carries `teamDecision`, for words like "your
+  team decides"; a stub stays as it is.
+- It stays with them until they drop or leave and a teammate is connected. Then it moves, with a new ticket and
+  a whole clock. Someone coming back does not take it away again. The disconnected clock follows the person
+  asked.
+- The computer answers only on expiry, or when the whole team has left. The answer is recorded under the
+  engine's seat, with the origin of whoever gave it.
+- The options are public choices: units on the board or spaces, and the names of cards already played. The
+  frame is that person's own table, so it holds their hand and nobody else's.
+
 ## Hidden information
 
 | Surface | Rule |
 |---|---|
-| `Decision` options, prompt, context, source card | The deciding seat only. Everyone else gets a stub: `seat`, `team`, `kind`, `id = 0`, `options = []` |
+| `Decision` options, prompt, context, source card | The person asked only. Everyone else gets a stub: `seat`, `team`, `kind`, `id = 0`, `options = []` |
 | `Decision.id` | Never on the wire |
 | `SavedGame`, `GameSnapshot.saved`, `GameState`, `AnswerRecord` | Never on the wire |
 | `setup.humans`, `mergedView(setup.humans)`, `review(setup.humans)` | Banned online: with every seat human this merges every hand. Always the viewer's own seats |
@@ -120,16 +151,28 @@ past. Each game stores `rules_build` (a hash of the rules sources and catalog) a
 hash of the event text; each `TurnStarted`, a hash of the state. On restart: replay and compare. On a
 match, carry on, even across builds. On a mismatch or a throw, void the game, unrated, and tell the
 players in words. A deploy drains first: new rooms are refused for up to `GOA_GAME_DRAIN_HOURS`.
+
+A game that can't be read or rebuilt at all (a damaged row, an exception anywhere in bringing it back) is
+voided the same way, and the rest are restored; if it can't even be voided it is logged and skipped, with
+no effect on the others. The server always comes up.
+
 The signal is a file, `drain` in the data directory, which can come and go while the server runs. While
 it exists the server refuses new rooms (`Refusal.DRAINING`) and `/v1/health` says `"status":"draining"`;
-`rooms` there counts what the deploy waits for, so it must reach 0 once running games have finished.
+`rooms` there counts running games only, because that is what the deploy waits for. Open rooms are in
+`openRooms`: none can start during a drain and they survive the restart, so the deploy doesn't wait for them.
 
 ## Protocol versions
 
 `OnlineProtocol.VERSION` goes up with any new `GameEvent`, `Choice`, `DecisionKind` or other sealed
 subtype or enum value that can reach a client (old decoders fail on them; Android updates by hand,
-ADR-048). A plain added field with a default does not need it. `Hello` carries the protocol and the
-catalog's `dataVersion`; too old gets `Refused(UPDATE_APP)`.
+ADR-048). A plain added field with a default does not need it. `WireNamesTest` in `core/online` pins every
+such name, and fails until the list beside it is changed, which is the moment to raise the version. `Hello`
+carries the protocol and the catalog's `dataVersion`; too old gets `Refused(UPDATE_APP)`, and so does a `Hello`
+this server can't read at all, rather than a bare 1008.
+
+`network.json` comes first: `minProtocol` above the client's version means `UPDATE_APP` with no socket opened,
+and a host with status `closed` is not connected to (`chooseHost`, `hostAwareConnector`). When it can't be
+read the built-in address holds, so Pages being down stops nothing.
 
 ## Routes
 
@@ -141,20 +184,31 @@ REST, under the base address. Bearer token on all but the ones marked.
 | `POST /v1/accounts` (open) `{name}` | `201 AccountCreated`. Per-client limit |
 | `POST /v1/accounts/link` (open) `{recoveryCode}` | `200 AccountCreated`, burns the code, issues a new one |
 | `GET`, `PATCH`, `DELETE /v1/me` | `Me`; rename; delete anonymises the name and keeps match rows |
-| `POST /v1/rooms` `CreateRoom` | `201 RoomCreated`; `503 {"error":"rooms_full"}` + `Retry-After` |
+| `POST /v1/rooms` `CreateRoom` | `201 RoomCreated`; `503 {"error":"rooms_full"}` + `Retry-After` when the open rooms are full |
 | `POST /v1/rooms/{code}/join`, `/leave` | `RoomView` |
 | `GET /v1/me/games` | `MyGames`: games to go back to |
 | `GET /v1/leaderboard` (open) | `LeaderboardSnapshot`, with `ETag` |
+
+**Limits:** per client, by the last `X-Forwarded-For` hop, IPv6 by /64, and overall. `GET /v1/health` is exempt:
+Docker and a deploy's drain read it. Socket upgrades have a budget of their own, generous, so a flood of REST
+calls can't stop reconnects. The board counts as REST.
 
 WebSocket `GET /v1/play`: `Hello` is the first frame, within 5 s (browsers cannot set a header on a
 WebSocket and a URL would be logged). Inbound frames up to 4 KiB, a ping every 20 s, and an outbound
 channel per connection that keeps only the latest `Table`. `Origin` must be on the list when present;
 native clients send none. CORS follows the relay: an exact list, no credentials.
 
-- **Refused, then closed:** protocol or catalog too old (`UPDATE_APP`), a bad token (`BAD_TOKEN`).
-- **Closed with no frame:** no `Hello` in time or a first frame that is not one (1008), a frame over the
+- **Refused, then closed:** protocol or catalog too old, or a `Hello` that can't be read (`UPDATE_APP`), a bad
+  token (`BAD_TOKEN`).
+- **Closed with no frame:** no `Hello` in time or a first frame that doesn't even say it is one (1008), a frame over the
   limit (1009), an unreadable frame (1003), a queue that fell too far behind or a socket stuck for 30 s
-  (1013): reconnect and `Resume` from the events you hold.
+  (1013): reconnect and `Resume` from the events you hold. Falling behind means 4096 events merged while a
+  client wasn't keeping up; how long the log is has nothing to do with it.
+- **A long table comes in pages** of at most 1000 events, each a whole `Table` with `more = true` but the last.
+  A client applies a page's events from `eventsFrom` as ever and takes the rest of the table from the last.
+- **Refused, then closed, with no `Hello` needed:** more than `GOA_GAME_MAX_SOCKETS` (300) sockets open
+  (`RATE_LIMITED`, with seconds, 30 to 60). `SocketHeapTest` measures a real socket at about 44 KB of heap, so
+  300 are about 13 MB of the 512 MB; what limits the server is running games, not sockets.
 - **Refused, socket stays:** too many frames (`RATE_LIMITED`, with seconds), and anything the lobby says no
   to, followed by a `Lobby` frame with the room as it stands: `NOT_HOST`, `NOT_READY`, `TOO_MANY_GAMES`,
   `TOO_MANY_ROOMS`, and `ROOM_TAKEN` for a seat or hero that is gone or a request the lobby can't use.
@@ -162,7 +216,10 @@ native clients send none. CORS follows the relay: an exact list, no credentials.
   the tables it replaced in front of its own: a client that misses an event can't get it back. So a `Table`
   can start earlier than the last one ended; apply it from `eventsFrom` and skip what you hold.
 - A person has at most 4 sockets (the newest wins) and each watches its 8 latest rooms. A socket gets the
-  frames of every room its person sits in, and is linked to a room's game when it starts.
+  `Lobby` frames of every room its person sits in. It is linked only to the games named in `Hello.resume`, and
+  to a game that starts in a room it watches, if its person sits there. Being linked is what makes a person
+  `HERE` in that game and what sends its log, so a socket looking at one game doesn't show them present in
+  another.
 - A repeat of the same answer (game, ticket, choice) on one socket gets the first `Ack` again; the room
   is not asked twice. Answering with another choice is a new answer.
 
@@ -172,11 +229,20 @@ REST errors are `ApiError`. Beyond those above: `bad_request`, `bad_name`, `bad_
 
 ## The lobby
 
+- **No kick in v1:** if someone sits and stalls, the host can leave and make a new room. Being at the limit of
+  running games is refused at Ready as well as at Start, so one person can't make the start fail.
 - The creator sits down with the room, in the first Red seat; `join` then changes nothing for them, and
   joining seats anyone else on the emptier team. One seat per person, one hero per game.
 - A change of seat or hero takes back your Ready; Ready needs a hero. The host starts, once every seat is
   filled and ready. Leaving passes the host on; the last one out closes the room.
-- An open room lasts 2 hours. A person hosts at most 3 open rooms and plays at most 3 running games.
+- An open room nobody else has joined closes after 10 minutes. Once someone has, it lasts 2 hours from when
+  it was made. Left alone again, it has 10 more minutes.
+- **Budgets, apart so that waiting rooms can't stop games:** `GOA_GAME_MAX_ROOMS` (20) running games, past
+  which a start is refused (`ROOMS_FULL`, try again in 5 minutes), and `GOA_GAME_MAX_OPEN_ROOMS` (10) open
+  rooms, past which a new room is. A person hosts at most 3 open rooms and plays at most 3 running games.
+  One client address (the last `X-Forwarded-For` hop, as the rate limiter sees it) has made at most 3 of the
+  open rooms too (`TOO_MANY_ROOMS`), however many accounts it has. That count is in memory: no address goes
+  on disk, and a restart forgets it until those rooms have gone.
 - **Drain:** while `GOA_GAME_DRAIN_FILE` (default `<data>/drain`) exists, no room opens and no room starts,
   because a game begun now could outlast the drain and be replayed under new rules. Running games continue
   and health says `status: "draining"`.
@@ -186,6 +252,9 @@ REST errors are `ApiError`. Beyond those above: `bad_request`, `bad_name`, `bad_
 already draw; the home and lobby presenters do the rest; screens implement `GameConnector`,
 `OnlineGateway` and `OnlineIdentityStore`. What it relies on from the server:
 
+- A driver's `Hello` must name its game in `resume`: a socket gets no frames of a game it doesn't name, unless
+  the game starts in a room it watches. A lobby socket gets `GameStart` for its own room and opens the game with
+  a driver on a socket of its own.
 - A connection starts with `GameStart`, then a `Table` with events from `Hello.resume`'s `haveEvents`.
   A table whose `eventsFrom` is past what the client holds makes it reconnect and ask again, so a
   conflated frame must not lose events for good. The online log only grows: an overlap is not replayed.
@@ -194,8 +263,8 @@ already draw; the home and lobby presenters do the rest; screens implement `Game
 - A question is real when `id` is not 0 and it has options, and only then can it be answered.
 - `POST /v1/rooms/{code}/join` is also how the creator and someone already seated come in, and changes
   nothing for them: home calls it after creating a room.
-- `Welcome.activeGames` lists the person's running games. A game not listed that sends no frame within
-  5 s is shown as gone; a game that sends its frames is fine whatever the list says.
+- `Welcome.activeGames` lists all the person's running games, linked or not. A game not listed that sends no
+  frame within 5 s is shown as gone; a game that sends its frames is fine whatever the list says.
 - A frame the client can't decode means a newer server: it shows `Refused(UPDATE_APP)` and stops.
 - A room code is 8 characters of Crockford base 32 in upper case (no I, L, O or U), so that what people
   retype reads back: O as 0, I and L as 1.
@@ -210,7 +279,24 @@ one thread. An answer is durable before any frame about it is sent. No rating co
 `server/game/.../store/Schema.kt`. A repeat of a stored answer or lock changes nothing, and a different
 answer at the same `seq` is an error: the past is not rewritten. sqlite-jdbc unpacks its native library into
 the data directory, which must allow execution (a container's `/tmp` may not), unless `-Dorg.sqlite.tmpdir`
-says otherwise; SQLite's own temporary tables stay in memory.
+says otherwise; SQLite's own temporary tables stay in memory. A database of a newer schema than the build is
+left untouched: the server logs why every 10 minutes and serves nothing, rather than crash-looping.
+
+## What is kept, and for how long
+
+The server holds a display name, hashes of a token and a recovery code, and the games. No address goes on disk,
+and there is no email. A daily sweep removes:
+
+| What | When |
+|---|---|
+| A closed room and its seats; a room whose game has finished | 7 days after that |
+| The answers of a finished or voided game, card by card | 30 days after it ended |
+| A token that was revoked | 30 days after that |
+| An account that never played a game | 90 days after it was last used |
+
+Kept for good: the `matches` log, because every rating is derived from it, and each game's row and seats, with
+who sat where; deleting an account changes its name there to "Former player" and keeps the rest. Nothing reads
+a finished game's answers, as only a running game is ever replayed. Backups keep the old state for 14 days more.
 
 ## Streams
 

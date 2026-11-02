@@ -170,9 +170,11 @@ class RealSocketTest {
 
     @Test
     fun aFrameOver4KibIsClosedAsTooBigOnARealSocket() {
+        // Before the socket opens: its Hello has only 300 ms here, and a save to disk can take that on a busy machine.
+        val token = account().token
         val listener = Listener()
         val socket = open(listener)
-        socket.say(hello(account().token))
+        socket.say(hello(token))
         listener.next()
         socket.sendText("x".repeat(MAX_FRAME_BYTES + 1), true).join()
         assertThat(listener.closed.get(WAIT_SECONDS, TimeUnit.SECONDS)).isEqualTo(TOO_BIG)
@@ -186,9 +188,10 @@ class RealSocketTest {
         val handshake = failure.cause as WebSocketHandshakeException
         assertThat(handshake.response.statusCode()).isEqualTo(HttpStatusCode.Forbidden.value)
 
+        val token = account().token
         val listener = Listener()
         val socket = open(listener, origin = "https://quintond.github.io")
-        socket.say(hello(account().token))
+        socket.say(hello(token))
         assertThat(listener.next()).isInstanceOf(ServerMessage.Welcome::class.java)
         socket.sendClose(WebSocket.NORMAL_CLOSURE, "done").join()
     }

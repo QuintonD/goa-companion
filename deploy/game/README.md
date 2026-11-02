@@ -98,8 +98,9 @@ Reinstall it after a change to `backup.sh`.
 What it does, in order:
 
 1. Fetches `<ref>` and checks out exactly that commit.
-2. Pauses new rooms and waits for `rooms` in `/v1/health` to reach 0, for up to `GOA_GAME_DRAIN_HOURS`
-   (default 3). No Gradle build runs during the wait. It skips this if the server isn't up.
+2. Pauses new rooms and waits for `rooms` in `/v1/health`, the running games, to reach 0, for up to
+   `GOA_GAME_DRAIN_HOURS` (default 3). Rooms still waiting for players don't count: they can't start now and
+   survive the restart. No Gradle build runs during the wait. It skips this if the server isn't up.
 3. Runs `goa-gradle :server:game:test :server:game:installDist`. Red tests stop here, the old container
    keeps running and rooms reopen.
 4. Computes the rules build, a hash of the tree ids of `core/game`, `core/domain`, `core/model` and
@@ -124,6 +125,11 @@ One command, with no build:
 It puts `goa-game:previous` back as `goa-game:latest`, recreates the container, waits for health and
 reopens rooms. The image keeps its own rules build. After a failed health check `deploy.sh` leaves new
 rooms paused on the bad server and prints this command.
+
+**A rollback across a schema bump needs the backup.** The older image refuses a database newer than it knows
+(`Schema.VERSION`): it logs `The database is schema N and this server only knows up to M`, touches nothing, and
+stays unhealthy rather than restarting in a loop. Then restore the backup from before the upgrade
+([below](#restore-a-backup)), which loses what was played since, or deploy forward again.
 
 ## Pause new rooms
 

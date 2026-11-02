@@ -42,6 +42,7 @@ dependencies {
     implementation(libs.sqlite.jdbc)
     runtimeOnly(libs.slf4j.simple)
 
+    testImplementation(projects.core.play)
     testImplementation(libs.ktor.server.test.host)
     testImplementation(libs.kotlin.test)
     testImplementation(libs.kotest.property)

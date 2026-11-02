@@ -8,13 +8,18 @@ import dev.quinton.goa.core.online.LinkAccount
 import dev.quinton.goa.core.online.Me
 import dev.quinton.goa.core.online.MyGames
 import dev.quinton.goa.core.online.Rename
+import dev.quinton.goa.core.online.ServerMessage
+import dev.quinton.goa.server.game.hello
 import dev.quinton.goa.server.game.jsonBody
 import dev.quinton.goa.server.game.lobby.Accounts
+import dev.quinton.goa.server.game.next
 import dev.quinton.goa.server.game.parse
+import dev.quinton.goa.server.game.sendMessage
 import dev.quinton.goa.server.game.serverTest
 import dev.quinton.goa.server.game.store.GameResult
 import dev.quinton.goa.server.game.store.GameSeatRow
 import dev.quinton.goa.server.game.store.StoreFixtures
+import io.ktor.client.plugins.websocket.webSocket
 import io.ktor.client.request.bearerAuth
 import io.ktor.client.request.delete
 import io.ktor.client.request.get
@@ -106,11 +111,116 @@ class AccountRoutesTest {
     }
 
     @Test
-    fun allRequestsAreLimitedPerClient() = serverTest(configure = { it.copy(perClientPerMinute = 2) }) {
-        repeat(2) { assertThat(http.get("/v1/health").status).isEqualTo(HttpStatusCode.OK) }
-        val limited = http.get("/v1/health")
+    fun requestsAreLimitedPerClientIncludingTheBoard() = serverTest(configure = { it.copy(perClientPerMinute = 2) }) {
+        repeat(2) { assertThat(http.get("/v1/leaderboard").status).isEqualTo(HttpStatusCode.OK) }
+        val limited = http.get("/v1/leaderboard")
         assertThat(limited.status).isEqualTo(HttpStatusCode.TooManyRequests)
         assertThat(limited.error()).isEqualTo("rate_limited")
+    }
+
+    @Test
+    fun healthIsNeverLimitedOnEitherPath() = serverTest(
+        configure = { it.copy(perClientPerMinute = 1, globalPerMinute = 1) },
+    ) {
+        repeat(5) {
+            assertThat(http.get("/v1/health").status).isEqualTo(HttpStatusCode.OK)
+            assertThat(http.get("/game/v1/health").status).isEqualTo(HttpStatusCode.OK)
+        }
+    }
+
+    @Test
+    fun aFloodOfRestCallsDoesntStopSocketsAndSocketsHaveTheirOwnLimit() = serverTest(
+        configure = { it.copy(perClientPerMinute = 3, globalPerMinute = 3, upgradesPerClientPerMinute = 2) },
+    ) {
+        val token = account().token
+        repeat(5) { http.get("/v1/leaderboard") }
+        assertThat(http.get("/v1/leaderboard").status).isEqualTo(HttpStatusCode.TooManyRequests)
+        repeat(2) {
+            ws.webSocket("/v1/play") {
+                sendMessage(hello(token))
+                assertThat(next()).isInstanceOf(ServerMessage.Welcome::class.java)
+            }
+        }
+        val limited = http.get("/v1/play") { header(HttpHeaders.XForwardedFor, "not-the-flooded-one") }
+        assertThat(limited.status).isNotEqualTo(HttpStatusCode.TooManyRequests)
+        val refused = http.get("/v1/play")
+        assertThat(refused.status).isEqualTo(HttpStatusCode.TooManyRequests)
+        assertThat(refused.headers[HttpHeaders.RetryAfter]).isNotNull()
+    }
+
+    @Test
+    fun ipv6ClientsCountBySlash64() {
+        val one = clientGroup("2001:db8:1:2:aaaa::1")
+        assertThat(clientGroup("2001:db8:1:2:bbbb:cccc:dddd:eeee")).isEqualTo(one)
+        assertThat(clientGroup("[2001:db8:1:2::9]")).isEqualTo(one)
+        assertThat(clientGroup("2001:DB8:1:2::9%eth0")).isEqualTo(one)
+        assertThat(clientGroup("2001:db8:1:3::1")).isNotEqualTo(one)
+        assertThat(clientGroup("::ffff:192.0.2.7")).isEqualTo("192.0.2.7")
+        assertThat(clientGroup("192.0.2.7")).isEqualTo("192.0.2.7")
+        // A header may say anything: it stays a plain key, and no name is ever looked up.
+        assertThat(clientGroup("some.host.example")).isEqualTo("some.host.example")
+        assertThat(clientGroup("not:an:address")).isEqualTo("not:an:address")
+    }
+
+    @Test
+    fun aWholeSlash64SharesOneLimit() = serverTest(configure = { it.copy(accountsPerClientPerHour = 1) }) {
+        suspend fun create(from: String) = http.post("/v1/accounts") {
+            header(HttpHeaders.XForwardedFor, from)
+            jsonBody(CreateAccount.serializer(), CreateAccount("Somebody"))
+        }
+        assertThat(create("2001:db8:1:2::1").status).isEqualTo(HttpStatusCode.Created)
+        assertThat(create("2001:db8:1:2::2").status).isEqualTo(HttpStatusCode.TooManyRequests)
+        assertThat(create("2001:db8:1:3::1").status).isEqualTo(HttpStatusCode.Created)
+    }
+
+    @Test
+    fun namesAreCheckedByCodePoint() {
+        val refused = listOf(
+            "a\u200Db",
+            "a\uDB40\uDC01b",
+            "a\u0378b",
+            "a\uE000b",
+            "a\uDBC0\uDC00b",
+            "a\uD800b",
+            "a\u0001b",
+            "a\u2028b",
+            "a<b",
+            "a>b",
+            "a\"b",
+            "O'Neil",
+            "R&D",
+            "a`b",
+            "    ",
+            "\u3000\u3000\u3000",
+            "\u00A0\u00A0",
+            "\u0301\u0301",
+            "\u3164\u3164",
+            "a\u2800",
+        )
+        for (name in refused) assertThat(Accounts.cleanName(name)).isNull()
+    }
+
+    @Test
+    fun theNameOfADeletedAccountCantBeTaken() {
+        val names = listOf(
+            "Former player",
+            "former player",
+            "FORMER PLAYER",
+            "  Former player  ",
+            "Former   player",
+            "Former\u00A0player",
+            "Former\u3000\u3000Player",
+        )
+        for (name in names) assertThat(Accounts.cleanName(name)).isNull()
+    }
+
+    @Test
+    fun spacesCollapseAndOrdinaryNamesPass() {
+        assertThat(Accounts.cleanName("  Ada   Lovelace ")).isEqualTo("Ada Lovelace")
+        assertThat(Accounts.cleanName("Ada\u00A0\u00A0L")).isEqualTo("Ada L")
+        for (name in listOf("Zo\u00EB", "\u674E\u96F7", "\uD83D\uDC69 Ada", "Jos\u0065\u0301")) {
+            assertThat(Accounts.cleanName(name)).isEqualTo(name)
+        }
     }
 
     @Test

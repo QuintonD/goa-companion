@@ -25,6 +25,180 @@ import org.junit.Assert.assertThrows
 import org.junit.Before
 import org.junit.Test
 
+class SchemaTest {
+    @Test
+    fun aNewerDatabaseIsRefusedInWordsAndLeftAsItWas() {
+        val dir = Files.createTempDirectory("goa-schema")
+        SqliteGameStore.open(dir).close()
+        fun versions(): List<Int> = DriverManager.getConnection("jdbc:sqlite:${dir.resolve("games.sqlite")}").use { c ->
+            c.createStatement().executeQuery("SELECT version FROM schema_version ORDER BY version").use { rows ->
+                buildList { while (rows.next()) add(rows.getInt(1)) }
+            }
+        }
+        DriverManager.getConnection("jdbc:sqlite:${dir.resolve("games.sqlite")}").use {
+            it.createStatement().execute("INSERT INTO schema_version (version, applied_at) VALUES (99, 1)")
+        }
+        val failure = assertThrows(NewerDatabase::class.java) { SqliteGameStore.open(dir) }
+        assertThat(failure.message).contains("schema 99")
+        assertThat(failure.message).contains("deploy/game/README.md")
+        assertThat(versions()).containsExactly(Schema.VERSION, 99).inOrder()
+        dir.toFile().deleteRecursively()
+    }
+}
+
+/** Nothing about this reads an answer of a finished game: the board stands after the sweep. */
+class RetentionTest {
+    private lateinit var dir: Path
+    private lateinit var store: SqliteGameStore
+    private val day = 24 * 60 * 60_000L
+    private val now = 1_000 * day
+
+    @Before
+    fun open() {
+        dir = Files.createTempDirectory("goa-retention")
+        store = SqliteGameStore.open(dir)
+    }
+
+    @After
+    fun close() {
+        store.close()
+        dir.toFile().deleteRecursively()
+    }
+
+    private fun count(table: String, where: String = "1 = 1"): Int =
+        DriverManager.getConnection("jdbc:sqlite:${dir.resolve("games.sqlite")}").use { c ->
+            c.createStatement().executeQuery("SELECT COUNT(*) FROM $table WHERE $where").use { rows ->
+                rows.next()
+                rows.getInt(1)
+            }
+        }
+
+    private suspend fun person(id: String, createdAt: Long) {
+        store.createAccount(AccountRow(id, "Name $id", createdAt), "token-$id", "code-$id")
+    }
+
+    private fun room(code: String, status: RoomStatus, expiresAt: Long, gameId: String? = null, host: String = "host") =
+        RoomRow(
+            code = code,
+            hostAccount = host,
+            mapId = "forgotten-island",
+            length = GameLength.QUICK,
+            teamSize = 1,
+            ranked = false,
+            createdAt = expiresAt - 1,
+            expiresAt = expiresAt,
+            status = status,
+            seats = listOf(RoomSeatRow(Team.RED, 0, accountId = host)),
+            gameId = gameId,
+        )
+
+    @Test
+    fun closedRoomsGoAfterSevenDaysWithTheirSeats() = runBlocking<Unit> {
+        person("host", now)
+        store.putRoom(room("OLD", RoomStatus.CLOSED, now - 8 * day))
+        store.putRoom(room("NEW", RoomStatus.CLOSED, now - 6 * day))
+        store.putRoom(room("WAITING", RoomStatus.OPEN, now + day))
+
+        assertThat(store.sweepOld(now).rooms).isEqualTo(1)
+        assertThat(store.room("OLD")).isNull()
+        assertThat(count("room_seats", "code = 'OLD'")).isEqualTo(0)
+        assertThat(store.room("NEW")).isNotNull()
+        assertThat(store.room("WAITING")).isNotNull()
+    }
+
+    @Test
+    fun aStartedRoomGoesOnceItsGameHasBeenOverSevenDays() = runBlocking<Unit> {
+        person("host", now)
+        store.createGame(StoreFixtures.game("done"), StoreFixtures.seats("done"))
+        store.finish("done", GameResult(now - 8 * day, rated = false), null)
+        store.createGame(StoreFixtures.game("live"), StoreFixtures.seats("live"))
+        store.putRoom(room("DONE", RoomStatus.STARTED, now - 9 * day, gameId = "done"))
+        store.putRoom(room("LIVE", RoomStatus.STARTED, now - 9 * day, gameId = "live"))
+
+        store.sweepOld(now)
+        assertThat(store.room("DONE")).isNull()
+        assertThat(store.room("LIVE")).isNotNull()
+    }
+
+    @Test
+    fun answersOfGamesOverThirtyDaysGoAndTheMatchLogStaysWhole() = runBlocking<Unit> {
+        store.createGame(StoreFixtures.game("old"), StoreFixtures.seats("old"))
+        store.appendAnswer(StoreFixtures.answer("old", 0))
+        store.putLock(StoreFixtures.lock("old", "wasp", 0))
+        store.finish("old", GameResult(now - 31 * day, rated = true), StoreFixtures.match("old", now - 31 * day, 1))
+
+        store.createGame(StoreFixtures.game("void"), StoreFixtures.seats("void"))
+        store.appendAnswer(StoreFixtures.answer("void", 0))
+        store.void("void", VoidReason.ABANDONED, now - 31 * day)
+
+        store.createGame(StoreFixtures.game("recent"), StoreFixtures.seats("recent"))
+        store.appendAnswer(StoreFixtures.answer("recent", 0))
+        val recent = now - 29 * day
+        store.finish("recent", GameResult(recent, rated = true), StoreFixtures.match("recent", recent, 1))
+
+        store.createGame(StoreFixtures.game("running", createdAt = 1), StoreFixtures.seats("running"))
+        store.appendAnswer(StoreFixtures.answer("running", 0))
+
+        val before = store.matches()
+        assertThat(store.sweepOld(now).answers).isEqualTo(2)
+
+        assertThat(count("answers", "game_id = 'old'")).isEqualTo(0)
+        assertThat(count("answers", "game_id = 'void'")).isEqualTo(0)
+        assertThat(count("answers", "game_id = 'recent'")).isEqualTo(1)
+        assertThat(store.runningGame("running").answers).hasSize(1)
+        assertThat(store.matches()).isEqualTo(before)
+        assertThat(count("games", "id = 'old'")).isEqualTo(1)
+    }
+
+    @Test
+    fun tokensRevokedOverThirtyDaysAgoGo() = runBlocking<Unit> {
+        person("gone", now - 200 * day)
+        store.createGame(StoreFixtures.game("g"), listOf(GameSeatRow("g", "wasp", "gone", Team.RED, false, 0)))
+        store.anonymise("gone", "Former player", now - 31 * day)
+        person("live", now - 10 * day)
+        person("recent", now - 200 * day)
+        store.anonymise("recent", "Former player", now - 29 * day)
+
+        assertThat(store.sweepOld(now).tokens).isEqualTo(1)
+        assertThat(count("tokens", "account_id = 'gone'")).isEqualTo(0)
+        assertThat(count("tokens", "account_id = 'live'")).isEqualTo(1)
+        assertThat(count("tokens", "account_id = 'recent'")).isEqualTo(1)
+    }
+
+    @Test
+    fun anAccountWithNoGamesAndNoActivityFor90DaysGoes() = runBlocking<Unit> {
+        person("idle", now - 91 * day)
+        person("fresh", now - 89 * day)
+        person("player", now - 200 * day)
+        person("hosting", now - 200 * day)
+        person("seen", now - 200 * day)
+        store.accountByToken("token-seen", now - 2 * 24 * 60_000L)
+        store.createGame(StoreFixtures.game("g"), listOf(GameSeatRow("g", "wasp", "player", Team.RED, false, 0)))
+        store.putRoom(room("R", RoomStatus.OPEN, now + day, host = "hosting"))
+
+        assertThat(store.sweepOld(now).accounts).isEqualTo(1)
+        assertThat(store.account("idle")).isNull()
+        assertThat(count("tokens", "account_id = 'idle'")).isEqualTo(0)
+        assertThat(count("recovery_codes", "account_id = 'idle'")).isEqualTo(0)
+        for (kept in listOf("fresh", "player", "hosting", "seen")) assertThat(store.account(kept)).isNotNull()
+    }
+
+    @Test
+    fun aDeletedAccountWithNoGamesGoesToo() = runBlocking<Unit> {
+        person("deleted", now - 200 * day)
+        store.anonymise("deleted", "Former player", now - 91 * day)
+        store.sweepOld(now)
+        assertThat(store.account("deleted")).isNull()
+    }
+
+    @Test
+    fun aSecondSweepFindsNothing() = runBlocking<Unit> {
+        person("idle", now - 91 * day)
+        store.sweepOld(now)
+        assertThat(store.sweepOld(now)).isEqualTo(Swept(0, 0, 0, 0))
+    }
+}
+
 internal object StoreFixtures {
     val setup = GameSetup(
         mapId = "forgotten-island",
@@ -130,7 +304,7 @@ class SqliteGameStoreTest {
         DriverManager.getConnection(databaseUrl()).use {
             it.createStatement().execute("INSERT INTO schema_version (version, applied_at) VALUES (999, 0)")
         }
-        assertThrows(IllegalStateException::class.java) { SqliteGameStore.open(dir) }
+        assertThrows(NewerDatabase::class.java) { SqliteGameStore.open(dir) }
         DriverManager.getConnection(databaseUrl()).use {
             it.createStatement().execute("DELETE FROM schema_version WHERE version = 999")
         }

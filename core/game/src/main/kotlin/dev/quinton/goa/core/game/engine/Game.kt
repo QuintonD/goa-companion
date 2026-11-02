@@ -141,6 +141,7 @@ class Game internal constructor(
         sourceCardId: String? = null,
         context: DecisionContext = DecisionContext(),
         auto: Boolean = true,
+        teamDecision: Boolean = false,
     ): Choice {
         check(options.isNotEmpty()) { "Decision without options: $prompt" }
         if (auto && options.size == 1) {
@@ -157,7 +158,10 @@ class Game internal constructor(
             return given
         }
         val team = teamOf(asker) ?: Team.RED
-        throw Suspend(Decision(state.decisions + index, asker, team, kind, prompt, sourceCardId, options, context))
+        // An effect that hands the seat's choices to someone else (Hanu's Ultimate) makes it that hero's own.
+        val forTeam = teamDecision && asker == seat
+        val id = state.decisions + index
+        throw Suspend(Decision(id, asker, team, kind, prompt, sourceCardId, options, context, forTeam))
     }
 
     /** The hero who makes [seat]'s choices now: itself, unless an effect says otherwise (Hanu's Ultimate). */

@@ -21,7 +21,8 @@ import kotlinx.serialization.json.Json
 object OnlineProtocol {
     /**
      * Goes up with any new sealed subtype or enum value that can reach a client: old decoders fail on
-     * them. A plain added field with a default does not need it.
+     * them. A plain added field with a default does not need it. `WireNamesTest` beside this module's
+     * tests pins every such name and fails until its list is changed along with this.
      */
     const val VERSION: Int = 1
 
@@ -141,6 +142,8 @@ sealed interface ServerMessage {
         val locked: List<String> = emptyList(),
         val clock: DecisionClock? = null,
         val presence: Map<String, Presence> = emptyMap(),
+        /** A long catch-up comes in pages: this one's events count, and the rest of the table follows. */
+        val more: Boolean = false,
     ) : ServerMessage
 
     @Serializable
@@ -285,8 +288,11 @@ data class HealthInfo(
     val protocol: Int,
     val rulesBuild: String,
     val status: String,
+    /** Running games: what a deploy waits for. */
     val rooms: Int,
     val maxRooms: Int,
+    /** Rooms still waiting for players; a drain doesn't wait for them, and they survive a restart. */
+    val openRooms: Int = 0,
 )
 
 /** Every REST error: `error` is stable for code, `message` is for people. */

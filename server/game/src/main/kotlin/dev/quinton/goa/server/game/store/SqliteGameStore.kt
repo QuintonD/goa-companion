@@ -21,6 +21,14 @@ import java.util.concurrent.TimeUnit
 import kotlinx.coroutines.asCoroutineDispatcher
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.Json
+import org.slf4j.LoggerFactory
+
+/** A rollback across a schema bump: this build can't read the database and must not touch it. */
+class NewerDatabase(found: Long, mine: Int) : Exception(
+    "The database is schema $found and this server only knows up to $mine. Nothing was changed. " +
+        "Deploy a newer build, or restore the backup from before the upgrade: " +
+        "see \"Roll back\" in deploy/game/README.md.",
+)
 
 /**
  * SQLite on one connection, on one thread: JDBC never blocks a CIO thread and writes never interleave.
@@ -55,8 +63,8 @@ class SqliteGameStore private constructor(private val connection: Connection) :
         update(
             """
             INSERT INTO games (id, room_code, setup_json, start_save_json, rules_build, engine_version, ranked,
-                status, created_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?, 'running', ?)
+                status, created_at, away_since)
+            VALUES (?, ?, ?, ?, ?, ?, ?, 'running', ?, ?)
             """,
             game.id,
             game.roomCode,
@@ -66,6 +74,7 @@ class SqliteGameStore private constructor(private val connection: Connection) :
             game.engineVersion,
             game.ranked,
             game.createdAt,
+            game.awaySince,
         )
         for (seat in seats) {
             update(
@@ -123,6 +132,11 @@ class SqliteGameStore private constructor(private val connection: Connection) :
             gameId,
             heroId,
         )
+        Unit
+    }
+
+    override suspend fun setAwaySince(gameId: String, at: Long?) = write {
+        update("UPDATE games SET away_since = ? WHERE id = ?", at, gameId)
         Unit
     }
 
@@ -186,39 +200,66 @@ class SqliteGameStore private constructor(private val connection: Connection) :
         Unit
     }
 
-    /** Oldest game first, each with its seats in seat order and its answers in the order they were given. */
-    override suspend fun runningGames(): List<RunningGame> = read {
-        val games = query(
-            """
-            SELECT id, room_code, setup_json, start_save_json, rules_build, engine_version, ranked, created_at
-            FROM games WHERE status = 'running' ORDER BY created_at, id
-            """,
-        ) { rows -> rows.toList(::gameRow) }
-        games.map { game ->
-            RunningGame(
-                game = game,
-                seats = gameSeats(game.id),
-                answers = query(
-                    """
-                    SELECT seq, decision_id, seat, choice_json, origin, at, events_hash, state_hash
-                    FROM answers WHERE game_id = ? ORDER BY seq
-                    """,
-                    game.id,
-                ) { rows -> rows.toList { storedAnswer(game.id, it) } },
-                locks = query(
-                    """
-                    SELECT seat, ordinal, round, turn, grp, choice_json, origin, at
-                    FROM locks WHERE game_id = ? ORDER BY seat, ordinal
-                    """,
-                    game.id,
-                ) { rows -> rows.toList { storedLock(game.id, it) } },
-            )
+    override suspend fun runningGameIds(): List<String> = read {
+        query("SELECT id FROM games WHERE status = 'running' ORDER BY created_at, id") { rows ->
+            rows.toList { it.getString(1) }
         }
     }
 
-    override suspend fun matches(): List<Match> = read {
-        query("SELECT match_json FROM matches ORDER BY played_at, created_at, id") { rows ->
-            rows.toList { JSON.decodeFromString(Match.serializer(), it.getString(1)) }
+    /** With its seats in seat order and its answers in the order they were given. */
+    override suspend fun runningGame(id: String): RunningGame = read {
+        val game = query(
+            """
+            SELECT id, room_code, setup_json, start_save_json, rules_build, engine_version, ranked, created_at,
+                away_since
+            FROM games WHERE id = ? AND status = 'running'
+            """,
+            id,
+        ) { rows -> rows.toList(::gameRow) }.single()
+        RunningGame(
+            game = game,
+            seats = gameSeats(id),
+            answers = query(
+                """
+                SELECT seq, decision_id, seat, choice_json, origin, at, events_hash, state_hash
+                FROM answers WHERE game_id = ? ORDER BY seq
+                """,
+                id,
+            ) { rows -> rows.toList { storedAnswer(id, it) } },
+            locks = query(
+                """
+                SELECT seat, ordinal, round, turn, grp, choice_json, origin, at
+                FROM locks WHERE game_id = ? ORDER BY seat, ordinal
+                """,
+                id,
+            ) { rows -> rows.toList { storedLock(id, it) } },
+        )
+    }
+
+    override suspend fun accountsOf(gameId: String): Set<String> = read {
+        query("SELECT account_id FROM game_seats WHERE game_id = ?", gameId) { rows ->
+            rows.toList { it.getString(1) }.toSet()
+        }
+    }
+
+    override suspend fun matches(): List<Match> = matchesFrom(Long.MIN_VALUE)
+
+    override suspend fun matchesSince(at: Long): List<Match> = matchesFrom(at)
+
+    /** A row that can't be read is left out and logged: one must not take the whole board with it. */
+    private suspend fun matchesFrom(at: Long): List<Match> = read {
+        query(
+            "SELECT id, match_json FROM matches WHERE played_at >= ? ORDER BY played_at, created_at, id",
+            at,
+        ) { rows ->
+            rows.toList { row ->
+                try {
+                    JSON.decodeFromString(Match.serializer(), row.getString(2))
+                } catch (failure: IllegalArgumentException) {
+                    log.error("Match {} can't be read: {}", row.getString(1), failure.javaClass.simpleName)
+                    null
+                }
+            }.filterNotNull()
         }
     }
 
@@ -235,6 +276,7 @@ class SqliteGameStore private constructor(private val connection: Connection) :
             mapId = setup.mapId,
             length = setup.length,
             createdAt = rows.getLong(8),
+            awaySince = rows.longOrNull(9),
         )
     }
 
@@ -398,7 +440,7 @@ class SqliteGameStore private constructor(private val connection: Connection) :
                 status)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             ON CONFLICT (code) DO UPDATE SET host_account = excluded.host_account, game_id = excluded.game_id,
-                status = excluded.status
+                status = excluded.status, expires_at = excluded.expires_at
             """,
             room.code,
             room.hostAccount,
@@ -454,14 +496,64 @@ class SqliteGameStore private constructor(private val connection: Connection) :
     override suspend fun gameSummaries(gameIds: List<String>): List<GameSummary> = read {
         gameIds.mapNotNull { id ->
             query("SELECT room_code, setup_json FROM games WHERE id = ?", id) { rows ->
-                if (rows.next()) {
-                    val mapId = JSON.decodeFromString(GameSetup.serializer(), rows.getString(2)).mapId
-                    rows.getString(1) to mapId
-                } else {
-                    null
-                }
+                if (rows.next()) rows.getString(1) to mapOfSetup(id, rows.getString(2)) else null
             }?.let { (roomCode, mapId) -> GameSummary(id, roomCode, mapId, gameSeats(id)) }
         }
+    }
+
+    /** A game too damaged to replay is still listed, so that its players can open it and hear it was voided. */
+    private fun mapOfSetup(gameId: String, setupJson: String): String = try {
+        JSON.decodeFromString(GameSetup.serializer(), setupJson).mapId
+    } catch (failure: IllegalArgumentException) {
+        log.warn("Game {}: its setup can't be read: {}", gameId, failure.javaClass.simpleName)
+        ""
+    }
+
+    /**
+     * What docs/ONLINE.md "What is kept" promises. Answers of a game that is over have no reader left: only
+     * a running game is ever replayed, and ratings come from `matches` alone. One transaction a day.
+     */
+    suspend fun sweepOld(now: Long): Swept = write {
+        val rooms = now - ROOMS_KEPT_MILLIS
+        val games = now - GAMES_KEPT_MILLIS
+        val over = "SELECT id FROM games WHERE status <> 'running' AND finished_at <= ?"
+        Swept(
+            rooms = update(
+                """
+                DELETE FROM rooms WHERE (status = 'closed' AND expires_at <= ?)
+                    OR (status = 'started' AND game_id IN ($over))
+                """,
+                rooms,
+                rooms,
+            ),
+            answers = update("DELETE FROM answers WHERE game_id IN ($over)", games) +
+                update("DELETE FROM locks WHERE game_id IN ($over)", games),
+            tokens = update("DELETE FROM tokens WHERE revoked_at <= ?", now - TOKENS_KEPT_MILLIS),
+            accounts = sweepAccounts(now - ACCOUNTS_KEPT_MILLIS),
+        )
+    }
+
+    /** No game ever, and nothing since [before]. A person with games stays, as their name stands on them. */
+    private fun Connection.sweepAccounts(before: Long): Int {
+        val ids = query(
+            """
+            SELECT a.id FROM accounts a
+            WHERE a.created_at <= ? AND (a.deleted_at IS NULL OR a.deleted_at <= ?)
+                AND NOT EXISTS (SELECT 1 FROM game_seats s WHERE s.account_id = a.id)
+                AND NOT EXISTS (SELECT 1 FROM tokens t WHERE t.account_id = a.id AND t.last_seen_at > ?)
+                AND NOT EXISTS (SELECT 1 FROM rooms r WHERE r.host_account = a.id)
+                AND NOT EXISTS (SELECT 1 FROM room_seats q WHERE q.account_id = a.id)
+            """,
+            before,
+            before,
+            before,
+        ) { rows -> rows.toList { it.getString(1) } }
+        for (id in ids) {
+            update("DELETE FROM tokens WHERE account_id = ?", id)
+            update("DELETE FROM recovery_codes WHERE account_id = ?", id)
+            update("DELETE FROM accounts WHERE id = ?", id)
+        }
+        return ids.size
     }
 
     override suspend fun isAvailable(): Boolean = try {
@@ -521,11 +613,17 @@ class SqliteGameStore private constructor(private val connection: Connection) :
     }.sortedWith(compareBy({ it.team.ordinal }, { it.index }))
 
     companion object {
+        private val log = LoggerFactory.getLogger(SqliteGameStore::class.java)
         private const val DATABASE_FILE = "games.sqlite"
         private const val TEMP_DIR_PROPERTY = "org.sqlite.tmpdir"
         private const val BUSY_TIMEOUT_MILLIS = 5_000
         private const val CLOSE_WAIT_SECONDS = 10L
         private const val LAST_SEEN_EVERY_MILLIS = 60 * 60_000L
+        private const val DAY_MILLIS = 24 * 60 * 60_000L
+        internal const val ROOMS_KEPT_MILLIS = 7 * DAY_MILLIS
+        internal const val GAMES_KEPT_MILLIS = 30 * DAY_MILLIS
+        internal const val TOKENS_KEPT_MILLIS = 30 * DAY_MILLIS
+        internal const val ACCOUNTS_KEPT_MILLIS = 90 * DAY_MILLIS
 
         private val JSON = Json {
             ignoreUnknownKeys = true
@@ -554,7 +652,12 @@ class SqliteGameStore private constructor(private val connection: Connection) :
                 pragma.execute("PRAGMA foreign_keys = ON")
                 pragma.execute("PRAGMA temp_store = MEMORY")
             }
-            createSchema(connection)
+            try {
+                createSchema(connection)
+            } catch (failure: NewerDatabase) {
+                connection.close()
+                throw failure
+            }
             return SqliteGameStore(connection)
         }
 
@@ -565,9 +668,8 @@ class SqliteGameStore private constructor(private val connection: Connection) :
             val found = query("SELECT MAX(version) FROM schema_version") { rows ->
                 if (rows.next()) rows.longOrNull(1) else null
             }
-            check(found == null || found <= Schema.VERSION) {
-                "The database is schema $found, newer than this server's ${Schema.VERSION}"
-            }
+            // Inside the transaction, so that a database this build can't read is left as it was.
+            if (found != null && found > Schema.VERSION) throw NewerDatabase(found, Schema.VERSION)
             if (found == null) {
                 update(
                     "INSERT INTO schema_version (version, applied_at) VALUES (?, ?)",

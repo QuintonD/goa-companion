@@ -82,7 +82,8 @@ internal object Schema {
             status TEXT NOT NULL CHECK (status IN ('running', 'finished', 'voided')),
             void_reason TEXT,
             created_at INTEGER NOT NULL,
-            finished_at INTEGER
+            finished_at INTEGER,
+            away_since INTEGER
         )
         """,
         "CREATE INDEX IF NOT EXISTS games_by_status ON games(status, created_at, id)",

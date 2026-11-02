@@ -24,6 +24,8 @@ data class GameRow(
     val mapId: String,
     val length: GameLength,
     val createdAt: Long,
+    /** Since when nobody has been connected; null while someone is. Survives a restart, as a pause must. */
+    val awaySince: Long? = null,
 )
 
 data class GameSeatRow(
@@ -81,6 +83,9 @@ interface GameStore {
 
     suspend fun markLeft(gameId: String, heroId: String, at: Long)
 
+    /** When the last person went, or null when someone came back. */
+    suspend fun setAwaySince(gameId: String, at: Long?)
+
     suspend fun putLock(lock: StoredLock)
 
     suspend fun clearLocks(gameId: String, seat: String)
@@ -90,10 +95,22 @@ interface GameStore {
 
     suspend fun void(gameId: String, reason: VoidReason, at: Long)
 
-    suspend fun runningGames(): List<RunningGame>
+    /** Oldest first. Reads ids only, so one game's bad row can't stop the others being looked at. */
+    suspend fun runningGameIds(): List<String>
+
+    /** One game, whole: throws if any of its rows can't be read, and the room decides what that means. */
+    suspend fun runningGame(id: String): RunningGame
+
+    /** Who sits in a game, from the plain ids alone: readable when the game itself is not. */
+    suspend fun accountsOf(gameId: String): Set<String>
+
+    suspend fun runningGames(): List<RunningGame> = runningGameIds().map { runningGame(it) }
 
     /** The rated log, in [dev.quinton.goa.core.domain.rating.EloCalculator]'s replay order. */
     suspend fun matches(): List<Match>
+
+    /** The log from [at] on, for a look at recent games that needn't read it all. */
+    suspend fun matchesSince(at: Long): List<Match> = matches().filter { it.playedAt >= at }
 }
 
 /** For tests of the rooms and the ratings. Nothing survives the process. */
@@ -117,6 +134,10 @@ class InMemoryGameStore : GameStore {
         seats[gameId] = seats[gameId].orEmpty().map { if (it.heroId == heroId) it.copy(left = true) else it }
     }
 
+    override suspend fun setAwaySince(gameId: String, at: Long?) {
+        games[gameId]?.let { games[gameId] = it.copy(awaySince = at) }
+    }
+
     override suspend fun putLock(lock: StoredLock) {
         locks.getOrPut(lock.gameId) { ArrayList() } += lock
     }
@@ -134,9 +155,14 @@ class InMemoryGameStore : GameStore {
         games.remove(gameId)
     }
 
-    override suspend fun runningGames(): List<RunningGame> = games.values.map { g ->
-        RunningGame(g, seats[g.id].orEmpty(), answers[g.id].orEmpty().toList(), locks[g.id].orEmpty().toList())
+    override suspend fun runningGameIds(): List<String> = games.keys.toList()
+
+    override suspend fun runningGame(id: String): RunningGame {
+        val g = games.getValue(id)
+        return RunningGame(g, seats[id].orEmpty(), answers[id].orEmpty().toList(), locks[id].orEmpty().toList())
     }
+
+    override suspend fun accountsOf(gameId: String): Set<String> = seats[gameId].orEmpty().map { it.accountId }.toSet()
 
     override suspend fun matches(): List<Match> =
         log.sortedWith(compareBy({ it.playedAt }, { it.createdAt }, { it.id }))

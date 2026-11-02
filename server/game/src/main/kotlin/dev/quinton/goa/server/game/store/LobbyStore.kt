@@ -62,6 +62,9 @@ data class GameSummary(
     val seats: List<GameSeatRow>,
 )
 
+/** What one day's sweep removed. [answers] counts locks too. */
+data class Swept(val rooms: Int, val answers: Int, val tokens: Int, val accounts: Int)
+
 /** Rooms before they are games. */
 interface LobbyStore {
     /** Writes the room and all its seats in one transaction. */

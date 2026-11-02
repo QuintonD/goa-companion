@@ -31,11 +31,13 @@ import io.ktor.client.plugins.websocket.WebSockets
 import io.ktor.client.plugins.websocket.webSocket
 import io.ktor.client.request.HttpRequestBuilder
 import io.ktor.client.request.bearerAuth
+import io.ktor.client.request.header
 import io.ktor.client.request.post
 import io.ktor.client.request.setBody
 import io.ktor.client.statement.HttpResponse
 import io.ktor.client.statement.bodyAsText
 import io.ktor.http.ContentType
+import io.ktor.http.HttpHeaders
 import io.ktor.http.contentType
 import io.ktor.server.testing.ApplicationTestBuilder
 import io.ktor.server.testing.testApplication
@@ -181,13 +183,15 @@ internal class TestServer(
         mapId: String = FOREST,
         length: GameLength = GameLength.QUICK,
         ranked: Boolean = false,
+        from: String? = null,
     ): HttpResponse = http.post("/v1/rooms") {
         bearerAuth(token)
+        from?.let { header(HttpHeaders.XForwardedFor, it) }
         jsonBody(CreateRoom.serializer(), CreateRoom(mapId, length, teamSize, ranked))
     }
 
-    suspend fun room(token: String, teamSize: Int = 1, ranked: Boolean = false): String =
-        RoomCreated.serializer().parse(createRoom(token, teamSize, ranked = ranked).bodyAsText()).code
+    suspend fun room(token: String, teamSize: Int = 1, ranked: Boolean = false, from: String? = null): String =
+        RoomCreated.serializer().parse(createRoom(token, teamSize, ranked = ranked, from = from).bodyAsText()).code
 
     suspend fun join(token: String, code: String): RoomView =
         RoomView.serializer().parse(http.post("/v1/rooms/$code/join") { bearerAuth(token) }.bodyAsText())

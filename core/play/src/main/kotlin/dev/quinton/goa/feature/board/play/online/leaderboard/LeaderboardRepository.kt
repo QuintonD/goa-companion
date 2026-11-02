@@ -4,6 +4,7 @@ import dev.quinton.goa.core.online.LeaderboardSnapshot
 import dev.quinton.goa.core.online.NetworkInfo
 import dev.quinton.goa.core.online.OnlineProtocol
 import dev.quinton.goa.core.online.OnlineRoutes
+import dev.quinton.goa.feature.board.play.online.HOST_STATUS_CLOSED
 
 /** The platform's HTTP GET. Null on any failure, a bad status or a timeout; it does not throw. */
 fun interface LeaderboardFetcher {
@@ -34,8 +35,10 @@ data class LeaderboardLoad(val snapshot: LeaderboardSnapshot, val origin: Leader
 
 /**
  * Reads the board (docs/ONLINE.md "Where things run"): the Pages file, each game host, then the last
- * good copy. A file that does not parse, or that is of a newer schema than this app, counts as a failed
- * read. `network.json` is only read once Pages has failed, so a healthy Pages sends oldboi nothing.
+ * good copy. A file that does not parse, is of a newer schema than this app, or breaks the limits the
+ * publisher holds it to counts as a failed read, so it is never kept: a live host's answer hasn't been
+ * through the publisher. `network.json` is only read once Pages has failed, so a healthy Pages sends oldboi
+ * nothing.
  */
 class LeaderboardRepository(
     private val fetcher: LeaderboardFetcher,
@@ -60,15 +63,24 @@ class LeaderboardRepository(
     private fun loaded(snapshot: LeaderboardSnapshot, origin: LeaderboardOrigin) =
         LeaderboardLoad(snapshot, origin, (now() - snapshot.generatedAt).coerceAtLeast(0))
 
-    /** The hosts of `network.json` in its order, the built-in address last, each once. */
+    /** The hosts of `network.json` in its order, the built-in address last, each once; none it has closed. */
     private suspend fun hosts(): List<String> {
-        val listed = fetcher.get(OnlineRoutes.NETWORK_FILE)?.let(::networkOf)?.games.orEmpty().map { it.origin }
-        return (listed + builtInHost).map { it.trimEnd('/') }.distinct()
+        val listed = fetcher.get(OnlineRoutes.NETWORK_FILE)?.let(::networkOf)?.games.orEmpty()
+        val closed = listed.filter { it.status == HOST_STATUS_CLOSED }.map { it.origin.trimEnd('/') }
+        return (listed.map { it.origin } + builtInHost).map { it.trimEnd('/') }.distinct().filter { it !in closed }
     }
 
-    private fun snapshotOf(text: String): LeaderboardSnapshot? =
-        decoded { OnlineProtocol.json.decodeFromString(LeaderboardSnapshot.serializer(), text) }
-            ?.takeIf { it.schema in 1..LeaderboardSnapshot.SCHEMA }
+    private fun snapshotOf(text: String): LeaderboardSnapshot? {
+        if (text.length > MAX_TEXT_LENGTH) return null
+        return decoded { OnlineProtocol.json.decodeFromString(LeaderboardSnapshot.serializer(), text) }
+            ?.takeIf { it.schema in 1..LeaderboardSnapshot.SCHEMA && fits(it) }
+    }
+
+    private fun fits(board: LeaderboardSnapshot): Boolean {
+        val rows = board.players + board.heroes
+        return board.logSha256.length <= MAX_FIELD_LENGTH && rows.size <= MAX_ROWS &&
+            rows.all { it.id.length in 1..MAX_FIELD_LENGTH && it.name.length in 1..MAX_FIELD_LENGTH }
+    }
 
     private fun networkOf(text: String): NetworkInfo? =
         decoded { OnlineProtocol.json.decodeFromString(NetworkInfo.serializer(), text) }
@@ -79,5 +91,14 @@ class LeaderboardRepository(
         decode()
     } catch (_: IllegalArgumentException) {
         null
+    }
+
+    internal companion object {
+        /** As `validate_leaderboard.py`: what the published file can never exceed. */
+        const val MAX_TEXT_LENGTH = 512 * 1024
+        const val MAX_FIELD_LENGTH = 64
+
+        /** Each board has at most 200 rows; twice that is a server that means something else. */
+        const val MAX_ROWS = 400
     }
 }

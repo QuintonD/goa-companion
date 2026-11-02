@@ -18,10 +18,13 @@ import io.ktor.websocket.Frame
 import io.ktor.websocket.close
 import io.ktor.websocket.readText
 import kotlin.coroutines.cancellation.CancellationException
+import kotlin.random.Random
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withTimeoutOrNull
+import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.jsonObject
 import org.slf4j.LoggerFactory
 
 private val log = LoggerFactory.getLogger("goa-game")
@@ -32,6 +35,8 @@ internal const val MAX_WATCHED_ROOMS = 8
 internal const val MAX_SOCKETS_PER_ACCOUNT = 4
 private const val SEND_TIMEOUT_MILLIS = 30_000L
 private const val CLOSE_TIMEOUT_MILLIS = 1_000L
+private const val HELLO_TYPE = "hello"
+private const val FULL_RETRY_SECONDS = 30
 private val CLIENT_LABEL = Regex("[A-Za-z0-9._/-]{1,40}")
 
 /** One person's socket: its queue, and the games it is linked to. */
@@ -176,17 +181,20 @@ internal class SocketHub {
         }
     }
 
-    /** Sends the room to its watchers and to everyone seated; a started room links the seated to the game. */
+    /**
+     * Sends the room to its watchers and to everyone seated. A started room links only the sockets watching it:
+     * a socket looking at another game must not count as present in this one.
+     */
     fun roomChanged(view: RoomView) {
-        val (seated, audience) = synchronized(guard) {
+        val (players, audience) = synchronized(guard) {
             val seated = view.seats.mapNotNull { it.accountId }.flatMap { sockets[it].orEmpty() }
-            val audience = (watchers[view.code].orEmpty() + seated).toList()
+            val watching = watchers[view.code].orEmpty().toList()
             if (view.status == RoomStatus.CLOSED) watchers.remove(view.code)
-            seated to audience
+            watching.filter { it in seated } to (watching + seated).distinct()
         }
         audience.forEach { it.send(ServerMessage.Lobby(view)) }
         val gameId = view.gameId
-        if (view.status == RoomStatus.STARTED && gameId != null) seated.forEach { it.attachLater(gameId) }
+        if (view.status == RoomStatus.STARTED && gameId != null) players.forEach { it.attachLater(gameId) }
     }
 
     fun disconnect(accountId: String) {
@@ -202,9 +210,25 @@ internal suspend fun pump(outbound: Outbound, send: suspend (ServerMessage) -> U
     }
 }
 
+/** One more socket, if there is room: the wait is spread, so that those refused don't all come back together. */
+internal suspend fun DefaultWebSocketServerSession.playWithinTheCap(services: GameServices) {
+    try {
+        if (services.sockets.incrementAndGet() > services.config.maxSockets) {
+            val wait = FULL_RETRY_SECONDS + Random.nextInt(FULL_RETRY_SECONDS)
+            refuse(ServerMessage.Refused(Refusal.RATE_LIMITED, wait))
+        } else {
+            play(services)
+        }
+    } finally {
+        services.sockets.decrementAndGet()
+    }
+}
+
 /** `GET /v1/play`. The token comes in the first frame only: never from a header or a URL. */
 internal suspend fun DefaultWebSocketServerSession.play(services: GameServices) {
-    val hello = withTimeoutOrNull(services.config.helloTimeoutMillis) { receiveHello() }
+    val first = withTimeoutOrNull(services.config.helloTimeoutMillis) { receiveFirst() }
+    if (first is FirstFrame.TooNew) return refuse(ServerMessage.Refused(Refusal.UPDATE_APP))
+    val hello = (first as? FirstFrame.Good)?.hello
         ?: return close(CloseReason(CloseReason.Codes.VIOLATED_POLICY, "hello"))
     val account = admit(services, hello) ?: return
     val socket = PlayerSocket(account.id, services.rooms, this)
@@ -223,10 +247,9 @@ internal suspend fun DefaultWebSocketServerSession.play(services: GameServices) 
             ServerMessage.Welcome(OnlineProtocol.VERSION, account.id, account.name, services.clock(), active),
         )
         services.hub.add(socket)
-        // Asked again now it can hear of starts: a game that began since the Welcome is not missed.
-        val have = hello.resume.associate { it.gameId to it.haveEvents.coerceAtLeast(0) }
-        (services.rooms.gamesOf(account.id) + have.keys).distinct().take(MAX_RESUMED_GAMES).forEach {
-            socket.attach(it, have[it] ?: 0)
+        // Only the games it names: being linked is what makes a person present, and sends the log.
+        hello.resume.distinctBy { it.gameId }.take(MAX_RESUMED_GAMES).forEach {
+            socket.attach(it.gameId, it.haveEvents.coerceAtLeast(0))
         }
         serve(services, socket)
     } finally {
@@ -237,10 +260,31 @@ internal suspend fun DefaultWebSocketServerSession.play(services: GameServices) 
     }
 }
 
-private suspend fun DefaultWebSocketServerSession.receiveHello(): ClientMessage.Hello? {
-    val frame = incoming.receiveCatching().getOrNull() as? Frame.Text ?: return null
-    if (frame.data.size > MAX_FRAME_BYTES) return null
-    return decode(frame) as? ClientMessage.Hello
+private sealed interface FirstFrame {
+    class Good(val hello: ClientMessage.Hello) : FirstFrame
+
+    /** It says it is a Hello and this server can't read it: a client from another time, who needs telling. */
+    data object TooNew : FirstFrame
+
+    data object NotAHello : FirstFrame
+}
+
+private suspend fun DefaultWebSocketServerSession.receiveFirst(): FirstFrame {
+    val frame = incoming.receiveCatching().getOrNull() as? Frame.Text ?: return FirstFrame.NotAHello
+    if (frame.data.size > MAX_FRAME_BYTES) return FirstFrame.NotAHello
+    val message = decode(frame)
+    return when {
+        message is ClientMessage.Hello -> FirstFrame.Good(message)
+        message == null && saysHello(frame.readText()) -> FirstFrame.TooNew
+        else -> FirstFrame.NotAHello
+    }
+}
+
+private fun saysHello(text: String): Boolean = try {
+    val type = OnlineProtocol.json.parseToJsonElement(text).jsonObject["type"]
+    (type as? JsonPrimitive)?.content == HELLO_TYPE
+} catch (_: IllegalArgumentException) {
+    false
 }
 
 /** The account behind a Hello; otherwise says why, closes, and returns null. */

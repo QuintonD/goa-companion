@@ -4,6 +4,7 @@ import com.google.common.truth.Truth.assertThat
 import dev.quinton.goa.core.game.Controller
 import dev.quinton.goa.core.game.GameLength
 import dev.quinton.goa.core.game.GameSetup
+import dev.quinton.goa.core.game.SeatSetup
 import dev.quinton.goa.core.model.match.Team
 import dev.quinton.goa.core.online.CreateRoom
 import dev.quinton.goa.core.online.RoomStatus
@@ -213,7 +214,7 @@ class LobbyTest {
         val everyone = people(1)
         val code = lobby.create(everyone[0], CreateRoom(Lobby.FORGOTTEN_ISLAND, GameLength.QUICK, 1, false)).code
         heard.clear()
-        clock.now += Lobby.OPEN_MILLIS - 1
+        clock.now += Lobby.ALONE_MILLIS - 1
         lobby.sweep()
         assertThat(heard).isEmpty()
         clock.now += 1
@@ -221,6 +222,89 @@ class LobbyTest {
         assertThat(heard.single().status).isEqualTo(RoomStatus.CLOSED)
         assertThat(store.room(code)?.status).isEqualTo(RoomStatus.CLOSED)
         assertThat(refused { lobby.view(code) }).isEqualTo(LobbyError.NO_SUCH_ROOM)
+    }
+
+    @Test
+    fun aRoomSomeoneJoinedLastsItsWholeTimeAndGoesBackToTheShortClockIfLeftAlone(): Unit = runBlocking {
+        val everyone = people(2)
+        val start = clock.now
+        val code = lobby.create(everyone[0], CreateRoom(Lobby.FORGOTTEN_ISLAND, GameLength.QUICK, 1, false)).code
+        assertThat(lobby.view(code).expiresAt).isEqualTo(start + Lobby.ALONE_MILLIS)
+
+        assertThat(lobby.join(everyone[1], code).expiresAt).isEqualTo(start + Lobby.OPEN_MILLIS)
+        clock.now += Lobby.ALONE_MILLIS
+        lobby.sweep()
+        assertThat(store.room(code)?.status).isEqualTo(RoomStatus.OPEN)
+        assertThat(store.room(code)?.expiresAt).isEqualTo(start + Lobby.OPEN_MILLIS)
+
+        assertThat(lobby.leave(everyone[1], code).expiresAt).isEqualTo(clock.now + Lobby.ALONE_MILLIS)
+        clock.now += Lobby.ALONE_MILLIS
+        lobby.sweep()
+        assertThat(store.room(code)?.status).isEqualTo(RoomStatus.CLOSED)
+    }
+
+    @Test
+    fun theHostLeavingLeavesAnAloneRoomOnTheShortClock(): Unit = runBlocking {
+        val everyone = people(2)
+        val code = lobby.create(everyone[0], CreateRoom(Lobby.FORGOTTEN_ISLAND, GameLength.QUICK, 1, false)).code
+        lobby.join(everyone[1], code)
+        val left = lobby.leave(everyone[0], code)
+        assertThat(left.hostAccountId).isEqualTo(everyone[1])
+        assertThat(left.expiresAt).isEqualTo(clock.now + Lobby.ALONE_MILLIS)
+    }
+
+    @Test
+    fun aStartPastTheGamesBudgetIsRefusedAndTheRoomStaysOpen(): Unit = runBlocking {
+        val limited = Lobby(store, testEngine, rooms, 1, { false }, clock::read, { true })
+        val everyone = people(2)
+        val code = limited.create(everyone[0], CreateRoom(Lobby.FORGOTTEN_ISLAND, GameLength.QUICK, 1, false)).code
+        limited.join(everyone[1], code)
+        val heroes = testEngine.playableHeroes.sorted()
+        everyone.forEachIndexed { i, person ->
+            val seat = limited.view(code).seats.first { it.accountId == person }
+            limited.pickSeat(person, code, seat.team, seat.index, heroes[i])
+            limited.ready(person, code, true)
+        }
+        rooms.extraRunning = 1
+        assertThat(refused { limited.start(everyone[0], code) }).isEqualTo(LobbyError.ROOMS_FULL)
+        assertThat(limited.view(code).status).isEqualTo(RoomStatus.OPEN)
+        rooms.extraRunning = 0
+        assertThat(limited.start(everyone[0], code).status).isEqualTo(RoomStatus.STARTED)
+    }
+
+    /** Someone who is already playing as many games as they may. */
+    private fun playingFully(person: String) {
+        repeat(Lobby.MAX_RUNNING_GAMES) { i ->
+            val heroes = listOf(
+                SeatPlayer("wasp", person, "P", Team.RED),
+                SeatPlayer("arien", "other-$i", "O", Team.BLUE),
+            )
+            runBlocking { rooms.start("ROOM$i", setupOfPlayers(), heroes, false) }
+        }
+    }
+
+    private fun setupOfPlayers() = GameSetup(
+        mapId = Lobby.FORGOTTEN_ISLAND,
+        seats = listOf(
+            SeatSetup("wasp", Team.RED, Controller.Human),
+            SeatSetup("arien", Team.BLUE, Controller.Human),
+        ),
+        tieBreaker = Team.RED,
+    )
+
+    @Test
+    fun someoneAlreadyPlayingAllTheirGamesCantReadyUpAndSoCantFailTheHostsStart(): Unit = runBlocking {
+        val everyone = people(2)
+        val code = lobby.create(everyone[0], CreateRoom(Lobby.FORGOTTEN_ISLAND, GameLength.QUICK, 1, false)).code
+        val seat = lobby.join(everyone[1], code).seats.first { it.accountId == everyone[1] }
+        val heroes = testEngine.playableHeroes.sorted()
+        lobby.pickSeat(everyone[1], code, seat.team, seat.index, heroes[1])
+        playingFully(everyone[1])
+
+        assertThat(refused { lobby.ready(everyone[1], code, true) }).isEqualTo(LobbyError.TOO_MANY_GAMES)
+        assertThat(lobby.view(code).seats.first { it.accountId == everyone[1] }.ready).isFalse()
+        // Taking it back is always allowed.
+        assertThat(lobby.ready(everyone[1], code, false).seats.first { it.accountId == everyone[1] }.ready).isFalse()
     }
 
     @Test

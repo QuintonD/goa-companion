@@ -10,10 +10,12 @@ import dev.quinton.goa.core.online.CreateRoom
 import dev.quinton.goa.core.online.HealthInfo
 import dev.quinton.goa.core.online.LeaderRow
 import dev.quinton.goa.core.online.LeaderboardSnapshot
+import dev.quinton.goa.core.online.Resume
 import dev.quinton.goa.core.online.RoomCreated
 import dev.quinton.goa.core.online.RoomStatus
 import dev.quinton.goa.core.online.RoomView
 import dev.quinton.goa.core.online.ServerMessage
+import dev.quinton.goa.server.game.GameServerConfig
 import dev.quinton.goa.server.game.TestServer
 import dev.quinton.goa.server.game.board
 import dev.quinton.goa.server.game.jsonBody
@@ -57,7 +59,7 @@ class RoomRoutesTest {
         assertThat(room.status).isEqualTo(RoomStatus.OPEN)
         assertThat(room.seats).hasSize(4)
         assertThat(room.seats.mapNotNull { it.accountId }).containsExactly(host.accountId)
-        assertThat(room.expiresAt).isEqualTo(clock.now + Lobby.OPEN_MILLIS)
+        assertThat(room.expiresAt).isEqualTo(clock.now + Lobby.ALONE_MILLIS)
     }
 
     @Test
@@ -80,7 +82,7 @@ class RoomRoutesTest {
     }
 
     @Test
-    fun theRoomCapReturns503WithRetryAfter() = serverTest(configure = { it.copy(maxRooms = 2) }) {
+    fun theOpenRoomCapReturns503WithRetryAfter() = serverTest(configure = { it.copy(maxOpenRooms = 2) }) {
         repeat(2) { room(account().token) }
         val full = createRoom(account().token)
         assertThat(full.status).isEqualTo(HttpStatusCode.ServiceUnavailable)
@@ -89,19 +91,43 @@ class RoomRoutesTest {
     }
 
     @Test
-    fun runningGamesCountTowardsTheCap() = serverTest(configure = { it.copy(maxRooms = 2) }) {
-        room(account().token)
+    fun runningGamesAndOpenRoomsHaveSeparateBudgets() = serverTest(configure = { it.copy(maxRooms = 1) }) {
         rooms.extraRunning = 1
-        val full = createRoom(account().token)
-        assertThat(full.status).isEqualTo(HttpStatusCode.ServiceUnavailable)
-        assertThat(full.error()).isEqualTo("rooms_full")
+        // The games' budget is spent: a room can still open and wait for one to finish.
+        assertThat(createRoom(account().token).status).isEqualTo(HttpStatusCode.Created)
+        assertThat(createRoom(account().token).status).isEqualTo(HttpStatusCode.Created)
     }
 
     @Test
-    fun anExpiredRoomStopsCountingAndCannotBeJoined() = serverTest(configure = { it.copy(maxRooms = 1) }) {
+    fun onePersonWithManyAccountsCantBlockNewRooms() = serverTest {
+        // What the review did: seven accounts with three rooms each filled the cap in under a minute.
+        val refusals = (1..7).map { account("Griefer $it") }.flatMap { griefer ->
+            List(3) { createRoom(griefer.token, from = "203.0.113.9").status }
+        }
+        assertThat(refusals.count { it == HttpStatusCode.Created }).isEqualTo(Lobby.MAX_OPEN_ROOMS_PER_HOST)
+        assertThat(refusals.toSet()).contains(HttpStatusCode.Conflict)
+
+        val honest = createRoom(account("Honest").token, from = "198.51.100.1")
+        assertThat(honest.status).isEqualTo(HttpStatusCode.Created)
+    }
+
+    @Test
+    fun manyAddressesFillOnlyTheOpenRoomBudgetAndARoomAloneGoesInTenMinutes() = serverTest {
+        repeat(GameServerConfig.DEFAULT_MAX_OPEN_ROOMS) { i ->
+            assertThat(createRoom(account("A$i").token, from = "203.0.113.$i").status)
+                .isEqualTo(HttpStatusCode.Created)
+        }
+        val honest = account("Honest").token
+        assertThat(createRoom(honest, from = "198.51.100.1").status).isEqualTo(HttpStatusCode.ServiceUnavailable)
+        clock.now += Lobby.ALONE_MILLIS
+        assertThat(createRoom(honest, from = "198.51.100.1").status).isEqualTo(HttpStatusCode.Created)
+    }
+
+    @Test
+    fun anExpiredRoomStopsCountingAndCannotBeJoined() = serverTest(configure = { it.copy(maxOpenRooms = 1) }) {
         val code = room(account().token)
         val other = account()
-        clock.now += Lobby.OPEN_MILLIS
+        clock.now += Lobby.ALONE_MILLIS
         val late = http.post("/v1/rooms/$code/join") { bearerAuth(other.token) }
         assertThat(late.status).isEqualTo(HttpStatusCode.NotFound)
         assertThat(late.error()).isEqualTo("no_such_room")
@@ -130,7 +156,7 @@ class RoomRoutesTest {
         assertThat(HealthInfo.serializer().parse(http.get("/v1/health").bodyAsText()).status).isEqualTo("draining")
 
         // A person can still go back to a running game and answer in it.
-        ws.play(started.red.token) {
+        ws.play(started.red.token, listOf(Resume(started.gameId, 0))) {
             nextOf<ServerMessage.GameStart>()
             sendMessage(ClientMessage.Answer(started.gameId, 1, Choice.Pass))
             assertThat(nextOf<ServerMessage.Ack>().accepted).isTrue()
