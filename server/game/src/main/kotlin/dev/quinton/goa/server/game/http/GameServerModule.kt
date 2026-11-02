@@ -81,6 +81,8 @@ private const val STORE_RETRY_SECONDS = "30"
 private const val PING_SECONDS = 20L
 private const val PONG_TIMEOUT_SECONDS = 45L
 private const val SWEEP_MILLIS = 60_000L
+private const val RETENTION_FIRST_MILLIS = 10 * 60_000L
+private const val RETENTION_EVERY_MILLIS = 24 * 60 * 60_000L
 private const val PLAY_FRAME_LIMIT = MAX_FRAME_BYTES.toLong()
 internal const val OTHER_PATH = "(other)"
 private val ROOM_ACTION = Regex("/v1/rooms/[^/]+/(join|leave)")
@@ -228,6 +230,8 @@ fun Application.gameServerModule(
         }
     }
 
+    launch { sweepOldEveryDay(services) }
+
     routing {
         api(services)
         route(PUBLIC_MOUNT) { api(services) }
@@ -245,6 +249,23 @@ fun Application.gameServerModule(
                 log.warn("room sweep failed: {}", failure.javaClass.simpleName)
             }
         }
+    }
+}
+
+/** First a little after starting, so that a deploy doesn't begin with it; then daily. */
+private suspend fun sweepOldEveryDay(services: GameServices) {
+    delay(RETENTION_FIRST_MILLIS.milliseconds)
+    while (true) {
+        @Suppress("TooGenericExceptionCaught") // A failed sweep can wait for tomorrow's.
+        try {
+            val swept = services.store.sweepOld(services.clock())
+            log.info("Old data swept: {}", swept)
+        } catch (failure: CancellationException) {
+            throw failure
+        } catch (failure: Exception) {
+            log.warn("sweep of old data failed: {}", failure.javaClass.simpleName)
+        }
+        delay(RETENTION_EVERY_MILLIS.milliseconds)
     }
 }
 

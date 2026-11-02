@@ -261,6 +261,22 @@ answer at the same `seq` is an error: the past is not rewritten. sqlite-jdbc unp
 the data directory, which must allow execution (a container's `/tmp` may not), unless `-Dorg.sqlite.tmpdir`
 says otherwise; SQLite's own temporary tables stay in memory.
 
+## What is kept, and for how long
+
+The server holds a display name, hashes of a token and a recovery code, and the games. No address goes on disk,
+and there is no email. A daily sweep removes:
+
+| What | When |
+|---|---|
+| A closed room and its seats; a room whose game has finished | 7 days after that |
+| The answers of a finished or voided game, card by card | 30 days after it ended |
+| A token that was revoked | 30 days after that |
+| An account that never played a game | 90 days after it was last used |
+
+Kept for good: the `matches` log, because every rating is derived from it, and each game's row and seats, with
+who sat where; deleting an account changes its name there to "Former player" and keeps the rest. Nothing reads
+a finished game's answers, as only a running game is ever replayed. Backups keep the old state for 14 days more.
+
 ## Streams
 
 Foundation (this commit): `core/online`, `server/game` skeleton, `GameEngine.restoreFrom`, the seam in

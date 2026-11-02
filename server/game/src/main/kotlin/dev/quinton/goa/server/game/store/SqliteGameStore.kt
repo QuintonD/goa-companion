@@ -495,6 +495,53 @@ class SqliteGameStore private constructor(private val connection: Connection) :
         ""
     }
 
+    /**
+     * What docs/ONLINE.md "What is kept" promises. Answers of a game that is over have no reader left: only
+     * a running game is ever replayed, and ratings come from `matches` alone. One transaction a day.
+     */
+    suspend fun sweepOld(now: Long): Swept = write {
+        val rooms = now - ROOMS_KEPT_MILLIS
+        val games = now - GAMES_KEPT_MILLIS
+        val over = "SELECT id FROM games WHERE status <> 'running' AND finished_at <= ?"
+        Swept(
+            rooms = update(
+                """
+                DELETE FROM rooms WHERE (status = 'closed' AND expires_at <= ?)
+                    OR (status = 'started' AND game_id IN ($over))
+                """,
+                rooms,
+                rooms,
+            ),
+            answers = update("DELETE FROM answers WHERE game_id IN ($over)", games) +
+                update("DELETE FROM locks WHERE game_id IN ($over)", games),
+            tokens = update("DELETE FROM tokens WHERE revoked_at <= ?", now - TOKENS_KEPT_MILLIS),
+            accounts = sweepAccounts(now - ACCOUNTS_KEPT_MILLIS),
+        )
+    }
+
+    /** No game ever, and nothing since [before]. A person with games stays, as their name stands on them. */
+    private fun Connection.sweepAccounts(before: Long): Int {
+        val ids = query(
+            """
+            SELECT a.id FROM accounts a
+            WHERE a.created_at <= ? AND (a.deleted_at IS NULL OR a.deleted_at <= ?)
+                AND NOT EXISTS (SELECT 1 FROM game_seats s WHERE s.account_id = a.id)
+                AND NOT EXISTS (SELECT 1 FROM tokens t WHERE t.account_id = a.id AND t.last_seen_at > ?)
+                AND NOT EXISTS (SELECT 1 FROM rooms r WHERE r.host_account = a.id)
+                AND NOT EXISTS (SELECT 1 FROM room_seats q WHERE q.account_id = a.id)
+            """,
+            before,
+            before,
+            before,
+        ) { rows -> rows.toList { it.getString(1) } }
+        for (id in ids) {
+            update("DELETE FROM tokens WHERE account_id = ?", id)
+            update("DELETE FROM recovery_codes WHERE account_id = ?", id)
+            update("DELETE FROM accounts WHERE id = ?", id)
+        }
+        return ids.size
+    }
+
     override suspend fun isAvailable(): Boolean = try {
         read { query("SELECT 1") { rows -> rows.next() } }
     } catch (_: SQLException) {
@@ -558,6 +605,11 @@ class SqliteGameStore private constructor(private val connection: Connection) :
         private const val BUSY_TIMEOUT_MILLIS = 5_000
         private const val CLOSE_WAIT_SECONDS = 10L
         private const val LAST_SEEN_EVERY_MILLIS = 60 * 60_000L
+        private const val DAY_MILLIS = 24 * 60 * 60_000L
+        internal const val ROOMS_KEPT_MILLIS = 7 * DAY_MILLIS
+        internal const val GAMES_KEPT_MILLIS = 30 * DAY_MILLIS
+        internal const val TOKENS_KEPT_MILLIS = 30 * DAY_MILLIS
+        internal const val ACCOUNTS_KEPT_MILLIS = 90 * DAY_MILLIS
 
         private val JSON = Json {
             ignoreUnknownKeys = true
