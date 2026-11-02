@@ -203,6 +203,29 @@ already draw; the home and lobby presenters do the rest; screens implement `Game
 A new account is saved on the device only after "I've saved it": if the app dies before that, the person
 starts again with nothing lost. Linking a device burns the old code, so its new one must be saved too.
 
+The server sends a REST error as a stable code with no words. `onlineFailure` reads `unauthorized` as
+`Refused(BAD_TOKEN)` (the socket's word for it) and turns the codes that aren't a `Refusal` into `OnlineWords.apiError`.
+
+**On Android** (`core/data/.../online/`, `feature/board/.../online/`):
+- **Hosts.** `GameHosts` reads `network.json` when a call needs a host, at most every 5 minutes: its first open host in
+  its order, else `goa.gameServer` unless the file closes that one too. The last good copy holds while the file can't be
+  read, and an address that isn't `https://host[:port][/one-segment]` is not a host (a debug build also takes plain HTTP
+  to a local server). A `minProtocol` above this build stops REST with `Refused(UPDATE_APP)`; on a socket the server says so.
+- **Clients.** REST and the socket each have their own OkHttp client, apart from the sync server's: no cache, cookies,
+  logging or redirects. The socket has no call or read timeout and pings every 20 s.
+- **The account** is a DataStore file in `noBackupFilesDir`, so Auto Backup and device transfer never carry it, and no
+  `BackupContributor` reads it. A token copied to a new phone would keep working on both: the recovery code moves an account.
+- **Invites.** A project's Pages site can't hold `assetlinks.json` (it must be at the origin's root), so there is no
+  verified App Link and the app has no https filter. `goa-companion://play/<code>` opens the app at the room, and the web
+  app can offer it. It waits for an account if there is none, and is used once. QR scanning and pasting go through `parseInvite`.
+- **The table** is the stateless `GameScreen`, which hides take back, Coach, pace and suggestions when `PlayUi.online` is
+  set and shows the players, presence and clock over the HUD; `GameOverContent` says the team's result and whether it counted.
+- **A real game from the JVM.** `LiveGameServerTest` (`core/data`) plays two people through these seams, the presenters and
+  the driver, to the end of a rated game, through a dropped socket. Run `:server:game:installDist`, start
+  `server/game/build/install/goa-game/bin/goa-game` with `GOA_GAME_DATA`, `GOA_GAME_ASSETS` (its `assets`) and `GOA_GAME_PORT`
+  set, write the address to `core/data/build/live-game.url`, then `:core:data:testDebugUnitTest --tests "*LiveGameServerTest*"`.
+  It is skipped without that file. Random answers: always the first option never needs to attack, and may never end.
+
 ## Storage
 
 SQLite at `/var/lib/goa-game/games.sqlite`, WAL, `synchronous=FULL`, foreign keys on, on one connection on
@@ -224,7 +247,7 @@ Foundation (this commit): `core/online`, `server/game` skeleton, `GameEngine.res
 | Leaderboard | `feature/online-leaderboard` | `server/game/.../ratings/`, `core/play/.../online/leaderboard/` | room, lobby, game screens |
 | Client core | `feature/online-client` | `core/play/.../online/` except `leaderboard/`: driver, lobby presenter, words | `GameViewModel.kt`, `GameController.kt`, platform code |
 | Deploy | `feature/online-deploy` | `deploy/game/`, the `goa-leaderboards` repo template | `deploy/relay`, Funnel on 443 and 10000 |
-| Android | `feature/online-android` | `core/data/.../online/`, `feature/board/.../online/`, new routes, hides in the game screen | `GameViewModel.kt`, sync, `core/game` |
+| Android | `feature/online-android` | `core/data/.../online/`, `core/datastore/.../online/`, `feature/board/.../online/`, new routes, hides in the game screen | `GameViewModel.kt`, sync, `core/game` |
 | Web | `feature/online-web` | `web/app/.../play/online/`, the `GameScreen` split, the `ResolutionFlowView` port, routes, CSP, `online.spec.ts` | `GameController.kt`, `EngineHost`, sync |
 | End to end | `feature/online-e2e` | `server/game/src/test/.../EndToEndTest.kt` | production code unless it finds a bug |
 

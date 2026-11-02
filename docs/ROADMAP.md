@@ -532,7 +532,8 @@ passes (including an in-place upgrade from the morning build with real data). Ev
 - [ ] Server: accounts, lobby, SQLite, WebSocket, CORS and Origin rules
 - [ ] Leaderboards derived from the match log; Pages first, oldboi second
 - [x] Client core: `OnlineGameDriver`, the home and lobby presenters, words (shared, tested on JVM + Node against fakes)
-- [ ] Android and web online modes
+- [x] Android online mode: home, recovery-code gate, lobby, table, result, leaderboards, deep link — 2026-11-02, builds and tests on JVM; one full rated game through the real local server (`LiveGameServerTest`); screens by screenshot only, not yet run on an emulator or the S25 Ultra
+- [ ] Web online mode
 - [ ] Live on oldboi and Pages; a full game through the real server
 - [ ] On the S25 Ultra and a real iPhone: a full online game on mobile data
 
