@@ -63,6 +63,32 @@ internal object Teams {
         }
     }
 
+    /**
+     * The per-hero bench's line-ups (ADR-063): line-up i seats `heroes[i % heroes.size]` and 2 × [size] − 1
+     * other heroes drawn from the rest of the roster, on a seat and side drawn too, so a chosen hero is
+     * seated in every line-up it is due (a regular family seats a hero in 3 of 16).
+     */
+    fun seating(n: Int, size: Int, family: Long, heroes: List<String>, first: Int = 0): List<Spec> {
+        val roster = TestData.engine.playableHeroes.sorted()
+        return (first until first + n).map { i ->
+            val hero = heroes[i % heroes.size]
+            val rng = Random(family * 1_000_003L + size * 7919L + i)
+            val group = (roster - hero).shuffled(rng).take(2 * size - 1).toMutableList()
+            group.add(rng.nextInt(2 * size), hero)
+            Spec(
+                group.take(size) to group.drop(size),
+                if (i % 2 == 0) Team.RED else Team.BLUE,
+                family * 1000 + size * 100_000L + BENCH_SEEDS + i,
+            )
+        }
+    }
+
+    /** Bench seeds start here, apart from [specs]' of the same family. */
+    private const val BENCH_SEEDS = 50_000_000L
+
+    /** One finished game of [mirrored]: its spec, whether side a played Red, and the game. */
+    class Played(val spec: Spec, val aRed: Boolean, val result: AiHarness.Result)
+
     /** One game to play: a line-up, the coin and the seed. */
     class Spec(val lineup: Pair<List<String>, List<String>>, val coin: Team, val seed: Long)
 
@@ -83,14 +109,16 @@ internal object Teams {
         specs: List<Spec>,
         threads: Int,
         sprt: Tournament.Sprt? = null,
+        onGame: ((Played) -> Unit)? = null,
+        batch: Int? = null,
     ): Tournament.Score {
         val score = Tournament.Score(a, b)
         val pool = Executors.newFixedThreadPool(threads)
         try {
             // AI_BATCH: a running score every so many line-ups (a run cut short still says something).
-            val every = System.getenv("AI_BATCH")?.toIntOrNull() ?: if (sprt == null) specs.size else SPRT_BATCH
+            val every = batch ?: System.getenv("AI_BATCH")?.toIntOrNull() ?: if (sprt == null) specs.size else SPRT_BATCH
             for (batch in specs.chunked(every.coerceAtLeast(1))) {
-                playBatch(a, b, batch, pool, score)
+                playBatch(a, b, batch, pool, score, onGame)
                 if (every < specs.size) println("TEAMS so far $score")
                 if (sprt != null && sprt.verdict(score) != Tournament.Sprt.Verdict.GOING_ON) break
             }
@@ -108,6 +136,7 @@ internal object Teams {
         specs: List<Spec>,
         pool: ExecutorService,
         score: Tournament.Score,
+        onGame: ((Played) -> Unit)? = null,
     ) {
         val jobs = ArrayList<Callable<Pair<Boolean?, AiHarness.Result>>>()
         val aRed = ArrayList<Boolean>()
@@ -137,6 +166,7 @@ internal object Teams {
                 throw IllegalStateException("Game failed: ${spec.lineup}, coin ${spec.coin}, seed ${spec.seed}", e)
             }
             score.record(specs[i / 2].lineup, aRed[i], aWon, r, 0)
+            onGame?.invoke(Played(specs[i / 2], aRed[i], r))
         }
     }
 }

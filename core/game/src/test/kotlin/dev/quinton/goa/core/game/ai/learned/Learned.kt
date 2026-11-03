@@ -56,6 +56,26 @@ internal object Learned {
     fun EngineSession.answers(): List<Choice> =
         EngineSession.JSON.decodeFromString(SavedPayload.serializer(), save().payload).answers.map { it.choice }
 
+    /** Appends one tournament game to [f] as a [GameRecord] (replayable: setup and every answer; ADR-063). */
+    fun store(f: File, p: Teams.Played, a: String, b: String, family: Long) {
+        val r = p.result
+        val rec = GameRecord(
+            game = (p.spec.seed * 2 + if (p.aRed) 0 else 1).toInt(),
+            size = p.spec.lineup.first.size,
+            lineup = (p.spec.seed % 100_000).toInt(),
+            family = family,
+            red = if (p.aRed) a else b,
+            blue = if (p.aRed) b else a,
+            winner = r.winner?.name,
+            rounds = r.rounds,
+            reason = r.session.view(null).winReason?.name ?: "UNFINISHED",
+            setup = r.session.setup,
+            answers = r.session.answers(),
+        )
+        f.parentFile?.mkdirs()
+        f.appendText(JSON.encodeToString(GameRecord.serializer(), rec) + "\n")
+    }
+
     fun readGames(files: List<File>): List<GameRecord> =
         files.flatMap { f ->
             f.readLines().filter { it.isNotBlank() }.map { JSON.decodeFromString(GameRecord.serializer(), it) }

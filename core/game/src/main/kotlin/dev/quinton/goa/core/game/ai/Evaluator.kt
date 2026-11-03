@@ -78,6 +78,18 @@ internal data class EvalKnobs(
      * playouts' horizon (AI.md "Team sizes"); in 2v2 it measured no better, 4v4 is not measured.
      */
     val defenselessBySize: Map<Int, Double> = emptyMap(),
+    /**
+     * Per hero id, multipliers of the terms that concern that hero (its coins, levels, counters, hand,
+     * hand rating, presence, minion opportunity, exposure and its own pieces), on top of [scales], for
+     * that hero on either team (missing hero or term = 1.0). Data only (ADR-063, tuned on wins): no code
+     * names a hero, and a hero the table does not know is scored as before.
+     */
+    val heroScales: Map<String, Map<Term, Double>> = emptyMap(),
+    /**
+     * Per team, the same multipliers for every hero of that team (missing = 1.0): a one-sided taste,
+     * as [exposureByTeam] (the exploiters' own heroes, AI.md "Stream D"). Symmetric play leaves it empty.
+     */
+    val termsByTeam: Map<Team, Map<Term, Double>> = emptyMap(),
 )
 
 /** The parts of the evaluation (Red minus Blue), each in coin-equivalents; their sum is the score. */
@@ -233,6 +245,29 @@ internal class Ctx(val ev: Evaluator, val state: GameState) {
 
     private val heroInfo = HashMap<String, HeroInfo>()
     private val modCache = HashMap<Long, Int>()
+    private val heroFactors = HashMap<String, DoubleArray?>()
+
+    /**
+     * A hero's multiplier of [term] from [EvalKnobs.heroScales] and [EvalKnobs.termsByTeam] (1.0 for a
+     * hero neither knows: no table, no change).
+     */
+    fun heroScale(heroId: String, term: Term): Double = factors(heroId)?.get(term.ordinal) ?: 1.0
+
+    private fun factors(heroId: String): DoubleArray? {
+        if (knobs.heroScales.isEmpty() && knobs.termsByTeam.isEmpty()) return null
+        return heroFactors.getOrPut(heroId) {
+            val own = knobs.heroScales[heroId]
+            val team = state.hero(heroId)?.team?.let { knobs.termsByTeam[it] }
+            if (own == null && team == null) {
+                null
+            } else {
+                DoubleArray(Term.entries.size) {
+                    val term = Term.entries[it]
+                    (own?.get(term) ?: 1.0) * (team?.get(term) ?: 1.0)
+                }
+            }
+        }
+    }
 
     fun info(id: String): HeroInfo = heroInfo.getOrPut(id) { HeroInfo(state.hero(id)!!) }
 
@@ -555,8 +590,12 @@ internal class Ctx(val ev: Evaluator, val state: GameState) {
     /** How good it is for [heroId] to stand at [at] (its own team's point of view). */
     fun placement(heroId: String, at: Hex): Double {
         val hi = info(heroId)
-        return scale(Term.PRESENCE) * presence(hi.h.team, at) + scale(Term.OPPORTUNITY) * opportunity(hi, at) -
-            scale(Term.EXPOSURE) * exposureWeight(hi) * exposure(hi, at)
+        val f = factors(heroId)
+            ?: return scale(Term.PRESENCE) * presence(hi.h.team, at) + scale(Term.OPPORTUNITY) * opportunity(hi, at) -
+                scale(Term.EXPOSURE) * exposureWeight(hi) * exposure(hi, at)
+        return scale(Term.PRESENCE) * f[Term.PRESENCE.ordinal] * presence(hi.h.team, at) +
+            scale(Term.OPPORTUNITY) * f[Term.OPPORTUNITY.ordinal] * opportunity(hi, at) -
+            scale(Term.EXPOSURE) * f[Term.EXPOSURE.ordinal] * exposureWeight(hi) * exposure(hi, at)
     }
 
     private fun exposureScale(team: Team): Double = knobs.exposureByTeam[team] ?: 1.0
@@ -574,6 +613,18 @@ internal class Ctx(val ev: Evaluator, val state: GameState) {
 
     /** Adds one hero's worth to [t] (its team's sign applied by the caller through [sign]). */
     private fun heroTerms(h: HeroState, sign: Double, t: DoubleArray) {
+        val f = factors(h.id)
+        if (f == null) {
+            heroTermsOf(h, sign, t)
+            return
+        }
+        // A hero in the table: its own parts apart, then each multiplied by its scale.
+        val own = DoubleArray(Term.entries.size)
+        heroTermsOf(h, sign, own)
+        for (i in own.indices) t[i] += own[i] * f[i]
+    }
+
+    private fun heroTermsOf(h: HeroState, sign: Double, t: DoubleArray) {
         val hi = info(h.id)
         val early = state.round <= 2 && state.heroes.all { it.level <= 3 }
         t[Term.COINS.ordinal] += sign * h.coins * (if (early) 1.3 else 1.0)
@@ -651,8 +702,9 @@ internal class Ctx(val ev: Evaluator, val state: GameState) {
         val turnsLeft = if (roundOver) 0 else 5 - state.turn
         val worths = state.pieces.mapNotNull { pieceWorth(it, turnsLeft) }
         var v = 0.0
-        for ((_, ws) in worths.groupBy { it.first }) {
-            val sum = ws.map { it.third }.sortedDescending().take(Evaluator.PIECES_COUNTED).sum()
+        for ((owner, ws) in worths.groupBy { it.first }) {
+            val sum = ws.map { it.third }.sortedDescending().take(Evaluator.PIECES_COUNTED).sum() *
+                heroScale(owner, Term.PIECES)
             v += if (ws.first().second == Team.RED) sum else -sum
         }
         return v * knobs.pieces

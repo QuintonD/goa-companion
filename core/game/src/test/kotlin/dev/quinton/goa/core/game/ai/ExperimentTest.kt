@@ -62,6 +62,17 @@ class ExperimentTest {
             if (k.startsWith("x")) {
                 return p.copy(knobs = kn.copy(scales = kn.scales + (Term.valueOf(k.drop(1)) to v.toDouble())))
             }
+            // h.<hero>.<TERM>=<scale>, e.g. h.trinkets.EXPOSURE=0.5 (an [EvalKnobs.heroScales] entry, ADR-063).
+            if (k.startsWith("h.")) {
+                val (hero, term) = k.removePrefix("h.").split(".")
+                val row = kn.heroScales[hero].orEmpty() + (Term.valueOf(term) to v.toDouble())
+                return p.copy(knobs = kn.copy(heroScales = kn.heroScales + (hero to row)))
+            }
+            // own.<TERM>=<scale>: the side's own heroes' term (a one-sided [Hunt]; 1/1/1 unless hunt= set it).
+            if (k.startsWith("own.")) {
+                val hunt = p.hunt ?: Hunt(selfExposure = 1.0, enemyExposure = 1.0, enemyLife = 1.0)
+                return p.copy(hunt = hunt.copy(ownTerms = hunt.ownTerms + (Term.valueOf(k.drop(4)) to v.toDouble())))
+            }
             return when (k) {
                 "samples" -> p.copy(playSamples = v.toInt())
 
@@ -144,8 +155,13 @@ class ExperimentTest {
 
                 // The exploiter (AI.md "Team sizes"): hunt=selfExposure/enemyExposure/enemyLife, e.g. hunt=0/2/1.5.
                 "hunt" -> v.split("/").map { it.toDouble() }.let { (se, ee, el) ->
-                    p.copy(hunt = Hunt(selfExposure = se, enemyExposure = ee, enemyLife = el))
+                    p.copy(
+                        hunt = Hunt(selfExposure = se, enemyExposure = ee, enemyLife = el, ownTerms = p.hunt?.ownTerms.orEmpty()),
+                    )
                 }
+
+                // table=none: without the shipped per-hero table (ADR-063), the baseline of its measurements.
+                "table" -> p.copy(knobs = kn.copy(heroScales = if (v == "none") emptyMap() else HeroTables.named(v)))
 
                 // pp3=0.35: Push Potential per attack card at 3 heroes a side (pp<n> for n heroes).
                 else -> if (k.startsWith("pp") && k.drop(2).toIntOrNull() != null) {

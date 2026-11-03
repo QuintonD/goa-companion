@@ -1,6 +1,7 @@
 package dev.quinton.goa.core.game.ai.learned
 
 import dev.quinton.goa.core.game.ai.Tournament
+import java.io.File
 import org.junit.Test
 
 /**
@@ -8,7 +9,9 @@ import org.junit.Test
  * [Learned.side]'s keys), mirrored, on `AI_N` line-ups of `AI_SIZE` against `AI_SIZE` (default 3)
  * from the line-up family `AI_FAMILY` (train / tune / test, default test) starting at `AI_FIRST`.
  * `AI_SPRT=0.55` stops as soon as the games separate a win rate of 0.55 from 0.5 (`AI_N` is then the
- * most it plays); `AI_SCORECARD=1` prints each hero's uplift, worst first.
+ * most it plays); `AI_SCORECARD=1` prints each hero's uplift, worst first. `AI_SEAT=<hero>,…` seats one
+ * of those heroes in every line-up (the per-hero bench's line-ups, [Teams.seating]); `AI_STORE=<file>`
+ * appends every game in [LearnedSelfPlayTest]'s format.
  */
 class TeamTournamentTest {
     @Test
@@ -27,8 +30,12 @@ class TeamTournamentTest {
         for (pair in pairs) {
             val (a, b) = pair.split(":")
             val t0 = System.nanoTime()
-            val specs = Teams.specs(n, size, family, first)
-            val score = Teams.mirrored(Learned.side(a), Learned.side(b), specs, threads, sprt)
+            val seat = System.getenv("AI_SEAT")?.split(",")
+            val specs = if (seat == null) Teams.specs(n, size, family, first) else Teams.seating(n, size, family, seat, first)
+            val store = System.getenv("AI_STORE")?.let(::File)
+            val score = Teams.mirrored(Learned.side(a), Learned.side(b), specs, threads, sprt, onGame = store?.let { f ->
+                { p: Teams.Played -> Learned.store(f, p, a, b, family) }
+            })
             println("TEAMS ${size}v$size $score in ${"%.0f".format((System.nanoTime() - t0) / 1e9)} s")
             println("TEAMS   ${score.details()}")
             println("TEAMS by hero ($a): ${score.byHero()}")
