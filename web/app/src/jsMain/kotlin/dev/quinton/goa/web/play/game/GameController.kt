@@ -573,7 +573,8 @@ class GameController(
             turnLog = turnLog(events),
         )
         val over = if (status == TurnStatus.Over) gameOverUi(view, events, game.setup, inProgress, points) else null
-        val recent = recentLines(status, events, answeredAt, game.setup.seats.map { it.heroId }.toSet())
+        val heroIds = game.setup.seats.map { it.heroId }.toSet()
+        val recent = recentLines(status, events, answeredAt, heroIds)
         val data = reviewData
         val reviewed = if (review.open && data != null) {
             reviewUi(
@@ -593,7 +594,7 @@ class GameController(
                 status = status,
                 recent = recent.lines,
                 recentStrong = recent.strong,
-                log = logLines(events),
+                log = logLines(events, heroIds),
                 coach = inProgress.coach,
                 pace = inProgress.pace,
                 takeBacks = inProgress.takeBacks,

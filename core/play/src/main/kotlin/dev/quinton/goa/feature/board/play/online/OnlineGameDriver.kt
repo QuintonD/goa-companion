@@ -580,7 +580,7 @@ class OnlineGameDriver(
                 status = status,
                 recent = recent.lines,
                 recentStrong = recent.strong,
-                log = logLines(events),
+                log = logLines(events, heroIds),
                 coach = false,
                 pace = AiPace.NORMAL,
                 takeBacks = 0,

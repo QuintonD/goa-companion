@@ -29,6 +29,7 @@ import dev.quinton.goa.feature.board.play.table.heroWhere
 import dev.quinton.goa.feature.board.play.table.itemGroups
 import dev.quinton.goa.feature.board.play.table.markerArt
 import dev.quinton.goa.feature.board.play.table.markerLine
+import dev.quinton.goa.feature.board.play.table.newestFirst
 import dev.quinton.goa.feature.board.play.table.shownCounters
 import dev.quinton.goa.feature.board.play.table.slotBand
 import dev.quinton.goa.feature.board.play.table.slotCaption
@@ -724,14 +725,14 @@ fun ExtrasSection(table: TableUi, hero: HeroView, focus: CardFocusState) {
     }
 }
 
-/** The event log: every event of the game in the engine's words, rounds and turns as headings. */
+/** The event log: every event of the game in the engine's words, the latest turn first ([newestFirst]). */
 @Composable
 fun EventLog(lines: List<LogLine>) {
     Div({
         classes("goa-event-log")
         attr("role", "log")
     }) {
-        lines.forEach { line ->
+        newestFirst(lines).forEach { (_, line) ->
             if (line.heading) {
                 P({
                     classes("t-overline", "goa-table-overline")

@@ -737,7 +737,8 @@ class GameViewModel internal constructor(
         } else {
             null
         }
-        val recent = recentLines(status, snapshot.events, answeredAt, game.setup.seats.map { it.heroId }.toSet())
+        val heroIds = game.setup.seats.map { it.heroId }.toSet()
+        val recent = recentLines(status, snapshot.events, answeredAt, heroIds)
         state.update {
             GameUiState.Playing(
                 PlayUi(
@@ -745,7 +746,7 @@ class GameViewModel internal constructor(
                     status = status,
                     recent = recent.lines,
                     recentStrong = recent.strong,
-                    log = logLines(snapshot.events),
+                    log = logLines(snapshot.events, heroIds),
                     coach = inProgress.coach,
                     pace = inProgress.pace,
                     takeBacks = inProgress.takeBacks,

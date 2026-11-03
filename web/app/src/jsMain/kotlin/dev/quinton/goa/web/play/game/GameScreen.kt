@@ -41,6 +41,7 @@ import dev.quinton.goa.web.play.online.OtherPlayerMove
 import dev.quinton.goa.web.play.table.Announce
 import dev.quinton.goa.web.play.table.DecisionPanel
 import dev.quinton.goa.web.play.table.DecisionWho
+import dev.quinton.goa.web.play.table.EventFeed
 import dev.quinton.goa.web.play.table.EventLog
 import dev.quinton.goa.web.play.table.GameReviewSheet
 import dev.quinton.goa.web.play.table.GameTableView
@@ -236,12 +237,13 @@ fun GameTable(
                 null
             },
             overlay = overlay,
+            feed = { EventFeed(play.log) },
         ) { Panel(play, onAction, focus) }
     }
     Announce(play.announcement?.text)
     when (val open = sheet) {
         PlaySheet.Log -> BottomSheet("Game log", onDismiss = { sheet = null }) {
-            Quiet("Every event, newest at the bottom.")
+            Quiet("Every event, the latest first.")
             EventLog(play.log)
         }
 

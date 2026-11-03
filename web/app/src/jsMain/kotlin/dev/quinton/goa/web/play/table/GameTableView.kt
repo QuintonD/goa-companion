@@ -49,6 +49,7 @@ fun GameTableView(
     peekActions: @Composable () -> Unit = {},
     panelTitle: (@Composable () -> Unit)? = null,
     overlay: @Composable () -> Unit = {},
+    feed: @Composable () -> Unit = {},
     panel: @Composable () -> Unit,
 ) {
     val landscape = rememberLandscape()
@@ -124,6 +125,7 @@ fun GameTableView(
         },
         map = {
             TableMap(table, scene, camera, onTap)
+            feed()
             overlay()
             Div({ classes("goa-map-buttons") }) {
                 if (camera.isFit) {

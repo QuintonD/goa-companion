@@ -164,7 +164,7 @@ private fun PuzzleTable(puzzle: PuzzleUi, controller: PuzzleController) {
     Announce(puzzle.announcement?.text)
     when (val open = sheet) {
         PlaySheet.Log -> BottomSheet("Puzzle log", onDismiss = { sheet = null }) {
-            Quiet("Every event, newest at the bottom.")
+            Quiet("Every event, the latest first.")
             EventLog(puzzle.log)
         }
 
