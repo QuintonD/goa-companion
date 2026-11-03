@@ -89,6 +89,11 @@ internal data class LevelProfile(
     val hideTeammates: Boolean = false,
     /** Tests only: what scores the end of a playout instead of [net] (the frozen baseline, `net=v09`). */
     val leafEvaluator: ((EngineData) -> PositionEvaluator)? = null,
+    /**
+     * The enemies' cards in hand (and so their items) are known; which one they played stays hidden until
+     * the reveal, as do facedown cards and tokens. Strength 10 only, at the owner's request (ADR-062).
+     */
+    val knowHands: Boolean = false,
 )
 
 /**
@@ -205,6 +210,7 @@ internal class Searcher(
             playWeight = if (profile.modelPlays) ::playWeights else null,
             hidePlayedOf = humans,
             hideAllOf = teammates,
+            knowHands = profile.knowHands,
         )
         // A search copy: no explanations for a player are built at its questions (the same options).
         return es.determinizeWith(team, seed, options, quiet = true)

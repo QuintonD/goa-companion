@@ -33,13 +33,15 @@ object Determinizer {
      * hand when it is called) to be the one it played. [hidePlayedOf]: viewer-team heroes whose
      * unrevealed played card is hidden. [hideAllOf]: viewer-team heroes whose hand, items and facedown
      * cards and tokens are hidden as well (p.4: cards in hand and facedown cards are hidden, and teammates
-     * may not show each other cards).
+     * may not show each other cards). [knowHands]: the other team's cards in hand and its played card are
+     * known as a pool (which of them was played stays hidden until the reveal); not [hideAllOf]'s heroes.
      */
     class Options(
         val seen: Map<String, Set<String>> = emptyMap(),
         val playWeight: ((state: GameState, heroId: String, pool: List<String>) -> List<Double>)? = null,
         val hidePlayedOf: Set<String> = emptySet(),
         val hideAllOf: Set<String> = emptySet(),
+        val knowHands: Boolean = false,
     )
 
     fun sample(data: EngineData, source: GameState, viewer: Team, rng: Random): GameState =
@@ -49,7 +51,11 @@ object Determinizer {
         val s = source.copy()
         for (h in s.heroes) {
             if (h.team == viewer && h.id !in options.hideAllOf) continue
-            if (!resampleHistory(data, s, h, rng, options.seen[h.id].orEmpty())) resampleIdentities(data, s, h, rng)
+            val known = options.knowHands && h.team != viewer
+            if (!resampleHistory(data, s, h, rng, options.seen[h.id].orEmpty(), known)) {
+                resampleIdentities(data, s, h, rng, known)
+            }
+            if (known && s.revealed) for (c in h.cards) if (c.zone in POOL) c.stamp = 0
         }
         for (h in s.heroes) {
             val hidden = h.team != viewer || h.id in options.hidePlayedOf || h.id in options.hideAllOf
@@ -63,6 +69,7 @@ object Determinizer {
     private val ACTIVE = setOf(Zone.HAND, Zone.PLAYED, Zone.RESOLVED, Zone.DISCARD)
     private val COLOURED = listOf(CardColor.RED, CardColor.GREEN, CardColor.BLUE)
     private val BASIC = listOf(CardColor.GOLD, CardColor.SILVER)
+    private val POOL = setOf(Zone.HAND, Zone.PLAYED)
 
     private fun hidden(state: GameState?, c: CardInst): Boolean = when (c.zone) {
         Zone.HAND, Zone.DECK -> true
@@ -76,8 +83,16 @@ object Determinizer {
     /** One colour's part of a history: the card in the round's hand pool and the items it left. */
     private class ColourChoice(val kept: String, val items: List<String>)
 
-    @Suppress("CyclomaticComplexMethod")
-    private fun resampleHistory(data: EngineData, s: GameState, h: HeroState, rng: Random, seen: Set<String>): Boolean {
+    /** [knownPool]: the cards in hand and played count as public here (their order is reset by [redealHand]). */
+    @Suppress("CyclomaticComplexMethod", "LongParameterList")
+    private fun resampleHistory(
+        data: EngineData,
+        s: GameState,
+        h: HeroState,
+        rng: Random,
+        seen: Set<String>,
+        knownPool: Boolean = false,
+    ): Boolean {
         if (data.catalogHero(h.id).extras.isNotEmpty()) return false
         if (h.cards.any { it.zone == Zone.EXTRA || it.zone == Zone.ASIDE }) return false
         val colourOf = h.cards.associate { it.id to data.card(it.id).color }
@@ -92,7 +107,7 @@ object Determinizer {
             it?.ordinal
                 ?: -1
         }
-        fun public(c: CardInst) = c.zone in ACTIVE && !hidden(s, c)
+        fun public(c: CardInst) = c.zone in ACTIVE && (!hidden(s, c) || (knownPool && c.zone in POOL))
         val fixed = COLOURED.associateWith { c ->
             h.cards.firstOrNull { colourOf[it.id] == c && public(it) }?.id
                 ?: seen.firstOrNull { id -> colourOf[id] == c && h.card(id) != null }
@@ -174,9 +189,9 @@ object Determinizer {
 
     // ---- fallback: identities within colour and Tier ----------------------------------------
 
-    /** Swap identities within each (colour, tier) class among hidden positions (deck included). */
-    private fun resampleIdentities(data: EngineData, s: GameState, h: HeroState, rng: Random) {
-        val hiddenCards = h.cards.filter { hidden(s, it) }
+    /** Swap identities within each (colour, tier) class among hidden positions (deck included; not a [knownPool]). */
+    private fun resampleIdentities(data: EngineData, s: GameState, h: HeroState, rng: Random, knownPool: Boolean) {
+        val hiddenCards = h.cards.filter { hidden(s, it) && !(knownPool && it.zone in POOL) }
         val byClass = hiddenCards.groupBy { data.card(it.id).let { c -> c.color to c.tier } }
         for ((_, members) in byClass.entries.sortedBy { it.value.minOf { c -> c.id } }) {
             if (members.size < 2) continue
