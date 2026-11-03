@@ -94,6 +94,10 @@ internal data class LevelProfile(
      * the reveal, as do facedown cards and tokens. Strength 10 only, at the owner's request (ADR-062).
      */
     val knowHands: Boolean = false,
+    /** Which card an enemy played is guessed by this learned model instead of the static scores (ADR-062). */
+    val cardModel: CardPlayModel? = null,
+    /** The uniform share mixed into [cardModel]'s guess. */
+    val cardModelUniform: Double = 0.15,
 )
 
 /**
@@ -216,9 +220,13 @@ internal class Searcher(
         return es.determinizeWith(team, seed, options, quiet = true)
     }
 
-    /** The opponent model (STRATEGY §3.1): softmax of the hero's own static card scores, 15% uniform. */
+    /**
+     * The opponent model (STRATEGY §3.1): softmax of the hero's own static card scores, 15% uniform, or the
+     * learned [LevelProfile.cardModel].
+     */
     private fun playWeights(state: GameState, heroId: String, pool: List<String>): List<Double> {
         val ctx = ev.context(state)
+        profile.cardModel?.let { return it.weights(static, ctx, heroId, pool, profile.cardModelUniform) }
         val scores = pool.map { static.playScore(ctx, heroId, Choice.Card(it)) }
         val best = scores.maxOrNull() ?: 0.0
         val soft = scores.map { PortableMath.exp((it - best) / profile.opponentTau) }
