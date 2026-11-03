@@ -132,6 +132,12 @@ class ExperimentTest {
                 // joint=2: joint team card play, each computer teammate still to play tries its best 2 cards (ADR-061).
                 "joint" -> p.copy(joint = v.toInt())
 
+                // kill=1: card-play playouts run on through a kill turn of either team, kill=2 ours only (ADR-061).
+                "kill" -> p.copy(killExt = v.toInt())
+
+                // rm=0.5: mixed card plays by regret matching, the enemy best-responding with weight 0.5 (ADR-061).
+                "rm" -> p.copy(rm = v.toDouble())
+
                 // defenseless=1.0: the floor at 3 heroes a side, as measured (0 = none); def<n>=v for n heroes.
                 "defenseless" -> p.copy(
                     knobs = kn.copy(defenselessBySize = if (v.toDouble() > 0) mapOf(3 to v.toDouble()) else emptyMap()),

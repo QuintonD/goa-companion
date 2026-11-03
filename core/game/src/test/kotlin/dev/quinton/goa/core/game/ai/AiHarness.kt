@@ -81,6 +81,11 @@ object AiHarness {
         println("DUMP ${f.path}: $e")
     }
 
+    /** A player that also sees every decision of the game before it is answered (tests: the oracle exploiter). */
+    fun interface Watcher {
+        fun watch(s: EngineSession, d: dev.quinton.goa.core.game.Decision)
+    }
+
     class Result(
         val winner: Team?,
         val decisions: Int,
@@ -115,6 +120,7 @@ object AiHarness {
         maxDecisions: Int = 8000,
         timed: Boolean = false,
         timedTeam: Team? = null,
+        observe: ((EngineSession, dev.quinton.goa.core.game.Decision) -> Unit)? = null,
     ): Result {
         val s = TestData.engine.newGame(setup) as EngineSession
         val timings = LinkedHashMap<DecisionKind, MutableList<Long>>()
@@ -123,6 +129,8 @@ object AiHarness {
         var n = 0
         while (n < maxDecisions) {
             val d = s.pending ?: break
+            observe?.invoke(s, d)
+            for (p in players.values.distinct()) (p as? Watcher)?.watch(s, d)
             val t0 = System.nanoTime()
             val w0 = (players.getValue(d.team) as? SearchAi)?.work ?: 0
             val c = try {

@@ -1,6 +1,7 @@
 package dev.quinton.goa.core.game.ai
 
 import com.google.common.truth.Truth.assertThat
+import dev.quinton.goa.core.game.AiLevel
 import dev.quinton.goa.core.game.AiStrength
 import dev.quinton.goa.core.game.Choice
 import dev.quinton.goa.core.game.TestData
@@ -33,6 +34,13 @@ class NoPeekingTest {
                 val cb = AiPlayers.deterministic(strength, seed).choose(b, db)
                 assertThat(cb).isEqualTo(ca)
             }
+        }
+        // Team play (ADR-061: joint card play, the kill extension, regret matching) reads only the copies too.
+        val team = AiPlayers.profile(AiStrength.MAX).copy(joint = 2, killExt = 1, rm = 0.5, workBudget = 3000)
+        for (seed in 1L..2L) {
+            val ca = SearchAi(AiLevel.EXPERT, team, seed, timeCap = false).choose(a, da)
+            val cb = SearchAi(AiLevel.EXPERT, team, seed, timeCap = false).choose(b, db)
+            assertThat(cb).isEqualTo(ca)
         }
         // The coach's words too (ADR-051): the same public view, the same suggestions, line for line.
         for (seed in 1L..3L) {

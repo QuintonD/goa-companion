@@ -28,12 +28,21 @@ class TeamTournamentTest {
             val (a, b) = pair.split(":")
             val t0 = System.nanoTime()
             val specs = Teams.specs(n, size, family, first)
-            val score = Teams.mirrored(Learned.side(a), Learned.side(b), specs, threads, sprt)
+            // AI_KILLS=1: each side's team kills open and taken, the kill extension's rate, work per card play (ADR-061).
+            val kills = if (System.getenv("AI_KILLS") != null) listOf(KillCount(), KillCount()) else null
+            // oracle/<variant>: the oracle exploiter on that variant, predicting the other side's card plays.
+            fun side(x: String, other: String) =
+                if (x.startsWith("oracle/")) Oracle.side(x.removePrefix("oracle/"), other) else Learned.side(x)
+            val score = Teams.mirrored(side(a, b), side(b, a), specs, threads, sprt, kills)
             println("TEAMS ${size}v$size $score in ${"%.0f".format((System.nanoTime() - t0) / 1e9)} s")
             println("TEAMS   ${score.details()}")
             println("TEAMS by hero ($a): ${score.byHero()}")
             sprt?.let { println("TEAMS SPRT ${it.verdict(score)} after ${score.games} games (pairs)") }
             if (System.getenv("AI_SCORECARD") != null) println("TEAMS scorecard\n${Tournament.scorecard(score)}")
+            kills?.let { (ka, kb) ->
+                println("TEAMS kills ${ka.line(a)}")
+                println("TEAMS kills ${kb.line(b)}")
+            }
             if (System.getenv("AI_LINES") != null) score.lines.forEach { println("TEAMS   $it") }
         }
     }
