@@ -55,7 +55,9 @@ class BoardFlowTest {
         rule.openTab("catalog")
         rule.waitForText("32 heroes")
         rule.tapHeroesAction("Board")
-        rule.waitForText("Changed today", substring = true)
+        // Play against the computer and Puzzles lead the list; the saved board is below them.
+        rule.waitForText("PLAY AGAINST THE COMPUTER")
+        rule.reveal(hasText("Changed today", substring = true))
         rule.waitFor(hasText(hero, substring = true) and hasText(" vs ", substring = true))
     }
 
