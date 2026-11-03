@@ -95,6 +95,8 @@ internal data class LevelProfile(
      * plan. 0 = teammates play their static best card in the playouts.
      */
     val joint: Int = 0,
+    /** A joint card play also tries each teammate's best card against an enemy hero in reach ([TeamKills.threatCard]). */
+    val jointThreat: Boolean = false,
     /**
      * The kill extension of card-play playouts (ADR-061, [Searcher.killPlan]): 1 = when either team can kill
      * on the next turn with several heroes, 2 = only when we can; 0 = off.
@@ -311,9 +313,11 @@ internal class Searcher(
         val ctx = ev.context(s)
         val mates = s.heroes.filter { it.seat > me && it.team == d.team && it.id in ai && it.hand.isNotEmpty() }
             .map { h ->
-                h.id to h.hand.map { it.id }.sorted()
+                val top = h.hand.map { it.id }.sorted()
                     .sortedByDescending { static.playScore(ctx, h.id, Choice.Card(it)) }
                     .take(profile.joint)
+                val threat = if (profile.jointThreat) TeamKills.threatCard(ev, s, h.id) else null
+                h.id to (top + listOfNotNull(threat)).distinct()
             }
         if (mates.isEmpty()) return plain
         var combos = listOf(emptyMap<String, String>())

@@ -132,6 +132,9 @@ class ExperimentTest {
                 // joint=2: joint team card play, each computer teammate still to play tries its best 2 cards (ADR-061).
                 "joint" -> p.copy(joint = v.toInt())
 
+                // jointThreat=true: teammates also try their best card against an enemy hero in reach.
+                "jointThreat" -> p.copy(jointThreat = v.toBoolean())
+
                 // kill=1: card-play playouts run on through a kill turn of either team, kill=2 ours only (ADR-061).
                 "kill" -> p.copy(killExt = v.toInt())
 

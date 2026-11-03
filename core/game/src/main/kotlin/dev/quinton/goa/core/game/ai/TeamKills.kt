@@ -43,6 +43,16 @@ internal object TeamKills {
         return out.sortedWith(compareBy({ it.hand - it.attackers.size }, { it.target }))
     }
 
+    /** [heroId]'s best card against an enemy hero it can reach now ([weight]), or null. */
+    fun threatCard(ev: Evaluator, s: GameState, heroId: String): String? {
+        val h = s.hero(heroId) ?: return null
+        val from = h.at ?: return null
+        val nearest = s.heroes.filter { it.team != h.team }.mapNotNull { e -> e.at?.let { HexGrid.distance(from, it) } }
+            .minOrNull() ?: return null
+        return h.hand.map { ev.profile(it.id) }.filter { (it.attackCard || it.forcesDiscard) && it.reach >= nearest }
+            .maxWithOrNull(compareBy({ weight(it) }, { it.id }))?.id
+    }
+
     /** What a card is worth for a kill: a discard that cannot be answered first, then the Attack. */
     private fun weight(p: CardProfile): Double =
         p.attack + (if (p.discardOrDefeat) DISCARD_OR_DEFEAT else 0.0) + (if (p.forcesDiscard) DISCARD else 0.0)
