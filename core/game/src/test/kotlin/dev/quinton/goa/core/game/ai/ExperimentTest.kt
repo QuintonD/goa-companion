@@ -129,6 +129,9 @@ class ExperimentTest {
 
                 "race" -> p.copy(race = v.toDouble())
 
+                // joint=2: joint team card play, each computer teammate still to play tries its best 2 cards (ADR-061).
+                "joint" -> p.copy(joint = v.toInt())
+
                 // defenseless=1.0: the floor at 3 heroes a side, as measured (0 = none); def<n>=v for n heroes.
                 "defenseless" -> p.copy(
                     knobs = kn.copy(defenselessBySize = if (v.toDouble() > 0) mapOf(3 to v.toDouble()) else emptyMap()),
