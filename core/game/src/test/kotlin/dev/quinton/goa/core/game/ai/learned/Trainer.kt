@@ -33,7 +33,13 @@ internal class Trainer(
     private val cards: Int = 0,
     /** Inputs from this index up are mostly zero (the pieces of one hero): a floor under their scale. */
     private val sparseFrom: Int = inputs,
+    /**
+     * Auxiliary heads on the second layer (ADR-060): head j predicts (Red's − Blue's) [AuxTargets] j with
+     * the loss weight `auxWeight[j]` (0 = no head); only the win head is exported, the others shape the layers.
+     */
+    private val auxWeight: DoubleArray = DoubleArray(0),
 ) {
+    private val aux: Int = auxWeight.size
     /** One position for the tables: the heroes' table rows (Red's first, [red] of them), their numbers, the cards. */
     class Extras(
         val heroes: ByteArray,
@@ -43,8 +49,17 @@ internal class Trainer(
         val blueCards: ShortArray,
     )
 
-    /** Rows of Red's then Blue's features ([inputs] each), training targets and real results (1 = Red won). */
-    class Data(val x: FloatArray, val target: FloatArray, val outcome: FloatArray, val extras: List<Extras>) {
+    /**
+     * Rows of Red's then Blue's features ([inputs] each), training targets and real results (1 = Red won);
+     * [aux] the auxiliary targets, [AuxTargets.COUNT] a row (NaN = unknown), or null.
+     */
+    class Data(
+        val x: FloatArray,
+        val target: FloatArray,
+        val outcome: FloatArray,
+        val extras: List<Extras>,
+        val aux: FloatArray? = null,
+    ) {
         val n: Int get() = target.size
     }
 
@@ -69,10 +84,12 @@ internal class Trainer(
     private val wl = DoubleArray(inputs)
     private val wh = DoubleArray(heroes * LearnedNet.HERO_COLS)
     private val wc = DoubleArray(cards * LearnedNet.CARD_PLACES)
+    /** The auxiliary heads' weights on the second layer, [h2] a head. */
+    private val wa = DoubleArray(aux * h2)
     private var mean = DoubleArray(inputs)
     private var sd = DoubleArray(inputs) { 1.0 }
 
-    private val params: List<DoubleArray> get() = listOf(w1, b1, w2, b2, w3, wl, wh, wc)
+    private val params: List<DoubleArray> get() = listOf(w1, b1, w2, b2, w3, wl, wh, wc, wa)
 
     private fun init(constant: BooleanArray) {
         val rng = Random(seed)
@@ -84,6 +101,8 @@ internal class Trainer(
         for (k in w2.indices) w2[k] = gauss() * s2
         val s3 = sqrt(1.0 / h2)
         for (k in w3.indices) w3[k] = gauss() * s3 * 0.5
+        // After every draw of the plain net, so a net without heads starts exactly as before.
+        for (k in wa.indices) wa[k] = gauss() * s3 * 0.5
         for ((i, c) in skipInit) wl[i] = c * sd[i]
         b1.fill(0.01)
         b2.fill(0.01)
@@ -185,7 +204,7 @@ internal class Trainer(
             val mm = m[pi]
             val vv = v[pi]
             val decay = when (pi) {
-                0, 2, 4 -> cfg.weightDecay
+                0, 2, 4, 8 -> cfg.weightDecay
                 6, 7 -> cfg.tableDecay
                 else -> 0.0
             }
@@ -225,8 +244,10 @@ internal class Trainer(
                     val target = data.target[r].toDouble()
                     loss += -(target * ln(p.coerceAtLeast(1e-9)) + (1 - target) * ln((1 - p).coerceAtLeast(1e-9)))
                     val d = p - target
-                    backward(x, 2 * r * inputs, ws.red, d, g)
-                    backward(x, (2 * r + 1) * inputs, ws.blue, -d, g)
+                    val extra = if (aux > 0 && data.aux != null) auxBack(data.aux, r, ws, g) else null
+                    if (extra != null) loss += extra.second
+                    backward(x, 2 * r * inputs, ws.red, d, g, extra?.first, 1.0)
+                    backward(x, (2 * r + 1) * inputs, ws.blue, -d, g, extra?.first, -1.0)
                     tablesBack(e, true, d, g)
                     tablesBack(e, false, -d, g)
                 }
@@ -241,6 +262,36 @@ internal class Trainer(
             loss += l
         }
         return sum to loss
+    }
+
+    /**
+     * The auxiliary heads' losses on row [r] and their gradient on the heads; returns what each unit of the
+     * second layer gets from them (for Red; Blue's is its negative) and the weighted loss.
+     */
+    private fun auxBack(t: FloatArray, r: Int, ws: Work, g: List<DoubleArray>): Pair<DoubleArray, Double> {
+        val ga = g[8]
+        val d2 = DoubleArray(h2)
+        var loss = 0.0
+        for (j in 0 until aux) {
+            val y = t[r * aux + j].toDouble()
+            val wgt = auxWeight[j]
+            if (wgt == 0.0 || y.isNaN()) continue
+            var z = 0.0
+            for (k in 0 until h2) z += wa[j * h2 + k] * (max(0.0, ws.red.z2[k]) - max(0.0, ws.blue.z2[k]))
+            val dz = if (AuxTargets.BINARY[j]) {
+                val q = sigmoid(z)
+                loss += -wgt * (y * ln(q.coerceAtLeast(1e-9)) + (1 - y) * ln((1 - q).coerceAtLeast(1e-9)))
+                wgt * (q - y)
+            } else {
+                loss += wgt * 0.5 * (z - y) * (z - y)
+                wgt * (z - y)
+            }
+            for (k in 0 until h2) {
+                ga[j * h2 + k] += dz * (max(0.0, ws.red.z2[k]) - max(0.0, ws.blue.z2[k]))
+                d2[k] += dz * wa[j * h2 + k]
+            }
+        }
+        return d2 to loss
     }
 
     private inner class Act {
@@ -302,7 +353,15 @@ internal class Trainer(
         return out
     }
 
-    private fun backward(x: FloatArray, off: Int, a: Act, d: Double, g: List<DoubleArray>) {
+    private fun backward(
+        x: FloatArray,
+        off: Int,
+        a: Act,
+        d: Double,
+        g: List<DoubleArray>,
+        extra: DoubleArray? = null,
+        sign: Double = 1.0,
+    ) {
         val gw1 = g[0]
         val gb1 = g[1]
         val gw2 = g[2]
@@ -314,7 +373,7 @@ internal class Trainer(
         for (k in 0 until h2) {
             if (a.z2[k] <= 0) continue
             gw3[k] += d * a.z2[k]
-            val d2 = d * w3[k]
+            val d2 = d * w3[k] + if (extra != null) sign * extra[k] else 0.0
             gb2[k] += d2
             val row = k * h1
             for (j in 0 until h1) {

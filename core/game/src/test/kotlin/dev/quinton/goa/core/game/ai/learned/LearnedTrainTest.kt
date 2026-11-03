@@ -39,6 +39,36 @@ class LearnedTrainTest {
         println("TRAIN wrote $target")
     }
 
+    /**
+     * `AI_SPREAD=<games>,…` with `AI_SPREAD_NETS=a,b,c` (ADR-060): on the test split, each net's log-loss
+     * against the results, the mean of their logits' log-loss, and how far the nets' scores lie apart
+     * (standard deviation across the nets, in coin-equivalents): the scale an `lcb` ensemble penalizes.
+     */
+    @Test
+    fun `how far seed nets disagree`() {
+        val spec = System.getenv("AI_SPREAD") ?: return
+        val names = System.getenv("AI_SPREAD_NETS")!!.split(",")
+        val nets = names.map { Learned.net(it) }
+        val threads = System.getenv("AI_THREADS")?.toInt() ?: 3
+        val test = spec.split(",").map(::File).flatMap { load(it, 0.35, threads) }.filter { it.lineup % 10 == 9 }
+        val y = test.map { it.redWon }
+        fun loss(z: (Pos) -> Double) = test.indices.sumOf { i ->
+            val p = Trainer.sigmoid(z(test[i])).coerceIn(1e-9, 1 - 1e-9)
+            -(if (y[i]) ln(p) else ln(1 - p))
+        } / test.size
+        for ((n, net) in names.zip(nets)) println("SPREAD $n log-loss ${"%.4f".format(loss { logit(net, it) })}")
+        println("SPREAD mean of logits log-loss ${"%.4f".format(loss { p -> nets.sumOf { logit(it, p) } / nets.size })}")
+        val sds = test.map { p ->
+            val v = nets.map { logit(it, p) * it.coinScale }
+            val m = v.average()
+            kotlin.math.sqrt(v.sumOf { (it - m) * (it - m) } / v.size)
+        }.sorted()
+        println(
+            "SPREAD sd across nets (coin-equivalents) over ${test.size}: mean ${"%.2f".format(sds.average())}, " +
+                "median ${"%.2f".format(sds[sds.size / 2])}, p90 ${"%.2f".format(sds[sds.size * 9 / 10])}",
+        )
+    }
+
     @Test
     fun `train the learned evaluation`() {
         val spec = System.getenv("AI_TRAIN") ?: return
@@ -53,7 +83,24 @@ class LearnedTrainTest {
         val files = spec.split(",").map(::File).flatMap { f ->
             if (f.isDirectory) f.listFiles { x -> x.name.endsWith(".jsonl") }!!.sorted() else listOf(f)
         }
-        val all = files.flatMap { load(it, rate, threads) }
+        // `AI_AUX=kills:0.3,push:0.3,life:0.3`: auxiliary heads and their loss weights (ADR-060, [AuxTargets]).
+        val auxWeight = DoubleArray(AuxTargets.COUNT)
+        System.getenv("AI_AUX")?.split(",")?.filter { it.isNotBlank() }?.forEach {
+            val (k, w) = it.split(":")
+            auxWeight[AuxTargets.NAMES.indexOf(k).also { i -> require(i >= 0) { "Unknown aux target $k" } }] = w.toDouble()
+        }
+        val useAux = auxWeight.any { it != 0.0 }
+        val all = files.flatMap { f ->
+            val ps = load(f, rate, threads)
+            if (useAux) {
+                val dir = File(System.getenv("AI_AUX_CACHE") ?: "D:/.goa-qa/v14/a/cache")
+                val t = AuxTargets.load(f, rate, threads, dir)
+                var missing = 0
+                for (p in ps) p.aux = t[AuxTargets.key(p.family, p.game, p.index)] ?: run { missing++; null }
+                println("TRAIN aux targets for ${ps.size - missing} of ${ps.size} positions of ${f.name}")
+            }
+            ps
+        }
         if (System.getenv("AI_BOARD") == "0") {
             for (p in all) {
                 p.x?.fill(0f, Features.BOARD_AT, Features.SIZE)
@@ -107,6 +154,7 @@ class LearnedTrainTest {
             if (tabled) Learned.HEROES.size else 0,
             if (tabled) Learned.CARDS.size else 0,
             Features.BOARD_AT,
+            if (useAux) auxWeight else DoubleArray(0),
         ).train(data(train, targets, release = true), data(valid, targets, release = false), cfg)
         println("TRAIN trained in ${"%.0f".format((System.nanoTime() - t0) / 1e9)} s")
         val net = Learned.NetData(
@@ -165,7 +213,10 @@ class LearnedTrainTest {
         val terms: FloatArray,
         var x: FloatArray?,
         val extras: Trainer.Extras,
-    )
+    ) {
+        /** The auxiliary targets ([AuxTargets]), when asked for. */
+        var aux: FloatArray? = null
+    }
 
     /** The rows of [ps]; with [release] the positions give up their inputs (the big training set). */
     private fun data(ps: List<Pos>, targets: Map<Pos, Float>, release: Boolean): Trainer.Data {
@@ -179,6 +230,11 @@ class LearnedTrainTest {
             FloatArray(ps.size) { targets.getValue(ps[it]) },
             FloatArray(ps.size) { if (ps[it].redWon) 1f else 0f },
             ps.map { it.extras },
+            if (ps.any { it.aux != null }) {
+                FloatArray(ps.size * AuxTargets.COUNT) { i -> ps[i / AuxTargets.COUNT].aux?.get(i % AuxTargets.COUNT) ?: Float.NaN }
+            } else {
+                null
+            },
         )
     }
 

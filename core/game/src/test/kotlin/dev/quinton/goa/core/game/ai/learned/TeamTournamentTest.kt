@@ -13,7 +13,7 @@ import org.junit.Test
 class TeamTournamentTest {
     @Test
     fun `variants against each other at any team size`() {
-        val pairs = System.getenv("AI_TEAMS")?.split(",") ?: return
+        val pairs = System.getenv("AI_TEAMS")?.let { Learned.splitTop(it, ',') } ?: return
         val size = System.getenv("AI_SIZE")?.toIntOrNull() ?: 3
         val n = System.getenv("AI_N")?.toIntOrNull() ?: 8
         val first = System.getenv("AI_FIRST")?.toIntOrNull() ?: 0
@@ -25,7 +25,7 @@ class TeamTournamentTest {
             else -> Teams.TEST
         }
         for (pair in pairs) {
-            val (a, b) = pair.split(":")
+            val (a, b) = Learned.splitTop(pair, ':')
             val t0 = System.nanoTime()
             val specs = Teams.specs(n, size, family, first)
             val score = Teams.mirrored(Learned.side(a), Learned.side(b), specs, threads, sprt)

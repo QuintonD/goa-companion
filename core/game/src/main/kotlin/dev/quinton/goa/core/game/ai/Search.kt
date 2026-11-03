@@ -89,6 +89,8 @@ internal data class LevelProfile(
     val hideTeammates: Boolean = false,
     /** Tests only: what scores the end of a playout instead of [net] (the frozen baseline, `net=v09`). */
     val leafEvaluator: ((EngineData) -> PositionEvaluator)? = null,
+    /** Tests only: what scores the one-ply looks inside a playout instead of [learned]'s choice (ADR-060). */
+    val innerEvaluator: ((EngineData) -> PositionEvaluator)? = null,
 )
 
 /**
@@ -187,7 +189,11 @@ internal class Searcher(
     }
 
     /** What scores the one-ply looks inside a playout. */
-    private val inner: PositionEvaluator = if (profile.learned == EvalSource.EVERYWHERE) leaf else ev
+    private val inner: PositionEvaluator = when {
+        profile.innerEvaluator != null -> profile.innerEvaluator.invoke(ev.data)
+        profile.learned == EvalSource.EVERYWHERE -> leaf
+        else -> ev
+    }
 
     fun determinize(es: EngineSession, d: Decision, seed: Long): EngineSession {
         val team = d.team
