@@ -18,6 +18,8 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.Article
+import androidx.compose.material.icons.automirrored.outlined.OpenInNew
+import androidx.compose.material.icons.outlined.FavoriteBorder
 import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -35,6 +37,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalResources
+import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
@@ -56,6 +59,9 @@ import dev.quinton.goa.core.model.settings.ThemeMode
 
 /** App identity shown on the About screen. */
 data class AppInfo(val name: String, val versionName: String, val versionCode: Long)
+
+/** The maker's Ko-fi page, for anyone who wants to give something towards the app (as on the web). */
+internal const val DONATE_URL = "https://ko-fi.com/quintonde"
 
 /** Community projects whose published data informed the catalog import (credit only, no code reused). */
 internal val DataSourceCredits = listOf(
@@ -127,6 +133,14 @@ fun AboutScreen(info: AppInfo, onBack: () -> Unit, modifier: Modifier = Modifier
                         }
                     }
                 }
+            }
+            item {
+                GoaCard(
+                    Modifier
+                        .fillMaxWidth()
+                        .padding(top = Spacing.md),
+                    contentPadding = PaddingValues(vertical = Spacing.sm),
+                ) { DonateRow() }
             }
             item { SectionHeader("Game content") }
             item {
@@ -225,6 +239,38 @@ private fun FontRow(font: FontLicense, onClick: () -> Unit) {
                 Body("${font.license} · ${font.copyright}")
             }
             Text("View", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
+        }
+    }
+}
+
+/** Opens the Ko-fi page in the browser; the app stays free either way. */
+@Composable
+internal fun DonateRow() {
+    val uriHandler = LocalUriHandler.current
+    val onClick = {
+        // No browser to take the link (rare): nothing to open, so the tap does nothing.
+        runCatching { uriHandler.openUri(DONATE_URL) }
+        Unit
+    }
+    Surface(onClick = onClick, color = Color.Transparent) {
+        Row(
+            Modifier
+                .fillMaxWidth()
+                .heightIn(min = 64.dp)
+                .padding(horizontal = Spacing.lg, vertical = Spacing.sm),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(Spacing.lg),
+        ) {
+            Icon(Icons.Outlined.FavoriteBorder, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+            Column(Modifier.weight(1f)) {
+                Text("Support the app", style = MaterialTheme.typography.titleMedium)
+                Body("Buy the maker a coffee on Ko-fi, if you like")
+            }
+            Icon(
+                Icons.AutoMirrored.Outlined.OpenInNew,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
         }
     }
 }

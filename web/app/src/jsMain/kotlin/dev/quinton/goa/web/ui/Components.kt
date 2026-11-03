@@ -8,8 +8,10 @@ import dev.quinton.goa.web.LocalServices
 import dev.quinton.goa.web.nav.Route
 import dev.quinton.goa.web.nav.Routes
 import kotlinx.browser.document
+import org.jetbrains.compose.web.attributes.ATarget
 import org.jetbrains.compose.web.attributes.ButtonType
 import org.jetbrains.compose.web.attributes.disabled
+import org.jetbrains.compose.web.attributes.target
 import org.jetbrains.compose.web.attributes.type
 import org.jetbrains.compose.web.dom.A
 import org.jetbrains.compose.web.dom.AttrBuilderContext
@@ -212,7 +214,8 @@ fun RowList(content: ContentBuilder<org.w3c.dom.HTMLUListElement>) {
 
 /**
  * One list row (≥ 56 px): [leading] icon, title and subtitle, [trailing] text or a chevron when it
- * opens [route]. With [onClick] instead of a route it is a button. Call inside [RowList].
+ * opens [route]. With [onClick] instead of a route it is a button; with [href] a link off the app,
+ * opened in a new tab, its trailing mark the external icon. Call inside [RowList].
  */
 @Composable
 fun ListRow(
@@ -223,6 +226,7 @@ fun ListRow(
     route: Route? = null,
     onClick: (() -> Unit)? = null,
     leading: (@Composable () -> Unit)? = null,
+    href: String? = null,
 ) {
     val body: @Composable () -> Unit = {
         if (leading != null || leadingIcon != null) {
@@ -240,10 +244,17 @@ fun ListRow(
                 if (route != null) Icon("chevron_right", IconSize.SMALL)
             }
         }
+        if (href != null) Span({ classes("goa-row-trailing") }) { Icon("external", IconSize.SMALL) }
     }
     Li {
         when {
             route != null -> RouteLink(route, { classes("goa-row") }) { body() }
+
+            href != null -> A(href, {
+                classes("goa-row")
+                target(ATarget.Blank)
+                attr("rel", "noopener")
+            }) { body() }
 
             onClick != null -> Button({
                 type(ButtonType.Button)

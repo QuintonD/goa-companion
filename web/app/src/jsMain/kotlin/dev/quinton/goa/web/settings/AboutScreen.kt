@@ -29,6 +29,9 @@ import org.jetbrains.compose.web.dom.Pre
 import org.jetbrains.compose.web.dom.Span
 import org.jetbrains.compose.web.dom.Text
 
+/** The maker's Ko-fi page, for anyone who wants to give something towards the app (as on Android). */
+const val DONATE_URL = "https://ko-fi.com/quintonde"
+
 /** Community projects whose published data informed the catalog import (as on Android's About). */
 private val DataSourceCredits = listOf(
     "Stats-of-Atlantis (QuasiStellar)" to "Card data, hero details and artwork",
@@ -88,6 +91,9 @@ fun AboutScreen() {
                     )
                 }
             }
+        }
+        GoaCard(flush = true) {
+            RowList { DonateRow() }
         }
         SectionHeader("Game content")
         GoaCard {
@@ -173,6 +179,17 @@ fun AboutScreen() {
 
         null -> Unit
     }
+}
+
+/** Opens the Ko-fi page in a new tab; the app stays free either way. */
+@Composable
+fun DonateRow() {
+    ListRow(
+        "Support the app",
+        subtitle = "Buy the maker a coffee on Ko-fi, if you like",
+        leadingIcon = "heart",
+        href = DONATE_URL,
+    )
 }
 
 /** The glyphs of the game icons in card text, as on Android (material-icons-extended), Apache 2.0. */

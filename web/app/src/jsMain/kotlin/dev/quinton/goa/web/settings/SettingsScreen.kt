@@ -83,6 +83,7 @@ fun SettingsScreen() {
                     onClick = { checkForUpdate(services) },
                     trailing = "Check for update",
                 )
+                DonateRow()
                 ListRow("About", subtitle = "Version, credits and licences", leadingIcon = "info", route = Route.About)
             }
         }

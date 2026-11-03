@@ -210,3 +210,15 @@ test("About shows where every official image comes from", async ({ page }) => {
   await expect(page.getByRole("dialog", { name: "Inter licence" }).getByText("SIL OPEN FONT LICENSE")).toBeVisible();
   check();
 });
+
+test("About and Settings link to the maker's Ko-fi in a new tab", async ({ page }) => {
+  const check = watchErrors(page);
+  for (const hash of ["#/settings/about", "#/settings"]) {
+    await open(page, hash);
+    const donate = page.getByRole("link", { name: /^Support the app/ });
+    await expect(donate).toHaveAttribute("href", "https://ko-fi.com/quintonde");
+    await expect(donate).toHaveAttribute("target", "_blank");
+    await expect(donate).toHaveAttribute("rel", "noopener");
+  }
+  check();
+});

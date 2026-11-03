@@ -247,6 +247,7 @@ private fun SettingsList(
                     onOpen(SettingsLink.BACKUP)
                 }
                 SpeedRow(state.speedTest) { onAction(SettingsAction.ToggleSpeedTest) }
+                DonateRow()
                 LinkRow(Icons.Outlined.Info, "About", "Version, credits and licences") { onOpen(SettingsLink.ABOUT) }
             }
         }

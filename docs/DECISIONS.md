@@ -2514,3 +2514,16 @@ the module alone, this branch failed 4 of 4, with a different set of `board*` te
 4. The dashboard frame (821 x 416, 1.3x to 1.75x on a phone) and the cover's silhouette (830 wide, as wide as a phone) are illustrations, not suited to this method. They are upscaled from the PDF's own objects with Real-ESRGAN (x4plus: the anime model drew hard outlines the print doesn't have), to 1600 wide, with the same masters and record. The Turn slots are placed by fractions of the frame, so its size doesn't move them. The tool is a one-off on this PC (`design/README.md` has the command), not a build dependency.
 
 **Consequences:** The whole app's top bar and plates change, so every screenshot baseline is re-recorded once. The art is ours in execution but still derives from Wolff Designa's design: ADR-034's permission note covers it as before. A new printing's frames need a look by eye, as the renderer doesn't read the PDF. Decoded memory while on screen: the banner 1.8 MB (was 1 MB), the dashboard frame 5.2 MB (was 1.4 MB), only while a hero sheet is open.
+
+## ADR-059 — A donate link to the maker's Ko-fi (2026-11-03)
+**Context:** Owner: "include an update to the app and web app with my donate link https://ko-fi.com/quintonde". The app is
+free, has no ads and is shared with fans of the game; it bundles Wolff Designa's cards and art for non-commercial play
+(ADR-034), and the online games run on the owner's own server (ADR-056).
+
+**Decision:** One row, "Support the app", on About (under "A free fan companion") and in Settings beside About, on Android
+and the web. It opens `https://ko-fi.com/quintonde` outside the app (Android: the browser through `LocalUriHandler`; web: a
+new tab, `rel="noopener"`, through `ListRow(href = …)`). Nothing is locked behind it, nothing asks twice, nothing is counted.
+
+**Consequences:** The app stays free and unchanged for anyone who doesn't give. Taking money near Wolff Designa's assets
+leans on "non-commercial": the row is worded as a coffee for the maker, never as payment for the game's content, and
+ADR-034's permission note stands. The About and Settings screenshot baselines are re-recorded.

@@ -616,7 +616,8 @@ The book's second part: four turns planned from turn 1, through the end-of-round
 Theme (dark default / light / system), owned products (default: all), timer defaults, running
 timer view (step by step / whole round), cue sounds and haptics, puzzle nudges (on by default), Elo constants (advanced; shared
 with the sync group), Group sync, export/import, a measure of the computer's speed on this phone (about
-30 s at strength 10, cancellable, a line to copy and send back; ADR-050), About/credits.
+30 s at strength 10, cancellable, a line to copy and send back; ADR-050), About/credits, and a "Support the app" link
+to the maker's Ko-fi page (also on About; ADR-059).
 
 ## Non-goals (v1)
 - Cloud sync, ads, analytics SDKs: not in v1, no longer ruled out (ADR-034). Group sync is phone to
