@@ -32,7 +32,7 @@ class TeamTournamentTest {
             println("TEAMS ${size}v$size $score in ${"%.0f".format((System.nanoTime() - t0) / 1e9)} s")
             println("TEAMS   ${score.details()}")
             println("TEAMS by hero ($a): ${score.byHero()}")
-            sprt?.let { println("TEAMS SPRT ${it.verdict(score.aWins, score.bWins)} after ${score.games} games") }
+            sprt?.let { println("TEAMS SPRT ${it.verdict(score)} after ${score.games} games (pairs)") }
             if (System.getenv("AI_SCORECARD") != null) println("TEAMS scorecard\n${Tournament.scorecard(score)}")
             if (System.getenv("AI_LINES") != null) score.lines.forEach { println("TEAMS   $it") }
         }

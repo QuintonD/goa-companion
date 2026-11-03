@@ -92,7 +92,7 @@ internal object Teams {
             for (batch in specs.chunked(every.coerceAtLeast(1))) {
                 playBatch(a, b, batch, pool, score)
                 if (every < specs.size) println("TEAMS so far $score")
-                if (sprt != null && sprt.verdict(score.aWins, score.bWins) != Tournament.Sprt.Verdict.GOING_ON) break
+                if (sprt != null && sprt.verdict(score) != Tournament.Sprt.Verdict.GOING_ON) break
             }
         } finally {
             pool.shutdown()

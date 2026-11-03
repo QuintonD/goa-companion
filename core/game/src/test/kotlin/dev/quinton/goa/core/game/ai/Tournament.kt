@@ -66,10 +66,36 @@ object Tournament {
         /** 95% Wilson interval of [rate]. */
         val interval: Pair<Double, Double> get() = wilson(rate, games)
 
+        /**
+         * Mirrored pairs by side a's points in them (0, 0.5, … 2: the pentanomial counts). Both games of a
+         * pair are recorded one after the other ([record]); a pair that splits 1–1 says the line-up decided
+         * it, not the players, so scoring by pairs needs fewer games for the same precision (AI.md "Measuring").
+         */
+        val pairs = IntArray(PAIR_OUTCOMES)
+        private var openPair: Double? = null
+
+        /** Pairs recorded so far. */
+        val pairCount: Int get() = pairs.sum()
+
+        /** The mean of side a's points per game over the pairs, and its standard error from the pairs' spread. */
+        fun pairedMeanAndError(): Pair<Double, Double> {
+            val n = pairCount
+            if (n == 0) return 0.5 to 0.5
+            val mean = pairs.withIndex().sumOf { (k, c) -> c * k / 4.0 } / n
+            val variance = pairs.withIndex().sumOf { (k, c) -> c * (k / 4.0 - mean) * (k / 4.0 - mean) } / n
+            return mean to sqrt(variance / n)
+        }
+
+        /** 95% normal interval of the win rate from the pairs ([pairs]). */
+        val pairedInterval: Pair<Double, Double>
+            get() = pairedMeanAndError().let { (m, se) -> (m - 1.96 * se) to (m + 1.96 * se) }
+
         override fun toString(): String {
             val (lo, hi) = interval
+            val (plo, phi) = pairedInterval
             return "$a vs $b: $aWins-$bWins (draws $draws) of $games = ${"%.1f".format(rate * 100)}% " +
-                "[95% ${"%.1f".format(lo * 100)}-${"%.1f".format(hi * 100)}%], " +
+                "[95% ${"%.1f".format(lo * 100)}-${"%.1f".format(hi * 100)}%; " +
+                "pairs ${"%.1f".format(plo * 100)}-${"%.1f".format(phi * 100)}% ${pairs.joinToString("/")}], " +
                 "avg ${"%.1f".format(rounds.toDouble() / games)} rounds, $reasons"
         }
 
@@ -93,6 +119,18 @@ object Tournament {
                 null -> draws++
                 true -> aWins++
                 false -> bWins++
+            }
+            val points = when (aWon) {
+                null -> 0.5
+                true -> 1.0
+                false -> 0.0
+            }
+            val open = openPair
+            if (open == null) {
+                openPair = points
+            } else {
+                pairs[((open + points) * 2).toInt()]++
+                openPair = null
             }
             val (red, blue) = lineup
             countHeroes(red, blue, aRed, aWon)
@@ -192,8 +230,23 @@ object Tournament {
         /** The log-likelihood ratio of [p1] over [p0]; draws say nothing. */
         fun llr(wins: Int, losses: Int): Double = wins * ln(p1 / p0) + losses * ln((1 - p1) / (1 - p0))
 
-        fun verdict(wins: Int, losses: Int): Verdict {
-            val l = llr(wins, losses)
+        fun verdict(wins: Int, losses: Int): Verdict = decide(llr(wins, losses))
+
+        /**
+         * The same test on mirrored pairs (the normal approximation of the pentanomial GSPRT, as chess
+         * engine testing uses): the pairs' own spread replaces the binomial one, so a line-up that decides
+         * both games of its pair costs no evidence. Falls back to [verdict] before [MIN_PAIRS] pairs.
+         */
+        fun verdict(score: Score): Verdict {
+            if (score.pairCount < MIN_PAIRS) return verdict(score.aWins, score.bWins)
+            val (mean, se) = score.pairedMeanAndError()
+            val variance = se * se * score.pairCount
+            if (variance <= 0.0) return verdict(score.aWins, score.bWins)
+            val llr = score.pairCount * (p1 - p0) * (2 * mean - p0 - p1) / (2 * variance)
+            return decide(llr)
+        }
+
+        private fun decide(l: Double): Verdict {
             return when {
                 l >= ln((1 - beta) / alpha) -> Verdict.H1
                 l <= ln(beta / (1 - alpha)) -> Verdict.H0
@@ -201,6 +254,9 @@ object Tournament {
             }
         }
     }
+
+    private const val PAIR_OUTCOMES = 5
+    private const val MIN_PAIRS = 8
 
     private val KEEP_GOING = System.getenv("AI_KEEP_GOING") != null
 
