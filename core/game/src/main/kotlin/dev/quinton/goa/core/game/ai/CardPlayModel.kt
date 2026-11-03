@@ -108,7 +108,11 @@ internal class CardPlayModel(
                     if (m.team == h.team || ctx.g.heavyImmune(m.id)) continue
                     val d = HexGrid.distance(at, p)
                     minionsAt += d
-                    if (ctx.state.minions.count { it.team == m.team && it.lane == m.lane && it.at != null } == 1) lastAt += d
+                    if (ctx.state.minions.count { it.team == m.team && it.lane == m.lane && it.at != null } ==
+                        1
+                    ) {
+                        lastAt += d
+                    }
                 }
             }
             return Array(pool.size) { i ->

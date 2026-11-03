@@ -64,7 +64,13 @@ class HandKnowledgeTest {
     private fun line(label: String, r: LongArray): String {
         val n = r[0].toDouble().coerceAtLeast(1.0)
         return "%s: %d looks, histories %.2f -> %.2f, hand pools %.2f -> %.2f, pool unknown in %.1f%%".format(
-            label, r[0], r[1] / n, r[2] / n, r[3] / n, r[5] / n, 100.0 * r[4] / n,
+            label,
+            r[0],
+            r[1] / n,
+            r[2] / n,
+            r[3] / n,
+            r[5] / n,
+            100.0 * r[4] / n,
         )
     }
 }

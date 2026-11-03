@@ -82,7 +82,9 @@ class CardPlayTest {
     @Test
     fun `the cost of a guess`() {
         val spec = System.getenv("AI_PLAYS_TIME") ?: return
-        val games = Learned.readGames(listOf(File(spec.substringBeforeLast(":")))).take(spec.substringAfterLast(":").toInt())
+        val games = Learned.readGames(
+            listOf(File(spec.substringBeforeLast(":"))),
+        ).take(spec.substringAfterLast(":").toInt())
         val ev = Evaluator(TestData.engine.data, AiPlayers.TUNED_WITH_NET)
         val static = StaticPolicy(ev)
         val model = CardPlayModel.CURRENT
@@ -109,7 +111,9 @@ class CardPlayTest {
                 var sink = 0.0
                 for ((st, q) in states) sink += f(st, q.first, q.second)
                 val us = (System.nanoTime() - t0) / 1e3 / states.size
-                println("PLAYS time round $round $name: %.1f µs a guess over ${states.size} hands (%.0f)".format(us, sink))
+                println(
+                    "PLAYS time round $round $name: %.1f µs a guess over ${states.size} hands (%.0f)".format(us, sink),
+                )
             }
         }
     }
@@ -142,8 +146,13 @@ class CardPlayTest {
                             val phi = CardPlayModel.features(static, ctx, d.seat, ids)
                             val scores = ids.map { static.playScore(ctx, d.seat, Choice.Card(it)).toFloat() }
                             out += Play(
-                                r.lineup, d.seat, ids, chosen, CardPlayModel.turnCentred(ctx).toFloat(),
-                                FloatArray(ids.size * F) { phi[it / F][it % F] }, scores.toFloatArray(),
+                                r.lineup,
+                                d.seat,
+                                ids,
+                                chosen,
+                                CardPlayModel.turnCentred(ctx).toFloat(),
+                                FloatArray(ids.size * F) { phi[it / F][it % F] },
+                                scores.toFloatArray(),
                             )
                         }
                     }
@@ -180,8 +189,13 @@ class CardPlayTest {
             val n = i.readInt()
             val pool = List(n) { i.readUTF() }
             Play(
-                lineup, hero, pool, i.readInt(), i.readFloat(),
-                FloatArray(n * F) { i.readFloat() }, FloatArray(n) { i.readFloat() },
+                lineup,
+                hero,
+                pool,
+                i.readInt(),
+                i.readFloat(),
+                FloatArray(n * F) { i.readFloat() },
+                FloatArray(n) { i.readFloat() },
             )
         }
     }
@@ -249,24 +263,7 @@ class CardPlayTest {
             order.shuffle(rng)
             for (batch in order.chunked(BATCH)) {
                 grads.forEach { it.fill(0.0) }
-                for (idx in batch) {
-                    val p = train[idx]
-                    val prob = softmax(logits(m, p))
-                    val h = m.heroIndex[p.hero]
-                    for (c in p.pool.indices) {
-                        val g = (prob[c] - if (c == p.chosen) 1.0 else 0.0) / batch.size
-                        for (j in 0 until F) {
-                            val x = p.phi[c * F + j]
-                            if (x == 0f) continue
-                            grads[0][j] += g * x
-                            if (h != null) grads[1][h * F + j] += g * x
-                        }
-                        m.cardIndex[p.pool[c]]?.let { k ->
-                            grads[2][k * 2] += g
-                            grads[2][k * 2 + 1] += g * p.turn
-                        }
-                    }
-                }
+                for (idx in batch) accumulate(m, train[idx], grads, 1.0 / batch.size)
                 step++
                 for ((a, w) in all.withIndex()) {
                     val g = grads[a]
@@ -294,6 +291,24 @@ class CardPlayTest {
         return m
     }
 
+    /** Adds [p]'s gradient of the log-loss, times [scale], to [grads] (shared, hero, card). */
+    private fun accumulate(m: Params, p: Play, grads: List<DoubleArray>, scale: Double) {
+        val prob = softmax(logits(m, p))
+        val h = m.heroIndex[p.hero]
+        for (c in p.pool.indices) {
+            val g = (prob[c] - if (c == p.chosen) 1.0 else 0.0) * scale
+            for (j in 0 until F) {
+                val x = p.phi[c * F + j]
+                grads[0][j] += g * x
+                if (h != null) grads[1][h * F + j] += g * x
+            }
+            m.cardIndex[p.pool[c]]?.let { k ->
+                grads[2][k * 2] += g
+                grads[2][k * 2 + 1] += g * p.turn
+            }
+        }
+    }
+
     /** Today's form, softmax(score / τ) mixed with a uniform share, its τ and share fitted on [train]. */
     private fun refitStatic(train: List<Play>): Pair<Double, Double> {
         var best = Triple(Double.MAX_VALUE, 1.5, 0.15)
@@ -317,7 +332,8 @@ class CardPlayTest {
             "today (tau 1.5, 15%)" to { p -> staticProb(p, Searcher.OPPONENT_TAU, 0.15) },
             "today refitted" to { p -> staticProb(p, tau, mix) },
             "learned" to { p -> softmax(logits(m, p)) },
-            "learned + 15% uniform" to { p -> softmax(logits(m, p)).let { s -> DoubleArray(s.size) { 0.85 * s[it] + 0.15 / s.size } } },
+            "learned + 15% uniform" to
+                { p -> softmax(logits(m, p)).let { s -> DoubleArray(s.size) { 0.85 * s[it] + 0.15 / s.size } } },
         )
         fun line(label: String, ps: List<Play>) = models.joinToString("  |  ") { (name, f) ->
             var ll = 0.0

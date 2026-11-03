@@ -205,7 +205,17 @@ class NoPeekingTest {
             hero("wasp", Team.RED, Hex(-1, -2)) {
                 level = 2
                 played(played)
-                hand(*(listOf("wasp-gold", "wasp-silver", "wasp-blue-2b", "wasp-green-1", "wasp-red-1") - played).toTypedArray())
+                hand(
+                    *(
+                        listOf(
+                            "wasp-gold",
+                            "wasp-silver",
+                            "wasp-blue-2b",
+                            "wasp-green-1",
+                            "wasp-red-1",
+                        ) - played
+                        ).toTypedArray(),
+                )
                 items("wasp-blue-2a")
             }
             hero("xargatha", Team.RED, Hex(-1, -1)) { played("xargatha-green-1") }
