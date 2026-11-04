@@ -95,8 +95,8 @@ internal object Learned {
                         // The frozen baseline: the strength 10 of `feature/v0.10`'s first commit (ADR-049).
                         v == "v09" -> p.copy(learned = EvalSource.LEAVES, leafEvaluator = ::BaselineV09)
 
-                        // v0.10's net alone, the baseline of ADR-060 (the first of the checked-in ensemble).
-                        v == "v10" -> p.copy(net = LearnedNet.CURRENT, learned = at)
+                        // v0.10's 10, ADR-060's baseline: its net alone (the ensemble's first) at the playout ends.
+                        v == "v10" -> p.copy(net = LearnedNet.CURRENT, learned = EvalSource.LEAVES)
 
                         // An ensemble of saved nets (ADR-060): `avg(a,b,c)`, `lcb1(a,b,c)`, `min(a,b)`.
                         v.contains('(') -> p.copy(leafEvaluator = EnsembleEvaluator.parse(v), learned = at)

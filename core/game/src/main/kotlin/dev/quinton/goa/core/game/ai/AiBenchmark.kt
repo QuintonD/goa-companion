@@ -19,8 +19,11 @@ import kotlin.random.Random
  * depends on how far a search got. A slower device answers a prefix of the same shuffled list.
  */
 object AiBenchmark {
-    /** Bumped when the positions or the measure change: numbers compare only within a version. */
-    const val VERSION: Int = 1
+    /**
+     * Bumped when the positions or the measure change: numbers compare only within a version. 2 (ADR-060):
+     * strength 10 scores its one-ply looks with three nets, so an engine answer costs about twice v1's.
+     */
+    const val VERSION: Int = 2
     const val MILLIS: Long = 30_000L
     private const val WARM_UP_SHARE = 6
     private const val SEED = 20_261_031L

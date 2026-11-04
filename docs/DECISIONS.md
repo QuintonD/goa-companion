@@ -2527,3 +2527,40 @@ new tab, `rel="noopener"`, through `ListRow(href = …)`). Nothing is locked beh
 **Consequences:** The app stays free and unchanged for anyone who doesn't give. Taking money near Wolff Designa's assets
 leans on "non-commercial": the row is worded as a coffee for the maker, never as payment for the game's content, and
 ADR-034's permission note stands. The About and Settings screenshot baselines are re-recorded.
+
+## ADR-060 — Strength 10 averages three seed nets, also in its one-ply looks (v0.14, 2026-11-04)
+**Status:** accepted (stream A of the v0.14 AI round; the integrator re-measures on the test family).
+**Context:** The owner wants a stronger strength 10 with every hero in 3v3 and bigger. v0.10 read that a search which
+averages harder finds what the evaluation overrates (double the samples lost 42.2%), so the gain was looked for in what
+judges a position. Three remedies against that overrating were tried, and the hero knowledge of the net was tried in
+more of the search (its one-ply looks inside playouts). The work measure counts engine answers only, so every variant's
+cost per answer was timed as well.
+**Decision:** Strength 10 scores the end of every playout, and the one-ply looks inside its playouts, with the mean of
+three nets: v0.10's (`b1s3`) and its two seed siblings from the same training run (`b1s2`, `b1`), the features extracted
+once (`LearnedNet.ENSEMBLE`, `NetEvaluator(data, nets)`, `LearnedWeights2.kt`, `LearnedWeights3.kt`). Everything else is
+unchanged: the search, the static policy and opponent model on the hand evaluation, strengths 1–9 and the coach. v0.10's
+net alone stays playable as `net=v10`. The trainer gains auxiliary heads (`AI_AUX`), the harness ensembles
+(`net=avg(…)`, `lcb<k>(…)`, `min(…)`), a separate evaluator for the one-ply looks (`inner=`,
+`LevelProfile.innerEvaluator`, tests only), the seeds' spread (`AI_SPREAD`) and the time per answer at the same work
+(`CostTest`).
+**Evidence (3v3, tune family, mirrored, AI.md "The evaluation the search exploits less"):** the cost per engine answer
+at the same work: ×1.04 for three nets at the playout ends, ×1.97 with them in the one-ply looks too. Strength 7 screens
+against `b1s3`: the mean of three 58.5% (51.9–64.7%, 224 games). Strength 10 at the phone's work against v0.10's 10: the
+mean at the playout ends 46–18 at the same work (71.9%, 59.9–81.4%, the test decided after 64 games), then 75–53 on the
+next 64 line-ups at the time-fair work (58.6%, 49.9–66.8%): 121–71 together, 63.0% (56.0–69.5%), heroes lost 1.58 a game
+against 1.90. The mean in the one-ply looks too, against the mean at the ends: 214–170 at the same work (55.7%,
+50.7–60.6%, 384) and 184–136 at the same wall clock, with half the work (57.5%, 52.0–62.8%, 320), heroes lost 1.77
+against 1.92. v0.10's net alone in the one-ply looks against v0.10's 10, same work: 56.6% (50.8–62.2%, 288).
+**Alternatives:** The mean less one standard deviation of the seeds (pessimism where they disagree): 55.7% (50.7–60.6%,
+384 games) at strength 7, not better than the plain mean's 58.5%. Another seed in the one-ply looks than at the playout
+ends (a double estimator): 57.1% at strength 7 with one-ply playouts, but more heroes lost (1.72 against 1.61) and ×1.42
+the time. Auxiliary heads (kills this round, the next push, the final Life margin): a better typical seed (52.2% against
+`b1s3` where the plain seeds made 45.5%) and fewer heroes lost, but their three-seed mean was exactly even with the
+plain one (50.0%, 384), so averaging already takes what they add.
+**Consequences:** Strength 10's answers change (`GameParityTest` re-pinned; JVM and Node agree); strengths 1–9 and
+v0.10's net through `net=v10` give the same answers as before (fingerprints). An engine answer costs about twice as
+much: under the 2 s cap the slowest card plays search about half as much (what the time-fair run measured), and the
+speed measure is now version 2, its phone-factor divisor about 20 800 instead of 41 000; the source grows by 418 KB and
+the web engine worker by 334 KB (239 KB gzipped, measured on `:web:app:site`). Not measured on the test family, on a
+phone or by a human: whether the owner's kill-hunting play still beats it is open. A future retrain trains three seeds,
+not one, and may use the auxiliary heads.

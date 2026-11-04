@@ -123,7 +123,8 @@ class LearnedNetTest {
         // Strength 10's hand parts beside the net carry them too, not part A's 3v3 knobs (5–9 do).
         val v08 = AiPlayers.TUNED.copy(pushPerAttackBySize = emptyMap(), defenselessBySize = emptyMap())
         val profile = AiPlayers.profile(10)
-        assertThat(profile.learned).isEqualTo(EvalSource.LEAVES)
+        // Since v0.14 (ADR-060) the nets also score its one-ply looks inside playouts.
+        assertThat(profile.learned).isEqualTo(EvalSource.EVERYWHERE)
         assertThat(profile.knobs).isEqualTo(v08)
         assertThat(AiPlayers.profile(9).knobs).isEqualTo(AiPlayers.TUNED)
         // The net's inputs score the same whatever team-size knobs a hand evaluation carries.
