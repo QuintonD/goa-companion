@@ -93,14 +93,21 @@ internal data class LevelProfile(
 
 /**
  * How a kill-hunting player weighs the board, relative to the symmetric evaluation: its own heroes'
- * exposure × [selfExposure], the enemy heroes' × [enemyExposure], the enemy's Life counters × [enemyLife].
+ * exposure × [selfExposure], the enemy heroes' × [enemyExposure], the enemy's Life counters × [enemyLife],
+ * and its own heroes' other terms × [ownTerms] (the learned exploiters, AI.md "Stream D"; empty = none).
  */
-internal data class Hunt(val selfExposure: Double = 0.0, val enemyExposure: Double = 2.0, val enemyLife: Double = 1.5) {
+internal data class Hunt(
+    val selfExposure: Double = 0.0,
+    val enemyExposure: Double = 2.0,
+    val enemyLife: Double = 1.5,
+    val ownTerms: Map<Term, Double> = emptyMap(),
+) {
     fun knobs(base: EvalKnobs, own: Team): EvalKnobs {
         val enemy = if (own == Team.RED) Team.BLUE else Team.RED
         return base.copy(
             exposureByTeam = mapOf(own to selfExposure, enemy to enemyExposure),
             lifeByTeam = mapOf(enemy to enemyLife),
+            termsByTeam = if (ownTerms.isEmpty()) base.termsByTeam else mapOf(own to ownTerms),
         )
     }
 }

@@ -932,6 +932,134 @@ on, three threads, 3v3, 6 games, 2026-10-31): card play 143 / 303 / 982 ms (mean
 423 ms, work per card play 5 526 / 9 669 / 15 354, 25.9 ms per 1 000 answers; at the assumed 3–4× a card play is
 0.43–0.57 / 0.91–1.21 / 2 s (capped).
 
+## Stream D: a per-hero bench, per-hero scales, learned exploiters (v0.14, ADR-063)
+
+The aim: every hero strong at strength 10, measured hero by hero, and opponents for it that are found by search
+rather than made by hand. Built in test sources apart from two generic fields of `EvalKnobs`; strength 1–10
+answers are unchanged (no profile sets them).
+
+**The bench** (`HeroBenchTest`, `AI_BENCH=a:b`, `HeroRating`, `Teams.seating`). Mirrored pairs on a line-up family,
+every hero seated equally often, or with `AI_SEAT=<hero>,…` one chosen hero in every line-up (its seat and side
+drawn). The rating fit is a logistic model of each game's result over the seats:
+P(Red wins) = σ(side + coin + Σ_Red (θ_h + [a plays Red](α + δ_h)) − Σ_Blue (…)), so a hero's strength θ_h is read
+with its team-mates, enemies, side and coin held apart, and α + δ_h is what side a gains over side b when it plays h.
+Ridge 1 (logits) on θ and δ; only contrasts are identified, so θ is printed against the mean hero and the side's gain as
+α + mean δ, with intervals from the inverse Hessian. The raw uplift (a's win rate with the hero less b's) is printed
+beside it from the same games.
+
+**The round's baseline** (`D:\.goa-qa\v14\d\bench-baseline.txt`): s7 over s5 as the proxy, because s10 at the phone's
+work costs about 40 s a game on three threads here and the bench needs 8 192 games (about 90 hours); s7 over s5 took
+2 h 30. 3v3, tune family line-ups 0–4 095, every hero in about 1 530 games (765 a side), so the raw uplift's interval
+is ±4 points. s7 won 6 614–1 578, 80.7% (pairs 79.9–81.6%), 1.21 heroes lost a game against 2.00.
+
+| | Lowest | Highest |
+|-|--------|---------|
+| θ, Elo per seat against the mean hero (±31–40) | NebKher −107, Whisper −72, Tigerclaw −68, Razzle −68, Swift −59, Mortimer −58, Gydion −56, Trinkets −55 | Brogan +113, Ignatia +98, Sabina +83, Silverarrow +83, Rowenna +76, Xargatha +75 |
+| s7's gain per seat, α + δ_h, Elo (±50; the mean +94 ± 4) | Gydion +15, Bain +25, Cutter +36, Ignatia +40, Silverarrow +43 | Emmitt +185, Takahide +150, Mortimer +143, Brogan +141, Widget +140 |
+| Raw uplift, points (±4) | Gydion +54.8, Bain +57.1, Ignatia +57.1, Silverarrow +57.7, Cutter +58.4, Trinkets +58.5 | Emmitt +67.8, Takahide +66.1, Tali +65.7, Wuk +65.6, Brynn +65.3 |
+
+The hero ratings agree with the stored-games analysis of 2026-11-03 at the bottom (NebKher, Tigerclaw, Swift, Gydion,
+Trinkets) and at the top (Brogan, Rowenna); Whisper and Razzle are new among the lowest. Gydion is the one hero the
+searching strengths barely lift over s5 (a third of the mean gain): the strength that reads more does not read his
+spellbook better. The integrator reruns the bench on the final player (s10 over s8 if the time is there).
+
+**Per-hero scales** (`EvalKnobs.heroScales`, the variant key `h.<hero>.<TERM>=<scale>`, `table=<file>`). For a hero
+id, multipliers of the terms that concern that hero (coins, levels, counters, hand, hand rating, presence, minion
+opportunity, exposure, its own pieces), applied where `Evaluator` scores that hero, on either team, in `heroTerms`, in
+`placement` (the static policy's and the one-ply looks' moves) and in the pieces term. A hero not in the table gets
+no multiplication at all, so its numbers keep their bits (`HeroScalesTest`); the net's features use their own frozen
+knobs and never see it.
+
+**Tuning on wins: NTBEA** (`Ntbea`, `AI_TUNE=<hero>:s7`; Lucas, Liu and Perez-Liebana 2018). A point is one value per
+term; every reward (one mirrored pair seating the hero, 0 to 1) updates the statistics of its 1-tuples, 2-tuples and
+the whole point; the search moves to the neighbour with the best mean upper bound (exploration 1, 50 neighbours).
+Each hero: 100 evaluations of 3 pairs (600 games, about 20 minutes at s7), terms exposure, presence, opportunity,
+hand rating, pieces, levels (Gydion also counters). A first run on six values a term (0.25–3) for Trinkets spread
+600 games over 46 656 points and averaged 0.500: every 1-tuple within noise. From then on three values (0.5, 1, 2), and
+the recommendation reported two ways: NTBEA's (the point best by its 1- and 2-tuple means) and a sparse one (a term
+changes only where its value's 1-tuple mean beats 1.0's by at least one standard error of the difference). Every
+sparse row was then played against s7 on fresh line-ups seating the hero (`AI_SEAT`, line-ups 100 000 on), SPRT 0.55:
+
+| Hero | NTBEA's games averaged | Sparse row | Against s7 on fresh line-ups | Heroes lost a game (s7's) | Kept |
+|------|------------------------|------------|-------------------------------|----------------------------|------|
+| Trinkets | 0.476 | exposure × 0.5 | 104–120, 46.4% (pairs 40.8–52.1%), H0 after 224 | 1.52 (1.46) | no |
+| NebKher | 0.533 | exposure × 0.5, hand rating × 2 | 171–181, 48.6% (43.8–53.3%), H0 after 352 | 1.53 (1.64) | no |
+| Tigerclaw | 0.480 | exposure × 0.5, hand rating × 2 | 87–105, 45.3% (38.7–51.9%), H0 after 192 | 1.75 (1.57) | no |
+| Swift | 0.482 | opportunity × 0.5, pieces × 2, presence × 0.5 | 189–195, 49.2% (44.5–53.9%), 384, undecided | — | no |
+| Gydion | 0.465 | hand rating × 2 | 23–41, 35.9% (26.0–45.8%), H0 after 64 | 1.77 (1.41) | no |
+| Whisper | 0.508 | none (no term one standard error better) | — | — | — |
+| Razzle | 0.513 | opportunity × 2, hand rating × 2 | 207–177, 53.9% (49.5–58.3%), 384, undecided; 192 more line-ups 194–190, 50.5% (45.6–55.5%); together 52.2% of 768 | 1.63 / 1.71 (1.78 / 1.59) | no |
+| Control: every hero's exposure × 0.5 (`xEXPOSURE=0.15`) | — | — | 86–106, 44.8% (38.3–51.3%), H0 after 192 (general tune line-ups) | 1.89 (1.46) | no |
+
+No row held, so none went to strength 10 and no table ships. What this says: at s7 one hero's scales move a 3v3 game
+by less than 600 games can see (the 1-tuple means spread 0.40–0.58 around the noise of ±0.07), so the search picks
+the luckiest corner and fresh games take it back. Exposure × 0.5 came up for three of the five, but the control shows
+it is not a general want either (less caution loses heroes: 1.89 against 1.46 a game). Strength 10 would see even less
+of a row, because its playout ends are judged by the net, whose per-hero part is already a learned table. Per-hero
+knowledge that pays is the net's job (stream A), not a hand-tuned multiplier.
+
+**Learned exploiters** (AlphaStar's league idea; `HeroBenchTest`, `AI_EXPLOIT=<base>:<opponent>`, `HeroBenchTest.EXPLOIT_DIMS`).
+The same NTBEA over a strength-10 side's knobs, against `s10+work=15500` with the same work on both sides: the `Hunt` taste
+(none, 0.5/1.5/1.3, 1/2/1.3, 0.5/2/1.6, 1/3/1.6, 0/2/1.5), focus fire, exposure × 0.15 / 0.3 / 0.6, Life × 1 / 1.5 / 2,
+temperature 0.05 / 0.15 / 0.3, the net or the hand evaluation at the playout ends, its own heroes' presence and
+opportunity × 0.5 / 1 / 2 (`own.<TERM>=`, `Hunt.ownTerms` through `EvalKnobs.termsByTeam`), kill tempo 5 / 10 / 20.
+40 evaluations of 3 pairs, tune line-ups 20 000 on, 240 games in 2 h 40. The variants averaged 0.392: strength 10 at the
+phone's work is hard to beat by changing its taste. The 1-tuple means (evaluations of 3 pairs):
+
+| Knob | Values (mean reward, evaluations) |
+|------|-----------------------------------|
+| Life counters | × 1: 0.320 (12), × 1.5: 0.320 (12), **× 2: 0.500 (16)**, the only one more than a standard error better than as is |
+| Playout ends | net 0.478 (23), hand evaluation 0.276 (17) |
+| Exposure | × 0.15: 0.433 (15), 0.3: 0.417 (12), 0.6: 0.322 (13) |
+| Own heroes' presence | × 0.5: 0.290 (11), 1: 0.455 (11), 2: 0.416 (18) |
+| Kill tempo | 5: 0.430 (12), 10: 0.441 (14), 20: 0.311 (14) |
+| `Hunt` | none 0.429 (7), the five tastes 0.333–0.417 (4–8 each) |
+
+The suite (`ExperimentTest` / `TeamTournamentTest` strings in `HeroBenchTest.EXPLOITERS`): NTBEA's sparse pick, its own
+pick, and the best point without a `Hunt`, each against `s10+work=15500` on 48 fresh tune line-ups (30 000 on, 96 games),
+the games stored for a later net:
+
+| Exploiter | Wins | Rate | Games interval | Pairs interval | Heroes lost / taken a game | With no card to defend (its / s10's) | How it won (push / Throne / Life) | How s10 won |
+|-----------|------|------|----------------|----------------|----------------------------|---------------------------------------|-----------------------------------|-------------|
+| `life`: `s10+work=15500+xLIFE=2` | 53–43 | 55.2% | 45.3–64.8% | 49.3–61.2% | 1.89 / 1.99 | 63 / 61 | 25 / 12 / 16 | 18 / 10 / 15 |
+| `hunter`: `s10+work=15500+hunt=0/2/1.5+focus=true+xLIFE=2+temp=0.05+tempo=10` | 45–51 | 46.9% | 37.2–56.8% | 37.1–56.6% | 2.43 / 2.17 | 70 / 76 | 15 / 8 / 22 | 10 / 6 / 35 |
+| `bold`: `s10+work=15500+xEXPOSURE=0.15+xLIFE=2+own.PRESENCE=2+tempo=10` | 48–48 | 50.0% | 40.2–59.8% | 41.8–58.2% | 2.05 / 1.90 | 62 / 63 | 19 / 9 / 20 | 20 / 8 / 20 |
+
+None beats strength 10 clearly. The hunter is the bloodiest game in the suite (4.6 heroes a game, 57 of 96 games
+ended on Life counters) and loses the trade; the old hand-made `Hunt` with hand-evaluation leaves scored lowest of
+all in the search. `life` is a symmetric change of strength 10's hand parts, so it is also a candidate for strength
+10 itself. On 96 further fresh line-ups (40 000 on), SPRT 0.55: 99–93, 51.6% (44.5–58.5%; pairs 49.3–53.8%,
+counts 1/0/91/0/4), H0 after 192 games; heroes lost a game 1.67 against 1.71. Over all 288 games 52.8%, so it is not
+kept: strength 10's taste is already near what the search can find at the phone's work. 91 of those 96 pairs split
+1–1: between two strength-10 players with the same work, the line-up decides most games.
+
+**Reproduce** (Git Bash, 3 threads, the env of "Measuring"; add `AI_HEAP=4g`):
+
+```
+AI_BENCH='s7:s5' AI_N=2048 AI_FIRST=0 AI_FAMILY=tune   # then AI_FIRST=2048; --tests '*HeroBenchTest'
+AI_BENCH_FIT=D:/.goa-qa/v14/d/bench-s7-s5.games       # refit stored bench games
+AI_TUNE='nebkher:s7' AI_TUNE_VALUES=0.5,1.0,2.0 AI_TUNE_ITER=100 AI_TUNE_PAIRS=3 AI_FAMILY=tune   # Gydion: AI_TUNE_TERMS=…,COUNTERS
+AI_TEAMS='s7+h.nebkher.EXPOSURE=0.5+h.nebkher.HAND_RATING=2.0:s7' AI_SEAT=nebkher AI_FIRST=100000 AI_N=192 AI_SPRT=0.55 AI_FAMILY=tune   # --tests '*TeamTournamentTest'
+AI_EXPLOIT='s10+work=15500:s10+work=15500' AI_TUNE_ITER=40 AI_FIRST=20000 AI_STORE=<games.jsonl> AI_FAMILY=tune
+AI_TEAMS='@life:s10+work=15500' AI_FIRST=30000 AI_N=48 AI_STORE=<games.jsonl> AI_FAMILY=tune   # @hunter, @bold
+```
+
+Each command is `./gradlew :core:game:jvmTest --tests '<test>' --rerun --no-configuration-cache` with those
+variables. The NTBEA logs (every evaluation, the 1-tuple table, both recommendations) are in `D:\.goa-qa\v14\d\`.
+
+**Tried and dropped in stream D:**
+
+| Candidate | Result | Why dropped |
+|-----------|--------|-------------|
+| Per-hero rows for Trinkets, NebKher, Tigerclaw, Swift, Gydion, Razzle (s7 screen, fresh line-ups seating the hero) | 46.4%, 48.6%, 45.3%, 49.2%, 35.9%, 52.2% (768) | None better; nothing went to s10 |
+| NTBEA on six values a term (0.25–3), Trinkets | 600 games averaged 0.500, no 1-tuple outside the noise | Too many points for the signal; three values after |
+| Every hero's exposure × 0.5 at s7 (`xEXPOSURE=0.15`), the control | 44.8% (pairs 38.3–51.3%), H0 | Loses heroes (1.89 against 1.46 a game) |
+| Life counters × 2 in strength 10's hand parts (`xLIFE=2`) | 55.2% (96), then 51.6% (192, H0); 52.8% of 288 | Not confirmed |
+| The exploiters as opponents worth fearing | 46.9–55.2% against s10 | Strength 10 holds; kept as a suite for data |
+
+Stored games (`LearnedSelfPlayTest`'s `GameRecord`, replayable): `D:\.goa-qa\v14\d\exploit-search-games.jsonl` (240,
+the search), `exploiter-suite-games.jsonl` (288, the suite), `life2-confirm-games.jsonl` (the confirmation).
+
 ## The coach
 
 `nudge` runs Hard-level playouts (6 / 4 samples, end-of-turn horizon) on copies determinized from
@@ -1079,7 +1207,8 @@ Read from game logs over all 32 heroes (`GameLogTest`, `UsageTest`, 2026-10-24).
   card-kill (strip, then hit, after the playouts' horizon). In 3v3 the defenseless floor cuts those
   losses by about a third; in 4v4 it is not measured and off. The AI does not set such kills up
   itself, keep a defender back for a teammate, or count which enemy acts after a discard. No
-  style the engine can play (the `Hunt` exploiters) beats strength 10, so how a human beats it is
+  style the engine can play (the `Hunt` exploiters, and since v0.14 the learned exploiter suite of stream D:
+  46.9–55.2% over 96 games, none confirmed) beats strength 10, so how a human beats it is
   still read only from the owner's report; the numbers here are AI against AI.
 - **The net trades heroes for the lane (v0.9, less since v0.10):** v0.9's net won mostly by pushing and
   lost more heroes than v0.8's 10 did (3v3 1.98 against 1.29 a game, "The two parts together"). v0.10's
@@ -1146,5 +1275,6 @@ Read from game logs over all 32 heroes (`GameLogTest`, `UsageTest`, 2026-10-24).
 | `FingerprintTest`, `CrashReproTest` | Opt-in (`AI_FINGERPRINT=<variant>:<games>`, `AI_REPRO=<dump>\|<variant>\|<seed>`): a hash of every answer of deterministic games (a change meant only to be faster must keep them); a crashed game's decision asked again from its dump |
 | `LearnedNetTest` | The checked-in weights load and were trained on these features (`Features.SCHEMA_HASH`, input count); the board inputs name real piece kinds and the tables real heroes and cards; a piece reaches the net per kind, seen from both sides; the net's inputs and strength 10's hand parts keep the knobs it was trained with (`Features.KNOBS` / `SCALES`, `TUNED_WITH_NET`; leaf scores do not move with part A's 3v3 knobs, which do move the hand evaluation); swapping the teams negates the score; mirrored openings give mirrored features except the board-dependent ones; an evaluation costs far less than a playout (prints µs per position) |
 | `LearnedSelfPlayTest`, `LearnedTrainTest`, `TeamTournamentTest`, `LearnedTimingTest` | Opt-in (`AI_SELFPLAY`, `AI_TRAIN`, `AI_TEAMS`, `AI_LTIMING`): self-play data at any team size, training (Learned evaluation, "How to retrain"), mirrored tournaments of any variant (`learned=`, `net=<name>` or `net=v09` on top of `ExperimentTest`'s keys) at any team size on the train / tune / test line-up families (`AI_BATCH=<n>` prints the running score every n line-ups), decision times at any team size |
+| `HeroBenchTest`, `HeroScalesTest` | Opt-in bench and tuners (`AI_BENCH=a:b` with `AI_SEAT`, `AI_BENCH_FIT=<games>`, `AI_TUNE=<hero>:<base>`, `AI_EXPLOIT=<base>:<opponent>`, ADR-063, "Stream D"); the per-hero table changes nothing for a hero it does not know and scales only its hero's parts, on either team |
 | `BlindSpotTest`, `UpgradeTableTest` | Opt-in (`AI_BLIND=<variant>:<games>`, `AI_UPGRADES=<games>`): which questions the search cannot tell apart, per hero and question; the value of each level-up choice from games played with `AI_EPS_UPGRADE` (ADR-049) |
 | `FitTest`, `BlunderTest` | Opt-in (`AI_FIT=<games>:<strength>`, `AI_BLUNDERS=<strength>:<games>`, `AI_FORMAT`): the evaluation's parts fitted to self-play outcomes (above); plays a decent player would call blunders, judged on the real game — a defense declined or too weak while one would hold, an action that defeats an enemy hero passed over, a move into a defeat another destination avoided |
