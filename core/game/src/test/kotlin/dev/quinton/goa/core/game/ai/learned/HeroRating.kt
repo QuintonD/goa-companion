@@ -9,11 +9,11 @@ import kotlin.math.sqrt
 
 /**
  * The per-hero bench's rating fit (ADR-063, AI.md "Stream D"): a logistic model of who wins a game from
- * the seats, P(Red wins) = σ(side + coin + Σ_Red (θ_h + [a plays Red] δ_h) − Σ_Blue (θ_h + [a plays Blue] δ_h)).
- * θ_h is how strong hero h is with these players (team-mates, enemies, side and coin controlled); δ_h is
- * what side a gains over side b when it plays h (its uplift, per seat). Ridge [ridge] on θ and δ (a prior
- * of N(0, 1/ridge) in logits) fixes θ's common level and steadies rare heroes; intervals from the inverse
- * Hessian (normal approximation).
+ * the seats, P(Red wins) = σ(side + coin + Σ_Red (θ_h + [a plays Red] (α + δ_h)) − Σ_Blue (θ_h + [a plays Blue] (α + δ_h))).
+ * θ_h is how strong hero h is with these players (team-mates, enemies, side and coin controlled); α is what
+ * side a gains over side b per seat, and α + δ_h what it gains when it plays h (that hero's uplift). Ridge
+ * [ridge] on θ and δ (a prior of N(0, 1/ridge) in logits) fixes θ's common level and draws a rare hero's
+ * uplift towards α; intervals from the inverse Hessian (normal approximation).
  */
 internal object HeroRating {
     /** One game: the line-up, whether side a played Red, whether Red had the coin, Red's points (1, ½, 0). */
@@ -40,7 +40,19 @@ internal object HeroRating {
 
     class Row(val hero: String, val games: Int, val theta: Double, val thetaSe: Double, val delta: Double, val deltaSe: Double)
 
-    class Fit(val rows: List<Row>, val side: Double, val sideSe: Double, val coin: Double, val coinSe: Double, val games: Int)
+    class Fit(
+        val rows: List<Row>,
+        val side: Double,
+        val sideSe: Double,
+        val coin: Double,
+        val coinSe: Double,
+        val arm: Double,
+        val armSe: Double,
+        val data: List<Game>,
+        val heroes: List<String>,
+    ) {
+        val games: Int get() = data.size
+    }
 
     fun read(files: List<File>): List<Game> = files.flatMap { f -> f.readLines().filter { it.isNotBlank() }.map(Game::parse) }
 
@@ -49,7 +61,7 @@ internal object HeroRating {
         val heroes = games.flatMap { it.red + it.blue }.distinct().sorted()
         val index = heroes.withIndex().associate { (i, h) -> h to i }
         val h = heroes.size
-        val n = 2 + 2 * h
+        val n = 3 + 2 * h
         // Sparse rows: (indices, values).
         val rows = games.map { g ->
             val idx = ArrayList<Int>()
@@ -58,25 +70,27 @@ internal object HeroRating {
             v += 1.0
             idx += 1
             v += if (g.coinRed) 1.0 else -1.0
+            idx += 2
+            v += (if (g.aRed) 1.0 else -1.0) * g.red.size
             for (x in g.red) {
-                idx += 2 + index.getValue(x)
+                idx += 3 + index.getValue(x)
                 v += 1.0
                 if (g.aRed) {
-                    idx += 2 + h + index.getValue(x)
+                    idx += 3 + h + index.getValue(x)
                     v += 1.0
                 }
             }
             for (x in g.blue) {
-                idx += 2 + index.getValue(x)
+                idx += 3 + index.getValue(x)
                 v += -1.0
                 if (!g.aRed) {
-                    idx += 2 + h + index.getValue(x)
+                    idx += 3 + h + index.getValue(x)
                     v += -1.0
                 }
             }
             idx.toIntArray() to v.toDoubleArray()
         }
-        val prior = DoubleArray(n) { if (it < 2) TINY else ridge }
+        val prior = DoubleArray(n) { if (it < 3) TINY else ridge }
         val p = DoubleArray(n)
         var hess = Array(n) { DoubleArray(n) }
         for (iteration in 0 until ITERATIONS) {
@@ -104,10 +118,25 @@ internal object HeroRating {
         }
         val cov = invert(hess)
         val seated = heroes.associateWith { x -> games.count { x in it.red || x in it.blue } }
-        val out = heroes.mapIndexed { i, x ->
-            Row(x, seated.getValue(x), p[2 + i], sqrt(cov[2 + i][2 + i]), p[2 + h + i], sqrt(cov[2 + h + i][2 + h + i]))
+        // Only contrasts are identified (a common shift of every θ cancels; α trades against the mean δ),
+        // so θ is reported against the mean hero and the arm as α + mean δ, each with its variance wᵀ C w.
+        fun combo(w: DoubleArray): Pair<Double, Double> {
+            var mean = 0.0
+            var variance = 0.0
+            for (i in 0 until n) {
+                if (w[i] == 0.0) continue
+                mean += w[i] * p[i]
+                for (j in 0 until n) if (w[j] != 0.0) variance += w[i] * w[j] * cov[i][j]
+            }
+            return mean to sqrt(maxOf(0.0, variance))
         }
-        return Fit(out, p[0], sqrt(cov[0][0]), p[1], sqrt(cov[1][1]), games.size)
+        val out = heroes.mapIndexed { i, x ->
+            val theta = combo(DoubleArray(n) { j -> if (j in 3 until 3 + h) (if (j == 3 + i) 1.0 else 0.0) - 1.0 / h else 0.0 })
+            val uplift = combo(DoubleArray(n) { j -> if (j == 2 || j == 3 + h + i) 1.0 else 0.0 })
+            Row(x, seated.getValue(x), theta.first, theta.second, uplift.first, uplift.second)
+        }
+        val arm = combo(DoubleArray(n) { j -> if (j == 2) 1.0 else if (j >= 3 + h) 1.0 / h else 0.0 })
+        return Fit(out, p[0], sqrt(cov[0][0]), p[1], sqrt(cov[1][1]), arm.first, arm.second, games, heroes)
     }
 
     /** The fit as a table: heroes by rating, each with its uplift; θ and δ in logits and in Elo. */
@@ -115,10 +144,16 @@ internal object HeroRating {
         val elo = 400 / ln(10.0)
         val sb = StringBuilder()
         sb.appendLine(
-            "Hero rating fit: ${fit.games} games, $a (side a) against $b; side (Red) %+.3f ± %.3f, coin %+.3f ± %.3f logits"
-                .format(fit.side, 1.96 * fit.sideSe, fit.coin, 1.96 * fit.coinSe),
+            ("Hero rating fit: ${fit.games} games, $a (side a) against $b; side (Red) %+.0f ± %.0f, coin %+.0f ± %.0f, " +
+                "$a per seat %+.0f ± %.0f Elo").format(
+                fit.side * elo, 1.96 * fit.sideSe * elo, fit.coin * elo, 1.96 * fit.coinSe * elo,
+                fit.arm * elo, 1.96 * fit.armSe * elo,
+            ),
         )
-        sb.appendLine("θ = the hero's strength with these players (Elo per seat; a team adds three), δ = what $a gains over $b with it")
+        sb.appendLine(
+            "θ = the hero's strength with these players against the mean hero (Elo per seat; a team adds three), " +
+                "δ = what $a gains over $b with it (per seat, drawn towards the mean)",
+        )
         sb.appendLine(
             "%-12s %6s %22s %22s %18s".format("hero", "games", "θ Elo [95%]", "δ Elo [95%]", "δ ≈ points at even"),
         )
@@ -129,6 +164,34 @@ internal object HeroRating {
                     r.theta * elo, (r.theta - 1.96 * r.thetaSe) * elo, (r.theta + 1.96 * r.thetaSe) * elo,
                     r.delta * elo, (r.delta - 1.96 * r.deltaSe) * elo, (r.delta + 1.96 * r.deltaSe) * elo,
                     points(r.delta), points(r.delta - 1.96 * r.deltaSe), points(r.delta + 1.96 * r.deltaSe),
+                ),
+            )
+        }
+        sb.appendLine()
+        sb.appendLine("Raw uplift ($a's win rate with the hero less $b's, the same games; ±1.96 se):")
+        for (x in fit.heroes) {
+            var aw = 0.0
+            var an = 0
+            var bw = 0.0
+            var bn = 0
+            for (g in fit.data) {
+                val red = x in g.red
+                if (!red && x !in g.blue) continue
+                val heroPoints = if (red) g.redPoints else 1 - g.redPoints
+                if (red == g.aRed) {
+                    aw += heroPoints
+                    an++
+                } else {
+                    bw += heroPoints
+                    bn++
+                }
+            }
+            val ra = aw / an
+            val rb = bw / bn
+            val se = sqrt(ra * (1 - ra) / an + rb * (1 - rb) / bn)
+            sb.appendLine(
+                "%-12s a %5.1f%% of %d, b %5.1f%% of %d, uplift %+5.1f [%+5.1f, %+5.1f]".format(
+                    x, 100 * ra, an, 100 * rb, bn, 100 * (ra - rb), 100 * (ra - rb - 1.96 * se), 100 * (ra - rb + 1.96 * se),
                 ),
             )
         }
