@@ -1465,6 +1465,57 @@ variables. The NTBEA logs (every evaluation, the 1-tuple table, both recommendat
 Stored games (`LearnedSelfPlayTest`'s `GameRecord`, replayable): `D:\.goa-qa\v14\d\exploit-search-games.jsonl` (240,
 the search), `exploiter-suite-games.jsonl` (288, the suite), `life2-confirm-games.jsonl` (the confirmation).
 
+## v0.14 together: the measured strength 10 (ADR-064)
+
+What ships at strength 10 from the four streams: the mean of three seed nets at playout ends and in the one-ply
+looks (stream A, ADR-060) and the enemies' hands known, not the facedown card (stream C, ADR-062). Streams B and D
+ship tools and switches that are off (ADR-061, ADR-063); strengths 1–9 and the coach answer as before. Baseline:
+v0.10's strength 10 as it ships in 0.13.0, `s10+net=v10+hands=false`, which still gives v0.10's answers on the
+merged code (`FingerprintTest`, 3v3, hash 857411144). All on the **test** family, which no stream tuned or chose
+on, mirrored, scored by pairs, 95% intervals (games; pairs).
+
+The new 10 costs about 1.97× the time per engine answer (stream A's `CostTest`), so "same time" gives it half the
+work: 7 900 against 15 500 answers per card play (6 700 against 13 200 in 4v4), what the phone's 2 s cap allows
+when it binds. Most card plays on the phone do not reach the cap (below), where the "same work" row applies.
+
+| Test family | New 10 | Wins | Rate | Interval (games; pairs) | Heroes lost a game, new / old | How the new 10 won (last push / Throne / Life) | Old 10 |
+|-------------|--------|------|------|--------------------------|-------------------------------|------------------------------------------------|--------|
+| 3v3, same time | work 7 900 | 90–54 | **62.5%** | 54.4–70.0%; 55.6–69.4% (SPRT H1 after 144) | 1.73 / 1.72 | 42 / 24 / 24 | 25 / 11 / 18 |
+| 3v3, same work | work 15 500 | 68–44 | **60.7%** | 51.5–69.3%; 53.4–68.0% (SPRT H1 after 112) | 1.79 / 1.78 | 30 / 17 / 21 | 18 / 10 / 16 |
+| 2v2, same time | work 7 900 | 108–84 | 56.3% | 49.2–63.1%; 49.4–63.1% (192, undecided) | 1.02 / 0.98 | 70 / 18 / 20 | 50 / 11 / 23 |
+| 4v4 Forgotten Island, same time | work 6 700 | 110–82 | 57.3% | 50.2–64.1%; 51.2–63.4% (192, undecided) | **2.14 / 2.52** | 27 / 29 / 54 | 26 / 14 / 42 |
+
+**Against the exploiters** (each on the old 10's base, the knobs it was found with; the new 10 at the same time,
+work 7 900; 96 games each, 3v3):
+
+| Exploiter | Against v0.10's 10 (tune family) | Against the new 10 (test family) | Heroes lost a game, exploiter / new 10 |
+|-----------|----------------------------------|----------------------------------|----------------------------------------|
+| `@life` (ADR-063) | 55.2% | 39.6% (30.4–49.6%) | 1.56 / 1.85 |
+| `@hunter` (ADR-063) | 46.9% | 29.2% (21.0–38.9%) | 2.72 / 1.81 |
+| `@bold` (ADR-063) | 50.0% | 37.5% (28.5–47.5%) | 1.95 / 1.66 |
+| v0.10's kill-hunter (`s10+learned=HAND+hunt=1/2/1.3+focus=true`) | 26.0% (ADR-049, test family) | 24.0% (16.5–33.4%) | 1.77 / 1.83 |
+| The oracle (`oracle/` on the old 10, a cheat that predicts the card plays) | 60.9% (ADR-061, tune family) | 41.7% (32.3–51.7%), its guess right 88.9% | 1.40 / 1.92 |
+
+The gain is in winning, not yet in hero safety: in 3v3 the new 10 loses as many heroes as the old (1.73 against
+1.72), in 4v4 fewer (2.14 against 2.52); against the kill-hunter it wins three games in four and still loses a few
+more heroes than it takes (1.83 against 1.77; v0.10's 10 lost 2.10 against 1.70). The oracle still names the new
+10's card 88.9% of the time; it no longer wins on that alone, but it takes more heroes than it loses (1.92 against
+1.40), so being readable is still what a strong human can use, and in kills more than in results.
+
+**Time** (`TimingTest`, the production player: 2 s cap, three sample threads, 4 games; the desktop was running one
+other 3-thread tournament): 3v3 card play 256 / 477 / 1 507 ms (mean / p95 / max), moves 178 / 401 / 822 ms, 52.7 ms
+per 1 000 answers (v0.10's 10 on 2026-10-31: 143 / 303 / 982 ms, 25.9 ms). At the assumed 3–4× phone a 3v3 card play
+is ≈ 0.8–1.0 s on average and ≈ 1.4–1.9 s at p95, the slowest capped at 2 s. 4v4: 421 / 768 / 1 820 ms, so at 4× the
+slowest fifth of card plays reach the cap and search less (the "same time" row above measures that case). The
+phone factor is still an assumption: the speed measure is now version 2 (divisor about 20 800, ADR-060) and no
+phone has sent a line.
+
+**Not measured:** 10 over 9 in this round (strengths 1–9 are unchanged, `FingerprintTest`; `LevelLadderTest` is
+green); the per-hero bench at strength 10 (about 90 hours; the scorecards of the runs above are noise at their
+size); the double lane; a human. Joint team card play measured 53.6% (48.6–58.6%, 384 games) with each teammate's
+threat card and 50.0% (256) with the team kill extension on top, both against v0.10's 10 on the tune family, both
+off.
+
 ## The coach
 
 `nudge` runs Hard-level playouts (6 / 4 samples, end-of-turn horizon) on copies determinized from
@@ -1612,7 +1663,8 @@ Read from game logs over all 32 heroes (`GameLogTest`, `UsageTest`, 2026-10-24).
   card-kill (strip, then hit, after the playouts' horizon). In 3v3 the defenseless floor cuts those
   losses by about a third; in 4v4 it is not measured and off. The AI does not set such kills up
   itself, keep a defender back for a teammate, or count which enemy acts after a discard. No
-  fair style the engine can play (the `Hunt` exploiters) beats strength 10, so how a human beats it is
+  fair style the engine can play (the `Hunt` exploiters, and since v0.14 the learned exploiter suite of
+  stream D: 46.9–55.2% against v0.10's 10, 29.2–39.6% against v0.14's) beats strength 10, so how a human beats it is
   still read only from the owner's report; the numbers here are AI against AI. Since v0.14 two-hero
   kills are counted: strength 10 takes 10–15% of those a crude count sees open, and planning them
   (joint card plays, a kill extension of the playouts) did not win more games.
@@ -1621,9 +1673,6 @@ Read from game logs over all 32 heroes (`GameLogTest`, `UsageTest`, 2026-10-24).
   256 games) against it. Regret matching made it only slightly less readable (85%) and not clearly less
   exploitable ("Team play, two-turn kills and mixing").
 
-  style the engine can play (the `Hunt` exploiters, and since v0.14 the learned exploiter suite of stream D:
-  46.9–55.2% over 96 games, none confirmed) beats strength 10, so how a human beats it is
-  still read only from the owner's report; the numbers here are AI against AI.
 - **The net trades heroes for the lane (v0.9, less since v0.10):** v0.9's net won mostly by pushing and
   lost more heroes than v0.8's 10 did (3v3 1.98 against 1.29 a game, "The two parts together"). v0.10's
   loses fewer than v0.9's (3v3 1.71 against 1.96 a game, 2v2 0.91 against 1.16, 4v4 2.29 against 2.49),

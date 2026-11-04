@@ -554,6 +554,14 @@ passes (including an in-place upgrade from the morning build with real data). Ev
 - [ ] On the S25 Ultra and a real iPhone: a full online game on mobile data
 
 
+## M31 — v0.14: a stronger strength 10 (ADR-060 to ADR-064)
+- [x] Pairs scoring in the harness; four streams (net, team play, hand knowledge, tuning) in parallel worktrees — 2026-11-04, JVM tournaments only
+- [x] Strength 10: three seed nets averaged, also in the one-ply looks (ADR-060); knows the enemies' hands, not the facedown card (ADR-062)
+- [x] Measured on the test family: 3v3 62.5% at the same time (SPRT H1), 2v2 56.3%, 4v4 57.3% with fewer heroes lost; every exploiter weaker against it (ADR-064)
+- [x] Team play, per-hero scales, a learned card guess: built, measured, off (ADR-061, ADR-062, ADR-063)
+- [ ] A phone's speed line for the new measure (version 2), and a 3v3 game night against the new 10
+- [ ] Release: not cut
+
 ## M5 — Polish & release readiness
 - [x] Accessibility pass: ATF checks on 25 screens (no errors), contrast fixes, TalkBack labels, font scale 2.0 screenshots — 2026-10-17 (emulator/JVM)
 - [ ] Tablet sanity check

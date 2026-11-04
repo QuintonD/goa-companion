@@ -2682,3 +2682,30 @@ games unchanged on the JVM and Node; no profile carries a table or a team scale)
 command per player for the final hero ratings. Per-hero knowledge stays with the net's per-hero table (ADR-049):
 hand-tuned multipliers did not measure. Strength 10 at the phone's work held against every taste the search found; the
 suite is data and a yardstick for later rounds, not a stand-in for the owner.
+
+## ADR-064 — v0.14 together: strength 10 with three nets and known hands (2026-11-04)
+**Context:** The owner asked to execute the round's plan (a stronger computer with every hero, ADR-060 to 063), with
+three requirements: AI teammates should coordinate so a kill two heroes could make is not missed, the hardest
+strength should know the cards in the enemies' hands but not the one played facedown, and nothing should run on
+emulators. Four streams ran in parallel worktrees; this records what they make together.
+**Decision:**
+- Strength 10 ships the mean of three seed nets, at playout ends and in the one-ply looks (ADR-060), and knows the
+  enemies' hands (ADR-062). Strengths 1–9 and the coach answer as before.
+- Team play (joint card plays, the team kill extension, regret matching; ADR-061) and the per-hero scales (ADR-063)
+  stay as switches that are off: none beat strength 10. Two more joint variants measured during integration, with
+  each teammate's threat card (53.6%, 48.6–58.6%, 384 games) and with the kill extension too (50.0%, 256), are off.
+- The harness scores mirrored games by pairs (the pentanomial interval and SPRT, `Tournament.Sprt.verdict(score)`):
+  on the v0.10 logs it needs 17–21% fewer games for the same precision.
+**Measured** on the test family against the 0.13.0 strength 10 (`s10+net=v10+hands=false`), at the same time (the
+new 10 at half the work: it costs 1.97× per answer): 3v3 62.5% (54.4–70.0%, SPRT H1 after 144 games), at the same work
+60.7% (H1 after 112); 2v2 56.3% (49.2–63.1%, 192); 4v4 57.3% (50.2–64.1%, 192) with 2.14 heroes lost a game against
+2.52. Against stream D's exploiters 39.6%, 29.2% and 37.5% for them (they made 55.2%, 46.9% and 50.0% against the old
+10), against v0.10's kill-hunter 24.0% for it; the oracle, which names the new 10's card 88.9% of the time, 41.7%
+(32.3–51.7%, 96) where it made 60.9% against the old, though it takes more heroes than it loses (1.92 against 1.40). Card plays at 3v3 take 256 / 477 / 1 507 ms (mean /
+p95 / max) on the desktop with the 2 s cap and three threads, about twice v0.10's. AI.md "v0.14 together".
+**Consequences:** The coordination the owner asked for is built and measured, and does not win more games yet: by a
+crude count strength 10 takes 10–18% of the two-hero kills it has, with or without the joint plan. At a 3–4× phone a
+3v3 card play waits about 1 s on average where it waited about 0.5 s; 4v4's slowest fifth reach the 2 s cap. The web
+worker grows by 334 KB (239 KB gzipped). Not measured: 10 over 9, the per-hero bench at strength 10, a phone's speed,
+a human game. Nothing here ran on an emulator or a device.
+
