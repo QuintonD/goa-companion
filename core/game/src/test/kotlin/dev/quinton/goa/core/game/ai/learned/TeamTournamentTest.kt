@@ -31,7 +31,8 @@ class TeamTournamentTest {
             val (a, b) = pair.split(":")
             val t0 = System.nanoTime()
             val seat = System.getenv("AI_SEAT")?.split(",")
-            val specs = if (seat == null) Teams.specs(n, size, family, first) else Teams.seating(n, size, family, seat, first)
+            val specs =
+                if (seat == null) Teams.specs(n, size, family, first) else Teams.seating(n, size, family, seat, first)
             val store = System.getenv("AI_STORE")?.let(::File)
             // AI_KILLS=1: each side's team kills open and taken, the kill extension's rate, work per card play
             // (ADR-061).
