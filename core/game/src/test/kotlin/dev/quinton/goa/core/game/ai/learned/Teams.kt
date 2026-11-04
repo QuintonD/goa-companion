@@ -91,7 +91,11 @@ internal object Teams {
             val every = System.getenv("AI_BATCH")?.toIntOrNull() ?: if (sprt == null) specs.size else SPRT_BATCH
             for (batch in specs.chunked(every.coerceAtLeast(1))) {
                 playBatch(a, b, batch, pool, score)
-                if (every < specs.size) println("TEAMS so far $score")
+                if (every < specs.size) {
+                    println("TEAMS so far $score")
+                    // AI_PROGRESS_FILE: the running score to watch a long run (Gradle prints it at the end).
+                    System.getenv("AI_PROGRESS_FILE")?.let { java.io.File(it).appendText("TEAMS so far $score\n") }
+                }
                 if (sprt != null && sprt.verdict(score) != Tournament.Sprt.Verdict.GOING_ON) break
             }
         } finally {
