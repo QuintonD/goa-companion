@@ -2527,3 +2527,43 @@ new tab, `rel="noopener"`, through `ListRow(href = …)`). Nothing is locked beh
 **Consequences:** The app stays free and unchanged for anyone who doesn't give. Taking money near Wolff Designa's assets
 leans on "non-commercial": the row is worded as a coffee for the maker, never as payment for the game's content, and
 ADR-034's permission note stands. The About and Settings screenshot baselines are re-recorded.
+
+## ADR-061 — Team play: joint card plays, two-turn team kills and mixed card plays, measured (v0.14 stream B, 2026-11-04)
+**Status:** accepted.
+**Context:** The owner beats strength 10 by hero kills and pushes in 3v3 and bigger, and asked for "coordination between
+players ... assuming everyone is playing for optimal results (game theory) and thus a free kill could be missed even if
+two characters together could secure it". Each AI seat searched its own card with teammates playing their static card in
+the playouts; kills set up over two turns were not planned (AI.md "Known weaknesses"); STRATEGY §4.2's regret matching
+was never built. AI teammates may plan aloud before the reveal (p.4; STRATEGY §0 point 5).
+**Decision:** Build all three as `LevelProfile` knobs and keep only what measures better at the phone's work. None did,
+so no strength turns any on and every strength answers as before.
+1. Joint team card play (`joint=N`): the own card times the best N cards of each AI teammate still to play this turn,
+   played out together on every sample, sharing the same work budget; we play our part of the best plan. Recomputed by
+   each seat, nothing stored.
+2. Team kills across the horizon (`TeamKills`, `kill=1|2`): when a card-play playout ends its turn and either team can
+   kill an enemy hero on the next turn with more attackers in reach than the target will hold cards (printed values
+   only, nothing named), the playout runs on through that turn with the attackers playing their kill cards.
+3. Mixed card plays by regret matching (`rm=x`): a restricted Nash response over our cards and the enemy cards the
+   samples played, the enemy best-responding with weight x; we draw from the mix instead of the softmax.
+4. Tests only: the oracle exploiter (`oracle/<variant>`), which predicts the enemy's card plays by running a copy of
+   the enemy's own player on the real game, and `AI_KILLS=1`, which counts the team kills open and taken.
+**Evidence (3v3, tune line-ups, mirrored, `work=15500` on both sides; AI.md "Team play, two-turn kills and mixing"):**
+joint play 49.5% (42.5–56.5%, 192 games, undecided); the kill extension 46.0% (38.8–53.4%, 176, SPRT H0) for 17% more
+work per card play; regret matching 49.5% (42.5–56.5%, 192), losing 1.56 heroes a game against 1.79. The oracle, which
+knows strength 10's card plays before the reveal 88.9% of the time, beat it 60.9% (54.8–66.7%, 256 games); against
+regret matching it named 85.0% and won 55.5% (49.3–61.4%, 256), a difference of 5.5 points (−2.7 to +13.7) from the
+mirrored pairs: not clearly less exploitable, so regret matching is dropped too. Strength 10 takes 10–15% of the
+two-hero kills a crude count sees open, about a third of the one-hero ones; the kill extension took 17.3% against 15.1%
+in the same games and still did not win more.
+**Alternatives:** A nested joint search inside every extended playout (several times the playout's cost); a tree over
+the team's choices (ISMCTS); `kill=2`, `jointThreat`, other mixing weights: built or one word away, not played for lack
+of compute.
+**Consequences:** Strength 10 is unchanged (`FingerprintTest`: strength 10 in two 3v3 games, 9 in one, 7 in two 2v2
+games, hashes equal at e69a3c54 and at this branch). Strength 10 is measurably exploitable by a player who reads its
+card plays (about +75 Elo for perfect reading); mixing that keeps its strength is the open lever, and the knobs, the
+oracle and the kill counter stay in the code to try the next variants (`rm=1`, `kill=2`, `jointThreat`) as one-word
+changes. The owner's concern is answered with numbers but not fixed: most two-hero kill chances are still not taken, and
+the attempts this round made did not turn them into wins. Nothing here ran on a device or an emulator; all of it is JVM
+tournaments.
+
+---

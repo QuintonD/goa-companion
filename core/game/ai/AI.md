@@ -21,6 +21,7 @@ plays as the level's strength (Easy 2, Normal 6, Hard 8, Expert 10, ADR-039).
 | `CardProfile.kt` | Per-card numbers the heuristics need (attack, reach incl. "Before the attack: Move N", discard-or-defeat, blocks, a rating), read once from the catalog; nothing hero-specific |
 | `Features.kt`, `LearnedEval.kt`, `LearnedWeights.kt` | The learned evaluation (below): team-size invariant features of a state, the net with its per-hero and per-card parts (`LearnedNet`, `NetEvaluator`, `PositionEvaluator`, `EvalSource`) and its generated weights (`LearnedCodec`: Base64 floats) |
 | `AiCoach.kt` | `AiCoach(factory)`: `nudge` (Hard-level analysis from the human team's view) with `Explainer`, `prepare` (the same analysis before the answer); `turningPoints` with `TurningPoint`; `suggest`, `review` |
+| `TeamKills.kt`, `RegretMatching.kt` | Team kills a side could make next turn, read from printed values; mixed card plays by regret matching (ADR-061, "Team play, two-turn kills and mixing": built, on no strength) |
 | `CoachFacts.kt`, `CoachSuggest.kt`, `CoachReasons.kt`, `LineBuilder.kt`, `ThreatFinder.kt`, `RoundPlanner.kt`, `CoachReviewer.kt`, `WinChance.kt` | Suggestions and the post-game review (ADR-051, "The coach") |
 | `engine/Determinizer.kt` | Samples hidden information (below) |
 
@@ -499,6 +500,8 @@ on it; `AiCoach` sets `learned = HAND`).
 ### Departures from STRATEGY.md §4.2, and why
 
 - **Round planning** (Expert beam search over the card order to turn 4, regret matching): not built.
+  Regret matching was built in v0.14 and measured equal to the softmax, but not clearly less exploitable
+  ("Team play, two-turn kills and mixing"), so no strength uses it.
   Playouts to the end of the *next* turn measured worse than to the end of this one, before v0.7
   (39–44% against Hard, 36 games each) and again with the tuned evaluation (37.5%, 128 games against
   Expert), because the later turns are played by rules of thumb. The round plan lives in the static
@@ -516,7 +519,8 @@ on it; `AiCoach` sets `learned = HAND`).
   Red bias). Playing the upgrade choice out through the new round's first turn measured no better
   (49.0%, 192 games at Hard), nor did a learned per-hero table (50.6%, 1 000 games, ADR-049).
 - **Team play**: AI teammates share the evaluation (so they rarely block each other or chase the same
-  minion), but there is no explicit focus-fire plan and no "I'll take the minions" log line.
+  minion), but there is no explicit focus-fire plan and no "I'll take the minions" log line. A joint
+  card play of the team (v0.14) measured even and is off ("Team play, two-turn kills and mixing").
 - **Tried over all 32 heroes and dropped** (before v0.7, Hard vs Hard, 192 mirrored games each): a
   charge of 1 or 2 for a card played only to hold: 49% and 49%; a forced discard without a spare card
   costing 4.5 instead of 2.5: 50% (Normal 52%); Expert with mean − 0.3 sd: 63% against Hard where
@@ -932,6 +936,160 @@ on, three threads, 3v3, 6 games, 2026-10-31): card play 143 / 303 / 982 ms (mean
 423 ms, work per card play 5 526 / 9 669 / 15 354, 25.9 ms per 1 000 answers; at the assumed 3–4× a card play is
 0.43–0.57 / 0.91–1.21 / 2 s (capped).
 
+## Team play, two-turn kills and mixing (v0.14 stream B, ADR-061)
+
+The owner: "coordination between players should be possible assuming everyone is playing for optimal results (game
+theory) and thus a free kill could be missed even if two characters together could secure it." Three things were
+built to answer it, each a `LevelProfile` knob that no strength turns on, and each measured against today's strength
+10 at the phone's work (`s10+work=15500` on both sides), 3v3, mirrored, tune line-ups, `AI_SPRT=0.55` on mirrored pairs.
+**None measured better, so strength 10 plays exactly as before.** What stays is the code behind the knobs, the kill
+counter and the oracle exploiter (tests), as tools for the next round.
+
+**What was built.**
+
+- **Joint team card play** (`LevelProfile.joint`, `joint=2`; `Plan` in `Search.kt`). At a card play, every AI
+  teammate who still plays this turn (seat order, p.7) tries its best `joint` cards by static score with each of ours;
+  each such plan is played out on every sample (its card for that teammate in the playout, the static card for the
+  rest), and we play our part of the best plan: per own card, the value of its best plan. Teammates who played already
+  are fixed (their card is announced, AI.md "The determinizer"); a human teammate stays a guess. Each seat recomputes in
+  turn, nothing is stored, so a restore gives the same answer. The work budget is shared: with 20 plans for the first
+  seat of a team, a sample costs about four times as much, so the first seat gets fewer samples. `jointThreat=true`
+  also tries each teammate's best card against an enemy hero in reach (`TeamKills.threatCard`); built, not measured.
+- **Team kills across the horizon** (`TeamKills`, `LevelProfile.killExt`, `kill=1|2`). A kill a team can make on the
+  next turn with several heroes together, read from the state's printed values only: an enemy hero dies when more of
+  our heroes can hit it now (an attack whose reach, with "Before the attack: Move N", covers the distance, or a card
+  that forces a discard) than it will hold cards to defend with after its own card play (p.10, p.13, p.14). Whether
+  an Attack beats the Defense left is not asked, so it is a chance, not a certainty. When a card-play playout reaches
+  the end of its turn, the next turn is in the same round and such a chance exists for either team (`kill=1`; `kill=2`:
+  ours only), the playout runs on through that turn, each attacker playing its kill card, every other hero its static
+  card, actions as usual (one-ply looks at strength 10), and is scored there. Rather than item 1's joint search, the
+  attackers' cards are the plan: a nested joint search inside every extended playout would have cost several times
+  the playout.
+- **Mixed card plays by regret matching** (`RegretMatching`, `LevelProfile.rm`, `rm=0.5`), STRATEGY §4.2's plan. The
+  facedown play as a simultaneous game: rows our candidate cards, columns the enemy cards each sample played (the
+  determinizer's draw for enemies who played already; for enemies still to play, a draw from the opponent model in
+  this variant instead of their static best, so the columns differ); samples with the same enemy cards are one
+  column, weighted by how often the model drew it. The enemy plays the model with weight 1 − `rm` and best-responds
+  to our mix with weight `rm` (a restricted Nash response); RM+ with linear averaging, 1 000 iterations, shares under
+  3% dropped. We draw our card from the mix instead of the softmax.
+- **The oracle exploiter** (tests: `oracle/<variant>` in `TeamTournamentTest`, `Oracle.kt`, `LevelProfile.predictPlays`).
+  A cheat on purpose: at the first card play of each turn it copies the real game and runs a copy of the enemy's own
+  player (same profile, other dice: it knows how the enemy thinks, not its seed) through the enemy's card plays,
+  taking each one's most likely answer (`SearchAi.mode`); its own search then deals those cards to the enemy instead
+  of the opponent model's guesses. How much that gains measures how exploitable a predictable card play is. It counts
+  how often its predictions were the card played.
+- **Counting kills** (`AI_KILLS=1`, `KillCount`): at the start of every turn of the real game, the kills of
+  `TeamKills` open to each side, and how many of those targets that side defeated on that turn; a two-hero kill is one
+  whose target holds two cards or more. Also the share of playouts the kill extension ran on, and the work per card
+  play. Running scores now print the details too, so a run stopped by hand keeps them.
+
+**What measured** (3v3, tune line-ups, mirrored; 95% Wilson interval, then the interval from the mirrored pairs;
+"heroes lost" per game):
+
+| Candidate | Against | Games | Wins | Rate | 95% (games / pairs) | Heroes lost, candidate / other | Kept |
+|-----------|---------|-------|------|------|---------------------|--------------------------------|------|
+| Joint card play, `joint=2` | `s10+work=15500` | 192 (stopped by hand, undecided) | 95–97 | 49.5% | 42.5–56.5 / 42.3–56.6 | not recorded | no |
+| Kill extension, `kill=1` | `s10+work=15500` | 176 (SPRT H0) | 81–95 | 46.0% | 38.8–53.4 / 39.7–52.4 | 1.94 / 1.88 | no |
+| Regret matching, `rm=0.5` | `s10+work=15500` | 192 (stopped by hand, undecided) | 95–97 | 49.5% | 42.5–56.5 / 43.1–55.9 | 1.56 / 1.79 | no (below) |
+| The oracle on `s10+work=15500` | `s10+work=15500` | 128 (line-ups 0–63) | 78–50 | 60.9% | 52.3–69.0 / 52.4–69.5 | 1.47 / 2.06 | (test) |
+| The same | the same | 128 (line-ups 64–127) | 78–50 | 60.9% | 52.3–69.0 / 53.3–68.6 | 1.27 / 2.02 | (test) |
+| **The oracle against strength 10, both** | | **256** | **156–100** | **60.9%** | **54.8–66.7 / 55.2–66.7** | 1.37 / 2.04 | |
+| The oracle on `s10+work=15500` | `s10+work=15500+rm=0.5` | 128 (line-ups 0–63) | 66–62 | 51.6% | 43.0–60.0 / 43.2–59.9 | 1.60 / 1.80 | (test) |
+| The same | the same | 128 (line-ups 64–127) | 76–52 | 59.4% | 50.7–67.5 / 51.3–67.4 | 1.77 / 1.87 | (test) |
+| **The oracle against regret matching, both** | | **256** | **142–114** | **55.5%** | **49.3–61.4 / 49.6–61.3** | 1.69 / 1.84 | |
+
+At an even rate the test against 0.55 needs about 600 games to decide, more than the 384 allowed, so runs that sat
+at 50% were stopped at 192 games and the candidate dropped as "not better". How the sides won: the kill extension
+33 last pushes, 31 on Life counters, 17 Throne against 41 / 32 / 22; regret matching 50 / 25 / 20 against 55 / 23 /
+19. Per-hero scorecards (printed for every run) are at noise level with 14–18 games a hero a side.
+
+**Cost.** The kill extension ran on 16.4% of card-play playouts (97 513 of 593 543) and raised the work of a card
+play from 5 681 to 6 658 answers (+17%, inside the same `work=15500` cap, so its samples are fewer when the cap binds).
+Joint play costs about four times a sample for a team's first seat, two times for the second (with 2 teammates' 2
+cards), nothing for the last; regret matching costs no engine work (5 689 against 5 685 answers per card play; its
+solve, 1 000 iterations over at most 10 × 16 cells, was not timed on its own).
+
+**Card-play times** (`TimingTest`, production players: the 2 s cap, three sample threads, no work cap, both teams the
+same variant, 4 games each, desktop shared with three other streams, 2026-11-04), mean / p95 / max ms by the hero's
+place in its team's card-play order (`AI_TIMING_FORMAT`, `AI_TIMING_VARIANT=s10+joint=2`):
+
+| Format, player | Seat 1 | Seat 2 | Seat 3 | Seat 4 | All card plays | Work per card play mean / p95 |
+|----------------|--------|--------|--------|--------|----------------|-------------------------------|
+| 3v3, strength 10 | 157 / 410 / 1 137 | 152 / 339 / 584 | 145 / 314 / 389 | — | 151 / 334 / 1 137 | 5 146 / 8 879 |
+| 3v3, joint play | 527 / 1 155 / 2 312 | 274 / 597 / 1 070 | 138 / 284 / 431 | — | 312 / 801 / 2 312 | 11 813 / 28 848 |
+| 4v4, strength 10 | 247 / 523 / 1 354 | 237 / 504 / 734 | 233 / 504 / 728 | 229 / 472 / 733 | 237 / 504 / 1 354 | 7 658 / 12 971 |
+| 4v4, joint play | 1 438 / 2 350 / 2 610 | 820 / 1 745 / 2 337 | 412 / 908 / 1 335 | 217 / 435 / 645 | 717 / 2 147 / 2 610 | 25 040 / 67 860 |
+
+Without a work cap a joint plan plays every plan on all 16 samples, so the first seat does about four times the work
+in 3v3 (5 own cards × 4 teammate combinations) and eight in 4v4 (× 8), and the cap moves the time onto it. In 4v4 its
+p95 already passes the 2 s cap on this desktop, and the cap is overshot (2.6 s) because the deadline is checked only
+between batches of three samples. At a 3–4× phone the first seat of a 4v4 team would be cut on nearly every card
+play. Kept, it would need a budget of its own; the tournaments above held it to the same work instead.
+
+**How predictable strength 10 is, and what it costs.** The oracle named strength 10's card play right 88.9% of the
+time (14 867 of 16 728) and won 60.9% of 256 games against it (54.8–66.7%), losing 1.37 heroes a game where strength 10
+lost 2.04. Knowing the enemy's cards before the reveal is worth about +75 Elo at this level, so strength 10 is
+exploitable by a player who reads it, and a human who has learned its habits is such a player. Against regret
+matching the oracle named the card right 85.0% of the time (14 705 of 17 305) and won 55.5% (49.3–61.4%). The first
+128 games said 51.6% and looked like a clear gain; the second 128 said 59.4%. The difference between the two
+opponents, from the mirrored pairs, is 5.5 points (−2.7 to +13.7): not clearly less exploitable, so regret matching
+is dropped by the rule this round set (better or equal against strength 10 **and** clearly less exploitable). It
+mixes little: with the enemy best-responding at weight 0.5 the mix still puts most of its weight on the card the
+plain search would pick (the oracle's hit rate fell only from 88.9% to 85.0%). A likely reason, not checked: the
+samples' enemy cards rarely repeat, so each column is one noisy sample and one own card tends to win most of them.
+
+**The owner's question: two-hero kills, available and taken.** Read from the same games (`AI_KILLS=1`). "Open" is
+`TeamKills`' chance at the start of a turn: more attackers in reach now than the target will have cards to defend
+with; it does not ask whether the Attack beats the Defense left, nor whether the target moves first, so it
+overstates what is really there. Per side and game, about 1.3–1.8 two-hero kills open and 1.3–1.5 one-hero kills
+(a target with at most one card left):
+
+| Side (games) | Two-hero kills open | Taken | One-hero kills open | Taken |
+|--------------|---------------------|-------|---------------------|-------|
+| Strength 10 against the kill extension (176) | 239 | 36 (15.1%) | 253 | 87 (34.4%) |
+| **The kill extension** (176, the same games) | 220 | 38 (17.3%) | 233 | 87 (37.3%) |
+| Strength 10 against regret matching (192) | 281 | 38 (13.5%) | 280 | 90 (32.1%) |
+| Regret matching (192, the same games) | 339 | 37 (10.9%) | 289 | 85 (29.4%) |
+| Strength 10 against the oracle (256) | 394 | 40 (10.2%) | 372 | 122 (32.8%) |
+| The oracle (256, the same games) | 451 | 69 (15.3%) | 372 | 125 (33.6%) |
+
+So the owner is right in the sense that most kills two heroes could try are not made: strength 10 takes 10–15% of
+the two-hero chances this crude count sees, against about a third of the one-hero ones. The kill extension, which
+plays exactly these chances out, took a few more (17.3% against 15.1% in the same games) and still did not win more:
+it lost slightly more often, and gave up as many heroes as it took. How many of the open chances were real (the
+Attack high enough, the target still there when the attack comes) was not counted.
+
+**Reading (not proven).** All three ideas reached the search through the same narrow door, the playout's card plays,
+and none changed the result: a teammate's static card and the playout's one-ply actions already make most of what a
+joint plan would (AI.md "Team sizes", suspect 4: inside a turn the kills that the evaluation sees are found), and
+what the extension adds is a second turn played by the same rules of thumb that lost in "Depth and speed". Joint
+play also halves or quarters the first seat's samples for the same work, and a maximum over noisy plans favours the
+plan its noise flatters. The oracle shows where a human's edge can come from: strength 10 plays the card its search
+likes best almost nine times in ten, and knowing it is worth about 60%. Mixing that does not cost strength is the
+lever; this solve, with one sample per column, did not mix enough to move it.
+
+**Reproduce** (Git Bash, `GRADLE_USER_HOME`, `TMP`, `TEMP` as in AGENTS.md):
+
+```
+AI_THREADS=3 AI_HEAP=4g AI_FAMILY=tune AI_SPRT=0.55 AI_N=192 AI_BATCH=8 AI_KILLS=1 AI_SCORECARD=1 \
+  AI_TEAMS='s10+work=15500+joint=2:s10+work=15500' \
+  ./gradlew :core:game:jvmTest --tests '*TeamTournamentTest' --rerun --no-configuration-cache -i
+```
+
+with `AI_TEAMS` `s10+work=15500+kill=1:s10+work=15500`, `s10+work=15500+rm=0.5:s10+work=15500`, and for the oracle
+`AI_SPRT=none AI_N=64` (`AI_FIRST=64` for the second set)
+`AI_TEAMS='oracle/s10+work=15500:s10+work=15500,oracle/s10+work=15500:s10+work=15500+rm=0.5'`. `-i` is what shows the
+running scores; without it Gradle keeps a test's output until the end.
+
+**Tried and dropped in v0.14 (stream B):**
+
+| Candidate | Result | Why dropped |
+|-----------|--------|-------------|
+| Joint team card play, 2 cards a teammate | 49.5% (42.5–56.5%, 192) | Even |
+| Kill extension through the next turn, both teams | 46.0% (38.8–53.4%, 176), SPRT H0 | Worse or even; takes slightly more two-hero kills, loses as many heroes |
+| Regret matching, the enemy free at 0.5 | 49.5% (42.5–56.5%, 192) against strength 10; the oracle wins 55.5% against it, 60.9% against strength 10 (256 each) | Equal, but not clearly less exploitable (difference −2.7 to +13.7 points) |
+| `kill=2` (our kills only), `jointThreat`, other `rm` weights (1 = minimax over the drawn columns), joint with the kill extension | Not played | Compute went to the runs above; each is a one-word variant |
+
 ## The coach
 
 `nudge` runs Hard-level playouts (6 / 4 samples, end-of-turn horizon) on copies determinized from
@@ -1079,8 +1237,14 @@ Read from game logs over all 32 heroes (`GameLogTest`, `UsageTest`, 2026-10-24).
   card-kill (strip, then hit, after the playouts' horizon). In 3v3 the defenseless floor cuts those
   losses by about a third; in 4v4 it is not measured and off. The AI does not set such kills up
   itself, keep a defender back for a teammate, or count which enemy acts after a discard. No
-  style the engine can play (the `Hunt` exploiters) beats strength 10, so how a human beats it is
-  still read only from the owner's report; the numbers here are AI against AI.
+  fair style the engine can play (the `Hunt` exploiters) beats strength 10, so how a human beats it is
+  still read only from the owner's report; the numbers here are AI against AI. Since v0.14 two-hero
+  kills are counted: strength 10 takes 10–15% of those a crude count sees open, and planning them
+  (joint card plays, a kill extension of the playouts) did not win more games.
+- **Predictable card plays (v0.14):** a player who knows which card strength 10 will play (the oracle
+  exploiter, a cheat that runs a copy of its search) names it 89% of the time and wins 60.9% (54.8–66.7%,
+  256 games) against it. Regret matching made it only slightly less readable (85%) and not clearly less
+  exploitable ("Team play, two-turn kills and mixing").
 - **The net trades heroes for the lane (v0.9, less since v0.10):** v0.9's net won mostly by pushing and
   lost more heroes than v0.8's 10 did (3v3 1.98 against 1.29 a game, "The two parts together"). v0.10's
   loses fewer than v0.9's (3v3 1.71 against 1.96 a game, 2v2 0.91 against 1.16, 4v4 2.29 against 2.49),
@@ -1140,11 +1304,12 @@ Read from game logs over all 32 heroes (`GameLogTest`, `UsageTest`, 2026-10-24).
 | `CoachSurveyTest` | The coach speaks on fewer than 15% of a weak player's decisions, on mixed line-ups (`AI_COACH_GAMES` for more games) |
 | `CoachSuggestTest` | The survey of suggestions: every sentence against the events and printed values it came from, no hidden card named (`AI_COACH_SURVEY=<games>`, `AI_COACH_SURVEY_OUT=<file>`); the defense at a hand-built attack; suggesting after a look ahead is the same as from nothing |
 | `CoachHelpTest`, `CalibrationTest` | Opt-in (`AI_COACH_HELP=4:4,4:6`, `AI_COACH_DEEP=<n>`, `AI_COACH_MARKS=<games>`, `AI_COACH_TIMING=<games>`, `AI_CALIBRATE=<games.jsonl>,…`): "The coach" |
-| `TimingTest` | Decision times per strength over mixed line-ups, the slowest heroes and the work per card play (`AI_TIMING_GAMES=8 AI_TIMING_STRENGTHS=… AI_TIMING_FORMAT=3v3` prints the tables above; `AI_TIMING_THREADS=3` with a threaded runner, `AI_TIMING_VARIANT=s10+race=3` a profile variant) |
+| `TeamPlayTest` | ADR-061: `TeamKills` finds a two-hero kill and none where the target holds a card per attacker and one to play; regret matching mixes evenly at matching pennies and plays a dominant card alone; the team-play variants answer legally and the same for the same seed (`NoPeekingTest` checks them too) |
+| `TimingTest` | Decision times per strength over mixed line-ups, the slowest heroes, card-play times by seat in the team, and the work per card play (`AI_TIMING_GAMES=8 AI_TIMING_STRENGTHS=… AI_TIMING_FORMAT=3v3` prints the tables above; `AI_TIMING_THREADS=3` with a threaded runner, `AI_TIMING_VARIANT=s10+race=3` a profile variant) |
 | `ControllerStrengthTest` | A save with only a level loads as its strength; strengths round-trip; the bands |
 | `TournamentTest`, `ExperimentTest`, `GameLogTest`, `UsageTest` | Opt-in (`AI_TOURNAMENT` / `AI_MIXED` with `AI_PAIRS=6:5,…`, `AI_EXPERIMENT=s10+samples=24:s10`, `AI_LOG`, `AI_USAGE` environment variables; `AI_FORMAT=3v3` for bigger teams, `AI_KEEP_GOING` and `AI_DUMP_DIR` for long runs, `AI_PROGRESS` a line per game; variants also `work=`, `race=`, `defenseless=`, `focus=`, `hunt=a/b/c`, `pp=`, `learned=HAND` — `s10+learned=HAND` is v0.8's 10): long tournaments between strengths (per-hero rates; `AI_GAMES=<hero>` lists the games; a failing game is reported with its line-up and seed), profile variants (any knob or `x<TERM>=` scale), one game's log (a mixed or explicit line-up; `AI_LOG_DECISIONS`, `AI_LOG_VALUES` also for defenses, `AI_LOG_LEAVES=<hero>`), each card's actions, defeats and kills per hero |
 | `FingerprintTest`, `CrashReproTest` | Opt-in (`AI_FINGERPRINT=<variant>:<games>`, `AI_REPRO=<dump>\|<variant>\|<seed>`): a hash of every answer of deterministic games (a change meant only to be faster must keep them); a crashed game's decision asked again from its dump |
 | `LearnedNetTest` | The checked-in weights load and were trained on these features (`Features.SCHEMA_HASH`, input count); the board inputs name real piece kinds and the tables real heroes and cards; a piece reaches the net per kind, seen from both sides; the net's inputs and strength 10's hand parts keep the knobs it was trained with (`Features.KNOBS` / `SCALES`, `TUNED_WITH_NET`; leaf scores do not move with part A's 3v3 knobs, which do move the hand evaluation); swapping the teams negates the score; mirrored openings give mirrored features except the board-dependent ones; an evaluation costs far less than a playout (prints µs per position) |
-| `LearnedSelfPlayTest`, `LearnedTrainTest`, `TeamTournamentTest`, `LearnedTimingTest` | Opt-in (`AI_SELFPLAY`, `AI_TRAIN`, `AI_TEAMS`, `AI_LTIMING`): self-play data at any team size, training (Learned evaluation, "How to retrain"), mirrored tournaments of any variant (`learned=`, `net=<name>` or `net=v09` on top of `ExperimentTest`'s keys) at any team size on the train / tune / test line-up families (`AI_BATCH=<n>` prints the running score every n line-ups), decision times at any team size |
+| `LearnedSelfPlayTest`, `LearnedTrainTest`, `TeamTournamentTest`, `LearnedTimingTest` | Opt-in (`AI_SELFPLAY`, `AI_TRAIN`, `AI_TEAMS`, `AI_LTIMING`): self-play data at any team size, training (Learned evaluation, "How to retrain"), mirrored tournaments of any variant (`learned=`, `net=<name>` or `net=v09` on top of `ExperimentTest`'s keys) at any team size on the train / tune / test line-up families (`AI_BATCH=<n>` prints the running score and details every n line-ups; `AI_KILLS=1` counts the team kills open and taken; `oracle/<variant>` is the oracle exploiter, ADR-061; `-i` shows the output while it runs), decision times at any team size |
 | `BlindSpotTest`, `UpgradeTableTest` | Opt-in (`AI_BLIND=<variant>:<games>`, `AI_UPGRADES=<games>`): which questions the search cannot tell apart, per hero and question; the value of each level-up choice from games played with `AI_EPS_UPGRADE` (ADR-049) |
 | `FitTest`, `BlunderTest` | Opt-in (`AI_FIT=<games>:<strength>`, `AI_BLUNDERS=<strength>:<games>`, `AI_FORMAT`): the evaluation's parts fitted to self-play outcomes (above); plays a decent player would call blunders, judged on the real game — a defense declined or too weak while one would hold, an action that defeats an enemy hero passed over, a move into a defeat another destination avoided |
