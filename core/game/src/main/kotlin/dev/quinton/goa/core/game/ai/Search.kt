@@ -80,7 +80,7 @@ internal data class LevelProfile(
     val race: Double = 0.0,
     /** Where the learned evaluation scores positions instead of [knobs]' hand one (AI.md "Learned evaluation"). */
     val learned: EvalSource = EvalSource.HAND,
-    /** The net [learned] uses; null = the checked-in one ([LearnedNet.CURRENT]). */
+    /** The net [learned] uses; null = the checked-in ensemble ([LearnedNet.ENSEMBLE], ADR-060). */
     val net: LearnedNet? = null,
     /**
      * Teammates' hands, items and facedown cards are guessed too: the coach speaks to one player, who
@@ -185,7 +185,7 @@ internal class Searcher(
     val leaf: PositionEvaluator = when {
         profile.learned == EvalSource.HAND -> ev
         profile.leafEvaluator != null -> profile.leafEvaluator.invoke(ev.data)
-        else -> NetEvaluator(ev.data, profile.net ?: LearnedNet.CURRENT)
+        else -> NetEvaluator(ev.data, profile.net?.let { listOf(it) } ?: LearnedNet.ENSEMBLE)
     }
 
     /** What scores the one-ply looks inside a playout. */

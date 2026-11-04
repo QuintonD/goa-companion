@@ -89,6 +89,9 @@ internal object Learned {
                 else -> if (v == "v09") {
                     // The frozen baseline: the strength 10 of `feature/v0.10`'s first commit (ADR-049).
                     p.copy(learned = EvalSource.LEAVES, leafEvaluator = ::BaselineV09)
+                } else if (v == "v10") {
+                    // v0.10's net alone, the baseline of ADR-060 (the first of the checked-in ensemble).
+                    p.copy(net = LearnedNet.CURRENT, learned = if (p.learned == EvalSource.HAND) EvalSource.LEAVES else p.learned)
                 } else if (v.contains('(')) {
                     // An ensemble of saved nets (ADR-060): `avg(a,b,c)`, `lcb1(a,b,c)`, `min(a,b)`.
                     p.copy(
