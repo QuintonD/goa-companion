@@ -95,6 +95,7 @@ import dev.quinton.goa.feature.board.play.review.ReviewSheet
 import dev.quinton.goa.feature.board.play.review.ReviewTab
 import dev.quinton.goa.feature.board.play.table.DecisionPanel
 import dev.quinton.goa.feature.board.play.table.DecisionWho
+import dev.quinton.goa.feature.board.play.table.EventFeed
 import dev.quinton.goa.feature.board.play.table.EventLog
 import dev.quinton.goa.feature.board.play.table.GameTable
 import dev.quinton.goa.feature.board.play.table.HeroDetail
@@ -255,6 +256,7 @@ fun GameScreen(
                                 null
                             },
                             topStrip = state.play.online?.let { online -> { OnlineStrip(online, state.play.table) } },
+                            feed = { EventFeed(state.play.log) },
                         ) {
                             Panel(state.play, onAction, focus)
                         }
@@ -283,7 +285,7 @@ fun GameScreen(
                 }
                 BoardSheet(onDismiss = close) {
                     Column(Modifier.fillMaxWidth().fillMaxHeight(SHEET_HEIGHT)) {
-                        SheetTitle("Game log", "Every event, newest at the bottom.", onDone = close)
+                        SheetTitle("Game log", "Every event, the latest first.", onDone = close)
                         EventLog(play.log, Modifier.weight(1f), at = logAt)
                     }
                 }

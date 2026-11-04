@@ -2709,3 +2709,22 @@ crude count strength 10 takes 10–18% of the two-hero kills it has, with or wit
 worker grows by 334 KB (239 KB gzipped). Not measured: 10 over 9, the per-hero bench at strength 10, a phone's speed,
 a human game. Nothing here ran on an emulator or a device.
 
+## ADR-065 — The game log reads newest first, and a fading feed shows what just happened (2026-11-03)
+**Context:** Owner: "Update the in game log so it shows the latest moves first. Lets also make it more clear what actions
+have been performed last. A fading history in a notification style". The log sheet listed every event oldest first,
+newest at the bottom; the panel's resolution flow (ADR-046) tells what happened since the person last chose, but leaves
+the actions and moves to the board, and with the panel hidden only its one-line peek remains.
+
+**Decision:** The log sheet orders by turn, the latest first, and each turn's events newest first under its heading; a
+run of headings ("Round 2 begins.", "Turn 1 of round 2.") stays together, in its own order (`newestFirst`, `core:play`).
+A review's marker still finds its line by its log index. Over the map, under the round at a glance and beside the map
+buttons, a **feed** shows each new log line as a notice (`EventFeed`, Android and web): the actions and moves too, not
+the headings, the reveal or the cards played facedown (`LogLine.notice`). The newest is on top; at most 3 at once, each
+older one dimmer, gone after 6 s; a line not to miss (`important`, `LogLine.strong`) is semibold with a bronze edge and
+stays 9 s (`FeedPacing`, shared). It shows only what happens while it is on screen: a resumed game starts empty and a
+take back clears it. It takes no taps and screen readers skip it; the existing announcement speaks.
+
+**Consequences:** The feed and the resolution flow overlap while the panel is open; the feed is brief and on the map,
+the flow is the full account. `logLines` takes the game's hero ids, for which defeats are strong. The puzzle log reads
+newest first too (the same `EventLog`); the puzzles get no feed. Screenshot baselines of the log sheet are re-recorded; the table's are unchanged (the feed
+starts empty).

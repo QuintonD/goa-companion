@@ -443,6 +443,15 @@ under that (1 and 10 have their own); TalkBack reads "Computer strength, Strengt
 Under "Advanced: a strength per seat" each computer hero gets the same slider with its name and value
 on one line and no end labels. The computer's strength also shows wherever its level did ("Computer ·
 Hard 7": the hero sheet, game over, the resume line on Boards).
+**Feed** (ADR-065; `play/table/EventFeed.kt`): over the map, under the round at a glance and beside the
+map buttons, each new log line but the headings, the reveal and the facedown plays pops in as a notice
+(10 dp corners, surfaceContainerHigh at 94%, a 1 dp outline-variant edge, bodySmall, at most 2 lines and
+300 dp wide), the newest on top, sliding down and fading in (250 ms). At most 3 at once; each older
+place dims (100%, 72%, 45%), and a notice fades out after 6 s. A line not to miss (a hero defeated, a
+Life counter, a push, a level up, the Minion Battle) is semibold with a 1.5 dp bronze edge and stays 9 s.
+It takes no taps and TalkBack skips it (the announcement says what happened). A resumed game starts it
+empty; a take back clears it. **Game log** sheet: every event, the latest turn first, its newest event
+first under its heading ("Every event, the latest first.").
 **Hero sheet** (ADR-044; `play/table/HeroState.kt`, `HeroDetail`): opened by a tap on a hero's chip or
 piece (when the tap is not an answer) and by a long press on any hero's piece (a haptic tick; the press is
 then the long press's, no tap or pan) or track card; TalkBack: "Show Wasp's game state" on the space,

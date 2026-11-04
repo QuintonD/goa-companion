@@ -1,6 +1,7 @@
 package dev.quinton.goa.feature.board.play.table
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
@@ -13,7 +14,7 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -92,6 +93,7 @@ internal val LocalPanelQuestionEnd = staticCompositionLocalOf<((Int?) -> Unit)?>
  * Hidden or shown is kept for the screen (and survives rotation); [initialPanelHidden] for previews.
  * [onSpellbook] adds a Spellbook control per hero the person controls that has one (Gydion, ADR-040).
  * [panelTitle] goes on the panel's top strip, pinned as it scrolls ([DecisionWho]: who is asked).
+ * [feed] floats under the top of the table, beside the map buttons ([EventFeed]: what just happened).
  */
 @Composable
 fun GameTable(
@@ -109,6 +111,7 @@ fun GameTable(
     panelTitle: (@Composable () -> Unit)? = null,
     /** Goes at the head of the table, above the HUD: an online game's players and clock (ADR-056). */
     topStrip: (@Composable () -> Unit)? = null,
+    feed: (@Composable () -> Unit)? = null,
     panel: @Composable ColumnScope.() -> Unit,
 ) {
     var hidden by rememberSaveable { mutableStateOf(initialPanelHidden) }
@@ -248,31 +251,33 @@ fun GameTable(
                     }
                 }
             }
-            Column(
-                Modifier
-                    .align(Alignment.End)
-                    .onSizeChanged { buttonsWidth = it.width + with(density) { Spacing.sm.roundToPx() } }
-                    .onGloballyPositioned { buttons = it.boundsInRoot() },
-                verticalArrangement = Arrangement.spacedBy(Spacing.sm),
-                horizontalAlignment = Alignment.End,
-            ) {
-                if (viewport.isFit) {
-                    MapButton(Icons.Outlined.ZoomIn, "Zoom to the lane") { scope.launch { viewport.animateLane() } }
-                } else {
-                    MapButton(Icons.Outlined.CenterFocusStrong, "Fit the whole board") {
-                        scope.launch { viewport.animateFit() }
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+                Box(Modifier.weight(1f)) { feed?.invoke() }
+                Column(
+                    Modifier
+                        .onSizeChanged { buttonsWidth = it.width + with(density) { Spacing.sm.roundToPx() } }
+                        .onGloballyPositioned { buttons = it.boundsInRoot() },
+                    verticalArrangement = Arrangement.spacedBy(Spacing.sm),
+                    horizontalAlignment = Alignment.End,
+                ) {
+                    if (viewport.isFit) {
+                        MapButton(Icons.Outlined.ZoomIn, "Zoom to the lane") { scope.launch { viewport.animateLane() } }
+                    } else {
+                        MapButton(Icons.Outlined.CenterFocusStrong, "Fit the whole board") {
+                            scope.launch { viewport.animateFit() }
+                        }
                     }
-                }
-                MapButton(
-                    Icons.Outlined.SwapVert,
-                    "Flip: ${BoardText.team(table.bottomTeam.opponent)} at the bottom",
-                    onFlip,
-                )
-                // Gydion's spellbook, one tap at any point of the game (ADR-040): under the map buttons,
-                // so it never covers the round at a glance, the turn track or the hero strip.
-                if (onSpellbook != null) {
-                    table.spellbookSeats.forEach { id ->
-                        SpellbookButton(table, id, onClick = { onSpellbook(id) })
+                    MapButton(
+                        Icons.Outlined.SwapVert,
+                        "Flip: ${BoardText.team(table.bottomTeam.opponent)} at the bottom",
+                        onFlip,
+                    )
+                    // Gydion's spellbook, one tap at any point of the game (ADR-040): under the map buttons,
+                    // so it never covers the round at a glance, the turn track or the hero strip.
+                    if (onSpellbook != null) {
+                        table.spellbookSeats.forEach { id ->
+                            SpellbookButton(table, id, onClick = { onSpellbook(id) })
+                        }
                     }
                 }
             }
@@ -370,20 +375,23 @@ fun PeekConfirm(table: TableUi, busy: Boolean, onAnswer: (Choice) -> Unit) {
     ) { Text("Confirm", maxLines = 1) }
 }
 
-/** The event log (a sheet): every event of the game in the engine's words, newest at the bottom. */
+/** The event log (a sheet): every event of the game in the engine's words, the latest turn first ([newestFirst]). */
 @Composable
 fun EventLog(lines: List<LogLine>, modifier: Modifier = Modifier, at: Int? = null) {
     // [at]: the event count at a decision of the review; the line before it is where the game stood.
     val marked = at?.minus(1)?.takeIf { it in lines.indices }
-    val state = rememberLazyListState(initialFirstVisibleItemIndex = marked?.let { lines.lastIndex - it } ?: 0)
+    val ordered = remember(lines) { newestFirst(lines) }
+    val state = rememberLazyListState(
+        initialFirstVisibleItemIndex =
+            marked?.let { m -> ordered.indexOfFirst { it.index == m } }?.coerceAtLeast(0) ?: 0,
+    )
     LazyColumn(
         modifier.fillMaxWidth(),
         state = state,
-        reverseLayout = true,
         verticalArrangement = Arrangement.spacedBy(Spacing.xs),
     ) {
-        itemsIndexed(lines.asReversed()) { reversedAt, line ->
-            if (lines.lastIndex - reversedAt == marked) {
+        items(ordered, key = { it.index }) { (index, line) ->
+            if (index == marked) {
                 Surface(
                     color = MaterialTheme.colorScheme.secondaryContainer,
                     shape = RoundedCornerShape(8.dp),

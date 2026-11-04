@@ -217,7 +217,7 @@ fun PuzzleScreen(
         when (val open = sheet) {
             PlaySheet.Log -> BoardSheet(onDismiss = { sheet = null }) {
                 Column(Modifier.fillMaxWidth().fillMaxHeight(SHEET_HEIGHT)) {
-                    SheetTitle("Puzzle log", "Every event, newest at the bottom.", onDone = { sheet = null })
+                    SheetTitle("Puzzle log", "Every event, the latest first.", onDone = { sheet = null })
                     EventLog(puzzle.log, Modifier.weight(1f))
                 }
             }
