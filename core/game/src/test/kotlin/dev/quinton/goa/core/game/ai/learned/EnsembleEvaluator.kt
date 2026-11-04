@@ -56,7 +56,9 @@ internal class EnsembleEvaluator(
         if (team != Team.RED) for (i in s.indices) s[i] = -s[i]
         return when (mode) {
             Mode.AVG -> s.average()
+
             Mode.MIN -> s.min()
+
             Mode.LCB -> {
                 val m = s.average()
                 val sd = if (s.size < 2) 0.0 else sqrt(s.sumOf { (it - m) * (it - m) } / s.size)

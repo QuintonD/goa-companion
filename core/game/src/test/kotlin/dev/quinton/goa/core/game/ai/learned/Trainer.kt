@@ -40,6 +40,7 @@ internal class Trainer(
     private val auxWeight: DoubleArray = DoubleArray(0),
 ) {
     private val aux: Int = auxWeight.size
+
     /** One position for the tables: the heroes' table rows (Red's first, [red] of them), their numbers, the cards. */
     class Extras(
         val heroes: ByteArray,
@@ -84,6 +85,7 @@ internal class Trainer(
     private val wl = DoubleArray(inputs)
     private val wh = DoubleArray(heroes * LearnedNet.HERO_COLS)
     private val wc = DoubleArray(cards * LearnedNet.CARD_PLACES)
+
     /** The auxiliary heads' weights on the second layer, [h2] a head. */
     private val wa = DoubleArray(aux * h2)
     private var mean = DoubleArray(inputs)

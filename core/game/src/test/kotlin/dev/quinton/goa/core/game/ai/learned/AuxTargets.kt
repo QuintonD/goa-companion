@@ -6,6 +6,7 @@ import dev.quinton.goa.core.game.TestData
 import dev.quinton.goa.core.game.WinReason
 import dev.quinton.goa.core.game.ai.Searcher
 import dev.quinton.goa.core.game.engine.EngineSession
+import dev.quinton.goa.core.game.engine.GameState
 import dev.quinton.goa.core.game.engine.Zone
 import dev.quinton.goa.core.model.match.Team
 import java.io.DataInputStream
@@ -74,33 +75,35 @@ internal object AuxTargets {
         }
         return at.map { (round, from) ->
             val until = roundStart[round + 1] ?: if (finished) events.size else -1
-            val kills = if (until < 0) {
-                Float.NaN
-            } else {
-                var k = 0
-                for (i in from until until) {
-                    val e = events[i] as? GameEvent.Defeated ?: continue
-                    when (team[e.unitId]) {
-                        Team.BLUE -> k++
-                        Team.RED -> k--
-                        null -> {}
-                    }
-                }
-                k / 2f
+            floatArrayOf(kills(events, from, until, team), push(events, from, if (finished) end else null), life)
+        }
+    }
+
+    /** Blue heroes defeated minus Red's in `events[from until until]`, / 2; NaN if [until] is unknown (−1). */
+    private fun kills(events: List<GameEvent>, from: Int, until: Int, team: Map<String, Team>): Float {
+        if (until < 0) return Float.NaN
+        var k = 0
+        for (i in from until until) {
+            val e = events[i] as? GameEvent.Defeated ?: continue
+            when (team[e.unitId]) {
+                Team.BLUE -> k++
+                Team.RED -> k--
+                null -> {}
             }
-            var push = Float.NaN
-            for (i in from until events.size) {
-                val e = events[i] as? GameEvent.LanePushed ?: continue
-                push = if (e.winner == Team.RED) 1f else 0f
-                break
-            }
-            if (push.isNaN() && finished) {
-                push = when {
-                    end.winReason == WinReason.LAST_PUSH -> if (end.winner == Team.RED) 1f else 0f
-                    else -> 0.5f
-                }
-            }
-            floatArrayOf(kills, push, life)
+        }
+        return k / 2f
+    }
+
+    /** Who wins the next push after `events[from]`: the game's last push counts; [end] is null if it did not finish. */
+    private fun push(events: List<GameEvent>, from: Int, end: GameState?): Float {
+        for (i in from until events.size) {
+            val e = events[i] as? GameEvent.LanePushed ?: continue
+            return if (e.winner == Team.RED) 1f else 0f
+        }
+        return when {
+            end == null -> Float.NaN
+            end.winReason == WinReason.LAST_PUSH -> if (end.winner == Team.RED) 1f else 0f
+            else -> 0.5f
         }
     }
 
@@ -118,8 +121,10 @@ internal object AuxTargets {
         } finally {
             pool.shutdown()
         }
-        println("TRAIN aux targets of ${games.size} games of $file: ${out.size} positions in " +
-            "${"%.0f".format((System.nanoTime() - t0) / 1e9)} s")
+        println(
+            "TRAIN aux targets of ${games.size} games of $file: ${out.size} positions in " +
+                "${"%.0f".format((System.nanoTime() - t0) / 1e9)} s",
+        )
         dir.mkdirs()
         DataOutputStream(cache.outputStream().buffered(1 shl 20)).use { o ->
             o.writeInt(out.size)

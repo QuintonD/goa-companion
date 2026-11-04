@@ -57,7 +57,13 @@ class LearnedTrainTest {
             -(if (y[i]) ln(p) else ln(1 - p))
         } / test.size
         for ((n, net) in names.zip(nets)) println("SPREAD $n log-loss ${"%.4f".format(loss { logit(net, it) })}")
-        println("SPREAD mean of logits log-loss ${"%.4f".format(loss { p -> nets.sumOf { logit(it, p) } / nets.size })}")
+        println(
+            "SPREAD mean of logits log-loss ${"%.4f".format(
+                loss { p ->
+                    nets.sumOf { logit(it, p) } / nets.size
+                },
+            )}",
+        )
         val sds = test.map { p ->
             val v = nets.map { logit(it, p) * it.coinScale }
             val m = v.average()
@@ -87,7 +93,8 @@ class LearnedTrainTest {
         val auxWeight = DoubleArray(AuxTargets.COUNT)
         System.getenv("AI_AUX")?.split(",")?.filter { it.isNotBlank() }?.forEach {
             val (k, w) = it.split(":")
-            auxWeight[AuxTargets.NAMES.indexOf(k).also { i -> require(i >= 0) { "Unknown aux target $k" } }] = w.toDouble()
+            auxWeight[AuxTargets.NAMES.indexOf(k).also { i -> require(i >= 0) { "Unknown aux target $k" } }] =
+                w.toDouble()
         }
         val useAux = auxWeight.any { it != 0.0 }
         val all = files.flatMap { f ->
@@ -96,7 +103,12 @@ class LearnedTrainTest {
                 val dir = File(System.getenv("AI_AUX_CACHE") ?: "D:/.goa-qa/v14/a/cache")
                 val t = AuxTargets.load(f, rate, threads, dir)
                 var missing = 0
-                for (p in ps) p.aux = t[AuxTargets.key(p.family, p.game, p.index)] ?: run { missing++; null }
+                for (p in ps) {
+                    p.aux = t[AuxTargets.key(p.family, p.game, p.index)] ?: run {
+                        missing++
+                        null
+                    }
+                }
                 println("TRAIN aux targets for ${ps.size - missing} of ${ps.size} positions of ${f.name}")
             }
             ps
@@ -231,7 +243,10 @@ class LearnedTrainTest {
             FloatArray(ps.size) { if (ps[it].redWon) 1f else 0f },
             ps.map { it.extras },
             if (ps.any { it.aux != null }) {
-                FloatArray(ps.size * AuxTargets.COUNT) { i -> ps[i / AuxTargets.COUNT].aux?.get(i % AuxTargets.COUNT) ?: Float.NaN }
+                FloatArray(ps.size * AuxTargets.COUNT) { i ->
+                    ps[i / AuxTargets.COUNT].aux?.get(i % AuxTargets.COUNT)
+                        ?: Float.NaN
+                }
             } else {
                 null
             },

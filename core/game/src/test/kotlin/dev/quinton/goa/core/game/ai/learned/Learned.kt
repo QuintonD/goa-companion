@@ -76,30 +76,33 @@ internal object Learned {
     /** The profile of a [side]. */
     fun profile(spec: String): LevelProfile {
         val parts = spec.split("+")
-        val mine = parts.drop(1).filter { it.startsWith("learned=") || it.startsWith("net=") || it.startsWith("inner=") }
+        val mine = parts.drop(1).filter {
+            it.startsWith("learned=") || it.startsWith("net=") || it.startsWith("inner=")
+        }
         var p = ExperimentTest.variant((listOf(parts[0]) + parts.drop(1).filter { it !in mine }).joinToString("+"))
         for (o in mine) {
             val (k, v) = o.split("=", limit = 2)
             p = when (k) {
                 "learned" -> p.copy(learned = EvalSource.valueOf(v.uppercase()))
 
-                // What scores the one-ply looks inside playouts, apart from the leaves (ADR-060): a net or an ensemble.
+                // What scores the one-ply looks inside playouts, apart from the leaves (ADR-060).
                 "inner" -> p.copy(innerEvaluator = evaluator(v))
 
-                else -> if (v == "v09") {
-                    // The frozen baseline: the strength 10 of `feature/v0.10`'s first commit (ADR-049).
-                    p.copy(learned = EvalSource.LEAVES, leafEvaluator = ::BaselineV09)
-                } else if (v == "v10") {
-                    // v0.10's net alone, the baseline of ADR-060 (the first of the checked-in ensemble).
-                    p.copy(net = LearnedNet.CURRENT, learned = if (p.learned == EvalSource.HAND) EvalSource.LEAVES else p.learned)
-                } else if (v.contains('(')) {
-                    // An ensemble of saved nets (ADR-060): `avg(a,b,c)`, `lcb1(a,b,c)`, `min(a,b)`.
-                    p.copy(
-                        leafEvaluator = EnsembleEvaluator.parse(v),
-                        learned = if (p.learned == EvalSource.HAND) EvalSource.LEAVES else p.learned,
-                    )
-                } else {
-                    p.copy(net = net(v), learned = if (p.learned == EvalSource.HAND) EvalSource.LEAVES else p.learned)
+                else -> {
+                    // A net at the leaves; a profile with the net in the one-ply looks keeps them.
+                    val at = if (p.learned == EvalSource.HAND) EvalSource.LEAVES else p.learned
+                    when {
+                        // The frozen baseline: the strength 10 of `feature/v0.10`'s first commit (ADR-049).
+                        v == "v09" -> p.copy(learned = EvalSource.LEAVES, leafEvaluator = ::BaselineV09)
+
+                        // v0.10's net alone, the baseline of ADR-060 (the first of the checked-in ensemble).
+                        v == "v10" -> p.copy(net = LearnedNet.CURRENT, learned = at)
+
+                        // An ensemble of saved nets (ADR-060): `avg(a,b,c)`, `lcb1(a,b,c)`, `min(a,b)`.
+                        v.contains('(') -> p.copy(leafEvaluator = EnsembleEvaluator.parse(v), learned = at)
+
+                        else -> p.copy(net = net(v), learned = at)
+                    }
                 }
             }
         }
@@ -118,7 +121,9 @@ internal object Learned {
         for ((i, c) in s.withIndex()) {
             when {
                 c == '(' -> depth++
+
                 c == ')' -> depth--
+
                 c == sep && depth == 0 -> {
                     out += s.substring(start, i)
                     start = i + 1
