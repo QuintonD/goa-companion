@@ -11,6 +11,8 @@ import dev.quinton.goa.core.game.ai.Evaluator
 import dev.quinton.goa.core.game.ai.Features
 import dev.quinton.goa.core.game.ai.LearnedNet
 import dev.quinton.goa.core.game.ai.LearnedWeights
+import dev.quinton.goa.core.game.ai.LearnedWeights2
+import dev.quinton.goa.core.game.ai.LearnedWeights3
 import dev.quinton.goa.core.game.ai.NetEvaluator
 import dev.quinton.goa.core.game.ai.Searcher
 import dev.quinton.goa.core.game.ai.Term
@@ -36,6 +38,26 @@ class LearnedNetTest {
         Features(TestData.engine.data).extract(start(LINEUPS[0], Team.RED), x)
         assertThat(net.forward(x, 0).isFinite()).isTrue()
         assertThat(LearnedWeights.COIN_SCALE).isGreaterThan(0.0)
+        // The ensemble (ADR-060): the same features, the same tables, v0.10's net first.
+        assertThat(LearnedWeights2.SCHEMA_HASH).isEqualTo(Features.SCHEMA_HASH)
+        assertThat(LearnedWeights3.SCHEMA_HASH).isEqualTo(Features.SCHEMA_HASH)
+        assertThat(LearnedNet.ENSEMBLE).hasSize(3)
+        assertThat(LearnedNet.ENSEMBLE.first()).isSameInstanceAs(net)
+        for (n in LearnedNet.ENSEMBLE) assertThat(n.forward(x, 0).isFinite()).isTrue()
+    }
+
+    @Test
+    fun `the ensemble scores the mean of its nets and one net scores as before`() {
+        val data = TestData.engine.data
+        val all = NetEvaluator(data, LearnedNet.ENSEMBLE)
+        val each = LearnedNet.ENSEMBLE.map { NetEvaluator(data, it) }
+        for (st in states(LINEUPS[1], 40)) {
+            val mean = each.sumOf { it.evaluate(st, Team.RED) } / each.size
+            assertThat(all.evaluate(st, Team.RED)).isWithin(1e-9).of(mean)
+            assertThat(all.evaluate(st, Team.BLUE)).isWithin(1e-9).of(-mean)
+            assertThat(NetEvaluator(data, listOf(LearnedNet.CURRENT)).evaluate(st, Team.RED))
+                .isEqualTo(each[0].evaluate(st, Team.RED))
+        }
     }
 
     @Test
@@ -101,7 +123,8 @@ class LearnedNetTest {
         // Strength 10's hand parts beside the net carry them too, not part A's 3v3 knobs (5–9 do).
         val v08 = AiPlayers.TUNED.copy(pushPerAttackBySize = emptyMap(), defenselessBySize = emptyMap())
         val profile = AiPlayers.profile(10)
-        assertThat(profile.learned).isEqualTo(EvalSource.LEAVES)
+        // Since v0.14 (ADR-060) the nets also score its one-ply looks inside playouts.
+        assertThat(profile.learned).isEqualTo(EvalSource.EVERYWHERE)
         assertThat(profile.knobs).isEqualTo(v08)
         assertThat(AiPlayers.profile(9).knobs).isEqualTo(AiPlayers.TUNED)
         // The net's inputs score the same whatever team-size knobs a hand evaluation carries.

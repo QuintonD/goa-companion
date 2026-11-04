@@ -81,22 +81,25 @@ object AiPlayers {
      * The strengths from this one up score playout ends with the learned evaluation (ADR-047 part B,
      * AI.md "Learned evaluation"): Expert (10) only. It strengthens every searching strength, but
      * given to 5–10 it compressed the steps between them (6 over 5 55.7%, 8 over 7 56.8%, 10 over 9
-     * 51.6%); the static strengths keep the hand-made weights their designed mistakes rest on.
+     * 51.6%); the static strengths keep the hand-made weights their designed mistakes rest on. Since
+     * v0.14 (ADR-060) it is the mean of three seed nets, and it scores the one-ply looks inside playouts
+     * too: at the phone's wall clock (half the work, as each answer costs ×1.97) 57.5% (52.0–62.8%,
+     * 320 3v3 games) over the same nets at the playout ends alone.
      */
     internal const val LEARNED_FROM: Int = 10
 
     /**
-     * The hand evaluation beside the net (its one-ply looks inside playouts, the static policy, the
-     * opponent model): the knobs the net was trained with, v0.8's `TUNED` without the 3v3 knobs. With
-     * them the merged strength 10 beat the one carrying the 3v3 knobs 54.2% (47.1–61.1%, 192 3v3
-     * games; AI.md "The two parts together"); the net's own inputs never see a profile's knobs.
+     * The hand evaluation beside the net (the static policy, the opponent model): the knobs the net was
+     * trained with, v0.8's `TUNED` without the 3v3 knobs. With them the merged strength 10 beat the one
+     * carrying the 3v3 knobs 54.2% (47.1–61.1%, 192 3v3 games; AI.md "The two parts together"); the net's
+     * own inputs never see a profile's knobs.
      */
     internal val TUNED_WITH_NET: EvalKnobs = Features.KNOBS.copy(scales = Features.SCALES)
 
     /** What each strength does (AI.md "Strengths"); the measured ladder is in AI.md. */
     internal fun profile(strength: Int): LevelProfile = handProfile(strength).let {
         if (AiStrength.coerce(strength) >= LEARNED_FROM) {
-            it.copy(learned = EvalSource.LEAVES, knobs = TUNED_WITH_NET)
+            it.copy(learned = EvalSource.EVERYWHERE, knobs = TUNED_WITH_NET)
         } else {
             it
         }

@@ -129,6 +129,8 @@ internal object Teams {
                         println("TEAMS so far   oracle right ${Oracle.right.get()} of ${Oracle.predicted.get()}")
                     }
                     kills?.let { (ka, kb) -> println("TEAMS so far   kills ${ka.line(a.label)} | ${kb.line(b.label)}") }
+                    // AI_PROGRESS_FILE: the running score to watch a long run (Gradle prints it at the end).
+                    System.getenv("AI_PROGRESS_FILE")?.let { java.io.File(it).appendText("TEAMS so far $score\n") }
                 }
                 if (sprt != null && sprt.verdict(score) != Tournament.Sprt.Verdict.GOING_ON) break
             }

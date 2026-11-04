@@ -16,7 +16,7 @@ import org.junit.Test
 class LearnedTimingTest {
     @Test
     fun `decision times at any team size`() {
-        val specs = System.getenv("AI_LTIMING")?.split(",") ?: return
+        val specs = System.getenv("AI_LTIMING")?.let { Learned.splitTop(it, ',') } ?: return
         val size = System.getenv("AI_SIZE")?.toIntOrNull() ?: 3
         val n = System.getenv("AI_N")?.toIntOrNull() ?: 4
         val threads = System.getenv("AI_THREADS")?.toIntOrNull() ?: 4

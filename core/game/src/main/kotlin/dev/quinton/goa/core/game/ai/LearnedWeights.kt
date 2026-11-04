@@ -1857,4 +1857,8 @@ internal object LearnedWeights {
             "yzycR0M7AAAAAHE5y7w53CG73pQpPFSQYToAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAM2Tdrph" +
             "Ppy7YWg6PAAAAAAAAAAAHBsou2V/P7tIh3o5JBniuwAAAACe+k88naqsPJCH6ztgKt07AAAAAHA0DDzopJS8udanvHf677sAAAAA" +
             "aqk6vAGk57z8bag8zNi/uwAAAAC9d1G8suyRO5u+fDoAAAAAAAAAAA=="
+
+    fun net(): LearnedNet = LearnedNet(
+        INPUTS, H1, H2, w1(), b1(), w2(), b2(), w3(), wl(), B3, COIN_SCALE, HEROES, wh(), CARDS, wc(),
+    )
 }

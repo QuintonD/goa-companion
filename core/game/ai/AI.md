@@ -19,7 +19,7 @@ plays as the level's strength (Easy 2, Normal 6, Hard 8, Expert 10, ADR-039).
 | `Evaluator.kt` | The static evaluation in coin-equivalents (STRATEGY §2) as a sum of named `Term`s with scales (`EvalKnobs`), and `Ctx`, its per-state cache, which also scores "this hero standing on that space" without forking |
 | `StaticPolicy.kt` | Scores every option of every `DecisionKind` from one state, no fork (STRATEGY §3): the playout policy, the opponent model and Easy |
 | `CardProfile.kt` | Per-card numbers the heuristics need (attack, reach incl. "Before the attack: Move N", discard-or-defeat, blocks, a rating), read once from the catalog; nothing hero-specific |
-| `Features.kt`, `LearnedEval.kt`, `LearnedWeights.kt` | The learned evaluation (below): team-size invariant features of a state, the net with its per-hero and per-card parts (`LearnedNet`, `NetEvaluator`, `PositionEvaluator`, `EvalSource`) and its generated weights (`LearnedCodec`: Base64 floats) |
+| `Features.kt`, `LearnedEval.kt`, `LearnedWeights.kt`, `LearnedWeights2.kt`, `LearnedWeights3.kt` | The learned evaluation (below): team-size invariant features of a state, the net with its per-hero and per-card parts (`LearnedNet`, `NetEvaluator`, `PositionEvaluator`, `EvalSource`), the three seed nets strength 10 averages (`LearnedNet.ENSEMBLE`, ADR-060) and their generated weights (`LearnedCodec`: Base64 floats) |
 | `AiCoach.kt` | `AiCoach(factory)`: `nudge` (Hard-level analysis from the human team's view) with `Explainer`, `prepare` (the same analysis before the answer); `turningPoints` with `TurningPoint`; `suggest`, `review` |
 | `TeamKills.kt`, `RegretMatching.kt` | Team kills a side could make next turn, read from printed values; mixed card plays by regret matching (ADR-061, "Team play, two-turn kills and mixing": built, on no strength) |
 | `CoachFacts.kt`, `CoachSuggest.kt`, `CoachReasons.kt`, `LineBuilder.kt`, `ThreatFinder.kt`, `RoundPlanner.kt`, `CoachReviewer.kt`, `WinChance.kt` | Suggestions and the post-game review (ADR-051, "The coach") |
@@ -175,13 +175,14 @@ fit and the tournaments say together: a hero's danger matters through what the p
 ## Learned evaluation (ADR-047 part B, ADR-049)
 
 The net described here first is v0.9's; v0.10 extended it ("v0.10: a net that knows heroes, cards and
-pieces", below), and that is the checked-in one. v0.9's net and features are kept in test sources as
-the baseline of every later measurement (`net=v09`).
+pieces", below), and that is the checked-in one; since v0.14 strength 10 averages it with two seed siblings
+("The evaluation the search exploits less", ADR-060). v0.9's net and features are kept in test sources as a
+baseline (`net=v09`), and v0.10's net alone plays as `net=v10`.
 
 Strength 10 (Expert) scores the end of every playout with a small learned network instead of the
 hand-weighted sum above (`LearnedEval.kt`, `Features.kt`, `LearnedWeights.kt`;
-`AiPlayers.LEARNED_FROM`); the one-ply looks inside playouts, the static policy, the opponent model,
-strengths 1–9 and the coach keep the hand evaluation. The search is unchanged: the same samples,
+`AiPlayers.LEARNED_FROM`); the one-ply looks inside playouts (until v0.14, ADR-060), the static policy, the
+opponent model, strengths 1–9 and the coach keep the hand evaluation. The search is unchanged: the same samples,
 candidates, horizons and noise. `LevelProfile.learned` (`EvalSource`) switches it per profile, so a
 tournament can try it at any strength. The net was trained beside v0.8's `TUNED`, and both its
 inputs and strength 10's hand parts keep that knob set (`Features.KNOBS` / `SCALES`,
@@ -243,7 +244,7 @@ intervals.
 | Generation 1 (gen-0 + gen-1 games, λ 0.7 from the hand evaluation; `g1a`) | generation 0 | 58.3% (51.3–65.1%) | **yes** |
 | Generation 1 with seed 2 / λ 0.6 / λ 0.8 / the teacher iterated | generation 0 | 61.5% / 55.7% / 55.7% / 51.6% | no |
 | Generation 2 (all games / gen-1 + gen-2 games) | generation 1 | 52.6% / 47.9% | no |
-| The net also in the one-ply looks inside playouts (`EVERYWHERE`) | the net at playout ends | 45.3% (38.4–52.4%) | no |
+| The net also in the one-ply looks inside playouts (`EVERYWHERE`) | the net at playout ends | 45.3% (38.4–52.4%) | no (v0.14: yes, with three nets, ADR-060) |
 
 What this says: the result alone is the target that predicts results best (held-out log-loss 0.552
 against the hand evaluation's 0.581 on generation 0) and plays worst. A search picks the option whose
@@ -473,13 +474,13 @@ adds one lever that measured (below); the knobs are `LevelProfile`s in `AiPlayer
 | 7 | Hard | played out once | turn / **turn** | 1 / 1, 6 | static; opaque one ply | opponent model | τ 0.5 within 1.3 | tuned | 500 ms |
 | 8 | Hard | mean − 0.3 sd for card plays | turn / turn | **6 / 2**, 8 | static; opaque one ply | opponent model | τ 0.25 within 0.8 | tuned | 1 s |
 | 9 | Expert | mean | turn / turn | **16 / 6**, 10 | its own by **one-ply search** | + **memory** of cards shown since each level up | τ 0.15 within 0.6 (mixing) | tuned | 1.5 s |
-| 10 | Expert | mean | turn / turn | 16 / 6, 10 | **every hero's** by one-ply search | + memory; **knows the hands**, not the facedown card (v0.14) | τ 0.15 within 0.6 | **learned** at playout ends (v0.8's tuned inside) | 2 s |
+| 10 | Expert | mean | turn / turn | 16 / 6, 10 | **every hero's** by one-ply search | + memory; **knows the hands**, not the facedown card (v0.14) | τ 0.15 within 0.6 | **learned** at playout ends, and since v0.14 in the one-ply looks too: the mean of three seed nets (v0.8's tuned in the static policy) | 2 s |
 
 "Tuned" is `TUNED`: exposure × 0.3, minion opportunity × 2 (Evaluation, above), and since v0.9 in 3v3
 a Push Potential of 0.35 per attack card and the full exposure of a hero with no card left to defend
 with ("Team sizes"). Since v0.9 (ADR-047 part B) strength 10 scores the end of every playout with the
-learned evaluation instead (`AiPlayers.LEARNED_FROM`); its one-ply looks inside playouts, static
-policy and opponent model keep v0.8's tuned knobs, without the 3v3 ones (`TUNED_WITH_NET`, "The two
+learned evaluation instead (`AiPlayers.LEARNED_FROM`), and since v0.14 its one-ply looks inside playouts
+too (the mean of three seed nets, ADR-060); its static policy and opponent model keep v0.8's tuned knobs, without the 3v3 ones (`TUNED_WITH_NET`, "The two
 parts together"). Device budgets since v0.9 ("Budgets"); the app runs the samples on three
 threads, so the answers do not depend on the device wherever the cap is not reached. "Opaque" choices are
 a bullet, a token, a confirm or number, a space that is not a move, a unit that is not an attack
@@ -607,7 +608,10 @@ strength 10 on the same seeded 3v3 card plays on any device, on the app's sample
 card play needs rather than what the cap allows. It ends with a line to copy, for example
 `GoA speed v1 | samsung SM-S938B | 3v3 strength 10, 3 threads | … answers/s (halves …, …) | card play
 median … ms, p95 … ms, max … ms, … of … over 2000 ms | 25.0 s`. **The phone factor is 41 000 divided by
-the phone's answers per second.** This desktop (`AI_BENCHMARK=1`, `AiBenchmarkTest`, the v0.10 net, nothing
+the phone's answers per second** for a v1 line. Since v0.14 the line reads v2: strength 10 scores its one-ply
+looks with three nets, so an answer costs ×1.97 (ADR-060) and the divisor is about 20 800 (41 000 / 1.97); one
+v2 run on this desktop while three other streams' tournaments ran read 19 460 answers/s on three threads (card
+play median 246 ms, p95 524 ms) and 8 448 on one, so measure it again on a quiet desktop. The v1 desktop (`AI_BENCHMARK=1`, `AiBenchmarkTest`, the v0.10 net, nothing
 else of ours running, 2026-10-31):
 
 | Desktop JVM, Ryzen 7 3800X | Answers per second | Card play median / p95 / max | Card plays in 25 s |
@@ -944,6 +948,145 @@ before and after, measured before merging the v0.10 net. **Time on the v0.10 net
 on, three threads, 3v3, 6 games, 2026-10-31): card play 143 / 303 / 982 ms (mean / p95 / max), moves 90 / 228 /
 423 ms, work per card play 5 526 / 9 669 / 15 354, 25.9 ms per 1 000 answers; at the assumed 3–4× a card play is
 0.43–0.57 / 0.91–1.21 / 2 s (capped).
+
+## The evaluation the search exploits less (v0.14 stream A, ADR-060)
+
+"Depth and speed" read that a search which averages harder finds what the evaluation overrates. Three
+remedies were tried against that, all in the evaluation: average several nets, score conservatively where they
+disagree, and shape the shared layers with more targets than the win. And the hero knowledge was tried in
+more of the search: the net inside the one-ply looks of playouts (`learned=EVERYWHERE`). All 3v3, tune family,
+mirrored, the paired test against 0.55 (`AI_SPRT=0.55`, decided on mirrored pairs); 95% Wilson intervals for
+the games, the pentanomial interval for the pairs.
+
+**What the seeds disagree on** (`AI_SPREAD`, generation 2's test split, 25 270 positions): `b1s3`, `b1s2` and `b1`
+(three seeds of one training run, v0.10's candidates) score a position 3.3 coin-equivalents apart on average
+(standard deviation across the three; median 2.5, p90 6.4), against strength 10's choice noise of τ 0.15 within
+0.6. Averaging their logits barely moves the log-loss against the results: 0.5885 against 0.5892–0.5900 for each.
+As before, log-loss says little about play.
+
+**The cost.** The work measure counts engine answers, not evaluations, so every variant was also timed at the same
+work (`CostTest`: 60 of the speed measure's fixed 3v3 card plays after 20 to warm up, the variants interleaved
+position by position, one thread, `s10+work=15500`, the desktop shared with three other streams). Time per answer
+against today's 10:
+
+| Strength 10 with | Card play mean / median / p95 | Time per engine answer |
+|------------------|-------------------------------|------------------------|
+| v0.10's net at playout ends (today) | 663 / 628 / 1 342 ms | ×1.00 |
+| The mean of three nets at playout ends | 691 / 594 / 1 541 ms | ×1.04 |
+| v0.10's net also in the one-ply looks | 859 / 787 / 1 792 ms | ×1.42 |
+| The mean of three nets, also in the one-ply looks | 1 188 / 1 049 / 2 152 ms | ×1.97 |
+
+The features are extracted once per position and each further net adds only its forward pass, so three nets at the
+leaves cost 4%. The one-ply looks call the evaluation many times a playout, where the hand evaluation (21 µs) was,
+and the net (107 µs) multiplies the time. At the same wall clock a phone gives those variants about 1/1.04, 1/1.42
+and 1/1.97 of the work, which is how the time-fair runs below are set.
+
+**Screened at strength 7** (net at playout ends; for the one-ply looks strength 7 with every hero's later choices
+by one-ply search, `greedySelf=true+greedyTeam=true+greedyEnemies=true`, as strength 7 itself plays its playouts by
+rules of thumb), against `s7+net=b1s3`:
+
+| Candidate | Wins | Rate | Games interval | Pairs interval | Heroes lost a game (b1s3's) | SPRT |
+|-----------|------|------|----------------|----------------|-----------------------------|------|
+| `net=avg(b1s3,b1s2,b1)`: the mean of three seeds | 131–93 | 58.5% | 51.9–64.7% | 52.7–64.3% | 1.54 (1.67) | H1 after 224 |
+| `net=lcb1(b1s3,b1s2,b1)`: the mean less one standard deviation | 214–170 | 55.7% | 50.7–60.6% | 50.9–60.6% | 1.47 (1.66) | open after 384 |
+| One-ply looks: v0.10's net in them (`learned=EVERYWHERE`) | 203–181 | 52.9% | 47.9–57.8% | 48.3–57.4% | 1.80 (1.76) | open after 384 |
+| One-ply looks: the mean of three in them and at the ends | 102–58 | 63.7% | 56.1–70.8% | 56.0–71.5% | 1.53 (1.80) | H1 after 160 |
+| One-ply looks: another seed (`b1s2`) in them, `b1s3` at the ends (a double estimator) | 201–151 | 57.1% | 51.9–62.2% | 51.8–62.4% | 1.72 (1.61) | H1 after 352 |
+
+The search maximises once, at the root, over averaged playouts, so "choose with one net, value with another" has no
+second step to split there; inside the playouts it has one, where the one-ply looks choose each hero's action and
+the leaf judges the result. That is the last row: it won, but lost more heroes than it took. `lcb` penalises a
+position the seeds disagree on, which is where an evaluation's error is likeliest; it did not beat the plain mean
+(55.7% against 58.5%) and was not taken further. `min` (the worst of the nets) is built and was not played.
+
+**Confirmed at strength 10, the phone's work** (`s10+work=15500` both sides unless noted), against v0.10's 10:
+
+| Strength 10 with (against) | Work | Wins | Rate | Games interval | Pairs interval | Heroes lost a game (the other's) | How it won (last push / Throne / Life), the other's | SPRT |
+|----------------------------|------|------|------|----------------|----------------|-----------------------------------|------------------------------------------------------|------|
+| The mean of three at the ends (v0.10's 10) | 15 500 both | 46–18 | 71.9% | 59.9–81.4% | 62.3–81.5% | 1.33 (1.89) | 28 / 6 / 12, 6 / 8 / 4 | H1 after 64 |
+| The same, line-ups 32–95, time-fair | 14 900 / 15 500 | 75–53 | 58.6% | 49.9–66.8% | 50.9–66.3% | 1.71 (1.90) | 34 / 14 / 27, 18 / 16 / 19 | 128 fixed |
+| Both runs together | | 121–71 | 63.0% | 56.0–69.5% | | 1.58 (1.90) | | |
+| v0.10's net in the one-ply looks too (v0.10's 10) | 15 500 both | 163–125 | 56.6% | 50.8–62.2% | 51.6–61.6% | 1.72 (1.82) | 87 / 24 / 52, 53 / 28 / 44 | H1 after 288 |
+| The mean of three in the one-ply looks too (the mean at the ends, as shipped) | 15 500 both | 214–170 | 55.7% | 50.7–60.6% | 51.2–60.3% | 1.76 (1.84) | 97 / 51 / 66, 79 / 28 / 63 | H1 after 384 |
+| The same at the phone's wall clock (the mean at the ends, as shipped) | 7 900 / 15 500 | 184–136 | 57.5% | 52.0–62.8% | 52.7–62.3% | 1.77 (1.92) | 77 / 44 / 63, 61 / 20 / 55 | H1 after 320 |
+
+The test stopped the first run after 64 games, so the 128 more games at the time-fair work were played to give the
+number a narrower interval (the per-hero scorecard of those games, 10–13 games a hero, is noise). A first run of
+"the mean of three everywhere against v0.10's 10" died after 2 h 44 min with the test JVM's connection lost (no
+crash log), and was replaced by the pair above, which asks the shipping question directly: does the net in the
+one-ply looks add anything on top of the averaged leaves?
+
+The time-fair run gave the candidate 7 900 answers (15 500 / 1.97, its cost against v0.10's 10; against the averaged
+leaves alone, ×1.89, it would have had 8 200), so it searched about half as much and still won, with fewer heroes
+lost (with no card left to defend 149 against 199). Neither one-ply-look run was measured on the test family.
+
+**At the phone's work the order is:** v0.10's 10 < the mean of three at the playout ends (63.0%, 192 games) < the
+mean of three at the ends and in the one-ply looks (57.5% over the former, time-fair). The two steps were measured
+separately, on overlapping tune line-ups, not as one run against v0.10's 10.
+
+**Auxiliary targets** (KataGo's and Honor of Kings' extra heads). `Trainer` takes heads on the second layer that
+predict, like the win, Red's output minus Blue's: the kills of the rest of the round (Blue heroes defeated minus
+Red's, / 2, squared error), who wins the next lane push (cross-entropy; ½ if none before the end) and the
+Life-counter margin at the end of the game (/ 10, squared error), each with loss weight 0.3
+(`AI_AUX=kills:0.3,push:0.3,life:0.3`; the targets come from replaying the stored games, `AuxTargets`, cached
+beside the features). Only the win head is exported: the net's format and cost do not change. Trained like `b1s3`
+otherwise (generations 0–2, λ 0.7 from the hand evaluation, three threads), seeds 1–3 (`x1`, `x2`, `x3`). Held-out
+log-loss 0.5838 / 0.5815 / 0.5829 against `b1`'s 0.5808 and `b1s3`'s 0.5807. At strength 7 against `b1s3`, beside
+the plain seeds as the control:
+
+| Net | Wins | Rate | Games interval | Heroes lost a game (b1s3's) | SPRT |
+|-----|------|------|----------------|-----------------------------|------|
+| `x1` (aux, seed 1) | 151–169 | 47.2% | 41.8–52.7% | 1.53 (1.54) | H0 after 320 |
+| `x2` (aux, seed 2) | 200–152 | 56.8% | 51.6–61.9% | 1.48 (1.83) | H1 after 352 |
+| `x3` (aux, seed 3) | 202–182 | 52.6% | 47.6–57.5% | 1.53 (1.77) | open after 384 |
+| `b1` (plain, seed 1) | 98–126 | 43.8% | 37.4–50.3% | 1.67 (1.67) | H0 after 224 |
+| `b1s2` (plain, seed 2) | 136–152 | 47.2% | 41.5–53.0% | 1.53 (1.63) | H0 after 288 |
+| `avg(x1,x2,x3)` against `avg(b1s3,b1s2,b1)` | 192–192 | 50.0% | 45.0–55.0% | 1.51 (1.71) | open after 384 |
+
+The aux seeds average 52.2% against `b1s3`, the plain seeds 45.5% (`b1s3` was the best of the three plain seeds,
+so the control sits below 50%): the heads make a typical seed better, and every aux net lost fewer heroes than its
+opponent. But the three aux nets averaged are exactly even with the three plain ones averaged: in wins, averaging
+already takes what the heads add. So they were not taken to strength 10 and no aux net ships. They stay in the
+trainer (they cost nothing at play time), and "fewer heroes lost" is the lead to follow if the owner's kill-hunting
+play shows the ensemble still giving heroes away.
+
+**What ships.** Strength 10 scores playout ends and the one-ply looks inside playouts with the mean of the three
+seeds (`EvalSource.EVERYWHERE` in `AiPlayers.profile`; the static policy, the opponent model and the coach keep the hand
+evaluation), through `LearnedNet.ENSEMBLE` and `NetEvaluator(data, nets)`: `LearnedWeights.kt` (`b1s3`, unchanged, now with `net()`), `LearnedWeights2.kt`
+(`b1s2`), `LearnedWeights3.kt` (`b1`), 209 KB of source each (Base64, `LearnedCodec`). In the web build (`:web:app:site`)
+the weights sit in `engine-worker.js` only, now 2.05 MB (763 KB gzipped), of which the two added nets are 334 KB
+(239 KB gzipped); `app.js` does not change. The phone's APK carries the same strings. One net
+still scores exactly as before: `net=v10` is v0.10's 10 for later measurements (its net alone, at the playout ends only) (`FingerprintTest` `s10+net=v10`
+857411144, v0.10's hash); strengths 7 and 9 are unchanged (462214142, 137732948); the new 10 hashes 1029020835.
+`GameParityTest`'s searching transcript was re-pinned from the JVM, and Node agreed.
+
+**The phone pays** for the one-ply looks: about twice the time per engine answer. Under the 2 s cap that is what the
+time-fair run measured (half the work where the cap binds). Uncapped, the speed measure's card play went from a
+median of 116–125 ms (v1, quiet desktop, three threads) to 246 ms (v2, the desktop busy with three other streams), p95
+279–299 to 524 ms: at the assumed 3–4× a phone's median card play is about 0.7–1 s, and the slowest tenth meet the
+cap. The speed measure is now version 2 (`AiBenchmark.VERSION`); its divisor for the phone factor is about 20 800.
+
+**Tried and dropped in v0.14 (stream A):**
+
+| Candidate | Result | Why dropped |
+|-----------|--------|-------------|
+| The mean less one standard deviation of three seeds, strength 7 | 55.7% (50.7–60.6%, 384) | Not better than the plain mean (58.5%) |
+| Another seed in the one-ply looks than at the ends (double estimator), strength 7 with one-ply playouts | 57.1% (51.9–62.2%, 352), 1.72 heroes lost against 1.61 | More heroes lost; costs ×1.42 a step |
+| Auxiliary heads (kills this round, next push, final Life margin), three seeds, strength 7 | 47.2% / 56.8% / 52.6% against `b1s3`; their mean against the plain seeds' mean 50.0% (45.0–55.0%, 384) | Averaging takes what they add; fewer heroes lost; kept in the trainer |
+
+To reproduce (the v0.10 nets copied to `AI_NETS=D:\.goa-qa\v14\a\nets`; `AI_FAMILY=tune AI_SPRT=0.55 AI_THREADS=3
+AI_N=192 AI_HEAP=4g`, `--no-configuration-cache` when an `AI_*` value changes):
+
+```
+AI_TEAMS='s7+net=avg(b1s3,b1s2,b1):s7+net=b1s3' ./gradlew :core:game:jvmTest --tests '*TeamTournamentTest' --rerun
+AI_TEAMS='s10+work=15500:s10+work=15500+net=v10' ./gradlew ...   # the shipped 10 against v0.10's
+AI_COST='s10+work=15500+net=v10,s10+work=15500' ./gradlew :core:game:jvmTest --tests '*CostTest' --rerun
+AI_SPREAD=<gen2>/games-2.jsonl AI_SPREAD_NETS=b1s3,b1s2,b1 AI_CACHE=<cache> ./gradlew ... --tests '*LearnedTrainTest'
+AI_AUX=kills:0.3,push:0.3,life:0.3 AI_SEED=2 AI_TRAIN_NAME=x2 AI_TRAIN=<gen0>,<gen1>,<gen2> AI_HEAP=8g AI_THREADS=3 \
+  AI_CACHE=<cache> ./gradlew ... --tests '*LearnedTrainTest'
+```
+
+`AI_PROGRESS_FILE=<file>` appends a team tournament's running score to a file, which a long run can be watched by.
 
 ## Team play, two-turn kills and mixing (v0.14 stream B, ADR-061)
 
@@ -1516,7 +1659,8 @@ Read from game logs over all 32 heroes (`GameLogTest`, `UsageTest`, 2026-10-24).
 - **The top end was flat:** above Expert (10) no search setting measured better (24 samples with 12
   candidates, a longer horizon, a hotter or colder choice, a wider one-ply look, played-out upgrade
   choices, a sharper or looser opponent model; "What changed in v0.7"). The learned evaluation
-  (v0.9) was the next gain, and the per-hero and per-card parts (v0.10) the one after. Deeper playouts with
+  (v0.9) was the next gain, the per-hero and per-card parts (v0.10) the one after, and averaging three seed
+  nets (v0.14) the one after that. Deeper playouts with
   searched later turns and double the search both lost in v0.10 ("Depth and speed"); kills set up over two
   turns stay out of its reach.
 - **Wall-clock cap**: on a loaded phone the production player may search less than on the desktop;
@@ -1549,10 +1693,9 @@ Read from game logs over all 32 heroes (`GameLogTest`, `UsageTest`, 2026-10-24).
 | `ControllerStrengthTest` | A save with only a level loads as its strength; strengths round-trip; the bands |
 | `TournamentTest`, `ExperimentTest`, `GameLogTest`, `UsageTest` | Opt-in (`AI_TOURNAMENT` / `AI_MIXED` with `AI_PAIRS=6:5,…`, `AI_EXPERIMENT=s10+samples=24:s10`, `AI_LOG`, `AI_USAGE` environment variables; `AI_FORMAT=3v3` for bigger teams, `AI_KEEP_GOING` and `AI_DUMP_DIR` for long runs, `AI_PROGRESS` a line per game; variants also `work=`, `race=`, `defenseless=`, `focus=`, `hunt=a/b/c`, `pp=`, `learned=HAND` — `s10+learned=HAND` is v0.8's 10): long tournaments between strengths (per-hero rates; `AI_GAMES=<hero>` lists the games; a failing game is reported with its line-up and seed), profile variants (any knob or `x<TERM>=` scale), one game's log (a mixed or explicit line-up; `AI_LOG_DECISIONS`, `AI_LOG_VALUES` also for defenses, `AI_LOG_LEAVES=<hero>`), each card's actions, defeats and kills per hero |
 | `FingerprintTest`, `CrashReproTest` | Opt-in (`AI_FINGERPRINT=<variant>:<games>`, `AI_REPRO=<dump>\|<variant>\|<seed>`): a hash of every answer of deterministic games (a change meant only to be faster must keep them); a crashed game's decision asked again from its dump |
-| `LearnedNetTest` | The checked-in weights load and were trained on these features (`Features.SCHEMA_HASH`, input count); the board inputs name real piece kinds and the tables real heroes and cards; a piece reaches the net per kind, seen from both sides; the net's inputs and strength 10's hand parts keep the knobs it was trained with (`Features.KNOBS` / `SCALES`, `TUNED_WITH_NET`; leaf scores do not move with part A's 3v3 knobs, which do move the hand evaluation); swapping the teams negates the score; mirrored openings give mirrored features except the board-dependent ones; an evaluation costs far less than a playout (prints µs per position) |
-| `LearnedSelfPlayTest`, `LearnedTrainTest`, `TeamTournamentTest`, `LearnedTimingTest` | Opt-in (`AI_SELFPLAY`, `AI_TRAIN`, `AI_TEAMS`, `AI_LTIMING`): self-play data at any team size, training (Learned evaluation, "How to retrain"), mirrored tournaments of any variant (`learned=`, `net=<name>` or `net=v09` on top of `ExperimentTest`'s keys) at any team size on the train / tune / test line-up families (`AI_BATCH=<n>` prints the running score and details every n line-ups; `AI_KILLS=1` counts the team kills open and taken; `oracle/<variant>` is the oracle exploiter, ADR-061; `-i` shows the output while it runs), decision times at any team size |
-
-| `LearnedSelfPlayTest`, `LearnedTrainTest`, `TeamTournamentTest`, `LearnedTimingTest` | Opt-in (`AI_SELFPLAY`, `AI_TRAIN`, `AI_TEAMS`, `AI_LTIMING`): self-play data at any team size, training (Learned evaluation, "How to retrain"), mirrored tournaments of any variant (`learned=`, `net=<name>` or `net=v09` on top of `ExperimentTest`'s keys) at any team size on the train / tune / test line-up families (`AI_BATCH=<n>` prints the running score every n line-ups), decision times at any team size |
+| `LearnedNetTest` | The checked-in weights load and were trained on these features (`Features.SCHEMA_HASH`, input count), the ensemble's three nets too, and the ensemble scores the mean of its nets while one net scores as before; the board inputs name real piece kinds and the tables real heroes and cards; a piece reaches the net per kind, seen from both sides; the net's inputs and strength 10's hand parts keep the knobs it was trained with (`Features.KNOBS` / `SCALES`, `TUNED_WITH_NET`; leaf scores do not move with part A's 3v3 knobs, which do move the hand evaluation); swapping the teams negates the score; mirrored openings give mirrored features except the board-dependent ones; an evaluation costs far less than a playout (prints µs per position) |
+| `LearnedSelfPlayTest`, `LearnedTrainTest`, `TeamTournamentTest`, `LearnedTimingTest` | Opt-in (`AI_SELFPLAY`, `AI_TRAIN`, `AI_TEAMS`, `AI_LTIMING`): self-play data at any team size, training (Learned evaluation, "How to retrain"), mirrored tournaments of any variant (`learned=`, `net=<name>`, `net=v09`, `net=v10`, an ensemble `net=avg(a,b,c)` / `lcb<k>(…)` / `min(…)` and `inner=<net or ensemble>` for the one-ply looks on top of `ExperimentTest`'s keys) at any team size on the train / tune / test line-up families (`AI_PROGRESS_FILE` for the running score; `AI_BATCH=<n>` prints the running score and details every n line-ups; `AI_KILLS=1` counts the team kills open and taken; `oracle/<variant>` is the oracle exploiter, ADR-061; `-i` shows the output while it runs), decision times at any team size |
+| `CostTest` | Opt-in (`AI_COST=<variant>,…`, `AI_COST_N`): the time per card play and per engine answer of variants at the same work, on the speed measure's fixed 3v3 card plays, interleaved (ADR-060); `LearnedTrainTest` also prints how far seed nets disagree (`AI_SPREAD`, `AI_SPREAD_NETS`) and trains auxiliary heads (`AI_AUX`) |
 | `HeroBenchTest`, `HeroScalesTest` | Opt-in bench and tuners (`AI_BENCH=a:b` with `AI_SEAT`, `AI_BENCH_FIT=<games>`, `AI_TUNE=<hero>:<base>`, `AI_EXPLOIT=<base>:<opponent>`, ADR-063, "Stream D"); the per-hero table changes nothing for a hero it does not know and scales only its hero's parts, on either team |
 | `BlindSpotTest`, `UpgradeTableTest` | Opt-in (`AI_BLIND=<variant>:<games>`, `AI_UPGRADES=<games>`): which questions the search cannot tell apart, per hero and question; the value of each level-up choice from games played with `AI_EPS_UPGRADE` (ADR-049) |
 | `FitTest`, `BlunderTest` | Opt-in (`AI_FIT=<games>:<strength>`, `AI_BLUNDERS=<strength>:<games>`, `AI_FORMAT`): the evaluation's parts fitted to self-play outcomes (above); plays a decent player would call blunders, judged on the real game — a defense declined or too weak while one would hold, an action that defeats an enemy hero passed over, a move into a defeat another destination avoided |
