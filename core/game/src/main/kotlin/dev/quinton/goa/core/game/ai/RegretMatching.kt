@@ -21,12 +21,16 @@ internal object RegretMatching {
     fun solve(values: List<DoubleArray>, keys: List<String?>, free: Double, iterations: Int = ITERATIONS): DoubleArray {
         val rows = values.size
         if (rows == 0) return DoubleArray(0)
-        val groups = keys.indices.filter { k -> keys[k] != null && values.any { !it.getOrElse(k) { Double.NaN }.isNaN() } }
+        val groups = keys.indices.filter { k ->
+            keys[k] != null &&
+                values.any { !it.getOrElse(k) { Double.NaN }.isNaN() }
+        }
             .groupBy { keys[it]!! }.values.toList()
         if (groups.isEmpty()) return DoubleArray(rows) { 1.0 / rows }
         val total = groups.sumOf { it.size }.toDouble()
         val q = DoubleArray(groups.size) { groups[it].size / total }
-        val rowMean = DoubleArray(rows) { i -> values[i].filter { !it.isNaN() }.average().let { if (it.isNaN()) 0.0 else it } }
+        val rowMean =
+            DoubleArray(rows) { i -> values[i].filter { !it.isNaN() }.average().let { if (it.isNaN()) 0.0 else it } }
         val a = Array(rows) { i ->
             DoubleArray(groups.size) { j ->
                 val v = groups[j].map { values[i].getOrElse(it) { Double.NaN } }.filter { !it.isNaN() }
@@ -57,8 +61,11 @@ internal object RegretMatching {
         val out = DoubleArray(rows) { avg[it] / sum }
         for (i in out.indices) if (out[i] < FLOOR) out[i] = 0.0
         val kept = out.sum()
-        return if (kept <= 0) DoubleArray(rows) { if (it == out.indices.maxBy { k -> avg[k] }) 1.0 else 0.0 }
-        else DoubleArray(rows) { out[it] / kept }
+        return if (kept <= 0) {
+            DoubleArray(rows) { if (it == out.indices.maxBy { k -> avg[k] }) 1.0 else 0.0 }
+        } else {
+            DoubleArray(rows) { out[it] / kept }
+        }
     }
 
     /** Regret matching's strategy: positive regrets normalised, uniform when none is positive. */

@@ -95,7 +95,10 @@ internal data class LevelProfile(
      * plan. 0 = teammates play their static best card in the playouts.
      */
     val joint: Int = 0,
-    /** A joint card play also tries each teammate's best card against an enemy hero in reach ([TeamKills.threatCard]). */
+    /**
+     * A joint card play also tries each teammate's best card against an enemy hero in reach
+     * ([TeamKills.threatCard]).
+     */
     val jointThreat: Boolean = false,
     /**
      * The kill extension of card-play playouts (ADR-061, [Searcher.killPlan]): 1 = when either team can kill
@@ -335,7 +338,13 @@ internal class Searcher(
         val preds: Map<String, String>,
     ) {
         val horizon = horizonOf(d.kind)
-        val keys: Array<String?>? = if (profile.rm > 0 && d.kind == DecisionKind.PLAY_CARD) arrayOfNulls(samples) else null
+        val keys: Array<String?>? = if (profile.rm > 0 &&
+            d.kind == DecisionKind.PLAY_CARD
+        ) {
+            arrayOfNulls(samples)
+        } else {
+            null
+        }
         val table = LinkedHashMap<Plan, DoubleArray>()
         val leaves = ArrayList<Leaf>()
         var done = 0
@@ -534,13 +543,9 @@ internal class Searcher(
             val played = h.unresolved.firstOrNull()?.id
             val card = when {
                 played != null -> played
-
                 h.seat < me || h.hand.isEmpty() -> null
-
                 preds[h.id] != null -> preds.getValue(h.id).takeIf { id -> h.hand.any { it.id == id } }
-
                 keys != null -> draw(s, h.id, h.hand.map { it.id }.sorted(), rng)
-
                 else -> null
             }
             if (card != null && played == null) out[h.id] = card
@@ -594,7 +599,8 @@ internal class Searcher(
             val before = f.events.size
             f.answer(dp.id, o)
             answered.incrementAndFetch()
-            playout(f, d.seat, d.team, horizon, mates = p.mates + enemies, killExtension = extendKills(d))
+            val extend = extendKills(d) && horizon == Horizon.TURN
+            playout(f, d.seat, d.team, horizon, mates = p.mates + enemies, killExtension = extend)
             val v = leaf.evaluate(f.state, d.team)
             table.getValue(p)[k] = v
             if (keepLeaves) leaves += Leaf(o, k, f, before, v)
@@ -654,6 +660,7 @@ internal class Searcher(
         horizon: Horizon,
         maxSteps: Int = 400,
         mates: Map<String, String> = emptyMap(),
+        /** Card plays at [Horizon.TURN]: run on through a kill turn ([killPlan]). */
         killExtension: Boolean = false,
     ) {
         val start = f.state
@@ -684,7 +691,7 @@ internal class Searcher(
 
                 Horizon.NEXT_TURN -> turnsEnded >= 2
             }
-            if (stop && kills == null && killExtension && horizon == Horizon.TURN && turnsEnded == 1) {
+            if (stop && kills == null && killExtension && turnsEnded == 1) {
                 ended.incrementAndFetch()
                 kills = killPlan(s, rootTeam, startRound)
                 if (kills != null) {
@@ -703,8 +710,7 @@ internal class Searcher(
                 // A facedown play has no immediate effect to look at: the plan's card for a teammate
                 // (this turn only), else the static round plan picks it.
                 d.kind == DecisionKind.PLAY_CARD ->
-                    (if (turnIndex(s) == startTurn) mates[d.seat] else kills?.get(d.seat))?.let { Choice.Card(it) }
-                        ?.takeIf { it in d.options } ?: static.best(s, d)
+                    planned(d, if (turnIndex(s) == startTurn) mates else kills) ?: static.best(s, d)
 
                 searchIt -> greedy(f, d)
 
@@ -718,6 +724,10 @@ internal class Searcher(
         }
     }
 
+    /** The card a plan ([Plan.mates], [killPlan]) has [d]'s hero play, if it can. */
+    private fun planned(d: Decision, plan: Map<String, String>?): Choice? =
+        plan?.get(d.seat)?.let { Choice.Card(it) }?.takeIf { it in d.options }
+
     /**
      * The kill extension (ADR-061): at the end of a playout's turn, when the next turn is in the same round
      * and a team can kill an enemy hero on it with several heroes together ([TeamKills]), the cards that
@@ -728,7 +738,13 @@ internal class Searcher(
         if (s.round != round || s.winner != null) return null
         val enemy = if (team == Team.RED) Team.BLUE else Team.RED
         val ours = TeamKills.chances(ev, s, team).firstOrNull()?.attackers.orEmpty()
-        val theirs = if (profile.killExt == 1) TeamKills.chances(ev, s, enemy).firstOrNull()?.attackers.orEmpty() else emptyMap()
+        val theirs = if (profile.killExt ==
+            1
+        ) {
+            TeamKills.chances(ev, s, enemy).firstOrNull()?.attackers.orEmpty()
+        } else {
+            emptyMap()
+        }
         return (ours + theirs).takeIf { it.isNotEmpty() }
     }
 

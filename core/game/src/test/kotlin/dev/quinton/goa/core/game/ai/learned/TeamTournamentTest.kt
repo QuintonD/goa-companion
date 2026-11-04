@@ -28,10 +28,12 @@ class TeamTournamentTest {
             val (a, b) = pair.split(":")
             val t0 = System.nanoTime()
             val specs = Teams.specs(n, size, family, first)
-            // AI_KILLS=1: each side's team kills open and taken, the kill extension's rate, work per card play (ADR-061).
+            // AI_KILLS=1: each side's team kills open and taken, the kill extension's rate, work per card play
+            // (ADR-061).
             Oracle.predicted.set(0)
             Oracle.right.set(0)
             val kills = if (System.getenv("AI_KILLS") != null) listOf(KillCount(), KillCount()) else null
+
             // oracle/<variant>: the oracle exploiter on that variant, predicting the other side's card plays.
             fun side(x: String, other: String) =
                 if (x.startsWith("oracle/")) Oracle.side(x.removePrefix("oracle/"), other) else Learned.side(x)
@@ -42,7 +44,9 @@ class TeamTournamentTest {
             sprt?.let { println("TEAMS SPRT ${it.verdict(score)} after ${score.games} games (pairs)") }
             if (System.getenv("AI_SCORECARD") != null) println("TEAMS scorecard\n${Tournament.scorecard(score)}")
             if (Oracle.predicted.get() > 0) {
-                println("TEAMS oracle predicted ${Oracle.right.get()} of ${Oracle.predicted.get()} enemy card plays right")
+                println(
+                    "TEAMS oracle predicted ${Oracle.right.get()} of ${Oracle.predicted.get()} enemy card plays right",
+                )
             }
             kills?.let { (ka, kb) ->
                 println("TEAMS kills ${ka.line(a)}")

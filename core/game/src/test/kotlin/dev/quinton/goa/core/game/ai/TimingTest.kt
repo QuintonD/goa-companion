@@ -56,9 +56,11 @@ class TimingTest {
                 if (System.getenv("AI_PROGRESS") != null) println("TIMING   game $g: ${r.rounds} rounds, ${r.winner}")
                 for ((k, v) in r.timings) all.getOrPut(k) { ArrayList() } += v
                 for ((k, v) in r.playBySeat) byHero.getOrPut(k) { ArrayList() } += v
-                for ((k, v) in r.playBySeat) bySeat.getOrPut((red.indexOf(k) + 1).takeIf { it > 0 } ?: (blue.indexOf(k) + 1)) {
-                    ArrayList()
-                } += v
+                for ((k, v) in r.playBySeat) {
+                    bySeat.getOrPut((red.indexOf(k) + 1).takeIf { it > 0 } ?: (blue.indexOf(k) + 1)) {
+                        ArrayList()
+                    } += v
+                }
                 work += r.playWork
             }
             println(
