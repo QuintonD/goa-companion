@@ -145,10 +145,14 @@ class ExperimentTest {
                 // hands=false: strength 10 without the enemies' hand contents (ADR-062), as before v0.14.
                 "hands" -> p.copy(knowHands = v.toBoolean())
 
-                // cards=learned: the learned card-play model guesses enemy plays (ADR-062); cardmix its uniform share.
-                "cards" -> p.copy(cardModel = if (v == "learned") CardPlayModel.CURRENT else null)
-
-                "cardmix" -> p.copy(cardModelUniform = v.toDouble())
+                // cards=learned: the learned card-play model guesses enemy plays, 15% uniform (ADR-062, not kept).
+                "cards" -> p.copy(
+                    playModel = if (v == "learned") {
+                        { static, ctx, hero, pool -> CardPlayModel.CURRENT.weights(static, ctx, hero, pool, 0.15) }
+                    } else {
+                        null
+                    },
+                )
 
                 // The exploiter (AI.md "Team sizes"): hunt=selfExposure/enemyExposure/enemyLife, e.g. hunt=0/2/1.5.
                 "hunt" -> v.split("/").map { it.toDouble() }.let { (se, ee, el) ->

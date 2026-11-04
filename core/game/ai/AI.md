@@ -31,13 +31,17 @@ average per option (Hard: mean − 0.3 sd for card plays, against the spread of 
 a little softmax noise among the near-best. All options of a sample share the same determinization
 (common random numbers), so differences between options are not hidden-card noise.
 
-**Never reads hidden information.** Every answer starts with
+**Never reads hidden information, with one exception the owner asked for.** Every answer starts with
 `EngineSession.determinizeWith(team, seed, options)`; the evaluation, the policies and the coach read
 only those sampled copies (and the decision itself). The real session's `state` is never read.
-`NoPeekingTest` builds pairs of sessions that look identical to the deciding seat but differ in the
-other team's hidden cards (a facedown play; which colour an enemy upgraded under the same item icon;
-hidden hands after the reveal), asserts the seat's views are equal, and checks that every level gives
-the same answer for the same seed.
+Since v0.14 strength 10 alone is told the cards in the enemies' hands (`LevelProfile.knowHands`,
+ADR-062): the determinizer keeps their hand-plus-played pool; which card of it was played facedown,
+facedown cards and facedown tokens stay hidden. `NoPeekingTest` builds pairs of sessions that look
+identical to the deciding seat but differ in the other team's hidden cards, asserts the seat's views
+are equal, and checks the answers for the same seed: a facedown play (also of an upgraded card from the
+same hand) and facedown tokens (Min's Mines) give the same answer at every strength 1–10 and the same
+coach's suggestions; which colour an enemy upgraded under the same item icon, and hidden hands after the
+reveal, give the same answer at 1–9 and the same suggestions. Only strength 10's profile has the switch.
 
 **Generic.** Nothing names a hero. Card effects are resolved only by the engine (forks); the
 heuristics read printed values and a few text patterns (`CardProfile`). A hero added later is played
@@ -100,10 +104,14 @@ after a level up is hidden. For each enemy hero with the standard one-card-per-c
 3. before the reveal, deal the played card again from the hand pool, weighted by the opponent model
    (`Options.playWeight`: softmax of the hero's own static card scores, τ = 1.5, mixed with 15%
    uniform; Normal and up — Easy guesses uniformly);
-4. human teammates' unrevealed played cards are dealt again too (`Options.hidePlayedOf`): a facedown
+4. at strength 10 (`Options.knowHands`, ADR-062) steps 1–2 keep the enemy's real hand-plus-played pool: those
+   cards count as public in the history, so only histories that deal exactly that pool remain (items and
+   facedown discards still follow from them), and step 3 still deals the played card again from the pool.
+   Heroes of other shapes keep their hand and played cards and swap only their other hidden cards;
+5. human teammates' unrevealed played cards are dealt again too (`Options.hidePlayedOf`): a facedown
    card is hidden even to a teammate (p.4). AI teammates count as having announced their plan (legal
    table talk before the reveal).
-5. the coach speaks to one player, who may not see a teammate's cards (p.4): for it every teammate but the
+6. the coach speaks to one player, who may not see a teammate's cards (p.4): for it every teammate but the
    seat asking is resampled like an enemy, hand, items and facedown cards and tokens (`Options.hideAllOf`,
    `LevelProfile.hideTeammates`; `CoachTruthTest`). A computer team's own search keeps the rule above.
 
@@ -464,7 +472,7 @@ adds one lever that measured (below); the knobs are `LevelProfile`s in `AiPlayer
 | 7 | Hard | played out once | turn / **turn** | 1 / 1, 6 | static; opaque one ply | opponent model | τ 0.5 within 1.3 | tuned | 500 ms |
 | 8 | Hard | mean − 0.3 sd for card plays | turn / turn | **6 / 2**, 8 | static; opaque one ply | opponent model | τ 0.25 within 0.8 | tuned | 1 s |
 | 9 | Expert | mean | turn / turn | **16 / 6**, 10 | its own by **one-ply search** | + **memory** of cards shown since each level up | τ 0.15 within 0.6 (mixing) | tuned | 1.5 s |
-| 10 | Expert | mean | turn / turn | 16 / 6, 10 | **every hero's** by one-ply search | + memory | τ 0.15 within 0.6 | **learned** at playout ends (v0.8's tuned inside) | 2 s |
+| 10 | Expert | mean | turn / turn | 16 / 6, 10 | **every hero's** by one-ply search | + memory; **knows the hands**, not the facedown card (v0.14) | τ 0.15 within 0.6 | **learned** at playout ends (v0.8's tuned inside) | 2 s |
 
 "Tuned" is `TUNED`: exposure × 0.3, minion opportunity × 2 (Evaluation, above), and since v0.9 in 3v3
 a Push Potential of 0.35 per attack card and the full exposure of a hero with no card left to defend
@@ -491,7 +499,8 @@ target, another hero's card (Architecture).
   later choices in a playout by one-ply search; **10** is Expert: everyone's later choices in a
   playout by one-ply search, it mixes between near-equal plays, and since v0.9 it judges the end of
   every playout with the learned evaluation (Learned evaluation) and thinks at most 2 s a card play on
-  the phone, on three threads.
+  the phone, on three threads. Since v0.14 it knows the cards in the enemies' hands, at the owner's
+  request, though not the one each played facedown (ADR-062).
 
 The coach analyses at Hard (8) but keeps the tuned hand evaluation (its thresholds and reasons were set
 on it; `AiCoach` sets `learned = HAND`).
@@ -932,6 +941,102 @@ on, three threads, 3v3, 6 games, 2026-10-31): card play 143 / 303 / 982 ms (mean
 423 ms, work per card play 5 526 / 9 669 / 15 354, 25.9 ms per 1 000 answers; at the assumed 3–4× a card play is
 0.43–0.57 / 0.91–1.21 / 2 s (capped).
 
+## v0.14: hand knowledge and card inference (ADR-062)
+
+**Strength 10 knows the cards in the enemies' hands** (the owner: "At the hardest difficulty I would also expect
+the AI to know the values of the cards in the enemy hand, of course not which they have face down and ready to
+play"). `LevelProfile.knowHands`, on at strength 10 only, makes the determinizer keep each enemy's real hand-plus-
+played pool ("The determinizer", step 4); the played card is still dealt again from the pool before the reveal, and
+facedown cards and tokens stay hidden. This departs from the designer's ruling that the kept card at a level up is
+not public (BGG 3590819), on purpose. Strengths 1–9 and the coach are unchanged: `FingerprintTest` (3v3, one game
+each) gives the base commit's hashes for strength 7 (462214142), 9 (137732948) and 10 without the switch
+(`s10+hands=false`, 857411144); strength 10 with it answers differently (−358862914).
+
+**What it removes in practice** (`HandKnowledgeTest`, the first 400 3v3 games of generation 2, every card play, each
+enemy hero of the standard shape, from the deciding team's view with strength 9–10's memory):
+
+| Enemy level | Looks | Histories consistent (memory) | Hand pool unknown |
+|-------------|-------|-------------------------------|-------------------|
+| 1 | 38 748 | 1.00 | 0% |
+| 2 | 32 220 | 1.30 | 29.8% |
+| 3 | 39 438 | 1.36 | 21.6% |
+| 4 | 28 026 | 1.05 | 5.4% |
+| 5 | 11 991 | 1.28 | 16.3% |
+| 6–7 | 1 779 | 1.58 | 31.4% |
+| all | 152 202 | 1.20 | 14.6% |
+
+With the hand known one history is left (1.00; at level 7 1.11, the Tier II card tucked under a Tier III), and the
+pool is always the real one. Memory alone already pins the hand in 85% of looks, because most kept cards are shown
+within a turn or two of the level up; another 9 330 looks were at heroes of other shapes, whose hands were guessed
+within colour and Tier before and are now known.
+
+**Measured at the phone's work** (`s10+work=15500` against `s10+work=15500+hands=false`, 3v3, tune line-ups 0–191
+mirrored, `AI_SPRT=0.55`, 2026-11-04; the test did not decide after 384 games):
+
+| 3v3, tune family | Wins | Rate | 95% interval (games / pairs) | Heroes lost a game (with no card to defend, in all) | How it won (last push / Throne / Life) | How the other won |
+|------------------|------|------|------------------------------|------------------------------------------------------|----------------------------------------|-------------------|
+| Knowing hands, against not | 197–187 | 51.3% | 46.3–56.3% / 46.8–55.8% | 1.71 against 1.94 (201 / 224) | 83 / 36 / 78 | 106 / 35 / 46 |
+
+Even on wins, but the side that knows the hands loses fewer heroes and wins more of its games on Life counters
+(78 against 46): knowing that an enemy holds no card that defends, or only a weak one, is what makes a kill sure.
+The scorecard is at noise (±23 points a hero over 34–39 games; one interval of 32 excludes zero, Wuk +26.5%, as
+chance would give). It is kept because the owner asked for it and it measures no worse, not because it measured
+better.
+
+**A learned guess of the card an enemy plays** (`CardPlayModel`, `CardPlayWeights`, test sources; Rebstock et al. 2019). Today's
+opponent model is a softmax of the hero's static card scores (τ 1.5, 15% uniform), the same rule for every hero. The
+model is a conditional logit over the hand: shared weights on 40 numbers of each card in the state (the static score
+and its gap to the hand's best, Initiative and its rank in the hand, the printed Attack, Defense, Movement, reach,
+Radius, the card's kind and colour and Tier, its rating, whether its attack reaches an enemy hero, a minion, a lane's
+last minion or a hero two spaces further, a skill's reach, the hero's exposure with defenders and movers, the spare
+cards, the turn by colour, the distance to the Battle Zone by Movement), plus per-hero weights on the same numbers
+and a per-card bias and turn slope, keyed by id. Trained by `CardPlayTest` on the replayed card plays of the plain
+searching sides with a net in generations 1 and 2 (`s7+net=…`, `s8+net=…`: 443 455 plays, 32 heroes; no new games:
+strength-10 games at three threads did not fit beside the tournaments), split by line-up (% 10: 8 early stopping,
+9 test, the rest training), Adam, seeded.
+
+**The offline gate** (43 102 held-out plays; log-loss in nats, lower is better; top-1 = the model's likeliest card was
+played):
+
+| Model | Log-loss | Top-1 |
+|-------|----------|-------|
+| Uniform over the hand | 1.214 | 33.2% |
+| Today's (τ 1.5, 15% uniform) | 1.272 | 41.0% |
+| Today's form refitted (τ 2, 50% uniform) | 1.199 | 41.0% |
+| Learned, shared weights only | 1.138 | 43.3% |
+| **Learned, with the hero and card tables** | **1.119** | **44.6%** |
+| The same mixed with 15% uniform (as played) | 1.123 | 44.6% |
+
+Today's model is overconfident: it predicts worse than a uniform guess. The learned one is better for all 32 heroes
+(log-loss 0.010 to 0.128 lower than the refitted form; top-1 up for 30 of them), most for Dodger, Tali, Razzle,
+NebKher and Brogan, least for Gydion (0.010). A guess costs about what today's does
+(22–38 µs against 24–26 µs on the desktop, `AI_PLAYS_TIME`), against playouts of 0.1–30 ms.
+
+**In play it measured even, so no strength uses it.** Wired in as the opponent model (`LevelProfile.playModel`,
+tests only; variant `cards=learned`, 15% uniform as today), 3v3, tune family, mirrored, the same work on both sides:
+
+| Candidate against the same without it | Line-ups | Wins | Rate | 95% interval (games / pairs) | Heroes lost a game (with no card to defend, in all) | How it won (last push / Throne / Life) / the other |
+|----------------------------------------|----------|------|------|------------------------------|------------------------------------------------------|-----------------------------------------------------|
+| Strength 7 (screen; hands not known) | 0–111 | 107–117 | 47.8% | 41.3–54.3% / 42.3–53.2% | 1.56 against 1.66 (121 / 115) | 47 / 33 / 27 against 61 / 23 / 33; the test decided H0 after 224 games |
+| Strength 10 at `work=15500`, both knowing hands | 0–191 | 206–178 | 53.6% | 48.6–58.6% / 49.1–58.2% | 1.78 against 1.83 (196 / 225) | 104 / 38 / 64 against 90 / 36 / 52; undecided after 384 games |
+| The same, more line-ups (stopped once the answer was clear) | 192–295 | 96–112 | 46.2% | 39.5–52.9% / 40.9–51.4% | not printed (stopped) | — |
+| **Strength 10, both runs** | 0–295 | 302–290 | 51.0% | 47.0–55.0% (games) | — | — |
+
+A model that predicts the searching sides' cards far better than today's does not make the search play better. Why
+is not known; two readings, neither tested: with 16 samples the search already averages over the enemy's likely
+cards, so a sharper guess changes few of them; and the model learned strength 7–8 searchers' choices but was
+measured against strength 10's (fresh strength-10 games to train on did not fit beside the tournaments on three
+threads). It was not tried as the playout policy for our own cards (that needs its own measurement, and the
+opponent-model result gave no reason to expect a gain). The model, its weights, its training (`CardPlayTest`) and
+the variant stay in the test sources for a later round.
+
+**Tried and dropped in v0.14 (this stream):**
+
+| Candidate | Result | Why dropped |
+|-----------|--------|-------------|
+| The learned card-play model as strength 10's opponent model (`cards=learned`) | 51.0% (47.0–55.0%) over 592 games at the phone's work; strength 7 screen 47.8% (H0) | Even, though it predicts much better offline |
+
+
 ## The coach
 
 `nudge` runs Hard-level playouts (6 / 4 samples, end-of-turn horizon) on copies determinized from
@@ -1110,7 +1215,9 @@ Read from game logs over all 32 heroes (`GameLogTest`, `UsageTest`, 2026-10-24).
 - **Double lane:** the evaluation sums the lanes; it plays legally (smoke tests, 4v4 and 5v5 too) but
   has not been tuned, and each engine step costs a third more than on one lane.
 - **Opponent model** is the static card policy: a human who plays unusual cards is guessed poorly
-  (15% of each guess is uniform to stay robust).
+  (15% of each guess is uniform to stay robust). It predicts the searching sides' cards worse than a uniform
+  guess (held-out log-loss 1.272 against 1.214); a learned per-hero model predicts far better (1.119) and still
+  played even (v0.14), so what the search needs from the guess is not its sharpness.
 - **The top end was flat:** above Expert (10) no search setting measured better (24 samples with 12
   candidates, a longer horizon, a hotter or colder choice, a wider one-ply look, played-out upgrade
   choices, a sharper or looser opponent model; "What changed in v0.7"). The learned evaluation
@@ -1129,7 +1236,9 @@ Read from game logs over all 32 heroes (`GameLogTest`, `UsageTest`, 2026-10-24).
 | Test | What |
 |------|------|
 | `LevelLadderTest` | The named levels' strengths beat each other over a seeded, mirrored tournament (24 games on mixed line-ups from all heroes + 12 on the first-game heroes per pair): Easy (2) over 1 ≥ 60%, Normal (6) over Easy ≥ 75%, Hard (8) over Normal ≥ 65%, Expert (10) over Normal ≥ 75% |
-| `NoPeekingTest` | Same public view, different hidden enemy cards → same answer at every strength 1–10; the determinizer keeps every public fact and samples only consistent upgrade histories |
+| `NoPeekingTest` | Same public view, different hidden enemy cards → same answer: a facedown played card or facedown tokens at every strength 1–10 and in the coach's suggestions, hand contents (the upgraded colour, hands after the reveal) at 1–9 and in the coach; only strength 10 knows hands; the determinizer keeps every public fact, samples only consistent upgrade histories and, knowing hands, keeps the pool and still guesses the played card (ADR-062) |
+| `CardPlayModelTest` | The learned card-play model's weights load and name real heroes and cards; a guess sums to one; a hero or card the tables do not know adds nothing (ADR-062) |
+| `HandKnowledgeTest`, `CardPlayTest` | Opt-in (`AI_HANDS=<games>:<n>`; `AI_PLAYS=<games>`, `AI_PLAYS_TIME`, `AI_PLAYS_EVAL`): the upgrade histories hand knowledge removes over stored games; the card-play model's data, training, offline gate and weights ("v0.14: hand knowledge and card inference") |
 | `DecisionKindsTest` | Every `DecisionKind` gets a legal answer at every strength: in AI games (every strength plays), a Clear action's token choice, and built questions of every kind |
 | `AiSmokeTest` | Full AI games finish: every level, Long, 1v1, 2v1 with a Handicap card, the double-lane map, 3v3 (Forgotten Island), 4v4 and 5v5 (Across the River) at Normal and 4v4 on Forgotten Island at Hard |
 | `SampleRunnerTest` | A threaded `SampleRunner` gives the same answers as the sequential one (40 decisions of a 3v3 game at strength 8) |

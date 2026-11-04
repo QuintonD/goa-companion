@@ -398,6 +398,6 @@ class CardPlayTest {
         const val B1 = 0.9
         const val B2 = 0.999
         const val PER_LINE = 100
-        const val OUT = "src/main/kotlin/dev/quinton/goa/core/game/ai/CardPlayWeights.kt"
+        const val OUT = "src/test/kotlin/dev/quinton/goa/core/game/ai/CardPlayWeights.kt"
     }
 }

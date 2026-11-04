@@ -9,6 +9,9 @@ import kotlin.math.max
 import kotlin.math.min
 
 /**
+ * Tests only, measured and not kept (AI.md "v0.14: hand knowledge and card inference"; the variant
+ * `cards=learned` plugs it in through [LevelProfile.playModel]).
+ *
  * A learned guess of which card of its hand a hero plays (ADR-062 part 2; Skat's policy-based inference,
  * Rebstock et al. 2019): a conditional logit over the hand, z(card) = shared · φ + hero · φ + card bias +
  * card turn slope · turn, where φ are [F] numbers of the card in this state (its printed numbers, today's
