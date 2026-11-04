@@ -31,29 +31,42 @@ class TeamTournamentTest {
             val (a, b) = pair.split(":")
             val t0 = System.nanoTime()
             val seat = System.getenv("AI_SEAT")?.split(",")
-            val specs = if (seat ==
-                null
-            ) {
-                Teams.specs(n, size, family, first)
-            } else {
-                Teams.seating(n, size, family, seat, first)
-            }
+            val specs = if (seat == null) Teams.specs(n, size, family, first) else Teams.seating(n, size, family, seat, first)
             val store = System.getenv("AI_STORE")?.let(::File)
+            // AI_KILLS=1: each side's team kills open and taken, the kill extension's rate, work per card play
+            // (ADR-061).
+            Oracle.predicted.set(0)
+            Oracle.right.set(0)
+            val kills = if (System.getenv("AI_KILLS") != null) listOf(KillCount(), KillCount()) else null
+
+            // oracle/<variant>: the oracle exploiter on that variant, predicting the other side's card plays.
+            fun side(x: String, other: String) =
+                if (x.startsWith("oracle/")) Oracle.side(x.removePrefix("oracle/"), other) else Learned.side(x)
             val score = Teams.mirrored(
-                Learned.side(a),
-                Learned.side(b),
+                side(a, b),
+                side(b, a),
                 specs,
                 threads,
                 sprt,
                 onGame = store?.let { f ->
                     { p: Teams.Played -> Learned.store(f, p, a, b, family) }
                 },
+                kills = kills,
             )
             println("TEAMS ${size}v$size $score in ${"%.0f".format((System.nanoTime() - t0) / 1e9)} s")
             println("TEAMS   ${score.details()}")
             println("TEAMS by hero ($a): ${score.byHero()}")
             sprt?.let { println("TEAMS SPRT ${it.verdict(score)} after ${score.games} games (pairs)") }
             if (System.getenv("AI_SCORECARD") != null) println("TEAMS scorecard\n${Tournament.scorecard(score)}")
+            if (Oracle.predicted.get() > 0) {
+                println(
+                    "TEAMS oracle predicted ${Oracle.right.get()} of ${Oracle.predicted.get()} enemy card plays right",
+                )
+            }
+            kills?.let { (ka, kb) ->
+                println("TEAMS kills ${ka.line(a)}")
+                println("TEAMS kills ${kb.line(b)}")
+            }
             if (System.getenv("AI_LINES") != null) score.lines.forEach { println("TEAMS   $it") }
         }
     }

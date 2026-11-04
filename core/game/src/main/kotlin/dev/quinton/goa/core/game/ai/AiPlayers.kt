@@ -210,6 +210,10 @@ internal class SearchAi(
     /** Engine answers spent in playouts so far ([LevelProfile.workBudget]; timing tests). */
     internal val work: Long get() = (searchers?.second?.work ?: 0) + (blind?.second?.work ?: 0)
 
+    /** Card-play playouts that ended their turn, and those the kill extension played on (ADR-061; tests). */
+    internal val kills: Pair<Long, Long>
+        get() = searchers?.second?.kills ?: (0L to 0L)
+
     /** The team of the last decision: the exploiter's one-sided taste depends on it. */
     private var team: Team? = null
 
@@ -237,7 +241,16 @@ internal class SearchAi(
         }
     }
 
-    private fun search(es: EngineSession, decision: Decision, cancelled: () -> Boolean): Choice {
+    /**
+     * Tests only (the oracle exploiter, ADR-061): the answer this player is most likely to give, its best
+     * option or the most likely play of its mix, without its noise.
+     */
+    internal fun mode(es: EngineSession, decision: Decision): Choice {
+        if (decision.options.size == 1) return decision.options.single()
+        return search(es, decision, { false }, mode = true)
+    }
+
+    private fun search(es: EngineSession, decision: Decision, cancelled: () -> Boolean, mode: Boolean = false): Choice {
         if (profile.hunt != null && team != decision.team) {
             team = decision.team
             searchers = null
@@ -254,6 +267,18 @@ internal class SearchAi(
         val choices = decision.options.filter { it in byChoice }
         if (choices.isEmpty()) return staticChoice(es, decision, rng)
         val values = choices.map { c -> byChoice.getValue(c).let { it.mean - risk * it.sd } }.toDoubleArray()
+        if (decision.kind == DecisionKind.PLAY_CARD && profile.rm > 0 && a.enemyCards.isNotEmpty()) {
+            // A mixed card play (ADR-061): drawn from the regret-matching solution, not the softmax.
+            val x = RegretMatching.solve(choices.map { byChoice.getValue(it).values }, a.enemyCards, profile.rm)
+            if (mode) return choices[x.indices.maxBy { x[it] }]
+            var r = rng.nextDouble()
+            for (i in x.indices) {
+                r -= x[i]
+                if (r < 0) return choices[i]
+            }
+            return choices[x.indices.maxBy { x[it] }]
+        }
+        if (mode) return choices[values.indices.maxBy { values[it] }]
         return Picker.pick(choices, values, profile.temperature, profile.maxGap, 0.0, rng)
     }
 

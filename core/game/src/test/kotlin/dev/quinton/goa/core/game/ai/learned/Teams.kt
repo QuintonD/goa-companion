@@ -111,6 +111,7 @@ internal object Teams {
         sprt: Tournament.Sprt? = null,
         onGame: ((Played) -> Unit)? = null,
         batch: Int? = null,
+        kills: List<KillCount>? = null,
     ): Tournament.Score {
         val score = Tournament.Score(a, b)
         val pool = Executors.newFixedThreadPool(threads)
@@ -119,8 +120,16 @@ internal object Teams {
             val every =
                 batch ?: System.getenv("AI_BATCH")?.toIntOrNull() ?: if (sprt == null) specs.size else SPRT_BATCH
             for (batch in specs.chunked(every.coerceAtLeast(1))) {
-                playBatch(a, b, batch, pool, score, onGame)
-                if (every < specs.size) println("TEAMS so far $score")
+                playBatch(a, b, batch, pool, score, kills, onGame)
+                if (every < specs.size) {
+                    println("TEAMS so far $score")
+                    // The details too, so a run stopped by hand keeps them.
+                    println("TEAMS so far   ${score.details()}")
+                    if (Oracle.predicted.get() > 0) {
+                        println("TEAMS so far   oracle right ${Oracle.right.get()} of ${Oracle.predicted.get()}")
+                    }
+                    kills?.let { (ka, kb) -> println("TEAMS so far   kills ${ka.line(a.label)} | ${kb.line(b.label)}") }
+                }
                 if (sprt != null && sprt.verdict(score) != Tournament.Sprt.Verdict.GOING_ON) break
             }
         } finally {
@@ -137,6 +146,7 @@ internal object Teams {
         specs: List<Spec>,
         pool: ExecutorService,
         score: Tournament.Score,
+        kills: List<KillCount>?,
         onGame: ((Played) -> Unit)? = null,
     ) {
         val jobs = ArrayList<Callable<Pair<Boolean?, AiHarness.Result>>>()
@@ -147,14 +157,16 @@ internal object Teams {
                 aRed += aIsRed
                 jobs += Callable {
                     val setup = AiHarness.setup(red, blue, AiLevel.NORMAL, AiLevel.NORMAL, spec.coin)
-                    val r = AiHarness.play(
-                        setup,
-                        mapOf(
-                            Team.RED to (if (aIsRed) a else b).factory(spec.seed * 2),
-                            Team.BLUE to (if (aIsRed) b else a).factory(spec.seed * 2 + 1),
-                        ),
-                        maxDecisions = 20_000,
+                    val players = mapOf(
+                        Team.RED to (if (aIsRed) a else b).factory(spec.seed * 2),
+                        Team.BLUE to (if (aIsRed) b else a).factory(spec.seed * 2 + 1),
                     )
+                    val watch = kills?.let { KillCount.Game(players) }
+                    val r = AiHarness.play(setup, players, maxDecisions = 20_000, observe = watch?.let { it::observe })
+                    if (kills != null && watch != null) {
+                        kills[0].add(watch.of(r, if (aIsRed) Team.RED else Team.BLUE))
+                        kills[1].add(watch.of(r, if (aIsRed) Team.BLUE else Team.RED))
+                    }
                     r.winner?.let { (it == Team.RED) == aIsRed } to r
                 }
             }

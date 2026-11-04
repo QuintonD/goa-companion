@@ -32,6 +32,8 @@ class TimingTest {
             fun player(seed: Long) = SearchAi(AiLevel.of(maxOf(1, strength)), profile, seed, timeCap = true, runner)
             val all = LinkedHashMap<DecisionKind, MutableList<Long>>()
             val byHero = LinkedHashMap<String, MutableList<Long>>()
+            // By a hero's place in its team's card-play order (ADR-061: a joint plan moves work to the first).
+            val bySeat = sortedMapOf<Int, MutableList<Long>>()
             val work = ArrayList<Pair<Long, Long>>()
             for ((g, lineup) in lineups.withIndex()) {
                 val (red, blue) = lineup
@@ -54,6 +56,11 @@ class TimingTest {
                 if (System.getenv("AI_PROGRESS") != null) println("TIMING   game $g: ${r.rounds} rounds, ${r.winner}")
                 for ((k, v) in r.timings) all.getOrPut(k) { ArrayList() } += v
                 for ((k, v) in r.playBySeat) byHero.getOrPut(k) { ArrayList() } += v
+                for ((k, v) in r.playBySeat) {
+                    bySeat.getOrPut((red.indexOf(k) + 1).takeIf { it > 0 } ?: (blue.indexOf(k) + 1)) {
+                        ArrayList()
+                    } += v
+                }
                 work += r.playWork
             }
             println(
@@ -67,6 +74,13 @@ class TimingTest {
                         "max=${"%.1f".format(ms.last())} ms",
                 )
             }
+            println(
+                "TIMING   card play by seat in the team (mean/p95/max ms): " +
+                    bySeat.entries.joinToString(", ") { (seat, v) ->
+                        val t = v.map { it / 1e6 }.sorted()
+                        "$seat: ${ms(t.average())}/${ms(p95(t))}/${ms(t.last())}"
+                    },
+            )
             val slow = byHero.mapValues { (_, v) -> v.map { it / 1e6 }.sorted() }.entries
                 .sortedByDescending { p95(it.value) }.take(5)
             println(

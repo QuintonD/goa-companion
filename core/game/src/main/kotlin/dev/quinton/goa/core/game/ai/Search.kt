@@ -99,7 +99,40 @@ internal data class LevelProfile(
      * learned model of ADR-062, measured and not kept: `cards=learned`).
      */
     val playModel: ((StaticPolicy, Ctx, String, List<String>) -> List<Double>)? = null,
+    /**
+     * Joint team card play (ADR-061): at a card play, each computer teammate still to play this turn
+     * tries its best [joint] cards by static score with each of ours, and we play our part of the best
+     * plan. 0 = teammates play their static best card in the playouts.
+     */
+    val joint: Int = 0,
+    /**
+     * A joint card play also tries each teammate's best card against an enemy hero in reach
+     * ([TeamKills.threatCard]).
+     */
+    val jointThreat: Boolean = false,
+    /**
+     * The kill extension of card-play playouts (ADR-061, [Searcher.killPlan]): 1 = when either team can kill
+     * on the next turn with several heroes, 2 = only when we can; 0 = off.
+     */
+    val killExt: Int = 0,
+    /**
+     * Mixed card plays by regret matching ([RegretMatching], ADR-061): the weight of an enemy that
+     * best-responds to our mix against the opponent model's (0 = off: the softmax noise above). Enemies
+     * still to play this turn then play cards drawn from the opponent model in the playouts.
+     */
+    val rm: Double = 0.0,
+    /**
+     * Tests only, the oracle exploiter: the enemy card plays of this turn as the enemy's own player would
+     * choose them, read from the real session (a cheat on purpose, to measure how predictable a player is).
+     */
+    val predictPlays: ((EngineSession, Decision) -> Map<String, String>)? = null,
 )
+
+/**
+ * One option of a search: an answer, and for a joint card play ([LevelProfile.joint]) the cards the
+ * computer teammates still to play this turn play in its playouts (table talk before the reveal, p.4).
+ */
+internal data class Plan(val choice: Choice, val mates: Map<String, String> = emptyMap())
 
 /**
  * How a kill-hunting player weighs the board, relative to the symmetric evaluation: its own heroes'
@@ -175,6 +208,8 @@ internal class Analysis(
     val samples: Int,
     /** Sample indices the search went through (0 until [tried]), done or skipped; [Searcher.extend] repeats them. */
     val tried: Int = samples,
+    /** Per sample, the enemy cards it played this turn (card plays with [LevelProfile.rm]; else empty). */
+    val enemyCards: List<String?> = emptyList(),
 )
 
 /**
@@ -193,6 +228,12 @@ internal class Searcher(
 
     private val answered = AtomicLong(0)
 
+    private val ended = AtomicLong(0)
+    private val extended = AtomicLong(0)
+
+    /** Card-play playouts that reached the end of their turn, and those the kill extension played on ([killPlan]). */
+    val kills: Pair<Long, Long> get() = ended.load() to extended.load()
+
     /** Engine answers spent in playouts so far (the [LevelProfile.workBudget] measure, [AiBenchmark]'s; any runner). */
     val work: Long get() = answered.load()
 
@@ -206,7 +247,12 @@ internal class Searcher(
     /** What scores the one-ply looks inside a playout. */
     private val inner: PositionEvaluator = if (profile.learned == EvalSource.EVERYWHERE) leaf else ev
 
-    fun determinize(es: EngineSession, d: Decision, seed: Long): EngineSession {
+    fun determinize(
+        es: EngineSession,
+        d: Decision,
+        seed: Long,
+        preds: Map<String, String> = emptyMap(),
+    ): EngineSession {
         val team = d.team
         val humans = es.setup.seats.filter {
             it.team == team && it.controller == Controller.Human && it.heroId != d.seat
@@ -219,7 +265,16 @@ internal class Searcher(
         }
         val options = Determinizer.Options(
             seen = if (profile.memory) seenCards(es, team) else emptyMap(),
-            playWeight = if (profile.modelPlays) ::playWeights else null,
+            playWeight = when {
+                preds.isNotEmpty() -> { st, hero, pool ->
+                    preds[hero]?.let { p -> pool.map { if (it == p) 1.0 else 0.0 } }?.takeIf { it.sum() > 0 }
+                        ?: playWeights(st, hero, pool)
+                }
+
+                profile.modelPlays -> ::playWeights
+
+                else -> null
+            },
             hidePlayedOf = humans,
             hideAllOf = teammates,
             knowHands = profile.knowHands,
@@ -252,7 +307,9 @@ internal class Searcher(
         mustInclude: Choice? = null,
     ): Analysis? {
         val isPlay = d.kind == DecisionKind.PLAY_CARD
-        val run = Run(es, d, seed, cancelled, if (isPlay) profile.playSamples else profile.otherSamples)
+        // The oracle exploiter's predictions (tests only): read once from the real session.
+        val preds = if (isPlay) profile.predictPlays?.invoke(es, d).orEmpty() else emptyMap()
+        val run = Run(es, d, seed, cancelled, if (isPlay) profile.playSamples else profile.otherSamples, preds)
         val work0 = work
         val workCap = when {
             profile.workBudget <= 0 -> Long.MAX_VALUE
@@ -260,9 +317,37 @@ internal class Searcher(
             else -> profile.workBudget / 3
         }
         val overBudget = { cancelled() || monotonicNanos() > deadline || work - work0 > workCap }
-        val candidates = only ?: run.first(mustInclude, overBudget) ?: return run.result()
+        val candidates = only?.map { Plan(it) } ?: run.first(mustInclude, overBudget) ?: return run.result()
         run.batches(candidates, overBudget)
         return run.result()
+    }
+
+    /**
+     * The plans of a joint card play: every own candidate with every combination of the computer
+     * teammates' best [LevelProfile.joint] cards, for the teammates who still play this turn (seat order,
+     * p.7). Their hands are open to the team (AI teammates count as having announced them, AI.md "The
+     * determinizer"); a human teammate's card stays the playout's guess.
+     */
+    private fun plans(det: EngineSession, d: Decision, own: List<Choice>): List<Plan> {
+        val plain = own.map { Plan(it) }
+        if (profile.joint <= 0 || d.kind != DecisionKind.PLAY_CARD || profile.hideTeammates) return plain
+        val s = det.state
+        val me = s.heroes.indexOfFirst { it.id == d.seat }
+        if (me < 0 || s.step != dev.quinton.goa.core.game.engine.Step.PLAY) return plain
+        val ai = det.setup.seats.filter { it.controller is Controller.Ai }.map { it.heroId }.toSet()
+        val ctx = ev.context(s)
+        val mates = s.heroes.filter { it.seat > me && it.team == d.team && it.id in ai && it.hand.isNotEmpty() }
+            .map { h ->
+                val top = h.hand.map { it.id }.sorted()
+                    .sortedByDescending { static.playScore(ctx, h.id, Choice.Card(it)) }
+                    .take(profile.joint)
+                val threat = if (profile.jointThreat) TeamKills.threatCard(ev, s, h.id) else null
+                h.id to (top + listOfNotNull(threat)).distinct()
+            }
+        if (mates.isEmpty()) return plain
+        var combos = listOf(emptyMap<String, String>())
+        for ((id, cards) in mates) combos = combos.flatMap { m -> cards.map { c -> m + (id to c) } }
+        return own.flatMap { c -> combos.map { Plan(c, it) } }
     }
 
     /** One [analyze]: the samples' values per option, filled column by column (one column per sample). */
@@ -272,37 +357,55 @@ internal class Searcher(
         val seed: Long,
         val cancelled: () -> Boolean,
         val samples: Int,
+        val preds: Map<String, String>,
     ) {
         val horizon = horizonOf(d.kind)
-        val table = LinkedHashMap<Choice, DoubleArray>()
+        val keys: Array<String?>? = if (profile.rm > 0 &&
+            d.kind == DecisionKind.PLAY_CARD
+        ) {
+            arrayOfNulls(samples)
+        } else {
+            null
+        }
+        val table = LinkedHashMap<Plan, DoubleArray>()
         val leaves = ArrayList<Leaf>()
         var done = 0
         var k = 0
         var stopped = false
 
-        fun result(): Analysis? =
-            if (done == 0) null else Analysis(d, table.map { (c, v) -> OptionValue(c, v) }, leaves, done, k)
+        /** Per own answer, its best plan's values (a joint card play: the teammates' best reply to it). */
+        fun result(): Analysis? {
+            if (done == 0) return null
+            val best = LinkedHashMap<Choice, OptionValue>()
+            for ((p, v) in table) {
+                val o = OptionValue(p.choice, v)
+                val old = best[p.choice]
+                if (old == null || o.mean > old.mean) best[p.choice] = o
+            }
+            return Analysis(d, best.values.toList(), leaves, done, k, keys?.toList().orEmpty())
+        }
 
-        fun columns(cs: List<Choice>) {
+        fun columns(cs: List<Plan>) {
             for (o in cs) table.getOrPut(o) { DoubleArray(samples) { Double.NaN } }
         }
 
         fun decision(det: EngineSession): Decision? = det.pending?.takeIf { it.seat == d.seat && it.kind == d.kind }
 
         /** The first sample that has the decision fixes the candidates; null if none did (or cancelled). */
-        fun first(mustInclude: Choice?, overBudget: () -> Boolean): List<Choice>? {
+        fun first(mustInclude: Choice?, overBudget: () -> Boolean): List<Plan>? {
             while (k < samples && (k == 0 || !overBudget())) {
-                val det = determinize(es, d, mix(seed, k.toLong()))
+                val det = determinize(es, d, mix(seed, k.toLong()), preds)
                 val dp = decision(det)
                 if (dp == null) {
                     k++
                     continue
                 }
-                val cs = prune(det, d, dp).let { c ->
+                val own = prune(det, d, dp).let { c ->
                     if (mustInclude != null && mustInclude !in c && mustInclude in dp.options) c + mustInclude else c
                 }
+                val cs = plans(det, d, own)
                 columns(cs)
-                if (!sample(det, dp, d, cs, k, horizon, table, leaves, cancelled)) {
+                if (!sample(det, dp, d, cs, k, horizon, table, leaves, cancelled, preds, keys)) {
                     for (arr in table.values) arr[k] = Double.NaN
                     stopped = true
                     return null
@@ -315,7 +418,7 @@ internal class Searcher(
         }
 
         /** The other samples in batches of the runner's width, each on its own column; racing between batches. */
-        fun batches(candidates: List<Choice>, overBudget: () -> Boolean) {
+        fun batches(candidates: List<Plan>, overBudget: () -> Boolean) {
             columns(candidates)
             var live = candidates
             while (!stopped && k < samples && (k == 0 || !overBudget())) {
@@ -326,11 +429,11 @@ internal class Searcher(
                 runner.runAll(
                     batch.mapIndexed { i, kk ->
                         {
-                            val det = determinize(es, d, mix(seed, kk.toLong()))
+                            val det = determinize(es, d, mix(seed, kk.toLong()), preds)
                             val dp = decision(det)
                             status[i] = when {
                                 dp == null -> 0
-                                sample(det, dp, d, cs, kk, horizon, table, batchLeaves[i], cancelled) -> 1
+                                sample(det, dp, d, cs, kk, horizon, table, batchLeaves[i], cancelled, preds, keys) -> 1
                                 else -> -1
                             }
                         }
@@ -370,7 +473,7 @@ internal class Searcher(
         val size = a.options.firstOrNull()?.values?.size ?: return a
         val horizon = horizonOf(d.kind)
         val values = DoubleArray(size) { Double.NaN }
-        val table = mapOf(choice to values)
+        val table = mapOf(Plan(choice) to values)
         val leaves = ArrayList(a.leaves)
         var first = true
         for (k in 0 until a.tried) {
@@ -380,7 +483,7 @@ internal class Searcher(
             // [analyze] fixes the candidates at the first sample: the choice joins only if offered there.
             if (first && choice !in dp.options) return a
             first = false
-            if (!sample(det, dp, d, listOf(choice), k, horizon, table, leaves, cancelled)) return null
+            if (!sample(det, dp, d, listOf(Plan(choice)), k, horizon, table, leaves, cancelled)) return null
         }
         return Analysis(d, a.options + OptionValue(choice, values), leaves, a.samples, a.tried)
     }
@@ -405,8 +508,8 @@ internal class Searcher(
         val options = a.options.map { o ->
             OptionValue(o.choice, DoubleArray(samples) { o.values.getOrElse(it) { Double.NaN } })
         }
-        val table = options.associate { it.choice to it.values }
-        val candidates = options.map { it.choice }
+        val table = options.associate { Plan(it.choice) to it.values }
+        val candidates = options.map { Plan(it.choice) }
         val leaves = ArrayList(a.leaves)
         var done = a.samples
         var k = a.tried
@@ -438,6 +541,56 @@ internal class Searcher(
         return Analysis(d, options, leaves, done, k)
     }
 
+    /**
+     * The cards enemies still to play this turn play in this sample's playouts: the oracle's predictions
+     * (tests only), or with [LevelProfile.rm] cards drawn from the opponent model (the columns of the
+     * simultaneous game, written to [keys] with the cards the determinizer drew for enemies who played
+     * already); otherwise none (their static best).
+     */
+    private fun laterEnemyPlays(
+        det: EngineSession,
+        d: Decision,
+        k: Int,
+        preds: Map<String, String>,
+        keys: Array<String?>?,
+    ): Map<String, String> {
+        if (d.kind != DecisionKind.PLAY_CARD || (keys == null && preds.isEmpty())) return emptyMap()
+        val s = det.state
+        val me = s.heroes.indexOfFirst { it.id == d.seat }
+        val rng = Random(mix(mix(DRAW_SALT, d.id), k.toLong()))
+        val out = LinkedHashMap<String, String>()
+        val key = StringBuilder()
+        for (h in s.heroes) {
+            if (h.team == d.team) continue
+            val played = h.unresolved.firstOrNull()?.id
+            val card = when {
+                played != null -> played
+                h.seat < me || h.hand.isEmpty() -> null
+                preds[h.id] != null -> preds.getValue(h.id).takeIf { id -> h.hand.any { it.id == id } }
+                keys != null -> draw(s, h.id, h.hand.map { it.id }.sorted(), rng)
+                else -> null
+            }
+            if (card != null && played == null) out[h.id] = card
+            key.append(h.id).append('=').append(card ?: "-").append(';')
+        }
+        keys?.set(k, key.toString())
+        return out
+    }
+
+    /** A card of [pool] drawn from the opponent model ([playWeights]). */
+    private fun draw(s: GameState, heroId: String, pool: List<String>, rng: Random): String {
+        val w = playWeights(s, heroId, pool)
+        var r = rng.nextDouble() * w.sum()
+        for ((i, c) in pool.withIndex()) {
+            r -= w[i]
+            if (r < 0) return c
+        }
+        return pool.last()
+    }
+
+    /** Whether a playout of [d] may run on through a kill turn ([killPlan]): card plays only. */
+    private fun extendKills(d: Decision): Boolean = profile.killExt > 0 && d.kind == DecisionKind.PLAY_CARD
+
     private fun horizonOf(kind: DecisionKind): Horizon = when (kind) {
         DecisionKind.PLAY_CARD -> profile.playHorizon
         DecisionKind.UPGRADE_CARD, DecisionKind.KEEP_UPGRADE -> profile.upgradeHorizon
@@ -450,23 +603,28 @@ internal class Searcher(
         det: EngineSession,
         dp: Decision,
         d: Decision,
-        candidates: List<Choice>,
+        candidates: List<Plan>,
         k: Int,
         horizon: Horizon,
-        table: Map<Choice, DoubleArray>,
+        table: Map<Plan, DoubleArray>,
         leaves: MutableList<Leaf>,
         cancelled: () -> Boolean,
+        preds: Map<String, String> = emptyMap(),
+        keys: Array<String?>? = null,
     ): Boolean {
-        for (o in candidates) {
+        val enemies = laterEnemyPlays(det, d, k, preds, keys)
+        for (p in candidates) {
+            val o = p.choice
             if (cancelled()) return false
             if (o !in dp.options) continue
             val f = det.forkForAnswer()
             val before = f.events.size
             f.answer(dp.id, o)
             answered.incrementAndFetch()
-            playout(f, d.seat, d.team, horizon)
+            val extend = extendKills(d) && horizon == Horizon.TURN
+            playout(f, d.seat, d.team, horizon, mates = p.mates + enemies, killExtension = extend)
             val v = leaf.evaluate(f.state, d.team)
-            table.getValue(o)[k] = v
+            table.getValue(p)[k] = v
             if (keepLeaves) leaves += Leaf(o, k, f, before, v)
         }
         return true
@@ -478,8 +636,8 @@ internal class Searcher(
      * paired differences are tight: an option drops when its mean gap to the best, less two standard
      * errors, exceeds the margin. At least two stay.
      */
-    private fun race(live: List<Choice>, table: Map<Choice, DoubleArray>, k: Int): List<Choice> {
-        fun mean(c: Choice): Double {
+    private fun race(live: List<Plan>, table: Map<Plan, DoubleArray>, k: Int): List<Plan> {
+        fun mean(c: Plan): Double {
             val v = table.getValue(c)
             var sum = 0.0
             var n = 0
@@ -517,7 +675,16 @@ internal class Searcher(
     }
 
     /** Play on to the horizon with the rollout policy. */
-    fun playout(f: EngineSession, rootSeat: String, rootTeam: Team, horizon: Horizon, maxSteps: Int = 400) {
+    fun playout(
+        f: EngineSession,
+        rootSeat: String,
+        rootTeam: Team,
+        horizon: Horizon,
+        maxSteps: Int = 400,
+        mates: Map<String, String> = emptyMap(),
+        /** Card plays at [Horizon.TURN]: run on through a kill turn ([killPlan]). */
+        killExtension: Boolean = false,
+    ) {
         val start = f.state
         val startTurn = turnIndex(start)
         val startStep = start.step
@@ -527,7 +694,10 @@ internal class Searcher(
         var n = 0
         var turn = startTurn
         var turnsEnded = 0
-        while (n < maxSteps) {
+        var limit = maxSteps
+        // The kill extension's turn ([killPlan]): its card plays, null while not extended.
+        var kills: Map<String, String>? = null
+        while (n < limit) {
             val d = f.pending ?: return
             val s = f.state
             if (turnIndex(s) != turn) {
@@ -539,9 +709,18 @@ internal class Searcher(
                     s.round != startRound || s.step != startStep || s.stepSeat != startSeat ||
                         s.acting != startActor || turnIndex(s) != startTurn
 
-                Horizon.TURN -> turnsEnded >= 1
+                Horizon.TURN -> turnsEnded >= (if (kills == null) 1 else 2)
 
                 Horizon.NEXT_TURN -> turnsEnded >= 2
+            }
+            if (stop && kills == null && killExtension && turnsEnded == 1) {
+                ended.incrementAndFetch()
+                kills = killPlan(s, rootTeam, startRound)
+                if (kills != null) {
+                    extended.incrementAndFetch()
+                    limit = n + maxSteps
+                    continue
+                }
             }
             if (stop) return
             val mine = d.team == rootTeam
@@ -550,8 +729,10 @@ internal class Searcher(
             val c = when {
                 d.options.size == 1 -> d.options[0]
 
-                // A facedown play has no immediate effect to look at: the static round plan picks it.
-                d.kind == DecisionKind.PLAY_CARD -> static.best(s, d)
+                // A facedown play has no immediate effect to look at: the plan's card for a teammate
+                // (this turn only), else the static round plan picks it.
+                d.kind == DecisionKind.PLAY_CARD ->
+                    planned(d, if (turnIndex(s) == startTurn) mates else kills) ?: static.best(s, d)
 
                 searchIt -> greedy(f, d)
 
@@ -563,6 +744,30 @@ internal class Searcher(
             answered.incrementAndFetch()
             n++
         }
+    }
+
+    /** The card a plan ([Plan.mates], [killPlan]) has [d]'s hero play, if it can. */
+    private fun planned(d: Decision, plan: Map<String, String>?): Choice? =
+        plan?.get(d.seat)?.let { Choice.Card(it) }?.takeIf { it in d.options }
+
+    /**
+     * The kill extension (ADR-061): at the end of a playout's turn, when the next turn is in the same round
+     * and a team can kill an enemy hero on it with several heroes together ([TeamKills]), the cards that
+     * team's attackers play on it; null when no team can. Symmetric ([LevelProfile.killExt] 1): our kills
+     * and the enemy's on our heroes both extend, each attacking team playing its plan; 2: ours only.
+     */
+    private fun killPlan(s: GameState, team: Team, round: Int): Map<String, String>? {
+        if (s.round != round || s.winner != null) return null
+        val enemy = if (team == Team.RED) Team.BLUE else Team.RED
+        val ours = TeamKills.chances(ev, s, team).firstOrNull()?.attackers.orEmpty()
+        val theirs = if (profile.killExt ==
+            1
+        ) {
+            TeamKills.chances(ev, s, enemy).firstOrNull()?.attackers.orEmpty()
+        } else {
+            emptyMap()
+        }
+        return (ours + theirs).takeIf { it.isNotEmpty() }
     }
 
     /**
@@ -639,6 +844,9 @@ internal class Searcher(
 
     companion object {
         const val OPPONENT_TAU: Double = 1.5
+
+        /** Seeds the enemy card draws of [laterEnemyPlays] (with the decision id and the sample). */
+        private const val DRAW_SALT: Long = 0x7E4A11L
         const val GREEDY_MAX: Int = 8
 
         /** Samples before racing may drop an option. */
