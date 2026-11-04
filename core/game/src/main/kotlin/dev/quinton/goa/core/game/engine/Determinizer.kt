@@ -33,13 +33,15 @@ object Determinizer {
      * hand when it is called) to be the one it played. [hidePlayedOf]: viewer-team heroes whose
      * unrevealed played card is hidden. [hideAllOf]: viewer-team heroes whose hand, items and facedown
      * cards and tokens are hidden as well (p.4: cards in hand and facedown cards are hidden, and teammates
-     * may not show each other cards).
+     * may not show each other cards). [knowHands]: the other team's cards in hand and its played card are
+     * known as a pool (which of them was played stays hidden until the reveal); not [hideAllOf]'s heroes.
      */
     class Options(
         val seen: Map<String, Set<String>> = emptyMap(),
         val playWeight: ((state: GameState, heroId: String, pool: List<String>) -> List<Double>)? = null,
         val hidePlayedOf: Set<String> = emptySet(),
         val hideAllOf: Set<String> = emptySet(),
+        val knowHands: Boolean = false,
     )
 
     fun sample(data: EngineData, source: GameState, viewer: Team, rng: Random): GameState =
@@ -49,7 +51,11 @@ object Determinizer {
         val s = source.copy()
         for (h in s.heroes) {
             if (h.team == viewer && h.id !in options.hideAllOf) continue
-            if (!resampleHistory(data, s, h, rng, options.seen[h.id].orEmpty())) resampleIdentities(data, s, h, rng)
+            val known = options.knowHands && h.team != viewer
+            if (!resampleHistory(data, s, h, rng, options.seen[h.id].orEmpty(), known)) {
+                resampleIdentities(data, s, h, rng, known)
+            }
+            if (known && s.revealed) for (c in h.cards) if (c.zone in POOL) c.stamp = 0
         }
         for (h in s.heroes) {
             val hidden = h.team != viewer || h.id in options.hidePlayedOf || h.id in options.hideAllOf
@@ -63,6 +69,7 @@ object Determinizer {
     private val ACTIVE = setOf(Zone.HAND, Zone.PLAYED, Zone.RESOLVED, Zone.DISCARD)
     private val COLOURED = listOf(CardColor.RED, CardColor.GREEN, CardColor.BLUE)
     private val BASIC = listOf(CardColor.GOLD, CardColor.SILVER)
+    private val POOL = setOf(Zone.HAND, Zone.PLAYED)
 
     private fun hidden(state: GameState?, c: CardInst): Boolean = when (c.zone) {
         Zone.HAND, Zone.DECK -> true
@@ -76,23 +83,68 @@ object Determinizer {
     /** One colour's part of a history: the card in the round's hand pool and the items it left. */
     private class ColourChoice(val kept: String, val items: List<String>)
 
-    @Suppress("CyclomaticComplexMethod")
-    private fun resampleHistory(data: EngineData, s: GameState, h: HeroState, rng: Random, seen: Set<String>): Boolean {
-        if (data.catalogHero(h.id).extras.isNotEmpty()) return false
-        if (h.cards.any { it.zone == Zone.EXTRA || it.zone == Zone.ASIDE }) return false
+    /**
+     * How many upgrade histories of [heroId] are consistent with what [viewer]'s team sees (with [seen]
+     * remembered, and with the hand-plus-played pool known when [knownPool]), and how many different hand
+     * pools they deal; null for a hero of another shape (AI.md "The determinizer"; ADR-062's count).
+     */
+    internal fun historyCount(
+        data: EngineData,
+        state: GameState,
+        heroId: String,
+        seen: Set<String>,
+        knownPool: Boolean,
+    ): Pair<Int, Int>? {
+        val h = state.hero(heroId) ?: return null
+        val histories = histories(data, state, h, seen, knownPool) ?: return null
+        return histories.size to histories.map { combo -> combo.map { it.kept }.toSet() }.toSet().size
+    }
+
+    /** [knownPool]: the cards in hand and played count as public here (their order is reset by [redealHand]). */
+    @Suppress("LongParameterList")
+    private fun resampleHistory(
+        data: EngineData,
+        s: GameState,
+        h: HeroState,
+        rng: Random,
+        seen: Set<String>,
+        knownPool: Boolean = false,
+    ): Boolean {
+        val histories = histories(data, s, h, seen, knownPool) ?: return false
+        if (histories.isEmpty()) return false
+        val history = histories[rng.nextInt(histories.size)]
         val colourOf = h.cards.associate { it.id to data.card(it.id).color }
-        for (c in BASIC + COLOURED) if (h.cards.count { it.zone in ACTIVE && colourOf[it.id] == c } != 1) return false
+        apply(data, h, history, colourOf, rng) { c -> isPublic(s, c, knownPool) }
+        return true
+    }
+
+    private fun isPublic(s: GameState, c: CardInst, knownPool: Boolean) =
+        c.zone in ACTIVE && (!hidden(s, c) || (knownPool && c.zone in POOL))
+
+    /** Every upgrade history consistent with the public facts; null when [h] is not of the standard shape. */
+    @Suppress("CyclomaticComplexMethod", "ReturnCount")
+    private fun histories(
+        data: EngineData,
+        s: GameState,
+        h: HeroState,
+        seen: Set<String>,
+        knownPool: Boolean,
+    ): List<List<ColourChoice>>? {
+        if (data.catalogHero(h.id).extras.isNotEmpty()) return null
+        if (h.cards.any { it.zone == Zone.EXTRA || it.zone == Zone.ASIDE }) return null
+        val colourOf = h.cards.associate { it.id to data.card(it.id).color }
+        for (c in BASIC + COLOURED) if (h.cards.count { it.zone in ACTIVE && colourOf[it.id] == c } != 1) return null
         // Per colour: Tier I, the Tier II pair, the Tier III pair (catalog order, a before b).
         val tiers = COLOURED.associateWith { c ->
             (1..3).map { t -> h.cards.filter { colourOf[it.id] == c && data.card(it.id).tier == t }.map { it.id } }
         }
-        if (tiers.values.any { it[0].size != 1 || it[1].size != 2 || it[2].size != 2 }) return false
+        if (tiers.values.any { it[0].size != 1 || it[1].size != 2 || it[2].size != 2 }) return null
         val upgrades = (h.level - 1).coerceIn(0, 6)
         val itemIcons = h.cards.filter { it.zone == Zone.ITEM }.map { data.card(it.id).item }.sortedBy {
             it?.ordinal
                 ?: -1
         }
-        fun public(c: CardInst) = c.zone in ACTIVE && !hidden(s, c)
+        fun public(c: CardInst) = isPublic(s, c, knownPool)
         val fixed = COLOURED.associateWith { c ->
             h.cards.firstOrNull { colourOf[it.id] == c && public(it) }?.id
                 ?: seen.firstOrNull { id -> colourOf[id] == c && h.card(id) != null }
@@ -112,12 +164,8 @@ object Determinizer {
             .filter { v -> v.sumOf { it - 1 } == upgrades && !(v.any { it == 3 } && v.any { it == 1 }) }
         fun icons(combo: List<ColourChoice>) =
             combo.flatMap { it.items }.map { data.card(it).item }.sortedBy { it?.ordinal ?: -1 }
-        val histories = vectors.flatMap { v -> cartesian(v.mapIndexed { i, t -> perColour[i].getValue(t) }) }
+        return vectors.flatMap { v -> cartesian(v.mapIndexed { i, t -> perColour[i].getValue(t) }) }
             .filter { icons(it) == itemIcons }
-        if (histories.isEmpty()) return false
-        val history = histories[rng.nextInt(histories.size)]
-        apply(data, h, history, colourOf, rng, ::public)
-        return true
     }
 
     /** Every way to pick one element from each list, in order. */
@@ -174,9 +222,9 @@ object Determinizer {
 
     // ---- fallback: identities within colour and Tier ----------------------------------------
 
-    /** Swap identities within each (colour, tier) class among hidden positions (deck included). */
-    private fun resampleIdentities(data: EngineData, s: GameState, h: HeroState, rng: Random) {
-        val hiddenCards = h.cards.filter { hidden(s, it) }
+    /** Swap identities within each (colour, tier) class among hidden positions (deck included; not a [knownPool]). */
+    private fun resampleIdentities(data: EngineData, s: GameState, h: HeroState, rng: Random, knownPool: Boolean) {
+        val hiddenCards = h.cards.filter { hidden(s, it) && !(knownPool && it.zone in POOL) }
         val byClass = hiddenCards.groupBy { data.card(it.id).let { c -> c.color to c.tier } }
         for ((_, members) in byClass.entries.sortedBy { it.value.minOf { c -> c.id } }) {
             if (members.size < 2) continue

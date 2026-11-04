@@ -185,13 +185,14 @@ object AiPlayers {
         // Expert. Playouts to the end of the next turn measured worse than to the end of this one
         // (AI.md): it spends its time on more samples and on smarter playouts for every hero instead.
         // At most 2 s a card play on the phone (the owner's ceiling, ADR-047); the app runs its samples
-        // on three threads.
+        // on three threads. At the owner's request it knows the cards in the enemies' hands, not which one
+        // they played facedown (ADR-062).
         else -> LevelProfile(
             staticOnly = false, playSamples = 16, otherSamples = 6,
             playHorizon = Horizon.TURN, otherHorizon = Horizon.TURN, candidates = 10,
             temperature = 0.15, maxGap = 0.6, slipRate = 0.0, risk = 0.0,
             knobs = TUNED, modelPlays = true, memory = true, greedySelf = true,
-            budgetMs = 2000, greedyTeam = true, greedyEnemies = true,
+            budgetMs = 2000, greedyTeam = true, greedyEnemies = true, knowHands = true,
         )
     }
 }

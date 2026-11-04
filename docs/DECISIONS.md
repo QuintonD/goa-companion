@@ -2528,6 +2528,51 @@ new tab, `rel="noopener"`, through `ListRow(href = …)`). Nothing is locked beh
 leans on "non-commercial": the row is worded as a coffee for the maker, never as payment for the game's content, and
 ADR-034's permission note stands. The About and Settings screenshot baselines are re-recorded.
 
+## ADR-062 — Strength 10 knows the cards in the enemies' hands; a learned guess of the card played (2026-11-03)
+**Context:** Owner, for the v0.14 AI round: "At the hardest difficulty I would also expect the AI to know the values of
+the cards in the enemy hand, of course not which they have face down and ready to play but it is general knowledge."
+Until now no strength read anything hidden (ADR-035 point 3). The determinizer dealt enemy hands from every upgrade
+history consistent with public facts; strengths 9–10 also remember the cards shown since an enemy's last level up. What
+stayed hidden was mostly which of two Tier II/III cards an enemy kept at a level up: the designer rules that the kept
+card and the tucked item are not public, only the item's icon (BGG 3590819). Separately, the opponent model that guesses
+an enemy's unrevealed card is a softmax of the hero's static card scores, the same for every hero.
+
+**Decision:**
+1. **This departs from the designer's ruling on purpose, at the owner's request, at strength 10 only.** A
+   `LevelProfile.knowHands` switch, on at strength 10 alone: its determinized copies keep each enemy's real
+   hand-plus-played pool, and so the upgrade history it pins down (items follow, except which Tier II card was tucked
+   under a Tier III, which no hand tells). Which card of the pool was played facedown is still dealt again from the pool
+   by the opponent model until the reveal; facedown cards and facedown tokens stay hidden, as do Gydion's spellbook and
+   other places that are not the hand. Strengths 1–9 and the coach keep the rules as before (`NoPeekingTest` proves the
+   three cases; `FingerprintTest` hashes for strengths 7 and 9 and for strength 10 without the switch equal the base
+   commit's). The words for strength 10 in the app and the web say so.
+2. **A learned guess of the card played, per hero** (Rebstock et al. 2019, policy-based inference in Skat):
+   `CardPlayModel`, a conditional logit over the hand with shared weights on 40 numbers of each card in the state (its
+   printed numbers, today's static score, what it reaches, the hero's danger, the turn) plus per-hero weights and a
+   per-card bias and turn slope, data keyed by id, pure Kotlin, its weights as source (`CardPlayWeights`). A hero or card
+   the tables do not know adds nothing. It was gated offline first and then measured in play; it is **not kept**: it
+   lives in the test sources behind a tests-only hook (`LevelProfile.playModel`, variant `cards=learned`).
+
+**Measured** (3v3, tune line-ups, mirrored, the same work on both sides, `s10+work=15500`; core/game/ai/AI.md "v0.14:
+hand knowledge and card inference"):
+- What knowing hands removes: over 152 202 looks at enemy heroes in 400 stored 3v3 games, strength 9–10's memory left
+  1.20 consistent upgrade histories on average and the hand pool unknown in 14.6% of looks (29.8% at level 2); knowing
+  hands leaves one history (the hand is always right).
+- Strength 10 knowing hands against not: 197–187, 51.3% (95% 46.3–56.3%; pairs 46.8–55.8%), undecided after 384 games;
+  heroes lost a game 1.71 against 1.94, games won on Life counters 78 against 46. Even on wins; it kills more and is
+  killed less. Kept as the owner's request, measuring no worse.
+- The learned card guess, offline (43 102 held-out plays of strength 7–8 searchers): log-loss 1.119 and top-1 44.6%
+  against today's model 1.272 / 41.0% (refitted 1.199; uniform 1.214), better for all 32 heroes. In play: strength 7
+  47.8% (41.3–54.3%, the test decided H0 after 224 games); strength 10, both knowing hands, 302–290 over 592 games,
+  51.0% (47.0–55.0%). Dropped.
+
+**Consequences:** Against strength 10 a player's hand is open; the facedown card is not. The coach and strengths 1–9 still
+read nothing hidden, and `NoPeekingTest` says exactly which strength may read what. Strength 10's answers change from
+the first level up on (round 1's hands are already known by elimination, so `GameParityTest` did not move); the
+integrator re-pins whatever the merge changes. Today's opponent model guesses worse than uniform and a far better guess
+bought nothing in play, so the next gains are not in the guess of the enemy's card. Built and not measured: the learned
+model as our own playout policy; training it on strength-10 games.
+
 ## ADR-063 — A per-hero bench, per-hero scales tuned on wins, learned exploiters (2026-11-04)
 **Context:** v0.14 AI round, stream D. Owner: a stronger computer with every hero at strength 10, in 3v3 and bigger, where
 the owner wins by hero kills and lane pushes. The stored games say hero win rates differ reliably (Trinkets and NebKher

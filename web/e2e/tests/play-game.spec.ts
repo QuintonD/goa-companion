@@ -224,7 +224,7 @@ test("new game: the strength slider, a strength per seat, the official coin, the
   await expect(page.locator(".goa-strength-value").first()).toHaveText("8 · Hard");
   await slider.fill("10");
   await expect(page.getByRole("button", { name: "Computer strength: stronger" })).toBeDisabled();
-  await expect(page.getByText("As strong as it gets on a phone. Expect to be punished.")).toBeVisible();
+  await expect(page.getByText("As strong as it gets on a phone. It knows the cards in your hand, though not the one you play facedown. Expect to be punished.")).toBeVisible();
   await slider.fill("7");
   // Advanced: a strength per computer seat, each starting at the one for all.
   await page.locator(".goa-switch-row", { hasText: "Advanced: a strength per seat" }).locator("input").check();

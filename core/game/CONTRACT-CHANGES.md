@@ -397,3 +397,15 @@ synced or saved type changes: puzzle progress is stored by id, and `p..` ids are
   atomic count (internal), so it is exact with a threaded runner; `kotlin.concurrent.atomics` is opted in there.
 - `core:data`: `AiSpeed` and `AiSpeedMeter`, provided by `PlayEngineModule`. `SettingsViewModel` takes an `AiSpeedMeter`.
 - The web app does not offer the measure; the shared code builds for it.
+
+## 2026-11-04 — `feature/v14-hands`: strength 10 knows hands; a learned card guess (ADR-062)
+- No change to `GameApi.kt`, no question added or removed, saves unaffected.
+- `Determinizer.Options.knowHands` (default false): the other team's hand-plus-played pool is kept and only the played
+  card is dealt again before the reveal; facedown cards and tokens stay hidden. `Determinizer.historyCount` (internal)
+  counts the consistent upgrade histories. `LevelProfile.knowHands` is on at strength 10 only; `LevelProfile.playModel`
+  (internal, tests only) replaces the opponent model's weights (the dropped `CardPlayModel`, in test sources).
+- Behaviour: strength 10 answers differently from round 2 on (from round 1 every hand is already public by
+  elimination: `GameParityTest`'s searching transcript is unchanged). Strengths 1–9 and the coach answer as before
+  (`FingerprintTest`).
+- Text: `PlayText.strengthNote(10)` (app and web) says strength 10 knows the cards in your hand, not the one played
+  facedown; the web e2e test expects the new words.

@@ -89,6 +89,16 @@ internal data class LevelProfile(
     val hideTeammates: Boolean = false,
     /** Tests only: what scores the end of a playout instead of [net] (the frozen baseline, `net=v09`). */
     val leafEvaluator: ((EngineData) -> PositionEvaluator)? = null,
+    /**
+     * The enemies' cards in hand (and so their items) are known; which one they played stays hidden until
+     * the reveal, as do facedown cards and tokens. Strength 10 only, at the owner's request (ADR-062).
+     */
+    val knowHands: Boolean = false,
+    /**
+     * Tests only: weights for which card of its hand pool an enemy played, instead of the static scores (the
+     * learned model of ADR-062, measured and not kept: `cards=learned`).
+     */
+    val playModel: ((StaticPolicy, Ctx, String, List<String>) -> List<Double>)? = null,
 )
 
 /**
@@ -212,14 +222,19 @@ internal class Searcher(
             playWeight = if (profile.modelPlays) ::playWeights else null,
             hidePlayedOf = humans,
             hideAllOf = teammates,
+            knowHands = profile.knowHands,
         )
         // A search copy: no explanations for a player are built at its questions (the same options).
         return es.determinizeWith(team, seed, options, quiet = true)
     }
 
-    /** The opponent model (STRATEGY §3.1): softmax of the hero's own static card scores, 15% uniform. */
+    /**
+     * The opponent model (STRATEGY §3.1): softmax of the hero's own static card scores, 15% uniform (or, in
+     * tests, [LevelProfile.playModel]).
+     */
     private fun playWeights(state: GameState, heroId: String, pool: List<String>): List<Double> {
         val ctx = ev.context(state)
+        profile.playModel?.let { return it(static, ctx, heroId, pool) }
         val scores = pool.map { static.playScore(ctx, heroId, Choice.Card(it)) }
         val best = scores.maxOrNull() ?: 0.0
         val soft = scores.map { PortableMath.exp((it - best) / profile.opponentTau) }
