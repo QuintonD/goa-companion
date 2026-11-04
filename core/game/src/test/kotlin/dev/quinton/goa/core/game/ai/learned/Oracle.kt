@@ -5,6 +5,7 @@ import dev.quinton.goa.core.game.AiPlayer
 import dev.quinton.goa.core.game.Choice
 import dev.quinton.goa.core.game.Decision
 import dev.quinton.goa.core.game.DecisionKind
+import dev.quinton.goa.core.game.GameEvent
 import dev.quinton.goa.core.game.GameSession
 import dev.quinton.goa.core.game.ai.AiHarness
 import dev.quinton.goa.core.game.ai.SearchAi
@@ -22,6 +23,10 @@ import dev.quinton.goa.core.game.engine.Step
 internal object Oracle {
     private const val REPLICA_SALT = 0x0EAC1EL
 
+    /** Predicted enemy card plays checked at the reveal, and how many were the card really played. */
+    val predicted = java.util.concurrent.atomic.AtomicInteger()
+    val right = java.util.concurrent.atomic.AtomicInteger()
+
     fun side(base: String, enemy: String): Tournament.Side = Tournament.Side("oracle/$base") { seed ->
         Player(base, Learned.side(enemy).factory(seed xor REPLICA_SALT) as SearchAi, seed)
     }
@@ -36,9 +41,20 @@ internal object Oracle {
             SearchAi(AiLevel.of(strength), p, seed, timeCap = false)
         }
 
+        /** Turns whose predictions were checked against the reveal. */
+        private val checked = HashSet<Int>()
+
         override fun watch(s: EngineSession, d: Decision) {
             val st = s.state
             val key = st.round * 8 + st.turn
+            val made = predictions[key]
+            if (st.revealed && made != null && checked.add(key)) {
+                val shown = s.events.filterIsInstance<GameEvent.CardsRevealed>().lastOrNull()?.played.orEmpty()
+                for ((hero, card) in made) {
+                    predicted.incrementAndGet()
+                    if (shown[hero] == card) right.incrementAndGet()
+                }
+            }
             if (d.kind == DecisionKind.PLAY_CARD && st.step == Step.PLAY && key !in snapshots) {
                 snapshots.clear()
                 snapshots[key] = s.forkSession()

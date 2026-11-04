@@ -96,6 +96,9 @@ internal object Teams {
                     println("TEAMS so far $score")
                     // The details too, so a run stopped by hand keeps them.
                     println("TEAMS so far   ${score.details()}")
+                    if (Oracle.predicted.get() > 0) {
+                        println("TEAMS so far   oracle right ${Oracle.right.get()} of ${Oracle.predicted.get()}")
+                    }
                     kills?.let { (ka, kb) -> println("TEAMS so far   kills ${ka.line(a.label)} | ${kb.line(b.label)}") }
                 }
                 if (sprt != null && sprt.verdict(score) != Tournament.Sprt.Verdict.GOING_ON) break
