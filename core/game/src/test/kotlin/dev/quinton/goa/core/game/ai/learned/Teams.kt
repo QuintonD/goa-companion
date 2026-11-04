@@ -116,7 +116,8 @@ internal object Teams {
         val pool = Executors.newFixedThreadPool(threads)
         try {
             // AI_BATCH: a running score every so many line-ups (a run cut short still says something).
-            val every = batch ?: System.getenv("AI_BATCH")?.toIntOrNull() ?: if (sprt == null) specs.size else SPRT_BATCH
+            val every =
+                batch ?: System.getenv("AI_BATCH")?.toIntOrNull() ?: if (sprt == null) specs.size else SPRT_BATCH
             for (batch in specs.chunked(every.coerceAtLeast(1))) {
                 playBatch(a, b, batch, pool, score, onGame)
                 if (every < specs.size) println("TEAMS so far $score")

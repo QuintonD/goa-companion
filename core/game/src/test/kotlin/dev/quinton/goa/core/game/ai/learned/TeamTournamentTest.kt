@@ -31,11 +31,24 @@ class TeamTournamentTest {
             val (a, b) = pair.split(":")
             val t0 = System.nanoTime()
             val seat = System.getenv("AI_SEAT")?.split(",")
-            val specs = if (seat == null) Teams.specs(n, size, family, first) else Teams.seating(n, size, family, seat, first)
+            val specs = if (seat ==
+                null
+            ) {
+                Teams.specs(n, size, family, first)
+            } else {
+                Teams.seating(n, size, family, seat, first)
+            }
             val store = System.getenv("AI_STORE")?.let(::File)
-            val score = Teams.mirrored(Learned.side(a), Learned.side(b), specs, threads, sprt, onGame = store?.let { f ->
-                { p: Teams.Played -> Learned.store(f, p, a, b, family) }
-            })
+            val score = Teams.mirrored(
+                Learned.side(a),
+                Learned.side(b),
+                specs,
+                threads,
+                sprt,
+                onGame = store?.let { f ->
+                    { p: Teams.Played -> Learned.store(f, p, a, b, family) }
+                },
+            )
             println("TEAMS ${size}v$size $score in ${"%.0f".format((System.nanoTime() - t0) / 1e9)} s")
             println("TEAMS   ${score.details()}")
             println("TEAMS by hero ($a): ${score.byHero()}")

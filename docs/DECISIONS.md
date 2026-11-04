@@ -2527,3 +2527,36 @@ new tab, `rel="noopener"`, through `ListRow(href = …)`). Nothing is locked beh
 **Consequences:** The app stays free and unchanged for anyone who doesn't give. Taking money near Wolff Designa's assets
 leans on "non-commercial": the row is worded as a coffee for the maker, never as payment for the game's content, and
 ADR-034's permission note stands. The About and Settings screenshot baselines are re-recorded.
+
+## ADR-063 — A per-hero bench, per-hero scales tuned on wins, learned exploiters (2026-11-04)
+**Context:** v0.14 AI round, stream D. Owner: a stronger computer with every hero at strength 10, in 3v3 and bigger, where
+the owner wins by hero kills and lane pushes. The stored games say hero win rates differ reliably (Trinkets and NebKher
+about 39%, Brogan 59%) while per-hero uplift scorecards sit at noise level, and the only opponent built to punish the AI
+(`Hunt`) was made by hand.
+
+**Decision:**
+1. A per-hero bench in test sources (`HeroBenchTest`, `HeroRating`, `Teams.seating`): mirrored pairs with every hero seated
+   equally often, or a chosen hero in every line-up, and a logistic rating fit over the seats (hero strength θ and each
+   side's per-hero gain, with team-mates, enemies, side and coin held apart; contrasts with intervals). The round's
+   baseline is s7 over s5 on the tune family (`D:\.goa-qa\v14\d\bench-baseline.txt`): s10 at the phone's work would
+   have taken about 90 hours.
+2. Two generic fields of `EvalKnobs`: `heroScales` (per hero id, multipliers of the terms that concern that hero, applied
+   where the evaluation scores it, either team) and `termsByTeam` (the same for one team's heroes, through `Hunt.ownTerms`).
+   Data only, nothing names a hero, a hero not in a table is not multiplied at all. No strength sets either, so
+   every strength answers as before.
+3. NTBEA (Lucas, Liu and Perez-Liebana 2018) in test sources as the tuner, on win rates of games seating the tuned hero
+   (screened at s7, held-out line-ups, SPRT 0.55). Seven heroes were tuned (Trinkets, NebKher, Tigerclaw, Swift, Gydion,
+   then Whisper and Razzle from the bench); no row held on fresh line-ups (35.9% to 52.2%), so **no per-hero table ships**.
+4. Learned exploiters: the same NTBEA over a strength-10 side's knobs (the `Hunt` taste, focus fire, exposure and Life
+   scales, its own heroes' presence and opportunity, temperature, kill tempo, net or hand leaves) against
+   `s10+work=15500` at the same work, 240 games. The variants averaged 0.392. Three are kept as a named suite in test
+   sources (`HeroBenchTest.EXPLOITERS`, `@life`, `@hunter`, `@bold` in any tournament string): 55.2%, 46.9% and 50.0%
+   over 96 fresh games each, their 528 games and the 192 below stored as `GameRecord`s under `D:\.goa-qa\v14\d\`
+   for a later net. `@life` (Life counters × 2 in the hand parts) was then tried as strength 10 itself: 51.6% over
+   192 more games, SPRT H0; not kept.
+
+**Consequences:** Strength 1–10 and the coach answer exactly as before (`GameParityTest`'s pinned strength 8 and 10
+games unchanged on the JVM and Node; no profile carries a table or a team scale). The bench gives the integrator one
+command per player for the final hero ratings. Per-hero knowledge stays with the net's per-hero table (ADR-049):
+hand-tuned multipliers did not measure. Strength 10 at the phone's work held against every taste the search found; the
+suite is data and a yardstick for later rounds, not a stand-in for the owner.

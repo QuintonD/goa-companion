@@ -14,7 +14,7 @@ import org.junit.Test
  *   every hero seated equally often, or with `AI_SEAT=<hero>,…` one of those heroes in every line-up;
  *   writes the games (`bench-<a>-<b>.games`) and the rating fit ([HeroRating]) under `AI_OUT`
  *   (default `D:/.goa-qa/v14/d`). `AI_BENCH_FIT=<games file>,…` fits stored games instead.
- * - `AI_TUNE=<hero>:<base>[:<opponent>]`: tunes the hero's row of the per-hero table ([HeroScales]) with
+ * - `AI_TUNE=<hero>:<base>[:<opponent>]`: tunes the hero's row of the per-hero table ([EvalKnobs.heroScales]) with
  *   [Ntbea] on the games that seat it: each evaluation is `AI_TUNE_PAIRS` mirrored pairs (3) of base
  *   plus the row against the opponent (default base), `AI_TUNE_ITER` evaluations (100); terms
  *   `AI_TUNE_TERMS`, values `AI_TUNE_VALUES`.
@@ -43,8 +43,17 @@ class HeroBenchTest {
         val n = System.getenv("AI_N")?.toIntOrNull() ?: 64
         val first = System.getenv("AI_FIRST")?.toIntOrNull() ?: 0
         val seat = System.getenv("AI_SEAT")?.split(",")
-        val specs = if (seat == null) Teams.specs(n, size, family, first) else Teams.seating(n, size, family, seat, first)
-        val label = "bench-${a.replace("=", "")}-${b.replace("=", "")}${if (seat == null) "" else "-" + seat.joinToString("-")}"
+        val specs = if (seat ==
+            null
+        ) {
+            Teams.specs(n, size, family, first)
+        } else {
+            Teams.seating(n, size, family, seat, first)
+        }
+        val label = "bench-${a.replace(
+            "=",
+            "",
+        )}-${b.replace("=", "")}${if (seat == null) "" else "-" + seat.joinToString("-")}"
         out.mkdirs()
         val gamesFile = File(out, "$label.games")
         if (first == 0) gamesFile.writeText("")
@@ -54,7 +63,9 @@ class HeroBenchTest {
         }, batch = BENCH_BATCH)
         val fit = HeroRating.fit(HeroRating.read(listOf(gamesFile)))
         val report = buildString {
-            appendLine("${size}v$size, family ${System.getenv("AI_FAMILY") ?: "tune"}, line-ups $first.. (${specs.size})")
+            appendLine(
+                "${size}v$size, family ${System.getenv("AI_FAMILY") ?: "tune"}, line-ups $first.. (${specs.size})",
+            )
             appendLine("$score in ${"%.0f".format((System.nanoTime() - t0) / 1e9)} s")
             appendLine(score.details())
             appendLine()
@@ -115,7 +126,8 @@ class HeroBenchTest {
         val store = System.getenv("AI_STORE")?.let(::File)
         val model = Ntbea(dims.map { it.size }.toIntArray(), Random(System.getenv("AI_SEED")?.toLong() ?: 1L), explore)
         val opp = Learned.side(opponent)
-        fun variant(x: IntArray) = base + x.indices.map { dims[it][x[it]] }.filter { it.isNotEmpty() }.joinToString("") { "+$it" }
+        fun variant(x: IntArray) =
+            base + x.indices.map { dims[it][x[it]] }.filter { it.isNotEmpty() }.joinToString("") { "+$it" }
         out.mkdirs()
         log.writeText("NTBEA $base against $opponent, $iterations × $pairs pairs\n")
         var x = start
@@ -137,15 +149,35 @@ class HeroBenchTest {
             for (r in points.values) model.add(x, r)
             log.appendText(
                 "$i ${"%.2f".format(points.values.average())} defeats ${score.aDefeats}/${score.bDefeats} " +
-                    "est ${"%.3f".format(model.estimate(x))} n ${model.count(x)} $v (${"%.0f".format((System.nanoTime() - t0) / 1e9)} s)\n",
+                    "est ${"%.3f".format(
+                        model.estimate(x),
+                    )} n ${model.count(x)} $v (${"%.0f".format((System.nanoTime() - t0) / 1e9)} s)\n",
             )
             x = model.next(x)
         }
-        val ranked = model.evaluated.values.sortedByDescending { model.estimate(it) }
-        val best = ranked.first()
+        val best = model.recommend()
+        val ranked = model.evaluated.values.sortedByDescending { model.estimate(it, whole = false) }
         val report = buildString {
-            appendLine("best ${variant(best)} est ${"%.3f".format(model.estimate(best))} n ${model.count(best)}")
-            ranked.take(TOP).forEach { appendLine("  ${"%.3f".format(model.estimate(it))} n ${model.count(it)} ${variant(it)}") }
+            appendLine(
+                "best ${variant(
+                    best,
+                )} est ${"%.3f".format(model.estimate(best, whole = false))} n ${model.count(best)}",
+            )
+            appendLine("sparse ${variant(model.sparse(start))}")
+            appendLine("1-tuple means (evaluations):")
+            for ((d, frags) in dims.withIndex()) {
+                appendLine(
+                    "  " + frags.indices.joinToString("  ") { v ->
+                        "${frags[v].ifEmpty {
+                            "as base"
+                        }} ${model.mean(d, v)?.let { "%.3f".format(it) } ?: "-"} (${model.seen(d, v)})"
+                    },
+                )
+            }
+            appendLine("best evaluated points by their 1- and 2-tuples:")
+            ranked.take(TOP).forEach {
+                appendLine("  ${"%.3f".format(model.estimate(it, whole = false))} n ${model.count(it)} ${variant(it)}")
+            }
             appendLine("$games games in ${"%.0f".format((System.nanoTime() - t0) / 1e9)} s")
         }
         log.appendText(report)
@@ -155,6 +187,19 @@ class HeroBenchTest {
     companion object {
         private const val BENCH_BATCH = 48
         private const val TOP = 8
+
+        /**
+         * The learned exploiter suite (ADR-063, AI.md "Stream D"): the variants NTBEA found against `s10+work=15500`,
+         * each a [Learned.side] string to play against it (`AI_TEAMS=<exploiter>:s10+work=15500`).
+         */
+        val EXPLOITERS: Map<String, String> = linkedMapOf(
+            // Life counters twice in the hand parts: NTBEA's sparse pick (55.2% over 96 games).
+            "life" to "s10+work=15500+xLIFE=2",
+            // NTBEA's own pick: a kill-hunting taste that loses more heroes than it takes (46.9%).
+            "hunter" to "s10+work=15500+hunt=0/2/1.5+focus=true+xLIFE=2+temp=0.05+tempo=10",
+            // The best point without a Hunt: careless, forward, Life-first (50.0%).
+            "bold" to "s10+work=15500+xEXPOSURE=0.15+xLIFE=2+own.PRESENCE=2+tempo=10",
+        )
 
         /** The exploiters' knob space: each dimension's fragments of a variant ("" = as the base). */
         val EXPLOIT_DIMS: List<List<String>> = listOf(

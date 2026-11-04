@@ -19,7 +19,9 @@ class HeroScalesTest {
 
     /** States along a 3v3 game between static players (cheap), a few dozen answers apart. */
     private fun states(): List<GameState> {
-        val s = TestData.engine.newGame(AiHarness.setup(red, blue, AiLevel.NORMAL, AiLevel.NORMAL, Team.RED)) as EngineSession
+        val s = TestData.engine.newGame(
+            AiHarness.setup(red, blue, AiLevel.NORMAL, AiLevel.NORMAL, Team.RED),
+        ) as EngineSession
         val players = mapOf(Team.RED to AiPlayers.deterministic(4, 1), Team.BLUE to AiPlayers.deterministic(4, 2))
         val out = ArrayList<GameState>()
         var n = 0
@@ -59,7 +61,11 @@ class HeroScalesTest {
     fun `a row scales only its hero's parts, on either team`() {
         val data = TestData.engine.data
         val base = Evaluator(data, EvalKnobs())
-        val table = Evaluator(data, EvalKnobs(heroScales = mapOf("trinkets" to mapOf(Term.EXPOSURE to 2.0, Term.PRESENCE to 0.0))))
+        val table =
+            Evaluator(
+                data,
+                EvalKnobs(heroScales = mapOf("trinkets" to mapOf(Term.EXPOSURE to 2.0, Term.PRESENCE to 0.0))),
+            )
         val team = Evaluator(data, EvalKnobs(termsByTeam = mapOf(Team.BLUE to mapOf(Term.PRESENCE to 2.0))))
         var checked = 0
         for (st in states()) {

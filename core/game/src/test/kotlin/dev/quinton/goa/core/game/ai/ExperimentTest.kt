@@ -156,11 +156,16 @@ class ExperimentTest {
                 // The exploiter (AI.md "Team sizes"): hunt=selfExposure/enemyExposure/enemyLife, e.g. hunt=0/2/1.5.
                 "hunt" -> v.split("/").map { it.toDouble() }.let { (se, ee, el) ->
                     p.copy(
-                        hunt = Hunt(selfExposure = se, enemyExposure = ee, enemyLife = el, ownTerms = p.hunt?.ownTerms.orEmpty()),
+                        hunt = Hunt(
+                            selfExposure = se,
+                            enemyExposure = ee,
+                            enemyLife = el,
+                            ownTerms = p.hunt?.ownTerms.orEmpty(),
+                        ),
                     )
                 }
 
-                // table=none: without the shipped per-hero table (ADR-063), the baseline of its measurements.
+                // table=<file>: a per-hero table ([HeroTables], ADR-063); table=none clears it.
                 "table" -> p.copy(knobs = kn.copy(heroScales = if (v == "none") emptyMap() else HeroTables.named(v)))
 
                 // pp3=0.35: Push Potential per attack card at 3 heroes a side (pp<n> for n heroes).

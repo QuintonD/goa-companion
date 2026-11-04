@@ -9,7 +9,8 @@ import kotlin.math.sqrt
 
 /**
  * The per-hero bench's rating fit (ADR-063, AI.md "Stream D"): a logistic model of who wins a game from
- * the seats, P(Red wins) = σ(side + coin + Σ_Red (θ_h + [a plays Red] (α + δ_h)) − Σ_Blue (θ_h + [a plays Blue] (α + δ_h))).
+ * the seats, P(Red wins) = σ(side + coin + Σ_Red (θ_h + [a plays Red] (α + δ_h))
+ * − Σ_Blue (θ_h + [a plays Blue] (α + δ_h))).
  * θ_h is how strong hero h is with these players (team-mates, enemies, side and coin controlled); α is what
  * side a gains over side b per seat, and α + δ_h what it gains when it plays h (that hero's uplift). Ridge
  * [ridge] on θ and δ (a prior of N(0, 1/ridge) in logits) fixes θ's common level and draws a rare hero's
@@ -17,7 +18,13 @@ import kotlin.math.sqrt
  */
 internal object HeroRating {
     /** One game: the line-up, whether side a played Red, whether Red had the coin, Red's points (1, ½, 0). */
-    class Game(val red: List<String>, val blue: List<String>, val aRed: Boolean, val coinRed: Boolean, val redPoints: Double) {
+    class Game(
+        val red: List<String>,
+        val blue: List<String>,
+        val aRed: Boolean,
+        val coinRed: Boolean,
+        val redPoints: Double,
+    ) {
         fun line(): String = "${red.joinToString("+")}|${blue.joinToString("+")}|$aRed|$coinRed|$redPoints"
 
         companion object {
@@ -38,7 +45,14 @@ internal object HeroRating {
         }
     }
 
-    class Row(val hero: String, val games: Int, val theta: Double, val thetaSe: Double, val delta: Double, val deltaSe: Double)
+    class Row(
+        val hero: String,
+        val games: Int,
+        val theta: Double,
+        val thetaSe: Double,
+        val delta: Double,
+        val deltaSe: Double,
+    )
 
     class Fit(
         val rows: List<Row>,
@@ -54,7 +68,9 @@ internal object HeroRating {
         val games: Int get() = data.size
     }
 
-    fun read(files: List<File>): List<Game> = files.flatMap { f -> f.readLines().filter { it.isNotBlank() }.map(Game::parse) }
+    fun read(files: List<File>): List<Game> = files.flatMap { f ->
+        f.readLines().filter { it.isNotBlank() }.map(Game::parse)
+    }
 
     @Suppress("CyclomaticComplexMethod", "LongMethod")
     fun fit(games: List<Game>, ridge: Double = 1.0): Fit {
@@ -118,6 +134,7 @@ internal object HeroRating {
         }
         val cov = invert(hess)
         val seated = heroes.associateWith { x -> games.count { x in it.red || x in it.blue } }
+
         // Only contrasts are identified (a common shift of every θ cancels; α trades against the mean δ),
         // so θ is reported against the mean hero and the arm as α + mean δ, each with its variance wᵀ C w.
         fun combo(w: DoubleArray): Pair<Double, Double> {
@@ -131,11 +148,31 @@ internal object HeroRating {
             return mean to sqrt(maxOf(0.0, variance))
         }
         val out = heroes.mapIndexed { i, x ->
-            val theta = combo(DoubleArray(n) { j -> if (j in 3 until 3 + h) (if (j == 3 + i) 1.0 else 0.0) - 1.0 / h else 0.0 })
+            val theta = combo(
+                DoubleArray(n) { j ->
+                    if (j in
+                        3 until 3 + h
+                    ) {
+                        (if (j == 3 + i) 1.0 else 0.0) - 1.0 / h
+                    } else {
+                        0.0
+                    }
+                },
+            )
             val uplift = combo(DoubleArray(n) { j -> if (j == 2 || j == 3 + h + i) 1.0 else 0.0 })
             Row(x, seated.getValue(x), theta.first, theta.second, uplift.first, uplift.second)
         }
-        val arm = combo(DoubleArray(n) { j -> if (j == 2) 1.0 else if (j >= 3 + h) 1.0 / h else 0.0 })
+        val arm = combo(
+            DoubleArray(n) { j ->
+                if (j == 2) {
+                    1.0
+                } else if (j >= 3 + h) {
+                    1.0 / h
+                } else {
+                    0.0
+                }
+            },
+        )
         return Fit(out, p[0], sqrt(cov[0][0]), p[1], sqrt(cov[1][1]), arm.first, arm.second, games, heroes)
     }
 
@@ -144,10 +181,17 @@ internal object HeroRating {
         val elo = 400 / ln(10.0)
         val sb = StringBuilder()
         sb.appendLine(
-            ("Hero rating fit: ${fit.games} games, $a (side a) against $b; side (Red) %+.0f ± %.0f, coin %+.0f ± %.0f, " +
-                "$a per seat %+.0f ± %.0f Elo").format(
-                fit.side * elo, 1.96 * fit.sideSe * elo, fit.coin * elo, 1.96 * fit.coinSe * elo,
-                fit.arm * elo, 1.96 * fit.armSe * elo,
+            (
+                "Hero rating fit: ${fit.games} games, $a (side a) against $b; " +
+                    "side (Red) %+.0f ± %.0f, coin %+.0f ± %.0f, " +
+                    "$a per seat %+.0f ± %.0f Elo"
+                ).format(
+                fit.side * elo,
+                1.96 * fit.sideSe * elo,
+                fit.coin * elo,
+                1.96 * fit.coinSe * elo,
+                fit.arm * elo,
+                1.96 * fit.armSe * elo,
             ),
         )
         sb.appendLine(
@@ -191,7 +235,14 @@ internal object HeroRating {
             val se = sqrt(ra * (1 - ra) / an + rb * (1 - rb) / bn)
             sb.appendLine(
                 "%-12s a %5.1f%% of %d, b %5.1f%% of %d, uplift %+5.1f [%+5.1f, %+5.1f]".format(
-                    x, 100 * ra, an, 100 * rb, bn, 100 * (ra - rb), 100 * (ra - rb - 1.96 * se), 100 * (ra - rb + 1.96 * se),
+                    x,
+                    100 * ra,
+                    an,
+                    100 * rb,
+                    bn,
+                    100 * (ra - rb),
+                    100 * (ra - rb - 1.96 * se),
+                    100 * (ra - rb + 1.96 * se),
                 ),
             )
         }
@@ -209,7 +260,12 @@ internal object HeroRating {
     /** Gauss–Jordan with partial pivoting (the matrix is symmetric positive definite). */
     private fun invert(m: Array<DoubleArray>): Array<DoubleArray> {
         val n = m.size
-        val a = Array(n) { i -> DoubleArray(2 * n).also { r -> m[i].copyInto(r); r[n + i] = 1.0 } }
+        val a = Array(n) { i ->
+            DoubleArray(2 * n).also { r ->
+                m[i].copyInto(r)
+                r[n + i] = 1.0
+            }
+        }
         for (c in 0 until n) {
             var piv = c
             for (r in c + 1 until n) if (abs(a[r][c]) > abs(a[piv][c])) piv = r

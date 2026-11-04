@@ -81,8 +81,12 @@ internal object Learned {
             f.readLines().filter { it.isNotBlank() }.map { JSON.decodeFromString(GameRecord.serializer(), it) }
         }
 
-    /** A tournament side: ExperimentTest's variant syntax plus `learned=LEAVES|EVERYWHERE` and `net=<file>`. */
-    fun side(spec: String): Tournament.Side {
+    /**
+     * A tournament side: ExperimentTest's variant syntax plus `learned=LEAVES|EVERYWHERE` and `net=<file>`;
+     * `@<name>` is an exploiter of [HeroBenchTest.EXPLOITERS] (`@life`, `@hunter`, `@bold`).
+     */
+    fun side(name: String): Tournament.Side {
+        val spec = if (name.startsWith("@")) HeroBenchTest.EXPLOITERS.getValue(name.drop(1)) else name
         val parts = spec.split("+")
         val strength = parts[0].removePrefix("s").toIntOrNull()
             ?: AiLevel.entries.first { it.name.equals(parts[0], true) }.strength

@@ -30,6 +30,7 @@ internal class Ntbea(
 
     private var total = 0
     private var rewardSum = 0.0
+    private var rewardSquares = 0.0
 
     /** Every point evaluated, by key, with its evaluations. */
     val evaluated = LinkedHashMap<String, IntArray>()
@@ -39,6 +40,7 @@ internal class Ntbea(
     fun add(x: IntArray, reward: Double) {
         total++
         rewardSum += reward
+        rewardSquares += reward * reward
         for ((t, tuple) in tuples.withIndex()) {
             val s = stats[t].getOrPut(key(x, tuple)) { DoubleArray(2) }
             s[0] += 1.0
@@ -50,11 +52,15 @@ internal class Ntbea(
     /** Evaluations of the whole point [x]. */
     fun count(x: IntArray): Int = stats.last()[key(x, tuples.last())]?.get(0)?.toInt() ?: 0
 
-    /** The model's estimate of [x]: the mean over the tuples that have seen its values. */
-    fun estimate(x: IntArray): Double {
+    /**
+     * The model's estimate of [x]: the mean over the tuples that have seen its values; without [whole]
+     * the whole point's own tuple is left out (seen a few times, it is mostly noise).
+     */
+    fun estimate(x: IntArray, whole: Boolean = true): Double {
         var sum = 0.0
         var n = 0
         for ((t, tuple) in tuples.withIndex()) {
+            if (!whole && tuple.size == sizes.size && sizes.size > 1) continue
             val s = stats[t][key(x, tuple)] ?: continue
             sum += s[1] / s[0]
             n++
@@ -114,10 +120,40 @@ internal class Ntbea(
         return best
     }
 
-    /** The evaluated point the model rates best (ties: the first evaluated). */
-    fun recommend(): IntArray = evaluated.values.maxBy { estimate(it) }
+    /**
+     * The point the model rates best by its 1- and 2-tuples (the evaluated points and their
+     * per-dimension best), ties to the first; the whole tuple counts only for points seen [MIN_WHOLE] times.
+     */
+    fun recommend(): IntArray {
+        val marginal = IntArray(sizes.size) { d -> (0 until sizes[d]).maxBy { mean(d, it) ?: -1.0 } }
+        val candidates = evaluated.values + listOf(marginal)
+        return candidates.maxBy { estimate(it, whole = count(it) >= MIN_WHOLE) }
+    }
+
+    /**
+     * The sparse recommendation (ADR-063): per dimension, the value whose 1-tuple mean beats [start]'s by at
+     * least [z] standard errors of the difference (the rewards' own spread), the best such; otherwise
+     * [start]'s value. With a weak signal most dimensions stay as they were.
+     */
+    fun sparse(start: IntArray, z: Double = 1.0): IntArray {
+        val sd = sqrt(maxOf(0.0, (rewardSquares - rewardSum * rewardSum / total) / (total - 1)))
+        return IntArray(sizes.size) { d ->
+            val base = mean(d, start[d]) ?: return@IntArray start[d]
+            val n0 = seen(d, start[d])
+            (0 until sizes[d]).filter { it != start[d] && seen(d, it) > 0 }
+                .map { v -> v to (mean(d, v)!! - base) / (sd * sqrt(1.0 / seen(d, v) + 1.0 / n0)) }
+                .filter { it.second >= z }.maxByOrNull { it.second }?.first ?: start[d]
+        }
+    }
+
+    /** The mean reward of value [v] of dimension [d] (its 1-tuple), null if never tried. */
+    fun mean(d: Int, v: Int): Double? = stats[d][v.toString()]?.let { it[1] / it[0] }
+
+    /** Evaluations of value [v] of dimension [d]. */
+    fun seen(d: Int, v: Int): Int = stats[d][v.toString()]?.get(0)?.toInt() ?: 0
 
     private companion object {
         const val EPSILON = 0.5
+        const val MIN_WHOLE = 10
     }
 }

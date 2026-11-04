@@ -81,8 +81,9 @@ internal data class EvalKnobs(
     /**
      * Per hero id, multipliers of the terms that concern that hero (its coins, levels, counters, hand,
      * hand rating, presence, minion opportunity, exposure and its own pieces), on top of [scales], for
-     * that hero on either team (missing hero or term = 1.0). Data only (ADR-063, tuned on wins): no code
-     * names a hero, and a hero the table does not know is scored as before.
+     * that hero on either team (missing hero or term = 1.0). Data only (ADR-063): no code names a hero,
+     * and a hero the table does not know is scored as before. No strength carries one: no row tuned on
+     * wins held on fresh line-ups (AI.md "Stream D"); the tuner and the bench use it.
      */
     val heroScales: Map<String, Map<Term, Double>> = emptyMap(),
     /**
