@@ -560,7 +560,7 @@ passes (including an in-place upgrade from the morning build with real data). Ev
 - [x] Measured on the test family: 3v3 62.5% at the same time (SPRT H1), 2v2 56.3%, 4v4 57.3% with fewer heroes lost; every exploiter weaker against it (ADR-064)
 - [x] Team play, per-hero scales, a learned card guess: built, measured, off (ADR-061, ADR-062, ADR-063)
 - [ ] A phone's speed line for the new measure (version 2), and a 3v3 game night against the new 10
-- [ ] Release: not cut
+- [x] Released as 0.14.0 with the log feed (ADR-065) and the donate link (ADR-059): the signed APK (same certificate) on GitHub and Pages — 2026-11-05; the Baseline Profile was not regenerated (it needs an emulator), the release build was not opened on an emulator or a phone
 
 ## M5 — Polish & release readiness
 - [x] Accessibility pass: ATF checks on 25 screens (no errors), contrast fixes, TalkBack labels, font scale 2.0 screenshots — 2026-10-17 (emulator/JVM)
