@@ -7,8 +7,9 @@ Mock-ups: `design/mockups/original-look/`.
 **The parts** (`core/designsystem/.../component/LookParts.kt`, `LookButtons.kt`; web: the end of `goa.css`, then a stylesheet per
 area, `goa-look-*.css`). Every part falls back to a flat colour while its image loads:
 - **Steel banner** (`GoaScreen`, `Modifier.steelBanner`): the rulebook's band redrawn (ADR-058), stretched, and its star medallion at the end at
-  its own proportions. Titles are `BevelText` (white metal with a dark outline). Actions stay clear of the medallion (`BannerEndSpacer`);
-  on narrow phones some move into More. Words as actions on it are `BannerTextButton`, light with a dark edge.
+  its own proportions, its disc toned into the band so it reads as ornament, not a control. Titles are `BevelText` (white metal
+  with a dark outline). At most two labelled glyphs on it (`BarActions`, see "Bottom nav" below), clear of the medallion
+  (`BannerEndSpacer`). Words as actions on it are `BannerTextButton`, light with a dark edge.
 - **Slate plate** (`GoaPlate`, `Modifier.slatePlate`, `GoaCard`, `.goa-plate`, `.goa-card`): the dashboard's dark plate with a steel edge and
   small teal corner brackets. Plates are dark in both themes and what sits on one is themed dark (`GoaPlateTheme`). Bottom nav and sheets
   (`GoaSheet`, never a bare `ModalBottomSheet`) are slate too.
@@ -231,10 +232,21 @@ Meta dashboard · Draft setup → Draft board (sticky step banner over a scrolli
 chips, two team columns with role coverage and ban chips, then a dense pool grid with search,
 role chips and "Hide taken"; taken heroes shrink to chips; landscape moves the banner and teams
 to a side column so the pool keeps the full height; long-press opens the hero peek sheet).
-Bottom nav: Heroes, Timer, Draft, Play, Players (original icons: shield, hourglass, fanned cards, a board
-space with a play mark, companions; solid variant when selected; labels share one size, capped by the width,
-at large text). Settings from top bar. The Heroes top bar carries layout, Rules and Settings. The Play tab
-opens on two cards, Board and Card trivia (ADR-055). The bottom nav is hidden on the
+Bottom nav: Heroes, Play, Timer, Players, More (original icons: shield, a board space with a play mark,
+hourglass, companions, a plate with three studs; solid variant when selected; labels share one size, capped by
+the width, at large text). **More** lists, as labelled rows with icon and purpose: Draft (At the table), Rules
+(Reference), Group sync and Backup and restore (Your group), Settings and About (App). The Draft keeps a back
+stack of its own without an item (a draft in progress survives switching tabs; More is lit while it shows; back
+on its root returns to where it was opened: More or the match log). **Top bars** show at most two glyphs, each
+labelled (TalkBack and a long-press tooltip, `BarIconButton`); with more actions the first stays and the rest go
+in a labelled overflow menu, "More options" (`BarActions`): Heroes shows the layout switch, then Rules and
+Settings in the menu; Players shows Group sync (its attention dot also on the menu button), then your player
+page, Share stats, Backup and Settings. The **Play tab** opens on the game in progress (Resume), then plates
+with painted scenes (the app's own art, `third_party/ASSETS.md`), the name engraved over the scene and the state
+in bronze: Play vs computer across the width, then Puzzles ("3 of 50 solved"), Board sandbox, Online and Card
+trivia two by two (one column at large text, four across in landscape); the scenes grow with the screen's height
+so the plates fill it. An entry the engine can't serve says "Not available in this build", never "Coming soon".
+Board sandbox is the saved-board list only. The bottom nav is hidden on the
 running timer (no tab to mis-tap beside Next; back leaves to Heroes), on the draft board and on a board;
 while a session runs, every other screen shows the **timer running bar** above the nav (timer
 icon, phase, "Round · Turn" context, tabular clock in tide teal; dim when paused, error red in

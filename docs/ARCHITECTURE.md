@@ -312,6 +312,9 @@ saveable-state and ViewModel-store decorators on every composition (`rememberDec
 and `NavDisplay` shows the current tab's entries, so leaving a tab keeps its screens, scroll
 positions, half-filled forms and ViewModels; state is dropped only when an entry is popped.
 Content keys are prefixed with the tab, so the same key in two tabs never shares state.
+The bottom bar shows Heroes, Play, Timer, Players and More; the Draft (`TopLevelTab.DRAFT`) keeps a
+stack of its own with no item, opened from More or the match log (More is lit while it shows, back
+on its root returns to the tab it was opened from). The web app's tabs still follow the older order.
 `Navigator.showMessage` posts app-wide snackbars (e.g. "Saved as a pending match").
 Cross-feature contracts for this: `DraftSetupPrefill` (core:data, implemented by draft) fills
 the draft setup for "Draft again".
