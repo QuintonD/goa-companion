@@ -910,7 +910,10 @@ class PlayScreenshotTest {
         NewGameScreen(state, onAction = vm::onAction, onStart = {}, onBack = {}, starting = starting)
     }
 
-    private fun picked() = newGame().also { vm ->
+    /** Every hero of the catalog plays, as in the app (32 of 32): no "Not playable yet" fold. */
+    private fun everyHero() = FakeGameFactory(maps, playableHeroes = catalog.heroes.map { it.id }.toSet())
+
+    private fun picked(engine: FakeGameFactory = everyHero()) = newGame(engine).also { vm ->
         listOf("arien", "wasp", "brogan").forEach { vm.onAction(NewGameAction.Lineup(NewBoardAction.Tap(it))) }
     }
 
@@ -937,6 +940,17 @@ class PlayScreenshotTest {
     @Config(qualifiers = "w891dp-h411dp-land-xxhdpi")
     @Test
     fun newGameLineupLandscapeDark() = capture(ThemeMode.DARK) { NewGame(remember { picked() }) }
+
+    /** Heroes whose cards are still being tested (a new printing): veiled, "Later", and the note says how many. */
+    @Test
+    fun newGameLineupLaterDark() = capture(ThemeMode.DARK) {
+        NewGame(
+            remember {
+                val later = setOf("xargatha", "wuk", "widget")
+                picked(FakeGameFactory(maps, playableHeroes = catalog.heroes.map { it.id }.toSet() - later))
+            },
+        )
+    }
 
     @Test fun newGameOptionsDark() = capture(ThemeMode.DARK) { NewGame(remember { options() }) }
 

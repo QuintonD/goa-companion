@@ -560,14 +560,15 @@ opponents (and teammates) at a strength from 1 to 10. One phone, one human team.
 Fifty difficult puzzles in the style of chess tactics: a position, a goal ("Defeat Brogan this
 turn", "Push the lane before the round ends", "Survive this turn"), one way (or a few) to make it.
 - **List** (Play tab → Puzzles; only puzzles whose heroes are all playable): a Continue card on
-  top with the first unsolved one and "N of M solved" (all solved: a seal instead); difficulty filter
+  top with the first unsolved one ("Up next · Puzzle 2 of 50"; all solved: a seal and "N of M solved"), each part
+  of the book under its heading with its own count ("Positions · 50", "1 of 50 solved"); difficulty filter
   chips, and theme chips for themes two or more puzzles share; then every puzzle by number with
   title, theme, difficulty (three hexes and the word: hard / harder / hardest), heroes, and Solved /
   Tried N times / Not tried yet, nudges used, "Solution seen". Reset progress in the menu, confirmed.
 - **Solving:** the game table; in the panel the goal ("Win the game this
   turn." · "You play Wasp and Xargatha"), the number, title and difficulty on a small line, "What
-  you know" (the theme and the intro: what the board doesn't show; it folds after the first move, and starts folded on a
-  puzzle already tried), then the question, card questions answered with the card focus viewer (§9). Every hero's hand is open (tap a hero). The other side answers at once with its best
+  you know" (the theme and the intro: what the board doesn't show; folded to its first two lines, a tap opens it, and
+  it folds again after a move), then the question, card questions answered with the card focus viewer (§9). Every hero's hand is open (tap a hero). The other side answers at once with its best
   reply; its replies are narrated line by line ("Arien answers") over the board as it was after your
   move, then the board catches up. A move that loses the forced line says so gently, with the reason
   taken from what followed where it can ("Not quite — that lets Arien defend with Aspiring

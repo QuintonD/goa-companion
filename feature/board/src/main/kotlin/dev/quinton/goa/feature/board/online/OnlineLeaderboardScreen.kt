@@ -44,14 +44,19 @@ import dev.quinton.goa.core.designsystem.component.EmptyState
 import dev.quinton.goa.core.designsystem.component.GoaPlate
 import dev.quinton.goa.core.designsystem.component.GoaScreen
 import dev.quinton.goa.core.designsystem.component.scaledIconSize
+import dev.quinton.goa.core.designsystem.theme.GoaTextStyles
 import dev.quinton.goa.core.designsystem.theme.GoaTheme
 import dev.quinton.goa.core.designsystem.theme.Spacing
+import dev.quinton.goa.feature.board.play.online.leaderboard.LeaderboardPresenter
 import dev.quinton.goa.feature.board.play.online.leaderboard.LeaderboardRowUi
 import dev.quinton.goa.feature.board.play.online.leaderboard.LeaderboardTab
 import dev.quinton.goa.feature.board.play.online.leaderboard.LeaderboardUi
 import dev.quinton.goa.feature.board.ui.bronzeSegments
 
-/** The public leaderboards (ADR-056): Players and Heroes, your row marked, how old the board is. */
+/**
+ * The public leaderboards (ADR-056), named for what they rank: "Online ratings", Players and Heroes, a line on
+ * whose games count, the columns labelled (Rank, Player or Hero, Rating), your row marked, how old the board is.
+ */
 @Composable
 fun OnlineLeaderboardScreen(
     state: LeaderboardUi,
@@ -61,7 +66,7 @@ fun OnlineLeaderboardScreen(
     modifier: Modifier = Modifier,
 ) {
     GoaScreen(
-        title = "Leaderboard",
+        title = "Online ratings",
         onBack = onBack,
         modifier = modifier,
         actions = {
@@ -89,6 +94,13 @@ fun OnlineLeaderboardScreen(
                     ) { Text(tab.label) }
                 }
             }
+            Text(
+                "Public Elo ratings from ranked online games. A " +
+                    (if (state.tab == LeaderboardTab.HEROES) "hero" else "player") +
+                    " appears after ${LeaderboardPresenter.GAMES_TO_APPEAR} rated games.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
             state.status?.let { Status(it, state.stale) }
             when {
                 state.rows.isNotEmpty() -> {
@@ -132,15 +144,37 @@ private fun Status(text: String, stale: Boolean) {
     }
 }
 
-/** One plate for the board, dividers inside (DESIGN.md). */
+/** One plate for the board, dividers inside (DESIGN.md), under a header that says what each number is. */
 @Composable
 private fun Rows(state: LeaderboardUi) {
     GoaPlate(Modifier.fillMaxWidth(), contentPadding = PaddingValues(0.dp)) {
+        Header(if (state.tab == LeaderboardTab.HEROES) "Hero" else "Player")
         state.rows.forEachIndexed { i, row ->
             if (i > 0) HorizontalDivider(color = GoaTheme.colors.engravedBorder)
             BoardRow(row)
         }
     }
+}
+
+/** "# · PLAYER · RATING": the columns, for the eye (each row's TalkBack line says them). */
+@Composable
+private fun Header(what: String) {
+    Row(
+        Modifier
+            .fillMaxWidth()
+            .padding(horizontal = Spacing.md)
+            .padding(top = Spacing.sm, bottom = Spacing.xs)
+            .clearAndSetSemantics {},
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        val style = GoaTextStyles.overline
+        val color = MaterialTheme.colorScheme.primary
+        Text("#", style = style, color = color, textAlign = TextAlign.End, modifier = Modifier.widthIn(min = 28.dp))
+        Spacer(Modifier.width(Spacing.md))
+        Text(what.uppercase(), style = style, color = color, modifier = Modifier.weight(1f))
+        Text("RATING", style = style, color = color)
+    }
+    HorizontalDivider(color = GoaTheme.colors.engravedBorder)
 }
 
 @Composable

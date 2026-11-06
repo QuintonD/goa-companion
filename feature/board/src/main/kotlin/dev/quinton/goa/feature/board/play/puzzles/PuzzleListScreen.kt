@@ -66,9 +66,10 @@ import dev.quinton.goa.feature.board.BoardText
 import dev.quinton.goa.feature.board.ui.PlateSurface
 
 /**
- * The puzzles (PRODUCT §10): Continue with the first unsolved one at the top, "N of M solved",
- * difficulty and theme filters, then every puzzle by number with its title, theme, difficulty
- * (hexes and words), heroes and progress. Reset progress is in the menu, behind a confirmation.
+ * The puzzles (PRODUCT §10): Continue with the first unsolved one at the top ("Up next · Puzzle 2 of 50"),
+ * difficulty and theme filters, then the book's two parts, Positions · 50 and Full rounds · 22, each with
+ * its own "N of M solved", and every puzzle by number with its title, theme, difficulty (hexes and words),
+ * heroes and progress. Reset progress is in the menu, behind a confirmation.
  */
 @Composable
 fun PuzzleListScreen(
@@ -175,11 +176,12 @@ private fun PuzzleList(state: PuzzleListUiState.Ready, onAction: (PuzzleListActi
             }
         }
         item(key = "heading") {
-            Text(
-                "ALL PUZZLES",
-                style = GoaTextStyles.overline,
-                color = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.padding(top = Spacing.sm).semantics { heading() },
+            PartHeading(
+                "Positions",
+                state.positionsSolved,
+                state.positionsTotal,
+                "One position and a goal: find the line that makes it against the best replies.",
+                Modifier.padding(top = Spacing.sm),
             )
         }
         if (state.rows.isEmpty()) {
@@ -203,26 +205,20 @@ private fun PuzzleList(state: PuzzleListUiState.Ready, onAction: (PuzzleListActi
         val rounds = state.rows.filter { it.info.fullRound }
         if (rounds.isNotEmpty()) {
             item(key = "rounds-heading") {
-                Column(Modifier.padding(top = Spacing.md)) {
-                    Text(
-                        "FULL ROUNDS",
-                        style = GoaTextStyles.overline,
-                        color = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.semantics { heading() },
-                    )
-                    Text(
-                        "Four turns planned from turn 1, through the Minion Battle. You know what they will play.",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
+                PartHeading(
+                    "Full rounds",
+                    state.roundsSolved,
+                    state.roundsTotal,
+                    "Four turns planned from turn 1, through the Minion Battle. You know what they will play.",
+                    Modifier.padding(top = Spacing.md),
+                )
             }
             items(rounds, key = { it.info.id }) { row -> PuzzleRow(row) { onOpen(row.info.id) } }
         }
     }
 }
 
-/** The next unsolved puzzle with Continue (or Start), and how many are solved; all solved says so. */
+/** The next unsolved puzzle with Continue (or Start), "Up next · Puzzle 2 of 50"; all solved says so. */
 @Composable
 @OptIn(ExperimentalLayoutApi::class)
 private fun ContinueCard(state: PuzzleListUiState.Ready, onOpen: (String) -> Unit) {
@@ -240,19 +236,22 @@ private fun ContinueCard(state: PuzzleListUiState.Ready, onOpen: (String) -> Uni
         ) {
             if (next == null) SolvedSeal(size = 48.dp)
             Column(Modifier.weight(1f).semantics(mergeDescendants = true) {}) {
-                Text(
-                    "${state.solved} OF ${state.total} SOLVED",
-                    style = GoaTextStyles.overline,
-                    color = content,
-                )
                 if (next != null) {
+                    // "Puzzle 2 of 50": the same words and count as the puzzle's own screen.
+                    val part = if (next.info.fullRound) state.roundsTotal else state.positionsTotal
                     Text(
-                        PuzzleText.numbered(next.info),
-                        style = MaterialTheme.typography.titleMedium,
-                        color = content,
+                        "UP NEXT · ${PuzzleText.place(next.info, part).uppercase()}",
+                        style = GoaTextStyles.overline,
+                        color = MaterialTheme.colorScheme.primary,
                     )
+                    Text(next.info.title, style = MaterialTheme.typography.titleMedium, color = content)
                     Text(next.info.goal.text, style = MaterialTheme.typography.bodySmall, color = content)
                 } else {
+                    Text(
+                        "${state.solved} OF ${state.total} SOLVED",
+                        style = GoaTextStyles.overline,
+                        color = MaterialTheme.colorScheme.primary,
+                    )
                     Text("Every puzzle solved", style = MaterialTheme.typography.titleMedium, color = content)
                     Text(
                         "Replay any of them below; more arrive as heroes become playable.",
@@ -273,6 +272,30 @@ private fun ContinueCard(state: PuzzleListUiState.Ready, onOpen: (String) -> Uni
                 }
             }
         }
+    }
+}
+
+/**
+ * A part of the book: "POSITIONS · 50" and "1 of 50 solved" on one line, what the part is under it. The count
+ * is the one the puzzle's own screen uses ("Puzzle 3 of 50"), so the numbers agree.
+ */
+@Composable
+private fun PartHeading(title: String, solved: Int, total: Int, note: String, modifier: Modifier = Modifier) {
+    Column(modifier.fillMaxWidth().semantics(mergeDescendants = true) { heading() }) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text(
+                "${title.uppercase()} · $total",
+                style = GoaTextStyles.overline,
+                color = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.weight(1f),
+            )
+            Text(
+                "$solved of $total solved",
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+        Text(note, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
     }
 }
 

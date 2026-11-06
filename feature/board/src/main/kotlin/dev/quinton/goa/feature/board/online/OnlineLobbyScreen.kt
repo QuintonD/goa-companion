@@ -289,6 +289,31 @@ private fun SeatRow(
     }
 }
 
+/**
+ * "Waiting for 1 more player and 2 to be ready · 1 of 4 ready", then who starts: the host, with the server's
+ * Tie Breaker coin. Everyone ready says so.
+ */
+private fun waitingWords(state: LobbyUi): String {
+    val seats = state.room?.seats.orEmpty()
+    val free = seats.count { it.accountId == null }
+    val unready = seats.count { it.accountId != null && !it.ready }
+    val waiting = listOfNotNull(
+        free.takeIf { it > 0 }?.let { if (it == 1) "1 more player" else "$it more players" },
+        unready.takeIf { it > 0 }?.let { "$it to be ready" },
+    )
+    val count = "${state.readyCount} of ${state.seats.size} ready"
+    val who = if (state.isHost) {
+        "You start the game; the server flips the Tie Breaker coin."
+    } else {
+        "The host starts the game."
+    }
+    return if (waiting.isEmpty()) {
+        "Everyone is ready. $who"
+    } else {
+        "Waiting for ${waiting.joinToString(" and ")} · $count. $who"
+    }
+}
+
 private fun seatWords(seat: RoomSeat, mine: Boolean, heroName: String?, room: RoomView): String = buildString {
     append(BoardText.team(seat.team))
     append(": ")
@@ -325,22 +350,15 @@ private fun Actions(state: LobbyUi, actions: OnlineLobbyActions, onPick: () -> U
                 enabled = state.canStart,
                 modifier = Modifier.fillMaxWidth().heightIn(min = 52.dp),
             ) { Text("Start the game") }
-            Text(
-                "${state.readyCount} of ${state.seats.size} ready. The server flips the Tie Breaker coin.",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                textAlign = TextAlign.Center,
-                modifier = Modifier.fillMaxWidth(),
-            )
-        } else {
-            Text(
-                "${state.readyCount} of ${state.seats.size} ready. The host starts the game.",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                textAlign = TextAlign.Center,
-                modifier = Modifier.fillMaxWidth(),
-            )
         }
+        // What the start waits for, in words: a greyed button alone doesn't say why.
+        Text(
+            waitingWords(state),
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            textAlign = TextAlign.Center,
+            modifier = Modifier.fillMaxWidth().semantics { liveRegion = LiveRegionMode.Polite },
+        )
         TextButton(onClick = actions.onLeave, modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp)) {
             Text("Leave the room", color = MaterialTheme.colorScheme.error)
         }
