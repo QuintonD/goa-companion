@@ -58,6 +58,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.rememberTextMeasurer
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -242,7 +243,7 @@ private fun HomeContent(
 ) {
     BoxWithConstraints(Modifier.fillMaxSize()) {
         // The start bar's content is inset by the screen padding on both sides.
-        val layout = barLayout(maxWidth - Spacing.screen * 2)
+        val layout = barLayout(maxWidth - Spacing.screen * 2, challengeLabel(state.playingAs.isGuest))
         HomeColumn(state, onAction, onStart, onStartHero, onChooseHeroes, onChoosePlayer, onChallenge, layout)
     }
 }
@@ -256,18 +257,18 @@ private data class BarLayout(val wide: Boolean, val stacked: Boolean)
 
 /** Measures the two button labels (with icon, gap and padding) against half of [width]. */
 @Composable
-private fun barLayout(width: Dp): BarLayout {
+private fun barLayout(width: Dp, challenge: String): BarLayout {
     val density = LocalDensity.current
     val measurer = rememberTextMeasurer()
     val style = MaterialTheme.typography.titleMedium
     val icon = scaledIconSize(20.dp)
-    return remember(width, density, style, icon) {
+    return remember(width, density, style, icon, challenge) {
         if (width >= WIDE_START_BAR) return@remember BarLayout(wide = true, stacked = false)
         fun need(label: String) = with(density) {
             measurer.measure(label, style, maxLines = 1, softWrap = false).size.width.toDp()
         } + icon + Spacing.sm + BUTTON_CHROME
         val half = (width - Spacing.sm) / 2
-        BarLayout(wide = false, stacked = need(START_LABEL) > half || need(CHALLENGE_LABEL) > half)
+        BarLayout(wide = false, stacked = need(START_LABEL) > half || need(challenge) > half)
     }
 }
 
@@ -275,6 +276,10 @@ private fun barLayout(width: Dp): BarLayout {
 private val BUTTON_CHROME = 54.dp
 private const val START_LABEL = "Start quiz"
 private const val CHALLENGE_LABEL = "Challenge"
+private const val GUEST_CHALLENGE_LABEL = "Choose player & challenge"
+
+/** Guest can't be ranked: the Challenge button says it picks a player first (the picker opens). */
+private fun challengeLabel(guest: Boolean) = if (guest) GUEST_CHALLENGE_LABEL else CHALLENGE_LABEL
 
 @Suppress("LongParameterList")
 @Composable
@@ -299,7 +304,7 @@ private fun HomeColumn(
             if (largeText) {
                 item(key = "challenge-line") {
                     Text(
-                        CHALLENGE_LINE,
+                        challengeExplain(state.playingAs.isGuest),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = padded.padding(top = Spacing.sm),
@@ -349,8 +354,8 @@ private fun PlayingAsRow(playing: PlayingAsState, onClick: () -> Unit, modifier:
     val name = playing.player?.name ?: "Guest"
     val isMe = playing.player?.let { it.id == playing.me?.id } == true
     val subtitle = when {
-        playing.isGuest -> "Not on the leaderboard"
-        else -> "Rounds go on the leaderboard"
+        playing.isGuest -> GUEST_LINE
+        else -> PLAYER_LINE
     }
     val note = playingAsNote(playing)
     Column(modifier.fillMaxWidth()) {
@@ -632,6 +637,7 @@ private fun StartBar(
     val note = startNote(state)
     val stacked = layout.stacked
     val wide = layout.wide
+    val challenge = challengeLabel(state.playingAs.isGuest)
     GoaPlateTheme {
         val noteColor = MaterialTheme.colorScheme.run { if (state.canStart) onSurfaceVariant else error }
         Column(Modifier.slatePlate(RectangleShape, brackets = false)) {
@@ -649,7 +655,7 @@ private fun StartBar(
                 }
                 val explain: @Composable () -> Unit = {
                     Text(
-                        CHALLENGE_LINE,
+                        challengeExplain(state.playingAs.isGuest),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
@@ -662,7 +668,7 @@ private fun StartBar(
                             explain()
                         }
                         Spacer(Modifier.width(Spacing.lg))
-                        ChallengeButton(onChallenge, Modifier.widthIn(min = 160.dp))
+                        ChallengeButton(challenge, onChallenge, Modifier.widthIn(min = 160.dp))
                         Spacer(Modifier.width(Spacing.sm))
                         StartButton(state.canStart, onStart, Modifier.widthIn(min = 200.dp))
                     }
@@ -675,10 +681,10 @@ private fun StartBar(
                             // pinned bar leaves the list room.
                             StartButton(state.canStart, onStart, Modifier.fillMaxWidth())
                             Spacer(Modifier.height(Spacing.sm))
-                            ChallengeButton(onChallenge, Modifier.fillMaxWidth())
+                            ChallengeButton(challenge, onChallenge, Modifier.fillMaxWidth())
                         } else {
                             Row {
-                                ChallengeButton(onChallenge, Modifier.weight(1f))
+                                ChallengeButton(challenge, onChallenge, Modifier.weight(1f))
                                 Spacer(Modifier.width(Spacing.sm))
                                 StartButton(state.canStart, onStart, Modifier.weight(1f))
                             }
@@ -703,15 +709,29 @@ private fun StartButton(enabled: Boolean, onStart: () -> Unit, modifier: Modifie
 
 /** The fixed Challenge (ADR-032): never off, whatever the setup above it. */
 @Composable
-private fun ChallengeButton(onChallenge: () -> Unit, modifier: Modifier) {
+private fun ChallengeButton(label: String, onChallenge: () -> Unit, modifier: Modifier) {
     OutlinedButton(onClick = onChallenge, modifier = modifier.heightIn(min = 56.dp)) {
         Icon(Icons.Outlined.Bolt, contentDescription = null, modifier = Modifier.size(scaledIconSize(20.dp)))
         Spacer(Modifier.width(Spacing.sm))
-        Text(CHALLENGE_LABEL, style = MaterialTheme.typography.titleMedium, maxLines = 1)
+        Text(label, style = MaterialTheme.typography.titleMedium, maxLines = 2, textAlign = TextAlign.Center)
     }
 }
 
-internal const val CHALLENGE_LINE = TriviaText.CHALLENGE_LINE
+/**
+ * Under the Challenge: what it is and where it counts. Guest practice is unranked, so for Guest it
+ * says a player is picked first (the button opens the picker).
+ */
+internal fun challengeExplain(guest: Boolean): String = if (guest) GUEST_CHALLENGE_LINE else PLAYER_CHALLENGE_LINE
+
+internal const val PLAYER_CHALLENGE_LINE =
+    "Challenge: 20 questions on every hero, the same for everyone, ranked on the group's trivia leaderboard."
+internal const val GUEST_CHALLENGE_LINE =
+    "Guest practice is unranked. Challenge: choose who's playing first; their score goes on the group's " +
+        "trivia leaderboard."
+
+/** Under "Playing as": whether this player's rounds are ranked. */
+private const val GUEST_LINE = "Practice only · unranked"
+private const val PLAYER_LINE = "Rounds count on the group's trivia leaderboard"
 
 /**
  * "Card trivia" must never be clipped (S25 Ultra: 384 dp wide). The title is measured; when it and

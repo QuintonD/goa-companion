@@ -117,7 +117,7 @@ fun TriviaLeaderboardScreen(
         }
     }
     GoaScreen(
-        title = "Leaderboard",
+        title = "Trivia leaderboard",
         onBack = onBack,
         modifier = modifier,
         snackbarHost = { SnackbarHost(snackbar) },
@@ -199,9 +199,11 @@ private fun BoardContent(state: TriviaLeaderboardUiState.Ready, actions: Leaderb
                     Spacer(Modifier.height(Spacing.xs))
                     Text(
                         if (state.tab == LeaderboardTab.CHALLENGE) {
-                            "Each player's best Challenge: most right answers, then the quicker time."
+                            "Your group only · each player's best Challenge: most right answers, then the " +
+                                "quicker time."
                         } else {
-                            "Every round played as a player, Challenges included: most right answers, then accuracy."
+                            "Your group only · every round played as a player, Challenges included: most right " +
+                                "answers, then accuracy."
                         },
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -305,7 +307,7 @@ private fun RankedRow(row: LeaderboardRowUi, onClick: () -> Unit) {
                 color = if (row.place == 1) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
                 maxLines = 1,
             )
-            row.mainCaption?.let {
+            (row.mainCaption ?: SCORE_CAPTION).let {
                 Text(
                     it,
                     style = MaterialTheme.typography.labelSmall,
@@ -346,7 +348,7 @@ private fun LargeRankedRow(row: LeaderboardRowUi, onClick: () -> Unit) {
                 if (row.isMe) YouTag()
             }
             Text(
-                listOfNotNull(row.main, row.mainCaption).joinToString(" "),
+                "${row.main} ${row.mainCaption ?: SCORE_CAPTION}",
                 style = GoaTextStyles.numeric.copy(fontSize = MaterialTheme.typography.titleLarge.fontSize),
                 fontWeight = FontWeight.SemiBold,
                 color = if (row.place == 1) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
@@ -533,3 +535,6 @@ private const val PODIUM = 3
 
 /** From this font scale the rows reflow ([LargeRankedRow]). */
 private const val LARGE_FONT_SCALE = 1.5f
+
+/** A Challenge score ("18/20") says what it counts, as a practice total does ("40 right"). */
+private const val SCORE_CAPTION = "right"
