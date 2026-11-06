@@ -109,14 +109,36 @@ class OnlineScreenshotTest {
     private val ready = OnlineHomeUi(
         stage = AccountStage.READY,
         name = "Ann",
+        // As the presenter sorts them: your turn, waiting, finished.
         games = listOf(
             MyGame(
                 GAME,
                 CODE,
                 "forgotten-island",
                 listOf(SeatPlayer("arien", "acc", "Ann", Team.RED), SeatPlayer("wasp", "acc-bob", "Bob", Team.BLUE)),
+                asked = listOf("arien"),
+            ),
+            MyGame(
+                "game-2",
+                "EFGH5678",
+                "forgotten-island",
+                listOf(
+                    SeatPlayer("brogan", "acc", "Ann", Team.RED),
+                    SeatPlayer("sabina", "acc-cid", "Cid", Team.RED),
+                    SeatPlayer("tigerclaw", "acc-bob", "Bob", Team.BLUE),
+                    SeatPlayer("xargatha", "acc-dee", "Dee", Team.BLUE),
+                ),
+                asked = listOf("tigerclaw"),
+            ),
+            MyGame(
+                "game-3",
+                "JKLM9012",
+                "forgotten-island",
+                listOf(SeatPlayer("wasp", "acc", "Ann", Team.RED), SeatPlayer("arien", "acc-bob", "Bob", Team.BLUE)),
+                over = true,
             ),
         ),
+        you = "acc",
     )
 
     @Composable

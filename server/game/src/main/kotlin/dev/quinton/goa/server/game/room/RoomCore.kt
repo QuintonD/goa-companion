@@ -292,6 +292,11 @@ class RoomCore(
         return runningOf(accountId) + ended
     }
 
+    override suspend fun statusOf(gameId: String): GameNow? {
+        if (closedMutex.withLock { gameId in closed }) return GameNow(emptyList(), over = true)
+        return withRoom(gameId) { GameNow(it.askedSeats(), over = false) }
+    }
+
     override suspend fun runningOf(accountId: String): List<String> =
         live.values.filter { it.room.seats.any { s -> s.accountId == accountId } }
             .filter { entry -> entry.mutex.withLock { entry.room.seatsOf(accountId).isNotEmpty() } }
