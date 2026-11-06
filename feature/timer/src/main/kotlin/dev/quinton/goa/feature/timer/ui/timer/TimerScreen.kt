@@ -19,6 +19,8 @@ data class TimerActions(
     val onSeatsChange: (Int) -> Unit = {},
     val onStart: () -> Unit = {},
     val onOpenSetup: (matchId: String?) -> Unit = {},
+    /** The draft: game night drafts heroes before Match setup and the timer. */
+    val onOpenDraft: () -> Unit = {},
     /** Deletes a pending match nobody is going to play. */
     val onDiscardPending: (matchId: String) -> Unit = {},
     val onManagePresets: () -> Unit = {},
@@ -60,6 +62,7 @@ fun TimerRoute(
     onNewMatch: (TimerEvent.NewMatch) -> Unit,
     onOpenLevels: (heroIds: List<String>) -> Unit = {},
     onOpenRules: () -> Unit = {},
+    onOpenDraft: () -> Unit = {},
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     LifecycleStartEffect(viewModel) {
@@ -83,6 +86,7 @@ fun TimerRoute(
             onSeatsChange = viewModel::setSeats,
             onStart = start,
             onOpenSetup = onOpenSetup,
+            onOpenDraft = onOpenDraft,
             onDiscardPending = viewModel::discardPending,
             onManagePresets = onManagePresets,
             onSettings = onSettings,

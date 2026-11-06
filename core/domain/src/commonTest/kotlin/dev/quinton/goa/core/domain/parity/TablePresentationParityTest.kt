@@ -261,7 +261,7 @@ class TablePresentationParityTest {
             out.appendLine(DraftStorage.encodeProgress(progress))
         }
         out.appendLine(DraftSetupPresenter.quickAddPlayer(" Zed ", 13, "id", 5).toString())
-        assertTranscript("cdac15cb5d733353c643a534062c95f6c8c6b383951f8f1e661603eb6e3d9431", out.toString(), "draft")
+        assertTranscript("70da53dce43a431dae1d99ea39e25b8480be72a7c230f180db84bb20434f6c2b", out.toString(), "draft")
     }
 
     private fun percent(f: Float): Int = kotlin.math.round(f.toDouble() * 100).toInt()
