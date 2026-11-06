@@ -53,7 +53,7 @@ class BottomBarScreenshotTest {
 
     @Test fun bottomBarLight() = shot(ThemeMode.LIGHT)
 
-    /** Five tabs at the largest text on the S25 Ultra: every label whole, shrunk to fit. */
+    /** Five items at the largest text on the S25 Ultra: every label whole, shrunk to fit. */
     @Test
     @Config(qualifiers = "w384dp-h832dp-xxhdpi")
     fun bottomBarW384FontScale2() {
@@ -77,7 +77,15 @@ class BottomBarScreenshotTest {
         compose.onNodeWithTag("nav_catalog").assertIsSelected()
         compose.onNodeWithTag("nav_players").assertIsNotSelected().performClick()
         compose.onNodeWithTag("nav_play").assertIsNotSelected().performClick()
-        assertThat(chosen).containsExactly(TopLevelTab.PLAYERS, TopLevelTab.PLAY).inOrder()
+        compose.onNodeWithTag("nav_more").assertIsNotSelected().performClick()
+        assertThat(chosen).containsExactly(TopLevelTab.PLAYERS, TopLevelTab.PLAY, TopLevelTab.MORE).inOrder()
+    }
+
+    /** The Draft has no item of its own: More is lit while it shows. */
+    @Test fun theDraftLightsMore() {
+        compose.setContent { GoaTheme { GoaBottomBar(TopLevelTab.DRAFT, onSelect = {}) } }
+        compose.onNodeWithTag("nav_more").assertIsSelected()
+        compose.onNodeWithTag("nav_catalog").assertIsNotSelected()
     }
 }
 

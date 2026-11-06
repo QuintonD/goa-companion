@@ -17,7 +17,7 @@ import org.junit.runner.RunWith
 /**
  * Board sandbox from a finished draft (PRODUCT §8): a House draft 2v2, "Try on the board" (one
  * tap), the opening with the first Red pick on a Red hero Spawn point; select that hero and move it
- * through the TalkBack action of a named space right next to it, then find the board in Boards.
+ * through the TalkBack action of a named space right next to it, then find the board in the Board sandbox.
  * Every space in view is a node whose click does what a tap on it does, so the test drives the map
  * the way TalkBack would.
  */
@@ -48,13 +48,13 @@ class BoardFlowTest {
         rule.waitFor(hasContentDescription("Undo") and isEnabled())
 
         // Back returns to the finished draft (the draft board hides the tabs); Back again leaves it,
-        // then Heroes › Board: the board is saved under its line-up.
+        // then Play › Board sandbox: the board is saved under its line-up.
         rule.tapDescription("Back")
         rule.waitForText("Try on the board")
         rule.tapDescription("Back")
         rule.openTab("catalog")
         rule.waitForText("32 heroes")
-        rule.openFromPlay("Board")
+        rule.openFromPlay("Board sandbox")
         rule.waitForText("Changed today", substring = true)
         rule.waitFor(hasText(hero, substring = true) and hasText(" vs ", substring = true))
     }

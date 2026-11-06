@@ -104,4 +104,8 @@ object GoaIcons {
     @DrawableRes val NavPlayers = R.drawable.ic_nav_players
 
     @DrawableRes val NavPlayersSelected = R.drawable.ic_nav_players_filled
+
+    @DrawableRes val NavMore = R.drawable.ic_nav_more
+
+    @DrawableRes val NavMoreSelected = R.drawable.ic_nav_more_filled
 }

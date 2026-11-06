@@ -43,6 +43,7 @@ import androidx.compose.material.icons.outlined.CloudOff
 import androidx.compose.material.icons.outlined.GridView
 import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material.icons.outlined.SearchOff
+import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material.icons.outlined.Shield
 import androidx.compose.material.icons.outlined.Tune
 import androidx.compose.material.icons.outlined.ViewAgenda
@@ -83,13 +84,14 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import dev.quinton.goa.core.designsystem.component.BarAction
+import dev.quinton.goa.core.designsystem.component.BarActions
 import dev.quinton.goa.core.designsystem.component.EmptyState
 import dev.quinton.goa.core.designsystem.component.GoaPlate
 import dev.quinton.goa.core.designsystem.component.GoaPlateTheme
 import dev.quinton.goa.core.designsystem.component.GoaScreen
 import dev.quinton.goa.core.designsystem.component.GoaSheet
 import dev.quinton.goa.core.designsystem.component.PlateGround
-import dev.quinton.goa.core.designsystem.component.SettingsActionButton
 import dev.quinton.goa.core.designsystem.theme.GoaTextStyles
 import dev.quinton.goa.core.designsystem.theme.GoaTheme
 import dev.quinton.goa.core.designsystem.theme.Spacing
@@ -131,20 +133,23 @@ fun CatalogScreen(
         title = "Heroes",
         modifier = modifier,
         actions = {
-            if (ready != null) {
-                val grid = ready.controls.layout == CatalogLayout.GRID
+            // The layout switch, then Rules and Settings (also on More) in the labelled overflow menu.
+            val layout = ready?.let {
+                val grid = it.controls.layout == CatalogLayout.GRID
                 val other = if (grid) CatalogLayout.LIST else CatalogLayout.GRID
-                IconButton(onClick = { onAction(CatalogAction.SetLayout(other)) }) {
-                    Icon(
-                        if (grid) Icons.Outlined.ViewAgenda else Icons.Outlined.GridView,
-                        contentDescription = if (grid) "Show as list" else "Show as grid",
-                    )
-                }
+                BarAction(
+                    label = if (grid) "Show as list" else "Show as grid",
+                    icon = if (grid) Icons.Outlined.ViewAgenda else Icons.Outlined.GridView,
+                    onClick = { onAction(CatalogAction.SetLayout(other)) },
+                )
             }
-            IconButton(onClick = onRulesClick) {
-                Icon(Icons.AutoMirrored.Outlined.MenuBook, contentDescription = "Rules")
-            }
-            SettingsActionButton(onSettingsClick)
+            BarActions(
+                listOfNotNull(
+                    layout,
+                    BarAction("Rules", Icons.AutoMirrored.Outlined.MenuBook, onRulesClick),
+                    BarAction("Settings", Icons.Outlined.Settings, onSettingsClick),
+                ),
+            )
         },
     ) { padding ->
         Box(Modifier.fillMaxSize().padding(padding)) {

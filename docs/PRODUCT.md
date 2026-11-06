@@ -317,9 +317,9 @@ Life counters).
   with Set up match and Log result later under the teams on a phone held upright) and a match
   ("Open on the board", in the draft's pick order when it came from a draft) open their board in one
   tap. A line-up whose board is still untouched (on its opening) reopens that board instead of a
-  duplicate, and a double tap never opens two. Boards also holds Play against the computer and
-  Puzzles (9, 10) above the boards, so with no boards yet it shows those and "New board" rather than
-  jumping to New board.
+  duplicate, and a double tap never opens two. With no boards yet, Boards shows the latest line-up
+  and "New board" rather than jumping to New board. Play against the computer and Puzzles (9, 10)
+  are entries of the Play tab, beside the Board sandbox.
 - **New board without scrolling:** both teams in pick order at the top (until the first pick, the
   latest line-up's card stands in their place, in a slot as tall as either, so the grid never moves
   under the next tap), search with an "Adding to Red | Blue" switch beside it, a grid of the heroes
@@ -374,7 +374,7 @@ Life counters).
   show the hero's portrait ringed in team colour, minions by type, tokens by label. TalkBack: a
   "Pieces" list selects any piece; spaces in view read their Zone, what stands there and how far
   they are from the selected piece.
-- **Entry points:** Play tab (Board), finished draft, a pending or logged match.
+- **Entry points:** Play tab (Board sandbox), finished draft, a pending or logged match.
 - **Done when:** hex distance, movement, Fast Travel, opening and push tests match rulebook cases;
   every bundled map passes validation (spawn counts per p.6, Lanes, Zones, no overlaps); the board,
   new-board and boards screens have light/dark, font scale 2, 384 dp and landscape screenshots (and
@@ -384,7 +384,7 @@ Life counters).
 ### 9. Play against the computer (ADR-035)
 Learn by playing: the real game on the board, with the app running every rule and computer
 opponents (and teammates) at a strength from 1 to 10. One phone, one human team.
-- **New game** (from Boards): a line-up as on New board (alternate picks, "Use a draft or match");
+- **New game** (Play tab → Play vs computer): a line-up as on New board (alternate picks, "Use a draft or match");
   only heroes whose every card the engine implements and tests can be seated, the rest show as
   coming later. Pick the hero(es) you control (one, or your whole team); every other seat is the
   computer at a **strength** from 1 to 10 on a slider (5 the first time, then the strength of the last game started; ADR-039), shown with its band:
@@ -534,13 +534,14 @@ opponents (and teammates) at a strength from 1 to 10. One phone, one human team.
   sheet's content for that moment and a jump to it in the log. Worked out from the save; nothing more is stored. **Done when:** a weak player following the top suggestion
   clearly gains; every sentence of a survey over all 32 heroes is checked against its events and printed values (AI.md "The coach"); same public view, same words (`NoPeekingTest`);
   an end-to-end test and screenshots (light, dark, landscape, 384 dp at font scale 2).
-- **Saved as you play:** a game in progress resumes from Boards after leaving or process death;
+- **Saved as you play:** a game in progress resumes from the Play tab after leaving or process death;
   local only, not synced, not in the backup file. One game at a time: starting another replaces it
   (New game says so). A save that can't be read, or that the engine can no longer rebuild, is
   offered for deletion, never a crash. "End this game" deletes it.
-- **Until heroes are playable** the Boards entry and New game say play is coming; heroes not yet
-  playable show in New game's grid, veiled as "Later". Puzzles show as coming soon until a
-  puzzle's heroes are all playable; then Boards' Puzzles entry says "N of M solved".
+- **While no game can be set up** (the engine can't be built) the Play tab's entry says "Not
+  available in this build"; heroes not yet playable show in New game's grid, veiled as "Later". The
+  Puzzles entry says "N of M solved" over the puzzles whose heroes are all playable, and "Not
+  available in this build" while there are none.
 - **Done when:** the Game state sheet shows nothing the person's live view did not (engine tests:
   facedown and unrevealed cards, enemy hands and tucked items never appear), with screenshots (light/
   dark, 384 dp at font scale 2, landscape, the rewound board); every rule above has a page-referenced
@@ -558,7 +559,7 @@ opponents (and teammates) at a strength from 1 to 10. One phone, one human team.
 ### 10. Puzzles (ADR-035, full rounds ADR-052)
 Fifty difficult puzzles in the style of chess tactics: a position, a goal ("Defeat Brogan this
 turn", "Push the lane before the round ends", "Survive this turn"), one way (or a few) to make it.
-- **List** (from Boards → Puzzles; only puzzles whose heroes are all playable): a Continue card on
+- **List** (Play tab → Puzzles; only puzzles whose heroes are all playable): a Continue card on
   top with the first unsolved one and "N of M solved" (all solved: a seal instead); difficulty filter
   chips, and theme chips for themes two or more puzzles share; then every puzzle by number with
   title, theme, difficulty (three hexes and the word: hard / harder / hardest), heroes, and Solved /

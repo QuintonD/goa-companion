@@ -11,14 +11,12 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.AccountCircle
 import androidx.compose.material.icons.outlined.PersonAdd
+import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material.icons.outlined.SettingsBackupRestore
 import androidx.compose.material.icons.outlined.Share
 import androidx.compose.material.icons.outlined.Sync
-import androidx.compose.material3.Badge
-import androidx.compose.material3.BadgedBox
 import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.PrimaryScrollableTabRow
 import androidx.compose.material3.PrimaryTabRow
@@ -31,8 +29,9 @@ import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
+import dev.quinton.goa.core.designsystem.component.BarAction
+import dev.quinton.goa.core.designsystem.component.BarActions
 import dev.quinton.goa.core.designsystem.component.GoaScreen
-import dev.quinton.goa.core.designsystem.component.SettingsActionButton
 import dev.quinton.goa.core.designsystem.theme.Spacing
 import dev.quinton.goa.feature.players.common.LARGE_FONT_SCALE
 import dev.quinton.goa.feature.players.common.LogMatchFab
@@ -86,34 +85,31 @@ fun PlayersHomeScreen(
         title = "Players",
         modifier = modifier,
         actions = {
-            if (tab == PlayersTab.META) {
-                IconButton(onClick = actions.onShareStats) {
-                    Icon(Icons.Outlined.Share, contentDescription = "Share stats page")
-                }
-            }
-            players.meId?.let { me ->
-                IconButton(onClick = { actions.onOpenPlayer(me) }) {
-                    Icon(Icons.Outlined.AccountCircle, contentDescription = "Your player page")
-                }
-            }
-            IconButton(onClick = actions.onOpenSync) {
-                // A quiet dot when the server sync needs a person (wrong key, versions, refused data).
-                BadgedBox(badge = { if (players.serverNeedsAttention) Badge() }) {
-                    Icon(
-                        Icons.Outlined.Sync,
-                        contentDescription = when {
-                            players.serverNeedsAttention -> "Group sync: the sync server needs attention"
-                            players.serverSyncOn -> "Sync with the sync server"
-                            players.inGroup -> "Sync with the group"
-                            else -> "Group sync"
-                        },
-                    )
-                }
-            }
-            IconButton(onClick = actions.onOpenBackup) {
-                Icon(Icons.Outlined.SettingsBackupRestore, contentDescription = "Backup and restore")
-            }
-            SettingsActionButton(actions.onOpenSettings)
+            // Sync stays in sight (a quiet dot when the server sync needs a person: wrong key, versions,
+            // refused data); the rest are labelled lines in the overflow menu.
+            val sync = BarAction(
+                label = when {
+                    players.serverNeedsAttention -> "Group sync: the sync server needs attention"
+                    players.serverSyncOn -> "Sync with the sync server"
+                    players.inGroup -> "Sync with the group"
+                    else -> "Group sync"
+                },
+                icon = Icons.Outlined.Sync,
+                onClick = actions.onOpenSync,
+                badge = players.serverNeedsAttention,
+            )
+            BarActions(
+                listOfNotNull(
+                    sync,
+                    players.meId?.let { me ->
+                        BarAction("Your player page", Icons.Outlined.AccountCircle, { actions.onOpenPlayer(me) })
+                    },
+                    BarAction("Share stats page", Icons.Outlined.Share, actions.onShareStats)
+                        .takeIf { tab == PlayersTab.META },
+                    BarAction("Backup and restore", Icons.Outlined.SettingsBackupRestore, actions.onOpenBackup),
+                    BarAction("Settings", Icons.Outlined.Settings, actions.onOpenSettings),
+                ),
+            )
         },
         floatingActionButton = {
             // With large text the label would cover a row's numbers: the icon alone (TalkBack hears the label).
