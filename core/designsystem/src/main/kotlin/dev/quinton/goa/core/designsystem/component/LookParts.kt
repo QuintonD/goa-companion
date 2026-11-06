@@ -664,6 +664,8 @@ fun CardTextBox(
     color: PlateColor,
     modifier: Modifier = Modifier,
     cap: String? = null,
+    /** The [cap] is a heading TalkBack can jump to (a box that stands on its own: a nudge). */
+    capHeading: Boolean = false,
     content: @Composable ColumnScope.() -> Unit,
 ) {
     val box = rememberOfficialBitmap(LookArt.textBox(color))
@@ -695,7 +697,11 @@ fun CardTextBox(
                 ),
                 textAlign = TextAlign.Center,
                 maxLines = 1,
-                modifier = Modifier.fillMaxWidth().align(Alignment.TopCenter).padding(top = 1.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .align(Alignment.TopCenter)
+                    .padding(top = 1.dp)
+                    .then(if (capHeading) Modifier.semantics { heading() } else Modifier),
             )
         }
         CompositionLocalProvider(LocalContentColor provides colors.onParchment) {

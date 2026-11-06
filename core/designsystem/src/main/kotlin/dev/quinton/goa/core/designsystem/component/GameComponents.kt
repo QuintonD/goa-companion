@@ -24,7 +24,6 @@ import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material.icons.outlined.StarOutline
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -63,7 +62,6 @@ import dev.quinton.goa.core.designsystem.icon.PlayerCrests
 import dev.quinton.goa.core.designsystem.theme.GoaFonts
 import dev.quinton.goa.core.designsystem.theme.GoaTheme
 import dev.quinton.goa.core.designsystem.theme.Spacing
-import dev.quinton.goa.core.designsystem.theme.playerColor
 import dev.quinton.goa.core.model.catalog.CardColor
 import dev.quinton.goa.core.model.match.Team
 import dev.quinton.goa.core.model.player.Player
@@ -210,24 +208,27 @@ private fun Monogram(letter: String, tint: Color, side: Dp) {
 }
 
 /**
- * Player crest (one of 24, `player.avatarId`) tinted by the player's colour inside a circular
- * frame; initial letter when the crest index is unknown, "?" when [player] is null.
- * Decorative: pair it with the player's name.
+ * Player crest (one of 24, `player.avatarId`): one bronze glyph in a steel-ringed medallion; the
+ * initial when the crest index is unknown, "?" when [player] is null. Team-neutral on purpose: red
+ * and blue belong to the teams (gear and star), so a player's mark never reads as a side; the
+ * crest's shape is the identity. Decorative: pair it with the player's name.
  */
 @Composable
 fun PlayerAvatar(player: Player?, modifier: Modifier = Modifier, size: Dp = 40.dp) {
-    val color = player?.let { playerColor(it.color) } ?: MaterialTheme.colorScheme.onSurfaceVariant
+    val colors = GoaTheme.colors
+    val color = if (player == null) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.primary
+    val face = MaterialTheme.colorScheme.surfaceVariant
     val crest = player?.let { PlayerCrests.drawableFor(it.avatarId) }
     Box(
         modifier
             .size(size)
             .clip(CircleShape)
-            .background(
-                Brush.radialGradient(
-                    listOf(color.copy(alpha = 0.26f), color.copy(alpha = 0.08f)),
-                ),
+            .background(Brush.verticalGradient(listOf(face, colors.medallion)))
+            .border(
+                if (size >= 40.dp) 2.dp else 1.5.dp,
+                Brush.verticalGradient(listOf(colors.bannerHighlight, AVATAR_STEEL_LOW)),
+                CircleShape,
             )
-            .border(if (size >= 40.dp) 2.dp else 1.5.dp, color, CircleShape)
             .clearAndSetSemantics {},
         contentAlignment = Alignment.Center,
     ) {
@@ -250,6 +251,9 @@ fun PlayerAvatar(player: Player?, modifier: Modifier = Modifier, size: Dp = 40.d
         }
     }
 }
+
+/** The lower, shaded side of the avatar's steel ring (the top catches the banner's highlight). */
+private val AVATAR_STEEL_LOW = Color(0xFF55636F)
 
 /** Team identity is never colour-only: ◆ Red / ● Blue (docs/DESIGN.md). */
 @Composable
@@ -384,10 +388,10 @@ fun ComplexityStars(
     }
 }
 
-/** Top-bar action that opens Settings; place on every top-level screen. */
+/** Top-bar action that opens Settings (labelled, with a tooltip). Settings is on More; few screens need this. */
 @Composable
 fun SettingsActionButton(onClick: () -> Unit) {
-    IconButton(onClick = onClick) {
+    BarIconButton(label = "Settings", onClick = onClick) {
         Icon(Icons.Outlined.Settings, contentDescription = "Settings")
     }
 }

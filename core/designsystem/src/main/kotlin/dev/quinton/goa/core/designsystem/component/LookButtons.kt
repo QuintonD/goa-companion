@@ -32,8 +32,8 @@ import dev.quinton.goa.core.designsystem.theme.GoaTheme
 private val METAL_SHAPE = RoundedCornerShape(7.dp)
 
 /**
- * A metal face for a button: bronze for the main action, steel otherwise. Its top edge catches the light. Disabled,
- * a flat, unlit slate ([off]) with a visible edge: the same shape, clearly off, never a faded bronze that reads as live.
+ * A metal face for a button: bronze for the main action, steel otherwise. Its top edge catches the light.
+ * Disabled, a flat, unlit slate ([off]) with a visible edge: the same shape, clearly off, never a faded bronze.
  */
 private fun Modifier.metalFace(bronze: Boolean, off: DisabledFace?): Modifier = drawWithCache {
     val fill = when {
@@ -79,7 +79,13 @@ fun MetalButton(
     contentPadding: PaddingValues = ButtonDefaults.ContentPadding,
     content: @Composable RowScope.() -> Unit,
 ) {
-    val off = if (enabled) null else if (GoaTheme.isDark) DisabledFace.Dark else DisabledFace.Light
+    val off = if (enabled) {
+        null
+    } else if (GoaTheme.isDark) {
+        DisabledFace.Dark
+    } else {
+        DisabledFace.Light
+    }
     Button(
         onClick = onClick,
         enabled = enabled,

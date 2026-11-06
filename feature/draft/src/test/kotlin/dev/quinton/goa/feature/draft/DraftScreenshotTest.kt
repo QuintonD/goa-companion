@@ -28,7 +28,6 @@ import dev.quinton.goa.core.domain.teams.SeatLayouts
 import dev.quinton.goa.core.model.match.Team
 import dev.quinton.goa.core.model.settings.ThemeMode
 import dev.quinton.goa.core.testing.BundledAssetImages
-import dev.quinton.goa.core.testing.TestCatalog
 import dev.quinton.goa.core.testing.bundledHero
 import dev.quinton.goa.feature.draft.board.BoardActions
 import dev.quinton.goa.feature.draft.board.BoardLocal
@@ -52,8 +51,10 @@ import dev.quinton.goa.feature.draft.setup.previewSetupState
 import dev.quinton.goa.feature.draft.ui.HeroInfo
 import dev.quinton.goa.feature.draft.ui.HeroPeekSheet
 import dev.quinton.goa.feature.draft.ui.HeroTile
+import dev.quinton.goa.feature.draft.ui.PeekCommit
 import dev.quinton.goa.feature.draft.ui.PreviewData
 import dev.quinton.goa.feature.draft.ui.TileState
+import dev.quinton.goa.feature.draft.ui.teamLabel
 import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
@@ -69,7 +70,9 @@ import org.robolectric.annotation.GraphicsMode
 class DraftScreenshotTest {
     @get:Rule val compose = createComposeRule()
 
-    private val heroes = TestCatalog.heroes.associate { it.id to HeroInfo.of(it) }
+    /** Twelve real heroes from the bundled catalog, so the board shows portraits and real names. */
+    private val catalogHeroes = REAL_HEROES.map(::bundledHero)
+    private val heroes = catalogHeroes.associate { it.id to HeroInfo.of(it) }
     private val players = PreviewData.players.associateBy { it.id }
 
     @Before fun images() = BundledAssetImages.install(ApplicationProvider.getApplicationContext())
@@ -85,8 +88,12 @@ class DraftScreenshotTest {
     private fun capturePeek(theme: ThemeMode = ThemeMode.DARK, fontScale: Float = 1f, id: String = "arien") {
         if (fontScale != 1f) RuntimeEnvironment.setFontScale(fontScale)
         val hero = HeroInfo.of(bundledHero(id))
+        // As on the board, mid-draft: the step's own commitment ends the peek.
+        val commit = PeekCommit(Team.RED, "Pick ${hero.name} for ${teamLabel(Team.RED)}…") {}
         compose.setContent {
-            GoaTheme(themeMode = theme) { HeroPeekSheet(hero, onDismiss = {}, onOpenHero = {}, onOpenSpellbook = {}) }
+            GoaTheme(themeMode = theme) {
+                HeroPeekSheet(hero, onDismiss = {}, onOpenHero = {}, onOpenSpellbook = {}, commit = commit)
+            }
         }
         compose.waitUntil(IMAGE_TIMEOUT_MS) { BundledAssetImages.idle }
         compose.waitForIdle()
@@ -112,7 +119,7 @@ class DraftScreenshotTest {
                 method,
                 seats,
                 Team.BLUE,
-                TestCatalog.heroes.map {
+                catalogHeroes.map {
                     it.id
                 },
                 seed = 9L,
@@ -195,7 +202,7 @@ class DraftScreenshotTest {
         val seats = SeatLayouts.build(ids.take(2), ids.drop(2).take(2), OddSeatMode.HANDICAP).getOrThrow()
         val single = bundledMethods.methods.first { it.id == "single-draft" }
         val s = DraftEngine.start(
-            DraftSetup("d", 0L, single, seats, Team.RED, TestCatalog.heroes.map { it.id }, seed = 9L),
+            DraftSetup("d", 0L, single, seats, Team.RED, catalogHeroes.map { it.id }, seed = 9L),
         ).getOrThrow()
         DraftBoardScreen(board(s, BoardLocal()), BoardActions.None)
     }
@@ -228,13 +235,13 @@ class DraftScreenshotTest {
         val ids = PreviewData.players.map { it.id }
         var s = PlayerDraftSession.start(
             "p", 0, allPick, ids, ids[0], ids[1], Team.RED,
-            TestCatalog.heroes.map {
+            catalogHeroes.map {
                 it.id
             },
             1,
         ).getOrThrow()
         ids.forEachIndexed { i, id ->
-            s = s.copy(selection = HeroSelections.choose(s.selection, id, TestCatalog.heroes[i].id).getOrThrow())
+            s = s.copy(selection = HeroSelections.choose(s.selection, id, catalogHeroes[i].id).getOrThrow())
         }
         s = s.copy(captains = PlayerDraft.pick(s.captains, ids[2]).getOrThrow())
         DraftBoardScreen(
@@ -252,11 +259,13 @@ class DraftScreenshotTest {
     private fun methods(): MethodsUiState {
         val layout = PreviewLayout.OPTIONS.first()
         val m = PreviewData.pattern
+        val custom = m.copy(id = "c", name = "Blind pairs")
         return MethodsUiState(
             loading = false,
             layout = layout,
-            builtIn = listOf(MethodRow(m, previewOf(m, layout), isDefault = true)),
-            custom = listOf(MethodRow(m.copy(id = "c", name = "Blind pairs"), previewOf(m, layout), isDefault = false)),
+            builtIn = listOf(MethodRow(m, previewOf(m, layout, Team.BLUE), isDefault = true)),
+            custom = listOf(MethodRow(custom, previewOf(custom, layout, Team.BLUE), isDefault = false)),
+            selectedId = m.id,
         )
     }
 
@@ -295,3 +304,18 @@ class DraftScreenshotTest {
 }
 
 private const val IMAGE_TIMEOUT_MS = 10_000L
+
+private val REAL_HEROES = listOf(
+    "arien",
+    "brogan",
+    "sabina",
+    "wasp",
+    "xargatha",
+    "gydion",
+    "tigerclaw",
+    "silverarrow",
+    "dodger",
+    "rowenna",
+    "bain",
+    "cutter",
+)

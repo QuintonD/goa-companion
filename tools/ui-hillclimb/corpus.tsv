@@ -1,0 +1,73 @@
+# id	screenshot (after "dev.quinton.goa.")	caption
+# Order = how a player meets them. Captions say where the screen sits in a flow.
+nav-bottom	BottomBarScreenshotTest.bottomBarDark	App shell: the bottom navigation bar (Heroes, Play, Timer, Players, More).
+cat-grid	feature.catalog.OfficialLookScreenshotTest.gridDark	Heroes tab (app start): the hero catalog grid with search, filters and sort.
+cat-grid-light	feature.catalog.OfficialLookScreenshotTest.gridLight	Heroes tab in the light theme.
+cat-filter	feature.catalog.CatalogScreenshotTest.filterSheetDark	Heroes → Filters: the filter sheet.
+cat-search	feature.catalog.CatalogScreenshotTest.searchByCardNameDark	Heroes: searching by a card's name finds heroes and cards.
+cat-hero	feature.catalog.OfficialLookScreenshotTest.pageArienDark	Heroes → a hero: the hero page (art, stats, roles, abilities, deck).
+cat-deck	feature.catalog.OfficialDeckScreenshotTest.deckDark	Hero page → deck: the hero's cards by colour and tier.
+cat-card	feature.catalog.OfficialDeckScreenshotTest.cardViewerDark	Deck → a card: the card viewer.
+play-home	feature.board.BoardScreenshotTest.playHomeDark	Play tab: entry to Board, Online and Card trivia.
+board-list	feature.board.BoardScreenshotTest.boardsDark	Play → Board: saved boards, play vs computer, puzzles.
+board-new	feature.board.BoardScreenshotTest.newBoardDark	Board → New: pick map and line-up for a sandbox board.
+board-open	feature.board.BoardScreenshotTest.boardOpeningDark	Board sandbox: the opening position of a line-up on the painted map.
+board-overlay	feature.board.BoardScreenshotTest.boardHeroOverlaysDark	Board sandbox: a hero selected, movement/range overlays shown.
+game-lineup	feature.board.play.PlayScreenshotTest.newGameLineupDark	New game vs computer: pick the line-up.
+game-options	feature.board.play.PlayScreenshotTest.newGameOptionsDark	New game vs computer: strength, coach and options.
+game-card	feature.board.play.PlayScreenshotTest.tableChooseCardDark	Game table: choose a card from your hand to play this turn.
+game-action	feature.board.play.PlayScreenshotTest.tableChooseActionDark	Game table: choose the action for the revealed card.
+game-space	feature.board.play.PlayScreenshotTest.tableChooseSpaceDark	Game table: choose a space on the map (lit spaces are the options).
+game-defend	feature.board.play.PlayScreenshotTest.tableDefendDark	Game table: you are attacked and choose how to defend.
+game-coach	feature.board.play.PlayScreenshotTest.tableCoachNudgeDark	Game table: the optional Coach nudges the player.
+game-sheet	feature.board.play.PlayScreenshotTest.tableHeroSheetDark	Game table → a hero: the hero sheet (dashboard with played cards, items).
+game-log	feature.board.play.PlayScreenshotTest.tableLogSheetDark	Game table → log: what happened, newest first.
+game-battle	feature.board.play.EndOfRoundScreenshotTest.minionBattleDark	End of round: the minion battle step.
+game-over	feature.board.play.PlayScreenshotTest.gameOverDark	Game over screen.
+game-land	feature.board.play.PlayScreenshotTest.tableChooseActionLandscapeShortDark	Game table in landscape on a short screen.
+puz-list	feature.board.play.puzzles.PuzzleScreenshotTest.puzzleListDark	Play → Puzzles: the puzzle list with progress.
+puz-start	feature.board.play.puzzles.PuzzleScreenshotTest.puzzleStartDark	A puzzle's start: goal, what you know, the position.
+puz-hint	feature.board.play.puzzles.PuzzleScreenshotTest.puzzleNudgeHintDark	A puzzle with a nudge/hint shown.
+puz-solved	feature.board.play.puzzles.PuzzleScreenshotTest.puzzleSolvedDark	A puzzle solved: the explanation.
+puz-light	feature.board.play.puzzles.PuzzleScreenshotTest.puzzleStartLight	A puzzle's start in the light theme.
+online-home	feature.board.online.OnlineScreenshotTest.onlineHomeDark	Play → Online: create/join a room, leaderboards.
+online-lobby	feature.board.online.OnlineScreenshotTest.onlineLobbyDark	Online room lobby: players join, pick heroes.
+online-board	feature.board.online.OnlineScreenshotTest.onlineLeaderboardPlayersDark	Online public leaderboard (players).
+timer-start	feature.timer.TimerScreenshotTest.startDark	Timer tab: start a timed game.
+timer-setup	feature.timer.TimerScreenshotTest.setupDark	Timer: match setup (teams, seats, preset).
+timer-presets	feature.timer.TimerScreenshotTest.presetsDark	Timer: presets of phase durations.
+timer-turn	feature.timer.TimerScreenshotTest.turnDark	Timer running: a turn's card-play phase (glanced at from across the table).
+timer-hurry	feature.timer.TimerScreenshotTest.resolveHurryUpDark	Timer running: resolution phase with "hurry up".
+timer-light	feature.timer.TimerScreenshotTest.turnLight	Timer running, light theme setting (timer stays dark by design).
+timer-land	feature.timer.TimerScreenshotTest.resolveHurryUpLandscapeDark	Timer running in landscape (phone propped on the table).
+timer-summary	feature.timer.TimerScreenshotTest.summaryDark	Timer: game finished summary, links to the match record.
+draft-methods	feature.draft.DraftScreenshotTest.methodsDark	Draft: choose a pick/ban method.
+draft-teams	feature.draft.DraftScreenshotTest.setupTeamsDark	Draft setup: teams and players.
+draft-mid	feature.draft.DraftScreenshotTest.boardMidDark	Draft in progress: pool, picks and bans, whose turn.
+draft-peek	feature.draft.DraftScreenshotTest.heroPeekDark	Draft: peeking at a hero before picking.
+draft-done	feature.draft.DraftScreenshotTest.boardCompleteDark	Draft finished: the teams.
+pl-board	feature.players.PlayersScreenshotTest.leaderboardDark	Players tab: Elo leaderboard of the group.
+pl-log	feature.players.PlayersScreenshotTest.matchLogDark	Players: the match log.
+pl-detail	feature.players.PlayersScreenshotTest.playerDetailDark	Players → a player: rating history and heroes.
+pl-meta	feature.players.PlayersScreenshotTest.metaDark	Players: meta stats per hero.
+pl-won	feature.players.PlayersScreenshotTest.whoWonDark	Recording a match: who won?
+pl-edit	feature.players.PlayersScreenshotTest.matchEditDark	Recording/editing a match.
+pl-saved	feature.players.PlayersScreenshotTest.resultSavedDark	Match saved: rating changes.
+rules-list	feature.rules.RulesScreenshotTest.rulesListDark	More → Rules: the rules reference topics.
+rules-topic	feature.rules.RulesScreenshotTest.topicDark	Rules: a topic with verbatim rulebook passages.
+rules-push	feature.rules.RulesScreenshotTest.topicPushingLight	Rules: Pushing the Lane with diagrams (light).
+rules-ladder	feature.rules.RulesScreenshotTest.ladderDark	Rules: level and defeat ladder.
+sync-none	feature.sync.SyncScreenshotTest.groupNoGroupDark	More → Group sync: not in a group yet.
+sync-group	feature.sync.SyncScreenshotTest.groupJoinedDark	Group sync: your group and its members.
+sync-host	feature.sync.SyncScreenshotTest.sessionHostingDark	Group sync: hosting a phone-to-phone sync at the table.
+triv-home	feature.trivia.TriviaScreenshotTest.homeDark	Card trivia home: practice/challenge, mastery.
+triv-quiz	feature.trivia.TriviaScreenshotTest.quizChoicesDark	Trivia question with choices.
+triv-wrong	feature.trivia.TriviaScreenshotTest.quizAnsweredWrongDark	Trivia: answered wrong, the right answer shown.
+triv-board	feature.trivia.TriviaLeaderboardScreenshotTest.leaderboardChallengeDark	Trivia challenge leaderboard.
+more	feature.settings.SettingsScreenshotTest.moreDark	More tab: Draft, Rules, Group sync, Backup, Settings, About.
+settings	feature.settings.SettingsScreenshotTest.settingsDark	More → Settings.
+about	feature.settings.SettingsScreenshotTest.aboutDark	Settings → About.
+a11y-grid	feature.catalog.OfficialLookScreenshotTest.gridFontScale2	Accessibility: heroes grid at 200% font scale.
+a11y-timer	feature.timer.TimerScreenshotTest.turnFontScale2	Accessibility: running timer at 200% font scale.
+a11y-board	feature.players.PlayersScreenshotTest.leaderboardFontScale2	Accessibility: leaderboard at 200% font scale.
+a11y-game	feature.board.BoardScreenshotTest.boardHeroOverlaysW384DarkFontScale2	Accessibility: board sandbox, narrow phone, 200% font scale.

@@ -206,6 +206,7 @@ internal fun smallBoxText(): TextStyle = MaterialTheme.typography.bodyMedium.cop
 
 /**
  * A [CardTextBox] whose tab is a heading (TalkBack can jump to it), for a box that stands on its own: a nudge.
+ * The word sits on the box's own coloured tab, as ATTACK or COACH do, never on its rim.
  */
 @Composable
 internal fun HeadedTextBox(
@@ -214,23 +215,7 @@ internal fun HeadedTextBox(
     modifier: Modifier = Modifier,
     content: @Composable ColumnScope.() -> Unit,
 ) {
-    Box(modifier) {
-        CardTextBox(color, Modifier.fillMaxWidth(), content = content)
-        Text(
-            heading,
-            style = GoaTextStyles.plateCap.copy(
-                color = Color.White,
-                shadow = Shadow(Color(0xB0000000), Offset(0f, 1f), 2f),
-            ),
-            textAlign = TextAlign.Center,
-            maxLines = 1,
-            modifier = Modifier
-                .fillMaxWidth()
-                .align(Alignment.TopCenter)
-                .padding(top = 1.dp)
-                .semantics { heading() },
-        )
-    }
+    CardTextBox(color, modifier, cap = heading, capHeading = true, content = content)
 }
 
 /** The team's mark on the dark badge the mock-ups put at a portrait's foot: team is never colour alone. */

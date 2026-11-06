@@ -94,7 +94,7 @@ internal fun HeroGridTile(
                 .tilePlate(art)
                 .clip(TileShape)
                 .clickable(onClick = onClick)
-                .padding(start = 3.dp, end = 3.dp, top = 3.dp, bottom = Spacing.sm),
+                .padding(start = 3.dp, end = 3.dp, top = 3.dp, bottom = 6.dp),
         ) {
             SharedTitlePlate(art.titlePlate, SmallPlate, Modifier.fillMaxWidth().zIndex(1f)) {
                 // Unseen, at the full size: a shrunk name leaves its plate, and so its tile, the height of the others.
@@ -171,7 +171,7 @@ private fun TileText(item: HeroListItem, sort: CatalogSort, footnotes: TileFootn
     val hero = item.hero
     // Larger text wraps: every tile keeps the extra lines, so the plates of a row match.
     val lines = tileLines(LocalDensity.current.fontScale)
-    Column(Modifier.padding(start = 4.dp, top = 3.dp)) {
+    Column(Modifier.padding(start = 6.dp, end = 4.dp, top = 3.dp)) {
         Text(
             hero.title,
             style = TILE_TITLE,
@@ -190,18 +190,17 @@ private fun TileText(item: HeroListItem, sort: CatalogSort, footnotes: TileFootn
             ComplexityStars(hero.complexity, starSize = 10.dp)
             if (item.rangedLabel != null) ActionIcon(LookAction.RANGE, size = RANGED_ICON)
         }
-        // Two roles fit a tile, as on the mock-up; the hero page and TalkBack have them all.
-        val traits = hero.roles.take(TILE_ROLES).joinToString(" · ") { it.label }
-        if (traits.isNotEmpty()) {
-            Text(
-                traits,
-                style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.5.sp, letterSpacing = 0.sp),
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                minLines = lines,
-                maxLines = lines,
-                overflow = TextOverflow.Ellipsis,
-            )
-        }
+        // Two roles, one a line at a readable size (the hero page and TalkBack have them all). Every tile keeps
+        // both lines, so the tiles of a row stay one height.
+        val traits = hero.roles.take(TILE_ROLES).joinToString("\n") { it.label }
+        Text(
+            traits,
+            style = TILE_ROLE,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            minLines = TILE_ROLES,
+            maxLines = TILE_ROLES,
+            overflow = TextOverflow.Ellipsis,
+        )
         TileFootnotes(item, sort, footnotes)
     }
 }
@@ -236,7 +235,7 @@ private fun TileFootnotes(item: HeroListItem, sort: CatalogSort, room: TileFootn
         if (room.hint) {
             Text(
                 "",
-                style = MaterialTheme.typography.labelSmall,
+                style = MaterialTheme.typography.bodyMedium,
                 minLines = HINT_LINES,
                 modifier = Modifier.padding(top = Spacing.xs),
             )
@@ -252,7 +251,7 @@ private fun TileFootnotes(item: HeroListItem, sort: CatalogSort, room: TileFootn
             Spacer(Modifier.width(4.dp))
             Text(
                 hint,
-                style = MaterialTheme.typography.labelSmall,
+                style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 minLines = if (room.hint) HINT_LINES else 1,
                 maxLines = HINT_LINES,
@@ -331,7 +330,7 @@ internal fun HeroListRow(
                 if (traits.isNotEmpty()) {
                     Text(
                         traits,
-                        style = MaterialTheme.typography.labelSmall,
+                        style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
@@ -348,8 +347,8 @@ internal fun HeroListRow(
     }
 }
 
-/** Width / height of the portrait on a tile: the art's own proportions, nearly uncropped. */
-private const val PORTRAIT_RATIO = 1.09f
+/** Width / height of the portrait on a tile: near the art's own 1.09, a little cropped so three rows fit a phone. */
+private const val PORTRAIT_RATIO = 1.14f
 
 /** Lines a tile keeps for its title and roles: they wrap at 1.15 (three columns) and from 1.8 (two columns). */
 private fun tileLines(fontScale: Float): Int = if (fontScale in 1.1f..1.2f || fontScale > 1.6f) 2 else 1
@@ -357,7 +356,7 @@ private fun tileLines(fontScale: Float): Int = if (fontScale in 1.1f..1.2f || fo
 private const val TILE_ROLES = 2
 private const val HINT_LINES = 2
 private val NO_ROOM = TileFootnoteRoom(metric = false, hint = false)
-private val STARS_LINE = 22.dp
+private val STARS_LINE = 18.dp
 private val RANGED_ICON = 16.dp
 
 private val PORTRAIT_SHAPE = RoundedCornerShape(2.dp)
@@ -370,6 +369,8 @@ private val SYMBOL_CENTER_X = 16.dp
 private val SYMBOL_CENTER_Y = 20.dp
 private val SYMBOL_SHADE_RADIUS = 24.dp
 private val SYMBOL_SHADE = Color(0x8C000000)
+private val TILE_ROLE @Composable get() =
+    MaterialTheme.typography.bodyMedium.copy(lineHeight = 17.sp, letterSpacing = 0.sp)
 private val TILE_NAME = GoaTextStyles.plateTitle.copy(fontSize = 13.sp, lineHeight = 16.sp, letterSpacing = 0.sp)
 
 /** In dp: at a large font scale a long name still has to fit its plate. */

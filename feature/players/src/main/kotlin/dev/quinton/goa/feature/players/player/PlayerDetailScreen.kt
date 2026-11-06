@@ -34,22 +34,21 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import dev.quinton.goa.core.designsystem.component.EmptyState
 import dev.quinton.goa.core.designsystem.component.GoaScreen
 import dev.quinton.goa.core.designsystem.component.HeroPortrait
 import dev.quinton.goa.core.designsystem.component.PlayerAvatar
-import dev.quinton.goa.core.designsystem.component.TitlePlate
-import dev.quinton.goa.core.designsystem.theme.GoaTextStyles
 import dev.quinton.goa.core.designsystem.theme.Spacing
 import dev.quinton.goa.feature.players.common.EngravedCard
+import dev.quinton.goa.feature.players.common.HeaderFigure
 import dev.quinton.goa.feature.players.common.LoadingState
 import dev.quinton.goa.feature.players.common.Pill
 import dev.quinton.goa.feature.players.common.ProvisionalPill
 import dev.quinton.goa.feature.players.common.SectionHeader
 import dev.quinton.goa.feature.players.common.StatRow
+import dev.quinton.goa.feature.players.common.figureStyle
 import dev.quinton.goa.feature.players.common.formatPercent
 import dev.quinton.goa.feature.players.common.formatRating
 import dev.quinton.goa.feature.players.common.spokenRecord
@@ -209,7 +208,14 @@ private fun Header(state: PlayerDetailUiState) {
         PlayerAvatar(player, size = 72.dp)
         Spacer(Modifier.width(Spacing.lg))
         Column(Modifier.weight(1f)) {
-            TitlePlate(player.name, heading = false)
+            // Plain text, not a title plate: the plate's end cap sat over short names ("ANN").
+            Text(
+                player.name,
+                style = MaterialTheme.typography.headlineSmall,
+                color = MaterialTheme.colorScheme.onSurface,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
+            )
             Spacer(Modifier.height(Spacing.xs))
             FlowRow(
                 horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
@@ -230,9 +236,8 @@ private fun Header(state: PlayerDetailUiState) {
         Column(horizontalAlignment = Alignment.End) {
             Text(
                 if (rating.games > 0) formatRating(rating.value) else "—",
-                style = GoaTextStyles.scoreLarge,
+                style = figureStyle(HeaderFigure),
                 color = MaterialTheme.colorScheme.primary,
-                fontWeight = FontWeight.SemiBold,
             )
             Text(
                 "Elo",

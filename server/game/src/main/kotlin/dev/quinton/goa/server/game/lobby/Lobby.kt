@@ -208,11 +208,14 @@ class Lobby(
         val summaries = store.gameSummaries(rooms.gamesOf(accountId))
         val names = store.names(summaries.flatMap { game -> game.seats.map { it.accountId } })
         return summaries.map { game ->
+            val now = rooms.statusOf(game.gameId)
             MyGame(
                 gameId = game.gameId,
                 roomCode = game.roomCode,
                 mapId = game.mapId,
                 seats = game.seats.map { SeatPlayer(it.heroId, it.accountId, names[it.accountId].orEmpty(), it.team) },
+                asked = now?.asked.orEmpty(),
+                over = now?.over ?: false,
             )
         }
     }

@@ -66,7 +66,10 @@ class AccessibilityChecksTest {
         rule.tap(hasText("Meta") and hasClickAction())
         check("Meta")
 
-        rule.tapDescription("Settings")
+        rule.openTab("more")
+        rule.waitForText("Group sync")
+        check("More")
+        rule.tapText("Settings")
         rule.waitForText("Theme")
         check("Settings")
 

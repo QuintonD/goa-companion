@@ -23,6 +23,59 @@ object SyncText {
         PeerStage.FAILED -> peerFailure(peer)
     }
 
+    /**
+     * The phones that Sync takes, while the host waits: those ready and those still sending their data
+     * (Sync waits for their uploads). Failed phones are left out.
+     */
+    fun syncing(peers: List<PeerProgress>): List<PeerProgress> =
+        peers.filter {
+            it.stage == PeerStage.READY || it.stage == PeerStage.VERIFYING || it.stage == PeerStage.RECEIVING
+        }
+
+    /** "1 ready · 1 sending its data · 1 needs a new invite": every waiting phone counted by state. */
+    fun hostWaiting(peers: List<PeerProgress>): String {
+        val ready = peers.count { it.stage == PeerStage.READY }
+        val sending = peers.count { it.stage == PeerStage.VERIFYING || it.stage == PeerStage.RECEIVING }
+        val failed = peers.filter { it.stage == PeerStage.FAILED }
+        val invite = failed.count { it.failure == SyncFailure.WRONG_KEY }
+        val dropped = failed.size - invite
+        return listOfNotNull(
+            "$ready ready".takeIf { ready > 0 || peers.isEmpty() },
+            "$sending sending ${if (sending == 1) "its" else "their"} data".takeIf { sending > 0 },
+            "$invite ${if (invite == 1) "needs" else "need"} a new invite".takeIf { invite > 0 },
+            "$dropped dropped out".takeIf { dropped > 0 },
+        ).joinToString(" · ")
+    }
+
+    /** What tapping Sync does with these phones, in a line; null when no phone is in. */
+    fun hostWaitingHint(peers: List<PeerProgress>): String? {
+        val sending = peers.filter { it.stage == PeerStage.VERIFYING || it.stage == PeerStage.RECEIVING }
+        val out = peers.filter { it.stage == PeerStage.FAILED }
+        if (syncing(peers).isEmpty()) return null
+        return listOfNotNull(
+            "Sync waits for ${names(sending)}'s data.".takeIf { sending.isNotEmpty() },
+            "${names(out)} ${if (out.size == 1) "isn't" else "aren't"} included.".takeIf { out.isNotEmpty() },
+        ).joinToString(" ").ifEmpty { null }
+    }
+
+    /** The host's button: "Sync with Bob and Cid", "Sync 4 phones", or "Sync" before anyone is in. */
+    fun syncLabel(peers: List<PeerProgress>): String {
+        val taken = syncing(peers)
+        return when {
+            taken.isEmpty() -> "Sync"
+            taken.size <= NAMED_PHONES -> "Sync with ${names(taken)}"
+            else -> "Sync ${taken.size} phones"
+        }
+    }
+
+    private fun names(peers: List<PeerProgress>): String {
+        val all = peers.map { it.name }
+        return if (all.size <= 1) all.joinToString() else all.dropLast(1).joinToString(", ") + " and " + all.last()
+    }
+
+    /** Up to this many phones, the Sync button names them. */
+    private const val NAMED_PHONES = 2
+
     /** A joined phone's failure, as the host should read it (its data may or may not be in). */
     fun peerFailure(peer: PeerProgress): String = when (peer.failure) {
         SyncFailure.WRONG_KEY -> "Not in this group (or an old invite). Scan the invite again."

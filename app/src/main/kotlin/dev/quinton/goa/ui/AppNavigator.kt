@@ -12,6 +12,7 @@ import androidx.navigation3.runtime.NavKey
 import androidx.navigation3.runtime.rememberNavBackStack
 import dev.quinton.goa.core.navigation.CatalogRoute
 import dev.quinton.goa.core.navigation.DraftRoute
+import dev.quinton.goa.core.navigation.MoreRoute
 import dev.quinton.goa.core.navigation.Navigator
 import dev.quinton.goa.core.navigation.PlayHomeRoute
 import dev.quinton.goa.core.navigation.PlayersRoute
@@ -23,7 +24,8 @@ data class ShellMessage(val id: Long, val text: String, val actionLabel: String?
 
 /**
  * One back stack per tab (each keeps its screens and their state while another tab is shown);
- * back on a non-home tab root returns to the Heroes tab.
+ * back on a non-home tab root returns to the Heroes tab. The Draft has a stack but no bottom-bar item
+ * ([TopLevelTab.DRAFT]): back on its root returns to the tab it was opened from.
  */
 class AppNavigator(
     private val stacks: Map<TopLevelTab, NavBackStack<NavKey>>,
@@ -36,6 +38,9 @@ class AppNavigator(
     val currentStack: NavBackStack<NavKey> get() = stacks.getValue(currentTab)
 
     fun stack(tab: TopLevelTab): NavBackStack<NavKey> = stacks.getValue(tab)
+
+    /** Where back on the Draft's root goes: the tab the Draft was opened from. */
+    private var draftReturn = TopLevelTab.MORE
 
     /** Messages waiting to be shown, oldest first. */
     val messages = mutableStateListOf<ShellMessage>()
@@ -73,6 +78,7 @@ class AppNavigator(
         val stack = currentStack
         when {
             stack.size > 1 -> stack.removeAt(stack.lastIndex)
+            currentTab == TopLevelTab.DRAFT -> switchTo(draftReturn)
             currentTab != TopLevelTab.CATALOG -> switchTo(TopLevelTab.CATALOG)
         }
     }
@@ -91,6 +97,7 @@ class AppNavigator(
     }
 
     private fun switchTo(tab: TopLevelTab) {
+        if (tab == TopLevelTab.DRAFT && currentTab != TopLevelTab.DRAFT) draftReturn = currentTab
         currentTab = tab
         onTabChanged(tab)
     }
@@ -103,15 +110,17 @@ fun rememberAppNavigator(): AppNavigator {
     val draft = rememberNavBackStack(DraftRoute)
     val play = rememberNavBackStack(PlayHomeRoute)
     val players = rememberNavBackStack(PlayersRoute)
+    val more = rememberNavBackStack(MoreRoute)
     var savedTab by rememberSaveable { mutableStateOf(TopLevelTab.CATALOG) }
-    return remember(catalog, timer, draft, play, players) {
+    return remember(catalog, timer, draft, play, players, more) {
         AppNavigator(
             stacks = mapOf(
                 TopLevelTab.CATALOG to catalog,
-                TopLevelTab.TIMER to timer,
-                TopLevelTab.DRAFT to draft,
                 TopLevelTab.PLAY to play,
+                TopLevelTab.TIMER to timer,
                 TopLevelTab.PLAYERS to players,
+                TopLevelTab.MORE to more,
+                TopLevelTab.DRAFT to draft,
             ),
             initialTab = savedTab,
             onTabChanged = { savedTab = it },

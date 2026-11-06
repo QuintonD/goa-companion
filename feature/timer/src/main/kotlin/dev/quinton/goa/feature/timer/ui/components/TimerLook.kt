@@ -15,6 +15,7 @@ import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.ColorMatrix
 import androidx.compose.ui.graphics.FilterQuality
 import androidx.compose.ui.graphics.Shape
+import androidx.compose.ui.graphics.drawOutline
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntOffset
@@ -124,6 +125,7 @@ private val FIELD_BRIGHTEN = ColorFilter.colorMatrix(
     ColorMatrix().apply { setToScale(FIELD_LIFT, FIELD_LIFT, FIELD_LIFT, 1f) },
 )
 
-/** Plates are dark in both themes: an accent on one's edge, picked outside it, is the dark theme's. */
+/** Teal on a plate's edge: next and ready (DESIGN.md); a picked plate is `GoaPlate(selected =)`, bronze. */
 internal val PlateTeal = Color(0xFF3FC1B0)
+
 internal val PlateError = Color(0xFFFF6B6B)

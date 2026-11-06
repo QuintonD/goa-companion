@@ -39,7 +39,6 @@ import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.RadioButton
 import androidx.compose.material3.SegmentedButton
 import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.SingleChoiceSegmentedButtonRow
@@ -80,6 +79,7 @@ import dev.quinton.goa.core.designsystem.component.SectionHeader
 import dev.quinton.goa.core.designsystem.component.SectionHeaderPaddingTight
 import dev.quinton.goa.core.designsystem.component.TeamMark
 import dev.quinton.goa.core.designsystem.component.UnverifiedBadge
+import dev.quinton.goa.core.designsystem.component.scaledIconSize
 import dev.quinton.goa.core.designsystem.component.teamColor
 import dev.quinton.goa.core.designsystem.theme.GoaTextStyles
 import dev.quinton.goa.core.designsystem.theme.GoaTheme
@@ -93,6 +93,7 @@ import dev.quinton.goa.feature.board.board.SearchField
 import dev.quinton.goa.feature.board.list.LineupHeroes
 import dev.quinton.goa.feature.board.map.PreloadMapPainting
 import dev.quinton.goa.feature.board.play.PlayText
+import dev.quinton.goa.feature.board.play.puzzles.PuzzleText
 import dev.quinton.goa.feature.board.play.table.SpellbookChip
 import dev.quinton.goa.feature.board.play.table.SpellbookSheet
 import dev.quinton.goa.feature.board.play.table.TieBreakerMark
@@ -345,14 +346,17 @@ private fun OptionsStep(
                 .weight(1f)
                 .verticalScroll(rememberScrollState())
                 .padding(horizontal = Spacing.screen, vertical = Spacing.md),
-            verticalArrangement = Arrangement.spacedBy(Spacing.lg),
+            verticalArrangement = Arrangement.spacedBy(Spacing.md),
         ) {
             PlateSurface(
                 onClick = { onAction(NewGameAction.Step(NewGameStep.LINEUP)) },
                 brackets = true,
                 modifier = Modifier.fillMaxWidth().semantics { contentDescription = "Line-up. Change" },
             ) {
-                Row(Modifier.padding(Spacing.md), verticalAlignment = Alignment.CenterVertically) {
+                Row(
+                    Modifier.padding(horizontal = Spacing.md, vertical = Spacing.sm),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
                     FlowRow(
                         Modifier.weight(1f),
                         horizontalArrangement = Arrangement.spacedBy(Spacing.md),
@@ -375,16 +379,7 @@ private fun OptionsStep(
                 }
             }
 
-            Section("You play") {
-                state.controls.forEach { control ->
-                    ControlRow(
-                        state,
-                        control,
-                        control == state.control,
-                        onSpellbook,
-                    ) { onAction(NewGameAction.SetControl(control)) }
-                }
-            }
+            Section("You play") { YouPlay(state, onAction, onSpellbook) }
 
             Section("Computer strength") {
                 StrengthSlider(state.form.strength, "Computer strength") { onAction(NewGameAction.SetStrength(it)) }
@@ -396,7 +391,7 @@ private fun OptionsStep(
                 if (state.aiSeats.size > 1) Advanced(state, onAction)
             }
 
-            Section("Length") {
+            Section("Length", note = PlayText.lengthNote(state.form.length)) {
                 SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth()) {
                     GameLength.entries.forEachIndexed { i, length ->
                         SegmentedButton(
@@ -408,37 +403,34 @@ private fun OptionsStep(
                         ) { Text(PlayText.length(length)) }
                     }
                 }
-                Text(
-                    PlayText.lengthNote(state.form.length),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
             }
 
             Section("Map") { MapChoice(state, onAction) }
 
-            Section("Coach") {
-                Row(
-                    Modifier
-                        .fillMaxWidth()
-                        .heightIn(min = 56.dp)
-                        .toggleable(value = state.form.coach, role = Role.Switch) {
-                            onAction(NewGameAction.SetCoach(it))
-                        },
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Column(Modifier.weight(1f)) {
-                        Text(if (state.form.coach) "On" else "Off", style = MaterialTheme.typography.titleSmall)
-                        Text(
-                            "A gentle nudge before a clearly worse choice, and the turning points after the game. " +
-                                "It never chooses for you; switch it in the game too.",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                    }
-                    Spacer(Modifier.width(Spacing.sm))
-                    Switch(checked = state.form.coach, onCheckedChange = null)
+            Row(
+                Modifier
+                    .fillMaxWidth()
+                    .heightIn(min = 56.dp)
+                    .toggleable(value = state.form.coach, role = Role.Switch) {
+                        onAction(NewGameAction.SetCoach(it))
+                    },
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Column(Modifier.weight(1f)) {
+                    Text(
+                        "COACH",
+                        style = GoaTextStyles.overline,
+                        color = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.semantics { heading() },
+                    )
+                    Text(
+                        "A nudge before a clearly worse choice, the turning points after. It never chooses for you.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
                 }
+                Spacer(Modifier.width(Spacing.sm))
+                Switch(checked = state.form.coach, onCheckedChange = null)
             }
         }
         Column(Modifier.fillMaxWidth()) {
@@ -463,97 +455,144 @@ private fun OptionsStep(
 }
 
 @Composable
-private fun Section(title: String, content: @Composable () -> Unit) {
-    Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+private fun Section(title: String, note: String? = null, content: @Composable () -> Unit) {
+    Column(verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
         SectionHeader(title, padding = SectionHeaderPaddingTight)
         content()
+        note?.let {
+            Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
     }
 }
 
+/**
+ * Who you play, in two short steps instead of a row per choice: "Whole team | One hero" (2 v 2 and up), then the
+ * team or the hero, as portrait chips; one line under them says who the computer plays. 1 v 1 is just the hero.
+ */
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
-private fun ControlRow(
-    state: NewGameUiState.Ready,
-    control: Control,
-    selected: Boolean,
-    onSpellbook: (String) -> Unit,
-    onClick: () -> Unit,
-) {
-    val (title, note, heroes) = when (control) {
-        is Control.WholeTeam -> {
-            val ids = state.form.lineup.team(control.team)
-            Triple(
-                "All of ${BoardText.team(control.team)}",
-                ids.joinToString(", ") { state.hero(it).name } + ". The other team is the computer.",
-                ids,
-            )
-        }
-
-        is Control.Hero -> {
-            val team = if (control.heroId in state.red) Team.RED else Team.BLUE
-            val mates = state.form.lineup.team(team) - control.heroId
-            Triple(
-                state.hero(control.heroId).name,
-                BoardText.team(team) +
-                    if (mates.isEmpty()) {
-                        ""
-                    } else {
-                        ". Your teammate${if (mates.size > 1) "s" else ""} " +
-                            mates.joinToString(", ") { state.hero(it).name } +
-                            " play${if (mates.size > 1) "" else "s"} as the computer."
+private fun YouPlay(state: NewGameUiState.Ready, onAction: (NewGameAction) -> Unit, onSpellbook: (String) -> Unit) {
+    val control = state.control ?: return
+    val teams = state.controls.filterIsInstance<Control.WholeTeam>()
+    val heroes = state.controls.filterIsInstance<Control.Hero>()
+    val whole = control is Control.WholeTeam
+    val myTeam = teamOf(state, control)
+    if (teams.isNotEmpty()) {
+        val kinds = listOf(false, true)
+        SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth()) {
+            kinds.forEachIndexed { i, kind ->
+                SegmentedButton(
+                    selected = whole == kind,
+                    onClick = {
+                        if (whole != kind) {
+                            // Keep to the same team: its whole team, or its first hero.
+                            val next = if (kind) {
+                                teams.firstOrNull { it.team == myTeam }
+                            } else {
+                                heroes.firstOrNull { teamOf(state, it) == myTeam }
+                            }
+                            next?.let { onAction(NewGameAction.SetControl(it)) }
+                        }
                     },
-                listOf(control.heroId),
-            )
+                    shape = SegmentedButtonDefaults.itemShape(i, kinds.size),
+                    colors = bronzeSegments(),
+                    modifier = Modifier.heightIn(min = 48.dp),
+                ) { Text(if (kind) "Whole team" else "One hero", maxLines = 1) }
+            }
         }
     }
-    val team = when (control) {
-        is Control.WholeTeam -> control.team
-        is Control.Hero -> if (control.heroId in state.red) Team.RED else Team.BLUE
+    FlowRow(
+        horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+        verticalArrangement = Arrangement.spacedBy(Spacing.sm),
+        modifier = Modifier.fillMaxWidth().semantics { contentDescription = "You play" },
+    ) {
+        (if (whole) teams else heroes).forEach { option ->
+            ControlChip(state, option, selected = option == control) { onAction(NewGameAction.SetControl(option)) }
+        }
     }
+    Text(
+        controlNote(state, control),
+        style = MaterialTheme.typography.bodySmall,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+    )
+    // Choosing to play Gydion: his spell cards one tap away (ADR-040).
+    controlled(state, control).map(state::hero).filter { it.spells.isNotEmpty() }.forEach { hero ->
+        SpellbookChip(hero, onClick = { onSpellbook(hero.id) })
+    }
+}
+
+private fun teamOf(state: NewGameUiState.Ready, control: Control): Team = when (control) {
+    is Control.WholeTeam -> control.team
+    is Control.Hero -> if (control.heroId in state.red) Team.RED else Team.BLUE
+}
+
+private fun controlled(state: NewGameUiState.Ready, control: Control): List<String> = when (control) {
+    is Control.WholeTeam -> state.form.lineup.team(control.team)
+    is Control.Hero -> listOf(control.heroId)
+}
+
+/** "The computer plays Brogan, Wasp and Tigerclaw." */
+private fun controlNote(state: NewGameUiState.Ready, control: Control): String {
+    val yours = controlled(state, control)
+    val computer = (state.red + state.blue).filterNot { it in yours }.map { state.hero(it).name }
+    return "The computer plays ${PuzzleText.names(computer)}."
+}
+
+/** One choice of who you play: the portraits in their team's rings, the mark, the name; the chosen one bronze. */
+@Composable
+private fun ControlChip(state: NewGameUiState.Ready, control: Control, selected: Boolean, onClick: () -> Unit) {
+    val team = teamOf(state, control)
+    val color = teamColor(team)
+    val ids = controlled(state, control)
+    val label = when (control) {
+        is Control.WholeTeam -> "All of ${BoardText.team(team)}"
+        is Control.Hero -> state.hero(control.heroId).name
+    }
+    // Chosen is bronze, as every single choice in the app (the selection tokens); the team stays on the portraits'
+    // rings and the mark.
+    val colors = GoaTheme.colors
     PlateSurface(
-        // One selected look on every screen: bronze. The team shows in the portraits' rings.
-        tint = if (selected) GoaTheme.colors.selectionFill else Color.Transparent,
+        tint = if (selected) colors.selectionFill else Color.Transparent,
         border = if (selected) {
-            BorderStroke(2.dp, GoaTheme.colors.selection)
+            BorderStroke(2.dp, colors.selection)
         } else {
             BorderStroke(1.dp, MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.28f))
         },
+        shape = RoundedCornerShape(50),
         modifier = Modifier
-            .fillMaxWidth()
-            .heightIn(min = 56.dp)
-            .selectable(selected = selected, role = Role.RadioButton, onClick = onClick),
+            .heightIn(min = 52.dp)
+            .selectable(selected = selected, role = Role.RadioButton, onClick = onClick)
+            .semantics(mergeDescendants = true) { contentDescription = "$label, ${BoardText.team(team)}" },
     ) {
         Row(
-            Modifier.padding(horizontal = Spacing.sm, vertical = Spacing.sm),
+            Modifier.padding(start = 6.dp, end = Spacing.md, top = 6.dp, bottom = 6.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            RadioButton(selected = selected, onClick = null)
-            Spacer(Modifier.width(Spacing.xs))
-            heroes.forEach { id ->
+            ids.forEach { id ->
                 HeroPortrait(
                     id,
                     state.hero(id).portrait,
                     null,
-                    Modifier.padding(end = 2.dp).size(32.dp).border(1.5.dp, teamColor(team), CircleShape),
+                    Modifier
+                        .padding(end = 2.dp)
+                        .size(scaledIconSize(36.dp, maxScale = 1.4f))
+                        .border(1.5.dp, color, CircleShape),
                     shape = CircleShape,
                     framed = false,
                 )
             }
-            Spacer(Modifier.width(Spacing.sm))
-            Column(Modifier.weight(1f)) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    TeamMark(team, markSize = 9.dp)
-                    Spacer(Modifier.width(4.dp))
-                    Text(title, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
-                }
-                Text(
-                    note,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+            Spacer(Modifier.width(Spacing.xs))
+            TeamMark(team, markSize = 10.dp)
+            Spacer(Modifier.width(4.dp))
+            Text(label, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
+            if (selected) {
+                Spacer(Modifier.width(Spacing.xs))
+                Icon(
+                    Icons.Outlined.Check,
+                    contentDescription = null,
+                    tint = colors.selection,
+                    modifier = Modifier.size(18.dp),
                 )
-                // Choosing to play Gydion: his spell cards one tap away (ADR-040).
-                heroes.map(state::hero).filter { it.spells.isNotEmpty() }.forEach { hero ->
-                    SpellbookChip(hero, onClick = { onSpellbook(hero.id) }, Modifier.padding(top = Spacing.xs))
-                }
             }
         }
     }

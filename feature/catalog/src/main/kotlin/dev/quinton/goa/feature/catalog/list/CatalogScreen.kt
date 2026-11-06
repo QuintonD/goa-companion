@@ -43,6 +43,7 @@ import androidx.compose.material.icons.outlined.CloudOff
 import androidx.compose.material.icons.outlined.GridView
 import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material.icons.outlined.SearchOff
+import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material.icons.outlined.Shield
 import androidx.compose.material.icons.outlined.Tune
 import androidx.compose.material.icons.outlined.ViewAgenda
@@ -83,12 +84,15 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import dev.quinton.goa.core.designsystem.component.BarAction
+import dev.quinton.goa.core.designsystem.component.BarActions
 import dev.quinton.goa.core.designsystem.component.EmptyState
 import dev.quinton.goa.core.designsystem.component.GoaPlate
 import dev.quinton.goa.core.designsystem.component.GoaPlateTheme
 import dev.quinton.goa.core.designsystem.component.GoaScreen
 import dev.quinton.goa.core.designsystem.component.GoaSheet
-import dev.quinton.goa.core.designsystem.component.SettingsActionButton
+import dev.quinton.goa.core.designsystem.component.LARGE_FONT_SCALE
+import dev.quinton.goa.core.designsystem.component.PlateGround
 import dev.quinton.goa.core.designsystem.theme.GoaTextStyles
 import dev.quinton.goa.core.designsystem.theme.GoaTheme
 import dev.quinton.goa.core.designsystem.theme.Spacing
@@ -130,20 +134,23 @@ fun CatalogScreen(
         title = "Heroes",
         modifier = modifier,
         actions = {
-            if (ready != null) {
-                val grid = ready.controls.layout == CatalogLayout.GRID
+            // The layout switch, then Rules and Settings (also on More) in the labelled overflow menu.
+            val layout = ready?.let {
+                val grid = it.controls.layout == CatalogLayout.GRID
                 val other = if (grid) CatalogLayout.LIST else CatalogLayout.GRID
-                IconButton(onClick = { onAction(CatalogAction.SetLayout(other)) }) {
-                    Icon(
-                        if (grid) Icons.Outlined.ViewAgenda else Icons.Outlined.GridView,
-                        contentDescription = if (grid) "Show as list" else "Show as grid",
-                    )
-                }
+                BarAction(
+                    label = if (grid) "Show as list" else "Show as grid",
+                    icon = if (grid) Icons.Outlined.ViewAgenda else Icons.Outlined.GridView,
+                    onClick = { onAction(CatalogAction.SetLayout(other)) },
+                )
             }
-            IconButton(onClick = onRulesClick) {
-                Icon(Icons.AutoMirrored.Outlined.MenuBook, contentDescription = "Rules")
-            }
-            SettingsActionButton(onSettingsClick)
+            BarActions(
+                listOfNotNull(
+                    layout,
+                    BarAction("Rules", Icons.AutoMirrored.Outlined.MenuBook, onRulesClick),
+                    BarAction("Settings", Icons.Outlined.Settings, onSettingsClick),
+                ),
+            )
         },
     ) { padding ->
         Box(Modifier.fillMaxSize().padding(padding)) {
@@ -264,6 +271,8 @@ private fun NoResults(state: CatalogUiState.Ready, query: String, onAction: (Cat
 @Composable
 private fun SearchField(query: String, onQueryChange: (String) -> Unit) {
     val focus = LocalFocusManager.current
+    // With large text the whole hint doesn't fit beside the icons on one line: it takes two, every word kept.
+    val hintLines = if (LocalDensity.current.fontScale > LARGE_FONT_SCALE) 2 else 1
     // The slot on the plate: the slate, or the light theme paper, under the banner.
     GoaPlateTheme {
         OutlinedTextField(
@@ -273,7 +282,7 @@ private fun SearchField(query: String, onQueryChange: (String) -> Unit) {
                 .fillMaxWidth()
                 .padding(horizontal = Spacing.screen)
                 .padding(top = Spacing.sm, bottom = Spacing.sm),
-            placeholder = { Text(SEARCH_HINT, maxLines = 1, overflow = TextOverflow.Ellipsis) },
+            placeholder = { Text(SEARCH_HINT, maxLines = hintLines, overflow = TextOverflow.Ellipsis) },
             leadingIcon = { Icon(Icons.Outlined.Search, contentDescription = null) },
             trailingIcon = {
                 if (query.isNotEmpty()) {
@@ -372,7 +381,7 @@ private fun ResultSummary(state: CatalogUiState.Ready, query: String) {
     val text = resultSummary(state.heroes.size, state.totalInScope, query)
     Text(
         text,
-        style = MaterialTheme.typography.labelMedium,
+        style = MaterialTheme.typography.bodyMedium,
         color = MaterialTheme.colorScheme.onSurfaceVariant,
         modifier = Modifier
             .padding(horizontal = Spacing.screen, vertical = Spacing.sm)
@@ -471,7 +480,7 @@ private fun ResultsHeader(title: String, count: Int) {
         Spacer(Modifier.size(Spacing.sm))
         Text(
             count.toString(),
-            style = MaterialTheme.typography.labelMedium,
+            style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
     }
