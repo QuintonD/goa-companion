@@ -10,6 +10,7 @@ import androidx.compose.ui.test.onFirst
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
 import com.google.common.truth.Truth.assertThat
 import dev.quinton.goa.core.designsystem.theme.GoaTheme
 import dev.quinton.goa.core.game.Choice
@@ -25,6 +26,7 @@ import dev.quinton.goa.feature.board.play.game.PlayUi
 import dev.quinton.goa.feature.board.play.table.upgradeFocus
 import dev.quinton.goa.feature.board.play.table.upgradeRows
 import dev.quinton.goa.feature.board.ui.cards.CARD_TAG
+import dev.quinton.goa.feature.board.ui.cards.CONFIRM_TAG
 import dev.quinton.goa.feature.board.ui.cards.GO_TO_ANSWER_TAG
 import dev.quinton.goa.feature.board.ui.cards.focusPosition
 import org.junit.Rule
@@ -67,6 +69,7 @@ class GydionLevelUpTest {
     private fun tap(description: String) {
         compose.onAllNodes(hasContentDescription(description, substring = true) and hasClickAction())
             .onFirst()
+            .performScrollTo()
             .performClick()
         compose.waitForIdle()
     }
@@ -103,7 +106,7 @@ class GydionLevelUpTest {
         compose.onNodeWithTag(GO_TO_ANSWER_TAG).assertTextEquals("Go to ${name(HAND_CARD)}")
         compose.onNodeWithTag(GO_TO_ANSWER_TAG).performClick()
         compose.waitForIdle()
-        compose.onNodeWithTag(CARD_TAG).performClick()
+        compose.onNodeWithTag(CONFIRM_TAG).performClick()
         compose.waitForIdle()
         assertThat(actions).containsExactly(GameAction.Answer(Choice.Card(HAND_CARD)))
     }
@@ -126,7 +129,7 @@ class GydionLevelUpTest {
         compose.onNodeWithTag(GO_TO_ANSWER_TAG).assertTextEquals("Go to ${name(OTHER_UPGRADE)}")
         compose.onNodeWithTag(GO_TO_ANSWER_TAG).performClick()
         compose.waitForIdle()
-        compose.onNodeWithTag(CARD_TAG).performClick()
+        compose.onNodeWithTag(CONFIRM_TAG).performClick()
         compose.waitForIdle()
         assertThat(actions).containsExactly(GameAction.Answer(Choice.Card(OTHER_UPGRADE)))
     }
