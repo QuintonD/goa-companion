@@ -171,7 +171,7 @@ private fun TileText(item: HeroListItem, sort: CatalogSort, footnotes: TileFootn
     val hero = item.hero
     // Larger text wraps: every tile keeps the extra lines, so the plates of a row match.
     val lines = tileLines(LocalDensity.current.fontScale)
-    Column(Modifier.padding(start = 4.dp, top = 3.dp)) {
+    Column(Modifier.padding(start = 6.dp, end = 4.dp, top = 3.dp)) {
         Text(
             hero.title,
             style = TILE_TITLE,
@@ -190,18 +190,17 @@ private fun TileText(item: HeroListItem, sort: CatalogSort, footnotes: TileFootn
             ComplexityStars(hero.complexity, starSize = 10.dp)
             if (item.rangedLabel != null) ActionIcon(LookAction.RANGE, size = RANGED_ICON)
         }
-        // Two roles fit a tile, as on the mock-up; the hero page and TalkBack have them all.
-        val traits = hero.roles.take(TILE_ROLES).joinToString(" · ") { it.label }
-        if (traits.isNotEmpty()) {
-            Text(
-                traits,
-                style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.5.sp, letterSpacing = 0.sp),
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                minLines = lines,
-                maxLines = lines,
-                overflow = TextOverflow.Ellipsis,
-            )
-        }
+        // Two roles, one a line at a readable size (the hero page and TalkBack have them all). Every tile keeps
+        // both lines, so the tiles of a row stay one height.
+        val traits = hero.roles.take(TILE_ROLES).joinToString("\n") { it.label }
+        Text(
+            traits,
+            style = TILE_ROLE,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            minLines = TILE_ROLES,
+            maxLines = TILE_ROLES,
+            overflow = TextOverflow.Ellipsis,
+        )
         TileFootnotes(item, sort, footnotes)
     }
 }
@@ -236,7 +235,7 @@ private fun TileFootnotes(item: HeroListItem, sort: CatalogSort, room: TileFootn
         if (room.hint) {
             Text(
                 "",
-                style = MaterialTheme.typography.labelSmall,
+                style = MaterialTheme.typography.bodyMedium,
                 minLines = HINT_LINES,
                 modifier = Modifier.padding(top = Spacing.xs),
             )
@@ -252,7 +251,7 @@ private fun TileFootnotes(item: HeroListItem, sort: CatalogSort, room: TileFootn
             Spacer(Modifier.width(4.dp))
             Text(
                 hint,
-                style = MaterialTheme.typography.labelSmall,
+                style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 minLines = if (room.hint) HINT_LINES else 1,
                 maxLines = HINT_LINES,
@@ -331,7 +330,7 @@ internal fun HeroListRow(
                 if (traits.isNotEmpty()) {
                     Text(
                         traits,
-                        style = MaterialTheme.typography.labelSmall,
+                        style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
@@ -370,6 +369,7 @@ private val SYMBOL_CENTER_X = 16.dp
 private val SYMBOL_CENTER_Y = 20.dp
 private val SYMBOL_SHADE_RADIUS = 24.dp
 private val SYMBOL_SHADE = Color(0x8C000000)
+private val TILE_ROLE @Composable get() = MaterialTheme.typography.bodyMedium.copy(letterSpacing = 0.sp)
 private val TILE_NAME = GoaTextStyles.plateTitle.copy(fontSize = 13.sp, lineHeight = 16.sp, letterSpacing = 0.sp)
 
 /** In dp: at a large font scale a long name still has to fit its plate. */

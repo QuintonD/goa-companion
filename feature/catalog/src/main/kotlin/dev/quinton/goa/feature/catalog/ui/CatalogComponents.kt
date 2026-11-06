@@ -59,14 +59,14 @@ fun UnverifiedBadge(modifier: Modifier = Modifier, compact: Boolean = false) {
     }
 }
 
-/** Small engraved pill used for product names and other metadata. */
+/** Small engraved pill used for product names and other metadata; a long one wraps rather than being cut. */
 @Composable
 fun MetaPill(text: String, modifier: Modifier = Modifier, color: Color = MaterialTheme.colorScheme.onSurfaceVariant) {
     Text(
         text = text,
-        style = MaterialTheme.typography.labelSmall,
+        style = MaterialTheme.typography.bodyMedium,
         color = color,
-        maxLines = 1,
+        maxLines = 2,
         overflow = TextOverflow.Ellipsis,
         modifier = modifier
             .clip(RoundedCornerShape(6.dp))

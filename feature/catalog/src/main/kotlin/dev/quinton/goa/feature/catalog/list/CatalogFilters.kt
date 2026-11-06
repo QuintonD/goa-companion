@@ -161,7 +161,7 @@ internal fun CatalogFilterContent(
                         Text("Include products you don't own", style = MaterialTheme.typography.bodyLarge)
                         Text(
                             "Owned products are set in Settings",
-                            style = MaterialTheme.typography.bodySmall,
+                            style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                     }
@@ -194,7 +194,7 @@ private fun FilterGroup(title: String, note: String? = null, content: @Composabl
     if (note != null) {
         Text(
             note,
-            style = MaterialTheme.typography.bodySmall,
+            style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.padding(bottom = Spacing.xs),
         )
