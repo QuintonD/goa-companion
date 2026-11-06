@@ -27,6 +27,7 @@ import androidx.compose.material.icons.outlined.PersonAdd
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -48,13 +49,15 @@ import dev.quinton.goa.feature.players.common.DeltaIndicator
 import dev.quinton.goa.feature.players.common.EngravedCard
 import dev.quinton.goa.feature.players.common.LoadingState
 import dev.quinton.goa.feature.players.common.ProvisionalPill
+import dev.quinton.goa.feature.players.common.RowFigure
 import dev.quinton.goa.feature.players.common.SectionHeader
+import dev.quinton.goa.feature.players.common.figureStyle
 import dev.quinton.goa.feature.players.common.formatDelta
 import dev.quinton.goa.feature.players.common.formatRating
 import dev.quinton.goa.feature.players.common.plural
 import dev.quinton.goa.feature.players.common.spokenRecord
 import dev.quinton.goa.feature.players.common.winLoss
-import dev.quinton.goa.feature.players.match.FAB_CLEARANCE
+import dev.quinton.goa.feature.players.match.LIST_END_PADDING
 
 /** The "Players" tab: Elo leaderboard, then unrated and (optionally) archived players. */
 @Composable
@@ -85,20 +88,20 @@ fun LeaderboardContent(
 
         else -> LazyColumn(
             modifier = modifier.fillMaxSize(),
-            contentPadding = PaddingValues(start = Spacing.screen, end = Spacing.screen, bottom = FAB_CLEARANCE),
+            contentPadding = PaddingValues(start = Spacing.screen, end = Spacing.screen, bottom = LIST_END_PADDING),
         ) {
             if (state.ranked.isNotEmpty()) {
                 item(key = "h-ranked") {
-                    SectionHeader(
-                        "Leaderboard",
-                        trailing = {
-                            Text(
-                                "${plural(state.ratedMatches, "rated match", "rated matches")}",
-                                style = MaterialTheme.typography.labelMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
-                        },
-                    )
+                    Column(Modifier.padding(bottom = Spacing.sm)) {
+                        SectionHeader("Group ratings")
+                        // One scope line: what the number is, what it's built from, and whose it is.
+                        Text(
+                            "Elo from ${plural(state.ratedMatches, "rated match", "rated matches")} · " +
+                                if (state.inGroup) "shared by your group's phones" else "logged on this phone",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
                 }
                 item(key = "ranked") {
                     EngravedCard(Modifier.fillMaxWidth()) {
@@ -117,9 +120,24 @@ fun LeaderboardContent(
                     LeaderboardRowItem(row, onClick = { onOpenPlayer(row.player.id) })
                 }
             }
+            // Under the list, never over it (a floating button covered the last rating at large text).
+            item(key = "add-player") {
+                OutlinedButton(
+                    onClick = onAddPlayer,
+                    modifier = Modifier
+                        .padding(top = Spacing.lg)
+                        .fillMaxWidth()
+                        .heightIn(min = 52.dp)
+                        .semantics { contentDescription = "Add player" },
+                ) {
+                    Icon(Icons.Outlined.PersonAdd, contentDescription = null)
+                    Spacer(Modifier.width(Spacing.sm))
+                    Text("Add player", style = MaterialTheme.typography.titleMedium)
+                }
+            }
             if (state.archived.isNotEmpty()) {
                 item(key = "archived-toggle") {
-                    TextButton(onClick = onToggleArchived, modifier = Modifier.padding(top = Spacing.md)) {
+                    TextButton(onClick = onToggleArchived, modifier = Modifier.padding(top = Spacing.sm)) {
                         Icon(Icons.Outlined.Inventory2, contentDescription = null, modifier = Modifier.size(18.dp))
                         Spacer(Modifier.width(Spacing.sm))
                         val count = state.archived.size
@@ -208,8 +226,7 @@ private fun LeaderboardRowItem(row: LeaderboardRow, onClick: () -> Unit, archive
             Column(horizontalAlignment = Alignment.End, modifier = Modifier.padding(start = Spacing.sm)) {
                 Text(
                     formatRating(rating.value),
-                    style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.SemiBold,
+                    style = figureStyle(RowFigure),
                     color = if (row.rank == 1) {
                         MaterialTheme.colorScheme.primary
                     } else {

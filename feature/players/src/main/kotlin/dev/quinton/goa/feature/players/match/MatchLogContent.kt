@@ -142,7 +142,7 @@ fun MatchLogContent(
         else -> LazyColumn(
             modifier = modifier.fillMaxSize(),
             state = listState,
-            contentPadding = PaddingValues(start = Spacing.screen, end = Spacing.screen, bottom = FAB_CLEARANCE),
+            contentPadding = PaddingValues(start = Spacing.screen, end = Spacing.screen, bottom = LIST_END_PADDING),
             verticalArrangement = Arrangement.spacedBy(Spacing.sm),
         ) {
             state.groups.forEach { group ->
@@ -170,8 +170,8 @@ private const val FLASH_MS = 2_000L
 /** From Android's 1.15 font step up, a seat's rating change gets its own line. */
 private const val SEAT_STACK_FONT_SCALE = 1.1f
 
-/** Bottom padding of lists under an extended FAB: 56 dp FAB + 16 dp margin + room to read the last row. */
-val FAB_CLEARANCE = 112.dp
+/** Bottom padding of the Players lists: their actions are docked or inline, so only breathing room. */
+val LIST_END_PADDING = 32.dp
 
 /**
  * One match in a list. [onDelete] null hides the menu (e.g. on a profile). Completed matches offer

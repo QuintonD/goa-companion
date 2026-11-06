@@ -1,5 +1,6 @@
 package dev.quinton.goa.feature.sync.group
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -220,14 +221,41 @@ private fun NoGroup(state: GroupUiState, actions: GroupActions, padding: Padding
                 modifier = Modifier.fillMaxWidth(),
             )
             Spacer(Modifier.size(Spacing.sm))
-            OutlinedButton(
-                onClick = { actions.onStart(name) },
+            StepButton(
+                label = "Start group",
                 enabled = name.isNotBlank(),
-                modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp),
-            ) { Text("Start group") }
+                helper = "Name the group to start it.",
+                onClick = { actions.onStart(name) },
+            )
         }
     }
 }
+
+/**
+ * A full-width outlined button that still looks like one while it waits for its input (a clear
+ * edge, dimmed words), with a line under it that says what turns it on.
+ */
+@Composable
+private fun StepButton(label: String, enabled: Boolean, helper: String, onClick: () -> Unit) {
+    val edge = if (enabled) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
+    OutlinedButton(
+        onClick = onClick,
+        enabled = enabled,
+        border = BorderStroke(1.dp, edge.copy(alpha = if (enabled) 1f else DISABLED_EDGE)),
+        modifier = Modifier.fillMaxWidth().heightIn(min = 52.dp),
+    ) { Text(label, style = MaterialTheme.typography.titleMedium) }
+    if (!enabled) {
+        Text(
+            helper,
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.padding(top = Spacing.xs),
+        )
+    }
+}
+
+/** A waiting button's edge: dimmed, but plainly a button's outline. */
+private const val DISABLED_EDGE = 0.45f
 
 @Composable
 private fun InGroup(state: GroupUiState, actions: GroupActions, padding: PaddingValues, showInviteInitially: Boolean) {
@@ -446,11 +474,13 @@ private fun PasteInvite(invite: String, onInvite: (String) -> Unit, error: Strin
             keyboardActions = KeyboardActions(onGo = { onJoin() }),
             modifier = Modifier.fillMaxWidth().onFocusChanged { focused = it.isFocused },
         )
-        TextButton(
-            onClick = onJoin,
+        Spacer(Modifier.size(Spacing.sm))
+        StepButton(
+            label = "Join",
             enabled = invite.isNotBlank(),
-            modifier = Modifier.heightIn(min = 48.dp),
-        ) { Text("Join") }
+            helper = "Paste an invite to join.",
+            onClick = onJoin,
+        )
     }
 }
 

@@ -54,9 +54,8 @@ object ScreenshotPlayers {
 private val json = Json { ignoreUnknownKeys = false }
 
 /**
- * The real bundled catalog (all heroes, real card numbers). Card scans stay (screenshots load them
- * from the app's assets through [BundledImages]); portraits are dropped so every screen shows the
- * sigil fallback, every run alike.
+ * The real bundled catalog (all heroes, real card numbers, official portraits and card scans; screenshots
+ * load them from the app's assets through [BundledImages] and wait for every load, so runs stay alike).
  */
 val bundledCatalog: Catalog by lazy {
     val index = json.decodeFromString(CatalogIndex.serializer(), bundledCatalogFile("index.json").readText())
@@ -65,8 +64,7 @@ val bundledCatalog: Catalog by lazy {
         printing = index.printing,
         products = index.products,
         heroes = index.heroes.map { id ->
-            val hero = json.decodeFromString(Hero.serializer(), bundledCatalogFile("heroes/$id.json").readText())
-            hero.copy(portrait = null)
+            json.decodeFromString(Hero.serializer(), bundledCatalogFile("heroes/$id.json").readText())
         },
     )
 }
