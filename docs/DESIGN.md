@@ -51,7 +51,7 @@ when a map has `art` (all four do); the drawn map stays as the fallback while lo
 
 **Rules the screens keep:**
 - **Bronze is selected and primary; teal is next, correct, "you can act"** (a Hurry up or a running clock, a right answer, a rating gained). Chips, switches and picked rows are bronze on every screen. Timer's teal progress arc is the running clock.
-- **One plate per section, dividers inside, brackets on the outer plate only:** a team's seats, a preset's phases, the rules topics, both leaderboards. A floating button is its icon alone with large text, and a list under one keeps room for it at its end.
+- **One plate per section, dividers inside, brackets on the outer plate only:** a team's seats, a preset's phases, the rules topics, both leaderboards. A list's action never floats over it: the match log docks "Log match" on a slate bar under the list (as trivia's Start bar), the leaderboard ends with "Add player".
 - **A title on the banner** shrinks, then takes two lines, and only then is cut (`BannerTitle`, `.goa-topbar-title`); a rules topic shows its head alone with large text. The timer's second line goes on a phone under 360 wide (TalkBack still hears it).
 - **The search field** is the plate's dark slot in both themes.
 
@@ -126,7 +126,7 @@ bronze" (deep-ocean dark with bronze and teal), which stays as the canvas and th
 | parchmentInk | `#8A3F18` | same | inline game icons on parchment |
 | parchmentEdge | `#8C826E` | `#B9AE98` | parchment border (decorative) |
 
-**Player palette** (`PlayerColors`, 10 swatches). `Player.color` stores the dark tone;
+**Player palette** (`PlayerColors`, 10 swatches; legacy). `Player.color` is still stored and synced (the web app draws it), but the phone no longer draws or asks for it: player crests are team-neutral (below). `Player.color` stores the dark tone;
 `playerColor(argb)` draws the theme tone, so names and crests read in both themes:
 
 | Swatch | Dark tone | Light tone |
@@ -198,7 +198,7 @@ small caps + fading rule) ·
 `UnverifiedBadge` · `CardColorDot` · `ConfirmDialog` · `DurationText` · `EmptyState` ·
 `HeroPortrait` (bronze double frame, inner gradient, sigil fallback; `framed = false` for the
 grid tile, which draws its own fade, to keep scrolling cheap) · `HeroSigil` (monogram
-fallback) · `PlayerAvatar` (crest in player colour, initial fallback) · `TeamBadge` / `TeamMark`
+fallback) · `PlayerAvatar` (bronze crest in a steel-ringed medallion, team-neutral; initial fallback) · `TeamBadge` / `TeamMark`
 · `ComplexityStars` (`showLabel` adds Challenging / Complex / Very Complex / Wizard). The
 gallery screenshot test (`GalleryScreenshotTest`) shows them all, dark/light, font scale 1 and 2.
 `cardtext/CardTextView` renders printed card text (inline `GameIcons`, italic reminders, bold
@@ -621,7 +621,7 @@ Two kinds of asset (ADR-006, ADR-034):
 - UI icons not in Material Symbols, empty-state illustrations.
 - Hero **sigils**: small geometric emblems per hero (24-unit grid, 2-unit stroke), now only the
   fallback when official art (portrait, deck symbol) is missing or still loading.
-- Player avatars: 24 original abstract crests, colour-tinted by player colour.
+- Player avatars: 24 original abstract crests, one bronze tone in a steel ring: red and blue are the teams' alone (gear and star), so a crest never reads as a side; its shape is the identity.
 - Pipeline (as built): hand-authored SVG in `design/` → `python -P -E design/tools/svg2vd.py`
   → `core/designsystem/src/main/res/drawable/` (and `app/.../drawable/ic_launcher_*`). The
   converter is deliberately small (path/line/poly/circle/ellipse/rect, untransformed groups,

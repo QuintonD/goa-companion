@@ -182,11 +182,11 @@ private fun StatTileContent(value: String, caption: String, modifier: Modifier) 
         // Shrinks to fit rather than truncating ("69–38", not "69–…").
         BasicText(
             value,
-            style = MaterialTheme.typography.titleLarge.copy(color = MaterialTheme.colorScheme.onSurface),
+            style = figureStyle(RowFigure).copy(color = MaterialTheme.colorScheme.onSurface),
             maxLines = 1,
             autoSize = TextAutoSize.StepBased(
                 minFontSize = 12.sp,
-                maxFontSize = MaterialTheme.typography.titleLarge.fontSize,
+                maxFontSize = RowFigure,
             ),
         )
         Text(
@@ -281,6 +281,26 @@ fun StatRow(tiles: List<Pair<String, String>>, modifier: Modifier = Modifier) {
 
 /** Font scale from which compact controls switch to roomier, wrapping layouts. */
 const val LARGE_FONT_SCALE = 1.3f
+
+/**
+ * The one style for figures across the Players screens (ratings, records, rates, scores): Inter with
+ * tabular lining figures, semibold, so the same rating looks the same on every screen. Cinzel stays
+ * for headings.
+ */
+fun figureStyle(size: androidx.compose.ui.unit.TextUnit): androidx.compose.ui.text.TextStyle =
+    dev.quinton.goa.core.designsystem.theme.GoaTextStyles.numeric.copy(
+        fontSize = size,
+        lineHeight = size * FIGURE_LINE,
+        fontWeight = FontWeight.SemiBold,
+    )
+
+private const val FIGURE_LINE = 1.2f
+
+/** Leaderboard and result rows. */
+val RowFigure: androidx.compose.ui.unit.TextUnit = 22.sp
+
+/** A player page's own rating. */
+val HeaderFigure: androidx.compose.ui.unit.TextUnit = 36.sp
 
 /** Selected chips in bronze, as selected is everywhere (docs/DESIGN.md). */
 @Composable
