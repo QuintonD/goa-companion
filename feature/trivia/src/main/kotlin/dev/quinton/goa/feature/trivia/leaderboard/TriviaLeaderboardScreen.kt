@@ -300,7 +300,7 @@ private fun RankedRow(row: LeaderboardRowUi, onClick: () -> Unit) {
         Column(horizontalAlignment = Alignment.End, modifier = Modifier.widthIn(min = 48.dp)) {
             Text(
                 row.main,
-                style = GoaTextStyles.numeric.copy(fontSize = MaterialTheme.typography.titleLarge.fontSize),
+                style = GoaTextStyles.scoreMedium,
                 fontWeight = FontWeight.SemiBold,
                 color = if (row.place == 1) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
                 maxLines = 1,
@@ -347,7 +347,7 @@ private fun LargeRankedRow(row: LeaderboardRowUi, onClick: () -> Unit) {
             }
             Text(
                 listOfNotNull(row.main, row.mainCaption).joinToString(" "),
-                style = GoaTextStyles.numeric.copy(fontSize = MaterialTheme.typography.titleLarge.fontSize),
+                style = GoaTextStyles.scoreMedium,
                 fontWeight = FontWeight.SemiBold,
                 color = if (row.place == 1) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
             )
@@ -500,7 +500,7 @@ private fun RoundRow(round: RoundUi, onRemove: () -> Unit) {
                 Spacer(Modifier.width(Spacing.sm))
                 Text(
                     round.score,
-                    style = GoaTextStyles.numeric.copy(fontSize = MaterialTheme.typography.titleMedium.fontSize),
+                    style = GoaTextStyles.score,
                     fontWeight = FontWeight.SemiBold,
                     color = MaterialTheme.colorScheme.onSurface,
                     modifier = Modifier.clearAndSetSemantics {},

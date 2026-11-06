@@ -42,6 +42,7 @@ import dev.quinton.goa.core.designsystem.component.GoaScreen
 import dev.quinton.goa.core.designsystem.component.HeroPortrait
 import dev.quinton.goa.core.designsystem.component.PlayerAvatar
 import dev.quinton.goa.core.designsystem.component.TitlePlate
+import dev.quinton.goa.core.designsystem.theme.GoaTextStyles
 import dev.quinton.goa.core.designsystem.theme.Spacing
 import dev.quinton.goa.feature.players.common.EngravedCard
 import dev.quinton.goa.feature.players.common.LoadingState
@@ -229,7 +230,7 @@ private fun Header(state: PlayerDetailUiState) {
         Column(horizontalAlignment = Alignment.End) {
             Text(
                 if (rating.games > 0) formatRating(rating.value) else "—",
-                style = MaterialTheme.typography.displaySmall,
+                style = GoaTextStyles.scoreLarge,
                 color = MaterialTheme.colorScheme.primary,
                 fontWeight = FontWeight.SemiBold,
             )

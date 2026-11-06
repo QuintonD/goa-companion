@@ -69,6 +69,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dev.quinton.goa.core.designsystem.component.GoaCard
 import dev.quinton.goa.core.designsystem.component.GoaScreen
 import dev.quinton.goa.core.designsystem.component.LARGE_FONT_SCALE
+import dev.quinton.goa.core.designsystem.component.PlateStyle
 import dev.quinton.goa.core.designsystem.component.SectionHeader
 import dev.quinton.goa.core.designsystem.theme.GoaTheme
 import dev.quinton.goa.core.designsystem.theme.Spacing
@@ -123,10 +124,10 @@ private fun SettingsList(
     ) {
         item { SectionHeader("Appearance") }
         item {
-            GoaCard(Modifier.fillMaxWidth()) {
+            GoaCard(Modifier.fillMaxWidth(), style = PlateStyle.Secondary) {
                 Text("Theme", style = MaterialTheme.typography.titleMedium)
                 Text(
-                    "Dark is easiest on the eyes at the table.",
+                    "Dark is easiest on the eyes at the table. The timer and the map stay dark in both.",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -136,7 +137,7 @@ private fun SettingsList(
         }
         item { Spacer(Modifier.size(Spacing.md)) }
         item {
-            GoaCard(Modifier.fillMaxWidth()) {
+            GoaCard(Modifier.fillMaxWidth(), style = PlateStyle.Secondary) {
                 Text("Board style", style = MaterialTheme.typography.titleMedium)
                 Text(
                     "How pieces and spaces look on the painted maps.",
@@ -150,7 +151,11 @@ private fun SettingsList(
 
         item { SectionHeader("Collection") }
         item {
-            GoaCard(Modifier.fillMaxWidth(), contentPadding = PaddingValues(vertical = Spacing.sm)) {
+            GoaCard(
+                Modifier.fillMaxWidth(),
+                style = PlateStyle.Secondary,
+                contentPadding = PaddingValues(vertical = Spacing.sm),
+            ) {
                 SwitchRow(
                     icon = Icons.Outlined.Inventory2,
                     title = "I own every product",
@@ -173,7 +178,11 @@ private fun SettingsList(
 
         item { SectionHeader("At the table") }
         item {
-            GoaCard(Modifier.fillMaxWidth(), contentPadding = PaddingValues(vertical = Spacing.sm)) {
+            GoaCard(
+                Modifier.fillMaxWidth(),
+                style = PlateStyle.Secondary,
+                contentPadding = PaddingValues(vertical = Spacing.sm),
+            ) {
                 SwitchRow(
                     icon = Icons.Outlined.Vibration,
                     title = "Haptics",
@@ -192,7 +201,7 @@ private fun SettingsList(
         }
         item { Spacer(Modifier.size(Spacing.md)) }
         item {
-            GoaCard(Modifier.fillMaxWidth()) {
+            GoaCard(Modifier.fillMaxWidth(), style = PlateStyle.Secondary) {
                 Text("Running timer", style = MaterialTheme.typography.titleMedium)
                 Text(
                     "Step by step shows one big dial per phase; Whole round lists every phase of the round " +
@@ -207,7 +216,11 @@ private fun SettingsList(
 
         item { SectionHeader("Learning") }
         item {
-            GoaCard(Modifier.fillMaxWidth(), contentPadding = PaddingValues(vertical = Spacing.sm)) {
+            GoaCard(
+                Modifier.fillMaxWidth(),
+                style = PlateStyle.Secondary,
+                contentPadding = PaddingValues(vertical = Spacing.sm),
+            ) {
                 SwitchRow(
                     icon = Icons.Outlined.Lightbulb,
                     title = "Puzzle nudges",
@@ -224,7 +237,11 @@ private fun SettingsList(
 
         item { SectionHeader("Game setup") }
         item {
-            GoaCard(Modifier.fillMaxWidth(), contentPadding = PaddingValues(vertical = Spacing.sm)) {
+            GoaCard(
+                Modifier.fillMaxWidth(),
+                style = PlateStyle.Secondary,
+                contentPadding = PaddingValues(vertical = Spacing.sm),
+            ) {
                 LinkRow(Icons.Outlined.Timer, "Timer presets", "Phase lengths, cues and auto-advance") {
                     onOpen(SettingsLink.TIMER_PRESETS)
                 }
@@ -239,7 +256,11 @@ private fun SettingsList(
 
         item { SectionHeader("Data") }
         item {
-            GoaCard(Modifier.fillMaxWidth(), contentPadding = PaddingValues(vertical = Spacing.sm)) {
+            GoaCard(
+                Modifier.fillMaxWidth(),
+                style = PlateStyle.Secondary,
+                contentPadding = PaddingValues(vertical = Spacing.sm),
+            ) {
                 LinkRow(Icons.Outlined.Sync, "Group sync", "Share matches and players with your friends' phones") {
                     onOpen(SettingsLink.GROUP_SYNC)
                 }

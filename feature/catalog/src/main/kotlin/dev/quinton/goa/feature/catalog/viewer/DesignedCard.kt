@@ -30,7 +30,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import dev.quinton.goa.core.designsystem.cardtext.GameIcons
-import dev.quinton.goa.core.designsystem.component.GoaPlateTheme
+import dev.quinton.goa.core.designsystem.component.GoaDarkTheme
 import dev.quinton.goa.core.designsystem.component.PrintedCardText
 import dev.quinton.goa.core.designsystem.component.cardColor
 import dev.quinton.goa.core.designsystem.component.slatePlate
@@ -46,7 +46,7 @@ import dev.quinton.goa.feature.catalog.ui.InitiativeBadge
  */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-internal fun DesignedCard(card: Card, isHandicap: Boolean, modifier: Modifier = Modifier) = GoaPlateTheme {
+internal fun DesignedCard(card: Card, isHandicap: Boolean, modifier: Modifier = Modifier) = GoaDarkTheme {
     val accent = cardColor(card.color)
     val shape = RoundedCornerShape(20.dp)
     Column(

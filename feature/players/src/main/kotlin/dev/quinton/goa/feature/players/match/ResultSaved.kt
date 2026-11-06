@@ -46,6 +46,7 @@ import dev.quinton.goa.core.designsystem.component.GoaSheet
 import dev.quinton.goa.core.designsystem.component.PlayerAvatar
 import dev.quinton.goa.core.designsystem.component.TeamBadge
 import dev.quinton.goa.core.designsystem.component.teamColor
+import dev.quinton.goa.core.designsystem.theme.GoaTextStyles
 import dev.quinton.goa.core.designsystem.theme.Spacing
 import dev.quinton.goa.core.domain.match.RematchKind
 import dev.quinton.goa.feature.players.common.DeltaIndicator
@@ -190,7 +191,7 @@ private fun PlayerChangeRow(line: PlayerChangeUi, ready: Boolean) {
             Column(horizontalAlignment = Alignment.End) {
                 Text(
                     formatRating(line.rating.value),
-                    style = MaterialTheme.typography.titleMedium,
+                    style = GoaTextStyles.score,
                     fontWeight = FontWeight.SemiBold,
                 )
                 DeltaIndicator(line.delta, label = "rating")

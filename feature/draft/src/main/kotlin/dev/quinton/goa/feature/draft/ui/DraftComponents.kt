@@ -75,8 +75,8 @@ import dev.quinton.goa.core.designsystem.component.GoaPlateTheme
 import dev.quinton.goa.core.designsystem.component.HeroPortrait
 import dev.quinton.goa.core.designsystem.component.HeroSymbol
 import dev.quinton.goa.core.designsystem.component.LARGE_FONT_SCALE
-import dev.quinton.goa.core.designsystem.component.PlateGround
 import dev.quinton.goa.core.designsystem.component.PlateShape
+import dev.quinton.goa.core.designsystem.component.SelectionMarkIcon
 import dev.quinton.goa.core.designsystem.component.TeamMark
 import dev.quinton.goa.core.designsystem.component.slatePlate
 import dev.quinton.goa.core.designsystem.component.teamColor
@@ -156,7 +156,7 @@ private fun HeroTileBody(
     Column(
         modifier
             .clip(TILE_SHAPE)
-            .background(PlateGround)
+            .background(GoaTheme.colors.plate)
             .border(if (emphasised) 2.dp else 1.dp, borderColor, TILE_SHAPE)
             .then(
                 when {
@@ -465,13 +465,15 @@ internal fun ChoiceCard(
         modifier = modifier
             .fillMaxWidth()
             .heightIn(min = 56.dp)
-            .plateEdge(if (selected) PLATE_BRONZE else null)
             .semantics { stateDescription = if (selected) "Selected" else "Not selected" },
         onClick = onClick,
         contentPadding = PaddingValues(0.dp),
+        selected = selected,
     ) {
         Column(Modifier.padding(Spacing.md)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
+                SelectionMarkIcon(selected)
+                Spacer(Modifier.width(Spacing.sm))
                 Text(
                     title,
                     style = MaterialTheme.typography.titleSmall,

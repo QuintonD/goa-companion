@@ -72,6 +72,7 @@ import dev.quinton.goa.core.designsystem.component.ConfirmDialog
 import dev.quinton.goa.core.designsystem.component.GoaButton
 import dev.quinton.goa.core.designsystem.component.GoaCard
 import dev.quinton.goa.core.designsystem.component.GoaDialog
+import dev.quinton.goa.core.designsystem.component.GoaOutlinedButton
 import dev.quinton.goa.core.designsystem.component.GoaScreen
 import dev.quinton.goa.core.designsystem.component.PlayerAvatar
 import dev.quinton.goa.core.designsystem.component.SectionHeader
@@ -220,7 +221,7 @@ private fun NoGroup(state: GroupUiState, actions: GroupActions, padding: Padding
                 modifier = Modifier.fillMaxWidth(),
             )
             Spacer(Modifier.size(Spacing.sm))
-            OutlinedButton(
+            GoaOutlinedButton(
                 onClick = { actions.onStart(name) },
                 enabled = name.isNotBlank(),
                 modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp),
@@ -446,10 +447,10 @@ private fun PasteInvite(invite: String, onInvite: (String) -> Unit, error: Strin
             keyboardActions = KeyboardActions(onGo = { onJoin() }),
             modifier = Modifier.fillMaxWidth().onFocusChanged { focused = it.isFocused },
         )
-        TextButton(
+        GoaOutlinedButton(
             onClick = onJoin,
             enabled = invite.isNotBlank(),
-            modifier = Modifier.heightIn(min = 48.dp),
+            modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp),
         ) { Text("Join") }
     }
 }

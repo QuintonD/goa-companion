@@ -44,6 +44,7 @@ import dev.quinton.goa.core.designsystem.component.EmptyState
 import dev.quinton.goa.core.designsystem.component.GoaPlate
 import dev.quinton.goa.core.designsystem.component.GoaScreen
 import dev.quinton.goa.core.designsystem.component.scaledIconSize
+import dev.quinton.goa.core.designsystem.theme.GoaTextStyles
 import dev.quinton.goa.core.designsystem.theme.GoaTheme
 import dev.quinton.goa.core.designsystem.theme.Spacing
 import dev.quinton.goa.feature.board.play.online.leaderboard.LeaderboardRowUi
@@ -187,6 +188,6 @@ private fun BoardRow(row: LeaderboardRowUi) {
             )
         }
         Spacer(Modifier.width(Spacing.sm))
-        Text(row.rating.toString(), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+        Text(row.rating.toString(), style = GoaTextStyles.score)
     }
 }

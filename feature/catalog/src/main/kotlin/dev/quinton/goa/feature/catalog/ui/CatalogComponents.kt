@@ -21,6 +21,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SelectableChipColors
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.ReadOnlyComposable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -119,8 +120,9 @@ fun InitiativeBadge(initiative: Int?, modifier: Modifier = Modifier, accent: Col
 }
 
 /**
- * The filter and sort chips: small steel plates, opaque so they read the same on the canvas of either
- * theme and on a sheet (use them under `GoaPlateTheme`); selected is bronze and carries its check or count.
+ * The filter and sort chips: small steel plates, opaque so they read the same on the canvas and on a
+ * sheet (use them under `GoaPlateTheme`): steel on the slate, paper in the light theme; selected is bronze
+ * with its check or count.
  */
 @Composable
 fun goaFilterChipColors(): SelectableChipColors = FilterChipDefaults.filterChipColors(
@@ -156,6 +158,11 @@ fun goaInputChipBorder(): BorderStroke = InputChipDefaults.inputChipBorder(
     selectedBorderColor = MaterialTheme.colorScheme.primary,
 )
 
-private val CHIP_STEEL = Color(0xFF2B363E)
-private val CHIP_BRONZE = Color(0xFF4A3D22)
+// Steel and bronze on the slate; the light theme's paper and a bronze tint on the page.
+private val CHIP_STEEL: Color
+    @Composable @ReadOnlyComposable
+    get() = if (GoaTheme.isDark) Color(0xFF2B363E) else GoaTheme.colors.plate
+private val CHIP_BRONZE: Color
+    @Composable @ReadOnlyComposable
+    get() = if (GoaTheme.isDark) Color(0xFF4A3D22) else Color(0xFFF0E3C6)
 private val CHIP_EDGE = Color(0xFF5D6B70)

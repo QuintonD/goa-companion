@@ -49,6 +49,7 @@ import androidx.compose.ui.window.DialogProperties
 import dev.quinton.goa.core.designsystem.component.GoaCard
 import dev.quinton.goa.core.designsystem.component.GoaDialog
 import dev.quinton.goa.core.designsystem.component.GoaScreen
+import dev.quinton.goa.core.designsystem.component.PlateStyle
 import dev.quinton.goa.core.designsystem.component.SectionHeader
 import dev.quinton.goa.core.designsystem.icon.GoaIcons
 import dev.quinton.goa.core.designsystem.theme.FontLicense
@@ -117,7 +118,7 @@ fun AboutScreen(info: AppInfo, onBack: () -> Unit, modifier: Modifier = Modifier
         ) {
             item { AboutHeader(info) }
             item {
-                GoaCard(Modifier.fillMaxWidth()) {
+                GoaCard(Modifier.fillMaxWidth(), style = PlateStyle.Secondary) {
                     Row(verticalAlignment = Alignment.Top) {
                         Icon(Icons.Outlined.Info, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
                         Spacer(Modifier.width(Spacing.md))
@@ -140,11 +141,12 @@ fun AboutScreen(info: AppInfo, onBack: () -> Unit, modifier: Modifier = Modifier
                         .fillMaxWidth()
                         .padding(top = Spacing.md),
                     contentPadding = PaddingValues(vertical = Spacing.sm),
+                    style = PlateStyle.Secondary,
                 ) { DonateRow() }
             }
             item { SectionHeader("Game content") }
             item {
-                GoaCard(Modifier.fillMaxWidth()) {
+                GoaCard(Modifier.fillMaxWidth(), style = PlateStyle.Secondary) {
                     Body(
                         "Guards of Atlantis II, its heroes, card text, card images and artwork are by " +
                             "Wolff Designa. They appear here for non-commercial play by fans of the game.",
@@ -159,7 +161,7 @@ fun AboutScreen(info: AppInfo, onBack: () -> Unit, modifier: Modifier = Modifier
             }
             item { SectionHeader("Data sources") }
             item {
-                GoaCard(Modifier.fillMaxWidth()) {
+                GoaCard(Modifier.fillMaxWidth(), style = PlateStyle.Secondary) {
                     Body("Thanks to these community projects, whose published data helped build and check the catalog:")
                     DataSourceCredits.forEach { (name, what) ->
                         Spacer(Modifier.size(Spacing.sm))
@@ -170,13 +172,17 @@ fun AboutScreen(info: AppInfo, onBack: () -> Unit, modifier: Modifier = Modifier
             }
             item { SectionHeader("Original artwork") }
             item {
-                GoaCard(Modifier.fillMaxWidth()) {
+                GoaCard(Modifier.fillMaxWidth(), style = PlateStyle.Secondary) {
                     Body("Hero sigils, player crests, icons and the app icon were drawn for this app.")
                 }
             }
             item { SectionHeader("Fonts") }
             item {
-                GoaCard(Modifier.fillMaxWidth(), contentPadding = PaddingValues(vertical = Spacing.sm)) {
+                GoaCard(
+                    Modifier.fillMaxWidth(),
+                    style = PlateStyle.Secondary,
+                    contentPadding = PaddingValues(vertical = Spacing.sm),
+                ) {
                     GoaFontLicenses.forEach { font ->
                         FontRow(font) { openLicense = font.family }
                     }

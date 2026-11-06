@@ -107,7 +107,6 @@ import dev.quinton.goa.core.designsystem.component.GoaPlateTheme
 import dev.quinton.goa.core.designsystem.component.GoaScreen
 import dev.quinton.goa.core.designsystem.component.HeroPortrait
 import dev.quinton.goa.core.designsystem.component.LARGE_FONT_SCALE
-import dev.quinton.goa.core.designsystem.component.PlateGround
 import dev.quinton.goa.core.designsystem.component.TeamMark
 import dev.quinton.goa.core.designsystem.component.TitlePlate
 import dev.quinton.goa.core.designsystem.component.teamColor
@@ -581,8 +580,8 @@ private fun PoolHeader(left: Int, total: Int, filters: PoolFilters, searchable: 
                     keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
                     keyboardActions = KeyboardActions(onSearch = { keyboard?.hide() }),
                     colors = OutlinedTextFieldDefaults.colors(
-                        focusedContainerColor = PlateGround,
-                        unfocusedContainerColor = PlateGround,
+                        focusedContainerColor = GoaTheme.colors.plate,
+                        unfocusedContainerColor = GoaTheme.colors.plate,
                         unfocusedBorderColor = SEARCH_EDGE,
                     ),
                     modifier = Modifier.fillMaxWidth(),
@@ -645,7 +644,7 @@ private fun TakenChip(hero: HeroInfo, state: TileState, onClick: () -> Unit) {
         Surface(
             onClick = onClick,
             shape = RoundedCornerShape(6.dp),
-            color = PlateGround,
+            color = GoaTheme.colors.plate,
             border = BorderStroke(1.dp, color.copy(alpha = if (banned) 0.5f else 0.9f)),
             modifier = Modifier
                 .heightIn(min = 48.dp)

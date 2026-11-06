@@ -43,6 +43,7 @@ import androidx.compose.ui.unit.dp
 import dev.quinton.goa.core.designsystem.component.EmptyState
 import dev.quinton.goa.core.designsystem.component.GoaButton
 import dev.quinton.goa.core.designsystem.component.PlayerAvatar
+import dev.quinton.goa.core.designsystem.theme.GoaTextStyles
 import dev.quinton.goa.core.designsystem.theme.Spacing
 import dev.quinton.goa.feature.players.common.DeltaIndicator
 import dev.quinton.goa.feature.players.common.EngravedCard
@@ -208,7 +209,7 @@ private fun LeaderboardRowItem(row: LeaderboardRow, onClick: () -> Unit, archive
             Column(horizontalAlignment = Alignment.End, modifier = Modifier.padding(start = Spacing.sm)) {
                 Text(
                     formatRating(rating.value),
-                    style = MaterialTheme.typography.titleLarge,
+                    style = GoaTextStyles.scoreMedium,
                     fontWeight = FontWeight.SemiBold,
                     color = if (row.rank == 1) {
                         MaterialTheme.colorScheme.primary

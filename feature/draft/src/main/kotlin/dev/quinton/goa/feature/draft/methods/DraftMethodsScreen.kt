@@ -45,6 +45,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dev.quinton.goa.core.designsystem.component.GoaDialog
 import dev.quinton.goa.core.designsystem.component.GoaPlate
 import dev.quinton.goa.core.designsystem.component.GoaScreen
+import dev.quinton.goa.core.designsystem.component.SectionHeader
 import dev.quinton.goa.core.designsystem.theme.Spacing
 import dev.quinton.goa.feature.draft.ui.PLATE_BRONZE
 import dev.quinton.goa.feature.draft.ui.SequenceStrip
@@ -172,16 +173,6 @@ fun DraftMethodsScreen(state: MethodsUiState, actions: MethodsActions) {
             dismissButton = { TextButton(onClick = { deleting = null }) { Text("Cancel") } },
         )
     }
-}
-
-@Composable
-private fun SectionHeader(text: String) {
-    Text(
-        text,
-        style = MaterialTheme.typography.titleLarge,
-        color = MaterialTheme.colorScheme.primary,
-        modifier = Modifier.padding(top = Spacing.sm).semantics { heading() },
-    )
 }
 
 @Composable

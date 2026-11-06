@@ -76,6 +76,7 @@ import dev.quinton.goa.core.designsystem.component.GoaDialog
 import dev.quinton.goa.core.designsystem.component.GoaPlateTheme
 import dev.quinton.goa.core.designsystem.component.GoaScreen
 import dev.quinton.goa.core.designsystem.component.HeroPortrait
+import dev.quinton.goa.core.designsystem.component.SectionHeader
 import dev.quinton.goa.core.designsystem.component.TeamMark
 import dev.quinton.goa.core.designsystem.component.UnverifiedBadge
 import dev.quinton.goa.core.designsystem.component.teamColor
@@ -463,12 +464,7 @@ private fun OptionsStep(
 @Composable
 private fun Section(title: String, content: @Composable () -> Unit) {
     Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-        Text(
-            title.uppercase(),
-            style = GoaTextStyles.overline,
-            color = MaterialTheme.colorScheme.primary,
-            modifier = Modifier.semantics { heading() },
-        )
+        SectionHeader(title, Modifier.padding(bottom = 0.dp))
         content()
     }
 }
@@ -513,9 +509,13 @@ private fun ControlRow(
         is Control.Hero -> if (control.heroId in state.red) Team.RED else Team.BLUE
     }
     PlateSurface(
-        tint = if (selected) teamColor(team).copy(alpha = 0.08f) else Color.Transparent,
-        brackets = true,
-        border = if (selected) BorderStroke(2.dp, teamColor(team)) else null,
+        // One selected look on every screen: bronze. The team shows in the portraits' rings.
+        tint = if (selected) GoaTheme.colors.selectionFill else Color.Transparent,
+        border = if (selected) {
+            BorderStroke(2.dp, GoaTheme.colors.selection)
+        } else {
+            BorderStroke(1.dp, MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.28f))
+        },
         modifier = Modifier
             .fillMaxWidth()
             .heightIn(min = 56.dp)

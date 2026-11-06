@@ -48,6 +48,7 @@ import dev.quinton.goa.core.designsystem.component.PlateShape
 import dev.quinton.goa.core.designsystem.component.TeamMark
 import dev.quinton.goa.core.designsystem.component.slatePlate
 import dev.quinton.goa.core.designsystem.theme.GoaTextStyles
+import dev.quinton.goa.core.designsystem.theme.GoaTheme
 import dev.quinton.goa.core.model.board.MinionPiece
 import dev.quinton.goa.core.model.match.Team
 
@@ -99,7 +100,12 @@ internal fun PlateSurface(
 }
 
 /** A recess on a plate, for what groups a few lines (a flow entry, a moment's recap): the slate shows through. */
-internal val PlateWell: Color = Color.Black.copy(alpha = 0.26f)
+internal val PlateWell: Color
+    @Composable @ReadOnlyComposable
+    get() = if (GoaTheme.isDark) Color.Black.copy(alpha = 0.26f) else LIGHT_WELL
+
+/** The light theme's well: the paper a shade deeper, not grey. */
+private val LIGHT_WELL = Color(0x1F6A5634)
 
 /** The mock-ups' two buttons on a plate: gold for the answer, steel for the rest. */
 internal enum class PlateTone(val brush: Brush, val content: Color) {

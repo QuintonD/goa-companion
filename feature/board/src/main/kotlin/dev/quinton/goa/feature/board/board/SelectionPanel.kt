@@ -64,7 +64,6 @@ import dev.quinton.goa.core.designsystem.cardtext.CardTextView
 import dev.quinton.goa.core.designsystem.cardtext.GameIcon
 import dev.quinton.goa.core.designsystem.cardtext.GameIcons
 import dev.quinton.goa.core.designsystem.component.CardColorDot
-import dev.quinton.goa.core.designsystem.component.PlateGround
 import dev.quinton.goa.core.designsystem.component.UnverifiedBadge
 import dev.quinton.goa.core.designsystem.component.cardColor
 import dev.quinton.goa.core.designsystem.component.cardColorName
@@ -423,7 +422,7 @@ private fun CardStrip(cards: List<Card>, selectedId: String?, onSelect: (String?
         val index = cards.indexOfFirst { it.id == selectedId }
         if (index > 0) listState.animateScrollToItem(index - 1)
     }
-    val fade = PlateGround
+    val fade = GoaTheme.colors.plate
     LazyRow(
         state = listState,
         horizontalArrangement = Arrangement.spacedBy(Spacing.sm),

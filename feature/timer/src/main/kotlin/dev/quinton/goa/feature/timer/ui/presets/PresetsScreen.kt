@@ -128,10 +128,10 @@ private fun PresetRow(preset: PresetOption, selected: Boolean, canDelete: Boolea
     GoaPlate(
         Modifier
             .fillMaxWidth()
-            .plateEdge(if (selected) PlateTeal else null)
             .clip(PlateShape)
             .selectable(selected = selected, onClick = { actions.onSelect(preset.id) }, role = Role.RadioButton),
         contentPadding = PaddingValues(0.dp),
+        selected = selected,
     ) {
         val colors = MaterialTheme.colorScheme
         Row(

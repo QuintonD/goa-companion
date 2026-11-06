@@ -52,6 +52,7 @@ import dev.quinton.goa.core.designsystem.component.SectionHeader as RulebookSect
 import dev.quinton.goa.core.designsystem.component.TeamMark
 import dev.quinton.goa.core.designsystem.component.slatePlate
 import dev.quinton.goa.core.designsystem.component.teamColor
+import dev.quinton.goa.core.designsystem.theme.GoaTextStyles
 import dev.quinton.goa.core.designsystem.theme.GoaTheme
 import dev.quinton.goa.core.designsystem.theme.Spacing
 import dev.quinton.goa.core.model.match.MatchStatus
@@ -182,11 +183,11 @@ private fun StatTileContent(value: String, caption: String, modifier: Modifier) 
         // Shrinks to fit rather than truncating ("69–38", not "69–…").
         BasicText(
             value,
-            style = MaterialTheme.typography.titleLarge.copy(color = MaterialTheme.colorScheme.onSurface),
+            style = GoaTextStyles.scoreMedium.copy(color = MaterialTheme.colorScheme.onSurface),
             maxLines = 1,
             autoSize = TextAutoSize.StepBased(
                 minFontSize = 12.sp,
-                maxFontSize = MaterialTheme.typography.titleLarge.fontSize,
+                maxFontSize = GoaTextStyles.scoreMedium.fontSize,
             ),
         )
         Text(

@@ -45,10 +45,10 @@ import dev.quinton.goa.core.designsystem.component.GoaCard
 import dev.quinton.goa.core.designsystem.component.GoaPlate
 import dev.quinton.goa.core.designsystem.component.GoaPlateTheme
 import dev.quinton.goa.core.designsystem.component.GoaScreen
-import dev.quinton.goa.core.designsystem.component.PlateGround
 import dev.quinton.goa.core.designsystem.component.SectionHeader
 import dev.quinton.goa.core.designsystem.component.scaledIconSize
 import dev.quinton.goa.core.designsystem.theme.GoaTextStyles
+import dev.quinton.goa.core.designsystem.theme.GoaTheme
 import dev.quinton.goa.core.designsystem.theme.Spacing
 import dev.quinton.goa.core.domain.rules.RulesText
 import dev.quinton.goa.feature.rules.RulesUiState
@@ -157,8 +157,8 @@ private fun SearchField(query: String, onQueryChange: (String) -> Unit) {
             keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
             shape = CircleShape,
             colors = OutlinedTextFieldDefaults.colors(
-                focusedContainerColor = PlateGround,
-                unfocusedContainerColor = PlateGround,
+                focusedContainerColor = GoaTheme.colors.plate,
+                unfocusedContainerColor = GoaTheme.colors.plate,
                 unfocusedBorderColor = SEARCH_EDGE,
             ),
         )

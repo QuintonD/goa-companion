@@ -59,6 +59,7 @@ import dev.quinton.goa.core.designsystem.component.GoaDialog
 import dev.quinton.goa.core.designsystem.component.GoaPlate
 import dev.quinton.goa.core.designsystem.component.GoaScreen
 import dev.quinton.goa.core.designsystem.component.PlateColor
+import dev.quinton.goa.core.designsystem.component.SectionHeader
 import dev.quinton.goa.core.designsystem.component.scaledIconSize
 import dev.quinton.goa.core.designsystem.theme.GoaTextStyles
 import dev.quinton.goa.core.designsystem.theme.Spacing
@@ -146,12 +147,7 @@ private fun Message(text: String) {
 
 @Composable
 internal fun OnlineSection(title: String) {
-    Text(
-        title.uppercase(),
-        style = GoaTextStyles.overline,
-        color = MaterialTheme.colorScheme.primary,
-        modifier = Modifier.semantics { heading() },
-    )
+    SectionHeader(title, Modifier.padding(top = Spacing.xs, bottom = 0.dp))
 }
 
 @Composable

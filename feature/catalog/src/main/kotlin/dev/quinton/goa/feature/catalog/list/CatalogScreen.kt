@@ -88,7 +88,6 @@ import dev.quinton.goa.core.designsystem.component.GoaPlate
 import dev.quinton.goa.core.designsystem.component.GoaPlateTheme
 import dev.quinton.goa.core.designsystem.component.GoaScreen
 import dev.quinton.goa.core.designsystem.component.GoaSheet
-import dev.quinton.goa.core.designsystem.component.PlateGround
 import dev.quinton.goa.core.designsystem.component.SettingsActionButton
 import dev.quinton.goa.core.designsystem.theme.GoaTextStyles
 import dev.quinton.goa.core.designsystem.theme.GoaTheme
@@ -265,7 +264,7 @@ private fun NoResults(state: CatalogUiState.Ready, query: String, onAction: (Cat
 @Composable
 private fun SearchField(query: String, onQueryChange: (String) -> Unit) {
     val focus = LocalFocusManager.current
-    // A dark steel slot in both themes, like the plates and the banner above it.
+    // The slot on the plate: the slate, or the light theme paper, under the banner.
     GoaPlateTheme {
         OutlinedTextField(
             value = query,
@@ -288,8 +287,8 @@ private fun SearchField(query: String, onQueryChange: (String) -> Unit) {
             keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
             keyboardActions = KeyboardActions(onSearch = { focus.clearFocus() }),
             colors = OutlinedTextFieldDefaults.colors(
-                focusedContainerColor = PlateGround,
-                unfocusedContainerColor = PlateGround,
+                focusedContainerColor = GoaTheme.colors.plate,
+                unfocusedContainerColor = GoaTheme.colors.plate,
                 unfocusedBorderColor = SEARCH_EDGE,
             ),
         )
@@ -487,7 +486,7 @@ private fun LoadingGrid() {
         animationSpec = infiniteRepeatable(tween(PULSE_MS), RepeatMode.Reverse),
         label = "skeletonAlpha",
     )
-    val tint = PlateGround
+    val tint = GoaTheme.colors.plate
     Column(Modifier.semantics { contentDescription = "Loading heroes" }) {
         Box(
             Modifier

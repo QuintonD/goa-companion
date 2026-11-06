@@ -80,7 +80,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import dev.quinton.goa.core.designsystem.component.ConfirmDialog
 import dev.quinton.goa.core.designsystem.component.EmptyState
-import dev.quinton.goa.core.designsystem.component.GoaPlateTheme
+import dev.quinton.goa.core.designsystem.component.GoaDarkTheme
 import dev.quinton.goa.core.designsystem.component.UnverifiedBadge
 import dev.quinton.goa.core.designsystem.component.scaledIconSize
 import dev.quinton.goa.core.designsystem.component.slatePlate
@@ -520,7 +520,7 @@ private fun placeLabel(state: BoardUiState.Ready, piece: NewPiece): String = whe
 /** A round button floating over the map (Fit, Flip): shared by the sandbox and the game table. */
 @Composable
 internal fun MapButton(icon: ImageVector, description: String, onClick: () -> Unit) {
-    GoaPlateTheme {
+    GoaDarkTheme {
         FilledTonalIconButton(
             onClick = onClick,
             colors = IconButtonDefaults.filledTonalIconButtonColors(

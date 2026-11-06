@@ -103,9 +103,9 @@ import dev.quinton.goa.core.designsystem.component.BannerEndSpacer
 import dev.quinton.goa.core.designsystem.component.BannerMedallionWidth
 import dev.quinton.goa.core.designsystem.component.BevelText
 import dev.quinton.goa.core.designsystem.component.GoaButton
+import dev.quinton.goa.core.designsystem.component.GoaDarkTheme
 import dev.quinton.goa.core.designsystem.component.GoaDialog
 import dev.quinton.goa.core.designsystem.component.GoaPlate
-import dev.quinton.goa.core.designsystem.component.GoaPlateTheme
 import dev.quinton.goa.core.designsystem.component.LARGE_FONT_SCALE
 import dev.quinton.goa.core.designsystem.component.MetalButton
 import dev.quinton.goa.core.designsystem.component.PlateShape
@@ -139,7 +139,7 @@ internal fun ActiveTimer(state: ActiveUiState, actions: TimerActions) {
         onTogglePause = actions.onTogglePause,
     ) {
         // Dark in both themes: the dim sea, so the running timer never lights up a dim room.
-        GoaPlateTheme {
+        GoaDarkTheme {
             Box(Modifier.fillMaxSize()) {
                 val round = state.layout == TimerLayout.ROUND
                 TimerBackdrop(silhouette = !round)

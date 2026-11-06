@@ -90,6 +90,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dev.quinton.goa.core.designsystem.component.ConfirmDialog
 import dev.quinton.goa.core.designsystem.component.EmptyState
 import dev.quinton.goa.core.designsystem.component.GoaButton
+import dev.quinton.goa.core.designsystem.component.GoaFilterChip
 import dev.quinton.goa.core.designsystem.component.GoaPlate
 import dev.quinton.goa.core.designsystem.component.GoaScreen
 import dev.quinton.goa.core.designsystem.component.GoaSheet
@@ -726,11 +727,10 @@ private fun DoublePilotPicker(state: SetupUiState, actions: SetupActions) {
         Text("Who pilots two heroes?", style = MaterialTheme.typography.labelLarge)
         FlowRow(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
             smaller.forEach { id ->
-                FilterChip(
-                    colors = goaFilterChipColors(),
+                GoaFilterChip(
                     selected = id == current,
                     onClick = { actions.setDoublePilot(id) },
-                    label = { Text(state.player(id)?.player?.name ?: "Unknown") },
+                    label = state.player(id)?.player?.name ?: "Unknown",
                     modifier = Modifier.heightIn(min = 48.dp),
                 )
             }

@@ -99,7 +99,6 @@ internal fun TimerStart(state: StartUiState, actions: TimerActions) {
             item {
                 SectionHeader(
                     "Presets",
-                    ribbon = PlateColor.GOLD,
                     trailing = { TextButton(onClick = actions.onManagePresets) { Text("Manage") } },
                 )
             }
@@ -369,10 +368,10 @@ private fun PresetRadioCard(preset: PresetOption, selected: Boolean, onClick: ()
     GoaPlate(
         Modifier
             .fillMaxWidth()
-            .plateEdge(if (selected) PlateTeal else null)
             .clip(PlateShape)
             .selectable(selected = selected, onClick = onClick, role = Role.RadioButton),
         contentPadding = PaddingValues(0.dp),
+        selected = selected,
     ) {
         val colors = MaterialTheme.colorScheme
         Row(
