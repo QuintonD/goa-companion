@@ -143,10 +143,11 @@ fun DecisionPanel(
 
             layout == PanelLayout.CARDS -> CardPicker(table, onSelect, onAnswer, focus, busy)
 
-            // A phone sideways, short: every action in view, the card a thumbnail in the question's box.
+            // A phone sideways, short: every action in view beside a card still read at a glance.
             layout == PanelLayout.CARD_BESIDE && source != null && !hasBoardOptions(table) && shortSideways() -> {
-                CompactQuestion(source, decision, focus)
-                Choices(table, table.buttonOptions, onAnswer, busy, grid = true) { CastPreview(table, focus) }
+                CompactQuestion(source, decision, focus) {
+                    Choices(table, table.buttonOptions, onAnswer, busy, brief = true) { CastPreview(table, focus) }
+                }
                 NoteBox(PlateColor.of(source.color), table, decision, focus)
                 SpellReasonsIfNoPrimary(table)
             }
@@ -243,10 +244,18 @@ private fun QuestionBox(
     }
 }
 
-/** The question in one line beside the asking card's thumbnail (tap to read it), for a short side panel. */
+/**
+ * For a short side panel: the asking card at a size its printed numbers read at (tap to read it large), beside it
+ * the question and under that the [answers], compact.
+ */
 @Composable
-private fun CompactQuestion(card: Card, decision: Decision, focus: CardFocusState) {
-    Row(verticalAlignment = Alignment.CenterVertically) {
+private fun CompactQuestion(
+    card: Card,
+    decision: Decision,
+    focus: CardFocusState,
+    answers: @Composable ColumnScope.() -> Unit,
+) {
+    Row(verticalAlignment = Alignment.Top) {
         Surface(
             onClick = { focus.show(listOf(card), title = "Asked by") },
             shape = RoundedCornerShape(4.dp),
@@ -261,13 +270,16 @@ private fun CompactQuestion(card: Card, decision: Decision, focus: CardFocusStat
                         true
                     }
                 },
-        ) { TableCard(card, width = THUMB_IN_BOX) }
+        ) { TableCard(card, width = CARD_IN_SHORT_PANEL) }
         Spacer(Modifier.width(Spacing.sm))
-        Text(
-            decision.prompt,
-            style = MaterialTheme.typography.titleSmall,
-            modifier = Modifier.weight(1f).semantics { liveRegion = LiveRegionMode.Polite },
-        )
+        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
+            Text(
+                decision.prompt,
+                style = MaterialTheme.typography.titleSmall,
+                modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite },
+            )
+            answers()
+        }
     }
 }
 
@@ -665,26 +677,11 @@ private fun Choices(
     choices: List<Choice>,
     onAnswer: (Choice) -> Unit,
     busy: Boolean,
-    /** Actions two to a row (a short side panel), what follows the primary under them. */
-    grid: Boolean = false,
+    /** A short side panel: each action's rule only by its page (TalkBack still hears it whole). */
+    brief: Boolean = false,
     afterPrimary: @Composable () -> Unit = {},
 ) {
     if (choices.isEmpty()) return
-    if (grid && choices.all { it is Choice.Action }) {
-        FlowRow(
-            horizontalArrangement = Arrangement.spacedBy(Spacing.xs),
-            verticalArrangement = Arrangement.spacedBy(Spacing.xs),
-            maxItemsInEachRow = 2,
-        ) {
-            choices.filterIsInstance<Choice.Action>().forEach { choice ->
-                ActionChip(table, choice.action, busy, Modifier.weight(1f).fillMaxRowHeight(), brief = true) {
-                    onAnswer(choice)
-                }
-            }
-        }
-        afterPrimary()
-        return
-    }
     val numbers = choices.filterIsInstance<Choice.Number>()
     if (numbers.size == choices.size) {
         FlowRow(
@@ -708,7 +705,7 @@ private fun Choices(
         choices.forEach { choice ->
             when {
                 choice is Choice.Action -> {
-                    ActionChip(table, choice.action, busy) { onAnswer(choice) }
+                    ActionChip(table, choice.action, busy, brief = brief) { onAnswer(choice) }
                     if (choice.action == ActionType.PRIMARY) afterPrimary()
                 }
 
@@ -801,18 +798,16 @@ private fun ActionChip(
             Spacer(Modifier.width(Spacing.sm))
             Column(Modifier.weight(1f)) {
                 if (primary) Text("PRIMARY", style = GoaTextStyles.overline, color = content, maxLines = 1)
+                // Brief (a short side panel): the rule's page on the label's own line, "Fast Travel (p.11)".
+                val page = rule?.takeIf { brief }?.let { PAGE.find(it)?.value }
                 Text(
-                    label,
+                    if (page != null) "$label  $page" else label,
                     style = MaterialTheme.typography.titleSmall,
                     color = content,
                     fontWeight = FontWeight.SemiBold,
                 )
-                rule?.let {
-                    Text(
-                        if (brief && it.length > BRIEF_RULE) PAGE.find(it)?.value ?: it else it,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = content,
-                    )
+                if (page == null) {
+                    rule?.let { Text(it, style = MaterialTheme.typography.bodySmall, color = content) }
                 }
             }
         }
@@ -826,11 +821,10 @@ private val OPTION_MARKER = 36.dp
 private const val BESIDE_SHARE = 0.28f
 private val SPELL_BESIDE = 96.dp
 private const val LARGE_TEXT = 1.3f
-private val THUMB_IN_BOX = 36.dp
-private const val BRIEF_RULE = 24
+private val CARD_IN_SHORT_PANEL = 64.dp
 private val PAGE = Regex("\\(p\\.\\d+\\)$")
 
-/** A phone held sideways with little height: the asking card shrinks to a thumbnail, the actions go two to a row. */
+/** A phone held sideways with little height: the asking card beside compact actions, every one in view. */
 @Composable
 private fun shortSideways(): Boolean = isLandscape() && LocalConfiguration.current.screenHeightDp < SHORT_LANDSCAPE_DP
 

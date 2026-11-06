@@ -416,8 +416,21 @@ private fun MovementRules(settings: OverlaySettings, onAction: (BoardAction) -> 
  * chosen card scrolls into view with the card before it still showing, and a fade at either edge
  * says there are more cards that way.
  */
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun CardStrip(cards: List<Card>, selectedId: String?, onSelect: (String?) -> Unit) {
+    val toggle: (Card) -> Unit = { card -> onSelect(if (card.id == selectedId) null else card.id) }
+    // Large text: the chips wrap onto rows, every name whole and none cut at the screen's edge.
+    if (LocalDensity.current.fontScale > WRAP_SCALE) {
+        FlowRow(
+            Modifier.fillMaxWidth().padding(vertical = Spacing.xs),
+            horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+            verticalArrangement = Arrangement.spacedBy(Spacing.sm),
+        ) {
+            cards.forEach { card -> CardChip(card, selected = card.id == selectedId, onClick = { toggle(card) }) }
+        }
+        return
+    }
     val listState = rememberLazyListState()
     LaunchedEffect(selectedId) {
         val index = cards.indexOfFirst { it.id == selectedId }
@@ -524,6 +537,9 @@ private fun CardChip(card: Card, selected: Boolean, onClick: () -> Unit) {
 
 /** How much wider a card chip may grow with the font scale. */
 private const val CHIP_GROWTH = 1.5f
+
+/** From this font scale the card chips wrap rather than scroll. */
+private const val WRAP_SCALE = 1.3f
 
 /** Initiative and printed values of the chosen card, as printed ("Movement 4", "Range 1+"). */
 @OptIn(ExperimentalLayoutApi::class)

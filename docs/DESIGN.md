@@ -45,7 +45,7 @@ against the art itself: the slate at its lightest 1 %, the parchment at its dark
 **The board** (`feature/board/map/MapLayers.kt` `PaintedMap`; web `play/map/`): replaces the zone fills, water and terrain described under "Board (sandbox)"
 when a map has `art` (all four do); the drawn map stays as the fallback while loading.
 - The painting sits under the hexes; its own edge is `art.sea`, one dark sea on all four maps (dimmed, it is the canvas), so it has no visible edge in any rotation. The Battle Zone is full colour, the rest dimmed (brightness about .58, saturation
-  .5), with a thick white edge on a dark halo; rocks enclosed by it are lit and not outlined. Zone labels are bevelled words on a slate pill (80 %), set clear of every piece (a miniature stands a space tall above its own).
+  .5), with a thick white edge on a dark halo; rocks enclosed by it are lit and not outlined. Zone labels are bevelled words on a slate pill (80 %), set clear of every piece (a miniature stands a space tall above its own). A Battle Zone's label is never hidden: with no free place outside the Zone it takes the free spot nearest the Zone along its edges or the view's top and bottom edge (over a little empty map, never a piece).
 - **Spaces a question offers take the light** (`MapLighting`): lit, white-edged, numbered in small dark chips, the chosen one bronze; the Battle Zone keeps a thin line
   meanwhile. Occupied spaces you can't end on stay dark. Range and Radius stay patterns. Overlays use `ArtBoardPalette`, the same in both themes, each with a dark halo.
 - **Board style** (Settings → Appearance; `LocalBoardStyle`): Miniatures, or Grid and discs (hex hairlines, discs with the type's glyph). Miniatures stand on a team-coloured base
@@ -326,7 +326,7 @@ Red/Blue Throne) float at a fixed size outside the zoom, so they stay readable; 
 outside their Zone's edge, under every piece and overlay, and take the first of their places that
 is in view and covers no piece, highlighted space, Measure line or map button (on the game table the
 Fit / Flip / Spellbook column as laid out, under the hero strip and grown with the font scale); with
-none free they hide. **Spawn points** are the rulebook's printed symbols (p.6, `rememberSpawnArt`), drawn as markings on
+none free a Throne label hides, a Battle Zone's takes the nearest free spot (see the painted board above). **Spawn points** are the rulebook's printed symbols (p.6, `rememberSpawnArt`), drawn as markings on
 the board, never as units: faded (50 %) and partly desaturated toward the Zone fill, 1.0 u across,
 inside a piece's disc, so a minion or hero standing on one hides it completely (an occupied Spawn
 point shows only its piece) and the pieces stay the most prominent thing on any space. A hero Spawn
@@ -355,7 +355,7 @@ Unverified badge; when the panel closes the map fills its place again (no band o
 push brings the new Battle Zone into view. "Fit" shows the whole map and turns into "Zoom to the
 lane". Each space's TalkBack node is a square inside its hex (1.46 map units, so neighbours never
 overlap and Android keeps each node whole). The card strip starts one card before the chosen card
-and fades at an edge with more cards beyond. **New board** fits a 384 dp phone without scrolling:
+and fades at an edge with more cards beyond; from font scale 1.3 its chips wrap onto rows instead, every name whole. **New board** fits a 384 dp phone without scrolling:
 one slot on top holds the latest draft's or match's line-up (a card with Set up) until the first
 pick, then the teams (pick chips sharing the row, "Next pick" spelled out on an empty team, the
 border and the switch otherwise); search with a segmented Red | Blue switch beside it (under it at
@@ -376,7 +376,8 @@ acting hero's space is outlined in bronze with a bronze **"NOW"** tag over its p
 outside the zoom; TalkBack hears "acting now" on the space); an immune minion is ringed with a dashed
 teal circle (TalkBack: "immune"). Map taps select, a **Confirm** button with the choice spelled out
 ("Confirm · Lane Zone 3 · 3 spaces from Wasp") answers. While the person's question lights the map a **map key**
-(`MapKey`, a small slate plate at the map's foot above the panel, its height kept out of the framed area) names
+(`MapKey`, a small plate under the round at a glance and the turn track, inside what the map frames below, so it
+covers no piece) names
 each mark with its own swatch: "You can choose" (a lit, white-edged hex), "Spaces to get there" (the dark number
 chip), "In range" (the violet outline), "Your path" (the bronze line); only what the map shows now. TalkBack: one line.
 **Title:** "Round 2 · Turn 3" in full on every screen; on a phone upright the game-state review moves into More so
@@ -404,7 +405,8 @@ one chip per hero in acting order (the heroes done, in the order they acted, the
 the later ones, then passes), read at arm's length rather than as card thumbnails: the hero's portrait
 in its team ring (34 dp; the mark at its foot, the action chosen as the game's icon at its head,
 crossed out while off the board), the initiative as it counts in 21 sp figures ("=11" in teal while
-tied with another hero still to act), the name always (12 sp), and the state in a word on a band across
+tied with another hero still to act), the name always (12 sp), the card played by name under it (10.5 sp, cut
+with an ellipsis past 84 dp; "Facedown" for a card resolved facedown), and the state in a word on a band across
 the chip's foot: **DONE** with a tick (the chip stepped back to 55 %), **NOW** (bronze band, bronze 2 dp
 border), **NEXT** (teal band and border), **PASS**, **OUT**; a hero still to act has an empty band;
 never colour alone. The chips share the width and scroll when they don't fit. A tap opens the card
@@ -419,14 +421,14 @@ coin's side and who flips it; passes) until the first hero chooses an action; "T
 that turn's cards on their slots while the next turn's cards are played; "END OF ROUND 1" with the
 p.8 steps; "ROUND 1 IS OVER · Red won the push · Arien reached level 2". With the panel hidden and
 the computer acting, the peek bar says the reveal ("All cards revealed · Wasp acts first …").
-**Panel** (bottom, max 46 % in portrait so the map stays readable; right side in landscape; hides to its peek bar, see
+**Panel** (bottom, max 48 % in portrait so the map stays readable; right side in landscape; hides to its peek bar, see
 **Board screens' frame**): the header names the deciding hero and the kind in the team's colour
 ("◆ ARIEN · ACTION"), then the prompt in titleMedium (a live region). The decision comes first: the
 instruction and the legal choices, the card a reminder beside them. A question asked by a card
 shows **the card beside its answers**: 28 % of the panel wide (84–108 dp; a landscape spell goes above them) for
 buttons, 72 dp beside a board question's tap hint and Confirm; tap it to read it. Sideways under 480 dp tall the
-actions must all be in view: the card is a 36 dp thumbnail beside the question on one line, the action chips go two
-to a row, and a long rule shows only its page on the chip ("Fast Travel (p.11)"; TalkBack hears it whole).
+actions must all be in view: the card is 64 dp (its printed numbers read; tap it to read it large), beside it the
+question and the action chips, each rule shown only by its page ("Fast Travel (p.11)"; TalkBack hears it whole).
 **Actions** are compact chips beside the card: the game's icon and the value the card prints
 ("Attack 6", "Movement 4"; the primary filled primaryContainer with "PRIMARY" above and "Its text applies (p.7)" under), only the rules
 no card prints in a few words with the page (Fast Travel "To your Zone or an adjacent one, no enemy
@@ -462,11 +464,13 @@ round summary) come after it, and a new question opens the panel at its top. **D
 header with the attacker's card (56 dp, tap to read), "Arien attacks · melee", the Attack total, the
 minion modifier counted and "Discard a card to defend" (it carries the prompt for TalkBack), then the
 hand's cards themselves with the verdict under each in words with an icon ("✓ Holds" teal, "! Falls"
-red, "Decided by its text" grey) and the Defense total as it counts with a shield; "Don't defend" is a row
-chosen the same way. What is chosen shows its **outcome** above the button, from the engine's numbers only:
-the verdict in words ("Falls: the attack succeeds (p.14).") and how the total is made ("Defense 3 = card 2 +
-minion 1 against Attack 6"; items, the minion modifier, and whatever else the engine counted as "effects");
-for a card whose text decides, that text verbatim and the attack it meets ("This is a melee attack, Attack 6."). Declines and Pass are outlined. With large
+red, "Decided by its text" grey) with the Defense total as it counts and a shield on the same line; "Don't
+defend" is a card-sized tile at the row's end (a block icon, "Keep your cards (p.14)"), chosen the same way. The
+whole decision is in view at 100 % on a 411 dp phone: the row, then one or two lines of **outcome** for what is
+chosen, from the engine's numbers only ("Falls: the attack succeeds (p.14) · Defense 3 = card 2 +
+minion 1 against Attack 6"; items, the minion modifier, and whatever else the engine counted as "effects"; for a
+card whose text decides, that text verbatim and the attack it meets, "This is a melee attack, Attack 6."), then
+the button ("Tap a card to defend with, or Don't defend" until something is chosen). Declines and Pass are outlined. With large
 text the asking card goes above the answers. The computer's move shows its portrait, band and strength
 ("COMPUTER · HARD 7") and prompt
 and the card it resolves (56 dp, tap to read), a linear progress bar once it is "thinking…".

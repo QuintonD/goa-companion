@@ -71,8 +71,8 @@ internal fun mapKeyItems(table: TableUi): List<MapKeyItem> {
 
 /**
  * The map's key while a question lights it (the board's own marks, a swatch each): "You can choose", "Spaces to get
- * there", "In range", "Your path". A small slate plate over the map's foot, never covering the options (the table
- * keeps them clear of it). TalkBack hears it as one line.
+ * there", "In range", "Your path". A small plate under the round at a glance and the turn track, where the map is
+ * framed below it, so it never covers a piece. TalkBack hears it as one line.
  */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable

@@ -319,6 +319,22 @@ private fun TrackChip(
                     overflow = TextOverflow.Ellipsis,
                     modifier = Modifier.padding(top = 1.dp),
                 )
+                // The card played, by name (the card itself is a tap away): which card each hero showed.
+                val played = firstCard?.name ?: if (first?.facedown == true) "Facedown" else null
+                played?.let {
+                    Text(
+                        it,
+                        style = MaterialTheme.typography.labelSmall.copy(
+                            fontSize = cappedSp(if (compact) 9f else 10.5f),
+                            lineHeight = cappedSp(if (compact) 11f else 13f),
+                            letterSpacing = 0.sp,
+                        ),
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.widthIn(max = if (compact) CARD_NAME_COMPACT else CARD_NAME),
+                    )
+                }
             }
             StateBand(slot.state, compact, Modifier.fillMaxWidth(), roomy = !compact)
         }
@@ -606,4 +622,6 @@ private const val MAX_NAME_SCALE = 1.3f
 private val CHIP_PORTRAIT = 34.dp
 private val CHIP_PORTRAIT_COMPACT = 26.dp
 private val CHIP_BADGE = 14.dp
+private val CARD_NAME = 84.dp
+private val CARD_NAME_COMPACT = 68.dp
 private const val STEPPED_ALPHA = 0.55f

@@ -145,16 +145,11 @@ fun GameTable(
             else -> TRACK_CARD_TALL
         }
 
-        // The map's key over the map's foot while a question lights it: the options are framed above it.
+        // The map's key while a question lights it, under the round at a glance and the track: the options are
+        // framed below it, so it never covers a piece.
         val keyItems = mapKeyItems(table)
-        var keyHeight by remember { mutableIntStateOf(0) }
-        LaunchedEffect(keyItems.isEmpty()) { if (keyItems.isEmpty()) keyHeight = 0 }
-        LaunchedEffect(cover, topHeight, keyHeight) {
-            viewport.updateInsets(
-                bottom = (cover.bottom + keyHeight).toFloat(),
-                end = cover.end.toFloat(),
-                top = topHeight.toFloat(),
-            )
+        LaunchedEffect(cover, topHeight) {
+            viewport.updateInsets(bottom = cover.bottom.toFloat(), end = cover.end.toFloat(), top = topHeight.toFloat())
         }
         FitWhileHidden(viewport, hidden)
         // Bring what is asked for into view: the options, the unit they are about, the highlights,
@@ -251,6 +246,7 @@ fun GameTable(
                         HeroStrip(table, onHero)
                     }
                 }
+                MapKey(keyItems)
             }
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
                 Box(Modifier.weight(1f)) { feed?.invoke() }
@@ -283,15 +279,6 @@ fun GameTable(
                 }
             }
         }
-
-        MapKey(
-            keyItems,
-            Modifier
-                .align(Alignment.BottomStart)
-                .padding(start = Spacing.sm, end = overlayEnd + Spacing.sm)
-                .padding(bottom = with(density) { cover.bottom.toDp() } + Spacing.sm)
-                .onSizeChanged { keyHeight = it.height + with(density) { Spacing.sm.roundToPx() } },
-        )
 
         HideablePanel(
             landscape = landscape,
@@ -439,4 +426,4 @@ private val ZONE_HEX_READ = 31.dp
 private const val SQRT3 = 1.7320508f
 private const val ZONE_MARGIN = 48f
 private const val SIDE_SHARE = 0.42f
-private const val PANEL_SHARE = 0.46f
+private const val PANEL_SHARE = 0.48f
