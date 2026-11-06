@@ -37,6 +37,22 @@ class SyncTextTest {
     }
 
     @Test
+    fun theHostCountsEachPhoneByStateAndNamesWhomSyncTakes() {
+        val bob = PeerProgress("1", "Bob", stage = PeerStage.READY)
+        val cid = PeerProgress("2", "Cid", stage = PeerStage.RECEIVING, progress = 0.6f)
+        val eve = PeerProgress("3", "Eve", stage = PeerStage.FAILED, failure = SyncFailure.WRONG_KEY)
+        val all = listOf(bob, cid, eve)
+        assertThat(SyncText.hostWaiting(all)).isEqualTo("1 ready · 1 sending its data · 1 needs a new invite")
+        // Sync waits for uploads still under way (SyncHost.merge), so Cid is in; Eve is not.
+        assertThat(SyncText.syncLabel(all)).isEqualTo("Sync with Bob and Cid")
+        assertThat(SyncText.hostWaitingHint(all)).isEqualTo("Sync waits for Cid's data. Eve isn't included.")
+        assertThat(SyncText.syncLabel(listOf(bob))).isEqualTo("Sync with Bob")
+        assertThat(SyncText.hostWaitingHint(listOf(bob))).isNull()
+        assertThat(SyncText.syncLabel(listOf(eve))).isEqualTo("Sync")
+        assertThat(SyncText.syncLabel(List(3) { bob.copy(linkId = "$it") })).isEqualTo("Sync 3 phones")
+    }
+
+    @Test
     fun lastSyncedIsShortAndHuman() {
         val now = 10_000_000_000L
         assertThat(SyncText.ago(now - 10_000, now)).isEqualTo("just now")
