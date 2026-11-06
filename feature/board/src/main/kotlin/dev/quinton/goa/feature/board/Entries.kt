@@ -26,6 +26,7 @@ import dev.quinton.goa.core.navigation.OnlineHomeRoute
 import dev.quinton.goa.core.navigation.PlayHomeRoute
 import dev.quinton.goa.core.navigation.PuzzleRoute
 import dev.quinton.goa.core.navigation.PuzzlesRoute
+import dev.quinton.goa.core.navigation.SettingsRoute
 import dev.quinton.goa.core.navigation.TriviaRoute
 import dev.quinton.goa.feature.board.board.BoardScreen
 import dev.quinton.goa.feature.board.board.BoardViewModel
@@ -65,6 +66,7 @@ fun EntryProviderScope<NavKey>.boardEntries(navigator: Navigator) {
                 onBoards = { navigator.navigate(BoardsRoute) },
                 onOnline = { navigator.navigate(OnlineHomeRoute()) },
                 onTrivia = { navigator.navigate(TriviaRoute()) },
+                onSettings = { navigator.navigate(SettingsRoute) },
             ),
         )
     }

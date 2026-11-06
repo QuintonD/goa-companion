@@ -241,7 +241,7 @@ on its root returns to where it was opened: More or the match log). **Top bars**
 labelled (TalkBack and a long-press tooltip, `BarIconButton`); with more actions the first stays and the rest go
 in a labelled overflow menu, "More options" (`BarActions`): Heroes shows the layout switch, then Rules and
 Settings in the menu; Players shows Group sync (its attention dot also on the menu button), then your player
-page, Share stats, Backup and Settings. The **Play tab** opens on the game in progress (Resume), then plates
+page, Share stats, Backup and Settings; Play keeps Settings (the board style is set there). The **Play tab** opens on the game in progress (Resume), then plates
 with painted scenes (the app's own art, `third_party/ASSETS.md`), the name engraved over the scene and the state
 in bronze: Play vs computer across the width, then Puzzles ("3 of 50 solved"), Board sandbox, Online and Card
 trivia two by two (one column at large text, four across in landscape); the scenes grow with the screen's height

@@ -19,6 +19,7 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import dev.quinton.goa.core.designsystem.component.GoaScreen
+import dev.quinton.goa.core.designsystem.component.SettingsActionButton
 import dev.quinton.goa.core.designsystem.theme.Spacing
 import dev.quinton.goa.feature.board.R
 
@@ -30,6 +31,8 @@ data class PlayHomeActions(
     val onBoards: () -> Unit = {},
     val onOnline: () -> Unit = {},
     val onTrivia: () -> Unit = {},
+    /** Settings: the board style matters on this tab. */
+    val onSettings: () -> Unit = {},
 )
 
 /**
@@ -41,7 +44,11 @@ data class PlayHomeActions(
 fun PlayHomeScreen(state: PlayHomeUiState, actions: PlayHomeActions, modifier: Modifier = Modifier) {
     val ready = state as? PlayHomeUiState.Ready
     val play = ready?.play ?: PlayHubUi(available = true)
-    GoaScreen(title = "Play", modifier = modifier) { padding ->
+    GoaScreen(
+        title = "Play",
+        modifier = modifier,
+        actions = { SettingsActionButton(actions.onSettings) },
+    ) { padding ->
         BoxWithConstraints(Modifier.fillMaxSize().padding(padding)) {
             val fontScale = LocalDensity.current.fontScale
             val columns = when {
@@ -97,7 +104,7 @@ fun PlayHomeScreen(state: PlayHomeUiState, actions: PlayHomeActions, modifier: M
                     Tile(
                         R.drawable.play_art_trivia,
                         "Card trivia",
-                        "A quiz on the numbers printed on every hero's cards.",
+                        "A quiz on the cards' numbers, with your group's leaderboard.",
                         onClick = actions.onTrivia,
                     ),
                 )
