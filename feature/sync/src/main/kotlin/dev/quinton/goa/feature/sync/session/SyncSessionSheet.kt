@@ -19,6 +19,7 @@ import androidx.compose.material.icons.outlined.CheckCircle
 import androidx.compose.material.icons.outlined.ErrorOutline
 import androidx.compose.material.icons.outlined.Groups
 import androidx.compose.material.icons.outlined.PhoneAndroid
+import androidx.compose.material.icons.outlined.PhonelinkRing
 import androidx.compose.material.icons.outlined.WifiTethering
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -332,8 +333,7 @@ private fun Hosting(host: HostState, state: SyncSessionUiState, actions: SyncSes
         HostPhase.WAITING -> if (host.peers.isEmpty()) {
             "Hosting. On each other phone: Group sync → Sync now → Join."
         } else {
-            "${host.peers.count { it.stage == PeerStage.READY }} of ${host.peers.size} phones ready. " +
-                "Tap Sync when everyone is in."
+            SyncText.hostWaiting(host.peers)
         }
 
         HostPhase.MERGING -> "Merging everyone's data…"
@@ -344,22 +344,46 @@ private fun Hosting(host: HostState, state: SyncSessionUiState, actions: SyncSes
 
         HostPhase.FAILED -> host.failure?.let { SyncText.failure(it, host.message) } ?: "Sync stopped"
     }
-    val working = host.phase != HostPhase.DONE && host.phase != HostPhase.FAILED
-    StatusLine(status, working = working, error = host.phase == HostPhase.FAILED)
+    val waiting = host.phase == HostPhase.WAITING
+    val working = host.phase == HostPhase.MERGING || host.phase == HostPhase.SENDING
+    StatusLine(
+        status,
+        working = working,
+        error = host.phase == HostPhase.FAILED,
+        // Waiting on people, not on work: a phone, not a spinner (a frozen spinner read as a stray mark).
+        waitingIcon = Icons.Outlined.PhonelinkRing.takeIf { waiting },
+    )
     host.peers.forEach { PeerRow(it) }
-    if (host.phase == HostPhase.WAITING && host.peers.isEmpty()) {
+    if (waiting && host.peers.isEmpty()) {
         LinearProgressIndicator(Modifier.fillMaxWidth())
     }
     state.duplicateHint?.let { Hint(it) }
     state.versionHint?.let { Hint(it) }
     when (host.phase) {
         HostPhase.WAITING -> {
-            val ready = host.peers.count { it.stage == PeerStage.READY }
+            SyncText.hostWaitingHint(host.peers)?.let {
+                Text(
+                    it,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
             GoaButton(
                 onClick = actions.onSyncNow,
                 enabled = host.canSync,
                 modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp),
-            ) { Text(if (ready == 0) "Sync" else "Sync $ready ${if (ready == 1) "phone" else "phones"}") }
+            ) { Text(SyncText.syncLabel(host.peers)) }
+            if (!host.canSync) {
+                Text(
+                    if (host.peers.isEmpty()) {
+                        "Sync turns on once a phone has joined."
+                    } else {
+                        "Sync turns on once a phone's data is in."
+                    },
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
             TextButton(onClick = actions.onCancel, modifier = Modifier.heightIn(min = 48.dp)) { Text("Cancel") }
         }
 
@@ -435,13 +459,26 @@ private fun Retry(actions: SyncSessionActions) {
 }
 
 @Composable
-private fun StatusLine(text: String, working: Boolean, error: Boolean) {
+private fun StatusLine(text: String, working: Boolean, error: Boolean, waitingIcon: ImageVector? = null) {
     Row(
         Modifier.fillMaxWidth().semantics { liveRegion = LiveRegionMode.Polite },
         verticalAlignment = Alignment.CenterVertically,
     ) {
         when {
-            working -> CircularProgressIndicator(Modifier.size(scaledIconSize(20.dp)), strokeWidth = 2.dp)
+            // A full faint ring under the arc, so even a still frame reads as a spinner.
+            working -> CircularProgressIndicator(
+                Modifier.size(scaledIconSize(20.dp)),
+                color = MaterialTheme.colorScheme.secondary,
+                strokeWidth = 2.dp,
+                trackColor = MaterialTheme.colorScheme.secondary.copy(alpha = SPINNER_TRACK),
+            )
+
+            waitingIcon != null -> Icon(
+                waitingIcon,
+                null,
+                tint = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.size(scaledIconSize(20.dp)),
+            )
 
             error -> Icon(
                 Icons.Outlined.ErrorOutline,
@@ -470,12 +507,13 @@ private fun StatusLine(text: String, working: Boolean, error: Boolean) {
 private fun PeerRow(peer: PeerProgress) {
     GoaCard(Modifier.fillMaxWidth(), contentPadding = androidx.compose.foundation.layout.PaddingValues(Spacing.md)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Icon(
-                Icons.Outlined.PhoneAndroid,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.size(scaledIconSize(24.dp)),
-            )
+            // The state as a shape too: a tick when its data is in, a warning when it's out.
+            val (icon, tint) = when (peer.stage) {
+                PeerStage.READY, PeerStage.DONE -> Icons.Outlined.CheckCircle to MaterialTheme.colorScheme.secondary
+                PeerStage.FAILED -> Icons.Outlined.ErrorOutline to MaterialTheme.colorScheme.error
+                else -> Icons.Outlined.PhoneAndroid to MaterialTheme.colorScheme.primary
+            }
+            Icon(icon, contentDescription = null, tint = tint, modifier = Modifier.size(scaledIconSize(24.dp)))
             Spacer(Modifier.width(Spacing.md))
             Column(Modifier.weight(1f)) {
                 Text(peer.name, style = MaterialTheme.typography.titleMedium)
@@ -489,9 +527,6 @@ private fun PeerRow(peer: PeerProgress) {
                     },
                 )
             }
-            if (peer.stage == PeerStage.DONE) {
-                Icon(Icons.Outlined.CheckCircle, contentDescription = null, tint = MaterialTheme.colorScheme.secondary)
-            }
         }
         peer.progress?.let {
             Spacer(Modifier.size(Spacing.sm))
@@ -499,6 +534,9 @@ private fun PeerRow(peer: PeerProgress) {
         }
     }
 }
+
+/** The faint full ring under a spinner's arc. */
+private const val SPINNER_TRACK = 0.2f
 
 @Composable
 private fun Hint(text: String) {

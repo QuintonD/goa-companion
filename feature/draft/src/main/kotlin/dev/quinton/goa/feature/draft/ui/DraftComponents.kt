@@ -16,22 +16,26 @@ import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Block
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Lock
+import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material3.ButtonColors
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.FilterChipDefaults
@@ -39,6 +43,8 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButtonColors
 import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.RadioButton
+import androidx.compose.material3.RadioButtonDefaults
 import androidx.compose.material3.SegmentedButtonColors
 import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.SelectableChipColors
@@ -50,17 +56,21 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawWithCache
 import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.drawOutline
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalInspectionMode
+import androidx.compose.ui.semantics.CustomAccessibilityAction
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.customActions
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.font.FontWeight
@@ -75,8 +85,8 @@ import dev.quinton.goa.core.designsystem.component.GoaPlateTheme
 import dev.quinton.goa.core.designsystem.component.HeroPortrait
 import dev.quinton.goa.core.designsystem.component.HeroSymbol
 import dev.quinton.goa.core.designsystem.component.LARGE_FONT_SCALE
-import dev.quinton.goa.core.designsystem.component.PlateGround
 import dev.quinton.goa.core.designsystem.component.PlateShape
+import dev.quinton.goa.core.designsystem.component.SelectionMarkIcon
 import dev.quinton.goa.core.designsystem.component.TeamMark
 import dev.quinton.goa.core.designsystem.component.slatePlate
 import dev.quinton.goa.core.designsystem.component.teamColor
@@ -106,7 +116,9 @@ internal fun rememberReducedMotion(): Boolean {
  * A hero tile as on the Heroes grid, in small: the portrait with the deck symbol, the name on a
  * parchment plate, on the dark plate. Flat rather than slate, so a full roster stays cheap to scroll.
  * Out of play it loses the parchment; banned it is crossed out and dimmed, never colour alone.
- * [onLongClick] opens the hero peek; a tile without [onClick] then opens it on tap too.
+ * [onLongClick] opens the hero peek; a tile without [onClick] then opens it on tap too. A tile with both
+ * shows the peek as a visible inspect button in its corner (48 dp, a named TalkBack action too), so
+ * looking at a hero is never a hidden gesture and never the same tap as choosing it.
  */
 @Composable
 internal fun HeroTile(
@@ -144,7 +156,7 @@ private fun HeroTileBody(
     )
     val borderColor by animateColorAsState(
         targetValue = when {
-            selected -> MaterialTheme.colorScheme.secondary
+            selected -> MaterialTheme.colorScheme.primary
             state is TileState.Picked -> teamColor(state.team)
             else -> TILE_EDGE
         },
@@ -153,10 +165,11 @@ private fun HeroTileBody(
     )
     val stateText = state.description()
     val emphasised = selected || state is TileState.Picked
+    val inspect = onLongClick?.takeIf { onClick != null }
     Column(
         modifier
             .clip(TILE_SHAPE)
-            .background(PlateGround)
+            .background(GoaTheme.colors.plate)
             .border(if (emphasised) 2.dp else 1.dp, borderColor, TILE_SHAPE)
             .then(
                 when {
@@ -181,6 +194,14 @@ private fun HeroTileBody(
             .semantics(mergeDescendants = true) {
                 contentDescription = hero.name
                 stateDescription = stateText
+                if (inspect != null) {
+                    customActions = listOf(
+                        CustomAccessibilityAction(inspectLabel(hero)) {
+                            inspect()
+                            true
+                        },
+                    )
+                }
             }
             .padding(TILE_INSET),
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -214,14 +235,16 @@ private fun HeroTileBody(
                 Icon(
                     Icons.Filled.Check,
                     contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onSecondary,
+                    tint = MaterialTheme.colorScheme.onPrimary,
                     modifier = Modifier
                         .align(Alignment.TopEnd)
                         .padding(2.dp)
                         .size(18.dp)
-                        .background(MaterialTheme.colorScheme.secondary, CircleShape)
+                        .background(MaterialTheme.colorScheme.primary, CircleShape)
                         .padding(2.dp),
                 )
+            } else if (inspect != null) {
+                InspectButton(hero, inspect, Modifier.align(Alignment.TopEnd).offset(x = TILE_INSET, y = -TILE_INSET))
             }
             when (state) {
                 // Small: the cross already says "banned"; the chip keeps the team's mark and the ban's symbol.
@@ -246,6 +269,39 @@ private fun HeroTileBody(
         TileName(hero.name, state, compact)
     }
 }
+
+/**
+ * The tile's inspect button: a small ⓘ disc in the art's corner, inside a 48 dp target that reaches to
+ * the tile's edge. Its own tap, apart from the tile's, which chooses the hero (and asks to confirm).
+ */
+@Composable
+private fun InspectButton(hero: HeroInfo, onInspect: () -> Unit, modifier: Modifier = Modifier) {
+    Box(
+        modifier
+            .size(48.dp)
+            .clickable(role = Role.Button, onClickLabel = inspectLabel(hero), onClick = onInspect)
+            .semantics { contentDescription = inspectLabel(hero) },
+        contentAlignment = Alignment.TopEnd,
+    ) {
+        Icon(
+            Icons.Outlined.Info,
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.onSurface,
+            modifier = Modifier
+                .padding(INSPECT_INSET)
+                .size(INSPECT_DISC)
+                .background(CHIP_GROUND, CircleShape)
+                .border(1.dp, INSPECT_EDGE, CircleShape)
+                .padding(2.dp),
+        )
+    }
+}
+
+internal fun inspectLabel(hero: HeroInfo) = "Inspect ${hero.name}: roles, stats and starting cards"
+
+private val INSPECT_DISC = 24.dp
+private val INSPECT_INSET = 5.dp
+private val INSPECT_EDGE = Color(0xFF9FB1BD)
 
 /** The name on a parchment plate while the hero is in play; plain on the dark plate once out of it. */
 @Composable
@@ -465,46 +521,62 @@ internal fun ChoiceCard(
         modifier = modifier
             .fillMaxWidth()
             .heightIn(min = 56.dp)
-            .plateEdge(if (selected) PLATE_BRONZE else null)
-            .semantics { stateDescription = if (selected) "Selected" else "Not selected" },
-        onClick = onClick,
+            .clip(PlateShape)
+            .selectable(selected = selected, role = Role.RadioButton, onClick = onClick),
+        // Always inside a section plate: its brackets are the outer plate's alone.
+        brackets = false,
         contentPadding = PaddingValues(0.dp),
+        selected = selected,
     ) {
-        Column(Modifier.padding(Spacing.md)) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
+        Row(Modifier.padding(start = Spacing.xs, end = Spacing.md, top = Spacing.md, bottom = Spacing.md)) {
+            SelectionRadio(selected, Modifier.padding(end = Spacing.xs))
+            ChoiceCardBody(title, body, selected, badge, extra)
+        }
+    }
+}
+
+@Composable
+private fun RowScope.ChoiceCardBody(
+    title: String,
+    body: String,
+    selected: Boolean,
+    badge: String?,
+    extra: (@Composable () -> Unit)?,
+) {
+    Column(Modifier.weight(1f)) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text(
+                title,
+                style = MaterialTheme.typography.titleSmall,
+                modifier = Modifier.weight(1f),
+                color = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
+            )
+            if (badge != null) {
                 Text(
-                    title,
-                    style = MaterialTheme.typography.titleSmall,
-                    modifier = Modifier.weight(1f),
-                    color = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
-                )
-                if (badge != null) {
-                    Text(
-                        badge,
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.secondary,
-                        modifier = Modifier
-                            .border(
-                                1.dp,
-                                MaterialTheme.colorScheme.secondary.copy(alpha = 0.6f),
-                                RoundedCornerShape(50),
-                            )
-                            .padding(horizontal = Spacing.sm, vertical = 2.dp),
-                    )
-                }
-            }
-            if (body.isNotEmpty()) {
-                Spacer(Modifier.height(2.dp))
-                Text(
-                    body,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    badge,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.secondary,
+                    modifier = Modifier
+                        .border(
+                            1.dp,
+                            MaterialTheme.colorScheme.secondary.copy(alpha = 0.6f),
+                            RoundedCornerShape(50),
+                        )
+                        .padding(horizontal = Spacing.sm, vertical = 2.dp),
                 )
             }
-            extra?.let {
-                Spacer(Modifier.height(Spacing.sm))
-                it()
-            }
+        }
+        if (body.isNotEmpty()) {
+            Spacer(Modifier.height(2.dp))
+            Text(
+                body,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+        extra?.let {
+            Spacer(Modifier.height(Spacing.sm))
+            it()
         }
     }
 }
@@ -558,8 +630,20 @@ internal fun goaTonalIconColors(): IconButtonColors = IconButtonDefaults.filledT
 internal fun Modifier.plateEdge(color: Color?, width: Dp = 2.dp, shape: Shape = PlateShape): Modifier =
     if (color == null) this else border(width, color, shape)
 
-/** Plates are dark in both themes: a bronze edge picked outside one is the dark theme's. */
+/** The dark theme's bronze, for an edge drawn outside a plate's theme; a picked plate is `GoaPlate(selected =)`. */
 internal val PLATE_BRONZE = Color(0xFFC9A35B)
+
+/** The radio of a selectable plate: bronze, and only a mark (the plate carries the click and the role). */
+@Composable
+internal fun SelectionRadio(selected: Boolean, modifier: Modifier = Modifier, enabled: Boolean = true) {
+    RadioButton(
+        selected = selected,
+        onClick = null,
+        enabled = enabled,
+        colors = RadioButtonDefaults.colors(selectedColor = GoaTheme.colors.selection),
+        modifier = modifier,
+    )
+}
 
 /**
  * The bar pinned under a screen's content, on the dark plate; its contents are themed dark.

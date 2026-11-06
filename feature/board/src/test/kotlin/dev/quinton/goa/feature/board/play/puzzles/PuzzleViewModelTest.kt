@@ -104,7 +104,8 @@ class PuzzleViewModelTest {
             assertThat(vm.ui().info.id).isEqualTo(info.id)
             // The place in its part of the book: the 50 puzzles, or the full rounds.
             assertThat(vm.ui().total).isEqualTo(book.puzzles.count { it.fullRound == info.fullRound })
-            assertThat(vm.ui().introOpen).isTrue()
+            // "What you know" starts folded: the goal and the question come first.
+            assertThat(vm.ui().introOpen).isFalse()
             play(vm, puzzleFile(info.id).solution)
             assertThat(vm.ui().phase).isEqualTo(PuzzlePhase.SOLVED)
             assertThat(vm.ui().table.asking).isFalse()

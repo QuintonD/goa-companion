@@ -64,6 +64,7 @@ triv-home	feature.trivia.TriviaScreenshotTest.homeDark	Card trivia home: practic
 triv-quiz	feature.trivia.TriviaScreenshotTest.quizChoicesDark	Trivia question with choices.
 triv-wrong	feature.trivia.TriviaScreenshotTest.quizAnsweredWrongDark	Trivia: answered wrong, the right answer shown.
 triv-board	feature.trivia.TriviaLeaderboardScreenshotTest.leaderboardChallengeDark	Trivia challenge leaderboard.
+more	feature.settings.SettingsScreenshotTest.moreDark	More tab: Draft, Rules, Group sync, Backup, Settings, About.
 settings	feature.settings.SettingsScreenshotTest.settingsDark	More → Settings.
 about	feature.settings.SettingsScreenshotTest.aboutDark	Settings → About.
 a11y-grid	feature.catalog.OfficialLookScreenshotTest.gridFontScale2	Accessibility: heroes grid at 200% font scale.

@@ -37,6 +37,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -45,10 +46,10 @@ import dev.quinton.goa.core.designsystem.component.GoaCard
 import dev.quinton.goa.core.designsystem.component.GoaPlate
 import dev.quinton.goa.core.designsystem.component.GoaPlateTheme
 import dev.quinton.goa.core.designsystem.component.GoaScreen
-import dev.quinton.goa.core.designsystem.component.PlateGround
 import dev.quinton.goa.core.designsystem.component.SectionHeader
 import dev.quinton.goa.core.designsystem.component.scaledIconSize
 import dev.quinton.goa.core.designsystem.theme.GoaTextStyles
+import dev.quinton.goa.core.designsystem.theme.GoaTheme
 import dev.quinton.goa.core.designsystem.theme.Spacing
 import dev.quinton.goa.core.domain.rules.RulesText
 import dev.quinton.goa.feature.rules.RulesUiState
@@ -157,8 +158,8 @@ private fun SearchField(query: String, onQueryChange: (String) -> Unit) {
             keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
             shape = CircleShape,
             colors = OutlinedTextFieldDefaults.colors(
-                focusedContainerColor = PlateGround,
-                unfocusedContainerColor = PlateGround,
+                focusedContainerColor = GoaTheme.colors.plate,
+                unfocusedContainerColor = GoaTheme.colors.plate,
                 unfocusedBorderColor = SEARCH_EDGE,
             ),
         )
@@ -186,8 +187,13 @@ private fun LadderCard(onClick: () -> Unit) {
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
+                PageTag(RulesText.LADDER_PAGES, Modifier.padding(top = Spacing.sm))
             }
-            PageTag(RulesText.LADDER_PAGES)
+            Icon(
+                Icons.AutoMirrored.Outlined.KeyboardArrowRight,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
         }
     }
 }
@@ -206,14 +212,11 @@ private fun TopicRow(topic: TopicItem, onClick: () -> Unit) {
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Column(Modifier.weight(1f)) {
-            Text(
-                topic.title,
-                style = GoaTextStyles.plateTitle.copy(fontSize = 17.sp, lineHeight = 23.sp),
-                color = MaterialTheme.colorScheme.onSurface,
-            )
+            // Sentence case in Inter for scanning a list; the topic's page keeps the book's Cinzel.
+            Text(topic.title, style = TOPIC_TITLE, color = MaterialTheme.colorScheme.onSurface)
             Text(
                 RulesText.pages(topic.pages),
-                style = MaterialTheme.typography.labelMedium,
+                style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
@@ -226,3 +229,5 @@ private fun TopicRow(topic: TopicItem, onClick: () -> Unit) {
 }
 
 private val SEARCH_EDGE = Color(0xFF5D6B70)
+private val TOPIC_TITLE @Composable get() =
+    MaterialTheme.typography.titleMedium.copy(fontSize = 17.sp, lineHeight = 23.sp, fontWeight = FontWeight.SemiBold)

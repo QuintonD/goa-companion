@@ -63,6 +63,7 @@ import dev.quinton.goa.core.data.trivia.TriviaQuizUiState
 import dev.quinton.goa.core.data.trivia.TriviaText
 import dev.quinton.goa.core.designsystem.component.GoaCard
 import dev.quinton.goa.core.designsystem.component.GoaPlateTheme
+import dev.quinton.goa.core.designsystem.component.HeroPortrait
 import dev.quinton.goa.core.designsystem.component.LARGE_FONT_SCALE
 import dev.quinton.goa.core.designsystem.component.TitlePlate
 import dev.quinton.goa.core.designsystem.component.assetUrl
@@ -82,11 +83,25 @@ internal enum class Mark { OPEN, RIGHT, WRONG, OTHER }
 
 // ---- Question -------------------------------------------------------------------------------
 
+/**
+ * The question: for a card number, the hero's official art (as tall as [artHeight]; none at 0),
+ * whose card it is and the asked number on its plate; for a duel, the question on its plate.
+ */
 @Composable
-internal fun QuestionPanel(question: QuizQuestionUi, modifier: Modifier = Modifier) {
+internal fun QuestionPanel(question: QuizQuestionUi, modifier: Modifier = Modifier, artHeight: Dp = 0.dp) {
     when (question) {
         is QuizQuestionUi.Number -> Column(modifier.fillMaxWidth()) {
             GoaCard(Modifier.fillMaxWidth().semantics(mergeDescendants = true) {}) {
+                if (artHeight > 0.dp) {
+                    // The hero's art, never the card (its scan would give the answer away).
+                    HeroPortrait(
+                        heroId = question.card.heroId,
+                        portrait = question.card.portrait,
+                        contentDescription = null,
+                        modifier = Modifier.fillMaxWidth().height(artHeight),
+                    )
+                    Spacer(Modifier.height(Spacing.md))
+                }
                 HeroLine(question.card)
                 Spacer(Modifier.height(Spacing.md))
                 Text(

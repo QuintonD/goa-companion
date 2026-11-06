@@ -41,6 +41,7 @@ import androidx.compose.material.icons.outlined.Groups
 import androidx.compose.material.icons.outlined.LockOpen
 import androidx.compose.material.icons.outlined.PersonAdd
 import androidx.compose.material.icons.outlined.PlayArrow
+import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material.icons.outlined.Shuffle
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -87,15 +88,17 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import dev.quinton.goa.core.designsystem.component.BarAction
+import dev.quinton.goa.core.designsystem.component.BarActions
 import dev.quinton.goa.core.designsystem.component.ConfirmDialog
 import dev.quinton.goa.core.designsystem.component.EmptyState
 import dev.quinton.goa.core.designsystem.component.GoaButton
+import dev.quinton.goa.core.designsystem.component.GoaFilterChip
 import dev.quinton.goa.core.designsystem.component.GoaPlate
 import dev.quinton.goa.core.designsystem.component.GoaScreen
 import dev.quinton.goa.core.designsystem.component.GoaSheet
 import dev.quinton.goa.core.designsystem.component.PlateShape
 import dev.quinton.goa.core.designsystem.component.PlayerAvatar
-import dev.quinton.goa.core.designsystem.component.SettingsActionButton
 import dev.quinton.goa.core.designsystem.component.TeamBadge
 import dev.quinton.goa.core.designsystem.component.TitlePlate
 import dev.quinton.goa.core.designsystem.component.teamColor
@@ -256,10 +259,12 @@ fun DraftSetupScreen(state: SetupUiState, actions: SetupActions) {
     GoaScreen(
         title = "Draft",
         actions = {
-            IconButton(onClick = actions::manageMethods) {
-                Icon(Icons.AutoMirrored.Outlined.ListAlt, contentDescription = "Draft methods")
-            }
-            SettingsActionButton(actions::openSettings)
+            BarActions(
+                listOf(
+                    BarAction("Draft methods", Icons.AutoMirrored.Outlined.ListAlt, actions::manageMethods),
+                    BarAction("Settings", Icons.Outlined.Settings, actions::openSettings),
+                ),
+            )
         },
     ) { padding ->
         Box(Modifier.fillMaxSize().padding(padding)) {
@@ -726,11 +731,10 @@ private fun DoublePilotPicker(state: SetupUiState, actions: SetupActions) {
         Text("Who pilots two heroes?", style = MaterialTheme.typography.labelLarge)
         FlowRow(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
             smaller.forEach { id ->
-                FilterChip(
-                    colors = goaFilterChipColors(),
+                GoaFilterChip(
                     selected = id == current,
                     onClick = { actions.setDoublePilot(id) },
-                    label = { Text(state.player(id)?.player?.name ?: "Unknown") },
+                    label = state.player(id)?.player?.name ?: "Unknown",
                     modifier = Modifier.heightIn(min = 48.dp),
                 )
             }
@@ -791,7 +795,7 @@ private fun HeroesStage(state: SetupUiState, actions: SetupActions) {
         SectionCard(
             title = "Method",
             subtitle = "How heroes are chosen",
-            trailing = { TextButton(onClick = actions::manageMethods) { Text("Manage") } },
+            trailing = { TextButton(onClick = actions::manageMethods) { Text("Compare all") } },
         ) {
             Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
                 state.methods.forEach { option ->

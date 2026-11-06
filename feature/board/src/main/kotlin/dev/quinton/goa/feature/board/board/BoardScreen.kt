@@ -80,7 +80,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import dev.quinton.goa.core.designsystem.component.ConfirmDialog
 import dev.quinton.goa.core.designsystem.component.EmptyState
-import dev.quinton.goa.core.designsystem.component.GoaPlateTheme
+import dev.quinton.goa.core.designsystem.component.GoaDarkTheme
 import dev.quinton.goa.core.designsystem.component.UnverifiedBadge
 import dev.quinton.goa.core.designsystem.component.scaledIconSize
 import dev.quinton.goa.core.designsystem.component.slatePlate
@@ -143,8 +143,10 @@ fun BoardScreen(
             onAction(BoardAction.HintShown(hint.id))
         }
     }
+    val heading = ready?.let(::boardHeading)
     BoardScaffold(
-        title = ready?.board?.name ?: "Board",
+        title = heading?.first ?: "Board",
+        subtitle = heading?.second,
         onBack = onBack,
         modifier = modifier,
         snackbarHost = { SnackbarHost(snackbar) },
@@ -520,7 +522,7 @@ private fun placeLabel(state: BoardUiState.Ready, piece: NewPiece): String = whe
 /** A round button floating over the map (Fit, Flip): shared by the sandbox and the game table. */
 @Composable
 internal fun MapButton(icon: ImageVector, description: String, onClick: () -> Unit) {
-    GoaPlateTheme {
+    GoaDarkTheme {
         FilledTonalIconButton(
             onClick = onClick,
             colors = IconButtonDefaults.filledTonalIconButtonColors(
@@ -679,6 +681,12 @@ private fun WaitingTray(state: BoardUiState.Ready, onAction: (BoardAction) -> Un
         }
     }
 }
+
+/**
+ * The bar's title is the board's name, its line-up ("Arien, Brogan vs Wasp, Tigerclaw"), which shrinks to two
+ * lines rather than being cut; the map's name goes under it only where both fit the bar.
+ */
+private fun boardHeading(state: BoardUiState.Ready): Pair<String, String?> = state.board.name to state.map.name
 
 private val SIDE_PANEL = 380.dp
 private const val PANEL_MAX = 0.5f

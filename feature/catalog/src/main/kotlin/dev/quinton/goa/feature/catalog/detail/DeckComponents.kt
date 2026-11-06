@@ -114,7 +114,7 @@ internal fun StatPlate(stats: HeroStats, modifier: Modifier = Modifier) {
         }
         Text(
             "Base → with level-ups and card text\n1 is very poor · 8 is exceptional",
-            style = MaterialTheme.typography.labelSmall,
+            style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             textAlign = TextAlign.Center,
             modifier = Modifier.fillMaxWidth().padding(top = Spacing.sm),
@@ -148,7 +148,7 @@ private fun StatCell(bar: ProfileBar, modifier: Modifier = Modifier) {
         )
         Text(
             bar.stat.label,
-            style = MaterialTheme.typography.labelSmall,
+            style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             textAlign = TextAlign.Center,
         )
@@ -171,7 +171,7 @@ internal fun DeckGroupSection(group: DeckGroup, onCardClick: (Card) -> Unit, mod
             trailing = {
                 Text(
                     "${group.cards.size}",
-                    style = MaterialTheme.typography.labelMedium,
+                    style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             },
@@ -193,7 +193,7 @@ private fun MultipleGoldNote(cards: List<Card>) {
     val note = multipleGoldNote(cards) ?: return
     Text(
         note,
-        style = MaterialTheme.typography.bodySmall,
+        style = MaterialTheme.typography.bodyMedium,
         color = MaterialTheme.colorScheme.onSurfaceVariant,
         modifier = Modifier.padding(bottom = Spacing.sm),
     )
@@ -211,7 +211,7 @@ internal fun ExtrasSection(layout: DeckLayout, onCardClick: (Card) -> Unit, modi
             trailing = {
                 Text(
                     "${layout.extras.size} cards",
-                    style = MaterialTheme.typography.labelMedium,
+                    style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             },
@@ -219,7 +219,7 @@ internal fun ExtrasSection(layout: DeckLayout, onCardClick: (Card) -> Unit, modi
         if (spellbook) {
             Text(
                 SPELLBOOK_NOTE,
-                style = MaterialTheme.typography.bodySmall,
+                style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
@@ -285,6 +285,9 @@ internal fun DeckCardGrid(
 }
 
 private const val MAX_COLUMNS = 6
+
+/** A card's name under its scan: 14 sp, wrapping to two lines rather than shrinking. */
+private val CAPTION @Composable get() = MaterialTheme.typography.labelLarge.copy(letterSpacing = 0.sp)
 private const val MAX_WIDTH_SCALE = 1.6f
 private val NAME_PRINTED_WIDTH = 140.dp
 
@@ -318,7 +321,7 @@ private fun DeckCard(
         if (showName) {
             Text(
                 card.name,
-                style = MaterialTheme.typography.labelMedium,
+                style = CAPTION,
                 color = MaterialTheme.colorScheme.onSurface,
                 textAlign = TextAlign.Center,
                 maxLines = 2,
@@ -329,7 +332,7 @@ private fun DeckCard(
         if (note != null) {
             Text(
                 note,
-                style = MaterialTheme.typography.labelSmall,
+                style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.secondary,
                 textAlign = TextAlign.Center,
                 modifier = Modifier.padding(top = if (showName) 0.dp else Spacing.xs).clearAndSetSemantics {},
@@ -369,7 +372,7 @@ internal fun CardTileGrid(
 }
 
 /** The ribbon over a colour's cards; Basic and the Ultimate use the neutral silver. */
-private fun groupRibbon(kind: DeckGroupKind): PlateColor = when (kind) {
+internal fun groupRibbon(kind: DeckGroupKind): PlateColor = when (kind) {
     DeckGroupKind.RED -> PlateColor.RED
     DeckGroupKind.GREEN -> PlateColor.GREEN
     DeckGroupKind.BLUE -> PlateColor.BLUE

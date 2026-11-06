@@ -45,8 +45,6 @@ import dev.quinton.goa.core.designsystem.component.GoaPlate
 import dev.quinton.goa.core.designsystem.component.GoaScreen
 import dev.quinton.goa.core.designsystem.component.PlateShape
 import dev.quinton.goa.core.designsystem.theme.Spacing
-import dev.quinton.goa.feature.timer.ui.components.PlateTeal
-import dev.quinton.goa.feature.timer.ui.components.plateEdge
 import dev.quinton.goa.feature.timer.ui.timer.PresetOption
 
 data class PresetsActions(
@@ -128,10 +126,10 @@ private fun PresetRow(preset: PresetOption, selected: Boolean, canDelete: Boolea
     GoaPlate(
         Modifier
             .fillMaxWidth()
-            .plateEdge(if (selected) PlateTeal else null)
             .clip(PlateShape)
             .selectable(selected = selected, onClick = { actions.onSelect(preset.id) }, role = Role.RadioButton),
         contentPadding = PaddingValues(0.dp),
+        selected = selected,
     ) {
         val colors = MaterialTheme.colorScheme
         Row(

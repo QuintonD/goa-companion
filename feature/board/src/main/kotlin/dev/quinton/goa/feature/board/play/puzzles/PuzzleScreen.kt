@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
@@ -62,10 +63,12 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import dev.quinton.goa.core.designsystem.component.EmptyState
 import dev.quinton.goa.core.designsystem.component.GoaButton
 import dev.quinton.goa.core.designsystem.component.TitlePlate
+import dev.quinton.goa.core.designsystem.component.scaledIconSize
 import dev.quinton.goa.core.designsystem.theme.GoaTextStyles
 import dev.quinton.goa.core.designsystem.theme.GoaTheme
 import dev.quinton.goa.core.designsystem.theme.Spacing
@@ -370,7 +373,7 @@ private fun ColumnScope.PuzzlePanel(
             if (introAfter && puzzle.info.intro.isNotBlank()) Intro(puzzle.info, puzzle.introOpen, onAction)
             ResolutionFlowView(puzzle.flow, puzzle.table, focus, Modifier.padding(top = Spacing.xs))
             puzzle.round?.let {
-                KnownPlaysStrip(it, focus, showNote = puzzle.introOpen, onLater = { shown ->
+                KnownPlaysStrip(it, focus, showNote = puzzle.attempts == 0 || puzzle.introOpen, onLater = { shown ->
                     onAction(PuzzleAction.SetLaterShown(shown))
                 })
             }
@@ -412,7 +415,10 @@ private fun PuzzleHeader(info: PuzzleInfo, total: Int, round: RoundUi?) {
     }
 }
 
-/** What the player knows that the board doesn't show, under the puzzle's theme; folded, just its heading. */
+/**
+ * What the player knows that the board doesn't show, under the puzzle's theme. It starts folded to its first two
+ * lines, so the goal and the question stay near the top; a tap opens the rest.
+ */
 @Composable
 private fun Intro(info: PuzzleInfo, open: Boolean, onAction: (PuzzleAction) -> Unit) {
     Surface(
@@ -421,35 +427,46 @@ private fun Intro(info: PuzzleInfo, open: Boolean, onAction: (PuzzleAction) -> U
         color = PlateWell,
         modifier = Modifier
             .fillMaxWidth()
-            .semantics { stateDescription = if (open) "Expanded" else "Collapsed" },
+            .semantics {
+                stateDescription = if (open) "Expanded" else "Collapsed"
+                // Folded, TalkBack still hears all of it: the fold is for the eye.
+                if (!open) contentDescription = "What you know. ${info.theme}. ${info.intro}"
+            },
     ) {
-        Column(Modifier.padding(horizontal = Spacing.md, vertical = Spacing.xs)) {
-            Row(Modifier.heightIn(min = 40.dp), verticalAlignment = Alignment.CenterVertically) {
+        Column(Modifier.padding(start = Spacing.md, end = Spacing.sm, top = Spacing.xs, bottom = Spacing.sm)) {
+            Row(Modifier.heightIn(min = 32.dp), verticalAlignment = Alignment.CenterVertically) {
                 Text(
                     "WHAT YOU KNOW",
                     style = GoaTextStyles.overline,
                     color = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.weight(1f),
                 )
-                Icon(
-                    if (open) Icons.Outlined.ExpandLess else Icons.Outlined.ExpandMore,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-            if (open) {
+                Spacer(Modifier.width(Spacing.sm))
                 Text(
                     info.theme,
                     style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.weight(1f),
                 )
                 Text(
-                    info.intro,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(bottom = Spacing.xs),
+                    if (open) "Less" else "More",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.primary,
+                )
+                Icon(
+                    if (open) Icons.Outlined.ExpandLess else Icons.Outlined.ExpandMore,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary,
                 )
             }
+            Text(
+                info.intro,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = if (open) Int.MAX_VALUE else INTRO_FOLDED_LINES,
+                overflow = TextOverflow.Ellipsis,
+            )
         }
     }
 }
@@ -551,12 +568,17 @@ private fun SolvedPanel(
             }
         }
     }
-    Explanation(puzzle.info)
+    // The line on the board first, then why it works: the replay is the "show me on the map".
     PlateButton(
         onClick = { onAction(PuzzleAction.ShowSolution) },
         enabled = !puzzle.busy,
         modifier = Modifier.fillMaxWidth().heightIn(min = 52.dp),
-    ) { Text("Replay the solution") }
+    ) {
+        Icon(Icons.Outlined.Replay, contentDescription = null, modifier = Modifier.size(18.dp))
+        Spacer(Modifier.width(Spacing.sm))
+        Text("Replay the solution on the board", textAlign = TextAlign.Center)
+    }
+    Explanation(puzzle.info)
     FlowRow(
         horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
         verticalArrangement = Arrangement.spacedBy(Spacing.xs),
@@ -580,17 +602,24 @@ private fun SolvedPanel(
     }
 }
 
-/** Why it works, in the puzzle's words, and the rulebook pages it leans on. */
+/**
+ * Why it works, in the puzzle's words as numbered lines to scan (a full round's by turn, PuzzleText.whyItWorks),
+ * and the rulebook pages it leans on.
+ */
 @Composable
 private fun Explanation(info: PuzzleInfo) {
-    Column(verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
+    val why = remember(info.explanation) { PuzzleText.whyItWorks(info.explanation) }
+    Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
         Text(
             "WHY IT WORKS",
             style = GoaTextStyles.overline,
             color = MaterialTheme.colorScheme.primary,
             modifier = Modifier.semantics { heading() },
         )
-        Text(info.explanation, style = MaterialTheme.typography.bodyMedium)
+        why.lead?.let {
+            Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+        why.steps.forEach { step -> ExplanationStep(step) }
         if (info.rules.isNotEmpty()) {
             Text(
                 "RULES",
@@ -606,6 +635,36 @@ private fun Explanation(info: PuzzleInfo) {
                 }
             }
         }
+    }
+}
+
+/** One line of "Why it works": its number (or "Turn 2") in a bronze mark, then the puzzle's words. */
+@Composable
+private fun ExplanationStep(step: WhyItWorks.Step) {
+    val turn = step.label.startsWith("Turn")
+    Row(Modifier.fillMaxWidth().semantics(mergeDescendants = true) {}, verticalAlignment = Alignment.Top) {
+        Surface(
+            shape = if (turn) RoundedCornerShape(50) else CircleShape,
+            color = Color.Transparent,
+            border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary),
+            modifier = Modifier
+                .padding(top = 1.dp)
+                .then(if (turn) Modifier.heightIn(min = STEP_MARK) else Modifier.size(scaledIconSize(STEP_MARK, 1.4f))),
+        ) {
+            Box(
+                contentAlignment = Alignment.Center,
+                modifier = if (turn) Modifier.padding(horizontal = 6.dp) else Modifier,
+            ) {
+                Text(
+                    step.label,
+                    style = MaterialTheme.typography.labelMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.primary,
+                )
+            }
+        }
+        Spacer(Modifier.width(Spacing.sm))
+        Text(step.text, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
     }
 }
 
@@ -679,4 +738,6 @@ private fun ReplayPanel(puzzle: PuzzleUi, replay: ReplayUi, onAction: (PuzzleAct
 }
 
 private const val SHEET_HEIGHT = 0.9f
+private const val INTRO_FOLDED_LINES = 2
+private val STEP_MARK = 22.dp
 private const val LARGE_TEXT = 1.3f

@@ -25,8 +25,7 @@ class CoachSuggestFlowTest {
     fun suggestAtTheFirstCardPlayAnswersNothing() {
         rule.openTab("catalog")
         rule.waitForText("32 heroes")
-        rule.openFromPlay("Board")
-        rule.tap(hasText("Play against the computer") and hasClickAction())
+        rule.openFromPlay("Play vs computer")
 
         rule.waitForText("Tap heroes below")
         listOf("Wasp", "Brogan", "Arien", "Xargatha", "Tigerclaw", "Sabina").forEach { hero ->
@@ -36,6 +35,7 @@ class CoachSuggestFlowTest {
         rule.tap(hasText("Next") and hasClickAction() and isEnabled())
 
         rule.waitForText("Game options")
+        rule.tapText("One hero")
         rule.tap(hasText("Wasp") and hasClickAction())
         rule.reveal(hasContentDescription("Computer strength"))
             .performSemanticsAction(SemanticsActions.SetProgress) { setProgress -> setProgress(2f) }

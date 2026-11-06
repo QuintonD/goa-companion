@@ -65,7 +65,6 @@ import dev.quinton.goa.core.designsystem.cardtext.GameIcons
 import dev.quinton.goa.core.designsystem.component.CardTextBox
 import dev.quinton.goa.core.designsystem.component.LARGE_FONT_SCALE
 import dev.quinton.goa.core.designsystem.component.PlateColor
-import dev.quinton.goa.core.designsystem.component.PlateGround
 import dev.quinton.goa.core.designsystem.component.cardColor
 import dev.quinton.goa.core.designsystem.component.scaledIconSize
 import dev.quinton.goa.core.designsystem.theme.GoaTextStyles
@@ -171,7 +170,7 @@ private fun DetailsBody(
             if (asText) CardAsText(item.card, landscape)
         }
         if (scroll.canScrollForward) {
-            val surface = PlateGround
+            val surface = GoaTheme.colors.plate
             Box(
                 Modifier
                     .align(Alignment.BottomCenter)

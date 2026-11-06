@@ -65,7 +65,7 @@ internal fun CardResultRow(result: CardResult, query: String, onClick: () -> Uni
                 )
                 Text(
                     "${result.hero.name} · ${card.kindLabel(result.isHandicap)}",
-                    style = MaterialTheme.typography.labelMedium,
+                    style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,

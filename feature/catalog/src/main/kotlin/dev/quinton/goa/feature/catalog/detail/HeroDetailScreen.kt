@@ -28,6 +28,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListScope
+import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -45,9 +46,12 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.State
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -88,6 +92,7 @@ import dev.quinton.goa.core.designsystem.component.scaledIconSize
 import dev.quinton.goa.core.designsystem.theme.GoaTextStyles
 import dev.quinton.goa.core.designsystem.theme.GoaTheme
 import dev.quinton.goa.core.designsystem.theme.Spacing
+import dev.quinton.goa.core.domain.catalog.DeckGroupKind
 import dev.quinton.goa.core.domain.catalog.HANDICAP_EXPLANATION
 import dev.quinton.goa.core.domain.catalog.HeroPilotStat
 import dev.quinton.goa.core.domain.catalog.attackProfile
@@ -107,6 +112,7 @@ import dev.quinton.goa.feature.catalog.ui.MetaPill
 import dev.quinton.goa.feature.catalog.ui.SharedTitlePlate
 import dev.quinton.goa.feature.catalog.ui.UnverifiedBadge
 import dev.quinton.goa.feature.catalog.ui.overlapUp
+import kotlinx.coroutines.launch
 
 @Composable
 fun HeroDetailScreen(
@@ -121,11 +127,12 @@ fun HeroDetailScreen(
     val listState = rememberLazyListState()
     var opened by rememberSaveable { mutableStateOf(false) }
     val ready = state as? HeroDetailUiState.Ready
+    val keys = remember(ready, onLearnNumbers != null) { ready?.let { heroPageKeys(it, onLearnNumbers != null) } }
     LaunchedEffect(ready != null) {
         if (ready == null || opened) return@LaunchedEffect
         opened = true
         if (initialSection == HeroDetailRoute.SPELLBOOK) {
-            extrasItemIndex(ready, onLearnNumbers != null)?.let { listState.scrollToItem(it) }
+            keys?.indexOf(EXTRAS_KEY)?.takeIf { it >= 0 }?.let { listState.scrollToItem(it) }
         }
     }
     GoaScreen(title = ready?.hero?.name.orEmpty(), onBack = onBack, modifier = modifier) { padding ->
@@ -142,41 +149,103 @@ fun HeroDetailScreen(
                     modifier = Modifier.align(Alignment.Center),
                 )
 
-                is HeroDetailUiState.Ready -> LazyColumn(
-                    state = listState,
-                    contentPadding = PaddingValues(bottom = Spacing.xxl),
-                ) {
-                    heroDetailContent(
-                        state,
-                        onCardClick = { onCardClick(state.hero.id, it.id) },
-                        onLearnNumbers = onLearnNumbers?.let { learn -> { learn(state.hero.id) } },
-                    )
-                }
+                is HeroDetailUiState.Ready -> HeroPage(state, keys.orEmpty(), listState, onCardClick, onLearnNumbers)
             }
         }
     }
 }
 
-/**
- * Where [heroDetailContent] puts the extras (Gydion's spellbook): after the header, profile, stats,
- * deck title, the deck's groups, the trivia button and the Handicap card. Null without extras.
- */
-internal fun extrasItemIndex(state: HeroDetailUiState.Ready, trivia: Boolean): Int? {
-    if (state.deck.extras.isEmpty()) return null
-    return FIXED_ITEMS + state.deck.groups.size + (if (trivia) 1 else 0) + (if (state.deck.handicap != null) 1 else 0)
+@Composable
+private fun HeroPage(
+    state: HeroDetailUiState.Ready,
+    keys: List<String>,
+    listState: LazyListState,
+    onCardClick: (heroId: String, cardId: String) -> Unit,
+    onLearnNumbers: ((heroId: String) -> Unit)?,
+) {
+    val scope = rememberCoroutineScope()
+    val navHeight = with(LocalDensity.current) { SectionBarHeight.roundToPx() }
+    // Under the sticky bar: the first item whose foot shows below it says where you are.
+    // Read only in the bar itself: read while the list lays out, it would lay the list out again and again.
+    val active = remember(keys, navHeight) { derivedStateOf { activeSection(listState, keys, navHeight) } }
+    val jumpTo: (String) -> Unit = { key ->
+        val index = keys.indexOf(key)
+        if (index >= 0) {
+            // The header from the top; anything else just under the sticky bar.
+            scope.launch { listState.animateScrollToItem(index, if (index == 0) 0 else -navHeight) }
+        }
+    }
+    LazyColumn(state = listState, contentPadding = PaddingValues(bottom = Spacing.xxl)) {
+        heroDetailContent(
+            state,
+            active = active,
+            onJump = jumpTo,
+            onCardClick = { onCardClick(state.hero.id, it.id) },
+            onLearnNumbers = onLearnNumbers?.let { learn -> { learn(state.hero.id) } },
+        )
+    }
 }
 
-/** header, profile, stats, deck-title. */
-private const val FIXED_ITEMS = 4
+/**
+ * The page's items in order, by key, as [heroDetailContent] emits them: the section bar and the deck
+ * jumps find their items here.
+ */
+internal fun heroPageKeys(state: HeroDetailUiState.Ready, trivia: Boolean): List<String> = buildList {
+    add(HEADER_KEY)
+    add(NAV_KEY)
+    add("profile")
+    add("stats")
+    add(DECK_KEY)
+    state.deck.groups.forEach { add(groupKey(it.kind)) }
+    if (trivia) add("deck-trivia")
+    if (state.deck.handicap != null) add(HANDICAP_KEY)
+    if (state.deck.extras.isNotEmpty()) add(EXTRAS_KEY)
+    add(FAQ_KEY)
+    if (state.hero.faq.isEmpty()) add("faq-empty") else state.hero.faq.indices.forEach { add("faq-$it") }
+    if (!state.hero.lore.isNullOrBlank()) add("lore")
+    add("sources")
+}
+
+/** Which section the reader is in: the first item showing below the sticky bar, or FAQ once the page ends there. */
+private fun activeSection(list: LazyListState, keys: List<String>, navHeight: Int): HeroSection {
+    val info = list.layoutInfo
+    val faq = keys.indexOf(FAQ_KEY)
+    val deck = keys.indexOf(DECK_KEY)
+    val atEnd = !list.canScrollForward && list.canScrollBackward
+    if (atEnd && info.visibleItemsInfo.any { it.index == faq }) return HeroSection.FAQ
+    val top = info.visibleItemsInfo
+        .firstOrNull { it.key != NAV_KEY && it.offset + it.size > navHeight }
+        ?.index ?: list.firstVisibleItemIndex
+    return when {
+        top >= faq -> HeroSection.FAQ
+        top >= deck -> HeroSection.DECK
+        else -> HeroSection.OVERVIEW
+    }
+}
+
+internal fun groupKey(kind: DeckGroupKind) = "deck-$kind"
+
+internal const val HEADER_KEY = "header"
+internal const val NAV_KEY = "nav"
+internal const val DECK_KEY = "deck-title"
+internal const val HANDICAP_KEY = "handicap"
+internal const val EXTRAS_KEY = "extras"
+internal const val FAQ_KEY = "faq-title"
 
 private fun LazyListScope.heroDetailContent(
     state: HeroDetailUiState.Ready,
+    active: State<HeroSection>,
+    onJump: (String) -> Unit,
     onCardClick: (Card) -> Unit,
     onLearnNumbers: (() -> Unit)?,
 ) {
     val hero = state.hero
     val padded = Modifier.padding(horizontal = Spacing.screen)
-    item(key = "header") { HeroHeader(hero, state.productName) }
+    item(key = HEADER_KEY) { HeroHeader(hero, state.productName) }
+    // Overview · Deck · FAQ, held under the banner once the art has scrolled away.
+    stickyHeader(key = NAV_KEY) {
+        HeroSectionBar(active.value, faqCount = hero.faq.size, onSelect = { onJump(it.key) })
+    }
     item(key = "profile") { StatPlate(hero.stats, padded.padding(top = Spacing.md)) }
     item(key = "stats") {
         Column(padded) {
@@ -184,40 +253,43 @@ private fun LazyListScope.heroDetailContent(
             PersonalStatsCard(state.stats)
         }
     }
-    item(key = "deck-title") {
-        SectionHeader(
-            "Deck",
-            modifier = padded.semantics(mergeDescendants = true) { heading() },
-            trailing = {
-                Text(
-                    plural(hero.cards.size, "card"),
-                    style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            },
-        )
+    item(key = DECK_KEY) {
+        Column(padded) {
+            SectionHeader(
+                "Deck",
+                modifier = Modifier.semantics(mergeDescendants = true) { heading() },
+                trailing = {
+                    Text(
+                        plural(hero.cards.size, "card"),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                },
+            )
+            DeckJumpRow(deckJumps(state.deck), onJump)
+        }
     }
     state.deck.groups.forEach { group ->
-        item(key = "deck-${group.kind}") { DeckGroupSection(group, onCardClick, padded) }
+        item(key = groupKey(group.kind)) { DeckGroupSection(group, onCardClick, padded) }
     }
     if (onLearnNumbers != null) {
         item(key = "deck-trivia") { LearnNumbersButton(hero.name, onLearnNumbers, padded) }
     }
     state.deck.handicap?.let { handicap ->
-        item(key = "handicap") {
+        item(key = HANDICAP_KEY) {
             Column(padded) {
                 SectionHeader("Handicap")
                 GoaPlate(Modifier.fillMaxWidth()) {
                     Text(
                         HANDICAP_EXPLANATION, // Rulebook p.20.
-                        style = MaterialTheme.typography.bodySmall,
+                        style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.padding(bottom = Spacing.sm),
                     )
                     handicapConflict(hero, handicap)?.let { note ->
                         Text(
                             note,
-                            style = MaterialTheme.typography.bodySmall,
+                            style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.error,
                             modifier = Modifier.padding(bottom = Spacing.sm),
                         )
@@ -228,9 +300,9 @@ private fun LazyListScope.heroDetailContent(
         }
     }
     if (state.deck.extras.isNotEmpty()) {
-        item(key = "extras") { ExtrasSection(state.deck, onCardClick, padded) }
+        item(key = EXTRAS_KEY) { ExtrasSection(state.deck, onCardClick, padded) }
     }
-    item(key = "faq-title") { SectionHeader("FAQ rulings", modifier = padded) }
+    item(key = FAQ_KEY) { SectionHeader("FAQ rulings", modifier = padded) }
     if (hero.faq.isEmpty()) {
         item(key = "faq-empty") {
             Text(
@@ -395,10 +467,10 @@ private fun HeroIdentityLine(hero: Hero, modifier: Modifier = Modifier, stacked:
             Row(verticalAlignment = Alignment.CenterVertically) {
                 hero.complexity?.let {
                     ComplexityStars(it, starSize = 14.dp, modifier = Modifier.padding(end = Spacing.sm))
-                    Text(complexityName(it).orEmpty(), style = MaterialTheme.typography.bodySmall)
+                    Text(complexityName(it).orEmpty(), style = MaterialTheme.typography.bodyMedium)
                 }
             }
-            Text(hero.roles.joinToString(" · ") { it.label }, style = MaterialTheme.typography.bodySmall)
+            Text(hero.roles.joinToString(" · ") { it.label }, style = MaterialTheme.typography.bodyMedium)
         }
         return
     }
@@ -410,11 +482,11 @@ private fun HeroIdentityLine(hero: Hero, modifier: Modifier = Modifier, stacked:
         hero.complexity?.let { ComplexityStars(it, starSize = 14.dp, modifier = Modifier.padding(end = 2.dp)) }
         words.forEachIndexed { i, word ->
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(word, style = MaterialTheme.typography.bodySmall)
+                Text(word, style = MaterialTheme.typography.bodyMedium)
                 if (i < words.lastIndex) {
                     Text(
                         " ·",
-                        style = MaterialTheme.typography.bodySmall,
+                        style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.clearAndSetSemantics {},
                     )
@@ -437,7 +509,7 @@ private fun VerifiedPill() {
             modifier = Modifier.size(16.dp),
         )
         Spacer(Modifier.width(4.dp))
-        Text("Verified", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.secondary)
+        Text("Verified", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.secondary)
     }
 }
 
@@ -485,10 +557,10 @@ private fun PersonalStatsCard(stats: HeroPersonalStats) {
 @Composable
 private fun Metric(label: String, value: String, note: String?, modifier: Modifier = Modifier) {
     Column(modifier.semantics(mergeDescendants = true) {}) {
-        Text(label, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Text(label, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
         Text(value, style = MaterialTheme.typography.headlineSmall, color = MaterialTheme.colorScheme.primary)
         if (note != null) {
-            Text(note, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text(note, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
     }
 }
@@ -539,7 +611,7 @@ private fun PilotRow(rank: Int, pilot: HeroPilotStat, ranked: Boolean) {
             Text(percent(pilot.winRate), style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
             Text(
                 "${pilot.wins}–${pilot.games - pilot.wins}",
-                style = MaterialTheme.typography.labelSmall,
+                style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.semantics {
                     contentDescription =
@@ -591,7 +663,7 @@ private fun FaqItem(ruling: Ruling, modifier: Modifier = Modifier) {
                 Text(ruling.answer, style = MaterialTheme.typography.bodyMedium)
                 Text(
                     "Source: ${ruling.source}",
-                    style = MaterialTheme.typography.labelSmall,
+                    style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(top = Spacing.sm),
                 )
@@ -643,7 +715,7 @@ private fun SourcesBlock(hero: Hero) {
     }
     Text(
         "Game content and art © Wolff Designa. Private, non-commercial build.",
-        style = MaterialTheme.typography.labelSmall,
+        style = MaterialTheme.typography.bodySmall,
         color = MaterialTheme.colorScheme.onSurfaceVariant,
         modifier = Modifier.padding(top = Spacing.sm),
     )

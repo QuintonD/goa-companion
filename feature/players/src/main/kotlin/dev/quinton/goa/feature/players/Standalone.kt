@@ -1,15 +1,15 @@
 package dev.quinton.goa.feature.players
 
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.input.nestedscroll.nestedScroll
 import dev.quinton.goa.core.designsystem.component.GoaScreen
-import dev.quinton.goa.feature.players.common.LogMatchFab
-import dev.quinton.goa.feature.players.common.rememberFabExpansion
+import dev.quinton.goa.feature.players.common.LogMatchBar
 import dev.quinton.goa.feature.players.match.MatchFollowUps
 import dev.quinton.goa.feature.players.match.MatchLogContent
 import dev.quinton.goa.feature.players.match.MatchLogUiState
@@ -31,25 +31,19 @@ fun MatchLogScreen(
     onDismissUndo: () -> Unit,
     followUps: MatchFollowUps = MatchFollowUps(),
 ) {
-    val fab = rememberFabExpansion()
-    GoaScreen(
-        title = "Matches",
-        onBack = onBack,
-        floatingActionButton = {
-            if (state.undo == null && !state.isEmpty) {
-                LogMatchFab(onLogMatch, expanded = fab.expanded)
+    GoaScreen(title = "Matches", onBack = onBack) { padding ->
+        Column(Modifier.fillMaxSize().padding(padding)) {
+            Box(Modifier.weight(1f).fillMaxWidth()) {
+                MatchLogContent(
+                    state,
+                    onOpenMatch = onOpenMatch,
+                    onDeleteMatch = onDeleteMatch,
+                    onLogMatch = onLogMatch,
+                    followUps = followUps,
+                )
+                UndoSnackbarHost(snackbarHostState, state.undo, onUndo = onUndoDelete, onDismiss = onDismissUndo)
             }
-        },
-    ) { padding ->
-        Box(Modifier.fillMaxSize().padding(padding).nestedScroll(fab.connection)) {
-            MatchLogContent(
-                state,
-                onOpenMatch = onOpenMatch,
-                onDeleteMatch = onDeleteMatch,
-                onLogMatch = onLogMatch,
-                followUps = followUps,
-            )
-            UndoSnackbarHost(snackbarHostState, state.undo, onUndo = onUndoDelete, onDismiss = onDismissUndo)
+            if (!state.loading && !state.isEmpty) LogMatchBar(onLogMatch)
         }
     }
 }

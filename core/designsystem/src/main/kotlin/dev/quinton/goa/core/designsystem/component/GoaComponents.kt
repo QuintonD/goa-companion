@@ -9,15 +9,18 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -37,8 +40,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
@@ -161,22 +166,24 @@ fun StatBar(label: String, range: StatRange?, modifier: Modifier = Modifier, sca
     StatBar(label = label, base = range?.base, max = range?.max, modifier = modifier, scale = scale)
 
 /**
- * Section head as the rulebook sets them: Cinzel small caps in copper ("Place the Board", p.5),
- * then a fading copper rule. Marked as a heading for TalkBack. [trailing] holds an optional
- * action (e.g. "See all").
+ * The one section head, as the rulebook sets them: Cinzel small caps in copper ("Place the Board", p.5),
+ * then a fading copper hairline. Marked as a heading for TalkBack. [trailing] holds an optional
+ * action (e.g. "Manage"); [ribbon] marks a card colour's section only; [padding] is [SectionHeaderPaddingTight] in a
+ * column that spaces its items itself. Inside a plate use [SubHeader].
  */
 @Composable
 fun SectionHeader(
     title: String,
     modifier: Modifier = Modifier,
     ribbon: PlateColor? = null,
+    padding: PaddingValues = SectionHeaderPadding,
     trailing: (@Composable () -> Unit)? = null,
 ) {
     val copper = GoaTheme.colors.heading
     Row(
         modifier
             .fillMaxWidth()
-            .padding(top = Spacing.lg, bottom = Spacing.sm),
+            .padding(padding),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         if (ribbon != null) {
@@ -204,17 +211,132 @@ fun SectionHeader(
 }
 
 /**
- * The app's card: 12 dp corners, surface fill with a faint bronze sheen at the top and the
- * engraved 1 dp bronze-at-30 % border. Clickable when [onClick] is set.
+ * A group's label inside a plate or sheet ("Computer strength", "Advanced"): Inter semibold in the muted tone, no
+ * rule, so it never competes with the [SectionHeader] the plate sits under. A heading for TalkBack.
+ */
+@Composable
+fun SubHeader(text: String, modifier: Modifier = Modifier, trailing: (@Composable () -> Unit)? = null) {
+    Row(
+        modifier.fillMaxWidth().padding(top = Spacing.sm, bottom = Spacing.xs),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(
+            text,
+            style = GoaTextStyles.subHead,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.weight(1f).semantics { heading() },
+        )
+        trailing?.invoke()
+    }
+}
+
+/** What marks a [SelectablePlate]'s choice: a radio for one of several, a check for on/off, or nothing. */
+enum class SelectionMark { Radio, Check, None }
+
+/**
+ * The selected look, for layouts of their own (a tile, a chip-like pair): the bronze 2 dp outline over a bronze
+ * tint when [selected], a quiet hairline otherwise. Bronze is selected (teal is next and correct; team colours only
+ * mark teams). Pair it with `selectable` for its semantics, or use [SelectablePlate].
+ */
+@Composable
+fun Modifier.selectionFrame(selected: Boolean, shape: Shape = SelectionShape): Modifier {
+    val colors = GoaTheme.colors
+    return if (selected) {
+        clip(shape).background(colors.selectionFill).border(2.dp, colors.selection, shape)
+    } else {
+        clip(shape).border(1.dp, MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.28f), shape)
+    }
+}
+
+/**
+ * One choice of several, the same on every screen: a quiet plate with a bronze radio ([mark]) and the content;
+ * selected, a bronze outline and tint ([selectionFrame]). The whole plate is one target with its role for TalkBack.
+ */
+@Composable
+fun SelectablePlate(
+    selected: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    enabled: Boolean = true,
+    mark: SelectionMark = SelectionMark.Radio,
+    contentPadding: PaddingValues = PaddingValues(horizontal = Spacing.md, vertical = Spacing.md),
+    content: @Composable RowScope.() -> Unit,
+) {
+    GoaPlateTheme {
+        Row(
+            modifier
+                .heightIn(min = 48.dp)
+                .slatePlate(SelectionShape, brackets = false, style = PlateStyle.Secondary)
+                .selectionFrame(selected)
+                .selectable(
+                    selected = selected,
+                    enabled = enabled,
+                    role = if (mark == SelectionMark.Check) Role.Checkbox else Role.RadioButton,
+                    onClick = onClick,
+                )
+                .padding(contentPadding),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            if (mark != SelectionMark.None) {
+                SelectionMarkIcon(selected, mark)
+                Spacer(Modifier.width(Spacing.md))
+            }
+            content()
+        }
+    }
+}
+
+/** The bronze radio or check a [SelectablePlate] leads with (decorative: the plate carries the state). */
+@Composable
+fun SelectionMarkIcon(selected: Boolean, mark: SelectionMark = SelectionMark.Radio, modifier: Modifier = Modifier) {
+    val bronze = GoaTheme.colors.selection
+    val idle = MaterialTheme.colorScheme.onSurfaceVariant
+    val shape = if (mark == SelectionMark.Check) RoundedCornerShape(4.dp) else CircleShape
+    Box(
+        modifier
+            .size(20.dp)
+            .clip(shape)
+            .then(if (selected && mark == SelectionMark.Check) Modifier.background(bronze) else Modifier)
+            .border(2.dp, if (selected) bronze else idle, shape)
+            .clearAndSetSemantics {},
+        contentAlignment = Alignment.Center,
+    ) {
+        if (selected) {
+            if (mark == SelectionMark.Check) {
+                Icon(
+                    Icons.Filled.Check,
+                    null,
+                    tint = MaterialTheme.colorScheme.onPrimary,
+                    modifier = Modifier.size(16.dp),
+                )
+            } else {
+                Box(Modifier.size(10.dp).clip(CircleShape).background(bronze))
+            }
+        }
+    }
+}
+
+private val SelectionShape = RoundedCornerShape(8.dp)
+
+/** A [SectionHeader]'s room: a clear break above, the plate close below. */
+val SectionHeaderPadding = PaddingValues(top = Spacing.lg, bottom = Spacing.sm)
+
+/** For a column that spaces its items already (a form of short sections): the head sits on that spacing. */
+val SectionHeaderPaddingTight = PaddingValues(top = Spacing.xs, bottom = 0.dp)
+
+/**
+ * The app's card: a [GoaPlate] with roomier padding; [style] [PlateStyle.Secondary] for settings and prose.
+ * Clickable when [onClick] is set.
  */
 @Composable
 fun GoaCard(
     modifier: Modifier = Modifier,
     onClick: (() -> Unit)? = null,
     contentPadding: PaddingValues = PaddingValues(Spacing.lg),
+    style: PlateStyle = PlateStyle.Primary,
     content: @Composable ColumnScope.() -> Unit,
 ) {
-    GoaPlate(modifier = modifier, onClick = onClick, contentPadding = contentPadding, content = content)
+    GoaPlate(modifier = modifier, onClick = onClick, contentPadding = contentPadding, style = style, content = content)
 }
 
 @Composable

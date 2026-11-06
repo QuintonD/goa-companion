@@ -7,18 +7,14 @@ import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.AccountCircle
-import androidx.compose.material.icons.outlined.PersonAdd
+import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material.icons.outlined.SettingsBackupRestore
 import androidx.compose.material.icons.outlined.Share
 import androidx.compose.material.icons.outlined.Sync
-import androidx.compose.material3.Badge
-import androidx.compose.material3.BadgedBox
-import androidx.compose.material3.ExtendedFloatingActionButton
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.PrimaryScrollableTabRow
 import androidx.compose.material3.PrimaryTabRow
@@ -27,17 +23,14 @@ import androidx.compose.material3.Tab
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.semantics.contentDescription
-import androidx.compose.ui.semantics.semantics
+import dev.quinton.goa.core.designsystem.component.BarAction
+import dev.quinton.goa.core.designsystem.component.BarActions
 import dev.quinton.goa.core.designsystem.component.GoaScreen
-import dev.quinton.goa.core.designsystem.component.SettingsActionButton
 import dev.quinton.goa.core.designsystem.theme.Spacing
 import dev.quinton.goa.feature.players.common.LARGE_FONT_SCALE
-import dev.quinton.goa.feature.players.common.LogMatchFab
+import dev.quinton.goa.feature.players.common.LogMatchBar
 import dev.quinton.goa.feature.players.common.Motion
-import dev.quinton.goa.feature.players.common.rememberFabExpansion
 import dev.quinton.goa.feature.players.match.MatchFollowUps
 import dev.quinton.goa.feature.players.match.MatchLogContent
 import dev.quinton.goa.feature.players.match.MatchLogUiState
@@ -81,69 +74,40 @@ fun PlayersHomeScreen(
     metaActions: MetaActions = MetaActions(onOpenRatingSettings = actions.onOpenRatingSettings),
     modifier: Modifier = Modifier,
 ) {
-    val fab = rememberFabExpansion()
     GoaScreen(
         title = "Players",
         modifier = modifier,
         actions = {
-            if (tab == PlayersTab.META) {
-                IconButton(onClick = actions.onShareStats) {
-                    Icon(Icons.Outlined.Share, contentDescription = "Share stats page")
-                }
-            }
-            players.meId?.let { me ->
-                IconButton(onClick = { actions.onOpenPlayer(me) }) {
-                    Icon(Icons.Outlined.AccountCircle, contentDescription = "Your player page")
-                }
-            }
-            IconButton(onClick = actions.onOpenSync) {
-                // A quiet dot when the server sync needs a person (wrong key, versions, refused data).
-                BadgedBox(badge = { if (players.serverNeedsAttention) Badge() }) {
-                    Icon(
-                        Icons.Outlined.Sync,
-                        contentDescription = when {
-                            players.serverNeedsAttention -> "Group sync: the sync server needs attention"
-                            players.serverSyncOn -> "Sync with the sync server"
-                            players.inGroup -> "Sync with the group"
-                            else -> "Group sync"
-                        },
-                    )
-                }
-            }
-            IconButton(onClick = actions.onOpenBackup) {
-                Icon(Icons.Outlined.SettingsBackupRestore, contentDescription = "Backup and restore")
-            }
-            SettingsActionButton(actions.onOpenSettings)
-        },
-        floatingActionButton = {
-            // With large text the label would cover a row's numbers: the icon alone (TalkBack hears the label).
-            val expanded = fab.expanded && LocalDensity.current.fontScale <= LARGE_FONT_SCALE
-            when (tab) {
-                // The empty state carries its own "Add player" call to action; don't show two.
-                PlayersTab.PLAYERS -> if (!players.isEmpty) {
-                    ExtendedFloatingActionButton(
-                        onClick = actions.onAddPlayer,
-                        expanded = expanded,
-                        icon = { Icon(Icons.Outlined.PersonAdd, contentDescription = null) },
-                        text = { Text("Add player") },
-                        // M3 1.4 leaves the extended FAB's text out of the semantics tree.
-                        modifier = Modifier.semantics { contentDescription = "Add player" },
-                        containerColor = MaterialTheme.colorScheme.primary,
-                        contentColor = MaterialTheme.colorScheme.onPrimary,
-                    )
-                }
-
-                PlayersTab.MATCHES -> if (matches.undo == null && !matches.isEmpty) {
-                    LogMatchFab(actions.onLogMatch, expanded = expanded)
-                }
-
-                PlayersTab.META -> Unit
-            }
+            // Sync stays in sight (a quiet dot when the server sync needs a person: wrong key, versions,
+            // refused data); the rest are labelled lines in the overflow menu.
+            val sync = BarAction(
+                label = when {
+                    players.serverNeedsAttention -> "Group sync: the sync server needs attention"
+                    players.serverSyncOn -> "Sync with the sync server"
+                    players.inGroup -> "Sync with the group"
+                    else -> "Group sync"
+                },
+                icon = Icons.Outlined.Sync,
+                onClick = actions.onOpenSync,
+                badge = players.serverNeedsAttention,
+            )
+            BarActions(
+                listOfNotNull(
+                    sync,
+                    players.meId?.let { me ->
+                        BarAction("Your player page", Icons.Outlined.AccountCircle, { actions.onOpenPlayer(me) })
+                    },
+                    BarAction("Share stats page", Icons.Outlined.Share, actions.onShareStats)
+                        .takeIf { tab == PlayersTab.META },
+                    BarAction("Backup and restore", Icons.Outlined.SettingsBackupRestore, actions.onOpenBackup),
+                    BarAction("Settings", Icons.Outlined.Settings, actions.onOpenSettings),
+                ),
+            )
         },
     ) { padding ->
-        Box(Modifier.fillMaxSize().padding(padding).nestedScroll(fab.connection)) {
-            Column(Modifier.fillMaxSize()) {
-                TabBar(tab, actions.onSelectTab)
+        Column(Modifier.fillMaxSize().padding(padding)) {
+            TabBar(tab, actions.onSelectTab)
+            Box(Modifier.weight(1f).fillMaxWidth()) {
                 AnimatedContent(
                     targetState = tab,
                     transitionSpec = { fadeIn(Motion.spec()) togetherWith fadeOut(Motion.spec()) },
@@ -168,13 +132,15 @@ fun PlayersHomeScreen(
                         PlayersTab.META -> MetaContent(meta, metaActions)
                     }
                 }
+                UndoSnackbarHost(
+                    hostState = snackbarHostState,
+                    undo = matches.undo,
+                    onUndo = actions.onUndoDelete,
+                    onDismiss = actions.onDismissUndo,
+                )
             }
-            UndoSnackbarHost(
-                hostState = snackbarHostState,
-                undo = matches.undo,
-                onUndo = actions.onUndoDelete,
-                onDismiss = actions.onDismissUndo,
-            )
+            // Docked under the list, never over it. The empty log carries its own "Log a match".
+            if (tab == PlayersTab.MATCHES && !matches.loading && !matches.isEmpty) LogMatchBar(actions.onLogMatch)
         }
     }
 }

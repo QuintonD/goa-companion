@@ -13,7 +13,7 @@ import org.junit.Test
 import org.junit.runner.RunWith
 
 /**
- * Play against the computer from Boards (PRODUCT §9): a 2v2 on Forgotten Island, the person plays
+ * Play against the computer from the Play tab (PRODUCT §9): a 2v2 on Forgotten Island, the person plays
  * Wasp, the computer at strength 2 (Easy), Coach on. Play a card facedown, wait for the computer's three heroes to
  * play theirs, and see the reveal and the first question after it (the real engine and AI).
  */
@@ -25,8 +25,7 @@ class PlayFlowTest {
     fun startAGameFromBoardsAndPlayThroughTheFirstReveal() {
         rule.openTab("catalog")
         rule.waitForText("32 heroes")
-        rule.openFromPlay("Board")
-        rule.tap(hasText("Play against the computer") and hasClickAction())
+        rule.openFromPlay("Play vs computer")
 
         // Alternate picks: Red, Blue, Red, Blue.
         rule.waitForText("Tap heroes below")
@@ -38,6 +37,7 @@ class PlayFlowTest {
 
         // You play Wasp; the computer is Easy (strength 2); Coach is on by default; Forgotten Island is the map.
         rule.waitForText("Game options")
+        rule.tapText("One hero")
         rule.tap(hasText("Wasp") and hasClickAction())
         rule.reveal(hasContentDescription("Computer strength"))
             .performSemanticsAction(SemanticsActions.SetProgress) { setProgress -> setProgress(2f) }

@@ -58,6 +58,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.ReadOnlyComposable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
@@ -78,6 +79,7 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.onClick
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -301,7 +303,7 @@ internal fun ColumnScope.HeroGrid(
     end: Dp,
 ) {
     val density = LocalDensity.current
-    val label = with(density) { MaterialTheme.typography.labelSmall.lineHeight.toDp() } + LABEL_GAP
+    val label = with(density) { tileName().lineHeight.toDp() } + LABEL_GAP
     BoxWithConstraints(Modifier.weight(1f).fillMaxWidth()) {
         if (large) {
             LazyVerticalGrid(
@@ -648,18 +650,19 @@ private fun HeroTile(hero: BoardHero, state: LineupPicker, onAction: (NewBoardAc
                     Surface(
                         shape = RoundedCornerShape(50),
                         color = MaterialTheme.colorScheme.background.copy(alpha = 0.9f),
-                        border = BorderStroke(1.dp, edge),
-                        modifier = Modifier.align(Alignment.TopStart).padding(3.dp),
+                        border = BorderStroke(1.5.dp, edge),
+                        modifier = Modifier.align(Alignment.TopStart).padding(2.dp),
                     ) {
+                        // The pick badge reads across the table: the team's mark and its number, a size up.
                         Row(
-                            Modifier.padding(horizontal = 4.dp, vertical = 1.dp),
+                            Modifier.padding(horizontal = 5.dp, vertical = 1.dp),
                             verticalAlignment = Alignment.CenterVertically,
                         ) {
-                            TeamMark(team, markSize = 8.dp)
-                            Spacer(Modifier.width(2.dp))
+                            TeamMark(team, markSize = 10.dp)
+                            Spacer(Modifier.width(3.dp))
                             Text(
                                 "$pick",
-                                style = MaterialTheme.typography.labelSmall,
+                                style = MaterialTheme.typography.labelLarge,
                                 color = edge,
                                 fontWeight = FontWeight.Bold,
                             )
@@ -669,12 +672,13 @@ private fun HeroTile(hero: BoardHero, state: LineupPicker, onAction: (NewBoardAc
             }
         }
         // Shrinks to fit a small tile rather than cutting the name ("Silverarrow", not "Silvera…").
-        val style = MaterialTheme.typography.labelSmall
+        val style = tileName()
         BasicText(
             hero.name,
             style = style.copy(
                 textAlign = TextAlign.Center,
                 letterSpacing = 0.sp,
+                fontWeight = if (team != null) FontWeight.Bold else style.fontWeight,
                 color = if (action == null && team == null) {
                     MaterialTheme.colorScheme.onSurfaceVariant
                 } else {
@@ -690,6 +694,11 @@ private fun HeroTile(hero: BoardHero, state: LineupPicker, onAction: (NewBoardAc
         )
     }
 }
+
+/** A tile's name: a size up from the smallest label and semibold, so it reads at arm's length. */
+@Composable
+@ReadOnlyComposable
+private fun tileName(): TextStyle = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.SemiBold)
 
 /**
  * A hero that can't be seated yet (New game: not every card of it is built and tested): the

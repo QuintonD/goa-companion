@@ -67,7 +67,6 @@ import dev.quinton.goa.core.designsystem.theme.Spacing
 import dev.quinton.goa.core.model.match.GameMode
 import dev.quinton.goa.core.model.match.Team
 import dev.quinton.goa.feature.timer.ui.components.CoinFace
-import dev.quinton.goa.feature.timer.ui.components.PlateTeal
 import dev.quinton.goa.feature.timer.ui.components.goaChipBorder
 import dev.quinton.goa.feature.timer.ui.components.goaChipColors
 import dev.quinton.goa.feature.timer.ui.components.plateEdge
@@ -210,16 +209,16 @@ fun MatchSetupScreen(state: MatchSetupUiState, actions: SetupActions) {
 @Composable
 private fun SetupCard(
     modifier: Modifier = Modifier,
-    highlighted: Boolean = false,
+    selected: Boolean? = null,
     content: @Composable () -> Unit,
 ) {
     GoaPlate(
         Modifier
             .fillMaxWidth()
-            .plateEdge(if (highlighted) PlateTeal else null)
             .clip(PlateShape)
             .then(modifier),
         contentPadding = PaddingValues(0.dp),
+        selected = selected,
     ) { content() }
 }
 
@@ -316,7 +315,7 @@ private fun LayoutCard(layout: LayoutOptionUi, selected: Boolean, selectable: Bo
         } else {
             Modifier
         },
-        highlighted = selected && selectable,
+        selected = selected.takeIf { selectable },
     ) {
         Row(Modifier.padding(Spacing.md), verticalAlignment = Alignment.Top) {
             if (selectable) RadioButton(selected = selected, onClick = null, modifier = Modifier.padding(Spacing.xs))
@@ -354,7 +353,7 @@ private fun ModeCard(mode: ModeOptionUi, selected: Boolean, onClick: () -> Unit)
             // No alpha dimming: the "why unavailable" text must stay readable (>= 4.5:1). The disabled
             // radio button and muted title already signal that the mode can't be chosen.
             .selectable(selected = selected, enabled = mode.available, onClick = onClick, role = Role.RadioButton),
-        highlighted = selected,
+        selected = selected,
     ) {
         val colors = MaterialTheme.colorScheme
         Row(Modifier.padding(Spacing.md), verticalAlignment = Alignment.Top) {

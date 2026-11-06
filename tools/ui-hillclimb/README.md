@@ -23,7 +23,9 @@ The API key lives in `~/.config/goa-hillclimb/azure_key` (or `$GOA_HC_KEY_FILE`)
 ```
 python3 -I tools/ui-hillclimb/hc.py collect <dir>/corpus [--root <checkout>] [--only id,id]
 python3 -I tools/ui-hillclimb/hc.py judge <dir>/corpus <dir>/score-sol.json
-python3 -I tools/ui-hillclimb/hc.py compare <before>/corpus <after>/corpus <out.json> --only id,id --note "..."
+python3 -I tools/ui-hillclimb/hc.py blind <before>/corpus <after>/corpus <cmp> --only id,id   # hidden X|Y order
+python3 -I tools/ui-hillclimb/hc.py compare <cmp> <cmp>/sol.json --note "..."
+python3 -I tools/ui-hillclimb/hc.py unblind <cmp> <cmp>/opus-raw.json <cmp>/opus.json claude-opus-5-5  # after the Opus agent
 python3 -I tools/ui-hillclimb/hc.py imagegen out.png "prompt" --size 1536x1024 [--ref style.png]
 python3 -I tools/ui-hillclimb/hc.py board <runs_dir>
 tools/ui-hillclimb/build.sh :feature:timer:recordRoborazziDebug

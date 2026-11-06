@@ -4,6 +4,7 @@ import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
@@ -189,18 +190,27 @@ private fun QuizPlaying(state: TriviaQuizUiState.Playing, onAnswer: (TriviaAnswe
                 val scroll = rememberScrollState()
                 BoxWithConstraints(Modifier.weight(1f)) {
                     val imageMax = imageRoom(maxHeight, padding = Spacing.lg * 2)
+                    val art = artRoom(maxHeight)
+                    // The question and the hero's art at the top, the answers at the bottom in thumb
+                    // reach: the column is at least the screen tall and splits the room between them.
                     Column(
                         Modifier
                             .fillMaxSize()
                             .verticalScroll(scroll)
+                            .heightIn(min = maxHeight)
                             .padding(horizontal = Spacing.screen, vertical = Spacing.lg),
+                        verticalArrangement = Arrangement.SpaceBetween,
                     ) {
-                        QuizHeader(state)
-                        Spacer(Modifier.height(Spacing.lg))
-                        QuestionPanel(state.question)
-                        Spacer(Modifier.height(Spacing.lg))
-                        AnswerArea(state, onAnswer)
-                        Reveal(state, scroll = scroll, imageMaxHeight = imageMax)
+                        Column {
+                            QuizHeader(state)
+                            Spacer(Modifier.height(Spacing.lg))
+                            QuestionPanel(state.question, artHeight = art)
+                            Spacer(Modifier.height(Spacing.lg))
+                        }
+                        Column {
+                            AnswerArea(state, onAnswer)
+                            Reveal(state, scroll = scroll, imageMaxHeight = imageMax)
+                        }
                     }
                 }
                 NextBar(state, onNext)
@@ -218,6 +228,23 @@ private fun imageRoom(viewport: Dp, padding: Dp): Dp {
     val fontScale = LocalDensity.current.fontScale.coerceIn(1f, 2f)
     return (viewport - padding - FEEDBACK_ROOM * fontScale).coerceAtLeast(MIN_IMAGE_HEIGHT)
 }
+
+/**
+ * How tall the hero's art over a question may be: what the screen has left after the header, the
+ * card's lines, the question plate and the answers, within a range that stays a picture. None when
+ * large text leaves too little.
+ */
+@Composable
+private fun artRoom(viewport: Dp): Dp {
+    val fontScale = LocalDensity.current.fontScale.coerceIn(1f, 2f)
+    val room = viewport - QUESTION_CHROME * fontScale
+    return if (room < MIN_ART) 0.dp else room.coerceAtMost(MAX_ART)
+}
+
+/** Header, card name and kind, question plate, four answers and the spacing between them. */
+private val QUESTION_CHROME = 520.dp
+private val MIN_ART = 96.dp
+private val MAX_ART = 240.dp
 
 /** Room for the feedback line (up to two lines) and its spacing above the scan. */
 private val FEEDBACK_ROOM = 96.dp

@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
@@ -20,8 +21,12 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.KeyboardArrowRight
 import androidx.compose.material.icons.outlined.ContentCopy
 import androidx.compose.material.icons.outlined.EmojiEvents
+import androidx.compose.material.icons.outlined.Flag
+import androidx.compose.material.icons.outlined.HourglassTop
 import androidx.compose.material.icons.outlined.PersonRemove
+import androidx.compose.material.icons.outlined.PlayCircleOutline
 import androidx.compose.material.icons.outlined.QrCodeScanner
+import androidx.compose.material.icons.outlined.TouchApp
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -44,6 +49,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
@@ -59,6 +65,8 @@ import dev.quinton.goa.core.designsystem.component.GoaDialog
 import dev.quinton.goa.core.designsystem.component.GoaPlate
 import dev.quinton.goa.core.designsystem.component.GoaScreen
 import dev.quinton.goa.core.designsystem.component.PlateColor
+import dev.quinton.goa.core.designsystem.component.SectionHeader
+import dev.quinton.goa.core.designsystem.component.SectionHeaderPaddingTight
 import dev.quinton.goa.core.designsystem.component.scaledIconSize
 import dev.quinton.goa.core.designsystem.theme.GoaTextStyles
 import dev.quinton.goa.core.designsystem.theme.Spacing
@@ -66,6 +74,8 @@ import dev.quinton.goa.core.game.GameLength
 import dev.quinton.goa.core.online.MyGame
 import dev.quinton.goa.feature.board.play.PlayText
 import dev.quinton.goa.feature.board.play.online.AccountStage
+import dev.quinton.goa.feature.board.play.online.MyGameState
+import dev.quinton.goa.feature.board.play.online.MyGameStatuses
 import dev.quinton.goa.feature.board.play.online.OnlineHomeUi
 import dev.quinton.goa.feature.board.play.online.OnlineRooms
 import dev.quinton.goa.feature.board.play.online.OnlineWords
@@ -146,12 +156,7 @@ private fun Message(text: String) {
 
 @Composable
 internal fun OnlineSection(title: String) {
-    Text(
-        title.uppercase(),
-        style = GoaTextStyles.overline,
-        color = MaterialTheme.colorScheme.primary,
-        modifier = Modifier.semantics { heading() },
-    )
+    SectionHeader(title, padding = SectionHeaderPaddingTight)
 }
 
 @Composable
@@ -252,34 +257,63 @@ private fun Ready(state: OnlineHomeUi, mapNames: Map<String, String>, actions: O
     Account(state, actions)
 }
 
+/**
+ * The games to go back to, the ones that need you first: each row says where it stands in words with an icon
+ * ("Your turn", "Waiting for Bob", "Finished"; teal only for your turn, never colour alone), then who plays
+ * and where.
+ */
 @Composable
 private fun MyGames(state: OnlineHomeUi, mapNames: Map<String, String>, actions: OnlineHomeActions) {
     OnlineSection("My games")
     GoaPlate(Modifier.fillMaxWidth(), contentPadding = PaddingValues(0.dp)) {
         state.games.forEachIndexed { i, game ->
             if (i > 0) HorizontalDivider()
+            val status = MyGameStatuses.of(game, state.you)
+            val yours = status.state == MyGameState.YOUR_TURN
+            val accent = if (yours) MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.onSurfaceVariant
+            val where = mapNames[game.mapId] ?: game.mapId
+            val who = game.seats.joinToString(", ") { it.name.ifBlank { "Former player" } }
             Surface(
                 onClick = { actions.onGame(game) },
-                color = Color.Transparent,
+                color = if (yours) MaterialTheme.colorScheme.secondary.copy(alpha = 0.08f) else Color.Transparent,
                 contentColor = MaterialTheme.colorScheme.onSurface,
-                modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .heightIn(min = 64.dp)
+                    .semantics(mergeDescendants = true) {
+                        contentDescription = "${status.words}. $who. $where. Back to this game"
+                    },
             ) {
                 Row(
                     Modifier.padding(horizontal = Spacing.md, vertical = Spacing.sm),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
+                    Icon(
+                        when (status.state) {
+                            MyGameState.YOUR_TURN -> Icons.Outlined.TouchApp
+                            MyGameState.WAITING -> Icons.Outlined.HourglassTop
+                            MyGameState.IN_PLAY -> Icons.Outlined.PlayCircleOutline
+                            MyGameState.OVER -> Icons.Outlined.Flag
+                        },
+                        contentDescription = null,
+                        tint = accent,
+                        modifier = Modifier.size(scaledIconSize(24.dp, 1.4f)),
+                    )
+                    Spacer(Modifier.width(Spacing.md))
                     Column(Modifier.weight(1f)) {
                         Text(
-                            game.seats.joinToString(", ") { it.name },
+                            status.words,
                             style = MaterialTheme.typography.titleSmall,
+                            fontWeight = if (yours) FontWeight.Bold else FontWeight.SemiBold,
+                            color = if (yours) accent else MaterialTheme.colorScheme.onSurface,
                         )
                         Text(
-                            mapNames[game.mapId] ?: game.mapId,
+                            "$who · $where",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                     }
-                    Icon(Icons.AutoMirrored.Outlined.KeyboardArrowRight, contentDescription = "Back to this game")
+                    Icon(Icons.AutoMirrored.Outlined.KeyboardArrowRight, contentDescription = null)
                 }
             }
         }
@@ -368,7 +402,7 @@ private fun <T> Segments(options: List<T>, selected: T, label: (T) -> String, on
 private fun LeaderboardEntry(actions: OnlineHomeActions) {
     OutlinedButton(onClick = actions.onLeaderboard, modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp)) {
         Icon(Icons.Outlined.EmojiEvents, contentDescription = null, modifier = Modifier.padding(end = Spacing.sm))
-        Text("Leaderboard")
+        Text("Online ratings")
     }
 }
 

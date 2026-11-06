@@ -46,9 +46,9 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.DialogProperties
-import dev.quinton.goa.core.designsystem.component.GoaCard
 import dev.quinton.goa.core.designsystem.component.GoaDialog
 import dev.quinton.goa.core.designsystem.component.GoaScreen
+import dev.quinton.goa.core.designsystem.component.PlateStyle
 import dev.quinton.goa.core.designsystem.component.SectionHeader
 import dev.quinton.goa.core.designsystem.icon.GoaIcons
 import dev.quinton.goa.core.designsystem.theme.FontLicense
@@ -116,68 +116,58 @@ fun AboutScreen(info: AppInfo, onBack: () -> Unit, modifier: Modifier = Modifier
             ),
         ) {
             item { AboutHeader(info) }
+            // Prose reads as prose, on the page; only the rows you can tap sit on a (flat) group.
             item {
-                GoaCard(Modifier.fillMaxWidth()) {
-                    Row(verticalAlignment = Alignment.Top) {
-                        Icon(Icons.Outlined.Info, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
-                        Spacer(Modifier.width(Spacing.md))
-                        Column {
-                            Text("A free fan companion", style = MaterialTheme.typography.titleMedium)
-                            Body(
-                                "Made by a player for their play group and shared free of charge: not sold, no " +
-                                    "ads. Your matches and players stay " +
-                                    "on this phone unless you join a group: then they sync phone to phone at the " +
-                                    "table, or through the group's sync server, which only ever holds them sealed " +
-                                    "and can't read them.",
-                            )
-                        }
-                    }
-                }
+                Prose(
+                    "Made by a player for their play group and shared free of charge: not sold, no " +
+                        "ads. Your matches and players stay " +
+                        "on this phone unless you join a group: then they sync phone to phone at the " +
+                        "table, or through the group's sync server, which only ever holds them sealed " +
+                        "and can't read them.",
+                    Modifier.padding(horizontal = Spacing.xs),
+                )
             }
-            item {
-                GoaCard(
-                    Modifier
-                        .fillMaxWidth()
-                        .padding(top = Spacing.md),
-                    contentPadding = PaddingValues(vertical = Spacing.sm),
-                ) { DonateRow() }
-            }
+            item { SettingsGroup(Modifier.padding(top = Spacing.lg)) { DonateRow() } }
             item { SectionHeader("Game content") }
             item {
-                GoaCard(Modifier.fillMaxWidth()) {
-                    Body(
+                Column(Modifier.padding(horizontal = Spacing.xs)) {
+                    Prose(
                         "Guards of Atlantis II, its heroes, card text, card images and artwork are by " +
                             "Wolff Designa. They appear here for non-commercial play by fans of the game.",
                     )
                     Spacer(Modifier.size(Spacing.sm))
                     Text(
                         "Not affiliated with or endorsed by Wolff Designa.",
-                        style = MaterialTheme.typography.bodyMedium,
+                        style = MaterialTheme.typography.bodyLarge,
                         color = MaterialTheme.colorScheme.onSurface,
                     )
                 }
             }
             item { SectionHeader("Data sources") }
             item {
-                GoaCard(Modifier.fillMaxWidth()) {
-                    Body("Thanks to these community projects, whose published data helped build and check the catalog:")
+                Column(Modifier.padding(horizontal = Spacing.xs)) {
+                    Prose(
+                        "Thanks to these community projects, whose published data helped build and check the catalog:",
+                    )
                     DataSourceCredits.forEach { (name, what) ->
-                        Spacer(Modifier.size(Spacing.sm))
-                        Text(name, style = MaterialTheme.typography.titleSmall)
-                        Body(what)
+                        Spacer(Modifier.size(Spacing.md))
+                        Text(name, style = MaterialTheme.typography.titleMedium)
+                        Prose(what)
                     }
                 }
             }
             item { SectionHeader("Original artwork") }
             item {
-                GoaCard(Modifier.fillMaxWidth()) {
-                    Body("Hero sigils, player crests, icons and the app icon were drawn for this app.")
-                }
+                Prose(
+                    "Hero sigils, player crests, icons and the app icon were drawn for this app.",
+                    Modifier.padding(horizontal = Spacing.xs),
+                )
             }
             item { SectionHeader("Fonts") }
             item {
-                GoaCard(Modifier.fillMaxWidth(), contentPadding = PaddingValues(vertical = Spacing.sm)) {
-                    GoaFontLicenses.forEach { font ->
+                SettingsGroup {
+                    GoaFontLicenses.forEachIndexed { i, font ->
+                        if (i > 0) GroupDivider()
                         FontRow(font) { openLicense = font.family }
                     }
                 }
@@ -213,6 +203,18 @@ private fun AboutHeader(info: AppInfo) {
     }
 }
 
+/** A paragraph on the page. */
+@Composable
+private fun Prose(text: String, modifier: Modifier = Modifier) {
+    Text(
+        text,
+        style = MaterialTheme.typography.bodyLarge,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        modifier = modifier,
+    )
+}
+
+/** A row's second line. */
 @Composable
 private fun Body(text: String) {
     Text(text, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
