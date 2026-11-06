@@ -165,23 +165,25 @@ object DraftBoardText {
 
     const val ALL_IN_POOL = "Every eligible hero is already in the pool"
 
-    /** The step banner's headline, e.g. "◆ Red — Pick 2". */
+    /**
+     * The step banner's headline, e.g. "◆ Red picks 2". Once the coin has named the teams the draft speaks
+     * in colours only: "Team A" and "Team B" belong to the method editor.
+     */
     fun bannerTitle(session: DraftSession): String? {
         val step = session.currentStep ?: return null
         val run = session.currentRun()
-        val verb = actionName(step.action) + if (run != null && run.length > 1) " ${run.length}" else ""
-        return "${teamLabel(step.team)} — $verb"
+        val verb = if (step.action == DraftAction.BAN) "bans" else "picks"
+        return "${teamLabel(step.team)} $verb" + if (run != null && run.length > 1) " ${run.length}" else ""
     }
 
-    /** The banner's second line: "Team A · Step 3 of 12 · 1 of 2 · for Ben · hidden". */
+    /** The banner's second line: "Step 3 of 12 · 1 of 2 · for Ben · hidden". */
     fun bannerDetail(session: DraftSession, playerName: (String?) -> String): String? {
         val step = session.currentStep ?: return null
         val run = session.currentRun()
-        val teamRole = if (step.team == session.teamA) "Team A" else "Team B"
         val runText = if (run != null && run.length > 1) " · ${run.position} of ${run.length}" else ""
         val seat = step.seatId?.let { id -> session.seat(id) }
         val pilot = seat?.pilotId?.let { " · for ${playerName(it)}" } ?: ""
-        return "$teamRole · Step ${(session.currentStepIndex ?: 0) + 1} of ${session.plan.size}$runText$pilot" +
+        return "Step ${(session.currentStepIndex ?: 0) + 1} of ${session.plan.size}$runText$pilot" +
             if (step.hidden) " · hidden" else ""
     }
 

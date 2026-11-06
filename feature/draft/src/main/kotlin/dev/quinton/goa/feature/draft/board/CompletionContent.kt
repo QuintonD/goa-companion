@@ -47,6 +47,8 @@ import dev.quinton.goa.core.designsystem.component.GoaButton
 import dev.quinton.goa.core.designsystem.component.GoaPlate
 import dev.quinton.goa.core.designsystem.component.HeroPortrait
 import dev.quinton.goa.core.designsystem.component.HeroSymbol
+import dev.quinton.goa.core.designsystem.component.OfficialArt
+import dev.quinton.goa.core.designsystem.component.OfficialIcon
 import dev.quinton.goa.core.designsystem.component.PlayerAvatar
 import dev.quinton.goa.core.designsystem.component.TeamMark
 import dev.quinton.goa.core.designsystem.component.TitlePlate
@@ -232,11 +234,25 @@ private fun TeamResult(
                     color = teamColor(team),
                     modifier = Modifier.weight(1f),
                 )
-                Text(
-                    if (team == session.teamA) "Team A · Tie Breaker" else "Team B",
-                    style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
+                // The team the coin shows holds the Tie Breaker: said with the coin itself, not "Team A".
+                if (team == session.teamA) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.semantics(mergeDescendants = true) {
+                            contentDescription = "${teamName(team)} has the Tie Breaker coin"
+                        },
+                    ) {
+                        OfficialIcon(OfficialArt.tieBreaker(team), Modifier.size(20.dp)) {
+                            TeamMark(team, Modifier.matchParentSize())
+                        }
+                        Spacer(Modifier.width(Spacing.xs))
+                        Text(
+                            "Tie Breaker coin",
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                }
             }
             seats.forEachIndexed { i, assignment ->
                 if (i > 0) HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)

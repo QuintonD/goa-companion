@@ -51,26 +51,26 @@ class GameNight(private val rule: AppRule, private val checkpoint: (String) -> U
         val teamB = teamA.other
         rule.tap(hasText("Start draft", substring = true) and hasClickAction())
 
-        // ---- Draft board: House draft 2v2 = Ban A · Pick A · Ban B · Pick B · Pick B · Pick A.
+        // ---- Draft board: House draft 2v2 = Ban A · Pick A · Ban B · Pick B · Pick B · Pick A, said in colours.
         val expected = listOf(
-            Step(teamA, "Ban", "Team A · Step 1 of 6"),
-            Step(teamA, "Pick", "Team A · Step 2 of 6"),
-            Step(teamB, "Ban", "Team B · Step 3 of 6"),
-            Step(teamB, "Pick 2", "Team B · Step 4 of 6 · 1 of 2"),
-            Step(teamB, "Pick 2", "Team B · Step 5 of 6 · 2 of 2"),
-            Step(teamA, "Pick", "Team A · Step 6 of 6"),
+            Step(teamA, "bans", "Step 1 of 6"),
+            Step(teamA, "picks", "Step 2 of 6"),
+            Step(teamB, "bans", "Step 3 of 6"),
+            Step(teamB, "picks 2", "Step 4 of 6 · 1 of 2"),
+            Step(teamB, "picks 2", "Step 5 of 6 · 2 of 2"),
+            Step(teamA, "picks", "Step 6 of 6"),
         )
         val picked = mutableListOf<String>()
         val pickedBy = linkedMapOf<String, Side>()
         expected.forEachIndexed { i, step ->
-            rule.waitForText("${step.team.label} — ${step.verb}")
+            rule.waitForText("${step.team.label} ${step.verb}")
             rule.waitForText(step.subtitle, substring = true)
             if (i == 0) checkpoint("Draft board")
             val tile = hasClickLabelStartingWith("Choose ")
             rule.reveal(tile)
             val hero = rule.onAllNodes(tile).fetchSemanticsNodes().first().descriptions.first()
             rule.tap(hasContentDescription(hero) and tile)
-            val action = if (step.verb.startsWith("Ban")) "Ban" else "Pick"
+            val action = if (step.verb.startsWith("bans")) "Ban" else "Pick"
             rule.waitForText("$action $hero?")
             if (i == 0) checkpoint("Draft confirm dialog")
             rule.tap(hasAnyAncestor(isDialog()) and hasClickAction() and hasText("${step.team.glyph} $action"))

@@ -791,7 +791,7 @@ private fun HeroesStage(state: SetupUiState, actions: SetupActions) {
         SectionCard(
             title = "Method",
             subtitle = "How heroes are chosen",
-            trailing = { TextButton(onClick = actions::manageMethods) { Text("Manage") } },
+            trailing = { TextButton(onClick = actions::manageMethods) { Text("Compare all") } },
         ) {
             Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
                 state.methods.forEach { option ->

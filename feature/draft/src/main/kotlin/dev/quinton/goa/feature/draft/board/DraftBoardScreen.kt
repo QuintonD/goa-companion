@@ -123,6 +123,7 @@ import dev.quinton.goa.feature.draft.ui.ConcealedTile
 import dev.quinton.goa.feature.draft.ui.HeroInfo
 import dev.quinton.goa.feature.draft.ui.HeroPeekSheet
 import dev.quinton.goa.feature.draft.ui.HeroTile
+import dev.quinton.goa.feature.draft.ui.PeekCommit
 import dev.quinton.goa.feature.draft.ui.RoleChips
 import dev.quinton.goa.feature.draft.ui.SequenceStrip
 import dev.quinton.goa.feature.draft.ui.StepToken
@@ -325,6 +326,12 @@ fun DraftBoardScreen(state: BoardUiState, actions: BoardActions) {
     peek?.let { id ->
         HeroPeekSheet(
             hero = state.heroes.info(id),
+            commit = board?.let {
+                peekCommit(state, it, id) {
+                    peek = null
+                    actions.tapHero(id)
+                }
+            },
             onDismiss = { peek = null },
             onOpenHero = { heroId ->
                 peek = null
@@ -352,6 +359,19 @@ fun DraftBoardScreen(state: BoardUiState, actions: BoardActions) {
             dismissButton = { TextButton(onClick = { confirmDiscard = false }) { Text("Keep drafting") } },
         )
     }
+}
+
+/**
+ * From the peek, the step's explicit commitment for a hero that can be chosen now: "◆ Pick Arien…",
+ * which opens the same confirm as tapping its tile. Nothing while a hidden step waits for its team.
+ */
+private fun peekCommit(state: BoardUiState, session: DraftSession, heroId: String, onCommit: () -> Unit): PeekCommit? {
+    if (session.isComplete || state.privacyGate) return null
+    val step = session.currentStep ?: return null
+    val free = PoolView.of(session).open.any { it.heroId == heroId && it.state == TileState.Available }
+    if (!free) return null
+    val hero = state.heroes.info(heroId)
+    return PeekCommit(step.team, "${teamGlyph(step.team)} ${actionName(step.action)} ${hero.name}…", onCommit)
 }
 
 /**
@@ -598,11 +618,21 @@ private fun PoolHeader(left: Int, total: Int, filters: PoolFilters, searchable: 
                 }
             }
         }
-        Text(
-            "Long-press a hero for roles, stats and starting cards.",
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
+        // The corner button is the way to look; the tap chooses, and always asks to confirm first.
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Icon(
+                Icons.Outlined.Info,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.size(16.dp),
+            )
+            Spacer(Modifier.width(Spacing.xs))
+            Text(
+                "Roles, stats and starting cards (or long-press). Tap a hero to choose it; you confirm first.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
     }
 }
 
@@ -835,19 +865,12 @@ private fun TeamColumn(
             Row(verticalAlignment = Alignment.CenterVertically) {
                 TeamMark(team, markSize = 14.dp)
                 Spacer(Modifier.width(Spacing.xs))
+                // The team by its colour and mark only: "Team A" is the method editor's word, not the table's.
                 Text(
                     teamName(team),
                     style = GoaTextStyles.sectionHead,
                     color = color,
                     modifier = Modifier.weight(1f),
-                )
-                Text(
-                    if (team == session.teamA) "A" else "B",
-                    style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.semantics {
-                        contentDescription = if (team == session.teamA) "Team A" else "Team B"
-                    },
                 )
             }
             picks.forEach { (seat, heroId) ->

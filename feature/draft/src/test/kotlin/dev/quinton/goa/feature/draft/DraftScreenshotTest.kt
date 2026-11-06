@@ -52,8 +52,10 @@ import dev.quinton.goa.feature.draft.setup.previewSetupState
 import dev.quinton.goa.feature.draft.ui.HeroInfo
 import dev.quinton.goa.feature.draft.ui.HeroPeekSheet
 import dev.quinton.goa.feature.draft.ui.HeroTile
+import dev.quinton.goa.feature.draft.ui.PeekCommit
 import dev.quinton.goa.feature.draft.ui.PreviewData
 import dev.quinton.goa.feature.draft.ui.TileState
+import dev.quinton.goa.feature.draft.ui.teamGlyph
 import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
@@ -85,8 +87,12 @@ class DraftScreenshotTest {
     private fun capturePeek(theme: ThemeMode = ThemeMode.DARK, fontScale: Float = 1f, id: String = "arien") {
         if (fontScale != 1f) RuntimeEnvironment.setFontScale(fontScale)
         val hero = HeroInfo.of(bundledHero(id))
+        // As on the board, mid-draft: the step's own commitment ends the peek.
+        val commit = PeekCommit(Team.RED, "${teamGlyph(Team.RED)} Pick ${hero.name}…") {}
         compose.setContent {
-            GoaTheme(themeMode = theme) { HeroPeekSheet(hero, onDismiss = {}, onOpenHero = {}, onOpenSpellbook = {}) }
+            GoaTheme(themeMode = theme) {
+                HeroPeekSheet(hero, onDismiss = {}, onOpenHero = {}, onOpenSpellbook = {}, commit = commit)
+            }
         }
         compose.waitUntil(IMAGE_TIMEOUT_MS) { BundledAssetImages.idle }
         compose.waitForIdle()
@@ -252,11 +258,13 @@ class DraftScreenshotTest {
     private fun methods(): MethodsUiState {
         val layout = PreviewLayout.OPTIONS.first()
         val m = PreviewData.pattern
+        val custom = m.copy(id = "c", name = "Blind pairs")
         return MethodsUiState(
             loading = false,
             layout = layout,
-            builtIn = listOf(MethodRow(m, previewOf(m, layout), isDefault = true)),
-            custom = listOf(MethodRow(m.copy(id = "c", name = "Blind pairs"), previewOf(m, layout), isDefault = false)),
+            builtIn = listOf(MethodRow(m, previewOf(m, layout, Team.BLUE), isDefault = true)),
+            custom = listOf(MethodRow(custom, previewOf(custom, layout, Team.BLUE), isDefault = false)),
+            selectedId = m.id,
         )
     }
 

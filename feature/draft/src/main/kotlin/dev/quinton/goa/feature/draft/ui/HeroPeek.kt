@@ -19,6 +19,8 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.OpenInNew
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -31,6 +33,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontStyle
@@ -46,18 +49,23 @@ import dev.quinton.goa.core.designsystem.component.StatBar
 import dev.quinton.goa.core.designsystem.component.TitlePlate
 import dev.quinton.goa.core.designsystem.component.cardColor
 import dev.quinton.goa.core.designsystem.component.scaledIconSize
+import dev.quinton.goa.core.designsystem.component.teamColor
 import dev.quinton.goa.core.designsystem.theme.GoaTextStyles
 import dev.quinton.goa.core.designsystem.theme.GoaTheme
 import dev.quinton.goa.core.designsystem.theme.Spacing
 import dev.quinton.goa.core.model.catalog.CardColor
 import dev.quinton.goa.core.model.catalog.Role
 import dev.quinton.goa.core.model.catalog.Stat
+import dev.quinton.goa.core.model.match.Team
+
+/** The peek's way to commit: the step's team, its words ("◆ Pick Arien…") and what it opens (the confirm). */
+internal class PeekCommit(val team: Team, val label: String, val onCommit: () -> Unit)
 
 /**
- * Hero peek during a draft (long-press a pool tile): complexity, roles, stat bars (base → max),
- * the five starting cards, Gydion's spellbook (his hero page opened at it) and a link to the full
- * hero page. Catalog data only, never draft
- * state, so it can't reveal a hidden choice.
+ * Hero peek during a draft (a pool tile's inspect button, or a long-press): complexity, roles, stat bars
+ * (base → max), the five starting cards, Gydion's spellbook (his hero page opened at it) and a link to the
+ * full hero page. Catalog data only, never draft state, so it can't reveal a hidden choice. [commit], when
+ * the hero can be chosen now, ends it with the step's own button, which still asks to confirm.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -66,6 +74,7 @@ internal fun HeroPeekSheet(
     onDismiss: () -> Unit,
     onOpenHero: ((String) -> Unit)?,
     onOpenSpellbook: ((String) -> Unit)? = null,
+    commit: PeekCommit? = null,
 ) {
     GoaSheet(
         onDismissRequest = onDismiss,
@@ -142,6 +151,26 @@ internal fun HeroPeekSheet(
                     Icon(Icons.AutoMirrored.Outlined.OpenInNew, contentDescription = null)
                     Spacer(Modifier.width(Spacing.sm))
                     Text("Open hero page")
+                }
+            }
+            if (commit != null) {
+                val color = teamColor(commit.team)
+                Button(
+                    onClick = commit.onCommit,
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = color,
+                        contentColor = MaterialTheme.colorScheme.background,
+                    ),
+                    modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp),
+                ) {
+                    TeamText(
+                        commit.label,
+                        style = MaterialTheme.typography.titleMedium,
+                        markGround = MaterialTheme.colorScheme.background,
+                        modifier = Modifier.semantics {
+                            contentDescription = commit.label.replace(teamGlyph(commit.team), teamName(commit.team))
+                        },
+                    )
                 }
             }
         }
