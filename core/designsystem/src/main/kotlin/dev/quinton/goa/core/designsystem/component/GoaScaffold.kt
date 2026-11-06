@@ -14,7 +14,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -42,6 +41,9 @@ import dev.quinton.goa.core.designsystem.theme.GoaTheme
  * Standard screen frame: the steel banner (the rulebook's page banner) holding the title in
  * engraved Cinzel caps, the back arrow when [onBack] is set and [actions], over the content. The
  * app shell owns the bottom bar and window insets, so content gets its own padding only.
+ *
+ * [actions]: at most two glyphs, each with a label (`BarActions` puts the rest in a labelled overflow menu;
+ * `BarIconButton` for a single one). App-wide destinations (Rules, Group sync, Settings) live on More, not here.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -65,7 +67,7 @@ fun GoaScreen(
                     },
                     navigationIcon = {
                         if (onBack != null) {
-                            IconButton(onClick = onBack) {
+                            BarIconButton(label = "Back", onClick = onBack) {
                                 Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
                             }
                         }
@@ -139,6 +141,21 @@ fun Modifier.steelBanner(colors: GoaExtendedColors, bronze: Color): Modifier = c
                     dstSize = IntSize(capW, h),
                     filterQuality = FilterQuality.Medium,
                 )
+                // The medallion is the band's ornament, not a control: its disc is toned down into the band so
+                // it reads as part of the frame rather than a raised button.
+                val centre = Offset(bodyW + capW * MEDALLION_X, h * MEDALLION_Y)
+                val radius = h * MEDALLION_R
+                drawCircle(
+                    Brush.radialGradient(
+                        0f to colors.bannerBottom.copy(alpha = MEDALLION_DIM),
+                        0.86f to colors.bannerBottom.copy(alpha = MEDALLION_DIM),
+                        1f to Color.Transparent,
+                        center = centre,
+                        radius = radius,
+                    ),
+                    radius = radius,
+                    center = centre,
+                )
             }
         }
     }
@@ -146,6 +163,14 @@ fun Modifier.steelBanner(colors: GoaExtendedColors, bronze: Color): Modifier = c
 
 /** How wide the medallion is, in banner heights. */
 private const val BANNER_CAP_RATIO = 1.35f
+
+/** The medallion's centre in the cap (share of its width and height) and its radius in banner heights. */
+private const val MEDALLION_X = 0.64f
+private const val MEDALLION_Y = 0.46f
+private const val MEDALLION_R = 0.4f
+
+/** How far the medallion's disc is toned into the band. */
+private const val MEDALLION_DIM = 0.42f
 
 /** Hairline bronze rule that fades out at both ends; separates bars from content. */
 @Composable

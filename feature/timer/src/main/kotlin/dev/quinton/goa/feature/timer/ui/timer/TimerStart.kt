@@ -24,10 +24,10 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Remove
 import androidx.compose.material.icons.outlined.Flag
+import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material.icons.outlined.Tune
 import androidx.compose.material3.FilledTonalIconButton
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.RadioButton
@@ -47,6 +47,8 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import dev.quinton.goa.core.designsystem.component.BarAction
+import dev.quinton.goa.core.designsystem.component.BarActions
 import dev.quinton.goa.core.designsystem.component.GoaDialog
 import dev.quinton.goa.core.designsystem.component.GoaPlate
 import dev.quinton.goa.core.designsystem.component.GoaScreen
@@ -54,7 +56,6 @@ import dev.quinton.goa.core.designsystem.component.MetalButton
 import dev.quinton.goa.core.designsystem.component.PlateColor
 import dev.quinton.goa.core.designsystem.component.PlateShape
 import dev.quinton.goa.core.designsystem.component.SectionHeader
-import dev.quinton.goa.core.designsystem.component.SettingsActionButton
 import dev.quinton.goa.core.designsystem.component.TeamBadge
 import dev.quinton.goa.core.designsystem.component.TitlePlate
 import dev.quinton.goa.core.designsystem.theme.GoaTheme
@@ -71,10 +72,12 @@ internal fun TimerStart(state: StartUiState, actions: TimerActions) {
     GoaScreen(
         title = "Timer",
         actions = {
-            IconButton(onClick = actions.onManagePresets) {
-                Icon(Icons.Outlined.Tune, contentDescription = "Manage timer presets")
-            }
-            SettingsActionButton(actions.onSettings)
+            BarActions(
+                listOf(
+                    BarAction("Manage timer presets", Icons.Outlined.Tune, actions.onManagePresets),
+                    BarAction("Settings", Icons.Outlined.Settings, actions.onSettings),
+                ),
+            )
         },
     ) { padding ->
         LazyColumn(
