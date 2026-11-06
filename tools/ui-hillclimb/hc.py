@@ -4,7 +4,9 @@ generate art. The second judge (Claude Opus) runs as a Claude Code agent on the 
 
   python3 -I hc.py collect <out_dir> [--root <repo>] [--only id,id]
   python3 -I hc.py judge <corpus_dir> <out.json>                 # full scoring (rubric.md)
-  python3 -I hc.py compare <before_dir> <after_dir> <out.json> [--only id,id] [--note "what changed"]
+  python3 -I hc.py blind <before_dir> <after_dir> <cmp_dir> [--only id,id]   # X|Y composites, hidden order
+  python3 -I hc.py compare <cmp_dir> <out.json> [--note "what changed"]      # sol picks per pair, unblinded
+  python3 -I hc.py unblind <cmp_dir> <raw.json> <out.json> <judge>           # map another judge's X/Y picks
   python3 -I hc.py imagegen <out.png> "<prompt>" [--size 1024x1536] [--ref img.png ...] [--quality high]
   python3 -I hc.py board <runs_dir>                               # score history table (markdown)
 
@@ -190,29 +192,32 @@ Return only JSON:
  "regressions":[{"id":"<screen id>","version":"X|Y","problem":"a concrete flaw in that version the other one does not have"}]}"""
 
 
-def compare(before_dir, after_dir, out, only, note):
+def blind(before_dir, after_dir, cmp_dir, only):
+    """Composite X|Y image per screen in random order; the order is saved for unblinding (both judges use it)."""
     after = {m["id"]: m for m in json.load(open(os.path.join(after_dir, "manifest.json")))}
     before = {m["id"]: m for m in json.load(open(os.path.join(before_dir, "manifest.json")))}
     ids = [i for i in after if i in before and (not only or i in only)][:50]
-    content = [{"type": "input_text", "text": COMPARE + (f"\nWhat the change intends: {note}" if note else "")}]
-    order = {}
+    os.makedirs(cmp_dir, exist_ok=True)
+    pairs = []
     for i in ids:
         flip = random.random() < 0.5  # X is "after" when flip
-        order[i] = flip
         x, y = (after[i], before[i]) if flip else (before[i], after[i])
-        f = compose([(x["file"], f"{i}: X"), (y["file"], f"{i}: Y")],
-                    os.path.join(os.path.dirname(out) or ".", f"cmp-{i}.jpg"))
-        content.append({"type": "input_text", "text": f"Screen `{i}`: {after[i]['caption']} (X left, Y right)"})
-        content.append({"type": "input_image", "image_url": b64(f), "detail": "original"})
-    result = parse_json(ask(content))
-    # Map X/Y back to before/after.
-    def side(v, i=None):
-        if v not in ("X", "Y"):
+        f = compose([(x["file"], f"{i}: X"), (y["file"], f"{i}: Y")], os.path.join(cmp_dir, f"cmp-{i}.jpg"))
+        pairs.append({"id": i, "caption": after[i]["caption"], "file": os.path.abspath(f), "x_is_after": flip})
+    json.dump(pairs, open(os.path.join(cmp_dir, "order.json"), "w"), indent=1)
+    # What a judge may see (no order):
+    json.dump([{k: p[k] for k in ("id", "caption", "file")} for p in pairs],
+              open(os.path.join(cmp_dir, "pairs.json"), "w"), indent=1)
+    open(os.path.join(cmp_dir, "prompt.md"), "w").write(COMPARE)
+    return pairs
+
+
+def unblind(cmp_dir, result, judge_name):
+    order = {p["id"]: p["x_is_after"] for p in json.load(open(os.path.join(cmp_dir, "order.json")))}
+    def side(v, i):
+        if v not in ("X", "Y") or i not in order:
             return "same"
-        flip = order.get(i, None) if i else None
-        if flip is None:
-            return v
-        return ("after" if v == "X" else "before") if flip else ("before" if v == "X" else "after")
+        return ("after" if v == "X" else "before") if order[i] else ("before" if v == "X" else "after")
     for p in result.get("pairs", []):
         p["better"] = side(p.get("better"), p.get("id"))
     for r in result.get("regressions", []):
@@ -220,13 +225,24 @@ def compare(before_dir, after_dir, out, only, note):
     wins = sum(p["better"] == "after" for p in result["pairs"])
     losses = sum(p["better"] == "before" for p in result["pairs"])
     result["after_wins"], result["before_wins"] = wins, losses
-    result["judge"] = CHAT_MODEL
-    json.dump(result, open(out, "w"), indent=1)
-    print(f"after better on {wins}, before better on {losses}, same on {len(result['pairs']) - wins - losses}")
+    result["judge"] = judge_name
+    print(f"{judge_name}: after better on {wins}, before better on {losses}, "
+          f"same on {len(result['pairs']) - wins - losses}")
     for p in result["pairs"]:
         print(f"  {p['id']}: {p['better']} — {p.get('why', '')}")
     for r in result.get("regressions", []):
         print(f"  flaw in {r.get('version')} {r.get('id')}: {r.get('problem')}")
+    return result
+
+
+def compare(cmp_dir, out, note):
+    pairs = json.load(open(os.path.join(cmp_dir, "pairs.json")))
+    content = [{"type": "input_text", "text": COMPARE + (f"\nWhat the change intends: {note}" if note else "")}]
+    for p in pairs:
+        content.append({"type": "input_text", "text": f"Screen `{p['id']}`: {p['caption']} (X left, Y right)"})
+        content.append({"type": "input_image", "image_url": b64(p["file"]), "detail": "original"})
+    result = unblind(cmp_dir, parse_json(ask(content)), CHAT_MODEL)
+    json.dump(result, open(out, "w"), indent=1)
 
 
 def imagegen(out, prompt, size, refs, quality):
@@ -288,8 +304,12 @@ if __name__ == "__main__":
         collect(sys.argv[2], arg("--root", os.path.abspath(os.path.join(HERE, "../.."))), only)
     elif cmd == "judge":
         judge(sys.argv[2], sys.argv[3])
-    elif cmd == "compare":
-        compare(sys.argv[2], sys.argv[3], sys.argv[4], only, arg("--note"))
+    elif cmd == "blind":  # blind <before> <after> <cmp_dir> [--only]
+        print(len(blind(sys.argv[2], sys.argv[3], sys.argv[4], only)), "pairs in", sys.argv[4])
+    elif cmd == "compare":  # compare <cmp_dir> <out.json> [--note]
+        compare(sys.argv[2], sys.argv[3], arg("--note"))
+    elif cmd == "unblind":  # unblind <cmp_dir> <raw.json> <out.json> <judge>
+        json.dump(unblind(sys.argv[2], json.load(open(sys.argv[3])), sys.argv[5]), open(sys.argv[4], "w"), indent=1)
     elif cmd == "imagegen":
         refs = [sys.argv[i + 1] for i, a in enumerate(sys.argv) if a == "--ref"]
         imagegen(sys.argv[2], sys.argv[3], arg("--size", "1024x1024"), refs, arg("--quality", "high"))
