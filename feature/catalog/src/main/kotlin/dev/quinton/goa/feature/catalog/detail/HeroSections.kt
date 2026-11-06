@@ -27,6 +27,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.platform.LocalDensity
@@ -59,7 +60,7 @@ internal val SectionBarHeight = 48.dp
 
 /**
  * Overview · Deck · FAQ over the hero page, held under the banner once the art scrolls away: a tap scrolls to
- * that part, and the part you are reading is marked in bronze with a rule under it (never by colour alone).
+ * that part, and the part you are reading is selected in bronze: a tint, a bronze word and a rule under it.
  */
 @Composable
 internal fun HeroSectionBar(active: HeroSection, faqCount: Int, onSelect: (HeroSection) -> Unit) {
@@ -91,7 +92,15 @@ internal fun HeroSectionBar(active: HeroSection, faqCount: Int, onSelect: (HeroS
                         .semantics { contentDescription = "${section.label}, jump to section" }
                         .drawBehind {
                             if (selected) {
+                                // The app's selected look: a bronze tint (as the segmented choices) and a bronze rule.
                                 val h = UNDERLINE.toPx()
+                                val inset = TAB_TINT_INSET.toPx()
+                                drawRoundRect(
+                                    rule.copy(alpha = TAB_TINT),
+                                    topLeft = Offset(0f, inset),
+                                    size = Size(size.width, size.height - inset - h),
+                                    cornerRadius = CornerRadius(TAB_TINT_CORNER.toPx()),
+                                )
                                 drawRect(rule, topLeft = Offset(0f, size.height - h), size = Size(size.width, h))
                             }
                         }
@@ -116,6 +125,9 @@ internal fun HeroSectionBar(active: HeroSection, faqCount: Int, onSelect: (HeroS
 
 private val UNDERLINE = 3.dp
 private val TAB_MIN_WIDTH = 72.dp
+private val TAB_TINT_INSET = 6.dp
+private val TAB_TINT_CORNER = 8.dp
+private const val TAB_TINT = 0.18f
 
 /** One stop of the deck's jump row: a colour (or Basic, the Ultimate, the Handicap card, a spellbook). */
 internal class DeckJump(val label: String, val key: String, val ribbon: PlateColor?, val count: Int)

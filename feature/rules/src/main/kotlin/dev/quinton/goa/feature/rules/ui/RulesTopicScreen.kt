@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -38,6 +39,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.BlendMode
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.Shadow
@@ -167,12 +169,15 @@ internal fun TopicContent(topic: RulesTopic) {
     }
 }
 
-/** The whole title, as the book sets a chapter's: Cinzel, in the page's ink. */
+/**
+ * The whole title, only when the banner holds just its head: Cinzel in the page's ink, a step under the passages'
+ * heads, so the rules still start on the first screen.
+ */
 @Composable
 private fun TopicTitle(title: String, modifier: Modifier = Modifier) {
     Text(
         title,
-        style = GoaTextStyles.sectionHead.copy(fontSize = 26.sp, lineHeight = 32.sp),
+        style = GoaTextStyles.sectionHead.copy(fontSize = 20.sp, lineHeight = 24.sp),
         color = GoaTheme.colors.onParchment,
         modifier = modifier.semantics { heading() },
     )
@@ -180,30 +185,42 @@ private fun TopicTitle(title: String, modifier: Modifier = Modifier) {
 
 /**
  * The topic's parts, held at the top of the page as you read: the rulebook's own heads (and "Diagrams"), a tap
- * opens that passage. The one you are reading is filled in the page's ink (never by colour alone: filled, not
- * outlined). Scrolls sideways when the heads don't fit.
+ * opens that passage. The one you are reading is bronze, as everything selected is (and filled, not only
+ * coloured). Scrolls sideways when the heads don't fit, the edge that hides more fading into the page.
  */
 @Composable
 private fun TopicNavigator(sections: List<TopicSection>, active: TopicSection?, onSelect: (TopicSection) -> Unit) {
     val colors = GoaTheme.colors
     val row = rememberScrollState()
     Column(Modifier.fillMaxWidth().background(colors.parchment)) {
-        Row(
-            Modifier
-                .fillMaxWidth()
-                .heightIn(min = NAV_HEIGHT)
-                .horizontalScroll(row)
-                .padding(horizontal = PAGE_MARGIN - Spacing.xs)
-                .semantics { contentDescription = "Sections" },
-            horizontalArrangement = Arrangement.spacedBy(Spacing.xs),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            sections.forEach { section ->
-                SectionChip(section.label, selected = section == active) { onSelect(section) }
+        Box(Modifier.fillMaxWidth()) {
+            Row(
+                Modifier
+                    .fillMaxWidth()
+                    .heightIn(min = NAV_HEIGHT)
+                    .horizontalScroll(row)
+                    .padding(horizontal = PAGE_MARGIN - Spacing.xs)
+                    .semantics { contentDescription = "Sections" },
+                horizontalArrangement = Arrangement.spacedBy(Spacing.xs),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                sections.forEach { section ->
+                    SectionChip(section.label, selected = section == active) { onSelect(section) }
+                }
             }
+            if (row.canScrollBackward) EdgeFade(Modifier.align(Alignment.CenterStart), toEnd = false)
+            if (row.canScrollForward) EdgeFade(Modifier.align(Alignment.CenterEnd), toEnd = true)
         }
         Box(Modifier.fillMaxWidth().height(1.dp).background(colors.parchmentEdge))
     }
+}
+
+/** The page showing through at an edge that hides more chips: the row scrolls. */
+@Composable
+private fun EdgeFade(modifier: Modifier, toEnd: Boolean) {
+    val page = GoaTheme.colors.parchment
+    val stops = if (toEnd) listOf(page.copy(alpha = 0f), page) else listOf(page, page.copy(alpha = 0f))
+    Box(modifier.width(EDGE_FADE).height(NAV_HEIGHT).background(Brush.horizontalGradient(stops)))
 }
 
 @Composable
@@ -219,13 +236,15 @@ private fun SectionChip(label: String, selected: Boolean, onClick: () -> Unit) {
     ) {
         Text(
             label,
-            style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold),
-            color = if (selected) colors.parchment else colors.onParchment,
+            style = MaterialTheme.typography.bodyMedium.copy(
+                fontWeight = if (selected) FontWeight.Bold else FontWeight.SemiBold,
+            ),
+            color = colors.onParchment,
             maxLines = 1,
             modifier = Modifier
                 .clip(shape)
-                .then(if (selected) Modifier.background(colors.onParchment, shape) else Modifier)
-                .border(1.dp, if (selected) colors.onParchment else colors.parchmentEdge, shape)
+                .then(if (selected) Modifier.background(CHIP_BRONZE, shape) else Modifier)
+                .border(if (selected) 1.5.dp else 1.dp, if (selected) CHIP_BRONZE_EDGE else colors.parchmentEdge, shape)
                 .padding(horizontal = 12.dp, vertical = 7.dp),
         )
     }
@@ -301,6 +320,11 @@ private const val BANNER_WHOLE = 18
 private const val BANNER_HEAD = 16
 private const val NAV_KEY = "sections"
 private val NAV_HEIGHT = 48.dp
+private val EDGE_FADE = 40.dp
+
+/** Bronze on the parchment, the same in both themes as the page is: its ink on it is about 7:1. */
+private val CHIP_BRONZE = Color(0xFFC9A35B)
+private val CHIP_BRONZE_EDGE = Color(0xFF84662A)
 
 private const val DIAGRAM_EDGE = 0.015f
 private val PAGE_MARGIN = 18.dp
