@@ -91,6 +91,7 @@ import dev.quinton.goa.core.designsystem.component.GoaPlate
 import dev.quinton.goa.core.designsystem.component.GoaPlateTheme
 import dev.quinton.goa.core.designsystem.component.GoaScreen
 import dev.quinton.goa.core.designsystem.component.GoaSheet
+import dev.quinton.goa.core.designsystem.component.LARGE_FONT_SCALE
 import dev.quinton.goa.core.designsystem.component.PlateGround
 import dev.quinton.goa.core.designsystem.theme.GoaTextStyles
 import dev.quinton.goa.core.designsystem.theme.GoaTheme
@@ -270,6 +271,8 @@ private fun NoResults(state: CatalogUiState.Ready, query: String, onAction: (Cat
 @Composable
 private fun SearchField(query: String, onQueryChange: (String) -> Unit) {
     val focus = LocalFocusManager.current
+    // With large text the whole hint doesn't fit beside the icons on one line: it takes two, every word kept.
+    val hintLines = if (LocalDensity.current.fontScale > LARGE_FONT_SCALE) 2 else 1
     // A dark steel slot in both themes, like the plates and the banner above it.
     GoaPlateTheme {
         OutlinedTextField(
@@ -279,7 +282,7 @@ private fun SearchField(query: String, onQueryChange: (String) -> Unit) {
                 .fillMaxWidth()
                 .padding(horizontal = Spacing.screen)
                 .padding(top = Spacing.sm, bottom = Spacing.sm),
-            placeholder = { Text(SEARCH_HINT, maxLines = 1, overflow = TextOverflow.Ellipsis) },
+            placeholder = { Text(SEARCH_HINT, maxLines = hintLines, overflow = TextOverflow.Ellipsis) },
             leadingIcon = { Icon(Icons.Outlined.Search, contentDescription = null) },
             trailingIcon = {
                 if (query.isNotEmpty()) {
@@ -378,7 +381,7 @@ private fun ResultSummary(state: CatalogUiState.Ready, query: String) {
     val text = resultSummary(state.heroes.size, state.totalInScope, query)
     Text(
         text,
-        style = MaterialTheme.typography.labelMedium,
+        style = MaterialTheme.typography.bodyMedium,
         color = MaterialTheme.colorScheme.onSurfaceVariant,
         modifier = Modifier
             .padding(horizontal = Spacing.screen, vertical = Spacing.sm)
@@ -477,7 +480,7 @@ private fun ResultsHeader(title: String, count: Int) {
         Spacer(Modifier.size(Spacing.sm))
         Text(
             count.toString(),
-            style = MaterialTheme.typography.labelMedium,
+            style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
     }

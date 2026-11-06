@@ -9,7 +9,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.test.hasScrollAction
+import androidx.compose.ui.test.hasScrollToKeyAction
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performScrollToKey
@@ -80,7 +80,7 @@ class OfficialDeckScreenshotTest {
                 }
             }
         }
-        if (scrollTo != null) compose.onNode(hasScrollAction()).performScrollToKey(scrollTo)
+        if (scrollTo != null) compose.onNode(hasScrollToKeyAction()).performScrollToKey(scrollTo)
         compose.waitUntil(IMAGE_TIMEOUT_MS) { BundledAssetImages.idle }
         compose.waitForIdle()
         compose.onRoot().captureRoboImage()
