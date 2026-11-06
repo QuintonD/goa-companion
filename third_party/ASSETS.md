@@ -32,6 +32,32 @@ hero's name and title.
 | Bottom-bar icons, brand mark | `design/icons/*.svg` | `core/designsystem/src/main/res/drawable/ic_*.xml` |
 | App icon (foreground, background, monochrome) | `design/brand/ic_launcher_*.svg` | `app/src/main/res/drawable/ic_launcher_*.xml` |
 
+## Generated painted art (made for this app)
+
+Decorative scenes for the Play tab's entry plates, generated with `gpt-image-2.5` (Azure AI Foundry deployment
+`gpt-image-2.5-sunburst-Global`, `tools/ui-hillclimb/hc.py imagegen`, 1536 x 1024, quality high) on 2026-11-06.
+They carry no game data: no cards, portraits, symbols, boards or rules; the figures are anonymous. Official art
+was passed only as a style reference (`--ref`): Arien's portrait plus Brogan's or Wasp's portrait, or the
+Forgotten Island painting, all from `app/src/main/assets/official/`. Cropped to a wide banner and saved as WebP
+(quality 78) in `feature/board/src/main/res/drawable-nodpi/`.
+
+Every prompt ends with the same style line: "Painterly digital fantasy illustration in the style of the reference
+art: loose confident brushwork, dramatic rim light, deep navy and teal shadows with warm bronze highlights. Wide
+cinematic composition with [the subject in the right half and] calm dark space in the lower left. No text, no
+letters, no numbers, no logos, no user interface, no playing cards, no game symbols, no hexagon grid."
+(`play_art_computer` adds "Generic anonymous figures only, no recognisable characters.")
+
+| File | Size | Refs | Prompt (before the style line) |
+|------|------|------|--------------------------------|
+| `play_art_computer.webp` | 1200 x 480 | Forgotten Island map, `play_art_online`'s source | Two armies of small anonymous armoured warriors advance toward each other across a misty sea-cliff battlefield at dusk, the left host under ember-red banners and torchlight, the right host under cold blue banners and moonlight, a ruined Atlantean temple in the distance, seen from a high vantage point. |
+| `play_art_puzzles.webp` | 960 x 480 | Arien, Brogan | A hooded strategist leans over an ancient stone war table at night, a few small bronze miniature soldiers on it, one lit by a single shaft of teal light, contemplative and mysterious. |
+| `play_art_sandbox.webp` | 960 x 480 | Arien, Forgotten Island map | An aerial view of a lush tropical island ringed by turquoise sea: dark basalt cliffs, jungle, sandy plains, and ancient bronze and teal ruins at the two far ends, seen from high above, morning light. |
+| `play_art_online.webp` | 960 x 480 | Arien, Forgotten Island map | A glowing teal crystal beacon atop an ancient Atlantean sea tower at night, beams of light reaching across the dark ocean to distant islands where answering lights glow. |
+| `play_art_trivia.webp` | 960 x 480 | Arien, Wasp | A lamplit scholar's desk in an ancient sea-side library: an open old tome with blank pages, a quill, bronze instruments, a brass magnifying lens, warm candlelight against cool blue night. |
+
+A first "computer" scene (two champions duelling) came out too close to Arien and Brogan themselves and was
+not used.
+
 ## Web app libraries (code, ADR-043)
 
 The web app bundles three npm libraries; their licences ship in the site as
