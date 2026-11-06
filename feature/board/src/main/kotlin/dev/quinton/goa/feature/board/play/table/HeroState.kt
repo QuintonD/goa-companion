@@ -31,9 +31,14 @@ import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.draw.drawWithCache
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.geometry.center
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.PathEffect
+import androidx.compose.ui.graphics.drawOutline
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.drawscope.translate
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.Role
@@ -140,6 +145,8 @@ internal fun HeroDashboard(table: TableUi, hero: HeroView, focus: CardFocusState
         val scale = w.value / FRAME_REFERENCE
         val ink = GoaTheme.colors.onParchment
         DashboardArt(hero.heroId, info.portrait, Modifier.fillMaxSize())
+        // The painting is the backdrop, not the content: dimmed under a slate veil so the slots read over it.
+        Box(Modifier.fillMaxSize().background(PlateGround.copy(alpha = ART_VEIL)))
         OfficialIcon(LookArt.DASHBOARD_FRAME, Modifier.fillMaxSize().clearAndSetSemantics {})
         // The frame's blank upright plate at its right edge holds nothing here, and reads as a scrollbar.
         Box(
@@ -258,8 +265,8 @@ private fun SlotOnFrame(
                 TableCard(first, width = width, backOf = heroId)
                 if (slot.stepped) Box(Modifier.fillMaxSize().background(Color.Black.copy(alpha = STEPPED_SCRIM)))
             } else {
-                // The art under an empty slot can look almost like a card.
-                Box(Modifier.fillMaxSize().background(Color.Black.copy(alpha = EMPTY_SCRIM)))
+                // An empty slot: a dark well with a dashed steel edge and its turn's number, never mistaken for a card.
+                EmptySlot(slot.turn, scale, shape)
             }
             val (background, content) = bandColors(slot.now, slot.next)
             slot.word?.let { word ->
@@ -283,6 +290,43 @@ private fun SlotOnFrame(
             }
             if (slot.now || slot.next) Box(Modifier.fillMaxSize().border(2.dp, background, shape))
         }
+    }
+}
+
+/** An empty Turn slot: dark, a dashed steel edge, the turn's number large in its middle. */
+@Composable
+private fun EmptySlot(turn: Int, scale: Float, shape: RoundedCornerShape) {
+    val number = dpToSp(EMPTY_NUMBER_SP * scale)
+    Box(
+        Modifier
+            .fillMaxSize()
+            .background(Color.Black.copy(alpha = EMPTY_SCRIM))
+            .drawWithCache {
+                val stroke = Stroke(
+                    width = 1.5.dp.toPx(),
+                    pathEffect = PathEffect.dashPathEffect(floatArrayOf(5.dp.toPx(), 4.dp.toPx())),
+                )
+                val inset = 3.dp.toPx()
+                val outline = shape.createOutline(
+                    Size(size.width - inset * 2, size.height - inset * 2),
+                    layoutDirection,
+                    this,
+                )
+                onDrawBehind {
+                    translate(inset, inset) { drawOutline(outline, SlotSteel, style = stroke) }
+                }
+            },
+        contentAlignment = Alignment.Center,
+    ) {
+        Text(
+            "$turn",
+            style = GoaTextStyles.plateTitle.copy(
+                fontSize = number,
+                lineHeight = number * 1.1f,
+                fontWeight = FontWeight.Bold,
+            ),
+            color = SlotSteel,
+        )
     }
 }
 
@@ -513,7 +557,10 @@ private const val BAND_SP = 10f
 private const val SECOND_CARD = 0.17f
 private const val SECOND_ALPHA = 0.9f
 private const val STEPPED_SCRIM = 0.38f
-private const val EMPTY_SCRIM = 0.4f
+private const val EMPTY_SCRIM = 0.62f
+private const val EMPTY_NUMBER_SP = 18f
+private const val ART_VEIL = 0.55f
+private val SlotSteel = Color(0xFFB4BEC8)
 private const val BLANK_PLATE_X = 0.936f
 private const val BLANK_PLATE_Y = 0.445f
 private const val BLANK_PLATE_WIDTH = 0.029f

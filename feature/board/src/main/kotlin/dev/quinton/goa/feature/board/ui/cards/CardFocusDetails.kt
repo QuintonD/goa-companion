@@ -33,7 +33,6 @@ import androidx.compose.material.icons.outlined.ExpandLess
 import androidx.compose.material.icons.outlined.ExpandMore
 import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material.icons.outlined.SwipeUp
-import androidx.compose.material.icons.outlined.TouchApp
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LocalContentColor
@@ -389,7 +388,7 @@ private fun RelatedCard(card: Card, measuring: Boolean, onOpen: () -> Unit) {
     }
 }
 
-/** "Tap the card again to discard Magnetic Dagger", and the same as a button (TalkBack, switch access). */
+/** The button that confirms the card on show, naming the choice ("Discard Magnetic Dagger"): the only way to. */
 @Composable
 private fun ConfirmBar(
     item: FocusCard,
@@ -404,23 +403,6 @@ private fun ConfirmBar(
         verticalArrangement = Arrangement.spacedBy(Spacing.xs),
     ) {
         val can = item.enabled && canConfirm
-        // Large text: the button says it; the hint would take the room the card's sheet needs.
-        if (can && !largeText()) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(
-                    Icons.Outlined.TouchApp,
-                    null,
-                    tint = MaterialTheme.colorScheme.secondary,
-                    modifier = Modifier.size(scaledIconSize(18.dp, 1.3f)),
-                )
-                Spacer(Modifier.width(Spacing.xs))
-                Text(
-                    confirmHint(action),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.secondary,
-                )
-            }
-        }
         PlateButton(
             onClick = onConfirm,
             enabled = can,

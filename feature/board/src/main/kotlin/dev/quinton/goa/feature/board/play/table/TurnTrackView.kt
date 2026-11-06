@@ -54,6 +54,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import dev.quinton.goa.core.designsystem.cardtext.GameIcon
 import dev.quinton.goa.core.designsystem.cardtext.GameIcons
 import dev.quinton.goa.core.designsystem.component.CardTextBox
@@ -68,6 +69,8 @@ import dev.quinton.goa.core.model.catalog.Card
 import dev.quinton.goa.feature.board.BoardText
 import dev.quinton.goa.feature.board.play.PlayText
 import dev.quinton.goa.feature.board.ui.PlateSurface
+import dev.quinton.goa.feature.board.ui.TeamBadge
+import dev.quinton.goa.feature.board.ui.badgeOverhang
 import dev.quinton.goa.feature.board.ui.boxText
 import dev.quinton.goa.feature.board.ui.cards.CardFocusState
 import dev.quinton.goa.feature.board.ui.cards.FocusCard
@@ -75,17 +78,19 @@ import dev.quinton.goa.feature.board.ui.cards.cardFocusOrigin
 
 /*
  * The turn track (ADR-041, docs/DESIGN.md "Play against the computer"): after the reveal the hero
- * strip becomes the played cards themselves, in the order the heroes act. Each card carries its
- * initiative as it counts, its hero's portrait (team ring) and name with the team's shape, and its
- * state in a word on a band across the card: DONE (with a tick, the card stepped back), NOW (bronze),
- * NEXT (teal), PASS / SKIPPED; never colour alone. A tap opens the card large in the card focus
- * viewer, swiping through the turn's cards; a long press (or TalkBack's action) opens the hero.
+ * strip becomes the turn's order, one chip per hero in the order they act, read at arm's length:
+ * the hero's portrait (team ring and mark, the action chosen), the initiative as it counts in large
+ * figures, the name, and the state in a word on a band: DONE (with a tick, the chip stepped back), NOW
+ * (bronze), NEXT (teal), PASS / OUT; never colour alone. A tap opens the hero's card large in the card
+ * focus viewer, swiping through the turn's cards; a long press (or TalkBack's action) opens the hero.
+ * The moment a turn ends shows the turn's cards themselves ([TurnTrackRow]'s `asCards`).
  */
 
 /**
- * The turn's cards in a row, scrolling when they don't fit. [compact] (a phone held sideways with
- * the panel shown, or the panel hidden): smaller cards, no names under them. [onHero] opens a hero's
- * game state (long press, TalkBack's action); null = no such action (a recap in the panel).
+ * The turn's heroes in a row, sharing the width and scrolling when they don't fit. [compact] (a phone
+ * held sideways with the panel shown, or the panel hidden): smaller chips. [asCards]: the played cards
+ * themselves ([cardWidth] wide, names under them), as the turn-over moment shows them. [onHero] opens a
+ * hero's game state (long press, TalkBack's action); null = no such action (a recap in the panel).
  */
 @Composable
 fun TurnTrackRow(
@@ -96,30 +101,51 @@ fun TurnTrackRow(
     focus: CardFocusState? = null,
     compact: Boolean = false,
     cardWidth: Dp = if (compact) COMPACT_CARD else TRACK_CARD,
+    asCards: Boolean = false,
 ) {
     val viewable = trackFocusCards(table, track)
+    val open: (TrackSlot) -> () -> Unit = { slot ->
+        {
+            val first = slot.cards.firstOrNull()?.takeIf { !it.facedown }?.cardId?.let(table::card)
+            val index = viewable.indexOfFirst { it.key == trackKey(slot.heroId, first?.id) }
+            if (focus != null && index >= 0) {
+                focus.open(viewable, index, title = "Round ${track.round} · Turn ${track.turn}")
+            } else {
+                onHero?.invoke(slot.heroId)
+            }
+        }
+    }
+    if (!asCards) {
+        val chips: @Composable () -> Unit = {
+            track.slots.forEach { slot ->
+                TrackChip(table, slot, compact, open(slot), onHero?.let { o -> { o(slot.heroId) } })
+            }
+        }
+        // Sideways beside the round at a glance, a plain row: it is measured for whether it fits there.
+        if (compact) {
+            Row(
+                modifier.horizontalScroll(rememberScrollState()),
+                horizontalArrangement = Arrangement.spacedBy(Spacing.xs),
+            ) { chips() }
+        } else {
+            SharedWidthRow(modifier, gap = 6.dp, content = chips)
+        }
+        return
+    }
     Row(
         modifier.horizontalScroll(rememberScrollState()),
         horizontalArrangement = Arrangement.spacedBy(if (compact) Spacing.xs else 6.dp),
         verticalAlignment = Alignment.Top,
     ) {
         track.slots.forEach { slot ->
-            val first = slot.cards.firstOrNull()?.takeIf { !it.facedown }?.cardId?.let(table::card)
-            val index = viewable.indexOfFirst { it.key == trackKey(slot.heroId, first?.id) }
             TrackSlotView(
                 table = table,
                 slot = slot,
                 compact = compact,
                 cardWidth = cardWidth,
                 focus = focus,
-                onOpen = {
-                    if (focus != null && index >= 0) {
-                        focus.open(viewable, index, title = "Round ${track.round} · Turn ${track.turn}")
-                    } else {
-                        onHero?.invoke(slot.heroId)
-                    }
-                },
-                onHero = onHero?.let { open -> { open(slot.heroId) } },
+                onOpen = open(slot),
+                onHero = onHero?.let { o -> { o(slot.heroId) } },
             )
         }
     }
@@ -207,6 +233,129 @@ private fun TrackSlotView(
                     )
                 }
             }
+        }
+    }
+}
+
+/**
+ * One hero on the track, read at arm's length: the portrait in its team ring (the mark at its foot, the action chosen
+ * at its head, crossed out while off the board), the initiative as it counts in large figures ("=11" while tied), the
+ * hero's name, and the state in a word across the foot (NOW bronze, NEXT teal, DONE with a tick and the chip stepped
+ * back, PASS, OUT); never colour alone. [compact]: a smaller portrait and figures, the name still under them.
+ */
+@OptIn(ExperimentalFoundationApi::class)
+@Composable
+private fun TrackChip(
+    table: TableUi,
+    slot: TrackSlot,
+    compact: Boolean,
+    onOpen: () -> Unit,
+    onHero: (() -> Unit)?,
+    modifier: Modifier = Modifier,
+) {
+    val info = table.hero(slot.heroId)
+    val first = slot.cards.firstOrNull()
+    val firstCard = first?.cardId?.takeIf { !first.facedown }?.let(table::card)
+    val stepped = slot.state == SlotState.DONE || slot.state == SlotState.SKIPPED || slot.state == SlotState.PASSED
+    val border = when (slot.state) {
+        SlotState.NOW -> BorderStroke(2.dp, NowBand)
+        SlotState.NEXT -> BorderStroke(2.dp, NextBand)
+        else -> null
+    }
+    val shape = RoundedCornerShape(7.dp)
+    PlateSurface(
+        shape = shape,
+        border = border,
+        modifier = modifier
+            .clip(shape)
+            .combinedClickable(onClick = onOpen, onLongClick = onHero)
+            .clearAndSetSemantics {
+                contentDescription = spokenSlot(table, slot)
+                role = Role.Button
+                onClick(label = "Look at the card") {
+                    onOpen()
+                    true
+                }
+                if (onHero != null) {
+                    customActions = listOf(
+                        CustomAccessibilityAction(showGameState(info.name)) {
+                            onHero()
+                            true
+                        },
+                    )
+                }
+            },
+    ) {
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            Column(
+                Modifier
+                    .padding(start = 5.dp, end = 5.dp, top = if (compact) 3.dp else 5.dp, bottom = 2.dp)
+                    .alpha(if (stepped) STEPPED_ALPHA else 1f),
+                horizontalAlignment = Alignment.CenterHorizontally,
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    ChipPortrait(table, slot, firstCard, if (compact) CHIP_PORTRAIT_COMPACT else CHIP_PORTRAIT)
+                    Spacer(Modifier.width(if (compact) 4.dp else 6.dp))
+                    Text(
+                        slot.initiative?.let { if (slot.tied) "=$it" else "$it" } ?: "–",
+                        style = GoaTextStyles.numeric.copy(
+                            fontSize = cappedSp(if (compact) 16f else 21f),
+                            lineHeight = cappedSp(if (compact) 18f else 24f),
+                            fontWeight = FontWeight.Bold,
+                        ),
+                        color = MaterialTheme.colorScheme.run { if (slot.tied) secondary else onSurface },
+                        maxLines = 1,
+                    )
+                }
+                Text(
+                    info.name,
+                    style = MaterialTheme.typography.labelMedium.copy(
+                        fontSize = cappedSp(if (compact) 10f else 12f),
+                        lineHeight = cappedSp(if (compact) 12f else 15f),
+                        letterSpacing = 0.sp,
+                    ),
+                    fontWeight = if (slot.state == SlotState.NOW) FontWeight.Bold else FontWeight.Medium,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.padding(top = 1.dp),
+                )
+            }
+            StateBand(slot.state, compact, Modifier.fillMaxWidth(), roomy = !compact)
+        }
+    }
+}
+
+/** The portrait in the team ring with the mark at its foot and the chosen action's icon at its head. */
+@Composable
+private fun ChipPortrait(table: TableUi, slot: TrackSlot, card: Card?, size: Dp) {
+    val info = table.hero(slot.heroId)
+    Box {
+        HeroPortrait(
+            slot.heroId,
+            info.portrait,
+            null,
+            Modifier
+                .size(size)
+                .border(2.dp, teamColor(slot.team), CircleShape)
+                .alpha(if (slot.offBoard) OFF_BOARD_ALPHA else 1f),
+            shape = CircleShape,
+            framed = false,
+        )
+        if (slot.offBoard) {
+            Icon(
+                Icons.Filled.Close,
+                null,
+                tint = MaterialTheme.colorScheme.error,
+                modifier = Modifier.align(Alignment.Center).size(size * 0.7f),
+            )
+        }
+        TeamBadge(slot.team, Modifier.align(Alignment.BottomEnd).badgeOverhang(CHIP_BADGE), size = CHIP_BADGE)
+        slot.action?.let { action ->
+            ActionBadge(
+                actionIcon(action, card),
+                compact = size < CHIP_PORTRAIT,
+                Modifier.align(Alignment.TopEnd).offset(4.dp, (-4).dp),
+            )
         }
     }
 }
@@ -339,8 +488,9 @@ private fun SlotPortrait(table: TableUi, slot: TrackSlot, compact: Boolean, widt
 
 /** The state in a word across the foot of the card: DONE (tick), NOW, NEXT, PASS, OUT; none for later. */
 @Composable
-private fun StateBand(state: SlotState, compact: Boolean, modifier: Modifier) {
-    val word = slotBand(state) ?: return
+private fun StateBand(state: SlotState, compact: Boolean, modifier: Modifier, roomy: Boolean = false) {
+    // A chip keeps its height for a hero still to act: an empty band.
+    val word = slotBand(state) ?: if (roomy || compact) "" else return
     val (background, content) = bandColors(state == SlotState.NOW, state == SlotState.NEXT)
     Row(
         modifier
@@ -351,14 +501,35 @@ private fun StateBand(state: SlotState, compact: Boolean, modifier: Modifier) {
         verticalAlignment = Alignment.CenterVertically,
     ) {
         if (state == SlotState.DONE) {
-            Icon(Icons.Filled.Check, null, tint = content, modifier = Modifier.size(if (compact) 8.dp else 10.dp))
-            if (!compact) Spacer(Modifier.width(1.dp))
+            Icon(
+                Icons.Filled.Check,
+                null,
+                tint = content,
+                modifier = Modifier.size(
+                    if (roomy) {
+                        13.dp
+                    } else if (compact) {
+                        9.dp
+                    } else {
+                        10.dp
+                    },
+                ),
+            )
+            Spacer(Modifier.width(2.dp))
         }
         if (!(compact && state == SlotState.DONE)) {
             Text(
                 word,
                 style = TextStyle(
-                    fontSize = fixedSp(if (compact) 8f else 10f),
+                    fontSize = fixedSp(
+                        if (roomy) {
+                            12f
+                        } else if (compact) {
+                            9f
+                        } else {
+                            10f
+                        },
+                    ),
                     fontWeight = FontWeight.SemiBold,
                     letterSpacing = fixedSp(0.8f),
                 ),
@@ -393,6 +564,7 @@ fun MomentCard(moment: TableMoment, table: TableUi, modifier: Modifier = Modifie
                 TurnTrack(table.view.round, table.view.turn - 1, moment.cards),
                 onHero = null,
                 focus = focus,
+                asCards = true,
             )
         }
     }
@@ -431,3 +603,7 @@ private const val STACKED_ALPHA = 0.85f
 private const val DONE_SCRIM = 0.42f
 private const val OFF_BOARD_ALPHA = 0.45f
 private const val MAX_NAME_SCALE = 1.3f
+private val CHIP_PORTRAIT = 34.dp
+private val CHIP_PORTRAIT_COMPACT = 26.dp
+private val CHIP_BADGE = 14.dp
+private const val STEPPED_ALPHA = 0.55f

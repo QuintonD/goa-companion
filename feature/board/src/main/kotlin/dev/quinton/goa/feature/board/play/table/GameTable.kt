@@ -13,18 +13,13 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.CenterFocusStrong
 import androidx.compose.material.icons.outlined.SwapVert
 import androidx.compose.material.icons.outlined.ZoomIn
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
@@ -48,13 +43,11 @@ import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.layout.positionInRoot
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.contentDescription
-import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import dev.quinton.goa.core.designsystem.theme.GoaTextStyles
 import dev.quinton.goa.core.designsystem.theme.Spacing
 import dev.quinton.goa.core.game.Choice
 import dev.quinton.goa.core.game.DecisionKind
@@ -152,8 +145,16 @@ fun GameTable(
             else -> TRACK_CARD_TALL
         }
 
-        LaunchedEffect(cover, topHeight) {
-            viewport.updateInsets(bottom = cover.bottom.toFloat(), end = cover.end.toFloat(), top = topHeight.toFloat())
+        // The map's key over the map's foot while a question lights it: the options are framed above it.
+        val keyItems = mapKeyItems(table)
+        var keyHeight by remember { mutableIntStateOf(0) }
+        LaunchedEffect(keyItems.isEmpty()) { if (keyItems.isEmpty()) keyHeight = 0 }
+        LaunchedEffect(cover, topHeight, keyHeight) {
+            viewport.updateInsets(
+                bottom = (cover.bottom + keyHeight).toFloat(),
+                end = cover.end.toFloat(),
+                top = topHeight.toFloat(),
+            )
         }
         FitWhileHidden(viewport, hidden)
         // Bring what is asked for into view: the options, the unit they are about, the highlights,
@@ -283,6 +284,15 @@ fun GameTable(
             }
         }
 
+        MapKey(
+            keyItems,
+            Modifier
+                .align(Alignment.BottomStart)
+                .padding(start = Spacing.sm, end = overlayEnd + Spacing.sm)
+                .padding(bottom = with(density) { cover.bottom.toDp() } + Spacing.sm)
+                .onSizeChanged { keyHeight = it.height + with(density) { Spacing.sm.roundToPx() } },
+        )
+
         HideablePanel(
             landscape = landscape,
             hidden = hidden,
@@ -375,56 +385,6 @@ fun PeekConfirm(table: TableUi, busy: Boolean, onAnswer: (Choice) -> Unit) {
     ) { Text("Confirm", maxLines = 1) }
 }
 
-/** The event log (a sheet): every event of the game in the engine's words, the latest turn first ([newestFirst]). */
-@Composable
-fun EventLog(lines: List<LogLine>, modifier: Modifier = Modifier, at: Int? = null) {
-    // [at]: the event count at a decision of the review; the line before it is where the game stood.
-    val marked = at?.minus(1)?.takeIf { it in lines.indices }
-    val ordered = remember(lines) { newestFirst(lines) }
-    val state = rememberLazyListState(
-        initialFirstVisibleItemIndex =
-            marked?.let { m -> ordered.indexOfFirst { it.index == m } }?.coerceAtLeast(0) ?: 0,
-    )
-    LazyColumn(
-        modifier.fillMaxWidth(),
-        state = state,
-        verticalArrangement = Arrangement.spacedBy(Spacing.xs),
-    ) {
-        items(ordered, key = { it.index }) { (index, line) ->
-            if (index == marked) {
-                Surface(
-                    color = MaterialTheme.colorScheme.secondaryContainer,
-                    shape = RoundedCornerShape(8.dp),
-                    modifier = Modifier.fillMaxWidth().padding(horizontal = Spacing.sm),
-                ) {
-                    Text(
-                        line.text,
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSecondaryContainer,
-                        modifier = Modifier.padding(Spacing.sm),
-                    )
-                }
-            } else if (line.heading) {
-                Text(
-                    line.text.uppercase(),
-                    style = GoaTextStyles.overline,
-                    color = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier
-                        .padding(horizontal = Spacing.screen)
-                        .padding(top = Spacing.md)
-                        .semantics { heading() },
-                )
-            } else {
-                Text(
-                    line.text,
-                    style = MaterialTheme.typography.bodyMedium,
-                    modifier = Modifier.padding(horizontal = Spacing.screen),
-                )
-            }
-        }
-    }
-}
-
 /**
  * What just happened: the latest events, newest last, the newest in full contrast; lines at
  * [strong] (indices into [lines]: a defeat, a push, a level up…) in full contrast and bold.
@@ -471,7 +431,7 @@ private val TRACK_CARD_COMPACT = 42.dp
 private const val TALL_PANEL_SHARE = 0.36f
 
 /** How much of what follows the question the panel shows, so it reads as more to scroll to. */
-private val PANEL_PAST_QUESTION = 44.dp
+private val PANEL_PAST_QUESTION = 32.dp
 private val HAND_SIDE_PANEL = 480.dp
 private const val HAND_SIDE_SHARE = 0.5f
 private val ZONE_HEX_TAP = 38.dp
@@ -479,4 +439,4 @@ private val ZONE_HEX_READ = 31.dp
 private const val SQRT3 = 1.7320508f
 private const val ZONE_MARGIN = 48f
 private const val SIDE_SHARE = 0.42f
-private const val PANEL_SHARE = 0.56f
+private const val PANEL_SHARE = 0.46f

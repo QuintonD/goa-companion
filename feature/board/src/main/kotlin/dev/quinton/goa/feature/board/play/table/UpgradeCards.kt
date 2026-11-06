@@ -2,6 +2,7 @@ package dev.quinton.goa.feature.board.play.table
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -20,11 +21,14 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.semantics.CustomAccessibilityAction
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.customActions
 import androidx.compose.ui.semantics.onClick
 import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -80,8 +84,8 @@ internal fun upgradeRows(table: TableUi): List<UpgradeRow> {
 }
 
 /**
- * The viewer's cards for the level up, row by row: each hand card (the answer, "tap it again to
- * upgrade it") followed by its upgrades, captioned "Upgrade of Liquid Leap", which can't be confirmed
+ * The viewer's cards for the level up, row by row: each hand card (the answer, its button "Upgrade
+ * Liquid Leap") followed by its upgrades, captioned "Upgrade of Liquid Leap", which can't be confirmed
  * and point back to it; after each card, the spells it names, to read. The answers are, per card,
  * the choice confirming it gives (null for an upgrade or a spell).
  */
@@ -152,13 +156,23 @@ internal fun spokenUpgradeRow(row: UpgradeRow): String = listOfNotNull(
     },
 ).joinToString(", ")
 
-/** Level up: one row per card that may be upgraded, its upgrades beside it; tap to read, again to upgrade. */
+/**
+ * Level up: one row per card that may be upgraded, its upgrades beside it. A tap on a hand card chooses it (again:
+ * read it large); the upgrades are read with a tap; the bronze button upgrades the chosen card.
+ */
 @Composable
-internal fun UpgradePicker(table: TableUi, onAnswer: (Choice) -> Unit, focus: CardFocusState, busy: Boolean) {
+internal fun UpgradePicker(
+    table: TableUi,
+    onSelect: (Choice) -> Unit,
+    onAnswer: (Choice) -> Unit,
+    focus: CardFocusState,
+    busy: Boolean,
+) {
     val decision = table.decision ?: return
     FocusLifecycle(focus, decision, busy)
     val rows = upgradeRows(table)
     val shown = upgradeFocus(rows)
+    val chosen = chosenCard(table)
     val open: (String) -> Unit = { key ->
         focus.open(
             shown.cards,
@@ -175,11 +189,18 @@ internal fun UpgradePicker(table: TableUi, onAnswer: (Choice) -> Unit, focus: Ca
     BoxWithConstraints(Modifier.fillMaxWidth()) {
         // Three cards and the arrow across the panel, as large as fits up to a readable size.
         val width = ((maxWidth - ARROW - Spacing.sm * 3) / 3).coerceIn(MIN_UPGRADE_CARD, MAX_UPGRADE_CARD)
-        Column(verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
-            rows.forEach { row -> UpgradeRowView(row, width, focus, open) }
+        Column(Modifier.padding(top = LIFT), verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
+            rows.forEach { row ->
+                val isChosen = row.choice == chosen
+                val choose = if (isChosen) null else ({ onSelect(row.choice) })
+                UpgradeRowView(row, width, focus, open, chosen = isChosen, onChoose = choose)
+            }
         }
     }
-    if (rows.isNotEmpty()) TapHint("Tap a card to see it large; tap it again to upgrade it.")
+    if (rows.isNotEmpty()) {
+        TapHint("Tap a card on the left to choose it; tap it again, or a card beside it, to read it large.")
+        CommitButton(table, chosen, "Choose a card to upgrade", busy, onAnswer)
+    }
     Text(
         "The card on the left is the choice: it goes back to your deck, and you keep one of the two beside it; " +
             "the other is tucked under your hero as an item (p.15, p.16).",
@@ -189,26 +210,49 @@ internal fun UpgradePicker(table: TableUi, onAnswer: (Choice) -> Unit, focus: Ca
 }
 
 @Composable
-private fun UpgradeRowView(row: UpgradeRow, width: Dp, focus: CardFocusState, onOpen: (String) -> Unit) {
+private fun UpgradeRowView(
+    row: UpgradeRow,
+    width: Dp,
+    focus: CardFocusState,
+    onOpen: (String) -> Unit,
+    chosen: Boolean,
+    onChoose: (() -> Unit)?,
+) {
+    val tap = onChoose ?: { onOpen(row.card.id) }
     Row(verticalAlignment = Alignment.Top, horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
         // The answer: the hand card, framed in its colour, then the spells it casts.
         Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            Surface(
-                onClick = { onOpen(row.card.id) },
-                shape = RoundedCornerShape(8.dp),
-                color = Color.Transparent,
-                border = BorderStroke(2.dp, cardColor(row.card.color)),
-                modifier = Modifier
-                    .cardFocusOrigin(focus, row.card.id)
-                    .clearAndSetSemantics {
-                        contentDescription = spokenUpgradeRow(row)
-                        role = Role.Button
-                        onClick(label = "Look at the card") {
-                            onOpen(row.card.id)
-                            true
-                        }
-                    },
-            ) { TableCard(row.card, width = width) }
+            Box(
+                Modifier.clearAndSetSemantics {
+                    contentDescription = spokenUpgradeRow(row)
+                    stateDescription = if (chosen) "Chosen" else ""
+                    role = Role.Button
+                    selected = chosen
+                    onClick(label = if (onChoose != null) "Choose" else "Look at the card") {
+                        tap()
+                        true
+                    }
+                    if (onChoose != null) {
+                        customActions = listOf(
+                            CustomAccessibilityAction("Look at the card") {
+                                onOpen(row.card.id)
+                                true
+                            },
+                        )
+                    }
+                },
+            ) {
+                ChoosableCard(
+                    row.card,
+                    width,
+                    chosen,
+                    offered = true,
+                    focus = focus,
+                    onTap = tap,
+                    shape = RoundedCornerShape(8.dp),
+                    border = BorderStroke(2.dp, cardColor(row.card.color)),
+                )
+            }
             NamedThumbs(FocusCard(row.card), row.namedBy(row.card), width, focus, onOpen)
         }
         Icon(

@@ -543,18 +543,22 @@ class PlayScreenshotTest {
         Game(remember { at(DecisionKind.UPGRADE_CARD) }, sheet = PlaySheet.Log)
     }
 
-    // ---- Card focus: a card tapped in the panel, large, ready for a second tap --------------
+    // ---- Card focus: the chosen card tapped again in the panel, large, its button naming the choice --
 
-    /** Taps the card called [name] in the panel (its thumbnail or defense row), as a first tap does. */
+    /** Taps the card called [name] in the panel (its thumbnail or defense row): on the chosen card, it reads it. */
     private fun tapCard(name: String) {
         compose.onAllNodes(hasContentDescription(name, substring = true) and hasClickAction()).onFirst().performClick()
     }
 
     private fun firstOption(play: PlayUi): String = play.table.card(play.table.cardOptions.first().cardId)!!.name
 
-    /** Discard a card (Blend Into Shadows): Magnetic Dagger focused, "Tap the card again to discard…". */
+    /** The question with its [i]th card chosen, as a first tap leaves it. */
+    private fun chosen(kind: DecisionKind, i: Int = 0) =
+        at(kind) { s -> s.pending!!.options.filterIsInstance<Choice.Card>()[i] }
+
+    /** Discard a card (Blend Into Shadows): Magnetic Dagger focused, its button "Discard Magnetic Dagger". */
     private fun focusedDiscard(mode: ThemeMode, fontScale: Float = 1f) {
-        val play = at(DecisionKind.CHOOSE_CARD)
+        val play = chosen(DecisionKind.CHOOSE_CARD)
         capture(mode, fontScale, before = { tapCard(firstOption(play)) }, screen = true) { Game(play) }
     }
 
@@ -580,7 +584,7 @@ class PlayScreenshotTest {
 
     /** "Read the card as text" opened (ADR-041): the name, kind, values and the text verbatim. */
     private fun focusedAsText(mode: ThemeMode, fontScale: Float = 1f) {
-        val play = at(DecisionKind.CHOOSE_CARD)
+        val play = chosen(DecisionKind.CHOOSE_CARD)
         capture(mode, fontScale, before = {
             tapCard(firstOption(play))
             compose.waitForIdle()
@@ -602,7 +606,7 @@ class PlayScreenshotTest {
     @Config(qualifiers = "w800dp-h330dp-land-xxhdpi")
     @Test
     fun tablePlayCardFocusLandscapeShortLight() {
-        val play = at(DecisionKind.PLAY_CARD)
+        val play = chosen(DecisionKind.PLAY_CARD, 1)
         capture(ThemeMode.LIGHT, before = {
             tapCard(play.table.card(play.table.cardOptions[1].cardId)!!.name)
         }, screen = true) {
@@ -613,14 +617,14 @@ class PlayScreenshotTest {
     /** Defend: the card large with its verdict on its corner and "Defense 3 against Attack 6". */
     @Test
     fun tableDefendFocusDark() {
-        val play = at(DecisionKind.DEFEND)
+        val play = chosen(DecisionKind.DEFEND)
         capture(ThemeMode.DARK, before = { tapCard(firstOption(play)) }, screen = true) { Game(play) }
     }
 
-    /** Play a card: the hand large, neighbours peeking, "Tap the card again to play … facedown". */
+    /** Play a card: the hand large, neighbours peeking, its button "Play … facedown". */
     @Test
     fun tablePlayCardFocusDark() {
-        val play = at(DecisionKind.PLAY_CARD)
+        val play = chosen(DecisionKind.PLAY_CARD, 1)
         capture(ThemeMode.DARK, before = {
             tapCard(play.table.card(play.table.cardOptions[1].cardId)!!.name)
         }, screen = true) {
@@ -631,7 +635,7 @@ class PlayScreenshotTest {
     /** Level up: the card to upgrade with the two of the next Tier it is replaced by. */
     @Test
     fun tableUpgradeFocusDark() {
-        val play = at(DecisionKind.UPGRADE_CARD)
+        val play = at(DecisionKind.UPGRADE_CARD) { Choice.Card("arien-red-1") }
         capture(ThemeMode.DARK, before = { tapCard(cards.getValue("arien-red-1").name) }, screen = true) { Game(play) }
     }
 

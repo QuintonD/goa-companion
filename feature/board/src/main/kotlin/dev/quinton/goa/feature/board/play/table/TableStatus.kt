@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxSize
@@ -89,10 +90,12 @@ import dev.quinton.goa.feature.board.ui.cards.cardFocusOrigin
 private const val TURNS = 4
 
 /**
- * The round at a glance, a slate plate as in mock-up 01: each team's mark and official Life counter
- * with the number beside it, the Wave counters left (per Lane), the round and its four diamond pips,
- * the side of the Tie Breaker coin showing at the end. One TalkBack node. [spread] (a phone upright)
- * makes it as wide as it is given, the coin at the far end; with little width or large text it wraps.
+ * The round at a glance, a slate plate as in mock-up 01, each group named in small caps over it so nothing has to
+ * be remembered: LIVES (each team's mark and official Life counter with the number), WAVES (the Wave counters
+ * left, per Lane), TURN (four diamond pips: done solid and dimmer, current bright and ringed, later hollow; the
+ * round is in the title), TIE BREAKER (the coin's side showing). Numbers in large figures for arm's length. One
+ * TalkBack node. [spread] (a phone upright) makes it as wide as it is given, the coin at the far end; with little
+ * width or large text it wraps.
  */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
@@ -111,35 +114,51 @@ fun TableHud(table: TableUi, modifier: Modifier = Modifier, compact: Boolean = f
     }.joinToString(". ")
     // The plate is read at a glance: past 1.6× the numbers are large enough, and the coin keeps its row.
     val fontScale = LocalDensity.current.fontScale
-    val big = 16.sp * (minOf(fontScale, HUD_MAX_SCALE) / fontScale)
-    val number = GoaTextStyles.numeric.copy(fontSize = big, lineHeight = big * 1.25f, fontWeight = FontWeight.SemiBold)
+    val cap = minOf(fontScale, HUD_MAX_SCALE) / fontScale
+    val big = (if (compact) 17.sp else 20.sp) * cap
+    val number = GoaTextStyles.numeric.copy(fontSize = big, lineHeight = big * 1.15f, fontWeight = FontWeight.Bold)
+    val icon = if (compact) 22.dp else 24.dp
     PlateSurface(
         shape = RoundedCornerShape(7.dp),
         brackets = true,
         modifier = modifier.clearAndSetSemantics { contentDescription = spoken },
     ) {
         FlowRow(
-            Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
+            Modifier.padding(horizontal = 10.dp, vertical = 3.dp),
             // Compact (landscape, beside the heroes' portraits), or two Lanes' counters: closer together.
             horizontalArrangement = Arrangement.spacedBy(
-                if (compact || waves.size > 1 || fontScale > 1.3f) Spacing.sm else Spacing.md,
+                if (compact || waves.size > 1 || fontScale > 1.3f) Spacing.md else Spacing.lg,
             ),
             verticalArrangement = Arrangement.spacedBy(2.dp),
-            itemVerticalAlignment = Alignment.CenterVertically,
+            itemVerticalAlignment = Alignment.Bottom,
         ) {
-            Team.entries.forEach { team ->
-                val left = view.lifeCounters[team] ?: 0
-                Row(verticalAlignment = Alignment.CenterVertically) {
+            HudGroup("Lives", cap) {
+                Team.entries.forEachIndexed { i, team ->
+                    val left = view.lifeCounters[team] ?: 0
+                    if (i > 0) Spacer(Modifier.width(6.dp))
                     TeamMark(team, markSize = scaledIconSize(11.dp, 1.15f))
                     Spacer(Modifier.width(2.dp))
-                    LifeCounterIcon(team, spent = left == 0, size = scaledIconSize(25.dp, 1.15f))
+                    LifeCounterIcon(team, spent = left == 0, size = scaledIconSize(icon, 1.15f))
                     Spacer(Modifier.width(3.dp))
                     Text("$left", style = number)
                 }
             }
-            waves.forEach { (lane, left) ->
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    WaveCounterIcon(spent = left == 0, size = scaledIconSize(if (lane != null) 22.dp else 25.dp, 1.15f))
+            HudGroup("Waves", cap) {
+                waves.forEachIndexed { i, (lane, left) ->
+                    if (i > 0) Spacer(Modifier.width(6.dp))
+                    WaveCounterIcon(
+                        spent = left == 0,
+                        size = scaledIconSize(
+                            if (lane !=
+                                null
+                            ) {
+                                icon - 2.dp
+                            } else {
+                                icon
+                            },
+                            1.15f,
+                        ),
+                    )
                     Spacer(Modifier.width(2.dp))
                     // Two Lanes: "L1 3" fits both on the row; TalkBack hears "Lane 1".
                     lane?.let {
@@ -153,23 +172,43 @@ fun TableHud(table: TableUi, modifier: Modifier = Modifier, compact: Boolean = f
                     Text("$left", style = number)
                 }
             }
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(
-                    "R${view.round}",
-                    style = GoaTextStyles.plateTitle.copy(fontSize = big, lineHeight = big * 1.25f),
-                    color = MaterialTheme.colorScheme.onSurface,
-                )
-                Spacer(Modifier.width(5.dp))
-                TurnPips(view.turn)
+            HudGroup("Turn", cap) {
+                Box(Modifier.heightIn(min = with(LocalDensity.current) { big.toDp() } * 1.15f), Alignment.Center) {
+                    TurnPips(view.turn)
+                }
+            }
+            val coin: @Composable () -> Unit = {
+                // Large text: the coin alone keeps the HUD on one row (TalkBack still names it).
+                HudGroup(if (fontScale > 1.3f) null else "Tie Breaker", cap, end = spread) {
+                    TieBreakerMark(view.tieBreaker, if (compact || fontScale > 1.3f) 22.dp else 26.dp)
+                }
             }
             if (spread) {
-                Box(Modifier.weight(1f), contentAlignment = Alignment.CenterEnd) {
-                    TieBreakerMark(view.tieBreaker, if (fontScale > 1.3f) 22.dp else 28.dp)
-                }
+                Box(Modifier.weight(1f), contentAlignment = Alignment.BottomEnd) { coin() }
             } else {
-                TieBreakerMark(view.tieBreaker, if (compact) 24.dp else 28.dp)
+                coin()
             }
         }
+    }
+}
+
+/** A HUD group: its name in small caps over what it counts (the name grows no more than the numbers do). */
+@Composable
+private fun HudGroup(name: String?, cap: Float, end: Boolean = false, content: @Composable RowScope.() -> Unit) {
+    Column(horizontalAlignment = if (end) Alignment.End else Alignment.Start) {
+        name?.let {
+            Text(
+                it.uppercase(),
+                style = GoaTextStyles.overline.copy(
+                    fontSize = 9.sp * cap,
+                    lineHeight = 11.sp * cap,
+                    letterSpacing = 0.8.sp,
+                ),
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 1,
+            )
+        }
+        Row(verticalAlignment = Alignment.CenterVertically, content = content)
     }
 }
 
@@ -183,7 +222,7 @@ private fun TurnPips(turn: Int) {
     Row(horizontalArrangement = Arrangement.spacedBy(2.dp), verticalAlignment = Alignment.CenterVertically) {
         for (t in 1..TURNS) {
             val current = t == turn
-            Canvas(Modifier.size(if (current) 16.dp else 12.dp)) {
+            Canvas(Modifier.size(if (current) 19.dp else 14.dp)) {
                 val c = size.minDimension / 2f
                 when {
                     t < turn -> drawPath(diamond(c, c * 0.92f), bronze.copy(alpha = PIP_DONE_ALPHA))
@@ -284,11 +323,11 @@ fun HeroStrip(table: TableUi, onHero: (String) -> Unit, modifier: Modifier = Mod
 
 /** A row that scrolls when its items don't fit, and shares the spare width among them when they do. */
 @Composable
-private fun SharedWidthRow(modifier: Modifier = Modifier, content: @Composable () -> Unit) {
+internal fun SharedWidthRow(modifier: Modifier = Modifier, gap: Dp = Spacing.xs, content: @Composable () -> Unit) {
     BoxWithConstraints(modifier) {
         val viewport = constraints.maxWidth
         Layout(content, Modifier.horizontalScroll(rememberScrollState())) { items, _ ->
-            val gap = Spacing.xs.roundToPx()
+            val gap = gap.roundToPx()
             val natural = items.map { it.maxIntrinsicWidth(Constraints.Infinity) }
             val free = viewport - natural.sum() - gap * (items.size - 1)
             val spare = free.coerceAtLeast(0) / items.size.coerceAtLeast(1)

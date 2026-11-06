@@ -1,14 +1,19 @@
 package dev.quinton.goa.feature.board.play.table
 
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -16,8 +21,10 @@ import androidx.compose.foundation.relocation.BringIntoViewRequester
 import androidx.compose.foundation.relocation.bringIntoViewRequester
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.outlined.Block
 import androidx.compose.material.icons.outlined.CheckCircle
 import androidx.compose.material.icons.outlined.ErrorOutline
@@ -37,16 +44,19 @@ import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.semantics.CustomAccessibilityAction
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.customActions
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.onClick
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
+import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Density
@@ -63,6 +73,8 @@ import dev.quinton.goa.core.game.Choice
 import dev.quinton.goa.core.game.Decision
 import dev.quinton.goa.core.game.DecisionKind
 import dev.quinton.goa.core.model.catalog.Card
+import dev.quinton.goa.core.model.catalog.CardText
+import dev.quinton.goa.core.model.catalog.Stat
 import dev.quinton.goa.feature.board.play.PlayText
 import dev.quinton.goa.feature.board.ui.PlateButton
 import dev.quinton.goa.feature.board.ui.PlateTone
@@ -79,12 +91,13 @@ import dev.quinton.goa.feature.board.ui.cards.isSpell
 import dev.quinton.goa.feature.board.ui.isLandscape
 
 /*
- * Card questions (play, defend, discard, retrieve, upgrade, keep) answered with the card focus
- * viewer (docs/DESIGN.md, "Card focus"): the first tap on a card zooms it, a second tap on it (or
- * its Confirm button) answers; back or an upward swipe returns with nothing chosen.
+ * Card questions (play, defend, discard, retrieve, upgrade, keep): a tap on a card chooses it (bronze
+ * edge, lifted, a tick; [TableUi.selected]); a tap on the chosen card reads it large in the card focus
+ * viewer (docs/DESIGN.md, "Card focus"). Only a bronze button answers, and it names what it does
+ * ("Discard Magnetic Dagger", "Defend with Blink Strike"): a tap on a card never both shows and commits.
  */
 
-/** Opens [offered] in the viewer at [index], confirming answers [onAnswer]. */
+/** Opens [offered] in the viewer at [index]; its button answers [onAnswer]. */
 private fun openOffered(
     focus: CardFocusState,
     table: TableUi,
@@ -128,11 +141,17 @@ internal fun FocusLifecycle(focus: CardFocusState, decision: Decision, busy: Boo
 // ---- Play a card, discard, retrieve, upgrade, keep ------------------------------------------
 
 /**
- * Turn step 1 (p.7): the hand as card images. Tap one to see it large, tap it again to play it
+ * Turn step 1 (p.7): the hand as card images. Tap one to choose it (again to read it large); the button plays it
  * facedown. With no cards, Pass.
  */
 @Composable
-internal fun HandPicker(table: TableUi, onAnswer: (Choice) -> Unit, focus: CardFocusState, busy: Boolean) {
+internal fun HandPicker(
+    table: TableUi,
+    onSelect: (Choice) -> Unit,
+    onAnswer: (Choice) -> Unit,
+    focus: CardFocusState,
+    busy: Boolean,
+) {
     val decision = table.decision ?: return
     FocusLifecycle(focus, decision, busy)
     table.decider?.takeIf { it.at == null }?.let { hero ->
@@ -145,10 +164,14 @@ internal fun HandPicker(table: TableUi, onAnswer: (Choice) -> Unit, focus: CardF
     }
     table.decider?.let { HandRuneLine(table, it) }
     val offered = offeredCards(table)
-    OfferedRow(table, offered, focus, fan = true) { key ->
+    val chosen = chosenCard(table)
+    OfferedRow(table, offered, focus, fan = true, chosen = chosen, onChoose = onSelect) { key ->
         openOffered(focus, table, offered, offered.indexOfKey(key), onAnswer)
     }
-    if (offered.any { it.choice != null }) TapHint("Tap a card to see it large; tap it again to play it facedown.")
+    if (offered.any { it.choice != null }) {
+        TapHint(CHOOSE_HINT)
+        CommitButton(table, chosen, "Choose a card to play facedown", busy, onAnswer)
+    }
     if (table.buttonOptions.isNotEmpty()) {
         Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
             table.buttonOptions.forEach { choice ->
@@ -167,14 +190,21 @@ internal fun HandPicker(table: TableUi, onAnswer: (Choice) -> Unit, focus: CardF
 
 /** Card choices other than playing: discard, retrieve, which card to keep (upgrading: UpgradeCards.kt). */
 @Composable
-internal fun CardPicker(table: TableUi, onAnswer: (Choice) -> Unit, focus: CardFocusState, busy: Boolean) {
+internal fun CardPicker(
+    table: TableUi,
+    onSelect: (Choice) -> Unit,
+    onAnswer: (Choice) -> Unit,
+    focus: CardFocusState,
+    busy: Boolean,
+) {
     val decision = table.decision ?: return
     FocusLifecycle(focus, decision, busy)
     val offered = offeredCards(table)
     val keep = decision.kind == DecisionKind.KEEP_UPGRADE
+    val chosen = chosenCard(table)
     if (keep) {
         val pages = keepFocus(table, offered)
-        OfferedRow(table, offered, focus, keep = true) { key ->
+        OfferedRow(table, offered, focus, keep = true, chosen = chosen, onChoose = onSelect) { key ->
             focus.open(
                 pages.cards,
                 pages.indexOf(key),
@@ -188,16 +218,17 @@ internal fun CardPicker(table: TableUi, onAnswer: (Choice) -> Unit, focus: CardF
             )
         }
     } else {
-        OfferedRow(table, offered, focus, fan = true) { key ->
+        OfferedRow(table, offered, focus, fan = true, chosen = chosen, onChoose = onSelect) { key ->
             openOffered(focus, table, offered, offered.indexOfKey(key), onAnswer)
         }
     }
     if (offered.any { it.choice != null }) {
         val verb = when (decision.kind) {
-            DecisionKind.KEEP_UPGRADE -> "keep it"
-            else -> "${cardVerb(decision.prompt).lowercase()} it"
+            DecisionKind.KEEP_UPGRADE -> "keep"
+            else -> cardVerb(decision.prompt).lowercase()
         }
-        TapHint("Tap a card to see it large; tap it again to $verb.")
+        TapHint(CHOOSE_HINT)
+        CommitButton(table, chosen, "Choose a card to $verb", busy, onAnswer)
     }
     // The asking card's spells that can't be cast now, one line each with the engine's reason (ADR-040).
     decision.context.unavailableCards.forEach { u ->
@@ -214,6 +245,45 @@ internal fun CardPicker(table: TableUi, onAnswer: (Choice) -> Unit, focus: CardF
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
+    }
+}
+
+/** The hint under every row of cards to choose from. */
+internal const val CHOOSE_HINT = "Tap a card to choose it; tap it again to read it large."
+
+/** The card the person has chosen in the panel and not yet committed ([TableUi.selected]), if it is an option. */
+internal fun chosenCard(table: TableUi): Choice.Card? =
+    (table.selected as? Choice.Card)?.takeIf { it in table.cardOptions }
+
+/**
+ * The one control that answers a card question: a bronze button naming the commitment ("Discard Magnetic Dagger",
+ * "Play Shock facedown"), there before a card is chosen ([waiting], dimmed), so the panel doesn't jump.
+ */
+@Composable
+internal fun CommitButton(
+    table: TableUi,
+    chosen: Choice?,
+    waiting: String,
+    busy: Boolean,
+    onAnswer: (Choice) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val decision = table.decision ?: return
+    // The button is under the cards: once one is chosen, it scrolls into view.
+    val requester = remember { BringIntoViewRequester() }
+    LaunchedEffect(chosen) { if (chosen != null) requester.bringIntoView() }
+    val label = when (chosen) {
+        null -> null
+        is Choice.Card -> table.card(chosen.cardId)?.let { cardAction(decision, it) } ?: table.label(chosen)
+        else -> table.label(chosen)
+    }
+    PlateButton(
+        onClick = { if (chosen != null) onAnswer(chosen) },
+        enabled = chosen != null && !busy,
+        contentPadding = PaddingValues(horizontal = Spacing.lg, vertical = Spacing.sm),
+        modifier = modifier.fillMaxWidth().heightIn(min = 52.dp).bringIntoViewRequester(requester),
+    ) {
+        Text(label ?: waiting, textAlign = TextAlign.Center)
     }
 }
 
@@ -253,6 +323,8 @@ private fun OfferedRow(
     focus: CardFocusState,
     keep: Boolean = false,
     fan: Boolean = false,
+    chosen: Choice.Card? = null,
+    onChoose: ((Choice) -> Unit)? = null,
     onOpen: (String) -> Unit,
 ) {
     val reason = table.decision?.kind?.let(::notOffered)
@@ -275,7 +347,7 @@ private fun OfferedRow(
             Modifier
                 .fillMaxWidth()
                 .then(scrolling)
-                .padding(start = edge, end = edge, bottom = if (spread) FAN_DROP else 0.dp),
+                .padding(start = edge, end = edge, top = LIFT, bottom = if (spread) FAN_DROP else 0.dp),
             horizontalArrangement = if (spread) {
                 Arrangement.spacedBy(gap, Alignment.CenterHorizontally)
             } else {
@@ -288,7 +360,18 @@ private fun OfferedRow(
                 val fromCentre = i - (offered.size - 1) / 2f
                 val tilt = if (spread) Modifier.fanned(fromCentre) else Modifier
                 Column(tilt, verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                    OfferedThumb(item, width, keep, named, unavailableCardLine(table, item.card.id) ?: reason, focus) {
+                    val isChosen = item.choice != null && item.choice == chosen
+                    val choose = item.choice?.takeIf { !isChosen }?.let { c -> onChoose?.let { { it(c) } } }
+                    OfferedThumb(
+                        item,
+                        width,
+                        keep,
+                        named,
+                        unavailableCardLine(table, item.card.id) ?: reason,
+                        focus,
+                        chosen = isChosen,
+                        onChoose = choose,
+                    ) {
                         onOpen(item.card.id)
                     }
                     NamedThumbs(FocusCard(item.card), named, width, focus, onOpen)
@@ -306,35 +389,41 @@ private fun OfferedThumb(
     named: List<Card>,
     reason: String?,
     focus: CardFocusState,
+    chosen: Boolean = false,
+    /** Chooses this card; null when a tap reads it instead (it is chosen already, or no option). */
+    onChoose: (() -> Unit)? = null,
     onOpen: () -> Unit,
 ) {
     val card = item.card
     val offered = item.choice != null
+    val tap = onChoose ?: onOpen
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(4.dp),
         modifier = Modifier.width(cardWidth(card, width)).clearAndSetSemantics {
             contentDescription = listOfNotNull(spokenCard(card), spokenNamed(named)).joinToString(", ")
             stateDescription = listOfNotNull(
+                "Chosen".takeIf { chosen },
                 if (keep) card.item?.let { "As an item: +1 ${PlayText.stat(it)}" } else null,
                 if (!offered) reason else null,
             ).joinToString(", ")
             role = Role.Button
-            onClick(label = "Look at the card") {
-                onOpen()
+            selected = chosen
+            onClick(label = if (onChoose != null) "Choose" else "Look at the card") {
+                tap()
                 true
+            }
+            if (onChoose != null) {
+                customActions = listOf(
+                    CustomAccessibilityAction("Look at the card") {
+                        onOpen()
+                        true
+                    },
+                )
             }
         },
     ) {
-        Surface(
-            onClick = onOpen,
-            shape = RoundedCornerShape(width * 0.08f),
-            color = Color.Transparent,
-            shadowElevation = 3.dp,
-            modifier = Modifier.cardFocusOrigin(focus, card.id).alpha(if (offered) 1f else DIMMED),
-        ) {
-            TableCard(card, width = width)
-        }
+        ChoosableCard(card, width, chosen, offered, focus, tap)
         if (keep) card.item?.let { ItemCaption(it) }
         if (!offered) {
             Icon(
@@ -347,14 +436,67 @@ private fun OfferedThumb(
     }
 }
 
+/**
+ * A card to choose from in the panel: the official card, dimmed when the question doesn't offer it; chosen, it is
+ * lifted with a bronze edge and a bronze tick at its corner (chosen in shape too, never by colour alone).
+ */
+@Composable
+internal fun ChoosableCard(
+    card: Card,
+    width: Dp,
+    chosen: Boolean,
+    offered: Boolean,
+    focus: CardFocusState,
+    onTap: () -> Unit,
+    shape: RoundedCornerShape = RoundedCornerShape(width * 0.08f),
+    border: BorderStroke? = null,
+) {
+    Box {
+        Surface(
+            onClick = onTap,
+            shape = shape,
+            color = Color.Transparent,
+            shadowElevation = if (chosen) 8.dp else 3.dp,
+            border = if (chosen) BorderStroke(3.dp, ChosenEdge) else border,
+            modifier = Modifier
+                .cardFocusOrigin(focus, card.id)
+                .graphicsLayer { translationY = if (chosen) -LIFT.toPx() else 0f }
+                .alpha(if (offered) 1f else DIMMED),
+        ) {
+            TableCard(card, width = width)
+        }
+        if (chosen) ChosenTick(Modifier.align(Alignment.TopEnd).offset(x = 5.dp, y = -LIFT - 5.dp))
+    }
+}
+
+/** The bronze tick on a chosen card's corner. */
+@Composable
+private fun ChosenTick(modifier: Modifier = Modifier) {
+    Box(
+        modifier
+            .size(scaledIconSize(22.dp, 1.3f))
+            .background(ChosenEdge, CircleShape)
+            .border(1.5.dp, ChosenInk, CircleShape),
+        contentAlignment = Alignment.Center,
+    ) {
+        Icon(Icons.Filled.Check, null, tint = ChosenInk, modifier = Modifier.size(scaledIconSize(15.dp, 1.3f)))
+    }
+}
+
+internal val ChosenEdge = Color(0xFFC9A35B)
+private val ChosenInk = Color(0xFF0B1622)
+
+/** How far a chosen card rises out of its row. */
+internal val LIFT = 8.dp
+
 // ---- Defense (p.14) ---------------------------------------------------------------------
 
 /**
  * Attacked: the attacker's card with the Attack total, then the hand's cards themselves (their
  * Defense is printed on them), each with the verdict under it: "Holds" or "Falls" in words and an
- * icon (never colour alone) and the Defense total when items or minions change it; "Don't defend".
- * Tap a card to see it large with its verdict, tap it again to defend with it; "Don't defend" is
- * chosen, then confirmed.
+ * icon (never colour alone) and the Defense total as it counts. A tap chooses a card (again: read it
+ * large); "Don't defend" is chosen the same way. What is chosen shows its outcome in the engine's
+ * numbers ("Defense 3 = card 2 + minion 1 against Attack 6"), and the bronze button answers.
  */
 @Composable
 internal fun DefensePanel(
@@ -387,20 +529,29 @@ internal fun DefensePanel(
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
     }
-    if (offered.isNotEmpty()) TapHint("Tap a card to see it large; tap it again to defend with it.")
+    if (offered.isNotEmpty()) TapHint(CHOOSE_HINT)
     val focusCards = offered.mapIndexed { i, item -> FocusCard(item.card, verdict = rows[i].verdict) }
     val summary = listOfNotNull(heading, attack?.let { "Attack $it" }).joinToString(" · ")
+    val chosen = chosenCard(table)
     BoxWithConstraints(Modifier.fillMaxWidth()) {
         val n = offered.size.coerceAtLeast(1)
         val width = ((maxWidth - Spacing.sm * (n - 1)) / n).coerceIn(MIN_HAND_CARD, HAND_CARD)
         Row(
-            Modifier.horizontalScroll(rememberScrollState()),
+            Modifier.horizontalScroll(rememberScrollState()).padding(top = LIFT),
             horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
         ) {
             offered.forEachIndexed { i, item ->
-                DefenseCard(item.card, rows[i], width, focus) {
-                    openOffered(focus, table, offered, i, onAnswer, context = summary, cards = focusCards)
-                }
+                val isChosen = item.choice == chosen
+                val read = { openOffered(focus, table, offered, i, onAnswer, context = summary, cards = focusCards) }
+                DefenseCard(
+                    item.card,
+                    rows[i],
+                    width,
+                    focus,
+                    chosen = isChosen,
+                    onChoose = item.choice?.takeIf { !isChosen }?.let { c -> { onSelect(c) } },
+                    onOpen = read,
+                )
             }
         }
     }
@@ -410,16 +561,78 @@ internal fun DefensePanel(
         }
     }
     val declined = table.selected?.takeIf { it !is Choice.Card && it in table.buttonOptions }
-    if (declined != null) {
-        // The button is under every row: bring it into view once "Don't defend" is chosen.
-        val requester = remember { BringIntoViewRequester() }
-        LaunchedEffect(declined) { requester.bringIntoView() }
-        PlateButton(
-            onClick = { onAnswer(declined) },
-            enabled = !busy,
-            modifier = Modifier.fillMaxWidth().heightIn(min = 52.dp).bringIntoViewRequester(requester),
+    val picked = chosen?.let { c -> offered.indexOfFirst { it.choice == c }.takeIf { it >= 0 } }
+    if (picked != null) {
+        val items = table.decider?.itemStats?.count { it == Stat.DEFENSE } ?: 0
+        DefenseOutcome(offered[picked].card, rows[picked], attack, context.minionModifier, items, context.rangedAttack)
+    }
+    CommitButton(table, chosen ?: declined, "Choose a card to defend with", busy, onAnswer)
+}
+
+/**
+ * What defending with the chosen card comes to, from the engine's numbers: the verdict in words and shape, the
+ * Defense total and how it is made against the Attack; for a card whose text decides, that text verbatim and the
+ * attack it is weighed against (melee or ranged, its value), as the engine knows them now.
+ */
+@Composable
+private fun DefenseOutcome(card: Card, line: DefenseLine, attack: Int?, minion: Int?, items: Int, ranged: Boolean?) {
+    val sum = defenseSum(line.total, card.values.defense, minion, items)
+    val against = attack?.let { " against Attack $it" }.orEmpty()
+    val result = when (line.verdict.holds) {
+        true -> if (line.verdict.label ==
+            "Blocks"
         ) {
-            Text(table.label(declined))
+            "Blocks: the attack is stopped (p.14)."
+        } else {
+            "Holds: the attack fails (p.14)."
+        }
+
+        false -> "Falls: the attack succeeds (p.14)."
+
+        null -> "Decided by its text as it resolves."
+    }
+    val numbers = when {
+        line.total == null -> line.detail
+        sum != null -> "$sum$against"
+        else -> "Defense ${line.total}$against"
+    }
+    Surface(
+        shape = RoundedCornerShape(8.dp),
+        color = PlateWell,
+        border = BorderStroke(1.dp, GoaTheme.colors.engravedBorder),
+        modifier = Modifier.fillMaxWidth().semantics(mergeDescendants = true) { liveRegion = LiveRegionMode.Polite },
+    ) {
+        Column(
+            Modifier.padding(horizontal = Spacing.md, vertical = Spacing.sm),
+            verticalArrangement = Arrangement.spacedBy(2.dp),
+        ) {
+            Text(
+                card.name,
+                style = MaterialTheme.typography.labelLarge,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            Verdict(line.verdict.holds, result, start = true)
+            Text(numbers, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
+            if (line.verdict.holds == null) {
+                val text = CardText.plain(card.text).trim()
+                if (text.isNotEmpty()) {
+                    Text(
+                        "“$text”",
+                        style = MaterialTheme.typography.bodySmall,
+                        fontStyle = FontStyle.Italic,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+                val kind = ranged?.let { if (it) "ranged" else "melee" }
+                val attackLine = listOfNotNull(kind?.let { "a $it attack" }, attack?.let { "Attack $it" })
+                if (attackLine.isNotEmpty()) {
+                    Text(
+                        "This is ${attackLine.joinToString(", ")}.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            }
         }
     }
 }
@@ -500,12 +713,22 @@ private fun AttackBox(
     }
 }
 
-/** One hand card to defend with: the official card, the verdict under it, the total when it differs. */
+/**
+ * One hand card to defend with: the official card, under it the verdict in words and shape and its Defense total as
+ * it counts ("Defense 3 vs 6"; a Block or a card whose text decides says so). A tap chooses it, again reads it.
+ */
 @Composable
-private fun DefenseCard(card: Card, line: DefenseLine, width: Dp, focus: CardFocusState, onOpen: () -> Unit) {
-    val printed = card.values.defense
-    val changed = line.total != null && line.total != printed
-    val spoken = listOf(card.name, line.detail, line.verdict.label).joinToString(", ")
+private fun DefenseCard(
+    card: Card,
+    line: DefenseLine,
+    width: Dp,
+    focus: CardFocusState,
+    chosen: Boolean,
+    onChoose: (() -> Unit)?,
+    onOpen: () -> Unit,
+) {
+    val spoken = listOf(card.name, line.verdict.detail, line.verdict.label).joinToString(", ")
+    val tap = onChoose ?: onOpen
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(4.dp),
@@ -513,33 +736,38 @@ private fun DefenseCard(card: Card, line: DefenseLine, width: Dp, focus: CardFoc
             .width(width)
             .clearAndSetSemantics {
                 contentDescription = spoken
+                stateDescription = if (chosen) "Chosen" else ""
                 role = Role.Button
-                onClick(label = "Look at the card") {
-                    onOpen()
+                selected = chosen
+                onClick(label = if (onChoose != null) "Choose" else "Look at the card") {
+                    tap()
                     true
+                }
+                if (onChoose != null) {
+                    customActions = listOf(
+                        CustomAccessibilityAction("Look at the card") {
+                            onOpen()
+                            true
+                        },
+                    )
                 }
             },
     ) {
-        Surface(
-            onClick = onOpen,
-            shape = RoundedCornerShape(width * 0.08f),
-            color = Color.Transparent,
-            shadowElevation = 3.dp,
-            modifier = Modifier.cardFocusOrigin(focus, card.id),
-        ) { TableCard(card, width = width) }
+        ChoosableCard(card, width, chosen, offered = true, focus = focus, onTap = tap)
         Verdict(line.verdict.holds, line.verdict.label)
-        if (changed) {
+        line.total?.let { total ->
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Icon(
                     GameIcons.defense.vector,
                     null,
                     tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.size(scaledIconSize(12.dp, 1.3f)),
+                    modifier = Modifier.size(scaledIconSize(13.dp, 1.3f)),
                 )
                 Text(
-                    " ${line.total}",
-                    style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    " $total",
+                    style = MaterialTheme.typography.labelLarge,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface,
                 )
             }
         }
@@ -548,7 +776,7 @@ private fun DefenseCard(card: Card, line: DefenseLine, width: Dp, focus: CardFoc
 
 /** "Holds" with a tick or "Falls" with a warning sign: words and shape, not colour alone. */
 @Composable
-private fun Verdict(verdict: Boolean?, text: String) {
+private fun Verdict(verdict: Boolean?, text: String, start: Boolean = false) {
     val color = when (verdict) {
         true -> MaterialTheme.colorScheme.secondary
         false -> MaterialTheme.colorScheme.error
@@ -566,10 +794,14 @@ private fun Verdict(verdict: Boolean?, text: String) {
         }
         Text(
             text,
-            style = if (verdict == null) MaterialTheme.typography.labelSmall else MaterialTheme.typography.labelLarge,
+            style = if (verdict == null && !start) {
+                MaterialTheme.typography.labelSmall
+            } else {
+                MaterialTheme.typography.labelLarge
+            },
             color = color,
             fontWeight = FontWeight.Bold,
-            textAlign = TextAlign.Center,
+            textAlign = if (start) TextAlign.Start else TextAlign.Center,
         )
     }
 }
@@ -622,7 +854,7 @@ private const val FAN_DEGREES = 3.2f
 private val FAN_EDGE = 6.dp
 private val FAN_DROP = 6.dp
 private val MIN_HAND_CARD = 60.dp
-private val ATTACK_CARD = 56.dp
+private val ATTACK_CARD = 46.dp
 private const val ATTACK_MAX_SCALE = 1.3f
 
 /** A row with spells: a landscape card this tall (≈ 90 × 62 dp) is still easy to tap and read. */

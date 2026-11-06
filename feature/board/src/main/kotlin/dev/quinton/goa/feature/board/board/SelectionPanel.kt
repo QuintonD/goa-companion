@@ -51,6 +51,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.drawscope.DrawScope
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
@@ -482,7 +483,8 @@ private fun CardChip(card: Card, selected: Boolean, onClick: () -> Unit) {
         color = if (selected) accent.copy(alpha = 0.16f) else PlateWell,
         border = BorderStroke(if (selected) 2.dp else 1.dp, if (selected) accent else GoaTheme.colors.engravedBorder),
         modifier = Modifier
-            .widthIn(min = 96.dp, max = 168.dp)
+            // Large text: wider, and the name wraps to a second line rather than being cut.
+            .widthIn(min = 96.dp, max = 168.dp * minOf(LocalDensity.current.fontScale, CHIP_GROWTH).coerceAtLeast(1f))
             .heightIn(min = 48.dp)
             .selectable(selected = selected, role = Role.RadioButton, onClick = onClick)
             .clearAndSetSemantics {
@@ -515,10 +517,13 @@ private fun CardChip(card: Card, selected: Boolean, onClick: () -> Unit) {
                     )
                 }
             }
-            Text(card.name, style = MaterialTheme.typography.labelLarge, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            Text(card.name, style = MaterialTheme.typography.labelLarge, maxLines = 2, overflow = TextOverflow.Ellipsis)
         }
     }
 }
+
+/** How much wider a card chip may grow with the font scale. */
+private const val CHIP_GROWTH = 1.5f
 
 /** Initiative and printed values of the chosen card, as printed ("Movement 4", "Range 1+"). */
 @OptIn(ExperimentalLayoutApi::class)

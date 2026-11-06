@@ -28,7 +28,7 @@ against the art itself: the slate at its lightest 1 %, the parchment at its dark
 **The board** (`feature/board/map/MapLayers.kt` `PaintedMap`; web `play/map/`): replaces the zone fills, water and terrain described under "Board (sandbox)"
 when a map has `art` (all four do); the drawn map stays as the fallback while loading.
 - The painting sits under the hexes; its own edge is `art.sea`, one dark sea on all four maps (dimmed, it is the canvas), so it has no visible edge in any rotation. The Battle Zone is full colour, the rest dimmed (brightness about .58, saturation
-  .5), with a thick white edge on a dark halo; rocks enclosed by it are lit and not outlined. Zone labels are bevelled words with no pill.
+  .5), with a thick white edge on a dark halo; rocks enclosed by it are lit and not outlined. Zone labels are bevelled words on a slate pill (80 %), set clear of every piece (a miniature stands a space tall above its own).
 - **Spaces a question offers take the light** (`MapLighting`): lit, white-edged, numbered in small dark chips, the chosen one bronze; the Battle Zone keeps a thin line
   meanwhile. Occupied spaces you can't end on stay dark. Range and Radius stay patterns. Overlays use `ArtBoardPalette`, the same in both themes, each with a dark halo.
 - **Board style** (Settings → Appearance; `LocalBoardStyle`): Miniatures, or Grid and discs (hex hairlines, discs with the type's glyph). Miniatures stand on a team-coloured base
@@ -37,11 +37,11 @@ when a map has `art` (all four do); the drawn map stays as the fallback while lo
 - Spaces in `art.uncovered` have copied ground (ADR-053); only their Spawn symbols and Zone edges are drawn.
 
 **Screens:**
-- **Table:** HUD on a plate with official counters and bronze diamond pips (done: solid, dimmer; current: solid, bright, ringed; later: hollow); hero chips on plates; panel on rounded slate with the mark and name on its top strip; the hand in a gentle fan
-  (3.2° a card, the outer ones lower), each still one target and one TalkBack node; the turn track's cards with state bands, the portrait on the art so the name shows. The panel ends just past the question, what follows it scrolls; under a tall panel the track takes its small cards. Minions to choose are full-width rows: team mark, type badge, what tells them apart first.
+- **Table:** HUD on a plate with official counters and bronze diamond pips (done: solid, dimmer; current: solid, bright, ringed; later: hollow), each group named over it (LIVES, WAVES, TURN, TIE BREAKER), numbers 20 sp; hero chips on plates; panel on rounded slate with the mark and name on its top strip; the hand in a gentle fan
+  (3.2° a card, the outer ones lower), each still one target and one TalkBack node; the turn track as chips read at arm's length (portrait, initiative in large figures, name, state band). The panel ends just past the question, what follows it scrolls; under a tall panel the track takes its compact chips. Minions to choose are full-width rows: team mark, type badge, what tells them apart first.
 - **Puzzle:** the goal and the puzzle's name on small lines at the panel's head, off the map; the title plate is the question's; "What you know" folds once played.
 - **Hero sheet:** the real dashboard (`official/ui/dashboard-frame`, upscaled, ADR-058) with played cards in its Turn slots. Tigerclaw's art is the rulebook's; other heroes' portraits cover the frame, cropped around the
-  head and darkened toward the edges. Items as icons with "+n", the Ultimate, the hand or card backs. Frame fractions: Turn plates y .272, x .170, .389, .607, .829; slots y .335 to .83.
+  head and darkened toward the edges; either way the painting is a backdrop under a slate veil (55 %), so the slots read over it. An empty slot is a dark well (62 %) with a dashed steel edge and its turn's number in Cinzel, 18 dp at the frame's reference width. Items as icons with "+n", the Ultimate, the hand or card backs. Frame fractions: Turn plates y .272, x .170, .389, .607, .829; slots y .335 to .83.
   A marker with a Turn slot (Snorri's runes, ADR-054) lies on the frame's lower strip, y .905, centred under its slot: .105 of the frame's height, the active one .125 with a bronze ring and "ACTIVE" beside it, never by colour alone. "Runes" under the frame says it in words. The active rune also rides on the hero chip (bottom left of the portrait) and over the hand.
 - **Heroes grid:** slate tile, name on the title plate, portrait with the deck symbol at its top left, italic Crimson title, stars (a ranged hero has the game's Range icon beside them), two roles. No product chip on a tile: it is on the hero page and in the filter. Every row keeps its height, so the tiles of a line are one height. Two columns from font scale 1.3.
 - **Hero page:** art edge to edge fading into the canvas (dashboard art or the portrait cropped toward the top), symbol and name on the plate, stats as icons with base → max on a plate; the banner always names the hero. With large text the stars and roles run across the width under the plate.
@@ -328,7 +328,12 @@ dots at each step; a decision's other highlights (a card's range) use the violet
 acting hero's space is outlined in bronze with a bronze **"NOW"** tag over its piece (fixed size,
 outside the zoom; TalkBack hears "acting now" on the space); an immune minion is ringed with a dashed
 teal circle (TalkBack: "immune"). Map taps select, a **Confirm** button with the choice spelled out
-("Confirm · Lane Zone 3 · 3 spaces from Wasp") answers.
+("Confirm · Lane Zone 3 · 3 spaces from Wasp") answers. While the person's question lights the map a **map key**
+(`MapKey`, a small slate plate at the map's foot above the panel, its height kept out of the framed area) names
+each mark with its own swatch: "You can choose" (a lit, white-edged hex), "Spaces to get there" (the dark number
+chip), "In range" (the violet outline), "Your path" (the bronze line); only what the map shows now. TalkBack: one line.
+**Title:** "Round 2 · Turn 3" in full on every screen; on a phone upright the game-state review moves into More so
+it fits one line.
 **Framing a question** (extended after the v0.8 hands-on pass): when a question arrives the map brings
 its options (with the unit they are about and the asking hero) into the part of the map nothing floats
 over: under the HUD and the hero strip or turn track, clear of the map buttons' column (Fit, Flip, the
@@ -338,29 +343,28 @@ track); with still more, the middle of the options. It frames again as what floa
 (the turn track appears at the reveal, the panel grows) — but never once the person has dragged, pinched
 or double-tapped since the question came: their view wins. The attacker and the acting hero are framed too, and
 the whole Battle Zone with them when it fits the free area.
-**Top, floating:** one HUD pill (each team's Life counters as heart + number by its shape, Wave
-counters per Lane, "R2" and four turn pips: done solid and dimmer, current solid and ringed, later hollow; the Tie
-Breaker coin as printed, the showing face (Red's gear, Blue's star, `OfficialArt.tieBreaker`) with the
+**Top, floating:** one HUD pill, each group named in small caps over it (LIVES: each team's Life counters as
+heart + number by its shape; WAVES: Wave counters per Lane; TURN: four pips, done solid and dimmer, current solid
+and ringed, later hollow, the round being in the title; TIE BREAKER: the coin as printed, the showing face (Red's gear, Blue's star, `OfficialArt.tieBreaker`) with the
 team's shape on a small surface badge at its foot; the same coin, 64 dp, heads New game's "Blue
 shows" dialog), then, before the reveal, the hero strip:
 one chip per hero (portrait ringed in team colour, shape, name, Lv, coins, cards in hand, and a small
 card back once its card is down, p.7: which card stays hidden). In landscape with the panel shown the
 strip is portraits only, 48 dp discs on the HUD's row (team ring and shape; TalkBack hears the full
 chip; a tap opens the hero); the side panel takes 42 % of the width (at most 400 dp).
-**Turn track** (after the reveal, `play/table/TurnTrack*.kt`): the strip becomes the played cards
-themselves, as they lie faceup in front of each player until resolved (p.7): one slot per hero in
-acting order: the heroes done (in the order they acted), the acting hero, the next, the later ones,
-then passes. Each slot is the official card (48 dp; Emmitt's second card peeking behind the first)
-with the initiative as it counts in a badge over the printed one (bronze ring; "=11" in a teal ring
-while tied with another hero still to act), the action a hero chose as the game's icon at the top
-right, the hero's portrait in its team ring over the art (crossed out while off the board), its name
-with the team's shape under the card, and the state in a word on a band across the card's foot:
-**DONE** with a tick (the card stepped back under a 50 % canvas veil), **NOW** (bronze band, bronze
-2 dp border), **NEXT** (teal band and border), **PASS** (no card: an empty outline), **OUT** (a card
-that left the table unresolved); never colour alone. A card resolved facedown stays a card back. A
-tap opens the card focus viewer, swiping through the turn's cards, each captioned "Wasp · Done ·
+**Turn track** (after the reveal, `play/table/TurnTrack*.kt`): the strip becomes the turn's order,
+one chip per hero in acting order (the heroes done, in the order they acted, the acting hero, the next,
+the later ones, then passes), read at arm's length rather than as card thumbnails: the hero's portrait
+in its team ring (34 dp; the mark at its foot, the action chosen as the game's icon at its head,
+crossed out while off the board), the initiative as it counts in 21 sp figures ("=11" in teal while
+tied with another hero still to act), the name always (12 sp), and the state in a word on a band across
+the chip's foot: **DONE** with a tick (the chip stepped back to 55 %), **NOW** (bronze band, bronze 2 dp
+border), **NEXT** (teal band and border), **PASS**, **OUT**; a hero still to act has an empty band;
+never colour alone. The chips share the width and scroll when they don't fit. A tap opens the card
+focus viewer on the hero's card, swiping through the turn's cards, each captioned "Wasp · Done ·
 Movement · Initiative 10"; a long press (TalkBack: "Show Wasp's game state") opens the hero. The track stays
-in view with the panel hidden and in landscape, compact there (32 dp cards, no names, DONE as a tick).
+in view with the panel hidden and in landscape, compact there (26 dp portrait, 16 sp figures, the name at
+10 sp). The turn-over moment still shows the turn's cards themselves (48 dp, a card resolved facedown a back).
 **Moments:** a surfaceVariant card with a bronze border at the top of the panel (a polite live region)
 states the transition the table is at: "ALL CARDS REVEALED · Wasp acts first with initiative 10."
 (ties: "Arien and Brogan tie on initiative 11: their team chooses who acts first (p.7)." or the
@@ -368,13 +372,16 @@ coin's side and who flips it; passes) until the first hero chooses an action; "T
 that turn's cards on their slots while the next turn's cards are played; "END OF ROUND 1" with the
 p.8 steps; "ROUND 1 IS OVER · Red won the push · Arien reached level 2". With the panel hidden and
 the computer acting, the peek bar says the reveal ("All cards revealed · Wasp acts first …").
-**Panel** (bottom, max 56 % in portrait; right side in landscape; hides to its peek bar, see
+**Panel** (bottom, max 46 % in portrait so the map stays readable; right side in landscape; hides to its peek bar, see
 **Board screens' frame**): the header names the deciding hero and the kind in the team's colour
-("◆ ARIEN · ACTION"), then the prompt in titleMedium (a live region). A question asked by a card
-shows **the card beside its answers**: a third of the panel wide (96–150 dp; a landscape spell goes
-above them) for buttons, 72 dp beside a board question's tap hint and Confirm; tap it to read it.
+("◆ ARIEN · ACTION"), then the prompt in titleMedium (a live region). The decision comes first: the
+instruction and the legal choices, the card a reminder beside them. A question asked by a card
+shows **the card beside its answers**: 28 % of the panel wide (84–108 dp; a landscape spell goes above them) for
+buttons, 72 dp beside a board question's tap hint and Confirm; tap it to read it. Sideways under 480 dp tall the
+actions must all be in view: the card is a 36 dp thumbnail beside the question on one line, the action chips go two
+to a row, and a long rule shows only its page on the chip ("Fast Travel (p.11)"; TalkBack hears it whole).
 **Actions** are compact chips beside the card: the game's icon and the value the card prints
-("Attack 6", "Movement 4"; the primary filled primaryContainer with "PRIMARY" above), only the rules
+("Attack 6", "Movement 4"; the primary filled primaryContainer with "PRIMARY" above and "Its text applies (p.7)" under), only the rules
 no card prints in a few words with the page (Fast Travel "To your Zone or an adjacent one, no enemy
 hero or minion in either (p.11)", Hold "Do nothing (p.12)", Clear); under the chips, one line (info
 icon, bodySmall) for each action the card prints that isn't offered, with the engine's reason and
@@ -387,14 +394,19 @@ as its landscape card (40 dp portrait-equivalent, tap to read) with "Casts Fireb
 "Its only target: Brogan" (bodySmall), several spells as cards with "Casts one of these: you choose
 which next", a "will do nothing" warning on errorContainer with a warning icon, and the card's other
 spells one line each with the engine's reason (also after the action's own line when no spell can be
-cast); then one line under the panel: "Only the primary action applies the card's text (p.7)." Card questions (play, discard, retrieve, upgrade,
+cast); the Note box's "Only the primary action applies the card's text (p.7)." only when the primary isn't offered. Card questions (play, discard, retrieve, upgrade,
 keep) show "Asked by <card>" (28 dp thumbnail) when another card asks, and the cards as official
 images: the hand as 84 dp cards shrinking to 60 dp to fit five, two or three cards larger (140 / 110
 dp, so Keep's two next-Tier cards sit side by side with their item stats), a card the question
-doesn't offer dimmed with a block icon, and a teal "Tap a card to see it large; tap it again to …"
-line; a tap opens the **card focus** viewer (below), which answers. **Level up** (which card to
+doesn't offer dimmed with a block icon, and a teal "Tap a card to choose it; tap it again to read it large."
+line. **A tap never both shows and commits:** a tap chooses a card (`TableUi.selected`; lifted 8 dp, a 3 dp
+bronze edge and a bronze tick at its corner; TalkBack: "Chosen", its click "Choose", "Look at the card" a custom
+action), a tap on the chosen card reads it in the **card focus** viewer (below), and only the bronze button
+under the cards answers, naming the commitment ("Discard Magnetic Dagger", "Play Shock facedown", "Defend with
+Blink Strike", "Upgrade Liquid Leap"); before a card is chosen it is there, dimmed, saying what to do ("Choose a
+card to discard"), so the panel doesn't jump. One extra tap at most: choose, then commit. **Level up** (which card to
 upgrade, ADR-045) is a row per card that may be upgraded: the hand card framed 2 dp in its colour (the
-choice), an arrow, then the two cards it would become with their item (the official icon and "+1
+choice, chosen and committed as any card), an arrow, then the two cards it would become with their item (the official icon and "+1
 Initiative"), three cards across the panel (60–100 dp); under each card the spells it names (Gydion,
 landscape, as wide as the card, tap to read); "The card on the left is the choice…" under the rows.
 Keep's two cards have their spells under them the same way. Whenever the question is the person's
@@ -403,8 +415,11 @@ round summary) come after it, and a new question opens the panel at its top. **D
 header with the attacker's card (56 dp, tap to read), "Arien attacks · melee", the Attack total, the
 minion modifier counted and "Discard a card to defend" (it carries the prompt for TalkBack), then the
 hand's cards themselves with the verdict under each in words with an icon ("✓ Holds" teal, "! Falls"
-red, "Decided by its text" grey) and the Defense total with a shield when items or minions change
-the printed value; "Don't defend" is chosen then confirmed. Declines and Pass are outlined. With large
+red, "Decided by its text" grey) and the Defense total as it counts with a shield; "Don't defend" is a row
+chosen the same way. What is chosen shows its **outcome** above the button, from the engine's numbers only:
+the verdict in words ("Falls: the attack succeeds (p.14).") and how the total is made ("Defense 3 = card 2 +
+minion 1 against Attack 6"; items, the minion modifier, and whatever else the engine counted as "effects");
+for a card whose text decides, that text verbatim and the attack it meets ("This is a melee attack, Attack 6."). Declines and Pass are outlined. With large
 text the asking card goes above the answers. The computer's move shows its portrait, band and strength
 ("COMPUTER · HARD 7") and prompt
 and the card it resolves (56 dp, tap to read), a linear progress bar once it is "thinking…".
@@ -450,8 +465,13 @@ map buttons, each new log line but the headings, the reveal and the facedown pla
 place dims (100%, 72%, 45%), and a notice fades out after 6 s. A line not to miss (a hero defeated, a
 Life counter, a push, a level up, the Minion Battle) is semibold with a 1.5 dp bronze edge and stays 9 s.
 It takes no taps and TalkBack skips it (the announcement says what happened). A resumed game starts it
-empty; a take back clears it. **Game log** sheet: every event, the latest turn first, its newest event
-first under its heading ("Every event, the latest first.").
+empty; a take back clears it. **Game log** sheet: every event, a **plate per turn**, the latest turn first and
+its events in play order, so cause reads before effect (revising ADR-065's newest-first within a turn); the
+title as the top bar says it ("ROUND 1 · TURN 4"); each line with the hero it is about (24 dp portrait in the
+team ring, the mark on its badge; a minion's team mark) and an icon for what happened (the game's sword, shield
+and runner; push, defeat, Life counter, level, coins, cards); lines not to miss semibold in a bronze-edged box;
+the bookkeeping (actions chosen, the reveal, cards played facedown) folded under "Details · n" (TalkBack:
+Expanded / Collapsed). A review's "See it in the log" opens that turn with the line marked.
 **Hero sheet** (ADR-044; `play/table/HeroState.kt`, `HeroDetail`): opened by a tap on a hero's chip or
 piece (when the tap is not an answer) and by a long press on any hero's piece (a haptic tick; the press is
 then the long press's, no tap or pan) or track card; TalkBack: "Show Wasp's game state" on the space,
@@ -551,7 +571,7 @@ bronze ring (filled when solved); Continue is a secondary-container card (all so
 One viewer for every card the board screens show (the Game state review's too): the cards a question offers (play, discard,
 retrieve, defend with, upgrade, keep), the "Asked by" card, your hand, a hero's played, resolved and
 discarded cards, a puzzle replay's card, and the sandbox's "Read the cards".
-- **First tap** on a thumbnail: the card grows out of it (scale and translate from the thumbnail's
+- **Opening** (a tap on a card to read, or on the card a question has chosen, see the panel): the card grows out of it (scale and translate from the thumbnail's
   bounds, 340 ms emphasised deceleration) into a large card over a near-black scrim (93 %, the same in
   both themes; light text on it). Portrait: × with the question's title ("WASP · CARD", bronze overline)
   and "Card 2 of 4" with page dots on the scrim (the spells a card names are said as its pages: "Card 2
@@ -573,16 +593,15 @@ discarded cards, a puzzle replay's card, and the sandbox's "Read the cards".
   the card text in bodyMedium and no "Swipe up…" line. The details
   scroll in both orientations, with a fade at the bottom while there is more. The scrim turns opaque
   behind the header (fading out just below it), so the screen's top bar never shows through.
-- **Second tap** on the focused card confirms: a press (scale 0.93, 90 ms), a bouncy settle with a teal
-  tick seal, the phone's Confirm haptic, then the answer goes out and the card fades away. The panel
-  ends with "Tap the card again to discard Magnetic Dagger" (teal, touch icon) over a filled button
-  saying the same ("Discard Magnetic Dagger", "Play Shock facedown", "Defend with …", "Upgrade …",
-  "Keep …", "Measure with …"), and "Swipe up or go back to choose nothing." A card that isn't an
-  option is veiled with a "Not an option" pill; a tap on it shakes it with the Reject haptic; its
-  button reads "Not an option". A card shown with a question as what an answer leads to (an upgrade
+- **Only the button confirms** (a tap on the large card is for reading, never a commitment): the panel
+  ends with a filled button naming the choice for the card on show ("Discard Magnetic Dagger", "Play Shock
+  facedown", "Defend with …", "Upgrade …", "Keep …", "Measure with …") and "Swipe up or go back to choose
+  nothing."; pressed, the card presses (scale 0.93, 90 ms), settles with a teal tick seal, the phone gives
+  its Confirm haptic, then the answer goes out and the card fades away. A card that isn't an
+  option is veiled with a "Not an option" pill; its button reads "Not an option". A card shown with a question as what an answer leads to (an upgrade
   card, `FocusCard.answeredBy`) is not veiled: its caption says whose upgrade it is, a calm info line
   says which card to choose, and its button is an outlined "Go to Liquid Leap" (also a TalkBack
-  action); a second tap on it shakes. While the game is busy the button reads "Wait…".
+  action). While the game is busy the button reads "Wait…".
 - **Swipe sideways** on the card for the others (a pager, neighbours peeking at 93 % scale and 55 %
   alpha, snapping); tap a neighbour to go to it.
 - **Landscape cards** (Gydion's spells) keep their aspect: in portrait the card is the screen's width
@@ -595,8 +614,8 @@ discarded cards, a puzzle replay's card, and the sandbox's "Read the cards".
 - **View only** (no question): the same viewer without the button; "Swipe sideways for the other cards;
   swipe up or go back to close."
 - **TalkBack:** each thumbnail is one node ("Look at the card"); the focused card is one node with its
-  name, kind, values and text (the card's data, as the scan shows it), verdict or reason and "card 2 of 4", its click action named after the choice, and custom
-  actions Select, Next card, Previous card, Close; the Confirm button and × are ordinary buttons.
+  name, kind, values and text (the card's data, as the scan shows it), verdict or reason and "card 2 of 4", and custom
+  actions Next card, Previous card, Close; the Confirm button (the only way to answer) and × are ordinary buttons.
 - It is its own full-screen window (a dialog without the platform dim or window animation), so it shows
   above the panel, a hidden panel's peek bar and sheets alike. One `CardFocusState` per screen
   (`rememberCardFocusState()`, `CardFocusHost(state)`); `open(cards, index, selection)` or `show(cards)`.

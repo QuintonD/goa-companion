@@ -23,6 +23,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.FormatListBulleted
 import androidx.compose.material.icons.automirrored.outlined.Undo
 import androidx.compose.material.icons.outlined.Check
+import androidx.compose.material.icons.outlined.Dashboard
 import androidx.compose.material.icons.outlined.Flag
 import androidx.compose.material.icons.outlined.Hexagon
 import androidx.compose.material.icons.outlined.Lightbulb
@@ -67,7 +68,6 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import dev.quinton.goa.core.data.game.AiPace
-import dev.quinton.goa.core.designsystem.component.BannerMedallionWidth
 import dev.quinton.goa.core.designsystem.component.CardTextBox
 import dev.quinton.goa.core.designsystem.component.ConfirmDialog
 import dev.quinton.goa.core.designsystem.component.EmptyState
@@ -160,15 +160,14 @@ fun GameScreen(
             onAction(GameAction.MessageShown(play.messageId))
         }
     }
-    // The title shortens to fit beside the three actions: on a phone in portrait "R2 · Turn 3",
-    // with large text "R2 · T3" (the HUD and TalkBack say it in full).
-    val room = (LocalConfiguration.current.screenWidthDp - BannerMedallionWidth.value) /
-        androidx.compose.ui.platform.LocalDensity.current.fontScale
+    // "Round 2 · Turn 3" in full on every screen (the HUD shows the turn's pips, not the round again). On a
+    // phone upright the game-state review goes into More, so the title has the room for one line.
+    val wideBar = LocalConfiguration.current.screenWidthDp >= WIDE_BAR_DP
     BoardScaffold(
         title = when {
             play == null -> "Play"
             play.over != null || closed != null -> "Game over"
-            else -> roundTitle(play.table.view.round, play.table.view.turn, room)
+            else -> "Round ${play.table.view.round} · Turn ${play.table.view.turn}"
         },
         onBack = onBack,
         modifier = modifier,
@@ -180,7 +179,7 @@ fun GameScreen(
                         Icon(Icons.AutoMirrored.Outlined.Undo, contentDescription = "Take back")
                     }
                 }
-                ReviewButton(onClick = { sheet = PlaySheet.Review() })
+                if (wideBar) ReviewButton(onClick = { sheet = PlaySheet.Review() })
                 IconButton(onClick = { sheet = PlaySheet.Log }) {
                     Icon(Icons.AutoMirrored.Outlined.FormatListBulleted, contentDescription = "Game log")
                 }
@@ -188,10 +187,14 @@ fun GameScreen(
                     IconButton(onClick = {
                         menu = true
                     }) { Icon(Icons.Outlined.MoreVert, contentDescription = "More options") }
-                    GameMenu(play, expanded = menu, onDismiss = { menu = false }, onAction = onAction, onEnd = {
-                        ending =
-                            true
-                    })
+                    GameMenu(
+                        play,
+                        expanded = menu,
+                        onDismiss = { menu = false },
+                        onAction = onAction,
+                        onEnd = { ending = true },
+                        onReview = if (wideBar) null else ({ sheet = PlaySheet.Review() }),
+                    )
                 }
             }
         },
@@ -285,8 +288,12 @@ fun GameScreen(
                 }
                 BoardSheet(onDismiss = close) {
                     Column(Modifier.fillMaxWidth().fillMaxHeight(SHEET_HEIGHT)) {
-                        SheetTitle("Game log", "Every event, the latest first.", onDone = close)
-                        EventLog(play.log, Modifier.weight(1f), at = logAt)
+                        SheetTitle(
+                            "Game log",
+                            "The latest turn first; each turn in the order it happened.",
+                            onDone = close,
+                        )
+                        EventLog(play.log, Modifier.weight(1f), at = logAt, table = play.table)
                     }
                 }
             }
@@ -353,8 +360,20 @@ private fun GameMenu(
     onDismiss: () -> Unit,
     onAction: (GameAction) -> Unit,
     onEnd: () -> Unit,
+    onReview: (() -> Unit)?,
 ) {
     DropdownMenu(expanded = expanded, onDismissRequest = onDismiss) {
+        if (onReview != null) {
+            DropdownMenuItem(
+                text = { Text("Game state") },
+                leadingIcon = { Icon(Icons.Outlined.Dashboard, contentDescription = null) },
+                onClick = {
+                    onDismiss()
+                    onReview()
+                },
+            )
+            HorizontalDivider()
+        }
         if (play.online == null) {
             DropdownMenuItem(
                 text = {
@@ -659,3 +678,6 @@ private fun Unavailable(
 }
 
 private const val SHEET_HEIGHT = 0.9f
+
+/** From this width the top bar keeps the game-state review beside the log; narrower, it is in More. */
+private const val WIDE_BAR_DP = 600

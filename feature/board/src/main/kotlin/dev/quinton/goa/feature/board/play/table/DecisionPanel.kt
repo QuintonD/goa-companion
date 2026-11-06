@@ -34,6 +34,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.onPlaced
 import androidx.compose.ui.layout.positionInParent
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.Role
@@ -80,6 +81,7 @@ import dev.quinton.goa.feature.board.ui.boxText
 import dev.quinton.goa.feature.board.ui.cards.CardFocusState
 import dev.quinton.goa.feature.board.ui.cards.cardFocusOrigin
 import dev.quinton.goa.feature.board.ui.cards.isSpell
+import dev.quinton.goa.feature.board.ui.isLandscape
 import dev.quinton.goa.feature.board.ui.smallBoxText
 
 /**
@@ -94,8 +96,8 @@ import dev.quinton.goa.feature.board.ui.smallBoxText
  * - "Choose one" options, yes / decline and numbers are buttons beside the card;
  * - spaces, units and tokens are tapped on the board (each also a TalkBack node), then confirmed,
  *   with the asking card beside the hint;
- * - cards (to play, discard, defend with, upgrade, keep) open in the card focus viewer: a first tap
- *   zooms the card, a second tap on it (or its Confirm button) answers (DecisionCards.kt);
+ * - cards (to play, discard, defend with, upgrade, keep): a tap chooses one, a tap on the chosen one reads it
+ *   in the card focus viewer, and a bronze button naming the choice answers (DecisionCards.kt);
  * - which card to upgrade shows, beside each, the two cards it would become (UpgradeCards.kt);
  * - Defend shows the attacker's card with the Attack, then the hand's cards with each verdict.
  * [onSelect] marks a tentative choice, [onAnswer] answers, [focus] is the screen's card viewer.
@@ -133,13 +135,21 @@ fun DecisionPanel(
             askedBy = layout == PanelLayout.CARDS && decision.kind != DecisionKind.DEFEND,
         )
         when {
-            decision.kind == DecisionKind.PLAY_CARD -> HandPicker(table, onAnswer, focus, busy)
+            decision.kind == DecisionKind.PLAY_CARD -> HandPicker(table, onSelect, onAnswer, focus, busy)
 
             decision.kind == DecisionKind.DEFEND -> DefensePanel(table, onSelect, onAnswer, focus, busy)
 
-            decision.kind == DecisionKind.UPGRADE_CARD -> UpgradePicker(table, onAnswer, focus, busy)
+            decision.kind == DecisionKind.UPGRADE_CARD -> UpgradePicker(table, onSelect, onAnswer, focus, busy)
 
-            layout == PanelLayout.CARDS -> CardPicker(table, onAnswer, focus, busy)
+            layout == PanelLayout.CARDS -> CardPicker(table, onSelect, onAnswer, focus, busy)
+
+            // A phone sideways, short: every action in view, the card a thumbnail in the question's box.
+            layout == PanelLayout.CARD_BESIDE && source != null && !hasBoardOptions(table) && shortSideways() -> {
+                CompactQuestion(source, decision, focus)
+                Choices(table, table.buttonOptions, onAnswer, busy, grid = true) { CastPreview(table, focus) }
+                NoteBox(PlateColor.of(source.color), table, decision, focus)
+                SpellReasonsIfNoPrimary(table)
+            }
 
             layout == PanelLayout.CARD_BESIDE && source != null -> {
                 val board = hasBoardOptions(table)
@@ -170,7 +180,9 @@ private fun hasBoardOptions(table: TableUi) = table.spaceOptions.isNotEmpty() ||
 
 /** What a question rests on that no card prints, in the app's words, in a line of its own. */
 private fun footnote(table: TableUi, decision: Decision): String? = when {
-    decision.kind == DecisionKind.CHOOSE_ACTION && table.buttonOptions.any { it is Choice.Action } ->
+    // With the primary offered, its chip says it ("Its text applies (p.7)").
+    decision.kind == DecisionKind.CHOOSE_ACTION && table.buttonOptions.any { it is Choice.Action } &&
+        Choice.Action(ActionType.PRIMARY) !in table.buttonOptions ->
         "Only the primary action applies the card's text (p.7)."
 
     // A bare "who acts first?" over two portraits told nothing about why it was asked.
@@ -200,7 +212,12 @@ private fun NoteBox(color: PlateColor, table: TableUi, decision: Decision, focus
  * rulebook's action symbol, the prompt (a live region) and how to answer on the board.
  */
 @Composable
-private fun QuestionBox(table: TableUi, card: Card, decision: Decision, board: Boolean) {
+private fun QuestionBox(
+    table: TableUi,
+    card: Card,
+    decision: Decision,
+    board: Boolean,
+) {
     val action = table.track?.slots
         ?.firstOrNull { it.heroId == decision.seat && it.cards.any { view -> view.cardId == card.id } }
         ?.action
@@ -223,6 +240,34 @@ private fun QuestionBox(table: TableUi, card: Card, decision: Decision, board: B
                 if (board) Text(boardHint(table), style = boxText())
             }
         }
+    }
+}
+
+/** The question in one line beside the asking card's thumbnail (tap to read it), for a short side panel. */
+@Composable
+private fun CompactQuestion(card: Card, decision: Decision, focus: CardFocusState) {
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        Surface(
+            onClick = { focus.show(listOf(card), title = "Asked by") },
+            shape = RoundedCornerShape(4.dp),
+            color = Color.Transparent,
+            modifier = Modifier
+                .cardFocusOrigin(focus, card.id)
+                .clearAndSetSemantics {
+                    contentDescription = spokenCard(card)
+                    role = Role.Button
+                    onClick(label = "Read the card") {
+                        focus.show(listOf(card), title = "Asked by")
+                        true
+                    }
+                },
+        ) { TableCard(card, width = THUMB_IN_BOX) }
+        Spacer(Modifier.width(Spacing.sm))
+        Text(
+            decision.prompt,
+            style = MaterialTheme.typography.titleSmall,
+            modifier = Modifier.weight(1f).semantics { liveRegion = LiveRegionMode.Polite },
+        )
     }
 }
 
@@ -395,10 +440,11 @@ private fun CardBeside(
         val width = when {
             !large -> if (big) 56.dp else 72.dp
             spell -> SPELL_BESIDE
-            big -> (maxWidth * BESIDE_SHARE).coerceIn(84.dp, 112.dp)
-            else -> (maxWidth * BESIDE_SHARE).coerceIn(96.dp, 150.dp)
+            big -> (maxWidth * BESIDE_SHARE).coerceIn(80.dp, 100.dp)
+            else -> (maxWidth * BESIDE_SHARE).coerceIn(84.dp, 108.dp)
         }
         val read = { focus.show(listOf(card), title = "Asked by") }
+        // The answers come first: the card beside them is a reminder, tap it to read it large.
         val shown: @Composable () -> Unit = {
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                 Surface(
@@ -619,9 +665,26 @@ private fun Choices(
     choices: List<Choice>,
     onAnswer: (Choice) -> Unit,
     busy: Boolean,
+    /** Actions two to a row (a short side panel), what follows the primary under them. */
+    grid: Boolean = false,
     afterPrimary: @Composable () -> Unit = {},
 ) {
     if (choices.isEmpty()) return
+    if (grid && choices.all { it is Choice.Action }) {
+        FlowRow(
+            horizontalArrangement = Arrangement.spacedBy(Spacing.xs),
+            verticalArrangement = Arrangement.spacedBy(Spacing.xs),
+            maxItemsInEachRow = 2,
+        ) {
+            choices.filterIsInstance<Choice.Action>().forEach { choice ->
+                ActionChip(table, choice.action, busy, Modifier.weight(1f).fillMaxRowHeight(), brief = true) {
+                    onAnswer(choice)
+                }
+            }
+        }
+        afterPrimary()
+        return
+    }
     val numbers = choices.filterIsInstance<Choice.Number>()
     if (numbers.size == choices.size) {
         FlowRow(
@@ -693,24 +756,30 @@ private fun Box48(content: @Composable () -> Unit) {
  * condition, Hold, Clear). TalkBack reads it whole.
  */
 @Composable
-private fun ActionChip(table: TableUi, action: ActionType, busy: Boolean, onClick: () -> Unit) {
+private fun ActionChip(
+    table: TableUi,
+    action: ActionType,
+    busy: Boolean,
+    modifier: Modifier = Modifier.fillMaxWidth(),
+    /** A short side panel: a long rule shows only its page on the chip (TalkBack still hears it whole). */
+    brief: Boolean = false,
+    onClick: () -> Unit,
+) {
     val card = table.sourceCard
     val primary = action == ActionType.PRIMARY
     val label = actionLabel(action, card)
-    val rule = actionRule(action)
+    val rule = if (primary) PRIMARY_RULE else actionRule(action)
     val tone = if (primary) PlateTone.GOLD else PlateTone.STEEL
     val content = tone.content
     PlateToneSurface(
         onClick = onClick,
         enabled = !busy,
         tone = tone,
-        modifier = Modifier
-            .fillMaxWidth()
+        modifier = modifier
             .heightIn(min = 48.dp)
             .clearAndSetSemantics {
                 contentDescription =
-                    listOfNotNull(label, "primary action, the card's text applies".takeIf { primary }, rule)
-                        .joinToString(", ")
+                    listOfNotNull(label, "primary action".takeIf { primary }, rule).joinToString(", ")
                 role = Role.Button
                 if (busy) disabled()
                 onClick(label = "Choose") {
@@ -740,7 +809,7 @@ private fun ActionChip(table: TableUi, action: ActionType, busy: Boolean, onClic
                 )
                 rule?.let {
                     Text(
-                        it,
+                        if (brief && it.length > BRIEF_RULE) PAGE.find(it)?.value ?: it else it,
                         style = MaterialTheme.typography.bodySmall,
                         color = content,
                     )
@@ -754,6 +823,19 @@ private fun ActionChip(table: TableUi, action: ActionType, busy: Boolean, onClic
 
 private const val MAX_SPACE_CHIPS = 6
 private val OPTION_MARKER = 36.dp
-private const val BESIDE_SHARE = 0.36f
+private const val BESIDE_SHARE = 0.28f
 private val SPELL_BESIDE = 96.dp
 private const val LARGE_TEXT = 1.3f
+private val THUMB_IN_BOX = 36.dp
+private const val BRIEF_RULE = 24
+private val PAGE = Regex("\\(p\\.\\d+\\)$")
+
+/** A phone held sideways with little height: the asking card shrinks to a thumbnail, the actions go two to a row. */
+@Composable
+private fun shortSideways(): Boolean = isLandscape() && LocalConfiguration.current.screenHeightDp < SHORT_LANDSCAPE_DP
+
+/** The primary chip's line: what no card prints about it. */
+private const val PRIMARY_RULE = "Its text applies (p.7)"
+
+/** Sideways and shorter than this, the asking card beside the actions is small: every action stays in view. */
+private const val SHORT_LANDSCAPE_DP = 480

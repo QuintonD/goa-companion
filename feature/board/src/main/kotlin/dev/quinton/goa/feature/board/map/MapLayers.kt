@@ -376,11 +376,14 @@ internal fun ZoneLabels(
                             val rect = Rect(x, y, x + w, y + h)
                             val inView = rect.left >= view.left + margin && rect.top >= view.top + margin &&
                                 rect.right <= view.right - margin && rect.bottom <= view.bottom - margin
-                            val hexPx = viewport.scale * 0.8f
+                            // A piece covers about its space and stands up to a space tall above it (a
+                            // miniature, its badge): the label keeps clear of all of that, not just the centre.
+                            val unitPx = viewport.scale
                             val clear = inView && !rect.overlaps(reserved) && busy.none { point ->
                                 val p = viewport.mapToScreen(point)
-                                p.x > rect.left - hexPx && p.x < rect.right + hexPx &&
-                                    p.y > rect.top - hexPx && p.y < rect.bottom + hexPx
+                                p.x > rect.left - unitPx * PIECE_HALF_WIDTH &&
+                                    p.x < rect.right + unitPx * PIECE_HALF_WIDTH &&
+                                    p.y > rect.top - unitPx * PIECE_BELOW && p.y < rect.bottom + unitPx * PIECE_ABOVE
                             }
                             rect.takeIf { clear }
                         }
@@ -389,7 +392,11 @@ internal fun ZoneLabels(
                 }
                 .then(
                     if (painted) {
+                        // On the painting a slate pill under the bevelled words: legible over rock, sand and sea.
                         Modifier
+                            .background(PaintedLabelGround, RoundedCornerShape(50))
+                            .border(1.dp, PaintedLabelEdge, RoundedCornerShape(50))
+                            .padding(horizontal = 10.dp, vertical = 2.dp)
                     } else {
                         Modifier
                             .background(palette.labelBackground, RoundedCornerShape(50))
@@ -488,13 +495,31 @@ private fun zoneLabels(map: BoardMap, battleZones: List<String>, bottomTeam: Tea
                 listOf(LabelSide.BELOW, LabelSide.LEFT, LabelSide.RIGHT, LabelSide.ABOVE)
             }
             val places = sides(hexes)
-            add(ZoneLabel(BoardText.battleZone(map, lane.id).uppercase(), null, order.map(places::getValue)))
+            // Then along its top and bottom edges, off the middle: a crowded Zone often leaves a corner free.
+            val top = hexes.minOf { it.y } - EDGE
+            val bottom = hexes.maxOf { it.y } + EDGE
+            val left = hexes.minOf { it.x } + EDGE
+            val right = hexes.maxOf { it.x } - EDGE
+            val more = listOf(
+                Offset(left, top) to LabelSide.ABOVE,
+                Offset(right, top) to LabelSide.ABOVE,
+                Offset(left, bottom) to LabelSide.BELOW,
+                Offset(right, bottom) to LabelSide.BELOW,
+            )
+            add(ZoneLabel(BoardText.battleZone(map, lane.id).uppercase(), null, order.map(places::getValue) + more))
         }
     }
 }
 
-/** How far outside a Zone's outermost space centre its label starts, in map units (a hex's edge). */
-private const val EDGE = 0.95f
+/** How far outside a Zone's outermost space centre its label starts, in map units (past a hex's edge). */
+private const val EDGE = 1.05f
+
+/** What a piece covers around its space's centre, in map units: half its width, below it, above it (a miniature). */
+private const val PIECE_HALF_WIDTH = 0.75f
+private const val PIECE_BELOW = 0.75f
+private const val PIECE_ABOVE = 1.35f
+private val PaintedLabelGround = Color(0xCC10181E)
+private val PaintedLabelEdge = Color(0x66B4BEC8)
 
 private const val MAX_LABEL_SCALE = 1.3f
 

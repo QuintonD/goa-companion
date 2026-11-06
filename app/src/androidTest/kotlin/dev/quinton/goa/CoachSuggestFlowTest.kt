@@ -53,8 +53,7 @@ class CoachSuggestFlowTest {
 
         // Nothing was answered: the question is still there, and the card can be played.
         rule.waitFor(hasText("Play a card facedown"), timeout = GAME_TIMEOUT)
-        rule.tap(hasClickLabel("Look at the card"))
-        rule.waitForText("Card 1 of", substring = true)
+        rule.tap(hasClickLabel("Choose"))
         rule.tap(
             hasText("facedown", substring = true) and hasText("Play ", substring = true) and
                 hasClickAction() and isEnabled(),
