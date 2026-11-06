@@ -136,6 +136,7 @@ import dev.quinton.goa.feature.draft.ui.label
 import dev.quinton.goa.feature.draft.ui.plateEdge
 import dev.quinton.goa.feature.draft.ui.rememberReducedMotion
 import dev.quinton.goa.feature.draft.ui.teamGlyph
+import dev.quinton.goa.feature.draft.ui.teamLabel
 import dev.quinton.goa.feature.draft.ui.teamName
 import dev.quinton.goa.feature.draft.ui.withoutTeamGlyph
 
@@ -362,7 +363,7 @@ fun DraftBoardScreen(state: BoardUiState, actions: BoardActions) {
 }
 
 /**
- * From the peek, the step's explicit commitment for a hero that can be chosen now: "◆ Pick Arien…",
+ * From the peek, the step's explicit commitment for a hero that can be chosen now: "Pick Arien for ◆ Red…",
  * which opens the same confirm as tapping its tile. Nothing while a hidden step waits for its team.
  */
 private fun peekCommit(state: BoardUiState, session: DraftSession, heroId: String, onCommit: () -> Unit): PeekCommit? {
@@ -371,7 +372,7 @@ private fun peekCommit(state: BoardUiState, session: DraftSession, heroId: Strin
     val free = PoolView.of(session).open.any { it.heroId == heroId && it.state == TileState.Available }
     if (!free) return null
     val hero = state.heroes.info(heroId)
-    return PeekCommit(step.team, "${teamGlyph(step.team)} ${actionName(step.action)} ${hero.name}…", onCommit)
+    return PeekCommit(step.team, "${actionName(step.action)} ${hero.name} for ${teamLabel(step.team)}…", onCommit)
 }
 
 /**

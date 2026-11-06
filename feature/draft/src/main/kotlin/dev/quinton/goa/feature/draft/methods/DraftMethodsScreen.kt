@@ -112,7 +112,7 @@ fun DraftMethodsDestination(viewModel: DraftMethodsViewModel, onBack: () -> Unit
 /**
  * Choose how heroes are drafted: each method a radio plate with its sequence (in team colours, as the
  * board shows it), the chosen one bronze, and "Continue with …" pinned below. Managing methods (Sources,
- * Duplicate, Edit, Delete) sits in each plate's menu, out of the choice's way.
+ * Duplicate, Edit, Delete) sits in each plate's menu, out of the choice's way; New method ends the list.
  */
 @Composable
 fun DraftMethodsScreen(state: MethodsUiState, actions: MethodsActions) {
@@ -120,9 +120,6 @@ fun DraftMethodsScreen(state: MethodsUiState, actions: MethodsActions) {
     GoaScreen(
         title = "Draft methods",
         onBack = actions::back,
-        actions = {
-            IconButton(onClick = actions::create) { Icon(Icons.Filled.Add, contentDescription = "New method") }
-        },
     ) { padding ->
         Column(Modifier.fillMaxSize().padding(padding)) {
             LazyColumn(
@@ -219,12 +216,14 @@ private fun PreviewFor(state: MethodsUiState, actions: MethodsActions) {
                 )
             }
         }
+        // The methods' own words say A and B (the rulebook's, p.22): the mapping is said once, here.
         val team = teamLabel(state.previewTeamA)
         TeamText(
             if (state.coinKnown) {
-                "The Tie Breaker coin shows $team: the steps are in your teams' colours."
+                "A is the team the Tie Breaker coin shows: $team. B is the other team."
             } else {
-                "Steps shown as if the Tie Breaker coin shows $team; the coin decides at the table."
+                "A is the team the Tie Breaker coin shows, B the other. The steps show A as $team; " +
+                    "the coin decides at the table."
             },
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,

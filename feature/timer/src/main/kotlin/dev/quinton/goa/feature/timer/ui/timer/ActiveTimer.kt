@@ -438,10 +438,10 @@ private fun TimerHeader(state: ActiveUiState, actions: TimerActions, onEnd: () -
                     },
                 )
                 // Large text: the game clock alone, so it isn't what gets cut (TalkBack still hears both);
-                // "Game" stays with it, so the number never stands without saying what it counts.
+                // there "Game" stays with it, so the number never stands without saying what it counts.
                 if (subtitle) {
                     HeaderSubtitle(
-                        if (largeText) "Game ${state.matchClock}" else "Game ${state.matchClock} · ${state.presetName}",
+                        if (largeText) "Game ${state.matchClock}" else "${state.presetName} · ${state.matchClock}",
                         spoken,
                     )
                 }
@@ -487,15 +487,14 @@ private data class HeaderTools(
     val levels: Boolean,
     val viewSwitch: Boolean,
     val endMatch: Boolean,
-    val coinWords: CoinWords,
+    val coinLabel: Boolean,
 )
 
 /**
  * "Round N" must never be clipped (S25 Ultra: 384 dp wide, where Blue's coin chip plus four icons left
  * too little room; a small phone has less). The title, coin chip and its Undo are measured; the view
- * switch moves into the menu first (it is also in Settings), then Levels & defeats, then End match; the
- * coin chip says "Coin Red", then "Red" beside the coin's face, and last is the face alone. Large text: the
- * view switch and Levels are in the menu.
+ * switch moves into the menu first (it is also in Settings), then Levels & defeats, then End match, and
+ * last the coin chip keeps only the coin's face. Large text: the view switch and Levels are in the menu.
  */
 @Composable
 private fun headerTools(state: ActiveUiState, width: Dp, coinUndo: Boolean): HeaderTools {
@@ -509,29 +508,17 @@ private fun headerTools(state: ActiveUiState, width: Dp, coinUndo: Boolean): Hea
     return remember(state.round, team, undo, width, density, titleStyle, labelStyle, coin) {
         fun textWidth(text: String, style: TextStyle) =
             with(density) { measurer.measure(text, style, maxLines = 1, softWrap = false).size.width.toDp() }
-        val chipMark = if (team != null) CHIP_PADDING + coin else 0.dp
-        val chip = team?.let { chipMark + COIN_GAP + textWidth("$COIN_WORD ${teamName(it)}", labelStyle) } ?: 0.dp
-        val chipShort = team?.let { chipMark + COIN_GAP + textWidth(teamName(it), labelStyle) } ?: 0.dp
+        val chipMark = if (team != null) CHIP_INSET * 2 + coin else 0.dp
+        val chip = team?.let { chipMark + COIN_GAP + textWidth(teamName(it), labelStyle) } ?: 0.dp
         val undoButton = if (undo) maxOf(UNDO_MIN_WIDTH, textWidth("Undo", labelStyle) + UNDO_PADDING) else 0.dp
         val fixed = Spacing.screen + BannerMedallionWidth + HEADER_SLACK + undoButton + HEADER_ICON
         val room = width - fixed - textWidth("Round ${state.round}", titleStyle)
         val large = density.fontScale > LARGE_FONT_SCALE
-        // The chip's words come before the icons (End match is in the menu too); the icons fit against what stays.
-        val words = when {
-            room >= chip -> CoinWords.FULL
-            room >= chipShort -> CoinWords.TEAM
-            else -> CoinWords.NONE
-        }
-        val chipShown = when (words) {
-            CoinWords.FULL -> chip
-            CoinWords.TEAM -> chipShort
-            CoinWords.NONE -> chipMark
-        }
         HeaderTools(
-            levels = !large && room - chipShown >= HEADER_ICON * 2,
-            viewSwitch = !large && room - chipShown >= HEADER_ICON * 3,
-            endMatch = room - chipShown >= HEADER_ICON,
-            coinWords = words,
+            levels = !large && room - chip >= HEADER_ICON * 2,
+            viewSwitch = !large && room - chip >= HEADER_ICON * 3,
+            endMatch = room - chip >= HEADER_ICON,
+            coinLabel = room >= chip,
         )
     }
 }
@@ -545,8 +532,6 @@ private fun headerTitleStyle(): TextStyle = with(LocalDensity.current) {
 
 private val HEADER_ICON = 48.dp
 
-/** Chip padding, 12 dp each side. */
-private val CHIP_PADDING = 24.dp
 private val UNDO_MIN_WIDTH = 58.dp
 private val UNDO_PADDING = 24.dp
 
@@ -573,7 +558,7 @@ private fun RowScope.TimerTopActions(
             coin,
             actions.onFlipCoin,
             actionKey = "${state.round}:${state.title}:${state.paused}",
-            words = tools.coinWords,
+            showLabel = tools.coinLabel,
             onUndoShown = onCoinUndo,
         )
     } else {

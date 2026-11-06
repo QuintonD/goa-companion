@@ -166,8 +166,7 @@ private fun ReadyCard(state: StartUiState, actions: TimerActions) {
         Spacer(Modifier.height(Spacing.sm))
         StartStepButton(rememberVectorPainter(Icons.Outlined.Flag), "Match setup") { actions.onOpenSetup(null) }
         Text(
-            "A draft saves its heroes as a pending match. Match setup: mode, counters to lay out and the " +
-                "Tie Breaker coin.",
+            "Match setup: mode, counters and the Tie Breaker coin.",
             style = MaterialTheme.typography.bodySmall,
             color = colors.onSurfaceVariant,
             textAlign = TextAlign.Center,

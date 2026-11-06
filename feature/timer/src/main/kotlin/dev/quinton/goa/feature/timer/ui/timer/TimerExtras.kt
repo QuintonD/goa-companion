@@ -137,7 +137,7 @@ internal fun TieBreakerChip(
     team: Team,
     onFlip: () -> Unit,
     actionKey: Any? = null,
-    words: CoinWords = CoinWords.FULL,
+    showLabel: Boolean = true,
     onUndoShown: (Boolean) -> Unit = {},
 ) {
     var flips by remember { mutableIntStateOf(0) }
@@ -175,8 +175,7 @@ internal fun TieBreakerChip(
             .padding(vertical = Spacing.xs)
             .slatePlate(RoundedCornerShape(50), brackets = false)
             .semantics {
-                contentDescription = "Tie Breaker coin shows ${teamName(team)}"
-                stateDescription = teamName(team)
+                contentDescription = "Tie Breaker coin: ${teamName(team)}"
                 onClick(label = "Flip the coin") {
                     onFlip()
                     flips++
@@ -184,22 +183,14 @@ internal fun TieBreakerChip(
                 }
             },
     ) {
-        // Says what it is: the coin's own face (the team's symbol on it) and "Coin Red", not a bare team name.
+        // The coin's own face is the label (the team's symbol on it), with the team's name: not a bare team mark.
         Row(
-            Modifier.padding(horizontal = Spacing.md, vertical = Spacing.sm),
+            Modifier.padding(horizontal = CHIP_INSET, vertical = Spacing.sm),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             CoinMark(team, Modifier.size(coinChipMark()))
-            if (words != CoinWords.NONE) {
+            if (showLabel) {
                 Spacer(Modifier.width(COIN_GAP))
-                if (words == CoinWords.FULL) {
-                    Text(
-                        "$COIN_WORD ",
-                        style = coinChipLabelStyle(),
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        maxLines = 1,
-                    )
-                }
                 Text(
                     teamName(team),
                     style = coinChipLabelStyle(),
@@ -211,9 +202,6 @@ internal fun TieBreakerChip(
     }
 }
 
-/** What the coin chip says beside the coin's face, as room allows: "Coin Red", "Red", or nothing. */
-internal enum class CoinWords { FULL, TEAM, NONE }
-
 /** The Tie Breaker coin's printed face for [team] (rulebook p.5); the team's mark while it loads. */
 @Composable
 private fun CoinMark(team: Team, modifier: Modifier = Modifier) {
@@ -222,15 +210,15 @@ private fun CoinMark(team: Team, modifier: Modifier = Modifier) {
 
 /** The coin chip's mark: a little larger with the text, not as fast. */
 @Composable
-internal fun coinChipMark(): Dp = 22.dp * LocalDensity.current.fontScale.coerceIn(1f, COIN_MAX_SCALE)
+internal fun coinChipMark(): Dp = 20.dp * LocalDensity.current.fontScale.coerceIn(1f, COIN_MAX_SCALE)
 
 @Composable
 internal fun coinChipLabelStyle(): TextStyle = MaterialTheme.typography.labelLarge.copy(
     fontWeight = FontWeight.SemiBold,
 )
 
-/** "Coin Red": the word the header measures with the team's name. */
-internal const val COIN_WORD = "Coin"
+/** The chip's padding at each side. */
+internal val CHIP_INSET = 10.dp
 
 /** Gap between the coin and its words. */
 internal val COIN_GAP = 6.dp

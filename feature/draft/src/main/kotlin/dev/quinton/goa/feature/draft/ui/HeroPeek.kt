@@ -19,8 +19,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.OpenInNew
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -41,15 +39,16 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import dev.quinton.goa.core.designsystem.component.CardScan
 import dev.quinton.goa.core.designsystem.component.ComplexityStars
+import dev.quinton.goa.core.designsystem.component.GoaButton
 import dev.quinton.goa.core.designsystem.component.GoaSheet
 import dev.quinton.goa.core.designsystem.component.HeroPortrait
 import dev.quinton.goa.core.designsystem.component.HeroSymbol
 import dev.quinton.goa.core.designsystem.component.LARGE_FONT_SCALE
+import dev.quinton.goa.core.designsystem.component.PlateGround
 import dev.quinton.goa.core.designsystem.component.StatBar
 import dev.quinton.goa.core.designsystem.component.TitlePlate
 import dev.quinton.goa.core.designsystem.component.cardColor
 import dev.quinton.goa.core.designsystem.component.scaledIconSize
-import dev.quinton.goa.core.designsystem.component.teamColor
 import dev.quinton.goa.core.designsystem.theme.GoaTextStyles
 import dev.quinton.goa.core.designsystem.theme.GoaTheme
 import dev.quinton.goa.core.designsystem.theme.Spacing
@@ -58,7 +57,7 @@ import dev.quinton.goa.core.model.catalog.Role
 import dev.quinton.goa.core.model.catalog.Stat
 import dev.quinton.goa.core.model.match.Team
 
-/** The peek's way to commit: the step's team, its words ("◆ Pick Arien…") and what it opens (the confirm). */
+/** The peek's way to commit: the step's team, its words ("Pick Arien for ◆ Red…") and what it opens (the confirm). */
 internal class PeekCommit(val team: Team, val label: String, val onCommit: () -> Unit)
 
 /**
@@ -154,22 +153,13 @@ internal fun HeroPeekSheet(
                 }
             }
             if (commit != null) {
-                val color = teamColor(commit.team)
-                Button(
-                    onClick = commit.onCommit,
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = color,
-                        contentColor = MaterialTheme.colorScheme.background,
-                    ),
-                    modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp),
-                ) {
+                // The bronze primary, as every primary action; the team rides in its words with its mark.
+                GoaButton(onClick = commit.onCommit, modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp)) {
                     TeamText(
                         commit.label,
                         style = MaterialTheme.typography.titleMedium,
-                        markGround = MaterialTheme.colorScheme.background,
-                        modifier = Modifier.semantics {
-                            contentDescription = commit.label.replace(teamGlyph(commit.team), teamName(commit.team))
-                        },
+                        markGround = PlateGround,
+                        modifier = Modifier.semantics { contentDescription = commit.label.withoutTeamGlyph() },
                     )
                 }
             }

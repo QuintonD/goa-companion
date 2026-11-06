@@ -224,8 +224,9 @@ card as text", which shows the values and the text on parchment) · Timer (full-
 Hurry up takes the dial (its countdown is the big clock, "⚡ HURRY UP" above the digits and "LEFT", "LAST SECONDS!" or
 "TIME!" under them, so urgency is in words as well as colour; the step's own clock moves to a slate pill under the dial)
 and a slim Hurry up bar with Restart and Stop is pinned above the controls (under the dial in landscape; the round view,
-which has no dial, keeps the bar with the countdown in it); the top bar's coin chip is the Tie Breaker coin's face with
-"Coin Red" (then "Red", then the face alone, as room allows), and its second line says "Game 14:32 · Table rules" (with large text "Game 14:32" alone); landscape puts the dial on the left half; paused = blinking
+which has no dial, keeps the bar with the countdown in it); the top bar's coin chip is the Tie Breaker coin's face (the
+face is the label; TalkBack: "Tie Breaker coin: Red") with "Red", the face alone only where it doesn't fit, and its second
+line says "Table rules · 14:32" ("Game 14:32" with large text); landscape puts the dial on the left half; paused = blinking
 digits and a large "PAUSED" label; the **round view** alternative lists the whole round under
 section headings — done rows ticked in bronze and stepped back by colour, never by alpha, so they
 keep their contrast; the current row an expanded teal-bordered card whose border and digits turn
@@ -236,9 +237,10 @@ chips, two team columns with role coverage and ban chips, then a dense pool grid
 role chips and "Hide taken"; taken heroes shrink to chips; landscape moves the banner and teams
 to a side column so the pool keeps the full height; each pool tile has an inspect button in its corner (ⓘ on a
 24 dp disc in a 48 dp target, a named TalkBack action too; long-press still works) that opens the hero peek sheet, which
-ends with the step's own team-coloured "◆ Pick Arien…"; a tile's tap chooses and always asks to confirm) · Draft methods
+ends with the bronze primary "Pick Arien for ◆ Red…"; a tile's tap chooses and always asks to confirm) · Draft methods
 (a radio plate per method, the chosen one bronze, its sequence in team colours; "Continue with …" pinned below; Sources,
-Duplicate, Edit and Delete in each plate's menu; New method in the top bar and at the list's end).
+Duplicate, Edit and Delete in each plate's menu; New method at the list's end; the methods' own "A"/"B" mapped once
+under the layout chips: "A is the team the Tie Breaker coin shows").
 Timer start offers "Draft heroes first" beside Match setup: draft → setup → timer → log is the game-night flow.
 Bottom nav: Heroes, Timer, Draft, Play, Players (original icons: shield, hourglass, fanned cards, a board
 space with a play mark, companions; solid variant when selected; labels share one size, capped by the width,
