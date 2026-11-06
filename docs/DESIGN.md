@@ -39,7 +39,7 @@ when a map has `art` (all four do); the drawn map stays as the fallback while lo
 **Screens:**
 - **Table:** HUD on a plate with official counters and bronze diamond pips (done: solid, dimmer; current: solid, bright, ringed; later: hollow); hero chips on plates; panel on rounded slate with the mark and name on its top strip; the hand in a gentle fan
   (3.2° a card, the outer ones lower), each still one target and one TalkBack node; the turn track's cards with state bands, the portrait on the art so the name shows. The panel ends just past the question, what follows it scrolls; under a tall panel the track takes its small cards. Minions to choose are full-width rows: team mark, type badge, what tells them apart first.
-- **Puzzle:** the goal and the puzzle's name on small lines at the panel's head, off the map; the title plate is the question's; "What you know" folds once played.
+- **Puzzle:** the goal and the puzzle's name on small lines at the panel's head, off the map; the title plate is the question's; "What you know" starts folded to two lines.
 - **Hero sheet:** the real dashboard (`official/ui/dashboard-frame`, upscaled, ADR-058) with played cards in its Turn slots. Tigerclaw's art is the rulebook's; other heroes' portraits cover the frame, cropped around the
   head and darkened toward the edges. Items as icons with "+n", the Ultimate, the hand or card backs. Frame fractions: Turn plates y .272, x .170, .389, .607, .829; slots y .335 to .83.
   A marker with a Turn slot (Snorri's runes, ADR-054) lies on the frame's lower strip, y .905, centred under its slot: .105 of the frame's height, the active one .125 with a bronze ring and "ACTIVE" beside it, never by colour alone. "Runes" under the frame says it in words. The active rune also rides on the hero chip (bottom left of the portrait) and over the hand.
@@ -309,13 +309,13 @@ Unverified badge; when the panel closes the map fills its place again (no band o
 push brings the new Battle Zone into view. "Fit" shows the whole map and turns into "Zoom to the
 lane". Each space's TalkBack node is a square inside its hex (1.46 map units, so neighbours never
 overlap and Android keeps each node whole). The card strip starts one card before the chosen card
-and fades at an edge with more cards beyond. **New board** fits a 384 dp phone without scrolling:
+and fades at an edge with more cards beyond. **New board** keeps its teams, search and Set up fixed on a 384 dp phone:
 one slot on top holds the latest draft's or match's line-up (a card with Set up) until the first
 pick, then the teams (pick chips sharing the row, "Next pick" spelled out on an empty team, the
 border and the switch otherwise); search with a segmented Red | Blue switch beside it (under it at
-large text); a portrait grid with as many columns as it takes to fit every hero (tiles 42–64 dp,
-each with the gap around it and the name under it, which shrinks to fit, one tap target of at
-least 48 dp); and the Map menu beside Set up in the bottom bar. A finished draft pins Set up match, Log result later and Try on the board
+large text); a portrait grid that scrolls under them, tiles at least 78 dp (four across a 384 dp phone,
+112 dp with large text), each with the gap around it and the name under it in labelLarge, which shrinks
+rather than cuts, one tap target; and the Map menu beside Set up in the bottom bar. A finished draft pins Set up match, Log result later and Try on the board
 under the teams on a phone held upright.
 
 ### Play against the computer (ADR-035, ADR-041)
@@ -435,8 +435,11 @@ appears only where the log names it. The hidden panel's peek and the log sheet a
 keeps every line). The coach's nudge is a secondary-container card with "Choose anyway"
 (outlined) and "Rethink" (filled). Game over leads with "You won" / "The computer won" in a card
 bordered in the winner's colour, the rulebook reason, each hero's results, then the coach's turning
-points by round and turn. New game reuses New board's picker; heroes not yet playable are veiled and
-marked "Later". **Computer strength** (ADR-039) is a Material 3 slider, 1 to 10 with a tick per step
+points by round and turn. New game reuses New board's picker; heroes not yet playable come last, folded
+under "NOT PLAYABLE YET · n" (veiled and marked "Later" when opened). Options: the line-up plate, then
+**You play** as "One hero | Whole team" (2 v 2 and up) and portrait chips for the heroes or the teams (the
+chosen one bordered in its team's colour with a check), "The computer plays …" under them; strength, length
+(its note under the segments), map and a Coach switch row, all above the fixed coin button. **Computer strength** (ADR-039) is a Material 3 slider, 1 to 10 with a tick per step
 (default 5), the value and its band above it in the primary colour ("7 · Hard"; bands 1–3 Easy, 4–6
 Normal, 7–8 Hard, 9–10 Expert), "Gentler" and "Stronger" under the ends, and the band's one-line note
 under that (1 and 10 have their own); TalkBack reads "Computer strength, Strength 7 of 10, Hard".
@@ -533,8 +536,9 @@ THE ROUND (the cards at 56 dp in order, the sentence, its reasoning) and TIPS FO
 The puzzle screen is the game table (above); its panel opens with the **goal** (flag icon, goal in titleSmall,
 "You play …" under it), then "Puzzle n of m · title" on a small line with the **difficulty mark** (three small hexes,
 filled up to the level, and the word Hard / Harder / Hardest: shape and word, never colour alone),
-then "What you know" (the theme and the intro; folded, just its heading; with large text, after the question). A **nudge** is a secondary-container card
-like the Coach's ("NUDGE 2 OF 3", ×, Another nudge); the last nudge's move is a **dashed bronze ring**
+then "What you know" (its heading, the theme and More/Less on one line, the intro under it, folded to two lines
+by default; with large text, after the question). A **nudge** is the green parchment text box with "NUDGE 2 OF 3"
+on its own tab, like ATTACK or COACH (×, Another nudge); the last nudge's move is a **dashed bronze ring**
 around its space on the map (apart from the teal options and the white selection; TalkBack: "hint").
 The other side's replies appear line by line under "<HERO> ANSWERS" with a progress bar; once they are
 told, the resolution flow (as in the game) shows them grouped by card under the next question and
@@ -542,7 +546,10 @@ under a miss. A **miss** is
 a quiet surfaceVariant card ("Not quite" in Cinzel, the reason, filled "Try again from before that
 move", outlined Restart, text Show solution); never error red. **Solved** is a primary-container card
 with a 2 dp bronze border and the original **seal** (a bronze hex with a tide-teal tick and six
-points, drawn in code, opening out once with emphasised deceleration), then WHY IT WORKS and RULES.
+points, drawn in code, opening out once with emphasised deceleration), then "Replay the solution on the board"
+and WHY IT WORKS as numbered lines (the explanation split sentence by sentence, a full round's by turn with a
+"Turn 2" mark; never reworded), then RULES. The list has two parts, POSITIONS · 50 and FULL ROUNDS · 22, each with
+"n of m solved"; the Continue card says "Up next · Puzzle 2 of 50", the count the puzzle's own screen uses.
 The **replay** panel has Back / Next arrows around "SOLUTION · STEP n OF m", the move in titleMedium
 (its card beside it), WHAT HAPPENED, and the explanation below. The list's numbers are Cinzel in a
 bronze ring (filled when solved); Continue is a secondary-container card (all solved: the seal).

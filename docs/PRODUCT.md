@@ -320,12 +320,12 @@ Life counters).
   duplicate, and a double tap never opens two. Boards also holds Play against the computer and
   Puzzles (9, 10) above the boards, so with no boards yet it shows those and "New board" rather than
   jumping to New board.
-- **New board without scrolling:** both teams in pick order at the top (until the first pick, the
+- **New board:** both teams in pick order at the top (until the first pick, the
   latest line-up's card stands in their place, in a slot as tall as either, so the grid never moves
   under the next tap), search with an "Adding to Red | Blue" switch beside it, a grid of the heroes
-  the group owns (Settings; "Show all heroes" lists the rest) with as many columns as it takes to
-  show them all on a 384 dp phone (portraits 42–64 dp, each with its gap a 48 dp tap; names shrink
-  rather than cut), and "Map: Forgotten Island ▾" (Unverified noted) beside **Set up** at the
+  the group owns (Settings; "Show all heroes" lists the rest) in tiles readable at arm's length (at
+  least 78 dp, four across a 384 dp phone; names shrink rather than cut) that scrolls under the fixed
+  teams, and "Map: Forgotten Island ▾" (Unverified noted) beside **Set up** at the
   bottom. Picks alternate like a draft: the next pick goes to the team with fewer heroes (a tie to
   the other team), so tapping Brogan, Tigerclaw, Arien, Wasp gives Brogan + Arien vs Tigerclaw + Wasp
   (5 taps with Set up); tapping Red or Blue picks for that team. "Use a draft or match" (top bar)
@@ -539,7 +539,7 @@ opponents (and teammates) at a strength from 1 to 10. One phone, one human team.
   (New game says so). A save that can't be read, or that the engine can no longer rebuild, is
   offered for deletion, never a crash. "End this game" deletes it.
 - **Until heroes are playable** the Boards entry and New game say play is coming; heroes not yet
-  playable show in New game's grid, veiled as "Later". Puzzles show as coming soon until a
+  playable come last in New game's grid, folded under "Not playable yet · n". Puzzles show as coming soon until a
   puzzle's heroes are all playable; then Boards' Puzzles entry says "N of M solved".
 - **Done when:** the Game state sheet shows nothing the person's live view did not (engine tests:
   facedown and unrevealed cards, enemy hands and tucked items never appear), with screenshots (light/
@@ -559,14 +559,15 @@ opponents (and teammates) at a strength from 1 to 10. One phone, one human team.
 Fifty difficult puzzles in the style of chess tactics: a position, a goal ("Defeat Brogan this
 turn", "Push the lane before the round ends", "Survive this turn"), one way (or a few) to make it.
 - **List** (from Boards → Puzzles; only puzzles whose heroes are all playable): a Continue card on
-  top with the first unsolved one and "N of M solved" (all solved: a seal instead); difficulty filter
+  top with the first unsolved one ("Up next · Puzzle 2 of 50"; all solved: a seal and "N of M solved"), each part
+  of the book under its heading with its own count ("Positions · 50", "1 of 50 solved"); difficulty filter
   chips, and theme chips for themes two or more puzzles share; then every puzzle by number with
   title, theme, difficulty (three hexes and the word: hard / harder / hardest), heroes, and Solved /
   Tried N times / Not tried yet, nudges used, "Solution seen". Reset progress in the menu, confirmed.
 - **Solving:** the game table; in the panel the goal ("Win the game this
   turn." · "You play Wasp and Xargatha"), the number, title and difficulty on a small line, "What
-  you know" (the theme and the intro: what the board doesn't show; it folds after the first move, and starts folded on a
-  puzzle already tried), then the question, card questions answered with the card focus viewer (§9). Every hero's hand is open (tap a hero). The other side answers at once with its best
+  you know" (the theme and the intro: what the board doesn't show; folded to its first two lines, a tap opens it, and
+  it folds again after a move), then the question, card questions answered with the card focus viewer (§9). Every hero's hand is open (tap a hero). The other side answers at once with its best
   reply; its replies are narrated line by line ("Arien answers") over the board as it was after your
   move, then the board catches up. A move that loses the forced line says so gently, with the reason
   taken from what followed where it can ("Not quite — that lets Arien defend with Aspiring

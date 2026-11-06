@@ -38,6 +38,7 @@ class PlayFlowTest {
 
         // You play Wasp; the computer is Easy (strength 2); Coach is on by default; Forgotten Island is the map.
         rule.waitForText("Game options")
+        rule.tapText("One hero")
         rule.tap(hasText("Wasp") and hasClickAction())
         rule.reveal(hasContentDescription("Computer strength"))
             .performSemanticsAction(SemanticsActions.SetProgress) { setProgress -> setProgress(2f) }

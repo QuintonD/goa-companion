@@ -36,6 +36,7 @@ class CoachSuggestFlowTest {
         rule.tap(hasText("Next") and hasClickAction() and isEnabled())
 
         rule.waitForText("Game options")
+        rule.tapText("One hero")
         rule.tap(hasText("Wasp") and hasClickAction())
         rule.reveal(hasContentDescription("Computer strength"))
             .performSemanticsAction(SemanticsActions.SetProgress) { setProgress -> setProgress(2f) }

@@ -5,10 +5,14 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.getBoundsInRoot
+import androidx.compose.ui.test.hasContentDescription
+import androidx.compose.ui.test.hasScrollToIndexAction
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithContentDescription
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollToNode
+import androidx.compose.ui.unit.dp
 import androidx.lifecycle.SavedStateHandle
 import dev.quinton.goa.core.designsystem.theme.GoaTheme
 import dev.quinton.goa.core.model.draft.DraftAction
@@ -25,6 +29,7 @@ import dev.quinton.goa.core.testing.FakeSettingsRepository
 import dev.quinton.goa.feature.board.setup.NewBoardScreen
 import dev.quinton.goa.feature.board.setup.NewBoardViewModel
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -33,8 +38,9 @@ import org.robolectric.annotation.Config
 
 /**
  * New board on a 384 dp phone, in the space the app gives it (under the status and top bars, above
- * the tab bar): every hero of the catalog is on screen without scrolling, with the latest draft's
- * card on top, and the first pick doesn't move the grid under the next tap (PRODUCT §8).
+ * the tab bar): the latest draft's card on top, hero tiles big enough to know at arm's length (four
+ * across), every hero of the catalog reachable in the grid, and the first pick doesn't move the grid
+ * under the next tap (PRODUCT §8).
  */
 @RunWith(RobolectricTestRunner::class)
 @Config(qualifiers = "w384dp-h692dp-xxhdpi")
@@ -73,20 +79,28 @@ class NewBoardFitTest {
     }
 
     @Test
-    fun everyHeroIsOnScreenAndTheFirstPickMovesNothing() {
+    fun readableTilesEveryHeroReachableAndTheFirstPickMovesNothing() {
         show()
         compose.onNodeWithContentDescription("Latest", substring = true).assertIsDisplayed()
-        catalog.heroes.forEach { hero -> compose.onNodeWithContentDescription(hero.name).assertIsDisplayed() }
+        val (first, second) = catalog.heroes.map { it.name }.sorted()
+        val tile = compose.onNodeWithContentDescription(first).assertIsDisplayed().getBoundsInRoot()
+        val width = tile.right - tile.left
+        assertTrue("a tile is $width wide", width >= MIN_TILE)
 
-        val last = catalog.heroes.maxBy { it.name }.name
-        val before = compose.onNodeWithContentDescription(last).getBoundsInRoot()
-        compose.onNodeWithContentDescription(catalog.heroes.first().name).performClick()
+        val before = compose.onNodeWithContentDescription(second).getBoundsInRoot()
+        compose.onNodeWithContentDescription(first).performClick()
         compose.waitForIdle()
-        assertEquals(before, compose.onNodeWithContentDescription(last).getBoundsInRoot())
-        catalog.heroes.drop(1).forEach { hero -> compose.onNodeWithContentDescription(hero.name).assertIsDisplayed() }
+        assertEquals(before, compose.onNodeWithContentDescription(second).getBoundsInRoot())
+
+        val grid = compose.onNode(hasScrollToIndexAction())
+        catalog.heroes.map { it.name }.filterNot { it == first }.forEach { name ->
+            grid.performScrollToNode(hasContentDescription(name))
+            compose.onNodeWithContentDescription(name).assertIsDisplayed()
+        }
     }
 
     private companion object {
         const val TIMEOUT_MS = 10_000L
+        val MIN_TILE = 78.dp
     }
 }
