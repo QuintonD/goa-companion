@@ -40,9 +40,11 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.MenuBook
+import androidx.compose.material.icons.filled.Bolt
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PlayArrow
@@ -111,6 +113,7 @@ import dev.quinton.goa.core.designsystem.component.MetalButton
 import dev.quinton.goa.core.designsystem.component.PlateShape
 import dev.quinton.goa.core.designsystem.component.SlateButton
 import dev.quinton.goa.core.designsystem.component.TitlePlate
+import dev.quinton.goa.core.designsystem.component.slatePlate
 import dev.quinton.goa.core.designsystem.component.steelBanner
 import dev.quinton.goa.core.designsystem.theme.GoaTextStyles
 import dev.quinton.goa.core.designsystem.theme.GoaTheme
@@ -242,23 +245,31 @@ private fun PortraitTimer(state: ActiveUiState, actions: TimerActions, header: @
                 )
             }
         }
-        PinnedShotClock(state, actions, compact = short)
+        // A short screen (small phone, large text) may scroll the dial away: there the bar keeps the countdown too.
+        PinnedShotClock(state, actions, compact = short, inDial = state.dialShown && !short)
         TimerControls(state, actions)
     }
 }
 
-/** A running "Hurry up" sits above the controls, outside the scrolling area, so it is always in view. */
+/**
+ * A running "Hurry up" sits above the controls, outside the scrolling area, so it is always in view.
+ * [inDial]: the dial shows its countdown, so this is only its Restart and Stop.
+ */
 @Composable
-internal fun PinnedShotClock(state: ActiveUiState, actions: TimerActions, compact: Boolean) {
+internal fun PinnedShotClock(state: ActiveUiState, actions: TimerActions, compact: Boolean, inDial: Boolean = false) {
     val shot = state.shotClock ?: return
     ShotClockPanel(
         shot,
         onRestart = actions.onShotClock,
         onCancel = actions.onCancelShotClock,
         compact = compact,
+        clockInDial = inDial,
         modifier = Modifier.padding(horizontal = Spacing.screen, vertical = Spacing.xs),
     )
 }
+
+/** The dial is showing (not the untimed end-of-round step card): a running Hurry up takes it. */
+private val ActiveUiState.dialShown: Boolean get() = checklist == null || timed
 
 /**
  * Landscape: the dial fills the left half (a running Hurry up under it); header, phase, extras
@@ -280,8 +291,11 @@ private fun LandscapeTimer(state: ActiveUiState, actions: TimerActions, header: 
                     TimerDial(state, min(maxWidth, maxHeight).coerceAtLeast(120.dp), actions.onTogglePause)
                 }
             }
+            if (state.dialShown) {
+                PhaseClockLine(state, Modifier.align(Alignment.CenterHorizontally).padding(bottom = Spacing.xs))
+            }
             Column(Modifier.padding(horizontal = Spacing.screen)) { TableRulesBar(state, actions) }
-            PinnedShotClock(state, actions, compact = true)
+            PinnedShotClock(state, actions, compact = true, inDial = state.dialShown)
         }
         Column(Modifier.weight(0.55f).fillMaxHeight()) {
             header()
@@ -318,10 +332,49 @@ private fun dialScale(state: ActiveUiState): Float = when {
 
 @Composable
 private fun PrimaryArea(state: ActiveUiState, actions: TimerActions, size: Dp) {
-    if (state.checklist == null || state.timed) {
+    if (state.dialShown) {
         TimerDial(state, size, actions.onTogglePause)
+        PhaseClockLine(state, Modifier.padding(top = Spacing.md))
     } else {
         ChecklistStepCard(state, actions.onNext)
+    }
+}
+
+/**
+ * While Hurry up holds the dial: the step's own clock, smaller, just under it, so it is still there to
+ * read but never mistaken for the clock that matters now. TalkBack hears it with the dial.
+ */
+@Composable
+private fun PhaseClockLine(state: ActiveUiState, modifier: Modifier = Modifier) {
+    if (state.shotClock == null) return
+    val colors = MaterialTheme.colorScheme
+    val clock = when {
+        state.overtime -> "overtime ${state.clock}"
+        state.timed -> "${state.clock} left"
+        else -> "${state.clock} elapsed"
+    }
+    Row(
+        modifier
+            .heightIn(min = 40.dp)
+            .slatePlate(RoundedCornerShape(50), brackets = false)
+            .padding(horizontal = Spacing.lg, vertical = Spacing.xs)
+            .clearAndSetSemantics {},
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Icon(
+            Icons.Outlined.Timer,
+            contentDescription = null,
+            tint = colors.onSurfaceVariant,
+            modifier = Modifier.size(18.dp),
+        )
+        Spacer(Modifier.width(Spacing.sm))
+        Text(
+            "${state.title} · $clock",
+            style = MaterialTheme.typography.titleMedium.copy(fontFeatureSettings = "tnum"),
+            color = if (state.overtime) colors.error else colors.onSurface,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+        )
     }
 }
 
@@ -384,10 +437,11 @@ private fun TimerHeader(state: ActiveUiState, actions: TimerActions, onEnd: () -
                         if (!subtitle) contentDescription = "Round ${state.round}, $spoken"
                     },
                 )
-                // Large text: the match clock alone, so it isn't what gets cut (TalkBack still hears both).
+                // Large text: the game clock alone, so it isn't what gets cut (TalkBack still hears both);
+                // "Game" stays with it, so the number never stands without saying what it counts.
                 if (subtitle) {
                     HeaderSubtitle(
-                        if (largeText) state.matchClock else "${state.presetName} · ${state.matchClock}",
+                        if (largeText) "Game ${state.matchClock}" else "Game ${state.matchClock} · ${state.presetName}",
                         spoken,
                     )
                 }
@@ -433,38 +487,51 @@ private data class HeaderTools(
     val levels: Boolean,
     val viewSwitch: Boolean,
     val endMatch: Boolean,
-    val coinLabel: Boolean,
+    val coinWords: CoinWords,
 )
 
 /**
  * "Round N" must never be clipped (S25 Ultra: 384 dp wide, where Blue's coin chip plus four icons left
  * too little room; a small phone has less). The title, coin chip and its Undo are measured; the view
- * switch moves into the menu first (it is also in Settings), then Levels & defeats, then End match, and
- * last the coin chip keeps only its mark. Large text: the view switch and Levels are in the menu.
+ * switch moves into the menu first (it is also in Settings), then Levels & defeats, then End match; the
+ * coin chip says "Coin Red", then "Red" beside the coin's face, and last is the face alone. Large text: the
+ * view switch and Levels are in the menu.
  */
 @Composable
 private fun headerTools(state: ActiveUiState, width: Dp, coinUndo: Boolean): HeaderTools {
     val density = LocalDensity.current
     val measurer = rememberTextMeasurer()
     val titleStyle = headerTitleStyle()
-    val labelStyle = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.SemiBold)
+    val labelStyle = coinChipLabelStyle()
+    val coin = coinChipMark()
     val team = state.tieBreaker
     val undo = coinUndo && team != null
-    return remember(state.round, team, undo, width, density, titleStyle, labelStyle) {
+    return remember(state.round, team, undo, width, density, titleStyle, labelStyle, coin) {
         fun textWidth(text: String, style: TextStyle) =
             with(density) { measurer.measure(text, style, maxLines = 1, softWrap = false).size.width.toDp() }
-        val chipMark = if (team != null) CHIP_CHROME * density.fontScale else 0.dp
-        val chip = team?.let { chipMark + textWidth(teamName(it), labelStyle) } ?: 0.dp
+        val chipMark = if (team != null) CHIP_PADDING + coin else 0.dp
+        val chip = team?.let { chipMark + COIN_GAP + textWidth("$COIN_WORD ${teamName(it)}", labelStyle) } ?: 0.dp
+        val chipShort = team?.let { chipMark + COIN_GAP + textWidth(teamName(it), labelStyle) } ?: 0.dp
         val undoButton = if (undo) maxOf(UNDO_MIN_WIDTH, textWidth("Undo", labelStyle) + UNDO_PADDING) else 0.dp
         val fixed = Spacing.screen + BannerMedallionWidth + HEADER_SLACK + undoButton + HEADER_ICON
         val room = width - fixed - textWidth("Round ${state.round}", titleStyle)
         val large = density.fontScale > LARGE_FONT_SCALE
-        val endMatch = room - chip >= HEADER_ICON
+        // The chip's words come before the icons (End match is in the menu too); the icons fit against what stays.
+        val words = when {
+            room >= chip -> CoinWords.FULL
+            room >= chipShort -> CoinWords.TEAM
+            else -> CoinWords.NONE
+        }
+        val chipShown = when (words) {
+            CoinWords.FULL -> chip
+            CoinWords.TEAM -> chipShort
+            CoinWords.NONE -> chipMark
+        }
         HeaderTools(
-            levels = !large && room - chip >= HEADER_ICON * 2,
-            viewSwitch = !large && room - chip >= HEADER_ICON * 3,
-            endMatch = endMatch,
-            coinLabel = room >= chip,
+            levels = !large && room - chipShown >= HEADER_ICON * 2,
+            viewSwitch = !large && room - chipShown >= HEADER_ICON * 3,
+            endMatch = room - chipShown >= HEADER_ICON,
+            coinWords = words,
         )
     }
 }
@@ -478,8 +545,8 @@ private fun headerTitleStyle(): TextStyle = with(LocalDensity.current) {
 
 private val HEADER_ICON = 48.dp
 
-/** Chip padding (12 dp each side), team mark (12 dp) and its gap (6 dp). */
-private val CHIP_CHROME = 42.dp
+/** Chip padding, 12 dp each side. */
+private val CHIP_PADDING = 24.dp
 private val UNDO_MIN_WIDTH = 58.dp
 private val UNDO_PADDING = 24.dp
 
@@ -506,7 +573,7 @@ private fun RowScope.TimerTopActions(
             coin,
             actions.onFlipCoin,
             actionKey = "${state.round}:${state.title}:${state.paused}",
-            showLabel = tools.coinLabel,
+            words = tools.coinWords,
             onUndoShown = onCoinUndo,
         )
     } else {
@@ -687,33 +754,49 @@ private val PHASE_STYLE = GoaTextStyles.plateTitle.copy(fontSize = 20.sp, lineHe
 private const val PHASE_MAX_SCALE = 1.5f
 private val CONTEXT_STYLE = GoaTextStyles.sectionHead.copy(fontSize = 15.sp, lineHeight = 20.sp, shadow = TEXT_SHADOW)
 
+/**
+ * The dial. While Hurry up runs its countdown is what the table must read, so it takes the dial: the
+ * digits, the arc and a "Hurry up" word above them; the step's own clock moves under the dial ([PhaseClockLine]).
+ */
 @Composable
 private fun TimerDial(state: ActiveUiState, size: Dp, onToggle: () -> Unit) {
+    val shot = state.shotClock
     val tone = when {
+        shot != null && state.paused -> RingTone.PAUSED
+        shot != null && shot.over -> RingTone.OVERTIME
+        shot != null -> RingTone.WARNING
         !state.timed -> RingTone.UNTIMED
         state.paused -> RingTone.PAUSED
         state.overtime -> RingTone.OVERTIME
         state.warning -> RingTone.WARNING
         else -> RingTone.NORMAL
     }
-    // Paused, overtime and elapsed say so in words; otherwise the digits alone, as the mock-up.
+    // Paused, overtime and elapsed say so in words; otherwise the digits alone, as the mock-up. Hurry up
+    // names its urgency in words too, not by colour alone: left, the last seconds, time.
     val status = when {
         state.paused -> "Tap to resume"
+        shot != null && shot.over -> "Time!"
+        shot != null && shot.warning -> "Last seconds!"
+        shot != null -> "Left · tap to pause"
         state.overtime -> "Overtime"
         !state.timed -> "Elapsed · tap to pause"
         else -> null
     }
-    val digitColor = when (tone) {
-        RingTone.OVERTIME -> MaterialTheme.colorScheme.error
-        RingTone.WARNING -> MaterialTheme.colorScheme.primary
-        RingTone.PAUSED -> MaterialTheme.colorScheme.onSurfaceVariant
+    val urgent = (state.overtime && shot == null) || shot?.over == true
+    val digitColor = when {
+        tone == RingTone.PAUSED -> MaterialTheme.colorScheme.onSurfaceVariant
+        urgent -> MaterialTheme.colorScheme.error
+        shot?.warning == true -> MaterialTheme.colorScheme.primary
+        shot != null -> DIGITS
+        tone == RingTone.WARNING -> MaterialTheme.colorScheme.primary
         else -> DIGITS
     }
+    val clock = shot?.clock ?: state.clock
     val density = LocalDensity.current
     // Sized from the ring, not the font scale: the digits are already as big as they can be.
     val digitScale = when {
-        state.clock.length <= SHORT_CLOCK -> DIGITS_SHORT
-        state.clock.length == SHORT_CLOCK + 1 -> DIGITS_MEDIUM
+        clock.length <= SHORT_CLOCK -> DIGITS_SHORT
+        clock.length == SHORT_CLOCK + 1 -> DIGITS_MEDIUM
         else -> DIGITS_LONG
     }
     val digitSize = with(density) { (size * digitScale).toSp() }
@@ -732,20 +815,25 @@ private fun TimerDial(state: ActiveUiState, size: Dp, onToggle: () -> Unit) {
         1f
     }
     CountdownRing(
-        fraction = state.fraction,
+        fraction = shot?.fraction ?: state.fraction,
         tone = tone,
         modifier = Modifier
             .size(size)
             .clip(CircleShape)
             .clickable(onClickLabel = if (state.paused) "Resume" else "Pause", role = Role.Button, onClick = onToggle)
             .semantics(mergeDescendants = true) {
-                contentDescription = "${state.title}. ${state.spokenClock}"
+                contentDescription = if (shot != null) {
+                    "${shot.spokenClock}. ${state.title}, ${state.spokenClock}"
+                } else {
+                    "${state.title}. ${state.spokenClock}"
+                }
                 stateDescription = if (state.paused) "Paused" else "Running"
+                if (shot?.over == true) liveRegion = LiveRegionMode.Polite
             },
     ) {
         // The digits keep the dial's centre; the words sit above and below, so nothing jumps.
         Text(
-            state.clock,
+            clock,
             style = timerDigits(
                 MaterialTheme.typography.displayLarge,
             ).copy(fontSize = digitSize, lineHeight = digitSize, shadow = DIGIT_SHADOW),
@@ -754,21 +842,27 @@ private fun TimerDial(state: ActiveUiState, size: Dp, onToggle: () -> Unit) {
             softWrap = false,
             modifier = Modifier.alpha(blink),
         )
-        if (state.paused) {
+        if (state.paused || shot != null) {
+            val word = if (state.paused) "PAUSED" else "HURRY UP"
+            val wordColor = if (urgent && !state.paused) {
+                MaterialTheme.colorScheme.error
+            } else {
+                MaterialTheme.colorScheme.primary
+            }
             Row(
                 Modifier.align(Alignment.TopCenter).padding(top = size * WORD_INSET),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Icon(
-                    Icons.Filled.Pause,
+                    if (state.paused) Icons.Filled.Pause else Icons.Filled.Bolt,
                     contentDescription = null,
                     modifier = Modifier.size(with(density) { pausedSize.toDp() }),
-                    tint = MaterialTheme.colorScheme.primary,
+                    tint = wordColor,
                 )
                 Text(
-                    "PAUSED",
+                    word,
                     style = GoaTextStyles.plateTitle.copy(fontSize = pausedSize, lineHeight = pausedSize),
-                    color = MaterialTheme.colorScheme.primary,
+                    color = wordColor,
                     maxLines = 1,
                     softWrap = false,
                 )
@@ -777,8 +871,19 @@ private fun TimerDial(state: ActiveUiState, size: Dp, onToggle: () -> Unit) {
         if (status != null) {
             Text(
                 status.uppercase(),
-                style = MaterialTheme.typography.labelLarge.copy(fontSize = labelSize, lineHeight = labelSize),
-                color = with(MaterialTheme.colorScheme) { if (state.overtime) error else onSurfaceVariant },
+                style = MaterialTheme.typography.labelLarge.copy(
+                    fontSize = labelSize,
+                    lineHeight = labelSize,
+                    fontWeight = if (shot?.warning == true || urgent) FontWeight.Bold else null,
+                ),
+                color = with(MaterialTheme.colorScheme) {
+                    when {
+                        state.paused -> onSurfaceVariant
+                        urgent -> error
+                        shot?.warning == true -> primary
+                        else -> onSurfaceVariant
+                    }
+                },
                 textAlign = TextAlign.Center,
                 maxLines = 1,
                 softWrap = false,

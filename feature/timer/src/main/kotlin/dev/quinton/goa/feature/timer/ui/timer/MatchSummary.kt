@@ -41,77 +41,17 @@ import dev.quinton.goa.core.designsystem.component.TitlePlate
 import dev.quinton.goa.core.designsystem.theme.GoaTheme
 import dev.quinton.goa.core.designsystem.theme.Spacing
 import dev.quinton.goa.feature.timer.TimerText
+import dev.quinton.goa.feature.timer.ui.components.TimerBackdrop
 import dev.quinton.goa.feature.timer.ui.components.timerDigits
 
 @Composable
 internal fun MatchSummary(state: SummaryUiState, actions: TimerActions) {
     var confirmDiscard by remember { mutableStateOf(false) }
     GoaScreen(title = "Timer", actions = { SettingsActionButton(actions.onSettings) }) { padding ->
-        Column(
-            Modifier.fillMaxSize().padding(padding).verticalScroll(rememberScrollState()).padding(Spacing.screen),
-            verticalArrangement = Arrangement.Center,
-        ) {
-            GoaPlate(Modifier.fillMaxWidth(), contentPadding = PaddingValues(0.dp)) {
-                Column(
-                    Modifier.fillMaxWidth().padding(Spacing.xl),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                ) {
-                    Box(
-                        Modifier
-                            .size(72.dp)
-                            .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.12f), CircleShape)
-                            .border(1.dp, GoaTheme.colors.engravedBorder, CircleShape),
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        Icon(
-                            Icons.Outlined.EmojiEvents,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.size(36.dp),
-                        )
-                    }
-                    Spacer(Modifier.height(Spacing.md))
-                    TitlePlate("Match over", Modifier.fillMaxWidth())
-                    Spacer(Modifier.height(Spacing.lg))
-                    Text(state.duration, style = timerDigits(MaterialTheme.typography.displayMedium))
-                    Spacer(Modifier.height(Spacing.xs))
-                    val details = listOfNotNull(
-                        if (state.rounds == 1) "1 round" else "${state.rounds} rounds",
-                        state.mode?.let(TimerText::modeLabel),
-                        state.presetName,
-                    ).joinToString(" · ")
-                    Text(
-                        details,
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        textAlign = TextAlign.Center,
-                    )
-                    Spacer(Modifier.height(Spacing.xl))
-                    MetalButton(
-                        onClick = actions.onLogResult,
-                        bronze = true,
-                        modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp),
-                    ) { Text("Log result", style = MaterialTheme.typography.titleMedium) }
-                    Spacer(Modifier.height(Spacing.sm))
-                    Text(
-                        if (state.hasMatch) {
-                            "The duration is saved to the match. Log the winner and win condition next."
-                        } else {
-                            "Log result opens a new match with this duration filled in."
-                        },
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        textAlign = TextAlign.Center,
-                    )
-                    Spacer(Modifier.height(Spacing.lg))
-                    // A linked match already has its duration, so closing loses nothing. Without a
-                    // match, closing throws the duration away: ask first.
-                    TextButton(
-                        onClick = { if (state.hasMatch) actions.onDone() else confirmDiscard = true },
-                        modifier = Modifier.heightIn(min = 48.dp),
-                    ) { Text(if (state.hasMatch) "Close, log later" else "Discard") }
-                }
-            }
+        // The end of the timer, on the timer's own sea and battlefield: not a lone card on an empty page.
+        Box(Modifier.fillMaxSize().padding(padding)) {
+            TimerBackdrop(silhouette = true)
+            SummaryCard(state, actions, onDiscard = { confirmDiscard = true })
         }
     }
     if (confirmDiscard) {
@@ -132,5 +72,75 @@ internal fun MatchSummary(state: SummaryUiState, actions: TimerActions) {
                 }) { Text("Discard") }
             },
         )
+    }
+}
+
+@Composable
+private fun SummaryCard(state: SummaryUiState, actions: TimerActions, onDiscard: () -> Unit) {
+    Column(
+        Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(Spacing.screen),
+        verticalArrangement = Arrangement.Center,
+    ) {
+        GoaPlate(Modifier.fillMaxWidth(), contentPadding = PaddingValues(0.dp)) {
+            Column(
+                Modifier.fillMaxWidth().padding(Spacing.xl),
+                horizontalAlignment = Alignment.CenterHorizontally,
+            ) {
+                Box(
+                    Modifier
+                        .size(72.dp)
+                        .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.12f), CircleShape)
+                        .border(1.dp, GoaTheme.colors.engravedBorder, CircleShape),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Icon(
+                        Icons.Outlined.EmojiEvents,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(36.dp),
+                    )
+                }
+                Spacer(Modifier.height(Spacing.md))
+                TitlePlate("Match over", Modifier.fillMaxWidth())
+                Spacer(Modifier.height(Spacing.lg))
+                Text(state.duration, style = timerDigits(MaterialTheme.typography.displayMedium))
+                Spacer(Modifier.height(Spacing.xs))
+                val details = listOfNotNull(
+                    if (state.rounds == 1) "1 round" else "${state.rounds} rounds",
+                    state.mode?.let(TimerText::modeLabel),
+                    state.presetName,
+                ).joinToString(" · ")
+                Text(
+                    details,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    textAlign = TextAlign.Center,
+                )
+                Spacer(Modifier.height(Spacing.xl))
+                MetalButton(
+                    onClick = actions.onLogResult,
+                    bronze = true,
+                    modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp),
+                ) { Text("Log result", style = MaterialTheme.typography.titleMedium) }
+                Spacer(Modifier.height(Spacing.sm))
+                Text(
+                    if (state.hasMatch) {
+                        "The duration is saved to the match. Log the winner and win condition next."
+                    } else {
+                        "Log result opens a new match with this duration filled in."
+                    },
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    textAlign = TextAlign.Center,
+                )
+                Spacer(Modifier.height(Spacing.lg))
+                // A linked match already has its duration, so closing loses nothing. Without a
+                // match, closing throws the duration away: ask first.
+                TextButton(
+                    onClick = { if (state.hasMatch) actions.onDone() else onDiscard() },
+                    modifier = Modifier.heightIn(min = 48.dp),
+                ) { Text(if (state.hasMatch) "Close, log later" else "Discard") }
+            }
+        }
     }
 }

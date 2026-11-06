@@ -50,26 +50,35 @@ import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.key.KeyEventType
 import androidx.compose.ui.input.key.key
 import androidx.compose.ui.input.key.nativeKeyCode
 import androidx.compose.ui.input.key.onPreviewKeyEvent
 import androidx.compose.ui.input.key.type
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.onClick
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import dev.quinton.goa.core.designsystem.component.GoaDialog
 import dev.quinton.goa.core.designsystem.component.GoaPlate
 import dev.quinton.goa.core.designsystem.component.HeroPortrait
+import dev.quinton.goa.core.designsystem.component.LARGE_FONT_SCALE
+import dev.quinton.goa.core.designsystem.component.OfficialArt
+import dev.quinton.goa.core.designsystem.component.OfficialIcon
 import dev.quinton.goa.core.designsystem.component.PlateShape
 import dev.quinton.goa.core.designsystem.component.SlateButton
 import dev.quinton.goa.core.designsystem.component.TeamBadge
+import dev.quinton.goa.core.designsystem.component.TeamMark
 import dev.quinton.goa.core.designsystem.component.slatePlate
 import dev.quinton.goa.core.designsystem.component.teamColor
 import dev.quinton.goa.core.designsystem.theme.Spacing
@@ -128,7 +137,7 @@ internal fun TieBreakerChip(
     team: Team,
     onFlip: () -> Unit,
     actionKey: Any? = null,
-    showLabel: Boolean = true,
+    words: CoinWords = CoinWords.FULL,
     onUndoShown: (Boolean) -> Unit = {},
 ) {
     var flips by remember { mutableIntStateOf(0) }
@@ -175,14 +184,57 @@ internal fun TieBreakerChip(
                 }
             },
     ) {
+        // Says what it is: the coin's own face (the team's symbol on it) and "Coin Red", not a bare team name.
         Row(
             Modifier.padding(horizontal = Spacing.md, vertical = Spacing.sm),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            TeamBadge(team, showLabel = showLabel)
+            CoinMark(team, Modifier.size(coinChipMark()))
+            if (words != CoinWords.NONE) {
+                Spacer(Modifier.width(COIN_GAP))
+                if (words == CoinWords.FULL) {
+                    Text(
+                        "$COIN_WORD ",
+                        style = coinChipLabelStyle(),
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 1,
+                    )
+                }
+                Text(
+                    teamName(team),
+                    style = coinChipLabelStyle(),
+                    color = teamColor(team),
+                    maxLines = 1,
+                )
+            }
         }
     }
 }
+
+/** What the coin chip says beside the coin's face, as room allows: "Coin Red", "Red", or nothing. */
+internal enum class CoinWords { FULL, TEAM, NONE }
+
+/** The Tie Breaker coin's printed face for [team] (rulebook p.5); the team's mark while it loads. */
+@Composable
+private fun CoinMark(team: Team, modifier: Modifier = Modifier) {
+    OfficialIcon(OfficialArt.tieBreaker(team), modifier) { TeamMark(team, Modifier.matchParentSize()) }
+}
+
+/** The coin chip's mark: a little larger with the text, not as fast. */
+@Composable
+internal fun coinChipMark(): Dp = 22.dp * LocalDensity.current.fontScale.coerceIn(1f, COIN_MAX_SCALE)
+
+@Composable
+internal fun coinChipLabelStyle(): TextStyle = MaterialTheme.typography.labelLarge.copy(
+    fontWeight = FontWeight.SemiBold,
+)
+
+/** "Coin Red": the word the header measures with the team's name. */
+internal const val COIN_WORD = "Coin"
+
+/** Gap between the coin and its words. */
+internal val COIN_GAP = 6.dp
+private const val COIN_MAX_SCALE = 1.3f
 
 /** Asks which side shows instead of assuming one (rulebook p.7: the coin is flipped at setup). */
 @Composable
@@ -246,7 +298,8 @@ internal fun TableRulesBar(state: ActiveUiState, actions: TimerActions) {
 
 /**
  * The running "Hurry up" countdown, pinned just above the timer controls (game night: inside the
- * scrolling column it sat behind the controls, digits clipped). [compact]: landscape.
+ * scrolling column it sat behind the controls, digits clipped). [compact]: landscape. [clockInDial]:
+ * the dial already shows the countdown as the big clock, so this is a slim bar with Restart and Stop.
  */
 @Composable
 internal fun ShotClockPanel(
@@ -255,9 +308,14 @@ internal fun ShotClockPanel(
     onCancel: () -> Unit,
     modifier: Modifier = Modifier,
     compact: Boolean = false,
+    clockInDial: Boolean = false,
 ) {
     val colors = MaterialTheme.colorScheme
     val accent = if (shot.over) colors.error else colors.primary
+    if (clockInDial) {
+        ShotClockBar(shot, accent, onRestart, onCancel, modifier)
+        return
+    }
     GoaPlate(modifier.fillMaxWidth().plateEdge(accent), contentPadding = PaddingValues(0.dp)) {
         Row(
             Modifier.padding(start = Spacing.lg, end = Spacing.xs, top = Spacing.xs, bottom = Spacing.xs),
@@ -289,6 +347,53 @@ internal fun ShotClockPanel(
                 Icon(Icons.Filled.Close, contentDescription = "Stop Hurry up")
             }
         }
+    }
+}
+
+/** Hurry up's own controls while its countdown is in the dial: named in words, so Stop never reads as the step's. */
+@Composable
+private fun ShotClockBar(
+    shot: ShotClockUi,
+    accent: Color,
+    onRestart: () -> Unit,
+    onCancel: () -> Unit,
+    modifier: Modifier,
+) {
+    val words = LocalDensity.current.fontScale <= LARGE_FONT_SCALE
+    GoaPlate(modifier.fillMaxWidth().plateEdge(accent, 1.dp), contentPadding = PaddingValues(0.dp)) {
+        Row(
+            Modifier.padding(start = Spacing.lg, end = Spacing.xs),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Icon(Icons.Outlined.Bolt, contentDescription = null, tint = accent, modifier = Modifier.size(18.dp))
+            Spacer(Modifier.width(Spacing.xs))
+            Text(
+                if (shot.over) "HURRY UP · TIME!" else "HURRY UP",
+                style = MaterialTheme.typography.labelLarge,
+                color = accent,
+                maxLines = 1,
+                modifier = Modifier.weight(1f).semantics { contentDescription = shot.spokenClock },
+            )
+            ShotBarButton(Icons.Outlined.Replay, "Restart", "Restart Hurry up", words, onRestart)
+            ShotBarButton(Icons.Filled.Close, "Stop", "Stop Hurry up", words, onCancel)
+        }
+    }
+}
+
+@Composable
+private fun ShotBarButton(icon: ImageVector, word: String, spoken: String, words: Boolean, onClick: () -> Unit) {
+    if (words) {
+        TextButton(
+            onClick = onClick,
+            colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.onSurface),
+            modifier = Modifier.heightIn(min = 48.dp).semantics { contentDescription = spoken },
+        ) {
+            Icon(icon, contentDescription = null, modifier = Modifier.size(18.dp))
+            Spacer(Modifier.width(Spacing.xs))
+            Text(word)
+        }
+    } else {
+        IconButton(onClick = onClick, modifier = Modifier.size(48.dp)) { Icon(icon, contentDescription = spoken) }
     }
 }
 

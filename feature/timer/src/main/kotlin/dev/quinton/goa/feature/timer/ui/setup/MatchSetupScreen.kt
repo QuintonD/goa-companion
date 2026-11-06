@@ -67,12 +67,12 @@ import dev.quinton.goa.core.designsystem.theme.Spacing
 import dev.quinton.goa.core.model.match.GameMode
 import dev.quinton.goa.core.model.match.Team
 import dev.quinton.goa.feature.timer.ui.components.CoinFace
-import dev.quinton.goa.feature.timer.ui.components.PlateTeal
 import dev.quinton.goa.feature.timer.ui.components.goaChipBorder
 import dev.quinton.goa.feature.timer.ui.components.goaChipColors
 import dev.quinton.goa.feature.timer.ui.components.plateEdge
 import dev.quinton.goa.feature.timer.ui.components.rememberReducedMotion
 import dev.quinton.goa.feature.timer.ui.components.rememberStartWithNotificationPermission
+import dev.quinton.goa.feature.timer.ui.components.selectedPlate
 import dev.quinton.goa.feature.timer.ui.components.teamName
 import dev.quinton.goa.feature.timer.ui.timer.Stepper
 
@@ -216,7 +216,7 @@ private fun SetupCard(
     GoaPlate(
         Modifier
             .fillMaxWidth()
-            .plateEdge(if (highlighted) PlateTeal else null)
+            .selectedPlate(highlighted)
             .clip(PlateShape)
             .then(modifier),
         contentPadding = PaddingValues(0.dp),

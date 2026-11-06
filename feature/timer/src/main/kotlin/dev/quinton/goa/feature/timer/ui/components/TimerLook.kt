@@ -15,6 +15,7 @@ import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.ColorMatrix
 import androidx.compose.ui.graphics.FilterQuality
 import androidx.compose.ui.graphics.Shape
+import androidx.compose.ui.graphics.drawOutline
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntOffset
@@ -126,4 +127,26 @@ private val FIELD_BRIGHTEN = ColorFilter.colorMatrix(
 
 /** Plates are dark in both themes: an accent on one's edge, picked outside it, is the dark theme's. */
 internal val PlateTeal = Color(0xFF3FC1B0)
+
+/** Bronze, the selection colour (DESIGN.md): teal is kept for "next / ready", team colours for teams. */
+internal val PlateBronze = Color(0xFFC9A35B)
+
+/**
+ * The one look of a chosen single-choice plate on the timer's screens: a bronze edge and a faint bronze
+ * wash, with the bronze radio beside the words. Unselected plates draw nothing extra.
+ */
+internal fun Modifier.selectedPlate(selected: Boolean, shape: Shape = PlateShape): Modifier =
+    if (!selected) {
+        this
+    } else {
+        border(2.dp, PlateBronze, shape).drawWithCache {
+            val outline = shape.createOutline(size, layoutDirection, this)
+            onDrawWithContent {
+                drawContent()
+                drawOutline(outline, PlateBronze.copy(alpha = SELECTED_WASH))
+            }
+        }
+    }
+
+private const val SELECTED_WASH = 0.08f
 internal val PlateError = Color(0xFFFF6B6B)
