@@ -10,15 +10,31 @@ area, `goa-look-*.css`). Every part falls back to a flat colour while its image 
   its own proportions. Titles are `BevelText` (white metal with a dark outline). Actions stay clear of the medallion (`BannerEndSpacer`);
   on narrow phones some move into More. Words as actions on it are `BannerTextButton`, light with a dark edge.
 - **Slate plate** (`GoaPlate`, `Modifier.slatePlate`, `GoaCard`, `.goa-plate`, `.goa-card`): the dashboard's dark plate with a steel edge and
-  small teal corner brackets. Plates are dark in both themes and what sits on one is themed dark (`GoaPlateTheme`). Bottom nav and sheets
-  (`GoaSheet`, never a bare `ModalBottomSheet`) are slate too.
-- **Title plate** (`TitlePlate`, `.goa-title-plate`): the cards' parchment pill with its gear (redrawn, ADR-058), 9-sliced so the gear is round at the plate's minimum height, growing with its text: a hero's name, what a
-  question asks, a timer phase. A screen's one key title, not every heading. A plate holds a short title (a few words: "Minion Battle"); anything longer goes in the text box below it.
+  small teal corner brackets. In the light theme the plate is the rulebook's white page: paper (`#FEFCF8` → `#F8F4EB`) with a steel edge
+  (`#6F7C89` over a `#B4BEC8` rim), ink text, bronze accents, the same brackets. What sits on a plate is themed as the plate (`GoaPlateTheme`).
+  Bottom nav, sheets (`GoaSheet`, never a bare `ModalBottomSheet`), search fields (`GoaTheme.colors.plate`) and the table's panels follow it.
+  **Dark in both themes by design** (`GoaDarkTheme`): the running timer, what floats over the painted map (`MapButton`, `SlateButton`),
+  a card's own frame (`DesignedCard`), the hero dashboard. `PlateGround` is that slate's flat tone; a themed plate's is `GoaTheme.colors.plate`.
+- **Plate styles** (`PlateStyle`): `Primary` (steel edge, brackets) for a screen's main summary, the current turn, a hero; `Secondary` (flat, a
+  quiet hairline, no brackets) for settings, prose, lists of rows; `Well`, a recess. A plate inside a plate draws as a well: frames never nest.
+- **Title plate** (`TitlePlate`, `Modifier.titlePlate`, `.goa-title-plate`): the cards' parchment pill (redrawn, ADR-058; its ends from the art, the
+  right one mirrored) growing with its text, and the cards' gear drawn as vectors at its own size (`TitlePlateSize`: 34 dp, 25 dp on a tile)
+  over the pill's end, whatever the plate's height: steel teeth lit from the upper left, a dark face, a bronze hub. The words keep clear of
+  the gear. Content: a hero's name, what a question asks, a timer phase. A screen's one key title, not every heading. A plate holds a short title
+  (a few words: "Minion Battle"); anything longer goes in the text box below it.
 - **Text box** (`CardTextBox(PlateColor, cap)`, `.goa-text-box.<colour>`): the cards' parchment box in a frame colour with the word on its tab (dark on
   gold and silver, white on the rest): question text and the attack header in the asking card's colour, moments in gold, coach and nudges in green. The app's own words in a box are Inter (and its tab says "Note", never "Rule"); only text the game prints is Crimson.
 - **Ribbons, counters, icons:** `ColourRibbon` on a card colour's section head (`SectionHeader(ribbon =)`); `LifeCounterIcon`, `WaveCounterIcon`,
   `CoinIcon`, `ActionIcon`, the official item icons as stats. **Team marks** are the official gear and star (`TeamMark`).
-- **Buttons:** `GoaButton` (bronze metal with a sheen, the app's filled button), `MetalButton`, `SlateButton` over art. Team-coloured draft buttons stay Material.
+- **Buttons:** `GoaButton` (bronze metal with a sheen, the app's filled button), `MetalButton`, `GoaOutlinedButton` (bronze edge), `SlateButton`
+  over art. Disabled, a button keeps its face and edge at 42 % (`Modifier.disabled`): still clearly the button it becomes. Team-coloured draft
+  buttons stay Material.
+- **Selection** (`SelectablePlate`, `GoaPlate(selected =)`, `Modifier.selectionFrame`, `SelectionMarkIcon`, `GoaFilterChip`): one look for every
+  single choice: a quiet plate, selected with a bronze 2 dp outline over a bronze tint (`selection`, `selectionFill`) and a bronze radio or check.
+- **Heads:** `SectionHeader` is the one section head (Cinzel small caps in copper, a fading copper hairline, an optional action; a card colour's
+  section may carry its ribbon). Inside a plate, `SubHeader` (Inter 13 semibold, muted, no rule).
+- **Numbers:** ratings and scores are `GoaTextStyles.score` / `scoreMedium` / `scoreLarge` (Inter semibold, lining tabular figures) on every
+  screen; Cinzel stays for headings.
 - **Bronze and teal:** bronze is selected and primary; teal is next, correct, "you can act".
 - **Card backs:** a facedown card shows its hero's own back (`official/heroes/<id>/back.webp`).
 
@@ -50,10 +66,11 @@ when a map has `art` (all four do); the drawn map stays as the fallback while lo
 - **Draft:** step on a title plate in a team-edged plate; pool tiles with portrait, symbol and parchment name; bans crossed out, dimmed and struck through. Words that name a team show its mark in line (`TeamText`). A finished draft is a plate per team with the seats divided; only the selected seat is framed.
 
 **Rules the screens keep:**
-- **Bronze is selected and primary; teal is next, correct, "you can act"** (a Hurry up or a running clock, a right answer, a rating gained). Chips, switches and picked rows are bronze on every screen. Timer's teal progress arc is the running clock.
-- **One plate per section, dividers inside, brackets on the outer plate only:** a team's seats, a preset's phases, the rules topics, both leaderboards. A floating button is its icon alone with large text, and a list under one keeps room for it at its end.
+- **Bronze is selected and primary; teal is next, correct, "you can act"** (a Hurry up or a running clock, a right answer, a rating gained). Chips, switches and picked rows are bronze on every screen, all through the one selection look (`SelectablePlate`); never a teal or team-coloured outline for a pick. Team colours mark teams only. Timer's teal progress arc is the running clock.
+- **One plate per section, dividers inside, brackets on the outer plate only:** a team's seats, a preset's phases, the rules topics, both leaderboards. Plates never nest (an inner one is a well). Settings and prose are secondary plates. A floating button is its icon alone with large text, and a list under one keeps room for it at its end.
 - **A title on the banner** shrinks, then takes two lines, and only then is cut (`BannerTitle`, `.goa-topbar-title`); a rules topic shows its head alone with large text. The timer's second line goes on a phone under 360 wide (TalkBack still hears it).
-- **The search field** is the plate's dark slot in both themes.
+- **The search field** is the plate's slot: the slate in the dark theme, paper with a steel edge in the light one.
+- **The light theme is designed, not inverted:** the warm paper canvas, paper plates with steel edges, ink text; the steel banner, the timer and the map stay dark, as on the page.
 
 ## Direction: "Steel and bronze" — the game's own look (ADR-042)
 The app is styled on the official graphics and leans on them wherever they serve the player: the
@@ -83,7 +100,7 @@ bronze" (deep-ocean dark with bronze and teal), which stays as the canvas and th
 
 **Where we deviate, and why:**
 - **Dark canvas, not the white page.** The rulebook is white paper; at a dim table a white screen
-  glares and drains the battery. Dark navy stays the default canvas; light theme is a warm off-white.
+  glares and drains the battery. Dark navy stays the default canvas; the light theme is the page: warm paper with paper plates on it.
 - **Contrast.** Every pair is checked to WCAG (≥ 4.5:1 text), which the print doesn't need: the
   copper is lighter in the dark theme (`#E39B5F`) than the print's, the parchment dimmer (`#D9D2C1`).
 - **Legibility at phone size.** The official item icons are grey sketches and the minion Spawn
@@ -101,18 +118,18 @@ bronze" (deep-ocean dark with bronze and teal), which stays as the canvas and th
 ## Tokens (`core:designsystem`)
 | Token | Dark | Light | Use |
 |-------|------|-------|-----|
-| background | `#0B1622` | `#F4EFE6` | app canvas |
-| surface | `#122334` | `#FFFFFF` | cards, sheets |
-| onSurface | `#E8E2D6` | `#1A1F26` | body text |
-| onSurfaceVariant | `#A9B4C2` | `#4A5563` | secondary text |
-| primary (bronze) | `#C9A35B` | `#84662A` | key actions, headings accent |
+| background | `#0B1622` | `#EDE7DB` | app canvas |
+| surface | `#1E2327` | `#FCFAF4` | cards, sheets (the light plate's paper) |
+| onSurface | `#E8E2D6` | `#221D17` | body text (ink) |
+| onSurfaceVariant | `#B4BEC8` | `#554D41` | secondary text |
+| primary (bronze) | `#C9A35B` | `#7A5A1E` | key actions, headings accent |
 | onPrimary | `#0B1622` | `#FFFFFF` | text/icons on filled primary |
-| secondary (tide teal) | `#3FC1B0` | `#1B786B` | progress, timers, selection |
-| team red | `#E26459` | `#B83A30` | red team |
+| secondary (tide teal) | `#3FC1B0` | `#17695E` | progress, timers, next and correct |
+| team red | `#E76C61` | `#B0362C` | red team |
 | team blue | `#4F8FE0` | `#2C63B0` | blue team |
 | error | `#FF6B6B` | `#B3261E` | |
-| surfaceHigh (surfaceVariant) | `#1A2E44` | `#EDE5D6` | raised rows, portrait frame top |
-| verified | `#3FC1B0` | `#1B786B` | "Verified" badge (= secondary) |
+| surfaceHigh (surfaceVariant) | `#2A3136` | `#F1EBDF` | raised rows, portrait frame top |
+| verified | `#3FC1B0` | `#17695E` | "Verified" badge (= secondary) |
 | unverified | `#E8B04A` | `#8A5A00` | "Unverified" badge |
 | engravedBorder | bronze 30 % | bronze 30 % | card/chip borders (decorative) |
 | bronzeGlow | bronze 18 % | bronze 14 % | top sheen of frames/cards (decorative) |
@@ -125,6 +142,8 @@ bronze" (deep-ocean dark with bronze and teal), which stays as the canvas and th
 | onParchment / onParchmentVariant | `#231C14` / `#54483A` | `#231C14` / `#5A4E3E` | printed text / reminders on parchment |
 | parchmentInk | `#8A3F18` | same | inline game icons on parchment |
 | parchmentEdge | `#8C826E` | `#B9AE98` | parchment border (decorative) |
+| plate / plateWell | `#1D2124` / `#15191B` | `#FCFAF4` / `#F1ECE2` | a plate's flat tone (fields, fades) / a recess on it |
+| selection / selectionFill | bronze / bronze 16 % | bronze / bronze 12 % | the picked choice's outline and tint |
 
 **Player palette** (`PlayerColors`, 10 swatches). `Player.color` stores the dark tone;
 `playerColor(argb)` draws the theme tone, so names and crests read in both themes:

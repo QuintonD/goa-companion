@@ -120,6 +120,18 @@ object GoaTextStyles {
     /** Inline tabular numbers inside body copy (ratings, win rates, durations). */
     val numeric: TextStyle = body(14, 20, FontWeight.Medium, 0.0).copy(fontFeatureSettings = "tnum, lnum")
 
+    /**
+     * Ratings and scores wherever they show (Elo, a leaderboard's points, a rating change): Inter semibold with lining
+     * tabular figures, so the same number looks the same on every screen. Cinzel stays for headings.
+     */
+    val score: TextStyle = body(16, 22, FontWeight.SemiBold, 0.0).copy(fontFeatureSettings = "tnum, lnum")
+
+    /** [score] in a row of a leaderboard or a stat tile. */
+    val scoreMedium: TextStyle = body(22, 28, FontWeight.SemiBold, -0.2).copy(fontFeatureSettings = "tnum, lnum")
+
+    /** [score] as a page's headline number (a player's rating). */
+    val scoreLarge: TextStyle = body(30, 36, FontWeight.SemiBold, -0.5).copy(fontFeatureSettings = "tnum, lnum")
+
     /** Small engraved caps for section overlines ("ROSTER", "OWNED PRODUCTS"). */
     val overline: TextStyle = display(12, 16, FontWeight.Bold, 1.5)
 
@@ -128,6 +140,9 @@ object GoaTextStyles {
      * caps ("Place the Board"). Coloured with `GoaTheme.colors.heading` (copper).
      */
     val sectionHead: TextStyle = display(16, 22, FontWeight.Bold, 0.6)
+
+    /** A group's label inside a plate (`SubHeader`): Inter semibold, muted, no rule. */
+    val subHead: TextStyle = body(13, 18, FontWeight.SemiBold, 0.2)
 
     /** Top-bar titles on the steel banner (Cinzel, engraved caps). */
     val bannerTitle: TextStyle = display(21, 28, FontWeight.Bold, 0.8)

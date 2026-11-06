@@ -1,6 +1,7 @@
 package dev.quinton.goa.core.designsystem
 
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.compositeOver
 import androidx.compose.ui.graphics.luminance
 import com.google.common.truth.Truth.assertWithMessage
 import dev.quinton.goa.core.designsystem.component.OfficialArt
@@ -58,11 +59,25 @@ class ContrastTest {
         }
     }
 
+    /** The light theme's paper plate and its well, and a picked choice's bronze tint over either theme's plate. */
+    @Test fun textOnPlates() = themes().forEach { (theme, scheme, x) ->
+        val picked = x.selectionFill.compositeOver(x.plate)
+        listOf("plate" to x.plate, "well" to x.plateWell, "picked" to picked).forEach { (name, bg) ->
+            check("$theme onSurface on $name", scheme.onSurface, bg, TEXT)
+            check("$theme onSurfaceVariant on $name", scheme.onSurfaceVariant, bg, TEXT)
+            check("$theme primary on $name", scheme.primary, bg, TEXT)
+            check("$theme heading on $name", x.heading, bg, TEXT)
+            check("$theme secondary on $name", scheme.secondary, bg, TEXT)
+        }
+        check("$theme selection edge", x.selection, x.plate, GRAPHIC)
+    }
+
     @Test fun everyOfficialGraphicTheAppNamesIsBundled() {
         OfficialArt.all.forEach { path -> assertWithMessage(path).that(bundledAsset(path).isFile).isTrue() }
     }
 
     private companion object {
         const val TEXT = 4.5
+        const val GRAPHIC = 3.0
     }
 }

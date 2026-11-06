@@ -1,5 +1,6 @@
 package dev.quinton.goa.core.designsystem.component
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -11,6 +12,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.drawWithCache
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
@@ -30,11 +32,11 @@ import dev.quinton.goa.core.designsystem.theme.GoaTheme
 private val METAL_SHAPE = RoundedCornerShape(7.dp)
 
 /**
- * A metal face for a button: bronze for the main action, steel otherwise. Its top edge catches the light.
+ * A metal face for a button: bronze for the main action, steel otherwise. Its top edge catches the light. Disabled,
+ * the same face faded ([disabled]): still clearly the button it will be.
  */
-private fun Modifier.metalFace(bronze: Boolean, enabled: Boolean): Modifier = drawWithCache {
+private fun Modifier.metalFace(bronze: Boolean, enabled: Boolean): Modifier = disabled(enabled).drawWithCache {
     val fill = when {
-        !enabled -> Brush.verticalGradient(listOf(STEEL_LOW, STEEL_LOW))
         bronze -> Brush.verticalGradient(0f to BRONZE_TOP, BRONZE_MID_AT to BRONZE_MID, 1f to BRONZE_LOW)
         else -> Brush.verticalGradient(listOf(STEEL_TOP, STEEL_LOW))
     }
@@ -44,14 +46,12 @@ private fun Modifier.metalFace(bronze: Boolean, enabled: Boolean): Modifier = dr
     onDrawBehind {
         drawRoundRect(fill, cornerRadius = radius)
         drawRoundRect(EDGE_DARK, cornerRadius = radius, style = Stroke(edge))
-        if (enabled) {
-            drawLine(
-                sheen,
-                Offset(radius.x, edge * 1.5f),
-                Offset(size.width - radius.x, edge * 1.5f),
-                strokeWidth = edge,
-            )
-        }
+        drawLine(
+            sheen,
+            Offset(radius.x, edge * 1.5f),
+            Offset(size.width - radius.x, edge * 1.5f),
+            strokeWidth = edge,
+        )
     }
 }
 
@@ -75,7 +75,7 @@ fun MetalButton(
             containerColor = Color.Transparent,
             contentColor = if (bronze) INK else STEEL_INK,
             disabledContainerColor = Color.Transparent,
-            disabledContentColor = STEEL_INK.copy(alpha = DISABLED_INK),
+            disabledContentColor = if (bronze) INK else STEEL_INK,
         ),
         modifier = modifier.metalFace(bronze, enabled),
         content = content,
@@ -103,19 +103,47 @@ fun SlateButton(
     contentPadding: PaddingValues = ButtonDefaults.ButtonWithIconContentPadding,
     content: @Composable RowScope.() -> Unit,
 ) {
+    // Over art in both themes: the slate, never the light theme's paper.
+    GoaDarkTheme {
+        OutlinedButton(
+            onClick = onClick,
+            enabled = enabled,
+            shape = METAL_SHAPE,
+            contentPadding = contentPadding,
+            border = null,
+            colors = ButtonDefaults.outlinedButtonColors(
+                containerColor = Color.Transparent,
+                contentColor = STEEL_INK,
+                disabledContainerColor = Color.Transparent,
+                disabledContentColor = STEEL_INK,
+            ),
+            modifier = modifier.disabled(enabled).slatePlate(METAL_SHAPE, brackets = false),
+            content = content,
+        )
+    }
+}
+
+/**
+ * The app's outlined button: a bronze edge, words in the theme's ink. Disabled it keeps its shape and edge, faded
+ * ([disabled]), so it still reads as the button it becomes. Use it instead of Material's `OutlinedButton`.
+ */
+@Composable
+fun GoaOutlinedButton(
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    enabled: Boolean = true,
+    contentPadding: PaddingValues = ButtonDefaults.ContentPadding,
+    content: @Composable RowScope.() -> Unit,
+) {
+    val ink = MaterialTheme.colorScheme.onSurface
     OutlinedButton(
         onClick = onClick,
         enabled = enabled,
         shape = METAL_SHAPE,
         contentPadding = contentPadding,
-        border = null,
-        colors = ButtonDefaults.outlinedButtonColors(
-            containerColor = Color.Transparent,
-            contentColor = STEEL_INK,
-            disabledContainerColor = Color.Transparent,
-            disabledContentColor = STEEL_INK.copy(alpha = DISABLED_INK),
-        ),
-        modifier = modifier.slatePlate(METAL_SHAPE, brackets = false),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = OUTLINE_ALPHA)),
+        colors = ButtonDefaults.outlinedButtonColors(contentColor = ink, disabledContentColor = ink),
+        modifier = modifier.disabled(enabled),
         content = content,
     )
 }
@@ -154,5 +182,11 @@ private val EDGE_DARK = Color(0xFF15191B)
 private const val BRONZE_MID_AT = 0.55f
 private const val BRONZE_SHEEN = 0.6f
 private const val STEEL_SHEEN = 0.18f
-private const val DISABLED_INK = 0.5f
+
+/** A disabled button: its own shape and colours, faded as a whole (Material's 38 %, a little more on the slate). */
+const val DISABLED_ALPHA = 0.42f
+
+/** Fades a disabled control as a whole, so it keeps its shape and reads as the button it will become. */
+fun Modifier.disabled(enabled: Boolean): Modifier = if (enabled) this else alpha(DISABLED_ALPHA)
 private const val BANNER_DISABLED = 0.6f
+private const val OUTLINE_ALPHA = 0.8f

@@ -22,15 +22,17 @@ internal object Tokens {
     val DarkUnverified = Color(0xFFE8B04A)
     val DarkMedallion = Color(0xFF07101A)
 
-    val LightBackground = Color(0xFFF4EFE6)
-    val LightSurface = Color(0xFFFFFFFF)
-    val LightSurfaceHigh = Color(0xFFEDE5D6)
-    val LightOnSurface = Color(0xFF1A1F26)
-    val LightOnSurfaceVariant = Color(0xFF4A5563)
-    val LightPrimary = Color(0xFF84662A)
+    // The light theme is the rulebook's page (ADR-053, round 1 of the hill climb): a warm paper canvas, plates of
+    // white paper with a steel edge, ink text and bronze accents. Only the timer and the map stay dark.
+    val LightBackground = Color(0xFFEDE7DB)
+    val LightSurface = Color(0xFFFCFAF4)
+    val LightSurfaceHigh = Color(0xFFF1EBDF)
+    val LightOnSurface = Color(0xFF221D17)
+    val LightOnSurfaceVariant = Color(0xFF554D41)
+    val LightPrimary = Color(0xFF7A5A1E)
     val LightOnPrimary = Color(0xFFFFFFFF)
-    val LightSecondary = Color(0xFF1B786B)
-    val LightTeamRed = Color(0xFFB83A30)
+    val LightSecondary = Color(0xFF17695E)
+    val LightTeamRed = Color(0xFFB0362C)
     val LightTeamBlue = Color(0xFF2C63B0)
     val LightError = Color(0xFFB3261E)
     val LightUnverified = Color(0xFF8A5A00)
@@ -56,6 +58,11 @@ internal object Tokens {
     val ParchmentInk = Color(0xFF8A3F18)
     val DarkParchmentEdge = Color(0xFF8C826E)
     val LightParchmentEdge = Color(0xFFB9AE98)
+
+    val DarkPlate = Color(0xFF1D2124)
+    val DarkPlateWell = Color(0xFF15191B)
+    val LightPlate = LightSurface
+    val LightPlateWell = Color(0xFFF1ECE2)
 }
 
 internal val DarkColors = darkColorScheme(
@@ -92,7 +99,7 @@ internal val DarkColors = darkColorScheme(
 internal val LightColors = lightColorScheme(
     primary = Tokens.LightPrimary,
     onPrimary = Tokens.LightOnPrimary,
-    primaryContainer = Color(0xFFF1E2C0),
+    primaryContainer = Color(0xFFF0E1BF),
     onPrimaryContainer = Color(0xFF3A2A08),
     secondary = Tokens.LightSecondary,
     onSecondary = Tokens.LightOnPrimary,
@@ -114,8 +121,8 @@ internal val LightColors = lightColorScheme(
     surfaceContainer = Tokens.LightSurface,
     surfaceContainerHigh = Tokens.LightSurfaceHigh,
     surfaceContainerHighest = Tokens.LightSurfaceHigh,
-    outline = Tokens.LightPrimary.copy(alpha = 0.3f),
-    outlineVariant = Tokens.LightOnSurfaceVariant.copy(alpha = 0.3f),
+    outline = Tokens.LightPrimary.copy(alpha = 0.4f),
+    outlineVariant = Tokens.LightOnSurfaceVariant.copy(alpha = 0.25f),
     error = Tokens.LightError,
     onError = Tokens.LightOnPrimary,
 )
@@ -159,6 +166,13 @@ data class GoaExtendedColors(
     /** Inline game icons on parchment (≥ 4.9:1). */
     val parchmentInk: Color = Tokens.ParchmentInk,
     val parchmentEdge: Color = Tokens.DarkParchmentEdge,
+    /** A plate's flat tone (the slate, or the light theme's paper): fields and fades that sit on a plate. */
+    val plate: Color = Tokens.DarkPlate,
+    /** A recess on a plate: a field, a well, a quiet group. */
+    val plateWell: Color = Tokens.DarkPlateWell,
+    /** Selected: the bronze outline and the tint under a picked choice (`SelectablePlate`). */
+    val selection: Color = Tokens.DarkPrimary,
+    val selectionFill: Color = Tokens.DarkPrimary.copy(alpha = 0.16f),
 )
 
 internal val DarkExtended = GoaExtendedColors(
@@ -203,6 +217,10 @@ internal val LightExtended = GoaExtendedColors(
     parchment = Tokens.LightParchment,
     onParchmentVariant = Tokens.LightOnParchmentVariant,
     parchmentEdge = Tokens.LightParchmentEdge,
+    plate = Tokens.LightPlate,
+    plateWell = Tokens.LightPlateWell,
+    selection = Tokens.LightPrimary,
+    selectionFill = Tokens.LightPrimary.copy(alpha = 0.12f),
 )
 
 val LocalGoaColors = staticCompositionLocalOf { DarkExtended }
