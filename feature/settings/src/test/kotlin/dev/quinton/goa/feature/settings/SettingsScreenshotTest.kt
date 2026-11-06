@@ -50,6 +50,23 @@ class SettingsScreenshotTest {
 
     @Composable private fun About() = AboutScreen(PreviewAppInfo, onBack = {})
 
+    @Test fun moreDark() = capture(ThemeMode.DARK) { MoreScreen(onOpen = {}) }
+
+    @Test fun moreLight() = capture(ThemeMode.LIGHT) { MoreScreen(onOpen = {}) }
+
+    @Test
+    @Config(qualifiers = "w384dp-h832dp-xxhdpi")
+    fun moreW384DarkFontScale2() = capture(ThemeMode.DARK, 2f) { MoreScreen(onOpen = {}) }
+
+    @Test fun moreRowsSayWhereTheyGo() {
+        val opened = mutableListOf<MoreLink>()
+        compose.setContent { GoaTheme { MoreScreen(onOpen = { opened += it }) } }
+        compose.onNodeWithText("Draft").performClick()
+        compose.onNodeWithText("Rules").performClick()
+        compose.onNodeWithText("Group sync").performClick()
+        assertThat(opened).containsExactly(MoreLink.DRAFT, MoreLink.RULES, MoreLink.GROUP_SYNC).inOrder()
+    }
+
     @Test fun settingsDark() = capture(ThemeMode.DARK) { Settings() }
 
     @Test fun settingsLight() = capture(ThemeMode.LIGHT) { Settings() }

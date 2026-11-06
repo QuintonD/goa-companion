@@ -21,8 +21,7 @@ class SettingsFlowTest {
     fun themeSwitchesToLightAndBack() {
         rule.waitForText("32 heroes")
         assertTrue("Dark is the default theme", backgroundLuminance() < 0.3f)
-        rule.tapDescription("Settings")
-        rule.waitForText("Theme")
+        rule.openSettings()
         rule.tap(hasText("Light") and hasClickAction())
         rule.waitUntil(TIMEOUT) { backgroundLuminance() > 0.7f }
         rule.tap(hasText("Dark") and hasClickAction())
@@ -32,14 +31,14 @@ class SettingsFlowTest {
     @Test
     fun ownedProductsScopeTheCatalog() {
         rule.waitForText("32 heroes")
-        rule.tapDescription("Settings")
+        rule.openSettings()
         // Switching "everything" off keeps every product ticked (nothing disappears yet); the
         // group then unticks what it doesn't own, down to the base game (Core, 7 heroes).
         rule.tap(hasText("I own every product") and hasClickAction())
         rule.waitForText("6 of 6 products owned")
-        rule.tapDescription("Back")
+        rule.openTab("catalog")
         rule.waitForText("32 heroes")
-        rule.tapDescription("Settings")
+        rule.openSettings()
         listOf("Devoted", "Defiant", "Renowned", "Arcane", "Wayward").forEachIndexed { i, product ->
             rule.tap(hasText(product) and hasClickAction())
             rule.waitForText("${5 - i} of 6 products owned")
@@ -47,26 +46,26 @@ class SettingsFlowTest {
         // The pool is never empty: the last owned product can't be unticked.
         rule.tap(hasText("Core") and hasClickAction())
         rule.waitForText("1 of 6 products owned")
-        rule.tapDescription("Back")
+        rule.openTab("catalog")
         rule.waitForText("7 heroes")
 
         // Wayward (5 heroes) on, then off again.
-        rule.tapDescription("Settings")
+        rule.openSettings()
         rule.tap(hasText("Wayward") and hasClickAction())
         rule.waitForText("2 of 6 products owned")
-        rule.tapDescription("Back")
+        rule.openTab("catalog")
         rule.waitForText("12 heroes")
-        rule.tapDescription("Settings")
+        rule.openSettings()
         rule.tap(hasText("Wayward") and hasClickAction())
         rule.waitForText("1 of 6 products owned")
-        rule.tapDescription("Back")
+        rule.openTab("catalog")
         rule.waitForText("7 heroes")
 
         // Restore: owning everything brings all 32 back.
-        rule.tapDescription("Settings")
+        rule.openSettings()
         rule.tap(hasText("I own every product") and hasClickAction())
         rule.waitForText("All heroes are available in drafts and filters")
-        rule.tapDescription("Back")
+        rule.openTab("catalog")
         rule.waitForText("32 heroes")
     }
 

@@ -25,8 +25,7 @@ class CoachSuggestFlowTest {
     fun suggestAtTheFirstCardPlayAnswersNothing() {
         rule.openTab("catalog")
         rule.waitForText("32 heroes")
-        rule.openFromPlay("Board")
-        rule.tap(hasText("Play against the computer") and hasClickAction())
+        rule.openFromPlay("Play vs computer")
 
         rule.waitForText("Tap heroes below")
         listOf("Wasp", "Brogan", "Arien", "Xargatha", "Tigerclaw", "Sabina").forEach { hero ->

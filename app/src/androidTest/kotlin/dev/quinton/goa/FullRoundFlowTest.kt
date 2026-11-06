@@ -36,8 +36,7 @@ class FullRoundFlowTest {
     fun openAFullRoundReadItsPlanAndReplayItsSolution() {
         rule.openTab("catalog")
         rule.waitForText("32 heroes")
-        rule.openFromPlay("Board")
-        rule.tap(hasText("Puzzles", substring = true) and hasClickAction())
+        rule.openFromPlay("Puzzles")
 
         rule.reveal(hasText("FULL ROUNDS"))
         rule.waitForText("FULL ROUNDS")
