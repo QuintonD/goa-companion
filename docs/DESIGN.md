@@ -309,13 +309,14 @@ Unverified badge; when the panel closes the map fills its place again (no band o
 push brings the new Battle Zone into view. "Fit" shows the whole map and turns into "Zoom to the
 lane". Each space's TalkBack node is a square inside its hex (1.46 map units, so neighbours never
 overlap and Android keeps each node whole). The card strip starts one card before the chosen card
-and fades at an edge with more cards beyond. **New board** keeps its teams, search and Set up fixed on a 384 dp phone:
+and fades at an edge with more cards beyond. **New board** fits a 384 dp phone without scrolling:
 one slot on top holds the latest draft's or match's line-up (a card with Set up) until the first
 pick, then the teams (pick chips sharing the row, "Next pick" spelled out on an empty team, the
 border and the switch otherwise); search with a segmented Red | Blue switch beside it (under it at
-large text); a portrait grid that scrolls under them, tiles at least 78 dp (four across a 384 dp phone,
-112 dp with large text), each with the gap around it and the name under it in labelLarge, which shrinks
-rather than cuts, one tap target; and the Map menu beside Set up in the bottom bar. A finished draft pins Set up match, Log result later and Try on the board
+large text); a portrait grid with as many columns as it takes to fit every hero (tiles 42–64 dp,
+each with the gap around it and the name under it, semibold labelMedium, which shrinks to fit, one tap target of at
+least 48 dp; a pick's badge is the team's mark and its number in labelLarge); and the Map menu beside Set up in the
+bottom bar. A finished draft pins Set up match, Log result later and Try on the board
 under the teams on a phone held upright.
 
 ### Play against the computer (ADR-035, ADR-041)
@@ -435,8 +436,8 @@ appears only where the log names it. The hidden panel's peek and the log sheet a
 keeps every line). The coach's nudge is a secondary-container card with "Choose anyway"
 (outlined) and "Rethink" (filled). Game over leads with "You won" / "The computer won" in a card
 bordered in the winner's colour, the rulebook reason, each hero's results, then the coach's turning
-points by round and turn. New game reuses New board's picker; heroes not yet playable come last, folded
-under "NOT PLAYABLE YET · n" (veiled and marked "Later" when opened). Options: the line-up plate, then
+points by round and turn. New game reuses New board's picker; heroes not yet playable are veiled and
+marked "Later". Options: the line-up plate, then
 **You play** as "One hero | Whole team" (2 v 2 and up) and portrait chips for the heroes or the teams (the
 chosen one bordered in its team's colour with a check), "The computer plays …" under them; strength, length
 (its note under the segments), map and a Coach switch row, all above the fixed coin button. **Computer strength** (ADR-039) is a Material 3 slider, 1 to 10 with a tick per step

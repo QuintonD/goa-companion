@@ -683,21 +683,10 @@ private fun WaitingTray(state: BoardUiState.Ready, onAction: (BoardAction) -> Un
 }
 
 /**
- * The bar's short title and the line under it, so neither is cut beside undo and redo: "2 v 2" over "Forgotten
- * Island · Arien, Brogan vs Wasp, Tigerclaw" while the board keeps the name it was given from its line-up; a
- * name of the person's own stays the title, with "2 v 2 · Forgotten Island" under it.
+ * The bar's title is the board's name, its line-up ("Arien, Brogan vs Wasp, Tigerclaw"), which shrinks to two
+ * lines rather than being cut; the map's name goes under it only where both fit the bar.
  */
-private fun boardHeading(state: BoardUiState.Ready): Pair<String, String?> {
-    val lineup = state.board.lineup
-    val empty = lineup.red.isEmpty() && lineup.blue.isEmpty()
-    val heroes = BoardText.boardName(lineup) { state.heroes.hero(it).name }
-    val size = "${lineup.red.size} v ${lineup.blue.size}"
-    return when {
-        state.board.name != heroes -> state.board.name to if (empty) state.map.name else "$size · ${state.map.name}"
-        empty -> heroes to state.map.name
-        else -> size to "${state.map.name} · $heroes"
-    }
-}
+private fun boardHeading(state: BoardUiState.Ready): Pair<String, String?> = state.board.name to state.map.name
 
 private val SIDE_PANEL = 380.dp
 private const val PANEL_MAX = 0.5f

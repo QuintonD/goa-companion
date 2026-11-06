@@ -32,7 +32,6 @@ import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.selectable
-import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicText
@@ -44,8 +43,6 @@ import androidx.compose.material.icons.automirrored.outlined.ArrowForward
 import androidx.compose.material.icons.outlined.ArrowDropDown
 import androidx.compose.material.icons.outlined.Check
 import androidx.compose.material.icons.outlined.DeleteOutline
-import androidx.compose.material.icons.outlined.ExpandLess
-import androidx.compose.material.icons.outlined.ExpandMore
 import androidx.compose.material.icons.outlined.History
 import androidx.compose.material.icons.outlined.SwapHoriz
 import androidx.compose.material3.CircularProgressIndicator
@@ -61,6 +58,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.ReadOnlyComposable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
@@ -78,10 +76,10 @@ import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
-import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.onClick
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -118,9 +116,9 @@ import dev.quinton.goa.feature.board.ui.cards.CardFocusHost
 import dev.quinton.goa.feature.board.ui.cards.rememberCardFocusState
 
 /**
- * New board: the latest draft's line-up (Set up in one tap), both teams in pick order, search with the
- * "Adding to Red | Blue" switch beside it, all of it fixed above a hero grid of readable tiles that
- * scrolls, and the map and Set up at the bottom. Picks alternate like a draft (the team with fewer heroes picks
+ * New board, built to need no scrolling: the latest draft's line-up (Set up in one tap), both teams
+ * in pick order, search with the "Adding to Red | Blue" switch beside it, the hero grid, and the
+ * map and Set up at the bottom. Picks alternate like a draft (the team with fewer heroes picks
  * next); tapping Red or Blue picks for that team.
  */
 @Composable
@@ -292,10 +290,8 @@ private fun OneOf(
 private enum class OneOfSlot { ONE, OTHER }
 
 /**
- * The heroes to pick from, in tiles big enough to know at arm's length (at least [TILE_MIN]: four across a
- * 384 dp phone, the name under each); the teams above stay put while the grid scrolls. Heroes that can't
- * be seated yet ([LineupPicker.unavailable], New game) come last, folded under "Not playable yet". With
- * large text, fewer and bigger tiles.
+ * The heroes to pick from. In portrait the columns are chosen so every hero fits without
+ * scrolling ([heroGridColumns]); with large text, fewer and bigger tiles that scroll.
  */
 @Composable
 internal fun ColumnScope.HeroGrid(
@@ -306,15 +302,42 @@ internal fun ColumnScope.HeroGrid(
     start: Dp,
     end: Dp,
 ) {
-    var laterOpen by rememberSaveable { mutableStateOf(false) }
-    // Each cell is its tile plus half the gap on every side, all of it the tap target.
-    val half = TILE_GAP / 2
-    LazyVerticalGrid(
-        columns = GridCells.Adaptive((if (large) TILE_LARGE else TILE_MIN) + TILE_GAP),
-        contentPadding = PaddingValues(start = start - half, end = end - half, top = Spacing.xs, bottom = Spacing.md),
-        modifier = Modifier.weight(1f).fillMaxWidth(),
-    ) {
-        heroTiles(shown, state, onAction, pad = half, laterOpen = laterOpen, onLater = { laterOpen = it })
+    val density = LocalDensity.current
+    val label = with(density) { tileName().lineHeight.toDp() } + LABEL_GAP
+    BoxWithConstraints(Modifier.weight(1f).fillMaxWidth()) {
+        if (large) {
+            LazyVerticalGrid(
+                columns = GridCells.Adaptive(TILE_LARGE),
+                contentPadding = PaddingValues(start = start, end = end, bottom = Spacing.md),
+                horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+                verticalArrangement = Arrangement.spacedBy(Spacing.sm),
+                modifier = Modifier.fillMaxSize(),
+            ) {
+                heroTiles(shown, state, onAction, pad = 0.dp)
+            }
+        } else {
+            // Each cell is its tile plus half the gap on every side, all of it the tap target: a
+            // 42 dp portrait still takes a 48 dp tap.
+            val half = TILE_GAP / 2
+            val extra = if (state.ownedOnly) OWNED_ROW + Spacing.sm else 0.dp
+            val columns = heroGridColumns(
+                count = shown.size.coerceAtLeast(1),
+                width = (maxWidth - start - end + TILE_GAP).value,
+                height = (maxHeight - Spacing.md).value,
+                label = label.value,
+                spacing = 0f,
+                extra = extra.value,
+                minTile = (TILE_MIN + TILE_GAP).value,
+                maxTile = (TILE_MAX + TILE_GAP).value,
+            )
+            LazyVerticalGrid(
+                columns = GridCells.Fixed(columns),
+                contentPadding = PaddingValues(start = start - half, end = end - half, bottom = Spacing.md),
+                modifier = Modifier.fillMaxSize(),
+            ) {
+                heroTiles(shown, state, onAction, pad = half)
+            }
+        }
     }
 }
 
@@ -323,12 +346,8 @@ private fun LazyGridScope.heroTiles(
     state: LineupPicker,
     onAction: (NewBoardAction) -> Unit,
     pad: Dp,
-    laterOpen: Boolean,
-    onLater: (Boolean) -> Unit,
 ) {
-    // A hero already in a team stays with the playable ones, so a pick never hides under the fold.
-    val (later, playable) = heroes.partition { it.id in state.unavailable && !state.form.contains(it.id) }
-    items(playable, key = { it.id }) { hero -> HeroTile(hero, state, onAction, pad) }
+    items(heroes, key = { it.id }) { hero -> HeroTile(hero, state, onAction, pad) }
     if (heroes.isEmpty()) {
         item(key = "none", span = { GridItemSpan(maxLineSpan) }) {
             Text(
@@ -338,10 +357,6 @@ private fun LazyGridScope.heroTiles(
                 modifier = Modifier.padding(Spacing.lg),
             )
         }
-    }
-    if (later.isNotEmpty()) {
-        item(key = "later", span = { GridItemSpan(maxLineSpan) }) { LaterHeading(later.size, laterOpen, onLater) }
-        if (laterOpen) items(later, key = { it.id }) { hero -> HeroTile(hero, state, onAction, pad) }
     }
     if (state.ownedOnly) {
         item(key = "owned", span = { GridItemSpan(maxLineSpan) }) {
@@ -356,37 +371,6 @@ private fun LazyGridScope.heroTiles(
                 )
             }
         }
-    }
-}
-
-/** "Not playable yet · 3", folded: the heroes whose cards are still being built and tested. */
-@Composable
-private fun LaterHeading(count: Int, open: Boolean, onOpen: (Boolean) -> Unit) {
-    Row(
-        Modifier
-            .fillMaxWidth()
-            .padding(horizontal = TILE_GAP / 2)
-            .padding(top = Spacing.sm)
-            .clip(MaterialTheme.shapes.small)
-            .toggleable(value = open, role = Role.Button, onValueChange = onOpen)
-            .heightIn(min = 48.dp)
-            .semantics { stateDescription = if (open) "Shown" else "Hidden" },
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Column(Modifier.weight(1f)) {
-            Text(
-                "NOT PLAYABLE YET · $count",
-                style = GoaTextStyles.overline,
-                color = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.semantics { heading() },
-            )
-            Text(
-                "They join as soon as every one of their cards is built and tested.",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-        }
-        Icon(if (open) Icons.Outlined.ExpandLess else Icons.Outlined.ExpandMore, contentDescription = null)
     }
 }
 
@@ -666,18 +650,19 @@ private fun HeroTile(hero: BoardHero, state: LineupPicker, onAction: (NewBoardAc
                     Surface(
                         shape = RoundedCornerShape(50),
                         color = MaterialTheme.colorScheme.background.copy(alpha = 0.9f),
-                        border = BorderStroke(1.dp, edge),
-                        modifier = Modifier.align(Alignment.TopStart).padding(3.dp),
+                        border = BorderStroke(1.5.dp, edge),
+                        modifier = Modifier.align(Alignment.TopStart).padding(2.dp),
                     ) {
+                        // The pick badge reads across the table: the team's mark and its number, a size up.
                         Row(
-                            Modifier.padding(horizontal = 4.dp, vertical = 1.dp),
+                            Modifier.padding(horizontal = 5.dp, vertical = 1.dp),
                             verticalAlignment = Alignment.CenterVertically,
                         ) {
-                            TeamMark(team, markSize = 8.dp)
-                            Spacer(Modifier.width(2.dp))
+                            TeamMark(team, markSize = 10.dp)
+                            Spacer(Modifier.width(3.dp))
                             Text(
                                 "$pick",
-                                style = MaterialTheme.typography.labelSmall,
+                                style = MaterialTheme.typography.labelLarge,
                                 color = edge,
                                 fontWeight = FontWeight.Bold,
                             )
@@ -686,13 +671,14 @@ private fun HeroTile(hero: BoardHero, state: LineupPicker, onAction: (NewBoardAc
                 }
             }
         }
-        // Shrinks to fit rather than cutting the name ("Silverarrow", not "Silvera…").
-        val style = MaterialTheme.typography.labelLarge
+        // Shrinks to fit a small tile rather than cutting the name ("Silverarrow", not "Silvera…").
+        val style = tileName()
         BasicText(
             hero.name,
             style = style.copy(
                 textAlign = TextAlign.Center,
                 letterSpacing = 0.sp,
+                fontWeight = if (team != null) FontWeight.Bold else style.fontWeight,
                 color = if (action == null && team == null) {
                     MaterialTheme.colorScheme.onSurfaceVariant
                 } else {
@@ -704,10 +690,15 @@ private fun HeroTile(hero: BoardHero, state: LineupPicker, onAction: (NewBoardAc
             maxLines = 1,
             overflow = TextOverflow.Clip,
             autoSize = TextAutoSize.StepBased(minFontSize = LABEL_MIN, maxFontSize = style.fontSize),
-            modifier = Modifier.fillMaxWidth().padding(top = 4.dp),
+            modifier = Modifier.fillMaxWidth().padding(top = 2.dp),
         )
     }
 }
+
+/** A tile's name: a size up from the smallest label and semibold, so it reads at arm's length. */
+@Composable
+@ReadOnlyComposable
+private fun tileName(): TextStyle = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.SemiBold)
 
 /**
  * A hero that can't be seated yet (New game: not every card of it is built and tested): the
@@ -878,10 +869,13 @@ private fun SourceRow(source: LineupSource, onClick: () -> Unit) {
     }
 }
 
-/** Portrait tiles at least this wide (four across a 384 dp phone), with this gap between them. */
-private val TILE_MIN = 78.dp
-private val TILE_GAP = 8.dp
-private val LABEL_MIN = 9.sp
-private val TILE_LARGE = 112.dp
+/** Portrait tiles: as big as fits, between these; with the gap around it a tile is at least a 48 dp tap. */
+private val TILE_MIN = 42.dp
+private val TILE_MAX = 64.dp
+private val TILE_GAP = 6.dp
+private val LABEL_GAP = 2.dp
+private val LABEL_MIN = 7.sp
+private val OWNED_ROW = 48.dp
+private val TILE_LARGE = 104.dp
 private const val LARGE_FONT = 1.3f
 private const val SHEET_HEIGHT = 0.9f

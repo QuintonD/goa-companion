@@ -320,12 +320,12 @@ Life counters).
   duplicate, and a double tap never opens two. Boards also holds Play against the computer and
   Puzzles (9, 10) above the boards, so with no boards yet it shows those and "New board" rather than
   jumping to New board.
-- **New board:** both teams in pick order at the top (until the first pick, the
+- **New board without scrolling:** both teams in pick order at the top (until the first pick, the
   latest line-up's card stands in their place, in a slot as tall as either, so the grid never moves
   under the next tap), search with an "Adding to Red | Blue" switch beside it, a grid of the heroes
-  the group owns (Settings; "Show all heroes" lists the rest) in tiles readable at arm's length (at
-  least 78 dp, four across a 384 dp phone; names shrink rather than cut) that scrolls under the fixed
-  teams, and "Map: Forgotten Island ▾" (Unverified noted) beside **Set up** at the
+  the group owns (Settings; "Show all heroes" lists the rest) with as many columns as it takes to
+  show them all on a 384 dp phone (portraits 42–64 dp, each with its gap a 48 dp tap; names shrink
+  rather than cut), and "Map: Forgotten Island ▾" (Unverified noted) beside **Set up** at the
   bottom. Picks alternate like a draft: the next pick goes to the team with fewer heroes (a tie to
   the other team), so tapping Brogan, Tigerclaw, Arien, Wasp gives Brogan + Arien vs Tigerclaw + Wasp
   (5 taps with Set up); tapping Red or Blue picks for that team. "Use a draft or match" (top bar)
@@ -539,7 +539,7 @@ opponents (and teammates) at a strength from 1 to 10. One phone, one human team.
   (New game says so). A save that can't be read, or that the engine can no longer rebuild, is
   offered for deletion, never a crash. "End this game" deletes it.
 - **Until heroes are playable** the Boards entry and New game say play is coming; heroes not yet
-  playable come last in New game's grid, folded under "Not playable yet · n". Puzzles show as coming soon until a
+  playable show in New game's grid, veiled as "Later". Puzzles show as coming soon until a
   puzzle's heroes are all playable; then Boards' Puzzles entry says "N of M solved".
 - **Done when:** the Game state sheet shows nothing the person's live view did not (engine tests:
   facedown and unrevealed cards, enemy hands and tucked items never appear), with screenshots (light/

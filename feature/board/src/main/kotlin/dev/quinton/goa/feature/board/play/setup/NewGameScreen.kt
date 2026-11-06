@@ -32,6 +32,7 @@ import androidx.compose.material.icons.outlined.ExpandLess
 import androidx.compose.material.icons.outlined.ExpandMore
 import androidx.compose.material.icons.outlined.Hexagon
 import androidx.compose.material.icons.outlined.History
+import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -247,6 +248,7 @@ private fun LineupStep(
                         verticalArrangement = Arrangement.spacedBy(Spacing.sm),
                     ) {
                         Teams(picker, lineup, onSpellbook)
+                        PlayableNote(state)
                     }
                     LineupBar(state, onAction)
                 }
@@ -262,12 +264,35 @@ private fun LineupStep(
                     verticalArrangement = Arrangement.spacedBy(Spacing.xs),
                 ) {
                     Teams(picker, lineup, onSpellbook)
+                    PlayableNote(state)
                 }
                 search(Modifier.padding(horizontal = Spacing.screen))
                 HeroGrid(shown, picker, lineup, large, start = Spacing.screen, end = Spacing.screen)
                 LineupBar(state, onAction)
             }
         }
+    }
+}
+
+/** How many heroes can be played so far: the rest are veiled in the grid. */
+@Composable
+private fun PlayableNote(state: NewGameUiState.Ready) {
+    val later = state.picker.heroById.size - state.playable
+    if (later <= 0) return
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        Icon(
+            Icons.Outlined.Info,
+            null,
+            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.size(16.dp),
+        )
+        Spacer(Modifier.width(Spacing.xs))
+        Text(
+            "${BoardText.count(state.playable, "hero", "heroes")} can play so far; " +
+                "$later more join as their cards are tested.",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
     }
 }
 

@@ -941,7 +941,7 @@ class PlayScreenshotTest {
     @Test
     fun newGameLineupLandscapeDark() = capture(ThemeMode.DARK) { NewGame(remember { picked() }) }
 
-    /** A hero whose cards are still being tested (a new printing): last, folded under "Not playable yet". */
+    /** Heroes whose cards are still being tested (a new printing): veiled, "Later", and the note says how many. */
     @Test
     fun newGameLineupLaterDark() = capture(ThemeMode.DARK) {
         NewGame(

@@ -47,8 +47,9 @@ import dev.quinton.goa.core.designsystem.theme.GoaTheme
  * title bar, so the map gets the height. 48 dp with an 18 sp title in portrait, 40 dp with a 16 sp
  * title in landscape, where height is scarcest; it grows only when large text needs it. A title too
  * long for one line ("Arien, Brogan, Xargatha vs Wasp, Tigerclaw, Sabina") takes two lines at a
- * smaller size (13 sp) inside the same height; TalkBack hears it whole. A [subtitle] (the sandbox's heroes
- * under "2 v 2 · Forgotten Island") is one small line of app text under a one-line title. Icons keep
+ * smaller size (13 sp) inside the same height; TalkBack hears it whole. A [subtitle] (the sandbox's map) is
+ * a small line of app text under the title, shown only when the title takes one line and both fit the bar
+ * whole; otherwise the title alone, as above. Icons keep
  * their 48 dp touch targets, overlapping the bar's visible height. The content keeps clear of a
  * display cutout the app shell left (landscape, the camera side).
  *
@@ -101,15 +102,17 @@ private fun BoardTopBar(
         base.copy(fontSize = 18.sp * capped, lineHeight = 24.sp * capped)
     }
     val small = base.copy(fontSize = 13.sp * capped, lineHeight = 16.sp * capped)
-    val sub = MaterialTheme.typography.labelMedium.let {
+    val sub = MaterialTheme.typography.labelSmall.let {
         it.copy(fontSize = it.fontSize * capped, lineHeight = it.lineHeight * capped)
     }
     val density = LocalDensity.current
     // Too long for one line: two smaller ones, when they fit the bar.
     val twoFit = with(density) { small.lineHeight.toDp() } * 2 + TWO_LINE_AIR <= bar
+    // A subtitle only where it sits inside the bar with the title, clear of the banner's bevelled edge.
+    val subFits = subtitle != null &&
+        with(density) { oneLine.lineHeight.toDp() + sub.lineHeight.toDp() } + TITLE_AIR <= bar
     // Large text may need more than the bar's height: one line of the title plus a little air.
-    val subHeight = if (subtitle != null) with(density) { sub.lineHeight.toDp() } else 0.dp
-    val textHeight = with(density) { oneLine.lineHeight.toDp() } + subHeight + TITLE_AIR
+    val textHeight = with(density) { oneLine.lineHeight.toDp() } + TITLE_AIR
     val height: Dp = maxOf(bar, textHeight)
     // GoaScreen's steel banner (the rulebook's page banner), compact.
     Column(
@@ -135,10 +138,9 @@ private fun BoardTopBar(
                         measurer.measure(title, oneLine, maxLines = 1, constraints = Constraints(maxWidth = room))
                             .hasVisualOverflow
                     }
-                    if (subtitle != null) {
-                        // A short title over one line of what it stands for: never two lines of Cinzel.
+                    if (subtitle != null && subFits && !tooLong) {
                         Column(Modifier.semantics(mergeDescendants = true) { heading() }) {
-                            BevelText(text = title, style = if (tooLong) small else oneLine, maxLines = 1)
+                            BevelText(text = title, style = oneLine, maxLines = 1)
                             Text(
                                 subtitle,
                                 style = sub,
