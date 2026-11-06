@@ -99,7 +99,6 @@ fun EntryProviderScope<NavKey>.playersEntries(navigator: Navigator) {
             actions = PlayerEditActions(
                 onBack = navigator::back,
                 onNameChange = vm::onNameChange,
-                onColorChange = vm::onColorChange,
                 onAvatarChange = vm::onAvatarChange,
                 onSave = vm::save,
             ),

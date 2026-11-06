@@ -87,7 +87,7 @@ timers, stats). Study it for ideas and pitfalls; don't copy code or assets from 
   Doze, state survives process death and reboot, all controls work with TalkBack.
 
 ### 3. Players, matches and meta
-- Player profiles (name, colour, avatar from original avatar set). No accounts.
+- Player profiles (name, crest from the original crest set; crests are team-neutral, so no player colour on the phone). No accounts.
 - Log a match: date, mode, teams (Red/Blue), hero seats with their pilot (a player may
   **double-pilot** two heroes), handicap flags, winner, win
   condition (Throne / Last Push / Life counters / Other), duration, notes. Draft → pending
@@ -292,7 +292,7 @@ Ultimate), about 2,150 numbers over 32 heroes. Every question is generated from 
     summary): **Challenge** board = each player's best Challenge (score, then less answer time, then
     earlier); **Practice** board = every recorded round including Challenges: right answers (rank),
     accuracy, best streak, rounds. Period: All time / Last 30 days. Each row: place, the player's
-    colour and avatar, name ("You" tag), main figure and detail. Tap a player: their recent rounds,
+    crest, name ("You" tag), main figure and detail. Tap a player: their recent rounds,
     each removable ("Remove from leaderboard", confirmed; a tombstone, so it goes everywhere). Empty
     states say how to get on the board.
   - *Shared:* rounds sync with the group like matches (Group sync and sync files) and are in the
