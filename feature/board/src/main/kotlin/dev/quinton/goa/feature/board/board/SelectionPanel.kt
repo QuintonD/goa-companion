@@ -515,7 +515,8 @@ private fun CardChip(card: Card, selected: Boolean, onClick: () -> Unit) {
                     )
                 }
             }
-            Text(card.name, style = MaterialTheme.typography.labelLarge, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            // Two lines before an ellipsis: with large text "Raging Stream" stays whole, not "Raging St…".
+            Text(card.name, style = MaterialTheme.typography.labelLarge, maxLines = 2, overflow = TextOverflow.Ellipsis)
         }
     }
 }
