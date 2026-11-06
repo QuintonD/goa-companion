@@ -168,20 +168,22 @@ fun StatBar(label: String, range: StatRange?, modifier: Modifier = Modifier, sca
 /**
  * The one section head, as the rulebook sets them: Cinzel small caps in copper ("Place the Board", p.5),
  * then a fading copper hairline. Marked as a heading for TalkBack. [trailing] holds an optional
- * action (e.g. "Manage"); [ribbon] marks a card colour's section only. Inside a plate use [SubHeader].
+ * action (e.g. "Manage"); [ribbon] marks a card colour's section only; [padding] is [SectionHeaderPaddingTight] in a
+ * column that spaces its items itself. Inside a plate use [SubHeader].
  */
 @Composable
 fun SectionHeader(
     title: String,
     modifier: Modifier = Modifier,
     ribbon: PlateColor? = null,
+    padding: PaddingValues = SectionHeaderPadding,
     trailing: (@Composable () -> Unit)? = null,
 ) {
     val copper = GoaTheme.colors.heading
     Row(
         modifier
             .fillMaxWidth()
-            .padding(top = Spacing.lg, bottom = Spacing.sm),
+            .padding(padding),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         if (ribbon != null) {
@@ -315,6 +317,12 @@ fun SelectionMarkIcon(selected: Boolean, mark: SelectionMark = SelectionMark.Rad
 }
 
 private val SelectionShape = RoundedCornerShape(8.dp)
+
+/** A [SectionHeader]'s room: a clear break above, the plate close below. */
+val SectionHeaderPadding = PaddingValues(top = Spacing.lg, bottom = Spacing.sm)
+
+/** For a column that spaces its items already (a form of short sections): the head sits on that spacing. */
+val SectionHeaderPaddingTight = PaddingValues(top = Spacing.xs, bottom = 0.dp)
 
 /**
  * The app's card: a [GoaPlate] with roomier padding; [style] [PlateStyle.Secondary] for settings and prose.

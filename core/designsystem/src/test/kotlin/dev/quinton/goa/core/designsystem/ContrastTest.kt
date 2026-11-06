@@ -4,6 +4,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.compositeOver
 import androidx.compose.ui.graphics.luminance
 import com.google.common.truth.Truth.assertWithMessage
+import dev.quinton.goa.core.designsystem.component.DisabledFace
 import dev.quinton.goa.core.designsystem.component.OfficialArt
 import dev.quinton.goa.core.designsystem.theme.DarkColors
 import dev.quinton.goa.core.designsystem.theme.DarkExtended
@@ -72,6 +73,17 @@ class ContrastTest {
         check("$theme selection edge", x.selection, x.plate, GRAPHIC)
     }
 
+    /** A disabled metal button: its words legible as disabled UI, its edge visible on the canvas around it. */
+    @Test fun disabledButtons() {
+        listOf(
+            Triple("dark", DisabledFace.Dark, DarkColors.background),
+            Triple("light", DisabledFace.Light, LightColors.background),
+        ).forEach { (theme, face, canvas) ->
+            check("$theme disabled words", face.ink, face.fill, GRAPHIC)
+            check("$theme disabled edge", face.edge, canvas, DISABLED_EDGE)
+        }
+    }
+
     @Test fun everyOfficialGraphicTheAppNamesIsBundled() {
         OfficialArt.all.forEach { path -> assertWithMessage(path).that(bundledAsset(path).isFile).isTrue() }
     }
@@ -79,5 +91,6 @@ class ContrastTest {
     private companion object {
         const val TEXT = 4.5
         const val GRAPHIC = 3.0
+        const val DISABLED_EDGE = 1.6
     }
 }

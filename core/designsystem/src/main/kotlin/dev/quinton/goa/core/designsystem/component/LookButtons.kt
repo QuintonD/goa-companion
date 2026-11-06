@@ -33,10 +33,11 @@ private val METAL_SHAPE = RoundedCornerShape(7.dp)
 
 /**
  * A metal face for a button: bronze for the main action, steel otherwise. Its top edge catches the light. Disabled,
- * the same face faded ([disabled]): still clearly the button it will be.
+ * a flat, unlit slate ([off]) with a visible edge: the same shape, clearly off, never a faded bronze that reads as live.
  */
-private fun Modifier.metalFace(bronze: Boolean, enabled: Boolean): Modifier = disabled(enabled).drawWithCache {
+private fun Modifier.metalFace(bronze: Boolean, off: DisabledFace?): Modifier = drawWithCache {
     val fill = when {
+        off != null -> Brush.verticalGradient(listOf(off.fill, off.fill))
         bronze -> Brush.verticalGradient(0f to BRONZE_TOP, BRONZE_MID_AT to BRONZE_MID, 1f to BRONZE_LOW)
         else -> Brush.verticalGradient(listOf(STEEL_TOP, STEEL_LOW))
     }
@@ -45,13 +46,26 @@ private fun Modifier.metalFace(bronze: Boolean, enabled: Boolean): Modifier = di
     val sheen = Color.White.copy(alpha = if (bronze) BRONZE_SHEEN else STEEL_SHEEN)
     onDrawBehind {
         drawRoundRect(fill, cornerRadius = radius)
-        drawRoundRect(EDGE_DARK, cornerRadius = radius, style = Stroke(edge))
-        drawLine(
-            sheen,
-            Offset(radius.x, edge * 1.5f),
-            Offset(size.width - radius.x, edge * 1.5f),
-            strokeWidth = edge,
-        )
+        drawRoundRect(off?.edge ?: EDGE_DARK, cornerRadius = radius, style = Stroke(edge))
+        if (off == null) {
+            drawLine(
+                sheen,
+                Offset(radius.x, edge * 1.5f),
+                Offset(size.width - radius.x, edge * 1.5f),
+                strokeWidth = edge,
+            )
+        }
+    }
+}
+
+/** A disabled metal button's face, edge and words, per theme (the words ≥ 3:1 on the face, ContrastTest). */
+class DisabledFace internal constructor(val fill: Color, val edge: Color, val ink: Color) {
+    companion object {
+        /** On the slate and the dark canvas. */
+        val Dark = DisabledFace(fill = Color(0xFF262D32), edge = Color(0xFF4F5A61), ink = Color(0xFF8E979E))
+
+        /** On the light theme's paper. */
+        val Light = DisabledFace(fill = Color(0xFFE4E0D8), edge = Color(0xFF8C96A0), ink = Color(0xFF6A645A))
     }
 }
 
@@ -65,6 +79,7 @@ fun MetalButton(
     contentPadding: PaddingValues = ButtonDefaults.ContentPadding,
     content: @Composable RowScope.() -> Unit,
 ) {
+    val off = if (enabled) null else if (GoaTheme.isDark) DisabledFace.Dark else DisabledFace.Light
     Button(
         onClick = onClick,
         enabled = enabled,
@@ -75,9 +90,9 @@ fun MetalButton(
             containerColor = Color.Transparent,
             contentColor = if (bronze) INK else STEEL_INK,
             disabledContainerColor = Color.Transparent,
-            disabledContentColor = if (bronze) INK else STEEL_INK,
+            disabledContentColor = off?.ink ?: STEEL_INK,
         ),
-        modifier = modifier.metalFace(bronze, enabled),
+        modifier = modifier.metalFace(bronze, off),
         content = content,
     )
 }

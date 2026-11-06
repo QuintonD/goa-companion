@@ -27,8 +27,8 @@ area, `goa-look-*.css`). Every part falls back to a flat colour while its image 
 - **Ribbons, counters, icons:** `ColourRibbon` on a card colour's section head (`SectionHeader(ribbon =)`); `LifeCounterIcon`, `WaveCounterIcon`,
   `CoinIcon`, `ActionIcon`, the official item icons as stats. **Team marks** are the official gear and star (`TeamMark`).
 - **Buttons:** `GoaButton` (bronze metal with a sheen, the app's filled button), `MetalButton`, `GoaOutlinedButton` (bronze edge), `SlateButton`
-  over art. Disabled, a button keeps its face and edge at 42 % (`Modifier.disabled`): still clearly the button it becomes. Team-coloured draft
-  buttons stay Material.
+  over art. Disabled, a metal button is a flat unlit slate with a visible edge and muted words (`DisabledFace`, ≥ 3:1): clearly off, never a faded
+  bronze. Outlined and slate buttons keep their shape at 42 % (`Modifier.disabled`). Team-coloured draft buttons stay Material.
 - **Selection** (`SelectablePlate`, `GoaPlate(selected =)`, `Modifier.selectionFrame`, `SelectionMarkIcon`, `GoaFilterChip`): one look for every
   single choice: a quiet plate, selected with a bronze 2 dp outline over a bronze tint (`selection`, `selectionFill`) and a bronze radio or check.
 - **Heads:** `SectionHeader` is the one section head (Cinzel small caps in copper, a fading copper hairline, an optional action; a card colour's
