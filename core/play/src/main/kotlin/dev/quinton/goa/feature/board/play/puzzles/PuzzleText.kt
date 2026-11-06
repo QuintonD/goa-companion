@@ -93,6 +93,38 @@ object PuzzleText {
         }
     }
 
+    /**
+     * "Why it works" as numbered lines to scan, split from the puzzle's own words and never reworded: a full
+     * round's paragraphs by turn ("Turn 2", with any paragraph before them as the [WhyItWorks.lead]), a
+     * puzzle's one paragraph sentence by sentence.
+     */
+    fun whyItWorks(explanation: String): WhyItWorks {
+        val paragraphs = explanation.split("\n\n").map { it.trim() }.filter { it.isNotEmpty() }
+        if (paragraphs.size > 1) {
+            val first = paragraphs.indexOfFirst { TURN.containsMatchIn(it) }
+            val turns = if (first < 0) emptyList() else paragraphs.drop(first).mapNotNull { TURN.find(it) }
+            if (first >= 0 && turns.size == paragraphs.size - first) {
+                return WhyItWorks(
+                    lead = paragraphs.take(first).joinToString(" ").ifEmpty { null },
+                    steps = paragraphs.drop(first).zip(turns) { text, turn ->
+                        WhyItWorks.Step("Turn ${turn.groupValues[1]}", text.substring(turn.range.last + 1).trim())
+                    },
+                )
+            }
+            return WhyItWorks(null, paragraphs.mapIndexed { i, text -> WhyItWorks.Step("${i + 1}", text) })
+        }
+        val sentences = explanation.trim().replace(SENTENCE, "$1\n").split("\n").filter { it.isNotBlank() }
+        return WhyItWorks(null, sentences.mapIndexed { i, text -> WhyItWorks.Step("${i + 1}", text.trim()) })
+    }
+
+    private val TURN = Regex("""^Turn (\d+):""")
+
+    /**
+     * A full stop, "!" or "?" and the space after it, before a capital, a digit, a quote or a bracket: "p.13"
+     * never splits. No look-behind: the web app runs this too, and older Safari has none.
+     */
+    private val SENTENCE = Regex("""([.!?])\s+(?=[A-Z0-9"“(])""")
+
     /** "First try · no nudges", "3 tries · 2 nudges". */
     fun record(attempts: Int, nudges: Int): String = listOf(
         if (attempts <= 1) "First try" else "$attempts tries",
@@ -102,4 +134,10 @@ object PuzzleText {
             else -> "$nudges nudges"
         },
     ).joinToString(" · ")
+}
+
+/** A puzzle's explanation as lines to scan ([PuzzleText.whyItWorks]): [lead] unnumbered, then the [steps]. */
+data class WhyItWorks(val lead: String?, val steps: List<Step>) {
+    /** [label]: "1", "2"… or "Turn 1"…; [text] the puzzle's own words. */
+    data class Step(val label: String, val text: String)
 }

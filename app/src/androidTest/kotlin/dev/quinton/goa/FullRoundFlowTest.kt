@@ -39,8 +39,8 @@ class FullRoundFlowTest {
         rule.openFromPlay("Board")
         rule.tap(hasText("Puzzles", substring = true) and hasClickAction())
 
-        rule.reveal(hasText("FULL ROUNDS"))
-        rule.waitForText("FULL ROUNDS")
+        rule.reveal(hasText("FULL ROUNDS", substring = true))
+        rule.waitForText("FULL ROUNDS", substring = true)
         shot("list")
         rule.tap(hasContentDescription("Full round 1: Claws That Catch, Twice", substring = true) and hasClickAction())
 
