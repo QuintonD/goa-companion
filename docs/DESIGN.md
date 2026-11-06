@@ -43,16 +43,18 @@ when a map has `art` (all four do); the drawn map stays as the fallback while lo
 - **Hero sheet:** the real dashboard (`official/ui/dashboard-frame`, upscaled, ADR-058) with played cards in its Turn slots. Tigerclaw's art is the rulebook's; other heroes' portraits cover the frame, cropped around the
   head and darkened toward the edges. Items as icons with "+n", the Ultimate, the hand or card backs. Frame fractions: Turn plates y .272, x .170, .389, .607, .829; slots y .335 to .83.
   A marker with a Turn slot (Snorri's runes, ADR-054) lies on the frame's lower strip, y .905, centred under its slot: .105 of the frame's height, the active one .125 with a bronze ring and "ACTIVE" beside it, never by colour alone. "Runes" under the frame says it in words. The active rune also rides on the hero chip (bottom left of the portrait) and over the hand.
-- **Heroes grid:** slate tile, name on the title plate, portrait with the deck symbol at its top left, italic Crimson title, stars (a ranged hero has the game's Range icon beside them), two roles. No product chip on a tile: it is on the hero page and in the filter. Every row keeps its height, so the tiles of a line are one height. Two columns from font scale 1.3.
+- **Heroes grid:** slate tile, name on the title plate, portrait with the deck symbol at its top left, italic Crimson title, stars (a ranged hero has the game's Range icon beside them), two roles, one a line at 14 sp. No product chip on a tile: it is on the hero page and in the filter. Every row keeps its height, so the tiles of a line are one height. Two columns from font scale 1.3.
 - **Hero page:** art edge to edge fading into the canvas (dashboard art or the portrait cropped toward the top), symbol and name on the plate, stats as icons with base → max on a plate; the banner always names the hero. With large text the stars and roles run across the width under the plate.
-- **Rules:** parchment page in both themes, copper heads, passages in the box the rulebook prints them in: blue `#0F6F99`, green `#2B7A33` and orange `#A8560F` (the print's green and orange darkened to 5.3:1 and 5.2:1). Pushing the Lane has the p.8 diagrams, multiplied into the page, each over its printed caption (`RulesDiagrams`; verbatim, in italics, checked against the PDF as any excerpt). The topic list is one plate with dividers. A topic's foot is the steel band; sideways and with large text a plain line at the page's end instead. The ladder's table becomes one block per level with large text, so no number is off-screen.
+  Under the header a sticky **Overview · Deck · FAQ** bar (bronze word and rule on the part you are reading) scrolls to that part, landing under the bar; under the Deck's title a row of jump chips, each with its colour's ribbon and count (Basic, Red, Green, Blue, Ultimate, Handicap, Spellbook).
+- **Text that carries information** (roles, card captions, counts, notes, metadata pills) is at least 14 sp and wraps; it never shrinks to fit.
+- **Rules:** the topic list is sentence-case Inter semibold (17 sp) for scanning, the topic page keeps the book's Cinzel heads. A long topic title gives the banner its head ("Turn sequence") and opens the page whole, in Cinzel. A topic with three or more stops has a sticky **section navigator** of chips: the rulebook's own heads verbatim, "Diagrams", and (in a topic with few heads) its headless boxed passages by their opening words; the passage you are reading is the filled chip. Parchment page in both themes, copper heads, passages in the box the rulebook prints them in: blue `#0F6F99`, green `#2B7A33` and orange `#A8560F` (the print's green and orange darkened to 5.3:1 and 5.2:1). Pushing the Lane has the p.8 diagrams, multiplied into the page, each over its printed caption (`RulesDiagrams`; verbatim, in italics, checked against the PDF as any excerpt). The topic list is one plate with dividers. A topic's foot is the steel band; sideways and with large text a plain line at the page's end instead. The ladder's table becomes one block per level with large text, so no number is off-screen.
 - **Timer:** the painted sea under a navy veil, the battlefield silhouette at the foot, phase on a title plate, steel double ring, digits in Inter on a near-black disc. Stays dark in both themes. Next (bronze) is wider than Pause (steel) because its label runs long.
 - **Draft:** step on a title plate in a team-edged plate; pool tiles with portrait, symbol and parchment name; bans crossed out, dimmed and struck through. Words that name a team show its mark in line (`TeamText`). A finished draft is a plate per team with the seats divided; only the selected seat is framed.
 
 **Rules the screens keep:**
 - **Bronze is selected and primary; teal is next, correct, "you can act"** (a Hurry up or a running clock, a right answer, a rating gained). Chips, switches and picked rows are bronze on every screen. Timer's teal progress arc is the running clock.
 - **One plate per section, dividers inside, brackets on the outer plate only:** a team's seats, a preset's phases, the rules topics, both leaderboards. A floating button is its icon alone with large text, and a list under one keeps room for it at its end.
-- **A title on the banner** shrinks, then takes two lines, and only then is cut (`BannerTitle`, `.goa-topbar-title`); a rules topic shows its head alone with large text. The timer's second line goes on a phone under 360 wide (TalkBack still hears it).
+- **A title on the banner** shrinks, then takes two lines, and only then is cut (`BannerTitle`, `.goa-topbar-title`); a long rules topic shows its head there and its whole title on the page. The timer's second line goes on a phone under 360 wide (TalkBack still hears it).
 - **The search field** is the plate's dark slot in both themes.
 
 ## Direction: "Steel and bronze" — the game's own look (ADR-042)
@@ -219,7 +221,8 @@ while it is too small to read its printed name, plus what the card doesn't print
 golds start, what a Handicap card stands in for); tap = the card viewer; Gydion's spellbook the same
 with its landscape pages two to a row) · Card viewer (the scan large; under it only what the card
 doesn't print — the Handicap basis, what its item icon gives, with the official icon — and "Read the
-card as text", which shows the values and the text on parchment) · Timer (full-screen, giant ring countdown, phase chip with
+card as text", a full-width steel button right under the scan, which shows the values and the text on parchment; the scan is
+never drawn larger than 1.6 times its own pixels, so its print stays sharp) · Timer (full-screen, giant ring countdown, phase chip with
 "Previous phase" beside it, turn/round pips; bottom controls are Pause and Next only; a running
 Hurry up is pinned above them (under the dial in landscape); landscape puts the dial on the left half; paused = blinking
 digits and a large "PAUSED" label; the **round view** alternative lists the whole round under
@@ -233,7 +236,8 @@ role chips and "Hide taken"; taken heroes shrink to chips; landscape moves the b
 to a side column so the pool keeps the full height; long-press opens the hero peek sheet).
 Bottom nav: Heroes, Timer, Draft, Play, Players (original icons: shield, hourglass, fanned cards, a board
 space with a play mark, companions; solid variant when selected; labels share one size, capped by the width,
-at large text). Settings from top bar. The Heroes top bar carries layout, Rules and Settings. The Play tab
+at large text). Settings from top bar: its groups are flat slate (no steel edge or brackets, `SettingsGroup`), one
+per section with hairlines between rows, never a plate inside a plate; About's prose sits on the page, only rows you tap on a group. The Heroes top bar carries layout, Rules and Settings. The Play tab
 opens on two cards, Board and Card trivia (ADR-055). The bottom nav is hidden on the
 running timer (no tab to mis-tap beside Next; back leaves to Heroes), on the draft board and on a board;
 while a session runs, every other screen shows the **timer running bar** above the nav (timer
