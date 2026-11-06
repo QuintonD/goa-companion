@@ -47,10 +47,10 @@ when a map has `art` (all four do); the drawn map stays as the fallback while lo
 - **Hero page:** art edge to edge fading into the canvas (dashboard art or the portrait cropped toward the top), symbol and name on the plate, stats as icons with base → max on a plate; the banner always names the hero. With large text the stars and roles run across the width under the plate.
 - **Rules:** parchment page in both themes, copper heads, passages in the box the rulebook prints them in: blue `#0F6F99`, green `#2B7A33` and orange `#A8560F` (the print's green and orange darkened to 5.3:1 and 5.2:1). Pushing the Lane has the p.8 diagrams, multiplied into the page, each over its printed caption (`RulesDiagrams`; verbatim, in italics, checked against the PDF as any excerpt). The topic list is one plate with dividers. A topic's foot is the steel band; sideways and with large text a plain line at the page's end instead. The ladder's table becomes one block per level with large text, so no number is off-screen.
 - **Timer:** the painted sea under a navy veil, the battlefield silhouette at the foot, phase on a title plate, steel double ring, digits in Inter on a near-black disc. Stays dark in both themes. Next (bronze) is wider than Pause (steel) because its label runs long.
-- **Draft:** step on a title plate in a team-edged plate; pool tiles with portrait, symbol and parchment name; bans crossed out, dimmed and struck through. Words that name a team show its mark in line (`TeamText`). A finished draft is a plate per team with the seats divided; only the selected seat is framed.
+- **Draft:** step on a title plate in a team-edged plate; pool tiles with portrait, symbol and parchment name; bans crossed out, dimmed and struck through. Words that name a team show its mark in line (`TeamText`). Once the coin has named the teams the draft speaks in colours only ("◆ Red picks 2", "Step 4 of 8 · 1 of 2 · for Ada", columns "Blue" and "Red"); "Team A"/"Team B" are the method editor's words, and the coin's team is marked by the coin's face ("Tie Breaker coin"). A finished draft is a plate per team with the seats divided; only the selected seat is framed.
 
 **Rules the screens keep:**
-- **Bronze is selected and primary; teal is next, correct, "you can act"** (a Hurry up or a running clock, a right answer, a rating gained). Chips, switches and picked rows are bronze on every screen. Timer's teal progress arc is the running clock.
+- **Bronze is selected and primary; teal is next, correct, "you can act"** (a running clock, a right answer, a rating gained). Chips, switches and picked rows are bronze on every screen. Timer's teal progress arc is the running clock; a running Hurry up's arc is bronze. A chosen single-choice plate (timer presets and setup, draft methods and options) has a bronze 2 dp edge, a faint bronze wash and the bronze radio (`selectedPlate`, until the shared `SelectablePlate`).
 - **One plate per section, dividers inside, brackets on the outer plate only:** a team's seats, a preset's phases, the rules topics, both leaderboards. A floating button is its icon alone with large text, and a list under one keeps room for it at its end.
 - **A title on the banner** shrinks, then takes two lines, and only then is cut (`BannerTitle`, `.goa-topbar-title`); a rules topic shows its head alone with large text. The timer's second line goes on a phone under 360 wide (TalkBack still hears it).
 - **The search field** is the plate's dark slot in both themes.
@@ -105,9 +105,9 @@ bronze" (deep-ocean dark with bronze and teal), which stays as the canvas and th
 | surface | `#122334` | `#FFFFFF` | cards, sheets |
 | onSurface | `#E8E2D6` | `#1A1F26` | body text |
 | onSurfaceVariant | `#A9B4C2` | `#4A5563` | secondary text |
-| primary (bronze) | `#C9A35B` | `#84662A` | key actions, headings accent |
+| primary (bronze) | `#C9A35B` | `#84662A` | key actions, headings accent, selection |
 | onPrimary | `#0B1622` | `#FFFFFF` | text/icons on filled primary |
-| secondary (tide teal) | `#3FC1B0` | `#1B786B` | progress, timers, selection |
+| secondary (tide teal) | `#3FC1B0` | `#1B786B` | progress, timers, next / ready |
 | team red | `#E26459` | `#B83A30` | red team |
 | team blue | `#4F8FE0` | `#2C63B0` | blue team |
 | error | `#FF6B6B` | `#B3261E` | |
@@ -221,7 +221,11 @@ with its landscape pages two to a row) · Card viewer (the scan large; under it 
 doesn't print — the Handicap basis, what its item icon gives, with the official icon — and "Read the
 card as text", which shows the values and the text on parchment) · Timer (full-screen, giant ring countdown, phase chip with
 "Previous phase" beside it, turn/round pips; bottom controls are Pause and Next only; a running
-Hurry up is pinned above them (under the dial in landscape); landscape puts the dial on the left half; paused = blinking
+Hurry up takes the dial (its countdown is the big clock, "⚡ HURRY UP" above the digits and "LEFT", "LAST SECONDS!" or
+"TIME!" under them, so urgency is in words as well as colour; the step's own clock moves to a slate pill under the dial)
+and a slim Hurry up bar with Restart and Stop is pinned above the controls (under the dial in landscape; the round view,
+which has no dial, keeps the bar with the countdown in it); the top bar's coin chip is the Tie Breaker coin's face with
+"Coin Red" (then "Red", then the face alone, as room allows), and its second line says "Game 14:32 · Table rules" (with large text "Game 14:32" alone); landscape puts the dial on the left half; paused = blinking
 digits and a large "PAUSED" label; the **round view** alternative lists the whole round under
 section headings — done rows ticked in bronze and stepped back by colour, never by alpha, so they
 keep their contrast; the current row an expanded teal-bordered card whose border and digits turn
@@ -230,7 +234,12 @@ them up; landscape = list left, clock and controls right) · Players list → Pl
 Meta dashboard · Draft setup → Draft board (sticky step banner over a scrolling list of sequence
 chips, two team columns with role coverage and ban chips, then a dense pool grid with search,
 role chips and "Hide taken"; taken heroes shrink to chips; landscape moves the banner and teams
-to a side column so the pool keeps the full height; long-press opens the hero peek sheet).
+to a side column so the pool keeps the full height; each pool tile has an inspect button in its corner (ⓘ on a
+24 dp disc in a 48 dp target, a named TalkBack action too; long-press still works) that opens the hero peek sheet, which
+ends with the step's own team-coloured "◆ Pick Arien…"; a tile's tap chooses and always asks to confirm) · Draft methods
+(a radio plate per method, the chosen one bronze, its sequence in team colours; "Continue with …" pinned below; Sources,
+Duplicate, Edit and Delete in each plate's menu; New method in the top bar and at the list's end).
+Timer start offers "Draft heroes first" beside Match setup: draft → setup → timer → log is the game-night flow.
 Bottom nav: Heroes, Timer, Draft, Play, Players (original icons: shield, hourglass, fanned cards, a board
 space with a play mark, companions; solid variant when selected; labels share one size, capped by the width,
 at large text). Settings from top bar. The Heroes top bar carries layout, Rules and Settings. The Play tab
