@@ -18,7 +18,9 @@ more on every aspect**.
   art, never for anything that carries game data (cards, portraits, symbols, boards). Record every generated
   file with its prompt in `third_party/ASSETS.md`.
 
-The API key lives in `~/.config/goa-hillclimb/azure_key` (or `$GOA_HC_KEY_FILE`); never commit it.
+The API key lives in `~/.config/goa-hillclimb/azure_key` (or `$GOA_HC_KEY_FILE`); never commit it. Run state (corpora,
+verdicts, gate pairs, `history.md`) lives on disk in `~/goa-hillclimb/`: not in a session scratchpad, whose `/tmp` is a
+tmpfs a host restart wipes.
 
 ```
 python3 -I tools/ui-hillclimb/hc.py collect <dir>/corpus [--root <checkout>] [--only id,id]
@@ -29,5 +31,5 @@ python3 -I tools/ui-hillclimb/hc.py unblind <cmp> <cmp>/opus-raw.json <cmp>/opus
 python3 -I tools/ui-hillclimb/hc.py imagegen out.png "prompt" --size 1536x1024 [--ref style.png]
 python3 -I tools/ui-hillclimb/hc.py board <runs_dir>
 tools/ui-hillclimb/build.sh :feature:timer:recordRoborazziDebug
-tools/ui-hillclimb/cleanup.sh --scratch <runs dir> --worktree <merged worktree>   # after every judge round and merge
+tools/ui-hillclimb/cleanup.sh --scratch ~/goa-hillclimb --worktree <merged worktree>   # after every judge round and merge
 ```

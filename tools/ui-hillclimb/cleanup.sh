@@ -5,7 +5,7 @@
 #    integration branch (a fresh agent worktree with no commits counts as "merged", so never sweep them all);
 #  - build outputs are touched only while holding the build lock, so a running build is never cut short;
 #  - judge scratch (packed and composite images) of finished rounds is dropped, verdict JSON is kept.
-# Usage: tools/ui-hillclimb/cleanup.sh [--branch feature/ui-hillclimb] [--scratch <dir>] [--worktree <path>]...
+# Usage: tools/ui-hillclimb/cleanup.sh [--branch feature/ui-hillclimb] [--scratch ~/goa-hillclimb] [--worktree <path>]...
 repo="$(git rev-parse --show-toplevel)" || exit 1
 cd "$repo" || exit 1
 branch=feature/ui-hillclimb; scratch=""; worktrees=""
