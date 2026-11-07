@@ -18,6 +18,7 @@ import androidx.test.core.app.ApplicationProvider
 import com.github.takahirom.roborazzi.ExperimentalRoborazziApi
 import com.github.takahirom.roborazzi.captureRoboImage
 import com.github.takahirom.roborazzi.captureScreenRoboImage
+import dev.quinton.goa.core.designsystem.component.LocalPlayerFaces
 import dev.quinton.goa.core.designsystem.theme.GoaTheme
 import dev.quinton.goa.core.domain.sync.GroupInvite
 import dev.quinton.goa.core.domain.sync.SyncChanges
@@ -30,6 +31,7 @@ import dev.quinton.goa.core.domain.sync.protocol.PeerProgress
 import dev.quinton.goa.core.domain.sync.protocol.PeerStage
 import dev.quinton.goa.core.domain.sync.protocol.SyncDevice
 import dev.quinton.goa.core.domain.sync.protocol.SyncFailure
+import dev.quinton.goa.core.model.player.PlayerFace
 import dev.quinton.goa.core.model.settings.ThemeMode
 import dev.quinton.goa.core.testing.BundledAssetImages
 import dev.quinton.goa.feature.sync.group.GroupActions
@@ -65,7 +67,11 @@ class SyncScreenshotTest {
     private fun setContent(mode: ThemeMode, fontScale: Float, content: @Composable () -> Unit) {
         compose.setContent {
             val d = LocalDensity.current
-            CompositionLocalProvider(LocalDensity provides Density(d.density, fontScale)) {
+            // Ann's most-played hero in her 41 matches, as the app derives it from the log (a real bundled hero).
+            CompositionLocalProvider(
+                LocalDensity provides Density(d.density, fontScale),
+                LocalPlayerFaces provides mapOf("ann" to PlayerFace("arien", "official/heroes/arien/portrait.webp")),
+            ) {
                 GoaTheme(themeMode = mode) { Surface(color = MaterialTheme.colorScheme.background) { content() } }
             }
         }
@@ -143,7 +149,8 @@ class SyncScreenshotTest {
         compose.onRoot().captureRoboImage()
     }
 
-    private val session = SyncSessionUiState(groupName = "Friday nights", deviceName = "Ann")
+    private val session =
+        SyncSessionUiState(groupName = "Friday nights", deviceName = "Ann", invite = GroupInvite.format(TestGroup))
     private val peers = listOf(
         PeerProgress("1", "Bob", SyncDevice("b", "Bob"), PeerStage.READY),
         PeerProgress("2", "Cid", SyncDevice("c", "Cid"), PeerStage.RECEIVING, progress = 0.6f),
@@ -172,10 +179,29 @@ class SyncScreenshotTest {
         Sheet(session.copy(stage = SessionStage.Hosting(HostState(peers = peers.subList(1, 2)))))
     }
 
-    /** Sync tapped while Cid's upload is still under way: the merge waits for it, and says so. */
+    /** Sync tapped while Cid's upload is still under way: armed, a status where the button was, and Cancel. */
     @Test fun sessionHostMergingDark() = shot {
         val merging = HostState(phase = HostPhase.MERGING, peers = peers.take(2))
         Sheet(session.copy(stage = SessionStage.Hosting(merging)))
+    }
+
+    /** Every upload in: merging. */
+    @Test fun sessionHostMergingNowLight() = shot(ThemeMode.LIGHT) {
+        val merging = HostState(
+            phase = HostPhase.MERGING,
+            peers = peers.take(2).map { it.copy(stage = PeerStage.READY, progress = null) },
+        )
+        Sheet(session.copy(stage = SessionStage.Hosting(merging)))
+    }
+
+    /** Eve's old invite: "Show new invite" opens the group's invite over the sheet. */
+    @OptIn(ExperimentalRoborazziApi::class)
+    @Test
+    fun sessionHostShowInviteDark() {
+        setContent(ThemeMode.DARK, 1f) { Sheet(session.copy(stage = SessionStage.Hosting(HostState(peers = peers)))) }
+        compose.onNode(hasText("Show new invite") and hasClickAction()).performClick()
+        compose.waitForIdle()
+        captureScreenRoboImage()
     }
 
     @Test fun sessionHostDoneLight() = shot(ThemeMode.LIGHT) {

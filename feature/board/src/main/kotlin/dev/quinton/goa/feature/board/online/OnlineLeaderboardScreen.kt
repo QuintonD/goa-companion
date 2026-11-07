@@ -42,22 +42,22 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import dev.quinton.goa.core.designsystem.component.BattlefieldFoot
+import dev.quinton.goa.core.designsystem.component.AccountAvatar
 import dev.quinton.goa.core.designsystem.component.EmptyState
+import dev.quinton.goa.core.designsystem.component.FootArt
 import dev.quinton.goa.core.designsystem.component.GoaPlate
 import dev.quinton.goa.core.designsystem.component.GoaScreen
 import dev.quinton.goa.core.designsystem.component.GoaSegment
 import dev.quinton.goa.core.designsystem.component.GoaSegmentedRow
 import dev.quinton.goa.core.designsystem.component.HeroPortrait
 import dev.quinton.goa.core.designsystem.component.PODIUM_PLACES
-import dev.quinton.goa.core.designsystem.component.PlayerAvatar
 import dev.quinton.goa.core.designsystem.component.Podium
 import dev.quinton.goa.core.designsystem.component.PodiumPlace
+import dev.quinton.goa.core.designsystem.component.ScreenFoot
 import dev.quinton.goa.core.designsystem.component.scaledIconSize
 import dev.quinton.goa.core.designsystem.theme.GoaTextStyles
 import dev.quinton.goa.core.designsystem.theme.GoaTheme
 import dev.quinton.goa.core.designsystem.theme.Spacing
-import dev.quinton.goa.core.model.player.Player
 import dev.quinton.goa.feature.board.play.online.leaderboard.LeaderboardPresenter
 import dev.quinton.goa.feature.board.play.online.leaderboard.LeaderboardRowUi
 import dev.quinton.goa.feature.board.play.online.leaderboard.LeaderboardTab
@@ -89,7 +89,7 @@ fun OnlineLeaderboardScreen(
     ) { padding ->
         // A short board ends in the rulebook's battlefield, not in empty navy.
         Box(Modifier.fillMaxSize().padding(padding)) {
-            BattlefieldFoot()
+            ScreenFoot(FootArt.HALL)
             Column(
                 Modifier
                     .fillMaxSize()
@@ -187,8 +187,8 @@ private fun Rows(state: LeaderboardUi, portraits: Map<String, String?>) {
 }
 
 /**
- * A podium place: the hero's portrait, or for a player a plain steel shield with their initial (online accounts
- * have no crest); the name, the rating, the record.
+ * A podium place: the hero's portrait, or for a player the crest their account id picks (the board carries no
+ * hero per account, and a bare initial read as unfinished); the name, the rating, the record.
  */
 @Composable
 private fun Standing(row: LeaderboardRowUi, hero: Boolean, portrait: String?) {
@@ -196,7 +196,7 @@ private fun Standing(row: LeaderboardRowUi, hero: Boolean, portrait: String?) {
     if (hero) {
         HeroPortrait(row.id, portrait, null, Modifier.size(size), CircleShape)
     } else {
-        PlayerAvatar(Player(id = row.id, name = row.name, color = 0, avatarId = -1, createdAt = 0), size = size)
+        AccountAvatar(row.id, row.name, size = size)
     }
     Spacer(Modifier.height(Spacing.xs))
     Text(

@@ -2,6 +2,7 @@ package dev.quinton.goa.feature.sync
 
 import com.google.common.truth.Truth.assertThat
 import dev.quinton.goa.core.domain.sync.SyncChanges
+import dev.quinton.goa.core.domain.sync.protocol.HostPhase
 import dev.quinton.goa.core.domain.sync.protocol.PeerProgress
 import dev.quinton.goa.core.domain.sync.protocol.PeerStage
 import dev.quinton.goa.core.domain.sync.protocol.SyncFailure
@@ -43,22 +44,26 @@ class SyncTextTest {
         val eve = PeerProgress("3", "Eve", stage = PeerStage.FAILED, failure = SyncFailure.WRONG_KEY)
         val all = listOf(bob, cid, eve)
         assertThat(SyncText.hostWaiting(all)).isEqualTo("1 ready · 1 sending its data · 1 needs a new invite")
-        // Sync waits for uploads still under way (SyncHost.merge): a tap now is queued, and the button says so.
-        assertThat(SyncText.syncLabel(all)).isEqualTo("Sync when Cid's data is in")
-        assertThat(SyncText.hostWaitingHint(all)).isEqualTo("Sync waits for Cid's data. Eve isn't included.")
+        // Sync waits for uploads still under way (SyncHost.merge): a tap now arms it, and the button says so.
+        assertThat(SyncText.syncLabel(all)).isEqualTo("Sync automatically when ready")
+        assertThat(SyncText.hostLeftOut(all)).isEqualTo("Eve isn't included: old invite")
+        assertThat(SyncText.hostLeftOut(listOf(bob))).isNull()
         assertThat(SyncText.syncLabel(listOf(bob))).isEqualTo("Sync with Bob")
         assertThat(
             SyncText.syncLabel(listOf(bob, cid.copy(stage = PeerStage.READY))),
         ).isEqualTo("Sync with Bob and Cid")
-        assertThat(SyncText.hostWaitingHint(listOf(bob))).isNull()
         assertThat(SyncText.syncLabel(List(3) { bob.copy(linkId = "$it") })).isEqualTo("Sync 3 phones")
         // Nothing to sync yet: the switched-off button says what it waits for.
         assertThat(SyncText.syncLabel(listOf(eve))).isEqualTo("Waiting for a phone to join…")
         assertThat(SyncText.syncLabel(emptyList())).isEqualTo("Waiting for a phone to join…")
         assertThat(SyncText.syncLabel(listOf(cid))).isEqualTo("Waiting for Cid's data…")
-        // After the tap, while Cid's upload is still under way.
-        assertThat(SyncText.hostMerging(all)).isEqualTo("Waiting for Cid's data, then merging…")
-        assertThat(SyncText.hostMerging(listOf(bob))).isEqualTo("Merging everyone's data…")
+        // After the tap, while Cid's upload is still under way: armed, still collecting; then merging.
+        assertThat(SyncText.hostMerging(all)).isEqualTo("Waiting for Cid · sync starts automatically")
+        assertThat(SyncText.armed(HostPhase.MERGING, all)).isTrue()
+        assertThat(SyncText.hostStep(HostPhase.MERGING, all)).isEqualTo(0)
+        assertThat(SyncText.hostMerging(listOf(bob))).isEqualTo("Merging…")
+        assertThat(SyncText.armed(HostPhase.MERGING, listOf(bob))).isFalse()
+        assertThat(SyncText.hostStep(HostPhase.MERGING, listOf(bob))).isEqualTo(1)
     }
 
     @Test

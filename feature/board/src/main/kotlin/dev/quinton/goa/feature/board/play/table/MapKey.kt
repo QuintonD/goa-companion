@@ -1,6 +1,7 @@
 package dev.quinton.goa.feature.board.play.table
 
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
@@ -10,6 +11,10 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.ExpandLess
+import androidx.compose.material.icons.outlined.Info
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -25,6 +30,7 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.onClick
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.drawText
 import androidx.compose.ui.text.font.FontWeight
@@ -36,7 +42,9 @@ import dev.quinton.goa.core.game.Choice
 import dev.quinton.goa.feature.board.ui.ArtBoardPalette
 import dev.quinton.goa.feature.board.ui.PlateSurface
 import dev.quinton.goa.feature.board.ui.drawFastTravelCell
+import dev.quinton.goa.feature.board.ui.drawNumberChip
 import dev.quinton.goa.feature.board.ui.drawRadiusCell
+import dev.quinton.goa.feature.board.ui.drawRangeCell
 import dev.quinton.goa.feature.board.ui.drawTargetCell
 import kotlin.math.PI
 import kotlin.math.cos
@@ -91,7 +99,8 @@ internal fun mapKeyItems(table: TableUi): List<MapKeyItem> {
 /**
  * The map's key while a question lights it (the board's own marks, a swatch each): "You can choose", "Spaces to get
  * there", "In range", "Your path". A small plate under the round at a glance and the turn track, where the map is
- * framed below it, so it never covers a piece. TalkBack hears it as one line.
+ * framed below it, so it never covers a piece. TalkBack hears it as one line. With [onToggle] it is a compact row of
+ * short words that a tap opens to [full] words (an info mark says so); TalkBack always hears the full words.
  */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
@@ -99,6 +108,9 @@ internal fun MapKey(
     items: List<MapKeyItem>,
     modifier: Modifier = Modifier,
     words: (MapKeyItem) -> String = { it.words },
+    full: (MapKeyItem) -> String = words,
+    expanded: Boolean = false,
+    onToggle: (() -> Unit)? = null,
 ) {
     if (items.isEmpty()) return
     // Map furniture: it grows with large text up to 1.3×, so it never takes the map's top half.
@@ -106,12 +118,30 @@ internal fun MapKey(
     val cap = minOf(fontScale, KEY_MAX_SCALE) / fontScale
     PlateSurface(
         shape = RoundedCornerShape(8.dp),
-        modifier = modifier.clearAndSetSemantics {
-            contentDescription = "Map key: " + items.joinToString(", ", transform = words)
-        },
+        modifier = modifier
+            .then(
+                if (onToggle != null) {
+                    Modifier.clickable(onClickLabel = if (expanded) "Shorten" else "Explain") {
+                        onToggle()
+                    }
+                } else {
+                    Modifier
+                },
+            )
+            .clearAndSetSemantics {
+                contentDescription = "Map key: " + items.joinToString(", ", transform = full)
+                if (onToggle != null) {
+                    onClick(label = if (expanded) "Shorten the key" else "Explain the key") {
+                        onToggle()
+                        true
+                    }
+                }
+            },
     ) {
         FlowRow(
-            Modifier.padding(horizontal = 8.dp, vertical = 5.dp),
+            // Tappable, it is a little taller: a finger finds it without covering more of the map.
+            Modifier.padding(horizontal = 8.dp, vertical = if (onToggle != null) 9.dp else 5.dp),
+            itemVerticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(10.dp),
             verticalArrangement = Arrangement.spacedBy(4.dp),
         ) {
@@ -128,6 +158,14 @@ internal fun MapKey(
                         maxLines = 2,
                     )
                 }
+            }
+            if (onToggle != null) {
+                Icon(
+                    if (expanded) Icons.Outlined.ExpandLess else Icons.Outlined.Info,
+                    null,
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.size(scaledIconSize(16.dp, KEY_MAX_SCALE)),
+                )
             }
         }
     }
@@ -162,24 +200,25 @@ private fun KeySwatch(item: MapKeyItem) {
                 drawText(text, topLeft = c - Offset(text.size.width / 2f, text.size.height / 2f))
             }
 
+            // The map's own strokes at the swatch's size: a space's faint edge with the violet inner outline (what a
+            // range cell is on the map, with or without a number in it), not a free-standing violet hexagon.
             MapKeyItem.RANGE -> {
-                val hex = hexagon(c, r * 0.78f)
-                drawPath(hex, palette.halo, style = Stroke(width = r * 0.3f, join = StrokeJoin.Round))
-                drawPath(hex, palette.range, style = Stroke(width = r * 0.15f, join = StrokeJoin.Round))
+                drawPath(hexagon(c, r * 0.95f), CellEdge, style = Stroke(width = r * 0.06f, join = StrokeJoin.Round))
+                drawRangeCell(corners(c, r * 0.95f), c, r * 0.95f, palette)
             }
 
             MapKeyItem.PATH, MapKeyItem.MEASURE -> drawPathSwatch(r, palette.halo, palette.measure)
 
+            // A lit space with the region's white edge and the map's own number chip (dark, cream rim).
             MapKeyItem.MOVEMENT -> {
                 val hex = hexagon(c, r * 0.95f)
                 drawPath(hex, LitFill)
                 drawPath(hex, Color.White, style = Stroke(width = r * 0.14f, join = StrokeJoin.Round))
-                drawCircle(ChipGround, radius = r * 0.5f, center = c)
                 val text = measurer.measure(
                     "2",
                     TextStyle(color = Color.White, fontSize = 9.sp, fontWeight = FontWeight.Bold),
                 )
-                drawText(text, topLeft = c - Offset(text.size.width / 2f, text.size.height / 2f))
+                drawNumberChip(text, c, r * 1.2f)
             }
 
             MapKeyItem.FAST_TRAVEL -> drawFastTravelCell(corners(c, r * 0.95f), c, r * 0.95f, palette)
@@ -224,3 +263,4 @@ private const val KEY_MAX_SCALE = 1.3f
 private val LitFill = Color(0xFFD9C9A3)
 private val ChipGround = Color(0xFF0B1622)
 private val ChipEdge = Color(0xFFF3EBD6)
+private val CellEdge = Color(0x80F3EBD6)

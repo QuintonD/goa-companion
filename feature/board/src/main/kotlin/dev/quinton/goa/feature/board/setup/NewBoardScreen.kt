@@ -83,6 +83,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
@@ -324,25 +325,39 @@ internal fun ColumnScope.HeroGrid(
             // 42 dp portrait still takes a 48 dp tap.
             val half = TILE_GAP / 2
             val extra = if (state.ownedOnly) OWNED_ROW + Spacing.sm else 0.dp
-            val columns = heroGridColumns(
-                count = shown.size.coerceAtLeast(1),
-                width = (maxWidth - start - end + TILE_GAP).value,
-                height = (maxHeight - Spacing.md).value,
+            val width = maxWidth - start - end + TILE_GAP
+            val height = maxHeight - Spacing.md - extra
+            val count = shown.size.coerceAtLeast(1)
+            // Names first (sol #15, sol-b #4): the fewest columns whose every name reads at 13 sp or more on one line
+            // and whose rows still fit with portraits a little wider than tall (32 heroes on a 411 × 891 phone: 5
+            // columns, not 6 with every name shrunk to 11 sp for Silverarrow's sake).
+            val sizes = gridNameSizes(shown, width, (TILE_MIN + TILE_GAP).value.let { (width.value / it).toInt() })
+            val readable = sizes.entries.firstOrNull { (columns, size) ->
+                val cell = width / columns
+                val rows = (count + columns - 1) / columns
+                size >= READABLE_NAME.value && cell <= READABLE_TILE_MAX + TILE_GAP &&
+                    ((cell - TILE_GAP) * MIN_TALL + TILE_GAP + nameLabel(size, density)) * rows <= height
+            }?.key
+            val columns = readable ?: heroGridColumns(
+                count = count,
+                width = width.value,
+                height = height.value + extra.value,
                 label = label.value,
                 spacing = 0f,
                 extra = extra.value,
                 minTile = (TILE_MIN + TILE_GAP).value,
                 maxTile = (TILE_MAX + TILE_GAP).value,
             )
-            // Every hero on one screen (PRODUCT §8): the height the columns leave goes to taller portraits, so the
-            // grid fills the screen rather than ending above an empty band.
-            val cell = (maxWidth - start - end + TILE_GAP) / columns
-            val rows = (shown.size.coerceAtLeast(1) + columns - 1) / columns
-            val spare = (maxHeight - Spacing.md - extra - (cell + label) * rows) / rows
-            val tall = (cell - TILE_GAP + spare.coerceAtLeast(0.dp)).coerceAtMost((cell - TILE_GAP) * MAX_TALL)
-            val aspect = (cell - TILE_GAP) / tall
             // One name size for the whole grid: the size the longest name needs across its cell, never per tile.
-            val nameSize = gridNameSize(shown, cell)
+            val nameSize = (sizes[columns] ?: LABEL_MIN.value).sp
+            val nameHeight = if (readable != null) nameLabel(nameSize.value, density) else label
+            // Every hero on one screen (PRODUCT §8): the height the columns leave goes to taller portraits, so the
+            // grid fills the screen rather than ending above an empty band; short of room, a little shorter.
+            val cell = width / columns
+            val rows = (count + columns - 1) / columns
+            val tall = ((height / rows) - nameHeight - TILE_GAP)
+                .coerceIn((cell - TILE_GAP) * (if (readable != null) MIN_TALL else 1f), (cell - TILE_GAP) * MAX_TALL)
+            val aspect = (cell - TILE_GAP) / tall
             LazyVerticalGrid(
                 columns = GridCells.Fixed(columns),
                 contentPadding = PaddingValues(start = start - half, end = end - half, bottom = Spacing.md),
@@ -694,7 +709,9 @@ private fun HeroTile(
             }
         }
         // The grid's one size ([gridNameSize]), across the whole cell: every name whole, and all alike.
-        val style = tileName().let { if (nameSize.isSpecified) it.copy(fontSize = nameSize) else it }
+        val style = tileName().let {
+            if (nameSize.isSpecified) it.copy(fontSize = nameSize, lineHeight = nameSize * NAME_LINE) else it
+        }
         BasicText(
             hero.name,
             style = style.copy(
@@ -713,6 +730,34 @@ private fun HeroTile(
         )
     }
 }
+
+/**
+ * For each column count from 1 to [most] across [width]: the size every name of the grid takes, the tile name's size
+ * stepped down until the longest of [heroes] (set bold, as a pick is) fits its cell on one line; never below
+ * [LABEL_MIN]. In sp, by column count (ascending).
+ */
+@Composable
+private fun gridNameSizes(heroes: List<BoardHero>, width: Dp, most: Int): Map<Int, Float> {
+    val measurer = rememberTextMeasurer()
+    val style = tileName().copy(letterSpacing = 0.sp, fontWeight = FontWeight.Bold)
+    val density = LocalDensity.current
+    val names = heroes.map { it.name }
+    return remember(names, width, most, style, density) {
+        (1..most.coerceAtLeast(1)).associateWith { columns ->
+            val px = with(density) { (width / columns).roundToPx() }
+            var size = style.fontSize.value
+            while (size > LABEL_MIN.value &&
+                names.any { measurer.measure(it, style.copy(fontSize = size.sp), maxLines = 1).size.width > px }
+            ) {
+                size -= NAME_STEP
+            }
+            size
+        }
+    }
+}
+
+/** A name's line at [size] sp, as the tile sets it, with the gap above it. */
+private fun nameLabel(size: Float, density: Density): Dp = with(density) { (size * NAME_LINE).sp.toDp() } + LABEL_GAP
 
 /**
  * The size every name of the grid takes: the tile name's size, stepped down until the longest of [heroes] (set bold,
@@ -919,6 +964,18 @@ private const val NAME_STEP = 0.5f
 
 /** A portrait may grow this much taller than wide to fill the screen's height. */
 private const val MAX_TALL = 1.3f
+
+/** ...and as short as this, wider than tall, so every hero fits with names that read. */
+private const val MIN_TALL = 0.74f
+
+/** The largest a portrait grows when the names choose the columns (5 across a 411 dp phone). */
+private val READABLE_TILE_MAX = 76.dp
+
+/** The smallest name the grid prefers more columns to: below it, fewer columns with names that read. */
+private val READABLE_NAME = 13.sp
+
+/** A tile name's line height for its size. */
+private const val NAME_LINE = 1.22f
 private val OWNED_ROW = 48.dp
 private val TILE_LARGE = 104.dp
 private const val LARGE_FONT = 1.3f

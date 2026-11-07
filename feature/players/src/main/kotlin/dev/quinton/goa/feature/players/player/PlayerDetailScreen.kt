@@ -205,7 +205,7 @@ private fun Header(state: PlayerDetailUiState) {
         Modifier.fillMaxWidth().padding(vertical = Spacing.md).semantics(mergeDescendants = true) {},
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        PlayerAvatar(player, size = 72.dp)
+        PlayerAvatar(player, size = 72.dp, showFace = true)
         Spacer(Modifier.width(Spacing.lg))
         Column(Modifier.weight(1f)) {
             // Plain text, not a title plate: the plate's end cap sat over short names ("ANN").

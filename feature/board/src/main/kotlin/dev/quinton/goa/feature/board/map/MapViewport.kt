@@ -237,6 +237,26 @@ class MapViewport {
         pan = clampPan(panned, next)
     }
 
+    /** Whether the view can still zoom in a step (it is below its largest zoom). */
+    val canZoomIn: Boolean get() = zoom < maxZoom * 0.95f
+
+    /** A space's width across its flats on screen now, in px (a hex of corner radius 1 in map units). */
+    val hexPx: Float get() = unit * zoom * SQRT3
+
+    /**
+     * A tap among spaces too small to tell apart (tap-to-focus): zoom in a step around [focus], never past the largest
+     * zoom and never back out (as a double tap at the largest zoom does).
+     */
+    suspend fun zoomIn(focus: Offset) {
+        if (!canZoomIn) return
+        gestures++
+        val next = (zoom * DOUBLE_TAP_FACTOR).coerceAtMost(maxZoom)
+        val applied = next / zoom
+        animateTo(next, clampPan(focus - (focus - pan) * applied, next))
+        mode = ViewMode.MOVED
+        userMoved = true
+    }
+
     /** Double tap: zoom in around [focus]; at the largest zoom, back to the Lane. */
     suspend fun zoomStep(focus: Offset) {
         gestures++

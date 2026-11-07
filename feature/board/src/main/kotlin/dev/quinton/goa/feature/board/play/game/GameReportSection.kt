@@ -27,6 +27,8 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import dev.quinton.goa.core.designsystem.component.GoaOutlinedButton
+import dev.quinton.goa.core.designsystem.component.SectionHeader
+import dev.quinton.goa.core.designsystem.component.SectionHeaderPaddingTight
 import dev.quinton.goa.core.designsystem.theme.GoaTextStyles
 import dev.quinton.goa.core.designsystem.theme.Spacing
 import dev.quinton.goa.core.game.DecisionKind
@@ -52,7 +54,7 @@ internal fun GameReportSection(
 ) {
     val ui = play.report
     Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-        Overline(stringResource(R.string.report_title))
+        SectionHeader(stringResource(R.string.report_title), padding = SectionHeaderPaddingTight)
         when {
             ui == null -> {
                 GoaOutlinedButton(
@@ -71,16 +73,6 @@ internal fun GameReportSection(
             ui.report != null -> Report(play, ui.report!!, focus, onLogAt)
         }
     }
-}
-
-@Composable
-private fun Overline(text: String) {
-    Text(
-        text.uppercase(),
-        style = GoaTextStyles.overline,
-        color = MaterialTheme.colorScheme.primary,
-        modifier = Modifier.semantics { heading() },
-    )
 }
 
 @Composable

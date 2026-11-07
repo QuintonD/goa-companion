@@ -83,6 +83,7 @@ import dev.quinton.goa.core.model.catalog.Stat
 import dev.quinton.goa.feature.board.BoardHero
 import dev.quinton.goa.feature.board.BoardText
 import dev.quinton.goa.feature.board.hero
+import dev.quinton.goa.feature.board.play.table.PagePill
 import dev.quinton.goa.feature.board.ui.ArtBoardPalette
 import dev.quinton.goa.feature.board.ui.ArtSwatchGround
 import dev.quinton.goa.feature.board.ui.BoardPalette
@@ -264,7 +265,7 @@ private fun HeroMeasures(
     val movementNote = when {
         card == null -> "Pick a card first."
         card.values.movement == null -> "This card has no Movement value."
-        else -> "Spaces it can end on, with the fewest spaces each needs (p.11)."
+        else -> "Spaces it can end on, with the fewest spaces each needs."
     }
     OverlayRow(
         title = "Movement" + (overlay.movementValue?.let { " $it" } ?: ""),
@@ -278,20 +279,22 @@ private fun HeroMeasures(
             onAction(BoardAction.MovementBonus(delta))
         }.takeIf { card?.values?.movement != null },
         onToggle = { onAction(BoardAction.ToggleMovement) },
+        page = "p.11",
     )
     if (settings.movement && overlay.movementValue != null) MovementRules(settings, onAction)
     OverlayRow(
         title = "Fast Travel",
         note = if (settings.fastTravel && overlay.fastTravel.isEmpty()) {
-            "Not now: an enemy hero or minion is in this Zone, or no space is free (p.11)."
+            "Not now: an enemy hero or minion is in this Zone, or no space is free."
         } else {
-            "Own or an adjacent Zone, with no enemy hero or minion in either (p.11)."
+            "Own or an adjacent Zone, with no enemy hero or minion in either."
         },
         checked = settings.fastTravel,
         enabled = true,
         swatch = { c, m, u -> drawFastTravelCell(c, m, u, palette) },
         palette = palette,
         onToggle = { onAction(BoardAction.ToggleFastTravel) },
+        page = "p.11",
     )
     OverlayRow(
         title = "Range" + (overlay.rangeValue?.let { " $it" } ?: ""),
@@ -300,7 +303,7 @@ private fun HeroMeasures(
         ) {
             "This card has no Range value."
         } else {
-            "Spaces within range, obstacles and the water around the board counted (p.9, p.19)."
+            "Spaces within range, obstacles and the water around the board counted."
         },
         checked = settings.range && overlay.rangeValue != null,
         enabled = overlay.rangeValue != null,
@@ -309,6 +312,7 @@ private fun HeroMeasures(
         bonus = settings.rangeBonus,
         onBonus = { delta: Int -> onAction(BoardAction.RangeBonus(delta)) }.takeIf { card?.values?.range != null },
         onToggle = { onAction(BoardAction.ToggleRange) },
+        page = "p.9",
     )
     OverlayRow(
         title = "Radius" + (overlay.radiusValue?.let { " $it" } ?: ""),
@@ -317,7 +321,7 @@ private fun HeroMeasures(
         ) {
             "This card has no Radius value."
         } else {
-            "Spaces within the radius, obstacles and the water around the board counted (p.9, p.19)."
+            "Spaces within the radius, obstacles and the water around the board counted."
         },
         checked = settings.radius && overlay.radiusValue != null,
         enabled = overlay.radiusValue != null,
@@ -326,6 +330,7 @@ private fun HeroMeasures(
         bonus = settings.radiusBonus,
         onBonus = { delta: Int -> onAction(BoardAction.RadiusBonus(delta)) }.takeIf { card?.values?.radius != null },
         onToggle = { onAction(BoardAction.ToggleRadius) },
+        page = "p.9",
     )
     if (card != null && card.text.isNotBlank()) {
         Overline("Card text")
@@ -347,9 +352,9 @@ private fun StepsMeasure(
     OverlayRow(
         title = "Movement ${settings.steps}",
         note = if (piece is MinionPiece) {
-            "Where a card's “move N” could take it (p.11)."
+            "Where a card's “move N” could take it."
         } else {
-            "Where it could be moved N spaces (p.11)."
+            "Where it could be moved N spaces."
         },
         checked = settings.movement,
         enabled = true,
@@ -399,7 +404,7 @@ private fun MovementRules(settings: OverlaySettings, onAction: (BoardAction) -> 
         }
         Text(
             when (settings.path) {
-                MovePath.NORMAL -> "Only through empty spaces (p.11)."
+                MovePath.NORMAL -> "Only through empty spaces."
 
                 MovePath.THROUGH_TOKENS ->
                     "Also through tokens, never units or terrain: tokens a card lets units move through, " +
@@ -414,7 +419,7 @@ private fun MovementRules(settings: OverlaySettings, onAction: (BoardAction) -> 
     }
     SwitchRow(
         title = "In a straight line",
-        note = "One of the six directions, stopping at the first obstacle it may not pass (p.19).",
+        note = "One of the six directions, stopping at the first obstacle it may not pass.",
         checked = settings.straightLine,
         onToggle = { onAction(BoardAction.ToggleStraightLine) },
     )
@@ -653,6 +658,8 @@ private fun OverlayRow(
     onBonus: ((Int) -> Unit)? = null,
     steps: Int? = null,
     onSteps: ((Int) -> Unit)? = null,
+    /** The rulebook page the layer follows, as a small pill after its title (never in its note). */
+    page: String? = null,
 ) {
     Column(Modifier.fillMaxWidth()) {
         Row(
@@ -669,12 +676,18 @@ private fun OverlayRow(
             }
             Spacer(Modifier.width(Spacing.md))
             Column(Modifier.weight(1f)) {
-                Text(
-                    title,
-                    style = MaterialTheme.typography.titleSmall,
-                    fontWeight = FontWeight.SemiBold,
-                    color = MaterialTheme.colorScheme.run { if (enabled) onSurface else onSurfaceVariant },
-                )
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        title,
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.SemiBold,
+                        color = MaterialTheme.colorScheme.run { if (enabled) onSurface else onSurfaceVariant },
+                    )
+                    page?.let {
+                        Spacer(Modifier.width(Spacing.sm))
+                        PagePill(it)
+                    }
+                }
                 Text(
                     note,
                     style = MaterialTheme.typography.bodySmall,

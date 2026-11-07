@@ -206,11 +206,11 @@ internal fun UpgradePicker(
             read(key, true)
         }
     }
-    Text(
+    RuleRow(
         "The card on the left is the choice: it goes back to your deck, and you keep one of the two beside it; " +
-            "the other is tucked under your hero as an item (p.15, p.16).",
-        style = MaterialTheme.typography.bodySmall,
-        color = MaterialTheme.colorScheme.onSurfaceVariant,
+            "the other is tucked under your hero as an item.",
+        page = "p.15",
+        live = false,
     )
 }
 
@@ -258,7 +258,7 @@ private fun UpgradeRowView(
                     border = BorderStroke(2.dp, cardColor(row.card.color)),
                 )
             }
-            CardCaption(row.card, width, numbers = false)
+            CardCaption(row.card, width)
             NamedThumbs(FocusCard(row.card), row.namedBy(row.card), width, focus, onOpen)
         }
         Icon(
@@ -315,7 +315,7 @@ private fun UpgradeThumb(row: UpgradeRow, card: Card, width: Dp, focus: CardFocu
                 shadowElevation = 3.dp,
                 modifier = Modifier.cardFocusOrigin(focus, card.id),
             ) { TableCard(card, width = width) }
-            CardCaption(card, width, numbers = false)
+            CardCaption(card, width)
             card.item?.let { ItemCaption(it) }
         }
         NamedThumbs(FocusCard(card), row.namedBy(card), width, focus, onOpen)
