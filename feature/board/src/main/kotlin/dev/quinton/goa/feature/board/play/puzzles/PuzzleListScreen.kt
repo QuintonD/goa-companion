@@ -68,8 +68,8 @@ import dev.quinton.goa.feature.board.ui.PlateSurface
 /**
  * The puzzles (PRODUCT §10): Continue with the first unsolved one at the top ("Up next · Puzzle 2 of 50"),
  * difficulty and theme filters, then the book's two parts, Positions and Full rounds, each with its progress
- * as the Play tab shows it ("1 of 50 positions", [SolvedCount]), and every puzzle by number with its title, theme, difficulty (hexes and words),
- * heroes and progress. Reset progress is in the menu, behind a confirmation.
+ * as the Play tab shows it ("1 of 50 positions", [SolvedCount]), and every puzzle by number with its title,
+ * theme, difficulty (hexes and words), heroes and progress. Reset progress is in the menu, behind a confirmation.
  */
 @Composable
 fun PuzzleListScreen(

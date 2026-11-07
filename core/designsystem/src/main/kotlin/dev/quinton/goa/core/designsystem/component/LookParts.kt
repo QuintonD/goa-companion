@@ -784,7 +784,7 @@ fun BevelText(
 val BannerMedallionWidth: Dp = 58.dp
 
 /** Room the plain steel end of a compact bar takes ([bannerCompact]). */
-val BannerPlainEndWidth: Dp = 8.dp
+val BannerPlainEndWidth: Dp = 16.dp
 
 /** A label over the map or art: a [BevelText] that doesn't take a line of its own. */
 @Composable

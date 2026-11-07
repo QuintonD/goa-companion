@@ -165,7 +165,22 @@ fun Modifier.steelBanner(colors: GoaExtendedColors, bronze: Color): Modifier = c
                     dstSize = IntSize(capW, h),
                     filterQuality = FilterQuality.Medium,
                 )
-                if (!compact) {
+                if (compact) {
+                    // The end's corners hold the edge of the medallion's ring and a stud: the band runs over them,
+                    // up to the frame's inner edge, so the end reads as the frame closing the band.
+                    val top = (art.height * PLAIN_INNER_TOP).toInt()
+                    val bottom = (art.height * PLAIN_INNER_BOTTOM).toInt()
+                    val innerPx = (art.height * PLAIN_INNER_RATIO).toInt()
+                    val dstTop = (h * PLAIN_INNER_TOP).toInt()
+                    drawImage(
+                        art,
+                        srcOffset = IntOffset(bodyPx, top),
+                        srcSize = IntSize(innerPx, bottom - top),
+                        dstOffset = IntOffset(bodyW, dstTop),
+                        dstSize = IntSize((h * PLAIN_INNER_RATIO).toInt(), (h * PLAIN_INNER_BOTTOM).toInt() - dstTop),
+                        filterQuality = FilterQuality.Medium,
+                    )
+                } else {
                     // The medallion is the band's ornament, not a control: its disc is toned down into the band so
                     // it reads as part of the frame rather than a raised button.
                     val centre = Offset(bodyW + capW * MEDALLION_X, h * MEDALLION_Y)
@@ -190,8 +205,14 @@ fun Modifier.steelBanner(colors: GoaExtendedColors, bronze: Color): Modifier = c
 /** How wide the medallion is, in banner heights. */
 private const val BANNER_CAP_RATIO = 1.35f
 
-/** How wide the frame's plain rounded end is, past the medallion's ring, in banner heights (compact bars). */
-private const val PLAIN_END_RATIO = 0.067f
+/**
+ * Compact bars: how wide the frame's rounded end is (with its corners), in banner heights, and the part inside the
+ * frame that the band covers (its width, and its top and bottom as shares of the height).
+ */
+private const val PLAIN_END_RATIO = 0.208f
+private const val PLAIN_INNER_RATIO = 0.117f
+private const val PLAIN_INNER_TOP = 0.075f
+private const val PLAIN_INNER_BOTTOM = 0.854f
 
 /** Below this width, or from this text scale, bars are compact. */
 private const val COMPACT_WIDTH_DP = 380
