@@ -57,7 +57,6 @@ import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDefaults
 import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -94,9 +93,11 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import dev.quinton.goa.core.designsystem.component.ChipIconSize
 import dev.quinton.goa.core.designsystem.component.EmptyState
 import dev.quinton.goa.core.designsystem.component.GoaButton
 import dev.quinton.goa.core.designsystem.component.GoaDialog
+import dev.quinton.goa.core.designsystem.component.GoaFilterChip
 import dev.quinton.goa.core.designsystem.component.GoaOutlinedButton
 import dev.quinton.goa.core.designsystem.component.GoaPlate
 import dev.quinton.goa.core.designsystem.component.GoaPlateTheme
@@ -109,9 +110,9 @@ import dev.quinton.goa.core.designsystem.component.SelectablePlate
 import dev.quinton.goa.core.designsystem.component.SelectionMark
 import dev.quinton.goa.core.designsystem.component.TeamBadge
 import dev.quinton.goa.core.designsystem.component.scaledIconSize
-import dev.quinton.goa.core.designsystem.component.selectableChipBorder
 import dev.quinton.goa.core.designsystem.component.slatePlate
 import dev.quinton.goa.core.designsystem.component.teamColor
+import dev.quinton.goa.core.designsystem.component.teamTextColor
 import dev.quinton.goa.core.designsystem.theme.GoaTheme
 import dev.quinton.goa.core.designsystem.theme.Spacing
 import dev.quinton.goa.core.domain.match.RematchKind
@@ -126,7 +127,6 @@ import dev.quinton.goa.feature.players.common.LARGE_FONT_SCALE
 import dev.quinton.goa.feature.players.common.LoadingState
 import dev.quinton.goa.feature.players.common.Motion
 import dev.quinton.goa.feature.players.common.SectionHeader
-import dev.quinton.goa.feature.players.common.goaFilterChipColors
 import dev.quinton.goa.feature.players.common.label
 import java.time.Instant
 import java.time.LocalDate
@@ -530,29 +530,16 @@ private fun WinnerAndCondition(state: MatchEditUiState, actions: MatchEditAction
                 Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
                     line.forEach { condition ->
                         val selected = form.winCondition == condition
-                        FilterChip(
+                        GoaFilterChip(
                             selected = selected,
                             onClick = { actions.onWinCondition(if (selected) null else condition) },
-                            label = {
-                                Text(
-                                    condition.label(),
-                                    textAlign = TextAlign.Center,
-                                    modifier = Modifier.fillMaxWidth(),
-                                )
-                            },
-                            leadingIcon = if (selected) {
-                                { Icon(Icons.Filled.Check, contentDescription = null, modifier = Modifier.size(18.dp)) }
-                            } else {
-                                null
-                            },
-                            colors = goaFilterChipColors(),
-                            border = selectableChipBorder(selected),
                             // Outer semantics win over the chip's own Checkbox role.
                             modifier = Modifier
                                 .weight(1f)
-                                .heightIn(min = 48.dp)
                                 .semantics { role = Role.RadioButton },
-                        )
+                        ) {
+                            Text(condition.label(), textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth())
+                        }
                     }
                     repeat(WIN_CONDITION_COLUMNS - line.size) { Spacer(Modifier.weight(1f)) }
                 }
@@ -827,23 +814,20 @@ private fun SeatEditor(
             itemVerticalAlignment = Alignment.CenterVertically,
         ) {
             PilotField(pilot, error = problem == "Choose a pilot", onClick = onPickPilot)
-            FilterChip(
+            GoaFilterChip(
                 selected = seat.handicap,
                 onClick = onToggleHandicap,
-                label = { Text("Handicap") },
+                modifier = Modifier.heightIn(min = 48.dp).semantics {
+                    contentDescription = "Handicap card for $heroLabel"
+                },
                 leadingIcon = {
                     Icon(
                         if (seat.handicap) Icons.Filled.CheckBox else Icons.Outlined.CheckBoxOutlineBlank,
                         contentDescription = null,
-                        modifier = Modifier.size(18.dp),
+                        modifier = Modifier.size(scaledIconSize(ChipIconSize)),
                     )
                 },
-                colors = goaFilterChipColors(),
-                border = selectableChipBorder(seat.handicap),
-                modifier = Modifier.heightIn(min = 48.dp).semantics {
-                    contentDescription = "Handicap card for $heroLabel"
-                },
-            )
+            ) { Text("Handicap") }
         }
         if (pilotSeats > 1 && pilot != null) {
             Row(Modifier.padding(top = Spacing.xs), verticalAlignment = Alignment.CenterVertically) {
@@ -961,7 +945,7 @@ private fun WinnerOption(
                 Text(
                     " won",
                     style = MaterialTheme.typography.labelLarge,
-                    color = teamColor(team),
+                    color = teamTextColor(team),
                     fontWeight = FontWeight.SemiBold,
                 )
             }
@@ -1007,22 +991,22 @@ private const val WIN_CONDITION_COLUMNS = 2
 @Composable
 private fun <T> ChoiceRow(options: List<T>, selected: T, label: (T) -> String, onSelect: (T) -> Unit) {
     if (LocalDensity.current.fontScale >= LARGE_FONT_SCALE) {
-        FlowRow(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+        FlowRow(
+            horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+            verticalArrangement = Arrangement.spacedBy(Spacing.sm),
+        ) {
             options.forEach { option ->
                 val isSelected = option == selected
-                FilterChip(
+                GoaFilterChip(
                     selected = isSelected,
                     onClick = { onSelect(option) },
-                    label = { Text(label(option)) },
+                    modifier = Modifier.heightIn(min = 48.dp),
                     leadingIcon = if (isSelected) {
                         { Icon(Icons.Filled.Check, contentDescription = null, modifier = Modifier.size(18.dp)) }
                     } else {
                         null
                     },
-                    colors = goaFilterChipColors(),
-                    border = selectableChipBorder(isSelected),
-                    modifier = Modifier.heightIn(min = 48.dp),
-                )
+                ) { Text(label(option)) }
             }
         }
     } else {

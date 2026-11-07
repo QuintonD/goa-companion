@@ -27,7 +27,6 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.outlined.Info
-import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.RadioButton
@@ -51,6 +50,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import dev.quinton.goa.core.designsystem.component.GoaFilterChip
 import dev.quinton.goa.core.designsystem.component.GoaOutlinedButton
 import dev.quinton.goa.core.designsystem.component.GoaPlate
 import dev.quinton.goa.core.designsystem.component.GoaPlateTheme
@@ -64,12 +64,11 @@ import dev.quinton.goa.core.designsystem.component.TeamBadge
 import dev.quinton.goa.core.designsystem.component.WaveCounterIcon
 import dev.quinton.goa.core.designsystem.component.slatePlate
 import dev.quinton.goa.core.designsystem.component.teamColor
+import dev.quinton.goa.core.designsystem.component.teamTextColor
 import dev.quinton.goa.core.designsystem.theme.Spacing
 import dev.quinton.goa.core.model.match.GameMode
 import dev.quinton.goa.core.model.match.Team
 import dev.quinton.goa.feature.timer.ui.components.CoinFace
-import dev.quinton.goa.feature.timer.ui.components.goaChipBorder
-import dev.quinton.goa.feature.timer.ui.components.goaChipColors
 import dev.quinton.goa.feature.timer.ui.components.plateEdge
 import dev.quinton.goa.feature.timer.ui.components.rememberReducedMotion
 import dev.quinton.goa.feature.timer.ui.components.rememberStartWithNotificationPermission
@@ -165,14 +164,11 @@ fun MatchSetupScreen(state: MatchSetupUiState, actions: SetupActions) {
                     verticalArrangement = Arrangement.spacedBy(Spacing.sm),
                 ) {
                     state.presets.forEach { preset ->
-                        FilterChip(
+                        GoaFilterChip(
                             selected = preset.id == state.selectedPresetId,
                             onClick = { actions.onPreset(preset.id) },
-                            label = { Text(preset.name) },
-                            colors = goaChipColors(),
-                            border = goaChipBorder(preset.id == state.selectedPresetId),
                             modifier = Modifier.heightIn(min = 48.dp),
-                        )
+                        ) { Text(preset.name) }
                     }
                 }
                 state.presets.firstOrNull { it.id == state.selectedPresetId }?.let {
@@ -601,14 +597,11 @@ private fun CoinSideChips(selected: Team?, label: String, onSet: (Team) -> Unit)
         Spacer(Modifier.height(Spacing.xs))
         Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
             Team.entries.forEach { team ->
-                FilterChip(
+                GoaFilterChip(
                     selected = selected == team,
                     onClick = { onSet(team) },
-                    label = { Text("${teamName(team)} shows", color = teamColor(team)) },
-                    colors = goaChipColors(),
-                    border = goaChipBorder(selected == team),
                     modifier = Modifier.heightIn(min = 48.dp),
-                )
+                ) { Text("${teamName(team)} shows", color = teamTextColor(team)) }
             }
         }
     }

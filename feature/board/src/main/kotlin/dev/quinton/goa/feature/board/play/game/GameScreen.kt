@@ -34,7 +34,6 @@ import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
-import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHost
@@ -70,6 +69,7 @@ import dev.quinton.goa.core.designsystem.component.CardTextBox
 import dev.quinton.goa.core.designsystem.component.ConfirmDialog
 import dev.quinton.goa.core.designsystem.component.EmptyState
 import dev.quinton.goa.core.designsystem.component.GoaButton
+import dev.quinton.goa.core.designsystem.component.GoaProgressBar
 import dev.quinton.goa.core.designsystem.component.GoaSwitch
 import dev.quinton.goa.core.designsystem.component.HeroPortrait
 import dev.quinton.goa.core.designsystem.component.PlateColor
@@ -656,7 +656,7 @@ private fun ComputerMove(table: TableUi, status: TurnStatus.Computer, focus: Car
             ) { TableCard(card, width = 56.dp) }
         }
     }
-    if (status.thinking) LinearProgressIndicator(Modifier.fillMaxWidth())
+    if (status.thinking) GoaProgressBar(null, Modifier.fillMaxWidth())
 }
 
 /** Simultaneous play (p.7): the person's card is down (shown to them only), the others still choose. */

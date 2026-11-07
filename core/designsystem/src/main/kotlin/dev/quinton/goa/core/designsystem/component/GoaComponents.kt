@@ -7,6 +7,8 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
@@ -20,12 +22,14 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.HelpOutline
 import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material.icons.outlined.Verified
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
@@ -379,6 +383,11 @@ fun GoaCard(
     GoaPlate(modifier = modifier, onClick = onClick, contentPadding = contentPadding, style = style, content = content)
 }
 
+/**
+ * A row of filter chips. Up to [FLOW_ROW_MAX] options wrap onto lines ([FlowRow]): nothing hides past the edge. More
+ * scroll sideways the app's way: starting on the gutter, fading and cued at the edge that hides more.
+ */
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun <T> FilterChipRow(
     options: List<T>,
@@ -388,8 +397,22 @@ fun <T> FilterChipRow(
     modifier: Modifier = Modifier,
     contentPadding: PaddingValues = PaddingValues(horizontal = Spacing.screen),
 ) {
+    if (options.size <= FLOW_ROW_MAX) {
+        FlowRow(
+            modifier.padding(contentPadding),
+            horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+            verticalArrangement = Arrangement.spacedBy(Spacing.sm),
+        ) {
+            options.forEach { option ->
+                GoaFilterChip(selected = option in selected, onClick = { onToggle(option) }, label = label(option))
+            }
+        }
+        return
+    }
+    val state = rememberLazyListState()
     LazyRow(
-        modifier = modifier,
+        modifier = modifier.horizontalEdgeFade(state),
+        state = state,
         contentPadding = contentPadding,
         horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
     ) {
@@ -399,16 +422,58 @@ fun <T> FilterChipRow(
     }
 }
 
+/**
+ * A search field's leading glyph: 24 dp, growing with the text to 32 dp at twice the size, so it stays in
+ * proportion to the words it leads.
+ */
+@Composable
+fun SearchFieldIcon() {
+    Icon(
+        Icons.Outlined.Search,
+        contentDescription = null,
+        modifier = Modifier.size(scaledIconSize(24.dp, SEARCH_GROWTH)),
+    )
+}
+
+private const val SEARCH_GROWTH = 4f / 3f
+
+/** A group this small wraps ([FlowRow]) rather than scroll sideways. */
+const val FLOW_ROW_MAX: Int = 6
+
 /** One themed filter chip, for custom layouts (FlowRow) outside [FilterChipRow]. */
 @Composable
-fun GoaFilterChip(selected: Boolean, onClick: () -> Unit, label: String, modifier: Modifier = Modifier) {
+fun GoaFilterChip(
+    selected: Boolean,
+    onClick: () -> Unit,
+    label: String,
+    modifier: Modifier = Modifier,
+    enabled: Boolean = true,
+) = GoaFilterChip(selected = selected, onClick = onClick, modifier = modifier, enabled = enabled) { Text(label) }
+
+/**
+ * The app's chip (DESIGN.md "Chips"): a small steel plate, bronze when [selected], with a leading check. At least
+ * [ChipMinHeight] tall and grown by its words ([ChipLabelPadding] above and below), so at large text it never
+ * squeezes; the words wrap rather than cut. Put a group that can outgrow the width in a `FlowRow`.
+ */
+@Composable
+fun GoaFilterChip(
+    selected: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    enabled: Boolean = true,
+    leadingIcon: (@Composable () -> Unit)? = selectedCheck(selected),
+    trailingIcon: (@Composable () -> Unit)? = null,
+    label: @Composable () -> Unit,
+) {
     FilterChip(
         selected = selected,
         onClick = onClick,
-        label = { Text(label, maxLines = 1) },
-        modifier = modifier,
-        leadingIcon = selectedCheck(selected),
-        shape = RoundedCornerShape(10.dp),
+        label = { ChipLabel(label) },
+        modifier = modifier.chipSize(),
+        enabled = enabled,
+        leadingIcon = leadingIcon,
+        trailingIcon = trailingIcon,
+        shape = ChipShape,
         colors = selectableChipColors(),
         border = selectableChipBorder(selected),
     )

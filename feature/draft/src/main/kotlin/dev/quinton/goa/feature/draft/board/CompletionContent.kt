@@ -29,7 +29,6 @@ import androidx.compose.material.icons.outlined.Tune
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -59,6 +58,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import dev.quinton.goa.core.designsystem.component.GoaButton
 import dev.quinton.goa.core.designsystem.component.GoaDialog
+import dev.quinton.goa.core.designsystem.component.GoaFilterChip
 import dev.quinton.goa.core.designsystem.component.GoaPlate
 import dev.quinton.goa.core.designsystem.component.HeroPortrait
 import dev.quinton.goa.core.designsystem.component.HeroSymbol
@@ -68,9 +68,9 @@ import dev.quinton.goa.core.designsystem.component.PlateRowDivider
 import dev.quinton.goa.core.designsystem.component.PlayerAvatar
 import dev.quinton.goa.core.designsystem.component.TeamMark
 import dev.quinton.goa.core.designsystem.component.TitlePlate
-import dev.quinton.goa.core.designsystem.component.selectableChipBorder
 import dev.quinton.goa.core.designsystem.component.selectionRow
 import dev.quinton.goa.core.designsystem.component.teamColor
+import dev.quinton.goa.core.designsystem.component.teamTextColor
 import dev.quinton.goa.core.designsystem.theme.GoaTextStyles
 import dev.quinton.goa.core.designsystem.theme.Spacing
 import dev.quinton.goa.core.domain.draft.DraftEngine
@@ -79,7 +79,6 @@ import dev.quinton.goa.core.domain.draft.SeatAssignment
 import dev.quinton.goa.core.model.match.Team
 import dev.quinton.goa.feature.draft.ui.PlateBar
 import dev.quinton.goa.feature.draft.ui.TeamText
-import dev.quinton.goa.feature.draft.ui.goaFilterChipColors
 import dev.quinton.goa.feature.draft.ui.info
 import dev.quinton.goa.feature.draft.ui.plateEdge
 import dev.quinton.goa.feature.draft.ui.teamLabel
@@ -327,7 +326,7 @@ private fun TeamResult(
                 Text(
                     teamName(team),
                     style = GoaTextStyles.sectionHead.copy(fontSize = 20.sp, lineHeight = 26.sp),
-                    color = teamColor(team),
+                    color = teamTextColor(team),
                     modifier = Modifier.weight(1f),
                 )
                 // The team the coin shows holds the Tie Breaker: said with the coin itself.
@@ -494,12 +493,9 @@ private fun SwapButton(label: String, onClick: () -> Unit, strong: Boolean = fal
 
 @Composable
 private fun HandicapChip(on: Boolean, onToggle: () -> Unit) {
-    FilterChip(
-        colors = goaFilterChipColors(),
-        border = selectableChipBorder(on),
+    GoaFilterChip(
         selected = on,
         onClick = onToggle,
-        label = { Text("Handicap card") },
         leadingIcon = if (on) {
             {
                 Icon(
@@ -511,7 +507,7 @@ private fun HandicapChip(on: Boolean, onToggle: () -> Unit) {
         } else {
             null
         },
-    )
+    ) { Text("Handicap card") }
 }
 
 private const val ELSEWHERE_ALPHA = 0.45f

@@ -83,6 +83,7 @@ import dev.quinton.goa.core.designsystem.component.TeamBadge
 import dev.quinton.goa.core.designsystem.component.TeamMark
 import dev.quinton.goa.core.designsystem.component.slatePlate
 import dev.quinton.goa.core.designsystem.component.teamColor
+import dev.quinton.goa.core.designsystem.component.teamTextColor
 import dev.quinton.goa.core.designsystem.theme.Spacing
 import dev.quinton.goa.core.model.match.Team
 import dev.quinton.goa.feature.timer.TimerText
@@ -196,7 +197,7 @@ internal fun TieBreakerChip(
                 Text(
                     buildAnnotatedString {
                         append(COIN_WORD)
-                        withStyle(SpanStyle(color = teamColor(team))) { append(teamName(team)) }
+                        withStyle(SpanStyle(color = teamTextColor(team))) { append(teamName(team)) }
                     },
                     style = coinChipLabelStyle(),
                     maxLines = 1,

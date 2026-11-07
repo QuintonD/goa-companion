@@ -29,7 +29,6 @@ import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material.icons.outlined.MoreVert
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -56,13 +55,12 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dev.quinton.goa.core.designsystem.component.GoaButton
 import dev.quinton.goa.core.designsystem.component.GoaDialog
+import dev.quinton.goa.core.designsystem.component.GoaFilterChip
 import dev.quinton.goa.core.designsystem.component.GoaOutlinedButton
 import dev.quinton.goa.core.designsystem.component.GoaPlate
 import dev.quinton.goa.core.designsystem.component.GoaScreen
 import dev.quinton.goa.core.designsystem.component.PlateShape
 import dev.quinton.goa.core.designsystem.component.SectionHeader
-import dev.quinton.goa.core.designsystem.component.selectableChipBorder
-import dev.quinton.goa.core.designsystem.component.selectedCheck
 import dev.quinton.goa.core.designsystem.theme.Spacing
 import dev.quinton.goa.core.model.match.Team
 import dev.quinton.goa.feature.draft.ui.COIN_TEAM
@@ -72,7 +70,6 @@ import dev.quinton.goa.feature.draft.ui.SelectionRadio
 import dev.quinton.goa.feature.draft.ui.SequenceStrip
 import dev.quinton.goa.feature.draft.ui.TeamText
 import dev.quinton.goa.feature.draft.ui.coinTeamWords
-import dev.quinton.goa.feature.draft.ui.goaFilterChipColors
 import dev.quinton.goa.feature.draft.ui.teamGlyph
 import dev.quinton.goa.feature.draft.ui.teamName
 
@@ -213,18 +210,17 @@ private fun PreviewFor(state: MethodsUiState, actions: MethodsActions) {
             style = MaterialTheme.typography.labelLarge,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
-        FlowRow(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+        FlowRow(
+            horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+            verticalArrangement = Arrangement.spacedBy(Spacing.sm),
+        ) {
             PreviewLayout.OPTIONS.forEach { layout ->
                 val chosen = state.layout == layout
-                FilterChip(
-                    colors = goaFilterChipColors(),
-                    border = selectableChipBorder(chosen),
+                GoaFilterChip(
                     selected = chosen,
                     onClick = { actions.setLayout(layout) },
-                    label = { Text("${layout.label} heroes") },
-                    leadingIcon = selectedCheck(chosen),
                     modifier = Modifier.heightIn(min = 48.dp),
-                )
+                ) { Text("${layout.label} heroes") }
             }
         }
         // The methods' Team A and Team B, named as the table knows them: the coin's team and the other one.

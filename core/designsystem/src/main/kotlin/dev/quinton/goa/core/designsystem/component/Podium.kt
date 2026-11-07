@@ -1,6 +1,5 @@
 package dev.quinton.goa.core.designsystem.component
 
-import android.graphics.BitmapFactory
 import androidx.annotation.DrawableRes
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
@@ -8,6 +7,7 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
@@ -45,19 +45,25 @@ import androidx.compose.ui.semantics.isTraversalGroup
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.traversalIndex
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.rememberTextMeasurer
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import coil3.SingletonImageLoader
+import coil3.request.ImageRequest
+import coil3.request.SuccessResult
+import coil3.request.allowHardware
+import coil3.toBitmap
 import dev.quinton.goa.core.designsystem.R
 import dev.quinton.goa.core.designsystem.theme.GoaFonts
 import dev.quinton.goa.core.designsystem.theme.LocalGoaIsDark
 import dev.quinton.goa.core.designsystem.theme.Spacing
 import kotlin.math.min
 import kotlin.math.roundToInt
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
 
 /**
  * One place on a [Podium]: its [place] (1 to 3; tied places share a number, and so their step's height and metal),
@@ -152,6 +158,33 @@ private fun PodiumStep(label: String, place: Int) {
     }
 }
 
+/**
+ * A place's small facts under its figure ("5 wins", "9 games"): on one line with dots between where the column has
+ * room, else one fact a line, so a fact is never split ("5 wins · 9" over "games"). Read as one line by TalkBack (the
+ * place's own description says it anyway).
+ */
+@Composable
+fun PodiumFacts(facts: List<String>, modifier: Modifier = Modifier) {
+    val style = MaterialTheme.typography.bodySmall
+    val color = MaterialTheme.colorScheme.onSurfaceVariant
+    BoxWithConstraints(modifier.fillMaxWidth(), contentAlignment = Alignment.TopCenter) {
+        val measurer = rememberTextMeasurer()
+        // Each fact holds together (a no-break space inside it), whichever way the facts are laid out.
+        val whole = facts.map { it.replace(' ', '\u00A0') }
+        val line = whole.joinToString(" · ")
+        val room = constraints.maxWidth
+        val oneLine = remember(line, room, style) {
+            !measurer.measure(line, style, maxLines = 1, constraints = Constraints(maxWidth = room)).hasVisualOverflow
+        }
+        Text(
+            if (oneLine) line else whole.joinToString("\n"),
+            style = style,
+            color = color,
+            textAlign = TextAlign.Center,
+        )
+    }
+}
+
 private fun stepTextTop(height: Dp): Dp = if (height > 30.dp) 6.dp else 1.dp
 
 /** At most this many places stand on the podium. */
@@ -162,6 +195,15 @@ private val STEEL = Triple(Color(0xFFEEF2F5), Color(0xFFB7C1CA), Color(0xFF6E7B8
 private val COPPER = Triple(Color(0xFFEDB585), Color(0xFFC07A45), Color(0xFF7E4520))
 private val STEP_EDGE = Color(0xFF15181C)
 private val STEP_INK = Color(0xFF1B1712)
+
+/**
+ * The running timer's painted sea (third_party/ASSETS.md): one cut for portrait, one for landscape, each at full
+ * resolution so the cover crop never upscales it. Decorative.
+ */
+object TimerPaintings {
+    @DrawableRes
+    fun sea(landscape: Boolean): Int = if (landscape) R.drawable.timer_sea_wide else R.drawable.timer_sea
+}
 
 /** The paintings a short screen can end in (`ScreenFoot`). */
 enum class FootArt {
@@ -185,8 +227,8 @@ enum class FootArt {
 fun ScreenFoot(art: FootArt, modifier: Modifier = Modifier) {
     val field = when (art) {
         FootArt.BATTLEFIELD -> rememberOfficialBitmap(LookArt.SILHOUETTE)
-        FootArt.HALL -> rememberFootBitmap(R.drawable.foot_hall)
-        FootArt.BEACONS -> rememberFootBitmap(R.drawable.foot_beacons)
+        FootArt.HALL -> rememberPaintingBitmap(R.drawable.foot_hall)
+        FootArt.BEACONS -> rememberPaintingBitmap(R.drawable.foot_beacons)
     } ?: return
     val ground = MaterialTheme.colorScheme.background
     val dark = LocalGoaIsDark.current
@@ -224,15 +266,22 @@ fun ScreenFoot(art: FootArt, modifier: Modifier = Modifier) {
     }
 }
 
-/** One of the app's own foot paintings, decoded off the main thread once per process. */
+/**
+ * One of the app's own paintings ([TimerPaintings], the foot paintings), decoded off the main thread once per
+ * process; null while it decodes, and if it fails. It loads through the app's image loader, so whatever waits for
+ * images to settle (a screenshot test) waits for the painting too.
+ */
 @Composable
-private fun rememberFootBitmap(@DrawableRes res: Int): ImageBitmap? {
+fun rememberPaintingBitmap(@DrawableRes res: Int): ImageBitmap? {
     val context = LocalContext.current
     var bitmap by remember(res) { mutableStateOf(footBitmaps[res]) }
     if (bitmap == null) {
         LaunchedEffect(res) {
-            bitmap = withContext(Dispatchers.IO) {
-                footBitmaps.getOrPut(res) { BitmapFactory.decodeResource(context.resources, res).asImageBitmap() }
+            bitmap = footBitmaps[res] ?: run {
+                val app = context.applicationContext
+                val request = ImageRequest.Builder(app).data(res).allowHardware(false).build()
+                val result = SingletonImageLoader.get(app).execute(request)
+                (result as? SuccessResult)?.image?.toBitmap()?.asImageBitmap()?.also { footBitmaps[res] = it }
             }
         }
     }

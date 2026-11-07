@@ -105,8 +105,6 @@ import dev.quinton.goa.core.designsystem.component.PlateShape
 import dev.quinton.goa.core.designsystem.component.PlayerAvatar
 import dev.quinton.goa.core.designsystem.component.TeamBadge
 import dev.quinton.goa.core.designsystem.component.TitlePlate
-import dev.quinton.goa.core.designsystem.component.selectableChipBorder
-import dev.quinton.goa.core.designsystem.component.selectedCheck
 import dev.quinton.goa.core.designsystem.component.teamColor
 import dev.quinton.goa.core.designsystem.theme.GoaTextStyles
 import dev.quinton.goa.core.designsystem.theme.GoaTheme
@@ -130,7 +128,6 @@ import dev.quinton.goa.feature.draft.ui.TeamText
 import dev.quinton.goa.feature.draft.ui.TieBreakerCoin
 import dev.quinton.goa.feature.draft.ui.TileState
 import dev.quinton.goa.feature.draft.ui.coinTeamWords
-import dev.quinton.goa.feature.draft.ui.goaFilterChipColors
 import dev.quinton.goa.feature.draft.ui.goaTonalButtonColors
 import dev.quinton.goa.feature.draft.ui.plateEdge
 import dev.quinton.goa.feature.draft.ui.plural
@@ -767,7 +764,10 @@ private fun DoublePilotPicker(state: SetupUiState, actions: SetupActions) {
     val current = state.currentDoublePilot
     Column {
         Text("Who pilots two heroes?", style = MaterialTheme.typography.labelLarge)
-        FlowRow(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+        FlowRow(
+            horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+            verticalArrangement = Arrangement.spacedBy(Spacing.sm),
+        ) {
             smaller.forEach { id ->
                 GoaFilterChip(
                     selected = id == current,
@@ -796,15 +796,12 @@ private fun PlayerDraftSetup(state: SetupUiState, actions: SetupActions) {
                 ) {
                     form.selected.forEach { id ->
                         val chosen = if (team == Team.RED) form.redCaptain == id else form.blueCaptain == id
-                        FilterChip(
-                            colors = goaFilterChipColors(),
-                            border = selectableChipBorder(chosen),
+                        GoaFilterChip(
                             selected = chosen,
                             onClick = { actions.setCaptain(team, id) },
-                            label = { Text(state.player(id)?.player?.name ?: "Unknown") },
-                            leadingIcon = { PlayerAvatar(state.player(id)?.player, size = 24.dp) },
                             modifier = Modifier.heightIn(min = 48.dp),
-                        )
+                            leadingIcon = { PlayerAvatar(state.player(id)?.player, size = 24.dp) },
+                        ) { Text(state.player(id)?.player?.name ?: "Unknown") }
                     }
                 }
             }
@@ -903,28 +900,23 @@ private fun HeroesStage(state: SetupUiState, actions: SetupActions) {
             Text("Least experienced player", style = MaterialTheme.typography.labelLarge)
             Hint("Removes heroes above their complexity (rulebook).")
             Spacer(Modifier.height(Spacing.sm))
-            FlowRow(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-                FilterChip(
-                    colors = goaFilterChipColors(),
-                    border = selectableChipBorder(form.maxComplexity == null),
+            FlowRow(
+                horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+                verticalArrangement = Arrangement.spacedBy(Spacing.sm),
+            ) {
+                GoaFilterChip(
                     selected = form.maxComplexity == null,
                     onClick = { actions.setMaxComplexity(null) },
-                    label = { Text("Any") },
-                    leadingIcon = selectedCheck(form.maxComplexity == null),
                     modifier = Modifier.heightIn(min = 48.dp),
-                )
+                ) { Text("Any") }
                 for (stars in 1..3) {
-                    FilterChip(
-                        colors = goaFilterChipColors(),
-                        border = selectableChipBorder(form.maxComplexity == stars),
+                    GoaFilterChip(
                         selected = form.maxComplexity == stars,
                         onClick = { actions.setMaxComplexity(stars) },
-                        label = { Text("${"★".repeat(stars)} ${ComplexityFilter.name(stars)}") },
-                        leadingIcon = selectedCheck(form.maxComplexity == stars),
                         modifier = Modifier
                             .heightIn(min = 48.dp)
                             .semantics { contentDescription = "Up to $stars stars, ${ComplexityFilter.name(stars)}" },
-                    )
+                    ) { Text("${"★".repeat(stars)} ${ComplexityFilter.name(stars)}") }
                 }
             }
         }
@@ -936,17 +928,16 @@ private fun HeroesStage(state: SetupUiState, actions: SetupActions) {
             )
         }) {
             if (form.stepTimer) {
-                FlowRow(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+                FlowRow(
+                    horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+                    verticalArrangement = Arrangement.spacedBy(Spacing.sm),
+                ) {
                     listOf(15, 30, 45, 60, 90).forEach { s ->
-                        FilterChip(
-                            colors = goaFilterChipColors(),
-                            border = selectableChipBorder(form.stepSeconds == s),
+                        GoaFilterChip(
                             selected = form.stepSeconds == s,
                             onClick = { actions.setStepSeconds(s) },
-                            label = { Text("${s}s") },
-                            leadingIcon = selectedCheck(form.stepSeconds == s),
                             modifier = Modifier.heightIn(min = 48.dp),
-                        )
+                        ) { Text("${s}s") }
                     }
                 }
             } else {
@@ -981,7 +972,7 @@ private fun HeroChooserSheet(state: SetupUiState, onDone: (Set<String>) -> Unit)
     ) {
         Column(Modifier.padding(horizontal = Spacing.screen)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                TitlePlate("Custom pool · ${selection.size}", Modifier.weight(1f))
+                TitlePlate("Custom pool · ${selection.size}", Modifier.weight(1f), gear = false)
                 TextButton(onClick = { selection = state.heroes.map { it.id } }) { Text("All") }
                 TextButton(onClick = { selection = emptyList() }) { Text("None") }
             }

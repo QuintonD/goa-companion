@@ -54,7 +54,7 @@ import dev.quinton.goa.core.designsystem.component.SectionHeader as RulebookSect
 import dev.quinton.goa.core.designsystem.component.TeamMark
 import dev.quinton.goa.core.designsystem.component.scaledIconSize
 import dev.quinton.goa.core.designsystem.component.slatePlate
-import dev.quinton.goa.core.designsystem.component.teamColor
+import dev.quinton.goa.core.designsystem.component.teamTextColor
 import dev.quinton.goa.core.designsystem.theme.GoaTextStyles
 import dev.quinton.goa.core.designsystem.theme.GoaTheme
 import dev.quinton.goa.core.designsystem.theme.Spacing
@@ -167,7 +167,7 @@ fun ResultChip(status: MatchStatus, winner: Team?, modifier: Modifier = Modifier
     val (text, color, icon) = when {
         status == MatchStatus.COMPLETED && winner != null -> Triple(
             "${winner.label()} won",
-            teamColor(winner),
+            teamTextColor(winner),
             Icons.Filled.EmojiEvents,
         )
 

@@ -69,6 +69,47 @@ class ContrastTest {
         }
     }
 
+    /**
+     * Secondary text is read in dim light at arm's length: onSurfaceVariant is ≥ 7:1 (WCAG AAA) on the canvas, the
+     * surfaces, the plate and its well, and a steel chip.
+     */
+    @Test fun secondaryTextIsAaa() {
+        themes().forEach { (theme, scheme, x) ->
+            listOf(
+                "background" to scheme.background,
+                "surface" to scheme.surface,
+                "surfaceVariant" to scheme.surfaceVariant,
+                "plate" to x.plate,
+                "well" to x.plateWell,
+            ).forEach { (name, bg) -> check("$theme onSurfaceVariant on $name", scheme.onSurfaceVariant, bg, AAA) }
+        }
+        check("dark onSurfaceVariant on a steel chip", DarkColors.onSurfaceVariant, ControlSteel.Dark.face, AAA)
+    }
+
+    /**
+     * Team words (a team's name, an actor heading) are as legible as body text: ≥ 6:1 on the plate, ≥ 4.5:1 on every
+     * other ground of the theme, a picked choice's tint included. Team marks (the gear, the star, an accent bar, a
+     * ring) and bronze marks are ≥ 3:1 on every ground, cream included.
+     */
+    @Test fun teamWordsAndMarks() = themes().forEach { (theme, scheme, x) ->
+        val picked = x.selectionFill.compositeOver(x.plate)
+        val grounds = listOf(
+            "background" to scheme.background,
+            "surface" to scheme.surface,
+            "surfaceVariant" to scheme.surfaceVariant,
+            "plate" to x.plate,
+            "well" to x.plateWell,
+            "picked" to picked,
+        )
+        listOf("red" to x.teamRedText, "blue" to x.teamBlueText).forEach { (team, words) ->
+            check("$theme $team team words on plate", words, x.plate, TEAM_WORDS)
+            grounds.forEach { (name, bg) -> check("$theme $team team words on $name", words, bg, TEXT) }
+        }
+        listOf("red" to x.teamRed, "blue" to x.teamBlue, "bronze" to x.bronzeInk).forEach { (mark, color) ->
+            grounds.forEach { (name, bg) -> check("$theme $mark mark on $name", color, bg, GRAPHIC) }
+        }
+    }
+
     /** The light theme's paper plate and its well, and a picked choice's bronze tint over either theme's plate. */
     @Test fun textOnPlates() = themes().forEach { (theme, scheme, x) ->
         val picked = x.selectionFill.compositeOver(x.plate)
@@ -141,6 +182,8 @@ class ContrastTest {
 
     private companion object {
         const val TEXT = 4.5
+        const val TEAM_WORDS = 6.0
+        const val AAA = 7.0
         const val GRAPHIC = 3.0
         const val DISABLED_EDGE = 1.6
     }

@@ -17,17 +17,21 @@ area, `goa-look-*.css`). Every part falls back to a flat colour while its image 
   Bottom nav, sheets (`GoaSheet`, never a bare `ModalBottomSheet`), search fields (`GoaTheme.colors.plate`) and the table's panels follow it.
   **Dark in both themes by design** (`GoaDarkTheme`): the running timer, what floats over the painted map (`MapButton`, `SlateButton`),
   a card's own frame (`DesignedCard`), the hero dashboard. `PlateGround` is that slate's flat tone; a themed plate's is `GoaTheme.colors.plate`.
-- **Plate styles** (`PlateStyle`): `Primary` (steel edge, brackets) for a screen's main summary, the current turn, a hero; `Secondary` (flat, a
-  quiet hairline, no brackets) for prose and lone rows; `Well`, a recess. A plate inside a plate draws as a well: frames never nest.
-- **Framing levels** (one rule, every screen): a section is one `GoaPlate` (steel edge, teal brackets): settings groups, a filter's groups,
-  timer presets and setup choices, draft options. Rows inside it are separated by spacing or hairlines, with no border of their own: a
-  `SelectablePlate` or `GoaPlate(selected =)` inside a plate is a row of it: full width, no ground or edge; selected, the bronze wash and a
-  3 dp bronze bar at its leading edge with its radio (`selectionRow`); rows divided by `PlateRowDivider`. Parchment
-  (title plate, text box) only for the principal title or prompt.
+- **Plate styles** (`PlateStyle`): `Primary` (steel edge, brackets) for every grouped section; `Secondary` (flat, a quiet hairline, no
+  brackets) only for one choice of several side by side (`SelectablePlate`); `Well`, a recess. A plate inside a plate draws as a well: a
+  tone with no edge, so frames never nest.
+- **Framing levels** (one rule, every screen, round 4): (1) the outer section plate, steel edge and teal brackets, on every grouped section:
+  settings groups, More's groups, About's rows, a filter's groups, timer presets and setup choices, draft options. (2) Inside it no inner
+  frames: rows are separated by spacing or hairlines (`PlateRowDivider`); a `SelectablePlate` or `GoaPlate(selected =)` inside a plate is a
+  row of it: full width, no ground or edge; selected, the bronze wash and a 3 dp bronze bar at its leading edge with its radio
+  (`selectionRow`); any other `GoaPlate` inside a plate is a toned recess without an edge. (3) A parchment title plate only for the
+  screen's one heading (About's "Atlantis Companion", a hero's name in a sheet, "Phase timer"). (4) The gear-ended title plate only for a
+  phase or an outcome heading (a timer phase, a pick, "Match over", "Draft complete", a decision).
 - **Title plate** (`TitlePlate`, `Modifier.titlePlate`, `.goa-title-plate`): the cards' parchment pill (redrawn, ADR-058; its ends from the art, the
   right one mirrored) growing with its text, and the cards' gear drawn as vectors at its own size (`TitlePlateSize`: 34 dp, 25 dp on a tile)
   over the pill's end, whatever the plate's height: steel teeth lit from the upper left, a dark face, a bronze hub. The words keep clear of
-  the gear. Content: a hero's name, what a question asks, a timer phase. A screen's one key title, not every heading. A plate holds a short title
+  the gear (only on a phase or outcome heading, see Framing levels; `gear = false` elsewhere). Content: a hero's name, what a question asks,
+  a timer phase. A screen's one key title, not every heading. A plate holds a short title
   (a few words: "Minion Battle"); anything longer goes in the text box below it.
 - **Text box** (`CardTextBox(PlateColor, cap)`, `.goa-text-box.<colour>`): the cards' parchment box in a frame colour with the word on its tab (dark on
   gold and silver, white on the rest): question text and the attack header in the asking card's colour, moments in gold, coach and nudges in green. The app's own words in a box are Inter (and its tab says "Note", never "Rule"); only text the game prints is Crimson.
@@ -46,17 +50,31 @@ area, `goa-look-*.css`). Every part falls back to a flat colour while its image 
 - **Controls** (`Controls.kt`, round 3 of the hill climb): the game's own, never stock Material shapes. A **segmented bar**
   (`GoaSegmentedRow` / `GoaSegment`) is a recessed steel track with a bevelled edge, 48 dp high (each segment the whole
   height as its target); the selected segment is a bronze inset drawn inside it (wash, 1.5 dp edge, check). A **switch** (`GoaSwitch`): off, a recess with a steel edge and a light thumb; on, a bronze track with a
-  parchment thumb carrying a check. **Chips** take `selectableChipBorder` (the steel bevel). Steel edges and the on track are ≥ 3:1 on
+  parchment thumb carrying a check. **Chips** (`GoaFilterChip`; a Material chip that can't be one takes `Modifier.chipSize()`, `ChipLabel`,
+  `selectableChipBorder`): at least 48 dp tall, visibly (`ChipMinHeight`), with 8 dp above and below the words (`ChipLabelPadding`), so a
+  chip grows with large text instead of squeezing it; the words wrap rather than cut; the leading glyph grows with the text
+  (`ChipIconSize` × `scaledIconSize`). A group of chips that can outgrow the width is a `FlowRow` with 8 dp between lines. A **slider**
+  (`GoaSlider`) and a **progress bar** (`GoaProgressBar`) are bronze for the chosen or done part on a neutral steel track
+  (`ControlSteel.track`); teal never means progress. Steel edges and the on track are ≥ 3:1 on
   their grounds (`ContrastTest.controls`). Material's `SegmentedButton` stays only where the segment is a team colour (New board's Red | Blue).
-- **Sideways rows** (`Modifier.horizontalEdgeFade(state)`, `fadingHorizontalScroll`, `EdgeFadeGutter`): every row that scrolls sideways
-  fades out at the edge that hides more (a mask, so it works on any ground) and starts on the screen's gutter: the catalog's controls,
-  the rules navigator, meta sort chips, the draft's step strip and role chips, the table's hero and turn strips.
+- **Sideways rows** (`Modifier.horizontalEdgeFade(state)`, `fadingHorizontalScroll`, `EdgeFadeGutter`, `bleedHorizontally`): every row
+  that scrolls sideways starts on the screen's gutter and runs to the screen's edge (`bleedHorizontally` lets it out of a padded column),
+  and fades out at the edge that hides more, to a small steel chevron in a 14 dp strip at the very edge where nothing of the row shows (a
+  mask and a cue, so it works on any ground; the chevron never sits on a chip or a card, and the row's 16 dp gutter is wider than the
+  strip, so a row at rest loses nothing to it): the catalog's
+  controls, the deck's jump chips, the rules navigator, the board's card rail, the draft's step strip and role chips, the table's hero and
+  turn strips. A group of about six or fewer wraps instead (`FlowRow`, `FilterChipRow` does it by itself): meta's sort chips.
   A page over a pinned bar fades into it while more is below (`bottomEdgeFade`: Game options over its coin bar).
-- **Ceremony is for the game's states.** The title plate's gear (`titlePlate(gear =)`, `TitlePlate(gear =)`) and the bracketed Primary
-  plate mark a turn, a phase, a team's hero, a screen's one key summary; routine rows and lists (More, Settings, About) sit on the
-  restrained `PlateStyle.Secondary` and a catalog tile's name on the gearless plate, so an ornament never passes for a control.
+- **Ceremony is for the game's states.** The title plate's gear (`titlePlate(gear =)`, `TitlePlate(gear =)`) marks a phase or an
+  outcome; a catalog tile's name sits on the gearless plate, so an ornament never passes for a control. Grouped sections, More, Settings
+  and About included, are the bracketed section plate (Framing levels).
 - **Bronze on cream:** a symbol, star or check that carries meaning uses `bronzeInk` (the bronze in the dark theme, `#6A4A12` in the
   light one, ≥ 4.5:1 on paper and canvas), never the pale bronze of a fill.
+- **Team words and team marks** (round 4): a word in a team's colour (a team's name, an actor heading) uses `teamTextColor(team)`
+  (`teamRedText` / `teamBlueText`: `#F29488` / `#8DB9F5` dark, `#8E2A21` / `#1E4C8F` light; ≥ 6:1 on the plate, ≥ 4.5:1 on every
+  ground), as legible as the body text beside it. `teamColor(team)` stays for marks, accent bars, rings and fills (≥ 3:1 on every
+  ground, cream included). The operative instruction ("Choose an action") is body colour, with the team's mark beside it.
+  `ContrastTest.teamWordsAndMarks` checks both.
 - **Hero ratings:** a hero's four profile figures are titled **Hero ratings · 1–8** wherever they show (the hero page's plate, the draft's
   peek; `HERO_RATINGS_TITLE`) and end in one shared note, "Base → upgraded · 1 very poor, 8 exceptional" over "Comparative ratings, not card values" (`HeroRatingsNote`), so
   they never pass for numbers printed on a card.
@@ -96,7 +114,7 @@ when a map has `art` (all four do); the drawn map stays as the fallback while lo
   Under the header **Overview · Deck · FAQ** are true tabs (sticky; the tab you are on selected in bronze: wash, word and rule; each keeps its own scroll). The Overview has the art, the profile, your table (with no games yet, "Log a match with Arien" opens a new match with the hero in its first seat), lore (a quotation: Crimson italic, 19 sp, behind a bronze rule) and one quiet line for the data ("Data: Stats of Atlantis · Verified"; each project and its address are in About → Data sources, the pinned versions in docs/DOMAIN.md). The Deck and FAQ open with a compact identity (symbol, name plate, stars and roles) instead of the art. On the Deck two filters ride under the tabs (sticky), each one choice with its "All" stated and selected when nothing is narrowed: **All colours** then the parts on one line scrolling sideways with the edge fade, each with its colour's ribbon and count (Basic, Red, Green, Blue, Ultimate, Handicap, Spellbook; selected in the one selection look with a check), and under them **All tiers · Tier I · Tier II · Tier III** in the same chips; the count over the cards names what they leave ("Red · Tier II · 2 cards"). The scans are two across a phone (at least 160 dp each), each named under it; press-and-hold shows a card full screen (at most 1.6× its pixels; a tap or Back closes it; TalkBack: "Show full screen"), a tap opens the viewer. **Deck count:** one model everywhere: the deck's own cards, the Handicap card named apart: "18 cards + Handicap" over the deck, "3 of 18" in the card viewer, "Handicap" on the Handicap card, "Spellbook 2 of 12" on an extra. `HeroDetailRoute.DECK` / `FAQ` / `SPELLBOOK` open a tab.
 - **Text that carries information** (roles, card captions, counts, notes, metadata pills) is at least 14 sp and wraps; it never shrinks to fit.
 - **Rules:** the topic list is sentence-case Inter semibold (17 sp) for scanning, the topic page keeps the book's Cinzel heads. A long topic title gives the banner its head ("Turn sequence") and opens the page whole, in Cinzel. A topic with three or more stops has a sticky **section navigator** of chips: the rulebook's own heads verbatim, "Diagrams", and (in a topic with few heads) its headless boxed passages by their opening words; the passage you are reading is always the bronze chip (the first section above the first passage) and is kept scrolled into view, the row uses the shared edge fade (`horizontalEdgeFade`), and **Contents** in the banner (a labelled glyph) opens a sheet listing every section, the current one selected, so the chips keep the whole row. The whole title is set compact (Cinzel 20 sp), so the rules start on the first screen. The reader's page (`GoaTheme.colors.page`, `onPage`, `pageInk`, `pageEdge`) is the parchment in the light theme and a dark parchment `#221E19` with warm light Crimson ink `#EAE0CC` in the dark theme, so opening a passage never flashes a bright page at a dim table (`ContrastTest.readerPage`). Copper heads; passages in the box the rulebook prints them in: blue `#0F6F99`, green `#2B7A33` and orange `#A8560F` (the print's green and orange darkened to 5.3:1 and 5.2:1), a shade deeper on the dark page (`#0C5778`, `#225F28`, `#86440C`). A long topic with diagrams opens, before its first passage, with an anchor row: **Steps** (when a passage prints numbered steps) and each diagram as a thumbnail, each a tap from its place on the page (`topicAnchors`; pointers only, no words of ours). Pushing the Lane has the p.8 diagrams, each over its printed caption (`RulesDiagrams`; verbatim, in italics, checked against the PDF as any excerpt): multiplied into the light page; on the dark page a framed plate in a muted parchment. Their soft map is the PDF's own: the map art is embedded at about 100 ppi, so no higher render exists (only the vector labels sharpen). The topic list is one plate with dividers. A topic's foot is the steel band; sideways and with large text a plain line at the page's end instead. The ladder (Levels & defeats) is a bottom sheet: its drag handle, then its title with the pages and a Close button; a picked level key is solid bronze with a check (read at a glance), and that level's three numbers are the default view. The full table sits behind **Compare all levels**: the Level column pinned, the other six scrolling sideways with one-line 14 sp heads, 17 sp figures and the shared edge fade, the picked level's row in bronze; with large text it becomes one block per level, so no number is off-screen.
-- **Timer:** the painted sea under a navy veil, the battlefield silhouette at the foot, phase on a title plate, steel double ring, digits in Inter on a near-black disc. Stays dark in both themes. Next (bronze) is wider than Pause (steel) because its label runs long.
+- **Timer:** the painted sea under a navy veil (`timer_sea` / `timer_sea_wide`, painted for the app at full resolution, a cut per orientation), the battlefield silhouette at the foot, phase on a title plate, steel double ring, digits in Inter on a near-black disc. Stays dark in both themes. Next (bronze) is wider than Pause (steel) because its label runs long.
 - **Draft:** step on a title plate in a team-edged plate; pool tiles with portrait, symbol and parchment name; bans crossed out, dimmed and struck through. Words that name a team show its mark in line (`TeamText`). Once the coin has named the teams the draft speaks in colours only ("◆ Red picks 2", "Step 4 of 8 · 1 of 2 · for Ada", columns "Blue" and "Red"); "Team A"/"Team B" are the method editor's words, and the coin's team is marked by the coin's face ("Tie Breaker coin"). A finished draft is a plate per team with the seats divided; only the selected seat is framed. Teams balanced by Elo give each player a 48 dp padlock toggle (TalkBack: "Keep Ada on Red when re-balancing", Locked / Not locked); what it does is its tooltip on a long press ("Locked players stay on their team when re-balanced"), not a line on the screen, so the odd-count choice stays above the footer.
 
 - **Group sync:** not in a group, one line on what it is for, then two plates, Scan an invite (the one bronze button) and Start a group (outlined), one sentence and one button each; a form (paste an invite, name the group) opens only in the plate chosen, and its button stays on and says what is missing rather than greying out. The transport, the server and the key fold under "How syncing works"; the foot is the app's beacons painting. In a group, the bronze action names its transport ("Sync with nearby phones"; with a server "Sync through the server", nearby outlined under it), then "Phone-to-phone sync", the normal way, in one line with the phones synced with; a server that is set up sits open under "Remote sync", otherwise it waits folded at the foot as "Optional remote sync". This phone's player is the shared `IdentitySelector` ("Playing as Ann", "Group · Friday nights", a chevron to change). The sync sheet has the drag handle and a close X beside its title. Hosting is an explicit state machine under its steps (Collect, Merge, Send back, Done: bronze now, teal ticks behind, hollow ahead), each phone's state on its row, who is left out and why in a callout of its own ("Eve isn't included: old invite"), then one command with its count: off and saying what it waits for ("Waiting for Cid's data…") until a phone's data is in; "Sync 2 phones now" with every phone in; "Sync 2 phones when ready" while some still send, and a tap arms it: the button gives way to a status in a well ("Waiting for Cid · sync starts automatically"), then "Merging…". Cancel is a full-width outlined button. Each change is announced politely. A phone with an old invite offers "Show new invite" on its own row (the group's QR over the sheet). It ends on a summary plate: who is up to date, what changed on this phone, who to sync again.
@@ -160,12 +178,13 @@ bronze" (deep-ocean dark with bronze and teal), which stays as the canvas and th
 | background | `#0B1622` | `#EDE7DB` | app canvas |
 | surface | `#1E2327` | `#FCFAF4` | cards, sheets (the light plate's paper) |
 | onSurface | `#E8E2D6` | `#221D17` | body text (ink) |
-| onSurfaceVariant | `#B4BEC8` | `#554D41` | secondary text |
+| onSurfaceVariant | `#BCC6CF` | `#4C4438` | secondary text (≥ 7:1 on every ground, `ContrastTest.secondaryTextIsAaa`) |
 | primary (bronze) | `#C9A35B` | `#7A5A1E` | key actions, headings accent |
 | onPrimary | `#0B1622` | `#FFFFFF` | text/icons on filled primary |
 | secondary (tide teal) | `#3FC1B0` | `#17695E` | progress, timers, next and correct |
 | team red | `#E76C61` | `#B0362C` | red team |
 | team blue | `#4F8FE0` | `#2C63B0` | blue team |
+| teamRedText / teamBlueText | `#F29488` / `#8DB9F5` | `#8E2A21` / `#1E4C8F` | a team's words (`teamTextColor`) |
 | error | `#FF6B6B` | `#B3261E` | |
 | surfaceHigh (surfaceVariant) | `#2A3136` | `#F1EBDF` | raised rows, portrait frame top |
 | verified | `#3FC1B0` | `#17695E` | "Verified" badge (= secondary) |
@@ -219,7 +238,7 @@ Contrast checks added 2026-10-17 (WCAG ratio vs background / surface / surfaceHi
   icons/large text there, not body text.
 - team red/blue (dark) on surfaceHigh are 4.1/4.2 — keep team-coloured *text* on background
   or surface; on surfaceHigh pair it with the shape mark.
-- onSurfaceVariant on surfaceHigh: 6.6 (dark) / 6.1 (light).
+- onSurfaceVariant on surfaceHigh: 7.6 (dark) / 8.1 (light) since round 4 (was 6.6 / 6.1).
 
 Contrast checks added 2026-10-25 (ADR-042), enforced by `ContrastTest` (core:designsystem), which
 fails the build when a token change breaks one:
@@ -237,7 +256,9 @@ fails the build when a token change breaks one:
   the rules pages read it at 20 sp). Static instances in `core/designsystem/src/main/res/font/`, licences in
   `third_party/` (see `third_party/ASSETS.md`). Numbers use tabular figures:
   `GoaTextStyles.timerDigits` (96 sp), `timerDigitsSmall` (32 sp), `numeric` (14 sp), all
-  `tnum, lnum`. `formatDuration`/`DurationText` give `m:ss` / `h:mm:ss` with spoken descriptions.
+  `tnum, lnum`. **Floor:** secondary text (`bodySmall`: captions, subtitles, notes) is 14 sp, told apart from body text by
+  `onSurfaceVariant`, not by size; 12 sp (`labelMedium`, `labelSmall`) only for tags and pills. A search field's glyph is
+  `SearchFieldIcon` (24 dp, 32 dp at 2× text). `formatDuration`/`DurationText` give `m:ss` / `h:mm:ss` with spoken descriptions.
 - **Shape:** 12 dp cards, 28 dp sheets/dialogs, 10 dp chips; engraved border (1 dp bronze at 30%).
   `EngravedRule` (fading 1 dp bronze line) separates the top/bottom bars from content.
 - **Motion:** `Motion` tokens — 200/250/300 ms, emphasised easing curves. Screen pushes fade
@@ -860,7 +881,7 @@ Two kinds of asset (ADR-006, ADR-034):
 - Card text contains inline icon tokens; render them with matching vector icons (redrawn
   originals in the game's icon style if no clean official vector exists).
 - Otherwise show them as-is (crop and resize only); don't redraw or recolour official art.
-- Since ADR-053 the rulebook's and the cards' own parts may be the frames. Beyond crops, only what `official/SOURCES.md` records: toned miniatures, flattened photos of the mats, and the frames the print has too few pixels for (ADR-058): redrawn after it (banner, title plate, text boxes, plate brackets; `design/look/render_parts.py`) or, where illustrated, upscaled (dashboard frame, silhouette). Redraw a frame when it's visibly soft at its size on a phone and no sharper copy is published; never a card, a portrait, a symbol or a board, and never anything that carries game data.
+- Since ADR-053 the rulebook's and the cards' own parts may be the frames. Beyond crops, only what `official/SOURCES.md` records: toned miniatures, flattened photos of the mats, and the frames the print has too few pixels for (ADR-058): redrawn after it (banner, title plate, text boxes, plate brackets; `design/look/render_parts.py`) or, where illustrated, upscaled (dashboard frame) or recreated at full resolution with the old part as the reference (the battlefield silhouette, round 4; `third_party/ASSETS.md`). Redraw a frame when it's visibly soft at its size on a phone and no sharper copy is published; never a card, a portrait, a symbol or a board, and never anything that carries game data.
 
 **Original app assets** — everything that is the app itself rather than the game.
 - App icon: adaptive icon (trident-and-shield sigil on a deep-ocean gradient) plus themed

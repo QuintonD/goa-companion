@@ -38,7 +38,6 @@ import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -66,6 +65,7 @@ import androidx.compose.ui.unit.dp
 import dev.quinton.goa.core.designsystem.component.EmptyState
 import dev.quinton.goa.core.designsystem.component.GoaButton
 import dev.quinton.goa.core.designsystem.component.GoaOutlinedButton
+import dev.quinton.goa.core.designsystem.component.GoaProgressBar
 import dev.quinton.goa.core.designsystem.component.GoaSwitch
 import dev.quinton.goa.core.designsystem.component.TitlePlate
 import dev.quinton.goa.core.designsystem.component.scaledIconSize
@@ -528,7 +528,7 @@ private fun Replies(replying: ReplyingUi) {
     ) {
         Text(replying.title.uppercase(), style = GoaTextStyles.overline, color = MaterialTheme.colorScheme.primary)
         RecentEvents(replying.lines)
-        LinearProgressIndicator(Modifier.fillMaxWidth().padding(top = Spacing.xs))
+        GoaProgressBar(null, Modifier.fillMaxWidth().padding(top = Spacing.xs))
     }
 }
 

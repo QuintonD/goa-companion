@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.Article
@@ -39,17 +40,14 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.semantics.heading
-import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontFamily
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.DialogProperties
 import dev.quinton.goa.core.designsystem.component.GoaDialog
 import dev.quinton.goa.core.designsystem.component.GoaScreen
-import dev.quinton.goa.core.designsystem.component.PlateStyle
 import dev.quinton.goa.core.designsystem.component.SectionHeader
+import dev.quinton.goa.core.designsystem.component.TitlePlate
 import dev.quinton.goa.core.designsystem.icon.GoaIcons
 import dev.quinton.goa.core.designsystem.theme.FontLicense
 import dev.quinton.goa.core.designsystem.theme.GoaFontLicenses
@@ -211,12 +209,9 @@ private fun AboutHeader(info: AppInfo) {
     ) {
         Image(painterResource(GoaIcons.BrandMark), contentDescription = null, modifier = Modifier.size(88.dp))
         Spacer(Modifier.size(Spacing.lg))
-        Text(
-            info.name,
-            style = MaterialTheme.typography.headlineSmall,
-            textAlign = TextAlign.Center,
-            modifier = Modifier.semantics { heading() },
-        )
+        // The screen's one heading on the cards' parchment title plate, as other screens' headings are.
+        TitlePlate(info.name, Modifier.widthIn(max = TITLE_PLATE_MAX), gear = false)
+        Spacer(Modifier.size(Spacing.sm))
         Text(
             "Version ${info.versionName} (${info.versionCode})",
             style = MaterialTheme.typography.bodyMedium,
@@ -224,6 +219,8 @@ private fun AboutHeader(info: AppInfo) {
         )
     }
 }
+
+private val TITLE_PLATE_MAX = 320.dp
 
 /** A paragraph on the page. */
 @Composable

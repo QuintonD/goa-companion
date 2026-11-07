@@ -46,6 +46,7 @@ import dev.quinton.goa.core.designsystem.component.PlayerAvatar
 import dev.quinton.goa.core.designsystem.component.TeamMark
 import dev.quinton.goa.core.designsystem.component.TitlePlate
 import dev.quinton.goa.core.designsystem.component.teamColor
+import dev.quinton.goa.core.designsystem.component.teamTextColor
 import dev.quinton.goa.core.designsystem.theme.GoaTextStyles
 import dev.quinton.goa.core.designsystem.theme.GoaTheme
 import dev.quinton.goa.core.designsystem.theme.Spacing
@@ -215,7 +216,7 @@ private fun CaptainTeams(state: BoardUiState, session: PlayerDraftSession) {
                         Text(
                             teamName(team) + if (team == session.teamA) " · A" else " · B",
                             style = GoaTextStyles.sectionHead,
-                            color = teamColor(team),
+                            color = teamTextColor(team),
                         )
                     }
                     members.forEach { id ->
@@ -293,7 +294,7 @@ private fun HeroChooser(
     val shown = session.selection.hands[playerId] ?: session.selection.pool
     GoaSheet(onDismissRequest = { actions.chooseHeroFor(null) }) {
         Column(Modifier.padding(horizontal = Spacing.screen)) {
-            TitlePlate("Hero for ${state.playerName(playerId)}", Modifier.fillMaxWidth())
+            TitlePlate("Hero for ${state.playerName(playerId)}", Modifier.fillMaxWidth(), gear = false)
             Spacer(Modifier.height(Spacing.sm))
             LazyVerticalGrid(
                 columns = GridCells.Adaptive(100.dp),

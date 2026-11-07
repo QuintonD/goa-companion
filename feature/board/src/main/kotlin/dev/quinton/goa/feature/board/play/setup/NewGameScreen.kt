@@ -39,7 +39,6 @@ import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Slider
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -72,6 +71,7 @@ import dev.quinton.goa.core.designsystem.component.GoaPlateTheme
 import dev.quinton.goa.core.designsystem.component.GoaScreen
 import dev.quinton.goa.core.designsystem.component.GoaSegment
 import dev.quinton.goa.core.designsystem.component.GoaSegmentedRow
+import dev.quinton.goa.core.designsystem.component.GoaSlider
 import dev.quinton.goa.core.designsystem.component.GoaSwitch
 import dev.quinton.goa.core.designsystem.component.HeroPortrait
 import dev.quinton.goa.core.designsystem.component.SectionHeader
@@ -349,7 +349,7 @@ private fun OptionsStep(
                 .bottomEdgeFade(page)
                 .verticalScroll(page)
                 .padding(horizontal = Spacing.screen)
-                .padding(top = Spacing.md, bottom = Spacing.xl),
+                .padding(top = Spacing.md, bottom = Spacing.lg),
             verticalArrangement = Arrangement.spacedBy(Spacing.md),
         ) {
             PlateSurface(
@@ -385,8 +385,11 @@ private fun OptionsStep(
 
             Section("You play") { YouPlay(state, onAction, onSpellbook) }
 
-            Section("Computer strength") {
-                StrengthSlider(state.form.strength, "Computer strength") { onAction(NewGameAction.SetStrength(it)) }
+            // The value ("8 · Hard") on the head's line: the page fits a phone without the Coach under the bar.
+            Section("Computer strength", trailing = { StrengthValue(state.form.strength) }) {
+                StrengthSlider(state.form.strength, "Computer strength", showValue = false) {
+                    onAction(NewGameAction.SetStrength(it))
+                }
                 Text(
                     PlayText.strengthNote(state.form.strength),
                     style = MaterialTheme.typography.bodyMedium,
@@ -471,9 +474,14 @@ private fun OptionsStep(
 }
 
 @Composable
-private fun Section(title: String, note: String? = null, content: @Composable () -> Unit) {
+private fun Section(
+    title: String,
+    note: String? = null,
+    trailing: (@Composable () -> Unit)? = null,
+    content: @Composable () -> Unit,
+) {
     Column(verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
-        SectionHeader(title, padding = SectionHeaderPaddingTight)
+        SectionHeader(title, padding = SectionHeaderPaddingTight, trailing = trailing)
         content()
         note?.let {
             Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -624,22 +632,21 @@ private fun StrengthSlider(
     title: (@Composable () -> Unit)? = null,
     /** "Gentler" and "Stronger" under the ends: once, under the main slider. */
     ends: Boolean = title == null,
+    /** False where the value stands elsewhere (on the section head's line). */
+    showValue: Boolean = true,
     onPick: (Int) -> Unit,
 ) {
     Column {
-        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-            if (title != null) {
-                Box(Modifier.weight(1f)) { title() }
-                Spacer(Modifier.width(Spacing.sm))
+        if (showValue || title != null) {
+            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                if (title != null) {
+                    Box(Modifier.weight(1f)) { title() }
+                    Spacer(Modifier.width(Spacing.sm))
+                }
+                if (showValue) StrengthValue(strength)
             }
-            Text(
-                PlayText.strengthValue(strength),
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.SemiBold,
-                color = MaterialTheme.colorScheme.primary,
-            )
         }
-        Slider(
+        GoaSlider(
             value = strength.toFloat(),
             onValueChange = { v -> v.roundToInt().let { if (it != strength) onPick(it) } },
             valueRange = AiStrength.MIN.toFloat()..AiStrength.MAX.toFloat(),
@@ -656,6 +663,17 @@ private fun StrengthSlider(
             StrengthEnds()
         }
     }
+}
+
+/** The strength and its band ("8 · Hard"). */
+@Composable
+private fun StrengthValue(strength: Int) {
+    Text(
+        PlayText.strengthValue(strength),
+        style = MaterialTheme.typography.titleMedium,
+        fontWeight = FontWeight.SemiBold,
+        color = MaterialTheme.colorScheme.primary,
+    )
 }
 
 @Composable

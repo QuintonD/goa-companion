@@ -8,7 +8,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
-import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -27,6 +26,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import dev.quinton.goa.core.designsystem.component.GoaOutlinedButton
+import dev.quinton.goa.core.designsystem.component.GoaProgressBar
 import dev.quinton.goa.core.designsystem.component.SectionHeader
 import dev.quinton.goa.core.designsystem.component.SectionHeaderPaddingTight
 import dev.quinton.goa.core.designsystem.theme.GoaTextStyles
@@ -90,12 +90,9 @@ private fun Running(ui: ReportUi, onAction: (GameAction) -> Unit) {
             style = MaterialTheme.typography.bodyMedium,
         )
         if (ui.total > 0) {
-            LinearProgressIndicator(
-                progress = { ui.done.toFloat() / ui.total },
-                modifier = Modifier.fillMaxWidth(),
-            )
+            GoaProgressBar({ ui.done.toFloat() / ui.total }, Modifier.fillMaxWidth())
         } else {
-            LinearProgressIndicator(Modifier.fillMaxWidth())
+            GoaProgressBar(null, Modifier.fillMaxWidth())
         }
     }
     TextButton(

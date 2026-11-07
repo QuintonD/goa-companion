@@ -9,13 +9,11 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import dev.quinton.goa.core.designsystem.component.GoaPlate
-import dev.quinton.goa.core.designsystem.component.PlateStyle
 import dev.quinton.goa.core.designsystem.theme.Spacing
 
 /**
- * A section of settings on the restrained plate (`PlateStyle.Secondary`: flat, a quiet hairline, no brackets): routine
- * rows don't wear the ceremony of the game's own states. Its rows sit straight on it, divided by [GroupDivider]: never
- * a framed plate inside (DESIGN.md "Framing levels").
+ * A section of settings on the section plate (steel edge, teal brackets), as every grouped section in the app is. Its
+ * rows sit straight on it, divided by [GroupDivider]: never a framed plate inside (DESIGN.md "Framing levels").
  */
 @Composable
 internal fun SettingsGroup(
@@ -26,7 +24,6 @@ internal fun SettingsGroup(
     GoaPlate(
         modifier.fillMaxWidth(),
         contentPadding = contentPadding,
-        style = PlateStyle.Secondary,
         content = content,
     )
 }

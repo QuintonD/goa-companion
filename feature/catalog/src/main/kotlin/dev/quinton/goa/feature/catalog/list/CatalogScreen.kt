@@ -47,7 +47,6 @@ import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.outlined.CloudOff
 import androidx.compose.material.icons.outlined.GridView
-import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material.icons.outlined.SearchOff
 import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material.icons.outlined.Shield
@@ -57,8 +56,6 @@ import androidx.compose.material3.BadgedBox
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FilterChip
-import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.InputChip
@@ -93,8 +90,11 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import dev.quinton.goa.core.designsystem.component.BarAction
 import dev.quinton.goa.core.designsystem.component.BarActions
+import dev.quinton.goa.core.designsystem.component.ChipIconSize
+import dev.quinton.goa.core.designsystem.component.ChipLabel
 import dev.quinton.goa.core.designsystem.component.EdgeFadeGutter
 import dev.quinton.goa.core.designsystem.component.EmptyState
+import dev.quinton.goa.core.designsystem.component.GoaFilterChip
 import dev.quinton.goa.core.designsystem.component.GoaOutlinedButton
 import dev.quinton.goa.core.designsystem.component.GoaPlate
 import dev.quinton.goa.core.designsystem.component.GoaPlateTheme
@@ -104,7 +104,10 @@ import dev.quinton.goa.core.designsystem.component.GoaSegmentedRow
 import dev.quinton.goa.core.designsystem.component.GoaSheet
 import dev.quinton.goa.core.designsystem.component.LARGE_FONT_SCALE
 import dev.quinton.goa.core.designsystem.component.PlateGround
+import dev.quinton.goa.core.designsystem.component.SearchFieldIcon
+import dev.quinton.goa.core.designsystem.component.chipSize
 import dev.quinton.goa.core.designsystem.component.horizontalEdgeFade
+import dev.quinton.goa.core.designsystem.component.scaledIconSize
 import dev.quinton.goa.core.designsystem.component.selectionFrame
 import dev.quinton.goa.core.designsystem.theme.GoaTextStyles
 import dev.quinton.goa.core.designsystem.theme.GoaTheme
@@ -118,8 +121,6 @@ import dev.quinton.goa.core.domain.catalog.complexityLabel
 import dev.quinton.goa.core.domain.catalog.label
 import dev.quinton.goa.core.domain.catalog.plural
 import dev.quinton.goa.core.domain.catalog.resultSummary
-import dev.quinton.goa.feature.catalog.ui.goaChipBorder
-import dev.quinton.goa.feature.catalog.ui.goaFilterChipColors
 import dev.quinton.goa.feature.catalog.ui.goaInputChipBorder
 import dev.quinton.goa.feature.catalog.ui.goaInputChipColors
 import dev.quinton.goa.feature.catalog.ui.rememberPlateArt
@@ -303,7 +304,7 @@ private fun SearchField(query: String, onQueryChange: (String) -> Unit) {
                 .padding(horizontal = Spacing.screen)
                 .padding(top = Spacing.sm, bottom = Spacing.sm),
             placeholder = { Text(SEARCH_HINT, maxLines = hintLines, overflow = TextOverflow.Ellipsis) },
-            leadingIcon = { Icon(Icons.Outlined.Search, contentDescription = null) },
+            leadingIcon = { SearchFieldIcon() },
             trailingIcon = {
                 if (query.isNotEmpty()) {
                     IconButton(onClick = { onQueryChange("") }) {
@@ -337,16 +338,17 @@ private fun ControlsRow(state: CatalogUiState.Ready, onAction: (CatalogAction) -
             verticalAlignment = Alignment.CenterVertically,
         ) {
             item(key = "filters") {
-                FilterChip(
-                    colors = goaFilterChipColors(),
-                    border = goaChipBorder(filter.activeCount > 0),
+                GoaFilterChip(
                     selected = filter.activeCount > 0,
                     onClick = onOpenFilters,
-                    label = { Text(if (filter.activeCount > 0) "Filters · ${filter.activeCount}" else "Filters") },
                     leadingIcon = {
-                        Icon(Icons.Outlined.Tune, contentDescription = null, Modifier.size(FilterChipDefaults.IconSize))
+                        Icon(
+                            Icons.Outlined.Tune,
+                            contentDescription = null,
+                            Modifier.size(scaledIconSize(ChipIconSize)),
+                        )
                     },
-                )
+                ) { Text(if (filter.activeCount > 0) "Filters · ${filter.activeCount}" else "Filters") }
             }
             item(key = "sort") { SortChip(state.controls.sort) { onAction(CatalogAction.SetSort(it)) } }
             // The collection hides heroes: said where the filters are, and removable like them.
@@ -357,9 +359,11 @@ private fun ControlsRow(state: CatalogUiState.Ready, onAction: (CatalogAction) -
                         border = goaInputChipBorder(),
                         selected = true,
                         onClick = { onAction(CatalogAction.SetFilter(filter.copy(includeUnowned = true))) },
-                        label = { Text("Owned only") },
-                        trailingIcon = { Icon(Icons.Outlined.Close, contentDescription = null, Modifier.size(16.dp)) },
-                        modifier = Modifier.semantics {
+                        label = { ChipLabel { Text("Owned only") } },
+                        trailingIcon = {
+                            Icon(Icons.Outlined.Close, contentDescription = null, Modifier.size(scaledIconSize(16.dp)))
+                        },
+                        modifier = Modifier.chipSize().semantics {
                             contentDescription = "Only heroes from products you own. Show all products"
                         },
                     )
@@ -371,9 +375,11 @@ private fun ControlsRow(state: CatalogUiState.Ready, onAction: (CatalogAction) -
                     border = goaInputChipBorder(),
                     selected = true,
                     onClick = { onAction(CatalogAction.SetFilter(chip.remove(filter))) },
-                    label = { Text(chip.label) },
-                    trailingIcon = { Icon(Icons.Outlined.Close, contentDescription = null, Modifier.size(16.dp)) },
-                    modifier = Modifier.semantics { contentDescription = "Remove filter ${chip.label}" },
+                    label = { ChipLabel { Text(chip.label) } },
+                    trailingIcon = {
+                        Icon(Icons.Outlined.Close, contentDescription = null, Modifier.size(scaledIconSize(16.dp)))
+                    },
+                    modifier = Modifier.chipSize().semantics { contentDescription = "Remove filter ${chip.label}" },
                 )
             }
         }
@@ -413,20 +419,17 @@ private fun SearchTabs(tab: SearchTab, cards: Int, heroes: Int, onSelect: (Searc
 private fun SortChip(sort: CatalogSort, onSort: (CatalogSort) -> Unit) {
     var open by rememberSaveable { mutableStateOf(false) }
     Box {
-        FilterChip(
-            colors = goaFilterChipColors(),
-            border = goaChipBorder(selected = false),
+        GoaFilterChip(
             selected = false,
             onClick = { open = true },
-            label = { Text("Sort: ${sort.label}") },
             leadingIcon = {
                 Icon(
                     Icons.AutoMirrored.Filled.Sort,
                     contentDescription = null,
-                    Modifier.size(FilterChipDefaults.IconSize),
+                    Modifier.size(scaledIconSize(ChipIconSize)),
                 )
             },
-        )
+        ) { Text("Sort: ${sort.label}") }
         DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
             CatalogSort.entries.forEach { option ->
                 DropdownMenuItem(
