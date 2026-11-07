@@ -10,10 +10,13 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -780,6 +783,27 @@ private fun Choices(
         }
         return
     }
+    if (brief && choices.all { it is Choice.Action }) {
+        // A short side panel: two actions to a row, so all four are in view with the round and the hand's tab.
+        Column(verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
+            choices.filterIsInstance<Choice.Action>().chunked(2).forEach { pair ->
+                Row(Modifier.height(IntrinsicSize.Min), horizontalArrangement = Arrangement.spacedBy(Spacing.xs)) {
+                    pair.forEach { choice ->
+                        ActionChip(
+                            table,
+                            choice.action,
+                            busy,
+                            modifier = Modifier.weight(1f).fillMaxHeight(),
+                            brief = true,
+                        ) { onAnswer(choice) }
+                    }
+                    if (pair.size == 1) Spacer(Modifier.weight(1f))
+                }
+                if (pair.any { it.action == ActionType.PRIMARY }) afterPrimary()
+            }
+        }
+        return
+    }
     Column(verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
         choices.forEach { choice ->
             when {
@@ -865,7 +889,7 @@ private fun ActionChip(
             },
     ) {
         Row(
-            Modifier.padding(horizontal = Spacing.md, vertical = 6.dp),
+            Modifier.padding(horizontal = if (brief) Spacing.sm else Spacing.md, vertical = 6.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Icon(

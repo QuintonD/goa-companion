@@ -888,7 +888,8 @@ fun HandTab(table: TableUi, focus: CardFocusState, open: Boolean, onOpenChange: 
     if (table.handDecision || table.cardOptions.isNotEmpty()) return
     val hand = table.heroView(heroId)?.hand ?: return
     if (hand.isEmpty()) return
-    val title = yourHandTitle(table, heroId)
+    // Whose hand, always: the phone is passed round the table.
+    val title = "Your hand (${table.hero(heroId).name})"
     val toggle by rememberUpdatedState(onOpenChange)
     val shown by rememberUpdatedState(open)
     val threshold = with(LocalDensity.current) { HAND_DRAG.toPx() }
