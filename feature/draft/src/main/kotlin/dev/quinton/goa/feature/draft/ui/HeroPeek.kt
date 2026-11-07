@@ -120,6 +120,31 @@ internal fun HeroPeekSheet(
                     RoleChips(hero.roles)
                 }
             }
+            // The links sit under the hero, not at the end: the pinned Pick footer must never hide them.
+            if (onOpenHero != null && hero.known) {
+                GoaOutlinedButton(
+                    onClick = { onOpenHero(hero.id) },
+                    modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp),
+                ) {
+                    Icon(Icons.AutoMirrored.Outlined.OpenInNew, contentDescription = null)
+                    Spacer(Modifier.width(Spacing.sm))
+                    Text("Open hero page")
+                }
+            }
+            // Choosing Gydion: his deck casts spells from a spellbook of its own (ADR-040); the hero
+            // page shows the spell cards, opened at them.
+            if (onOpenSpellbook != null && hero.known && hero.spellCards > 0) {
+                GoaOutlinedButton(
+                    onClick = { onOpenSpellbook(hero.id) },
+                    modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp),
+                ) {
+                    if (hero.symbol != null) {
+                        HeroSymbol(hero.id, hero.symbol, Modifier.size(scaledIconSize(24.dp, 1.3f)))
+                        Spacer(Modifier.width(Spacing.sm))
+                    }
+                    Text("${hero.name}'s spellbook · ${hero.spellCards} spell cards")
+                }
+            }
             if (!hero.known) {
                 Text(
                     "This hero isn't in the catalog.",
@@ -140,30 +165,6 @@ internal fun HeroPeekSheet(
                     )
                 }
                 StartingCardScans(hero.startingCards)
-                // Choosing Gydion: his deck casts spells from a spellbook of its own (ADR-040); the hero
-                // page shows the spell cards, opened at them.
-                if (onOpenSpellbook != null && hero.spellCards > 0) {
-                    GoaOutlinedButton(
-                        onClick = { onOpenSpellbook(hero.id) },
-                        modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp),
-                    ) {
-                        if (hero.symbol != null) {
-                            HeroSymbol(hero.id, hero.symbol, Modifier.size(scaledIconSize(24.dp, 1.3f)))
-                            Spacer(Modifier.width(Spacing.sm))
-                        }
-                        Text("${hero.name}'s spellbook · ${hero.spellCards} spell cards")
-                    }
-                }
-            }
-            if (onOpenHero != null && hero.known) {
-                GoaOutlinedButton(
-                    onClick = { onOpenHero(hero.id) },
-                    modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp),
-                ) {
-                    Icon(Icons.AutoMirrored.Outlined.OpenInNew, contentDescription = null)
-                    Spacer(Modifier.width(Spacing.sm))
-                    Text("Open hero page")
-                }
             }
         }
         if (commit != null) PeekCommitBar(commit)
