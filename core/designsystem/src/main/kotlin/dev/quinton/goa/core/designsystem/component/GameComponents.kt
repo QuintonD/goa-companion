@@ -354,11 +354,8 @@ fun ComplexityStars(
                 Icon(
                     imageVector = if (filled) Icons.Filled.Star else Icons.Outlined.StarOutline,
                     contentDescription = null,
-                    tint = if (filled) {
-                        MaterialTheme.colorScheme.primary
-                    } else {
-                        MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.45f)
-                    },
+                    // The unfilled stars carry the scale (2 of 4): a muted tone that still makes 3:1.
+                    tint = if (filled) MaterialTheme.colorScheme.primary else GoaTheme.colors.glyphMuted,
                     modifier = Modifier.size(size),
                 )
             }
@@ -366,7 +363,7 @@ fun ComplexityStars(
         if (showLabel && name != null) {
             Text(
                 text = name,
-                style = MaterialTheme.typography.labelMedium,
+                style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 maxLines = 1,
             )

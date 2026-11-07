@@ -2,6 +2,7 @@ package dev.quinton.goa.core.designsystem.component
 
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.RowScope
+import androidx.compose.foundation.layout.offset
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.MoreVert
 import androidx.compose.material3.Badge
@@ -11,6 +12,8 @@ import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.IconButtonDefaults
+import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.PlainTooltip
 import androidx.compose.material3.Text
 import androidx.compose.material3.TooltipAnchorPosition
@@ -18,12 +21,16 @@ import androidx.compose.material3.TooltipBox
 import androidx.compose.material3.TooltipDefaults
 import androidx.compose.material3.rememberTooltipState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.unit.dp
 
 /**
  * One action of a top bar. [label] is what it does in words: its TalkBack label, its tooltip (long press) and
@@ -74,7 +81,8 @@ fun BarIconButton(action: BarAction, modifier: Modifier = Modifier) {
 
 /**
  * A top-bar icon button whose [label] shows as a tooltip on long press. [icon] carries the content description
- * (normally [label]).
+ * (normally [label]). Disabled (undo with nothing to undo), the glyph stays in sight on the steel banner: white at
+ * 40 % over a 1 dp dark halo, not Material's grey that the banner swallows.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -91,9 +99,29 @@ fun BarIconButton(
         state = rememberTooltipState(),
         modifier = modifier,
     ) {
-        IconButton(onClick = onClick, enabled = enabled, content = icon)
+        IconButton(
+            onClick = onClick,
+            enabled = enabled,
+            colors = IconButtonDefaults.iconButtonColors(disabledContentColor = BannerDisabledIcon),
+        ) {
+            if (enabled) {
+                icon()
+            } else {
+                Box {
+                    // The halo: the same glyph in a dark tone, a dp lower, behind it.
+                    Box(Modifier.offset(y = 1.dp).clearAndSetSemantics {}) {
+                        CompositionLocalProvider(LocalContentColor provides BannerDisabledHalo, content = icon)
+                    }
+                    icon()
+                }
+            }
+        }
     }
 }
+
+/** A disabled glyph on the steel banner, and the dark halo under it. */
+private val BannerDisabledIcon = Color.White.copy(alpha = 0.4f)
+private val BannerDisabledHalo = Color.Black.copy(alpha = 0.7f)
 
 /** The overflow button ("More options") and its menu: each action as an icon and its label. */
 @Composable

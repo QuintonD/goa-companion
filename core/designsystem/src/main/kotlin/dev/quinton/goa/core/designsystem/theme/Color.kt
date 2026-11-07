@@ -172,7 +172,9 @@ data class GoaExtendedColors(
     val plateWell: Color = Tokens.DarkPlateWell,
     /** Selected: the bronze outline and the tint under a picked choice (`SelectablePlate`). */
     val selection: Color = Tokens.DarkPrimary,
-    val selectionFill: Color = Tokens.DarkPrimary.copy(alpha = 0.16f),
+    val selectionFill: Color = Tokens.DarkPrimary.copy(alpha = 0.2f),
+    /** A secondary glyph that still carries meaning (an unfilled complexity star): ≥ 3:1 on its plate and canvas. */
+    val glyphMuted: Color = Color(0xFF8A949C),
 )
 
 internal val DarkExtended = GoaExtendedColors(
@@ -220,7 +222,8 @@ internal val LightExtended = GoaExtendedColors(
     plate = Tokens.LightPlate,
     plateWell = Tokens.LightPlateWell,
     selection = Tokens.LightPrimary,
-    selectionFill = Tokens.LightPrimary.copy(alpha = 0.12f),
+    selectionFill = Tokens.LightPrimary.copy(alpha = 0.16f),
+    glyphMuted = Color(0xFF7A7062),
 )
 
 val LocalGoaColors = staticCompositionLocalOf { DarkExtended }

@@ -52,9 +52,14 @@ interface Navigator {
 // Catalog
 @Serializable data object CatalogRoute : NavKey
 
-/** A hero's page; [section] [SPELLBOOK] opens it at the hero's spellbook (Gydion, from the draft's peek). */
+/**
+ * A hero's page; [section] opens it at a tab: [DECK], [FAQ], or [SPELLBOOK] (the Deck at the hero's spellbook: Gydion,
+ * from the draft's peek). Null: the Overview.
+ */
 @Serializable data class HeroDetailRoute(val heroId: String, val section: String? = null) : NavKey {
     companion object {
+        const val DECK: String = "deck"
+        const val FAQ: String = "faq"
         const val SPELLBOOK: String = "spellbook"
     }
 }

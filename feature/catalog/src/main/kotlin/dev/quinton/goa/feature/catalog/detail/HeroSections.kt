@@ -47,20 +47,32 @@ import dev.quinton.goa.core.designsystem.component.scaledIconSize
 import dev.quinton.goa.core.designsystem.theme.GoaTheme
 import dev.quinton.goa.core.designsystem.theme.Spacing
 import dev.quinton.goa.core.domain.catalog.DeckLayout
+import dev.quinton.goa.core.navigation.HeroDetailRoute
 
-/** The hero page's three parts, each opening at its item's key. */
-internal enum class HeroSection(val label: String, val key: String) {
-    OVERVIEW("Overview", HEADER_KEY),
-    DECK("Deck", DECK_KEY),
-    FAQ("FAQ", FAQ_KEY),
+/** The hero page's three tabs. */
+internal enum class HeroSection(val label: String) {
+    OVERVIEW("Overview"),
+    DECK("Deck"),
+    FAQ("FAQ"),
+    ;
+
+    companion object {
+        /** The tab a route's section opens ([HeroDetailRoute.DECK], `FAQ`, `SPELLBOOK`); the Overview otherwise. */
+        fun opening(section: String?): HeroSection = when (section) {
+            HeroDetailRoute.DECK, HeroDetailRoute.SPELLBOOK -> DECK
+            HeroDetailRoute.FAQ -> FAQ
+            else -> OVERVIEW
+        }
+    }
 }
 
-/** The sticky bar's height: the deck and FAQ land just under it. */
+/** The sticky bar's height: a jump in the deck lands just under it. */
 internal val SectionBarHeight = 48.dp
 
 /**
- * Overview · Deck · FAQ over the hero page, held under the banner once the art scrolls away: a tap scrolls to
- * that part, and the part you are reading is selected in bronze: a tint, a bronze word and a rule under it.
+ * Overview · Deck · FAQ, true tabs held under the banner once the head scrolls away: a tap shows that part, and the
+ * tab you are on is selected in bronze (the app's selected wash, a bronze word and a rule under it). TalkBack hears
+ * each as a tab, selected or not.
  */
 @Composable
 internal fun HeroSectionBar(active: HeroSection, faqCount: Int, onSelect: (HeroSection) -> Unit) {
@@ -83,20 +95,20 @@ internal fun HeroSectionBar(active: HeroSection, faqCount: Int, onSelect: (HeroS
                 } else {
                     section.label
                 }
-                val rule = colors.primary
+                val rule = GoaTheme.colors.selection
+                val wash = GoaTheme.colors.selectionFill
                 Box(
                     Modifier
                         .widthIn(min = TAB_MIN_WIDTH)
                         .heightIn(min = SectionBarHeight)
                         .selectable(selected = selected, role = Role.Tab, onClick = { onSelect(section) })
-                        .semantics { contentDescription = "${section.label}, jump to section" }
                         .drawBehind {
                             if (selected) {
                                 // The app's selected look: a bronze tint (as the segmented choices) and a bronze rule.
                                 val h = UNDERLINE.toPx()
                                 val inset = TAB_TINT_INSET.toPx()
                                 drawRoundRect(
-                                    rule.copy(alpha = TAB_TINT),
+                                    wash,
                                     topLeft = Offset(0f, inset),
                                     size = Size(size.width, size.height - inset - h),
                                     cornerRadius = CornerRadius(TAB_TINT_CORNER.toPx()),
@@ -127,7 +139,6 @@ private val UNDERLINE = 3.dp
 private val TAB_MIN_WIDTH = 72.dp
 private val TAB_TINT_INSET = 6.dp
 private val TAB_TINT_CORNER = 8.dp
-private const val TAB_TINT = 0.18f
 
 /** One stop of the deck's jump row: a colour (or Basic, the Ultimate, the Handicap card, a spellbook). */
 internal class DeckJump(val label: String, val key: String, val ribbon: PlateColor?, val count: Int)

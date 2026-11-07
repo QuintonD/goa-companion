@@ -86,8 +86,10 @@ class OfficialDeckScreenshotTest {
         compose.onRoot().captureRoboImage()
     }
 
+    /** The hero page on its Deck tab, as a tap on "Deck" shows it. */
     @Composable
-    private fun Detail(id: String) = HeroDetailScreen(detail(id), onBack = {}, onCardClick = { _, _ -> })
+    private fun Detail(id: String) =
+        HeroDetailScreen(detail(id), onBack = {}, onCardClick = { _, _ -> }, initialSection = HeroDetailRoute.DECK)
 
     @Test
     @Config(qualifiers = "w411dp-h3000dp-xxhdpi")

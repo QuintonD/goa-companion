@@ -1,5 +1,6 @@
 package dev.quinton.goa.feature.rules
 
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
@@ -14,6 +15,8 @@ import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
 import androidx.test.core.app.ApplicationProvider
 import com.github.takahirom.roborazzi.captureRoboImage
+import dev.quinton.goa.core.designsystem.component.GoaPlateTheme
+import dev.quinton.goa.core.designsystem.component.GoaSheetHandle
 import dev.quinton.goa.core.designsystem.theme.GoaTheme
 import dev.quinton.goa.core.domain.rules.DefeatExceptions
 import dev.quinton.goa.core.domain.rules.RulesText
@@ -62,12 +65,18 @@ class RulesScreenshotTest {
         matchHeroesOnly = true,
     )
 
+    /** The ladder as the app shows it: a bottom sheet, its drag handle over the content (`GoaSheet`). */
     @Composable
     private fun Ladder(state: LadderUiState = ladder) = Surface(
         color = MaterialTheme.colorScheme.surface,
         modifier = Modifier.fillMaxSize(),
     ) {
-        LevelLadderSheet(state, onSelectLevel = {}, onOpenRules = {})
+        GoaPlateTheme {
+            Column {
+                GoaSheetHandle()
+                LevelLadderSheet(state, onSelectLevel = {}, onOpenRules = {}, onClose = {})
+            }
+        }
     }
 
     @Composable

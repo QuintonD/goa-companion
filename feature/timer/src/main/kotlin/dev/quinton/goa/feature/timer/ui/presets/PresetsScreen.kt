@@ -10,7 +10,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.material.icons.Icons
@@ -30,6 +29,7 @@ import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -43,6 +43,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dev.quinton.goa.core.designsystem.component.GoaPlate
 import dev.quinton.goa.core.designsystem.component.GoaScreen
+import dev.quinton.goa.core.designsystem.component.PlateRowDivider
 import dev.quinton.goa.core.designsystem.component.PlateShape
 import dev.quinton.goa.core.designsystem.theme.Spacing
 import dev.quinton.goa.feature.timer.ui.timer.PresetOption
@@ -113,8 +114,18 @@ fun PresetsScreen(state: PresetsUiState, actions: PresetsActions) {
                     modifier = Modifier.padding(bottom = Spacing.sm),
                 )
             }
-            items(state.presets, key = { it.id }) { preset ->
-                PresetRow(preset, preset.id == state.selectedId, state.canDelete, actions)
+            // One section plate; each preset is a row of it (DESIGN.md "Framing levels").
+            item(key = "presets") {
+                GoaPlate(Modifier.fillMaxWidth(), contentPadding = PaddingValues(vertical = Spacing.xs)) {
+                    Column {
+                        state.presets.forEachIndexed { i, preset ->
+                            if (i > 0) PlateRowDivider()
+                            key(preset.id) {
+                                PresetRow(preset, preset.id == state.selectedId, state.canDelete, actions)
+                            }
+                        }
+                    }
+                }
             }
         }
     }

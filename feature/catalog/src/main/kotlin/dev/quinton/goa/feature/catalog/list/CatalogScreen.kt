@@ -31,12 +31,16 @@ import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Sort
 import androidx.compose.material.icons.automirrored.outlined.MenuBook
+import androidx.compose.material.icons.automirrored.outlined.ViewList
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.outlined.CloudOff
@@ -46,7 +50,6 @@ import androidx.compose.material.icons.outlined.SearchOff
 import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material.icons.outlined.Shield
 import androidx.compose.material.icons.outlined.Tune
-import androidx.compose.material.icons.outlined.ViewAgenda
 import androidx.compose.material3.Badge
 import androidx.compose.material3.BadgedBox
 import androidx.compose.material3.DropdownMenu
@@ -74,9 +77,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Shape
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.liveRegion
@@ -93,6 +99,7 @@ import dev.quinton.goa.core.designsystem.component.GoaScreen
 import dev.quinton.goa.core.designsystem.component.GoaSheet
 import dev.quinton.goa.core.designsystem.component.LARGE_FONT_SCALE
 import dev.quinton.goa.core.designsystem.component.PlateGround
+import dev.quinton.goa.core.designsystem.component.selectionFrame
 import dev.quinton.goa.core.designsystem.theme.GoaTextStyles
 import dev.quinton.goa.core.designsystem.theme.GoaTheme
 import dev.quinton.goa.core.designsystem.theme.Spacing
@@ -134,19 +141,9 @@ fun CatalogScreen(
         title = "Heroes",
         modifier = modifier,
         actions = {
-            // The layout switch, then Rules and Settings (also on More) in the labelled overflow menu.
-            val layout = ready?.let {
-                val grid = it.controls.layout == CatalogLayout.GRID
-                val other = if (grid) CatalogLayout.LIST else CatalogLayout.GRID
-                BarAction(
-                    label = if (grid) "Show as list" else "Show as grid",
-                    icon = if (grid) Icons.Outlined.ViewAgenda else Icons.Outlined.GridView,
-                    onClick = { onAction(CatalogAction.SetLayout(other)) },
-                )
-            }
+            // Rules and Settings (also on More). The grid/list switch sits by the results it changes.
             BarActions(
-                listOfNotNull(
-                    layout,
+                listOf(
                     BarAction("Rules", Icons.AutoMirrored.Outlined.MenuBook, onRulesClick),
                     BarAction("Settings", Icons.Outlined.Settings, onSettingsClick),
                 ),
@@ -212,7 +209,10 @@ private fun ReadyContent(
     Column(Modifier.fillMaxSize()) {
         SearchField(query = query, onQueryChange = { onAction(CatalogAction.Search(it)) })
         ControlsRow(state = state, onAction = onAction, onOpenFilters = onOpenFilters)
-        ResultSummary(state = state, query = query)
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            ResultSummary(state = state, query = query, modifier = Modifier.weight(1f))
+            LayoutToggle(state.controls.layout, onSelect = { onAction(CatalogAction.SetLayout(it)) })
+        }
         if (state.heroes.isEmpty()) {
             Box(Modifier.fillMaxSize(), contentAlignment = Alignment.TopCenter) {
                 NoResults(state, query, onAction)
@@ -377,16 +377,66 @@ private fun SortChip(sort: CatalogSort, onSort: (CatalogSort) -> Unit) {
 }
 
 @Composable
-private fun ResultSummary(state: CatalogUiState.Ready, query: String) {
+private fun ResultSummary(state: CatalogUiState.Ready, query: String, modifier: Modifier = Modifier) {
     val text = resultSummary(state.heroes.size, state.totalInScope, query)
     Text(
         text,
         style = MaterialTheme.typography.bodyMedium,
         color = MaterialTheme.colorScheme.onSurfaceVariant,
-        modifier = Modifier
-            .padding(horizontal = Spacing.screen, vertical = Spacing.sm)
+        modifier = modifier
+            .padding(start = Spacing.screen, end = Spacing.sm, top = Spacing.sm, bottom = Spacing.sm)
             .semantics { liveRegion = LiveRegionMode.Polite },
     )
+}
+
+/**
+ * Grid or list, as two segments that show both choices, the current one in the selected bronze: no glyph to decode.
+ * Each is a 48 dp target that TalkBack names ("Show as list", selected or not).
+ */
+@Composable
+private fun LayoutToggle(layout: CatalogLayout, onSelect: (CatalogLayout) -> Unit) {
+    val shape = RoundedCornerShape(8.dp)
+    GoaPlateTheme {
+        Row(
+            Modifier
+                .padding(end = Spacing.screen - Spacing.xs)
+                .selectableGroup(),
+        ) {
+            LayoutOption(CatalogLayout.GRID, "Grid", Icons.Outlined.GridView, layout, shape, onSelect)
+            LayoutOption(CatalogLayout.LIST, "List", Icons.AutoMirrored.Outlined.ViewList, layout, shape, onSelect)
+        }
+    }
+}
+
+@Composable
+private fun LayoutOption(
+    option: CatalogLayout,
+    name: String,
+    icon: ImageVector,
+    current: CatalogLayout,
+    shape: Shape,
+    onSelect: (CatalogLayout) -> Unit,
+) {
+    val selected = option == current
+    Box(
+        Modifier
+            .size(48.dp)
+            .selectable(selected = selected, role = Role.RadioButton, onClick = { onSelect(option) })
+            .semantics { contentDescription = "Show as ${name.lowercase()}" },
+        contentAlignment = Alignment.Center,
+    ) {
+        Box(
+            Modifier.size(width = 40.dp, height = 32.dp).selectionFrame(selected, shape),
+            contentAlignment = Alignment.Center,
+        ) {
+            Icon(
+                icon,
+                contentDescription = null,
+                tint = if (selected) GoaTheme.colors.selection else MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.size(22.dp),
+            )
+        }
+    }
 }
 
 /**

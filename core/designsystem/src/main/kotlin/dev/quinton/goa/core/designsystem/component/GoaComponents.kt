@@ -28,7 +28,7 @@ import androidx.compose.material.icons.automirrored.outlined.HelpOutline
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.outlined.Verified
 import androidx.compose.material3.FilterChip
-import androidx.compose.material3.FilterChipDefaults
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -38,6 +38,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
@@ -52,6 +55,7 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import dev.quinton.goa.core.designsystem.theme.GoaTextStyles
 import dev.quinton.goa.core.designsystem.theme.GoaTheme
@@ -234,23 +238,53 @@ fun SubHeader(text: String, modifier: Modifier = Modifier, trailing: (@Composabl
 enum class SelectionMark { Radio, Check, None }
 
 /**
- * The selected look, for layouts of their own (a tile, a chip-like pair): the bronze 2 dp outline over a bronze
- * tint when [selected], a quiet hairline otherwise. Bronze is selected (teal is next and correct; team colours only
- * mark teams). Pair it with `selectable` for its semantics, or use [SelectablePlate].
+ * The selected look, for layouts of their own (a tile, a chip-like pair): the bronze [SelectedEdge] over a bronze
+ * wash when [selected], a quiet hairline otherwise. Bronze is selected (teal is next and correct; team colours only
+ * mark teams). Pair it with `selectable` for its semantics, or use [SelectablePlate]. A choice that is a row of a
+ * section's plate uses [selectionRow] instead.
  */
 @Composable
 fun Modifier.selectionFrame(selected: Boolean, shape: Shape = SelectionShape): Modifier {
     val colors = GoaTheme.colors
     return if (selected) {
-        clip(shape).background(colors.selectionFill).border(2.dp, colors.selection, shape)
+        clip(shape).background(colors.selectionFill).border(SelectedEdge, colors.selection, shape)
     } else {
         clip(shape).border(1.dp, MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.28f), shape)
     }
 }
 
 /**
+ * A choice that is a row of a section's plate: full width and no edge of its own; selected, the bronze wash and a
+ * [SelectedRowBar] bronze bar at its leading edge (with the row's own radio or check). DESIGN.md "Framing levels".
+ */
+@Composable
+fun Modifier.selectionRow(selected: Boolean): Modifier {
+    if (!selected) return this
+    val colors = GoaTheme.colors
+    return drawBehind {
+        drawRect(colors.selectionFill)
+        val bar = SelectedRowBar.toPx()
+        val x = if (layoutDirection == LayoutDirection.Rtl) size.width - bar else 0f
+        drawRect(colors.selection, topLeft = Offset(x, 0f), size = Size(bar, size.height))
+    }
+}
+
+/** The bronze bar at a selected row's leading edge ([selectionRow]). */
+val SelectedRowBar: Dp = 3.dp
+
+/** The hairline between the rows of a section's plate. */
+@Composable
+fun PlateRowDivider(modifier: Modifier = Modifier) {
+    HorizontalDivider(modifier, color = MaterialTheme.colorScheme.onSurface.copy(alpha = ROW_DIVIDER_ALPHA))
+}
+
+private const val ROW_DIVIDER_ALPHA = 0.12f
+
+/**
  * One choice of several, the same on every screen: a quiet plate with a bronze radio ([mark]) and the content;
  * selected, a bronze outline and tint ([selectionFrame]). The whole plate is one target with its role for TalkBack.
+ * Inside a [GoaPlate] (a section's plate) it is a row of that plate instead: full width, no ground or edge of its own,
+ * selected only by the wash and the leading bar ([selectionRow]), so frames never nest (DESIGN.md "Framing levels").
  */
 @Composable
 fun SelectablePlate(
@@ -262,12 +296,18 @@ fun SelectablePlate(
     contentPadding: PaddingValues = PaddingValues(horizontal = Spacing.md, vertical = Spacing.md),
     content: @Composable RowScope.() -> Unit,
 ) {
+    val row = LocalInPlate.current
+    val ground = if (row) {
+        Modifier
+    } else {
+        Modifier.slatePlate(SelectionShape, brackets = false, style = PlateStyle.Secondary)
+    }
     GoaPlateTheme {
         Row(
             modifier
                 .heightIn(min = 48.dp)
-                .slatePlate(SelectionShape, brackets = false, style = PlateStyle.Secondary)
-                .selectionFrame(selected)
+                .then(ground)
+                .then(if (row) Modifier.selectionRow(selected) else Modifier.selectionFrame(selected))
                 .selectable(
                     selected = selected,
                     enabled = enabled,
@@ -362,39 +402,15 @@ fun <T> FilterChipRow(
 /** One themed filter chip, for custom layouts (FlowRow) outside [FilterChipRow]. */
 @Composable
 fun GoaFilterChip(selected: Boolean, onClick: () -> Unit, label: String, modifier: Modifier = Modifier) {
-    val primary = MaterialTheme.colorScheme.primary
     FilterChip(
         selected = selected,
         onClick = onClick,
         label = { Text(label, maxLines = 1) },
         modifier = modifier,
-        leadingIcon = if (selected) {
-            {
-                Icon(
-                    Icons.Filled.Check,
-                    contentDescription = null,
-                    modifier = Modifier.size(FilterChipDefaults.IconSize),
-                )
-            }
-        } else {
-            null
-        },
+        leadingIcon = selectedCheck(selected),
         shape = RoundedCornerShape(10.dp),
-        colors = FilterChipDefaults.filterChipColors(
-            containerColor = MaterialTheme.colorScheme.surface,
-            labelColor = MaterialTheme.colorScheme.onSurfaceVariant,
-            selectedContainerColor = primary.copy(alpha = 0.18f),
-            selectedLabelColor = MaterialTheme.colorScheme.onSurface,
-            selectedLeadingIconColor = primary,
-        ),
-        border = FilterChipDefaults.filterChipBorder(
-            enabled = true,
-            selected = selected,
-            borderColor = GoaTheme.colors.engravedBorder,
-            selectedBorderColor = primary.copy(alpha = 0.7f),
-            borderWidth = 1.dp,
-            selectedBorderWidth = 1.dp,
-        ),
+        colors = selectableChipColors(),
+        border = selectableChipBorder(selected),
     )
 }
 

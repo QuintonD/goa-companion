@@ -48,6 +48,7 @@ import dev.quinton.goa.core.designsystem.component.GoaPlateTheme
 import dev.quinton.goa.core.designsystem.component.HeroPortrait
 import dev.quinton.goa.core.designsystem.component.HeroSymbol
 import dev.quinton.goa.core.designsystem.component.LookAction
+import dev.quinton.goa.core.designsystem.component.complexityName
 import dev.quinton.goa.core.designsystem.theme.GoaTextStyles
 import dev.quinton.goa.core.designsystem.theme.GoaTheme
 import dev.quinton.goa.core.designsystem.theme.Spacing
@@ -326,13 +327,16 @@ internal fun HeroListRow(
                     item.rangedLabel?.let { MetaPill(it, color = MaterialTheme.colorScheme.primary) }
                     if (!hero.verified) UnverifiedBadge(compact = true)
                 }
-                val traits = item.traitsLine()
+                // The complexity in words before the roles: the stars above carry it, the word says it.
+                val traits = (listOfNotNull(hero.complexity?.let(::complexityName)) + item.traitsLine())
+                    .filter { it.isNotEmpty() }
+                    .joinToString(" · ")
                 if (traits.isNotEmpty()) {
                     Text(
                         traits,
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        maxLines = 1,
+                        maxLines = 2,
                         overflow = TextOverflow.Ellipsis,
                     )
                 }

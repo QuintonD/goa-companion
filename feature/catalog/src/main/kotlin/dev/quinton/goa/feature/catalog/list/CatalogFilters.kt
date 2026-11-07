@@ -4,6 +4,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -14,10 +15,8 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.FilterChip
-import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -34,6 +33,8 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import dev.quinton.goa.core.designsystem.component.GoaButton
+import dev.quinton.goa.core.designsystem.component.SectionHeader
+import dev.quinton.goa.core.designsystem.component.selectedCheck
 import dev.quinton.goa.core.designsystem.theme.GoaTextStyles
 import dev.quinton.goa.core.designsystem.theme.GoaTheme
 import dev.quinton.goa.core.designsystem.theme.Spacing
@@ -93,7 +94,7 @@ internal fun CatalogFilterContent(
                                 Stars(level)
                                 complexityName(level)?.let { Text("  $it") }
                             },
-                            leadingIcon = selectedIcon(selected),
+                            leadingIcon = selectedCheck(selected),
                             modifier = Modifier.semantics {
                                 contentDescription = "Complexity $level, ${complexityName(level).orEmpty()}"
                             },
@@ -111,7 +112,7 @@ internal fun CatalogFilterContent(
                             selected = selected,
                             onClick = { onFilterChange(filter.copy(roles = filter.roles.toggle(role))) },
                             label = { Text(role.label) },
-                            leadingIcon = selectedIcon(selected),
+                            leadingIcon = selectedCheck(selected),
                         )
                     }
                 }
@@ -125,7 +126,7 @@ internal fun CatalogFilterContent(
                         selected = selected,
                         onClick = { onFilterChange(filter.copy(attackStyle = if (selected) null else style)) },
                         label = { Text(style.label) },
-                        leadingIcon = selectedIcon(selected),
+                        leadingIcon = selectedCheck(selected),
                     )
                 }
             }
@@ -139,13 +140,13 @@ internal fun CatalogFilterContent(
                             selected = selected,
                             onClick = { onFilterChange(filter.copy(products = filter.products.toggle(product.id))) },
                             label = { Text(product.name) },
-                            leadingIcon = selectedIcon(selected),
+                            leadingIcon = selectedCheck(selected),
                         )
                     }
                 }
             }
             if (options.hasOwnedProducts) {
-                HorizontalDivider(Modifier.padding(top = Spacing.lg), color = MaterialTheme.colorScheme.outlineVariant)
+                HorizontalDivider(Modifier.padding(top = Spacing.md), color = MaterialTheme.colorScheme.outlineVariant)
                 Row(
                     Modifier
                         .fillMaxWidth()
@@ -185,12 +186,8 @@ internal fun CatalogFilterContent(
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun FilterGroup(title: String, note: String? = null, content: @Composable () -> Unit) {
-    Text(
-        title,
-        style = GoaTextStyles.sectionHead,
-        color = GoaTheme.colors.heading,
-        modifier = Modifier.padding(top = Spacing.lg, bottom = Spacing.xs).semantics { heading() },
-    )
+    // The app's one section head (copper small caps and their rule), as on the hero page and in Settings.
+    SectionHeader(title, padding = PaddingValues(top = Spacing.sm, bottom = Spacing.xs))
     if (note != null) {
         Text(
             note,
@@ -214,12 +211,6 @@ private fun Stars(count: Int) {
             )
         }
     }
-}
-
-private fun selectedIcon(selected: Boolean): (@Composable () -> Unit)? = if (selected) {
-    { Icon(Icons.Filled.Check, contentDescription = null, modifier = Modifier.size(FilterChipDefaults.IconSize)) }
-} else {
-    null
 }
 
 private fun <T> Set<T>.toggle(value: T): Set<T> = if (value in this) this - value else this + value

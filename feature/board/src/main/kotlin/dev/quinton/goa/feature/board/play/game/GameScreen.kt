@@ -68,6 +68,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import dev.quinton.goa.core.data.game.AiPace
+import dev.quinton.goa.core.designsystem.component.BarIconButton
 import dev.quinton.goa.core.designsystem.component.CardTextBox
 import dev.quinton.goa.core.designsystem.component.ConfirmDialog
 import dev.quinton.goa.core.designsystem.component.EmptyState
@@ -177,7 +178,11 @@ fun GameScreen(
         actions = {
             if (play != null && play.over == null && closed == null) {
                 if (play.online == null) {
-                    IconButton(onClick = { onAction(GameAction.TakeBack) }, enabled = play.canTakeBack && !play.busy) {
+                    BarIconButton(
+                        "Take back",
+                        onClick = { onAction(GameAction.TakeBack) },
+                        enabled = play.canTakeBack && !play.busy,
+                    ) {
                         Icon(Icons.AutoMirrored.Outlined.Undo, contentDescription = "Take back")
                     }
                 }

@@ -46,7 +46,6 @@ import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.onClick
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Constraints
@@ -61,19 +60,16 @@ import dev.quinton.goa.core.designsystem.component.CARD_ASPECT
 import dev.quinton.goa.core.designsystem.component.CardScan
 import dev.quinton.goa.core.designsystem.component.GoaPlate
 import dev.quinton.goa.core.designsystem.component.GoaPlateTheme
+import dev.quinton.goa.core.designsystem.component.HeroStatBlock
 import dev.quinton.goa.core.designsystem.component.LARGE_FONT_SCALE
-import dev.quinton.goa.core.designsystem.component.OfficialArt
-import dev.quinton.goa.core.designsystem.component.OfficialIcon
 import dev.quinton.goa.core.designsystem.component.PlateColor
 import dev.quinton.goa.core.designsystem.component.SectionHeader
 import dev.quinton.goa.core.designsystem.component.cardColor
 import dev.quinton.goa.core.designsystem.component.slatePlate
-import dev.quinton.goa.core.designsystem.theme.GoaTextStyles
 import dev.quinton.goa.core.designsystem.theme.Spacing
 import dev.quinton.goa.core.domain.catalog.DeckGroup
 import dev.quinton.goa.core.domain.catalog.DeckGroupKind
 import dev.quinton.goa.core.domain.catalog.DeckLayout
-import dev.quinton.goa.core.domain.catalog.ProfileBar
 import dev.quinton.goa.core.domain.catalog.SPELLBOOK_NOTE
 import dev.quinton.goa.core.domain.catalog.StartZone
 import dev.quinton.goa.core.domain.catalog.StartingCards
@@ -110,7 +106,7 @@ internal fun StatPlate(stats: HeroStats, modifier: Modifier = Modifier) {
             maxItemsInEachRow = perRow,
             verticalArrangement = Arrangement.spacedBy(Spacing.md),
         ) {
-            stats.profileBars().forEach { bar -> StatCell(bar, Modifier.weight(1f)) }
+            stats.profileBars().forEach { bar -> HeroStatBlock(bar.stat, bar.range, Modifier.weight(1f)) }
         }
         Text(
             "Base → with level-ups and card text\n1 is very poor · 8 is exceptional",
@@ -122,43 +118,8 @@ internal fun StatPlate(stats: HeroStats, modifier: Modifier = Modifier) {
     }
 }
 
-@Composable
-private fun StatCell(bar: ProfileBar, modifier: Modifier = Modifier) {
-    val description = bar.spoken
-    Column(
-        modifier.clearAndSetSemantics { contentDescription = description },
-        horizontalAlignment = Alignment.CenterHorizontally,
-    ) {
-        OfficialIcon(
-            OfficialArt.itemIcon(bar.stat),
-            Modifier.size(width = STAT_ICON_WIDTH, height = STAT_ICON_HEIGHT),
-            fallback = {
-                Icon(
-                    GameIcons.forStat(bar.stat).vector,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.primary,
-                )
-            },
-        )
-        Text(
-            bar.rangeText,
-            style = GoaTextStyles.numeric.copy(fontSize = 16.sp, lineHeight = 22.sp),
-            fontWeight = FontWeight.SemiBold,
-            textAlign = TextAlign.Center,
-        )
-        Text(
-            bar.stat.label,
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            textAlign = TextAlign.Center,
-        )
-    }
-}
-
 private const val STATS_PER_ROW = 4
 private const val STATS_LARGE_FONT = 2
-private val STAT_ICON_WIDTH = 40.dp
-private val STAT_ICON_HEIGHT = 27.dp
 
 /** One deck colour (or Basic / Ultimate) with its tier rows. */
 @Composable

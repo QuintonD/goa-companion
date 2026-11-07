@@ -60,6 +60,8 @@ import dev.quinton.goa.core.designsystem.component.GoaPlate
 import dev.quinton.goa.core.designsystem.component.GoaScreen
 import dev.quinton.goa.core.designsystem.component.PlateShape
 import dev.quinton.goa.core.designsystem.component.SectionHeader
+import dev.quinton.goa.core.designsystem.component.selectableChipBorder
+import dev.quinton.goa.core.designsystem.component.selectedCheck
 import dev.quinton.goa.core.designsystem.theme.Spacing
 import dev.quinton.goa.feature.draft.ui.PlateBar
 import dev.quinton.goa.feature.draft.ui.SelectionRadio
@@ -207,11 +209,14 @@ private fun PreviewFor(state: MethodsUiState, actions: MethodsActions) {
         )
         FlowRow(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
             PreviewLayout.OPTIONS.forEach { layout ->
+                val chosen = state.layout == layout
                 FilterChip(
                     colors = goaFilterChipColors(),
-                    selected = state.layout == layout,
+                    border = selectableChipBorder(chosen),
+                    selected = chosen,
                     onClick = { actions.setLayout(layout) },
                     label = { Text("${layout.label} heroes") },
+                    leadingIcon = selectedCheck(chosen),
                     modifier = Modifier.heightIn(min = 48.dp),
                 )
             }

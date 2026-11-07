@@ -132,8 +132,11 @@ object GoaTextStyles {
     /** [score] as a page's headline number (a player's rating). */
     val scoreLarge: TextStyle = body(30, 36, FontWeight.SemiBold, -0.5).copy(fontFeatureSettings = "tnum, lnum")
 
-    /** Small engraved caps for section overlines ("ROSTER", "OWNED PRODUCTS"). */
-    val overline: TextStyle = display(12, 16, FontWeight.Bold, 1.5)
+    /**
+     * Small engraved caps for overlines ("SAVED BOARDS", "UP NEXT"): 13 sp at the least and tracked at most 0.08 em,
+     * so a label in caps stays legible in bronze on navy. A label that heads a section is a `SectionHeader` instead.
+     */
+    val overline: TextStyle = display(13, 18, FontWeight.Bold, 1.0)
 
     /**
      * Section heads as the rulebook sets them: Cinzel in title case, whose lower case are small

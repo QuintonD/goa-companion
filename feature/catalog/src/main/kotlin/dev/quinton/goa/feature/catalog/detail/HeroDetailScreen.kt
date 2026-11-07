@@ -28,7 +28,6 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListScope
-import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -46,8 +45,6 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.State
-import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -121,20 +118,14 @@ fun HeroDetailScreen(
     onCardClick: (heroId: String, cardId: String) -> Unit,
     modifier: Modifier = Modifier,
     onLearnNumbers: ((heroId: String) -> Unit)? = null,
-    /** [HeroDetailRoute.SPELLBOOK]: open at the spellbook (once; back and rotation keep where you are). */
+    /**
+     * Where the page opens: [HeroDetailRoute.DECK], [HeroDetailRoute.FAQ], or [HeroDetailRoute.SPELLBOOK] (the Deck
+     * scrolled to the spellbook, once; back and rotation keep where you are). Null: the Overview.
+     */
     initialSection: String? = null,
 ) {
-    val listState = rememberLazyListState()
-    var opened by rememberSaveable { mutableStateOf(false) }
     val ready = state as? HeroDetailUiState.Ready
-    val keys = remember(ready, onLearnNumbers != null) { ready?.let { heroPageKeys(it, onLearnNumbers != null) } }
-    LaunchedEffect(ready != null) {
-        if (ready == null || opened) return@LaunchedEffect
-        opened = true
-        if (initialSection == HeroDetailRoute.SPELLBOOK) {
-            keys?.indexOf(EXTRAS_KEY)?.takeIf { it >= 0 }?.let { listState.scrollToItem(it) }
-        }
-    }
+    var section by rememberSaveable { mutableStateOf(HeroSection.opening(initialSection)) }
     GoaScreen(title = ready?.hero?.name.orEmpty(), onBack = onBack, modifier = modifier) { padding ->
         Box(Modifier.fillMaxSize().padding(padding)) {
             when (state) {
@@ -149,78 +140,95 @@ fun HeroDetailScreen(
                     modifier = Modifier.align(Alignment.Center),
                 )
 
-                is HeroDetailUiState.Ready -> HeroPage(state, keys.orEmpty(), listState, onCardClick, onLearnNumbers)
+                is HeroDetailUiState.Ready -> HeroPage(
+                    state,
+                    section = section,
+                    onSelect = { section = it },
+                    openAtSpellbook = initialSection == HeroDetailRoute.SPELLBOOK,
+                    onCardClick = onCardClick,
+                    onLearnNumbers = onLearnNumbers,
+                )
             }
         }
     }
 }
 
+/**
+ * Overview · Deck · FAQ as true tabs: each shows only its part, keeps its own scroll, and the tab you are on is the
+ * selected one. The Overview has the art and the profile; the Deck and FAQ open with a compact identity, so the cards
+ * and their colour controls come first.
+ */
 @Composable
 private fun HeroPage(
     state: HeroDetailUiState.Ready,
-    keys: List<String>,
-    listState: LazyListState,
+    section: HeroSection,
+    onSelect: (HeroSection) -> Unit,
+    openAtSpellbook: Boolean,
     onCardClick: (heroId: String, cardId: String) -> Unit,
     onLearnNumbers: ((heroId: String) -> Unit)?,
 ) {
+    val overview = rememberLazyListState()
+    val deck = rememberLazyListState()
+    val faq = rememberLazyListState()
+    val listState = when (section) {
+        HeroSection.OVERVIEW -> overview
+        HeroSection.DECK -> deck
+        HeroSection.FAQ -> faq
+    }
     val scope = rememberCoroutineScope()
     val navHeight = with(LocalDensity.current) { SectionBarHeight.roundToPx() }
-    // Under the sticky bar: the first item whose foot shows below it says where you are.
-    // Read only in the bar itself: read while the list lays out, it would lay the list out again and again.
-    val active = remember(keys, navHeight) { derivedStateOf { activeSection(listState, keys, navHeight) } }
+    val trivia = onLearnNumbers != null
+    val deckKeys = remember(state, trivia) { deckTabKeys(state, trivia) }
+    var opened by rememberSaveable { mutableStateOf(false) }
+    LaunchedEffect(Unit) {
+        if (opened) return@LaunchedEffect
+        opened = true
+        if (openAtSpellbook) deckKeys.indexOf(EXTRAS_KEY).takeIf { it >= 0 }?.let { deck.scrollToItem(it, -navHeight) }
+    }
     val jumpTo: (String) -> Unit = { key ->
-        val index = keys.indexOf(key)
-        if (index >= 0) {
-            // The header from the top; anything else just under the sticky bar.
-            scope.launch { listState.animateScrollToItem(index, if (index == 0) 0 else -navHeight) }
+        val index = deckKeys.indexOf(key)
+        // Just under the sticky tabs.
+        if (index >= 0) scope.launch { deck.animateScrollToItem(index, -navHeight) }
+    }
+    val select: (HeroSection) -> Unit = { next ->
+        if (next != section) {
+            // Each tab keeps its own scroll: one you come back to is where you left it.
+            onSelect(next)
+        } else {
+            scope.launch { listState.animateScrollToItem(0) } // Tapped again: back to its top.
         }
     }
     LazyColumn(state = listState, contentPadding = PaddingValues(bottom = Spacing.xxl)) {
-        heroDetailContent(
-            state,
-            active = active,
-            onJump = jumpTo,
-            onCardClick = { onCardClick(state.hero.id, it.id) },
-            onLearnNumbers = onLearnNumbers?.let { learn -> { learn(state.hero.id) } },
-        )
+        if (section == HeroSection.OVERVIEW) {
+            item(key = HEADER_KEY) { HeroHeader(state.hero, state.productName) }
+        } else {
+            item(key = HEADER_KEY) { CompactHeroHeader(state.hero) }
+        }
+        stickyHeader(key = NAV_KEY) { HeroSectionBar(section, faqCount = state.hero.faq.size, onSelect = select) }
+        when (section) {
+            HeroSection.OVERVIEW -> overviewContent(state)
+
+            HeroSection.DECK -> deckContent(
+                state,
+                onJump = jumpTo,
+                onCardClick = { onCardClick(state.hero.id, it.id) },
+                onLearnNumbers = onLearnNumbers?.let { learn -> { learn(state.hero.id) } },
+            )
+
+            HeroSection.FAQ -> faqContent(state.hero)
+        }
     }
 }
 
-/**
- * The page's items in order, by key, as [heroDetailContent] emits them: the section bar and the deck
- * jumps find their items here.
- */
-internal fun heroPageKeys(state: HeroDetailUiState.Ready, trivia: Boolean): List<String> = buildList {
+/** The Deck tab's items in order, by key, as [deckContent] emits them: the jump row finds its stops here. */
+internal fun deckTabKeys(state: HeroDetailUiState.Ready, trivia: Boolean): List<String> = buildList {
     add(HEADER_KEY)
     add(NAV_KEY)
-    add("profile")
-    add("stats")
     add(DECK_KEY)
     state.deck.groups.forEach { add(groupKey(it.kind)) }
     if (trivia) add("deck-trivia")
     if (state.deck.handicap != null) add(HANDICAP_KEY)
     if (state.deck.extras.isNotEmpty()) add(EXTRAS_KEY)
-    add(FAQ_KEY)
-    if (state.hero.faq.isEmpty()) add("faq-empty") else state.hero.faq.indices.forEach { add("faq-$it") }
-    if (!state.hero.lore.isNullOrBlank()) add("lore")
-    add("sources")
-}
-
-/** Which section the reader is in: the first item showing below the sticky bar, or FAQ once the page ends there. */
-private fun activeSection(list: LazyListState, keys: List<String>, navHeight: Int): HeroSection {
-    val info = list.layoutInfo
-    val faq = keys.indexOf(FAQ_KEY)
-    val deck = keys.indexOf(DECK_KEY)
-    val atEnd = !list.canScrollForward && list.canScrollBackward
-    if (atEnd && info.visibleItemsInfo.any { it.index == faq }) return HeroSection.FAQ
-    val top = info.visibleItemsInfo
-        .firstOrNull { it.key != NAV_KEY && it.offset + it.size > navHeight }
-        ?.index ?: list.firstVisibleItemIndex
-    return when {
-        top >= faq -> HeroSection.FAQ
-        top >= deck -> HeroSection.DECK
-        else -> HeroSection.OVERVIEW
-    }
 }
 
 internal fun groupKey(kind: DeckGroupKind) = "deck-$kind"
@@ -232,20 +240,11 @@ internal const val HANDICAP_KEY = "handicap"
 internal const val EXTRAS_KEY = "extras"
 internal const val FAQ_KEY = "faq-title"
 
-private fun LazyListScope.heroDetailContent(
-    state: HeroDetailUiState.Ready,
-    active: State<HeroSection>,
-    onJump: (String) -> Unit,
-    onCardClick: (Card) -> Unit,
-    onLearnNumbers: (() -> Unit)?,
-) {
+private val padded = Modifier.padding(horizontal = Spacing.screen)
+
+/** The Overview: the Hero Profile, your table's record with the hero, the lore and the sources. */
+private fun LazyListScope.overviewContent(state: HeroDetailUiState.Ready) {
     val hero = state.hero
-    val padded = Modifier.padding(horizontal = Spacing.screen)
-    item(key = HEADER_KEY) { HeroHeader(hero, state.productName) }
-    // Overview · Deck · FAQ, held under the banner once the art has scrolled away.
-    stickyHeader(key = NAV_KEY) {
-        HeroSectionBar(active.value, faqCount = hero.faq.size, onSelect = { onJump(it.key) })
-    }
     item(key = "profile") { StatPlate(hero.stats, padded.padding(top = Spacing.md)) }
     item(key = "stats") {
         Column(padded) {
@@ -253,19 +252,45 @@ private fun LazyListScope.heroDetailContent(
             PersonalStatsCard(state.stats)
         }
     }
-    item(key = DECK_KEY) {
+    hero.lore?.takeIf { it.isNotBlank() }?.let { lore ->
+        item(key = "lore") {
+            Column(padded) {
+                SectionHeader("Lore")
+                LoreBlock(lore)
+            }
+        }
+    }
+    item(key = "sources") {
         Column(padded) {
-            SectionHeader(
-                "Deck",
-                modifier = Modifier.semantics(mergeDescendants = true) { heading() },
-                trailing = {
-                    Text(
-                        plural(hero.cards.size, "card"),
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                },
-            )
+            SectionHeader("Sources")
+            SourcesBlock(hero)
+        }
+    }
+}
+
+/** The Deck: the colour and tier stops first, then the cards by colour, the Handicap card and any extras. */
+private fun LazyListScope.deckContent(
+    state: HeroDetailUiState.Ready,
+    onJump: (String) -> Unit,
+    onCardClick: (Card) -> Unit,
+    onLearnNumbers: (() -> Unit)?,
+) {
+    val hero = state.hero
+    item(key = DECK_KEY) {
+        Column(padded.padding(top = Spacing.sm)) {
+            Row(Modifier.fillMaxWidth().padding(bottom = Spacing.xs), verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    "Jump to a colour or tier",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.weight(1f),
+                )
+                Text(
+                    plural(hero.cards.size, "card"),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
             DeckJumpRow(deckJumps(state.deck), onJump)
         }
     }
@@ -302,6 +327,10 @@ private fun LazyListScope.heroDetailContent(
     if (state.deck.extras.isNotEmpty()) {
         item(key = EXTRAS_KEY) { ExtrasSection(state.deck, onCardClick, padded) }
     }
+}
+
+/** The FAQ: the official rulings for this hero, each opening to its answer and source. */
+private fun LazyListScope.faqContent(hero: Hero) {
     item(key = FAQ_KEY) { SectionHeader("FAQ rulings", modifier = padded) }
     if (hero.faq.isEmpty()) {
         item(key = "faq-empty") {
@@ -313,22 +342,34 @@ private fun LazyListScope.heroDetailContent(
             )
         }
     } else {
-        itemsIndexed(hero.faq, key = { i, _ ->
-            "faq-$i"
-        }) { _, ruling -> FaqItem(ruling, padded.padding(bottom = Spacing.sm)) }
-    }
-    hero.lore?.takeIf { it.isNotBlank() }?.let { lore ->
-        item(key = "lore") {
-            Column(padded) {
-                SectionHeader("Lore")
-                LoreBlock(lore)
-            }
+        itemsIndexed(hero.faq, key = { i, _ -> "faq-$i" }) { _, ruling ->
+            FaqItem(ruling, padded.padding(bottom = Spacing.sm))
         }
     }
-    item(key = "sources") {
-        Column(padded) {
-            SectionHeader("Sources")
-            SourcesBlock(hero)
+}
+
+/**
+ * The Deck's and FAQ's head: the deck symbol, the name on its title plate and the identity line, without the art,
+ * so the cards start high on the screen.
+ */
+@Composable
+private fun CompactHeroHeader(hero: Hero) {
+    val largeText = LocalDensity.current.fontScale > LARGE_FONT_SCALE
+    Row(
+        Modifier.fillMaxWidth().padding(horizontal = Spacing.screen, vertical = Spacing.sm),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        if (hero.symbol != null) {
+            HeroSymbol(
+                hero.id,
+                hero.symbol,
+                modifier = Modifier.padding(end = Spacing.sm).size(scaledIconSize(COMPACT_SYMBOL, 1.3f)),
+                contentDescription = "${hero.name}'s deck symbol",
+            )
+        }
+        Column(Modifier.weight(1f)) {
+            HeroNamePlate(hero, Modifier.widthIn(max = HEADER_PLATE_MAX_WIDTH).fillMaxWidth())
+            HeroIdentityLine(hero, Modifier.padding(start = 2.dp, top = 4.dp), stacked = largeText)
         }
     }
 }
@@ -731,6 +772,7 @@ private val HEADER_ART_ALIGNMENT = BiasAlignment(0f, -0.5f)
 /** How far the symbol and the title plate run up over the fading art. */
 private val HEADER_OVERLAP = 54.dp
 private val HEADER_SYMBOL = 66.dp
+private val COMPACT_SYMBOL = 44.dp
 private val HEADER_PLATE_MAX_WIDTH = 440.dp
 private val HERO_PLATE_NAME = GoaTextStyles.plateTitle.copy(fontSize = 18.sp, lineHeight = 22.sp, letterSpacing = 0.sp)
 private const val MOTION_MS = 250

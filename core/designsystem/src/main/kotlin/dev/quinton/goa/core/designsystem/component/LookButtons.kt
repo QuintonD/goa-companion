@@ -2,15 +2,22 @@ package dev.quinton.goa.core.designsystem.component
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.drawWithCache
@@ -23,6 +30,7 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import dev.quinton.goa.core.designsystem.theme.GoaTheme
+import dev.quinton.goa.core.designsystem.theme.Spacing
 
 /*
  * The look's buttons (ADR-053): metal, as the mock-ups draw them. These colours are the same in both
@@ -58,16 +66,46 @@ private fun Modifier.metalFace(bronze: Boolean, off: DisabledFace?): Modifier = 
     }
 }
 
-/** A disabled metal button's face, edge and words, per theme (the words ≥ 3:1 on the face, ContrastTest). */
+/**
+ * A disabled button's face, edge and words, per theme: a filled, unlit slab (never an outline, which would pass for a
+ * text field), its words muted but legible (≥ 4.5:1 on the face, ContrastTest). Every disabled button wears it.
+ */
 class DisabledFace internal constructor(val fill: Color, val edge: Color, val ink: Color) {
     companion object {
         /** On the slate and the dark canvas. */
-        val Dark = DisabledFace(fill = Color(0xFF262D32), edge = Color(0xFF4F5A61), ink = Color(0xFF8E979E))
+        val Dark = DisabledFace(fill = Color(0xFF333C43), edge = Color(0xFF55616A), ink = Color(0xFFA9B2B9))
 
         /** On the light theme's paper. */
-        val Light = DisabledFace(fill = Color(0xFFE4E0D8), edge = Color(0xFF8C96A0), ink = Color(0xFF6A645A))
+        val Light = DisabledFace(fill = Color(0xFFD9D2C5), edge = Color(0xFF8C8475), ink = Color(0xFF5C554A))
+
+        /** The face for the current theme. */
+        val current: DisabledFace
+            @Composable get() = if (GoaTheme.isDark) Dark else Light
     }
 }
+
+/**
+ * Why a button is off, said right under it ("Name the group to start it."): an info glyph and a short line in the
+ * muted tone. Show it only while the button is disabled.
+ */
+@Composable
+fun DisabledReason(text: String, modifier: Modifier = Modifier) {
+    Row(modifier.padding(top = Spacing.xs), verticalAlignment = Alignment.Top) {
+        Icon(
+            Icons.Outlined.Info,
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.padding(top = 2.dp, end = Spacing.xs).size(scaledIconSize(16.dp, 1.4f)),
+        )
+        Text(text, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+    }
+}
+
+/**
+ * Bronze for an icon on a steel face (an action's glyph beside its light words): the bright top of the bronze, so the
+ * glyph keeps up with the words (≥ 6:1 on the steel, ContrastTest). The steel is the same in both themes, so is this.
+ */
+val SteelIconBronze: Color = Color(0xFFE4C47E)
 
 /** A metal button: filled bronze with a sheen for the main action, steel for the other. */
 @Composable
@@ -79,13 +117,7 @@ fun MetalButton(
     contentPadding: PaddingValues = ButtonDefaults.ContentPadding,
     content: @Composable RowScope.() -> Unit,
 ) {
-    val off = if (enabled) {
-        null
-    } else if (GoaTheme.isDark) {
-        DisabledFace.Dark
-    } else {
-        DisabledFace.Light
-    }
+    val off = if (enabled) null else DisabledFace.current
     Button(
         onClick = onClick,
         enabled = enabled,
@@ -145,8 +177,9 @@ fun SlateButton(
 }
 
 /**
- * The app's outlined button: a bronze edge, words in the theme's ink. Disabled it keeps its shape and edge, faded
- * ([disabled]), so it still reads as the button it becomes. Use it instead of Material's `OutlinedButton`.
+ * The app's outlined button: a bronze edge, words in the theme's ink. Disabled it becomes the filled, unlit
+ * [DisabledFace] every disabled button wears, so it never passes for the outlined text field beside it; say why under
+ * it with [DisabledReason]. Use it instead of Material's `OutlinedButton`.
  */
 @Composable
 fun GoaOutlinedButton(
@@ -157,14 +190,16 @@ fun GoaOutlinedButton(
     content: @Composable RowScope.() -> Unit,
 ) {
     val ink = MaterialTheme.colorScheme.onSurface
+    val off = if (enabled) null else DisabledFace.current
+    val edge = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = OUTLINE_ALPHA))
     OutlinedButton(
         onClick = onClick,
         enabled = enabled,
         shape = METAL_SHAPE,
         contentPadding = contentPadding,
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = OUTLINE_ALPHA)),
-        colors = ButtonDefaults.outlinedButtonColors(contentColor = ink, disabledContentColor = ink),
-        modifier = modifier.disabled(enabled),
+        border = if (off == null) edge else null,
+        colors = ButtonDefaults.outlinedButtonColors(contentColor = ink, disabledContentColor = off?.ink ?: ink),
+        modifier = if (off == null) modifier else modifier.metalFace(bronze = false, off = off),
         content = content,
     )
 }
