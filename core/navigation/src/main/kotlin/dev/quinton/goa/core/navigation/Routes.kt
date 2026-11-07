@@ -110,7 +110,8 @@ interface Navigator {
  * defaults to Completed), used when a game has just ended: from the timer summary or a pending
  * match. [prefillPlayedAt] (epoch ms, e.g. the timer session's start) replaces the date of a new
  * or still pending match. [newMatchId] is the id a NEW match is saved under (the timer reserves
- * one so it can tell when the result it opened was saved).
+ * one so it can tell when the result it opened was saved). [prefillHeroId] seats that hero in a NEW match's first
+ * seat (a hero page's "Log a match with …").
  */
 @Serializable data class MatchEditRoute(
     val matchId: String? = null,
@@ -119,6 +120,7 @@ interface Navigator {
     val result: Boolean = false,
     val prefillPlayedAt: Long? = null,
     val newMatchId: String? = null,
+    val prefillHeroId: String? = null,
 ) : NavKey
 
 @Serializable data object MetaRoute : NavKey

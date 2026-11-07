@@ -3,6 +3,7 @@ package dev.quinton.goa.feature.catalog.detail
 import com.google.common.truth.Truth.assertThat
 import dev.quinton.goa.core.domain.catalog.DeckGroupKind
 import dev.quinton.goa.core.domain.catalog.DeckLayout
+import dev.quinton.goa.core.domain.catalog.HeroLogSummary
 import dev.quinton.goa.core.model.catalog.Card
 import dev.quinton.goa.core.model.catalog.CardColor
 import dev.quinton.goa.core.testing.TestCatalog
@@ -48,5 +49,23 @@ class DeckCountTest {
         assertThat(two.handicap).isNull()
         assertThat(layout.onlyTier(null)).isEqualTo(layout)
         assertThat(layout.groups.first().cards.map { it.color }).contains(CardColor.GOLD)
+    }
+
+    @Test
+    fun aColourShowsOnlyThatPartAndTheCountNamesTheFilters() {
+        val layout = DeckLayout.of(hero)
+        val parts = deckParts(layout)
+        val red = parts.first { it.label == DeckGroupKind.RED.title }
+        val onlyRed = layout.onlyPart(red.key)
+        assertThat(onlyRed.groups.map { it.kind }).containsExactly(DeckGroupKind.RED)
+        assertThat(onlyRed.handicap).isNull()
+        assertThat(onlyRed.shownCount()).isEqualTo(red.count)
+        assertThat(layout.onlyPart(null)).isEqualTo(layout)
+        // Tier and colour together, named in the count.
+        val both = layout.onlyTier(2).onlyPart(red.key)
+        val none = HeroPersonalStats(null, null, HeroLogSummary(0, 0, emptyList(), emptyList()))
+        val state = HeroDetailUiState.Ready(hero, "Core", layout, none)
+        assertThat(deckCount(state, both, 2, red.label)).isEqualTo("Red · Tier II · ${both.shownCount()} cards")
+        assertThat(deckCount(state, layout, null, null)).startsWith("${hero.cards.size} cards")
     }
 }
