@@ -621,7 +621,7 @@ private val TabShape = RoundedCornerShape(topStart = 6.dp, topEnd = 6.dp, bottom
 private val NowInk = androidx.compose.ui.graphics.Color(0xFF0B1622)
 private const val NOW_TAG_DP = 10f
 
-/** A minion's number: where it sits from the space's centre (up and to the left, clear of the type badge), map units. */
+/** A minion's number: where it sits from its space's centre (up and left, clear of the type badge), map units. */
 private const val NUMBER_DX = 0.62f
 private const val NUMBER_DY = 0.5f
 private const val NUMBER_RADIUS = 0.3f

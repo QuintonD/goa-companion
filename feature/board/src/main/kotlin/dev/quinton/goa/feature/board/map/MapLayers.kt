@@ -453,8 +453,8 @@ internal fun ZoneLabels(
 /**
  * A Battle Zone's label is never hidden (it says where the game is): when no place outside the Zone is free, the
  * free spot nearest the Zone along the Zone's own edges, the view's top and bottom edges or over the Zone's own
- * empty spaces, where it may cover a little empty map but no piece; failing that, the spot covering the fewest. [score] is null for a spot out of
- * view or over the map buttons, else how many pieces it covers.
+ * empty spaces, where it may cover a little empty map but no piece; failing that, the spot covering the fewest.
+ * [score] is null for a spot out of view or over the map buttons, else how many pieces it covers.
  */
 private fun battleFallback(
     label: ZoneLabel,

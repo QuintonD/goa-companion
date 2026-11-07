@@ -465,7 +465,8 @@ private fun ColumnScope.Panel(play: PlayUi, onAction: (GameAction) -> Unit, focu
         nudge != null -> CoachNudge(nudge, onAction)
 
         play.status is TurnStatus.YourTurn -> {
-            // The end of a round: its steps are read with the question they bring (the Minion Battle), not cut under it.
+            // The end of a round: its steps are read with the question they bring (the Minion Battle), not cut
+            // under it.
             PanelQuestion(after = roundEnding?.let { m -> { MomentCard(m, table, focus = focus) } }) {
                 DecisionPanel(
                     table,
