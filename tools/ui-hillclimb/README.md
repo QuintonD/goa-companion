@@ -11,8 +11,8 @@ more on every aspect**.
   navigation, feedback, accessibility, table_fitness, consistency.
 - **Loop:** `collect` → both judges score → issues merged into work packages on disjoint files → one agent
   per package in its own worktree (builds queue on `build.sh`'s lock: oldboi runs one build at a time) →
-  `compare` before/after (both judges, random left/right) → merge the winners → re-record every screenshot →
-  next round.
+  `compare` before/after (both judges, random left/right) → merge the winners → `cleanup.sh` (merged worktrees, build
+  leftovers, judge scratch) → re-record every screenshot → `cleanup.sh` again → next round.
 - **Art:** official assets first (`app/src/main/assets/official/`, `official/SOURCES.md`); redraw a frame that is
   too soft (ADR-058); generated painted art (`hc.py imagegen`, `gpt-image-2.5`) only for the app's own decorative
   art, never for anything that carries game data (cards, portraits, symbols, boards). Record every generated
@@ -29,4 +29,5 @@ python3 -I tools/ui-hillclimb/hc.py unblind <cmp> <cmp>/opus-raw.json <cmp>/opus
 python3 -I tools/ui-hillclimb/hc.py imagegen out.png "prompt" --size 1536x1024 [--ref style.png]
 python3 -I tools/ui-hillclimb/hc.py board <runs_dir>
 tools/ui-hillclimb/build.sh :feature:timer:recordRoborazziDebug
+tools/ui-hillclimb/cleanup.sh --scratch <runs dir> --worktree <merged worktree>   # after every judge round and merge
 ```
