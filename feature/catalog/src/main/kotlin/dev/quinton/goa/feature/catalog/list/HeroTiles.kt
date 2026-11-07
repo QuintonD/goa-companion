@@ -9,7 +9,6 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -183,12 +182,13 @@ private fun TileText(item: HeroListItem, sort: CatalogSort, footnotes: TileFootn
         )
         // A line of a fixed height with no room to wrap: a ranged hero has the game's Range icon beside the
         // stars (the word on the list row, the hero page and for TalkBack).
+        // The stars lead the tile's text (14 dp, bronze); the roles under them are the quieter line.
         Row(
-            Modifier.height(STARS_LINE),
+            Modifier.heightIn(min = STARS_LINE).padding(vertical = 1.dp),
             horizontalArrangement = Arrangement.spacedBy(Spacing.xs),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            ComplexityStars(hero.complexity, starSize = 10.dp)
+            ComplexityStars(hero.complexity, starSize = TILE_STAR)
             if (item.rangedLabel != null) ActionIcon(LookAction.RANGE, size = RANGED_ICON)
         }
         // Two roles, one a line at a readable size (the hero page and TalkBack have them all). Every tile keeps
@@ -360,7 +360,8 @@ private fun tileLines(fontScale: Float): Int = if (fontScale in 1.1f..1.2f || fo
 private const val TILE_ROLES = 2
 private const val HINT_LINES = 2
 private val NO_ROOM = TileFootnoteRoom(metric = false, hint = false)
-private val STARS_LINE = 18.dp
+private val STARS_LINE = 20.dp
+private val TILE_STAR = 14.dp
 private val RANGED_ICON = 16.dp
 
 private val PORTRAIT_SHAPE = RoundedCornerShape(2.dp)

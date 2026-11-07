@@ -56,8 +56,8 @@ class OfficialLookScreenshotTest {
     @Before fun images() = BundledAssetImages.install(ApplicationProvider.getApplicationContext())
 
     private val catalog: Catalog by lazy {
+        // The whole bundled roster, as the Heroes tab opens on a phone ("32 heroes"), not a sample.
         val heroes = bundledAsset("catalog/heroes").list().orEmpty().sorted()
-            .take(HEROES)
             .map { bundledHero(it.removeSuffix(".json")) }
         Catalog(
             dataVersion = 1,
@@ -198,6 +198,5 @@ class OfficialLookScreenshotTest {
 
     private companion object {
         const val IMAGE_TIMEOUT_MS = 15_000L
-        const val HEROES = 12
     }
 }
