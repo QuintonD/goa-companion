@@ -102,7 +102,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.min
 import androidx.compose.ui.unit.sp
 import dev.quinton.goa.core.designsystem.component.BannerEndSpacer
-import dev.quinton.goa.core.designsystem.component.BannerMedallionWidth
 import dev.quinton.goa.core.designsystem.component.BevelText
 import dev.quinton.goa.core.designsystem.component.GoaButton
 import dev.quinton.goa.core.designsystem.component.GoaDarkTheme
@@ -113,6 +112,7 @@ import dev.quinton.goa.core.designsystem.component.MetalButton
 import dev.quinton.goa.core.designsystem.component.PlateShape
 import dev.quinton.goa.core.designsystem.component.SlateButton
 import dev.quinton.goa.core.designsystem.component.TitlePlate
+import dev.quinton.goa.core.designsystem.component.bannerEndWidth
 import dev.quinton.goa.core.designsystem.component.slatePlate
 import dev.quinton.goa.core.designsystem.component.steelBanner
 import dev.quinton.goa.core.designsystem.theme.GoaTextStyles
@@ -505,13 +505,14 @@ private fun headerTools(state: ActiveUiState, width: Dp, coinUndo: Boolean): Hea
     val coin = coinChipMark()
     val team = state.tieBreaker
     val undo = coinUndo && team != null
-    return remember(state.round, team, undo, width, density, titleStyle, labelStyle, coin) {
+    val bannerEnd = bannerEndWidth()
+    return remember(state.round, team, undo, width, density, titleStyle, labelStyle, coin, bannerEnd) {
         fun textWidth(text: String, style: TextStyle) =
             with(density) { measurer.measure(text, style, maxLines = 1, softWrap = false).size.width.toDp() }
         val chipMark = if (team != null) CHIP_INSET * 2 + coin else 0.dp
         val chip = team?.let { chipMark + COIN_GAP + textWidth(teamName(it), labelStyle) } ?: 0.dp
         val undoButton = if (undo) maxOf(UNDO_MIN_WIDTH, textWidth("Undo", labelStyle) + UNDO_PADDING) else 0.dp
-        val fixed = Spacing.screen + BannerMedallionWidth + HEADER_SLACK + undoButton + HEADER_ICON
+        val fixed = Spacing.screen + bannerEnd + HEADER_SLACK + undoButton + HEADER_ICON
         val room = width - fixed - textWidth("Round ${state.round}", titleStyle)
         val large = density.fontScale > LARGE_FONT_SCALE
         HeaderTools(
