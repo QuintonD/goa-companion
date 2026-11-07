@@ -811,5 +811,5 @@ internal fun startingCounters(lanes: Int, length: GameLength, heroes: Int): Stri
 private fun lengthNote(state: NewGameUiState.Ready): String {
     val heroes = state.red.size + state.blue.size
     val page = if (state.form.length == GameLength.LONG) "p.23" else "p.5"
-    return "Wave counters, and Life counters per team, at the start with $heroes heroes ($page)."
+    return "Counters at the start with $heroes heroes, Lives per team ($page)."
 }

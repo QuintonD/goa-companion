@@ -57,6 +57,8 @@ import dev.quinton.goa.core.designsystem.component.EmptyState
 import dev.quinton.goa.core.designsystem.component.GoaButton
 import dev.quinton.goa.core.designsystem.component.GoaFilterChip
 import dev.quinton.goa.core.designsystem.component.GoaScreen
+import dev.quinton.goa.core.designsystem.component.GoaSegment
+import dev.quinton.goa.core.designsystem.component.GoaSegmentedRow
 import dev.quinton.goa.core.designsystem.component.HeroPortrait
 import dev.quinton.goa.core.designsystem.component.scaledIconSize
 import dev.quinton.goa.core.designsystem.theme.GoaTextStyles
@@ -149,36 +151,23 @@ private fun PuzzleList(state: PuzzleListUiState.Ready, onAction: (PuzzleListActi
         item(key = "continue") { ContinueCard(state, onOpen) }
         if (state.difficulties.size > 1 || state.themes.size > 1) {
             item(key = "filters") {
-                FlowRow(
-                    horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
-                    verticalArrangement = Arrangement.spacedBy(Spacing.xs),
-                    modifier = Modifier.padding(top = Spacing.sm),
+                Column(
+                    Modifier.padding(top = Spacing.sm),
+                    verticalArrangement = Arrangement.spacedBy(Spacing.sm),
                 ) {
-                    if (state.difficulties.size > 1) {
-                        // "All" is the checked state of no difficulty filter: the chips read as a filter at once
-                        // (opus #13), each with how many puzzles it holds.
-                        val chosen = state.filters.difficulties
-                        GoaFilterChip(
-                            selected = chosen.isEmpty(),
-                            onClick = { chosen.forEach { onAction(PuzzleListAction.ToggleDifficulty(it)) } },
-                            label = "All · ${state.difficultyCounts.values.sum().takeIf { it > 0 } ?: state.total}",
-                        )
-                        state.difficulties.forEach { d ->
-                            GoaFilterChip(
-                                selected = d in chosen,
-                                onClick = { onAction(PuzzleListAction.ToggleDifficulty(d)) },
-                                label = listOfNotNull(PuzzleText.difficulty(d), state.difficultyCounts[d])
-                                    .joinToString(" · "),
-                            )
-                        }
-                    }
+                    if (state.difficulties.size > 1) DifficultyFilter(state, onAction)
                     if (state.themes.size > 1) {
-                        state.themes.forEach { theme ->
-                            GoaFilterChip(
-                                selected = theme in state.filters.themes,
-                                onClick = { onAction(PuzzleListAction.ToggleTheme(theme)) },
-                                label = theme,
-                            )
+                        FlowRow(
+                            horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+                            verticalArrangement = Arrangement.spacedBy(Spacing.xs),
+                        ) {
+                            state.themes.forEach { theme ->
+                                GoaFilterChip(
+                                    selected = theme in state.filters.themes,
+                                    onClick = { onAction(PuzzleListAction.ToggleTheme(theme)) },
+                                    label = theme,
+                                )
+                            }
                         }
                     }
                 }
@@ -318,6 +307,43 @@ private fun PartHeading(
             SolvedCount(solved, total, rounds)
         }
         Text(note, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+    }
+}
+
+/**
+ * The difficulty filter as one checked segmented bar (opus #13): "All" checked by default, then each difficulty, each
+ * with how many puzzles it holds under its name. One is shown at a time; "All" clears the filter.
+ */
+@Composable
+private fun DifficultyFilter(state: PuzzleListUiState.Ready, onAction: (PuzzleListAction) -> Unit) {
+    val chosen = state.filters.difficulties
+    fun only(d: Int?) {
+        chosen.filter { it != d }.forEach { onAction(PuzzleListAction.ToggleDifficulty(it)) }
+        if (d != null && d !in chosen) onAction(PuzzleListAction.ToggleDifficulty(d))
+    }
+    val all = state.difficultyCounts.values.sum().takeIf { it > 0 } ?: state.total
+    GoaSegmentedRow(Modifier.fillMaxWidth()) {
+        GoaSegment(selected = chosen.isEmpty(), onClick = { only(null) }) { FilterLabel("All", all) }
+        state.difficulties.forEach { d ->
+            GoaSegment(selected = chosen == setOf(d), onClick = { only(d) }) {
+                FilterLabel(PuzzleText.difficulty(d), state.difficultyCounts[d])
+            }
+        }
+    }
+}
+
+@Composable
+private fun FilterLabel(name: String, count: Int?) {
+    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+        Text(name, maxLines = 1)
+        count?.let {
+            Text(
+                "$it",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 1,
+            )
+        }
     }
 }
 

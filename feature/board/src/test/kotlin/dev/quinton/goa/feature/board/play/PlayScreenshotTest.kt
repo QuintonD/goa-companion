@@ -432,8 +432,8 @@ class PlayScreenshotTest {
     }
 
     /**
-     * A move on a short phone held sideways: its spaces can't be 48 dp targets there, so they are numbered on the map
-     * and listed in the panel, two to a row (sol #1, sol-b #2).
+     * A move on a short phone held sideways: its spaces are still framed as finger targets beside the turn order and
+     * the panel (sol #1); spaces that can't be are numbered on the map and listed in the panel.
      */
     @Config(qualifiers = "w800dp-h330dp-land-xxhdpi")
     @Test

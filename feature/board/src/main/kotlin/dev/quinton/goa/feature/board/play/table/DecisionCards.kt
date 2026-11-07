@@ -34,7 +34,6 @@ import androidx.compose.material.icons.outlined.Block
 import androidx.compose.material.icons.outlined.CheckCircle
 import androidx.compose.material.icons.outlined.ErrorOutline
 import androidx.compose.material.icons.outlined.Info
-import androidx.compose.material.icons.outlined.Replay
 import androidx.compose.material.icons.outlined.TouchApp
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -727,9 +726,10 @@ private fun defendLabel(table: TableUi, answer: Choice?): String? = when (answer
 }
 
 /**
- * What not defending comes to, from the engine's own events ([DefeatPreview]), above the commit: the verdict line ("No
- * card saves Tigerclaw: defeated by Arien"), then the Life counters the team spends with the Life counter's own mark,
- * the coins each hero collects with the coin, and the respawn (p.7). The game's end when it is the last Life counter.
+ * What not defending comes to, from the engine's own events ([DefeatPreview]), above the commit, in one line so the
+ * commit stays in view: "Defeated", then the Life counters the team spends with the Life counter's own mark ("Blue −1
+ * (1 left)"; the last one: "Red wins"), the coins each hero collects with the coin ("Arien +2"), and p.13. TalkBack
+ * hears it in words, with the respawn (p.7).
  */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
@@ -737,46 +737,63 @@ private fun DefeatConsequence(table: TableUi, defeat: DefeatPreview, hopeless: B
     val hero = table.hero(defeat.defeated).name
     val by = defeat.byHero?.let { " by ${table.hero(it).name}" }.orEmpty()
     val team = defeat.team
-    val head = (if (hopeless) "No card saves $hero: " else "Not defending: ") + "defeated$by."
     val winner = defeat.winner
-    val life = team?.let {
-        if (winner != null) {
-            "${BoardText.team(it)} spends its last Life counter: ${BoardText.team(winner)} wins"
-        } else {
-            "${BoardText.team(it)} spends ${BoardText.count(defeat.lifeSpent, "Life counter")}" +
-                defeat.lifeLeft?.let { left -> " ($left left)" }.orEmpty()
+    val spoken = buildList {
+        add((if (hopeless) "No card saves $hero: " else "Not defending: ") + "defeated$by")
+        if (team != null) {
+            add(
+                if (winner != null) {
+                    "${BoardText.team(team)} spends its last Life counter: ${BoardText.team(winner)} wins"
+                } else {
+                    "${BoardText.team(team)} spends ${BoardText.count(defeat.lifeSpent, "Life counter")}" +
+                        defeat.lifeLeft?.let { left -> " ($left left)" }.orEmpty()
+                },
+            )
         }
+        defeat.coins.forEach { (id, n) -> add("${table.hero(id).name} gains ${BoardText.count(n, "coin")}") }
+        if (winner == null) add("$hero may respawn before acting next turn")
     }
-    val coins = defeat.coins.map { (id, n) -> "${table.hero(id).name} gains ${BoardText.count(n, "coin")}" }
-    val respawn = "$hero may respawn before acting next turn".takeIf { defeat.winner == null }
-    Column(
+    Row(
         Modifier
             .fillMaxWidth()
             .semantics(mergeDescendants = true) {
                 liveRegion = LiveRegionMode.Polite
-                contentDescription = (listOf(head) + listOfNotNull(life) + coins + listOfNotNull(respawn))
-                    .joinToString(" ") { if (it.endsWith(".")) it else "$it." } + " Rulebook page 13"
+                contentDescription = spoken.joinToString(". ") + ". Rulebook page 13"
             },
-        verticalArrangement = Arrangement.spacedBy(2.dp),
+        verticalAlignment = Alignment.Top,
     ) {
-        RuleRow(head, page = "p.13", verdict = false, live = false)
+        val icon = scaledIconSize(16.dp, 1.3f)
         FlowRow(
-            Modifier.padding(start = scaledIconSize(16.dp, 1.3f) + Spacing.xs),
-            horizontalArrangement = Arrangement.spacedBy(Spacing.md),
+            Modifier.weight(1f).clearAndSetSemantics {},
+            horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
             verticalArrangement = Arrangement.spacedBy(2.dp),
             itemVerticalAlignment = Alignment.CenterVertically,
         ) {
-            val icon = scaledIconSize(14.dp, 1.3f)
-            if (team != null && life != null) {
-                ConsequenceItem(life) { LifeCounterIcon(team, spent = defeat.winner != null, size = icon) }
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(Icons.Outlined.ErrorOutline, null, Modifier.size(icon), tint = verdictColor(false))
+                Spacer(Modifier.width(Spacing.xs))
+                Text(
+                    "Defeated",
+                    style = MaterialTheme.typography.bodySmall,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.onSurface,
+                )
             }
-            coins.forEach { ConsequenceItem(it) { CoinIcon(size = icon) } }
-            respawn?.let {
-                ConsequenceItem(it) {
-                    Icon(Icons.Outlined.Replay, null, Modifier.size(icon), tint = MaterialTheme.colorScheme.secondary)
+            if (team != null) {
+                val left = if (winner != null) {
+                    "${BoardText.team(winner)} wins"
+                } else {
+                    defeat.lifeLeft?.let { "($it left)" }
+                }
+                val spent = listOfNotNull("${BoardText.team(team)} −${defeat.lifeSpent}", left).joinToString(" ")
+                ConsequenceItem(spent) {
+                    LifeCounterIcon(team, spent = winner != null, size = icon)
                 }
             }
+            defeat.coins.forEach { (id, n) -> ConsequenceItem("${table.hero(id).name} +$n") { CoinIcon(size = icon) } }
         }
+        Spacer(Modifier.width(Spacing.xs))
+        PagePill("p.13")
     }
 }
 
@@ -785,7 +802,7 @@ private fun ConsequenceItem(text: String, icon: @Composable () -> Unit) {
     Row(verticalAlignment = Alignment.CenterVertically) {
         icon()
         Spacer(Modifier.width(4.dp))
-        Text(text, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Text(text, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurface)
     }
 }
 
