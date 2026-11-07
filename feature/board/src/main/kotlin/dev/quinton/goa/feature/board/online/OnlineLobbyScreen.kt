@@ -1,5 +1,11 @@
 package dev.quinton.goa.feature.board.online
 
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.outlined.Person
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.graphics.PathEffect
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.unit.Dp
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -247,12 +253,13 @@ private fun SeatRow(
             },
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        val portrait = Modifier.size(scaledIconSize(36.dp, 1.4f)).border(2.dp, teamColor(seat.team), CircleShape)
+        val side = scaledIconSize(40.dp, 1.4f)
+        val portrait = Modifier.size(side).border(2.dp, teamColor(seat.team), CircleShape)
         val heroId = seat.heroId
-        if (heroId != null) {
-            HeroPortrait(heroId, heroes.hero(heroId).portrait, null, portrait, CircleShape, framed = false)
-        } else {
-            Box(portrait)
+        when {
+            heroId != null -> HeroPortrait(heroId, heroes.hero(heroId).portrait, null, portrait, CircleShape, framed = false)
+            taken -> SeatSilhouette(seat.team, side, taken = true)
+            else -> SeatSilhouette(seat.team, side, taken = false)
         }
         Spacer(Modifier.width(Spacing.md))
         Column(Modifier.weight(1f)) {
@@ -269,11 +276,12 @@ private fun SeatRow(
             Text(
                 listOfNotNull(
                     heroName ?: "No hero yet".takeIf { taken },
-                    "Tap to sit here".takeIf { canSit },
+                    "+ Tap to sit here".takeIf { canSit },
                     "Host".takeIf { seat.accountId != null && seat.accountId == room.hostAccountId },
                 ).joinToString(" · "),
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                style = if (canSit) MaterialTheme.typography.labelLarge else MaterialTheme.typography.bodySmall,
+                // A seat you can take is something you can do: teal, and in words.
+                color = if (canSit) MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
         if (seat.ready) {
@@ -286,6 +294,41 @@ private fun SeatRow(
             Spacer(Modifier.width(Spacing.xs))
             Text("Ready", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.secondary)
         }
+    }
+}
+
+/**
+ * A seat without a hero: free, a dashed ring in the team's colour around a "+" (tap the row to sit); taken but no hero
+ * picked yet, a solid ring around a person's silhouette. Decorative: the row's words say which.
+ */
+@Composable
+private fun SeatSilhouette(team: Team, side: Dp, taken: Boolean) {
+    val ring = teamColor(team)
+    val muted = MaterialTheme.colorScheme.onSurfaceVariant
+    Box(
+        Modifier
+            .size(side)
+            .drawBehind {
+                val stroke = 2.dp.toPx()
+                val radius = size.minDimension / 2f - stroke / 2f
+                drawCircle(ring.copy(alpha = if (taken) 0.16f else 0.08f), radius)
+                drawCircle(
+                    ring,
+                    radius,
+                    style = Stroke(
+                        width = stroke,
+                        pathEffect = if (taken) null else PathEffect.dashPathEffect(floatArrayOf(5.dp.toPx(), 4.dp.toPx())),
+                    ),
+                )
+            },
+        contentAlignment = Alignment.Center,
+    ) {
+        Icon(
+            if (taken) Icons.Outlined.Person else Icons.Filled.Add,
+            contentDescription = null,
+            tint = if (taken) muted else ring,
+            modifier = Modifier.size(side * 0.55f),
+        )
     }
 }
 
