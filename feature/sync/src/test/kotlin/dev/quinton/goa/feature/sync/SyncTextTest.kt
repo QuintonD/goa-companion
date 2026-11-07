@@ -45,14 +45,14 @@ class SyncTextTest {
         val all = listOf(bob, cid, eve)
         assertThat(SyncText.hostWaiting(all)).isEqualTo("1 ready · 1 sending its data · 1 needs a new invite")
         // Sync waits for uploads still under way (SyncHost.merge): a tap now arms it, and the button says so.
-        assertThat(SyncText.syncLabel(all)).isEqualTo("Sync automatically when ready")
+        assertThat(SyncText.syncLabel(all)).isEqualTo("Sync 2 phones when ready")
         assertThat(SyncText.hostLeftOut(all)).isEqualTo("Eve isn't included: old invite")
         assertThat(SyncText.hostLeftOut(listOf(bob))).isNull()
-        assertThat(SyncText.syncLabel(listOf(bob))).isEqualTo("Sync with Bob")
+        assertThat(SyncText.syncLabel(listOf(bob))).isEqualTo("Sync 1 phone now")
         assertThat(
             SyncText.syncLabel(listOf(bob, cid.copy(stage = PeerStage.READY))),
-        ).isEqualTo("Sync with Bob and Cid")
-        assertThat(SyncText.syncLabel(List(3) { bob.copy(linkId = "$it") })).isEqualTo("Sync 3 phones")
+        ).isEqualTo("Sync 2 phones now")
+        assertThat(SyncText.syncLabel(List(3) { bob.copy(linkId = "$it") })).isEqualTo("Sync 3 phones now")
         // Nothing to sync yet: the switched-off button says what it waits for.
         assertThat(SyncText.syncLabel(listOf(eve))).isEqualTo("Waiting for a phone to join…")
         assertThat(SyncText.syncLabel(emptyList())).isEqualTo("Waiting for a phone to join…")

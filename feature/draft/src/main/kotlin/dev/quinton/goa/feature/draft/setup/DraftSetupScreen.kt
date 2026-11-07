@@ -50,15 +50,20 @@ import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
+import androidx.compose.material3.IconToggleButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.PlainTooltip
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.TooltipAnchorPosition
+import androidx.compose.material3.TooltipBox
+import androidx.compose.material3.TooltipDefaults
 import androidx.compose.material3.rememberModalBottomSheetState
+import androidx.compose.material3.rememberTooltipState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -289,7 +294,14 @@ fun DraftSetupScreen(state: SetupUiState, actions: SetupActions) {
                     label = "stage",
                 ) { stage ->
                     LazyColumn(
-                        contentPadding = PaddingValues(Spacing.screen),
+                        // The step tabs above already end in their own padding: a small top keeps the stage's
+                        // controls above the footer.
+                        contentPadding = PaddingValues(
+                            start = Spacing.screen,
+                            end = Spacing.screen,
+                            top = Spacing.sm,
+                            bottom = Spacing.screen,
+                        ),
                         verticalArrangement = Arrangement.spacedBy(Spacing.md),
                         modifier = Modifier.fillMaxSize(),
                     ) {
@@ -599,8 +611,7 @@ private fun TeamColumns(state: SetupUiState, actions: SetupActions) {
     val balanced = form.teamMode == TeamMode.BALANCED
     SectionCard(
         title = if (balanced) "Balanced by Elo" else "Tap a player to switch teams",
-        subtitle = form.balanceDifference?.let { "Average Elo differs by ${it.roundToInt()}" }
-            ?: if (balanced) "Lock players to keep them on a team, then re-balance" else null,
+        subtitle = form.balanceDifference?.let { "Average Elo differs by ${it.roundToInt()}" },
         trailing = if (balanced) {
             {
                 FilledTonalButton(colors = goaTonalButtonColors(), onClick = actions::rebalance) {
@@ -641,6 +652,7 @@ private fun TeamColumns(state: SetupUiState, actions: SetupActions) {
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun TeamMemberChip(
     name: String,
@@ -671,12 +683,27 @@ private fun TeamMemberChip(
             Spacer(Modifier.width(Spacing.sm))
             Text(name, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f), maxLines = 2)
             if (showLock) {
-                IconButton(onClick = onLock) {
-                    Icon(
-                        if (locked) Icons.Filled.Lock else Icons.Outlined.LockOpen,
-                        contentDescription = if (locked) "Unlock $name" else "Lock $name to ${teamName(team)}",
-                        tint = activeColor(locked),
-                    )
+                // A 48 dp toggle: "Keep Ada on Red when re-balancing", locked or not. What it does is its label and,
+                // on a long press, its tooltip, so the teams keep their room.
+                TooltipBox(
+                    positionProvider = TooltipDefaults.rememberTooltipPositionProvider(TooltipAnchorPosition.Above),
+                    tooltip = { PlainTooltip { Text(LOCK_TIP) } },
+                    state = rememberTooltipState(),
+                ) {
+                    IconToggleButton(
+                        checked = locked,
+                        onCheckedChange = { onLock() },
+                        modifier = Modifier.size(48.dp).semantics {
+                            contentDescription = "Keep $name on ${teamName(team)} when re-balancing"
+                            stateDescription = if (locked) "Locked" else "Not locked"
+                        },
+                    ) {
+                        Icon(
+                            if (locked) Icons.Filled.Lock else Icons.Outlined.LockOpen,
+                            contentDescription = null,
+                            tint = activeColor(locked),
+                        )
+                    }
                 }
             } else {
                 Spacer(Modifier.width(Spacing.sm))
@@ -1119,3 +1146,6 @@ private fun SetupPreview() {
 @Composable
 private fun activeColor(active: Boolean) =
     if (active) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
+
+/** A padlock's tooltip: what locking does. */
+private const val LOCK_TIP = "Locked players stay on their team when re-balanced"

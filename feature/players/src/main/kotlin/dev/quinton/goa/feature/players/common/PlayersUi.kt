@@ -151,11 +151,11 @@ fun DeltaIndicator(
         Icon(icon, contentDescription = null, tint = color, modifier = Modifier.size(16.dp))
         Text(formatDelta(delta), style = MaterialTheme.typography.labelMedium, color = color)
         if (caption != null) {
+            // Never cut ("last 5" must not become "last"): its words stay together and, if need be, wrap whole.
             Text(
-                " $caption",
+                " ${caption.replace(' ', '\u00A0')}",
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
-                maxLines = 1,
             )
         }
     }

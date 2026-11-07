@@ -56,18 +56,19 @@ object SyncText {
     }
 
     /**
-     * The host's button. Every phone's data in: "Sync with Bob and Cid" ("Sync 4 phones"). Some still sending: the tap
-     * arms the sync, which starts on its own once their data is in ("Sync automatically when ready"; then
-     * [hostArmed]). No phone's data in yet: the button is off and says what it waits for ([hostWaitingLabel]).
+     * The host's button, a command with its count (phones left out are not counted; [hostLeftOut] names them). Every
+     * phone's data in: "Sync 2 phones now". Some still sending: the tap arms the sync, which starts on its own once
+     * their data is in ("Sync 2 phones when ready"; then [hostArmed]). No phone's data in yet: the button is off and
+     * says what it waits for ([hostWaitingLabel]).
      */
     fun syncLabel(peers: List<PeerProgress>): String {
         val taken = syncing(peers)
         val sending = sending(peers)
+        val phones = if (taken.size == 1) "1 phone" else "${taken.size} phones"
         return when {
             taken.isEmpty() || taken.size == sending.size -> hostWaitingLabel(peers)
-            sending.isNotEmpty() -> "Sync automatically when ready"
-            taken.size <= NAMED_PHONES -> "Sync with ${names(taken)}"
-            else -> "Sync ${taken.size} phones"
+            sending.isNotEmpty() -> "Sync $phones when ready"
+            else -> "Sync $phones now"
         }
     }
 
@@ -85,7 +86,7 @@ object SyncText {
     fun armed(phase: HostPhase, peers: List<PeerProgress>): Boolean =
         phase == HostPhase.MERGING && sending(peers).isNotEmpty()
 
-    /** Armed, as a status: "Waiting for Cid · sync starts automatically". */
+    /** Armed, as a status in place of the button: "Waiting for Cid · sync starts automatically". */
     fun hostArmed(peers: List<PeerProgress>): String {
         val sending = sending(peers)
         val who = if (sending.size <= NAMED_PHONES) names(sending) else "${sending.size} phones"

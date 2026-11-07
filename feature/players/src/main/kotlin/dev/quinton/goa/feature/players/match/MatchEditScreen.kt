@@ -523,24 +523,39 @@ private fun WinnerAndCondition(state: MatchEditUiState, actions: MatchEditAction
             }
         }
         QuestionLabel(if (showHeader) "Win condition" else "How did they win?", "Optional", showHeader)
-        // One choice (tap again to clear): radio semantics, so TalkBack reads "selected" per chip.
-        FlowRow(Modifier.selectableGroup(), horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-            WinCondition.entries.forEach { condition ->
-                val selected = form.winCondition == condition
-                FilterChip(
-                    selected = selected,
-                    onClick = { actions.onWinCondition(if (selected) null else condition) },
-                    label = { Text(condition.label()) },
-                    leadingIcon = if (selected) {
-                        { Icon(Icons.Filled.Check, contentDescription = null, modifier = Modifier.size(18.dp)) }
-                    } else {
-                        null
-                    },
-                    colors = goaFilterChipColors(),
-                    border = selectableChipBorder(selected),
-                    // Outer semantics win over the chip's own Checkbox role.
-                    modifier = Modifier.heightIn(min = 48.dp).semantics { role = Role.RadioButton },
-                )
+        // One choice (tap again to clear): radio semantics, so TalkBack reads "selected" per chip. A grid of equal
+        // cells, two to a row, so no option sits alone on a line of its own.
+        Column(Modifier.selectableGroup(), verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+            WinCondition.entries.chunked(WIN_CONDITION_COLUMNS).forEach { line ->
+                Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+                    line.forEach { condition ->
+                        val selected = form.winCondition == condition
+                        FilterChip(
+                            selected = selected,
+                            onClick = { actions.onWinCondition(if (selected) null else condition) },
+                            label = {
+                                Text(
+                                    condition.label(),
+                                    textAlign = TextAlign.Center,
+                                    modifier = Modifier.fillMaxWidth(),
+                                )
+                            },
+                            leadingIcon = if (selected) {
+                                { Icon(Icons.Filled.Check, contentDescription = null, modifier = Modifier.size(18.dp)) }
+                            } else {
+                                null
+                            },
+                            colors = goaFilterChipColors(),
+                            border = selectableChipBorder(selected),
+                            // Outer semantics win over the chip's own Checkbox role.
+                            modifier = Modifier
+                                .weight(1f)
+                                .heightIn(min = 48.dp)
+                                .semantics { role = Role.RadioButton },
+                        )
+                    }
+                    repeat(WIN_CONDITION_COLUMNS - line.size) { Spacer(Modifier.weight(1f)) }
+                }
             }
         }
     }
@@ -803,8 +818,8 @@ private fun SeatEditor(
                 Icon(Icons.Outlined.Close, contentDescription = "Remove seat: $heroLabel")
             }
         }
-        // The pilot is a field to choose from ("Ann ▾"), the Handicap card a toggle with a box, a double pilot a
-        // plain line: three kinds of thing, three looks.
+        // The pilot is a field to choose from ("Ann ▾"), the Handicap card a chip with a box beside it, a double
+        // pilot a plain line: three kinds of thing, three looks, in one row so the next seat stays in view.
         FlowRow(
             Modifier.padding(top = Spacing.xs, end = Spacing.md),
             horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
@@ -984,6 +999,9 @@ private fun QuestionLabel(text: String, need: String, small: Boolean) {
 }
 
 private const val REQUIRED = "Required"
+
+/** Win conditions two to a row: four equal cells. */
+private const val WIN_CONDITION_COLUMNS = 2
 
 /** Single choice: a segmented row, or wrapping chips when the font is large. */
 @Composable

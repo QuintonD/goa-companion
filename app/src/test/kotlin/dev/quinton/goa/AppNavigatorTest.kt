@@ -64,7 +64,7 @@ class AppNavigatorTest {
         assertThat(navigator.currentStack.toList()).containsExactly(TimerRoute)
     }
 
-    /** Game night: Draft → Set up match → Start timer landed on Timer presets [88]. */
+    /** Game night: Draft → Open match setup → Start timer landed on Timer presets [88]. */
     @Test fun startingATimerFromSetupShowsTheTimerNotTheScreensLeftUnderneath() {
         navigator.selectTab(TopLevelTab.TIMER)
         navigator.navigate(TimerPresetsRoute)

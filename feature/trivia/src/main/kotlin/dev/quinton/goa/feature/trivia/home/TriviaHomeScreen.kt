@@ -24,7 +24,6 @@ import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.KeyboardArrowRight
-import androidx.compose.material.icons.outlined.ArrowDropDown
 import androidx.compose.material.icons.outlined.Bolt
 import androidx.compose.material.icons.outlined.EmojiEvents
 import androidx.compose.material.icons.outlined.ExpandMore
@@ -83,6 +82,7 @@ import dev.quinton.goa.core.designsystem.component.GoaSegmentCheck
 import dev.quinton.goa.core.designsystem.component.GoaSegmentedRow
 import dev.quinton.goa.core.designsystem.component.GoaSwitch
 import dev.quinton.goa.core.designsystem.component.HeroPortrait
+import dev.quinton.goa.core.designsystem.component.IdentitySelector
 import dev.quinton.goa.core.designsystem.component.PlateShape
 import dev.quinton.goa.core.designsystem.component.ScreenFoot
 import dev.quinton.goa.core.designsystem.component.SectionHeader
@@ -384,8 +384,8 @@ private fun ChallengeCard(modifier: Modifier) {
 }
 
 /**
- * "Playing as Sam ▾" with the player's crest; the line under it says whether the rounds go on the
- * leaderboard, and a note when the player isn't this phone's "You" (whose learning progress this is).
+ * "Playing as Sam ›" with the player's crest, the shared [IdentitySelector]; the line under it says whether the rounds
+ * go on the leaderboard, and a note when the player isn't this phone's "You" (whose learning progress this is).
  */
 @Composable
 private fun PlayingAsRow(playing: PlayingAsState, mode: TriviaMode, onClick: () -> Unit, modifier: Modifier) {
@@ -394,52 +394,19 @@ private fun PlayingAsRow(playing: PlayingAsState, mode: TriviaMode, onClick: () 
     val subtitle = rankLine(playing, mode)
     val note = playingAsNote(playing)
     Column(modifier.fillMaxWidth()) {
-        GoaPlate(
-            contentPadding = PaddingValues(0.dp),
-            modifier = Modifier
-                .fillMaxWidth()
-                .heightIn(min = 64.dp)
-                .clip(PlateShape)
-                .clickable(onClickLabel = "Change who's playing", role = Role.Button, onClick = onClick)
-                .semantics(mergeDescendants = true) {
-                    contentDescription = "Playing as $name" + (if (isMe) ", you" else "") + ", $subtitle"
-                },
-        ) {
-            Row(
-                Modifier.padding(horizontal = Spacing.lg, vertical = Spacing.md),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                PlayingAvatar(playing.player, size = scaledIconSize(40.dp, maxScale = 1.5f))
-                Spacer(Modifier.width(Spacing.md))
-                Column(Modifier.weight(1f)) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text(
-                            "Playing as $name",
-                            style = MaterialTheme.typography.titleMedium,
-                            color = MaterialTheme.colorScheme.onSurface,
-                            maxLines = 2,
-                            overflow = TextOverflow.Ellipsis,
-                            modifier = Modifier.weight(1f, fill = false),
-                        )
-                        Icon(
-                            Icons.Outlined.ArrowDropDown,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.size(scaledIconSize(24.dp)),
-                        )
-                        if (isMe) {
-                            Spacer(Modifier.width(Spacing.xs))
-                            YouTag()
-                        }
-                    }
-                    Text(
-                        subtitle,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
-            }
-        }
+        IdentitySelector(
+            title = "Playing as $name",
+            scope = subtitle,
+            avatar = { size -> PlayingAvatar(playing.player, size = size, showFace = true) },
+            onClick = onClick,
+            onClickLabel = "Change who's playing",
+            spoken = "Playing as $name" + (if (isMe) ", you" else "") + ", $subtitle",
+            tag = if (isMe) {
+                { YouTag() }
+            } else {
+                null
+            },
+        )
         if (note != null) {
             Text(
                 note,

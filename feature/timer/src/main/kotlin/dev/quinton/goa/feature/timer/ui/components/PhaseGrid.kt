@@ -108,13 +108,7 @@ private fun PhaseCell(phase: PhaseDuration, tonight: TonightUi?, dense: Boolean,
             },
             style = valueStyle,
         )
-        if (tonight != null) {
-            Text(
-                "Preset ${TimerText.durationLabel(tonight.presetSeconds)}",
-                style = MaterialTheme.typography.bodySmall,
-                color = colors.onSurfaceVariant,
-            )
-        }
+        // Only the length in force: the preset's own length and Reset live under "Adjust for tonight".
     }
 }
 
