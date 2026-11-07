@@ -59,7 +59,9 @@ area, `goa-look-*.css`). Every part falls back to a flat colour while its image 
   their grounds (`ContrastTest.controls`). Material's `SegmentedButton` stays only where the segment is a team colour (New board's Red | Blue).
 - **Sideways rows** (`Modifier.horizontalEdgeFade(state)`, `fadingHorizontalScroll`, `EdgeFadeGutter`, `bleedHorizontally`): every row
   that scrolls sideways starts on the screen's gutter and runs to the screen's edge (`bleedHorizontally` lets it out of a padded column),
-  and fades out at the edge that hides more under a small steel chevron (a mask and a cue, so it works on any ground): the catalog's
+  and fades out at the edge that hides more, to a small steel chevron in a 14 dp strip at the very edge where nothing of the row shows (a
+  mask and a cue, so it works on any ground; the chevron never sits on a chip or a card, and the row's 16 dp gutter is wider than the
+  strip, so a row at rest loses nothing to it): the catalog's
   controls, the deck's jump chips, the rules navigator, the board's card rail, the draft's step strip and role chips, the table's hero and
   turn strips. A group of about six or fewer wraps instead (`FlowRow`, `FilterChipRow` does it by itself): meta's sort chips.
   A page over a pinned bar fades into it while more is below (`bottomEdgeFade`: Game options over its coin bar).

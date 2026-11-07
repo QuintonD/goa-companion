@@ -150,11 +150,11 @@ private fun BoardTopBar(
                     }
                     if (short != null) {
                         // The short title, and the whole one under it where it fits whole.
-                        // The line-up in Inter, tracking closed and a size down if that is what it takes to be whole.
+                        // The line-up in words: Inter, tracking closed, a step at a time down to the banner's
+                        // smallest line before the portraits stand in for the names.
                         val tight = sub.copy(letterSpacing = 0.sp)
-                        val smaller = tight.copy(fontSize = tight.fontSize * UNDER_SMALLER)
                         val under = remember(title, subtitle, room, sub) {
-                            listOf(title to tight, title to smaller).firstOrNull { (t, st) -> fits(t, st) }
+                            underSizes(tight, capped).firstOrNull { fits(title, it) }?.let { title to it }
                                 ?: subtitle?.let { it to sub }?.takeIf { (t, st) -> fits(t, st) }
                         }
                         Column(
@@ -217,7 +217,21 @@ private fun BoardTopBar(
 }
 
 private val PORTRAIT_BAR = 48.dp
-private const val UNDER_SMALLER = 11f / 12f
+
+/** The smallest the line under the short title gets (at 1×) before the line-up shows as portraits. */
+private val UNDER_MIN = 12.sp
+
+/** The line under the short title from its own size down to [UNDER_MIN] (scaled as the bar's text is), 1 sp a step. */
+private fun underSizes(style: TextStyle, capped: Float): List<TextStyle> {
+    val top = style.fontSize.value
+    val floor = UNDER_MIN.value * capped
+    val ratio = style.lineHeight.value / top
+    return generateSequence(top) { it - capped }
+        .takeWhile { it >= floor - 0.01f }
+        .map { size -> style.copy(fontSize = size.sp, lineHeight = (size * ratio).sp) }
+        .toList()
+        .ifEmpty { listOf(style) }
+}
 
 /** Room kept above the banner's bevelled lower edge under a second line. */
 private val EDGE_AIR = 4.dp

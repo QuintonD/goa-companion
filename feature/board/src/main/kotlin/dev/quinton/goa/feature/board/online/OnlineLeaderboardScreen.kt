@@ -52,6 +52,7 @@ import dev.quinton.goa.core.designsystem.component.GoaSegmentedRow
 import dev.quinton.goa.core.designsystem.component.HeroPortrait
 import dev.quinton.goa.core.designsystem.component.PODIUM_PLACES
 import dev.quinton.goa.core.designsystem.component.Podium
+import dev.quinton.goa.core.designsystem.component.PodiumFacts
 import dev.quinton.goa.core.designsystem.component.PodiumPlace
 import dev.quinton.goa.core.designsystem.component.ScreenFoot
 import dev.quinton.goa.core.designsystem.component.scaledIconSize
@@ -212,12 +213,7 @@ private fun Standing(row: LeaderboardRowUi, hero: Boolean, portrait: String?) {
         style = GoaTextStyles.scoreMedium,
         color = if (row.rank == 1) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
     )
-    Text(
-        "${row.wins} wins · ${row.games} games",
-        style = MaterialTheme.typography.bodySmall,
-        color = MaterialTheme.colorScheme.onSurfaceVariant,
-        textAlign = TextAlign.Center,
-    )
+    PodiumFacts(listOf("${row.wins} wins", "${row.games} games"))
 }
 
 private fun spoken(row: LeaderboardRowUi): String = buildString {
