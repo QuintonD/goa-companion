@@ -245,11 +245,15 @@ card as text", a full-width steel button right under the scan, which shows the v
 never drawn larger than 1.6 times its own pixels, so its print stays sharp) · Timer (full-screen, giant ring countdown, phase chip with
 "Previous phase" beside it, turn/round pips; bottom controls are Pause and Next only; a running
 Hurry up takes the dial (its countdown is the big clock, "⚡ HURRY UP" above the digits and "LEFT", "LAST SECONDS!" or
-"TIME!" under them, so urgency is in words as well as colour; the step's own clock moves to a slate pill under the dial)
-and a slim Hurry up bar with Restart and Stop is pinned above the controls (under the dial in landscape; the round view,
+"TIME!" under them, so urgency is in words as well as colour; the step's own clock moves to a slate pill under the dial;
+the table-rule actions under the dial, "⚡ Start hurry-up · 0:30" and "Time-out +0:40", are 48 dp outlined pills with
+a bronze edge and icon and a verb, never the plain slate of a status pill)
+and a slim Hurry up bar with Restart and Stop is pinned above the controls (in landscape too, on the right; the round view,
 which has no dial, keeps the bar with the countdown in it); the top bar's coin chip is the Tie Breaker coin's face (the
 face is the label; TalkBack: "Tie Breaker coin: Red") with "Red", the face alone only where it doesn't fit, and its second
-line says "Table rules · 14:32" ("Game 14:32" with large text); landscape puts the dial on the left half; paused = blinking
+line says "Table rules · 14:32" ("Game 14:32" with large text); landscape runs a thin steel banner the full width (round
+and subtitle on one line) and gives the dial the whole left column under it, step, table rules and controls on the right
+(round view the same: list | step); paused = blinking
 digits and a large "PAUSED" label; the **round view** alternative lists the whole round under
 section headings — done rows ticked in bronze and stepped back by colour, never by alpha, so they
 keep their contrast; the current row an expanded teal-bordered card whose border and digits turn
@@ -258,13 +262,24 @@ them up; landscape = list left, clock and controls right) · Players list → Pl
 Meta dashboard · Draft setup → Draft board (sticky step banner over a scrolling list of sequence
 chips, two team columns with role coverage and ban chips, then a dense pool grid with search,
 role chips and "Hide taken"; taken heroes shrink to chips; landscape moves the banner and teams
-to a side column so the pool keeps the full height; each pool tile has an inspect button in its corner (ⓘ on a
-24 dp disc in a 48 dp target, a named TalkBack action too; long-press still works) that opens the hero peek sheet, which
-ends with the bronze primary "Pick Arien for ◆ Red…"; a tile's tap chooses and always asks to confirm) · Draft methods
+to a side column so the pool keeps the full height; four tiles across on a phone (three at 360 dp), names up to 15 sp,
+stepping down only for the longest; a pool tile's tap opens the hero peek sheet (one tap, one meaning: no inspect
+button on the art; Open hero page sits under the hero, above the stats, so the footer never hides it), whose
+commitment is pinned under its scrolling content: whom it is for, wrapping ("◆ Red · for Ada ·
+Pick 1 of 2"), then the bronze primary with a short label that never truncates ("Pick Arien"), which commits; before the
+first choice "Swap out of the pool instead" under it. Draft complete: a seat row offers the Handicap card as a small
+chip only on the larger team (odd counts) or once it is on; elsewhere it sits in the row's ⋮ menu) · Draft methods
 (a radio plate per method, the chosen one bronze, its sequence in team colours; "Continue with …" pinned below; Sources,
 Duplicate, Edit and Delete in each plate's menu; New method at the list's end; the methods' own "A"/"B" mapped once
 under the layout chips: "A is the team the Tie Breaker coin shows").
-Timer start offers "Draft heroes first" beside Match setup: draft → setup → timer → log is the game-night flow.
+Timer start reads as a start button: the preset's name and durations with tonight's length in them, in bronze ("Play a
+card 0:45 ×4 tonight"), one bronze Start timer, one row "Draft first · Match setup" (draft → setup → timer → log is the
+game-night flow), then one folded "Adjust for tonight" row that still names its values ("Play a card 0:45 (preset 0:30)
+· 4 heroes") and opens to the per-turn ±15 s (named as the preset names the phase) and Heroes at the table.
+Who won? / match editor: the winners are radio cards (an empty trophy outline, a bronze trophy and the bronze selection
+frame once chosen) under "Which team won? · Required"; the win condition says "· Optional"; the bronze Save ("Save
+result", "Save match", "Save changes") is pinned under the form, off until the form can be saved, with the reason under it
+(no Save in the banner).
 Bottom nav: Heroes, Play, Timer, Players, More (original icons: shield, a board space with a play mark,
 hourglass, companions, a plate with three studs; solid variant when selected; labels share one size, capped by
 the width, at large text). **More** lists, as labelled rows with icon and purpose: Draft (At the table), Rules
@@ -313,7 +328,10 @@ Fit button then reads "Zoom to the lane". While hidden the map no longer zooms t
 whole board is in view), and the game hides the hero strip (back with the
 panel), keeping the HUD pill and, after the reveal, the turn track (compact: the turn's state is what a
 player looks for with the board in view, ADR-041). Hidden or shown is kept per screen (`rememberSaveable`) and survives
-rotation.
+rotation. The panel follows the theme (ADR-068): its **steel** answers (action chips, Read card, Setup, declines;
+`PlateTone.STEEL`) are the dark slate in the dark theme and a light steel (#E8ECEE→#D5DCE0, ink text, a #8B979F
+edge) on the light theme's paper, so no dark slab sits on paper; **gold** answers are the same metal in both. What
+floats over the map (HUD, turn track) and the cards' own frames stay dark in both.
 
 ### Board (sandbox, ADR-033)
 The drawn map (the fallback since ADR-053, see the top of this file): pointy-top hexes turned in 30° steps so the
@@ -427,8 +445,13 @@ that turn's cards on their slots while the next turn's cards are played; "END OF
 p.8 steps; "ROUND 1 IS OVER · Red won the push · Arien reached level 2". With the panel hidden and
 the computer acting, the peek bar says the reveal ("All cards revealed · Wasp acts first …").
 **Panel** (bottom, max 48 % in portrait so the map stays readable; right side in landscape; hides to its peek bar, see
-**Board screens' frame**): the header names the deciding hero and the kind in the team's colour
-("◆ ARIEN · ACTION"), then the prompt in titleMedium (a live region). The decision comes first: the
+**Board screens' frame**): the strip says whose decision it is, for a phone passed round the table: the deciding
+hero's portrait (28 dp, team ring, the team's mark on its badge) and "ARIEN DECIDES · ACTION" in the team's colour (a
+team's question: the mark and "Red decides · …"); then the prompt in titleMedium (a live region). Choosing the action
+for the card beside the chips has no prompt plate: the card and its chips are the question (TalkBack still hears the
+prompt). Under the question, only the **deciding hero's hand**, and only when that hero is the person's ("Your
+hand", with several heroes "Your hand (Arien)"); none while the computer or another seat decides, none when the
+question shows the hand itself. The decision comes first: the
 instruction and the legal choices, the card a reminder beside them. A question asked by a card
 shows **the card beside its answers**: 28 % of the panel wide (84–108 dp; a landscape spell goes above them) for
 buttons, 72 dp beside a board question's tap hint and Confirm; tap it to read it. Sideways under 480 dp tall the
@@ -450,10 +473,14 @@ which next", a "will do nothing" warning on errorContainer with a warning icon, 
 spells one line each with the engine's reason (also after the action's own line when no spell can be
 cast); the Note box's "Only the primary action applies the card's text (p.7)." only when the primary isn't offered. Card questions (play, discard, retrieve, upgrade,
 keep) show "Asked by <card>" (28 dp thumbnail) when another card asks, and the cards as official
-images: the hand as 84 dp cards shrinking to 60 dp to fit five, two or three cards larger (140 / 110
+images: the hand as 84 dp cards shrinking to 60 dp to fit five, two or three cards larger (112 / 92
 dp, so Keep's two next-Tier cards sit side by side with their item stats), a card the question
-doesn't offer dimmed with a block icon, and a teal "Tap a card to choose it; tap it again to read it large."
-line. **A tap never both shows and commits:** a tap chooses a card (`TableUi.selected`; lifted 8 dp, a 3 dp
+doesn't offer dimmed with a block icon. Under every card to choose (hand, discard, defend, upgrade, keep) its
+**name** in Crimson 14 sp semibold (wraps, after a hyphen if need be, never cut) and, where the choice weighs them
+(play, discard, retrieve), its printed Initiative and its primary action's value with the game's icons ("⚡12 ⚔3"),
+from the catalog, on one line; a defence shows its outcome instead (below): the scan is for recognition, the caption for
+reading. The foot of a card question is one row: a steel **Read card** button (book icon; the chosen card, else
+the first, in the card viewer with its words as text) and the bronze commit button. **A tap never both shows and commits:** a tap chooses a card (`TableUi.selected`; lifted 8 dp, a 3 dp
 bronze edge and a bronze tick at its corner; TalkBack: "Chosen", its click "Choose", "Look at the card" a custom
 action), a tap on the chosen card reads it in the **card focus** viewer (below), and only the bronze button
 under the cards answers, naming the commitment ("Discard Magnetic Dagger", "Play Shock facedown", "Defend with
@@ -465,17 +492,21 @@ Initiative"), three cards across the panel (60–100 dp); under each card the sp
 landscape, as wide as the card, tap to read); "The card on the left is the choice…" under the rows.
 Keep's two cards have their spells under them the same way. Whenever the question is the person's
 own (any kind, game and puzzles) the resolution flow and then the moment (reveal, turn over, the end of
-round summary) come after it, and a new question opens the panel at its top. **Defend** is an error-container
-header with the attacker's card (56 dp, tap to read), "Arien attacks · melee", the Attack total, the
-minion modifier counted and "Discard a card to defend" (it carries the prompt for TalkBack), then the
-hand's cards themselves with the verdict under each in words with an icon ("✓ Holds" teal, "! Falls"
-red, "Decided by its text" grey) with the Defense total as it counts and a shield on the same line; "Don't
-defend" is a card-sized tile at the row's end (a block icon, "Keep your cards (p.14)"), chosen the same way. The
-whole decision is in view at 100 % on a 411 dp phone: the row, then one or two lines of **outcome** for what is
-chosen, from the engine's numbers only ("Falls: the attack succeeds (p.14) · Defense 3 = card 2 +
-minion 1 against Attack 6"; items, the minion modifier, and whatever else the engine counted as "effects"; for a
-card whose text decides, that text verbatim and the attack it meets, "This is a melee attack, Attack 6."), then
-the button ("Tap a card to defend with, or Don't defend" until something is chosen). Declines and Pass are outlined. With large
+round summary) come after it, and a new question opens the panel at its top. **Defend** is the attacking card's
+text box, "Arien attacks · melee" on its tab, the attacker's card (40 dp, tap to read) and the Attack total with
+the minion modifier counted beside it, carrying "Discard a card to defend" for TalkBack; then the options as
+**comparable outcomes**: each hand card with, on a dark pill over its foot, the verdict's mark and the Defense total
+as the engine counts it (a shield and the number), then its name and how that choice ends in words, from the
+engine's verdict (p.14: "If you cannot defend successfully, or choose not to defend, you are defeated"):
+"Defeated" red, "Defends" or "Blocks it" teal, "Its text decides" grey; "Don't defend" is a card-sized tile at the
+row's end (a block icon, "Keep your cards (p.14)") with "Defeated" under it like the cards. The whole decision is
+in view at 100 % on a 411 dp phone: the row, then one line of how the chosen one is counted, from the engine's
+numbers only ("Defense 2 = card 1 + minion 1 against Attack 6 (p.14)"; items, the minion modifier, and whatever
+else the engine counted as "effects"; a card whose text decides: "Decided by its text (p.14): “Block a ranged
+attack.”" verbatim and the attack it meets, "This is a melee attack, Attack 6."; not defending: "Defeated: not
+defending, you keep your cards (p.14)."), then Read card and the button, which ends with the outcome ("Defend with Blink Strike — still defeated",
+"Don't defend — defeated", "… — blocks this attack"; "Tap a card to defend with, or Don't defend" until something is
+chosen): a losing choice stays possible, never a surprise. Declines and Pass are outlined. With large
 text the asking card goes above the answers. The computer's move shows its portrait, band and strength
 ("COMPUTER · HARD 7") and prompt
 and the card it resolves (56 dp, tap to read), a linear progress bar once it is "thinking…".
@@ -609,11 +640,13 @@ THE ROUND (the cards at 56 dp in order, the sentence, its reasoning) and TIPS FO
 **Your decisions** (`play/game/GameReportSection.kt`): on the game-over screen, above Rematch, under COACH · YOUR DECISIONS: an outlined "Review your decisions" with its hint; then a line with the count and a determinate bar, and Cancel (a live region); then the accuracy as a title ("78% best or good, over 112 decisions"), the five marks with their counts in small text (words, not colours), "By hero" (with more than one hero) and "By kind of decision" one line per row, and "The biggest mistakes": a secondaryContainer card per mistake with ROUND 2 · TURN 3, the mark, the question, what was chosen and the points given up, the position in small text, "Show what the coach suggests" (the sheet's content in place) and "See it in the log" (the log sheet opens at that moment, its line marked).
 
 ### Puzzles (ADR-035, PRODUCT §10)
-The puzzle screen is the game table (above); its panel opens with the **goal** (flag icon, goal in titleSmall,
-"You play …" under it), then "Puzzle n of m · title" on a small line with the **difficulty mark** (three small hexes,
-filled up to the level, and the word Hard / Harder / Hardest: shape and word, never colour alone),
-then "What you know" (its heading, the theme and More/Less on one line, the intro under it, folded to two lines
-by default; with large text, after the question). A **nudge** is the green parchment text box with "NUDGE 2 OF 3"
+The puzzle screen is the game table (above). **The decision first:** while a question is asked the panel's head is
+three short lines, the **goal** (flag icon, titleSmall) and "You play …" under it, with a steel **Setup** button
+(book icon) at their end, then "title · Puzzle n of m" with the **difficulty mark** (three small hexes, filled up to the level, and the
+word Hard / Harder / Hardest: shape and word, never colour alone); then the nudge if any, then the question, so every
+choice and its Confirm are in view at 100 % on a 411 dp phone. **Setup** opens a sheet with what you know in full:
+the goal and who you play, WHAT YOU KNOW with the theme, and the intro one sentence a line, word for word
+(`PuzzleText.sentences`); nothing is ever cut with an ellipsis to make room. A **nudge** is the green parchment text box with "NUDGE 2 OF 3"
 on its own tab, like ATTACK or COACH (×, Another nudge); the last nudge's move is a **dashed bronze ring**
 around its space on the map (apart from the teal options and the white selection; TalkBack: "hint").
 The other side's replies appear line by line under "<HERO> ANSWERS" with a progress bar; once they are

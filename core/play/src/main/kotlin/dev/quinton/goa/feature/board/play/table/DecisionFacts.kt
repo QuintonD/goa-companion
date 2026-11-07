@@ -282,8 +282,8 @@ data class DefenseLine(val detail: String, val verdict: CardVerdict, val total: 
 fun defenseLine(total: Int?, blocks: Boolean?, attack: Int?): DefenseLine {
     val verdict = defenseVerdict(total, blocks, attack)
     val label = when (verdict) {
-        true -> if (blocks == true) "Blocks" else "Holds"
-        false -> "Falls"
+        true -> if (blocks == true) "Blocks" else "Defends"
+        false -> "Defeated"
         null -> "Decided by its text"
     }
     val detail = when (blocks) {

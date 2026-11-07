@@ -97,7 +97,6 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import dev.quinton.goa.core.designsystem.component.ComplexityStars
 import dev.quinton.goa.core.designsystem.component.EmptyState
 import dev.quinton.goa.core.designsystem.component.GoaButton
 import dev.quinton.goa.core.designsystem.component.GoaDialog
@@ -116,7 +115,6 @@ import dev.quinton.goa.core.designsystem.theme.Spacing
 import dev.quinton.goa.core.domain.draft.DraftEngine
 import dev.quinton.goa.core.domain.draft.DraftSession
 import dev.quinton.goa.core.model.catalog.Role
-import dev.quinton.goa.core.model.draft.DraftAction
 import dev.quinton.goa.core.model.match.Team
 import dev.quinton.goa.feature.draft.ui.ConcealedTile
 import dev.quinton.goa.feature.draft.ui.HeroInfo
@@ -126,7 +124,6 @@ import dev.quinton.goa.feature.draft.ui.PeekCommit
 import dev.quinton.goa.feature.draft.ui.RoleChips
 import dev.quinton.goa.feature.draft.ui.SequenceStrip
 import dev.quinton.goa.feature.draft.ui.StepToken
-import dev.quinton.goa.feature.draft.ui.TeamText
 import dev.quinton.goa.feature.draft.ui.TileState
 import dev.quinton.goa.feature.draft.ui.actionName
 import dev.quinton.goa.feature.draft.ui.crossedOut
@@ -148,6 +145,12 @@ interface BoardActions {
     fun confirm() {}
 
     fun cancelConfirm() {}
+
+    /** The peek's Pick or Ban button: the hero for the step on the clock, at once (the sheet was the look). */
+    fun choose(heroId: String) {
+        tapHero(heroId)
+        confirm()
+    }
 
     fun swapOut(heroId: String) {}
 
@@ -319,19 +322,25 @@ fun DraftBoardScreen(state: BoardUiState, actions: BoardActions) {
             SnackbarHost(snackbar, Modifier.align(Alignment.BottomCenter))
         }
     }
-    val confirming = state.local.confirm
-    if (board != null && !board.isComplete && confirming != null) {
-        ConfirmDialog(state, board, confirming, actions, onPeek = { peek = it })
-    }
     peek?.let { id ->
         HeroPeekSheet(
             hero = state.heroes.info(id),
             commit = board?.let {
-                peekCommit(state, it, id) {
-                    peek = null
-                    actions.tapHero(id)
-                }
+                peekCommit(
+                    state,
+                    it,
+                    id,
+                    onCommit = {
+                        peek = null
+                        actions.choose(id)
+                    },
+                    onSwapOut = {
+                        peek = null
+                        actions.swapOut(id)
+                    },
+                )
             },
+            note = if (board != null) DraftBoardText.notDealt(state, id).takeIf { notDealtTile(board, id) } else null,
             onDismiss = { peek = null },
             onOpenHero = { heroId ->
                 peek = null
@@ -362,16 +371,44 @@ fun DraftBoardScreen(state: BoardUiState, actions: BoardActions) {
 }
 
 /**
- * From the peek, the step's explicit commitment for a hero that can be chosen now: "Pick Arien for ◆ Red…",
- * which opens the same confirm as tapping its tile. Nothing while a hidden step waits for its team.
+ * From the peek, the step's explicit commitment for a hero that can be chosen now: a short "Pick Arien" with
+ * whom it is for above it ("◆ Red · for Ada · Pick 1 of 2"). The button commits: the sheet was the look.
+ * Nothing while a hidden step waits for its team.
  */
-private fun peekCommit(state: BoardUiState, session: DraftSession, heroId: String, onCommit: () -> Unit): PeekCommit? {
+private fun peekCommit(
+    state: BoardUiState,
+    session: DraftSession,
+    heroId: String,
+    onCommit: () -> Unit,
+    onSwapOut: () -> Unit,
+): PeekCommit? {
     if (session.isComplete || state.privacyGate) return null
     val step = session.currentStep ?: return null
     val free = PoolView.of(session).open.any { it.heroId == heroId && it.state == TileState.Available }
     if (!free) return null
     val hero = state.heroes.info(heroId)
-    return PeekCommit(step.team, "${actionName(step.action)} ${hero.name} for ${teamLabel(step.team)}…", onCommit)
+    val verb = actionName(step.action)
+    val run = session.currentRun()?.takeIf { it.length > 1 }
+    val pilot = step.seatId?.let { session.seat(it) }?.pilotId?.let { state.playerName(it) }
+    val recipient = listOfNotNull(
+        teamLabel(step.team),
+        pilot?.let { "for $it" },
+        run?.let { "$verb ${it.position} of ${it.length}" },
+        "hidden".takeIf { step.hidden },
+    ).joinToString(" · ")
+    return PeekCommit(
+        team = step.team,
+        label = "$verb ${hero.name}",
+        recipient = recipient,
+        onCommit = onCommit,
+        onSwapOut = onSwapOut.takeIf { session.poolEditable() },
+    )
+}
+
+/** A dimmed tile in a dealt-hands draft: the peek says why it can't be chosen now. */
+private fun notDealtTile(session: DraftSession, heroId: String): Boolean {
+    val pool = PoolView.of(session)
+    return (pool.open + pool.otherHands).any { it.heroId == heroId && it.state == TileState.Inactive }
 }
 
 /**
@@ -444,7 +481,6 @@ private fun HeroBoard(state: BoardUiState, session: DraftSession, actions: Board
                     session,
                     pool,
                     filters,
-                    actions,
                     onPeek,
                     Modifier.weight(1f - SIDE_WEIGHT),
                     topGap = Spacing.screen - Spacing.xs,
@@ -461,7 +497,7 @@ private fun HeroBoard(state: BoardUiState, session: DraftSession, actions: Board
                     compact = LocalDensity.current.fontScale > LARGE_FONT_SCALE,
                     modifier = Modifier.padding(horizontal = Spacing.screen, vertical = Spacing.sm),
                 )
-                PoolGrid(state, session, pool, filters, actions, onPeek, Modifier.weight(1f), topGap = Spacing.xs) {
+                PoolGrid(state, session, pool, filters, onPeek, Modifier.weight(1f), topGap = Spacing.xs) {
                     item(span = { GridItemSpan(maxLineSpan) }) { chrome() }
                     if (session.poolEditable()) {
                         item(span = { GridItemSpan(maxLineSpan) }) { PoolEditBanner(session, actions) }
@@ -479,13 +515,12 @@ private fun PoolGrid(
     session: DraftSession,
     pool: PoolView,
     filters: PoolFilters,
-    actions: BoardActions,
     onPeek: (String) -> Unit,
     modifier: Modifier,
     topGap: Dp,
     leading: LazyGridScope.() -> Unit,
 ) {
-    // Dense tiles (about five across on a phone) so a full roster fits in about two screens;
+    // Four across on a phone (three at 360 dp), names large enough to read at arm's length;
     // they grow with the font scale so names stay legible.
     val fontScale = LocalDensity.current.fontScale.coerceIn(1f, 1.7f)
     val open = pool.open.filter { filters.matches(state.heroes.info(it.heroId)) }
@@ -520,10 +555,10 @@ private fun PoolGrid(
         if (owner != null) {
             item(span = full) { SubHeading("${state.playerName(owner)}'s heroes") }
         }
-        poolTiles(state, open, actions, onPeek)
+        poolTiles(state, open, onPeek)
         if (others.isNotEmpty()) {
             item(span = full) { SubHeading("Dealt to other players") }
-            poolTiles(state, others, actions, onPeek)
+            poolTiles(state, others, onPeek)
         }
         if (open.isEmpty() && others.isEmpty()) {
             item(span = full) {
@@ -544,20 +579,22 @@ private fun PoolGrid(
 private fun LazyGridScope.poolTiles(
     state: BoardUiState,
     tiles: List<PoolTile>,
-    actions: BoardActions,
     onPeek: (String) -> Unit,
 ) {
     items(tiles, key = { it.heroId }) { tile ->
+        val hero = state.heroes.info(tile.heroId)
+        // One tap, one meaning: the tile opens the hero's sheet, and the step's Pick or Ban is the button there.
+        // No inspect button on the art, so looking can never start a pick.
         HeroTile(
-            hero = state.heroes.info(tile.heroId),
+            hero = hero,
             state = tile.state,
             compact = true,
-            onClick = when (tile.state) {
-                TileState.Available -> ({ actions.tapHero(tile.heroId) })
-                TileState.Inactive -> ({ actions.tapUnavailable(tile.heroId) })
-                else -> null
+            onClick = { onPeek(tile.heroId) },
+            clickLabel = when (tile.state) {
+                TileState.Available -> "Choose ${hero.name}"
+                TileState.Inactive -> "Why ${hero.name} can't be chosen"
+                else -> "Show ${hero.name}"
             },
-            onLongClick = { onPeek(tile.heroId) },
         )
     }
 }
@@ -618,7 +655,7 @@ private fun PoolHeader(left: Int, total: Int, filters: PoolFilters, searchable: 
                 }
             }
         }
-        // The corner button is the way to look; the tap chooses, and always asks to confirm first.
+        // The tap looks first: the sheet shows the hero, and its Pick or Ban button is the commitment.
         Row(verticalAlignment = Alignment.CenterVertically) {
             Icon(
                 Icons.Outlined.Info,
@@ -628,7 +665,7 @@ private fun PoolHeader(left: Int, total: Int, filters: PoolFilters, searchable: 
             )
             Spacer(Modifier.width(Spacing.xs))
             Text(
-                "Roles, stats and starting cards (or long-press). Tap a hero to choose it; you confirm first.",
+                "Tap a hero for roles, stats and starting cards; Pick or Ban from there.",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
@@ -805,7 +842,7 @@ private fun PoolEditBanner(session: DraftSession, actions: BoardActions) {
             Column(Modifier.weight(1f)) {
                 Text("Pool of ${session.pool.size} dealt", style = MaterialTheme.typography.titleSmall)
                 Text(
-                    "Before the first step you can re-roll it, or tap a hero to swap it out.",
+                    "Before the first step you can re-roll it, or swap a hero out from its sheet.",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -1010,82 +1047,6 @@ private fun HiddenChoice(label: String, secret: String, canPeek: Boolean, small:
 }
 
 @Composable
-private fun ConfirmDialog(
-    state: BoardUiState,
-    session: DraftSession,
-    heroId: String,
-    actions: BoardActions,
-    onPeek: (String) -> Unit,
-) {
-    val step = session.currentStep ?: return
-    val hero = state.heroes.info(heroId)
-    val color = teamColor(step.team)
-    val ban = step.action == DraftAction.BAN
-    val pilot = step.seatId?.let { session.seat(it) }?.pilotId?.let { state.playerName(it) }
-    GoaDialog(
-        onDismissRequest = actions::cancelConfirm,
-        icon = {
-            HeroPortrait(hero.id, hero.portrait, null, Modifier.size(width = 96.dp, height = 120.dp))
-        },
-        title = {
-            Text(
-                if (ban) "Ban ${hero.name}?" else "Pick ${hero.name}?",
-                textAlign = TextAlign.Center,
-                modifier = Modifier.fillMaxWidth(),
-            )
-        },
-        text = {
-            Column(
-                Modifier.fillMaxWidth(),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(Spacing.xs),
-            ) {
-                if (hero.title.isNotEmpty()) Text(hero.title, style = MaterialTheme.typography.bodyMedium)
-                ComplexityStars(hero.complexity, showLabel = true)
-                RoleChips(hero.roles)
-                TeamText(
-                    DraftBoardText.confirmText(session, pilot).orEmpty(),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    textAlign = TextAlign.Center,
-                )
-                TextButton(onClick = { onPeek(heroId) }, modifier = Modifier.heightIn(min = 48.dp)) {
-                    Icon(Icons.Outlined.Info, contentDescription = null)
-                    Spacer(Modifier.width(Spacing.xs))
-                    Text("Stats and starting cards")
-                }
-                if (session.poolEditable()) {
-                    TextButton(onClick = { actions.swapOut(heroId) }, modifier = Modifier.heightIn(min = 48.dp)) {
-                        Icon(Icons.Outlined.SwapHoriz, contentDescription = null)
-                        Spacer(Modifier.width(Spacing.xs))
-                        Text("Swap out of the pool instead")
-                    }
-                }
-            }
-        },
-        confirmButton = {
-            Button(
-                onClick = actions::confirm,
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = color,
-                    contentColor = MaterialTheme.colorScheme.background,
-                ),
-                modifier = Modifier.heightIn(min = 48.dp),
-            ) {
-                TeamText(
-                    "${teamGlyph(step.team)} ${if (ban) "Ban" else "Pick"}",
-                    markGround = MaterialTheme.colorScheme.background,
-                    modifier = Modifier.semantics {
-                        contentDescription = "${teamName(step.team)} ${if (ban) "ban" else "pick"}"
-                    },
-                )
-            }
-        },
-        dismissButton = { TextButton(onClick = actions::cancelConfirm) { Text("Cancel") } },
-    )
-}
-
-@Composable
 private fun PrivacyGate(session: DraftSession, actions: BoardActions) {
     val step = session.currentStep ?: return
     val color = teamColor(step.team)
@@ -1144,5 +1105,5 @@ private const val DISABLED_ALPHA = 0.3f
 
 private const val SIDE_WEIGHT = 0.42f
 private val LANDSCAPE_MAX_HEIGHT = 520.dp
-private val TILE_MIN_WIDTH = 68.dp
+private val TILE_MIN_WIDTH = 84.dp
 private val SEAT_ART = 32.dp

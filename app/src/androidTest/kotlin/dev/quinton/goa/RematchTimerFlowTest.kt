@@ -49,7 +49,7 @@ class RematchTimerFlowTest {
         rule.waitForText("Duration (minutes, optional)")
         (red + blue).forEach { (hero, pilot) -> rule.fillNextSeat(hero, pilot) }
         rule.tapDescription("Red won", substring = true)
-        rule.tap(hasText("Save") and hasClickAction())
+        rule.tap(hasText("Save", substring = true) and hasClickAction())
         rule.waitForText("Result saved")
         rule.ratingChanges(4)
 
@@ -110,7 +110,7 @@ class RematchTimerFlowTest {
         assertEquals(blue.map { it.second }.toSet(), rule.winnerPilots("Blue"))
         (red + blue).forEach { (hero, _) -> rule.reveal(hasContentDescription("Hero: $hero. Change hero")) }
         rule.tapDescription("Blue won", substring = true)
-        rule.tap(hasText("Save") and hasClickAction())
+        rule.tap(hasText("Save", substring = true) and hasClickAction())
         rule.waitForText("Result saved")
         val changes = rule.ratingChanges(4)
         blue.forEach { (_, pilot) -> assertTrue(changes.getValue(pilot).raw, changes.getValue(pilot).delta > 0) }

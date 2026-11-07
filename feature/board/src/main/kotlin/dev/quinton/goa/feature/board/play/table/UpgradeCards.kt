@@ -173,7 +173,7 @@ internal fun UpgradePicker(
     val rows = upgradeRows(table)
     val shown = upgradeFocus(rows)
     val chosen = chosenCard(table)
-    val open: (String) -> Unit = { key ->
+    val read: (String, Boolean) -> Unit = { key, asText ->
         focus.open(
             shown.cards,
             shown.indexOf(key),
@@ -184,8 +184,10 @@ internal fun UpgradePicker(
             ),
             title = focusTitle(table, decision),
             owner = decision.id,
+            asText = asText,
         )
     }
+    val open: (String) -> Unit = { key -> read(key, false) }
     BoxWithConstraints(Modifier.fillMaxWidth()) {
         // Three cards and the arrow across the panel, as large as fits up to a readable size.
         val width = ((maxWidth - ARROW - Spacing.sm * 3) / 3).coerceIn(MIN_UPGRADE_CARD, MAX_UPGRADE_CARD)
@@ -199,7 +201,10 @@ internal fun UpgradePicker(
     }
     if (rows.isNotEmpty()) {
         TapHint("Tap a card on the left to choose it; tap it again, or a card beside it, to read it large.")
-        CommitButton(table, chosen, "Choose a card to upgrade", busy, onAnswer)
+        CommitRow(table, chosen, "Choose a card to upgrade", busy, onAnswer) {
+            val key = rows.firstOrNull { it.choice == chosen }?.card?.id ?: rows.first().card.id
+            read(key, true)
+        }
     }
     Text(
         "The card on the left is the choice: it goes back to your deck, and you keep one of the two beside it; " +
@@ -253,6 +258,7 @@ private fun UpgradeRowView(
                     border = BorderStroke(2.dp, cardColor(row.card.color)),
                 )
             }
+            CardCaption(row.card, width, numbers = false)
             NamedThumbs(FocusCard(row.card), row.namedBy(row.card), width, focus, onOpen)
         }
         Icon(
@@ -309,6 +315,7 @@ private fun UpgradeThumb(row: UpgradeRow, card: Card, width: Dp, focus: CardFocu
                 shadowElevation = 3.dp,
                 modifier = Modifier.cardFocusOrigin(focus, card.id),
             ) { TableCard(card, width = width) }
+            CardCaption(card, width, numbers = false)
             card.item?.let { ItemCaption(it) }
         }
         NamedThumbs(FocusCard(card), row.namedBy(card), width, focus, onOpen)

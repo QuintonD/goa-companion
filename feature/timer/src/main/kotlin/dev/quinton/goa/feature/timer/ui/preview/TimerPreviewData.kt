@@ -89,7 +89,7 @@ object TimerPreviewData {
                 ),
             ),
             seats = 4,
-            tonight = TonightUi(seconds = 45, presetSeconds = 30),
+            tonight = TonightUi(seconds = 45, presetSeconds = 30, phaseName = "Play a card"),
         ),
     )
 

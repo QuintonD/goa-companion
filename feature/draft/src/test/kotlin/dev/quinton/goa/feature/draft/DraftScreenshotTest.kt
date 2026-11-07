@@ -6,7 +6,9 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onRoot
+import androidx.compose.ui.test.performClick
 import androidx.compose.ui.unit.dp
 import androidx.test.core.app.ApplicationProvider
 import com.github.takahirom.roborazzi.captureRoboImage
@@ -89,7 +91,12 @@ class DraftScreenshotTest {
         if (fontScale != 1f) RuntimeEnvironment.setFontScale(fontScale)
         val hero = HeroInfo.of(bundledHero(id))
         // As on the board, mid-draft: the step's own commitment ends the peek.
-        val commit = PeekCommit(Team.RED, "Pick ${hero.name} for ${teamLabel(Team.RED)}…") {}
+        val commit = PeekCommit(
+            Team.RED,
+            label = "Pick ${hero.name}",
+            recipient = "${teamLabel(Team.RED)} · for Ada · Pick 1 of 2",
+            onCommit = {},
+        )
         compose.setContent {
             GoaTheme(themeMode = theme) {
                 HeroPeekSheet(hero, onDismiss = {}, onOpenHero = {}, onOpenSpellbook = {}, commit = commit)
@@ -187,6 +194,18 @@ class DraftScreenshotTest {
     @Test fun boardStartDark() = capture { DraftBoardScreen(board(session(0)), BoardActions.None) }
 
     @Test fun boardMidDark() = capture { DraftBoardScreen(board(session(3)), BoardActions.None) }
+
+    /** The real wiring: a pool tile's tap opens the peek, the step's Pick and whom it is for pinned under it. */
+    @Test fun boardTilePeekDark() {
+        compose.setContent {
+            GoaTheme(themeMode = ThemeMode.DARK) { DraftBoardScreen(board(session(3)), BoardActions.None) }
+        }
+        compose.waitUntil(IMAGE_TIMEOUT_MS) { BundledAssetImages.idle }
+        compose.onNodeWithContentDescription("Brogan").performClick()
+        compose.waitUntil(IMAGE_TIMEOUT_MS) { BundledAssetImages.idle }
+        compose.waitForIdle()
+        captureScreenRoboImage()
+    }
 
     @Test fun boardMidLight() = capture(ThemeMode.LIGHT) { DraftBoardScreen(board(session(3)), BoardActions.None) }
 
