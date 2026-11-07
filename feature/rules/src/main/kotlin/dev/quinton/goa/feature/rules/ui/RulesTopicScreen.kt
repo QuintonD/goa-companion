@@ -3,17 +3,22 @@ package dev.quinton.goa.feature.rules.ui
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -24,9 +29,11 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.List
 import androidx.compose.material.icons.automirrored.outlined.MenuBook
+import androidx.compose.material.icons.outlined.FormatListNumbered
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -74,6 +81,7 @@ import dev.quinton.goa.core.designsystem.component.SelectablePlate
 import dev.quinton.goa.core.designsystem.component.bannerEndWidth
 import dev.quinton.goa.core.designsystem.component.fadingHorizontalScroll
 import dev.quinton.goa.core.designsystem.component.rememberOfficialBitmap
+import dev.quinton.goa.core.designsystem.component.scaledIconSize
 import dev.quinton.goa.core.designsystem.component.steelBanner
 import dev.quinton.goa.core.designsystem.theme.GoaTextStyles
 import dev.quinton.goa.core.designsystem.theme.GoaTheme
@@ -142,11 +150,14 @@ internal fun TopicContent(
     // Sideways or with large text, height is scarce and the band would wrap: its words end the page instead.
     val plainFoot = large || LocalConfiguration.current.screenHeightDp < BANNER_FOOT_MIN_HEIGHT
     val sections = remember(topic) { topicSections(topic) }
+    // A long topic with diagrams shows them (and where its steps are) before the first passage.
+    val anchors = remember(topic, sections) { topicAnchors(topic)?.takeIf { sections.isNotEmpty() } }
     val showTitle = bannerTitle(topic.title, large) != topic.title
     val list = rememberLazyListState()
     val scope = rememberCoroutineScope()
     // Items before the first passage: the title, the navigator, the summary.
-    val lead = (if (showTitle) 1 else 0) + (if (sections.isNotEmpty()) 1 else 0) + (if (topic.summary != null) 1 else 0)
+    val lead = (if (showTitle) 1 else 0) + (if (sections.isNotEmpty()) 1 else 0) +
+        (if (topic.summary != null) 1 else 0) + (if (anchors != null) 1 else 0)
     val navIndex = if (showTitle) 1 else 0
     val navHeight = with(LocalDensity.current) { NAV_HEIGHT.roundToPx() }
     val active by remember(sections, lead) {
@@ -160,9 +171,10 @@ internal fun TopicContent(
             sections.lastOrNull { it.excerpt <= excerpt } ?: sections.firstOrNull()
         }
     }
-    val open: (TopicSection) -> Unit = { section ->
-        scope.launch { list.animateScrollToItem(lead + section.excerpt, -navHeight) }
+    val openExcerpt: (Int) -> Unit = { excerpt ->
+        scope.launch { list.animateScrollToItem(lead + excerpt, -navHeight) }
     }
+    val open: (TopicSection) -> Unit = { section -> openExcerpt(section.excerpt) }
     val margin = Modifier.padding(horizontal = PAGE_MARGIN)
     ParchmentPage(Modifier.fillMaxSize()) {
         LazyColumn(
@@ -178,6 +190,7 @@ internal fun TopicContent(
                 }
             }
             topic.summary?.let { summary -> item(key = "summary") { SummaryNote(summary, margin) } }
+            anchors?.let { a -> item(key = "anchors") { TopicAnchorRow(a, margin, onOpen = openExcerpt) } }
             itemsIndexed(topic.excerpts, key = { i, _ -> "excerpt-$i" }) { i, excerpt ->
                 Column(margin, verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
                     if (i > 0 && excerpt.heading != null) HorizontalDivider(color = colors.pageEdge)
@@ -365,6 +378,75 @@ private fun DiagramWithCaption(diagram: RulesDiagrams.Entry, caption: RulesExcer
             }
         }
         ExcerptBlock(caption, style = readingStyle().copy(fontStyle = FontStyle.Italic))
+    }
+}
+
+/**
+ * Near the top of a long topic with diagrams: "Steps" (when a passage prints numbered steps) and each diagram as a
+ * thumbnail, every one a tap from its place on the page, so the most glanceable part is found without scrolling past
+ * the passages. Only pointers: the words are the rulebook's, further down.
+ */
+@Composable
+private fun TopicAnchorRow(anchors: TopicAnchors, modifier: Modifier, onOpen: (Int) -> Unit) {
+    val colors = GoaTheme.colors
+    val shape = RoundedCornerShape(6.dp)
+    Row(modifier.fillMaxWidth().height(IntrinsicSize.Min), horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+        anchors.steps?.let { steps ->
+            Column(
+                Modifier
+                    .widthIn(min = 76.dp)
+                    .fillMaxHeight()
+                    .clip(shape)
+                    .border(1.dp, colors.pageEdge, shape)
+                    .clickable(onClickLabel = "Open the steps", role = Role.Button) { onOpen(steps) }
+                    .padding(horizontal = Spacing.sm, vertical = Spacing.sm),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center,
+            ) {
+                Icon(
+                    Icons.Outlined.FormatListNumbered,
+                    contentDescription = null,
+                    tint = colors.onPage,
+                    modifier = Modifier.size(scaledIconSize(24.dp, 1.4f)),
+                )
+                Text(STEPS, style = MaterialTheme.typography.titleSmall, color = colors.onPage)
+            }
+        }
+        anchors.diagrams.forEachIndexed { n, (excerpt, diagram) ->
+            DiagramThumb(
+                diagram,
+                label = "$DIAGRAMS: ${n + 1} of ${anchors.diagrams.size}",
+                modifier = Modifier.weight(1f),
+            ) { onOpen(excerpt) }
+        }
+    }
+}
+
+/** A diagram small, framed as on its page, opening the full one. TalkBack: "Diagrams: 1 of 2", a button. */
+@Composable
+private fun DiagramThumb(diagram: RulesDiagrams.Entry, label: String, modifier: Modifier, onClick: () -> Unit) {
+    val image = rememberOfficialBitmap(diagram.art)
+    val dark = GoaTheme.isDark
+    val page = if (dark) DIAGRAM_DARK_PAPER else GoaTheme.colors.page
+    val shape = RoundedCornerShape(6.dp)
+    Box(
+        modifier
+            .aspectRatio(diagram.aspect)
+            .clip(shape)
+            .border(1.dp, GoaTheme.colors.pageEdge, shape)
+            .background(page)
+            .clickable(onClickLabel = "Open the diagram", role = Role.Button, onClick = onClick)
+            .semantics { contentDescription = label },
+    ) {
+        if (image != null) {
+            Image(
+                image,
+                contentDescription = null,
+                contentScale = ContentScale.Fit,
+                colorFilter = ColorFilter.tint(page, BlendMode.Multiply),
+                modifier = Modifier.fillMaxSize(),
+            )
+        }
     }
 }
 
