@@ -163,6 +163,15 @@ private val COPPER = Triple(Color(0xFFEDB585), Color(0xFFC07A45), Color(0xFF7E45
 private val STEP_EDGE = Color(0xFF15181C)
 private val STEP_INK = Color(0xFF1B1712)
 
+/**
+ * The running timer's painted sea (third_party/ASSETS.md): one cut for portrait, one for landscape, each at full
+ * resolution so the cover crop never upscales it. Decorative.
+ */
+object TimerPaintings {
+    @DrawableRes
+    fun sea(landscape: Boolean): Int = if (landscape) R.drawable.timer_sea_wide else R.drawable.timer_sea
+}
+
 /** The paintings a short screen can end in (`ScreenFoot`). */
 enum class FootArt {
     /** The rulebook's broken-swords battlefield (`official/ui/silhouette.webp`): the running timer's own. */
@@ -185,8 +194,8 @@ enum class FootArt {
 fun ScreenFoot(art: FootArt, modifier: Modifier = Modifier) {
     val field = when (art) {
         FootArt.BATTLEFIELD -> rememberOfficialBitmap(LookArt.SILHOUETTE)
-        FootArt.HALL -> rememberFootBitmap(R.drawable.foot_hall)
-        FootArt.BEACONS -> rememberFootBitmap(R.drawable.foot_beacons)
+        FootArt.HALL -> rememberPaintingBitmap(R.drawable.foot_hall)
+        FootArt.BEACONS -> rememberPaintingBitmap(R.drawable.foot_beacons)
     } ?: return
     val ground = MaterialTheme.colorScheme.background
     val dark = LocalGoaIsDark.current
@@ -224,9 +233,12 @@ fun ScreenFoot(art: FootArt, modifier: Modifier = Modifier) {
     }
 }
 
-/** One of the app's own foot paintings, decoded off the main thread once per process. */
+/**
+ * One of the app's own paintings ([TimerPaintings], the foot paintings), decoded off the main thread once per
+ * process; null while it decodes.
+ */
 @Composable
-private fun rememberFootBitmap(@DrawableRes res: Int): ImageBitmap? {
+fun rememberPaintingBitmap(@DrawableRes res: Int): ImageBitmap? {
     val context = LocalContext.current
     var bitmap by remember(res) { mutableStateOf(footBitmaps[res]) }
     if (bitmap == null) {

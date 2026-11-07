@@ -117,7 +117,12 @@ private val REDRAWN = listOf(
     Triple("corner-bl", 22, "Bottom left bracket of the dark plate, redrawn after p.21"),
     Triple("corner-br", 22, "Bottom right bracket of the dark plate, redrawn after p.21"),
     Triple("dashboard-frame", 17, "The hero dashboard's frame, object 6750, upscaled with Real-ESRGAN x4plus, p.16"),
-    Triple("silhouette", 1, "The cover's battlefield silhouette, object 8940, upscaled with Real-ESRGAN x4plus"),
+    Triple(
+        "silhouette",
+        1,
+        "The cover's battlefield silhouette, object 8940, recreated at full resolution (gpt-image, the upscaled " +
+            "object as its reference, third_party/ASSETS.md)",
+    ),
 )
 
 object LookAssets {
