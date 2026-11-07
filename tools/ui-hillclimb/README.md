@@ -31,5 +31,6 @@ python3 -I tools/ui-hillclimb/hc.py unblind <cmp> <cmp>/opus-raw.json <cmp>/opus
 python3 -I tools/ui-hillclimb/hc.py imagegen out.png "prompt" --size 1536x1024 [--ref style.png]
 python3 -I tools/ui-hillclimb/hc.py board <runs_dir>
 tools/ui-hillclimb/build.sh :feature:timer:recordRoborazziDebug
+tools/ui-hillclimb/build.sh --max-workers=1 recordRoborazziDebug --continue   # whole app: one worker, or it OOMs at the 5 GB cap
 tools/ui-hillclimb/cleanup.sh --scratch ~/goa-hillclimb --worktree <merged worktree>   # after every judge round and merge
 ```
