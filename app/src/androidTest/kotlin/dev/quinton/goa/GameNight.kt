@@ -71,10 +71,11 @@ class GameNight(private val rule: AppRule, private val checkpoint: (String) -> U
             val hero = rule.onAllNodes(tile).fetchSemanticsNodes().first().descriptions.first()
             rule.tap(hasContentDescription(hero) and tile)
             val action = if (step.verb.startsWith("bans")) "Ban" else "Pick"
-            rule.waitForText("$action $hero?")
-            if (i == 0) checkpoint("Draft confirm dialog")
-            rule.tap(hasAnyAncestor(isDialog()) and hasClickAction() and hasText("${step.team.glyph} $action"))
-            rule.waitGone(hasText("$action $hero?"))
+            // The tile opens the hero's sheet; its pinned button commits, under whom it is for.
+            rule.waitForText("$action $hero")
+            if (i == 0) checkpoint("Draft hero sheet")
+            rule.tap(hasClickAction() and hasText("$action $hero"))
+            rule.waitGone(hasText("$action $hero"))
             if (action == "Pick") {
                 picked += hero
                 pickedBy[hero] = step.team
@@ -228,7 +229,7 @@ class GameNight(private val rule: AppRule, private val checkpoint: (String) -> U
         if (rule.exists(hasText("Completed") and hasClickAction())) rule.tapText("Completed")
         rule.tapDescription("Red won", substring = true)
         rule.tapText("Throne")
-        rule.tap(hasText("Save") and hasClickAction())
+        rule.tap(hasText("Save", substring = true) and hasClickAction())
 
         // ---- Result saved: every player's rating change, winners up and losers down.
         rule.waitForText("Result saved")

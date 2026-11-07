@@ -1,10 +1,8 @@
 package dev.quinton.goa
 
-import androidx.compose.ui.test.hasAnyAncestor
 import androidx.compose.ui.test.hasClickAction
 import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.hasText
-import androidx.compose.ui.test.isDialog
 import androidx.compose.ui.test.isEnabled
 import androidx.compose.ui.test.isSelected
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
@@ -102,9 +100,11 @@ class BoardFlowTest {
             rule.reveal(tile)
             val chosen = rule.onAllNodes(tile).fetchSemanticsNodes().first().descriptions.first()
             rule.tap(hasContentDescription(chosen) and tile)
-            rule.waitForText("$action $chosen?")
-            rule.tap(hasAnyAncestor(isDialog()) and hasClickAction() and hasText("$glyph $action"))
-            rule.waitGone(hasText("$action $chosen?"))
+            // The tile opens the hero's sheet; its pinned button commits, under whom it is for.
+            rule.waitForText("$action $chosen")
+            rule.waitForText("$glyph ", substring = true)
+            rule.tap(hasClickAction() and hasText("$action $chosen"))
+            rule.waitGone(hasText("$action $chosen"))
             if (action == "Pick" && glyph == "◆") redPicks += chosen
         }
         assertEquals(2, redPicks.size)
