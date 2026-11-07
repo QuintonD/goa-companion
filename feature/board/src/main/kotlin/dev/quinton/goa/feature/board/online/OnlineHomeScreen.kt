@@ -537,7 +537,6 @@ private fun <T> Segments(options: List<T>, selected: T, label: (T) -> String, on
             GoaSegment(
                 selected = option == selected,
                 onClick = { onPick(option) },
-                modifier = Modifier.heightIn(min = 48.dp),
             ) { Text(label(option)) }
         }
     }

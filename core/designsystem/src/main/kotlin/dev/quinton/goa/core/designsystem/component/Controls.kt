@@ -93,7 +93,7 @@ fun GoaSwitch(
     val steel = ControlSteel.current
     val bronze = GoaTheme.colors.selection
     val parchment = SWITCH_PARCHMENT
-    val offThumb = if (GoaTheme.isDark) Color(0xFFC8D0D5) else Color(0xFF5E6970)
+    val offThumb = if (GoaTheme.isDark) Color(0xFFE2E7EA) else Color(0xFF4E585F)
     Switch(
         checked = checked,
         onCheckedChange = onCheckedChange,
@@ -169,7 +169,7 @@ fun GoaSegmentedRow(modifier: Modifier = Modifier, content: @Composable GoaSegme
                     )
                 }
             }
-            .padding(SEGMENT_INSET)
+            .padding(horizontal = SEGMENT_INSET)
             .selectableGroup(),
         horizontalArrangement = Arrangement.spacedBy(SEGMENT_INSET),
         verticalAlignment = Alignment.CenterVertically,
@@ -199,17 +199,20 @@ fun GoaSegmentedRowScope.GoaSegment(
         modifier
             .weight(1f)
             .fillMaxHeight()
-            .heightIn(min = SEGMENT_HEIGHT - SEGMENT_INSET * 2)
+            // The whole bar's height is the 48 dp target; the bronze inset is drawn inside it.
+            .heightIn(min = SEGMENT_HEIGHT)
             .drawWithCache {
                 val radius = CornerRadius((SEGMENT_RADIUS - SEGMENT_INSET).toPx())
                 val edge = SelectedEdge.toPx()
+                val inset = SEGMENT_INSET.toPx()
+                val inner = Size(size.width, size.height - inset * 2)
                 onDrawBehind {
                     if (selected) {
-                        drawRoundRect(wash, cornerRadius = radius)
+                        drawRoundRect(wash, topLeft = Offset(0f, inset), size = inner, cornerRadius = radius)
                         drawRoundRect(
                             colors.selection,
-                            topLeft = Offset(edge / 2f, edge / 2f),
-                            size = Size(size.width - edge, size.height - edge),
+                            topLeft = Offset(edge / 2f, inset + edge / 2f),
+                            size = Size(inner.width - edge, inner.height - edge),
                             cornerRadius = radius,
                             style = Stroke(edge),
                         )

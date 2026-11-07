@@ -3,7 +3,6 @@ package dev.quinton.goa.feature.rules.ui
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -15,8 +14,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -30,7 +27,6 @@ import androidx.compose.material.icons.automirrored.outlined.MenuBook
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -66,6 +62,8 @@ import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import dev.quinton.goa.core.designsystem.component.BarAction
+import dev.quinton.goa.core.designsystem.component.BarIconButton
 import dev.quinton.goa.core.designsystem.component.EmptyState
 import dev.quinton.goa.core.designsystem.component.GoaPlate
 import dev.quinton.goa.core.designsystem.component.GoaScreen
@@ -97,7 +95,19 @@ fun RulesTopicScreen(state: RulesTopicUiState, onBack: () -> Unit) {
     val title = (state as? RulesTopicUiState.Ready)?.topic?.title ?: "Rules"
     // A long title would shrink to fit the banner: its head there, the whole title at the top of the page.
     val large = LocalDensity.current.fontScale > LARGE_FONT_SCALE
-    GoaScreen(title = bannerTitle(title, large), onBack = onBack) { padding ->
+    val topic = (state as? RulesTopicUiState.Ready)?.topic
+    val hasSections = remember(topic) { topic != null && topicSections(topic).isNotEmpty() }
+    var contentsOpen by rememberSaveable { mutableStateOf(false) }
+    GoaScreen(
+        title = bannerTitle(title, large),
+        onBack = onBack,
+        // Contents lives in the banner, so the navigator's chips keep the whole row (each section one tap away).
+        actions = {
+            if (hasSections) {
+                BarIconButton(BarAction("Contents", Icons.AutoMirrored.Outlined.List, { contentsOpen = true }))
+            }
+        },
+    ) { padding ->
         Box(Modifier.fillMaxSize().padding(padding)) {
             when (state) {
                 RulesTopicUiState.Loading -> CircularProgressIndicator(Modifier.align(Alignment.Center))
@@ -109,7 +119,11 @@ fun RulesTopicScreen(state: RulesTopicUiState, onBack: () -> Unit) {
                     modifier = Modifier.align(Alignment.Center),
                 )
 
-                is RulesTopicUiState.Ready -> TopicContent(state.topic)
+                is RulesTopicUiState.Ready -> TopicContent(
+                    state.topic,
+                    contentsOpen = contentsOpen,
+                    onContentsOpen = { contentsOpen = it },
+                )
             }
         }
     }
@@ -117,7 +131,11 @@ fun RulesTopicScreen(state: RulesTopicUiState, onBack: () -> Unit) {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-internal fun TopicContent(topic: RulesTopic) {
+internal fun TopicContent(
+    topic: RulesTopic,
+    contentsOpen: Boolean = false,
+    onContentsOpen: (Boolean) -> Unit = {},
+) {
     val colors = GoaTheme.colors
     val pages = "Rulebook ${RulesText.pages(topic.pages)} · quoted word for word"
     val large = LocalDensity.current.fontScale > LARGE_FONT_SCALE
@@ -142,7 +160,6 @@ internal fun TopicContent(topic: RulesTopic) {
             sections.lastOrNull { it.excerpt <= excerpt } ?: sections.firstOrNull()
         }
     }
-    var contentsOpen by rememberSaveable { mutableStateOf(false) }
     val open: (TopicSection) -> Unit = { section ->
         scope.launch { list.animateScrollToItem(lead + section.excerpt, -navHeight) }
     }
@@ -157,7 +174,7 @@ internal fun TopicContent(topic: RulesTopic) {
             if (showTitle) item(key = "title") { TopicTitle(topic.title, margin) }
             if (sections.isNotEmpty()) {
                 stickyHeader(key = NAV_KEY) {
-                    TopicNavigator(sections, active, onSelect = open, onContents = { contentsOpen = true })
+                    TopicNavigator(sections, active, onSelect = open)
                 }
             }
             topic.summary?.let { summary -> item(key = "summary") { SummaryNote(summary, margin) } }
@@ -187,9 +204,9 @@ internal fun TopicContent(topic: RulesTopic) {
         if (!plainFoot) RulesFooter(pages)
     }
     if (contentsOpen) {
-        GoaSheet(onDismissRequest = { contentsOpen = false }) {
+        GoaSheet(onDismissRequest = { onContentsOpen(false) }) {
             TopicContents(sections, active) { section ->
-                contentsOpen = false
+                onContentsOpen(false)
                 open(section)
             }
         }
@@ -214,14 +231,13 @@ private fun TopicTitle(title: String, modifier: Modifier = Modifier) {
  * The topic's parts, held at the top of the page as you read: the rulebook's own heads (and "Diagrams"), a tap
  * opens that passage. The one you are reading is bronze, as everything selected is (and filled, not only
  * coloured), and stays in view as you read. Scrolls sideways when the heads don't fit, the edge that hides more
- * fading out (the design system's edge fade); "Contents" at the end lists every part at once.
+ * fading out (the design system's edge fade); "Contents" in the banner lists every part at once.
  */
 @Composable
 private fun TopicNavigator(
     sections: List<TopicSection>,
     active: TopicSection?,
     onSelect: (TopicSection) -> Unit,
-    onContents: () -> Unit,
 ) {
     val colors = GoaTheme.colors
     val row = rememberScrollState()
@@ -238,7 +254,7 @@ private fun TopicNavigator(
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
             Row(
                 Modifier
-                    .weight(1f)
+                    .fillMaxWidth()
                     .heightIn(min = NAV_HEIGHT)
                     .fadingHorizontalScroll(row, gutter = PAGE_MARGIN - Spacing.xs)
                     .semantics { contentDescription = "Sections" },
@@ -253,36 +269,8 @@ private fun TopicNavigator(
                     ) { onSelect(section) }
                 }
             }
-            ContentsButton(onContents)
         }
         Box(Modifier.fillMaxWidth().height(1.dp).background(colors.pageEdge))
-    }
-}
-
-/** "Contents", pinned at the navigator's end: every part of the topic in one list. */
-@Composable
-private fun ContentsButton(onClick: () -> Unit) {
-    val colors = GoaTheme.colors
-    Row(
-        Modifier
-            .heightIn(min = NAV_HEIGHT)
-            .clickable(role = Role.Button, onClickLabel = "Open the list of sections", onClick = onClick)
-            .padding(end = PAGE_MARGIN - Spacing.xs),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Box(Modifier.width(1.dp).height(24.dp).background(colors.pageEdge))
-        Icon(
-            Icons.AutoMirrored.Outlined.List,
-            contentDescription = null,
-            tint = colors.pageInk,
-            modifier = Modifier.padding(start = Spacing.sm, end = Spacing.xs).size(20.dp),
-        )
-        Text(
-            "Contents",
-            style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold),
-            color = colors.onPage,
-            maxLines = 1,
-        )
     }
 }
 

@@ -388,7 +388,6 @@ private fun MovementRules(settings: OverlaySettings, onAction: (BoardAction) -> 
                     selected = settings.path == path,
                     onClick = { onAction(BoardAction.SetPath(path)) },
                     icon = {},
-                    modifier = Modifier.heightIn(min = 48.dp),
                 ) {
                     Text(
                         when (path) {

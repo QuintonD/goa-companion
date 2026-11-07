@@ -63,6 +63,27 @@ fun Modifier.horizontalEdgeFade(state: ScrollableState, width: Dp = EdgeFadeWidt
         }
 
 /**
+ * Fades a scrolling column's content out at its foot while [state] can scroll further down, over [height]: a page
+ * over a pinned bar ends in "more below", never in a line cut in half at the bar's edge.
+ */
+fun Modifier.bottomEdgeFade(state: ScrollableState, height: Dp = EdgeFadeWidth): Modifier =
+    graphicsLayer { compositingStrategy = CompositingStrategy.Offscreen }
+        .drawWithContent {
+            drawContent()
+            if (state.canScrollForward) {
+                val fade = height.toPx().coerceAtMost(size.height / 3f)
+                drawRect(
+                    Brush.verticalGradient(
+                        listOf(Color.Black, Color.Transparent),
+                        startY = size.height - fade,
+                        endY = size.height,
+                    ),
+                    blendMode = BlendMode.DstIn,
+                )
+            }
+        }
+
+/**
  * A `Row` that scrolls sideways the app's way: the [horizontalEdgeFade] at its hidden edges, and [gutter] padding
  * inside the scroll so its first and last items line up with the screen's content and can scroll clear of the fade.
  */

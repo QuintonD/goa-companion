@@ -102,7 +102,6 @@ fun OnlineLeaderboardScreen(
                         GoaSegment(
                             selected = state.tab == tab,
                             onClick = { onTab(tab) },
-                            modifier = Modifier.heightIn(min = 48.dp),
                         ) { Text(tab.label) }
                     }
                 }

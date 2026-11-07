@@ -242,11 +242,11 @@ private fun TileFootnotes(item: HeroListItem, sort: CatalogSort, room: TileFootn
             )
         }
     } else {
-        Row(Modifier.padding(top = Spacing.xs), verticalAlignment = Alignment.CenterVertically) {
+        Row(Modifier.padding(top = Spacing.xs), verticalAlignment = Alignment.Top) {
             Icon(
                 Icons.Outlined.Search,
                 contentDescription = null,
-                modifier = Modifier.size(14.dp),
+                modifier = Modifier.padding(top = 3.dp).size(14.dp),
                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
             )
             Spacer(Modifier.width(4.dp))
@@ -255,7 +255,8 @@ private fun TileFootnotes(item: HeroListItem, sort: CatalogSort, room: TileFootn
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 minLines = if (room.hint) HINT_LINES else 1,
-                maxLines = HINT_LINES,
+                // A card's name is never cut: a long one takes a third line.
+                maxLines = HINT_MAX_LINES,
                 overflow = TextOverflow.Ellipsis,
             )
         }
@@ -359,6 +360,7 @@ private fun tileLines(fontScale: Float): Int = if (fontScale in 1.1f..1.2f || fo
 
 private const val TILE_ROLES = 2
 private const val HINT_LINES = 2
+private const val HINT_MAX_LINES = 3
 private val NO_ROOM = TileFootnoteRoom(metric = false, hint = false)
 private val STARS_LINE = 20.dp
 private val TILE_STAR = 14.dp

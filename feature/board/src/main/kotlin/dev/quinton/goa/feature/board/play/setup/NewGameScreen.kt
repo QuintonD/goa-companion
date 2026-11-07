@@ -78,6 +78,7 @@ import dev.quinton.goa.core.designsystem.component.SectionHeader
 import dev.quinton.goa.core.designsystem.component.SectionHeaderPaddingTight
 import dev.quinton.goa.core.designsystem.component.TeamMark
 import dev.quinton.goa.core.designsystem.component.UnverifiedBadge
+import dev.quinton.goa.core.designsystem.component.bottomEdgeFade
 import dev.quinton.goa.core.designsystem.component.scaledIconSize
 import dev.quinton.goa.core.designsystem.component.teamColor
 import dev.quinton.goa.core.designsystem.theme.GoaTextStyles
@@ -338,12 +339,16 @@ private fun OptionsStep(
     onSpellbook: (String) -> Unit,
 ) {
     PreloadMapPainting(state.map?.painting)
+    val page = rememberScrollState()
     Column(Modifier.fillMaxSize()) {
+        // The page fades into the pinned coin bar while more is below, and ends clear of it.
         Column(
             Modifier
                 .weight(1f)
-                .verticalScroll(rememberScrollState())
-                .padding(horizontal = Spacing.screen, vertical = Spacing.md),
+                .bottomEdgeFade(page)
+                .verticalScroll(page)
+                .padding(horizontal = Spacing.screen)
+                .padding(top = Spacing.md, bottom = Spacing.xl),
             verticalArrangement = Arrangement.spacedBy(Spacing.md),
         ) {
             PlateSurface(
@@ -395,7 +400,6 @@ private fun OptionsStep(
                         GoaSegment(
                             selected = state.form.length == length,
                             onClick = { onAction(NewGameAction.SetLength(length)) },
-                            modifier = Modifier.heightIn(min = 48.dp),
                         ) { Text(PlayText.length(length)) }
                     }
                 }
