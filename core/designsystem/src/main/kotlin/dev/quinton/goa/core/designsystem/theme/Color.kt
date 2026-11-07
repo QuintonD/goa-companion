@@ -12,12 +12,20 @@ internal object Tokens {
     val DarkSurface = Color(0xFF1E2327)
     val DarkSurfaceHigh = Color(0xFF2A3136)
     val DarkOnSurface = Color(0xFFE8E2D6)
-    val DarkOnSurfaceVariant = Color(0xFFB4BEC8)
+    // Secondary text: ≥ 7:1 on the slate, the canvas, the raised surface and a steel chip, for a dim table (round 4).
+    val DarkOnSurfaceVariant = Color(0xFFBCC6CF)
     val DarkPrimary = Color(0xFFC9A35B)
     val DarkOnPrimary = Color(0xFF0B1622)
     val DarkSecondary = Color(0xFF3FC1B0)
     val DarkTeamRed = Color(0xFFE76C61)
     val DarkTeamBlue = Color(0xFF4F8FE0)
+
+    // Team colours for words (a team's name, an actor heading): lighter in the dark theme, deeper on paper, so a
+    // team-coloured word reads as well as the body text beside it (≥ 6:1 on the plate, ≥ 4.5:1 on any ground).
+    val DarkTeamRedText = Color(0xFFF29488)
+    val DarkTeamBlueText = Color(0xFF8DB9F5)
+    val LightTeamRedText = Color(0xFF8E2A21)
+    val LightTeamBlueText = Color(0xFF1E4C8F)
     val DarkError = Color(0xFFFF6B6B)
     val DarkUnverified = Color(0xFFE8B04A)
     val DarkMedallion = Color(0xFF07101A)
@@ -28,7 +36,7 @@ internal object Tokens {
     val LightSurface = Color(0xFFFCFAF4)
     val LightSurfaceHigh = Color(0xFFF1EBDF)
     val LightOnSurface = Color(0xFF221D17)
-    val LightOnSurfaceVariant = Color(0xFF554D41)
+    val LightOnSurfaceVariant = Color(0xFF4C4438)
     val LightPrimary = Color(0xFF7A5A1E)
     val LightOnPrimary = Color(0xFFFFFFFF)
     val LightSecondary = Color(0xFF17695E)
@@ -141,6 +149,7 @@ internal val LightColors = lightColorScheme(
 /** Colours outside the Material scheme (team identity, card colours). */
 @Immutable
 data class GoaExtendedColors(
+    /** A team's colour for marks, accent bars, rings and fills (≥ 3:1 on every ground of its theme). */
     val teamRed: Color,
     val teamBlue: Color,
     val cardGold: Color,
@@ -200,6 +209,12 @@ data class GoaExtendedColors(
     val onPageVariant: Color = Tokens.DarkOnPageVariant,
     val pageInk: Color = Tokens.DarkPageInk,
     val pageEdge: Color = Tokens.DarkPageEdge,
+    /**
+     * A team's colour for words (`teamTextColor`): a team's name or a heading that names who acts. ≥ 6:1 on the
+     * plate and ≥ 4.5:1 on every ground of its theme, as legible as the body text; [teamRed]/[teamBlue] stay for marks.
+     */
+    val teamRedText: Color = Tokens.DarkTeamRedText,
+    val teamBlueText: Color = Tokens.DarkTeamBlueText,
 )
 
 internal val DarkExtended = GoaExtendedColors(
@@ -255,6 +270,8 @@ internal val LightExtended = GoaExtendedColors(
     onPageVariant = Tokens.LightOnParchmentVariant,
     pageInk = Tokens.ParchmentInk,
     pageEdge = Tokens.LightParchmentEdge,
+    teamRedText = Tokens.LightTeamRedText,
+    teamBlueText = Tokens.LightTeamBlueText,
 )
 
 val LocalGoaColors = staticCompositionLocalOf { DarkExtended }

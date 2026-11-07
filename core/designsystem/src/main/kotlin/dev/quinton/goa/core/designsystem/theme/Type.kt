@@ -92,10 +92,13 @@ internal val GoaTypography = Typography(
     titleSmall = body(14, 20, FontWeight.SemiBold, 0.1),
     bodyLarge = body(16, 24, tracking = 0.5),
     bodyMedium = body(14, 20, tracking = 0.25),
-    bodySmall = body(12, 16, tracking = 0.4),
+    // Secondary text (captions, subtitles, notes) is read at a dim table at arm's length: 14 sp at the least, set
+    // apart from body text by its colour (onSurfaceVariant, ≥ 7:1), not by a smaller size. 12 sp is for tags only.
+    bodySmall = body(14, 20, tracking = 0.2),
     labelLarge = body(14, 20, FontWeight.Medium, 0.1),
+    /** Tags and pills: the only 12 sp text. */
     labelMedium = body(12, 16, FontWeight.Medium, 0.5),
-    labelSmall = body(11, 16, FontWeight.Medium, 0.5),
+    labelSmall = body(12, 16, FontWeight.Medium, 0.4),
 )
 
 /**

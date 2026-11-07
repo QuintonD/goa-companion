@@ -255,6 +255,7 @@ private val AVATAR_INK = Color(0xFF1B1712)
 fun TeamBadge(team: Team, modifier: Modifier = Modifier, showLabel: Boolean = true) {
     val color = teamColor(team)
     val label = if (team == Team.RED) "Red" else "Blue"
+    val words = teamTextColor(team)
     Row(
         modifier.semantics(mergeDescendants = true) { contentDescription = "Team $label" },
         verticalAlignment = Alignment.CenterVertically,
@@ -264,7 +265,7 @@ fun TeamBadge(team: Team, modifier: Modifier = Modifier, showLabel: Boolean = tr
             Spacer(Modifier.width(6.dp))
             Text(
                 text = label,
-                color = color,
+                color = words,
                 style = MaterialTheme.typography.labelLarge,
                 fontWeight = FontWeight.SemiBold,
             )
@@ -308,8 +309,17 @@ fun TeamMark(team: Team, modifier: Modifier = Modifier, color: Color = teamColor
 /** The gear and star are busier than the old shapes: they get a little more room at the same call. */
 private const val TEAM_MARK_GROWTH = 1.25f
 
+/** A team's colour for its marks, accent bars, rings and fills. For words in a team's colour use [teamTextColor]. */
 @Composable
 fun teamColor(team: Team): Color = if (team == Team.RED) GoaTheme.colors.teamRed else GoaTheme.colors.teamBlue
+
+/**
+ * A team's colour for words: a team's name, a heading naming who acts. As legible as the body text beside it in both
+ * themes (≥ 6:1 on the plate); the operative instruction itself stays in the body colour, with the team mark beside it.
+ */
+@Composable
+fun teamTextColor(team: Team): Color =
+    if (team == Team.RED) GoaTheme.colors.teamRedText else GoaTheme.colors.teamBlueText
 
 @Composable
 fun cardColor(color: CardColor): Color = when (color) {
