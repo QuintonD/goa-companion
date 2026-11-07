@@ -33,7 +33,7 @@ object WebThumbnails {
         return cards + symbols
     }
 
-    /** Cards are 546 × 768 (upright) or 737 × 510 (Gydion's spells): [CARD_WIDTH] wide either way. */
+    /** Cards are 729 × 1026 (upright) or wider than tall (Gydion's spells): [CARD_WIDTH] wide either way. */
     private fun cardLongEdge(card: File): Int {
         val image = ImageIo.load(card)
         return if (image.height >= image.width) {

@@ -55,10 +55,10 @@ import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import dev.quinton.goa.core.designsystem.component.BannerMedallionWidth
 import dev.quinton.goa.core.designsystem.component.EmptyState
 import dev.quinton.goa.core.designsystem.component.GoaScreen
 import dev.quinton.goa.core.designsystem.component.LARGE_FONT_SCALE
+import dev.quinton.goa.core.designsystem.component.bannerEndWidth
 import dev.quinton.goa.core.designsystem.component.rememberOfficialBitmap
 import dev.quinton.goa.core.designsystem.component.steelBanner
 import dev.quinton.goa.core.designsystem.theme.GoaTextStyles
@@ -289,7 +289,7 @@ private fun RulesFooter(text: String) {
             .fillMaxWidth()
             .heightIn(min = FOOTER_HEIGHT)
             .steelBanner(colors, MaterialTheme.colorScheme.primary)
-            .padding(start = Spacing.md, end = BannerMedallionWidth + Spacing.sm, top = 10.dp, bottom = 10.dp),
+            .padding(start = Spacing.md, end = bannerEndWidth() + Spacing.sm, top = 10.dp, bottom = 10.dp),
         contentAlignment = Alignment.CenterStart,
     ) {
         Text(
