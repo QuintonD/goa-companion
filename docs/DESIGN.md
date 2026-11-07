@@ -810,7 +810,7 @@ and WHY IT WORKS as numbered lines (the explanation split sentence by sentence, 
 "Turn 2" mark; never reworded), then RULES. The list has two parts, POSITIONS · 50 and FULL ROUNDS · 22, each with
 "n of m solved"; the Continue card says "Up next · Puzzle 2 of 50", the count the puzzle's own screen uses. The
 difficulty filter is one checked segmented bar, **"All" checked** by default, then Hard, Harder, Hardest, each with its
-number of positions under the name ("All · 50 positions", as the Positions part counts), so it reads as a filter at
+number of positions under the name ("All / 50", "Hard / 15", as "1 of 50 positions" under it counts), so it reads as a filter at
 once (one difficulty at a time).
 The **replay** panel has Back / Next arrows around "SOLUTION · STEP n OF m", the move in titleMedium
 (its card beside it), WHAT HAPPENED, and the explanation below. The list's numbers are Cinzel in a
