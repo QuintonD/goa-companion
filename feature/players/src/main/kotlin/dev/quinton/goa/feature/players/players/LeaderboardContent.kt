@@ -36,11 +36,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -57,9 +57,9 @@ import dev.quinton.goa.feature.players.common.DeltaIndicator
 import dev.quinton.goa.feature.players.common.EngravedCard
 import dev.quinton.goa.feature.players.common.LoadingState
 import dev.quinton.goa.feature.players.common.ProvisionalMark
-import dev.quinton.goa.feature.players.common.allProvisionalCaption
 import dev.quinton.goa.feature.players.common.RowFigure
 import dev.quinton.goa.feature.players.common.SectionHeader
+import dev.quinton.goa.feature.players.common.allProvisionalCaption
 import dev.quinton.goa.feature.players.common.figureStyle
 import dev.quinton.goa.feature.players.common.formatDelta
 import dev.quinton.goa.feature.players.common.formatRating
@@ -114,95 +114,94 @@ private fun Board(
     val podium = state.ranked.size >= PODIUM_PLACES && LocalDensity.current.fontScale < LARGE_FONT_SCALE
     val allProvisional = state.allProvisional
     LazyColumn(
-            modifier = Modifier.fillMaxSize(),
-            contentPadding = PaddingValues(start = Spacing.screen, end = Spacing.screen, bottom = LIST_END_PADDING),
-        ) {
-            if (state.ranked.isNotEmpty()) {
-                item(key = "h-ranked") {
-                    Column(Modifier.padding(bottom = Spacing.sm)) {
-                        SectionHeader("Group ratings")
-                        // One scope line: what the number is, what it's built from, and whose it is.
-                        Text(
-                            "Elo from ${plural(state.ratedMatches, "rated match", "rated matches")} · " +
-                                (if (state.inGroup) "shared by your group's phones" else "logged on this phone") +
-                                // Said once here rather than as a pill on every row.
-                                (if (allProvisional) ". " + allProvisionalCaption(state.provisionalGames) else ""),
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                    }
+        modifier = Modifier.fillMaxSize(),
+        contentPadding = PaddingValues(start = Spacing.screen, end = Spacing.screen, bottom = LIST_END_PADDING),
+    ) {
+        if (state.ranked.isNotEmpty()) {
+            item(key = "h-ranked") {
+                Column(Modifier.padding(bottom = Spacing.sm)) {
+                    SectionHeader("Group ratings")
+                    // One scope line: what the number is, what it's built from, and whose it is.
+                    Text(
+                        "Elo from ${plural(state.ratedMatches, "rated match", "rated matches")} · " +
+                            (if (state.inGroup) "shared by your group's phones" else "logged on this phone") +
+                            // Said once here rather than as a pill on every row.
+                            (if (allProvisional) ". " + allProvisionalCaption(state.provisionalGames) else ""),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
                 }
-                item(key = "ranked") {
-                    EngravedCard(Modifier.fillMaxWidth()) {
-                        Column {
-                            val rows = if (podium) {
-                                Podium(
-                                    state.ranked.take(PODIUM_PLACES).map { row ->
-                                        PodiumPlace(
-                                            label = row.rank.toString(),
-                                            description = row.spoken(archived = false),
-                                            onClick = { onOpenPlayer(row.player.id) },
-                                            onClickLabel = "Open profile",
-                                        ) { PodiumStanding(row, showProvisional = !allProvisional) }
-                                    },
-                                    Modifier.padding(start = Spacing.sm, end = Spacing.sm, top = Spacing.md),
-                                )
-                                state.ranked.drop(PODIUM_PLACES)
-                            } else {
-                                state.ranked
-                            }
-                            rows.forEachIndexed { i, row ->
-                                if (i > 0 || podium) HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
-                                LeaderboardRowItem(
-                                    row,
-                                    onClick = { onOpenPlayer(row.player.id) },
-                                    showProvisional = !allProvisional,
-                                )
-                            }
+            }
+            item(key = "ranked") {
+                EngravedCard(Modifier.fillMaxWidth()) {
+                    Column {
+                        val rows = if (podium) {
+                            Podium(
+                                state.ranked.take(PODIUM_PLACES).map { row ->
+                                    PodiumPlace(
+                                        label = row.rank.toString(),
+                                        description = row.spoken(archived = false),
+                                        onClick = { onOpenPlayer(row.player.id) },
+                                        onClickLabel = "Open profile",
+                                    ) { PodiumStanding(row, showProvisional = !allProvisional) }
+                                },
+                                Modifier.padding(start = Spacing.sm, end = Spacing.sm, top = Spacing.md),
+                            )
+                            state.ranked.drop(PODIUM_PLACES)
+                        } else {
+                            state.ranked
+                        }
+                        rows.forEachIndexed { i, row ->
+                            if (i > 0 || podium) HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+                            LeaderboardRowItem(
+                                row,
+                                onClick = { onOpenPlayer(row.player.id) },
+                                showProvisional = !allProvisional,
+                            )
                         }
                     }
                 }
             }
-            if (state.unrated.isNotEmpty()) {
-                item(key = "h-unrated") { SectionHeader("No games yet") }
-                items(state.unrated, key = { "u-" + it.player.id }) { row ->
-                    LeaderboardRowItem(row, onClick = { onOpenPlayer(row.player.id) })
-                }
+        }
+        if (state.unrated.isNotEmpty()) {
+            item(key = "h-unrated") { SectionHeader("No games yet") }
+            items(state.unrated, key = { "u-" + it.player.id }) { row ->
+                LeaderboardRowItem(row, onClick = { onOpenPlayer(row.player.id) })
             }
-            // Under the list, never over it (a floating button covered the last rating at large text).
-            item(key = "add-player") {
-                OutlinedButton(
-                    onClick = onAddPlayer,
-                    modifier = Modifier
-                        .padding(top = Spacing.lg)
-                        .fillMaxWidth()
-                        .heightIn(min = 52.dp)
-                        .semantics { contentDescription = "Add player" },
-                ) {
-                    Icon(Icons.Outlined.PersonAdd, contentDescription = null)
+        }
+        // Under the list, never over it (a floating button covered the last rating at large text).
+        item(key = "add-player") {
+            OutlinedButton(
+                onClick = onAddPlayer,
+                modifier = Modifier
+                    .padding(top = Spacing.lg)
+                    .fillMaxWidth()
+                    .heightIn(min = 52.dp)
+                    .semantics { contentDescription = "Add player" },
+            ) {
+                Icon(Icons.Outlined.PersonAdd, contentDescription = null)
+                Spacer(Modifier.width(Spacing.sm))
+                Text("Add player", style = MaterialTheme.typography.titleMedium)
+            }
+        }
+        if (state.archived.isNotEmpty()) {
+            item(key = "archived-toggle") {
+                TextButton(onClick = onToggleArchived, modifier = Modifier.padding(top = Spacing.sm)) {
+                    Icon(Icons.Outlined.Inventory2, contentDescription = null, modifier = Modifier.size(18.dp))
                     Spacer(Modifier.width(Spacing.sm))
-                    Text("Add player", style = MaterialTheme.typography.titleMedium)
+                    val count = state.archived.size
+                    Text(if (state.showArchived) "Hide archived players" else "Show archived players ($count)")
                 }
             }
-            if (state.archived.isNotEmpty()) {
-                item(key = "archived-toggle") {
-                    TextButton(onClick = onToggleArchived, modifier = Modifier.padding(top = Spacing.sm)) {
-                        Icon(Icons.Outlined.Inventory2, contentDescription = null, modifier = Modifier.size(18.dp))
-                        Spacer(Modifier.width(Spacing.sm))
-                        val count = state.archived.size
-                        Text(if (state.showArchived) "Hide archived players" else "Show archived players ($count)")
-                    }
-                }
-                if (state.showArchived) {
-                    items(state.archived, key = { "a-" + it.player.id }) { row ->
-                        LeaderboardRowItem(row, onClick = { onOpenPlayer(row.player.id) }, archived = true)
-                    }
+            if (state.showArchived) {
+                items(state.archived, key = { "a-" + it.player.id }) { row ->
+                    LeaderboardRowItem(row, onClick = { onOpenPlayer(row.player.id) }, archived = true)
                 }
             }
+        }
     }
 }
 
-@Composable
 /** The row as TalkBack reads it: rank, name, rating, provisional, record, trend. */
 private fun LeaderboardRow.spoken(archived: Boolean): String {
     val row = this
