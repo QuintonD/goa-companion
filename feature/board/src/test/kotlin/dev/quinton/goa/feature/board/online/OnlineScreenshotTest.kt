@@ -201,6 +201,26 @@ class OnlineScreenshotTest {
 
     @Test fun onlineLobbyQrDark() = capture(ThemeMode.DARK, screen = true) { Lobby(lobby, qr = true) }
 
+    /** Every seat taken, every hero chosen, everyone ready: the host's one bronze step is Start the game. */
+    @Test
+    fun onlineLobbyAllReadyDark() = capture(ThemeMode.DARK) {
+        Lobby(
+            lobby.copy(
+                room = room(
+                    size = 2,
+                    filled = 4,
+                    hero = { listOf("arien", "brogan", "wasp", "tigerclaw")[it] },
+                    ready = { true },
+                    ranked = true,
+                ),
+            ),
+        )
+    }
+
+    /** A guest who hasn't chosen a hero yet: their one bronze step is Choose your hero. */
+    @Test
+    fun onlineLobbyGuestNoHeroLight() = capture(ThemeMode.LIGHT) { Lobby(lobby.copy(you = "acc-cid")) }
+
     // ---- The table -------------------------------------------------------------------------------
 
     private val seats = setOf("arien", "brogan", "wasp", "tigerclaw")

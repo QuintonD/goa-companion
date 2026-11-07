@@ -23,8 +23,10 @@ import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.outlined.CheckCircle
 import androidx.compose.material.icons.outlined.ErrorOutline
 import androidx.compose.material.icons.outlined.Groups
+import androidx.compose.material.icons.outlined.HourglassTop
 import androidx.compose.material.icons.outlined.PhoneAndroid
 import androidx.compose.material.icons.outlined.PhonelinkRing
+import androidx.compose.material.icons.outlined.QrCode2
 import androidx.compose.material.icons.outlined.WifiTethering
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -60,7 +62,9 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.LifecycleResumeEffect
 import dev.quinton.goa.core.designsystem.component.GoaButton
 import dev.quinton.goa.core.designsystem.component.GoaCard
+import dev.quinton.goa.core.designsystem.component.GoaOutlinedButton
 import dev.quinton.goa.core.designsystem.component.GoaPlate
+import dev.quinton.goa.core.designsystem.component.PlateStyle
 import dev.quinton.goa.core.designsystem.component.scaledIconSize
 import dev.quinton.goa.core.designsystem.theme.GoaTheme
 import dev.quinton.goa.core.designsystem.theme.Spacing
@@ -70,9 +74,11 @@ import dev.quinton.goa.core.domain.sync.protocol.HostPhase
 import dev.quinton.goa.core.domain.sync.protocol.HostState
 import dev.quinton.goa.core.domain.sync.protocol.PeerProgress
 import dev.quinton.goa.core.domain.sync.protocol.PeerStage
+import dev.quinton.goa.core.domain.sync.protocol.SyncFailure
 import dev.quinton.goa.core.domain.sync.protocol.SyncPeer
 import dev.quinton.goa.core.navigation.NavSheet
 import dev.quinton.goa.feature.sync.SyncText
+import dev.quinton.goa.feature.sync.group.InviteDialog
 import dev.quinton.goa.feature.sync.nearby.NearbyPermissions
 
 /** Whether the Nearby permissions stand in the way of the role the user picked. */
@@ -99,6 +105,8 @@ class SyncSessionActions(
     val onWhoAreYou: () -> Unit = {},
     val onUseFile: () -> Unit = {},
     val onOpenGroup: () -> Unit = {},
+    /** Shares the group's invite as text (from the invite shown to a phone that needs it again). */
+    val onShareInvite: (String) -> Unit = {},
 )
 
 /**
@@ -172,6 +180,7 @@ fun SyncSessionEntry(state: SyncSessionUiState, viewModel: SyncSessionViewModel,
             onWhoAreYou = actions.onWhoAreYou,
             onUseFile = actions.onUseFile,
             onOpenGroup = actions.onOpenGroup,
+            onShareInvite = actions.onShareInvite,
         ),
     )
 }
@@ -204,7 +213,7 @@ fun SyncSessionSheet(
         verticalArrangement = Arrangement.spacedBy(Spacing.md),
     ) {
         Text(
-            if (state.firstSync) "First sync" else "Sync now",
+            if (state.firstSync) "First sync" else "Sync with nearby phones",
             style = MaterialTheme.typography.headlineSmall,
             modifier = Modifier.semantics { heading() },
         )
@@ -339,69 +348,123 @@ private fun PermissionContent(permission: PermissionUi, actions: SyncSessionActi
 }
 
 /**
- * Hosting, in explicit steps (Collect, Merge, Send back, Done): each phone's own state on its row (sending its data,
- * ready, receiving the result, synced); the Sync button off and saying what it waits for until a phone's data is in,
- * or, while some phones are still sending, saying that a tap queues the sync ("Sync when Cid's data is in"); then a
- * final summary of who is up to date.
+ * Hosting, as an explicit state machine under a row of steps (Collect, Merge, Send back, Done). Collecting: each
+ * phone's own state on its row (sending its data, ready, receiving the result, synced; one that needs the invite
+ * again offers it), and one button. Off while no phone's data is in, saying what it waits for; "Sync with Bob and
+ * Cid" when every phone is in; "Sync automatically when ready" while some are still sending, which arms the sync.
+ * Armed: no button, a status ("Waiting for Cid · sync starts automatically") and Cancel. Then "Merging…", sending
+ * back, and a final summary of who is up to date. Every change of state is announced politely to TalkBack.
  */
 @Composable
 private fun Hosting(host: HostState, state: SyncSessionUiState, actions: SyncSessionActions) {
     val waiting = host.phase == HostPhase.WAITING
-    val working = host.phase == HostPhase.MERGING || host.phase == HostPhase.SENDING
-    if (host.phase != HostPhase.FAILED) SyncSteps(SyncText.hostStep(host.phase), SyncText.hostSteps)
+    val armed = SyncText.armed(host.phase, host.peers)
+    val working = !armed && (host.phase == HostPhase.MERGING || host.phase == HostPhase.SENDING)
+    var showInvite by rememberSaveable { mutableStateOf(false) }
+    if (host.phase != HostPhase.FAILED) SyncSteps(SyncText.hostStep(host.phase, host.peers), SyncText.hostSteps)
     when (host.phase) {
         HostPhase.DONE -> HostDone(host)
 
         else -> StatusLine(
-            when (host.phase) {
-                HostPhase.WAITING -> if (host.peers.isEmpty()) {
-                    "Hosting. On each other phone: Group sync → Sync now → Join."
-                } else {
-                    SyncText.hostWaiting(host.peers)
-                }
+            when {
+                waiting && host.peers.isEmpty() ->
+                    "Hosting. On each other phone: Group sync → Sync with nearby phones → Join."
 
-                HostPhase.MERGING -> SyncText.hostMerging(host.peers)
+                waiting || armed -> SyncText.hostWaiting(host.peers)
 
-                HostPhase.SENDING -> "Sending the merged data back…"
+                host.phase == HostPhase.MERGING -> SyncText.hostMerging(host.peers)
+
+                host.phase == HostPhase.SENDING -> "Sending the merged data back…"
 
                 else -> host.failure?.let { SyncText.failure(it, host.message) } ?: "Sync stopped"
             },
             working = working,
             error = host.phase == HostPhase.FAILED,
             // Waiting on people, not on work: a phone, not a spinner (a frozen spinner read as a stray mark).
-            waitingIcon = Icons.Outlined.PhonelinkRing.takeIf { waiting },
+            waitingIcon = Icons.Outlined.PhonelinkRing.takeIf { waiting || armed },
         )
     }
-    host.peers.forEach { PeerRow(it) }
+    host.peers.forEach { peer ->
+        val needsInvite = peer.stage == PeerStage.FAILED && peer.failure == SyncFailure.WRONG_KEY
+        PeerRow(peer, onShowInvite = { showInvite = true }.takeIf { needsInvite && state.invite != null })
+    }
     if (waiting && host.peers.isEmpty()) {
         LinearProgressIndicator(Modifier.fillMaxWidth())
     }
     state.duplicateHint?.let { Hint(it) }
     state.versionHint?.let { Hint(it) }
-    when (host.phase) {
-        HostPhase.WAITING -> {
-            SyncText.hostWaitingHint(host.peers)?.let {
-                Text(
-                    it,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-            // Off, the button says what it waits for; on with phones still sending, it says the tap queues the sync.
+    when {
+        waiting -> {
             GoaButton(
                 onClick = actions.onSyncNow,
                 enabled = host.canSync,
                 modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp),
             ) { Text(SyncText.syncLabel(host.peers), textAlign = TextAlign.Center) }
+            SyncText.hostLeftOut(host.peers)?.let { LeftOut(it) }
             TextButton(onClick = actions.onCancel, modifier = Modifier.heightIn(min = 48.dp)) { Text("Cancel") }
         }
 
-        HostPhase.MERGING, HostPhase.SENDING ->
+        armed -> {
+            ArmedStatus(SyncText.hostArmed(host.peers))
+            SyncText.hostLeftOut(host.peers)?.let { LeftOut(it) }
+            TextButton(onClick = actions.onCancel, modifier = Modifier.heightIn(min = 48.dp)) { Text("Cancel") }
+        }
+
+        host.phase == HostPhase.MERGING || host.phase == HostPhase.SENDING ->
             TextButton(onClick = actions.onCancel, modifier = Modifier.heightIn(min = 48.dp)) { Text("Stop") }
 
-        HostPhase.DONE -> Finish(state, actions)
+        host.phase == HostPhase.DONE -> Finish(state, actions)
 
-        HostPhase.FAILED -> Retry(actions)
+        else -> Retry(actions)
+    }
+    if (showInvite) {
+        InviteDialog(
+            groupName = state.groupName.orEmpty(),
+            invite = state.invite,
+            onShare = { state.invite?.let(actions.onShareInvite) },
+            onDismiss = { showInvite = false },
+        )
+    }
+}
+
+/** Who this sync leaves out and why, right under its action, so nobody thinks Eve will be synced. */
+@Composable
+private fun LeftOut(text: String) {
+    Row(verticalAlignment = Alignment.Top) {
+        Icon(
+            Icons.Outlined.ErrorOutline,
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.padding(top = 2.dp).size(scaledIconSize(16.dp)),
+        )
+        Spacer(Modifier.width(Spacing.xs))
+        Text(text, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+    }
+}
+
+/**
+ * The armed sync where its button was: a status, not a control (a well with no edge to press, a waiting phone, the
+ * words), so nobody taps it again. Announced politely as it appears.
+ */
+@Composable
+private fun ArmedStatus(text: String) {
+    GoaPlate(
+        Modifier
+            .fillMaxWidth()
+            .semantics(mergeDescendants = true) { liveRegion = LiveRegionMode.Polite },
+        brackets = false,
+        style = PlateStyle.Well,
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Icon(
+                Icons.Outlined.HourglassTop,
+                null,
+                tint = MaterialTheme.colorScheme.secondary,
+                modifier = Modifier.size(scaledIconSize(22.dp)),
+            )
+            Spacer(Modifier.width(Spacing.md))
+            Text(text, style = MaterialTheme.typography.bodyLarge)
+        }
     }
 }
 
@@ -614,7 +677,7 @@ private fun StatusLine(text: String, working: Boolean, error: Boolean, waitingIc
 }
 
 @Composable
-private fun PeerRow(peer: PeerProgress) {
+private fun PeerRow(peer: PeerProgress, onShowInvite: (() -> Unit)? = null) {
     GoaCard(Modifier.fillMaxWidth(), contentPadding = androidx.compose.foundation.layout.PaddingValues(Spacing.md)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             // The state as a shape too: a tick when its data is in, a warning when it's out.
@@ -641,6 +704,19 @@ private fun PeerRow(peer: PeerProgress) {
         peer.progress?.let {
             Spacer(Modifier.size(Spacing.sm))
             LinearProgressIndicator(progress = { it }, modifier = Modifier.fillMaxWidth())
+        }
+        // The fix where the problem is: the group's invite, to scan on that phone.
+        if (onShowInvite != null) {
+            GoaOutlinedButton(
+                onClick = onShowInvite,
+                modifier = Modifier
+                    .padding(start = scaledIconSize(24.dp) + Spacing.md, top = Spacing.sm)
+                    .heightIn(min = 48.dp),
+            ) {
+                Icon(Icons.Outlined.QrCode2, contentDescription = null)
+                Spacer(Modifier.width(Spacing.sm))
+                Text("Show new invite")
+            }
         }
     }
 }

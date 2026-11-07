@@ -12,6 +12,7 @@ import dev.quinton.goa.core.data.GroupState
 import dev.quinton.goa.core.data.PlayerRepository
 import dev.quinton.goa.core.data.SyncRepository
 import dev.quinton.goa.core.data.backup.AppInfo
+import dev.quinton.goa.core.domain.sync.GroupInvite
 import dev.quinton.goa.core.domain.sync.SyncValidation
 import dev.quinton.goa.core.domain.sync.protocol.ClientPhase
 import dev.quinton.goa.core.domain.sync.protocol.ClientState
@@ -72,6 +73,8 @@ data class SyncSessionUiState(
     val duplicateHint: String? = null,
     /** The phones run different app versions (hero ratings can differ). */
     val versionHint: String? = null,
+    /** The group's invite, for a phone that needs it again (an old invite, another group); as Group sync shows it. */
+    val invite: String? = null,
 ) {
     /** Merged data is being written or sent: the sheet holds open (Cancel is still offered). */
     val busy: Boolean get() = when (val s = stage) {
@@ -168,6 +171,8 @@ class SyncSessionViewModel @AssistedInject constructor(
             requestedRole = role,
             duplicateHint = if (finishedOk) SyncText.duplicateHint(SyncText.duplicateNames(people)) else null,
             versionHint = SyncText.versionHint(appInfo.versionName(), others),
+            // As the Group screen's invite: the server travels in it only when it isn't the app's own.
+            invite = group.group?.let { GroupInvite.format(it, group.server.activeUrl.takeIf { group.server.custom }) },
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), SyncSessionUiState(firstSync = firstSync))
 

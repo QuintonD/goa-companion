@@ -26,6 +26,7 @@ import androidx.lifecycle.lifecycleScope
 import dagger.hilt.android.AndroidEntryPoint
 import dev.quinton.goa.core.data.CatalogRepository
 import dev.quinton.goa.core.designsystem.component.LocalBoardStyle
+import dev.quinton.goa.core.designsystem.component.LocalPlayerFaces
 import dev.quinton.goa.core.designsystem.theme.GoaTheme
 import dev.quinton.goa.core.model.settings.BoardStyle
 import dev.quinton.goa.core.model.settings.ThemeMode
@@ -45,6 +46,7 @@ import kotlinx.coroutines.launch
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
     private val viewModel: MainViewModel by viewModels()
+    private val facesViewModel: PlayerFacesViewModel by viewModels()
 
     /** Tabs asked for by launch intents (the timer notification asks for the Timer tab). */
     private val tabRequests = MutableStateFlow<TabRequest?>(null)
@@ -104,7 +106,8 @@ class MainActivity : ComponentActivity() {
                     onDispose {}
                 }
                 val boardStyle = (state as? MainUiState.Ready)?.boardStyle ?: BoardStyle.MINIATURES
-                CompositionLocalProvider(LocalBoardStyle provides boardStyle) {
+                val faces by facesViewModel.faces.collectAsStateWithLifecycle()
+                CompositionLocalProvider(LocalBoardStyle provides boardStyle, LocalPlayerFaces provides faces) {
                     GoaApp(
                         tabRequests = tabRequests,
                         syncFileRequests = syncFileRequests,

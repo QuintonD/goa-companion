@@ -59,8 +59,8 @@ class SyncServerActions(
 
 /**
  * The group's sync server on the Group screen (ADR-036): how the last automatic sync went, the
- * error in words, "Sync with the server", the on/off switch, and the address under Advanced.
- * Sits under a "Sync server" section header.
+ * error in words, the on/off switch, and the address under Advanced. Sits under "Remote sync" once a
+ * server is set up; without one it is only the address field, folded under "Optional remote sync".
  */
 @Composable
 fun SyncServerCard(
@@ -70,6 +70,11 @@ fun SyncServerCard(
     advancedInitially: Boolean = false,
 ) {
     var advanced by rememberSaveable { mutableStateOf(advancedInitially || server.addressError != null) }
+    if (server.url == null) {
+        // Opened from "Optional remote sync": nothing to report yet, only where the server is.
+        GoaCard(modifier.fillMaxWidth()) { Advanced(server, actions) }
+        return
+    }
     GoaCard(modifier.fillMaxWidth()) {
         Header(server)
         if (server.url != null) {

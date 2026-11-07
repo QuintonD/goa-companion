@@ -49,7 +49,7 @@ class DoublePilotMatchTest {
             "Xargatha" to "Eve",
         )
         seats.forEach { (hero, pilot) -> rule.fillNextSeat(hero, pilot) }
-        rule.waitForText("Double pilot")
+        rule.waitForText("Ana pilots 2 heroes")
 
         if (rule.exists(hasText("Completed") and hasClickAction())) rule.tapText("Completed")
         // The winner buttons name each team's pilots once, even Ana who sits twice.
