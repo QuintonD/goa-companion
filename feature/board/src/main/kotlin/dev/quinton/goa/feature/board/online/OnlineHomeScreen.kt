@@ -24,6 +24,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.KeyboardArrowRight
 import androidx.compose.material.icons.outlined.ContentCopy
+import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material.icons.outlined.EmojiEvents
 import androidx.compose.material.icons.outlined.Flag
 import androidx.compose.material.icons.outlined.HourglassTop
@@ -31,6 +32,7 @@ import androidx.compose.material.icons.outlined.PersonRemove
 import androidx.compose.material.icons.outlined.PlayCircleOutline
 import androidx.compose.material.icons.outlined.QrCodeScanner
 import androidx.compose.material.icons.outlined.TouchApp
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -54,15 +56,13 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.text.SpanStyle
-import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import dev.quinton.goa.core.designsystem.component.AccountAvatar
 import dev.quinton.goa.core.designsystem.component.CardTextBox
 import dev.quinton.goa.core.designsystem.component.ConfirmDialog
 import dev.quinton.goa.core.designsystem.component.GoaButton
@@ -74,6 +74,7 @@ import dev.quinton.goa.core.designsystem.component.GoaSegment
 import dev.quinton.goa.core.designsystem.component.GoaSegmentedRow
 import dev.quinton.goa.core.designsystem.component.GoaSwitch
 import dev.quinton.goa.core.designsystem.component.HeroPortrait
+import dev.quinton.goa.core.designsystem.component.IdentitySelector
 import dev.quinton.goa.core.designsystem.component.PlateColor
 import dev.quinton.goa.core.designsystem.component.PlateShape
 import dev.quinton.goa.core.designsystem.component.SectionHeader
@@ -272,7 +273,14 @@ private fun Ready(
     heroes: Map<String, BoardHero>,
     actions: OnlineHomeActions,
 ) {
-    Text("Playing as ${state.name}", style = MaterialTheme.typography.titleMedium)
+    // Who this phone plays as, the row Card trivia and Group sync show too; read only here (Rename is in the account),
+    // and one compact line, so Create room stays in view.
+    IdentitySelector(
+        title = "Playing as ${state.name}",
+        scope = "Online",
+        avatar = { size -> AccountAvatar(state.you ?: state.name, state.name, size = size) },
+        compact = true,
+    )
     if (state.games.isNotEmpty()) MyGames(state, mapNames, heroes, actions)
     JoinRoom(state, actions)
     NewRoom(state, mapNames, actions)
@@ -403,14 +411,11 @@ private fun GameRow(
                 modifier = Modifier.size(scaledIconSize(16.dp, 1.4f)),
             )
             Spacer(Modifier.width(Spacing.xs))
-            Text(
-                buildAnnotatedString {
-                    withStyle(SpanStyle(fontWeight = FontWeight.SemiBold)) { append(status.words) }
-                    withStyle(SpanStyle(color = muted)) { append(" · ${where(game, mapNames)}") }
-                },
-                style = MaterialTheme.typography.bodyMedium,
-                modifier = Modifier.weight(1f),
-            )
+            // Where it stands, then the map on a line of its own: a joined line broke the map's name in two.
+            Column(Modifier.weight(1f)) {
+                Text(status.words, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
+                Text(where(game, mapNames), style = MaterialTheme.typography.bodySmall, color = muted)
+            }
             Icon(Icons.AutoMirrored.Outlined.KeyboardArrowRight, contentDescription = null)
         }
     }
@@ -513,7 +518,7 @@ private fun NewRoom(state: OnlineHomeUi, mapNames: Map<String, String>, actions:
                 Column(Modifier.weight(1f)) {
                     Text("Ranked", style = MaterialTheme.typography.titleSmall)
                     Text(
-                        "A finished game counts on the public leaderboard.",
+                        "Counts on the public leaderboard.",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
@@ -563,9 +568,19 @@ private fun Account(state: OnlineHomeUi, actions: OnlineHomeActions) {
                 style = MaterialTheme.typography.bodySmall,
             )
             Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-                TextButton(onClick = { renaming = true }, modifier = Modifier.heightIn(min = 48.dp)) { Text("Rename") }
-                TextButton(onClick = { deleting = true }, modifier = Modifier.heightIn(min = 48.dp)) {
-                    Text("Delete account", color = MaterialTheme.colorScheme.error)
+                TextButton(onClick = { renaming = true }, modifier = Modifier.heightIn(min = 48.dp)) {
+                    Icon(Icons.Outlined.Edit, contentDescription = null, modifier = Modifier.size(18.dp))
+                    Spacer(Modifier.width(Spacing.xs))
+                    Text("Rename")
+                }
+                TextButton(
+                    onClick = { deleting = true },
+                    modifier = Modifier.heightIn(min = 48.dp),
+                    colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error),
+                ) {
+                    Icon(Icons.Outlined.PersonRemove, contentDescription = null, modifier = Modifier.size(18.dp))
+                    Spacer(Modifier.width(Spacing.xs))
+                    Text("Delete account")
                 }
             }
         }

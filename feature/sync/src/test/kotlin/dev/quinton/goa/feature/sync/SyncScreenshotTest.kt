@@ -1,9 +1,12 @@
 package dev.quinton.goa.feature.sync
 
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.hasClickAction
@@ -14,11 +17,15 @@ import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTextInput
 import androidx.compose.ui.unit.Density
+import androidx.compose.ui.unit.dp
 import androidx.test.core.app.ApplicationProvider
 import com.github.takahirom.roborazzi.ExperimentalRoborazziApi
 import com.github.takahirom.roborazzi.captureRoboImage
 import com.github.takahirom.roborazzi.captureScreenRoboImage
+import dev.quinton.goa.core.designsystem.component.GoaPlateTheme
+import dev.quinton.goa.core.designsystem.component.GoaSheetHandle
 import dev.quinton.goa.core.designsystem.component.LocalPlayerFaces
+import dev.quinton.goa.core.designsystem.component.slatePlate
 import dev.quinton.goa.core.designsystem.theme.GoaTheme
 import dev.quinton.goa.core.domain.sync.GroupInvite
 import dev.quinton.goa.core.domain.sync.SyncChanges
@@ -157,8 +164,13 @@ class SyncScreenshotTest {
         PeerProgress("3", "Eve", stage = PeerStage.FAILED, failure = SyncFailure.WRONG_KEY),
     )
 
-    @Composable private fun Sheet(state: SyncSessionUiState, permission: PermissionUi? = null) =
-        SyncSessionSheet(state, permission, SyncSessionActions())
+    /** The sheet as `GoaSheet` shows it: on the plate, under the drag handle the player sees. */
+    @Composable private fun Sheet(state: SyncSessionUiState, permission: PermissionUi? = null) = GoaPlateTheme {
+        Column(Modifier.slatePlate(RoundedCornerShape(0.dp), brackets = false)) {
+            GoaSheetHandle()
+            SyncSessionSheet(state, permission, SyncSessionActions())
+        }
+    }
 
     @Test fun sessionChooseDark() = shot { Sheet(session) }
 

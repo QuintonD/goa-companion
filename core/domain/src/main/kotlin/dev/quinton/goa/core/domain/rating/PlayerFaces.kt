@@ -4,9 +4,9 @@ import dev.quinton.goa.core.model.catalog.Catalog
 import dev.quinton.goa.core.model.player.PlayerFace
 
 /**
- * Who each player is shown as: their most-played hero ([RatingsResult.mostPlayedHeroes]) with its portrait from the
+ * Each player's hero badge: their most-played hero ([RatingsResult.mostPlayedHeroes]) with its portrait from the
  * catalog. Rebuilt from the log like every rating, so nothing is stored or synced. Heroes the catalog doesn't know
- * are left out, so those players keep their crest.
+ * are left out, so those players show their crest alone.
  */
 object PlayerFaces {
     fun from(ratings: RatingsResult, catalog: Catalog): Map<String, PlayerFace> =

@@ -1,6 +1,7 @@
 package dev.quinton.goa.feature.board.play.table
 
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -24,7 +25,6 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.TextAutoSize
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.CheckCircle
 import androidx.compose.material.icons.outlined.Info
@@ -36,6 +36,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -68,7 +69,6 @@ import dev.quinton.goa.core.designsystem.component.TitlePlate
 import dev.quinton.goa.core.designsystem.component.cardColor
 import dev.quinton.goa.core.designsystem.component.scaledIconSize
 import dev.quinton.goa.core.designsystem.component.teamColor
-import dev.quinton.goa.core.designsystem.theme.GoaTextStyles
 import dev.quinton.goa.core.designsystem.theme.GoaTheme
 import dev.quinton.goa.core.designsystem.theme.Spacing
 import dev.quinton.goa.core.game.ActionType
@@ -397,20 +397,41 @@ private fun Unavailable(table: TableUi, decision: Decision, focus: CardFocusStat
 }
 
 /**
- * Who is asked and what, so a phone passed round the table says whose decision it is: the deciding hero's portrait
- * in its team ring with the team's mark at its foot (a team's question: the mark alone), then "Wasp decides · Space"
- * in small caps in the team's colour, as on the panel's strip in mock-up 01. Asked during another hero's resolution
- * it names both, "Tigerclaw defends against Arien" ([decisionOwnerLine]), as the turn strip's RESOLVING and DEFENDS do.
+ * Who decides and what, a two-line directive a phone passed round the table is read by (UI hill climb, round 4): a
+ * bar in the team's colour, the deciding hero's portrait in its team ring with the team's mark at its foot (a team's
+ * question: the mark alone), then in near-white (ink on the light theme's paper), never in team-coloured text: the
+ * owner, "You choose · Wasp" or "Computer · Wasp acting" ([decisionOwner]), and the instruction, "Choose a space" or
+ * "Defend against Arien" ([decisionDirective]). While the panel peeks ([LocalPanelPeeking]), the instruction is the
+ * engine's whole prompt, as nothing under it says it. One TalkBack node, a polite live region: a new owner is heard.
  */
 @Composable
 fun DecisionWho(table: TableUi, modifier: Modifier = Modifier) {
     val decision = table.decision ?: return
     val hero = table.decider?.let { table.hero(it.heroId) }
-    val line = decisionOwnerLine(table) ?: return
+    val owner = decisionOwner(table) ?: return
+    val peeking = LocalPanelPeeking.current && table.asking
+    val directive = if (peeking) decision.prompt else decisionDirective(table)
+    val spoken = listOfNotNull(owner, directive).joinToString(". ")
+    val ink = MaterialTheme.colorScheme.onSurface
+    val scale = LocalDensity.current.fontScale
+    val cap = minOf(scale, HEADER_MAX_SCALE) / scale
     Row(
-        modifier.clearAndSetSemantics { contentDescription = line },
+        modifier
+            .height(IntrinsicSize.Min)
+            .clearAndSetSemantics {
+                contentDescription = spoken
+                liveRegion = LiveRegionMode.Polite
+            },
         verticalAlignment = Alignment.CenterVertically,
     ) {
+        Box(
+            Modifier
+                .width(WHO_BAR)
+                .fillMaxHeight()
+                .padding(vertical = 2.dp)
+                .background(teamColor(decision.team), RoundedCornerShape(2.dp)),
+        )
+        Spacer(Modifier.width(Spacing.sm))
         if (hero != null) {
             Box {
                 HeroPortrait(
@@ -418,29 +439,49 @@ fun DecisionWho(table: TableUi, modifier: Modifier = Modifier) {
                     hero.portrait,
                     null,
                     Modifier
-                        .size(WHO_PORTRAIT)
-                        .border(1.5.dp, teamColor(decision.team), CircleShape),
+                        .size(scaledIconSize(WHO_PORTRAIT, 1.2f))
+                        .border(2.dp, teamColor(decision.team), CircleShape),
                     shape = CircleShape,
                     framed = false,
                 )
                 TeamBadge(decision.team, Modifier.align(Alignment.BottomEnd).badgeOverhang(WHO_BADGE), size = WHO_BADGE)
             }
         } else {
-            TeamMark(decision.team, markSize = scaledIconSize(13.dp, 1.3f))
+            TeamMark(decision.team, markSize = scaledIconSize(16.dp, 1.3f))
         }
-        Spacer(Modifier.width(Spacing.sm))
-        // Whose decision is never cut: with large text the words step down, then take a second line (the strip grows).
-        Text(
-            line,
-            style = GoaTextStyles.plateTitle.copy(fontSize = 15.sp, lineHeight = 20.sp),
-            color = teamColor(decision.team),
-            maxLines = 2,
-            autoSize = TextAutoSize.StepBased(minFontSize = 11.sp, maxFontSize = 15.sp),
-        )
+        Spacer(Modifier.width(Spacing.sm + 2.dp))
+        // Never cut: both lines wrap, the strip grows.
+        Column(Modifier.weight(1f, fill = false)) {
+            Text(
+                owner,
+                style = MaterialTheme.typography.titleMedium.copy(fontSize = 16.sp * cap, lineHeight = 20.sp * cap),
+                fontWeight = FontWeight.Bold,
+                color = ink,
+            )
+            directive?.let {
+                Text(
+                    it,
+                    style = MaterialTheme.typography.bodyLarge.copy(fontSize = 16.sp * cap, lineHeight = 21.sp * cap),
+                    fontWeight = FontWeight.Medium,
+                    color = ink.copy(alpha = DIRECTIVE_ALPHA),
+                )
+            }
+        }
     }
 }
 
-private val WHO_PORTRAIT = 28.dp
+/**
+ * True while the shown panel is at its peek (a space or piece being chosen on the map, [GameTable]): the header then
+ * carries the engine's whole instruction ([DecisionWho]).
+ */
+internal val LocalPanelPeeking = staticCompositionLocalOf { false }
+
+private val WHO_PORTRAIT = 34.dp
+private val WHO_BAR = 4.dp
+private const val DIRECTIVE_ALPHA = 0.94f
+
+/** The header grows with large text up to 1.4× (22 sp): past that it pushed the question under the fold. */
+private const val HEADER_MAX_SCALE = 1.4f
 
 /** The longest instruction that goes on a title plate (as `promptParts` puts a few words there). */
 private const val PROMPT_PLATE = 30
@@ -475,6 +516,8 @@ private fun PromptHeader(
                     parts
                 }
             }
+            // The parchment plate is the question's title ("DISCARD A CARD"); the header's second line then says only
+            // whom it answers, never the same words again in another style ([decisionDirective]).
             Column(
                 Modifier
                     .fillMaxWidth()
@@ -684,6 +727,38 @@ private fun BoardConfirm(table: TableUi, onAnswer: (Choice) -> Unit, busy: Boole
         ) {
             Text(label, textAlign = TextAlign.Center, maxLines = 2)
         }
+    }
+}
+
+/**
+ * The panel at its peek while a space is chosen on the map ([GameTable]): under the header (who decides, the whole
+ * instruction), how many spaces it offers in one line ("12 spaces · tap a lit one"), then only the commit: Confirm
+ * naming the choice once one is tapped, and any answer that isn't on the map ("Don't respawn"). The asking card is
+ * one drag or tap up.
+ */
+@Composable
+fun BoardPeek(table: TableUi, onAnswer: (Choice) -> Unit, busy: Boolean) {
+    Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Icon(
+                Icons.Outlined.TouchApp,
+                null,
+                tint = MaterialTheme.colorScheme.secondary,
+                modifier = Modifier.size(scaledIconSize(18.dp, 1.3f)),
+            )
+            Spacer(Modifier.width(Spacing.xs))
+            val count = table.spaceOptions.size
+            // Once one is tapped, which one in full: the Confirm under it says only what it does (opus #21).
+            Text(
+                boardChoice(table)?.let { "Chosen: ${table.label(it)}" }
+                    ?: if (count == 1) "1 space · tap the lit one" else "$count spaces · tap a lit one",
+                style = MaterialTheme.typography.bodyLarge,
+            )
+        }
+        if (table.selected?.let { it is Choice.Space || it is Choice.Unit || it is Choice.Token } == true) {
+            BoardConfirm(table, onAnswer, busy)
+        }
+        Choices(table, table.buttonOptions, onAnswer, busy, brief = true)
     }
 }
 

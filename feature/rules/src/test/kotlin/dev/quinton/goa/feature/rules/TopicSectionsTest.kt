@@ -4,6 +4,7 @@ import com.google.common.truth.Truth.assertThat
 import dev.quinton.goa.feature.rules.ui.DIAGRAMS
 import dev.quinton.goa.feature.rules.ui.bannerTitle
 import dev.quinton.goa.feature.rules.ui.openingWords
+import dev.quinton.goa.feature.rules.ui.topicAnchors
 import dev.quinton.goa.feature.rules.ui.topicSections
 import org.junit.Test
 
@@ -26,6 +27,18 @@ class TopicSectionsTest {
         val box = sections.first { it.label.startsWith("A Lane can be Pushed") }
         assertThat(push.excerpts[box.excerpt].text).startsWith(box.label.removeSuffix("…"))
         assertThat(sections.map { it.excerpt }).isInOrder()
+    }
+
+    @Test fun `pushing the lane points at its steps and both diagrams near its top`() {
+        val push = topic("pushing-the-lane")
+        val anchors = topicAnchors(push)!!
+        assertThat(anchors.diagrams.map { it.first }).hasSize(2)
+        // Steps opens the passage that prints the numbered steps, its own words untouched.
+        val steps = push.excerpts[anchors.steps!!]
+        assertThat(steps.heading).isEqualTo("Push the Lane")
+        assertThat(steps.text).contains("1. Flip one Wave counter")
+        // Only a topic with diagrams gets the anchors.
+        assertThat(topicAnchors(topic("turn-sequence"))).isNull()
     }
 
     @Test fun `every label that quotes the book is verbatim`() {

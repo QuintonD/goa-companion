@@ -81,6 +81,7 @@ import dev.quinton.goa.core.designsystem.component.OfficialIcon
 import dev.quinton.goa.core.designsystem.component.PlateRowDivider
 import dev.quinton.goa.core.designsystem.component.TeamMark
 import dev.quinton.goa.core.designsystem.component.WaveCounterIcon
+import dev.quinton.goa.core.designsystem.component.bottomEdgeFade
 import dev.quinton.goa.core.designsystem.component.horizontalEdgeFade
 import dev.quinton.goa.core.designsystem.component.scaledIconSize
 import dev.quinton.goa.core.designsystem.component.teamColor
@@ -222,7 +223,7 @@ private fun HudCounters(
                 Text("$left", style = number)
             }
         }
-        HudGroup("Turn", cap) {
+        HudGroup("Turn ${view.turn}", cap) {
             Box(Modifier.heightIn(min = with(LocalDensity.current) { big.toDp() } * 1.15f), Alignment.Center) {
                 TurnPips(view.turn)
             }
@@ -249,9 +250,9 @@ private fun HudGroup(name: String?, cap: Float, end: Boolean = false, content: @
             Text(
                 it.uppercase(),
                 style = GoaTextStyles.overline.copy(
-                    fontSize = 9.sp * cap,
-                    lineHeight = 11.sp * cap,
-                    letterSpacing = 0.8.sp,
+                    fontSize = 11.sp * cap,
+                    lineHeight = 13.sp * cap,
+                    letterSpacing = 0.6.sp,
                 ),
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 maxLines = 1,
@@ -267,7 +268,10 @@ private fun HudGroup(name: String?, cap: Float, end: Boolean = false, content: @
  */
 @Composable
 private fun TurnPips(turn: Int) {
-    val bronze = MaterialTheme.colorScheme.primary
+    // On the light theme's paper the pale bronze washed out (round 3): bronze ink there (ADR-077).
+    val dark = GoaTheme.isDark
+    val bronze = if (dark) MaterialTheme.colorScheme.primary else GoaTheme.colors.bronzeInk
+    val bright = if (dark) PipBright else GoaTheme.colors.bronzeInk
     Row(horizontalArrangement = Arrangement.spacedBy(2.dp), verticalAlignment = Alignment.CenterVertically) {
         for (t in 1..TURNS) {
             val current = t == turn
@@ -277,8 +281,8 @@ private fun TurnPips(turn: Int) {
                     t < turn -> drawPath(diamond(c, c * 0.92f), bronze.copy(alpha = PIP_DONE_ALPHA))
 
                     current -> {
-                        drawPath(diamond(c, c * 0.56f), PipBright)
-                        drawPath(diamond(c, c * 0.96f), PipBright, style = Stroke(width = 1.5.dp.toPx()))
+                        drawPath(diamond(c, c * 0.56f), bright)
+                        drawPath(diamond(c, c * 0.96f), bright, style = Stroke(width = 1.5.dp.toPx()))
                     }
 
                     else -> drawPath(diamond(c, c * 0.8f), bronze, style = Stroke(width = 1.2.dp.toPx()))
@@ -362,12 +366,8 @@ fun HeroStrip(table: TableUi, onHero: (String) -> Unit, modifier: Modifier = Mod
             }
         }
     } else {
-        SharedWidthRow(modifier) {
-            heroes.forEach { hero ->
-                val place = order.indexOf(hero.heroId).takeIf { it >= 0 }?.plus(1)
-                HeroChip(table, hero, place, onClick = { onHero(hero.heroId) })
-            }
-        }
+        // The turn strip's own cells (UI hill climb, round 4): the strip keeps one form in every state.
+        HeroCells(table, onHero, modifier)
     }
 }
 
@@ -397,113 +397,9 @@ internal fun SharedWidthRow(modifier: Modifier = Modifier, gap: Dp = Spacing.xs,
     }
 }
 
-@Composable
-private fun HeroChip(table: TableUi, hero: HeroView, place: Int?, onClick: () -> Unit) {
-    val info = table.hero(hero.heroId)
-    // A small phone: four chips still fit side by side.
-    val tight = LocalConfiguration.current.screenWidthDp < TIGHT_CHIPS
-    val acting = table.view.acting == hero.heroId
-    val played = table.card(hero.played?.cardId)?.takeIf { hero.played?.facedown != true }
-    val spoken = spokenChip(table, hero, place)
-    PlateSurface(
-        onClick = onClick,
-        shape = RoundedCornerShape(7.dp),
-        brackets = true,
-        border = if (acting) BorderStroke(2.dp, BronzeEdge) else null,
-        modifier = Modifier
-            .heightIn(min = 48.dp)
-            .clearAndSetSemantics {
-                contentDescription = spoken
-                role = Role.Button
-                onClick(label = showGameState(info.name)) {
-                    onClick()
-                    true
-                }
-            },
-    ) {
-        Row(
-            Modifier.padding(
-                start = if (tight) 5.dp else 6.dp,
-                end = if (tight) 2.dp else 4.dp,
-                top = 4.dp,
-                bottom = 4.dp,
-            ),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            ChipPortrait(table, hero, place, if (tight) 26.dp else 32.dp)
-            Spacer(Modifier.width(if (tight) 4.dp else 5.dp))
-            Column {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(
-                        info.name,
-                        style = MaterialTheme.typography.labelLarge.copy(
-                            fontSize = if (tight) 12.sp else 13.sp,
-                            letterSpacing = 0.sp,
-                        ),
-                        fontWeight = FontWeight.SemiBold,
-                        maxLines = 1,
-                    )
-                    if (acting) {
-                        Text(
-                            " · Now",
-                            style = MaterialTheme.typography.labelMedium,
-                            fontWeight = FontWeight.SemiBold,
-                            color = MaterialTheme.colorScheme.primary,
-                            maxLines = 1,
-                        )
-                    }
-                }
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(if (tight) 2.dp else 3.dp),
-                ) {
-                    Text("Lv${hero.level}", style = chipNumber())
-                    CoinIcon(size = scaledIconSize(12.dp, 1.3f))
-                    Text("${hero.coins}", style = chipNumber())
-                    (hero.initiative ?: played?.initiative)?.let {
-                        Stat(dev.quinton.goa.core.designsystem.cardtext.GameIcons.initiative.vector, "$it")
-                    }
-                    // Before the reveal: whose card is down already (p.7: played facedown, unseen).
-                    if (cardDown(table, hero)) TableCard(null, width = 9.dp, backOf = hero.heroId)
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun chipNumber(): TextStyle =
-    GoaTextStyles.numeric.copy(fontSize = MaterialTheme.typography.labelSmall.fontSize)
-
-/**
- * The portrait in its team ring, the mark on a dark badge at its foot; the cards in hand on a small card
- * at its head, so four chips fit a phone; the order among the heroes, after the reveal, at the other side.
- */
-@Composable
-private fun ChipPortrait(table: TableUi, hero: HeroView, place: Int?, size: Dp) {
-    val info = table.hero(hero.heroId)
-    Box {
-        HeroPortrait(
-            hero.heroId,
-            info.portrait,
-            null,
-            Modifier
-                .size(scaledIconSize(size, 1.3f))
-                .border(2.dp, teamColor(hero.team), CircleShape)
-                .alpha(if (hero.at == null) OFF_BOARD_ALPHA else 1f),
-            shape = CircleShape,
-            framed = false,
-        )
-        TeamBadge(hero.team, Modifier.align(Alignment.BottomEnd).badgeOverhang(CHIP_BADGE), size = CHIP_BADGE)
-        ActiveMarkerBadge(table, hero, Modifier.align(Alignment.BottomStart).offset(x = (-4).dp, y = 3.dp))
-        HandCount(hero.handCount, Modifier.align(Alignment.TopStart).offset(x = (-4).dp, y = (-3).dp))
-        if (place != null) OrderBadge(place, Modifier.align(Alignment.TopEnd))
-    }
-}
-
 /** The rune active this turn, open to everyone at a glance (TalkBack hears it with the chip). */
 @Composable
-private fun ActiveMarkerBadge(table: TableUi, hero: HeroView, modifier: Modifier) {
+internal fun ActiveMarkerBadge(table: TableUi, hero: HeroView, modifier: Modifier) {
     activeMarker(table, hero)?.let {
         OfficialIcon(
             markerArt(it.kind),
@@ -512,25 +408,6 @@ private fun ActiveMarkerBadge(table: TableUi, hero: HeroView, modifier: Modifier
                 .background(BadgeCard, CircleShape)
                 .border(1.dp, BronzeEdge, CircleShape)
                 .clearAndSetSemantics {},
-        )
-    }
-}
-
-/** How many cards a hero holds, on a little card. */
-@Composable
-private fun HandCount(count: Int, modifier: Modifier = Modifier) {
-    Box(
-        modifier
-            .defaultMinSize(minWidth = 12.dp, minHeight = 15.dp)
-            .background(BadgeCard, RoundedCornerShape(2.dp))
-            .border(1.dp, BronzeEdge, RoundedCornerShape(2.dp))
-            .padding(horizontal = 2.dp),
-        contentAlignment = Alignment.Center,
-    ) {
-        Text(
-            "$count",
-            style = GoaTextStyles.numeric.copy(fontSize = 10.sp, lineHeight = 13.sp),
-            fontWeight = FontWeight.SemiBold,
         )
     }
 }
@@ -596,25 +473,8 @@ private val COMPACT_CHIP = 48.dp
 private val COMPACT_PORTRAIT = 38.dp
 private val CHIP_BADGE = 15.dp
 private val CHIP_MARKER = 17.dp
-private const val TIGHT_CHIPS = 380
 private val BronzeEdge = Color(0xFFC9A35B)
 private val BadgeCard = Color(0xFF10181E)
-
-@Composable
-private fun Stat(icon: ImageVector?, text: String) {
-    Row(verticalAlignment = Alignment.CenterVertically) {
-        if (icon != null) {
-            Icon(
-                icon,
-                null,
-                tint = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.size(scaledIconSize(12.dp, 1.3f)),
-            )
-            Spacer(Modifier.width(1.dp))
-        }
-        Text(text, style = GoaTextStyles.numeric.copy(fontSize = MaterialTheme.typography.labelSmall.fontSize))
-    }
-}
 
 /**
  * One hero's game state (ADR-044, open information, p.4) on the real dashboard (mock-up 05): who plays
@@ -669,7 +529,8 @@ internal fun HeroDetail(
         // A wide sheet (landscape) puts the dashboard beside everything else.
         BoxWithConstraints(Modifier.weight(1f).fillMaxWidth()) {
             if (maxWidth >= WIDE_SHEET) {
-                Row(Modifier.verticalScroll(rememberScrollState()), horizontalArrangement = gap) {
+                val scroll = rememberScrollState()
+                Row(Modifier.bottomEdgeFade(scroll).verticalScroll(scroll), horizontalArrangement = gap) {
                     Column(Modifier.weight(1f), verticalArrangement = gap) {
                         HeroDashboard(table, hero, focus, Modifier.fillMaxWidth())
                         Column(side, verticalArrangement = gap) {
@@ -678,15 +539,17 @@ internal fun HeroDetail(
                         }
                     }
                     Column(
-                        Modifier.weight(1f).padding(end = Spacing.screen),
+                        Modifier.weight(1f).padding(end = Spacing.screen, bottom = SHEET_END),
                         verticalArrangement = gap,
                         content = theRest,
                     )
                 }
             } else {
-                Column(Modifier.verticalScroll(rememberScrollState()), verticalArrangement = gap) {
+                // The sheet fades out at its foot while more lies below: read as a page that goes on, not one cut.
+                val scroll = rememberScrollState()
+                Column(Modifier.bottomEdgeFade(scroll).verticalScroll(scroll), verticalArrangement = gap) {
                     HeroDashboard(table, hero, focus, Modifier.fillMaxWidth())
-                    Column(side.padding(bottom = Spacing.md), verticalArrangement = gap) {
+                    Column(side.padding(bottom = SHEET_END), verticalArrangement = gap) {
                         SlotMarkersSection(table, hero)
                         ThisTurnSection(table, hero)
                         theRest()
@@ -820,18 +683,33 @@ private fun UltimateAndHand(table: TableUi, hero: HeroView, focus: CardFocusStat
                 hand == null -> {
                     Section("In hand · ${hero.handCount}")
                     val backs = List(hero.handCount) { CardView(null) }
-                    CardRow(backs, table, focus, "$name · In hand", width = SHEET_CARD, backOf = hero.heroId)
+                    CardRow(
+                        backs,
+                        table,
+                        focus,
+                        "$name · In hand",
+                        width = SHEET_CARD,
+                        backOf = hero.heroId,
+                        wrap = true,
+                    )
                 }
 
                 hero.heroId in table.mine -> {
                     Section("Your hand · ${hand.size}")
-                    CardRow(hand.map { CardView(it) }, table, focus, "$name · Your hand", width = SHEET_CARD)
+                    CardRow(
+                        hand.map { CardView(it) },
+                        table,
+                        focus,
+                        "$name · Your hand",
+                        width = SHEET_CARD,
+                        wrap = true,
+                    )
                 }
 
                 hand.isNotEmpty() -> {
                     // Only a puzzle shows another hero's hand: its hands are open information.
                     Section("In hand · open in this puzzle")
-                    CardRow(hand.map { CardView(it) }, table, focus, "$name · In hand", width = SHEET_CARD)
+                    CardRow(hand.map { CardView(it) }, table, focus, "$name · In hand", width = SHEET_CARD, wrap = true)
                 }
             }
         }
@@ -975,6 +853,8 @@ internal fun CardRow(
     width: Dp = THUMB_CARD,
     /** Whose deck's back a facedown card shows. */
     backOf: String? = null,
+    /** A grid as wide as it is given instead of a row that scrolls (the hero sheet's hand). */
+    wrap: Boolean = false,
 ) {
     val captions = captions ?: cards.map { cardCaption(it, slots) }
     val open = cards.indices.filter { !cards[it].facedown && table.card(cards[it].cardId) != null }
@@ -990,6 +870,7 @@ internal fun CardRow(
         onOpen = { i, _ -> open.indexOf(i).takeIf { it >= 0 }?.let { focus.open(viewable, it, title = title) } },
         width = width,
         backOf = backOf,
+        wrap = wrap,
     )
 }
 
@@ -1014,6 +895,7 @@ internal fun CardRow(
     )
 }
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun ThumbRow(
     cards: List<CardView>,
@@ -1023,50 +905,87 @@ private fun ThumbRow(
     onOpen: (index: Int, card: Card) -> Unit,
     width: Dp = THUMB_CARD,
     backOf: String? = null,
+    wrap: Boolean = false,
 ) {
-    Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-        cards.forEachIndexed { i, view ->
-            val card = table.card(view.cardId).takeIf { !view.facedown }
-            val spoken = listOfNotNull(
-                captions.getOrNull(i)?.takeIf { it.isNotEmpty() },
-                card?.let(::spokenCard) ?: "Facedown card",
-            ).joinToString(", ")
-            val show = { if (card != null) onOpen(i, card) }
-            Column(
-                horizontalAlignment = Alignment.CenterHorizontally,
-                modifier = Modifier.semantics(mergeDescendants = true) {
-                    contentDescription = spoken
-                    if (card != null) {
-                        onClick(label = "Look at the card") {
-                            show()
-                            true
-                        }
-                    }
-                },
+    if (wrap) {
+        // The hero sheet's hand: a grid as wide as the sheet, every card whole (a row cut the fourth at the edge).
+        BoxWithConstraints(Modifier.fillMaxWidth()) {
+            val gap = Spacing.sm
+            val columns = ((maxWidth + gap) / (GRID_CARD_MIN + gap)).toInt().coerceAtLeast(1)
+            val each = minOf(width, (maxWidth - gap * (columns - 1)) / columns)
+            FlowRow(
+                horizontalArrangement = Arrangement.spacedBy(gap),
+                verticalArrangement = Arrangement.spacedBy(Spacing.sm),
+                maxItemsInEachRow = columns,
             ) {
-                Surface(
-                    onClick = show,
-                    enabled = card != null,
-                    shape = RoundedCornerShape(width * 0.08f),
-                    color = Color.Transparent,
-                    border = if (view.active) BorderStroke(2.dp, MaterialTheme.colorScheme.secondary) else null,
-                    modifier = if (card != null) origin(card) else Modifier,
-                ) {
-                    TableCard(card, width = width, backOf = backOf)
+                ThumbItems(cards, table, captions, origin, onOpen, each, backOf)
+            }
+        }
+        return
+    }
+    val scroll = rememberScrollState()
+    Row(
+        Modifier.horizontalEdgeFade(scroll).horizontalScroll(scroll),
+        horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+    ) {
+        ThumbItems(cards, table, captions, origin, onOpen, width, backOf)
+        // Room after the last card, so the edge's fade never lies over it once scrolled to the end.
+        Spacer(Modifier.width(Spacing.md))
+    }
+}
+
+/** The cards of a [ThumbRow], each with its caption and, hand-sized, its name and numbers. */
+@Composable
+private fun ThumbItems(
+    cards: List<CardView>,
+    table: TableUi,
+    captions: List<String>,
+    origin: (Card) -> Modifier,
+    onOpen: (index: Int, card: Card) -> Unit,
+    width: Dp,
+    backOf: String?,
+) {
+    cards.forEachIndexed { i, view ->
+        val card = table.card(view.cardId).takeIf { !view.facedown }
+        val spoken = listOfNotNull(
+            captions.getOrNull(i)?.takeIf { it.isNotEmpty() },
+            card?.let(::spokenCard) ?: "Facedown card",
+        ).joinToString(", ")
+        val show = { if (card != null) onOpen(i, card) }
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            modifier = Modifier.semantics(mergeDescendants = true) {
+                contentDescription = spoken
+                if (card != null) {
+                    onClick(label = "Look at the card") {
+                        show()
+                        true
+                    }
                 }
-                // A hand-sized card says its name and numbers in a strip under it (the scan's print is too small).
-                if (card != null && !card.isSpell && width >= NUMBERED_THUMB) {
-                    CardCaption(card, width)
-                    CardNumbers(card, width)
-                }
-                val caption = captions.getOrNull(i).orEmpty()
-                if (caption.isNotEmpty()) {
-                    Text(
-                        caption,
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
+            },
+        ) {
+            Surface(
+                onClick = show,
+                enabled = card != null,
+                shape = RoundedCornerShape(width * 0.08f),
+                color = Color.Transparent,
+                border = if (view.active) BorderStroke(2.dp, MaterialTheme.colorScheme.secondary) else null,
+                modifier = if (card != null) origin(card) else Modifier,
+            ) {
+                TableCard(card, width = width, backOf = backOf)
+            }
+            // A hand-sized card says its name and numbers in a strip under it (the scan's print is too small).
+            if (card != null && !card.isSpell && width >= NUMBERED_THUMB) {
+                CardCaption(card, width)
+                CardNumbers(card, width)
+            }
+            val caption = captions.getOrNull(i).orEmpty()
+            if (caption.isNotEmpty()) {
+                Text(
+                    caption,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
             }
         }
     }
@@ -1083,3 +1002,9 @@ private val NUMBERED_THUMB = 80.dp
 
 /** The Ultimate and the hand on the hero sheet (mock-up 05). */
 private val SHEET_CARD = 92.dp
+
+/** Room under the sheet's last line, clear of the sheet's foot and the gesture bar. */
+private val SHEET_END = 40.dp
+
+/** The narrowest card of the hero sheet's hand grid: four to a row on a phone, names and numbers still read. */
+private val GRID_CARD_MIN = 84.dp

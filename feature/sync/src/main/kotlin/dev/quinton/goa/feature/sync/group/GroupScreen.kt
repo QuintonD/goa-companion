@@ -83,6 +83,7 @@ import dev.quinton.goa.core.designsystem.component.GoaDialog
 import dev.quinton.goa.core.designsystem.component.GoaOutlinedButton
 import dev.quinton.goa.core.designsystem.component.GoaPlate
 import dev.quinton.goa.core.designsystem.component.GoaScreen
+import dev.quinton.goa.core.designsystem.component.IdentitySelector
 import dev.quinton.goa.core.designsystem.component.PlateRowDivider
 import dev.quinton.goa.core.designsystem.component.PlateStyle
 import dev.quinton.goa.core.designsystem.component.PlayerAvatar
@@ -331,32 +332,30 @@ private fun InGroup(state: GroupUiState, actions: GroupActions, padding: Padding
         item { PhoneToPhone(state) }
         item { SectionHeader("This phone") }
         item {
-            GoaCard(Modifier.fillMaxWidth(), onClick = actions.onWhoAreYou) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    if (state.me != null) {
-                        PlayerAvatar(state.me, showFace = true)
+            // Who this phone is, as Online and Card trivia show it: the crest, "Playing as Ann", the group, a chevron.
+            val me = state.me
+            IdentitySelector(
+                title = me?.let { "Playing as ${it.name}" } ?: "Which player are you?",
+                scope = if (me != null) {
+                    "Group · ${state.groupName.orEmpty()}"
+                } else {
+                    "Choose yourself so the app can show your page first"
+                },
+                avatar = { size ->
+                    if (me != null) {
+                        PlayerAvatar(me, size = size, showFace = true)
                     } else {
                         Icon(
                             Icons.Outlined.PersonOutline,
                             null,
                             tint = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.size(40.dp),
+                            modifier = Modifier.size(size),
                         )
                     }
-                    Spacer(Modifier.width(Spacing.md))
-                    Column(Modifier.weight(1f)) {
-                        Text(
-                            state.me?.let { "You: ${it.name}" } ?: "Which player are you?",
-                            style = MaterialTheme.typography.titleMedium,
-                        )
-                        Text(
-                            if (state.me != null) "Change" else "Choose yourself so the app can show your page first",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                    }
-                }
-            }
+                },
+                onClick = actions.onWhoAreYou,
+                onClickLabel = if (me != null) "Change player" else "Choose player",
+            )
         }
         if (serverSetUp) {
             item { SectionHeader("Remote sync") }

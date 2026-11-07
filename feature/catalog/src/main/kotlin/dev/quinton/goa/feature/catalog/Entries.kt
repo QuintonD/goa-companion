@@ -8,6 +8,7 @@ import androidx.navigation3.runtime.NavKey
 import dev.quinton.goa.core.navigation.CardViewerRoute
 import dev.quinton.goa.core.navigation.CatalogRoute
 import dev.quinton.goa.core.navigation.HeroDetailRoute
+import dev.quinton.goa.core.navigation.MatchEditRoute
 import dev.quinton.goa.core.navigation.Navigator
 import dev.quinton.goa.core.navigation.RulesRoute
 import dev.quinton.goa.core.navigation.SettingsRoute
@@ -44,6 +45,7 @@ fun EntryProviderScope<NavKey>.catalogEntries(navigator: Navigator) {
             onBack = navigator::back,
             onCardClick = { heroId, cardId -> navigator.navigate(CardViewerRoute(heroId, cardId)) },
             onLearnNumbers = { heroId -> navigator.navigate(TriviaRoute(heroId)) },
+            onLogMatch = { heroId -> navigator.navigate(MatchEditRoute(prefillHeroId = heroId)) },
             initialSection = key.section,
         )
     }

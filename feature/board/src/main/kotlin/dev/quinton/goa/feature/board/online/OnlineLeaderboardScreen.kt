@@ -180,7 +180,7 @@ private fun Rows(state: LeaderboardUi, portraits: Map<String, String?>) {
         }
         rows.forEachIndexed { i, row ->
             if (i > 0) HorizontalDivider(color = GoaTheme.colors.engravedBorder)
-            BoardRow(row)
+            BoardRow(row, heroes, portraits[row.id])
         }
     }
 }
@@ -226,6 +226,9 @@ private fun spoken(row: LeaderboardRowUi): String = buildString {
     append(", rating ${row.rating}, ${row.wins} wins in ${row.games} games")
 }
 
+/** A row's crest or portrait. */
+private val ROW_MARK = 36.dp
+
 /** From this font scale the podium's three columns give way to rows. */
 private const val PODIUM_FONT_SCALE = 1.3f
 
@@ -250,8 +253,9 @@ private fun Header(what: String) {
     HorizontalDivider(color = GoaTheme.colors.engravedBorder)
 }
 
+/** A row under the podium: rank, the crest (a player's, as on the podium) or the hero's portrait, name, rating. */
 @Composable
-private fun BoardRow(row: LeaderboardRowUi) {
+private fun BoardRow(row: LeaderboardRowUi, hero: Boolean, portrait: String?) {
     val spoken = spoken(row)
     Row(
         Modifier
@@ -269,6 +273,12 @@ private fun BoardRow(row: LeaderboardRowUi) {
             textAlign = TextAlign.End,
             modifier = Modifier.widthIn(min = 28.dp),
         )
+        Spacer(Modifier.width(Spacing.md))
+        if (hero) {
+            HeroPortrait(row.id, portrait, null, Modifier.size(ROW_MARK), CircleShape)
+        } else {
+            AccountAvatar(row.id, row.name, size = ROW_MARK)
+        }
         Spacer(Modifier.width(Spacing.md))
         Column(Modifier.weight(1f)) {
             Row(verticalAlignment = Alignment.CenterVertically) {

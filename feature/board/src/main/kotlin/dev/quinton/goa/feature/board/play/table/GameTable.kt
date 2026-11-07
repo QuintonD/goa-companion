@@ -108,6 +108,11 @@ fun GameTable(
     feed: (@Composable () -> Unit)? = null,
     /** Pinned at the foot of the shown panel, under what scrolls: the hand's tab ([HandTab]). */
     panelFooter: (@Composable () -> Unit)? = null,
+    /**
+     * The panel's peek while a space or piece is chosen on the map, upright ([BoardPeek]: the commit): the header and
+     * this, the rest one drag or tap up. Null: the panel is always whole.
+     */
+    peekBody: (@Composable ColumnScope.() -> Unit)? = null,
     panel: @Composable ColumnScope.() -> Unit,
 ) {
     var hidden by rememberSaveable { mutableStateOf(initialPanelHidden) }
@@ -139,16 +144,27 @@ fun GameTable(
         // the map rather than over it, so the panel keeps its height for the question.
         val column = landscape && !hidden && table.track != null
         val mapStart = if (column) SIDE_COLUMN else 0.dp
+        // A space chosen on the map: the panel starts at its peek (who, what, the commit), so the map has the room; the
+        // whole panel is one drag or tap up, and each new question starts at the peek again. Pieces keep the whole
+        // panel: their numbered list (distance, lane) is part of the decision.
+        val boardChoice = table.asking && !table.handDecision &&
+            table.spaceOptions.isNotEmpty() && table.pieceOptions.isEmpty()
+        var expanded by rememberSaveable(table.decision?.id) { mutableStateOf(false) }
+        val peeking = peekBody != null && boardChoice && !landscape && !expanded
         // Where the question ends in the panel: the panel needn't be taller than that and a look at what follows.
         var questionEnd by remember { mutableStateOf<Int?>(null) }
         // The hand's tab pinned under the question ([panelFooter]): the panel holds both.
         var footerHeight by remember { mutableIntStateOf(0) }
+        // The panel's strip as drawn: the header's two lines make it taller than its 40 dp.
+        var stripHeight by remember { mutableIntStateOf(0) }
         // The tab comes on top of the question's share: it never pushes the question's commit below the fold.
-        val footer = with(density) { (if (panelFooter != null) footerHeight else 0).toDp() } / maxHeight
+        val footer = with(density) { (if (panelFooter != null && !peeking) footerHeight else 0).toDp() } / maxHeight
         val panelShare = footer + (
             questionEnd?.let { end ->
-                val height = with(density) { end.toDp() } + PanelStripHeight + PANEL_PAST_QUESTION
-                (height / maxHeight).coerceAtMost(PANEL_SHARE)
+                val strip = maxOf(PanelStripHeight, with(density) { stripHeight.toDp() })
+                val height = with(density) { end.toDp() } + strip + PANEL_PAST_QUESTION
+                // The whole question with its commit row, never cut at the screen's foot: up to [QUESTION_SHARE].
+                (height / maxHeight).coerceAtMost(QUESTION_SHARE)
             } ?: PANEL_SHARE
             )
 
@@ -170,11 +186,13 @@ fun GameTable(
         LaunchedEffect(controls, pieceCentres) { viewport.updateAvoid(controls, pieceCentres) }
 
         val decision = table.decision
-        val gesturesAtQuestion = remember(decision?.id, table.asking) { viewport.gestures }
+        // The panel peeking or whole changes the room: what is asked about is framed again above it.
+        val gesturesAtQuestion = remember(decision?.id, table.asking, peeking) { viewport.gestures }
         var crowdedFor by remember { mutableStateOf<Long?>(null) }
         LaunchedEffect(
             decision?.id,
             table.asking,
+            peeking,
             viewport.unit,
             viewport.bottomInset,
             viewport.endInset,
@@ -316,46 +334,53 @@ fun GameTable(
             }
         }
 
-        HideablePanel(
-            landscape = landscape,
-            hidden = hidden,
-            onHiddenChange = { hidden = it },
-            peek = peek,
-            sideWidth = sideWidth,
-            maxShare = panelShare,
-            onCover = { cover = it },
-            peekTrailing = peekTrailing,
-            title = panelTitle,
-        ) {
-            CompositionLocalProvider(
-                LocalPanelQuestionEnd provides { questionEnd = it },
-                LocalOptionsCrowded provides crowded,
+        CompositionLocalProvider(LocalPanelPeeking provides peeking) {
+            HideablePanel(
+                landscape = landscape,
+                hidden = hidden,
+                onHiddenChange = { hidden = it },
+                peek = peek,
+                sideWidth = sideWidth,
+                maxShare = panelShare,
+                onCover = { cover = it },
+                peekTrailing = peekTrailing,
+                title = panelTitle,
+                peekBody = peekBody?.takeIf { boardChoice },
+                collapsed = peeking,
+                onCollapsedChange = { expanded = !it },
+                onStrip = { stripHeight = it },
             ) {
-                Column(
-                    Modifier
-                        .weight(1f, fill = false)
-                        .verticalScroll(panelScroll)
-                        .padding(
-                            start = PANEL_INSET,
-                            end = PANEL_INSET,
-                            bottom = if (landscape) Spacing.sm else Spacing.md,
-                        ),
-                    verticalArrangement = Arrangement.spacedBy(Spacing.sm),
+                CompositionLocalProvider(
+                    LocalPanelQuestionEnd provides { questionEnd = it },
+                    LocalOptionsCrowded provides crowded,
                 ) {
-                    // Sideways the round at a glance heads the panel (the turn's order is the column at the map's
-                    // edge): nothing over the map.
-                    if (landscape) ScoreBar(table, onHero, focus, heroes = true, compact = true, track = false)
-                    panel()
+                    Column(
+                        Modifier
+                            .weight(1f, fill = false)
+                            .verticalScroll(panelScroll)
+                            .padding(
+                                start = PANEL_INSET,
+                                end = PANEL_INSET,
+                                bottom = if (landscape) Spacing.sm else Spacing.md,
+                            ),
+                        verticalArrangement = Arrangement.spacedBy(Spacing.sm),
+                    ) {
+                        // Sideways the round at a glance heads the panel (the turn's order is the column at the map's
+                        // edge): nothing over the map.
+                        if (landscape) ScoreBar(table, onHero, focus, heroes = true, compact = true, track = false)
+                        panel()
+                    }
                 }
+                if (panelFooter != null) Box(Modifier.onSizeChanged { footerHeight = it.height }) { panelFooter() }
             }
-            if (panelFooter != null) Box(Modifier.onSizeChanged { footerHeight = it.height }) { panelFooter() }
         }
     }
 }
 
 /**
  * The score bar: the round at a glance with the turn's order on the same plate under it (one 48 dp row of cells,
- * [TurnTrackRow]); before the reveal the heroes' chips under it ([heroes], [compact]: portraits only).
+ * [TurnTrackRow]); when no turn resolves, the heroes on the same cells there ([HeroCells], [heroes]), so the strip
+ * keeps one form; [compact] (the side panel): the heroes as portraits under it.
  */
 @Composable
 internal fun ScoreBar(
@@ -373,13 +398,19 @@ internal fun ScoreBar(
         Modifier.fillMaxWidth(),
         compact = compact,
         spread = true,
-        below = if (track && turn != null) {
-            { TurnTrackRow(table, turn, onHero, focus = focus, framed = false) }
-        } else {
-            null
+        below = when {
+            track && turn != null -> {
+                { TurnTrackRow(table, turn, onHero, focus = focus, framed = false) }
+            }
+
+            turn == null && heroes && !compact -> {
+                { HeroCells(table, onHero, framed = false) }
+            }
+
+            else -> null
         },
     )
-    if (turn == null && heroes) HeroStrip(table, onHero, compact = compact)
+    if (turn == null && heroes && compact) HeroStrip(table, onHero, compact = true)
 }
 
 /**
@@ -486,8 +517,8 @@ private const val OPTIONS_SHRINK = 0.8f
 private val SIDE_PANEL = 400.dp
 private val PANEL_INSET = 12.dp
 
-/** How much of what follows the question the panel shows, so it reads as more to scroll to. */
-private val PANEL_PAST_QUESTION = 32.dp
+/** Room under the question before the panel ends: the rest (what happened) scrolls, never shown cut at the foot. */
+private val PANEL_PAST_QUESTION = 12.dp
 private val HAND_SIDE_PANEL = 480.dp
 private const val HAND_SIDE_SHARE = 0.5f
 private val ZONE_HEX_TAP = 48.dp
@@ -502,3 +533,6 @@ private const val SQRT3 = 1.7320508f
 private const val ZONE_MARGIN = 48f
 private const val SIDE_SHARE = 0.42f
 private const val PANEL_SHARE = 0.48f
+
+/** A question sized to its end may take this much, so its commit row is whole (a defence under the two-line header). */
+private const val QUESTION_SHARE = 0.56f

@@ -80,15 +80,18 @@ import androidx.compose.ui.unit.sp
 import dev.quinton.goa.core.designsystem.cardtext.GameIcon
 import dev.quinton.goa.core.designsystem.cardtext.GameIcons
 import dev.quinton.goa.core.designsystem.component.CardTextBox
+import dev.quinton.goa.core.designsystem.component.CoinIcon
 import dev.quinton.goa.core.designsystem.component.HeroPortrait
 import dev.quinton.goa.core.designsystem.component.PlateColor
 import dev.quinton.goa.core.designsystem.component.TeamMark
 import dev.quinton.goa.core.designsystem.component.horizontalEdgeFade
+import dev.quinton.goa.core.designsystem.component.scaledIconSize
 import dev.quinton.goa.core.designsystem.component.teamColor
 import dev.quinton.goa.core.designsystem.theme.GoaTextStyles
 import dev.quinton.goa.core.designsystem.theme.GoaTheme
 import dev.quinton.goa.core.designsystem.theme.Spacing
 import dev.quinton.goa.core.game.ActionType
+import dev.quinton.goa.core.game.HeroView
 import dev.quinton.goa.core.model.catalog.Card
 import dev.quinton.goa.feature.board.BoardText
 import dev.quinton.goa.feature.board.play.PlayText
@@ -503,7 +506,7 @@ private fun TrackCell(
                 Spacer(Modifier.width(5.dp))
                 Column(Modifier.weight(1f)) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Initiative(slot)
+                        Initiative(slot.initiative, slot.tied)
                         Spacer(Modifier.width(5.dp))
                         HeroName(info.name, Modifier.weight(1f), TextAlign.Start)
                     }
@@ -515,7 +518,7 @@ private fun TrackCell(
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     ChipPortrait(table, slot, firstCard, CELL_PORTRAIT)
                     Spacer(Modifier.width(5.dp))
-                    Initiative(slot)
+                    Initiative(slot.initiative, slot.tied)
                 }
                 HeroName(info.name, Modifier.fillMaxWidth().padding(top = 1.dp), TextAlign.Center)
                 cardName(TextAlign.Center)
@@ -549,15 +552,15 @@ private fun HeroName(name: String, modifier: Modifier, align: TextAlign) {
 
 /** The initiative as it counts, in large figures: "=11" while tied with another hero still to act, else "–". */
 @Composable
-private fun Initiative(slot: TrackSlot) {
+private fun Initiative(initiative: Int?, tied: Boolean) {
     Text(
-        slot.initiative?.let { if (slot.tied) "=$it" else "$it" } ?: "–",
+        initiative?.let { if (tied) "=$it" else "$it" } ?: "–",
         style = GoaTextStyles.numeric.copy(
             fontSize = cappedSp(INITIATIVE_SP),
             lineHeight = cappedSp(INITIATIVE_SP + 2f),
             fontWeight = FontWeight.Bold,
         ),
-        color = MaterialTheme.colorScheme.run { if (slot.tied) secondary else onSurface },
+        color = MaterialTheme.colorScheme.run { if (tied) secondary else onSurface },
         maxLines = 1,
         softWrap = false,
     )
@@ -565,7 +568,7 @@ private fun Initiative(slot: TrackSlot) {
 
 /** The band across a cell's foot: the state in a word, DONE with a tick; an empty band for a hero acting later. */
 @Composable
-private fun CellBand(role: CellRole, word: String) {
+private fun CellBand(role: CellRole, word: String, tick: Boolean = true) {
     val dark = GoaTheme.isDark
     val (background, content) = when (role) {
         CellRole.ACTS, CellRole.ANSWERS -> NowBand to BandInk
@@ -586,7 +589,7 @@ private fun CellBand(role: CellRole, word: String) {
         horizontalArrangement = Arrangement.Center,
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        if (role == CellRole.DONE) {
+        if (role == CellRole.DONE && tick) {
             Icon(Icons.Filled.Check, null, tint = content, modifier = Modifier.size(11.dp))
             Spacer(Modifier.width(2.dp))
         }
@@ -928,6 +931,166 @@ fun MomentRow(moment: TableMoment, table: TableUi, modifier: Modifier = Modifier
     }
 }
 
+/**
+ * Every hero on the turn strip's own cells when no turn is resolving (before the reveal, the end of a round, a puzzle
+ * solved; UI hill climb, round 4): the same cells as [TurnTrackRow]'s, in the same places (portrait and initiative,
+ * the name, then a second line, a band), so the strip never changes form. Only the second line differs: the level,
+ * the coins and the cards in hand instead of the card played. The band says NOW on the acting hero and CARD DOWN on
+ * one whose card is down before the reveal (p.7). Equal cells sharing the width; they scroll only past [MIN_CELL],
+ * never cut. A tap opens the hero's state (TalkBack: "Open Arien's state"). [framed]: on a plate of its own.
+ */
+@Composable
+internal fun HeroCells(
+    table: TableUi,
+    onHero: (String) -> Unit,
+    modifier: Modifier = Modifier,
+    framed: Boolean = true,
+) {
+    val order = table.initiativeOrder
+    val heroes = if (order.isNotEmpty()) {
+        order.mapNotNull(table::heroView) + table.view.heroes.filter { it.heroId !in order }
+    } else {
+        table.view.heroes.sortedBy { it.team.ordinal }
+    }
+    val place: (HeroView) -> Int? = { hero -> order.indexOf(hero.heroId).takeIf { it >= 0 }?.plus(1) }
+    val body: @Composable () -> Unit = {
+        BoxWithConstraints(Modifier.fillMaxWidth().padding(STRIP_PAD)) {
+            val n = heroes.size.coerceAtLeast(1)
+            val each = (maxWidth - CELL_GAP * (n - 1)) / n
+            if (each >= MIN_CELL) {
+                Row(
+                    Modifier.fillMaxWidth().height(IntrinsicSize.Min),
+                    horizontalArrangement = Arrangement.spacedBy(CELL_GAP),
+                ) {
+                    heroes.forEach { hero ->
+                        HeroCell(table, hero, place(hero), { onHero(hero.heroId) }, Modifier.weight(1f))
+                    }
+                }
+            } else {
+                val scroll = rememberScrollState()
+                Row(
+                    Modifier.horizontalEdgeFade(scroll).horizontalScroll(scroll).height(IntrinsicSize.Min),
+                    horizontalArrangement = Arrangement.spacedBy(CELL_GAP),
+                ) {
+                    heroes.forEach { hero ->
+                        HeroCell(table, hero, place(hero), { onHero(hero.heroId) }, Modifier.width(SCROLL_CELL))
+                    }
+                }
+            }
+        }
+    }
+    if (framed) {
+        PlateSurface(shape = RoundedCornerShape(8.dp), modifier = modifier.fillMaxWidth(), content = body)
+    } else {
+        Box(modifier.fillMaxWidth()) { body() }
+    }
+}
+
+/** One hero's cell on [HeroCells]: a [TrackCell] whose second line is the level, coins and hand. */
+@Composable
+private fun HeroCell(table: TableUi, hero: HeroView, place: Int?, onClick: () -> Unit, modifier: Modifier) {
+    val info = table.hero(hero.heroId)
+    val acting = table.view.acting == hero.heroId
+    val down = cardDown(table, hero)
+    val played = table.card(hero.played?.cardId)?.takeIf { hero.played?.facedown != true }
+    val initiative = hero.initiative ?: played?.initiative
+    val spoken = spokenChip(table, hero, place)
+    val shape = RoundedCornerShape(6.dp)
+    val open = showGameState(info.name)
+    Column(
+        modifier
+            .fillMaxHeight()
+            .clip(shape)
+            .background(PlateWell)
+            .then(if (acting) Modifier.border(BorderStroke(2.dp, NowBand), shape) else Modifier)
+            .clickable(onClickLabel = open, role = Role.Button, onClick = onClick)
+            .clearAndSetSemantics {
+                contentDescription = spoken
+                role = Role.Button
+                onClick(label = open) {
+                    onClick()
+                    true
+                }
+            },
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        Column(
+            Modifier.fillMaxWidth().padding(start = 4.dp, end = 4.dp, top = 3.dp, bottom = 2.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                HeroCellPortrait(table, hero)
+                if (initiative != null) {
+                    Spacer(Modifier.width(5.dp))
+                    Initiative(initiative, tied = false)
+                }
+            }
+            HeroName(info.name, Modifier.fillMaxWidth().padding(top = 1.dp), TextAlign.Center)
+            HeroCellNumbers(hero)
+        }
+        Spacer(Modifier.weight(1f))
+        val role = when {
+            acting -> CellRole.ACTS
+            down -> CellRole.DONE
+            else -> CellRole.LATER
+        }
+        val word = when (role) {
+            CellRole.ACTS -> "NOW"
+            CellRole.DONE -> "CARD DOWN"
+            else -> ""
+        }
+        CellBand(role, word, tick = false)
+    }
+}
+
+/** The second line of a hero's cell: level, coins and the cards in hand, in the card name's size. */
+@Composable
+private fun HeroCellNumbers(hero: HeroView) {
+    val size = cappedSp(CARD_NAME_SP)
+    val number = GoaTextStyles.numeric.copy(
+        fontSize = size,
+        lineHeight = size * CARD_LINE,
+        fontWeight = FontWeight.Medium,
+    )
+    val color = LocalContentColor.current.copy(alpha = CARD_NAME_ALPHA)
+    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(3.dp)) {
+        Text("Lv${hero.level}", style = number, color = color, maxLines = 1, softWrap = false)
+        CoinIcon(size = scaledIconSize(12.dp, MAX_NAME_SCALE))
+        Text("${hero.coins}", style = number, color = color, maxLines = 1, softWrap = false)
+        TableCard(null, width = 9.dp, backOf = hero.heroId)
+        Text("${hero.handCount}", style = number, color = color, maxLines = 1, softWrap = false)
+    }
+}
+
+/** A hero cell's portrait: the team ring, the mark at its foot, the rune active, crossed out off the board. */
+@Composable
+private fun HeroCellPortrait(table: TableUi, hero: HeroView) {
+    val info = table.hero(hero.heroId)
+    Box {
+        HeroPortrait(
+            hero.heroId,
+            info.portrait,
+            null,
+            Modifier
+                .size(CELL_PORTRAIT)
+                .border(2.dp, teamColor(hero.team), CircleShape)
+                .alpha(if (hero.at == null) OFF_BOARD_ALPHA else 1f),
+            shape = CircleShape,
+            framed = false,
+        )
+        if (hero.at == null) {
+            Icon(
+                Icons.Filled.Close,
+                null,
+                tint = MaterialTheme.colorScheme.error,
+                modifier = Modifier.align(Alignment.Center).size(CELL_PORTRAIT * 0.7f),
+            )
+        }
+        TeamBadge(hero.team, Modifier.align(Alignment.BottomEnd).badgeOverhang(SMALL_BADGE), size = SMALL_BADGE)
+        ActiveMarkerBadge(table, hero, Modifier.align(Alignment.TopStart).offset(x = (-5).dp, y = (-4).dp))
+    }
+}
+
 /** A size in sp that ignores the font scale: text on a card stays inside the card. */
 @Composable
 private fun fixedSp(value: Float): TextUnit = with(LocalDensity.current) { value.dp.toSp() }
@@ -969,7 +1132,7 @@ private const val STEPPED_ALPHA = 0.72f
 private const val CARD_NAME_SP = 12f
 private const val NAME_SP = 13f
 private const val INITIATIVE_SP = 16f
-private const val BAND_SP = 10f
+private const val BAND_SP = 12f
 
 /** The card name's line height, and how far its size may step down to stay on one line. */
 private const val CARD_LINE = 1.23f

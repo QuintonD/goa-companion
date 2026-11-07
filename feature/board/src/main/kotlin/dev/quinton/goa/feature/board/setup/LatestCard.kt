@@ -15,11 +15,14 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import dev.quinton.goa.core.designsystem.component.GoaButton
 import dev.quinton.goa.core.designsystem.theme.GoaTextStyles
@@ -33,7 +36,7 @@ import java.time.format.DateTimeFormatter
 import java.util.Locale
 
 /**
- * The newest finished draft or logged match, with its line-up: "Set up" opens its board in one tap
+ * The newest finished draft or logged match, with its line-up: "Open in sandbox" opens its board in one tap
  * (Boards and New board). [onEdit] (New board) fills the teams with it instead, to change them.
  */
 @OptIn(ExperimentalLayoutApi::class)
@@ -57,12 +60,14 @@ internal fun LatestCard(
                     .weight(1f)
                     .semantics(mergeDescendants = true) { contentDescription = "$what, ${day(source.at)}: $names" },
             ) {
+                // One line ("LATEST DRAFT · 19 OCT"); when the button leaves too little room the date takes the next
+                // line, without the dot, rather than being cut.
+                var wraps by remember(what, source.at) { mutableStateOf(false) }
                 Text(
-                    "${what.uppercase()} · ${day(source.at)}",
+                    what.uppercase() + (if (wraps) "\n" else " · ") + day(source.at),
                     style = GoaTextStyles.overline,
                     color = MaterialTheme.colorScheme.primary,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
+                    onTextLayout = { if (!wraps && it.lineCount > 1) wraps = true },
                 )
                 FlowRow(
                     horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
@@ -84,8 +89,6 @@ internal fun LatestCard(
                     names,
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
                     modifier = Modifier.padding(top = 2.dp),
                 )
             }
@@ -93,11 +96,11 @@ internal fun LatestCard(
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                 GoaButton(
                     onClick = onSetUp,
-                    contentPadding = PaddingValues(horizontal = Spacing.lg),
+                    contentPadding = PaddingValues(horizontal = Spacing.md),
                     modifier = Modifier
                         .heightIn(min = 48.dp)
-                        .semantics { contentDescription = "Set up the latest line-up" },
-                ) { Text("Set up") }
+                        .semantics { contentDescription = "Open the latest line-up in the sandbox" },
+                ) { Text("Open in sandbox") }
                 if (onEdit != null) {
                     TextButton(onClick = onEdit, modifier = Modifier.heightIn(min = 40.dp)) { Text("Edit") }
                 }

@@ -27,7 +27,7 @@ class BoardFlowTest {
     fun tryADraftOnTheBoardMoveAHeroAndFindItInBoards() {
         val redPicks = draftTwoVersusTwo()
 
-        // Draft complete: "Try on the board" (in Set up match's menu) sets up the opening.
+        // Draft complete: "Try on the board" (in Open match setup's menu) sets up the opening.
         rule.tapDescription("More ways to finish")
         rule.tap(hasText("Try on the board") and hasClickAction())
 
@@ -49,7 +49,7 @@ class BoardFlowTest {
         // Back returns to the finished draft (the draft board hides the tabs); Back again leaves it,
         // then Play › Board sandbox: the board is saved under its line-up.
         rule.tapDescription("Back")
-        rule.waitForText("Set up match")
+        rule.waitForText("Open match setup")
         rule.tapDescription("Back")
         rule.openTab("catalog")
         rule.waitForText("32 heroes")
@@ -109,7 +109,7 @@ class BoardFlowTest {
             if (action == "Pick" && glyph == "◆") redPicks += chosen
         }
         assertEquals(2, redPicks.size)
-        rule.reveal(hasText("Set up match"))
+        rule.reveal(hasText("Open match setup"))
         return redPicks
     }
 }
