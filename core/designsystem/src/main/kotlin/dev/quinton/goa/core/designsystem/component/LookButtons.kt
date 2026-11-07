@@ -4,11 +4,15 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Info
+import androidx.compose.material3.Badge
+import androidx.compose.material3.BadgedBox
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
@@ -27,6 +31,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shadow
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import dev.quinton.goa.core.designsystem.theme.GoaTheme
@@ -212,19 +217,43 @@ fun GoaOutlinedButton(
     )
 }
 
-/** A word as a top-bar action: light with a dark edge, since bronze is lost on the steel banner. */
+/**
+ * A word as a top-bar action: light with a dark edge, since bronze is lost on the steel banner. With [icon], the
+ * glyph leads the word (a destination named in full, "Group sync", where the glyph alone could be misread); [badge]
+ * puts the attention dot on it.
+ */
 @Composable
-fun BannerTextButton(text: String, onClick: () -> Unit, modifier: Modifier = Modifier, enabled: Boolean = true) {
+fun BannerTextButton(
+    text: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    enabled: Boolean = true,
+    icon: ImageVector? = null,
+    badge: Boolean = false,
+) {
     val colors = GoaTheme.colors
     TextButton(
         onClick = onClick,
         modifier = modifier,
         enabled = enabled,
+        contentPadding = if (icon != null) {
+            ButtonDefaults.TextButtonWithIconContentPadding
+        } else {
+            ButtonDefaults.TextButtonContentPadding
+        },
         colors = ButtonDefaults.textButtonColors(
             contentColor = colors.onBanner,
             disabledContentColor = colors.onBannerVariant.copy(alpha = BANNER_DISABLED),
         ),
     ) {
+        if (icon != null) {
+            if (badge) {
+                BadgedBox(badge = { Badge() }) { Icon(icon, contentDescription = null, Modifier.size(20.dp)) }
+            } else {
+                Icon(icon, contentDescription = null, Modifier.size(20.dp))
+            }
+            Spacer(Modifier.width(Spacing.xs))
+        }
         Text(
             text,
             style = MaterialTheme.typography.labelLarge.copy(

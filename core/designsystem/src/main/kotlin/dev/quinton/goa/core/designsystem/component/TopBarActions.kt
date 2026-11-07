@@ -48,16 +48,17 @@ data class BarAction(
 const val MAX_BAR_ICONS: Int = 2
 
 /**
- * A top bar's actions: as icons while there are at most [MAX_BAR_ICONS], else the first as an icon and the rest
- * in a labelled overflow menu ("More options"), so a bar never shows a row of unlabelled glyphs.
+ * A top bar's actions: as icons while there are at most [maxIcons], else the first as an icon and the rest
+ * in a labelled overflow menu ("More options"), so a bar never shows a row of unlabelled glyphs. [maxIcons] 1 puts
+ * every action in the menu, named: for glyphs that would not say where they lead (a history clock, a list).
  */
 @Composable
-fun RowScope.BarActions(actions: List<BarAction>) {
-    if (actions.size <= MAX_BAR_ICONS) {
+fun RowScope.BarActions(actions: List<BarAction>, maxIcons: Int = MAX_BAR_ICONS) {
+    if (actions.size <= maxIcons && maxIcons > 1) {
         actions.forEach { BarIconButton(it) }
         return
     }
-    val shown = actions.take(MAX_BAR_ICONS - 1)
+    val shown = actions.take((maxIcons - 1).coerceAtLeast(0))
     shown.forEach { BarIconButton(it) }
     BarOverflowMenu(actions.drop(shown.size))
 }
