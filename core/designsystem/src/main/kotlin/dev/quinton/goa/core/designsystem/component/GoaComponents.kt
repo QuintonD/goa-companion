@@ -28,6 +28,7 @@ import androidx.compose.material.icons.automirrored.outlined.HelpOutline
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.outlined.Verified
 import androidx.compose.material3.FilterChip
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -37,6 +38,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
@@ -51,6 +55,7 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import dev.quinton.goa.core.designsystem.theme.GoaTextStyles
 import dev.quinton.goa.core.designsystem.theme.GoaTheme
@@ -234,25 +239,52 @@ enum class SelectionMark { Radio, Check, None }
 
 /**
  * The selected look, for layouts of their own (a tile, a chip-like pair): the bronze [SelectedEdge] over a bronze
- * wash when [selected], a quiet hairline otherwise ([hairline] false: nothing, for a row inside a plate). Bronze is
- * selected (teal is next and correct; team colours only mark teams). Pair it with `selectable` for its semantics, or
- * use [SelectablePlate].
+ * wash when [selected], a quiet hairline otherwise. Bronze is selected (teal is next and correct; team colours only
+ * mark teams). Pair it with `selectable` for its semantics, or use [SelectablePlate]. A choice that is a row of a
+ * section's plate uses [selectionRow] instead.
  */
 @Composable
-fun Modifier.selectionFrame(selected: Boolean, shape: Shape = SelectionShape, hairline: Boolean = true): Modifier {
+fun Modifier.selectionFrame(selected: Boolean, shape: Shape = SelectionShape): Modifier {
     val colors = GoaTheme.colors
-    return when {
-        selected -> clip(shape).background(colors.selectionFill).border(SelectedEdge, colors.selection, shape)
-        hairline -> clip(shape).border(1.dp, MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.28f), shape)
-        else -> clip(shape)
+    return if (selected) {
+        clip(shape).background(colors.selectionFill).border(SelectedEdge, colors.selection, shape)
+    } else {
+        clip(shape).border(1.dp, MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.28f), shape)
     }
 }
 
 /**
+ * A choice that is a row of a section's plate: full width and no edge of its own; selected, the bronze wash and a
+ * [SelectedRowBar] bronze bar at its leading edge (with the row's own radio or check). DESIGN.md "Framing levels".
+ */
+@Composable
+fun Modifier.selectionRow(selected: Boolean): Modifier {
+    if (!selected) return this
+    val colors = GoaTheme.colors
+    return drawBehind {
+        drawRect(colors.selectionFill)
+        val bar = SelectedRowBar.toPx()
+        val x = if (layoutDirection == LayoutDirection.Rtl) size.width - bar else 0f
+        drawRect(colors.selection, topLeft = Offset(x, 0f), size = Size(bar, size.height))
+    }
+}
+
+/** The bronze bar at a selected row's leading edge ([selectionRow]). */
+val SelectedRowBar: Dp = 3.dp
+
+/** The hairline between the rows of a section's plate. */
+@Composable
+fun PlateRowDivider(modifier: Modifier = Modifier) {
+    HorizontalDivider(modifier, color = MaterialTheme.colorScheme.onSurface.copy(alpha = ROW_DIVIDER_ALPHA))
+}
+
+private const val ROW_DIVIDER_ALPHA = 0.12f
+
+/**
  * One choice of several, the same on every screen: a quiet plate with a bronze radio ([mark]) and the content;
  * selected, a bronze outline and tint ([selectionFrame]). The whole plate is one target with its role for TalkBack.
- * Inside a [GoaPlate] (a section's plate) it is a row of that plate instead: no ground or edge of its own, only the
- * selected wash, so frames never nest (DESIGN.md "Framing levels").
+ * Inside a [GoaPlate] (a section's plate) it is a row of that plate instead: full width, no ground or edge of its own,
+ * selected only by the wash and the leading bar ([selectionRow]), so frames never nest (DESIGN.md "Framing levels").
  */
 @Composable
 fun SelectablePlate(
@@ -275,7 +307,7 @@ fun SelectablePlate(
             modifier
                 .heightIn(min = 48.dp)
                 .then(ground)
-                .selectionFrame(selected, hairline = !row)
+                .then(if (row) Modifier.selectionRow(selected) else Modifier.selectionFrame(selected))
                 .selectable(
                     selected = selected,
                     enabled = enabled,

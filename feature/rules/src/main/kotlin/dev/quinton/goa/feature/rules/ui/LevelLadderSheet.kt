@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListScope
@@ -27,6 +28,7 @@ import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.MenuBook
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
@@ -55,7 +57,7 @@ import dev.quinton.goa.core.designsystem.component.GoaPlateTheme
 import dev.quinton.goa.core.designsystem.component.LARGE_FONT_SCALE
 import dev.quinton.goa.core.designsystem.component.ParchmentPanel
 import dev.quinton.goa.core.designsystem.component.SectionHeader
-import dev.quinton.goa.core.designsystem.component.selectionFrame
+import dev.quinton.goa.core.designsystem.component.scaledIconSize
 import dev.quinton.goa.core.designsystem.component.slatePlate
 import dev.quinton.goa.core.designsystem.theme.GoaTextStyles
 import dev.quinton.goa.core.designsystem.theme.GoaTheme
@@ -197,20 +199,26 @@ private fun LevelPicker(levels: List<LevelRow>, selected: Int?, onSelect: (Int) 
             levels.forEach { row ->
                 val isSelected = row.level == selected
                 val colors = MaterialTheme.colorScheme
-                // The app's one selected look (bronze wash and edge, the numeral in bronze), as every choice.
+                // A level key is read at a glance: selected, a solid bronze key with a check by its numeral.
                 Surface(
                     shape = MaterialTheme.shapes.medium,
-                    color = if (isSelected) Color.Transparent else colors.surface,
-                    contentColor = if (isSelected) GoaTheme.colors.selection else colors.onSurface,
-                    border = if (isSelected) null else BorderStroke(1.dp, GoaTheme.colors.engravedBorder),
+                    color = if (isSelected) colors.primary else colors.surface,
+                    contentColor = if (isSelected) colors.onPrimary else colors.onSurface,
+                    border = BorderStroke(1.dp, if (isSelected) colors.primary else GoaTheme.colors.engravedBorder),
                     modifier = Modifier
                         .weight(1f)
                         .heightIn(min = 52.dp)
-                        .selectionFrame(isSelected, MaterialTheme.shapes.medium, hairline = false)
                         .selectable(selected = isSelected, role = Role.RadioButton) { onSelect(row.level) }
                         .semantics { contentDescription = "Level ${row.level}" },
                 ) {
-                    Box(contentAlignment = Alignment.Center) {
+                    Row(horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically) {
+                        if (isSelected) {
+                            Icon(
+                                Icons.Filled.Check,
+                                contentDescription = null,
+                                modifier = Modifier.padding(end = 2.dp).size(scaledIconSize(18.dp, 1.3f)),
+                            )
+                        }
                         Text(
                             "${row.level}",
                             style = GoaTextStyles.timerDigitsSmall.copy(fontSize = 24.sp, lineHeight = 28.sp),

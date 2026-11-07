@@ -43,6 +43,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dev.quinton.goa.core.designsystem.component.GoaPlate
 import dev.quinton.goa.core.designsystem.component.GoaScreen
+import dev.quinton.goa.core.designsystem.component.PlateRowDivider
 import dev.quinton.goa.core.designsystem.component.PlateShape
 import dev.quinton.goa.core.designsystem.theme.Spacing
 import dev.quinton.goa.feature.timer.ui.timer.PresetOption
@@ -115,9 +116,10 @@ fun PresetsScreen(state: PresetsUiState, actions: PresetsActions) {
             }
             // One section plate; each preset is a row of it (DESIGN.md "Framing levels").
             item(key = "presets") {
-                GoaPlate(Modifier.fillMaxWidth(), contentPadding = PaddingValues(Spacing.sm)) {
-                    Column(verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
-                        state.presets.forEach { preset ->
+                GoaPlate(Modifier.fillMaxWidth(), contentPadding = PaddingValues(vertical = Spacing.xs)) {
+                    Column {
+                        state.presets.forEachIndexed { i, preset ->
+                            if (i > 0) PlateRowDivider()
                             key(preset.id) {
                                 PresetRow(preset, preset.id == state.selectedId, state.canDelete, actions)
                             }

@@ -378,8 +378,8 @@ private class PlateGroundArt(
  * A plate holding [content], themed as the plate. With [onClick] the whole plate is one button. [style] picks the
  * frame ([PlateStyle]); a plate inside another plate is always a [PlateStyle.Well]. With [selected] it is one choice
  * of several: a quiet plate, bronze-framed when selected ([selectionFrame]); the caller adds its `selectable`. A
- * choice inside a section's plate is a row of it instead: no ground or edge of its own, only the selected wash
- * (DESIGN.md "Framing levels").
+ * choice inside a section's plate is a row of it instead: full width, no ground or edge of its own, selected by the
+ * wash and a leading bronze bar ([selectionRow]; DESIGN.md "Framing levels").
  */
 @Composable
 fun GoaPlate(
@@ -401,7 +401,11 @@ fun GoaPlate(
     }
     val row = inPlate && selected != null
     GoaPlateTheme {
-        val frame = if (selected != null) Modifier.selectionFrame(selected, shape, hairline = !row) else Modifier
+        val frame = when {
+            selected == null -> Modifier
+            row -> Modifier.selectionRow(selected)
+            else -> Modifier.selectionFrame(selected, shape)
+        }
         val ground = if (row) Modifier else Modifier.slatePlate(shape, brackets, style = drawn)
         CompositionLocalProvider(LocalInPlate provides true) {
             Column(

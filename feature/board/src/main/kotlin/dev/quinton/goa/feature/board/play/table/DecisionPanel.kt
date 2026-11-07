@@ -846,7 +846,10 @@ private fun ActionChip(
                 null,
                 tint = when {
                     primary -> content
-                    GoaTheme.isDark -> SteelIconBronze // Bright bronze on the dark steel.
+
+                    GoaTheme.isDark -> SteelIconBronze
+
+                    // Bright bronze on the dark steel.
                     else -> MaterialTheme.colorScheme.primary // Dark bronze on the light steel.
                 },
                 modifier = Modifier.size(scaledIconSize(20.dp, 1.3f)),

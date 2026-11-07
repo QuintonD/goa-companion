@@ -57,6 +57,7 @@ import dev.quinton.goa.core.designsystem.component.GoaPlateTheme
 import dev.quinton.goa.core.designsystem.component.GoaScreen
 import dev.quinton.goa.core.designsystem.component.LifeCounterIcon
 import dev.quinton.goa.core.designsystem.component.MetalButton
+import dev.quinton.goa.core.designsystem.component.PlateRowDivider
 import dev.quinton.goa.core.designsystem.component.PlateShape
 import dev.quinton.goa.core.designsystem.component.SectionHeader
 import dev.quinton.goa.core.designsystem.component.TeamBadge
@@ -130,9 +131,10 @@ fun MatchSetupScreen(state: MatchSetupUiState, actions: SetupActions) {
                 if (state.layouts.size > 1 || state.layouts.firstOrNull()?.guidance != null) {
                     SectionHeader("Teams")
                     // One section plate; its choices are rows of it (DESIGN.md "Framing levels").
-                    GoaPlate(Modifier.fillMaxWidth(), contentPadding = PaddingValues(Spacing.sm)) {
-                        Column(Modifier.selectableGroup(), verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
-                            state.layouts.forEach { layout ->
+                    GoaPlate(Modifier.fillMaxWidth(), contentPadding = PaddingValues(vertical = Spacing.xs)) {
+                        Column(Modifier.selectableGroup()) {
+                            state.layouts.forEachIndexed { i, layout ->
+                                if (i > 0) PlateRowDivider()
                                 LayoutCard(layout, layout.id == state.selectedLayoutId, state.layouts.size > 1) {
                                     actions.onLayout(layout.id)
                                 }
@@ -141,9 +143,10 @@ fun MatchSetupScreen(state: MatchSetupUiState, actions: SetupActions) {
                     }
                 }
                 SectionHeader("Mode")
-                GoaPlate(Modifier.fillMaxWidth(), contentPadding = PaddingValues(Spacing.sm)) {
-                    Column(Modifier.selectableGroup(), verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
-                        state.modes.forEach { mode ->
+                GoaPlate(Modifier.fillMaxWidth(), contentPadding = PaddingValues(vertical = Spacing.xs)) {
+                    Column(Modifier.selectableGroup()) {
+                        state.modes.forEachIndexed { i, mode ->
+                            if (i > 0) PlateRowDivider()
                             ModeCard(mode, mode.mode == state.selectedMode) { actions.onMode(mode.mode) }
                         }
                     }
