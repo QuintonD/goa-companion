@@ -32,8 +32,6 @@ import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.outlined.DeleteOutline
 import androidx.compose.material.icons.outlined.Remove
 import androidx.compose.material.icons.outlined.Straighten
-import androidx.compose.material3.FilterChip
-import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -43,10 +41,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.geometry.Size
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.Role
@@ -61,13 +56,16 @@ import androidx.compose.ui.unit.dp
 import dev.quinton.goa.core.designsystem.cardtext.CardTextView
 import dev.quinton.goa.core.designsystem.cardtext.GameIcons
 import dev.quinton.goa.core.designsystem.component.CardColorDot
+import dev.quinton.goa.core.designsystem.component.GoaFilterChip
 import dev.quinton.goa.core.designsystem.component.GoaSegment
 import dev.quinton.goa.core.designsystem.component.GoaSegmentedRow
 import dev.quinton.goa.core.designsystem.component.GoaSwitch
 import dev.quinton.goa.core.designsystem.component.StatReadout
 import dev.quinton.goa.core.designsystem.component.UnverifiedBadge
+import dev.quinton.goa.core.designsystem.component.bleedHorizontally
 import dev.quinton.goa.core.designsystem.component.cardColor
 import dev.quinton.goa.core.designsystem.component.cardColorName
+import dev.quinton.goa.core.designsystem.component.horizontalEdgeFade
 import dev.quinton.goa.core.designsystem.component.scaledIconSize
 import dev.quinton.goa.core.designsystem.theme.GoaTextStyles
 import dev.quinton.goa.core.designsystem.theme.GoaTheme
@@ -188,6 +186,7 @@ private fun PieceActions(state: BoardUiState.Ready, piece: BoardPiece, onAction:
     FlowRow(
         horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
         modifier = Modifier.padding(bottom = Spacing.sm),
+        verticalArrangement = Arrangement.spacedBy(Spacing.sm),
     ) {
         val measuring = state.tool == BoardTool.Measure
         if (piece.at != null) {
@@ -221,26 +220,7 @@ private fun PieceActions(state: BoardUiState.Ready, piece: BoardPiece, onAction:
 
 @Composable
 private fun PanelChip(selected: Boolean, label: String, icon: @Composable () -> Unit, onClick: () -> Unit) {
-    FilterChip(
-        selected = selected,
-        onClick = onClick,
-        label = { Text(label, maxLines = 1) },
-        leadingIcon = icon,
-        shape = RoundedCornerShape(10.dp),
-        modifier = Modifier.heightIn(min = 40.dp),
-        colors = FilterChipDefaults.filterChipColors(
-            containerColor = MaterialTheme.colorScheme.surface,
-            selectedContainerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.18f),
-            selectedLabelColor = MaterialTheme.colorScheme.onSurface,
-            selectedLeadingIconColor = MaterialTheme.colorScheme.primary,
-        ),
-        border = FilterChipDefaults.filterChipBorder(
-            enabled = true,
-            selected = selected,
-            borderColor = GoaTheme.colors.engravedBorder,
-            selectedBorderColor = MaterialTheme.colorScheme.primary,
-        ),
-    )
+    GoaFilterChip(selected = selected, onClick = onClick, leadingIcon = icon) { Text(label) }
 }
 
 @Composable
@@ -426,8 +406,8 @@ private fun MovementRules(settings: OverlaySettings, onAction: (BoardAction) -> 
 
 /**
  * The hero's cards, Basic → Tier III → Ultimate; tap to measure with one (again to clear). The
- * chosen card scrolls into view with the card before it still showing, and a fade at either edge
- * says there are more cards that way.
+ * chosen card scrolls into view with the card before it still showing, and a fade and chevron at either edge
+ * say there are more cards that way.
  */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
@@ -459,34 +439,15 @@ private fun CardStrip(cards: List<Card>, selectedId: String?, onSelect: (String?
         val index = cards.indexOfFirst { it.id == selectedId }
         if (index > 0) listState.animateScrollToItem(index - 1)
     }
-    val fade = GoaTheme.colors.plate
+    // The rail runs to the panel's edges, its first card on the gutter; a hidden end fades under a chevron.
     LazyRow(
         state = listState,
         horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
-        contentPadding = PaddingValues(vertical = Spacing.xs),
+        contentPadding = PaddingValues(horizontal = Spacing.lg, vertical = Spacing.xs),
         modifier = Modifier
             .fillMaxWidth()
-            .drawWithContent {
-                drawContent()
-                val edge = 28.dp.toPx()
-                if (listState.canScrollBackward) {
-                    drawRect(
-                        Brush.horizontalGradient(listOf(fade, fade.copy(alpha = 0f)), startX = 0f, endX = edge),
-                        size = Size(edge, size.height),
-                    )
-                }
-                if (listState.canScrollForward) {
-                    drawRect(
-                        Brush.horizontalGradient(
-                            listOf(fade.copy(alpha = 0f), fade),
-                            startX = size.width - edge,
-                            endX = size.width,
-                        ),
-                        topLeft = Offset(size.width - edge, 0f),
-                        size = Size(edge, size.height),
-                    )
-                }
-            },
+            .bleedHorizontally(Spacing.lg)
+            .horizontalEdgeFade(listState),
     ) {
         items(cards, key = { it.id }) { card ->
             CardChip(card, selected = card.id == selectedId, onClick = {

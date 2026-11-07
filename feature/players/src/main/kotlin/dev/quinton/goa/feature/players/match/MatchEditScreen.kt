@@ -57,7 +57,6 @@ import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDefaults
 import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -97,6 +96,7 @@ import androidx.compose.ui.unit.dp
 import dev.quinton.goa.core.designsystem.component.EmptyState
 import dev.quinton.goa.core.designsystem.component.GoaButton
 import dev.quinton.goa.core.designsystem.component.GoaDialog
+import dev.quinton.goa.core.designsystem.component.GoaFilterChip
 import dev.quinton.goa.core.designsystem.component.GoaOutlinedButton
 import dev.quinton.goa.core.designsystem.component.GoaPlate
 import dev.quinton.goa.core.designsystem.component.GoaPlateTheme
@@ -109,7 +109,6 @@ import dev.quinton.goa.core.designsystem.component.SelectablePlate
 import dev.quinton.goa.core.designsystem.component.SelectionMark
 import dev.quinton.goa.core.designsystem.component.TeamBadge
 import dev.quinton.goa.core.designsystem.component.scaledIconSize
-import dev.quinton.goa.core.designsystem.component.selectableChipBorder
 import dev.quinton.goa.core.designsystem.component.slatePlate
 import dev.quinton.goa.core.designsystem.component.teamColor
 import dev.quinton.goa.core.designsystem.theme.GoaTheme
@@ -126,7 +125,6 @@ import dev.quinton.goa.feature.players.common.LARGE_FONT_SCALE
 import dev.quinton.goa.feature.players.common.LoadingState
 import dev.quinton.goa.feature.players.common.Motion
 import dev.quinton.goa.feature.players.common.SectionHeader
-import dev.quinton.goa.feature.players.common.goaFilterChipColors
 import dev.quinton.goa.feature.players.common.label
 import java.time.Instant
 import java.time.LocalDate
@@ -524,23 +522,19 @@ private fun WinnerAndCondition(state: MatchEditUiState, actions: MatchEditAction
         }
         QuestionLabel(if (showHeader) "Win condition" else "How did they win?", "Optional", showHeader)
         // One choice (tap again to clear): radio semantics, so TalkBack reads "selected" per chip.
-        FlowRow(Modifier.selectableGroup(), horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+        FlowRow(
+            Modifier.selectableGroup(),
+            horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+            verticalArrangement = Arrangement.spacedBy(Spacing.sm),
+        ) {
             WinCondition.entries.forEach { condition ->
                 val selected = form.winCondition == condition
-                FilterChip(
+                GoaFilterChip(
                     selected = selected,
                     onClick = { actions.onWinCondition(if (selected) null else condition) },
-                    label = { Text(condition.label()) },
-                    leadingIcon = if (selected) {
-                        { Icon(Icons.Filled.Check, contentDescription = null, modifier = Modifier.size(18.dp)) }
-                    } else {
-                        null
-                    },
-                    colors = goaFilterChipColors(),
-                    border = selectableChipBorder(selected),
                     // Outer semantics win over the chip's own Checkbox role.
-                    modifier = Modifier.heightIn(min = 48.dp).semantics { role = Role.RadioButton },
-                )
+                    modifier = Modifier.semantics { role = Role.RadioButton },
+                ) { Text(condition.label()) }
             }
         }
     }
@@ -812,10 +806,12 @@ private fun SeatEditor(
             itemVerticalAlignment = Alignment.CenterVertically,
         ) {
             PilotField(pilot, error = problem == "Choose a pilot", onClick = onPickPilot)
-            FilterChip(
+            GoaFilterChip(
                 selected = seat.handicap,
                 onClick = onToggleHandicap,
-                label = { Text("Handicap") },
+                modifier = Modifier.heightIn(min = 48.dp).semantics {
+                    contentDescription = "Handicap card for $heroLabel"
+                },
                 leadingIcon = {
                     Icon(
                         if (seat.handicap) Icons.Filled.CheckBox else Icons.Outlined.CheckBoxOutlineBlank,
@@ -823,12 +819,7 @@ private fun SeatEditor(
                         modifier = Modifier.size(18.dp),
                     )
                 },
-                colors = goaFilterChipColors(),
-                border = selectableChipBorder(seat.handicap),
-                modifier = Modifier.heightIn(min = 48.dp).semantics {
-                    contentDescription = "Handicap card for $heroLabel"
-                },
-            )
+            ) { Text("Handicap") }
         }
         if (pilotSeats > 1 && pilot != null) {
             Row(Modifier.padding(top = Spacing.xs), verticalAlignment = Alignment.CenterVertically) {
@@ -989,22 +980,22 @@ private const val REQUIRED = "Required"
 @Composable
 private fun <T> ChoiceRow(options: List<T>, selected: T, label: (T) -> String, onSelect: (T) -> Unit) {
     if (LocalDensity.current.fontScale >= LARGE_FONT_SCALE) {
-        FlowRow(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+        FlowRow(
+            horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+            verticalArrangement = Arrangement.spacedBy(Spacing.sm),
+        ) {
             options.forEach { option ->
                 val isSelected = option == selected
-                FilterChip(
+                GoaFilterChip(
                     selected = isSelected,
                     onClick = { onSelect(option) },
-                    label = { Text(label(option)) },
+                    modifier = Modifier.heightIn(min = 48.dp),
                     leadingIcon = if (isSelected) {
                         { Icon(Icons.Filled.Check, contentDescription = null, modifier = Modifier.size(18.dp)) }
                     } else {
                         null
                     },
-                    colors = goaFilterChipColors(),
-                    border = selectableChipBorder(isSelected),
-                    modifier = Modifier.heightIn(min = 48.dp),
-                )
+                ) { Text(label(option)) }
             }
         }
     } else {

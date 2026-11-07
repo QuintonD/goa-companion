@@ -29,7 +29,6 @@ import androidx.compose.material3.AssistChipDefaults
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -54,6 +53,7 @@ import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import dev.quinton.goa.core.designsystem.component.GoaFilterChip
 import dev.quinton.goa.core.designsystem.component.GoaOutlinedButton
 import dev.quinton.goa.core.designsystem.component.GoaPlate
 import dev.quinton.goa.core.designsystem.component.GoaScreen
@@ -69,8 +69,6 @@ import dev.quinton.goa.core.domain.timer.PresetIssue
 import dev.quinton.goa.core.domain.timer.TimerPresetValidator
 import dev.quinton.goa.feature.timer.TimerText
 import dev.quinton.goa.feature.timer.ui.components.PlateError
-import dev.quinton.goa.feature.timer.ui.components.goaChipBorder
-import dev.quinton.goa.feature.timer.ui.components.goaChipColors
 import dev.quinton.goa.feature.timer.ui.components.plateEdge
 import dev.quinton.goa.feature.timer.ui.timer.Stepper
 
@@ -458,16 +456,16 @@ private fun PhaseCard(
                     style = MaterialTheme.typography.labelMedium,
                     color = colors.onSurfaceVariant,
                 )
-                FlowRow(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+                FlowRow(
+                    horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+                    verticalArrangement = Arrangement.spacedBy(Spacing.sm),
+                ) {
                     PresetEdits.CUE_OPTIONS.filter { it < seconds }.forEach { cue ->
-                        FilterChip(
+                        GoaFilterChip(
                             selected = cue in phase.cues,
                             onClick = { actions.onToggleCue(phase.id, cue) },
-                            label = { Text(if (cue == 0) "Time's up" else "${cue}s") },
-                            colors = goaChipColors(),
-                            border = goaChipBorder(cue in phase.cues),
                             modifier = Modifier.heightIn(min = 48.dp),
-                        )
+                        ) { Text(if (cue == 0) "Time's up" else "${cue}s") }
                     }
                 }
             }

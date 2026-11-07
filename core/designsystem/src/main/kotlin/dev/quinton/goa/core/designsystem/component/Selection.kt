@@ -1,6 +1,10 @@
 package dev.quinton.goa.core.designsystem.component
 
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
@@ -12,8 +16,10 @@ import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.SelectableChipColors
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.ReadOnlyComposable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.compositeOver
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -28,6 +34,30 @@ import dev.quinton.goa.core.designsystem.theme.GoaTheme
 
 /** The bronze edge of a selected chip, segment or plate. */
 val SelectedEdge: Dp = 1.5.dp
+
+/** A chip is a full finger target, visibly: never shallower than this, whatever its words. */
+val ChipMinHeight: Dp = 48.dp
+
+/** Room above and below a chip's words, so a chip grows with large text instead of squeezing it. */
+val ChipLabelPadding: Dp = 8.dp
+
+/** A chip's leading glyph at 100 % text; it grows with the text ([scaledIconSize]). */
+val ChipIconSize: Dp = 18.dp
+
+/** Every chip's shape. */
+val ChipShape: Shape = RoundedCornerShape(10.dp)
+
+/**
+ * A chip's size (pass it as a Material chip's modifier when [GoaFilterChip] can't go): at least [ChipMinHeight] tall,
+ * taller when its words need it (with [ChipLabel]).
+ */
+fun Modifier.chipSize(): Modifier = heightIn(min = ChipMinHeight)
+
+/** A chip's words with [ChipLabelPadding] above and below: pass it as a Material chip's `label`. */
+@Composable
+fun ChipLabel(content: @Composable () -> Unit) {
+    Row(Modifier.padding(vertical = ChipLabelPadding), verticalAlignment = Alignment.CenterVertically) { content() }
+}
 
 /** Filter-chip colours for every chip that is selected or not (Material's `FilterChip`). */
 @Composable
@@ -58,7 +88,7 @@ fun selectableChipBorder(selected: Boolean): BorderStroke = if (selected) {
 
 /** The leading check of a selected chip; null (no icon) when not selected. Pass it as the chip's `leadingIcon`. */
 fun selectedCheck(selected: Boolean): (@Composable () -> Unit)? = if (selected) {
-    { Icon(Icons.Filled.Check, contentDescription = null, modifier = Modifier.size(FilterChipDefaults.IconSize)) }
+    { Icon(Icons.Filled.Check, contentDescription = null, modifier = Modifier.size(scaledIconSize(ChipIconSize))) }
 } else {
     null
 }

@@ -17,7 +17,6 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.outlined.Info
-import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -38,9 +37,9 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import dev.quinton.goa.core.designsystem.component.GoaButton
+import dev.quinton.goa.core.designsystem.component.GoaFilterChip
 import dev.quinton.goa.core.designsystem.component.GoaSwitch
 import dev.quinton.goa.core.designsystem.component.SectionHeader
-import dev.quinton.goa.core.designsystem.component.selectedCheck
 import dev.quinton.goa.core.designsystem.theme.GoaTextStyles
 import dev.quinton.goa.core.designsystem.theme.GoaTheme
 import dev.quinton.goa.core.designsystem.theme.Spacing
@@ -50,8 +49,6 @@ import dev.quinton.goa.core.domain.catalog.FilterOptions
 import dev.quinton.goa.core.domain.catalog.complexityName
 import dev.quinton.goa.core.domain.catalog.label
 import dev.quinton.goa.core.domain.catalog.plural
-import dev.quinton.goa.feature.catalog.ui.goaChipBorder
-import dev.quinton.goa.feature.catalog.ui.goaFilterChipColors
 
 /**
  * Body of the filter sheet. Stateless: every change is applied immediately (the result count on
@@ -91,20 +88,16 @@ internal fun CatalogFilterContent(
                 FilterGroup("Complexity") {
                     options.complexities.forEach { level ->
                         val selected = level in filter.complexities
-                        FilterChip(
-                            colors = goaFilterChipColors(),
-                            border = goaChipBorder(selected),
+                        GoaFilterChip(
                             selected = selected,
                             onClick = { onFilterChange(filter.copy(complexities = filter.complexities.toggle(level))) },
-                            label = {
-                                Stars(level)
-                                complexityName(level)?.let { Text("  $it") }
-                            },
-                            leadingIcon = selectedCheck(selected),
                             modifier = Modifier.semantics {
                                 contentDescription = "Complexity $level, ${complexityName(level).orEmpty()}"
                             },
-                        )
+                        ) {
+                            Stars(level)
+                            complexityName(level)?.let { Text("  $it") }
+                        }
                     }
                 }
             }
@@ -112,42 +105,30 @@ internal fun CatalogFilterContent(
                 FilterGroup("Role") {
                     options.roles.forEach { role ->
                         val selected = role in filter.roles
-                        FilterChip(
-                            colors = goaFilterChipColors(),
-                            border = goaChipBorder(selected),
+                        GoaFilterChip(
                             selected = selected,
                             onClick = { onFilterChange(filter.copy(roles = filter.roles.toggle(role))) },
-                            label = { Text(role.label) },
-                            leadingIcon = selectedCheck(selected),
-                        )
+                        ) { Text(role.label) }
                     }
                 }
             }
             FilterGroup("Attack cards", info = ATTACK_STYLE_NOTE) {
                 options.attackStyles.forEach { style ->
                     val selected = filter.attackStyle == style
-                    FilterChip(
-                        colors = goaFilterChipColors(),
-                        border = goaChipBorder(selected),
+                    GoaFilterChip(
                         selected = selected,
                         onClick = { onFilterChange(filter.copy(attackStyle = if (selected) null else style)) },
-                        label = { Text(style.label) },
-                        leadingIcon = selectedCheck(selected),
-                    )
+                    ) { Text(style.label) }
                 }
             }
             if (options.products.size > 1) {
                 FilterGroup("Product") {
                     options.products.forEach { product ->
                         val selected = product.id in filter.products
-                        FilterChip(
-                            colors = goaFilterChipColors(),
-                            border = goaChipBorder(selected),
+                        GoaFilterChip(
                             selected = selected,
                             onClick = { onFilterChange(filter.copy(products = filter.products.toggle(product.id))) },
-                            label = { Text(product.name) },
-                            leadingIcon = selectedCheck(selected),
-                        )
+                        ) { Text(product.name) }
                     }
                 }
             }
@@ -220,7 +201,10 @@ private fun FilterGroup(title: String, info: String? = null, content: @Composabl
             modifier = Modifier.padding(bottom = Spacing.xs),
         )
     }
-    FlowRow(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) { content() }
+    FlowRow(
+        horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+        verticalArrangement = Arrangement.spacedBy(Spacing.sm),
+    ) { content() }
 }
 
 @Composable

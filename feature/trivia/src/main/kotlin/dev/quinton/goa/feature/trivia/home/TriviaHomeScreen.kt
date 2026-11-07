@@ -494,7 +494,10 @@ private fun SetupBlock(
         }
         Column {
             SetupLabel("Numbers")
-            FlowRow(horizontalArrangement = chipSpacing) {
+            FlowRow(
+                horizontalArrangement = chipSpacing,
+                verticalArrangement = Arrangement.spacedBy(Spacing.sm),
+            ) {
                 TriviaStat.entries.forEach { stat ->
                     GoaFilterChip(
                         selected = stat in setup.stats,
@@ -506,7 +509,10 @@ private fun SetupBlock(
         }
         Column {
             SetupLabel("Cards")
-            FlowRow(horizontalArrangement = chipSpacing) {
+            FlowRow(
+                horizontalArrangement = chipSpacing,
+                verticalArrangement = Arrangement.spacedBy(Spacing.sm),
+            ) {
                 CardGroup.entries.forEach { group ->
                     GoaFilterChip(
                         selected = group in setup.groups,
@@ -518,7 +524,10 @@ private fun SetupBlock(
         }
         Column {
             SetupLabel("Answer with")
-            FlowRow(horizontalArrangement = chipSpacing) {
+            FlowRow(
+                horizontalArrangement = chipSpacing,
+                verticalArrangement = Arrangement.spacedBy(Spacing.sm),
+            ) {
                 GoaFilterChip(
                     selected = setup.answerStyle == AnswerStyle.CHOICES,
                     onClick = { onAction(TriviaHomeAction.SetAnswerStyle(AnswerStyle.CHOICES)) },
@@ -542,7 +551,10 @@ private fun SetupBlock(
         }
         Column {
             SetupLabel("Questions")
-            FlowRow(horizontalArrangement = chipSpacing) {
+            FlowRow(
+                horizontalArrangement = chipSpacing,
+                verticalArrangement = Arrangement.spacedBy(Spacing.sm),
+            ) {
                 TriviaConfig.LENGTHS.forEach { length ->
                     GoaFilterChip(
                         selected = setup.length == length,

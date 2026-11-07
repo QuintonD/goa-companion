@@ -55,7 +55,6 @@ import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.Lock
 import androidx.compose.material.icons.outlined.MoreVert
-import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material.icons.outlined.SwapHoriz
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -102,6 +101,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import dev.quinton.goa.core.designsystem.component.EdgeFadeGutter
 import dev.quinton.goa.core.designsystem.component.EmptyState
 import dev.quinton.goa.core.designsystem.component.GoaButton
 import dev.quinton.goa.core.designsystem.component.GoaDialog
@@ -114,8 +114,10 @@ import dev.quinton.goa.core.designsystem.component.HeroPortrait
 import dev.quinton.goa.core.designsystem.component.LARGE_FONT_SCALE
 import dev.quinton.goa.core.designsystem.component.PlateShape
 import dev.quinton.goa.core.designsystem.component.PlateStyle
+import dev.quinton.goa.core.designsystem.component.SearchFieldIcon
 import dev.quinton.goa.core.designsystem.component.TeamMark
 import dev.quinton.goa.core.designsystem.component.TitlePlate
+import dev.quinton.goa.core.designsystem.component.bleedHorizontally
 import dev.quinton.goa.core.designsystem.component.horizontalEdgeFade
 import dev.quinton.goa.core.designsystem.component.teamColor
 import dev.quinton.goa.core.designsystem.theme.GoaTextStyles
@@ -699,7 +701,7 @@ private fun SearchField(filters: PoolFilters, modifier: Modifier) {
             value = filters.query,
             onValueChange = filters.onQuery,
             placeholder = { Text("Search heroes", maxLines = 1) },
-            leadingIcon = { Icon(Icons.Outlined.Search, contentDescription = null) },
+            leadingIcon = { SearchFieldIcon() },
             trailingIcon = if (filters.query.isNotEmpty()) {
                 {
                     IconButton(onClick = { filters.onQuery("") }) {
@@ -726,10 +728,12 @@ private fun SearchField(filters: PoolFilters, modifier: Modifier) {
 @Composable
 private fun RoleFilters(filters: PoolFilters, roles: List<Role>) {
     val roleRow = rememberLazyListState()
+    // Ten roles scroll: the rail runs to the screen's edges, its first chip on the gutter, a chevron at the edge.
     LazyRow(
-        Modifier.horizontalEdgeFade(roleRow),
+        Modifier.bleedHorizontally(Spacing.screen).horizontalEdgeFade(roleRow),
         state = roleRow,
-        horizontalArrangement = Arrangement.spacedBy(Spacing.xs),
+        contentPadding = EdgeFadeGutter,
+        horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
     ) {
         items(roles, key = { it.name }) { role ->
             GoaFilterChip(

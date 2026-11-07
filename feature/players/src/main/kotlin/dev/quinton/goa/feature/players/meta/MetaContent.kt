@@ -1,6 +1,5 @@
 package dev.quinton.goa.feature.players.meta
 
-import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -16,12 +15,9 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.outlined.Insights
 import androidx.compose.material.icons.outlined.Tune
-import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LinearProgressIndicator
@@ -43,13 +39,12 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import dev.quinton.goa.core.designsystem.component.EmptyState
+import dev.quinton.goa.core.designsystem.component.GoaFilterChip
 import dev.quinton.goa.core.designsystem.component.GoaSegment
 import dev.quinton.goa.core.designsystem.component.GoaSegmentedRow
 import dev.quinton.goa.core.designsystem.component.HeroPortrait
 import dev.quinton.goa.core.designsystem.component.PlayerAvatar
 import dev.quinton.goa.core.designsystem.component.TeamBadge
-import dev.quinton.goa.core.designsystem.component.horizontalEdgeFade
-import dev.quinton.goa.core.designsystem.component.selectableChipBorder
 import dev.quinton.goa.core.designsystem.theme.GoaTextStyles
 import dev.quinton.goa.core.designsystem.theme.GoaTheme
 import dev.quinton.goa.core.designsystem.theme.Spacing
@@ -65,7 +60,6 @@ import dev.quinton.goa.feature.players.common.SectionHeader
 import dev.quinton.goa.feature.players.common.StatRow
 import dev.quinton.goa.feature.players.common.formatPercent
 import dev.quinton.goa.feature.players.common.formatRating
-import dev.quinton.goa.feature.players.common.goaFilterChipColors
 import dev.quinton.goa.feature.players.common.label
 import dev.quinton.goa.feature.players.common.plural
 import dev.quinton.goa.feature.players.common.spokenRecord
@@ -345,28 +339,18 @@ private fun HeroHeader(state: MetaUiState, actions: MetaActions) {
             }
         }
         if (state.view == MetaView.TABLE) {
-            val sorts = rememberScrollState()
-            Row(
-                Modifier.horizontalEdgeFade(sorts).horizontalScroll(sorts).padding(vertical = Spacing.sm),
+            // Six sorts wrap onto a second line rather than hide past the edge.
+            FlowRow(
+                Modifier.padding(vertical = Spacing.sm),
                 horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+                verticalArrangement = Arrangement.spacedBy(Spacing.sm),
             ) {
                 HeroSort.entries.forEach { sort ->
-                    val selected = state.sort == sort
-                    FilterChip(
-                        selected = selected,
+                    GoaFilterChip(
+                        selected = state.sort == sort,
                         onClick = { actions.onSort(sort) },
-                        label = { Text(sort.label) },
-                        leadingIcon = if (selected) {
-                            { Icon(Icons.Filled.Check, contentDescription = null, modifier = Modifier.size(18.dp)) }
-                        } else {
-                            null
-                        },
-                        colors = goaFilterChipColors(),
-                        border = selectableChipBorder(selected),
-                        modifier = Modifier.heightIn(min = 48.dp).semantics {
-                            contentDescription =
-                                "Sort by ${sort.label}"
-                        },
+                        label = sort.label,
+                        modifier = Modifier.semantics { contentDescription = "Sort by ${sort.label}" },
                     )
                 }
             }

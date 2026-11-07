@@ -20,7 +20,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ExitToApp
 import androidx.compose.material.icons.outlined.Quiz
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -50,6 +49,7 @@ import dev.quinton.goa.core.designsystem.component.EmptyState
 import dev.quinton.goa.core.designsystem.component.GoaButton
 import dev.quinton.goa.core.designsystem.component.GoaOutlinedButton
 import dev.quinton.goa.core.designsystem.component.GoaPlateTheme
+import dev.quinton.goa.core.designsystem.component.GoaProgressBar
 import dev.quinton.goa.core.designsystem.component.GoaScreen
 import dev.quinton.goa.core.designsystem.component.slatePlate
 import dev.quinton.goa.core.designsystem.theme.GoaTextStyles
@@ -310,14 +310,9 @@ private fun QuizHeader(state: TriviaQuizUiState.Playing, modifier: Modifier = Mo
         if (length != null) {
             Spacer(Modifier.height(Spacing.sm))
             val done = state.number - if (state.answered) 0 else 1
-            LinearProgressIndicator(
-                progress = { done.toFloat() / length },
-                modifier = Modifier.fillMaxWidth().semantics {
-                    contentDescription = "$done of $length answered"
-                },
-                color = MaterialTheme.colorScheme.secondary,
-                trackColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.18f),
-                drawStopIndicator = {},
+            GoaProgressBar(
+                { done.toFloat() / length },
+                Modifier.fillMaxWidth().semantics { contentDescription = "$done of $length answered" },
             )
         }
     }

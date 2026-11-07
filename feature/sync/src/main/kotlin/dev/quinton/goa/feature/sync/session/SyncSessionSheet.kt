@@ -31,7 +31,6 @@ import androidx.compose.material.icons.outlined.WifiTethering
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
-import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -63,6 +62,7 @@ import dev.quinton.goa.core.designsystem.component.GoaButton
 import dev.quinton.goa.core.designsystem.component.GoaCard
 import dev.quinton.goa.core.designsystem.component.GoaOutlinedButton
 import dev.quinton.goa.core.designsystem.component.GoaPlate
+import dev.quinton.goa.core.designsystem.component.GoaProgressBar
 import dev.quinton.goa.core.designsystem.component.PlateStyle
 import dev.quinton.goa.core.designsystem.component.scaledIconSize
 import dev.quinton.goa.core.designsystem.theme.GoaTheme
@@ -388,7 +388,7 @@ private fun Hosting(host: HostState, state: SyncSessionUiState, actions: SyncSes
         PeerRow(peer, onShowInvite = { showInvite = true }.takeIf { needsInvite && state.invite != null })
     }
     if (waiting && host.peers.isEmpty()) {
-        LinearProgressIndicator(Modifier.fillMaxWidth())
+        GoaProgressBar(null, Modifier.fillMaxWidth())
     }
     state.duplicateHint?.let { Hint(it) }
     state.versionHint?.let { Hint(it) }
@@ -581,7 +581,7 @@ private fun Joining(client: ClientState, state: SyncSessionUiState, actions: Syn
     }
     val working = !failed && client.phase != ClientPhase.DONE && client.phase != ClientPhase.CHOOSING
     StatusLine(status, working = working && client.progress == null, error = failed)
-    client.progress?.let { LinearProgressIndicator(progress = { it }, modifier = Modifier.fillMaxWidth()) }
+    client.progress?.let { GoaProgressBar({ it }, Modifier.fillMaxWidth()) }
     if (client.phase == ClientPhase.CHOOSING) {
         client.hosts.forEach { option ->
             GoaOutlinedButton(
@@ -702,7 +702,7 @@ private fun PeerRow(peer: PeerProgress, onShowInvite: (() -> Unit)? = null) {
         }
         peer.progress?.let {
             Spacer(Modifier.size(Spacing.sm))
-            LinearProgressIndicator(progress = { it }, modifier = Modifier.fillMaxWidth())
+            GoaProgressBar({ it }, Modifier.fillMaxWidth())
         }
         // The fix where the problem is: the group's invite, to scan on that phone.
         if (onShowInvite != null) {

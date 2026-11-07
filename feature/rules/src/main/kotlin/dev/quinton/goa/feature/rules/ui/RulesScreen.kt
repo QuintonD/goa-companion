@@ -20,7 +20,6 @@ import androidx.compose.material.icons.automirrored.outlined.KeyboardArrowRight
 import androidx.compose.material.icons.automirrored.outlined.MenuBook
 import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.outlined.MilitaryTech
-import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material.icons.outlined.SearchOff
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
@@ -46,6 +45,7 @@ import dev.quinton.goa.core.designsystem.component.GoaCard
 import dev.quinton.goa.core.designsystem.component.GoaPlate
 import dev.quinton.goa.core.designsystem.component.GoaPlateTheme
 import dev.quinton.goa.core.designsystem.component.GoaScreen
+import dev.quinton.goa.core.designsystem.component.SearchFieldIcon
 import dev.quinton.goa.core.designsystem.component.SectionHeader
 import dev.quinton.goa.core.designsystem.component.scaledIconSize
 import dev.quinton.goa.core.designsystem.theme.GoaTextStyles
@@ -147,7 +147,7 @@ private fun SearchField(query: String, onQueryChange: (String) -> Unit) {
             modifier = Modifier.fillMaxWidth(),
             singleLine = true,
             placeholder = { Text("Search rules") },
-            leadingIcon = { Icon(Icons.Outlined.Search, contentDescription = null) },
+            leadingIcon = { SearchFieldIcon() },
             trailingIcon = {
                 if (query.isNotEmpty()) {
                     IconButton(onClick = { onQueryChange("") }) {

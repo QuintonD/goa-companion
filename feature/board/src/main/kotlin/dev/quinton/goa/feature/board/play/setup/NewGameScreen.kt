@@ -39,7 +39,6 @@ import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Slider
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -72,6 +71,7 @@ import dev.quinton.goa.core.designsystem.component.GoaPlateTheme
 import dev.quinton.goa.core.designsystem.component.GoaScreen
 import dev.quinton.goa.core.designsystem.component.GoaSegment
 import dev.quinton.goa.core.designsystem.component.GoaSegmentedRow
+import dev.quinton.goa.core.designsystem.component.GoaSlider
 import dev.quinton.goa.core.designsystem.component.GoaSwitch
 import dev.quinton.goa.core.designsystem.component.HeroPortrait
 import dev.quinton.goa.core.designsystem.component.SectionHeader
@@ -623,7 +623,7 @@ private fun StrengthSlider(
                 color = MaterialTheme.colorScheme.primary,
             )
         }
-        Slider(
+        GoaSlider(
             value = strength.toFloat(),
             onValueChange = { v -> v.roundToInt().let { if (it != strength) onPick(it) } },
             valueRange = AiStrength.MIN.toFloat()..AiStrength.MAX.toFloat(),

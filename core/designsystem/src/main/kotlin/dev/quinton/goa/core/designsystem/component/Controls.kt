@@ -16,9 +16,12 @@ import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material3.Icon
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ProvideTextStyle
+import androidx.compose.material3.Slider
+import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
 import androidx.compose.runtime.Composable
@@ -248,6 +251,70 @@ fun GoaSegmentCheck(selected: Boolean) {
     }
 }
 
+/**
+ * The steel a slider's or progress bar's remainder runs on: neutral, so bronze reads as "filled / chosen" and teal
+ * stays for "next / correct / can act" (DESIGN.md "Colour roles").
+ */
+val ControlSteel.track: Color get() = if (this === ControlSteel.Light) TRACK_LIGHT else TRACK_DARK
+
+/**
+ * The app's slider: the chosen part and the thumb bronze, the remainder a neutral steel track, steps as small ticks.
+ * Same parameters as Material's `Slider`.
+ */
+@Composable
+fun GoaSlider(
+    value: Float,
+    onValueChange: (Float) -> Unit,
+    modifier: Modifier = Modifier,
+    valueRange: ClosedFloatingPointRange<Float> = 0f..1f,
+    steps: Int = 0,
+    onValueChangeFinished: (() -> Unit)? = null,
+    enabled: Boolean = true,
+) {
+    val bronze = GoaTheme.colors.selection
+    val steel = ControlSteel.current
+    Slider(
+        value = value,
+        onValueChange = onValueChange,
+        modifier = modifier,
+        enabled = enabled,
+        valueRange = valueRange,
+        steps = steps,
+        onValueChangeFinished = onValueChangeFinished,
+        colors = SliderDefaults.colors(
+            thumbColor = bronze,
+            activeTrackColor = bronze,
+            inactiveTrackColor = steel.track,
+            activeTickColor = MaterialTheme.colorScheme.onPrimary.copy(alpha = TICK_ALPHA),
+            inactiveTickColor = steel.lit,
+        ),
+    )
+}
+
+/**
+ * The app's progress bar: bronze for what is done on a neutral steel track. With [progress] null it runs
+ * indeterminate (working, no known end). Teal never means "progress": it is for next, correct, can act.
+ */
+@Composable
+fun GoaProgressBar(progress: (() -> Float)?, modifier: Modifier = Modifier) {
+    val bronze = GoaTheme.colors.selection
+    val track = ControlSteel.current.track
+    if (progress == null) {
+        LinearProgressIndicator(modifier, color = bronze, trackColor = track)
+    } else {
+        LinearProgressIndicator(
+            progress = progress,
+            modifier = modifier,
+            color = bronze,
+            trackColor = track,
+            drawStopIndicator = {},
+        )
+    }
+}
+
+private val TRACK_DARK = Color(0xFF3A464E)
+private val TRACK_LIGHT = Color(0xFFD8CFBF)
+private const val TICK_ALPHA = 0.6f
 private val SEGMENT_HEIGHT = 48.dp
 private val SEGMENT_INSET = 3.dp
 private val SEGMENT_RADIUS = 10.dp
