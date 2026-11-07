@@ -19,6 +19,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.CheckCircle
 import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.outlined.ExpandLess
 import androidx.compose.material.icons.outlined.ExpandMore
@@ -172,6 +173,33 @@ fun NudgeCard(nudge: NudgeUi, onMore: () -> Unit, onDismiss: () -> Unit, modifie
                 contentPadding = PaddingValues(horizontal = Spacing.lg),
             ) { Text("Another nudge") }
         }
+    }
+}
+
+/**
+ * One part of the book's progress, a teal tick and "1 of 50 positions" in bronze ([PuzzleText.partCount]): the same
+ * line on the Play tab and over the part in the puzzle list, so the two never disagree. TalkBack adds "solved".
+ */
+@Composable
+fun SolvedCount(solved: Int, total: Int, rounds: Boolean, modifier: Modifier = Modifier) {
+    val text = PuzzleText.partCount(solved, total, rounds)
+    Row(
+        modifier.clearAndSetSemantics { contentDescription = "$text solved" },
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Icon(
+            Icons.Outlined.CheckCircle,
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.secondary,
+            modifier = Modifier.size(scaledIconSize(16.dp, 1.4f)),
+        )
+        Spacer(Modifier.width(4.dp))
+        Text(
+            text,
+            style = MaterialTheme.typography.labelLarge,
+            fontWeight = FontWeight.Bold,
+            color = MaterialTheme.colorScheme.primary,
+        )
     }
 }
 

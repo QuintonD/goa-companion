@@ -67,9 +67,9 @@ import dev.quinton.goa.feature.board.ui.PlateSurface
 
 /**
  * The puzzles (PRODUCT §10): Continue with the first unsolved one at the top ("Up next · Puzzle 2 of 50"),
- * difficulty and theme filters, then the book's two parts, Positions · 50 and Full rounds · 22, each with
- * its own "N of M solved", and every puzzle by number with its title, theme, difficulty (hexes and words),
- * heroes and progress. Reset progress is in the menu, behind a confirmation.
+ * difficulty and theme filters, then the book's two parts, Positions and Full rounds, each with its progress
+ * as the Play tab shows it ("1 of 50 positions", [SolvedCount]), and every puzzle by number with its title,
+ * theme, difficulty (hexes and words), heroes and progress. Reset progress is in the menu, behind a confirmation.
  */
 @Composable
 fun PuzzleListScreen(
@@ -180,6 +180,7 @@ private fun PuzzleList(state: PuzzleListUiState.Ready, onAction: (PuzzleListActi
                 "Positions",
                 state.positionsSolved,
                 state.positionsTotal,
+                false,
                 "One position and a goal: find the line that makes it against the best replies.",
                 Modifier.padding(top = Spacing.sm),
             )
@@ -209,6 +210,7 @@ private fun PuzzleList(state: PuzzleListUiState.Ready, onAction: (PuzzleListActi
                     "Full rounds",
                     state.roundsSolved,
                     state.roundsTotal,
+                    true,
                     "Four turns planned from turn 1, through the Minion Battle. You know what they will play.",
                     Modifier.padding(top = Spacing.md),
                 )
@@ -248,7 +250,11 @@ private fun ContinueCard(state: PuzzleListUiState.Ready, onOpen: (String) -> Uni
                     Text(next.info.goal.text, style = MaterialTheme.typography.bodySmall, color = content)
                 } else {
                     Text(
-                        "${state.solved} OF ${state.total} SOLVED",
+                        listOfNotNull(
+                            PuzzleText.partCount(state.positionsSolved, state.positionsTotal, rounds = false),
+                            state.roundsTotal.takeIf { it > 0 }
+                                ?.let { PuzzleText.partCount(state.roundsSolved, it, rounds = true) },
+                        ).joinToString(" · ").uppercase(),
                         style = GoaTextStyles.overline,
                         color = MaterialTheme.colorScheme.primary,
                     )
@@ -276,24 +282,31 @@ private fun ContinueCard(state: PuzzleListUiState.Ready, onOpen: (String) -> Uni
 }
 
 /**
- * A part of the book: "POSITIONS · 50" and "1 of 50 solved" on one line, what the part is under it. The count
- * is the one the puzzle's own screen uses ("Puzzle 3 of 50"), so the numbers agree.
+ * A part of the book: "POSITIONS" and its progress ("✓ 1 of 50 positions", the very line the Play tab shows) on one
+ * line, what the part is under it. The count is the one the puzzle's own screen uses ("Puzzle 3 of 50").
  */
 @Composable
-private fun PartHeading(title: String, solved: Int, total: Int, note: String, modifier: Modifier = Modifier) {
+@OptIn(ExperimentalLayoutApi::class)
+private fun PartHeading(
+    title: String,
+    solved: Int,
+    total: Int,
+    rounds: Boolean,
+    note: String,
+    modifier: Modifier = Modifier,
+) {
     Column(modifier.fillMaxWidth().semantics(mergeDescendants = true) { heading() }) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
+        FlowRow(
+            horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+            itemVerticalAlignment = Alignment.CenterVertically,
+        ) {
             Text(
-                "${title.uppercase()} · $total",
+                title.uppercase(),
                 style = GoaTextStyles.overline,
                 color = MaterialTheme.colorScheme.primary,
                 modifier = Modifier.weight(1f),
             )
-            Text(
-                "$solved of $total solved",
-                style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
+            SolvedCount(solved, total, rounds)
         }
         Text(note, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
     }

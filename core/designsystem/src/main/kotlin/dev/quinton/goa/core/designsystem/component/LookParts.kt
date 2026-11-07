@@ -797,8 +797,11 @@ fun BevelText(
     }
 }
 
-/** Room the banner's medallion takes at the end of a top bar: actions stay clear of it. */
+/** Room the banner's medallion takes at the end of a regular top bar: actions stay clear of it. */
 val BannerMedallionWidth: Dp = 58.dp
+
+/** Room the plain steel end of a compact bar takes ([bannerCompact]). */
+val BannerPlainEndWidth: Dp = 16.dp
 
 /** A label over the map or art: a [BevelText] that doesn't take a line of its own. */
 @Composable
@@ -814,10 +817,10 @@ fun BevelLabel(text: String, modifier: Modifier = Modifier, fontSize: Int = 17) 
     )
 }
 
-/** A spacer as wide as the banner's medallion. */
+/** A spacer as wide as the banner's end: its medallion, or a compact bar's plain end ([bannerEndWidth]). */
 @Composable
 fun BannerEndSpacer() {
-    Spacer(Modifier.width(BannerMedallionWidth))
+    Spacer(Modifier.width(bannerEndWidth()))
 }
 
 val PlateShape = RoundedCornerShape(8.dp)

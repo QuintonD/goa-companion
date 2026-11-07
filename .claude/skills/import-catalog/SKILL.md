@@ -47,7 +47,7 @@ always matches the app's schema. Code map: `Sources.kt` (pinning, cache), `Sourc
    - identifies each card scan (source 2) by comparing its illustration with source-1 card
      artwork; a Handicap card that reuses its basic card's art is told apart by the top-right
      badge. Spellbook pages have no source-1 art: they are mapped in `overrides.json` `images`.
-     Scans → WebP q80 ≤ 768 px (`official/cards/<card-id>.webp`); goa2-faq `public/hero/<id>.png`
+     Scans → WebP q80 ≤ 1026 px, their own size (`official/cards/<card-id>.webp`); goa2-faq `public/hero/<id>.png`
      → ≤ 512 px portraits (`official/heroes/<id>/portrait.webp`). Unchanged images are not
      re-encoded (`cache/assets-manifest.tsv`); stale ones are deleted;
    - applies `tools/catalog-import/overrides.json` last;
