@@ -1,7 +1,6 @@
 package dev.quinton.goa.core.designsystem.component
 
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
@@ -140,6 +139,7 @@ private class SegmentedScopeImpl(row: RowScope) :
 @Composable
 fun GoaSegmentedRow(modifier: Modifier = Modifier, content: @Composable GoaSegmentedRowScope.() -> Unit) {
     val steel = ControlSteel.current
+    val shadow = if (GoaTheme.isDark) RECESS_SHADOW else 0f
     Row(
         modifier
             .height(IntrinsicSize.Min)
@@ -151,13 +151,15 @@ fun GoaSegmentedRow(modifier: Modifier = Modifier, content: @Composable GoaSegme
                 val inner = Size(size.width - edge, size.height - edge)
                 onDrawBehind {
                     drawRoundRect(steel.recess, cornerRadius = radius)
-                    // The recess's shadow under its top edge, then the steel rim.
-                    drawLine(
-                        Color.Black.copy(alpha = RECESS_SHADOW),
-                        Offset(radius.x, edge * 2f),
-                        Offset(size.width - radius.x, edge * 2f),
-                        strokeWidth = edge * 2f,
-                    )
+                    // The recess's shadow under its top edge (on the slate only), then the steel rim.
+                    if (shadow > 0f) {
+                        drawLine(
+                            Color.Black.copy(alpha = shadow),
+                            Offset(radius.x, edge * 2f),
+                            Offset(size.width - radius.x, edge * 2f),
+                            strokeWidth = edge * 2f,
+                        )
+                    }
                     drawRoundRect(
                         bevel,
                         topLeft = Offset(edge / 2f, edge / 2f),
@@ -222,7 +224,7 @@ fun GoaSegmentedRowScope.GoaSegment(
     ) {
         CompositionLocalProvider(LocalContentColor provides ink) {
             ProvideTextStyle(MaterialTheme.typography.labelLarge.copy(textAlign = TextAlign.Center)) {
-                Box(contentAlignment = Alignment.Center) { icon() }
+                icon()
                 label()
             }
         }
@@ -246,6 +248,6 @@ fun GoaSegmentCheck(selected: Boolean) {
 private val SEGMENT_HEIGHT = 48.dp
 private val SEGMENT_INSET = 3.dp
 private val SEGMENT_RADIUS = 10.dp
-private const val RECESS_SHADOW = 0.35f
+private const val RECESS_SHADOW = 0.3f
 private val SWITCH_PARCHMENT = Color(0xFFF3EBDA)
 private val SWITCH_CHECK_INK = Color(0xFF5A3E0C)

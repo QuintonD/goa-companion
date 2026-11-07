@@ -193,7 +193,8 @@ fun GoaOutlinedButton(
     val ink = MaterialTheme.colorScheme.onSurface
     val off = if (enabled) null else DisabledFace.current
     val steel = ControlSteel.current
-    val dark = GoaTheme.isDark
+    // A solid face (the button's own shape), not a drawn one: the touch target around a short button stays clear.
+    val face = if (GoaTheme.isDark) SLATE_FACE else PAPER_FACE
     OutlinedButton(
         onClick = onClick,
         enabled = enabled,
@@ -201,24 +202,14 @@ fun GoaOutlinedButton(
         contentPadding = contentPadding,
         border = if (off == null) BorderStroke(1.dp, steel.bevel()) else null,
         colors = ButtonDefaults.outlinedButtonColors(
-            containerColor = Color.Transparent,
+            containerColor = face,
             contentColor = ink,
+            disabledContainerColor = Color.Transparent,
             disabledContentColor = off?.ink ?: ink,
         ),
-        modifier = if (off == null) modifier.slateFace(dark) else modifier.metalFace(bronze = false, off = off),
+        modifier = if (off == null) modifier else modifier.metalFace(bronze = false, off = off),
         content = content,
     )
-}
-
-/** A secondary button's face: the slate (lit a little at the top) or, light, the paper; the bevel is its border. */
-private fun Modifier.slateFace(dark: Boolean): Modifier = drawWithCache {
-    val fill = if (dark) {
-        Brush.verticalGradient(listOf(SLATE_TOP, SLATE_LOW))
-    } else {
-        Brush.verticalGradient(listOf(PAPER_TOP, PAPER_LOW))
-    }
-    val radius = CornerRadius(7.dp.toPx())
-    onDrawBehind { drawRoundRect(fill, cornerRadius = radius) }
 }
 
 /** A word as a top-bar action: light with a dark edge, since bronze is lost on the steel banner. */
@@ -262,7 +253,5 @@ const val DISABLED_ALPHA = 0.42f
 /** Fades a disabled control as a whole, so it keeps its shape and reads as the button it will become. */
 fun Modifier.disabled(enabled: Boolean): Modifier = if (enabled) this else alpha(DISABLED_ALPHA)
 private const val BANNER_DISABLED = 0.6f
-private val SLATE_TOP = Color(0xFF2A3238)
-private val SLATE_LOW = Color(0xFF1C2226)
-private val PAPER_TOP = Color(0xFFFFFDF8)
-private val PAPER_LOW = Color(0xFFF1EBDF)
+private val SLATE_FACE = Color(0xFF242B30)
+private val PAPER_FACE = Color(0xFFFAF7F0)
