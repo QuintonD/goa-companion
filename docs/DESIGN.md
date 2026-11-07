@@ -405,10 +405,13 @@ Until the symbols load, the original glyph on the team's shape outline. **Origin
 official portrait in a team-coloured ring, minions a team disc with the glyph, tokens a stone square
 with the label; heroes and minions carry the team's shape at the bottom right, so team is never
 colour alone. **Overlays** each have a pattern as well as a colour, and the switch that turns one on
-shows its swatch (the legend); while a layer is on, the **map key** (`MapKey`, as the game's) names it over the map's
-top left, its swatch and value each ("Movement 4: spaces to get there", "Range 2", "Fast Travel", "Radius 1", "Where it goes",
-"Measure: 3 spaces"; with large text the value only, "Move 4", "Range 2", its words capped at 1.3×), and the map is
-framed under it: Movement = green fill and outline with the number of spaces (its
+shows its swatch (the legend): "Movement", "Fast Travel", "Card range", "Radius". A chosen card shows **one overlay**
+(its Movement, else its Range, else its Radius), so the marks never overlap; the switches add the others. While a layer
+is on, the **map key** (`MapKey`, as the game's) is **docked to the map's top edge**: one full-width strip under the
+bar, never a plate floating over pieces, its swatch and value each ("Movement 4: spaces to get there", "Card range 2",
+"Fast Travel", "Radius 1", "Where it goes", "Measure: 3 spaces"; short words by default, "Movement 4", "Card range 2",
+its words capped at 1.3×), and the map is framed under it. Before anything is selected a dismissible tip over the
+tools says "Tap a hero to see movement and range" (gone once a piece is selected). Markings: Movement = green fill and outline with the number of spaces (its
 own colour, apart from the Battle Zone's teal: dark `#7BD88F`, light `#2A7037`, the player palette's
 Kelp; on the Zone fills 6.7–7.9:1 dark, 3.9–4.5:1 light, above the 3:1 a graphic needs; the numbers
 are onSurface), Fast Travel = bronze hatching,
@@ -422,8 +425,12 @@ view, hexes about 38 dp across (down to 32 dp to fit the Lane's length; the map'
 gets cropped; a double-lane map on its whole region); the view zooms and pans so the selected piece
 and what its overlays reach stay in sight and tappable, clear of the panel, the tools and the
 Unverified badge; when the panel closes the map fills its place again (no band of empty water); a
-push brings the new Battle Zone into view. "Fit" shows the whole map and turns into "Zoom to the
-lane". Each space's TalkBack node is a square inside its hex (1.46 map units, so neighbours never
+push brings the new Battle Zone into view. **Map controls** (`MapToolbar`, the sandbox's and the table's): one compact
+steel column docked at the map's end edge, under the key or the HUD: "Fit board" (it turns into "Lane view") and "Flip
+view", each its glyph over its word as the game's top bar (`BarLabelButton`), the full words in a long-press tooltip and
+for TalkBack. A flip says "View flipped · Blue at the bottom" beside the column for a moment (TalkBack hears it). Every
+framing (the opening, Fit, a reveal) moves aside, to the start or down, so **no piece stands under the column**
+(`MapViewport.updateAvoid`), unless that would push a piece in view out of it. Each space's TalkBack node is a square inside its hex (1.46 map units, so neighbours never
 overlap and Android keeps each node whole). The card strip starts one card before the chosen card
 and fades at an edge with more cards beyond; from font scale 1.3 its chips wrap two to a row, each half the width, every name whole. The chosen card takes the one selection look (bronze edge and tint, a tick), never its own colour. **New board** fits a 384 dp phone without scrolling:
 one slot on top holds the latest draft's or match's line-up (a card with Set up) until the first
@@ -448,11 +455,18 @@ the tapped one gets the selection outline, and a move shows the engine's path as
 dots at each step; a decision's other highlights (a card's range) use the violet Range outline; the
 acting hero's space is outlined in bronze with a bronze **"NOW"** tag over its piece (dark letters; the turn's state is bronze on the map as on the track, the ring keeps the team's colour; growing with large text up to 1.5×,
 outside the zoom; TalkBack hears "acting now" on the space); an immune minion is ringed with a dashed
-teal circle (TalkBack: "immune"). Map taps select, a **Confirm** button with the choice spelled out
-("Confirm · Lane Zone 3 · 3 spaces from Wasp") answers. The sandbox's key is one compact row of short words ("Move 4",
-"Range 2") with an info mark; a tap opens the full words ("Range 2: in reach from here") and closes them again. Every option is a 48 dp target: a tap within 24 dp of a lone
-option's centre takes it, and a tap among several options while a space is narrower than 48 dp on screen zooms in a
-step around the finger first (**tap to focus**); the next tap chooses. While the person's question lights the map a **map key**
+teal circle (TalkBack: "immune"). Map taps select; a **Confirm** button of one line at 56 dp says what it does ("Move
+here · 3", the engine's path's steps; "Respawn here", "Choose · Tigerclaw", "Remove · number 2") and the instruction
+plate says which one it is in full ("Chosen: Lane Zone 3 · 3 spaces from Wasp"). The sandbox's key is one compact row
+of short words ("Movement 4", "Card range 2") with an info mark; a tap opens the full words ("Card range 2: in reach
+from here") and closes them again. Every option is a **48 dp target**: a question answered on the map frames its spaces
+with hexes 48 dp across when they fit (the Battle Zone around them only when it fits at that size too). Spaces the
+framing still leaves under about 40 dp (2 to 12 of them; once for a question it stays, as the list only makes the panel
+taller) are **numbered** on the map, teal discs in the spaces in place of the step chips, and **listed** in
+the panel, two 48 dp rows to a line ("3 spaces from Wasp" over its Zone), as the Minion Battle's minions; the key says
+"Numbered as in the list". A tap within 24 dp of a lone option's centre takes it, and a tap among several options while
+a space is narrower than 48 dp on screen zooms in a step around the finger first (**tap to focus**); the next tap
+chooses. While the person's question lights the map a **map key**
 (`MapKey`, a small plate under the round at a glance and the turn track, inside what the map frames below, so it
 covers no piece) names
 each mark with its own swatch: "You can choose" (a lit, white-edged hex), "Spaces to get there" (the dark number
@@ -465,8 +479,9 @@ one glyph per destination in both orientations (State is the dashboard glyph in 
 **Framing a question** (extended after the v0.8 hands-on pass): when a question arrives the map brings
 its options (with the unit they are about and the asking hero) into the part of the map nothing floats
 over: under the HUD and the hero strip or turn track, clear of the map buttons' column (Fit, Flip, the
-Spellbook; when the options fit beside it), above the panel. Hexes stay at least about 38 dp across, or
-down to about 30 dp when that is what it takes for every option to be in view (a Move 3 under the turn
+Spellbook; when the options fit beside it), above the panel. Hexes are 48 dp across for a question answered on the
+map when its options fit, else at least about 38 dp, or down to about 30 dp when that is what it takes for every option
+to be in view (a Move 3 under the turn
 track); with still more, the middle of the options. It frames again as what floats over the map settles
 (the turn track appears at the reveal, the panel grows) — but never once the person has dragged, pinched
 or double-tapped since the question came: their view wins. The attacker and the acting hero are framed too, and
@@ -582,8 +597,13 @@ Attack, "Def 2 vs 6", with the verdict's mark (warning or tick) in its colour (p
 successfully, or choose not to defend, you are defeated"); a Block settled up front "Blocks it" or "Block fails"; a
 card whose text decides shows that condition verbatim in italic Crimson (“Block a ranged attack.”). "Don't defend" is a
 card-sized tile at the row's end (a block icon, "Keep your cards"). **Nothing is chosen for the player**, except that
-when no card saves the hero, "Don't defend · keep your cards" is the bronze button from the start (its tile lit), with
-one rule row "No card saves Tigerclaw against Attack 6: not defending, you keep your cards." p.14. The whole decision
+when no card saves the hero, not defending is the bronze button from the start (its tile lit). Not defending shows
+**what it comes to**, played out by the engine on a fork of the game (`defeatPreview`: its own events, never the app's
+reckoning): a rule row "No card saves Tigerclaw: defeated by Arien." p.13 and under it, each with the game's mark, the
+Life counters the team spends ("Blue spends 1 Life counter (1 left)", or the last one and who wins), the coins each hero
+collects and "Tigerclaw may respawn before acting next turn"; the button then reads "Accept defeat · keep cards". Where
+the engine can't be asked (online, a puzzle) the row is the short "No card saves Tigerclaw." p.14 and the button
+"Don't defend · keep your cards". The whole decision
 is in view at 100 % on a 411 dp phone: the row, then the rule row of how the chosen one is counted, from the engine's
 numbers only ("Defense 2 = card 1 + minion 1 against Attack 6", p.14; items, the minion modifier, and whatever else the
 engine counted as "effects"; a card whose text decides: its words verbatim and the attack it meets, "This is a melee
@@ -629,7 +649,8 @@ the page on the slate, as every flow's commit is (online: Done alone). New game 
 yet playable are veiled and marked "Later". Options: the line-up plate, then
 **You play** as "One hero | Whole team" (2 v 2 and up) and portrait chips for the heroes or the teams (the
 chosen one bordered in its team's colour with a check), "The computer plays …" under them; strength, length
-(its note under the segments), map and a Coach switch row, all above the fixed coin button. **Computer strength** (ADR-039) is a Material 3 slider, 1 to 10 with a tick per step
+(each segment with the counters it starts with, as the engine sets them up: "Quick / 3 Waves · 4 Lives", "Long / 5
+Waves · 6 Lives"; the note under them, "Counters at the start with 4 heroes, Lives per team (p.5)"), map and a Coach switch row, all above the fixed coin button. **Computer strength** (ADR-039) is a Material 3 slider, 1 to 10 with a tick per step
 (default 5), the value and its band above it in the primary colour ("7 · Hard"; bands 1–3 Easy, 4–6
 Normal, 7–8 Hard, 9–10 Expert), "Gentler" and "Stronger" under the ends, and the band's one-line note
 under that (1 and 10 have their own); TalkBack reads "Computer strength, Strength 7 of 10, Hard".
@@ -746,7 +767,9 @@ with a 2 dp bronze border and the original **seal** (a bronze hex with a tide-te
 points, drawn in code, opening out once with emphasised deceleration), then "Replay the solution on the board"
 and WHY IT WORKS as numbered lines (the explanation split sentence by sentence, a full round's by turn with a
 "Turn 2" mark; never reworded), then RULES. The list has two parts, POSITIONS · 50 and FULL ROUNDS · 22, each with
-"n of m solved"; the Continue card says "Up next · Puzzle 2 of 50", the count the puzzle's own screen uses.
+"n of m solved"; the Continue card says "Up next · Puzzle 2 of 50", the count the puzzle's own screen uses. The
+difficulty filter is one checked segmented bar, **"All" checked** by default, then Hard, Harder, Hardest, each with its
+number of puzzles under the name, so it reads as a filter at once (one difficulty at a time).
 The **replay** panel has Back / Next arrows around "SOLUTION · STEP n OF m", the move in titleMedium
 (its card beside it), WHAT HAPPENED, and the explanation below. The list's numbers are Cinzel in a
 bronze ring (filled when solved); Continue is a secondary-container card (all solved: the seal).

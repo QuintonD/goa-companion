@@ -162,6 +162,13 @@ fun GameTable(
         // appears with the reveal, the panel grows), but never once the person has moved the map
         // since the question came: their pan or pinch wins. Not while the panel is hidden and the
         // whole board is in view.
+        // No piece under the map's controls: the views are framed clear of them (opus #8). The reveal below runs again
+        // when they move, so a framing animated before the controls were laid out is redone clear of them.
+        val pieceCentres = remember(table.view, layout) { table.pieces.mapNotNull { it.at }.map(layout::center) }
+        val mapStartPx = with(density) { mapStart.toPx() }
+        val controls = toolbar?.translate(-Offset(origin.x + mapStartPx, origin.y))
+        LaunchedEffect(controls, pieceCentres) { viewport.updateAvoid(controls, pieceCentres) }
+
         val decision = table.decision
         val gesturesAtQuestion = remember(decision?.id, table.asking) { viewport.gestures }
         var crowdedFor by remember { mutableStateOf<Long?>(null) }
@@ -174,7 +181,10 @@ fun GameTable(
             viewport.topInset,
             buttonsWidth,
             hidden,
+            controls,
+            pieceCentres,
         ) {
+            viewport.updateAvoid(controls, pieceCentres)
             if (decision == null || viewport.unit == 0f) return@LaunchedEffect
             if (hidden && !viewport.userMoved) return@LaunchedEffect
             if (viewport.gestures != gesturesAtQuestion) return@LaunchedEffect
@@ -215,13 +225,6 @@ fun GameTable(
         // Spaces the framing couldn't make finger targets are numbered on the map and listed in the panel (sol #1,
         // sol-b #2). Once for a question it stays (the list makes the panel taller, which only shrinks them further).
         val crowded = table.asking && crowdedFor != null && crowdedFor == decision?.id
-
-        // No piece under the map's controls: the views are framed clear of them (opus #8).
-        val pieceCentres = remember(table.view, layout) { table.pieces.mapNotNull { it.at }.map(layout::center) }
-        val mapStartPx = with(density) { mapStart.toPx() }
-        LaunchedEffect(toolbar, pieceCentres, origin, mapStartPx) {
-            viewport.updateAvoid(toolbar?.translate(-Offset(origin.x + mapStartPx, origin.y)), pieceCentres)
-        }
 
         // A new question (another decision) starts at the top of the panel, its header in view; the
         // same question composed again (a selection, a rotation) keeps where the person scrolled to.

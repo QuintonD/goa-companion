@@ -320,7 +320,17 @@ private fun BoardContent(
         val at = selected?.at
         val reach = state.overlay?.reach.orEmpty()
         val measureTarget = state.measure?.target
-        LaunchedEffect(at, reach, measureTarget, viewport.unit, viewport.bottomInset, viewport.endInset, peeking) {
+        LaunchedEffect(
+            at,
+            reach,
+            measureTarget,
+            viewport.unit,
+            viewport.bottomInset,
+            viewport.endInset,
+            peeking,
+            toolbar,
+        ) {
+            viewport.updateAvoid(toolbar, pieceCentres)
             if (at == null || viewport.unit == 0f) return@LaunchedEffect
             if (peeking && !viewport.userMoved) return@LaunchedEffect
             val region = layout.bounds(reach + listOfNotNull(at, measureTarget), pad = 1.1f) ?: return@LaunchedEffect
