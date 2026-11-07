@@ -112,7 +112,7 @@ internal fun TimerStart(state: StartUiState, actions: TimerActions) {
 @Composable
 private fun ReadyCard(state: StartUiState, actions: TimerActions) {
     GoaPlate(Modifier.fillMaxWidth(), contentPadding = PaddingValues(Spacing.lg)) {
-        TitlePlate("Phase timer", Modifier.fillMaxWidth())
+        TitlePlate("Phase timer", Modifier.fillMaxWidth(), gear = false)
         Spacer(Modifier.height(Spacing.sm))
         PresetRow(state.selected, actions.onManagePresets)
         PlateRowDivider()

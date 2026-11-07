@@ -99,7 +99,7 @@ internal fun HeroPeekSheet(
                 .padding(bottom = if (commit == null && note == null) Spacing.xl else Spacing.md),
             verticalArrangement = Arrangement.spacedBy(Spacing.md),
         ) {
-            TitlePlate(hero.name, Modifier.fillMaxWidth())
+            TitlePlate(hero.name, Modifier.fillMaxWidth(), gear = false)
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Box(Modifier.size(width = 80.dp, height = 100.dp)) {
                     HeroPortrait(hero.id, hero.portrait, null, Modifier.matchParentSize(), framed = false)

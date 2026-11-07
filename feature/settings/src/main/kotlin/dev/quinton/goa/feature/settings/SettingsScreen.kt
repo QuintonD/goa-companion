@@ -37,7 +37,6 @@ import androidx.compose.material.icons.outlined.ViewAgenda
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
-import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Surface
@@ -60,6 +59,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import dev.quinton.goa.core.designsystem.component.GoaProgressBar
 import dev.quinton.goa.core.designsystem.component.GoaScreen
 import dev.quinton.goa.core.designsystem.component.GoaSegment
 import dev.quinton.goa.core.designsystem.component.GoaSegmentCheck
@@ -439,7 +439,7 @@ internal fun SpeedRow(test: SpeedTest, onToggle: () -> Unit) {
             }
             if (test is SpeedTest.Running) {
                 Spacer(Modifier.size(Spacing.sm))
-                LinearProgressIndicator(progress = { test.progress }, Modifier.fillMaxWidth())
+                GoaProgressBar({ test.progress }, Modifier.fillMaxWidth())
             }
             if (test is SpeedTest.Done) CopyLine(test.speed.line)
         }

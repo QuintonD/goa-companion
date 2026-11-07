@@ -216,9 +216,10 @@ fun GoaDarkTheme(content: @Composable () -> Unit) {
 }
 
 /**
- * How much frame a plate carries. [Primary] is the game's full plate (steel edge, teal brackets): a screen's main
- * summary, the current turn, a hero. [Secondary] is flat with a quiet hairline: settings, prose, lists of rows.
- * [Well] is a recess on a plate: a plate inside a plate becomes one, so frames never nest.
+ * How much frame a plate carries (DESIGN.md "Framing levels"). [Primary] is the section plate (steel edge, teal
+ * brackets): every grouped section, More, Settings and About included. [Secondary] is flat with a quiet hairline: one
+ * choice of several side by side (`SelectablePlate`), never a section. [Well] is a recess: a plate inside a plate
+ * becomes one, a tone with no edge, so frames never nest.
  */
 enum class PlateStyle { Primary, Secondary, Well }
 
@@ -350,7 +351,7 @@ private class PlateGroundArt(
 
     fun drawWell(scope: DrawScope, dark: Boolean) = with(scope) {
         drawPath(clip, if (dark) WELL_DARK else WELL_LIGHT)
-        drawPath(clip, if (dark) WELL_DARK_EDGE else WELL_LIGHT_EDGE, style = outer)
+        if (edge) drawPath(clip, if (dark) WELL_DARK_EDGE else WELL_LIGHT_EDGE, style = outer)
     }
 
     fun drawSlate(scope: DrawScope) = with(scope) {
@@ -406,7 +407,13 @@ fun GoaPlate(
             row -> Modifier.selectionRow(selected)
             else -> Modifier.selectionFrame(selected, shape)
         }
-        val ground = if (row) Modifier else Modifier.slatePlate(shape, brackets, style = drawn)
+        // Framing levels (DESIGN.md): one frame per section. A plate inside a plate is a recess of tone with no edge
+        // of its own; what separates inside a plate is spacing and a hairline (PlateRowDivider), never a second frame.
+        val ground = when {
+            row -> Modifier
+            inPlate -> Modifier.slatePlate(shape, brackets = false, edge = false, style = PlateStyle.Well)
+            else -> Modifier.slatePlate(shape, brackets, style = drawn)
+        }
         CompositionLocalProvider(LocalInPlate provides true) {
             Column(
                 modifier.then(ground).then(frame).then(click).padding(contentPadding),
@@ -505,8 +512,9 @@ class TitlePlateSize(val minHeight: Dp, val cap: Dp, val vertical: Dp, val gear:
  * The cards' parchment title plate behind what this holds, with the gear at its end, and the padding that keeps the
  * words off the gear. [plate] is the title plate's art (`rememberOfficialBitmap(LookArt.TITLE_PLATE)`), null while
  * it loads: then the parchment is flat. For a plate with more than one string in it; else use [TitlePlate].
- * Without [gear] the pill ends in its own rounded end: the gear is ceremony for the game's states (a turn, a phase,
- * a team's hero), never on a catalog tile or a page title, where it would pass for a control or a team mark.
+ * Without [gear] the pill ends in its own rounded end. The parchment plate is for a screen's one heading; the gear
+ * only for a phase or an outcome heading (a timer phase, a pick, "Match over", a decision), never on a page title, a
+ * hero's name in a sheet or a catalog tile, where it would pass for a control or a team mark.
  */
 fun Modifier.titlePlate(
     plate: ImageBitmap?,

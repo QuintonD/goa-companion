@@ -293,7 +293,7 @@ private fun HeroChooser(
     val shown = session.selection.hands[playerId] ?: session.selection.pool
     GoaSheet(onDismissRequest = { actions.chooseHeroFor(null) }) {
         Column(Modifier.padding(horizontal = Spacing.screen)) {
-            TitlePlate("Hero for ${state.playerName(playerId)}", Modifier.fillMaxWidth())
+            TitlePlate("Hero for ${state.playerName(playerId)}", Modifier.fillMaxWidth(), gear = false)
             Spacer(Modifier.height(Spacing.sm))
             LazyVerticalGrid(
                 columns = GridCells.Adaptive(100.dp),
