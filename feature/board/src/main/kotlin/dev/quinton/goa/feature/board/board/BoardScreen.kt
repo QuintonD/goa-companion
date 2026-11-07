@@ -32,13 +32,10 @@ import androidx.compose.material.icons.outlined.CenterFocusStrong
 import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.outlined.Hexagon
 import androidx.compose.material.icons.outlined.KeyboardDoubleArrowUp
-import androidx.compose.material.icons.outlined.MoreVert
 import androidx.compose.material.icons.outlined.RestartAlt
 import androidx.compose.material.icons.outlined.SwapVert
 import androidx.compose.material.icons.outlined.ZoomIn
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.FilledTonalIconButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -78,6 +75,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import dev.quinton.goa.core.designsystem.component.BarAction
+import dev.quinton.goa.core.designsystem.component.BarActions
 import dev.quinton.goa.core.designsystem.component.ConfirmDialog
 import dev.quinton.goa.core.designsystem.component.EmptyState
 import dev.quinton.goa.core.designsystem.component.GoaDarkTheme
@@ -88,12 +87,15 @@ import dev.quinton.goa.core.designsystem.theme.GoaTheme
 import dev.quinton.goa.core.designsystem.theme.Spacing
 import dev.quinton.goa.core.model.board.HeroPiece
 import dev.quinton.goa.core.model.board.MinionPiece
+import dev.quinton.goa.core.model.match.Team
 import dev.quinton.goa.feature.board.BoardText
 import dev.quinton.goa.feature.board.hero
 import dev.quinton.goa.feature.board.map.BoardMapView
 import dev.quinton.goa.feature.board.map.MapLayout
 import dev.quinton.goa.feature.board.map.MapOrientation
 import dev.quinton.goa.feature.board.map.MapViewport
+import dev.quinton.goa.feature.board.play.table.MapKey
+import dev.quinton.goa.feature.board.play.table.MapKeyItem
 import dev.quinton.goa.feature.board.ui.BoardScaffold
 import dev.quinton.goa.feature.board.ui.FitWhileHidden
 import dev.quinton.goa.feature.board.ui.HideablePanel
@@ -126,7 +128,6 @@ fun BoardScreen(
 ) {
     val ready = state as? BoardUiState.Ready
     var overlay by rememberSaveable { mutableStateOf(initialOverlay) }
-    var menu by remember { mutableStateOf(false) }
     val snackbar = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
     val viewport = remember { MapViewport() }
@@ -147,40 +148,25 @@ fun BoardScreen(
     BoardScaffold(
         title = heading?.first ?: "Board",
         subtitle = heading?.second,
+        shortTitles = ready?.let(::shortHeadings).orEmpty(),
         onBack = onBack,
         modifier = modifier,
         snackbarHost = { SnackbarHost(snackbar) },
+        // At most two glyphs (Undo and the overflow): the bar's room goes to the board's name.
         actions = {
             if (ready != null) {
-                IconButton(onClick = { onAction(BoardAction.Undo) }, enabled = ready.canUndo) {
-                    Icon(Icons.AutoMirrored.Outlined.Undo, contentDescription = "Undo")
-                }
-                IconButton(onClick = { onAction(BoardAction.Redo) }, enabled = ready.canRedo) {
-                    Icon(Icons.AutoMirrored.Outlined.Redo, contentDescription = "Redo")
-                }
-                Box {
-                    IconButton(onClick = { menu = true }) {
-                        Icon(Icons.Outlined.MoreVert, contentDescription = "More options")
-                    }
-                    DropdownMenu(expanded = menu, onDismissRequest = { menu = false }) {
-                        DropdownMenuItem(
-                            text = { Text("Flip the board") },
-                            leadingIcon = { Icon(Icons.Outlined.SwapVert, contentDescription = null) },
-                            onClick = {
-                                menu = false
-                                onAction(BoardAction.Flip)
-                            },
-                        )
-                        DropdownMenuItem(
-                            text = { Text("Reset to opening") },
-                            leadingIcon = { Icon(Icons.Outlined.RestartAlt, contentDescription = null) },
-                            onClick = {
-                                menu = false
-                                overlay = BoardOverlay.RESET
-                            },
-                        )
-                    }
-                }
+                BarActions(
+                    listOf(
+                        BarAction("Undo", Icons.AutoMirrored.Outlined.Undo, {
+                            onAction(BoardAction.Undo)
+                        }, ready.canUndo),
+                        BarAction("Redo", Icons.AutoMirrored.Outlined.Redo, {
+                            onAction(BoardAction.Redo)
+                        }, ready.canRedo),
+                        BarAction("Flip the board", Icons.Outlined.SwapVert, { onAction(BoardAction.Flip) }),
+                        BarAction("Reset to opening", Icons.Outlined.RestartAlt, { overlay = BoardOverlay.RESET }),
+                    ),
+                )
             }
         },
     ) { padding ->
@@ -298,6 +284,7 @@ private fun BoardContent(
         var cover by remember { mutableStateOf(PanelCover()) }
         var toolsHeight by remember { mutableIntStateOf(0) }
         var badgeBottom by remember { mutableIntStateOf(0) }
+        var keyBottom by remember { mutableIntStateOf(0) }
         val selected = state.selected
         val panelShown = selected != null
         // The panel is hidden to see the whole board: its peek bar stays.
@@ -306,11 +293,13 @@ private fun BoardContent(
         val sidePadPx = with(LocalDensity.current) { Spacing.sm.toPx() }
 
         // What floats over the map: the panel (bottom, or right in landscape), its peek bar, or the tools.
-        LaunchedEffect(panelShown, cover, toolsHeight, badgeBottom) {
+        val keyShown = boardKey(state).isNotEmpty()
+        LaunchedEffect(panelShown, cover, toolsHeight, badgeBottom, keyBottom, keyShown) {
             val bottom = if (panelShown) cover.bottom.toFloat() else toolsHeight.toFloat()
             val end = if (panelShown) cover.end.toFloat() else 0f
-            // The badge sits in a row padded by Spacing.sm.
-            val top = if (badgeBottom > 0) badgeBottom + sidePadPx else 0f
+            // The badge and the map key sit in a row padded by Spacing.sm: the map is framed under them.
+            val under = maxOf(badgeBottom, if (keyShown) keyBottom else 0)
+            val top = if (under > 0) under + sidePadPx else 0f
             viewport.updateInsets(bottom, end, top)
         }
         FitWhileHidden(viewport, peeking)
@@ -386,6 +375,13 @@ private fun BoardContent(
                     )
                 }
                 ToolBanner(state, onAction)
+                // What each mark on the map means, for the layers shown now (the panel's switches turn them on).
+                val key = boardKey(state)
+                MapKey(
+                    key.keys.toList(),
+                    Modifier.onGloballyPositioned { keyBottom = it.boundsInParent().bottom.toInt() },
+                    words = { key[it].orEmpty() },
+                )
             }
             Spacer(Modifier.width(Spacing.sm))
             Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
@@ -687,6 +683,45 @@ private fun WaitingTray(state: BoardUiState.Ready, onAction: (BoardAction) -> Un
  * lines rather than being cut; the map's name goes under it only where both fit the bar.
  */
 private fun boardHeading(state: BoardUiState.Ready): Pair<String, String?> = state.board.name to state.map.name
+
+/**
+ * The map key's lines for the layers on the map now, each with its value ("Movement 4", "Range 2"): the panel's
+ * switches say the same beside each swatch, but they scroll out of view under the card strip.
+ */
+private fun boardKey(state: BoardUiState.Ready): Map<MapKeyItem, String> {
+    val overlay = state.overlay
+    return buildMap {
+        if (overlay != null) {
+            if (overlay.movement.isNotEmpty()) {
+                val value = overlay.movementValue?.let { " $it" }.orEmpty()
+                put(MapKeyItem.MOVEMENT, "Movement$value: spaces to get there")
+            }
+            if (overlay.fastTravel.isNotEmpty()) put(MapKeyItem.FAST_TRAVEL, "Fast Travel")
+            if (overlay.range.isNotEmpty()) {
+                put(MapKeyItem.RANGE, listOfNotNull("Range", overlay.rangeValue).joinToString(" "))
+            }
+            if (overlay.radius.isNotEmpty()) {
+                put(MapKeyItem.RADIUS, listOfNotNull("Radius", overlay.radiusValue).joinToString(" "))
+            }
+        }
+        if (state.trayTargets.isNotEmpty() || overlay?.returnTo?.isNotEmpty() == true) {
+            put(MapKeyItem.GO_HERE, "Where it goes")
+        }
+        state.measure?.let { put(MapKeyItem.MEASURE, "Measure: ${BoardText.spaces(it.distance)}") }
+    }
+}
+
+/**
+ * What the bar says when the line-up is too long for one line: the teams' sizes and the map ("2 v 2 · Forgotten
+ * Island"), else just the sizes ("2 v 2 board"); the line-up goes under it where it fits whole.
+ */
+private fun shortHeadings(state: BoardUiState.Ready): List<String> {
+    val heroes = state.pieces.filterIsInstance<HeroPiece>()
+    val red = heroes.count { it.team == Team.RED }
+    val blue = heroes.count { it.team == Team.BLUE }
+    if (red == 0 && blue == 0) return listOf(state.map.name)
+    return listOf("$red v $blue · ${state.map.name}", "$red v $blue board")
+}
 
 private val SIDE_PANEL = 380.dp
 private const val PANEL_MAX = 0.5f

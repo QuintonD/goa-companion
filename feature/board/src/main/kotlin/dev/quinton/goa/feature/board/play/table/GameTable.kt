@@ -23,6 +23,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
@@ -39,7 +40,9 @@ import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.layout.Layout
 import androidx.compose.ui.layout.boundsInRoot
 import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.layout.onPlaced
 import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.layout.positionInParent
 import androidx.compose.ui.layout.positionInRoot
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.contentDescription
@@ -71,6 +74,29 @@ import kotlinx.coroutines.launch
  * stops a little past it, so what follows (what happened, the hands) doesn't take the map's room: it scrolls.
  */
 internal val LocalPanelQuestionEnd = staticCompositionLocalOf<((Int?) -> Unit)?> { null }
+
+/**
+ * The question and, when [after] is given, what must be read with it (the end of a round's steps under the Minion
+ * Battle's question): the panel then sizes to the end of both, so neither is cut at the fold.
+ */
+@Composable
+fun PanelQuestion(after: (@Composable () -> Unit)?, question: @Composable () -> Unit) {
+    if (after == null) {
+        question()
+        return
+    }
+    val report = LocalPanelQuestionEnd.current
+    DisposableEffect(report) { onDispose { report?.invoke(null) } }
+    Column(
+        Modifier
+            .fillMaxWidth()
+            .onPlaced { report?.invoke(it.positionInParent().y.toInt() + it.size.height) },
+        verticalArrangement = Arrangement.spacedBy(Spacing.sm),
+    ) {
+        CompositionLocalProvider(LocalPanelQuestionEnd provides null, content = question)
+        after()
+    }
+}
 
 /**
  * The game table: the map full screen (the Lane up the screen in portrait, left to right in
@@ -241,7 +267,15 @@ fun GameTable(
                     TableHud(table, if (landscape) Modifier else Modifier.fillMaxWidth(), spread = !landscape)
                     if (track != null) {
                         // [trackCard]: a small phone keeps the map's height, the question framed under it.
-                        TurnTrackRow(table, track, onHero, focus = focus, compact = compactTrack, cardWidth = trackCard)
+                        TurnTrackRow(
+                            table,
+                            track,
+                            onHero,
+                            focus = focus,
+                            compact = compactTrack,
+                            cardWidth = trackCard,
+                            stretch = !landscape,
+                        )
                     } else if (!hidden) {
                         HeroStrip(table, onHero)
                     }
@@ -321,7 +355,7 @@ internal fun TableTopRow(
             TableHud(table, compact = true)
             val track = table.track
             if (track != null) {
-                TurnTrackRow(table, track, onHero, focus = focus, compact = true)
+                TurnTrackRow(table, track, onHero, focus = focus, compact = true, stretch = false)
             } else {
                 HeroStrip(table, onHero, compact = true)
             }

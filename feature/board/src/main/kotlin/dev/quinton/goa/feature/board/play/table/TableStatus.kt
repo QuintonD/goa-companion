@@ -80,6 +80,7 @@ import dev.quinton.goa.core.model.match.Team
 import dev.quinton.goa.feature.board.BoardText
 import dev.quinton.goa.feature.board.play.PlayText
 import dev.quinton.goa.feature.board.ui.PlateSurface
+import dev.quinton.goa.feature.board.ui.PlateWell
 import dev.quinton.goa.feature.board.ui.TeamBadge
 import dev.quinton.goa.feature.board.ui.badgeOverhang
 import dev.quinton.goa.feature.board.ui.cards.CardFocusState
@@ -692,21 +693,47 @@ private fun HeroSheetHeader(table: TableUi, hero: HeroView, onDone: () -> Unit) 
                     style = small,
                 )
             }
+            // The dashboard's dials as plain numbers: Level and Coins in chips, read at a glance.
             FlowRow(
-                horizontalArrangement = Arrangement.spacedBy(4.dp),
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                verticalArrangement = Arrangement.spacedBy(4.dp),
                 itemVerticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.padding(vertical = 3.dp),
             ) {
-                Text("Level ${hero.level} ·", style = small)
-                CoinIcon(size = scaledIconSize(13.dp, 1.3f))
-                Text("${BoardText.count(hero.coins, "coin")} ·", style = small)
-                Text(
-                    heroWhere(table, hero),
-                    style = small,
-                    color = if (hero.at == null) MaterialTheme.colorScheme.error else LocalContentColor.current,
-                )
+                DialChip("Level", hero.level)
+                DialChip("Coins", hero.coins) { CoinIcon(size = scaledIconSize(15.dp, 1.3f)) }
             }
+            Text(
+                heroWhere(table, hero),
+                style = small,
+                color = if (hero.at == null) MaterialTheme.colorScheme.error else LocalContentColor.current,
+            )
         }
         IconButton(onClick = onDone) { Icon(Icons.Outlined.Close, contentDescription = "Close") }
+    }
+}
+
+/** A dial of the dashboard as a chip: its name in small caps and its value in large figures ("LEVEL 2"). */
+@Composable
+private fun DialChip(label: String, value: Int, icon: (@Composable () -> Unit)? = null) {
+    Row(
+        Modifier
+            .background(PlateWell, RoundedCornerShape(6.dp))
+            .border(1.dp, GoaTheme.colors.engravedBorder, RoundedCornerShape(6.dp))
+            .padding(horizontal = 8.dp, vertical = 2.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        icon?.let {
+            it()
+            Spacer(Modifier.width(4.dp))
+        }
+        Text(label.uppercase(), style = GoaTextStyles.overline, color = GoaTheme.colors.heading)
+        Spacer(Modifier.width(6.dp))
+        Text(
+            "$value",
+            style = GoaTextStyles.score.copy(fontSize = 17.sp, lineHeight = 22.sp),
+            fontWeight = FontWeight.Bold,
+        )
     }
 }
 

@@ -81,6 +81,7 @@ import dev.quinton.goa.feature.board.map.standingFigures
 import dev.quinton.goa.feature.board.ui.ArtBoardPalette
 import dev.quinton.goa.feature.board.ui.BoardPalette
 import dev.quinton.goa.feature.board.ui.CHIP_TEXT
+import dev.quinton.goa.feature.board.ui.MAP_MARK_MAX_SCALE
 import dev.quinton.goa.feature.board.ui.MiniatureBadge
 import dev.quinton.goa.feature.board.ui.PieceLook
 import dev.quinton.goa.feature.board.ui.PieceToken
@@ -250,6 +251,7 @@ fun GameMapView(
             Box(transform.semantics { isTraversalGroup = true }) {
                 DecisionOverlay(table, layout, unit, palette)
                 GamePieces(table, layout, unit, palette, look)
+                MinionNumbers(table, layout, unit)
                 GameSpaceNodes(table, layout, viewport, onTap = { tap(it) }, onHero = longPress)
             }
             ActingTag(table, layout, viewport, palette)
@@ -258,9 +260,10 @@ fun GameMapView(
 }
 
 /**
- * "NOW", at a fixed size outside the zoom (ADR-041): a tab of the acting hero's ring, in the ring's colour and
- * joined to it, so it can't be read as belonging to the piece on the space above. With the bronze outline of
- * its space it says on the map who is resolving a card. Map furniture: TalkBack hears "acting now" on the space.
+ * "NOW", outside the zoom (ADR-041): a tab joined to the acting hero's ring, so it can't be read as belonging to the
+ * piece on the space above. Bronze with dark letters, as the turn track's NOW: the turn's state is bronze everywhere,
+ * the ring keeps the team's colour and mark. With the bronze outline of its space it says on the map who is
+ * resolving a card. It grows with large text up to [MAP_MARK_MAX_SCALE]. TalkBack hears "acting now" on the space.
  */
 @Composable
 private fun ActingTag(table: TableUi, layout: MapLayout, viewport: MapViewport, palette: BoardPalette) {
@@ -268,6 +271,7 @@ private fun ActingTag(table: TableUi, layout: MapLayout, viewport: MapViewport, 
     val hex = hero.at ?: return
     val density = LocalDensity.current
     val join = with(density) { 2.dp.toPx() }
+    val grow = minOf(density.fontScale, MAP_MARK_MAX_SCALE)
     val ring = if (palette.onArt) RING_ON_ART else RING_DRAWN
     val ringWidth = if (palette.onArt) RING_WIDTH_ON_ART else RING_WIDTH_DRAWN
     Box(
@@ -284,19 +288,19 @@ private fun ActingTag(table: TableUi, layout: MapLayout, viewport: MapViewport, 
                     }
                 }
             }
-            .background(palette.team(hero.team), TabShape)
+            .background(NowBand, TabShape)
             .border(1.dp, palette.halo, TabShape)
-            .padding(horizontal = 6.dp, vertical = 1.dp)
+            .padding(horizontal = 6.dp * grow, vertical = 1.dp)
             .clearAndSetSemantics {},
     ) {
         Text(
             "NOW",
             style = TextStyle(
-                fontSize = with(density) { 9.dp.toSp() },
+                fontSize = with(density) { (NOW_TAG_DP * grow).dp.toSp() },
                 fontWeight = FontWeight.Bold,
-                letterSpacing = with(density) { 0.5.dp.toSp() },
+                letterSpacing = with(density) { 0.6.dp.toSp() },
             ),
-            color = palette.onTeam,
+            color = NowInk,
             maxLines = 1,
         )
     }
@@ -340,7 +344,8 @@ private fun DecisionOverlay(table: TableUi, layout: MapLayout, unit: Float, pale
     val view = table.view
     val hint = table.hintAt
     val measurer = rememberTextMeasurer(cacheSize = 16)
-    val draw = remember(decision, table.asking, selected, hint, table.planned, view, layout, unit, palette) {
+    val grow = minOf(LocalDensity.current.fontScale, MAP_MARK_MAX_SCALE)
+    val draw = remember(decision, table.asking, selected, hint, table.planned, view, layout, unit, palette, grow) {
         Modifier.drawWithCache {
             fun cell(hex: Hex) = layout.corners(hex).map { it * unit } to layout.center(hex) * unit
             val highlight = decision?.context?.highlight.orEmpty().map(::cell)
@@ -348,7 +353,7 @@ private fun DecisionOverlay(table: TableUi, layout: MapLayout, unit: Float, pale
             val numbered = if (palette.onArt) spacesOnAPath(table) else emptyMap()
             val options = (table.spaceOptions.keys + table.pieceOptions.keys.mapNotNull(table::at))
                 .filter { it !in numbered }.map(::cell)
-            val chipStyle = TextStyle(fontWeight = FontWeight.Bold, fontSize = (unit * CHIP_TEXT).toSp())
+            val chipStyle = TextStyle(fontWeight = FontWeight.Bold, fontSize = (unit * CHIP_TEXT * grow).toSp())
             val chips = numbered.map { (hex, steps) ->
                 Triple(layout.center(hex) * unit, measurer.measure(steps.toString(), chipStyle), hex)
             }
@@ -402,7 +407,9 @@ private fun DecisionOverlay(table: TableUi, layout: MapLayout, unit: Float, pale
                     )
                 }
                 chosenCell?.let { (c, m) -> drawSelectionCell(c, m, unit, palette) }
-                chips.forEach { (at, text, hex) -> drawNumberChip(text, at, unit, chosen = hex == chosen) }
+                chips.forEach { (at, text, hex) ->
+                    drawNumberChip(text, at, unit, chosen = hex == chosen, scale = grow)
+                }
                 immune.forEach { m ->
                     if (palette.onArt) {
                         drawCircle(palette.halo, radius = unit * 0.84f, center = m, style = Stroke(width = unit * 0.2f))
@@ -450,6 +457,35 @@ private fun GamePieces(table: TableUi, layout: MapLayout, unit: Float, palette: 
 }
 
 /**
+ * Minions that read alike, numbered beside their figures (above the figures and their type badges), the same numbers
+ * that lead their rows in the panel ([minionNumbers]); bronze once chosen. They grow with large text, capped.
+ */
+@Composable
+private fun MinionNumbers(table: TableUi, layout: MapLayout, unit: Float) {
+    val numbers = remember(table.decision, table.asking, table.view) { minionNumbers(table) }
+    if (numbers.isEmpty()) return
+    val measurer = rememberTextMeasurer(cacheSize = 8)
+    val grow = minOf(LocalDensity.current.fontScale, MAP_MARK_MAX_SCALE)
+    val chosen = (table.selected as? Choice.Unit)?.unitId
+    val draw = remember(numbers, chosen, layout, unit, grow) {
+        Modifier.drawWithCache {
+            val style = TextStyle(fontWeight = FontWeight.Bold, fontSize = (unit * NUMBER_TEXT * grow).toSp())
+            val marks = numbers.mapNotNull { (id, n) ->
+                val at = table.at(id) ?: return@mapNotNull null
+                val center = (layout.center(at) + Offset(-NUMBER_DX, -NUMBER_DY)) * unit
+                Triple(center, measurer.measure("$n", style), id == chosen)
+            }
+            onDrawBehind {
+                marks.forEach { (c, text, isChosen) ->
+                    drawOptionNumber(text, c, unit * NUMBER_RADIUS * grow, isChosen)
+                }
+            }
+        }
+    }
+    Spacer(Modifier.fillMaxSize().zIndex(BADGE_LAYER + 1f).then(draw))
+}
+
+/**
  * One node per space in view for TalkBack and tests: what stands there, the Zone, and whether it
  * is an option; its click does what a tap does. A hero's space also has "Show <hero>'s game state"
  * (the long press), so the hero can be read about while a tap there answers the question.
@@ -481,6 +517,7 @@ private fun GameSpaceNodes(
         }
     }
     val occupancy = table.occupancy
+    val numbers = remember(table.decision, table.asking, table.view) { minionNumbers(table) }
     inView.forEach { space ->
         key(space.hex) {
             val occupant = occupancy[space.hex]
@@ -497,8 +534,10 @@ private fun GameSpaceNodes(
                 else -> false
             }
             val description = buildList {
+                numbers[occupant]?.let { add("Number $it") }
                 add(occupant?.let(table::pieceName) ?: "Empty space")
-                add(BoardText.zone(table.map, space.zone))
+                // An option says how far it is from the hero asked ("Lane Zone 3 · 3 spaces from Wasp").
+                add(if (option) table.spaceLabel(space.hex) else BoardText.zone(table.map, space.zone))
                 if (occupant != null && table.view.minions.any { it.id == occupant && it.immune }) add("immune")
                 if (occupant != null && occupant == table.view.acting) add("acting now")
                 if (option) add("option")
@@ -579,6 +618,14 @@ private const val RING_DRAWN = 0.69f
 private const val RING_WIDTH_DRAWN = 0.15f
 
 private val TabShape = RoundedCornerShape(topStart = 6.dp, topEnd = 6.dp, bottomStart = 2.dp, bottomEnd = 2.dp)
+private val NowInk = androidx.compose.ui.graphics.Color(0xFF0B1622)
+private const val NOW_TAG_DP = 10f
+
+/** A minion's number: where it sits from the space's centre (up and to the left, clear of the type badge), map units. */
+private const val NUMBER_DX = 0.62f
+private const val NUMBER_DY = 0.5f
+private const val NUMBER_RADIUS = 0.3f
+private const val NUMBER_TEXT = 0.4f
 
 /** Side of a space's TalkBack node in map units: neighbours never overlap (see BoardMapView). */
 private const val SPACE_NODE = 1.46f

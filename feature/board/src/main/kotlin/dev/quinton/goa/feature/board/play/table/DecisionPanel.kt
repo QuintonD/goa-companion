@@ -571,9 +571,14 @@ private fun BoardChips(table: TableUi, onSelect: (Choice) -> Unit) {
         (choice as? Choice.Unit)?.let { c -> table.pieces.firstOrNull { it.id == c.unitId } as? MinionPiece }
     }
     if (minions.all { it != null }) {
+        // Numbered as on the map (nearest first), so a row and its figure are matched at a glance.
+        val numbers = minionNumbers(table)
+        val rows = chips.indices.sortedBy { i -> minions[i]?.id?.let(numbers::get) ?: 0 }
         Column(verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
-            chips.forEachIndexed { i, choice ->
-                MinionRow(table.label(choice), minions[i]!!, choice == selected) { onSelect(choice) }
+            rows.forEach { i ->
+                val choice = chips[i]
+                val minion = minions[i]!!
+                MinionRow(table.label(choice), minion, choice == selected, numbers[minion.id]) { onSelect(choice) }
             }
         }
         return
@@ -586,9 +591,12 @@ private fun BoardChips(table: TableUi, onSelect: (Choice) -> Unit) {
     }
 }
 
-/** One minion to choose, full width: its team and type as marks, what tells it apart first. Bronze when chosen. */
+/**
+ * One minion to choose, full width: its number on the map (when several read alike), its team and type as marks,
+ * what tells it apart first. Bronze when chosen.
+ */
 @Composable
-private fun MinionRow(label: String, minion: MinionPiece, selected: Boolean, onClick: () -> Unit) {
+private fun MinionRow(label: String, minion: MinionPiece, selected: Boolean, number: Int?, onClick: () -> Unit) {
     val (first, second) = minionRowLines(label)
     Surface(
         shape = RoundedCornerShape(7.dp),
@@ -601,12 +609,18 @@ private fun MinionRow(label: String, minion: MinionPiece, selected: Boolean, onC
             .fillMaxWidth()
             .heightIn(min = 48.dp)
             .selectable(selected = selected, role = Role.RadioButton, onClick = onClick)
-            .semantics(mergeDescendants = true) { contentDescription = label },
+            .semantics(mergeDescendants = true) {
+                contentDescription = listOfNotNull(number?.let { "Number $it" }, label).joinToString(", ")
+            },
     ) {
         Row(
             Modifier.padding(horizontal = Spacing.md, vertical = Spacing.xs),
             verticalAlignment = Alignment.CenterVertically,
         ) {
+            number?.let {
+                OptionNumberBadge(it, chosen = selected)
+                Spacer(Modifier.width(Spacing.sm))
+            }
             TeamMark(minion.team, markSize = scaledIconSize(14.dp, 1.3f))
             Spacer(Modifier.width(Spacing.xs))
             MinionTypeBadge(minion, size = scaledIconSize(28.dp, 1.3f))

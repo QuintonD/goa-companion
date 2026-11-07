@@ -8,10 +8,13 @@ import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -27,6 +30,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.Icon
+import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -69,6 +73,7 @@ import dev.quinton.goa.core.model.catalog.Card
 import dev.quinton.goa.feature.board.BoardText
 import dev.quinton.goa.feature.board.play.PlayText
 import dev.quinton.goa.feature.board.ui.PlateSurface
+import dev.quinton.goa.feature.board.ui.PlateWell
 import dev.quinton.goa.feature.board.ui.TeamBadge
 import dev.quinton.goa.feature.board.ui.badgeOverhang
 import dev.quinton.goa.feature.board.ui.boxText
@@ -87,10 +92,12 @@ import dev.quinton.goa.feature.board.ui.cards.cardFocusOrigin
  */
 
 /**
- * The turn's heroes in a row, sharing the width and scrolling when they don't fit. [compact] (a phone
- * held sideways with the panel shown, or the panel hidden): smaller chips. [asCards]: the played cards
- * themselves ([cardWidth] wide, names under them), as the turn-over moment shows them. [onHero] opens a
- * hero's game state (long press, TalkBack's action); null = no such action (a recap in the panel).
+ * The turn's heroes on a strip of their own under the round at a glance (an opaque plate, so the map never shows
+ * through it and it never floats over a piece): one chip each, sharing the width equally ([stretch]; they scroll
+ * only when a chip would get narrower than [MIN_CHIP]); sideways beside the round at a glance, chips of a fixed
+ * width. [compact] (under a tall panel, the panel hidden, sideways): a smaller portrait and figures, the words
+ * the same size. [asCards]: the played cards themselves ([cardWidth] wide, names under them), as the turn-over
+ * moment shows them. [onHero] opens a hero's game state (long press, TalkBack's action); null = no such action.
  */
 @Composable
 fun TurnTrackRow(
@@ -102,6 +109,7 @@ fun TurnTrackRow(
     compact: Boolean = false,
     cardWidth: Dp = if (compact) COMPACT_CARD else TRACK_CARD,
     asCards: Boolean = false,
+    stretch: Boolean = true,
 ) {
     val viewable = trackFocusCards(table, track)
     val open: (TrackSlot) -> () -> Unit = { slot ->
@@ -116,19 +124,8 @@ fun TurnTrackRow(
         }
     }
     if (!asCards) {
-        val chips: @Composable () -> Unit = {
-            track.slots.forEach { slot ->
-                TrackChip(table, slot, compact, open(slot), onHero?.let { o -> { o(slot.heroId) } })
-            }
-        }
-        // Sideways beside the round at a glance, a plain row: it is measured for whether it fits there.
-        if (compact) {
-            Row(
-                modifier.horizontalScroll(rememberScrollState()),
-                horizontalArrangement = Arrangement.spacedBy(Spacing.xs),
-            ) { chips() }
-        } else {
-            SharedWidthRow(modifier, gap = 6.dp, content = chips)
+        TrackStrip(track.slots, stretch, modifier) { slot, chipModifier ->
+            TrackChip(table, slot, compact, open(slot), onHero?.let { o -> { o(slot.heroId) } }, chipModifier)
         }
         return
     }
@@ -237,11 +234,49 @@ private fun TrackSlotView(
     }
 }
 
+/** The strip the chips lie on: the theme's plate, edge to edge under the round at a glance. */
+@Composable
+private fun TrackStrip(
+    slots: List<TrackSlot>,
+    stretch: Boolean,
+    modifier: Modifier,
+    chip: @Composable (TrackSlot, Modifier) -> Unit,
+) {
+    PlateSurface(
+        shape = RoundedCornerShape(8.dp),
+        modifier = if (stretch) modifier.fillMaxWidth() else modifier,
+    ) {
+        if (!stretch) {
+            Row(
+                Modifier.horizontalScroll(rememberScrollState()).padding(STRIP_PAD).height(IntrinsicSize.Min),
+                horizontalArrangement = Arrangement.spacedBy(CHIP_GAP),
+            ) { slots.forEach { chip(it, Modifier.width(SIDE_CHIP)) } }
+            return@PlateSurface
+        }
+        BoxWithConstraints(Modifier.padding(STRIP_PAD)) {
+            val n = slots.size.coerceAtLeast(1)
+            val each = (maxWidth - CHIP_GAP * (n - 1)) / n
+            if (each >= MIN_CHIP) {
+                Row(
+                    Modifier.fillMaxWidth().height(IntrinsicSize.Min),
+                    horizontalArrangement = Arrangement.spacedBy(CHIP_GAP),
+                ) { slots.forEach { chip(it, Modifier.weight(1f)) } }
+            } else {
+                Row(
+                    Modifier.horizontalScroll(rememberScrollState()).height(IntrinsicSize.Min),
+                    horizontalArrangement = Arrangement.spacedBy(CHIP_GAP),
+                ) { slots.forEach { chip(it, Modifier.width(MIN_CHIP)) } }
+            }
+        }
+    }
+}
+
 /**
  * One hero on the track, read at arm's length: the portrait in its team ring (the mark at its foot, the action chosen
  * at its head, crossed out while off the board), the initiative as it counts in large figures ("=11" while tied), the
- * hero's name, and the state in a word across the foot (NOW bronze, NEXT teal, DONE with a tick and the chip stepped
- * back, PASS, OUT); never colour alone. [compact]: a smaller portrait and figures, the name still under them.
+ * hero's name and the card played in full-size words (cut with an ellipsis inside the chip, never at the screen's
+ * edge), and the state in a word across the foot (NOW bronze, NEXT teal, DONE with a tick and the chip stepped back,
+ * PASS, OUT); never colour alone. A well on the strip: NOW and NEXT also edge it in their colour.
  */
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
@@ -257,17 +292,18 @@ private fun TrackChip(
     val first = slot.cards.firstOrNull()
     val firstCard = first?.cardId?.takeIf { !first.facedown }?.let(table::card)
     val stepped = slot.state == SlotState.DONE || slot.state == SlotState.SKIPPED || slot.state == SlotState.PASSED
-    val border = when (slot.state) {
-        SlotState.NOW -> BorderStroke(2.dp, NowBand)
-        SlotState.NEXT -> BorderStroke(2.dp, NextBand)
+    val edge = when (slot.state) {
+        SlotState.NOW -> NowBand
+        SlotState.NEXT -> NextBand
         else -> null
     }
-    val shape = RoundedCornerShape(7.dp)
-    PlateSurface(
-        shape = shape,
-        border = border,
-        modifier = modifier
+    val shape = RoundedCornerShape(6.dp)
+    Column(
+        modifier
+            .fillMaxHeight()
             .clip(shape)
+            .background(PlateWell)
+            .then(if (edge != null) Modifier.border(2.dp, edge, shape) else Modifier)
             .combinedClickable(onClick = onOpen, onLongClick = onHero)
             .clearAndSetSemantics {
                 contentDescription = spokenSlot(table, slot)
@@ -285,59 +321,61 @@ private fun TrackChip(
                     )
                 }
             },
+        horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            Column(
-                Modifier
-                    .padding(start = 5.dp, end = 5.dp, top = if (compact) 3.dp else 5.dp, bottom = 2.dp)
-                    .alpha(if (stepped) STEPPED_ALPHA else 1f),
-                horizontalAlignment = Alignment.CenterHorizontally,
-            ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    ChipPortrait(table, slot, firstCard, if (compact) CHIP_PORTRAIT_COMPACT else CHIP_PORTRAIT)
-                    Spacer(Modifier.width(if (compact) 4.dp else 6.dp))
-                    Text(
-                        slot.initiative?.let { if (slot.tied) "=$it" else "$it" } ?: "–",
-                        style = GoaTextStyles.numeric.copy(
-                            fontSize = cappedSp(if (compact) 16f else 21f),
-                            lineHeight = cappedSp(if (compact) 18f else 24f),
-                            fontWeight = FontWeight.Bold,
-                        ),
-                        color = MaterialTheme.colorScheme.run { if (slot.tied) secondary else onSurface },
-                        maxLines = 1,
-                    )
-                }
+        Column(
+            Modifier
+                .fillMaxWidth()
+                .padding(start = 4.dp, end = 4.dp, top = if (compact) 3.dp else 5.dp, bottom = 2.dp)
+                .alpha(if (stepped) STEPPED_ALPHA else 1f),
+            horizontalAlignment = Alignment.CenterHorizontally,
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                ChipPortrait(table, slot, firstCard, if (compact) CHIP_PORTRAIT_COMPACT else CHIP_PORTRAIT)
+                Spacer(Modifier.width(if (compact) 5.dp else 7.dp))
                 Text(
-                    info.name,
-                    style = MaterialTheme.typography.labelMedium.copy(
-                        fontSize = cappedSp(if (compact) 10f else 12f),
-                        lineHeight = cappedSp(if (compact) 12f else 15f),
-                        letterSpacing = 0.sp,
+                    slot.initiative?.let { if (slot.tied) "=$it" else "$it" } ?: "–",
+                    style = GoaTextStyles.numeric.copy(
+                        fontSize = cappedSp(if (compact) 19f else 23f),
+                        lineHeight = cappedSp(if (compact) 21f else 26f),
+                        fontWeight = FontWeight.Bold,
                     ),
-                    fontWeight = if (slot.state == SlotState.NOW) FontWeight.Bold else FontWeight.Medium,
+                    color = MaterialTheme.colorScheme.run { if (slot.tied) secondary else onSurface },
                     maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.padding(top = 1.dp),
                 )
-                // The card played, by name (the card itself is a tap away): which card each hero showed.
-                val played = firstCard?.name ?: if (first?.facedown == true) "Facedown" else null
-                played?.let {
-                    Text(
-                        it,
-                        style = MaterialTheme.typography.labelSmall.copy(
-                            fontSize = cappedSp(if (compact) 9f else 10.5f),
-                            lineHeight = cappedSp(if (compact) 11f else 13f),
-                            letterSpacing = 0.sp,
-                        ),
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                        modifier = Modifier.widthIn(max = if (compact) CARD_NAME_COMPACT else CARD_NAME),
-                    )
-                }
             }
-            StateBand(slot.state, compact, Modifier.fillMaxWidth(), roomy = !compact)
+            Text(
+                info.name,
+                style = MaterialTheme.typography.labelLarge.copy(
+                    fontSize = cappedSp(if (compact) 13f else 14f),
+                    lineHeight = cappedSp(if (compact) 16f else 18f),
+                    letterSpacing = 0.sp,
+                ),
+                fontWeight = FontWeight.Bold,
+                textAlign = TextAlign.Center,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.fillMaxWidth().padding(top = 1.dp),
+            )
+            // The card played, by name (the card itself is a tap away): which card each hero showed.
+            val played = firstCard?.name ?: if (first?.facedown == true) "Facedown" else null
+            Text(
+                played.orEmpty(),
+                style = MaterialTheme.typography.labelLarge.copy(
+                    fontSize = cappedSp(CARD_NAME_SP),
+                    lineHeight = cappedSp(CARD_NAME_SP + 3f),
+                    letterSpacing = 0.sp,
+                ),
+                fontWeight = FontWeight.Medium,
+                color = LocalContentColor.current.copy(alpha = CARD_NAME_ALPHA),
+                textAlign = TextAlign.Center,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.fillMaxWidth(),
+            )
         }
+        Spacer(Modifier.weight(1f))
+        StateBand(slot.state, compact, Modifier.fillMaxWidth(), roomy = !compact, chip = true)
     }
 }
 
@@ -504,15 +542,21 @@ private fun SlotPortrait(table: TableUi, slot: TrackSlot, compact: Boolean, widt
 
 /** The state in a word across the foot of the card: DONE (tick), NOW, NEXT, PASS, OUT; none for later. */
 @Composable
-private fun StateBand(state: SlotState, compact: Boolean, modifier: Modifier, roomy: Boolean = false) {
+private fun StateBand(
+    state: SlotState,
+    compact: Boolean,
+    modifier: Modifier,
+    roomy: Boolean = false,
+    chip: Boolean = false,
+) {
     // A chip keeps its height for a hero still to act: an empty band.
-    val word = slotBand(state) ?: if (roomy || compact) "" else return
+    val word = slotBand(state) ?: if (roomy || compact || chip) "" else return
     val (background, content) = bandColors(state == SlotState.NOW, state == SlotState.NEXT)
     Row(
         modifier
             .fillMaxWidth()
             .background(background)
-            .padding(vertical = 1.dp),
+            .padding(vertical = if (chip) 2.dp else 1.dp),
         horizontalArrangement = Arrangement.Center,
         verticalAlignment = Alignment.CenterVertically,
     ) {
@@ -522,7 +566,9 @@ private fun StateBand(state: SlotState, compact: Boolean, modifier: Modifier, ro
                 null,
                 tint = content,
                 modifier = Modifier.size(
-                    if (roomy) {
+                    if (chip) {
+                        14.dp
+                    } else if (roomy) {
                         13.dp
                     } else if (compact) {
                         9.dp
@@ -533,12 +579,14 @@ private fun StateBand(state: SlotState, compact: Boolean, modifier: Modifier, ro
             )
             Spacer(Modifier.width(2.dp))
         }
-        if (!(compact && state == SlotState.DONE)) {
+        if (chip || !(compact && state == SlotState.DONE)) {
             Text(
                 word,
                 style = TextStyle(
                     fontSize = fixedSp(
-                        if (roomy) {
+                        if (chip) {
+                            if (compact) 12f else 13f
+                        } else if (roomy) {
                             12f
                         } else if (compact) {
                             9f
@@ -546,7 +594,7 @@ private fun StateBand(state: SlotState, compact: Boolean, modifier: Modifier, ro
                             10f
                         },
                     ),
-                    fontWeight = FontWeight.SemiBold,
+                    fontWeight = if (chip) FontWeight.Bold else FontWeight.SemiBold,
                     letterSpacing = fixedSp(0.8f),
                 ),
                 color = content,
@@ -620,8 +668,16 @@ private const val DONE_SCRIM = 0.42f
 private const val OFF_BOARD_ALPHA = 0.45f
 private const val MAX_NAME_SCALE = 1.3f
 private val CHIP_PORTRAIT = 34.dp
-private val CHIP_PORTRAIT_COMPACT = 26.dp
+private val CHIP_PORTRAIT_COMPACT = 24.dp
 private val CHIP_BADGE = 14.dp
-private val CARD_NAME = 84.dp
-private val CARD_NAME_COMPACT = 68.dp
-private const val STEPPED_ALPHA = 0.55f
+private const val STEPPED_ALPHA = 0.72f
+private const val CARD_NAME_SP = 13f
+private const val CARD_NAME_ALPHA = 0.82f
+private val STRIP_PAD = 4.dp
+private val CHIP_GAP = 4.dp
+
+/** A chip narrower than this would cut a name to a few letters: the strip scrolls instead. */
+private val MIN_CHIP = 78.dp
+
+/** Sideways beside the round at a glance: chips of one width. */
+private val SIDE_CHIP = 92.dp

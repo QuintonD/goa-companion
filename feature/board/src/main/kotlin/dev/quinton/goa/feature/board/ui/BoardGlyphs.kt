@@ -272,9 +272,19 @@ fun DrawScope.drawMovementCell(corners: List<Offset>, center: Offset, palette: B
     drawPath(path, palette.movement, style = Stroke(width = u * 0.06f))
 }
 
-/** A number on a painting: white in a small dark chip, or dark on bronze for the [chosen] space (mock-up 03). */
-fun DrawScope.drawNumberChip(text: TextLayoutResult, center: Offset, u: Float, chosen: Boolean = false) {
-    val r = u * CHIP_RADIUS
+/**
+ * A number on a painting: white in a small dark chip, or dark on bronze for the [chosen] space (mock-up 03). [scale]
+ * grows the chip with large text (capped by the caller, so it stays inside its space); measure [text] at
+ * [CHIP_TEXT] times the same scale.
+ */
+fun DrawScope.drawNumberChip(
+    text: TextLayoutResult,
+    center: Offset,
+    u: Float,
+    chosen: Boolean = false,
+    scale: Float = 1f,
+) {
+    val r = u * CHIP_RADIUS * scale
     drawCircle(if (chosen) ChipChosen else ChipGround, radius = r, center = center)
     drawCircle(if (chosen) ChipGround else ChipEdge, radius = r, center = center, style = Stroke(width = u * 0.05f))
     drawText(
@@ -286,6 +296,9 @@ fun DrawScope.drawNumberChip(text: TextLayoutResult, center: Offset, u: Float, c
 
 /** A number chip's text size in map units, for the callers that measure it. */
 const val CHIP_TEXT = 0.52f
+
+/** How far the map's numbers and tags grow with the font scale: past it they would spill out of their space. */
+const val MAP_MARK_MAX_SCALE = 1.5f
 private const val CHIP_RADIUS = 0.42f
 private val ChipGround = Color(0xFF0B1622)
 private val ChipEdge = Color(0xFFF3EBD6)

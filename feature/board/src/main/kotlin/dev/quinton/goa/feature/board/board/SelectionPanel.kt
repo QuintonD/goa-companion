@@ -27,6 +27,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Add
+import androidx.compose.material.icons.outlined.CheckCircle
 import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.outlined.DeleteOutline
 import androidx.compose.material.icons.outlined.Remove
@@ -194,14 +195,26 @@ private fun PieceActions(state: BoardUiState.Ready, piece: BoardPiece, onAction:
             PanelChip(
                 selected = measuring,
                 label = if (measuring) "Measuring" else "Measure",
-                icon = { Icon(Icons.Outlined.Straighten, contentDescription = null, modifier = Modifier.size(18.dp)) },
+                icon = {
+                    Icon(
+                        Icons.Outlined.Straighten,
+                        contentDescription = null,
+                        modifier = Modifier.size(scaledIconSize(18.dp, ICON_GROWTH)),
+                    )
+                },
                 onClick = { onAction(if (measuring) BoardAction.CancelTool else BoardAction.StartMeasure) },
             )
         }
         PanelChip(
             selected = false,
             label = "Remove",
-            icon = { Icon(Icons.Outlined.DeleteOutline, contentDescription = null, modifier = Modifier.size(18.dp)) },
+            icon = {
+                Icon(
+                    Icons.Outlined.DeleteOutline,
+                    contentDescription = null,
+                    modifier = Modifier.size(scaledIconSize(18.dp, ICON_GROWTH)),
+                )
+            },
             onClick = { onAction(BoardAction.Remove) },
         )
     }
@@ -422,12 +435,22 @@ private fun CardStrip(cards: List<Card>, selectedId: String?, onSelect: (String?
     val toggle: (Card) -> Unit = { card -> onSelect(if (card.id == selectedId) null else card.id) }
     // Large text: the chips wrap onto rows, every name whole and none cut at the screen's edge.
     if (LocalDensity.current.fontScale > WRAP_SCALE) {
+        // Two to a row, each half the width: a name breaks only between its words.
         FlowRow(
             Modifier.fillMaxWidth().padding(vertical = Spacing.xs),
             horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
             verticalArrangement = Arrangement.spacedBy(Spacing.sm),
+            maxItemsInEachRow = 2,
         ) {
-            cards.forEach { card -> CardChip(card, selected = card.id == selectedId, onClick = { toggle(card) }) }
+            cards.forEach { card ->
+                CardChip(
+                    card,
+                    selected = card.id == selectedId,
+                    onClick = { toggle(card) },
+                    modifier = Modifier.weight(1f),
+                    wide = true,
+                )
+            }
         }
         return
     }
@@ -481,9 +504,19 @@ private fun CardStrip(cards: List<Card>, selectedId: String?, onSelect: (String?
     }
 }
 
+/**
+ * A card to measure with: its colour as a dot, tier, initiative and name. Chosen, it takes the one selection look
+ * (bronze edge and tint, a tick), never the card's own colour: colour is the card's, bronze is "chosen". [wide]: a
+ * share of a row (large text) rather than its own width.
+ */
 @Composable
-private fun CardChip(card: Card, selected: Boolean, onClick: () -> Unit) {
-    val accent = cardColor(card.color)
+private fun CardChip(
+    card: Card,
+    selected: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    wide: Boolean = false,
+) {
     val spoken = buildString {
         append(card.name)
         append(", ")
@@ -492,11 +525,22 @@ private fun CardChip(card: Card, selected: Boolean, onClick: () -> Unit) {
     }
     Surface(
         shape = RoundedCornerShape(10.dp),
-        color = if (selected) accent.copy(alpha = 0.16f) else PlateWell,
-        border = BorderStroke(if (selected) 2.dp else 1.dp, if (selected) accent else GoaTheme.colors.engravedBorder),
-        modifier = Modifier
-            // Large text: wider, and the name wraps to a second line rather than being cut.
-            .widthIn(min = 96.dp, max = 168.dp * minOf(LocalDensity.current.fontScale, CHIP_GROWTH).coerceAtLeast(1f))
+        color = if (selected) MaterialTheme.colorScheme.primaryContainer else PlateWell,
+        border = BorderStroke(
+            if (selected) 2.dp else 1.dp,
+            if (selected) MaterialTheme.colorScheme.primary else GoaTheme.colors.engravedBorder,
+        ),
+        modifier = modifier
+            .then(
+                if (wide) {
+                    Modifier
+                } else {
+                    Modifier.widthIn(
+                        min = 96.dp,
+                        max = 168.dp * minOf(LocalDensity.current.fontScale, CHIP_GROWTH).coerceAtLeast(1f),
+                    )
+                },
+            )
             .heightIn(min = 48.dp)
             .selectable(selected = selected, role = Role.RadioButton, onClick = onClick)
             .clearAndSetSemantics {
@@ -520,7 +564,7 @@ private fun CardChip(card: Card, selected: Boolean, onClick: () -> Unit) {
                     Icon(
                         GameIcons.initiative.vector,
                         null,
-                        Modifier.size(12.dp),
+                        Modifier.size(scaledIconSize(12.dp, ICON_GROWTH)),
                         tint = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                     Text(
@@ -530,13 +574,33 @@ private fun CardChip(card: Card, selected: Boolean, onClick: () -> Unit) {
                 }
             }
             // Two lines before an ellipsis: with large text "Raging Stream" stays whole, not "Raging St…".
-            Text(card.name, style = MaterialTheme.typography.labelLarge, maxLines = 2, overflow = TextOverflow.Ellipsis)
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    card.name,
+                    style = MaterialTheme.typography.labelLarge,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.weight(1f, fill = false),
+                )
+                if (selected) {
+                    Spacer(Modifier.width(4.dp))
+                    Icon(
+                        Icons.Outlined.CheckCircle,
+                        null,
+                        modifier = Modifier.size(scaledIconSize(16.dp, ICON_GROWTH)),
+                        tint = MaterialTheme.colorScheme.primary,
+                    )
+                }
+            }
         }
     }
 }
 
 /** How much wider a card chip may grow with the font scale. */
 private const val CHIP_GROWTH = 1.5f
+
+/** How far the panel's small icons grow with large text, beside text that grows to twice its size. */
+private const val ICON_GROWTH = 1.6f
 
 /** From this font scale the card chips wrap rather than scroll. */
 private const val WRAP_SCALE = 1.3f

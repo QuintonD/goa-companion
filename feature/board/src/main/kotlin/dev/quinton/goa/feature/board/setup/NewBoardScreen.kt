@@ -330,12 +330,19 @@ internal fun ColumnScope.HeroGrid(
                 minTile = (TILE_MIN + TILE_GAP).value,
                 maxTile = (TILE_MAX + TILE_GAP).value,
             )
+            // Every hero on one screen (PRODUCT §8): the height the columns leave goes to taller portraits, so the
+            // grid fills the screen rather than ending above an empty band.
+            val cell = (maxWidth - start - end + TILE_GAP) / columns
+            val rows = (shown.size.coerceAtLeast(1) + columns - 1) / columns
+            val spare = (maxHeight - Spacing.md - extra - (cell + label) * rows) / rows
+            val tall = (cell - TILE_GAP + spare.coerceAtLeast(0.dp)).coerceAtMost((cell - TILE_GAP) * MAX_TALL)
+            val aspect = (cell - TILE_GAP) / tall
             LazyVerticalGrid(
                 columns = GridCells.Fixed(columns),
                 contentPadding = PaddingValues(start = start - half, end = end - half, bottom = Spacing.md),
                 modifier = Modifier.fillMaxSize(),
             ) {
-                heroTiles(shown, state, onAction, pad = half)
+                heroTiles(shown, state, onAction, pad = half, aspect = aspect)
             }
         }
     }
@@ -346,8 +353,9 @@ private fun LazyGridScope.heroTiles(
     state: LineupPicker,
     onAction: (NewBoardAction) -> Unit,
     pad: Dp,
+    aspect: Float = 1f,
 ) {
-    items(heroes, key = { it.id }) { hero -> HeroTile(hero, state, onAction, pad) }
+    items(heroes, key = { it.id }) { hero -> HeroTile(hero, state, onAction, pad, aspect) }
     if (heroes.isEmpty()) {
         item(key = "none", span = { GridItemSpan(maxLineSpan) }) {
             Text(
@@ -599,7 +607,13 @@ private fun SlotChip(
 }
 
 @Composable
-private fun HeroTile(hero: BoardHero, state: LineupPicker, onAction: (NewBoardAction) -> Unit, pad: Dp) {
+private fun HeroTile(
+    hero: BoardHero,
+    state: LineupPicker,
+    onAction: (NewBoardAction) -> Unit,
+    pad: Dp,
+    aspect: Float = 1f,
+) {
     val team = when (hero.id) {
         in state.form.red -> Team.RED
         in state.form.blue -> Team.BLUE
@@ -640,7 +654,7 @@ private fun HeroTile(hero: BoardHero, state: LineupPicker, onAction: (NewBoardAc
     ) {
         PlateSurface(
             border = color?.let { BorderStroke(2.dp, it) },
-            modifier = Modifier.fillMaxWidth().aspectRatio(1f),
+            modifier = Modifier.fillMaxWidth().aspectRatio(aspect),
         ) {
             Box {
                 HeroPortrait(hero.id, hero.portrait, null, Modifier.fillMaxSize())
@@ -695,10 +709,10 @@ private fun HeroTile(hero: BoardHero, state: LineupPicker, onAction: (NewBoardAc
     }
 }
 
-/** A tile's name: a size up from the smallest label and semibold, so it reads at arm's length. */
+/** A tile's name: 14 sp semibold, read at arm's length; it shrinks only for a name too long for its tile. */
 @Composable
 @ReadOnlyComposable
-private fun tileName(): TextStyle = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.SemiBold)
+private fun tileName(): TextStyle = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.SemiBold)
 
 /**
  * A hero that can't be seated yet (New game: not every card of it is built and tested): the
@@ -874,7 +888,10 @@ private val TILE_MIN = 42.dp
 private val TILE_MAX = 64.dp
 private val TILE_GAP = 6.dp
 private val LABEL_GAP = 2.dp
-private val LABEL_MIN = 7.sp
+private val LABEL_MIN = 9.sp
+
+/** A portrait may grow this much taller than wide to fill the screen's height. */
+private const val MAX_TALL = 1.3f
 private val OWNED_ROW = 48.dp
 private val TILE_LARGE = 104.dp
 private const val LARGE_FONT = 1.3f

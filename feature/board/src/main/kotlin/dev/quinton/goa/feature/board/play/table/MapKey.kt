@@ -22,6 +22,7 @@ import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.StrokeJoin
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.text.TextStyle
@@ -34,6 +35,9 @@ import dev.quinton.goa.core.designsystem.component.scaledIconSize
 import dev.quinton.goa.core.game.Choice
 import dev.quinton.goa.feature.board.ui.ArtBoardPalette
 import dev.quinton.goa.feature.board.ui.PlateSurface
+import dev.quinton.goa.feature.board.ui.drawFastTravelCell
+import dev.quinton.goa.feature.board.ui.drawRadiusCell
+import dev.quinton.goa.feature.board.ui.drawTargetCell
 import kotlin.math.PI
 import kotlin.math.cos
 import kotlin.math.sin
@@ -51,6 +55,21 @@ enum class MapKeyItem(val words: String) {
 
     /** The chosen space's path (a bronze line with a dot at each step). */
     PATH("Your path"),
+
+    /** The sandbox's Movement: a lit space with the fewest spaces it needs in a chip. */
+    MOVEMENT("Movement"),
+
+    /** The sandbox's Fast Travel: bronze hatching. */
+    FAST_TRAVEL("Fast Travel"),
+
+    /** The sandbox's Radius: three dots. */
+    RADIUS("Radius"),
+
+    /** The sandbox's Measure: a bronze line. */
+    MEASURE("Measure"),
+
+    /** Where a piece should go (a waiting minion's spaces, a minion's way back): a dashed teal outline. */
+    GO_HERE("Where it goes"),
 }
 
 /** The key's items for the question on the table: only what the map shows now. */
@@ -76,12 +95,19 @@ internal fun mapKeyItems(table: TableUi): List<MapKeyItem> {
  */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-internal fun MapKey(items: List<MapKeyItem>, modifier: Modifier = Modifier) {
+internal fun MapKey(
+    items: List<MapKeyItem>,
+    modifier: Modifier = Modifier,
+    words: (MapKeyItem) -> String = { it.words },
+) {
     if (items.isEmpty()) return
+    // Map furniture: it grows with large text up to 1.3×, so it never takes the map's top half.
+    val fontScale = LocalDensity.current.fontScale
+    val cap = minOf(fontScale, KEY_MAX_SCALE) / fontScale
     PlateSurface(
         shape = RoundedCornerShape(8.dp),
         modifier = modifier.clearAndSetSemantics {
-            contentDescription = "Map key: " + items.joinToString(", ") { it.words }
+            contentDescription = "Map key: " + items.joinToString(", ", transform = words)
         },
     ) {
         FlowRow(
@@ -94,10 +120,12 @@ internal fun MapKey(items: List<MapKeyItem>, modifier: Modifier = Modifier) {
                     KeySwatch(item)
                     Spacer(Modifier.width(5.dp))
                     Text(
-                        item.words,
-                        style = MaterialTheme.typography.labelMedium,
+                        words(item),
+                        style = MaterialTheme.typography.labelMedium.let {
+                            it.copy(fontSize = it.fontSize * cap, lineHeight = it.lineHeight * cap)
+                        },
                         color = MaterialTheme.colorScheme.onSurface,
-                        maxLines = 1,
+                        maxLines = 2,
                     )
                 }
             }
@@ -140,7 +168,25 @@ private fun KeySwatch(item: MapKeyItem) {
                 drawPath(hex, palette.range, style = Stroke(width = r * 0.15f, join = StrokeJoin.Round))
             }
 
-            MapKeyItem.PATH -> drawPathSwatch(r, palette.halo, palette.measure)
+            MapKeyItem.PATH, MapKeyItem.MEASURE -> drawPathSwatch(r, palette.halo, palette.measure)
+
+            MapKeyItem.MOVEMENT -> {
+                val hex = hexagon(c, r * 0.95f)
+                drawPath(hex, LitFill)
+                drawPath(hex, Color.White, style = Stroke(width = r * 0.14f, join = StrokeJoin.Round))
+                drawCircle(ChipGround, radius = r * 0.5f, center = c)
+                val text = measurer.measure(
+                    "2",
+                    TextStyle(color = Color.White, fontSize = 9.sp, fontWeight = FontWeight.Bold),
+                )
+                drawText(text, topLeft = c - Offset(text.size.width / 2f, text.size.height / 2f))
+            }
+
+            MapKeyItem.FAST_TRAVEL -> drawFastTravelCell(corners(c, r * 0.95f), c, r * 0.95f, palette)
+
+            MapKeyItem.RADIUS -> drawRadiusCell(corners(c, r * 0.95f), c, r * 0.95f, palette)
+
+            MapKeyItem.GO_HERE -> drawTargetCell(corners(c, r * 0.95f), c, r * 0.95f, palette)
         }
     }
 }
@@ -158,6 +204,12 @@ private fun DrawScope.drawPathSwatch(r: Float, halo: Color, line: Color) {
     drawCircle(line, radius = r * 0.18f, center = b)
 }
 
+/** A pointy-top hexagon's corners around [c], as the map's cells are drawn from. */
+private fun corners(c: Offset, r: Float) = (0 until 6).map { i ->
+    val a = (60.0 * i - 90.0) * PI / 180.0
+    Offset(c.x + r * cos(a).toFloat(), c.y + r * sin(a).toFloat())
+}
+
 /** A pointy-top hexagon around [c]. */
 private fun hexagon(c: Offset, r: Float) = Path().apply {
     for (i in 0 until 6) {
@@ -168,6 +220,7 @@ private fun hexagon(c: Offset, r: Float) = Path().apply {
     close()
 }
 
+private const val KEY_MAX_SCALE = 1.3f
 private val LitFill = Color(0xFFD9C9A3)
 private val ChipGround = Color(0xFF0B1622)
 private val ChipEdge = Color(0xFFF3EBD6)

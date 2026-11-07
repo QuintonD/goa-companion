@@ -100,6 +100,8 @@ import dev.quinton.goa.feature.board.play.table.EventLog
 import dev.quinton.goa.feature.board.play.table.GameTable
 import dev.quinton.goa.feature.board.play.table.HeroDetail
 import dev.quinton.goa.feature.board.play.table.MomentCard
+import dev.quinton.goa.feature.board.play.table.MomentKind
+import dev.quinton.goa.feature.board.play.table.PanelQuestion
 import dev.quinton.goa.feature.board.play.table.PeekConfirm
 import dev.quinton.goa.feature.board.play.table.ResolutionFlowView
 import dev.quinton.goa.feature.board.play.table.SpellbookSheet
@@ -457,19 +459,23 @@ private fun ColumnScope.Panel(play: PlayUi, onAction: (GameAction) -> Unit, focu
     // The person's own question comes before the moment (the reveal, a turn or the round ending): at
     // large text the round's summary filled the panel and the question's Confirm was below the fold.
     val questionFirst = play.status is TurnStatus.YourTurn
+    val roundEnding = moment?.takeIf { questionFirst && it.kind == MomentKind.ROUND_ENDING }
     if (moment != null && !questionFirst) MomentCard(moment, table, focus = focus)
     when {
         nudge != null -> CoachNudge(nudge, onAction)
 
         play.status is TurnStatus.YourTurn -> {
-            DecisionPanel(
-                table,
-                onSelect = { onAction(GameAction.Select(it)) },
-                onAnswer = { onAction(GameAction.Answer(it)) },
-                focus = focus,
-                busy = play.busy,
-                who = false,
-            )
+            // The end of a round: its steps are read with the question they bring (the Minion Battle), not cut under it.
+            PanelQuestion(after = roundEnding?.let { m -> { MomentCard(m, table, focus = focus) } }) {
+                DecisionPanel(
+                    table,
+                    onSelect = { onAction(GameAction.Select(it)) },
+                    onAnswer = { onAction(GameAction.Answer(it)) },
+                    focus = focus,
+                    busy = play.busy,
+                    who = false,
+                )
+            }
             if (play.busy && play.coach) CoachLooking()
             if (play.canSuggest) SuggestButton(enabled = !play.busy) { onAction(GameAction.AskSuggestions) }
         }
@@ -486,7 +492,7 @@ private fun ColumnScope.Panel(play: PlayUi, onAction: (GameAction) -> Unit, focu
     // What happened since the person last chose, one entry per card resolved (ADR-046): right under
     // their question, before the moment (whose cards the flow's entries already show).
     if (nudge == null) ResolutionFlowView(play.flow, table, focus, Modifier.padding(top = Spacing.xs))
-    if (moment != null && questionFirst) MomentCard(moment, table, focus = focus)
+    if (moment != null && questionFirst && roundEnding == null) MomentCard(moment, table, focus = focus)
     if (!table.handDecision && nudge == null) YourHand(table, focus)
 }
 

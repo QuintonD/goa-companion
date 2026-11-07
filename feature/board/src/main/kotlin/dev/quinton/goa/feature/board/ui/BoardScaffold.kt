@@ -28,8 +28,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalWindowInfo
+import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Constraints
@@ -49,7 +51,9 @@ import dev.quinton.goa.core.designsystem.theme.GoaTheme
  * long for one line ("Arien, Brogan, Xargatha vs Wasp, Tigerclaw, Sabina") takes two lines at a
  * smaller size (13 sp) inside the same height; TalkBack hears it whole. A [subtitle] (the sandbox's map) is
  * a small line of app text under the title, shown only when the title takes one line and both fit the bar
- * whole; otherwise the title alone, as above. Icons keep
+ * whole; otherwise the title alone, as above. With [shortTitles] ("2 v 2 · Forgotten Island", "2 v 2 board") a title
+ * too long for one line is never set small or cut: the first short title that fits one line takes its place, and
+ * the whole title goes under it in Inter when it fits there whole (else the subtitle, else nothing). Icons keep
  * their 48 dp touch targets, overlapping the bar's visible height. The content keeps clear of a
  * display cutout the app shell left (landscape, the camera side).
  *
@@ -61,13 +65,14 @@ internal fun BoardScaffold(
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
     subtitle: String? = null,
+    shortTitles: List<String> = emptyList(),
     actions: @Composable RowScope.() -> Unit = {},
     snackbarHost: @Composable () -> Unit = {},
     content: @Composable (PaddingValues) -> Unit,
 ) {
     Scaffold(
         modifier = modifier,
-        topBar = { BoardTopBar(title, subtitle, onBack, actions) },
+        topBar = { BoardTopBar(title, subtitle, shortTitles, onBack, actions) },
         snackbarHost = snackbarHost,
         containerColor = MaterialTheme.colorScheme.background,
         // The shell has applied the system bars; what is left is a cutout at a side.
@@ -87,6 +92,7 @@ internal fun isLandscape(): Boolean {
 private fun BoardTopBar(
     title: String,
     subtitle: String?,
+    shortTitles: List<String>,
     onBack: () -> Unit,
     actions: @Composable RowScope.() -> Unit,
 ) {
@@ -102,15 +108,15 @@ private fun BoardTopBar(
         base.copy(fontSize = 18.sp * capped, lineHeight = 24.sp * capped)
     }
     val small = base.copy(fontSize = 13.sp * capped, lineHeight = 16.sp * capped)
-    val sub = MaterialTheme.typography.labelSmall.let {
+    val sub = MaterialTheme.typography.bodySmall.let {
         it.copy(fontSize = it.fontSize * capped, lineHeight = it.lineHeight * capped)
     }
     val density = LocalDensity.current
     // Too long for one line: two smaller ones, when they fit the bar.
     val twoFit = with(density) { small.lineHeight.toDp() } * 2 + TWO_LINE_AIR <= bar
     // A subtitle only where it sits inside the bar with the title, clear of the banner's bevelled edge.
-    val subFits = subtitle != null &&
-        with(density) { oneLine.lineHeight.toDp() + sub.lineHeight.toDp() } + TITLE_AIR <= bar
+    val subRoom = with(density) { oneLine.lineHeight.toDp() + sub.lineHeight.toDp() } + TITLE_AIR <= bar
+    val subFits = subtitle != null && subRoom
     // Large text may need more than the bar's height: one line of the title plus a little air.
     val textHeight = with(density) { oneLine.lineHeight.toDp() } + TITLE_AIR
     val height: Dp = maxOf(bar, textHeight)
@@ -134,11 +140,41 @@ private fun BoardTopBar(
                 BoxWithConstraints(Modifier.weight(1f).padding(start = 4.dp, end = 4.dp)) {
                     val measurer = rememberTextMeasurer()
                     val room = constraints.maxWidth
-                    val tooLong = remember(title, room, oneLine) {
-                        measurer.measure(title, oneLine, maxLines = 1, constraints = Constraints(maxWidth = room))
+                    fun fits(text: String, style: TextStyle) =
+                        !measurer.measure(text, style, maxLines = 1, constraints = Constraints(maxWidth = room))
                             .hasVisualOverflow
+                    val tooLong = remember(title, room, oneLine) { !fits(title, oneLine) }
+                    val short = remember(title, shortTitles, room, oneLine) {
+                        if (tooLong) shortTitles.firstOrNull { fits(it, oneLine) } else null
                     }
-                    if (subtitle != null && subFits && !tooLong) {
+                    if (short != null) {
+                        // The short title, and the whole one under it where it fits whole.
+                        // The line-up in Inter, tracking closed and a size down if that is what it takes to be whole.
+                        val tight = sub.copy(letterSpacing = 0.sp)
+                        val smaller = tight.copy(fontSize = tight.fontSize * UNDER_SMALLER)
+                        val under = remember(title, subtitle, room, sub) {
+                            listOf(title to tight, title to smaller).firstOrNull { (t, st) -> fits(t, st) }
+                                ?: subtitle?.let { it to sub }?.takeIf { (t, st) -> fits(t, st) }
+                        }?.takeIf { subRoom }
+                        Column(
+                            Modifier.semantics(mergeDescendants = true) {
+                                heading()
+                                // TalkBack hears the whole title even where only the short one shows.
+                                if (under?.first != title) contentDescription = title
+                            },
+                        ) {
+                            BevelText(text = short, style = oneLine, maxLines = 1)
+                            under?.let { (text, style) ->
+                                Text(
+                                    text,
+                                    style = style,
+                                    color = GoaTheme.colors.onBannerVariant,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis,
+                                )
+                            }
+                        }
+                    } else if (subtitle != null && subFits && !tooLong) {
                         Column(Modifier.semantics(mergeDescendants = true) { heading() }) {
                             BevelText(text = title, style = oneLine, maxLines = 1)
                             Text(
@@ -169,6 +205,7 @@ private fun BoardTopBar(
 }
 
 private val PORTRAIT_BAR = 48.dp
+private const val UNDER_SMALLER = 11f / 12f
 private val LANDSCAPE_BAR = 40.dp
 private val TITLE_AIR = 8.dp
 private const val TITLE_MAX_SCALE = 1.25f

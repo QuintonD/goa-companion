@@ -452,8 +452,8 @@ internal fun ZoneLabels(
 
 /**
  * A Battle Zone's label is never hidden (it says where the game is): when no place outside the Zone is free, the
- * free spot nearest the Zone along the Zone's own edges or the view's top and bottom edges, where it may cover a
- * little empty map but no piece; failing that, the spot covering the fewest. [score] is null for a spot out of
+ * free spot nearest the Zone along the Zone's own edges, the view's top and bottom edges or over the Zone's own
+ * empty spaces, where it may cover a little empty map but no piece; failing that, the spot covering the fewest. [score] is null for a spot out of
  * view or over the map buttons, else how many pieces it covers.
  */
 private fun battleFallback(
@@ -468,7 +468,11 @@ private fun battleFallback(
     val near = label.places.map { (anchor, side) -> at(anchor, side) }
     val zone = Rect(near.minOf { it.left }, near.minOf { it.top }, near.maxOf { it.right }, near.maxOf { it.bottom })
     val step = maxOf(w / 4f, 1f)
-    val rows = listOf(zone.top, zone.bottom - h, view.top + margin, view.bottom - margin - h)
+    // Along the Zone's edges and the view's, then anywhere over the Zone itself in view (its empty spaces), so a
+    // free spot is found when one exists; a piece is never covered while it can be helped.
+    val inside = generateSequence(maxOf(zone.top, view.top + margin)) { it + h / 2f }
+        .takeWhile { it + h <= minOf(zone.bottom, view.bottom - margin) }.toList()
+    val rows = listOf(zone.top, zone.bottom - h, view.top + margin, view.bottom - margin - h) + inside
     val sweep = rows.flatMap { y ->
         generateSequence(view.left + margin) { it + step }.takeWhile { it + w <= view.right - margin }
             .map { x -> Rect(x, y, x + w, y + h) }.toList()
@@ -557,10 +561,13 @@ private fun zoneLabels(map: BoardMap, battleZones: List<String>, bottomTeam: Tea
 /** How far outside a Zone's outermost space centre its label starts, in map units (past a hex's edge). */
 private const val EDGE = 1.05f
 
-/** What a piece covers around its space's centre, in map units: half its width, below it, above it (a miniature). */
-private const val PIECE_HALF_WIDTH = 0.75f
+/**
+ * What a piece covers around its space's centre, in map units: half its width, below it, above it (a miniature with
+ * its badge stands about a space and a half tall).
+ */
+private const val PIECE_HALF_WIDTH = 0.85f
 private const val PIECE_BELOW = 0.75f
-private const val PIECE_ABOVE = 1.35f
+private const val PIECE_ABOVE = 1.75f
 private val PaintedLabelGround = Color(0xCC10181E)
 private val PaintedLabelEdge = Color(0x66B4BEC8)
 

@@ -90,6 +90,7 @@ import dev.quinton.goa.feature.board.hero
 import dev.quinton.goa.feature.board.ui.ArtBoardPalette
 import dev.quinton.goa.feature.board.ui.BoardPalette
 import dev.quinton.goa.feature.board.ui.CHIP_TEXT
+import dev.quinton.goa.feature.board.ui.MAP_MARK_MAX_SCALE
 import dev.quinton.goa.feature.board.ui.MiniatureBadge
 import dev.quinton.goa.feature.board.ui.PieceLook
 import dev.quinton.goa.feature.board.ui.PieceToken
@@ -403,12 +404,14 @@ private fun MapOverlays(state: BoardUiState.Ready, layout: MapLayout, unit: Floa
     val targets = state.trayTargets
     val selectedAt = state.selected?.at
     val measure = state.measure
-    val draw = remember(overlay, targets, selectedAt, measure, layout, unit, palette) {
+    // The numbers grow with large text, capped so a chip stays inside its space.
+    val grow = minOf(LocalDensity.current.fontScale, MAP_MARK_MAX_SCALE)
+    val draw = remember(overlay, targets, selectedAt, measure, layout, unit, palette, grow) {
         Modifier.drawWithCache {
             fun cell(hex: Hex) = layout.corners(hex).map { it * unit } to layout.center(hex) * unit
             val numbers = HashMap<Int, TextLayoutResult>()
             fun number(n: Int): TextLayoutResult = numbers.getOrPut(n) {
-                val size = unit * if (palette.onArt) CHIP_TEXT else 0.78f
+                val size = unit * if (palette.onArt) CHIP_TEXT * grow else 0.78f
                 measurer.measure(n.toString(), numberStyle.copy(fontSize = size.toSp()))
             }
             val radius = overlay?.radius.orEmpty().map(::cell)
@@ -426,7 +429,7 @@ private fun MapOverlays(state: BoardUiState.Ready, layout: MapLayout, unit: Floa
                 movement.forEach { (cell, text) ->
                     val (c, m) = cell
                     if (palette.onArt) {
-                        drawNumberChip(text, m, unit)
+                        drawNumberChip(text, m, unit, scale = grow)
                     } else {
                         drawMovementCell(c, m, palette)
                         drawText(text, topLeft = m - Offset(text.size.width / 2f, text.size.height / 2f))

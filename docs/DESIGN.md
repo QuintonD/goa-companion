@@ -55,11 +55,11 @@ when a map has `art` (all four do); the drawn map stays as the fallback while lo
 
 **Screens:**
 - **Table:** HUD on a plate with official counters and bronze diamond pips (done: solid, dimmer; current: solid, bright, ringed; later: hollow), each group named over it (LIVES, WAVES, TURN, TIE BREAKER), numbers 20 sp; hero chips on plates; panel on rounded slate with the mark and name on its top strip; the hand in a gentle fan
-  (3.2° a card, the outer ones lower), each still one target and one TalkBack node; the turn track as chips read at arm's length (portrait, initiative in large figures, name, state band). The panel ends just past the question, what follows it scrolls; under a tall panel the track takes its compact chips. Minions to choose are full-width rows: team mark, type badge, what tells them apart first.
+  (3.2° a card, the outer ones lower), each still one target and one TalkBack node; the turn track on an opaque strip of its own under the HUD, never over a piece (portrait, initiative in large figures, name and card in 13–14 sp, state band). The panel ends just past the question, what follows it scrolls; under a tall panel the track takes its compact chips. Minions to choose are full-width rows: team mark, type badge, what tells them apart first; minions that read alike are numbered 1, 2, 3 (nearest first) on the map and at the head of their rows.
 - **Puzzle:** the goal and the puzzle's name on small lines at the panel's head, off the map; the title plate is the question's; "What you know" starts folded to two lines.
-- **Hero sheet:** the real dashboard (`official/ui/dashboard-frame`, upscaled, ADR-058) with played cards in its Turn slots. Tigerclaw's art is the rulebook's; other heroes' portraits cover the frame, cropped around the
-  head and darkened toward the edges; either way the painting is a backdrop under a slate veil (55 %), so the slots read over it. An empty slot is a dark well (62 %) with a dashed steel edge and its turn's number in Cinzel, 18 dp at the frame's reference width. Items as icons with "+n", the Ultimate, the hand or card backs. Frame fractions: Turn plates y .272, x .170, .389, .607, .829; slots y .335 to .83.
-  A marker with a Turn slot (Snorri's runes, ADR-054) lies on the frame's lower strip, y .905, centred under its slot: .105 of the frame's height, the active one .125 with a bronze ring and "ACTIVE" beside it, never by colour alone. "Runes" under the frame says it in words. The active rune also rides on the hero chip (bottom left of the portrait) and over the hand.
+- **Hero sheet:** the dashboard (p.16) redrawn at the phone's density (ADR-058: the upscaled print, `official/ui/dashboard-frame`, was soft at this size; the web still uses it): a steel band with a bronze hairline and the plate's teal brackets, "Hero the Title" on the cards' title plate, a parchment **TURN n** tab over each of four slots, the played cards in them. Tigerclaw's art is the rulebook's; other heroes' portraits sit under the frame, cropped around the
+  head and darkened toward the edges; either way the painting is a backdrop under a slate veil (60 %). An empty slot is a dark well (62 %) with a dashed steel edge and its turn's number in Cinzel, 18 dp at the 411 dp reference width. The dashboard's dials are chips in the header (**LEVEL 2**, coin **COINS 2**), never bars. Items as icons with "+n", the Ultimate, the hand or card backs.
+  A marker with a Turn slot (Snorri's runes, ADR-054) lies on a strip under its slot (only when a slot has one): .053 of the frame's width, the active one .063 with a bronze ring and "ACTIVE" beside it, never by colour alone. "Runes" under the frame says it in words. The active rune also rides on the hero chip (bottom left of the portrait) and over the hand.
 - **Heroes grid:** slate tile, name on the title plate, portrait with the deck symbol at its top left, italic Crimson title, stars (a ranged hero has the game's Range icon beside them), two roles, one a line at 14 sp. No product chip on a tile: it is on the hero page and in the filter. Every row keeps its height, so the tiles of a line are one height. Two columns from font scale 1.3.
 - **Hero page:** art edge to edge fading into the canvas (dashboard art or the portrait cropped toward the top), symbol and name on the plate, stats as icons with base → max on a plate; the banner always names the hero. With large text the stars and roles run across the width under the plate.
   Under the header a sticky **Overview · Deck · FAQ** bar (the part you are reading selected in bronze: tint, word and rule) scrolls to that part, landing under the bar; under the Deck's title a row of jump chips, each with its colour's ribbon and count (Basic, Red, Green, Blue, Ultimate, Handicap, Spellbook).
@@ -291,8 +291,10 @@ overtime; tap returns to the timer). The Meta tab defaults to a compact sortable
 The three map screens share two pieces of chrome in `feature/board/ui/` so the map gets the screen.
 **Compact top bar** (`BoardScaffold`): `GoaScreen`'s look (the steel banner, back arrow, Cinzel
 title in light steel) at 48 dp with an 18 sp title in portrait and 40 dp with a 16 sp title in landscape; it
-grows only when large text needs one line of the title. A title too long for one line (a board named
-after its line-up, "Arien, Brogan, Xargatha vs Wasp, Tigerclaw, Sabina") takes two lines at 13 sp
+grows only when large text needs one line of the title. Glyphs as everywhere: at most two (the sandbox: Undo and
+More options with Redo, Flip and Reset). A board's line-up too long for one line gives the bar a short title, "2 v 2 ·
+Forgotten Island" or else "2 v 2 board", in the full 18 sp, with the line-up under it in Inter 12 sp where it fits whole
+(TalkBack hears the line-up either way). Any other title too long for one line takes two lines at 13 sp
 within the same height, portrait and landscape; with large text, where two lines would not fit, it is
 cut with an ellipsis (TalkBack reads it whole). Icons keep 48 dp touch targets, overlapping
 the bar's visible height. The content keeps clear of a display cutout the app shell left (landscape).
@@ -338,7 +340,9 @@ Until the symbols load, the original glyph on the team's shape outline. **Origin
 official portrait in a team-coloured ring, minions a team disc with the glyph, tokens a stone square
 with the label; heroes and minions carry the team's shape at the bottom right, so team is never
 colour alone. **Overlays** each have a pattern as well as a colour, and the switch that turns one on
-shows its swatch (the legend): Movement = green fill and outline with the number of spaces (its
+shows its swatch (the legend); while a layer is on, the **map key** (`MapKey`, as the game's) names it over the map's
+top left, its swatch and value each ("Movement 4: spaces to get there", "Range 2", "Fast Travel", "Radius 1", "Where it goes",
+"Measure: 3 spaces"), and the map is framed under it: Movement = green fill and outline with the number of spaces (its
 own colour, apart from the Battle Zone's teal: dark `#7BD88F`, light `#2A7037`, the player palette's
 Kelp; on the Zone fills 6.7–7.9:1 dark, 3.9–4.5:1 light, above the 3:1 a graphic needs; the numbers
 are onSurface), Fast Travel = bronze hatching,
@@ -355,12 +359,12 @@ Unverified badge; when the panel closes the map fills its place again (no band o
 push brings the new Battle Zone into view. "Fit" shows the whole map and turns into "Zoom to the
 lane". Each space's TalkBack node is a square inside its hex (1.46 map units, so neighbours never
 overlap and Android keeps each node whole). The card strip starts one card before the chosen card
-and fades at an edge with more cards beyond; from font scale 1.3 its chips wrap onto rows instead, every name whole. **New board** fits a 384 dp phone without scrolling:
+and fades at an edge with more cards beyond; from font scale 1.3 its chips wrap two to a row, each half the width, every name whole. The chosen card takes the one selection look (bronze edge and tint, a tick), never its own colour. **New board** fits a 384 dp phone without scrolling:
 one slot on top holds the latest draft's or match's line-up (a card with Set up) until the first
 pick, then the teams (pick chips sharing the row, "Next pick" spelled out on an empty team, the
 border and the switch otherwise); search with a segmented Red | Blue switch beside it (under it at
 large text); a portrait grid with as many columns as it takes to fit every hero (tiles 42–64 dp,
-each with the gap around it and the name under it, semibold labelMedium, which shrinks to fit, one tap target of at
+each with the gap around it and the name under it, semibold titleSmall (14 sp), which shrinks to fit; the height the columns leave makes the portraits taller (up to 1.3× their width), so the grid fills the screen; one tap target of at
 least 48 dp; a pick's badge is the team's mark and its number in labelLarge); and the Map menu beside Set up in the
 bottom bar. A finished draft pins Set up match, Log result later and Try on the board
 under the teams on a phone held upright.
@@ -372,7 +376,7 @@ retyped; the app adds only what no card says (the turn's state, a rule, a verdic
 **On the board:** every space or piece that answers the question is the dashed teal target outline;
 the tapped one gets the selection outline, and a move shows the engine's path as a bronze line with
 dots at each step; a decision's other highlights (a card's range) use the violet Range outline; the
-acting hero's space is outlined in bronze with a bronze **"NOW"** tag over its piece (fixed size,
+acting hero's space is outlined in bronze with a bronze **"NOW"** tag over its piece (dark letters; the turn's state is bronze on the map as on the track, the ring keeps the team's colour; growing with large text up to 1.5×,
 outside the zoom; TalkBack hears "acting now" on the space); an immune minion is ringed with a dashed
 teal circle (TalkBack: "immune"). Map taps select, a **Confirm** button with the choice spelled out
 ("Confirm · Lane Zone 3 · 3 spaces from Wasp") answers. While the person's question lights the map a **map key**
@@ -400,20 +404,21 @@ one chip per hero (portrait ringed in team colour, shape, name, Lv, coins, cards
 card back once its card is down, p.7: which card stays hidden). In landscape with the panel shown the
 strip is portraits only, 48 dp discs on the HUD's row (team ring and shape; TalkBack hears the full
 chip; a tap opens the hero); the side panel takes 42 % of the width (at most 400 dp).
-**Turn track** (after the reveal, `play/table/TurnTrack*.kt`): the strip becomes the turn's order,
+**Turn track** (after the reveal, `play/table/TurnTrack*.kt`): the strip becomes the turn's order, on an opaque plate of
+its own under the HUD (the theme's plate, edge to edge; the map is framed below it), the chips wells sharing its width equally,
 one chip per hero in acting order (the heroes done, in the order they acted, the acting hero, the next,
 the later ones, then passes), read at arm's length rather than as card thumbnails: the hero's portrait
 in its team ring (34 dp; the mark at its foot, the action chosen as the game's icon at its head,
-crossed out while off the board), the initiative as it counts in 21 sp figures ("=11" in teal while
-tied with another hero still to act), the name always (12 sp), the card played by name under it (10.5 sp, cut
-with an ellipsis past 84 dp; "Facedown" for a card resolved facedown), and the state in a word on a band across
-the chip's foot: **DONE** with a tick (the chip stepped back to 55 %), **NOW** (bronze band, bronze 2 dp
+crossed out while off the board), the initiative as it counts in 23 sp figures ("=11" in teal while
+tied with another hero still to act), the name always (14 sp bold), the card played by name under it (13 sp medium at 82 %, cut
+with an ellipsis inside its chip, never at the screen's edge; "Facedown" for a card resolved facedown), and the state in a word on a band across
+the chip's foot in 13 sp bold: **DONE** with a tick (the chip stepped back to 72 %), **NOW** (bronze band, bronze 2 dp
 border), **NEXT** (teal band and border), **PASS**, **OUT**; a hero still to act has an empty band;
-never colour alone. The chips share the width and scroll when they don't fit. A tap opens the card
+never colour alone. Four chips always fit; past 78 dp a chip the strip scrolls. A tap opens the card
 focus viewer on the hero's card, swiping through the turn's cards, each captioned "Wasp · Done ·
 Movement · Initiative 10"; a long press (TalkBack: "Show Wasp's game state") opens the hero. The track stays
-in view with the panel hidden and in landscape, compact there (26 dp portrait, 16 sp figures, the name at
-10 sp). The turn-over moment still shows the turn's cards themselves (48 dp, a card resolved facedown a back).
+in view with the panel hidden and in landscape, compact there (24 dp portrait, 19 sp figures, the words the same
+size; sideways, 92 dp chips beside the HUD or on a row of their own). The turn-over moment still shows the turn's cards themselves (48 dp, a card resolved facedown a back).
 **Moments:** a surfaceVariant card with a bronze border at the top of the panel (a polite live region)
 states the transition the table is at: "ALL CARDS REVEALED · Wasp acts first with initiative 10."
 (ties: "Arien and Brogan tie on initiative 11: their team chooses who acts first (p.7)." or the
