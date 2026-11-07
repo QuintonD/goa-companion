@@ -193,7 +193,8 @@ class GameNight(private val rule: AppRule, private val checkpoint: (String) -> U
         assertPhase("Pre-round strategy", "ROUND START")
 
         // ---- End match (confirmed) → Log result.
-        rule.tapDescription("End match")
+        rule.tapDescription("More options")
+        rule.tap(hasText("End match…") and hasClickAction())
         rule.waitForText("End the match?")
         rule.tap(hasAnyAncestor(isDialog()) and hasText("End match") and hasClickAction())
         rule.waitForText("Log result")
