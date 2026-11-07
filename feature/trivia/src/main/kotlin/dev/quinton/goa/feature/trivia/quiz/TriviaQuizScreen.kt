@@ -201,7 +201,8 @@ private fun QuizPlaying(state: TriviaQuizUiState.Playing, onAnswer: (TriviaAnswe
                     val art = artRoom(maxHeight, maxWidth - Spacing.screen * 2)
                     // The question (whose card, which card, what is asked) with the answers right under it, one
                     // group from the header down; the answers grow into the room left, so no band is left empty.
-                    // Measured before the answer only: the plate's frame comes off then, the buttons stay put.
+                    // Measured before the answer only. Once answered the buttons take their own height again, so
+                    // the reveal (scrolled to the scan) keeps the question and the marked answers above the verdict.
                     var panel by remember(state.number) { mutableIntStateOf(0) }
                     val density = LocalDensity.current
                     val fill = with(density) { maxHeight - Spacing.md * 3 - panel.toDp() }
@@ -218,7 +219,11 @@ private fun QuizPlaying(state: TriviaQuizUiState.Playing, onAnswer: (TriviaAnswe
                             modifier = Modifier.onSizeChanged { if (!state.answered) panel = it.height },
                         )
                         Spacer(Modifier.height(Spacing.md))
-                        AnswerArea(state, onAnswer, fillHeight = if (panel > 0) fill else 0.dp)
+                        AnswerArea(
+                            state,
+                            onAnswer,
+                            fillHeight = if (panel > 0 && !state.answered) fill else 0.dp,
+                        )
                         Reveal(state, scroll = scroll, imageMaxHeight = imageMax)
                     }
                 }

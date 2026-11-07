@@ -65,9 +65,9 @@ import dev.quinton.goa.core.data.trivia.PlayingAsState
 import dev.quinton.goa.core.data.trivia.TriviaHomeAction
 import dev.quinton.goa.core.data.trivia.TriviaHomeUiState
 import dev.quinton.goa.core.data.trivia.TriviaText
-import dev.quinton.goa.core.designsystem.component.BattlefieldFoot
 import dev.quinton.goa.core.designsystem.component.ConfirmDialog
 import dev.quinton.goa.core.designsystem.component.EmptyState
+import dev.quinton.goa.core.designsystem.component.FootArt
 import dev.quinton.goa.core.designsystem.component.GoaButton
 import dev.quinton.goa.core.designsystem.component.GoaCard
 import dev.quinton.goa.core.designsystem.component.GoaFilterChip
@@ -80,6 +80,7 @@ import dev.quinton.goa.core.designsystem.component.GoaSegmentedRow
 import dev.quinton.goa.core.designsystem.component.GoaSwitch
 import dev.quinton.goa.core.designsystem.component.HeroPortrait
 import dev.quinton.goa.core.designsystem.component.PlateShape
+import dev.quinton.goa.core.designsystem.component.ScreenFoot
 import dev.quinton.goa.core.designsystem.component.SectionHeader
 import dev.quinton.goa.core.designsystem.component.UnverifiedBadge
 import dev.quinton.goa.core.designsystem.component.scaledIconSize
@@ -261,8 +262,8 @@ private fun HomeContent(
         val wide = maxWidth >= WIDE_START_BAR
         Column(Modifier.fillMaxSize()) {
             Box(Modifier.weight(1f).fillMaxWidth()) {
-                // The Challenge's page is short: it ends in the game's battlefield, not in empty navy.
-                if (challenge) BattlefieldFoot()
+                // The Challenge's page is short: it ends in the leaderboards' hall of banners, not in empty navy.
+                if (challenge) ScreenFoot(FootArt.HALL)
                 LazyColumn(
                     Modifier.fillMaxSize(),
                     contentPadding = PaddingValues(top = Spacing.md, bottom = Spacing.xl),
