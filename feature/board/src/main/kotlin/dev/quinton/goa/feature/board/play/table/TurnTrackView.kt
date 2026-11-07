@@ -26,6 +26,8 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.BasicText
+import androidx.compose.foundation.text.TextAutoSize
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
@@ -35,6 +37,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
@@ -53,11 +56,14 @@ import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.isSpecified
 import androidx.compose.ui.unit.sp
 import dev.quinton.goa.core.designsystem.cardtext.GameIcon
 import dev.quinton.goa.core.designsystem.cardtext.GameIcons
@@ -124,8 +130,9 @@ fun TurnTrackRow(
         }
     }
     if (!asCards) {
-        TrackStrip(track.slots, stretch, modifier) { slot, chipModifier ->
-            TrackChip(table, slot, compact, open(slot), onHero?.let { o -> { o(slot.heroId) } }, chipModifier)
+        val played = track.slots.map { playedName(table, it).orEmpty() }
+        TrackStrip(track.slots, played, stretch, modifier) { slot, chipModifier, cardSize ->
+            TrackChip(table, slot, compact, open(slot), onHero?.let { o -> { o(slot.heroId) } }, chipModifier, cardSize)
         }
         return
     }
@@ -238,9 +245,10 @@ private fun TrackSlotView(
 @Composable
 private fun TrackStrip(
     slots: List<TrackSlot>,
+    played: List<String>,
     stretch: Boolean,
     modifier: Modifier,
-    chip: @Composable (TrackSlot, Modifier) -> Unit,
+    chip: @Composable (TrackSlot, Modifier, TextUnit) -> Unit,
 ) {
     PlateSurface(
         shape = RoundedCornerShape(8.dp),
@@ -250,7 +258,10 @@ private fun TrackStrip(
             Row(
                 Modifier.horizontalScroll(rememberScrollState()).padding(STRIP_PAD).height(IntrinsicSize.Min),
                 horizontalArrangement = Arrangement.spacedBy(CHIP_GAP),
-            ) { slots.forEach { chip(it, Modifier.width(SIDE_CHIP)) } }
+            ) {
+                val size = cardNameSize(played, SIDE_CHIP)
+                slots.forEach { chip(it, Modifier.width(SIDE_CHIP), size) }
+            }
             return@PlateSurface
         }
         BoxWithConstraints(Modifier.padding(STRIP_PAD)) {
@@ -260,16 +271,57 @@ private fun TrackStrip(
                 Row(
                     Modifier.fillMaxWidth().height(IntrinsicSize.Min),
                     horizontalArrangement = Arrangement.spacedBy(CHIP_GAP),
-                ) { slots.forEach { chip(it, Modifier.weight(1f)) } }
+                ) {
+                    val size = cardNameSize(played, each)
+                    slots.forEach { chip(it, Modifier.weight(1f), size) }
+                }
             } else {
                 Row(
                     Modifier.horizontalScroll(rememberScrollState()).height(IntrinsicSize.Min),
                     horizontalArrangement = Arrangement.spacedBy(CHIP_GAP),
-                ) { slots.forEach { chip(it, Modifier.width(MIN_CHIP)) } }
+                ) {
+                    val size = cardNameSize(played, MIN_CHIP)
+                    slots.forEach { chip(it, Modifier.width(MIN_CHIP), size) }
+                }
             }
         }
     }
 }
+
+/** The card a hero played, by name, as the track shows it: "Facedown" for a card resolved facedown. */
+private fun playedName(table: TableUi, slot: TrackSlot): String? {
+    val first = slot.cards.firstOrNull() ?: return null
+    return first.cardId?.takeIf { !first.facedown }?.let(table::card)?.name ?: if (first.facedown) "Facedown" else null
+}
+
+/**
+ * The size of the card names on the strip, one for every chip: 13 sp (with large text up to 1.3x), a step smaller
+ * only when that is what it takes for every name to sit on two lines of a chip [chip] wide without a word broken
+ * ("Light-Fingered" breaks after its hyphen, never inside "Fingered").
+ */
+@Composable
+private fun cardNameSize(names: List<String>, chip: Dp): TextUnit {
+    val measurer = rememberTextMeasurer()
+    val base = cappedSp(CARD_NAME_SP)
+    val style = MaterialTheme.typography.labelLarge.copy(letterSpacing = 0.sp, fontWeight = FontWeight.Medium)
+    val px = with(LocalDensity.current) { (chip - CHIP_TEXT_INSET).roundToPx() }
+    return remember(names, px, base, style) {
+        fun fits(size: Float): Boolean {
+            val at = style.copy(fontSize = size.sp)
+            return names.all { name ->
+                val words = name.split(WORD_BREAK).map { it.trimEnd() }.filter { it.isNotEmpty() }
+                words.all { measurer.measure(it, at, maxLines = 1).size.width <= px } &&
+                    measurer.measure(breakable(name), at, constraints = Constraints(maxWidth = px)).lineCount <= 2
+            }
+        }
+        var size = base.value
+        while (size > base.value * CARD_NAME_MIN_SHARE && !fits(size)) size -= SIZE_STEP
+        size.sp
+    }
+}
+
+/** A name that may break after its hyphens as well as at its spaces. */
+private fun breakable(name: String) = name.replace("-", "-\u200B")
 
 /**
  * One hero on the track, read at arm's length: the portrait in its team ring (the mark at its foot, the action chosen
@@ -287,6 +339,7 @@ private fun TrackChip(
     onOpen: () -> Unit,
     onHero: (() -> Unit)?,
     modifier: Modifier = Modifier,
+    cardSize: TextUnit = TextUnit.Unspecified,
 ) {
     val info = table.hero(slot.heroId)
     val first = slot.cards.firstOrNull()
@@ -344,32 +397,38 @@ private fun TrackChip(
                     maxLines = 1,
                 )
             }
-            Text(
+            // The name whole: a step smaller rather than cut ("Tigerclaw" at large text).
+            val nameSize = cappedSp(if (compact) 13f else 14f)
+            BasicText(
                 info.name,
                 style = MaterialTheme.typography.labelLarge.copy(
-                    fontSize = cappedSp(if (compact) 13f else 14f),
+                    fontSize = nameSize,
                     lineHeight = cappedSp(if (compact) 16f else 18f),
                     letterSpacing = 0.sp,
+                    fontWeight = FontWeight.Bold,
+                    textAlign = TextAlign.Center,
+                    color = LocalContentColor.current,
                 ),
-                fontWeight = FontWeight.Bold,
-                textAlign = TextAlign.Center,
                 maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
+                overflow = TextOverflow.Clip,
+                autoSize = TextAutoSize.StepBased(minFontSize = nameSize * NAME_MIN_SHARE, maxFontSize = nameSize),
                 modifier = Modifier.fillMaxWidth().padding(top = 1.dp),
             )
             // The card played, by name (the card itself is a tap away): which card each hero showed.
-            val played = firstCard?.name ?: if (first?.facedown == true) "Facedown" else null
+            val played = playedName(table, slot)
+            val size = if (cardSize.isSpecified) cardSize else cappedSp(CARD_NAME_SP)
             Text(
-                played.orEmpty(),
+                breakable(played.orEmpty()),
                 style = MaterialTheme.typography.labelLarge.copy(
-                    fontSize = cappedSp(CARD_NAME_SP),
-                    lineHeight = cappedSp(CARD_NAME_SP + 3f),
+                    fontSize = size,
+                    lineHeight = size * CARD_LINE,
                     letterSpacing = 0.sp,
                 ),
                 fontWeight = FontWeight.Medium,
                 color = LocalContentColor.current.copy(alpha = CARD_NAME_ALPHA),
                 textAlign = TextAlign.Center,
-                maxLines = 1,
+                // Two lines rather than an ellipsis: "Light-Fingered", "Dangerous Current" stay whole.
+                maxLines = 2,
                 overflow = TextOverflow.Ellipsis,
                 modifier = Modifier.fillMaxWidth(),
             )
@@ -672,6 +731,18 @@ private val CHIP_PORTRAIT_COMPACT = 24.dp
 private val CHIP_BADGE = 14.dp
 private const val STEPPED_ALPHA = 0.72f
 private const val CARD_NAME_SP = 13f
+
+/** The card name's line height, and how far its size may step down for the longest word to fit. */
+private const val CARD_LINE = 1.23f
+private const val CARD_NAME_MIN_SHARE = 0.75f
+private const val SIZE_STEP = 0.5f
+private val WORD_BREAK = Regex("(?<=[ -])")
+
+/** What the card name's words leave of a chip's width: its padding either side. */
+private val CHIP_TEXT_INSET = 8.dp
+
+/** A hero's name may step down to this share of its size to stay whole in a narrow chip. */
+private const val NAME_MIN_SHARE = 0.78f
 private const val CARD_NAME_ALPHA = 0.82f
 private val STRIP_PAD = 4.dp
 private val CHIP_GAP = 4.dp

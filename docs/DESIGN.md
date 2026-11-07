@@ -308,8 +308,9 @@ The three map screens share two pieces of chrome in `feature/board/ui/` so the m
 title in light steel) at 48 dp with an 18 sp title in portrait and 40 dp with a 16 sp title in landscape; it
 grows only when large text needs one line of the title. Glyphs as everywhere: at most two (the sandbox: Undo and
 More options with Redo, Flip and Reset). A board's line-up too long for one line gives the bar a short title, "2 v 2 ·
-Forgotten Island" or else "2 v 2 board", in the full 18 sp, with the line-up under it in Inter 12 sp where it fits whole
-(TalkBack hears the line-up either way). Any other title too long for one line takes two lines at 13 sp
+Forgotten Island" or else "2 v 2 board", in the full 18 sp, with the line-up under it in Inter 12 sp where it fits whole,
+else the heroes' portraits in their team rings after each team's mark, "vs" between (TalkBack hears the line-up either
+way). A bar with a second line is 52 dp (more with large text) so the line clears the banner's bevelled edge. Any other title too long for one line takes two lines at 13 sp
 within the same height, portrait and landscape; with large text, where two lines would not fit, it is
 cut with an ellipsis (TalkBack reads it whole). Icons keep 48 dp touch targets, overlapping
 the bar's visible height. The content keeps clear of a display cutout the app shell left (landscape).
@@ -360,7 +361,8 @@ with the label; heroes and minions carry the team's shape at the bottom right, s
 colour alone. **Overlays** each have a pattern as well as a colour, and the switch that turns one on
 shows its swatch (the legend); while a layer is on, the **map key** (`MapKey`, as the game's) names it over the map's
 top left, its swatch and value each ("Movement 4: spaces to get there", "Range 2", "Fast Travel", "Radius 1", "Where it goes",
-"Measure: 3 spaces"), and the map is framed under it: Movement = green fill and outline with the number of spaces (its
+"Measure: 3 spaces"; with large text the value only, "Move 4", "Range 2", its words capped at 1.3×), and the map is
+framed under it: Movement = green fill and outline with the number of spaces (its
 own colour, apart from the Battle Zone's teal: dark `#7BD88F`, light `#2A7037`, the player palette's
 Kelp; on the Zone fills 6.7–7.9:1 dark, 3.9–4.5:1 light, above the 3:1 a graphic needs; the numbers
 are onSurface), Fast Travel = bronze hatching,
@@ -382,7 +384,8 @@ one slot on top holds the latest draft's or match's line-up (a card with Set up)
 pick, then the teams (pick chips sharing the row, "Next pick" spelled out on an empty team, the
 border and the switch otherwise); search with a segmented Red | Blue switch beside it (under it at
 large text); a portrait grid with as many columns as it takes to fit every hero (tiles 42–64 dp,
-each with the gap around it and the name under it, semibold titleSmall (14 sp), which shrinks to fit; the height the columns leave makes the portraits taller (up to 1.3× their width), so the grid fills the screen; one tap target of at
+each with the gap around it and the name under it, semibold titleSmall (14 sp), one size for the whole grid: the size the longest name needs across its cell (never a
+smaller name on one tile); the height the columns leave makes the portraits taller (up to 1.3× their width), so the grid fills the screen; one tap target of at
 least 48 dp; a pick's badge is the team's mark and its number in labelLarge); and the Map menu beside Set up in the
 bottom bar. A finished draft pins Set up match, Log result later and Try on the board
 under the teams on a phone held upright.
@@ -428,8 +431,8 @@ one chip per hero in acting order (the heroes done, in the order they acted, the
 the later ones, then passes), read at arm's length rather than as card thumbnails: the hero's portrait
 in its team ring (34 dp; the mark at its foot, the action chosen as the game's icon at its head,
 crossed out while off the board), the initiative as it counts in 23 sp figures ("=11" in teal while
-tied with another hero still to act), the name always (14 sp bold), the card played by name under it (13 sp medium at 82 %, cut
-with an ellipsis inside its chip, never at the screen's edge; "Facedown" for a card resolved facedown), and the state in a word on a band across
+tied with another hero still to act), the name always (14 sp bold), the card played by name under it (13 sp medium at 82 %, on up to two
+lines, so "Light-Fingered" stays whole; the name steps down to 78 % rather than being cut; "Facedown" for a card resolved facedown), and the state in a word on a band across
 the chip's foot in 13 sp bold: **DONE** with a tick (the chip stepped back to 72 %), **NOW** (bronze band, bronze 2 dp
 border), **NEXT** (teal band and border), **PASS**, **OUT**; a hero still to act has an empty band;
 never colour alone. Four chips always fit; past 78 dp a chip the strip scrolls. A tap opens the card

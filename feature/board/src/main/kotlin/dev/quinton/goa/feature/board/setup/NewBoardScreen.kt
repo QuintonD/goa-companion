@@ -35,7 +35,6 @@ import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicText
-import androidx.compose.foundation.text.TextAutoSize
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
@@ -81,10 +80,13 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.isSpecified
 import androidx.compose.ui.unit.sp
 import dev.quinton.goa.core.designsystem.component.BannerTextButton
 import dev.quinton.goa.core.designsystem.component.EngravedRule
@@ -306,6 +308,8 @@ internal fun ColumnScope.HeroGrid(
     val label = with(density) { tileName().lineHeight.toDp() } + LABEL_GAP
     BoxWithConstraints(Modifier.weight(1f).fillMaxWidth()) {
         if (large) {
+            val columns = ((maxWidth - start - end + Spacing.sm) / (TILE_LARGE + Spacing.sm)).toInt().coerceAtLeast(1)
+            val nameSize = gridNameSize(shown, (maxWidth - start - end - Spacing.sm * (columns - 1)) / columns)
             LazyVerticalGrid(
                 columns = GridCells.Adaptive(TILE_LARGE),
                 contentPadding = PaddingValues(start = start, end = end, bottom = Spacing.md),
@@ -313,7 +317,7 @@ internal fun ColumnScope.HeroGrid(
                 verticalArrangement = Arrangement.spacedBy(Spacing.sm),
                 modifier = Modifier.fillMaxSize(),
             ) {
-                heroTiles(shown, state, onAction, pad = 0.dp)
+                heroTiles(shown, state, onAction, pad = 0.dp, nameSize = nameSize)
             }
         } else {
             // Each cell is its tile plus half the gap on every side, all of it the tap target: a
@@ -337,12 +341,14 @@ internal fun ColumnScope.HeroGrid(
             val spare = (maxHeight - Spacing.md - extra - (cell + label) * rows) / rows
             val tall = (cell - TILE_GAP + spare.coerceAtLeast(0.dp)).coerceAtMost((cell - TILE_GAP) * MAX_TALL)
             val aspect = (cell - TILE_GAP) / tall
+            // One name size for the whole grid: the size the longest name needs across its cell, never per tile.
+            val nameSize = gridNameSize(shown, cell)
             LazyVerticalGrid(
                 columns = GridCells.Fixed(columns),
                 contentPadding = PaddingValues(start = start - half, end = end - half, bottom = Spacing.md),
                 modifier = Modifier.fillMaxSize(),
             ) {
-                heroTiles(shown, state, onAction, pad = half, aspect = aspect)
+                heroTiles(shown, state, onAction, pad = half, aspect = aspect, nameSize = nameSize)
             }
         }
     }
@@ -354,8 +360,9 @@ private fun LazyGridScope.heroTiles(
     onAction: (NewBoardAction) -> Unit,
     pad: Dp,
     aspect: Float = 1f,
+    nameSize: TextUnit = TextUnit.Unspecified,
 ) {
-    items(heroes, key = { it.id }) { hero -> HeroTile(hero, state, onAction, pad, aspect) }
+    items(heroes, key = { it.id }) { hero -> HeroTile(hero, state, onAction, pad, aspect, nameSize) }
     if (heroes.isEmpty()) {
         item(key = "none", span = { GridItemSpan(maxLineSpan) }) {
             Text(
@@ -613,6 +620,7 @@ private fun HeroTile(
     onAction: (NewBoardAction) -> Unit,
     pad: Dp,
     aspect: Float = 1f,
+    nameSize: TextUnit = TextUnit.Unspecified,
 ) {
     val team = when (hero.id) {
         in state.form.red -> Team.RED
@@ -640,7 +648,7 @@ private fun HeroTile(
         Modifier
             .clip(MaterialTheme.shapes.medium)
             .clickable(enabled = action != null) { onAction(NewBoardAction.Tap(hero.id)) }
-            .padding(pad)
+            .padding(vertical = pad)
             .clearAndSetSemantics {
                 contentDescription = description
                 if (action != null) {
@@ -654,7 +662,7 @@ private fun HeroTile(
     ) {
         PlateSurface(
             border = color?.let { BorderStroke(2.dp, it) },
-            modifier = Modifier.fillMaxWidth().aspectRatio(aspect),
+            modifier = Modifier.padding(horizontal = pad).fillMaxWidth().aspectRatio(aspect),
         ) {
             Box {
                 HeroPortrait(hero.id, hero.portrait, null, Modifier.fillMaxSize())
@@ -685,8 +693,8 @@ private fun HeroTile(
                 }
             }
         }
-        // Shrinks to fit a small tile rather than cutting the name ("Silverarrow", not "Silvera…").
-        val style = tileName()
+        // The grid's one size ([gridNameSize]), across the whole cell: every name whole, and all alike.
+        val style = tileName().let { if (nameSize.isSpecified) it.copy(fontSize = nameSize) else it }
         BasicText(
             hero.name,
             style = style.copy(
@@ -699,13 +707,31 @@ private fun HeroTile(
                     MaterialTheme.colorScheme.onSurface
                 },
             ),
-            // One line that may wrap, and Clip: a name too wide then overflows the line and the size
-            // steps down until it fits (an ellipsis or no wrapping would count as fitting).
             maxLines = 1,
             overflow = TextOverflow.Clip,
-            autoSize = TextAutoSize.StepBased(minFontSize = LABEL_MIN, maxFontSize = style.fontSize),
             modifier = Modifier.fillMaxWidth().padding(top = 2.dp),
         )
+    }
+}
+
+/**
+ * The size every name of the grid takes: the tile name's size, stepped down until the longest of [heroes] (set bold,
+ * as a pick is) fits [width] on one line; never below [LABEL_MIN].
+ */
+@Composable
+private fun gridNameSize(heroes: List<BoardHero>, width: Dp): TextUnit {
+    val measurer = rememberTextMeasurer()
+    val style = tileName().copy(letterSpacing = 0.sp, fontWeight = FontWeight.Bold)
+    val px = with(LocalDensity.current) { width.roundToPx() }
+    val names = heroes.map { it.name }
+    return remember(names, px, style) {
+        var size = style.fontSize.value
+        while (size > LABEL_MIN.value &&
+            names.any { measurer.measure(it, style.copy(fontSize = size.sp), maxLines = 1).size.width > px }
+        ) {
+            size -= NAME_STEP
+        }
+        size.sp
     }
 }
 
@@ -889,6 +915,7 @@ private val TILE_MAX = 64.dp
 private val TILE_GAP = 6.dp
 private val LABEL_GAP = 2.dp
 private val LABEL_MIN = 9.sp
+private const val NAME_STEP = 0.5f
 
 /** A portrait may grow this much taller than wide to fill the screen's height. */
 private const val MAX_TALL = 1.3f

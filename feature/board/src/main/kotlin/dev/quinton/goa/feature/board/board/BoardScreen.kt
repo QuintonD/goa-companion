@@ -5,6 +5,7 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -80,9 +81,12 @@ import dev.quinton.goa.core.designsystem.component.BarActions
 import dev.quinton.goa.core.designsystem.component.ConfirmDialog
 import dev.quinton.goa.core.designsystem.component.EmptyState
 import dev.quinton.goa.core.designsystem.component.GoaDarkTheme
+import dev.quinton.goa.core.designsystem.component.HeroPortrait
+import dev.quinton.goa.core.designsystem.component.TeamMark
 import dev.quinton.goa.core.designsystem.component.UnverifiedBadge
 import dev.quinton.goa.core.designsystem.component.scaledIconSize
 import dev.quinton.goa.core.designsystem.component.slatePlate
+import dev.quinton.goa.core.designsystem.component.teamColor
 import dev.quinton.goa.core.designsystem.theme.GoaTheme
 import dev.quinton.goa.core.designsystem.theme.Spacing
 import dev.quinton.goa.core.model.board.HeroPiece
@@ -149,6 +153,7 @@ fun BoardScreen(
         title = heading?.first ?: "Board",
         subtitle = heading?.second,
         shortTitles = ready?.let(::shortHeadings).orEmpty(),
+        lineup = ready?.let { state -> { LineupPortraits(state) } },
         onBack = onBack,
         modifier = modifier,
         snackbarHost = { SnackbarHost(snackbar) },
@@ -293,7 +298,7 @@ private fun BoardContent(
         val sidePadPx = with(LocalDensity.current) { Spacing.sm.toPx() }
 
         // What floats over the map: the panel (bottom, or right in landscape), its peek bar, or the tools.
-        val keyShown = boardKey(state).isNotEmpty()
+        val keyShown = boardKey(state, short = false).isNotEmpty()
         LaunchedEffect(panelShown, cover, toolsHeight, badgeBottom, keyBottom, keyShown) {
             val bottom = if (panelShown) cover.bottom.toFloat() else toolsHeight.toFloat()
             val end = if (panelShown) cover.end.toFloat() else 0f
@@ -376,7 +381,7 @@ private fun BoardContent(
                 }
                 ToolBanner(state, onAction)
                 // What each mark on the map means, for the layers shown now (the panel's switches turn them on).
-                val key = boardKey(state)
+                val key = boardKey(state, short = LocalDensity.current.fontScale > LARGE_FONT)
                 MapKey(
                     key.keys.toList(),
                     Modifier.onGloballyPositioned { keyBottom = it.boundsInParent().bottom.toInt() },
@@ -688,13 +693,14 @@ private fun boardHeading(state: BoardUiState.Ready): Pair<String, String?> = sta
  * The map key's lines for the layers on the map now, each with its value ("Movement 4", "Range 2"): the panel's
  * switches say the same beside each swatch, but they scroll out of view under the card strip.
  */
-private fun boardKey(state: BoardUiState.Ready): Map<MapKeyItem, String> {
+private fun boardKey(state: BoardUiState.Ready, short: Boolean): Map<MapKeyItem, String> {
     val overlay = state.overlay
     return buildMap {
         if (overlay != null) {
             if (overlay.movement.isNotEmpty()) {
                 val value = overlay.movementValue?.let { " $it" }.orEmpty()
-                put(MapKeyItem.MOVEMENT, "Movement$value: spaces to get there")
+                // Large text: the value only, so the key stays a line over the map.
+                put(MapKeyItem.MOVEMENT, if (short) "Move$value" else "Movement$value: spaces to get there")
             }
             if (overlay.fastTravel.isNotEmpty()) put(MapKeyItem.FAST_TRAVEL, "Fast Travel")
             if (overlay.range.isNotEmpty()) {
@@ -705,9 +711,50 @@ private fun boardKey(state: BoardUiState.Ready): Map<MapKeyItem, String> {
             }
         }
         if (state.trayTargets.isNotEmpty() || overlay?.returnTo?.isNotEmpty() == true) {
-            put(MapKeyItem.GO_HERE, "Where it goes")
+            put(MapKeyItem.GO_HERE, if (short) "Go here" else "Where it goes")
         }
-        state.measure?.let { put(MapKeyItem.MEASURE, "Measure: ${BoardText.spaces(it.distance)}") }
+        state.measure?.let {
+            put(
+                MapKeyItem.MEASURE,
+                if (short) BoardText.spaces(it.distance) else "Measure: ${BoardText.spaces(it.distance)}",
+            )
+        }
+    }
+}
+
+/**
+ * The line-up as its heroes under the bar's short title when its words don't fit: each team's mark, then its heroes'
+ * portraits in the team's ring, "vs" between (TalkBack hears the line-up in words, from the bar).
+ */
+@Composable
+private fun LineupPortraits(state: BoardUiState.Ready) {
+    val heroes = state.pieces.filterIsInstance<HeroPiece>()
+    // A fixed size: the line under the bar's title, which the bar's height is measured for.
+    val size = LINEUP_PORTRAIT
+    val vs = with(LocalDensity.current) { LINEUP_VS.toSp() }
+    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(2.dp)) {
+        Team.entries.forEachIndexed { i, team ->
+            if (i > 0) {
+                Text(
+                    "vs",
+                    style = MaterialTheme.typography.labelMedium.copy(fontSize = vs, lineHeight = vs),
+                    color = GoaTheme.colors.onBannerVariant,
+                    modifier = Modifier.padding(horizontal = 2.dp),
+                )
+            }
+            TeamMark(team, markSize = size * 0.6f)
+            heroes.filter { it.team == team }.forEach { piece ->
+                val hero = state.heroes.hero(piece.heroId)
+                HeroPortrait(
+                    hero.id,
+                    hero.portrait,
+                    null,
+                    Modifier.size(size).border(1.5.dp, teamColor(team), CircleShape),
+                    shape = CircleShape,
+                    framed = false,
+                )
+            }
+        }
     }
 }
 
@@ -726,3 +773,5 @@ private fun shortHeadings(state: BoardUiState.Ready): List<String> {
 private val SIDE_PANEL = 380.dp
 private const val PANEL_MAX = 0.5f
 private const val LARGE_FONT = 1.3f
+private val LINEUP_PORTRAIT = 18.dp
+private val LINEUP_VS = 12.dp
