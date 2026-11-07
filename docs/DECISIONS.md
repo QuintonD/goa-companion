@@ -2850,3 +2850,39 @@ Stats-of-Atlantis images are frameless card art, not scans, so they cannot repla
 
 **Consequences:** Card assets grow from about 33 MB to 61 MB; a release APK from about 43 MB to about 71 MB, under the
 ~100 MB ceiling in ARCHITECTURE.md.
+
+## ADR-076 — Map first, numbers on the cards, pages as pills (2026-11-07)
+**Context:** Round 3 of the UI hill climb (ADR-066). The game table's chrome took about 60 % of the height; "NOW" and
+"who must answer" competed; card numbers were unreadable; "(p.7)" was on every control; Respawn sat under an ATTACK
+plate; minions showed team by colour only.
+
+**Decision:** The HUD and the turn strip are one plate of about 136 dp: four equal cells, each with portrait,
+initiative, name and the card played (card names take two lines, never cut). While another hero must answer, the strip
+says RESOLVING and DEFENDS or ANSWERS, and the panel title names both ("Tigerclaw defends against Arien"). The hand is a
+tab pinned at the panel's foot, naming whose hand. Sideways, the turn order is a column beside the map and short screens
+put the actions two to a row. Defence shows each card's total against the attack ("Def 2 vs 6"); nothing is
+preselected, and when no card saves the hero "Don't defend · keep your cards" is the primary. Choosable cards carry a
+number strip under the scan (initiative, the action's value, range, movement, with the game's item icons). Page
+references are small bronze pills on actions and heads, never inline text. Decision plates are named by decision type.
+Minions carry the gear or star. Game over is a stat grid with Rematch and Done pinned. Hero pickers are five columns,
+all 32 on one screen. Refines ADR-069 and ADR-072.
+
+## ADR-077 — The game's own controls, a dark reader, faces and paintings (2026-11-07)
+**Decision:** Switches, segmented bars, chips and secondary buttons come from the design system (`GoaSwitch`,
+`GoaSegmentedRow`, `selectableChipBorder`, `GoaOutlinedButton`); Material's segmented button stays only where a segment is
+a team colour. Sideways-scrolling rows fade at their edge. The gear and the bracketed plate are for game states; routine
+rows use the quiet plate; catalog tiles have no gear. Meaningful bronze on cream uses `bronzeInk`. In the dark theme the
+rules reader is a dark parchment page; long topics have a Contents sheet; the level table sits behind "Compare all
+levels". Catalog search splits into All, Cards and Heroes; tier chips filter; decks count "18 cards + Handicap". A player
+is shown as their most-played hero (derived from the log, never stored; no two players in a list share a face; only at
+40 dp and above on player-centred screens; the crest elsewhere). Leaderboards end in a hall of banners and group sync in
+beacon towers (generated, decoration only); the timer keeps the battlefield. Group sync names its transport
+(phone-to-phone is the normal way) and arms hosting as "Sync automatically when ready".
+
+## ADR-078 — One next step at the table: timer start, draft, trivia, game night (2026-11-07)
+**Decision:** Timer start is one plate with one Start button; the preset is a row that opens the presets, its phases a
+labelled grid with tonight's change tagged. The running timer's bar keeps the coin chip and a menu of named tools. The
+draft board shows the pool right after the pick banner, the rosters folded into one bar; swapping seats is an explicit
+mode with Cancel; a finished draft has one primary action. "Team A/B" are "coin team" and "other team". Trivia asks
+Practice or Challenge first and Start names the mode; the quiz header is pinned. The Play hub gains Game night (Draft →
+Match setup → Timer); Draft stays in More. Refines ADR-067 and ADR-070.
