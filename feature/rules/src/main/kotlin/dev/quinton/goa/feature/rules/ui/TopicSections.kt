@@ -51,3 +51,22 @@ internal const val DIAGRAMS = "Diagrams"
 private const val MIN_SECTIONS = 3
 private const val FEW_HEADS = 4
 private const val OPENING_WORDS = 5
+
+/**
+ * The anchors a topic with diagrams gets near its top: its diagrams (each a thumbnail that opens it) and, when a
+ * passage prints numbered steps, "Steps" (the app's word for where they are, as "Diagrams" is), opening that passage.
+ * Nothing is paraphrased: the anchors only point. Null for a topic without diagrams.
+ */
+internal data class TopicAnchors(val steps: Int?, val diagrams: List<Pair<Int, RulesDiagrams.Entry>>)
+
+internal fun topicAnchors(topic: RulesTopic): TopicAnchors? {
+    val diagrams = topic.excerpts.mapIndexedNotNull { i, e -> RulesDiagrams.of(e)?.let { i to it } }
+    if (diagrams.isEmpty()) return null
+    val steps = topic.excerpts.indexOfFirst { NUMBERED_STEP.containsMatchIn(it.text) }.takeIf { it >= 0 }
+    return TopicAnchors(steps, diagrams)
+}
+
+/** A numbered step as the rulebook prints it: "1. " at the start of a line. */
+private val NUMBERED_STEP = Regex("""(^|\n)\s*1\.\s""")
+
+internal const val STEPS = "Steps"

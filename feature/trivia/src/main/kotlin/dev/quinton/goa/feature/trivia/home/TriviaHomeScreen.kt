@@ -26,6 +26,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.KeyboardArrowRight
 import androidx.compose.material.icons.outlined.Bolt
 import androidx.compose.material.icons.outlined.EmojiEvents
+import androidx.compose.material.icons.outlined.ExpandMore
 import androidx.compose.material.icons.outlined.MoreVert
 import androidx.compose.material.icons.outlined.PlayArrow
 import androidx.compose.material.icons.outlined.Quiz
@@ -47,11 +48,13 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.font.FontWeight
@@ -59,6 +62,7 @@ import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import dev.quinton.goa.core.data.trivia.HeroProgressUi
 import dev.quinton.goa.core.data.trivia.PlayingAsState
 import dev.quinton.goa.core.data.trivia.TriviaHomeAction
@@ -86,6 +90,7 @@ import dev.quinton.goa.core.designsystem.component.UnverifiedBadge
 import dev.quinton.goa.core.designsystem.component.scaledIconSize
 import dev.quinton.goa.core.designsystem.component.slatePlate
 import dev.quinton.goa.core.designsystem.theme.GoaTextStyles
+import dev.quinton.goa.core.designsystem.theme.GoaTheme
 import dev.quinton.goa.core.designsystem.theme.Spacing
 import dev.quinton.goa.core.domain.trivia.AnswerStyle
 import dev.quinton.goa.core.domain.trivia.CardGroup
@@ -258,6 +263,7 @@ private fun HomeContent(
 ) {
     val padded = Modifier.padding(horizontal = Spacing.screen)
     val challenge = mode == TriviaMode.CHALLENGE
+    var optionsOpen by rememberSaveable { mutableStateOf(false) }
     BoxWithConstraints(Modifier.fillMaxSize()) {
         val wide = maxWidth >= WIDE_START_BAR
         Column(Modifier.fillMaxSize()) {
@@ -276,9 +282,17 @@ private fun HomeContent(
                     if (challenge) {
                         item(key = "challenge") { ChallengeCard(padded.padding(top = Spacing.md)) }
                     } else {
-                        item(key = "overall") { OverallCard(state, padded.padding(top = Spacing.md)) }
-                        item(key = "setup-title") { SectionHeader("New quiz", padded) }
-                        item(key = "setup") { SetupBlock(state, onAction, onChooseHeroes, padded) }
+                        item(key = "overall") { MasteryHeader(state, padded.padding(top = Spacing.lg)) }
+                        // The setup folded into one row that says what the quiz is; it opens in place.
+                        item(key = "setup-title") {
+                            val toggle = { optionsOpen = !optionsOpen }
+                            QuizOptionsRow(state, optionsOpen, toggle, padded.padding(top = Spacing.lg))
+                        }
+                        if (optionsOpen) {
+                            item(key = "setup") {
+                                SetupBlock(state, onAction, onChooseHeroes, padded.padding(top = Spacing.md))
+                            }
+                        }
                         item(key = "heroes-title") {
                             SectionHeader(
                                 "By hero",
@@ -411,36 +425,123 @@ private fun PlayingAsRow(playing: PlayingAsState, mode: TriviaMode, onClick: () 
  */
 internal fun playingAsNote(playing: PlayingAsState): String? = TriviaText.playingAsNote(playing)
 
+/**
+ * Mastery as one header, not a panel: the learned figure large (Inter, as every score), what it counts in the
+ * section's Cinzel, the bar and its legend under it, and what "learned" means in one caption.
+ */
 @Composable
-private fun OverallCard(state: TriviaHomeUiState.Ready, modifier: Modifier) {
+private fun MasteryHeader(state: TriviaHomeUiState.Ready, modifier: Modifier) {
     val overall = state.overall
-    GoaCard(modifier.fillMaxWidth()) {
-        Text(
-            "${TriviaText.number(overall.mastered)} of ${TriviaText.count(overall.total, "number")} learned",
-            style = MaterialTheme.typography.headlineSmall,
-            color = MaterialTheme.colorScheme.onSurface,
-        )
-        Spacer(Modifier.height(Spacing.xs))
-        Text(
-            if (state.ownedOnly) {
-                "Every number on the Action cards of the heroes you own."
-            } else {
-                "Every number on every hero's Action cards."
+    val scope = if (state.ownedOnly) "numbers learned on your heroes" else "numbers learned"
+    Column(modifier.fillMaxWidth()) {
+        Row(
+            Modifier.semantics(mergeDescendants = true) {
+                heading()
+                contentDescription = "${TriviaText.number(overall.mastered)} of " +
+                    "${TriviaText.number(overall.total)} $scope"
             },
+            verticalAlignment = Alignment.Bottom,
+        ) {
+            Text(
+                TriviaText.number(overall.mastered),
+                style = MasteryFigure,
+                color = MaterialTheme.colorScheme.onSurface,
+                modifier = Modifier.alignByBaseline(),
+            )
+            Spacer(Modifier.width(Spacing.sm))
+            Text(
+                "of ${TriviaText.number(overall.total)} $scope",
+                style = GoaTextStyles.sectionHead,
+                color = GoaTheme.colors.heading,
+                modifier = Modifier.alignByBaseline(),
+            )
+        }
+        Spacer(Modifier.height(Spacing.sm))
+        MasteryBar(overall, height = 8.dp)
+        Spacer(Modifier.height(Spacing.sm))
+        MasteryLegend(overall)
+        Text(
+            "A number is learned after three right answers in a row.",
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
-        Spacer(Modifier.height(Spacing.lg))
-        MasteryBar(overall)
-        Spacer(Modifier.height(Spacing.md))
-        MasteryLegend(overall)
-        Spacer(Modifier.height(Spacing.sm))
-        Text(
-            "A number counts as learned after three right answers in a row.",
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.padding(top = Spacing.xs),
         )
     }
+}
+
+/**
+ * The quiz's setup folded into one row: "Quiz options" and what is set ("All heroes · all numbers · all cards ·
+ * 4 choices · 10 questions"), wrapping, never cut; a tap opens the setup under it (and closes it again).
+ */
+@Composable
+private fun QuizOptionsRow(state: TriviaHomeUiState.Ready, open: Boolean, onToggle: () -> Unit, modifier: Modifier) {
+    val summary = quizSummary(state)
+    GoaPlate(
+        onClick = onToggle,
+        brackets = false,
+        contentPadding = PaddingValues(0.dp),
+        modifier = modifier
+            .fillMaxWidth()
+            .heightIn(min = 56.dp)
+            .semantics(mergeDescendants = true) {
+                contentDescription = "Quiz options: $summary"
+                stateDescription = if (open) "Expanded" else "Collapsed"
+            },
+    ) {
+        Row(
+            Modifier.padding(horizontal = Spacing.lg, vertical = Spacing.md),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Column(Modifier.weight(1f)) {
+                Text(
+                    "Quiz options",
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.onSurface,
+                )
+                Text(
+                    summary,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+            Spacer(Modifier.width(Spacing.sm))
+            Icon(
+                Icons.Outlined.ExpandMore,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.size(scaledIconSize(24.dp)).rotate(if (open) 180f else 0f),
+            )
+        }
+    }
+}
+
+/** The learned figure: Inter bold, 28 sp, as every score. */
+private val MasteryFigure =
+    GoaTextStyles.scoreLarge.copy(fontSize = 28.sp, lineHeight = 32.sp, fontWeight = FontWeight.Bold)
+
+/** "All heroes · all numbers · all cards · 4 choices · 10 questions": the setup in one line of words. */
+internal fun quizSummary(state: TriviaHomeUiState.Ready): String {
+    val setup = state.setup
+    val names = state.selectedHeroNames
+    val heroes = when {
+        names.isEmpty() -> if (state.ownedOnly) "All heroes you own" else "All heroes"
+        names.size <= 2 -> names.joinToString(", ")
+        else -> "${names.take(2).joinToString(", ")} +${names.size - 2}"
+    }
+    val numbers = if (setup.stats.size == TriviaStat.entries.size) {
+        "all numbers"
+    } else {
+        TriviaStat.entries.filter { it in setup.stats }.joinToString(", ") { TriviaText.stat(it) }
+    }
+    val cards = if (setup.groups.size == CardGroup.entries.size) {
+        "all cards"
+    } else {
+        CardGroup.entries.filter { it in setup.groups }.joinToString(", ") { TriviaText.group(it) }
+    }
+    val answers = if (setup.answerStyle == AnswerStyle.CHOICES) "4\u00A0choices" else "recall"
+    val length = if (setup.length == TriviaConfig.ENDLESS) "endless" else "${setup.length}\u00A0questions"
+    // A no-break space before each dot: a wrapped line never starts with one.
+    return listOf(heroes, numbers, cards, answers, length).joinToString("\u00A0· ")
 }
 
 @OptIn(ExperimentalLayoutApi::class)

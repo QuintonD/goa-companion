@@ -1,11 +1,11 @@
 package dev.quinton.goa.feature.catalog.detail
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -19,6 +19,9 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Check
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -35,6 +38,7 @@ import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.onClick
 import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -49,6 +53,7 @@ import dev.quinton.goa.core.designsystem.theme.GoaTheme
 import dev.quinton.goa.core.designsystem.theme.Spacing
 import dev.quinton.goa.core.domain.catalog.DeckGroupKind
 import dev.quinton.goa.core.domain.catalog.DeckLayout
+import dev.quinton.goa.core.domain.catalog.plural
 import dev.quinton.goa.core.domain.catalog.tierNumeral
 import dev.quinton.goa.core.navigation.HeroDetailRoute
 
@@ -69,7 +74,7 @@ internal enum class HeroSection(val label: String) {
     }
 }
 
-/** The sticky bar's height: a jump in the deck lands just under it. */
+/** The sticky bar's height: the deck's filters sit just under it. */
 internal val SectionBarHeight = 48.dp
 
 /**
@@ -143,19 +148,19 @@ private val TAB_MIN_WIDTH = 72.dp
 private val TAB_TINT_INSET = 6.dp
 private val TAB_TINT_CORNER = 8.dp
 
-/** One stop of the deck's jump row: a colour (or Basic, the Ultimate, the Handicap card, a spellbook). */
-internal class DeckJump(val label: String, val key: String, val ribbon: PlateColor?, val count: Int)
+/** One part of the deck for the colour filter: a colour (or Basic, the Ultimate, the Handicap card, a spellbook). */
+internal class DeckPart(val label: String, val key: String, val ribbon: PlateColor?, val count: Int)
 
-/** The deck's parts in page order, for the jump row. */
-internal fun deckJumps(layout: DeckLayout): List<DeckJump> = buildList {
-    layout.groups.forEach { add(DeckJump(it.kind.title, groupKey(it.kind), groupRibbon(it.kind), it.cards.size)) }
-    layout.handicap?.let { add(DeckJump("Handicap", HANDICAP_KEY, PlateColor.of(it.color), 1)) }
+/** The deck's parts in page order, for the colour filter. */
+internal fun deckParts(layout: DeckLayout): List<DeckPart> = buildList {
+    layout.groups.forEach { add(DeckPart(it.kind.title, groupKey(it.kind), groupRibbon(it.kind), it.cards.size)) }
+    layout.handicap?.let { add(DeckPart("Handicap", HANDICAP_KEY, PlateColor.of(it.color), 1)) }
     if (layout.extras.isNotEmpty()) {
-        add(DeckJump(if (layout.extrasAreSpellbook) "Spellbook" else "Extras", EXTRAS_KEY, null, layout.extras.size))
+        add(DeckPart(if (layout.extrasAreSpellbook) "Spellbook" else "Extras", EXTRAS_KEY, null, layout.extras.size))
     }
 }
 
-/** The tiers the deck's colours are printed in (I, II, III), for the jump bar's tier chips. */
+/** The tiers the deck's colours are printed in (I, II, III), for the tier filter. */
 internal fun deckTiers(layout: DeckLayout): List<Int> = layout.groups
     .filter { it.kind in COLOUR_KINDS }
     .flatMap { group -> group.rows.mapNotNull { it.tier } }
@@ -175,90 +180,91 @@ internal fun DeckLayout.onlyTier(tier: Int?): DeckLayout = if (tier == null) {
     )
 }
 
+/** Shows only the part keyed [key] (a colour, Basic, the Ultimate, the Handicap card, the extras); null: all. */
+internal fun DeckLayout.onlyPart(key: String?): DeckLayout = if (key == null) {
+    this
+} else {
+    copy(
+        groups = groups.filter { groupKey(it.kind) == key },
+        handicap = handicap.takeIf { key == HANDICAP_KEY },
+        extras = if (key == EXTRAS_KEY) extras else emptyList(),
+    )
+}
+
+/** The cards a filtered deck shows: its colours' cards, the Handicap card and the extras. */
+internal fun DeckLayout.shownCount(): Int =
+    groups.sumOf { it.cards.size } + (if (handicap != null) 1 else 0) + extras.size
+
 private val COLOUR_KINDS = setOf(DeckGroupKind.RED, DeckGroupKind.GREEN, DeckGroupKind.BLUE)
 
 /**
- * The deck's jump bar, held under the tabs while the deck scrolls. Its colours, each with the cards' own ribbon (a
- * tap scrolls there), on one line that scrolls sideways with the edge that hides more fading out; under them Tier
- * I, II and III (a tap shows only that tier's cards in every colour; again, all of them).
+ * The deck's filters, held under the tabs while the deck scrolls; each is one choice with its "All" stated and
+ * selected when nothing is narrowed, so no row reads as "nothing chosen". Colours: **All colours** then each part
+ * with the cards' own ribbon and count, on one line that scrolls sideways (the edge that hides more fades out).
+ * Tiers: **All tiers · Tier I · Tier II · Tier III** in the same chips, wrapping. The count over the cards says
+ * what is shown.
  */
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
-internal fun DeckJumpBar(
-    jumps: List<DeckJump>,
+internal fun DeckFilterBar(
+    parts: List<DeckPart>,
+    part: String?,
+    onPart: (String?) -> Unit,
     tiers: List<Int>,
     tier: Int?,
-    onJump: (String) -> Unit,
     onTier: (Int?) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val row = rememberScrollState()
-    Column(modifier.fillMaxWidth()) {
-        if (jumps.size >= 2) {
+    Column(modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
+        if (parts.size >= 2) {
             Row(
                 Modifier
                     .fillMaxWidth()
                     .fadingHorizontalScroll(row)
-                    .semantics { contentDescription = "Jump to a part of the deck" },
+                    .selectableGroup()
+                    .semantics { contentDescription = "Colours" },
                 horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                jumps.forEach { jump -> JumpChip(jump) { onJump(jump.key) } }
+                PartChip("All colours", null, parts.sumOf { it.count }, selected = part == null) { onPart(null) }
+                parts.forEach { p -> PartChip(p.label, p.ribbon, p.count, selected = part == p.key) { onPart(p.key) } }
             }
         }
         if (tiers.isNotEmpty()) {
-            Row(
-                Modifier.fillMaxWidth().padding(horizontal = Spacing.screen),
+            FlowRow(
+                Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = Spacing.screen)
+                    .selectableGroup()
+                    .semantics { contentDescription = "Tiers" },
                 horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
-                verticalAlignment = Alignment.CenterVertically,
             ) {
-                tiers.forEach { t -> TierChip(t, selected = tier == t) { onTier(if (tier == t) null else t) } }
+                PartChip("All tiers", null, null, selected = tier == null) { onTier(null) }
+                tiers.forEach { t ->
+                    PartChip("Tier ${tierNumeral(t)}", null, null, selected = tier == t) { onTier(t) }
+                }
             }
         }
     }
 }
 
-/** A tier's chip: "Tier II", selected (bronze) while the deck shows only that tier. */
+/**
+ * One choice of the colour filter: the colour's ribbon, its name and count; selected in the app's one selection look
+ * (bronze edge, bronze wash and a check). The whole 48 dp line takes the tap; the chip drawn inside it is smaller.
+ */
 @Composable
-private fun TierChip(tier: Int, selected: Boolean, onClick: () -> Unit) {
+private fun PartChip(label: String, ribbon: PlateColor?, count: Int?, selected: Boolean, onClick: () -> Unit) {
     val shape = RoundedCornerShape(10.dp)
     Box(
         Modifier
             .heightIn(min = 48.dp)
-            .selectable(selected = selected, role = Role.Checkbox, onClick = onClick)
-            .semantics { contentDescription = "Only Tier ${tierNumeral(tier)} cards" },
-        contentAlignment = Alignment.Center,
-    ) {
-        Box(
-            Modifier
-                .clip(shape)
-                .background(MaterialTheme.colorScheme.surface)
-                .selectionFrame(selected, shape)
-                .heightIn(min = 38.dp)
-                .padding(horizontal = 12.dp),
-            contentAlignment = Alignment.Center,
-        ) {
-            Text(
-                "Tier ${tierNumeral(tier)}",
-                style = MaterialTheme.typography.bodyMedium,
-                fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium,
-                maxLines = 1,
-            )
-        }
-    }
-}
-
-@Composable
-private fun JumpChip(jump: DeckJump, onClick: () -> Unit) {
-    val shape = RoundedCornerShape(10.dp)
-    // The whole 48 dp line takes the tap; the chip drawn inside it is smaller.
-    Box(
-        Modifier
-            .heightIn(min = 48.dp)
-            .clickable(onClickLabel = "Jump to ${jump.label}", role = Role.Button, onClick = onClick)
+            .selectable(selected = selected, role = Role.RadioButton, onClick = onClick)
             .clearAndSetSemantics {
-                contentDescription = "${jump.label}, ${jump.count} ${if (jump.count == 1) "card" else "cards"}"
-                role = Role.Button
-                onClick(label = "Jump to ${jump.label}") {
+                contentDescription = if (count == null) label else "$label, ${plural(count, "card")}"
+                role = Role.RadioButton
+                this.selected = selected
+                onClick(label = "Show $label") {
                     onClick()
                     true
                 }
@@ -268,24 +274,40 @@ private fun JumpChip(jump: DeckJump, onClick: () -> Unit) {
         Row(
             Modifier
                 .clip(shape)
-                .border(1.dp, GoaTheme.colors.engravedBorder, shape)
                 .background(MaterialTheme.colorScheme.surface)
+                .selectionFrame(selected, shape)
                 .heightIn(min = 38.dp)
-                .padding(start = if (jump.ribbon != null) 8.dp else 12.dp, end = 12.dp),
+                .padding(start = if (ribbon != null || selected) 8.dp else 12.dp, end = 12.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            jump.ribbon?.let {
+            if (selected) {
+                Icon(
+                    Icons.Filled.Check,
+                    contentDescription = null,
+                    tint = GoaTheme.colors.bronzeInk,
+                    modifier = Modifier.size(scaledIconSize(16.dp, 1.4f)),
+                )
+                Spacer(Modifier.width(4.dp))
+            }
+            ribbon?.let {
                 ColourRibbon(it, Modifier.size(width = scaledIconSize(9.dp), height = scaledIconSize(18.dp)))
                 Spacer(Modifier.width(6.dp))
             }
-            Text(jump.label, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium, maxLines = 1)
-            Spacer(Modifier.width(6.dp))
             Text(
-                "${jump.count}",
+                label,
                 style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium,
                 maxLines = 1,
             )
+            if (count != null) {
+                Spacer(Modifier.width(6.dp))
+                Text(
+                    "$count",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                )
+            }
         }
     }
 }

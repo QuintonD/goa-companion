@@ -114,7 +114,7 @@ class OfficialLookScreenshotTest {
         CatalogScreen(state = ready(layout), query = "", onAction = {}, onHeroClick = {}, onSettingsClick = {})
 
     @Composable
-    private fun Page(id: String) = HeroDetailScreen(detail(id), onBack = {}, onCardClick = { _, _ -> })
+    private fun Page(id: String) = HeroDetailScreen(detail(id), onBack = {}, onCardClick = { _, _ -> }, onLogMatch = {})
 
     @Test fun gridDark() = shot { Grid() }
 

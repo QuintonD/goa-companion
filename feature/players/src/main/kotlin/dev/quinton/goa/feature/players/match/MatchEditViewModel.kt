@@ -141,7 +141,8 @@ class MatchEditViewModel @AssistedInject constructor(
                         playedAt = route.prefillPlayedAt?.let(::toMinute)?.coerceAtMost(now()) ?: now(),
                         mode = MatchEditing.gameModeOrNull(route.prefillMode) ?: GameMode.QUICK,
                         duration = MatchForm.durationText(route.prefillDurationMin),
-                        red = List(2) { SeatDraft(key()) },
+                        // From a hero page: that hero in the first seat; an unknown id is caught on save.
+                        red = List(2) { i -> SeatDraft(key(), heroId = route.prefillHeroId.takeIf { i == 0 }) },
                         blue = List(2) { SeatDraft(key()) },
                     )
                     EditState(null, form, form)
