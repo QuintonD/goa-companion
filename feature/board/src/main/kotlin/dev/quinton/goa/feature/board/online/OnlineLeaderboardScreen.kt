@@ -171,7 +171,7 @@ private fun Rows(state: LeaderboardUi, portraits: Map<String, String?>) {
         if (podium) {
             Podium(
                 state.rows.take(PODIUM_PLACES).map { row ->
-                    PodiumPlace(label = row.rank.toString(), description = spoken(row)) {
+                    PodiumPlace(place = row.rank, label = row.rank.toString(), description = spoken(row)) {
                         Standing(row, heroes, portraits[row.id])
                     }
                 },

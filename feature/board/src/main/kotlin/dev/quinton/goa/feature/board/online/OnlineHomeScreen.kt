@@ -59,10 +59,13 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import dev.quinton.goa.core.designsystem.component.CardTextBox
@@ -280,10 +283,11 @@ private fun Ready(
 }
 
 /**
- * The games to go back to. Those waiting on you come first, each on a plate of its own with a bronze edge ("Your
- * turn" in teal with a hand: you can act, never colour alone); the rest in one plate under "My games", each row saying
- * where it stands in words with an icon ("Waiting for Bob", "Finished"). Every game shows its heroes as overlapping
- * portraits in their team's ring, then who plays and where.
+ * The games to go back to, compact so a new room stays in view. Those waiting on you come first, each on a tight
+ * plate of its own with a bronze edge ("Your turn" in teal with a hand: you can act, never colour alone) and Play;
+ * the rest in one plate, a line each saying where it stands in words with an icon ("Waiting for Bob", "Finished")
+ * and where. Every game shows its heroes as small overlapping portraits in their team's ring; TalkBack hears who
+ * plays whom.
  */
 @Composable
 private fun MyGames(
@@ -293,12 +297,9 @@ private fun MyGames(
     actions: OnlineHomeActions,
 ) {
     val (yours, others) = state.games.partition { MyGameStatuses.of(it, state.you).state == MyGameState.YOUR_TURN }
-    if (yours.isNotEmpty()) {
-        OnlineSection(if (yours.size == 1) "Your turn" else "Your turn · ${yours.size} games")
-        yours.forEach { game -> YourTurnPlate(game, state, mapNames, heroes, actions) }
-    }
+    OnlineSection("My games")
+    yours.forEach { game -> YourTurnPlate(game, state, mapNames, heroes, actions) }
     if (others.isNotEmpty()) {
-        OnlineSection("My games")
         GoaPlate(Modifier.fillMaxWidth(), contentPadding = PaddingValues(0.dp)) {
             others.forEachIndexed { i, game ->
                 if (i > 0) HorizontalDivider()
@@ -308,7 +309,7 @@ private fun MyGames(
     }
 }
 
-/** A game waiting on you, as its own plate with a bronze edge: the heroes, "Your turn", who and where, and Play. */
+/** A game waiting on you, on a tight plate with a bronze edge: the heroes, "Your turn" and where, and Play. */
 @Composable
 private fun YourTurnPlate(
     game: MyGame,
@@ -327,9 +328,10 @@ private fun YourTurnPlate(
                 contentDescription = "${status.words}. ${spokenSeats(game, heroes)}. ${where(game, mapNames)}"
             },
         onClick = { actions.onGame(game) },
+        contentPadding = PaddingValues(horizontal = Spacing.md, vertical = Spacing.sm),
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            SeatPortraits(game, heroes, size = 44.dp)
+            SeatPortraits(game, heroes, size = 32.dp)
             Spacer(Modifier.width(Spacing.md))
             Column(Modifier.weight(1f)) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
@@ -337,32 +339,32 @@ private fun YourTurnPlate(
                         Icons.Outlined.TouchApp,
                         contentDescription = null,
                         tint = teal,
-                        modifier = Modifier.size(scaledIconSize(20.dp, 1.4f)),
+                        modifier = Modifier.size(scaledIconSize(18.dp, 1.4f)),
                     )
                     Spacer(Modifier.width(Spacing.xs))
                     Text(
                         status.words,
-                        style = MaterialTheme.typography.titleMedium,
+                        style = MaterialTheme.typography.titleSmall,
                         fontWeight = FontWeight.Bold,
                         color = teal,
                     )
                 }
                 Text(
-                    "${who(game)} · ${where(game, mapNames)}",
+                    where(game, mapNames),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
+            Spacer(Modifier.width(Spacing.sm))
+            GoaButton(
+                onClick = { actions.onGame(game) },
+                modifier = Modifier.heightIn(min = 48.dp).clearAndSetSemantics {},
+            ) { Text("Play") }
         }
-        Spacer(Modifier.height(Spacing.md))
-        GoaButton(
-            onClick = { actions.onGame(game) },
-            modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp).clearAndSetSemantics {},
-        ) { Text("Play your turn") }
     }
 }
 
-/** A game that isn't waiting on you: the heroes, where it stands in words with an icon, who and where. */
+/** A game that isn't waiting on you, in one line: the heroes, where it stands in words with an icon, and where. */
 @Composable
 private fun GameRow(
     game: MyGame,
@@ -379,40 +381,38 @@ private fun GameRow(
         contentColor = MaterialTheme.colorScheme.onSurface,
         modifier = Modifier
             .fillMaxWidth()
-            .heightIn(min = 64.dp)
+            .heightIn(min = 52.dp)
             .semantics(mergeDescendants = true) {
                 contentDescription =
                     "${status.words}. ${spokenSeats(game, heroes)}. ${where(game, mapNames)}. Back to this game"
             },
     ) {
         Row(
-            Modifier.padding(horizontal = Spacing.md, vertical = Spacing.sm),
+            Modifier.padding(horizontal = Spacing.md, vertical = Spacing.xs),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            SeatPortraits(game, heroes, size = 34.dp, dim = status.state == MyGameState.OVER)
+            SeatPortraits(game, heroes, size = 26.dp, dim = status.state == MyGameState.OVER)
             Spacer(Modifier.width(Spacing.md))
-            Column(Modifier.weight(1f)) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(
-                        when (status.state) {
-                            MyGameState.YOUR_TURN -> Icons.Outlined.TouchApp
-                            MyGameState.WAITING -> Icons.Outlined.HourglassTop
-                            MyGameState.IN_PLAY -> Icons.Outlined.PlayCircleOutline
-                            MyGameState.OVER -> Icons.Outlined.Flag
-                        },
-                        contentDescription = null,
-                        tint = muted,
-                        modifier = Modifier.size(scaledIconSize(16.dp, 1.4f)),
-                    )
-                    Spacer(Modifier.width(Spacing.xs))
-                    Text(status.words, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
-                }
-                Text(
-                    "${who(game)} · ${where(game, mapNames)}",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = muted,
-                )
-            }
+            Icon(
+                when (status.state) {
+                    MyGameState.YOUR_TURN -> Icons.Outlined.TouchApp
+                    MyGameState.WAITING -> Icons.Outlined.HourglassTop
+                    MyGameState.IN_PLAY -> Icons.Outlined.PlayCircleOutline
+                    MyGameState.OVER -> Icons.Outlined.Flag
+                },
+                contentDescription = null,
+                tint = muted,
+                modifier = Modifier.size(scaledIconSize(16.dp, 1.4f)),
+            )
+            Spacer(Modifier.width(Spacing.xs))
+            Text(
+                buildAnnotatedString {
+                    withStyle(SpanStyle(fontWeight = FontWeight.SemiBold)) { append(status.words) }
+                    withStyle(SpanStyle(color = muted)) { append(" · ${where(game, mapNames)}") }
+                },
+                style = MaterialTheme.typography.bodyMedium,
+                modifier = Modifier.weight(1f),
+            )
             Icon(Icons.AutoMirrored.Outlined.KeyboardArrowRight, contentDescription = null)
         }
     }
@@ -452,8 +452,6 @@ private fun SeatPortraits(game: MyGame, heroes: Map<String, BoardHero>, size: Dp
         }
     }
 }
-
-private fun who(game: MyGame): String = game.seats.joinToString(", ") { it.name.ifBlank { "Former player" } }
 
 private fun where(game: MyGame, mapNames: Map<String, String>): String = mapNames[game.mapId] ?: game.mapId
 

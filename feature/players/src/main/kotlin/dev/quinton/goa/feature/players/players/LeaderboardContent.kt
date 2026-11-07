@@ -139,6 +139,7 @@ private fun Board(
                             Podium(
                                 state.ranked.take(PODIUM_PLACES).map { row ->
                                     PodiumPlace(
+                                        place = row.rank ?: 0,
                                         label = row.rank.toString(),
                                         description = row.spoken(archived = false),
                                         onClick = { onOpenPlayer(row.player.id) },

@@ -280,7 +280,7 @@ private fun PlayerChangeRow(line: PlayerChangeUi, ready: Boolean) {
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
-                if (ready && line.rating.provisional) ProvisionalMark()
+                if (ready && line.rating.provisional) ProvisionalMark(label = true)
             }
             // Large text: the figures go under the name, where they have the row's width.
             if (ready && large) {

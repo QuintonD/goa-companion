@@ -233,6 +233,7 @@ private fun BoardContent(state: TriviaLeaderboardUiState.Ready, actions: Leaderb
                                 Podium(
                                     state.rows.take(PODIUM_PLACES).map { row ->
                                         PodiumPlace(
+                                            place = row.place,
                                             label = if (row.tied) "=${row.place}" else "${row.place}",
                                             description = row.spoken,
                                             onClick = { actions.onOpenPlayer(row.player.id) },
@@ -341,7 +342,7 @@ private fun RankedRow(row: LeaderboardRowUi, onClick: () -> Unit) {
                 Text(
                     row.player.name,
                     style = MaterialTheme.typography.titleMedium,
-                    maxLines = 2,
+                    maxLines = 3,
                     overflow = TextOverflow.Ellipsis,
                     modifier = Modifier.weight(1f, fill = false),
                 )

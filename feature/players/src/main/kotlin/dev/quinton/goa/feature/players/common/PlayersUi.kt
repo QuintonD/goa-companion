@@ -8,12 +8,14 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicText
 import androidx.compose.foundation.text.TextAutoSize
@@ -50,6 +52,7 @@ import dev.quinton.goa.core.designsystem.component.GoaPlateTheme
 import dev.quinton.goa.core.designsystem.component.PlateShape
 import dev.quinton.goa.core.designsystem.component.SectionHeader as RulebookSectionHeader
 import dev.quinton.goa.core.designsystem.component.TeamMark
+import dev.quinton.goa.core.designsystem.component.scaledIconSize
 import dev.quinton.goa.core.designsystem.component.slatePlate
 import dev.quinton.goa.core.designsystem.component.teamColor
 import dev.quinton.goa.core.designsystem.theme.GoaTextStyles
@@ -84,13 +87,28 @@ fun Pill(
  * every rating is provisional the list says it once). Its own words for TalkBack.
  */
 @Composable
-fun ProvisionalMark(modifier: Modifier = Modifier) {
-    Icon(
-        Icons.Outlined.HourglassEmpty,
-        contentDescription = "Provisional rating",
-        tint = MaterialTheme.colorScheme.onSurfaceVariant,
-        modifier = modifier.size(dev.quinton.goa.core.designsystem.component.scaledIconSize(16.dp)),
-    )
+fun ProvisionalMark(modifier: Modifier = Modifier, label: Boolean = false) {
+    val muted = MaterialTheme.colorScheme.onSurfaceVariant
+    if (!label) {
+        Icon(
+            Icons.Outlined.HourglassEmpty,
+            contentDescription = "Provisional rating",
+            tint = muted,
+            modifier = modifier.size(scaledIconSize(16.dp)),
+        )
+        return
+    }
+    // With its word, where no caption explains the hourglass (a match's result).
+    Row(modifier, verticalAlignment = Alignment.CenterVertically) {
+        Icon(
+            Icons.Outlined.HourglassEmpty,
+            contentDescription = null,
+            tint = muted,
+            modifier = Modifier.size(scaledIconSize(14.dp)),
+        )
+        Spacer(Modifier.width(2.dp))
+        Text("Provisional", style = MaterialTheme.typography.labelSmall, color = muted, maxLines = 1)
+    }
 }
 
 /** "All ratings are provisional until 10 games each." */

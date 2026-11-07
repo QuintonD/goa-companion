@@ -47,10 +47,12 @@ import kotlin.math.min
 import kotlin.math.roundToInt
 
 /**
- * One place on a [Podium]: its [label] on the step ("1", "=2"), what TalkBack says for it ([description]), what a tap
- * does, and what stands on the step (a crest or portrait, the name, the figure).
+ * One place on a [Podium]: its [place] (1 to 3; tied places share a number, and so their step's height and metal),
+ * its [label] on the step ("1", "=2"), what TalkBack says for it ([description]), what a tap does, and what stands
+ * on the step (a crest or portrait, the name, the figure).
  */
 class PodiumPlace(
+    val place: Int,
     val label: String,
     val description: String,
     val onClick: (() -> Unit)? = null,
@@ -62,8 +64,9 @@ class PodiumPlace(
  * The top of a leaderboard as a podium: up to three places side by side, the first in the middle on the highest
  * step, the second on its left, the third on its right (a short list reads as standings, not as half a screen of
  * navy). Steps are metal: gold for the first, steel for the second, copper for the third, each with its place in
- * Cinzel, so a place is never told by colour alone. Each place is one TalkBack node and one target. The caller
- * keeps the full rows below it at large text, where three columns don't fit.
+ * Cinzel, so a place is never told by colour alone; a shared place stands on equal steps ("=2", "=2"). Each place
+ * is one TalkBack node and one target. The caller keeps the full rows below it at large text, where three columns
+ * don't fit.
  */
 @Composable
 fun Podium(places: List<PodiumPlace>, modifier: Modifier = Modifier) {
@@ -101,17 +104,17 @@ fun Podium(places: List<PodiumPlace>, modifier: Modifier = Modifier) {
                     content = place.content,
                 )
                 Spacer(Modifier.height(Spacing.sm))
-                PodiumStep(place.label, index)
+                PodiumStep(place.label, place.place)
             }
         }
     }
 }
 
 @Composable
-private fun PodiumStep(label: String, index: Int) {
-    val (metal, height) = when (index) {
-        0 -> GOLD to 46.dp
-        1 -> STEEL to 32.dp
+private fun PodiumStep(label: String, place: Int) {
+    val (metal, height) = when (place) {
+        1 -> GOLD to 46.dp
+        2 -> STEEL to 32.dp
         else -> COPPER to 22.dp
     }
     val shape = RoundedCornerShape(topStart = 6.dp, topEnd = 6.dp)
@@ -129,7 +132,7 @@ private fun PodiumStep(label: String, index: Int) {
             color = STEP_INK,
             fontFamily = GoaFonts.display,
             fontWeight = FontWeight.Bold,
-            fontSize = (if (index == 0) 20 else 16).sp,
+            fontSize = (if (place == 1) 20 else 16).sp,
             maxLines = 1,
             modifier = Modifier.padding(top = stepTextTop(height)),
         )

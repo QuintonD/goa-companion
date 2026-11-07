@@ -205,7 +205,7 @@ private fun QuizPlaying(state: TriviaQuizUiState.Playing, onAnswer: (TriviaAnswe
                         QuizHeader(state)
                         Column {
                             Spacer(Modifier.height(Spacing.lg))
-                            QuestionPanel(state.question, artHeight = art)
+                            QuestionPanel(state.question, artHeight = art, framed = !state.answered)
                             Spacer(Modifier.height(Spacing.md))
                             AnswerArea(state, onAnswer)
                             Reveal(state, scroll = scroll, imageMaxHeight = imageMax)
@@ -244,7 +244,7 @@ private fun artRoom(viewport: Dp, width: Dp): Dp {
 }
 
 /** Header, card name and kind, question plate, four answers and the spacing between them. */
-private val QUESTION_CHROME = 520.dp
+private val QUESTION_CHROME = 556.dp
 private val MIN_ART = 96.dp
 private val MAX_ART = 200.dp
 private const val ART_ASPECT = 9f / 16f

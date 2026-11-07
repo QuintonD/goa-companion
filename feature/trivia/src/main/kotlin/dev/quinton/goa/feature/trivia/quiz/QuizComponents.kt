@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -92,47 +93,65 @@ internal enum class Mark { OPEN, RIGHT, WRONG, OTHER }
  * whose card it is and the asked number on its plate; for a duel, the question on its plate.
  */
 @Composable
-internal fun QuestionPanel(question: QuizQuestionUi, modifier: Modifier = Modifier, artHeight: Dp = 0.dp) {
+internal fun QuestionPanel(
+    question: QuizQuestionUi,
+    modifier: Modifier = Modifier,
+    artHeight: Dp = 0.dp,
+    /** Off once answered: the reveal scrolls the group under the banner, and a cut frame reads as broken. */
+    framed: Boolean = true,
+) {
     when (question) {
-        is QuizQuestionUi.Number -> GoaPlate(modifier.fillMaxWidth()) {
-            // One group: whose card (the hero's art, bounded, never the card's scan, which would give the answer
-            // away), which card (its name large, beside its colour's ribbon), and what is asked, on its plate.
-            Column(Modifier.fillMaxWidth().semantics(mergeDescendants = true) {}) {
-                if (artHeight > 0.dp) {
-                    HeroArt(question.card, artHeight)
-                    Spacer(Modifier.height(Spacing.md))
-                } else {
-                    HeroLine(question.card)
-                    Spacer(Modifier.height(Spacing.sm))
-                }
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    ColourRibbon(
-                        PlateColor.of(question.card.color),
-                        Modifier.size(width = scaledIconSize(16.dp), height = scaledIconSize(34.dp)),
-                    )
-                    Spacer(Modifier.width(Spacing.md))
-                    Column(Modifier.weight(1f)) {
-                        Text(
-                            question.card.name,
-                            style = MaterialTheme.typography.headlineMedium,
-                            color = MaterialTheme.colorScheme.onSurface,
+        is QuizQuestionUi.Number -> {
+            // One group: whose card (the hero's art, bounded, then the hero's portrait and name), which card (its
+            // name large, beside its colour's ribbon), and what is asked, on its plate.
+            val content: @Composable ColumnScope.() -> Unit = {
+                Column(Modifier.fillMaxWidth().semantics(mergeDescendants = true) {}) {
+                    if (artHeight > 0.dp) {
+                        // The hero's art, never the card (its scan would give the answer away).
+                        HeroPortrait(
+                            heroId = question.card.heroId,
+                            portrait = question.card.portrait,
+                            contentDescription = null,
+                            modifier = Modifier.fillMaxWidth().height(artHeight),
                         )
-                        CardKindLine(question.card)
+                        Spacer(Modifier.height(Spacing.sm))
+                    }
+                    HeroLine(question.card, portraitSize = 28.dp)
+                    Spacer(Modifier.height(Spacing.sm))
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        ColourRibbon(
+                            PlateColor.of(question.card.color),
+                            Modifier.size(width = scaledIconSize(16.dp), height = scaledIconSize(34.dp)),
+                        )
+                        Spacer(Modifier.width(Spacing.md))
+                        Column(Modifier.weight(1f)) {
+                            Text(
+                                question.card.name,
+                                style = MaterialTheme.typography.headlineMedium,
+                                color = MaterialTheme.colorScheme.onSurface,
+                            )
+                            CardKindLine(question.card)
+                        }
                     }
                 }
+                Spacer(Modifier.height(Spacing.md))
+                TitlePlate(
+                    "${TriviaText.stat(question.stat)}?",
+                    style = QuestionPlateStyle,
+                    heading = false,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .semantics(mergeDescendants = true) {
+                            heading()
+                            contentDescription = "What is its ${TriviaText.stat(question.stat)}?"
+                        },
+                )
             }
-            Spacer(Modifier.height(Spacing.md))
-            TitlePlate(
-                "${TriviaText.stat(question.stat)}?",
-                style = QuestionPlateStyle,
-                heading = false,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .semantics(mergeDescendants = true) {
-                        heading()
-                        contentDescription = "What is its ${TriviaText.stat(question.stat)}?"
-                    },
-            )
+            if (framed) {
+                GoaPlate(modifier.fillMaxWidth(), content = content)
+            } else {
+                Column(modifier.fillMaxWidth().padding(Spacing.md), content = content)
+            }
         }
 
         is QuizQuestionUi.Duel -> Column(modifier.fillMaxWidth()) {
@@ -146,42 +165,6 @@ internal fun QuestionPanel(question: QuizQuestionUi, modifier: Modifier = Modifi
         }
     }
 }
-
-/** The hero's art over the card, cropped to a band ([height] high), the hero's name on its foot. */
-@Composable
-private fun HeroArt(card: TriviaCardUi, height: Dp) {
-    Box(Modifier.fillMaxWidth().height(height)) {
-        HeroPortrait(
-            heroId = card.heroId,
-            portrait = card.portrait,
-            contentDescription = null,
-            modifier = Modifier.matchParentSize(),
-        )
-        Row(
-            Modifier
-                .align(Alignment.BottomStart)
-                .padding(Spacing.sm)
-                .clip(MaterialTheme.shapes.small)
-                .background(ART_LABEL_GROUND)
-                .padding(horizontal = Spacing.sm, vertical = Spacing.xs),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Text(
-                card.heroName,
-                style = MaterialTheme.typography.titleSmall,
-                color = Color.White,
-                fontWeight = FontWeight.SemiBold,
-            )
-            if (!card.heroVerified) {
-                Spacer(Modifier.width(Spacing.sm))
-                UnverifiedBadge()
-            }
-        }
-    }
-}
-
-/** The slate under the hero's name on the art, dark in both themes as the art is. */
-private val ART_LABEL_GROUND = Color(0xD90B1622)
 
 // ---- Answers --------------------------------------------------------------------------------
 
