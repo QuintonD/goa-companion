@@ -17,7 +17,6 @@ import androidx.compose.material.icons.outlined.RestartAlt
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Slider
 import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.Text
@@ -36,6 +35,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.unit.dp
 import dev.quinton.goa.core.designsystem.component.GoaDialog
+import dev.quinton.goa.core.designsystem.component.GoaOutlinedButton
 import dev.quinton.goa.core.designsystem.component.GoaScreen
 import dev.quinton.goa.core.designsystem.theme.Spacing
 import dev.quinton.goa.core.domain.rating.EloConfig
@@ -94,7 +94,7 @@ fun RatingSettingsScreen(state: RatingSettingsUiState, actions: RatingSettingsAc
                 }
             }
             Spacer(Modifier.heightIn(min = Spacing.xl))
-            OutlinedButton(
+            GoaOutlinedButton(
                 onClick = { confirmReset = true },
                 enabled = !state.isDefault,
                 modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp).padding(top = Spacing.lg),

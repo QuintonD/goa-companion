@@ -28,9 +28,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.SegmentedButton
-import androidx.compose.material3.SegmentedButtonDefaults
-import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -50,6 +47,8 @@ import dev.quinton.goa.core.designsystem.component.EmptyState
 import dev.quinton.goa.core.designsystem.component.FootArt
 import dev.quinton.goa.core.designsystem.component.GoaPlate
 import dev.quinton.goa.core.designsystem.component.GoaScreen
+import dev.quinton.goa.core.designsystem.component.GoaSegment
+import dev.quinton.goa.core.designsystem.component.GoaSegmentedRow
 import dev.quinton.goa.core.designsystem.component.HeroPortrait
 import dev.quinton.goa.core.designsystem.component.PODIUM_PLACES
 import dev.quinton.goa.core.designsystem.component.Podium
@@ -63,7 +62,6 @@ import dev.quinton.goa.feature.board.play.online.leaderboard.LeaderboardPresente
 import dev.quinton.goa.feature.board.play.online.leaderboard.LeaderboardRowUi
 import dev.quinton.goa.feature.board.play.online.leaderboard.LeaderboardTab
 import dev.quinton.goa.feature.board.play.online.leaderboard.LeaderboardUi
-import dev.quinton.goa.feature.board.ui.bronzeSegments
 
 /**
  * The public leaderboards (ADR-056), named for what they rank: "Online ratings", Players and Heroes, a line on
@@ -99,14 +97,11 @@ fun OnlineLeaderboardScreen(
                     .padding(Spacing.screen),
                 verticalArrangement = Arrangement.spacedBy(Spacing.md),
             ) {
-                SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth()) {
+                GoaSegmentedRow(Modifier.fillMaxWidth()) {
                     state.tabs.forEachIndexed { i, tab ->
-                        SegmentedButton(
+                        GoaSegment(
                             selected = state.tab == tab,
                             onClick = { onTab(tab) },
-                            shape = SegmentedButtonDefaults.itemShape(i, state.tabs.size),
-                            colors = bronzeSegments(),
-                            modifier = Modifier.heightIn(min = 48.dp),
                         ) { Text(tab.label) }
                     }
                 }

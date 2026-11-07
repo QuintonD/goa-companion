@@ -66,11 +66,11 @@ import dev.quinton.goa.core.model.rules.RulesExcerpt
 @Composable
 internal fun readingStyle(): TextStyle = GoaTextStyles.printed.copy(fontSize = 20.sp, lineHeight = 27.sp)
 
-/** The colours of a passage: on the parchment page, or on one of the rulebook's coloured boxes. */
+/** The colours of a passage: on the reader's page, or on one of the rulebook's coloured boxes. */
 private class ExcerptInk(val text: Color, val head: Color, val edge: Color)
 
 @Composable
-private fun parchmentInk() = GoaTheme.colors.let { ExcerptInk(it.onParchment, it.parchmentInk, it.parchmentEdge) }
+private fun pageInk() = GoaTheme.colors.let { ExcerptInk(it.onPage, it.pageInk, it.pageEdge) }
 
 /** "p. 7" in a small outlined tag; TalkBack reads "rulebook page 7". */
 @Composable
@@ -94,7 +94,7 @@ internal fun PageTag(
 /**
  * A verbatim rulebook passage set as the book sets it: on the page, or in the blue, green or orange
  * box it is printed in ([RulesBoxes]). Its printed heading (if any), the text with bullets and numbered
- * steps as printed, a printed table, and the printed page. Goes on the parchment ([ParchmentPage]).
+ * steps as printed, a printed table, and the printed page. Goes on the reader's page ([ParchmentPage]).
  */
 @Composable
 internal fun ExcerptBlock(
@@ -105,8 +105,9 @@ internal fun ExcerptBlock(
 ) {
     val box = remember(excerpt) { RulesBoxes.of(excerpt) }
     if (box == null) {
-        ExcerptBody(excerpt, parchmentInk(), style, headStyle, modifier.fillMaxWidth())
+        ExcerptBody(excerpt, pageInk(), style, headStyle, modifier.fillMaxWidth())
     } else {
+        val ground = box.ground(GoaTheme.isDark)
         val ink = ExcerptInk(box.onGround, box.onGround, box.onGround.copy(alpha = 0.6f))
         val boxStyle = if (box.italic) style.copy(fontStyle = FontStyle.Italic) else style
         ExcerptBody(
@@ -116,7 +117,7 @@ internal fun ExcerptBlock(
             headStyle,
             modifier
                 .fillMaxWidth()
-                .background(box.ground, RoundedCornerShape(2.dp))
+                .background(ground, RoundedCornerShape(2.dp))
                 .padding(horizontal = 11.dp, vertical = Spacing.sm),
         )
     }
@@ -152,7 +153,7 @@ private fun ExcerptBody(
     }
 }
 
-/** A piece of the parchment page, for a passage on a dark plate (the ladder sheet); a box brings its own ground. */
+/** A piece of the reader's page, for a passage on a plate (the ladder sheet); a box brings its own ground. */
 @Composable
 internal fun ExcerptOnPlate(excerpt: RulesExcerpt, modifier: Modifier = Modifier) {
     val style = GoaTextStyles.printed
@@ -164,7 +165,7 @@ internal fun ExcerptOnPlate(excerpt: RulesExcerpt, modifier: Modifier = Modifier
             excerpt,
             modifier
                 .fillMaxWidth()
-                .background(GoaTheme.colors.parchment, RoundedCornerShape(2.dp))
+                .background(GoaTheme.colors.page, RoundedCornerShape(2.dp))
                 .padding(horizontal = Spacing.md, vertical = Spacing.sm),
             style,
             head,
@@ -278,12 +279,15 @@ internal fun SummaryNote(text: String, modifier: Modifier = Modifier) {
     }
 }
 
-/** The rulebook's page as a background: the parchment, its ink as the content colour, in both themes. */
+/**
+ * The rulebook's page as a background, its ink as the content colour: the parchment in the light theme; in the dark
+ * theme a dark parchment with warm light ink (`GoaTheme.colors.page`), so a passage never flashes at a dim table.
+ */
 @Composable
 internal fun ParchmentPage(modifier: Modifier = Modifier, content: @Composable ColumnScope.() -> Unit) {
     val colors = GoaTheme.colors
-    CompositionLocalProvider(LocalContentColor provides colors.onParchment) {
-        Column(modifier.background(colors.parchment), content = content)
+    CompositionLocalProvider(LocalContentColor provides colors.onPage) {
+        Column(modifier.background(colors.page), content = content)
     }
 }
 

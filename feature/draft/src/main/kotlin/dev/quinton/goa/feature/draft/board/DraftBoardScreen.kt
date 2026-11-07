@@ -34,6 +34,7 @@ import androidx.compose.foundation.lazy.grid.LazyGridScope
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -59,7 +60,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.SnackbarDuration
@@ -101,6 +101,7 @@ import dev.quinton.goa.core.designsystem.component.EmptyState
 import dev.quinton.goa.core.designsystem.component.GoaButton
 import dev.quinton.goa.core.designsystem.component.GoaDialog
 import dev.quinton.goa.core.designsystem.component.GoaFilterChip
+import dev.quinton.goa.core.designsystem.component.GoaOutlinedButton
 import dev.quinton.goa.core.designsystem.component.GoaPlate
 import dev.quinton.goa.core.designsystem.component.GoaPlateTheme
 import dev.quinton.goa.core.designsystem.component.GoaScreen
@@ -108,6 +109,7 @@ import dev.quinton.goa.core.designsystem.component.HeroPortrait
 import dev.quinton.goa.core.designsystem.component.LARGE_FONT_SCALE
 import dev.quinton.goa.core.designsystem.component.TeamMark
 import dev.quinton.goa.core.designsystem.component.TitlePlate
+import dev.quinton.goa.core.designsystem.component.horizontalEdgeFade
 import dev.quinton.goa.core.designsystem.component.teamColor
 import dev.quinton.goa.core.designsystem.theme.GoaTextStyles
 import dev.quinton.goa.core.designsystem.theme.GoaTheme
@@ -645,7 +647,12 @@ private fun PoolHeader(left: Int, total: Int, filters: PoolFilters, searchable: 
                     modifier = Modifier.fillMaxWidth(),
                 )
             }
-            LazyRow(horizontalArrangement = Arrangement.spacedBy(Spacing.xs)) {
+            val roleRow = rememberLazyListState()
+            LazyRow(
+                Modifier.horizontalEdgeFade(roleRow),
+                state = roleRow,
+                horizontalArrangement = Arrangement.spacedBy(Spacing.xs),
+            ) {
                 items(roles, key = { it.name }) { role ->
                     GoaFilterChip(
                         selected = role in filters.roles,
@@ -847,7 +854,7 @@ private fun PoolEditBanner(session: DraftSession, actions: BoardActions) {
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
-            OutlinedButton(onClick = actions::reroll, modifier = Modifier.heightIn(min = 48.dp)) {
+            GoaOutlinedButton(onClick = actions::reroll, modifier = Modifier.heightIn(min = 48.dp)) {
                 Icon(Icons.Outlined.Casino, contentDescription = null, modifier = Modifier.size(18.dp))
                 Spacer(Modifier.width(Spacing.xs))
                 Text("Re-roll")

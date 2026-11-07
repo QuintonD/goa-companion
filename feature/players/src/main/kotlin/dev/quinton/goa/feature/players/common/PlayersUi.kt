@@ -339,20 +339,6 @@ val RowFigure: androidx.compose.ui.unit.TextUnit = 22.sp
 /** A player page's own rating. */
 val HeaderFigure: androidx.compose.ui.unit.TextUnit = 36.sp
 
-/** Selected chips in bronze, as selected is everywhere (docs/DESIGN.md). */
+/** Chips are the design system's steel chips, bronze when selected (pair with `selectableChipBorder`). */
 @Composable
-fun goaFilterChipColors() = androidx.compose.material3.FilterChipDefaults.filterChipColors(
-    selectedContainerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.2f),
-    selectedLabelColor = MaterialTheme.colorScheme.onSurface,
-    selectedLeadingIconColor = MaterialTheme.colorScheme.primary,
-)
-
-@Composable
-fun goaSegmentedColors() = androidx.compose.material3.SegmentedButtonDefaults.colors(
-    activeContainerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.2f),
-    activeContentColor = MaterialTheme.colorScheme.onSurface,
-    activeBorderColor = MaterialTheme.colorScheme.primary,
-    inactiveContainerColor = Color.Transparent,
-    inactiveContentColor = MaterialTheme.colorScheme.onSurfaceVariant,
-    inactiveBorderColor = MaterialTheme.colorScheme.outline,
-)
+fun goaFilterChipColors() = dev.quinton.goa.core.designsystem.component.selectableChipColors()

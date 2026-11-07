@@ -62,13 +62,9 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
-import androidx.compose.material3.SegmentedButton
-import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.SelectableDates
-import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TimePicker
@@ -101,15 +97,19 @@ import androidx.compose.ui.unit.dp
 import dev.quinton.goa.core.designsystem.component.EmptyState
 import dev.quinton.goa.core.designsystem.component.GoaButton
 import dev.quinton.goa.core.designsystem.component.GoaDialog
+import dev.quinton.goa.core.designsystem.component.GoaOutlinedButton
 import dev.quinton.goa.core.designsystem.component.GoaPlate
 import dev.quinton.goa.core.designsystem.component.GoaPlateTheme
 import dev.quinton.goa.core.designsystem.component.GoaScreen
+import dev.quinton.goa.core.designsystem.component.GoaSegment
+import dev.quinton.goa.core.designsystem.component.GoaSegmentedRow
 import dev.quinton.goa.core.designsystem.component.HeroPortrait
 import dev.quinton.goa.core.designsystem.component.PlateShape
 import dev.quinton.goa.core.designsystem.component.SelectablePlate
 import dev.quinton.goa.core.designsystem.component.SelectionMark
 import dev.quinton.goa.core.designsystem.component.TeamBadge
 import dev.quinton.goa.core.designsystem.component.scaledIconSize
+import dev.quinton.goa.core.designsystem.component.selectableChipBorder
 import dev.quinton.goa.core.designsystem.component.slatePlate
 import dev.quinton.goa.core.designsystem.component.teamColor
 import dev.quinton.goa.core.designsystem.theme.GoaTheme
@@ -127,7 +127,6 @@ import dev.quinton.goa.feature.players.common.LoadingState
 import dev.quinton.goa.feature.players.common.Motion
 import dev.quinton.goa.feature.players.common.SectionHeader
 import dev.quinton.goa.feature.players.common.goaFilterChipColors
-import dev.quinton.goa.feature.players.common.goaSegmentedColors
 import dev.quinton.goa.feature.players.common.label
 import java.time.Instant
 import java.time.LocalDate
@@ -414,7 +413,7 @@ private fun ColumnScope.MatchFormFields(
     val boardRed = form.seats(Team.RED).mapNotNull { it.heroId }
     val boardBlue = form.seats(Team.BLUE).mapNotNull { it.heroId }
     if (!state.isNew && (boardRed.isNotEmpty() || boardBlue.isNotEmpty())) {
-        OutlinedButton(
+        GoaOutlinedButton(
             onClick = { actions.onOpenBoard(boardRed, boardBlue) },
             modifier = Modifier.fillMaxWidth().padding(top = Spacing.lg).heightIn(min = 52.dp),
         ) {
@@ -538,6 +537,7 @@ private fun WinnerAndCondition(state: MatchEditUiState, actions: MatchEditAction
                         null
                     },
                     colors = goaFilterChipColors(),
+                    border = selectableChipBorder(selected),
                     // Outer semantics win over the chip's own Checkbox role.
                     modifier = Modifier.heightIn(min = 48.dp).semantics { role = Role.RadioButton },
                 )
@@ -824,6 +824,7 @@ private fun SeatEditor(
                     )
                 },
                 colors = goaFilterChipColors(),
+                border = selectableChipBorder(seat.handicap),
                 modifier = Modifier.heightIn(min = 48.dp).semantics {
                     contentDescription = "Handicap card for $heroLabel"
                 },
@@ -1001,18 +1002,17 @@ private fun <T> ChoiceRow(options: List<T>, selected: T, label: (T) -> String, o
                         null
                     },
                     colors = goaFilterChipColors(),
+                    border = selectableChipBorder(isSelected),
                     modifier = Modifier.heightIn(min = 48.dp),
                 )
             }
         }
     } else {
-        SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth()) {
+        GoaSegmentedRow(Modifier.fillMaxWidth()) {
             options.forEachIndexed { i, option ->
-                SegmentedButton(
+                GoaSegment(
                     selected = option == selected,
                     onClick = { onSelect(option) },
-                    shape = SegmentedButtonDefaults.itemShape(i, options.size),
-                    colors = goaSegmentedColors(),
                 ) { Text(label(option), maxLines = 1) }
             }
         }

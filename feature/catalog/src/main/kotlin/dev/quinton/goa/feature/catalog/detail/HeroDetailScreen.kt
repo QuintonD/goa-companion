@@ -41,11 +41,11 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -60,6 +60,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.clearAndSetSemantics
@@ -67,14 +68,18 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil3.compose.AsyncImage
 import dev.quinton.goa.core.designsystem.component.ComplexityStars
 import dev.quinton.goa.core.designsystem.component.EmptyState
+import dev.quinton.goa.core.designsystem.component.GoaOutlinedButton
 import dev.quinton.goa.core.designsystem.component.GoaPlate
 import dev.quinton.goa.core.designsystem.component.GoaScreen
 import dev.quinton.goa.core.designsystem.component.HeroPortrait
@@ -99,6 +104,7 @@ import dev.quinton.goa.core.domain.catalog.handicapConflict
 import dev.quinton.goa.core.domain.catalog.label
 import dev.quinton.goa.core.domain.catalog.percent
 import dev.quinton.goa.core.domain.catalog.plural
+import dev.quinton.goa.core.domain.catalog.tierNumeral
 import dev.quinton.goa.core.model.catalog.Card
 import dev.quinton.goa.core.model.catalog.CardColor
 import dev.quinton.goa.core.model.catalog.Hero
@@ -177,8 +183,12 @@ private fun HeroPage(
     }
     val scope = rememberCoroutineScope()
     val navHeight = with(LocalDensity.current) { SectionBarHeight.roundToPx() }
+    // The sticky bar: the tabs, and on the Deck the jump bar under them. A jump lands just under it.
+    var barHeight by remember { mutableIntStateOf(navHeight) }
     val trivia = onLearnNumbers != null
-    val deckKeys = remember(state, trivia) { deckTabKeys(state, trivia) }
+    var tier by rememberSaveable { mutableStateOf<Int?>(null) }
+    val shown = remember(state, tier) { state.copy(deck = state.deck.onlyTier(tier)) }
+    val deckKeys = remember(shown, trivia) { deckTabKeys(shown, trivia) }
     var opened by rememberSaveable { mutableStateOf(false) }
     LaunchedEffect(Unit) {
         if (opened) return@LaunchedEffect
@@ -187,8 +197,8 @@ private fun HeroPage(
     }
     val jumpTo: (String) -> Unit = { key ->
         val index = deckKeys.indexOf(key)
-        // Just under the sticky tabs.
-        if (index >= 0) scope.launch { deck.animateScrollToItem(index, -navHeight) }
+        // Just under the sticky bar.
+        if (index >= 0) scope.launch { deck.animateScrollToItem(index, -barHeight) }
     }
     val select: (HeroSection) -> Unit = { next ->
         if (next != section) {
@@ -204,13 +214,28 @@ private fun HeroPage(
         } else {
             item(key = HEADER_KEY) { CompactHeroHeader(state.hero) }
         }
-        stickyHeader(key = NAV_KEY) { HeroSectionBar(section, faqCount = state.hero.faq.size, onSelect = select) }
+        stickyHeader(key = NAV_KEY) {
+            Column(Modifier.background(MaterialTheme.colorScheme.background).onSizeChanged { barHeight = it.height }) {
+                HeroSectionBar(section, faqCount = state.hero.faq.size, onSelect = select)
+                if (section == HeroSection.DECK) {
+                    DeckJumpBar(
+                        jumps = deckJumps(shown.deck),
+                        tiers = deckTiers(state.deck),
+                        tier = tier,
+                        onJump = jumpTo,
+                        onTier = { tier = it },
+                        modifier = Modifier.padding(vertical = Spacing.xs),
+                    )
+                    Box(Modifier.fillMaxWidth().height(1.dp).background(GoaTheme.colors.engravedBorder))
+                }
+            }
+        }
         when (section) {
             HeroSection.OVERVIEW -> overviewContent(state)
 
             HeroSection.DECK -> deckContent(
-                state,
-                onJump = jumpTo,
+                shown,
+                tier,
                 onCardClick = { onCardClick(state.hero.id, it.id) },
                 onLearnNumbers = onLearnNumbers?.let { learn -> { learn(state.hero.id) } },
             )
@@ -242,7 +267,7 @@ internal const val FAQ_KEY = "faq-title"
 
 private val padded = Modifier.padding(horizontal = Spacing.screen)
 
-/** The Overview: the Hero Profile, your table's record with the hero, the lore and the sources. */
+/** The Overview: the Hero Profile, your table's record with the hero, the lore and where the data comes from. */
 private fun LazyListScope.overviewContent(state: HeroDetailUiState.Ready) {
     val hero = state.hero
     item(key = "profile") { StatPlate(hero.stats, padded.padding(top = Spacing.md)) }
@@ -260,39 +285,34 @@ private fun LazyListScope.overviewContent(state: HeroDetailUiState.Ready) {
             }
         }
     }
-    item(key = "sources") {
-        Column(padded) {
-            SectionHeader("Sources")
-            SourcesBlock(hero)
-        }
-    }
+    item(key = "sources") { DataSourceLine(hero, padded.padding(top = Spacing.lg)) }
 }
 
-/** The Deck: the colour and tier stops first, then the cards by colour, the Handicap card and any extras. */
+/**
+ * One count everywhere: the deck's own cards, the Handicap card named apart ("18 cards + Handicap"), as the card
+ * viewer counts them; with a [tier] picked, that tier's cards ("Tier II · 6 cards").
+ */
+private fun deckCount(state: HeroDetailUiState.Ready, tier: Int?): String = if (tier == null) {
+    plural(state.hero.cards.size, "card") + if (state.hero.handicap != null) " + Handicap" else ""
+} else {
+    "Tier ${tierNumeral(tier)} · " + plural(state.deck.groups.sumOf { it.cards.size }, "card")
+}
+
+/** The Deck under its jump bar: the cards by colour, the Handicap card and any extras; with a [tier], only those. */
 private fun LazyListScope.deckContent(
     state: HeroDetailUiState.Ready,
-    onJump: (String) -> Unit,
+    tier: Int?,
     onCardClick: (Card) -> Unit,
     onLearnNumbers: (() -> Unit)?,
 ) {
     val hero = state.hero
     item(key = DECK_KEY) {
-        Column(padded.padding(top = Spacing.sm)) {
-            Row(Modifier.fillMaxWidth().padding(bottom = Spacing.xs), verticalAlignment = Alignment.CenterVertically) {
-                Text(
-                    "Jump to a colour or tier",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.weight(1f),
-                )
-                Text(
-                    plural(hero.cards.size, "card"),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-            DeckJumpRow(deckJumps(state.deck), onJump)
-        }
+        Text(
+            deckCount(state, tier),
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = padded.padding(top = Spacing.sm),
+        )
     }
     state.deck.groups.forEach { group ->
         item(key = groupKey(group.kind)) { DeckGroupSection(group, onCardClick, padded) }
@@ -377,7 +397,7 @@ private fun CompactHeroHeader(hero: Hero) {
 /** Opens card trivia on this hero: an unobtrusive tonal action under the deck. */
 @Composable
 private fun LearnNumbersButton(heroName: String, onClick: () -> Unit, modifier: Modifier) {
-    OutlinedButton(
+    GoaOutlinedButton(
         onClick = onClick,
         modifier = modifier
             .fillMaxWidth()
@@ -732,33 +752,29 @@ private fun LoreBlock(lore: String) {
     }
 }
 
+/**
+ * Where the hero's data comes from, as one quiet line: "Data: Stats of Atlantis · Verified" (or Unverified, always
+ * shown, AGENTS.md). The links, commits and dates are in About → Data sources, not on a player's page.
+ */
 @Composable
-private fun SourcesBlock(hero: Hero) {
-    if (hero.sources.isEmpty()) {
-        Text(
-            "No sources recorded.",
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
+private fun DataSourceLine(hero: Hero, modifier: Modifier = Modifier) {
+    val names = hero.sources.map { it.name }.distinct()
+    val source = when (names.size) {
+        0 -> "none recorded"
+        1 -> names.first()
+        else -> "${names.first()} + ${names.size - 1} more"
     }
-    hero.sources.forEach { source ->
-        Column(Modifier.padding(bottom = Spacing.sm).semantics(mergeDescendants = true) {}) {
-            Text(source.name, style = MaterialTheme.typography.bodyMedium)
-            val meta = listOfNotNull(source.url, source.retrieved?.let { "retrieved $it" }).joinToString(" · ")
-            if (meta.isNotEmpty()) {
-                Text(
-                    meta,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-        }
+    val tone = if (hero.verified) GoaTheme.colors.verified else GoaTheme.colors.unverified
+    val status = if (hero.verified) "Verified" else "Unverified"
+    val line = buildAnnotatedString {
+        append("Data: $source · ")
+        withStyle(SpanStyle(color = tone, fontWeight = FontWeight.SemiBold)) { append(status) }
     }
     Text(
-        "Game content and art © Wolff Designa. Private, non-commercial build.",
-        style = MaterialTheme.typography.bodySmall,
+        line,
+        style = MaterialTheme.typography.bodyMedium,
         color = MaterialTheme.colorScheme.onSurfaceVariant,
-        modifier = Modifier.padding(top = Spacing.sm),
+        modifier = modifier.fillMaxWidth().semantics { contentDescription = "Data: $source, $status" },
     )
 }
 

@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -25,9 +26,6 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.SegmentedButton
-import androidx.compose.material3.SegmentedButtonDefaults
-import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -45,9 +43,13 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import dev.quinton.goa.core.designsystem.component.EmptyState
+import dev.quinton.goa.core.designsystem.component.GoaSegment
+import dev.quinton.goa.core.designsystem.component.GoaSegmentedRow
 import dev.quinton.goa.core.designsystem.component.HeroPortrait
 import dev.quinton.goa.core.designsystem.component.PlayerAvatar
 import dev.quinton.goa.core.designsystem.component.TeamBadge
+import dev.quinton.goa.core.designsystem.component.horizontalEdgeFade
+import dev.quinton.goa.core.designsystem.component.selectableChipBorder
 import dev.quinton.goa.core.designsystem.theme.GoaTextStyles
 import dev.quinton.goa.core.designsystem.theme.GoaTheme
 import dev.quinton.goa.core.designsystem.theme.Spacing
@@ -64,7 +66,6 @@ import dev.quinton.goa.feature.players.common.StatRow
 import dev.quinton.goa.feature.players.common.formatPercent
 import dev.quinton.goa.feature.players.common.formatRating
 import dev.quinton.goa.feature.players.common.goaFilterChipColors
-import dev.quinton.goa.feature.players.common.goaSegmentedColors
 import dev.quinton.goa.feature.players.common.label
 import dev.quinton.goa.feature.players.common.plural
 import dev.quinton.goa.feature.players.common.spokenRecord
@@ -332,21 +333,21 @@ private fun HeroHeader(state: MetaUiState, actions: MetaActions) {
                 color = GoaTheme.colors.heading,
                 modifier = Modifier.weight(1f).semantics { heading() },
             )
-            SingleChoiceSegmentedButtonRow {
-                MetaView.entries.forEachIndexed { i, view ->
-                    SegmentedButton(
+            // As wide as its two words: the heading keeps the rest of the line.
+            GoaSegmentedRow(Modifier.width(IntrinsicSize.Max)) {
+                MetaView.entries.forEach { view ->
+                    GoaSegment(
                         selected = state.view == view,
                         onClick = { actions.onView(view) },
-                        shape = SegmentedButtonDefaults.itemShape(i, MetaView.entries.size),
-                        colors = goaSegmentedColors(),
                         icon = {},
                     ) { Text(if (view == MetaView.TABLE) "Table" else "Cards", maxLines = 1) }
                 }
             }
         }
         if (state.view == MetaView.TABLE) {
+            val sorts = rememberScrollState()
             Row(
-                Modifier.horizontalScroll(rememberScrollState()).padding(vertical = Spacing.sm),
+                Modifier.horizontalEdgeFade(sorts).horizontalScroll(sorts).padding(vertical = Spacing.sm),
                 horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
             ) {
                 HeroSort.entries.forEach { sort ->
@@ -361,6 +362,7 @@ private fun HeroHeader(state: MetaUiState, actions: MetaActions) {
                             null
                         },
                         colors = goaFilterChipColors(),
+                        border = selectableChipBorder(selected),
                         modifier = Modifier.heightIn(min = 48.dp).semantics {
                             contentDescription =
                                 "Sort by ${sort.label}"

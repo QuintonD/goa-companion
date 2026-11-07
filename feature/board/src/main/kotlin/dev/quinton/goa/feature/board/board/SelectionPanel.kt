@@ -37,11 +37,7 @@ import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.SegmentedButton
-import androidx.compose.material3.SegmentedButtonDefaults
-import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Surface
-import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -65,6 +61,9 @@ import androidx.compose.ui.unit.dp
 import dev.quinton.goa.core.designsystem.cardtext.CardTextView
 import dev.quinton.goa.core.designsystem.cardtext.GameIcons
 import dev.quinton.goa.core.designsystem.component.CardColorDot
+import dev.quinton.goa.core.designsystem.component.GoaSegment
+import dev.quinton.goa.core.designsystem.component.GoaSegmentedRow
+import dev.quinton.goa.core.designsystem.component.GoaSwitch
 import dev.quinton.goa.core.designsystem.component.StatReadout
 import dev.quinton.goa.core.designsystem.component.UnverifiedBadge
 import dev.quinton.goa.core.designsystem.component.cardColor
@@ -91,7 +90,6 @@ import dev.quinton.goa.feature.board.ui.BoardPalette
 import dev.quinton.goa.feature.board.ui.PieceToken
 import dev.quinton.goa.feature.board.ui.PlateWell
 import dev.quinton.goa.feature.board.ui.boardPalette
-import dev.quinton.goa.feature.board.ui.bronzeSegments
 import dev.quinton.goa.feature.board.ui.cards.isSpell
 import dev.quinton.goa.feature.board.ui.drawFastTravelCell
 import dev.quinton.goa.feature.board.ui.drawMovementCell
@@ -383,16 +381,13 @@ private fun StepsMeasure(
 private fun MovementRules(settings: OverlaySettings, onAction: (BoardAction) -> Unit) {
     Column(Modifier.fillMaxWidth().padding(start = 40.dp, bottom = Spacing.xs)) {
         Text("Path", style = MaterialTheme.typography.bodyMedium)
-        SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth().padding(vertical = Spacing.xs)) {
+        GoaSegmentedRow(Modifier.fillMaxWidth().padding(vertical = Spacing.xs)) {
             val paths = MovePath.entries
             paths.forEachIndexed { i, path ->
-                SegmentedButton(
+                GoaSegment(
                     selected = settings.path == path,
                     onClick = { onAction(BoardAction.SetPath(path)) },
-                    shape = SegmentedButtonDefaults.itemShape(i, paths.size),
-                    colors = bronzeSegments(),
                     icon = {},
-                    modifier = Modifier.heightIn(min = 48.dp),
                 ) {
                     Text(
                         when (path) {
@@ -699,7 +694,7 @@ private fun OverlayRow(
                 )
             }
             Spacer(Modifier.width(Spacing.sm))
-            Switch(checked = checked, onCheckedChange = null, enabled = enabled)
+            GoaSwitch(checked = checked, onCheckedChange = null, enabled = enabled)
         }
         if (onBonus != null && checked) {
             Stepper(
@@ -751,7 +746,7 @@ private fun SwitchRow(title: String, note: String, checked: Boolean, onToggle: (
             Text(note, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
         Spacer(Modifier.width(Spacing.sm))
-        Switch(checked = checked, onCheckedChange = null)
+        GoaSwitch(checked = checked, onCheckedChange = null)
     }
 }
 

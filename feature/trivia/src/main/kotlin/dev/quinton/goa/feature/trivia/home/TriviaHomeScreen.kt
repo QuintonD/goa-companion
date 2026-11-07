@@ -40,8 +40,6 @@ import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -76,9 +74,11 @@ import dev.quinton.goa.core.designsystem.component.EmptyState
 import dev.quinton.goa.core.designsystem.component.GoaButton
 import dev.quinton.goa.core.designsystem.component.GoaCard
 import dev.quinton.goa.core.designsystem.component.GoaFilterChip
+import dev.quinton.goa.core.designsystem.component.GoaOutlinedButton
 import dev.quinton.goa.core.designsystem.component.GoaPlate
 import dev.quinton.goa.core.designsystem.component.GoaPlateTheme
 import dev.quinton.goa.core.designsystem.component.GoaScreen
+import dev.quinton.goa.core.designsystem.component.GoaSwitch
 import dev.quinton.goa.core.designsystem.component.HeroPortrait
 import dev.quinton.goa.core.designsystem.component.PlateShape
 import dev.quinton.goa.core.designsystem.component.SectionHeader
@@ -636,7 +636,7 @@ private fun DuelsRow(state: TriviaHomeUiState.Ready, onAction: (TriviaHomeAction
             )
         }
         Spacer(Modifier.width(Spacing.md))
-        Switch(checked = checked, onCheckedChange = null, enabled = enabled)
+        GoaSwitch(checked = checked, onCheckedChange = null, enabled = enabled)
     }
 }
 
@@ -736,7 +736,7 @@ private fun StartButton(enabled: Boolean, onStart: () -> Unit, modifier: Modifie
 /** The fixed Challenge (ADR-032): never off, whatever the setup above it. */
 @Composable
 private fun ChallengeButton(label: String, onChallenge: () -> Unit, modifier: Modifier, compact: Boolean = false) {
-    OutlinedButton(
+    GoaOutlinedButton(
         onClick = onChallenge,
         modifier = modifier.heightIn(min = 56.dp),
         // Two lines in half the bar: no icon and narrower sides, so the bar stays one row.

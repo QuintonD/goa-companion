@@ -16,14 +16,19 @@ import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Star
+import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.Role
@@ -33,6 +38,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import dev.quinton.goa.core.designsystem.component.GoaButton
+import dev.quinton.goa.core.designsystem.component.GoaSwitch
 import dev.quinton.goa.core.designsystem.component.SectionHeader
 import dev.quinton.goa.core.designsystem.component.selectedCheck
 import dev.quinton.goa.core.designsystem.theme.GoaTextStyles
@@ -117,7 +123,7 @@ internal fun CatalogFilterContent(
                     }
                 }
             }
-            FilterGroup("Attack cards", note = ATTACK_STYLE_NOTE) {
+            FilterGroup("Attack cards", info = ATTACK_STYLE_NOTE) {
                 options.attackStyles.forEach { style ->
                     val selected = filter.attackStyle == style
                     FilterChip(
@@ -166,7 +172,7 @@ internal fun CatalogFilterContent(
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                     }
-                    Switch(checked = filter.includeUnowned, onCheckedChange = null)
+                    GoaSwitch(checked = filter.includeUnowned, onCheckedChange = null)
                 }
             }
             Spacer(Modifier.size(Spacing.lg))
@@ -183,14 +189,32 @@ internal fun CatalogFilterContent(
     }
 }
 
+/**
+ * A group of the sheet's chips under the app's one section head. [info], how the app derives the group (the attack
+ * style), stays a tap away behind the head's info button, so the chips come first.
+ */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-private fun FilterGroup(title: String, note: String? = null, content: @Composable () -> Unit) {
-    // The app's one section head (copper small caps and their rule), as on the hero page and in Settings.
-    SectionHeader(title, padding = PaddingValues(top = Spacing.sm, bottom = Spacing.xs))
-    if (note != null) {
+private fun FilterGroup(title: String, info: String? = null, content: @Composable () -> Unit) {
+    var open by rememberSaveable(title) { mutableStateOf(false) }
+    SectionHeader(
+        title,
+        padding = PaddingValues(top = Spacing.sm, bottom = Spacing.xs),
+        trailing = info?.let {
+            {
+                IconButton(onClick = { open = !open }) {
+                    Icon(
+                        Icons.Outlined.Info,
+                        contentDescription = if (open) "Hide how $title is worked out" else "How $title is worked out",
+                        tint = if (open) GoaTheme.colors.selection else MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            }
+        },
+    )
+    if (info != null && open) {
         Text(
-            note,
+            info,
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.padding(bottom = Spacing.xs),

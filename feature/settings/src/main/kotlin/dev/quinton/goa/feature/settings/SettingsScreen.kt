@@ -40,12 +40,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.RadioButton
-import androidx.compose.material3.SegmentedButton
-import androidx.compose.material3.SegmentedButtonDefaults
-import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Surface
-import androidx.compose.material3.Switch
-import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -66,10 +61,13 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dev.quinton.goa.core.designsystem.component.GoaScreen
+import dev.quinton.goa.core.designsystem.component.GoaSegment
+import dev.quinton.goa.core.designsystem.component.GoaSegmentCheck
+import dev.quinton.goa.core.designsystem.component.GoaSegmentedRow
+import dev.quinton.goa.core.designsystem.component.GoaSwitch
 import dev.quinton.goa.core.designsystem.component.LARGE_FONT_SCALE
 import dev.quinton.goa.core.designsystem.component.PlateStyle
 import dev.quinton.goa.core.designsystem.component.SectionHeader
-import dev.quinton.goa.core.designsystem.component.selectableSegmentColors
 import dev.quinton.goa.core.designsystem.theme.GoaTheme
 import dev.quinton.goa.core.designsystem.theme.Spacing
 import dev.quinton.goa.core.domain.settings.ProductOption
@@ -308,20 +306,20 @@ private fun <T> ChoiceSelector(options: List<ChoiceOption<T>>, selected: T, onSe
         }
         return
     }
-    SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth()) {
+    GoaSegmentedRow(Modifier.fillMaxWidth()) {
         options.forEachIndexed { index, option ->
-            SegmentedButton(
+            GoaSegment(
                 selected = option.value == selected,
                 onClick = { onSelect(option.value) },
-                shape = SegmentedButtonDefaults.itemShape(index, options.size),
+                // The app's one selected look: the bronze inset and its check; otherwise the option's own glyph.
                 icon = {
-                    SegmentedButtonDefaults.Icon(active = option.value == selected) {
+                    if (option.value == selected) {
+                        GoaSegmentCheck(selected = true)
+                    } else {
                         Icon(option.icon, contentDescription = null, modifier = Modifier.size(18.dp))
+                        Spacer(Modifier.width(Spacing.xs))
                     }
                 },
-                // The app's one selected look: bronze wash and edge, and the segment's check.
-                colors = selectableSegmentColors(),
-
             ) { Text(option.label, maxLines = 1, overflow = TextOverflow.Ellipsis) }
         }
     }
@@ -366,14 +364,7 @@ private fun SwitchRow(
         RowIcon(icon)
         RowText(title, subtitle, Modifier.weight(1f))
         Spacer(Modifier.width(Spacing.md))
-        Switch(
-            checked = checked,
-            onCheckedChange = null,
-            colors = SwitchDefaults.colors(
-                checkedTrackColor = MaterialTheme.colorScheme.primary,
-                checkedThumbColor = MaterialTheme.colorScheme.onPrimary,
-            ),
-        )
+        GoaSwitch(checked = checked, onCheckedChange = null)
     }
 }
 

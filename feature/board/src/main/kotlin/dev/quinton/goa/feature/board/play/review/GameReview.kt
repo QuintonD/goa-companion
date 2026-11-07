@@ -37,7 +37,6 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.PrimaryTabRow
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Tab
@@ -65,6 +64,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import dev.quinton.goa.core.designsystem.component.GoaOutlinedButton
 import dev.quinton.goa.core.designsystem.component.HeroPortrait
 import dev.quinton.goa.core.designsystem.component.TeamMark
 import dev.quinton.goa.core.designsystem.component.scaledIconSize
@@ -565,7 +565,7 @@ private fun TurnCard(table: TableUi, turn: TurnUi, onCard: OpenCard, onAction: (
                     if (turn.fromPosition) Quiet("The puzzle starts in this turn.")
                 }
                 if (turn.hasStart) {
-                    OutlinedButton(
+                    GoaOutlinedButton(
                         onClick = { onAction(ReviewAction.Rewind(turn.round, turn.turn)) },
                         modifier = Modifier.heightIn(min = 48.dp),
                         contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = Spacing.md),

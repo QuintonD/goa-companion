@@ -61,6 +61,7 @@ import dev.quinton.goa.core.designsystem.component.OfficialIcon
 import dev.quinton.goa.core.designsystem.component.PlayerAvatar
 import dev.quinton.goa.core.designsystem.component.TeamMark
 import dev.quinton.goa.core.designsystem.component.TitlePlate
+import dev.quinton.goa.core.designsystem.component.selectableChipBorder
 import dev.quinton.goa.core.designsystem.component.teamColor
 import dev.quinton.goa.core.designsystem.theme.GoaTextStyles
 import dev.quinton.goa.core.designsystem.theme.GoaTheme
@@ -345,6 +346,7 @@ private fun SeatRow(
 private fun HandicapChip(on: Boolean, onToggle: () -> Unit) {
     FilterChip(
         colors = goaFilterChipColors(),
+        border = selectableChipBorder(on),
         selected = on,
         onClick = onToggle,
         label = { Text("Handicap card") },

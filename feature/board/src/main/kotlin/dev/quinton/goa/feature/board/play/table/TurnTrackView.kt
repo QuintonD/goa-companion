@@ -83,6 +83,7 @@ import dev.quinton.goa.core.designsystem.component.CardTextBox
 import dev.quinton.goa.core.designsystem.component.HeroPortrait
 import dev.quinton.goa.core.designsystem.component.PlateColor
 import dev.quinton.goa.core.designsystem.component.TeamMark
+import dev.quinton.goa.core.designsystem.component.horizontalEdgeFade
 import dev.quinton.goa.core.designsystem.component.teamColor
 import dev.quinton.goa.core.designsystem.theme.GoaTextStyles
 import dev.quinton.goa.core.designsystem.theme.GoaTheme
@@ -320,7 +321,7 @@ private fun TrackStrip(
         }
         val fit = cardNameFit(names, SCROLL_CELL - STACK_INSET, lines = 2)
         Row(
-            Modifier.horizontalScroll(scroll).height(IntrinsicSize.Min),
+            Modifier.horizontalEdgeFade(scroll).horizontalScroll(scroll).height(IntrinsicSize.Min),
             horizontalArrangement = Arrangement.spacedBy(CELL_GAP),
         ) {
             slots.forEach { slot -> cell(slot, Modifier.width(SCROLL_CELL), fit) }

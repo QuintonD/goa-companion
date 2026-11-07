@@ -63,6 +63,17 @@ internal object Tokens {
     val DarkPlateWell = Color(0xFF15191B)
     val LightPlate = LightSurface
     val LightPlateWell = Color(0xFFF1ECE2)
+
+    // The rules reader's page: the rulebook's parchment in the light theme; at a dim table (the dark theme) a dark
+    // parchment with warm light ink, so opening a passage never flashes a bright page.
+    val DarkPage = Color(0xFF221E19)
+    val DarkOnPage = Color(0xFFEAE0CC)
+    val DarkOnPageVariant = Color(0xFFBDB19A)
+    val DarkPageInk = Color(0xFFE39B5F)
+    val DarkPageEdge = Color(0xFF51473A)
+
+    // Bronze strokes and words that must hold on cream (symbols, a selection's edge and check, unfilled stars).
+    val LightBronzeInk = Color(0xFF6A4A12)
 }
 
 internal val DarkColors = darkColorScheme(
@@ -175,6 +186,20 @@ data class GoaExtendedColors(
     val selectionFill: Color = Tokens.DarkPrimary.copy(alpha = 0.2f),
     /** A secondary glyph that still carries meaning (an unfilled complexity star): ≥ 3:1 on its plate and canvas. */
     val glyphMuted: Color = Color(0xFF8A949C),
+    /**
+     * Bronze for a stroke, symbol or small word that carries meaning (a complexity star, a selection's check, a
+     * turn diamond): the theme's bronze in the dark theme, a deeper one on cream (≥ 4.5:1 on paper and canvas).
+     */
+    val bronzeInk: Color = Tokens.DarkPrimary,
+    /**
+     * The rules reader's page (a quoted passage): parchment when light, a dark parchment when dark. Its words
+     * ([onPage], [onPageVariant]) and the printed heads ([pageInk]) are ≥ 4.5:1 on it; [pageEdge] is its rules.
+     */
+    val page: Color = Tokens.DarkPage,
+    val onPage: Color = Tokens.DarkOnPage,
+    val onPageVariant: Color = Tokens.DarkOnPageVariant,
+    val pageInk: Color = Tokens.DarkPageInk,
+    val pageEdge: Color = Tokens.DarkPageEdge,
 )
 
 internal val DarkExtended = GoaExtendedColors(
@@ -224,6 +249,12 @@ internal val LightExtended = GoaExtendedColors(
     selection = Tokens.LightPrimary,
     selectionFill = Tokens.LightPrimary.copy(alpha = 0.16f),
     glyphMuted = Color(0xFF7A7062),
+    bronzeInk = Tokens.LightBronzeInk,
+    page = Tokens.LightParchment,
+    onPage = Tokens.OnParchment,
+    onPageVariant = Tokens.LightOnParchmentVariant,
+    pageInk = Tokens.ParchmentInk,
+    pageEdge = Tokens.LightParchmentEdge,
 )
 
 val LocalGoaColors = staticCompositionLocalOf { DarkExtended }

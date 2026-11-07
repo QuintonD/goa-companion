@@ -30,7 +30,6 @@ import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -52,6 +51,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import dev.quinton.goa.core.designsystem.component.GoaOutlinedButton
 import dev.quinton.goa.core.designsystem.component.GoaPlate
 import dev.quinton.goa.core.designsystem.component.GoaPlateTheme
 import dev.quinton.goa.core.designsystem.component.GoaScreen
@@ -573,7 +573,7 @@ private fun TieBreakerCard(state: MatchSetupUiState, actions: SetupActions) {
             Spacer(Modifier.height(Spacing.md))
             when {
                 // The coin was flipped once already (rulebook p.5): correct a mistake, don't flip again.
-                state.coinPlaced && !state.correctingCoin -> OutlinedButton(
+                state.coinPlaced && !state.correctingCoin -> GoaOutlinedButton(
                     onClick = actions.onCorrectCoin,
                     modifier = Modifier.heightIn(min = 48.dp),
                 ) { Text("Correct the coin") }
@@ -581,7 +581,7 @@ private fun TieBreakerCard(state: MatchSetupUiState, actions: SetupActions) {
                 state.coinPlaced -> CoinSideChips(coin, "Which side is showing?", actions.onSetCoin)
 
                 else -> {
-                    OutlinedButton(onClick = actions.onFlip, modifier = Modifier.heightIn(min = 48.dp)) {
+                    GoaOutlinedButton(onClick = actions.onFlip, modifier = Modifier.heightIn(min = 48.dp)) {
                         Text(if (coin == null) "Flip coin" else "Flip again")
                     }
                     Spacer(Modifier.height(Spacing.sm))

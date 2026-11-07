@@ -20,7 +20,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.IconButtonColors
 import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
@@ -78,20 +77,12 @@ fun goaTonalIconColors(): IconButtonColors = IconButtonDefaults.filledTonalIconB
     contentColor = MaterialTheme.colorScheme.onSurface,
 )
 
+/** The design system's steel chip, bronze when selected. */
 @Composable
-fun goaChipColors(): SelectableChipColors = FilterChipDefaults.filterChipColors(
-    selectedContainerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.18f),
-    selectedLabelColor = MaterialTheme.colorScheme.onSurface,
-    selectedLeadingIconColor = MaterialTheme.colorScheme.primary,
-)
+fun goaChipColors(): SelectableChipColors = dev.quinton.goa.core.designsystem.component.selectableChipColors()
 
 @Composable
-fun goaChipBorder(selected: Boolean) = FilterChipDefaults.filterChipBorder(
-    enabled = true,
-    selected = selected,
-    selectedBorderColor = MaterialTheme.colorScheme.primary,
-    selectedBorderWidth = 1.dp,
-)
+fun goaChipBorder(selected: Boolean) = dev.quinton.goa.core.designsystem.component.selectableChipBorder(selected)
 
 /** Keeps the display awake while composed (timer screen only, ARCHITECTURE.md "Timer design"). */
 @Composable

@@ -28,7 +28,6 @@ import androidx.compose.material.icons.outlined.PersonAdd
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -47,6 +46,7 @@ import androidx.compose.ui.unit.dp
 import dev.quinton.goa.core.designsystem.component.EmptyState
 import dev.quinton.goa.core.designsystem.component.FootArt
 import dev.quinton.goa.core.designsystem.component.GoaButton
+import dev.quinton.goa.core.designsystem.component.GoaOutlinedButton
 import dev.quinton.goa.core.designsystem.component.PODIUM_PLACES
 import dev.quinton.goa.core.designsystem.component.PlayerAvatar
 import dev.quinton.goa.core.designsystem.component.Podium
@@ -173,7 +173,7 @@ private fun Board(
         }
         // Under the list, never over it (a floating button covered the last rating at large text).
         item(key = "add-player") {
-            OutlinedButton(
+            GoaOutlinedButton(
                 onClick = onAddPlayer,
                 modifier = Modifier
                     .padding(top = Spacing.lg)

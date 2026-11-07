@@ -339,6 +339,12 @@ class CatalogScreenshotTest {
         Catalog(ShotData.ready(filter = CatalogFilter(complexities = setOf(2, 3), attackStyle = AttackStyle.MELEE)))
     }
 
+    /** The collection (Settings) hides some heroes: an "Owned only" chip says so where the filters are. */
+    @Test fun ownedOnlyDark() = shot {
+        val ready = ShotData.ready(filter = CatalogFilter(complexities = setOf(2)))
+        Catalog(ready.copy(totalHeroes = ready.totalInScope + 6))
+    }
+
     @Test fun noResultsDark() = shot { Catalog(ShotData.ready(query = "zzz"), query = "zzz") }
 
     @Test fun searchCardPhraseFirstDark() = shot {

@@ -37,7 +37,6 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -63,6 +62,7 @@ import androidx.compose.ui.unit.sp
 import dev.quinton.goa.core.designsystem.cardtext.CardTextView
 import dev.quinton.goa.core.designsystem.cardtext.GameIcons
 import dev.quinton.goa.core.designsystem.component.CardTextBox
+import dev.quinton.goa.core.designsystem.component.GoaOutlinedButton
 import dev.quinton.goa.core.designsystem.component.LARGE_FONT_SCALE
 import dev.quinton.goa.core.designsystem.component.PlateColor
 import dev.quinton.goa.core.designsystem.component.cardColor
@@ -442,7 +442,7 @@ private fun GoToAnswerBar(item: FocusCard, answer: Card, onGoTo: () -> Unit, lan
     ) {
         // Large text: the reason is in the sheet above (NotOnTheCard), the bar is the button.
         if (!largeText()) item.reason?.let { InfoLine(it) }
-        OutlinedButton(
+        GoaOutlinedButton(
             onClick = onGoTo,
             contentPadding = PaddingValues(horizontal = Spacing.lg, vertical = Spacing.sm),
             modifier = Modifier.fillMaxWidth().heightIn(min = 52.dp).testTag(GO_TO_ANSWER_TAG),

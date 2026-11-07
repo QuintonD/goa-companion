@@ -35,7 +35,6 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.SegmentedButton
 import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.SingleChoiceSegmentedButtonRow
-import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -52,6 +51,8 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dev.quinton.goa.core.designsystem.component.GoaButton
 import dev.quinton.goa.core.designsystem.component.GoaScreen
+import dev.quinton.goa.core.designsystem.component.GoaSwitch
+import dev.quinton.goa.core.designsystem.component.selectableChipBorder
 import dev.quinton.goa.core.designsystem.theme.GoaTheme
 import dev.quinton.goa.core.designsystem.theme.Spacing
 import dev.quinton.goa.core.domain.draft.StepSpec
@@ -206,6 +207,7 @@ private fun PoolCard(state: MethodEditUiState, actions: MethodEditActions) {
             PoolKind.entries.forEach { kind ->
                 FilterChip(
                     colors = goaFilterChipColors(),
+                    border = selectableChipBorder(state.poolKind == kind),
                     selected = state.poolKind == kind,
                     onClick = { actions.setPoolKind(kind) },
                     label = { Text(kind.label) },
@@ -288,6 +290,7 @@ private fun StepRow(section: StepSection, index: Int, step: StepSpec, count: Int
             Text("${index + 1}.", style = MaterialTheme.typography.labelLarge, modifier = Modifier.width(28.dp))
             FilterChip(
                 colors = goaFilterChipColors(),
+                border = selectableChipBorder(step.action == DraftAction.BAN),
                 selected = step.action == DraftAction.BAN,
                 onClick = { actions.toggleAction(section, index) },
                 label = { Text(actionName(step.action), fontWeight = FontWeight.SemiBold) },
@@ -296,6 +299,7 @@ private fun StepRow(section: StepSection, index: Int, step: StepSpec, count: Int
             Spacer(Modifier.width(Spacing.xs))
             FilterChip(
                 colors = goaFilterChipColors(),
+                border = selectableChipBorder(step.team == TeamSlot.A),
                 selected = step.team == TeamSlot.A,
                 onClick = { actions.toggleTeam(section, index) },
                 label = { Text("Team ${step.team.name}") },
@@ -335,7 +339,7 @@ private fun TimerCard(state: MethodEditUiState, actions: MethodEditActions) {
         title = "Step timer",
         subtitle = state.stepSeconds?.let { "$it seconds per step by default" } ?: "Off by default",
         trailing = {
-            Switch(
+            GoaSwitch(
                 checked = state.stepSeconds != null,
                 onCheckedChange = { actions.setStepSeconds(if (it) 30 else null) },
                 modifier = Modifier.semantics { contentDescription = "Step timer" },
@@ -347,6 +351,7 @@ private fun TimerCard(state: MethodEditUiState, actions: MethodEditActions) {
                 listOf(15, 30, 45, 60, 90).forEach { s ->
                     FilterChip(
                         colors = goaFilterChipColors(),
+                        border = selectableChipBorder(state.stepSeconds == s),
                         selected = state.stepSeconds == s,
                         onClick = { actions.setStepSeconds(s) },
                         label = { Text("${s}s") },
@@ -366,6 +371,7 @@ private fun PreviewCard(state: MethodEditUiState, actions: MethodEditActions) {
             PreviewLayout.OPTIONS.forEach { layout ->
                 FilterChip(
                     colors = goaFilterChipColors(),
+                    border = selectableChipBorder(state.layout == layout),
                     selected = state.layout == layout,
                     onClick = { actions.setLayout(layout) },
                     label = { Text(layout.label) },

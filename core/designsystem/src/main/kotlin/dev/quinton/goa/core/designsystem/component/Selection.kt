@@ -40,21 +40,21 @@ fun selectableChipColors(): SelectableChipColors {
         iconColor = colors.selection,
         selectedContainerColor = colors.selectionFill.compositeOver(ground),
         selectedLabelColor = MaterialTheme.colorScheme.onSurface,
-        selectedLeadingIconColor = colors.selection,
-        selectedTrailingIconColor = colors.selection,
+        selectedLeadingIconColor = colors.bronzeInk,
+        selectedTrailingIconColor = colors.bronzeInk,
     )
 }
 
-/** The chip's edge: quiet steel, or the bronze [SelectedEdge] when [selected]. */
+/**
+ * The chip's edge: a steel bevel (lit along the top, shaded along the foot, [ControlSteel]), or the bronze
+ * [SelectedEdge] when [selected]. Pass it to every chip, so a chip reads as a small steel plate, not a Material pill.
+ */
 @Composable
-fun selectableChipBorder(selected: Boolean): BorderStroke = FilterChipDefaults.filterChipBorder(
-    enabled = true,
-    selected = selected,
-    borderColor = ChipEdge,
-    selectedBorderColor = GoaTheme.colors.selection,
-    borderWidth = 1.dp,
-    selectedBorderWidth = SelectedEdge,
-)
+fun selectableChipBorder(selected: Boolean): BorderStroke = if (selected) {
+    BorderStroke(SelectedEdge, GoaTheme.colors.selection)
+} else {
+    BorderStroke(1.dp, ControlSteel.current.bevel())
+}
 
 /** The leading check of a selected chip; null (no icon) when not selected. Pass it as the chip's `leadingIcon`. */
 fun selectedCheck(selected: Boolean): (@Composable () -> Unit)? = if (selected) {
@@ -63,7 +63,10 @@ fun selectedCheck(selected: Boolean): (@Composable () -> Unit)? = if (selected) 
     null
 }
 
-/** Segmented-button colours: the same bronze wash and edge as a selected chip (the segment shows its own check). */
+/**
+ * Segmented-button colours for Material's `SegmentedButton`, where a [GoaSegmentedRow] can't go (a team-coloured
+ * switch): the same bronze wash and edge as a selected chip. Prefer [GoaSegmentedRow].
+ */
 @Composable
 fun selectableSegmentColors(): SegmentedButtonColors {
     val colors = GoaTheme.colors
@@ -84,4 +87,4 @@ fun selectableSegmentColors(): SegmentedButtonColors {
 private fun chipGround(): Color = if (GoaTheme.isDark) ChipSteel else GoaTheme.colors.plate
 
 private val ChipSteel = Color(0xFF2B363E)
-private val ChipEdge = Color(0xFF5D6B70)
+private val ChipEdge = Color(0xFF6E7C82)

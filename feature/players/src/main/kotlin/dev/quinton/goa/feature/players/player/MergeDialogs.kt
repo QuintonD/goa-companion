@@ -16,7 +16,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.MergeType
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -31,6 +30,7 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
 import dev.quinton.goa.core.designsystem.component.ConfirmDialog
 import dev.quinton.goa.core.designsystem.component.GoaDialog
+import dev.quinton.goa.core.designsystem.component.GoaOutlinedButton
 import dev.quinton.goa.core.designsystem.component.PlayerAvatar
 import dev.quinton.goa.core.designsystem.theme.Spacing
 import dev.quinton.goa.feature.players.common.plural
@@ -45,7 +45,7 @@ internal fun MergeSection(state: PlayerDetailUiState, actions: PlayerDetailActio
     val player = state.player ?: return
     var picking by rememberSaveable { mutableStateOf(false) }
     var targetId by rememberSaveable { mutableStateOf<String?>(null) }
-    OutlinedButton(
+    GoaOutlinedButton(
         onClick = { picking = true },
         modifier = Modifier.padding(top = Spacing.lg).heightIn(min = 48.dp),
     ) {

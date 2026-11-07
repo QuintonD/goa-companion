@@ -33,6 +33,7 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import dev.quinton.goa.core.designsystem.component.GoaCard
 import dev.quinton.goa.core.designsystem.component.GoaScreen
+import dev.quinton.goa.core.designsystem.component.PlateStyle
 import dev.quinton.goa.core.designsystem.component.SectionHeader
 import dev.quinton.goa.core.designsystem.component.scaledIconSize
 import dev.quinton.goa.core.designsystem.icon.GoaIcons
@@ -116,7 +117,11 @@ fun MoreScreen(onOpen: (MoreLink) -> Unit, modifier: Modifier = Modifier) {
 
 @Composable
 private fun MoreCard(content: @Composable () -> Unit) {
-    GoaCard(Modifier.fillMaxWidth(), contentPadding = PaddingValues(vertical = Spacing.xs)) { content() }
+    GoaCard(
+        Modifier.fillMaxWidth(),
+        contentPadding = PaddingValues(vertical = Spacing.xs),
+        style = PlateStyle.Secondary,
+    ) { content() }
 }
 
 @Composable
