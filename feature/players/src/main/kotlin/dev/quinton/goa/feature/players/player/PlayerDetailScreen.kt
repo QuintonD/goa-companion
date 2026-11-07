@@ -256,7 +256,7 @@ private fun Stats(state: PlayerDetailUiState) {
             rating.games.toString() to "Games",
             (if (rating.games > 0) winLoss(rating.wins, rating.games) else "—") to "Won–lost",
             (if (rating.games > 0) formatPercent(rating.wins.toDouble() / rating.games) else "—") to "Win rate",
-            state.doublePilotGames.toString() to "Doubled",
+            state.doublePilotGames.toString() to "Double pilot",
         ),
     )
 }

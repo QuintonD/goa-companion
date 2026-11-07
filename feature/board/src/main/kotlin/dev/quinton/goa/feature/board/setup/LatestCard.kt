@@ -15,6 +15,10 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.contentDescription
@@ -56,11 +60,14 @@ internal fun LatestCard(
                     .weight(1f)
                     .semantics(mergeDescendants = true) { contentDescription = "$what, ${day(source.at)}: $names" },
             ) {
-                // Two lines rather than cut when the button leaves it little room.
+                // One line ("LATEST DRAFT · 19 OCT"); when the button leaves too little room the date takes the next
+                // line, without the dot, rather than being cut.
+                var wraps by remember(what, source.at) { mutableStateOf(false) }
                 Text(
-                    "${what.uppercase()} · ${day(source.at)}",
+                    what.uppercase() + (if (wraps) "\n" else " · ") + day(source.at),
                     style = GoaTextStyles.overline,
                     color = MaterialTheme.colorScheme.primary,
+                    onTextLayout = { if (!wraps && it.lineCount > 1) wraps = true },
                 )
                 FlowRow(
                     horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
