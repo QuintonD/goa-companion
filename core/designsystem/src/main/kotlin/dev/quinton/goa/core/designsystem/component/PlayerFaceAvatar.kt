@@ -81,7 +81,8 @@ fun AccountAvatar(
     if (face != null) {
         HeroFaceAvatar(face, modifier, size)
     } else {
-        PlayerAvatar(Player(id = id, name = name, color = 0, avatarId = accountCrest(id), createdAt = 0), modifier, size)
+        val account = Player(id = id, name = name, color = 0, avatarId = accountCrest(id), createdAt = 0)
+        PlayerAvatar(account, modifier, size)
     }
 }
 

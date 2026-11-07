@@ -6,7 +6,8 @@ import org.junit.Test
 
 /** The lobby's start checklist counts what the server's room says, and names who starts. */
 class OnlineLobbyChecksTest {
-    private val partial = room(size = 2, filled = 3, hero = { listOf("arien", "brogan", null)[it] }, ready = { it == 1 })
+    private val partial =
+        room(size = 2, filled = 3, hero = { listOf("arien", "brogan", null)[it] }, ready = { it == 1 })
 
     @Test
     fun theHostSeesSeatsHeroesAndReadiness() {
@@ -24,7 +25,8 @@ class OnlineLobbyChecksTest {
 
     @Test
     fun everythingDoneReadsDone() {
-        val full = room(size = 2, filled = 4, hero = { listOf("arien", "brogan", "wasp", "tigerclaw")[it] }, ready = { true })
+        val heroes = listOf("arien", "brogan", "wasp", "tigerclaw")
+        val full = room(size = 2, filled = 4, hero = { heroes[it] }, ready = { true })
         val checks = startChecks(LobbyUi(code = CODE, room = full, you = "acc", connected = true))
         assertThat(checks.map { it.words }).containsExactly("Every seat taken", "Every hero chosen", "Everyone ready")
         assertThat(checks.all { it.done }).isTrue()

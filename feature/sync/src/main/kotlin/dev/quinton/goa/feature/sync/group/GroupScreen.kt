@@ -382,7 +382,7 @@ private fun InGroup(state: GroupUiState, actions: GroupActions, padding: Padding
         }
         if (!serverSetUp) {
             item {
-                Foldout("Optional remote sync", Icons.Outlined.Cloud, remoteOpen, onToggle = { remoteOpen = !remoteOpen })
+                Foldout("Optional remote sync", Icons.Outlined.Cloud, remoteOpen) { remoteOpen = !remoteOpen }
             }
             if (remoteOpen) item { SyncServerCard(state.server, actions.server) }
         }
@@ -457,7 +457,10 @@ private fun GroupCard(state: GroupUiState, actions: GroupActions, onInvite: () -
         }
         if (server) {
             Spacer(Modifier.size(Spacing.sm))
-            GoaOutlinedButton(onClick = actions.onSyncAtTable, modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp)) {
+            GoaOutlinedButton(
+                onClick = actions.onSyncAtTable,
+                modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp),
+            ) {
                 Icon(Icons.Outlined.PhonelinkRing, null)
                 Spacer(Modifier.width(Spacing.sm))
                 Text("Sync with nearby phones")

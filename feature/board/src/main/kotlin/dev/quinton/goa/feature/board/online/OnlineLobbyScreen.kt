@@ -308,7 +308,11 @@ private fun SeatRow(
                     },
                     style = MaterialTheme.typography.titleSmall,
                     fontWeight = if (taken) FontWeight.SemiBold else FontWeight.Normal,
-                    color = if (taken) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant,
+                    color = if (taken) {
+                        MaterialTheme.colorScheme.onSurface
+                    } else {
+                        MaterialTheme.colorScheme.onSurfaceVariant
+                    },
                 )
                 val sub = listOfNotNull(
                     heroName,
@@ -486,7 +490,11 @@ private fun StartChecklist(state: LobbyUi) {
                 Text(
                     check.words,
                     style = MaterialTheme.typography.bodyMedium,
-                    color = if (check.done) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant,
+                    color = if (check.done) {
+                        MaterialTheme.colorScheme.onSurface
+                    } else {
+                        MaterialTheme.colorScheme.onSurfaceVariant
+                    },
                 )
             }
         }
