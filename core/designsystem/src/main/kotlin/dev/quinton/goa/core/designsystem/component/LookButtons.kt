@@ -177,9 +177,10 @@ fun SlateButton(
 }
 
 /**
- * The app's outlined button: a bronze edge, words in the theme's ink. Disabled it becomes the filled, unlit
- * [DisabledFace] every disabled button wears, so it never passes for the outlined text field beside it; say why under
- * it with [DisabledReason]. Use it instead of Material's `OutlinedButton`.
+ * The app's secondary button: a slate plate with a steel bevel (the light theme's paper with the same steel), words
+ * in the theme's ink; the bronze [GoaButton] stays the screen's one main action. Disabled it becomes the filled,
+ * unlit [DisabledFace] every disabled button wears, so it never passes for the outlined text field beside it; say
+ * why under it with [DisabledReason]. Use it instead of Material's `OutlinedButton`.
  */
 @Composable
 fun GoaOutlinedButton(
@@ -191,17 +192,33 @@ fun GoaOutlinedButton(
 ) {
     val ink = MaterialTheme.colorScheme.onSurface
     val off = if (enabled) null else DisabledFace.current
-    val edge = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = OUTLINE_ALPHA))
+    val steel = ControlSteel.current
+    val dark = GoaTheme.isDark
     OutlinedButton(
         onClick = onClick,
         enabled = enabled,
         shape = METAL_SHAPE,
         contentPadding = contentPadding,
-        border = if (off == null) edge else null,
-        colors = ButtonDefaults.outlinedButtonColors(contentColor = ink, disabledContentColor = off?.ink ?: ink),
-        modifier = if (off == null) modifier else modifier.metalFace(bronze = false, off = off),
+        border = if (off == null) BorderStroke(1.dp, steel.bevel()) else null,
+        colors = ButtonDefaults.outlinedButtonColors(
+            containerColor = Color.Transparent,
+            contentColor = ink,
+            disabledContentColor = off?.ink ?: ink,
+        ),
+        modifier = if (off == null) modifier.slateFace(dark) else modifier.metalFace(bronze = false, off = off),
         content = content,
     )
+}
+
+/** A secondary button's face: the slate (lit a little at the top) or, light, the paper; the bevel is its border. */
+private fun Modifier.slateFace(dark: Boolean): Modifier = drawWithCache {
+    val fill = if (dark) {
+        Brush.verticalGradient(listOf(SLATE_TOP, SLATE_LOW))
+    } else {
+        Brush.verticalGradient(listOf(PAPER_TOP, PAPER_LOW))
+    }
+    val radius = CornerRadius(7.dp.toPx())
+    onDrawBehind { drawRoundRect(fill, cornerRadius = radius) }
 }
 
 /** A word as a top-bar action: light with a dark edge, since bronze is lost on the steel banner. */
@@ -245,4 +262,7 @@ const val DISABLED_ALPHA = 0.42f
 /** Fades a disabled control as a whole, so it keeps its shape and reads as the button it will become. */
 fun Modifier.disabled(enabled: Boolean): Modifier = if (enabled) this else alpha(DISABLED_ALPHA)
 private const val BANNER_DISABLED = 0.6f
-private const val OUTLINE_ALPHA = 0.8f
+private val SLATE_TOP = Color(0xFF2A3238)
+private val SLATE_LOW = Color(0xFF1C2226)
+private val PAPER_TOP = Color(0xFFFFFDF8)
+private val PAPER_LOW = Color(0xFFF1EBDF)
