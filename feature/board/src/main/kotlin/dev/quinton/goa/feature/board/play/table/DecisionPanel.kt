@@ -75,7 +75,6 @@ import dev.quinton.goa.core.game.DecisionKind
 import dev.quinton.goa.core.model.board.MinionPiece
 import dev.quinton.goa.core.model.catalog.Card
 import dev.quinton.goa.core.model.catalog.PrimaryAction
-import dev.quinton.goa.feature.board.BoardText
 import dev.quinton.goa.feature.board.play.PlayText
 import dev.quinton.goa.feature.board.ui.MinionTypeBadge
 import dev.quinton.goa.feature.board.ui.PlateButton
@@ -368,14 +367,14 @@ private fun Unavailable(table: TableUi, decision: Decision, focus: CardFocusStat
 /**
  * Who is asked and what, so a phone passed round the table says whose decision it is: the deciding hero's portrait
  * in its team ring with the team's mark at its foot (a team's question: the mark alone), then "Wasp decides · Space"
- * in small caps in the team's colour, as on the panel's strip in mock-up 01.
+ * in small caps in the team's colour, as on the panel's strip in mock-up 01. Asked during another hero's resolution
+ * it names both, "Tigerclaw defends against Arien" ([decisionOwnerLine]), as the turn strip's RESOLVING and DEFENDS do.
  */
 @Composable
 fun DecisionWho(table: TableUi, modifier: Modifier = Modifier) {
     val decision = table.decision ?: return
     val hero = table.decider?.let { table.hero(it.heroId) }
-    val name = hero?.name ?: BoardText.team(decision.team)
-    val line = "$name decides · ${kindTitle(decision.kind)}"
+    val line = decisionOwnerLine(table) ?: return
     Row(
         modifier.clearAndSetSemantics { contentDescription = line },
         verticalAlignment = Alignment.CenterVertically,
@@ -410,6 +409,9 @@ fun DecisionWho(table: TableUi, modifier: Modifier = Modifier) {
 }
 
 private val WHO_PORTRAIT = 28.dp
+
+/** The longest instruction that goes on a title plate (as `promptParts` puts a few words there). */
+private const val PROMPT_PLATE = 30
 private val WHO_BADGE = 13.dp
 
 /**
@@ -429,7 +431,18 @@ private fun PromptHeader(
     Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
         if (who) DecisionWho(table)
         if (prompt) {
-            val parts = promptParts(decision.prompt)
+            val parts = promptParts(decision.prompt).let { parts ->
+                // "Minion Battle: remove a minion" under "Gydion decides · Minion Battle": the title is said once,
+                // on the strip; the plate holds what to do.
+                val text = parts.text
+                if (parts.title.equals(kindTitle(decision.kind), ignoreCase = true) && text != null &&
+                    text.length <= PROMPT_PLATE
+                ) {
+                    PromptParts(text, null)
+                } else {
+                    parts
+                }
+            }
             Column(
                 Modifier
                     .fillMaxWidth()

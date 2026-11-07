@@ -50,6 +50,7 @@ import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -85,6 +86,7 @@ import dev.quinton.goa.feature.board.play.table.DecisionPanel
 import dev.quinton.goa.feature.board.play.table.DecisionWho
 import dev.quinton.goa.feature.board.play.table.EventLog
 import dev.quinton.goa.feature.board.play.table.GameTable
+import dev.quinton.goa.feature.board.play.table.HandTab
 import dev.quinton.goa.feature.board.play.table.HeroDetail
 import dev.quinton.goa.feature.board.play.table.MomentCard
 import dev.quinton.goa.feature.board.play.table.PeekConfirm
@@ -93,8 +95,8 @@ import dev.quinton.goa.feature.board.play.table.ResolutionFlowView
 import dev.quinton.goa.feature.board.play.table.SpellbookSheet
 import dev.quinton.goa.feature.board.play.table.TableCard
 import dev.quinton.goa.feature.board.play.table.TableTap
-import dev.quinton.goa.feature.board.play.table.YourHand
 import dev.quinton.goa.feature.board.play.table.spellbookUi
+import dev.quinton.goa.feature.board.ui.BarLabelButton
 import dev.quinton.goa.feature.board.ui.BoardScaffold
 import dev.quinton.goa.feature.board.ui.PlateButton
 import dev.quinton.goa.feature.board.ui.PlateTone
@@ -127,6 +129,7 @@ fun PuzzleScreen(
     val puzzle = (state as? PuzzleUiState.Ready)?.puzzle
     var sheet by remember { mutableStateOf(initialSheet) }
     var menu by remember { mutableStateOf(false) }
+    var handOpen by rememberSaveable { mutableStateOf(false) }
     val viewport = remember { MapViewport() }
     val focus = rememberCardFocusState()
     KeepScreenOn(puzzle != null)
@@ -136,14 +139,18 @@ fun PuzzleScreen(
         modifier = modifier,
         actions = {
             if (puzzle != null) {
+                // Each control with its word under its glyph, as on the game's bar.
                 ReviewButton(onClick = { sheet = PlaySheet.Review() })
-                IconButton(onClick = { sheet = PlaySheet.Log }) {
-                    Icon(Icons.AutoMirrored.Outlined.FormatListBulleted, contentDescription = "Puzzle log")
-                }
+                BarLabelButton(
+                    "Log",
+                    Icons.AutoMirrored.Outlined.FormatListBulleted,
+                    onClick = { sheet = PlaySheet.Log },
+                    description = "Puzzle log",
+                )
                 Box {
-                    IconButton(onClick = { menu = true }) {
-                        Icon(Icons.Outlined.MoreVert, contentDescription = "More options")
-                    }
+                    BarLabelButton("More", Icons.Outlined.MoreVert, onClick = {
+                        menu = true
+                    }, description = "More options")
                     PuzzleMenu(puzzle, expanded = menu, onDismiss = { menu = false }, onAction = onAction)
                 }
             }
@@ -196,6 +203,12 @@ fun PuzzleScreen(
                         onSpellbook = { sheet = PlaySheet.Spellbook(it) },
                         panelTitle = if (p.asksOnPanel()) {
                             { DecisionWho(p.table) }
+                        } else {
+                            null
+                        },
+                        // The hand while the question is asked: the panel's pinned tab.
+                        panelFooter = if (p.handShown()) {
+                            { HandTab(p.table, focus, handOpen, onOpenChange = { handOpen = it }) }
                         } else {
                             null
                         },
@@ -325,6 +338,10 @@ private fun PuzzleMenu(puzzle: PuzzleUi, expanded: Boolean, onDismiss: () -> Uni
 private fun PuzzleUi.asksOnPanel(): Boolean = replay == null && table.decision != null &&
     phase != PuzzlePhase.SOLVED && phase != PuzzlePhase.REPLYING && phase != PuzzlePhase.MISSED
 
+/** The hand shows (as the panel's tab) while the person's question is asked, not in a replay or once it is over. */
+private fun PuzzleUi.handShown(): Boolean =
+    replay == null && phase != PuzzlePhase.SOLVED && phase != PuzzlePhase.REPLYING && phase != PuzzlePhase.MISSED
+
 /** The panel's content for where the puzzle stands. */
 @Composable
 private fun ColumnScope.PuzzlePanel(
@@ -375,7 +392,6 @@ private fun ColumnScope.PuzzlePanel(
                 })
             }
             if (moment != null && questionFirst) MomentCard(moment, puzzle.table, focus = focus)
-            if (!puzzle.table.handDecision) YourHand(puzzle.table, focus)
         }
     }
 }

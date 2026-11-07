@@ -156,12 +156,13 @@ class GydionLevelUpTest {
     }
 
     @Test
-    fun `level up - the cards come before the round's summary in the panel`() {
-        show(GydionLevelUpGame.play(GydionLevelUpGame.session()))
-        // Below the sheet's visible part the summary's bounds are clipped away: compare where each starts.
-        val question = compose.onAllNodes(hasText("Level up", substring = true)).onFirst().fetchSemanticsNode()
-        val summary = compose.onAllNodes(hasText("END OF ROUND", substring = true)).onFirst().fetchSemanticsNode()
-        assertThat(question.positionInRoot.y).isLessThan(summary.positionInRoot.y)
+    fun `level up - the round's summary is one folded row, the cards in the panel`() {
+        val play = GydionLevelUpGame.play(GydionLevelUpGame.session())
+        show(play)
+        val moment = play.table.moment!!
+        compose.onAllNodes(hasContentDescription(moment.title)).onFirst().assertExists()
+        compose.onAllNodes(hasText(moment.text, substring = true)).assertCountEquals(0)
+        compose.onAllNodes(hasContentDescription("decides · Level up", substring = true)).onFirst().assertExists()
     }
 
     @Test

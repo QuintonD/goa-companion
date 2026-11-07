@@ -34,7 +34,6 @@ import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SnackbarDuration
@@ -68,7 +67,6 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import dev.quinton.goa.core.data.game.AiPace
-import dev.quinton.goa.core.designsystem.component.BarIconButton
 import dev.quinton.goa.core.designsystem.component.CardTextBox
 import dev.quinton.goa.core.designsystem.component.ConfirmDialog
 import dev.quinton.goa.core.designsystem.component.EmptyState
@@ -99,19 +97,20 @@ import dev.quinton.goa.feature.board.play.table.DecisionWho
 import dev.quinton.goa.feature.board.play.table.EventFeed
 import dev.quinton.goa.feature.board.play.table.EventLog
 import dev.quinton.goa.feature.board.play.table.GameTable
+import dev.quinton.goa.feature.board.play.table.HandTab
 import dev.quinton.goa.feature.board.play.table.HeroDetail
 import dev.quinton.goa.feature.board.play.table.MomentCard
 import dev.quinton.goa.feature.board.play.table.MomentKind
-import dev.quinton.goa.feature.board.play.table.PanelQuestion
+import dev.quinton.goa.feature.board.play.table.MomentRow
 import dev.quinton.goa.feature.board.play.table.PeekConfirm
 import dev.quinton.goa.feature.board.play.table.ResolutionFlowView
 import dev.quinton.goa.feature.board.play.table.SpellbookSheet
 import dev.quinton.goa.feature.board.play.table.TableCard
 import dev.quinton.goa.feature.board.play.table.TableTap
 import dev.quinton.goa.feature.board.play.table.TableUi
-import dev.quinton.goa.feature.board.play.table.YourHand
 import dev.quinton.goa.feature.board.play.table.spellbookUi
 import dev.quinton.goa.feature.board.play.table.spokenCard
+import dev.quinton.goa.feature.board.ui.BarLabelButton
 import dev.quinton.goa.feature.board.ui.BoardScaffold
 import dev.quinton.goa.feature.board.ui.PlateButton
 import dev.quinton.goa.feature.board.ui.PlateTone
@@ -152,6 +151,7 @@ fun GameScreen(
     var menu by remember { mutableStateOf(false) }
     var ending by rememberSaveable { mutableStateOf(false) }
     var logAt by remember { mutableStateOf<Int?>(null) }
+    var handOpen by rememberSaveable { mutableStateOf(false) }
     val snackbar = remember { SnackbarHostState() }
     val viewport = remember { MapViewport() }
     val focus = rememberCardFocusState()
@@ -177,23 +177,27 @@ fun GameScreen(
         snackbarHost = { SnackbarHost(snackbar) },
         actions = {
             if (play != null && play.over == null && closed == null) {
+                // Each control with its word under its glyph, the same glyph for a destination in both orientations.
                 if (play.online == null) {
-                    BarIconButton(
-                        "Take back",
+                    BarLabelButton(
+                        "Undo",
+                        Icons.AutoMirrored.Outlined.Undo,
                         onClick = { onAction(GameAction.TakeBack) },
+                        description = "Take back",
                         enabled = play.canTakeBack && !play.busy,
-                    ) {
-                        Icon(Icons.AutoMirrored.Outlined.Undo, contentDescription = "Take back")
-                    }
+                    )
                 }
                 if (wideBar) ReviewButton(onClick = { sheet = PlaySheet.Review() })
-                IconButton(onClick = { sheet = PlaySheet.Log }) {
-                    Icon(Icons.AutoMirrored.Outlined.FormatListBulleted, contentDescription = "Game log")
-                }
+                BarLabelButton(
+                    "Log",
+                    Icons.AutoMirrored.Outlined.FormatListBulleted,
+                    onClick = { sheet = PlaySheet.Log },
+                    description = "Game log",
+                )
                 Box {
-                    IconButton(onClick = {
+                    BarLabelButton("More", Icons.Outlined.MoreVert, onClick = {
                         menu = true
-                    }) { Icon(Icons.Outlined.MoreVert, contentDescription = "More options") }
+                    }, description = "More options")
                     GameMenu(
                         play,
                         expanded = menu,
@@ -267,6 +271,11 @@ fun GameScreen(
                             },
                             topStrip = state.play.online?.let { online -> { OnlineStrip(online, state.play.table) } },
                             feed = { EventFeed(state.play.log) },
+                            panelFooter = if (state.play.nudge == null) {
+                                { HandTab(state.play.table, focus, handOpen, onOpenChange = { handOpen = it }) }
+                            } else {
+                                null
+                            },
                         ) {
                             Panel(state.play, onAction, focus)
                         }
@@ -470,18 +479,17 @@ private fun ColumnScope.Panel(play: PlayUi, onAction: (GameAction) -> Unit, focu
         nudge != null -> CoachNudge(nudge, onAction)
 
         play.status is TurnStatus.YourTurn -> {
-            // The end of a round: its steps are read with the question they bring (the Minion Battle), not cut
-            // under it.
-            PanelQuestion(after = roundEnding?.let { m -> { MomentCard(m, table, focus = focus) } }) {
-                DecisionPanel(
-                    table,
-                    onSelect = { onAction(GameAction.Select(it)) },
-                    onAnswer = { onAction(GameAction.Answer(it)) },
-                    focus = focus,
-                    busy = play.busy,
-                    who = false,
-                )
-            }
+            // The end of a round: one row over the question it brings (the Minion Battle), its steps a tap away,
+            // so the options stay in view and the summary is never cut under them.
+            roundEnding?.let { MomentRow(it, table, focus = focus) }
+            DecisionPanel(
+                table,
+                onSelect = { onAction(GameAction.Select(it)) },
+                onAnswer = { onAction(GameAction.Answer(it)) },
+                focus = focus,
+                busy = play.busy,
+                who = false,
+            )
             if (play.busy && play.coach) CoachLooking()
             if (play.canSuggest) SuggestButton(enabled = !play.busy) { onAction(GameAction.AskSuggestions) }
         }
@@ -499,7 +507,7 @@ private fun ColumnScope.Panel(play: PlayUi, onAction: (GameAction) -> Unit, focu
     // their question, before the moment (whose cards the flow's entries already show).
     if (nudge == null) ResolutionFlowView(play.flow, table, focus, Modifier.padding(top = Spacing.xs))
     if (moment != null && questionFirst && roundEnding == null) MomentCard(moment, table, focus = focus)
-    if (!table.handDecision && nudge == null) YourHand(table, focus)
+    // The hand is the panel's pinned tab (HandTab), never a heading cut at the screen's edge.
 }
 
 /** A gentle nudge before a clearly worse choice: never blocks, never chooses for you. */

@@ -23,7 +23,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
-import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
@@ -40,9 +39,7 @@ import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.layout.Layout
 import androidx.compose.ui.layout.boundsInRoot
 import androidx.compose.ui.layout.onGloballyPositioned
-import androidx.compose.ui.layout.onPlaced
 import androidx.compose.ui.layout.onSizeChanged
-import androidx.compose.ui.layout.positionInParent
 import androidx.compose.ui.layout.positionInRoot
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.contentDescription
@@ -76,35 +73,12 @@ import kotlinx.coroutines.launch
 internal val LocalPanelQuestionEnd = staticCompositionLocalOf<((Int?) -> Unit)?> { null }
 
 /**
- * The question and, when [after] is given, what must be read with it (the end of a round's steps under the Minion
- * Battle's question): the panel then sizes to the end of both, so neither is cut at the fold.
- */
-@Composable
-fun PanelQuestion(after: (@Composable () -> Unit)?, question: @Composable () -> Unit) {
-    if (after == null) {
-        question()
-        return
-    }
-    val report = LocalPanelQuestionEnd.current
-    DisposableEffect(report) { onDispose { report?.invoke(null) } }
-    Column(
-        Modifier
-            .fillMaxWidth()
-            .onPlaced { report?.invoke(it.positionInParent().y.toInt() + it.size.height) },
-        verticalArrangement = Arrangement.spacedBy(Spacing.sm),
-    ) {
-        CompositionLocalProvider(LocalPanelQuestionEnd provides null, content = question)
-        after()
-    }
-}
-
-/**
  * The game table: the map full screen (the Lane up the screen in portrait, left to right in
  * landscape), the round at a glance and every hero's status floating at the top, Fit and Flip at
  * the right, and [panel] (the question, the computer's move, the coach…) at the bottom in portrait
  * or on the right in landscape. The map frames the Lane between them and brings the spaces asked
- * for into view. In landscape the hero strip is portraits only, beside the round at a glance when they all fit there.
- * Under a tall panel the turn track shrinks to small cards: a question's most important moment is on the map.
+ * for into view. Upright, the round at a glance and the turn's order are one score bar ([ScoreBar]) over the map;
+ * sideways, with the panel shown, they head the panel, which scrolls as a whole, and the map has the whole height.
  *
  * The panel hides ([HideablePanel]) to show the whole board: then it is [peek]'s one line (with
  * [peekTrailing], e.g. Confirm), only the round at a glance stays at the top, and the map fits the
@@ -131,6 +105,8 @@ fun GameTable(
     /** Goes at the head of the table, above the HUD: an online game's players and clock (ADR-056). */
     topStrip: (@Composable () -> Unit)? = null,
     feed: (@Composable () -> Unit)? = null,
+    /** Pinned at the foot of the shown panel, under what scrolls (sideways, at the end of it): the hand's tab. */
+    panelFooter: (@Composable () -> Unit)? = null,
     panel: @Composable ColumnScope.() -> Unit,
 ) {
     var hidden by rememberSaveable { mutableStateOf(initialPanelHidden) }
@@ -159,17 +135,13 @@ fun GameTable(
         val overlayEnd = if (landscape && !hidden) sideWidth else 0.dp
         // Where the question ends in the panel: the panel needn't be taller than that and a look at what follows.
         var questionEnd by remember { mutableStateOf<Int?>(null) }
+        // The hand's tab pinned under the question ([panelFooter]): the panel holds both.
+        var footerHeight by remember { mutableIntStateOf(0) }
         val panelShare = questionEnd?.let { end ->
-            val height = with(density) { end.toDp() } + PanelStripHeight + PANEL_PAST_QUESTION
+            val footer = if (panelFooter != null) footerHeight else 0
+            val height = with(density) { (end + footer).toDp() } + PanelStripHeight + PANEL_PAST_QUESTION
             (height / maxHeight).coerceAtMost(PANEL_SHARE)
         } ?: PANEL_SHARE
-        val tallPanel = !landscape && !hidden && with(density) { cover.bottom.toDp() } > maxHeight * TALL_PANEL_SHARE
-        val compactTrack = hidden || tallPanel
-        val trackCard = when {
-            compactTrack -> TRACK_CARD_COMPACT
-            maxHeight < TALL_TABLE -> TRACK_CARD_SHORT
-            else -> TRACK_CARD_TALL
-        }
 
         // The map's key while a question lights it, under the round at a glance and the track: the options are
         // framed below it, so it never covers a piece.
@@ -258,27 +230,19 @@ fun GameTable(
                 verticalArrangement = Arrangement.spacedBy(Spacing.xs),
             ) {
                 topStrip?.invoke()
-                // After the reveal the turn's cards stay in view, the panel shown or hidden (ADR-041);
-                // before it, the hero strip comes back with the panel (one tap).
+                // After the reveal the turn's order stays in view, the panel shown or hidden (ADR-041); before it,
+                // the hero strip comes back with the panel (one tap). Sideways with the panel shown, both are at the
+                // head of the panel and the map has the whole height.
                 val track = table.track
-                if (landscape && !hidden) {
-                    TableTopRow(table, onHero, focus = focus)
-                } else {
-                    TableHud(table, if (landscape) Modifier else Modifier.fillMaxWidth(), spread = !landscape)
-                    if (track != null) {
-                        // [trackCard]: a small phone keeps the map's height, the question framed under it.
-                        TurnTrackRow(
-                            table,
-                            track,
-                            onHero,
-                            focus = focus,
-                            compact = compactTrack,
-                            cardWidth = trackCard,
-                            stretch = !landscape,
-                        )
-                    } else if (!hidden) {
-                        HeroStrip(table, onHero)
+                when {
+                    landscape && !hidden -> Unit
+
+                    landscape -> {
+                        TableHud(table)
+                        if (track != null) TurnTrackRow(table, track, onHero, focus = focus, stretch = false)
                     }
+
+                    else -> ScoreBar(table, onHero, focus, heroes = !hidden)
                 }
                 MapKey(keyItems)
             }
@@ -328,14 +292,46 @@ fun GameTable(
             CompositionLocalProvider(LocalPanelQuestionEnd provides { questionEnd = it }) {
                 Column(
                     Modifier
+                        .weight(1f, fill = false)
                         .verticalScroll(panelScroll)
                         .padding(start = PANEL_INSET, end = PANEL_INSET, bottom = Spacing.md),
                     verticalArrangement = Arrangement.spacedBy(Spacing.sm),
-                    content = panel,
-                )
+                ) {
+                    // Sideways the score bar heads the panel, which scrolls as a whole: nothing over the map.
+                    if (landscape) ScoreBar(table, onHero, focus, heroes = true, compact = true)
+                    panel()
+                    // Sideways the height is the question's: the hand's tab ends what scrolls.
+                    if (landscape && panelFooter != null) panelFooter()
+                }
+            }
+            if (!landscape && panelFooter != null) {
+                Box(Modifier.onSizeChanged { footerHeight = it.height }) { panelFooter() }
             }
         }
     }
+}
+
+/**
+ * The score bar: the round at a glance with the turn's order on the same plate under it (one 48 dp row of cells,
+ * [TurnTrackRow]); before the reveal the heroes' chips under it ([heroes], [compact]: portraits only).
+ */
+@Composable
+internal fun ScoreBar(
+    table: TableUi,
+    onHero: (String) -> Unit,
+    focus: CardFocusState?,
+    heroes: Boolean,
+    compact: Boolean = false,
+) {
+    val track = table.track
+    TableHud(
+        table,
+        Modifier.fillMaxWidth(),
+        compact = compact,
+        spread = true,
+        below = track?.let { t -> { TurnTrackRow(table, t, onHero, focus = focus, framed = false) } },
+    )
+    if (track == null && heroes) HeroStrip(table, onHero, compact = compact)
 }
 
 /**
@@ -441,15 +437,6 @@ private const val RECENT = 4
 private const val OPTIONS_SHRINK = 0.8f
 private val SIDE_PANEL = 400.dp
 private val PANEL_INSET = 12.dp
-private val TALL_TABLE = 720.dp
-private val TRACK_CARD_TALL = 64.dp
-private val TRACK_CARD_SHORT = 50.dp
-
-/** Small cards with their portrait and initiative: still a 48 dp target with the slot's padding. */
-private val TRACK_CARD_COMPACT = 42.dp
-
-/** A panel taller than this share of the table takes the turn track down to its small cards. */
-private const val TALL_PANEL_SHARE = 0.36f
 
 /** How much of what follows the question the panel shows, so it reads as more to scroll to. */
 private val PANEL_PAST_QUESTION = 32.dp

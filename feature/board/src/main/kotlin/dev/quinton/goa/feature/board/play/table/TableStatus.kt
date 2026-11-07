@@ -4,6 +4,10 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.Orientation
+import androidx.compose.foundation.gestures.draggable
+import androidx.compose.foundation.gestures.rememberDraggableState
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -30,6 +34,8 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Close
+import androidx.compose.material.icons.outlined.ExpandLess
+import androidx.compose.material.icons.outlined.ExpandMore
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LocalContentColor
@@ -37,6 +43,11 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
@@ -54,10 +65,12 @@ import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.onClick
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import dev.quinton.goa.core.designsystem.component.CoinIcon
@@ -65,6 +78,7 @@ import dev.quinton.goa.core.designsystem.component.HeroPortrait
 import dev.quinton.goa.core.designsystem.component.LifeCounterIcon
 import dev.quinton.goa.core.designsystem.component.OfficialArt
 import dev.quinton.goa.core.designsystem.component.OfficialIcon
+import dev.quinton.goa.core.designsystem.component.PlateRowDivider
 import dev.quinton.goa.core.designsystem.component.TeamMark
 import dev.quinton.goa.core.designsystem.component.WaveCounterIcon
 import dev.quinton.goa.core.designsystem.component.scaledIconSize
@@ -74,6 +88,7 @@ import dev.quinton.goa.core.designsystem.theme.GoaTheme
 import dev.quinton.goa.core.designsystem.theme.Spacing
 import dev.quinton.goa.core.game.CardView
 import dev.quinton.goa.core.game.GamePhase
+import dev.quinton.goa.core.game.GameView
 import dev.quinton.goa.core.game.HeroView
 import dev.quinton.goa.core.model.catalog.Card
 import dev.quinton.goa.core.model.match.Team
@@ -96,11 +111,17 @@ private const val TURNS = 4
  * left, per Lane), TURN (four diamond pips: done solid and dimmer, current bright and ringed, later hollow; the
  * round is in the title), TIE BREAKER (the coin's side showing). Numbers in large figures for arm's length. One
  * TalkBack node. [spread] (a phone upright) makes it as wide as it is given, the coin at the far end; with little
- * width or large text it wraps.
+ * width or large text it wraps. [below] (the turn strip) shares the plate under a hairline: one score bar.
  */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-fun TableHud(table: TableUi, modifier: Modifier = Modifier, compact: Boolean = false, spread: Boolean = false) {
+fun TableHud(
+    table: TableUi,
+    modifier: Modifier = Modifier,
+    compact: Boolean = false,
+    spread: Boolean = false,
+    below: (@Composable () -> Unit)? = null,
+) {
     val view = table.view
     val waves = table.map.lanes.map { lane -> BoardText.lane(table.map, lane.id) to (view.wavesLeft[lane.id] ?: 0) }
     val spoken = buildList {
@@ -117,78 +138,103 @@ fun TableHud(table: TableUi, modifier: Modifier = Modifier, compact: Boolean = f
     val fontScale = LocalDensity.current.fontScale
     val cap = minOf(fontScale, HUD_MAX_SCALE) / fontScale
     val big = (if (compact) 17.sp else 20.sp) * cap
-    val number = GoaTextStyles.numeric.copy(fontSize = big, lineHeight = big * 1.15f, fontWeight = FontWeight.Bold)
     val icon = if (compact) 22.dp else 24.dp
     PlateSurface(
         shape = RoundedCornerShape(7.dp),
         brackets = true,
-        modifier = modifier.clearAndSetSemantics { contentDescription = spoken },
+        modifier = modifier,
     ) {
-        FlowRow(
-            Modifier.padding(horizontal = 10.dp, vertical = 3.dp),
-            // Compact (landscape, beside the heroes' portraits), or two Lanes' counters: closer together.
-            horizontalArrangement = Arrangement.spacedBy(
-                if (compact || waves.size > 1 || fontScale > 1.3f) Spacing.md else Spacing.lg,
-            ),
-            verticalArrangement = Arrangement.spacedBy(2.dp),
-            itemVerticalAlignment = Alignment.Bottom,
-        ) {
-            HudGroup("Lives", cap) {
-                Team.entries.forEachIndexed { i, team ->
-                    val left = view.lifeCounters[team] ?: 0
-                    if (i > 0) Spacer(Modifier.width(6.dp))
-                    TeamMark(team, markSize = scaledIconSize(11.dp, 1.15f))
-                    Spacer(Modifier.width(2.dp))
-                    LifeCounterIcon(team, spent = left == 0, size = scaledIconSize(icon, 1.15f))
-                    Spacer(Modifier.width(3.dp))
-                    Text("$left", style = number)
-                }
+        Column {
+            HudCounters(view, waves, spoken, cap, big, icon, compact, spread, fontScale)
+            if (below != null) {
+                PlateRowDivider(Modifier.padding(horizontal = 6.dp))
+                below()
             }
-            HudGroup("Waves", cap) {
-                waves.forEachIndexed { i, (lane, left) ->
-                    if (i > 0) Spacer(Modifier.width(6.dp))
-                    WaveCounterIcon(
-                        spent = left == 0,
-                        size = scaledIconSize(
-                            if (lane !=
-                                null
-                            ) {
-                                icon - 2.dp
-                            } else {
-                                icon
-                            },
-                            1.15f,
-                        ),
+        }
+    }
+}
+
+/** The counters of [TableHud], one TalkBack node ([spoken]). */
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun HudCounters(
+    view: GameView,
+    waves: List<Pair<String?, Int>>,
+    spoken: String,
+    cap: Float,
+    big: TextUnit,
+    icon: Dp,
+    compact: Boolean,
+    spread: Boolean,
+    fontScale: Float,
+) {
+    val number = GoaTextStyles.numeric.copy(fontSize = big, lineHeight = big * 1.15f, fontWeight = FontWeight.Bold)
+    FlowRow(
+        Modifier
+            .clearAndSetSemantics { contentDescription = spoken }
+            .padding(horizontal = 10.dp, vertical = 3.dp),
+        // Compact (landscape, beside the heroes' portraits), or two Lanes' counters: closer together.
+        horizontalArrangement = Arrangement.spacedBy(
+            if (compact || waves.size > 1 || fontScale > 1.3f) Spacing.md else Spacing.lg,
+        ),
+        verticalArrangement = Arrangement.spacedBy(2.dp),
+        itemVerticalAlignment = Alignment.Bottom,
+    ) {
+        HudGroup("Lives", cap) {
+            Team.entries.forEachIndexed { i, team ->
+                val left = view.lifeCounters[team] ?: 0
+                if (i > 0) Spacer(Modifier.width(6.dp))
+                TeamMark(team, markSize = scaledIconSize(11.dp, 1.15f))
+                Spacer(Modifier.width(2.dp))
+                LifeCounterIcon(team, spent = left == 0, size = scaledIconSize(icon, 1.15f))
+                Spacer(Modifier.width(3.dp))
+                Text("$left", style = number)
+            }
+        }
+        HudGroup("Waves", cap) {
+            waves.forEachIndexed { i, (lane, left) ->
+                if (i > 0) Spacer(Modifier.width(6.dp))
+                WaveCounterIcon(
+                    spent = left == 0,
+                    size = scaledIconSize(
+                        if (lane !=
+                            null
+                        ) {
+                            icon - 2.dp
+                        } else {
+                            icon
+                        },
+                        1.15f,
+                    ),
+                )
+                Spacer(Modifier.width(2.dp))
+                // Two Lanes: "L1 3" fits both on the row; TalkBack hears "Lane 1".
+                lane?.let {
+                    Text(
+                        it.replace("Lane ", "L"),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
-                    Spacer(Modifier.width(2.dp))
-                    // Two Lanes: "L1 3" fits both on the row; TalkBack hears "Lane 1".
-                    lane?.let {
-                        Text(
-                            it.replace("Lane ", "L"),
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                        Spacer(Modifier.width(4.dp))
-                    }
-                    Text("$left", style = number)
+                    Spacer(Modifier.width(4.dp))
                 }
+                Text("$left", style = number)
             }
-            HudGroup("Turn", cap) {
-                Box(Modifier.heightIn(min = with(LocalDensity.current) { big.toDp() } * 1.15f), Alignment.Center) {
-                    TurnPips(view.turn)
-                }
+        }
+        HudGroup("Turn", cap) {
+            Box(Modifier.heightIn(min = with(LocalDensity.current) { big.toDp() } * 1.15f), Alignment.Center) {
+                TurnPips(view.turn)
             }
-            val coin: @Composable () -> Unit = {
-                // Large text: the coin alone keeps the HUD on one row (TalkBack still names it).
-                HudGroup(if (fontScale > 1.3f) null else "Tie Breaker", cap, end = spread) {
-                    TieBreakerMark(view.tieBreaker, if (compact || fontScale > 1.3f) 22.dp else 26.dp)
-                }
+        }
+        val coin: @Composable () -> Unit = {
+            // Compact (the side panel) or large text: the coin alone keeps the HUD on one row (TalkBack names it).
+            HudGroup(if (compact || fontScale > 1.3f) null else "Tie Breaker", cap, end = spread) {
+                TieBreakerMark(view.tieBreaker, if (compact || fontScale > 1.3f) 22.dp else 26.dp)
             }
-            if (spread) {
-                Box(Modifier.weight(1f), contentAlignment = Alignment.BottomEnd) { coin() }
-            } else {
-                coin()
-            }
+        }
+        if (spread) {
+            Box(Modifier.weight(1f), contentAlignment = Alignment.BottomEnd) { coin() }
+        } else {
+            coin()
         }
     }
 }
@@ -828,6 +874,89 @@ fun YourHand(table: TableUi, focus: CardFocusState) {
 /** "Your hand", or with several heroes of the person's "Your hand (Arien)": always whose, never another seat's. */
 internal fun yourHandTitle(table: TableUi, heroId: String): String =
     if (table.mine.size > 1) "Your hand (${table.hero(heroId).name})" else "Your hand"
+
+/**
+ * The deciding hero's hand as a tab pinned at the foot of the panel (GameTable's `panelFooter`), so the panel ends
+ * on a whole line rather than a heading cut at the screen's edge: a drag handle, the card back, "Your hand · 5" and a
+ * chevron. A tap (or a drag up) shows the cards under it, small, a tap on one reads it large; a tap (or a drag down)
+ * folds them away. Shown when [YourHand] would show the hand ([open] is kept by the screen).
+ */
+@Composable
+fun HandTab(table: TableUi, focus: CardFocusState, open: Boolean, onOpenChange: (Boolean) -> Unit) {
+    val heroId = table.decision?.seat?.takeIf { it in table.mine && table.asking } ?: return
+    // A question answered with cards (play, defend, discard, level up) shows them itself.
+    if (table.handDecision || table.cardOptions.isNotEmpty()) return
+    val hand = table.heroView(heroId)?.hand ?: return
+    if (hand.isEmpty()) return
+    val title = yourHandTitle(table, heroId)
+    val toggle by rememberUpdatedState(onOpenChange)
+    val shown by rememberUpdatedState(open)
+    val threshold = with(LocalDensity.current) { HAND_DRAG.toPx() }
+    var dragged by remember { mutableFloatStateOf(0f) }
+    val drag = rememberDraggableState { dragged += it }
+    Column(Modifier.fillMaxWidth()) {
+        PlateRowDivider()
+        Box(
+            Modifier
+                .fillMaxWidth()
+                .heightIn(min = 48.dp)
+                .draggable(
+                    drag,
+                    orientation = Orientation.Vertical,
+                    onDragStarted = { dragged = 0f },
+                    onDragStopped = {
+                        if (-dragged > threshold && !shown) toggle(true)
+                        if (dragged > threshold && shown) toggle(false)
+                    },
+                )
+                .clickable(
+                    role = Role.Button,
+                    onClickLabel = if (open) "Fold the hand away" else "Show the hand",
+                ) { onOpenChange(!open) }
+                .semantics(mergeDescendants = true) {
+                    contentDescription = "$title, ${BoardText.count(hand.size, "card")}"
+                    stateDescription = if (open) "Shown" else "Folded away"
+                },
+        ) {
+            Box(
+                Modifier
+                    .align(Alignment.TopCenter)
+                    .padding(top = 4.dp)
+                    .size(width = 32.dp, height = 4.dp)
+                    .background(MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.45f), CircleShape),
+            )
+            Row(
+                Modifier
+                    .align(Alignment.CenterStart)
+                    .fillMaxWidth()
+                    .padding(start = 14.dp, end = 6.dp, top = 6.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                TableCard(null, width = 14.dp, backOf = heroId)
+                Spacer(Modifier.width(Spacing.sm))
+                Text(
+                    "$title · ${hand.size}",
+                    style = GoaTextStyles.sectionHead,
+                    color = GoaTheme.colors.heading,
+                    modifier = Modifier.weight(1f),
+                )
+                Icon(
+                    if (open) Icons.Outlined.ExpandMore else Icons.Outlined.ExpandLess,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(Spacing.sm),
+                )
+            }
+        }
+        if (open) {
+            Box(Modifier.padding(start = 12.dp, end = 12.dp, bottom = Spacing.sm)) {
+                CardRow(hand.map { CardView(it) }, table, focus, title)
+            }
+        }
+    }
+}
+
+private val HAND_DRAG = 24.dp
 
 /**
  * Small cards in a row; a facedown one shows its back. Tap a face-up one to see it large in the

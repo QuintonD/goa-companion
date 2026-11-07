@@ -639,13 +639,26 @@ class PlayScreenshotTest {
         capture(ThemeMode.DARK, before = { tapCard(cards.getValue("arien-red-1").name) }, screen = true) { Game(play) }
     }
 
-    /** Your hand, view only: swipe between, no confirm. */
+    /** Your hand, view only: the panel's tab opened, a card tapped; swipe between, no confirm. */
     @Test
     fun tableHandViewDark() {
         val play = at(DecisionKind.CHOOSE_ACTION, 3)
         val first = play.table.heroView(play.table.mine.first { play.table.heroView(it)?.hand?.isNotEmpty() == true })!!
             .hand!!.first()
-        capture(ThemeMode.DARK, before = { tapCard(cards.getValue(first).name) }, screen = true) { Game(play) }
+        capture(ThemeMode.DARK, before = {
+            compose.onNodeWithContentDescription("Your hand", substring = true).performClick()
+            compose.waitForIdle()
+            tapCard(cards.getValue(first).name)
+        }, screen = true) { Game(play) }
+    }
+
+    /** The hand's tab opened under the question: the cards whole, the question still in view. */
+    @Test
+    fun tableHandOpenDark() {
+        val play = at(DecisionKind.CHOOSE_ACTION, 3)
+        capture(ThemeMode.DARK, before = {
+            compose.onNodeWithContentDescription("Your hand", substring = true).performClick()
+        }) { Game(play) }
     }
 
     // ---- Game over ------------------------------------------------------------------------
