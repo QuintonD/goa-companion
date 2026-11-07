@@ -489,6 +489,7 @@ private fun ColumnScope.Panel(play: PlayUi, onAction: (GameAction) -> Unit, focu
                 focus = focus,
                 busy = play.busy,
                 who = false,
+                defeat = play.defeat,
             )
             if (play.busy && play.coach) CoachLooking()
             if (play.canSuggest) SuggestButton(enabled = !play.busy) { onAction(GameAction.AskSuggestions) }

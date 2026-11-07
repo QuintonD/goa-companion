@@ -134,6 +134,8 @@ data class PlayUi(
     val report: ReportUi? = null,
     /** An online game's extras (ADR-056); null at the table against the computer. */
     val online: OnlineUi? = null,
+    /** The person must defend: what not defending comes to, as the engine plays it out ([defeatPreview]). */
+    val defeat: DefeatPreview? = null,
 )
 
 /** Why there is no game to show. */

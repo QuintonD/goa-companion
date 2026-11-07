@@ -176,6 +176,9 @@ class GameViewModel internal constructor(
     private var reporting: Job? = null
     private var report: ReportUi? = null
 
+    /** What not defending comes to for the person's pending DEFEND, worked out once per question on a fork. */
+    private var defeat: DefeatPreview? = null
+
     init {
         viewModelScope.launch(failures) { load() }
     }
@@ -715,7 +718,12 @@ class GameViewModel internal constructor(
         val snapshot = withContext(engine) {
             val events = game.events.toList()
             val flow = resolutionFlow(events, flowFrom, teams, humans, { heroes.hero(it).name }, { cards[it]?.name })
-            Snapshot(game.pending, game.mergedView(humans), events, review.build(game, humans), flow)
+            val pending = game.pending
+            // A DEFEND of the person's: play "don't defend" out on a fork once, for the consequence row.
+            if (pending != null && pending.kind == DecisionKind.DEFEND && pending.seat in humans) {
+                if (defeat?.decisionId != pending.id) defeat = defeatPreview(game, pending)
+            }
+            Snapshot(pending, game.mergedView(humans), events, review.build(game, humans), flow)
         }
         val decision = snapshot.pending
         val view = snapshot.view
@@ -763,6 +771,7 @@ class GameViewModel internal constructor(
                     suggest = suggestUi(decision),
                     canSuggest = decision != null && decision.seat in humans && decision.options.size >= 2,
                     report = report,
+                    defeat = defeat?.takeIf { decision != null && it.decisionId == decision.id },
                 ),
             )
         }

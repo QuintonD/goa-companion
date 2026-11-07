@@ -8,6 +8,8 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -32,6 +34,7 @@ import androidx.compose.material.icons.outlined.Block
 import androidx.compose.material.icons.outlined.CheckCircle
 import androidx.compose.material.icons.outlined.ErrorOutline
 import androidx.compose.material.icons.outlined.Info
+import androidx.compose.material.icons.outlined.Replay
 import androidx.compose.material.icons.outlined.TouchApp
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -69,6 +72,8 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import dev.quinton.goa.core.designsystem.component.CardTextBox
+import dev.quinton.goa.core.designsystem.component.CoinIcon
+import dev.quinton.goa.core.designsystem.component.LifeCounterIcon
 import dev.quinton.goa.core.designsystem.component.PlateColor
 import dev.quinton.goa.core.designsystem.component.scaledIconSize
 import dev.quinton.goa.core.designsystem.theme.GoaTextStyles
@@ -80,7 +85,9 @@ import dev.quinton.goa.core.game.DecisionKind
 import dev.quinton.goa.core.model.catalog.Card
 import dev.quinton.goa.core.model.catalog.CardText
 import dev.quinton.goa.core.model.catalog.Stat
+import dev.quinton.goa.feature.board.BoardText
 import dev.quinton.goa.feature.board.play.PlayText
+import dev.quinton.goa.feature.board.play.game.DefeatPreview
 import dev.quinton.goa.feature.board.ui.PlateButton
 import dev.quinton.goa.feature.board.ui.PlateTone
 import dev.quinton.goa.feature.board.ui.PlateWell
@@ -583,9 +590,10 @@ internal val LIFT = 8.dp
  * Attacked: the attacker's card with the Attack total, then the hand's cards themselves, each with its Defense total as
  * the engine counts it against the Attack under it ("Def 2 vs 6", a mark and a colour; a Block "Blocks it" or "Block
  * fails"; a card whose text decides, that condition verbatim), and "Don't defend" as a card-sized tile. Nothing is
- * chosen for the player, except that when no card saves the hero, "Don't defend · keep your cards" is the bronze button
- * from the start and one line says so. One rule row (with its page) says how the choice is counted; the button names
- * the move in one line ("Defend · Blink Strike").
+ * chosen for the player, except that when no card saves the hero, not defending is the bronze button from the start.
+ * One rule row (with its page) says how the choice is counted; not defending, with [defeat], what it comes to as the
+ * engine plays it out ([DefeatConsequence]) and the button "Accept defeat · keep cards". The button names the move in
+ * one line ("Defend · Blink Strike").
  */
 @Composable
 internal fun DefensePanel(
@@ -594,6 +602,7 @@ internal fun DefensePanel(
     onAnswer: (Choice) -> Unit,
     focus: CardFocusState,
     busy: Boolean,
+    defeat: DefeatPreview? = null,
 ) {
     val decision = table.decision ?: return
     FocusLifecycle(focus, decision, busy)
@@ -666,6 +675,9 @@ internal fun DefensePanel(
             )
         }
 
+        // Not defending, with what it comes to as the engine plays it out: the defeat, the Life counters, the coins.
+        answer != null && defeat != null -> DefeatConsequence(table, defeat, hopeless = hopeless && declined == null)
+
         answer != null -> RuleRow(
             if (hopeless && declined == null) {
                 // The Attack is in the header, keeping your cards on the button: one short line.
@@ -685,7 +697,12 @@ internal fun DefensePanel(
         "Tap a card to defend with, or Don't defend",
         busy,
         onAnswer,
-        label = defendLabel(table, answer),
+        // The defeat is certain (the engine played it out): the button says so, not only what is kept (sol #7).
+        label = if (answer != null && answer !is Choice.Card && defeat != null) {
+            "Accept defeat · keep cards"
+        } else {
+            defendLabel(table, answer)
+        },
     ) {
         if (offered.isNotEmpty()) {
             openOffered(
@@ -707,6 +724,69 @@ private fun defendLabel(table: TableUi, answer: Choice?): String? = when (answer
     null -> null
     is Choice.Card -> table.card(answer.cardId)?.let { "Defend · ${it.name}" }
     else -> "${table.label(answer)} · keep your cards"
+}
+
+/**
+ * What not defending comes to, from the engine's own events ([DefeatPreview]), above the commit: the verdict line ("No
+ * card saves Tigerclaw: defeated by Arien"), then the Life counters the team spends with the Life counter's own mark,
+ * the coins each hero collects with the coin, and the respawn (p.7). The game's end when it is the last Life counter.
+ */
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun DefeatConsequence(table: TableUi, defeat: DefeatPreview, hopeless: Boolean) {
+    val hero = table.hero(defeat.defeated).name
+    val by = defeat.byHero?.let { " by ${table.hero(it).name}" }.orEmpty()
+    val team = defeat.team
+    val head = (if (hopeless) "No card saves $hero: " else "Not defending: ") + "defeated$by."
+    val winner = defeat.winner
+    val life = team?.let {
+        if (winner != null) {
+            "${BoardText.team(it)} spends its last Life counter: ${BoardText.team(winner)} wins"
+        } else {
+            "${BoardText.team(it)} spends ${BoardText.count(defeat.lifeSpent, "Life counter")}" +
+                defeat.lifeLeft?.let { left -> " ($left left)" }.orEmpty()
+        }
+    }
+    val coins = defeat.coins.map { (id, n) -> "${table.hero(id).name} gains ${BoardText.count(n, "coin")}" }
+    val respawn = "$hero may respawn before acting next turn".takeIf { defeat.winner == null }
+    Column(
+        Modifier
+            .fillMaxWidth()
+            .semantics(mergeDescendants = true) {
+                liveRegion = LiveRegionMode.Polite
+                contentDescription = (listOf(head) + listOfNotNull(life) + coins + listOfNotNull(respawn))
+                    .joinToString(" ") { if (it.endsWith(".")) it else "$it." } + " Rulebook page 13"
+            },
+        verticalArrangement = Arrangement.spacedBy(2.dp),
+    ) {
+        RuleRow(head, page = "p.13", verdict = false, live = false)
+        FlowRow(
+            Modifier.padding(start = scaledIconSize(16.dp, 1.3f) + Spacing.xs),
+            horizontalArrangement = Arrangement.spacedBy(Spacing.md),
+            verticalArrangement = Arrangement.spacedBy(2.dp),
+            itemVerticalAlignment = Alignment.CenterVertically,
+        ) {
+            val icon = scaledIconSize(14.dp, 1.3f)
+            if (team != null && life != null) {
+                ConsequenceItem(life) { LifeCounterIcon(team, spent = defeat.winner != null, size = icon) }
+            }
+            coins.forEach { ConsequenceItem(it) { CoinIcon(size = icon) } }
+            respawn?.let {
+                ConsequenceItem(it) {
+                    Icon(Icons.Outlined.Replay, null, Modifier.size(icon), tint = MaterialTheme.colorScheme.secondary)
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun ConsequenceItem(text: String, icon: @Composable () -> Unit) {
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        icon()
+        Spacer(Modifier.width(4.dp))
+        Text(text, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+    }
 }
 
 /**
