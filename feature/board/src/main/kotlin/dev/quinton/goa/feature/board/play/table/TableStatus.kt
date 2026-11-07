@@ -776,22 +776,31 @@ private fun Fact(label: String, value: String) {
 @Composable
 private fun Section(title: String) = HeroSection(title)
 
-/** The person's hand, small (one row per hero they control); tap a card to see it large. */
+/**
+ * The deciding hero's hand, small, under the question; tap a card to see it large. Only while one of the person's
+ * heroes decides, and only that hero's: a phone passed round never shows a hand beside another seat's question. With
+ * several heroes the heading names whose it is ("Your hand (Arien)"); hidden while the computer or another seat
+ * decides, and when the question itself shows the hand (play, defend).
+ */
 @Composable
 fun YourHand(table: TableUi, focus: CardFocusState) {
-    table.mine.forEach { heroId ->
-        val hand = table.heroView(heroId)?.hand ?: return@forEach
-        if (hand.isEmpty()) return@forEach
-        val title = if (table.mine.size > 1) "${table.hero(heroId).name}'s hand" else "Your hand"
-        Text(
-            title,
-            style = GoaTextStyles.sectionHead,
-            color = GoaTheme.colors.heading,
-            modifier = Modifier.padding(top = Spacing.xs),
-        )
-        CardRow(hand.map { CardView(it) }, table, focus, title)
-    }
+    val heroId = table.decision?.seat?.takeIf { it in table.mine && table.asking } ?: return
+    if (table.handDecision) return
+    val hand = table.heroView(heroId)?.hand ?: return
+    if (hand.isEmpty()) return
+    val title = yourHandTitle(table, heroId)
+    Text(
+        title,
+        style = GoaTextStyles.sectionHead,
+        color = GoaTheme.colors.heading,
+        modifier = Modifier.padding(top = Spacing.xs),
+    )
+    CardRow(hand.map { CardView(it) }, table, focus, title)
 }
+
+/** "Your hand", or with several heroes of the person's "Your hand (Arien)": always whose, never another seat's. */
+internal fun yourHandTitle(table: TableUi, heroId: String): String =
+    if (table.mine.size > 1) "Your hand (${table.hero(heroId).name})" else "Your hand"
 
 /**
  * Small cards in a row; a facedown one shows its back. Tap a face-up one to see it large in the

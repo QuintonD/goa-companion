@@ -46,6 +46,13 @@ object PuzzleText {
         "spoil a plan, they choose for themselves. Away from the solution they don't always find their best " +
         "answer, so a win there may not be a forced one."
 
+    /**
+     * A puzzle's setup one sentence a line, word for word ("Round 3, turn 4." | "Brogan has played…"): split as
+     * [whyItWorks] splits, so "p.14" and "(9)" stay whole and the lines read back as the paragraph.
+     */
+    fun sentences(text: String): List<String> =
+        text.trim().replace(SENTENCE, "$1\n").split("\n").map { it.trim() }.filter { it.isNotEmpty() }
+
     fun names(names: List<String>): String = when (names.size) {
         0 -> ""
         1 -> names.single()

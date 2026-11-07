@@ -103,10 +103,12 @@ class CardFocusState {
         title: String? = null,
         owner: Any? = null,
         onClose: (() -> Unit)? = null,
+        /** Opens with "Read the card as text" open (a panel's explicit Read card). */
+        asText: Boolean = false,
     ) {
         if (cards.isEmpty()) return
         val start = index.coerceIn(0, cards.lastIndex)
-        request = CardFocusRequest(next++, cards, start, title, selection, owner, onClose)
+        request = CardFocusRequest(next++, cards, start, title, selection, owner, onClose).also { it.asText = asText }
         this.index = start
         closing = false
         exit = FocusExit.SHRINK

@@ -5,7 +5,6 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -20,17 +19,26 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.EventNote
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.outlined.Casino
 import androidx.compose.material.icons.outlined.Hexagon
+import androidx.compose.material.icons.outlined.MoreVert
 import androidx.compose.material.icons.outlined.Timer
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.FilterChip
+import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -44,6 +52,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import dev.quinton.goa.core.designsystem.component.GoaButton
+import dev.quinton.goa.core.designsystem.component.GoaOutlinedButton
 import dev.quinton.goa.core.designsystem.component.GoaPlate
 import dev.quinton.goa.core.designsystem.component.HeroPortrait
 import dev.quinton.goa.core.designsystem.component.HeroSymbol
@@ -163,7 +172,7 @@ private fun CompletionActions(
             Text("Set up match")
         }
         Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-            OutlinedButton(
+            GoaOutlinedButton(
                 onClick = { actions.finish(openMatchSetup = false) },
                 enabled = !state.local.saving,
                 contentPadding = PaddingValues(horizontal = Spacing.sm),
@@ -173,7 +182,7 @@ private fun CompletionActions(
                 Spacer(Modifier.width(Spacing.xs))
                 Text("Log result later", textAlign = TextAlign.Center)
             }
-            OutlinedButton(
+            GoaOutlinedButton(
                 onClick = {
                     // Pick order per team: the board's opening places heroes in that order (p.20).
                     actions.tryOnBoard(
@@ -202,7 +211,7 @@ private fun CompletionActions(
 
 @Composable
 private fun DealAgain(actions: BoardActions) {
-    OutlinedButton(
+    GoaOutlinedButton(
         onClick = actions::reroll,
         modifier = Modifier.fillMaxWidth().heightIn(min = 52.dp),
     ) {
@@ -254,16 +263,24 @@ private fun TeamResult(
                     }
                 }
             }
+            // Odd counts: the larger team plays with Handicap cards [RB], so its rows offer the card at hand.
+            val larger = seats.size > session.seats.count { it.team != team }
             seats.forEachIndexed { i, assignment ->
                 if (i > 0) HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
-                SeatRow(state, assignment, session.canSwapSeats, actions)
+                SeatRow(state, assignment, session.canSwapSeats, handicapAtHand = larger, actions)
             }
         }
     }
 }
 
 @Composable
-private fun SeatRow(state: BoardUiState, assignment: SeatAssignment, swappable: Boolean, actions: BoardActions) {
+private fun SeatRow(
+    state: BoardUiState,
+    assignment: SeatAssignment,
+    swappable: Boolean,
+    handicapAtHand: Boolean,
+    actions: BoardActions,
+) {
     val seat = assignment.seat
     val hero = assignment.heroId?.let { state.heroes.info(it) }
     val selected = state.local.selectedSeat == seat.id
@@ -311,16 +328,56 @@ private fun SeatRow(state: BoardUiState, assignment: SeatAssignment, swappable: 
                     Spacer(Modifier.width(Spacing.xs))
                     Text(state.playerName(seat.pilotId), style = MaterialTheme.typography.labelLarge)
                 }
+                // A small chip where the card applies (the larger team) or is already in play; elsewhere it is
+                // a choice for calibrating skill, kept in the row's menu so it doesn't compete with the hero.
+                if (handicapAtHand || seat.handicap) {
+                    HandicapChip(seat.handicap) { actions.toggleHandicap(seat.id) }
+                }
             }
-            FlowRow {
-                FilterChip(
-                    colors = goaFilterChipColors(),
-                    selected = seat.handicap,
-                    onClick = { actions.toggleHandicap(seat.id) },
-                    label = { Text("Handicap") },
-                    modifier = Modifier.heightIn(min = 48.dp),
+            if (!handicapAtHand && !seat.handicap) {
+                SeatMenu(hero?.name ?: "this seat") { actions.toggleHandicap(seat.id) }
+            }
+        }
+    }
+}
+
+@Composable
+private fun HandicapChip(on: Boolean, onToggle: () -> Unit) {
+    FilterChip(
+        colors = goaFilterChipColors(),
+        selected = on,
+        onClick = onToggle,
+        label = { Text("Handicap card") },
+        leadingIcon = if (on) {
+            {
+                Icon(
+                    Icons.Filled.Check,
+                    contentDescription = null,
+                    modifier = Modifier.size(FilterChipDefaults.IconSize),
                 )
             }
+        } else {
+            null
+        },
+    )
+}
+
+/** The row's overflow: the Handicap card for a seat on the smaller or an even team (allowed at any count [RB]). */
+@Composable
+private fun SeatMenu(heroName: String, onHandicap: () -> Unit) {
+    var open by remember { mutableStateOf(false) }
+    Box {
+        IconButton(onClick = { open = true }, modifier = Modifier.size(48.dp)) {
+            Icon(Icons.Outlined.MoreVert, contentDescription = "More for $heroName")
+        }
+        DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
+            DropdownMenuItem(
+                text = { Text("Play with the Handicap card") },
+                onClick = {
+                    open = false
+                    onHandicap()
+                },
+            )
         }
     }
 }

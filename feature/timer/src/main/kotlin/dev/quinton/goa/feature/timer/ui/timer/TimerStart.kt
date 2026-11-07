@@ -1,11 +1,13 @@
 package dev.quinton.goa.feature.timer.ui.timer
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -17,19 +19,19 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.selectableGroup
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Remove
 import androidx.compose.material.icons.outlined.Flag
 import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material.icons.outlined.Tune
 import androidx.compose.material3.FilledTonalIconButton
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -41,6 +43,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.rotate
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.graphics.vector.rememberVectorPainter
 import androidx.compose.ui.res.painterResource
@@ -48,15 +52,20 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
+import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import dev.quinton.goa.core.designsystem.component.BarAction
 import dev.quinton.goa.core.designsystem.component.BarActions
 import dev.quinton.goa.core.designsystem.component.GoaDialog
+import dev.quinton.goa.core.designsystem.component.GoaOutlinedButton
 import dev.quinton.goa.core.designsystem.component.GoaPlate
 import dev.quinton.goa.core.designsystem.component.GoaScreen
 import dev.quinton.goa.core.designsystem.component.MetalButton
-import dev.quinton.goa.core.designsystem.component.PlateColor
 import dev.quinton.goa.core.designsystem.component.PlateShape
 import dev.quinton.goa.core.designsystem.component.SectionHeader
 import dev.quinton.goa.core.designsystem.component.TeamBadge
@@ -89,9 +98,6 @@ internal fun TimerStart(state: StartUiState, actions: TimerActions) {
             verticalArrangement = Arrangement.spacedBy(Spacing.md),
         ) {
             item { ReadyCard(state, actions) }
-            if (state.selected?.usesActionTimer == true) {
-                item { SeatsStepper(state.seats, actions.onSeatsChange) }
-            }
             if (state.pendingMatches.isNotEmpty()) {
                 item { SectionHeader("Pending matches") }
                 items(state.pendingMatches, key = { it.id }) { match ->
@@ -130,6 +136,10 @@ internal fun TimerStart(state: StartUiState, actions: TimerActions) {
     }
 }
 
+/**
+ * The start card reads as a start button: the preset and its durations (tonight's length in them), one bronze
+ * Start timer, one row for the steps before it (Draft first · Match setup), and tonight's adjustments folded away.
+ */
 @Composable
 private fun ReadyCard(state: StartUiState, actions: TimerActions) {
     GoaPlate(Modifier.fillMaxWidth(), contentPadding = PaddingValues(Spacing.lg)) {
@@ -143,14 +153,10 @@ private fun ReadyCard(state: StartUiState, actions: TimerActions) {
         )
         Spacer(Modifier.height(Spacing.xs))
         Text(
-            state.selected?.summary.orEmpty(),
+            tonightSummary(state.selected?.summary.orEmpty(), state.tonight, colors.primary),
             style = MaterialTheme.typography.bodyMedium,
             color = colors.onSurfaceVariant,
         )
-        state.tonight?.let { tonight ->
-            Spacer(Modifier.height(Spacing.md))
-            TonightTurn(tonight, actions)
-        }
         Spacer(Modifier.height(Spacing.lg))
         MetalButton(
             onClick = actions.onStart,
@@ -163,9 +169,23 @@ private fun ReadyCard(state: StartUiState, actions: TimerActions) {
         }
         Spacer(Modifier.height(Spacing.sm))
         // Game night runs draft, then Match setup, then the timer: both steps before it are one tap away.
-        StartStepButton(painterResource(GoaIcons.NavDraft), "Draft heroes first", actions.onOpenDraft)
-        Spacer(Modifier.height(Spacing.sm))
-        StartStepButton(rememberVectorPainter(Icons.Outlined.Flag), "Match setup") { actions.onOpenSetup(null) }
+        Row(
+            Modifier.fillMaxWidth().height(IntrinsicSize.Min),
+            horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+        ) {
+            StartStepButton(
+                painterResource(GoaIcons.NavDraft),
+                "Draft first",
+                actions.onOpenDraft,
+                Modifier.weight(1f).fillMaxHeight(),
+            )
+            StartStepButton(
+                rememberVectorPainter(Icons.Outlined.Flag),
+                "Match setup",
+                { actions.onOpenSetup(null) },
+                Modifier.weight(1f).fillMaxHeight(),
+            )
+        }
         Text(
             "Match setup: mode, counters and the Tie Breaker coin.",
             style = MaterialTheme.typography.bodySmall,
@@ -173,88 +193,179 @@ private fun ReadyCard(state: StartUiState, actions: TimerActions) {
             textAlign = TextAlign.Center,
             modifier = Modifier.padding(top = Spacing.xs).fillMaxWidth(),
         )
+        val seats = state.seats.takeIf { state.selected?.usesActionTimer == true }
+        if (state.tonight != null || seats != null) {
+            Spacer(Modifier.height(Spacing.md))
+            AdjustForTonight(state.tonight, seats, actions)
+        }
     }
 }
 
+/**
+ * The preset's summary with tonight's length in it, named and marked: "Play a card 0:45 ×4 tonight" in bronze
+ * where the preset says 0:30 (the preset's own value is in Adjust for tonight).
+ */
+internal fun tonightSummary(summary: String, tonight: TonightUi?, accent: Color): AnnotatedString {
+    if (tonight == null || !tonight.adjusted) return AnnotatedString(summary)
+    val presetPart = "${tonight.phaseName} ${TimerText.durationLabel(tonight.presetSeconds)}"
+    val at = summary.indexOf(presetPart)
+    if (at < 0) return AnnotatedString(summary)
+    val end = summary.indexOf(SUMMARY_SEPARATOR, at).takeIf { it >= 0 } ?: summary.length
+    // Kept on one line (no-break spaces): "Play a card 0:45 ×4 tonight" reads as one thing.
+    val tonightPart = (
+        "${tonight.phaseName} ${TimerText.durationLabel(tonight.seconds)}" +
+            summary.substring(at + presetPart.length, end) + " tonight"
+        ).replace(' ', NO_BREAK)
+    return buildAnnotatedString {
+        append(summary.substring(0, at))
+        withStyle(SpanStyle(color = accent, fontWeight = FontWeight.SemiBold)) { append(tonightPart) }
+        append(summary.substring(end))
+    }
+}
+
+private const val SUMMARY_SEPARATOR = " · "
+private const val NO_BREAK = ' '
+
 @Composable
-private fun StartStepButton(icon: Painter, label: String, onClick: () -> Unit) {
-    OutlinedButton(
+private fun StartStepButton(icon: Painter, label: String, onClick: () -> Unit, modifier: Modifier = Modifier) {
+    GoaOutlinedButton(
         onClick = onClick,
-        modifier = Modifier.fillMaxWidth().heightIn(min = 52.dp),
-        shape = RoundedCornerShape(7.dp),
+        modifier = modifier.heightIn(min = 52.dp),
+        contentPadding = PaddingValues(horizontal = Spacing.sm, vertical = Spacing.xs),
     ) {
-        Icon(icon, contentDescription = null, modifier = Modifier.size(24.dp))
+        Icon(icon, contentDescription = null, modifier = Modifier.size(22.dp))
         Spacer(Modifier.width(Spacing.sm))
-        Text(label)
+        Text(label, textAlign = TextAlign.Center)
     }
 }
 
-/** Turn length for tonight in one tap (±15 s), without editing the preset unless asked. */
+/**
+ * Tonight's changes, folded away under one row that still says what they are ("Play a card 0:45 (preset 0:30)
+ * · 4 heroes"): the per-turn length (±15 s, the preset unchanged unless saved) and, when the preset times
+ * each hero's Action, the heroes at the table.
+ */
 @Composable
-private fun TonightTurn(tonight: TonightUi, actions: TimerActions) {
+private fun AdjustForTonight(tonight: TonightUi?, seats: Int?, actions: TimerActions) {
+    var open by rememberSaveable { mutableStateOf(false) }
     val colors = MaterialTheme.colorScheme
-    Box(
+    val adjusted = tonight?.adjusted == true
+    val values = listOfNotNull(
+        tonight?.let {
+            "${it.phaseName} ${TimerText.durationLabel(it.seconds)}" +
+                if (it.adjusted) " (preset ${TimerText.durationLabel(it.presetSeconds)})" else ""
+        },
+        seats?.let { "$it heroes" },
+    ).joinToString(SUMMARY_SEPARATOR)
+    Column(
         Modifier
             .fillMaxWidth()
             .plateEdge(
                 // Bronze: tonight's own choice of length (teal is kept for "next / ready").
-                if (tonight.adjusted) colors.primary else GoaTheme.colors.engravedBorder,
+                if (adjusted) colors.primary else GoaTheme.colors.engravedBorder,
                 1.dp,
                 MaterialTheme.shapes.medium,
             ),
     ) {
-        Column(Modifier.padding(horizontal = Spacing.md, vertical = Spacing.sm)) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Column(Modifier.weight(1f)) {
-                    Text("Turn length tonight", style = MaterialTheme.typography.titleSmall)
-                    Text(
-                        if (tonight.adjusted) {
-                            "Preset: ${TimerText.durationLabel(tonight.presetSeconds)}"
-                        } else {
-                            "From the preset"
-                        },
-                        style = MaterialTheme.typography.bodySmall,
-                        color = colors.onSurfaceVariant,
+        Row(
+            Modifier
+                .fillMaxWidth()
+                .clip(MaterialTheme.shapes.medium)
+                .clickable(onClickLabel = if (open) "Hide" else "Adjust") { open = !open }
+                .semantics { stateDescription = if (open) "Expanded" else "Collapsed" }
+                .heightIn(min = 56.dp)
+                .padding(horizontal = Spacing.md, vertical = Spacing.sm),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Icon(Icons.Outlined.Tune, contentDescription = null, tint = colors.primary, modifier = Modifier.size(22.dp))
+            Spacer(Modifier.width(Spacing.md))
+            Column(Modifier.weight(1f)) {
+                Text("Adjust for tonight", style = MaterialTheme.typography.titleSmall)
+                Text(
+                    values,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = if (adjusted) colors.primary else colors.onSurfaceVariant,
+                )
+            }
+            Icon(
+                Icons.Filled.KeyboardArrowDown,
+                contentDescription = null,
+                modifier = Modifier.rotate(if (open) HALF_TURN else 0f),
+            )
+        }
+        if (open) {
+            Column(Modifier.padding(start = Spacing.md, end = Spacing.md, bottom = Spacing.sm)) {
+                tonight?.let { TonightTurn(it, actions) }
+                if (tonight != null && seats != null) {
+                    HorizontalDivider(
+                        Modifier.padding(vertical = Spacing.sm),
+                        color = GoaTheme.colors.engravedBorder,
                     )
                 }
-                FilledTonalIconButton(
-                    onClick = { actions.onTonightTurn(tonight.seconds - TimerViewModel.TONIGHT_STEP_SECONDS) },
-                    enabled = tonight.seconds > TimerViewModel.TONIGHT_MIN_SECONDS,
-                    modifier = Modifier.size(48.dp),
-                    colors = goaTonalIconColors(),
-                ) { Icon(Icons.Filled.Remove, contentDescription = "15 seconds shorter") }
-                Text(
-                    TimerText.durationLabel(tonight.seconds),
-                    style = timerDigits(MaterialTheme.typography.titleLarge),
-                    textAlign = TextAlign.Center,
-                    modifier = Modifier
-                        .width(64.dp)
-                        .semantics {
-                            stateDescription = "Turns ${TimerText.spokenDuration(tonight.seconds.toLong())} tonight"
-                        },
-                )
-                FilledTonalIconButton(
-                    onClick = { actions.onTonightTurn(tonight.seconds + TimerViewModel.TONIGHT_STEP_SECONDS) },
-                    enabled = tonight.seconds < TimerViewModel.TONIGHT_MAX_SECONDS,
-                    modifier = Modifier.size(48.dp),
-                    colors = goaTonalIconColors(),
-                ) { Icon(Icons.Filled.Add, contentDescription = "15 seconds longer") }
+                seats?.let { SeatsStepper(it, actions.onSeatsChange) }
             }
-            if (tonight.adjusted) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(
-                        "Just for tonight.",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = colors.onSurfaceVariant,
-                        modifier = Modifier.weight(1f),
-                    )
-                    TextButton(
-                        onClick = { actions.onTonightTurn(tonight.presetSeconds) },
-                        modifier = Modifier.heightIn(min = 48.dp),
-                    ) { Text("Reset") }
-                    TextButton(onClick = actions.onSaveTonight, modifier = Modifier.heightIn(min = 48.dp)) {
-                        Text("Save to preset")
-                    }
+        }
+    }
+}
+
+private const val HALF_TURN = 180f
+
+/** The per-turn phase's length for tonight in one tap (±15 s), named as the preset names it. */
+@Composable
+private fun TonightTurn(tonight: TonightUi, actions: TimerActions) {
+    val colors = MaterialTheme.colorScheme
+    Column {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Column(Modifier.weight(1f)) {
+                Text(tonight.phaseName, style = MaterialTheme.typography.titleSmall)
+                Text(
+                    if (tonight.adjusted) {
+                        "Each turn · preset ${TimerText.durationLabel(tonight.presetSeconds)}"
+                    } else {
+                        "Each turn · from the preset"
+                    },
+                    style = MaterialTheme.typography.bodySmall,
+                    color = colors.onSurfaceVariant,
+                )
+            }
+            FilledTonalIconButton(
+                onClick = { actions.onTonightTurn(tonight.seconds - TimerViewModel.TONIGHT_STEP_SECONDS) },
+                enabled = tonight.seconds > TimerViewModel.TONIGHT_MIN_SECONDS,
+                modifier = Modifier.size(48.dp),
+                colors = goaTonalIconColors(),
+            ) { Icon(Icons.Filled.Remove, contentDescription = "${tonight.phaseName} 15 seconds shorter") }
+            Text(
+                TimerText.durationLabel(tonight.seconds),
+                style = timerDigits(MaterialTheme.typography.titleLarge),
+                textAlign = TextAlign.Center,
+                color = if (tonight.adjusted) colors.primary else colors.onSurface,
+                modifier = Modifier
+                    .width(64.dp)
+                    .semantics {
+                        stateDescription =
+                            "${tonight.phaseName} ${TimerText.spokenDuration(tonight.seconds.toLong())} tonight"
+                    },
+            )
+            FilledTonalIconButton(
+                onClick = { actions.onTonightTurn(tonight.seconds + TimerViewModel.TONIGHT_STEP_SECONDS) },
+                enabled = tonight.seconds < TimerViewModel.TONIGHT_MAX_SECONDS,
+                modifier = Modifier.size(48.dp),
+                colors = goaTonalIconColors(),
+            ) { Icon(Icons.Filled.Add, contentDescription = "${tonight.phaseName} 15 seconds longer") }
+        }
+        if (tonight.adjusted) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    "Just for tonight.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = colors.onSurfaceVariant,
+                    modifier = Modifier.weight(1f),
+                )
+                TextButton(
+                    onClick = { actions.onTonightTurn(tonight.presetSeconds) },
+                    modifier = Modifier.heightIn(min = 48.dp),
+                ) { Text("Reset") }
+                TextButton(onClick = actions.onSaveTonight, modifier = Modifier.heightIn(min = 48.dp)) {
+                    Text("Save to preset")
                 }
             }
         }
@@ -263,26 +374,21 @@ private fun TonightTurn(tonight: TonightUi, actions: TimerActions) {
 
 @Composable
 private fun SeatsStepper(seats: Int, onChange: (Int) -> Unit) {
-    GoaPlate(Modifier.fillMaxWidth(), contentPadding = PaddingValues(0.dp)) {
-        Row(
-            Modifier.padding(horizontal = Spacing.lg, vertical = Spacing.md),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Column(Modifier.weight(1f)) {
-                Text("Heroes at the table", style = MaterialTheme.typography.titleSmall)
-                Text(
-                    "The Action timer runs once per hero each turn.",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-            Stepper(
-                value = seats,
-                range = TimerViewModel.MIN_SEATS..TimerViewModel.MAX_SEATS,
-                onChange = onChange,
-                label = "heroes",
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        Column(Modifier.weight(1f)) {
+            Text("Heroes at the table", style = MaterialTheme.typography.titleSmall)
+            Text(
+                "The Action timer runs once per hero each turn.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
+        Stepper(
+            value = seats,
+            range = TimerViewModel.MIN_SEATS..TimerViewModel.MAX_SEATS,
+            onChange = onChange,
+            label = "heroes",
+        )
     }
 }
 
