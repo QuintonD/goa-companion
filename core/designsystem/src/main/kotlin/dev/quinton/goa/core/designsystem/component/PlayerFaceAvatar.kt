@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -23,14 +24,14 @@ import dev.quinton.goa.core.model.player.Player
 import dev.quinton.goa.core.model.player.PlayerFace
 
 /**
- * Each player's face by player id: their most-played hero (`PlayerFaces`, derived from the match log, never
- * stored or synced). A screen that has the ratings provides it; anywhere else [PlayerAvatar] draws the crest.
+ * Each player's most-played hero by player id (`PlayerFaces`, derived from the match log, never stored or synced): the
+ * small badge on their crest ([PlayerAvatar] with `showFace`). Without it the crest stands alone.
  */
 val LocalPlayerFaces = compositionLocalOf<Map<String, PlayerFace>> { emptyMap() }
 
 /**
- * A player's most-played hero in a steel ring: the official portrait, cropped round, inside a lit steel band with a
- * dark edge (the podium's steel), so it reads as a person's token and not as the hero itself. Decorative.
+ * A hero portrait in a steel ring: the official portrait, cropped round, inside a lit steel band with a dark edge (the
+ * podium's steel). The most-played hero badge on a crest ([PlayerAvatar]). Decorative.
  */
 @Composable
 fun HeroFaceAvatar(face: PlayerFace, modifier: Modifier = Modifier, size: Dp = 40.dp) {
@@ -66,9 +67,9 @@ fun HeroFaceAvatar(face: PlayerFace, modifier: Modifier = Modifier, size: Dp = 4
 }
 
 /**
- * An online account (ADR-056): its most-played hero when one is known, else a crest of its own, picked from the
- * 24 by its account id so it stays the same everywhere (accounts choose no crest, and a bare initial read as
- * unfinished).
+ * An online account (ADR-056): a crest of its own, picked from the 24 by its account id so it stays the same
+ * everywhere (accounts choose no crest), with its most-played hero as the badge when one is known, like a group
+ * player's [PlayerAvatar].
  */
 @Composable
 fun AccountAvatar(
@@ -78,19 +79,20 @@ fun AccountAvatar(
     size: Dp = 40.dp,
     face: PlayerFace? = null,
 ) {
-    if (face != null) {
-        HeroFaceAvatar(face, modifier, size)
-    } else {
-        val account = Player(id = id, name = name, color = 0, avatarId = accountCrest(id), createdAt = 0)
-        PlayerAvatar(account, modifier, size)
+    val account = Player(id = id, name = name, color = 0, avatarId = accountCrest(id), createdAt = 0)
+    CompositionLocalProvider(LocalPlayerFaces provides (face?.let { mapOf(id to it) } ?: emptyMap())) {
+        PlayerAvatar(account, modifier, size, showFace = face != null)
     }
 }
 
 /** The crest index an online account shows: stable for its id. */
 fun accountCrest(id: String): Int = Math.floorMod(id.hashCode(), PlayerCrests.count)
 
-/** Below this a hero portrait in its ring is no longer recognisable: [PlayerAvatar] draws the crest. */
+/** Below this the hero badge would be too small to recognise: [PlayerAvatar] draws the crest alone. */
 val FACE_MIN_SIZE = 40.dp
+
+/** The hero badge's diameter as a share of the crest's box. */
+internal const val FACE_BADGE_SHARE = 0.46f
 
 private const val RING_SHARE = 0.075f
 
