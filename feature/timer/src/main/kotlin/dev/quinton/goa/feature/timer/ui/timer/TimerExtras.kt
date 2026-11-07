@@ -76,7 +76,6 @@ import dev.quinton.goa.core.designsystem.component.LARGE_FONT_SCALE
 import dev.quinton.goa.core.designsystem.component.OfficialArt
 import dev.quinton.goa.core.designsystem.component.OfficialIcon
 import dev.quinton.goa.core.designsystem.component.PlateShape
-import dev.quinton.goa.core.designsystem.component.SlateButton
 import dev.quinton.goa.core.designsystem.component.TeamBadge
 import dev.quinton.goa.core.designsystem.component.TeamMark
 import dev.quinton.goa.core.designsystem.component.slatePlate
@@ -261,28 +260,74 @@ internal fun CoinSideDialog(current: Team?, onPick: (Team?) -> Unit, onDismiss: 
  * Table rules under the dial: the "Hurry up" button and team time-outs. A running Hurry up is not
  * here: it is pinned above the controls ([ShotClockPanel]) so it can't scroll out of sight.
  */
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 internal fun TableRulesBar(state: ActiveUiState, actions: TimerActions) {
     val shot = state.shotClock
     val startable = state.shotClockSeconds != null && shot == null
     if (!startable && state.timeOuts == null) return
     Spacer(Modifier.height(Spacing.md))
-    Row(
+    FlowRow(
         Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.spacedBy(Spacing.sm, Alignment.CenterHorizontally),
-        verticalAlignment = Alignment.CenterVertically,
+        verticalArrangement = Arrangement.spacedBy(Spacing.sm),
     ) {
         val seconds = state.shotClockSeconds
         if (seconds != null && shot == null) {
-            SlateButton(onClick = actions.onShotClock, modifier = Modifier.heightIn(min = 48.dp)) {
-                Icon(Icons.Outlined.Bolt, contentDescription = null, modifier = Modifier.size(18.dp))
-                Spacer(Modifier.width(Spacing.xs))
-                Text("Hurry up ${TimerText.durationLabel(seconds)}", maxLines = 1)
-            }
+            PillButton(
+                icon = Icons.Outlined.Bolt,
+                label = "Start hurry-up · ${TimerText.durationLabel(seconds)}",
+                spoken = "Start hurry-up, ${TimerText.spokenDuration(seconds.toLong())}",
+                onClick = actions.onShotClock,
+            )
         }
         state.timeOuts?.let { TimeOutButton(it, actions.onTimeOut) }
     }
 }
+
+/**
+ * A table-rule action under the dial: an outlined pill with a bronze edge and icon, and a verb, so it reads as
+ * a button to press and never as the status pills beside it (the step clock, plain slate). Slate under it so
+ * its words keep their contrast on the art.
+ */
+@Composable
+private fun PillButton(
+    icon: ImageVector,
+    label: String,
+    spoken: String,
+    onClick: () -> Unit,
+    enabled: Boolean = true,
+) {
+    val accent = MaterialTheme.colorScheme.primary
+    OutlinedButton(
+        onClick = onClick,
+        enabled = enabled,
+        shape = PILL,
+        border = BorderStroke(PILL_EDGE, if (enabled) accent else accent.copy(alpha = DISABLED_EDGE)),
+        contentPadding = PaddingValues(horizontal = Spacing.lg, vertical = Spacing.xs),
+        colors = ButtonDefaults.outlinedButtonColors(
+            contentColor = MaterialTheme.colorScheme.onSurface,
+            disabledContentColor = MaterialTheme.colorScheme.onSurfaceVariant,
+        ),
+        modifier = Modifier
+            .heightIn(min = 48.dp)
+            .slatePlate(PILL, brackets = false, edge = false)
+            .semantics { contentDescription = spoken },
+    ) {
+        Icon(
+            icon,
+            contentDescription = null,
+            tint = if (enabled) accent else MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.size(20.dp),
+        )
+        Spacer(Modifier.width(Spacing.sm))
+        Text(label, style = MaterialTheme.typography.labelLarge, maxLines = 1)
+    }
+}
+
+private val PILL = RoundedCornerShape(50)
+private val PILL_EDGE = 1.5.dp
+private const val DISABLED_EDGE = 0.4f
 
 /**
  * The running "Hurry up" countdown, pinned just above the timer controls (game night: inside the
@@ -390,15 +435,14 @@ private fun TimeOutButton(timeOuts: TimeOutsUi, onTimeOut: (Team) -> Unit) {
     var open by remember { mutableStateOf(false) }
     val any = timeOuts.redLeft + timeOuts.blueLeft > 0
     Box {
-        SlateButton(
+        val label = "Time-out +${TimerText.durationLabel(timeOuts.seconds)}"
+        PillButton(
+            icon = Icons.Outlined.MoreTime,
+            label = label,
+            spoken = label,
             onClick = { open = true },
             enabled = timeOuts.usable && any,
-            modifier = Modifier.heightIn(min = 48.dp),
-        ) {
-            Icon(Icons.Outlined.MoreTime, contentDescription = null, modifier = Modifier.size(18.dp))
-            Spacer(Modifier.width(Spacing.xs))
-            Text("Time-out +${TimerText.durationLabel(timeOuts.seconds)}", maxLines = 1)
-        }
+        )
         DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
             listOf(Team.RED to timeOuts.redLeft, Team.BLUE to timeOuts.blueLeft).forEach { (team, left) ->
                 DropdownMenuItem(

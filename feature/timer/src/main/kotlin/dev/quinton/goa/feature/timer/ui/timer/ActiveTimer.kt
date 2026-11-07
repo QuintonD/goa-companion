@@ -272,53 +272,67 @@ internal fun PinnedShotClock(state: ActiveUiState, actions: TimerActions, compac
 private val ActiveUiState.dialShown: Boolean get() = checklist == null || timed
 
 /**
- * Landscape: the dial fills the left half (a running Hurry up under it); header, phase, extras
- * and controls sit on the right.
+ * Landscape: the steel banner across the top, as on every screen; under it the dial on the left (a running
+ * Hurry up under it), phase, extras and controls on the right.
  */
 @Composable
 private fun LandscapeTimer(state: ActiveUiState, actions: TimerActions, header: @Composable () -> Unit) {
-    Row(Modifier.fillMaxSize()) {
-        // Hurry up and time-outs (and a running Hurry up) sit under the dial here, leaving the right
-        // column to the step text: there they scrolled under the controls in a 384 dp-tall window.
-        Column(Modifier.weight(0.45f).fillMaxHeight()) {
-            BoxWithConstraints(
-                Modifier.weight(1f).fillMaxWidth().padding(Spacing.md),
-                contentAlignment = Alignment.Center,
-            ) {
-                if (state.checklist != null && !state.timed) {
-                    Column(Modifier.verticalScroll(rememberScrollState())) { ChecklistStepCard(state, actions.onNext) }
-                } else {
-                    TimerDial(state, min(maxWidth, maxHeight).coerceAtLeast(120.dp), actions.onTogglePause)
-                }
-            }
-            if (state.dialShown) {
-                PhaseClockLine(state, Modifier.align(Alignment.CenterHorizontally).padding(bottom = Spacing.xs))
-            }
-            Column(Modifier.padding(horizontal = Spacing.screen)) { TableRulesBar(state, actions) }
-            PinnedShotClock(state, actions, compact = true, inDial = state.dialShown)
-        }
-        Column(Modifier.weight(0.55f).fillMaxHeight()) {
-            header()
-            Column(
-                Modifier
-                    .weight(1f)
-                    .fillMaxWidth()
-                    .verticalScroll(rememberScrollState())
-                    .padding(horizontal = Spacing.screen),
-                horizontalAlignment = Alignment.CenterHorizontally,
-            ) {
-                // Compact heading: the step text must fit above the controls in a short window.
-                Spacer(Modifier.height(Spacing.xs))
-                PhaseHeading(state, actions.onBack, compact = true)
-                StepDetail(state, actions.onOpenLevels)
-                SecondaryArea(state, actions, tableRules = false)
-                Spacer(Modifier.height(Spacing.md))
-            }
-            TimerControls(state, actions, compact = true)
+    Column(Modifier.fillMaxSize()) {
+        header()
+        Row(Modifier.weight(1f).fillMaxWidth()) {
+            LandscapeDialColumn(state, actions, Modifier.weight(0.45f).fillMaxHeight())
+            LandscapeStepColumn(state, actions, Modifier.weight(0.55f).fillMaxHeight())
         }
     }
 }
 
+@Composable
+private fun LandscapeDialColumn(state: ActiveUiState, actions: TimerActions, modifier: Modifier) {
+    // Hurry up and time-outs (and a running Hurry up) sit under the dial here, leaving the right
+    // column to the step text: there they scrolled under the controls in a 384 dp-tall window.
+    Column(modifier) {
+        BoxWithConstraints(
+            Modifier.weight(1f).fillMaxWidth().padding(horizontal = Spacing.md, vertical = Spacing.sm),
+            contentAlignment = Alignment.Center,
+        ) {
+            if (state.checklist != null && !state.timed) {
+                Column(Modifier.verticalScroll(rememberScrollState())) { ChecklistStepCard(state, actions.onNext) }
+            } else {
+                TimerDial(state, min(maxWidth, maxHeight).coerceAtLeast(120.dp), actions.onTogglePause)
+            }
+        }
+        if (state.dialShown) {
+            PhaseClockLine(state, Modifier.align(Alignment.CenterHorizontally).padding(bottom = Spacing.xs))
+        }
+        Column(Modifier.padding(horizontal = Spacing.screen)) { TableRulesBar(state, actions) }
+        PinnedShotClock(state, actions, compact = true, inDial = state.dialShown)
+        Spacer(Modifier.height(Spacing.sm))
+    }
+}
+
+@Composable
+private fun LandscapeStepColumn(state: ActiveUiState, actions: TimerActions, modifier: Modifier) {
+    Column(modifier) {
+        Column(
+            Modifier
+                .weight(1f)
+                .fillMaxWidth()
+                .verticalScroll(rememberScrollState())
+                .padding(horizontal = Spacing.screen),
+            horizontalAlignment = Alignment.CenterHorizontally,
+        ) {
+            // Compact heading: the step text must fit above the controls in a short window.
+            Spacer(Modifier.height(Spacing.sm))
+            PhaseHeading(state, actions.onBack, compact = true)
+            StepDetail(state, actions.onOpenLevels)
+            SecondaryArea(state, actions, tableRules = false)
+            Spacer(Modifier.height(Spacing.md))
+        }
+        TimerControls(state, actions, compact = true)
+    }
+}
+
+private val ROOMY_DIAL = 260.dp
 private const val SHORT_SCREEN_HEIGHT = 640
 private val SCROLL_FADE = 44.dp
 private val SCROLL_FADE_COLOR = Color(0xE6071019)
@@ -760,11 +774,18 @@ private fun TimerDial(state: ActiveUiState, size: Dp, onToggle: () -> Unit) {
     // names its urgency in words too, not by colour alone: left, the last seconds, time.
     val status = when {
         state.paused -> "Tap to resume"
+
         shot != null && shot.over -> "Time!"
+
         shot != null && shot.warning -> "Last seconds!"
+
         shot != null -> "Left · tap to pause"
+
         state.overtime -> "Overtime"
-        !state.timed -> "Elapsed · tap to pause"
+
+        // A small dial (a phone held sideways) has no room for the hint inside the ring: the word alone.
+        !state.timed -> if (size >= ROOMY_DIAL) "Elapsed · tap to pause" else "Elapsed"
+
         else -> null
     }
     val urgent = (state.overtime && shot == null) || shot?.over == true

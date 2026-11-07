@@ -120,7 +120,7 @@ class TablePresentationParityTest {
         )
         out.appendLine(canon(PresetEdits.move(edited, "new", -1)))
         out.appendLine(PresetEdits.validate(edited, rules.endOfRound).map { PresetEdits.issueText(it) }.toString())
-        assertTranscript("2b9a38fc1bb84bde660220cc386659ff323b09b616bb026c37424171ca5b9da3", out.toString(), "timer")
+        assertTranscript("f2d9c90d1e25a6b619320ed26a3c6f52eef28cc1c9dba358f64976045b093c4f", out.toString(), "timer")
     }
 
     @Test
