@@ -50,7 +50,7 @@ import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
+import androidx.compose.material3.IconToggleButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.SnackbarHost
@@ -100,6 +100,7 @@ import dev.quinton.goa.core.designsystem.component.PlateShape
 import dev.quinton.goa.core.designsystem.component.PlayerAvatar
 import dev.quinton.goa.core.designsystem.component.TeamBadge
 import dev.quinton.goa.core.designsystem.component.TitlePlate
+import dev.quinton.goa.core.designsystem.component.scaledIconSize
 import dev.quinton.goa.core.designsystem.component.selectableChipBorder
 import dev.quinton.goa.core.designsystem.component.selectedCheck
 import dev.quinton.goa.core.designsystem.component.teamColor
@@ -599,8 +600,7 @@ private fun TeamColumns(state: SetupUiState, actions: SetupActions) {
     val balanced = form.teamMode == TeamMode.BALANCED
     SectionCard(
         title = if (balanced) "Balanced by Elo" else "Tap a player to switch teams",
-        subtitle = form.balanceDifference?.let { "Average Elo differs by ${it.roundToInt()}" }
-            ?: if (balanced) "Lock players to keep them on a team, then re-balance" else null,
+        subtitle = form.balanceDifference?.let { "Average Elo differs by ${it.roundToInt()}" },
         trailing = if (balanced) {
             {
                 FilledTonalButton(colors = goaTonalButtonColors(), onClick = actions::rebalance) {
@@ -638,6 +638,27 @@ private fun TeamColumns(state: SetupUiState, actions: SetupActions) {
                 }
             }
         }
+        // What the padlocks do, once, under the players they belong to.
+        if (balanced) LockHint()
+    }
+}
+
+/** "🔒 Locked players stay on their team when re-balanced": the padlock's meaning, in its own icon. */
+@Composable
+private fun LockHint() {
+    Row(Modifier.padding(top = Spacing.sm), verticalAlignment = Alignment.CenterVertically) {
+        Icon(
+            Icons.Filled.Lock,
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.size(scaledIconSize(16.dp)),
+        )
+        Spacer(Modifier.width(Spacing.xs))
+        Text(
+            "Locked players stay on their team when re-balanced",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
     }
 }
 
@@ -671,10 +692,18 @@ private fun TeamMemberChip(
             Spacer(Modifier.width(Spacing.sm))
             Text(name, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f), maxLines = 2)
             if (showLock) {
-                IconButton(onClick = onLock) {
+                // A 48 dp toggle: "Keep Ada on Red", locked or not (a re-balance leaves a locked player be).
+                IconToggleButton(
+                    checked = locked,
+                    onCheckedChange = { onLock() },
+                    modifier = Modifier.size(48.dp).semantics {
+                        contentDescription = "Keep $name on ${teamName(team)}"
+                        stateDescription = if (locked) "Locked" else "Not locked"
+                    },
+                ) {
                     Icon(
                         if (locked) Icons.Filled.Lock else Icons.Outlined.LockOpen,
-                        contentDescription = if (locked) "Unlock $name" else "Lock $name to ${teamName(team)}",
+                        contentDescription = null,
                         tint = activeColor(locked),
                     )
                 }

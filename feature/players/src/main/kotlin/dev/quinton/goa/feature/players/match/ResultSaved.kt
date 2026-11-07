@@ -254,7 +254,7 @@ private fun PlayerChangeRow(line: PlayerChangeUi, ready: Boolean) {
             .padding(horizontal = Spacing.md, vertical = Spacing.sm),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        line.player?.let { PlayerAvatar(it, size = 36.dp) }
+        line.player?.let { PlayerAvatar(it, size = 40.dp, showFace = true) }
         Spacer(Modifier.width(Spacing.md))
         Column(Modifier.weight(1f)) {
             Text(

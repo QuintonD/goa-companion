@@ -19,7 +19,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import dev.quinton.goa.core.designsystem.component.GoaButton
 import dev.quinton.goa.core.designsystem.theme.GoaTextStyles
@@ -33,7 +32,7 @@ import java.time.format.DateTimeFormatter
 import java.util.Locale
 
 /**
- * The newest finished draft or logged match, with its line-up: "Set up" opens its board in one tap
+ * The newest finished draft or logged match, with its line-up: "Open in sandbox" opens its board in one tap
  * (Boards and New board). [onEdit] (New board) fills the teams with it instead, to change them.
  */
 @OptIn(ExperimentalLayoutApi::class)
@@ -57,12 +56,11 @@ internal fun LatestCard(
                     .weight(1f)
                     .semantics(mergeDescendants = true) { contentDescription = "$what, ${day(source.at)}: $names" },
             ) {
+                // Two lines rather than cut when the button leaves it little room.
                 Text(
                     "${what.uppercase()} · ${day(source.at)}",
                     style = GoaTextStyles.overline,
                     color = MaterialTheme.colorScheme.primary,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
                 )
                 FlowRow(
                     horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
@@ -84,8 +82,6 @@ internal fun LatestCard(
                     names,
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
                     modifier = Modifier.padding(top = 2.dp),
                 )
             }
@@ -93,11 +89,11 @@ internal fun LatestCard(
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                 GoaButton(
                     onClick = onSetUp,
-                    contentPadding = PaddingValues(horizontal = Spacing.lg),
+                    contentPadding = PaddingValues(horizontal = Spacing.md),
                     modifier = Modifier
                         .heightIn(min = 48.dp)
-                        .semantics { contentDescription = "Set up the latest line-up" },
-                ) { Text("Set up") }
+                        .semantics { contentDescription = "Open the latest line-up in the sandbox" },
+                ) { Text("Open in sandbox") }
                 if (onEdit != null) {
                     TextButton(onClick = onEdit, modifier = Modifier.heightIn(min = 40.dp)) { Text("Edit") }
                 }
