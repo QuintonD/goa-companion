@@ -23,6 +23,13 @@ object PuzzleText {
     fun numbered(info: PuzzleInfo): String =
         if (info.fullRound) "Full round ${info.number}. ${info.title}" else "${info.number}. ${info.title}"
 
+    /**
+     * A part of the book's progress, in the same words on the Play tab and the puzzle list: "1 of 50 positions",
+     * "2 of 22 rounds" (solved; TalkBack adds the word).
+     */
+    fun partCount(solved: Int, total: Int, rounds: Boolean): String =
+        "$solved of $total ${if (rounds) "rounds" else "positions"}"
+
     /** "Puzzle 3 of 12", "Full round 3 of 30". */
     fun place(info: PuzzleInfo, total: Int): String = "${short(info)} of $total"
 

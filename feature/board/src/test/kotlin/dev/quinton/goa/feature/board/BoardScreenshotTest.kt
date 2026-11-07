@@ -24,7 +24,6 @@ import com.github.takahirom.roborazzi.captureRoboImage
 import com.github.takahirom.roborazzi.captureScreenRoboImage
 import dev.quinton.goa.core.data.EditClock
 import dev.quinton.goa.core.data.game.StoredGame
-import dev.quinton.goa.core.data.puzzle.PuzzleProgress
 import dev.quinton.goa.core.designsystem.component.LocalBoardStyle
 import dev.quinton.goa.core.designsystem.theme.GoaTheme
 import dev.quinton.goa.core.domain.board.BoardGeometry
@@ -78,6 +77,7 @@ import dev.quinton.goa.feature.board.map.MapLayout
 import dev.quinton.goa.feature.board.map.MapOrientation
 import dev.quinton.goa.feature.board.map.MapViewport
 import dev.quinton.goa.feature.board.map.resolveTap
+import dev.quinton.goa.feature.board.play.puzzles.screenshotPuzzleProgress
 import dev.quinton.goa.feature.board.setup.NewBoardAction
 import dev.quinton.goa.feature.board.setup.NewBoardScreen
 import dev.quinton.goa.feature.board.setup.NewBoardUiState
@@ -197,10 +197,10 @@ class BoardScreenshotTest {
 
     /**
      * The Play tab as the app opens it: the real engine's heroes are playable and the real puzzle book is
-     * bundled ([solved] of them solved); [game]: a game in progress to resume.
+     * bundled, with the same progress as the puzzle list's screenshots; [game]: a game in progress to resume.
      */
     @Composable
-    private fun PlayHome(solved: Int = 3, game: Boolean = false) {
+    private fun PlayHome(game: Boolean = false) {
         val factory = remember { dev.quinton.goa.feature.board.play.fakeFactory() }
         val book = dev.quinton.goa.feature.board.play.puzzles.realPuzzleBook
         val vm = remember {
@@ -219,11 +219,7 @@ class BoardScreenshotTest {
                 EditClock { now },
                 { factory },
                 { book },
-                FakePuzzleProgressRepository(
-                    book.puzzles.take(solved).associate {
-                        it.id to PuzzleProgress(solved = true, solvedAt = 1, attempts = 1)
-                    },
-                ),
+                FakePuzzleProgressRepository(screenshotPuzzleProgress()),
             )
         }
         val state by vm.uiState.collectAsState()

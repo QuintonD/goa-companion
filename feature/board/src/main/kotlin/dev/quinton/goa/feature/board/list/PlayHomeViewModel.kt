@@ -70,13 +70,13 @@ class PlayHomeViewModel internal constructor(
         emit(engine != null && engine.playableHeroes.size >= 2 && engine.playableMaps.isNotEmpty())
     }
 
-    /** The playable puzzles' ids (empty while none can be played). */
-    private val puzzleIds = flow { emit(orNull { puzzleBook()?.puzzles?.map { it.id } }.orEmpty()) }
+    /** The playable puzzles (empty while none can be played). */
+    private val playablePuzzles = flow { emit(orNull { puzzleBook()?.puzzles }.orEmpty()) }
 
     private val puzzles = combine(
-        puzzleIds,
+        playablePuzzles,
         puzzleProgress.progress.catch { emit(emptyMap()) },
-    ) { ids, progress -> BoardsRules.puzzleHub(ids, progress) }
+    ) { list, progress -> BoardsRules.puzzleHubByPart(list, progress) }
 
     val uiState: StateFlow<PlayHomeUiState> = combine(
         catalogRepository.catalog.catch { emit(Catalog.EMPTY) },

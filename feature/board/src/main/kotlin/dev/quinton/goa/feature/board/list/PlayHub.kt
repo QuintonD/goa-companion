@@ -54,8 +54,8 @@ import dev.quinton.goa.feature.board.ui.PlateSurface
 
 /**
  * One of the Play tab's entries: a painted scene (the app's own art, `third_party/ASSETS.md`) framed in the slate
- * plate, its name engraved over the scene, then what it is and, in bronze, its state ("3 of 50 solved"). The whole
- * plate is one button; TalkBack reads its name, its state and what it is.
+ * plate, its name engraved over the scene, then, in bronze, its state ([status], or [progress]: "1 of 50 positions")
+ * and what it is. The whole plate is one button; TalkBack reads its name, its state and what it is.
  */
 @Composable
 internal fun ArtPlate(
@@ -68,6 +68,7 @@ internal fun ArtPlate(
     status: String? = null,
     enabled: Boolean = true,
     artAlignment: Alignment = Alignment.Center,
+    progress: (@Composable () -> Unit)? = null,
 ) {
     PlateSurface(
         onClick = onClick,
@@ -119,6 +120,7 @@ internal fun ArtPlate(
                             color = with(MaterialTheme.colorScheme) { if (enabled) primary else onSurfaceVariant },
                         )
                     }
+                    progress?.invoke()
                     Text(
                         text,
                         style = MaterialTheme.typography.bodySmall,
