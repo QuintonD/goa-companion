@@ -29,23 +29,24 @@ for w in $worktrees; do
 done
 git worktree prune
 
-# 2. Build leftovers, only when no build holds the lock.
+# 2. Build leftovers, under the build lock (waits up to 30 min for a running build to finish).
 lock="$HOME/.cache/goa-hillclimb-build.lock"
 mkdir -p "$HOME/.cache"
-if flock -n "$lock" true; then
-  flock -n "$lock" sh -c '
+if flock -w 1800 "$lock" true; then
+  flock -w 1800 "$lock" sh -c '
     # Robolectric native-runtime copies and other JVM temp (build.sh points java.io.tmpdir here).
     find "$HOME/.cache/goa-build-tmp" -mindepth 1 -maxdepth 1 -exec rm -rf {} + 2>/dev/null
     find /tmp -maxdepth 1 -user "$(id -u)" \( -name "robolectric*" -o -name "android-tmp*" \) -exec rm -rf {} + 2>/dev/null
     # Roborazzi intermediates (regenerated on the next record/verify).
     find "'"$repo"'" -path "*/build/intermediates/roborazzi" -prune -exec rm -rf {} + 2>/dev/null
     find "'"$repo"'" -path "*/build/outputs/roborazzi" -prune -exec rm -rf {} + 2>/dev/null
-    # Local build-cache entries nobody has touched for 6 hours (old worktree states are never reused).
-    find "$HOME/.gradle/caches/build-cache-1" -maxdepth 1 -type f -mmin +360 -delete 2>/dev/null
+    # Local build-cache entries untouched for an hour: with several worktrees building different states the cache
+    # grew to 17 GB in one round; old states are never reused.
+    find "$HOME/.gradle/caches/build-cache-1" -maxdepth 1 -type f -mmin +60 -delete 2>/dev/null
   '
   echo "build leftovers cleared"
 else
-  echo "a build holds the lock: build leftovers kept"
+  echo "the build lock stayed busy for 30 min: build leftovers kept"
 fi
 
 # 3. Judge scratch: composites are re-creatable; keep manifests and verdicts.
@@ -55,3 +56,6 @@ if [ -n "$scratch" ] && [ -d "$scratch" ]; then
 fi
 
 echo "free on /: $before -> $(df -h / | awk 'NR==2{print $4}')"
+free_kb=$(df -k / | awk 'NR==2{print $4}')
+[ "$free_kb" -lt 8000000 ] && echo "WARNING: under 8 GB free: do not start more worktrees" >&2
+exit 0

@@ -101,6 +101,7 @@ import dev.quinton.goa.feature.board.ui.badgeOverhang
 import dev.quinton.goa.feature.board.ui.cards.CardFocusState
 import dev.quinton.goa.feature.board.ui.cards.FocusCard
 import dev.quinton.goa.feature.board.ui.cards.cardFocusOrigin
+import dev.quinton.goa.feature.board.ui.cards.isSpell
 
 /** Turns in a round (p.7). */
 private const val TURNS = 4
@@ -658,11 +659,7 @@ internal fun HeroDetail(
             focus,
             onOpenSheet = onSpellbook?.takeIf { info.spells.isNotEmpty() }?.let { open -> { open(heroId) } },
         )
-        Text(
-            "Open information (p.4)",
-            style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
+        RuleRow("Open information", page = "p.4", live = false)
     }
     Column(modifier.fillMaxSize()) {
         HeroSheetHeader(table, hero, onDone)
@@ -808,7 +805,7 @@ private fun UltimateAndHand(table: TableUi, hero: HeroView, focus: CardFocusStat
     Row(horizontalArrangement = Arrangement.spacedBy(Spacing.md)) {
         if (ultimate != null) {
             Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                Section("Ultimate · p.16")
+                HeroSection("Ultimate", page = "p.16")
                 CardRow(listOf(CardView(ultimate.id)), table, focus, "$name · Ultimate", width = SHEET_CARD)
             }
         } else if (hero.ultimate) {
@@ -1054,6 +1051,11 @@ private fun ThumbRow(
                 ) {
                     TableCard(card, width = width, backOf = backOf)
                 }
+                // A hand-sized card says its name and numbers in a strip under it (the scan's print is too small).
+                if (card != null && !card.isSpell && width >= NUMBERED_THUMB) {
+                    CardCaption(card, width)
+                    CardNumbers(card, width)
+                }
                 val caption = captions.getOrNull(i).orEmpty()
                 if (caption.isNotEmpty()) {
                     Text(
@@ -1072,6 +1074,9 @@ private const val OFF_BOARD_ALPHA = 0.45f
 /** From this width the hero sheet shows the dashboard beside the rest. */
 private val WIDE_SHEET = 600.dp
 private val THUMB_CARD = 64.dp
+
+/** From this width a thumbnail carries its name and numbers under it ([CardNumbers]): the hand, not small rows. */
+private val NUMBERED_THUMB = 80.dp
 
 /** The Ultimate and the hand on the hero sheet (mock-up 05). */
 private val SHEET_CARD = 92.dp

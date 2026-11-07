@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -29,13 +30,13 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.outlined.CheckCircle
 import androidx.compose.material.icons.outlined.Person
+import androidx.compose.material.icons.outlined.PersonSearch
 import androidx.compose.material.icons.outlined.QrCode2
+import androidx.compose.material.icons.outlined.RadioButtonUnchecked
 import androidx.compose.material.icons.outlined.Share
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -65,12 +66,15 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import dev.quinton.goa.core.designsystem.component.CardTextBox
+import dev.quinton.goa.core.designsystem.component.DisabledReason
 import dev.quinton.goa.core.designsystem.component.GoaButton
 import dev.quinton.goa.core.designsystem.component.GoaDialog
+import dev.quinton.goa.core.designsystem.component.GoaOutlinedButton
 import dev.quinton.goa.core.designsystem.component.GoaPlate
 import dev.quinton.goa.core.designsystem.component.GoaScreen
 import dev.quinton.goa.core.designsystem.component.HeroPortrait
 import dev.quinton.goa.core.designsystem.component.PlateColor
+import dev.quinton.goa.core.designsystem.component.PlateRowDivider
 import dev.quinton.goa.core.designsystem.component.TeamMark
 import dev.quinton.goa.core.designsystem.component.scaledIconSize
 import dev.quinton.goa.core.designsystem.component.teamColor
@@ -140,7 +144,7 @@ fun OnlineLobbyScreen(
                 Facts(room, mapNames)
                 Invite(state, actions, onQr = { showQr = true })
                 Team.entries.forEach { team ->
-                    TeamSeats(state, room, team, heroes, actions)
+                    TeamSeats(state, room, team, heroes, actions, onPick = { picking = true })
                 }
                 Actions(state, actions, onPick = { picking = true })
             }
@@ -186,7 +190,7 @@ private fun Facts(room: RoomView, mapNames: Map<String, String>) {
 private fun Invite(state: LobbyUi, actions: OnlineLobbyActions, onQr: () -> Unit) {
     OnlineSection("Invite")
     Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-        OutlinedButton(
+        GoaOutlinedButton(
             onClick = { actions.onShare(shareText(state)) },
             modifier = Modifier.weight(1f).heightIn(min = 48.dp),
         ) {
@@ -194,7 +198,7 @@ private fun Invite(state: LobbyUi, actions: OnlineLobbyActions, onQr: () -> Unit
             Spacer(Modifier.width(Spacing.xs))
             Text("Share")
         }
-        OutlinedButton(onClick = onQr, modifier = Modifier.weight(1f).heightIn(min = 48.dp)) {
+        GoaOutlinedButton(onClick = onQr, modifier = Modifier.weight(1f).heightIn(min = 48.dp)) {
             Icon(Icons.Outlined.QrCode2, contentDescription = null)
             Spacer(Modifier.width(Spacing.xs))
             Text("QR")
@@ -213,6 +217,7 @@ private fun TeamSeats(
     team: Team,
     heroes: Map<String, BoardHero>,
     actions: OnlineLobbyActions,
+    onPick: () -> Unit,
 ) {
     Row(verticalAlignment = Alignment.CenterVertically) {
         TeamMark(team, markSize = scaledIconSize(12.dp))
@@ -221,12 +226,30 @@ private fun TeamSeats(
     }
     GoaPlate(Modifier.fillMaxWidth(), contentPadding = PaddingValues(0.dp)) {
         room.seats.filter { it.team == team }.sortedBy { it.index }.forEachIndexed { i, seat ->
-            if (i > 0) HorizontalDivider()
-            SeatRow(state, room, seat, heroes, actions)
+            if (i > 0) PlateRowDivider()
+            SeatRow(state, room, seat, heroes, actions, onPick)
         }
     }
 }
 
+/** Where a taken seat stands before the start, in the order a player gets through it. */
+private enum class SeatState(val label: String) {
+    CHOOSE_HERO("Choose hero"),
+    NOT_READY("Not ready"),
+    READY("Ready"),
+}
+
+private fun RoomSeat.state(): SeatState = when {
+    heroId == null -> SeatState.CHOOSE_HERO
+    ready -> SeatState.READY
+    else -> SeatState.NOT_READY
+}
+
+/**
+ * A seat: portrait (or an empty ring), name, hero and host, and on every taken seat its state at the end ("Choose
+ * hero", "Not ready", "Ready"), in words and a mark, never colour alone. Your own seat carries "Change hero" under
+ * your name once you have one; a free seat is a target ("+ Tap to sit here").
+ */
 @Composable
 private fun SeatRow(
     state: LobbyUi,
@@ -234,75 +257,121 @@ private fun SeatRow(
     seat: RoomSeat,
     heroes: Map<String, BoardHero>,
     actions: OnlineLobbyActions,
+    onPick: () -> Unit,
 ) {
     val taken = seat.accountId != null
     val mine = seat.accountId != null && seat.accountId == state.you
     val heroName = seat.heroId?.let { heroes.hero(it).name }
     val spoken = seatWords(seat, mine, heroName, room)
     val canSit = !taken && state.connected
-    Row(
+    val side = scaledIconSize(40.dp, 1.4f)
+    Column(
         Modifier
             .fillMaxWidth()
-            .heightIn(min = 56.dp)
-            .then(if (mine) Modifier.background(GoaTheme.colors.bronzeGlow) else Modifier)
-            .then(if (canSit) Modifier.clickable { actions.onSeat(seat.team, seat.index) } else Modifier)
-            .padding(horizontal = Spacing.md, vertical = Spacing.sm)
-            .clearAndSetSemantics {
-                contentDescription = spoken
-                if (canSit) role = Role.Button
-            },
-        verticalAlignment = Alignment.CenterVertically,
+            .then(if (mine) Modifier.background(GoaTheme.colors.bronzeGlow) else Modifier),
     ) {
-        val side = scaledIconSize(40.dp, 1.4f)
-        val portrait = Modifier.size(side).border(2.dp, teamColor(seat.team), CircleShape)
-        val heroId = seat.heroId
-        when {
-            heroId != null -> HeroPortrait(
-                heroId,
-                heroes.hero(heroId).portrait,
-                null,
-                portrait,
-                CircleShape,
-                framed = false,
-            )
-
-            taken -> SeatSilhouette(seat.team, side, taken = true)
-
-            else -> SeatSilhouette(seat.team, side, taken = false)
-        }
-        Spacer(Modifier.width(Spacing.md))
-        Column(Modifier.weight(1f)) {
-            Text(
-                when {
-                    mine -> "${seat.name.orEmpty()} (you)"
-                    taken -> seat.name.orEmpty()
-                    else -> "Free seat"
+        Row(
+            Modifier
+                .fillMaxWidth()
+                .heightIn(min = 56.dp)
+                .then(if (canSit) Modifier.clickable { actions.onSeat(seat.team, seat.index) } else Modifier)
+                .padding(horizontal = Spacing.md, vertical = Spacing.sm)
+                .clearAndSetSemantics {
+                    contentDescription = spoken
+                    if (canSit) role = Role.Button
                 },
-                style = MaterialTheme.typography.titleSmall,
-                fontWeight = if (taken) FontWeight.SemiBold else FontWeight.Normal,
-                color = if (taken) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-            Text(
-                listOfNotNull(
-                    heroName ?: "No hero yet".takeIf { taken },
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            val portrait = Modifier.size(side).border(2.dp, teamColor(seat.team), CircleShape)
+            val heroId = seat.heroId
+            when {
+                heroId != null -> HeroPortrait(
+                    heroId,
+                    heroes.hero(heroId).portrait,
+                    null,
+                    portrait,
+                    CircleShape,
+                    framed = false,
+                )
+
+                taken -> SeatSilhouette(seat.team, side, taken = true)
+
+                else -> SeatSilhouette(seat.team, side, taken = false)
+            }
+            Spacer(Modifier.width(Spacing.md))
+            Column(Modifier.weight(1f)) {
+                Text(
+                    when {
+                        mine -> "${seat.name.orEmpty()} (you)"
+                        taken -> seat.name.orEmpty()
+                        else -> "Free seat"
+                    },
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = if (taken) FontWeight.SemiBold else FontWeight.Normal,
+                    color = if (taken) {
+                        MaterialTheme.colorScheme.onSurface
+                    } else {
+                        MaterialTheme.colorScheme.onSurfaceVariant
+                    },
+                )
+                val sub = listOfNotNull(
+                    heroName,
                     "+ Tap to sit here".takeIf { canSit },
                     "Host".takeIf { seat.accountId != null && seat.accountId == room.hostAccountId },
-                ).joinToString(" · "),
-                style = if (canSit) MaterialTheme.typography.labelLarge else MaterialTheme.typography.bodySmall,
-                // A seat you can take is something you can do: teal, and in words.
-                color = if (canSit) MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.onSurfaceVariant,
-            )
+                ).joinToString(" · ")
+                if (sub.isNotEmpty()) {
+                    Text(
+                        sub,
+                        style = if (canSit) MaterialTheme.typography.labelLarge else MaterialTheme.typography.bodySmall,
+                        // A seat you can take is something you can do: teal, and in words.
+                        color = if (canSit) {
+                            MaterialTheme.colorScheme.secondary
+                        } else {
+                            MaterialTheme.colorScheme.onSurfaceVariant
+                        },
+                    )
+                }
+            }
+            if (taken) {
+                Spacer(Modifier.width(Spacing.sm))
+                SeatStateMark(seat.state())
+            }
         }
-        if (seat.ready) {
-            Icon(
-                Icons.Outlined.CheckCircle,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.secondary,
-                modifier = Modifier.size(scaledIconSize(20.dp)),
-            )
-            Spacer(Modifier.width(Spacing.xs))
-            Text("Ready", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.secondary)
+        if (mine && seat.heroId != null) {
+            TextButton(
+                onClick = onPick,
+                enabled = state.connected,
+                modifier = Modifier
+                    .padding(start = Spacing.md + side + Spacing.md - Spacing.sm, bottom = Spacing.xs)
+                    .heightIn(min = 48.dp),
+            ) { Text("Change hero") }
         }
+    }
+}
+
+/** A taken seat's state: a tick for Ready (teal), an open ring for Not ready, a portrait outline to choose a hero. */
+@Composable
+private fun SeatStateMark(state: SeatState) {
+    val ready = state == SeatState.READY
+    val tint = if (ready) MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.onSurfaceVariant
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        Icon(
+            when (state) {
+                SeatState.READY -> Icons.Outlined.CheckCircle
+                SeatState.NOT_READY -> Icons.Outlined.RadioButtonUnchecked
+                SeatState.CHOOSE_HERO -> Icons.Outlined.PersonSearch
+            },
+            contentDescription = null,
+            tint = tint,
+            modifier = Modifier.size(scaledIconSize(20.dp)),
+        )
+        Spacer(Modifier.width(Spacing.xs))
+        Text(
+            state.label,
+            style = MaterialTheme.typography.labelLarge,
+            color = tint,
+            fontWeight = if (ready) FontWeight.SemiBold else FontWeight.Normal,
+        )
     }
 }
 
@@ -347,29 +416,37 @@ private fun SeatSilhouette(team: Team, side: Dp, taken: Boolean) {
     }
 }
 
+/** One line of what the start waits for: done (a teal tick) or still to come (an open ring), and its words. */
+internal data class StartCheck(val done: Boolean, val words: String)
+
 /**
- * "Waiting for 1 more player and 2 to be ready · 1 of 4 ready", then who starts: the host, with the server's
- * Tie Breaker coin. Everyone ready says so.
+ * What the game's start waits for, as a checklist: seats taken, heroes chosen, everyone ready, and (for everyone but
+ * the host) who starts it. Counts come from the room the server sent.
  */
-private fun waitingWords(state: LobbyUi): String {
+internal fun startChecks(state: LobbyUi): List<StartCheck> {
     val seats = state.room?.seats.orEmpty()
-    val free = seats.count { it.accountId == null }
-    val unready = seats.count { it.accountId != null && !it.ready }
-    val waiting = listOfNotNull(
-        free.takeIf { it > 0 }?.let { if (it == 1) "1 more player" else "$it more players" },
-        unready.takeIf { it > 0 }?.let { "$it to be ready" },
+    val taken = seats.filter { it.accountId != null }
+    val withHero = taken.count { it.heroId != null }
+    val host = seats.firstOrNull { it.accountId != null && it.accountId == state.room?.hostAccountId }?.name
+    return listOfNotNull(
+        StartCheck(
+            taken.size == seats.size,
+            if (taken.size == seats.size) "Every seat taken" else "${taken.size} of ${seats.size} seats taken",
+        ),
+        StartCheck(
+            taken.isNotEmpty() && withHero == taken.size,
+            if (taken.isNotEmpty() && withHero == taken.size) {
+                "Every hero chosen"
+            } else {
+                "$withHero of ${taken.size} heroes chosen"
+            },
+        ),
+        StartCheck(
+            state.everyoneReady,
+            if (state.everyoneReady) "Everyone ready" else "${state.readyCount} of ${seats.size} ready",
+        ),
+        StartCheck(false, "${host ?: "The host"} starts the game").takeUnless { state.isHost },
     )
-    val count = "${state.readyCount} of ${state.seats.size} ready"
-    val who = if (state.isHost) {
-        "You start the game; the server flips the Tie Breaker coin."
-    } else {
-        "The host starts the game."
-    }
-    return if (waiting.isEmpty()) {
-        "Everyone is ready. $who"
-    } else {
-        "Waiting for ${waiting.joinToString(" and ")} · $count. $who"
-    }
 }
 
 private fun seatWords(seat: RoomSeat, mine: Boolean, heroName: String?, room: RoomView): String = buildString {
@@ -387,36 +464,92 @@ private fun seatWords(seat: RoomSeat, mine: Boolean, heroName: String?, room: Ro
     }
 }
 
+/** The checklist, one TalkBack node, announced politely as the room changes. */
+@Composable
+private fun StartChecklist(state: LobbyUi) {
+    val checks = startChecks(state)
+    Column(
+        Modifier
+            .fillMaxWidth()
+            .semantics(mergeDescendants = true) { liveRegion = LiveRegionMode.Polite },
+        verticalArrangement = Arrangement.spacedBy(Spacing.xs),
+    ) {
+        checks.forEach { check ->
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(
+                    if (check.done) Icons.Outlined.CheckCircle else Icons.Outlined.RadioButtonUnchecked,
+                    contentDescription = if (check.done) "Done:" else "Waiting:",
+                    tint = if (check.done) {
+                        MaterialTheme.colorScheme.secondary
+                    } else {
+                        MaterialTheme.colorScheme.onSurfaceVariant
+                    },
+                    modifier = Modifier.size(scaledIconSize(18.dp)),
+                )
+                Spacer(Modifier.width(Spacing.sm))
+                Text(
+                    check.words,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = if (check.done) {
+                        MaterialTheme.colorScheme.onSurface
+                    } else {
+                        MaterialTheme.colorScheme.onSurfaceVariant
+                    },
+                )
+            }
+        }
+    }
+}
+
+/**
+ * The start checklist, then only this player's next step in bronze: choose a hero, then "I'm ready", then (the host)
+ * "Start the game", off with its reason until everyone is ready. Taking it back is a quiet outlined button.
+ */
 @Composable
 private fun Actions(state: LobbyUi, actions: OnlineLobbyActions, onPick: () -> Unit) {
     val seat = state.yourSeat
+    val ready = seat?.ready == true
     Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-        OutlinedButton(
-            onClick = onPick,
-            enabled = seat != null && state.connected,
-            modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp),
-        ) { Text(if (seat?.heroId == null) "Pick your hero" else "Change hero") }
-        val ready = seat?.ready == true
-        GoaButton(
-            onClick = { actions.onReady(!ready) },
-            enabled = state.canReady,
-            modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp),
-        ) { Text(if (ready) "Not ready after all" else "I'm ready") }
+        StartChecklist(state)
+        Spacer(Modifier.height(Spacing.xs))
+        when {
+            seat == null -> Unit
+
+            seat.heroId == null -> GoaButton(
+                onClick = onPick,
+                enabled = state.connected,
+                modifier = Modifier.fillMaxWidth().heightIn(min = 52.dp),
+            ) { Text("Choose your hero") }
+
+            !ready -> GoaButton(
+                onClick = { actions.onReady(true) },
+                enabled = state.canReady,
+                modifier = Modifier.fillMaxWidth().heightIn(min = 52.dp),
+            ) { Text("I'm ready") }
+
+            else -> Unit
+        }
+        // The host always sees the start (unlit, with its reason, until everyone is ready) and who flips the coin.
         if (state.isHost) {
             GoaButton(
                 onClick = actions.onStart,
                 enabled = state.canStart,
                 modifier = Modifier.fillMaxWidth().heightIn(min = 52.dp),
             ) { Text("Start the game") }
+            if (!state.canStart) DisabledReason("Starts when every seat is taken and everyone is ready.")
+            Text(
+                "You start the game; the server flips the Tie Breaker coin.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
         }
-        // What the start waits for, in words: a greyed button alone doesn't say why.
-        Text(
-            waitingWords(state),
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            textAlign = TextAlign.Center,
-            modifier = Modifier.fillMaxWidth().semantics { liveRegion = LiveRegionMode.Polite },
-        )
+        if (ready) {
+            GoaOutlinedButton(
+                onClick = { actions.onReady(false) },
+                enabled = state.connected,
+                modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp),
+            ) { Text("Not ready after all") }
+        }
         TextButton(onClick = actions.onLeave, modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp)) {
             Text("Leave the room", color = MaterialTheme.colorScheme.error)
         }

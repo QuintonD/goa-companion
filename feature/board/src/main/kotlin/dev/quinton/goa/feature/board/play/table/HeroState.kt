@@ -511,7 +511,7 @@ private fun dpToSp(value: Float): TextUnit = with(LocalDensity.current) { value.
 @Composable
 internal fun ItemsSection(table: TableUi, hero: HeroView, focus: CardFocusState) {
     if (hero.itemStats.isEmpty() && hero.items.isEmpty()) return
-    HeroSection("Items · p.16")
+    HeroSection("Items", page = "p.16")
     if (hero.itemStats.isNotEmpty()) {
         FlowRow(
             horizontalArrangement = Arrangement.spacedBy(Spacing.md),
@@ -542,7 +542,7 @@ internal fun ItemsSection(table: TableUi, hero: HeroView, focus: CardFocusState)
         // A puzzle shows the other side's too, and there "only you" isn't so.
         Quiet(
             if (hero.heroId in table.mine) {
-                "Tucked under the dashboard: only you see which cards (p.4)."
+                "Tucked under the dashboard: only you see which cards."
             } else {
                 "Tucked under the dashboard: open in this puzzle."
             },
@@ -586,13 +586,20 @@ internal fun MarkersSection(table: TableUi, hero: HeroView) {
 }
 
 @Composable
-internal fun HeroSection(title: String) {
-    Text(
-        title,
-        style = GoaTextStyles.sectionHead,
-        color = GoaTheme.colors.heading,
-        modifier = Modifier.semantics { heading() },
-    )
+internal fun HeroSection(title: String, page: String? = null) {
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        Text(
+            title,
+            style = GoaTextStyles.sectionHead,
+            color = GoaTheme.colors.heading,
+            modifier = Modifier.semantics { heading() },
+        )
+        // The rulebook page as a small pill after the head, never in its words.
+        page?.let {
+            Spacer(Modifier.width(Spacing.sm))
+            PagePill(it)
+        }
+    }
 }
 
 @Composable

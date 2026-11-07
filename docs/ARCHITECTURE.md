@@ -223,7 +223,7 @@ Features never depend on each other; cross-feature navigation goes through `app`
   retry with exponential backoff from 30 s, eight attempts; a `Retry-After` longer than the backoff
   queues a fresh run with that initial delay behind the current one), the Group screen's
   `SyncServerCard`. `SyncServerControl` (core:data, bound to the scheduler) lets the Group screen's
-  Sync now and the Players tab's sync icon sync through the server. WorkManager
+  Sync through the server and the Players tab's sync icon sync through the server. WorkManager
   starts from `GoaApplication` (`Configuration.Provider`, `HiltWorkerFactory`); its startup
   initializer, foreground service and `FOREGROUND_SERVICE` are removed from the manifest.
 - **Shell.** Sync files reach `MainActivity` as VIEW/SEND intents and open `SyncFileImportRoute` on

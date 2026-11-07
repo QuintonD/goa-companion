@@ -453,13 +453,18 @@ class PlayScreenshotTest {
         Game(remember { at(DecisionKind.CHOOSE_UNIT) { Choice.Unit("tigerclaw") } })
     }
 
-    /** Defend (p.14): the Attack, each card's Defense total, Holds or Falls, Don't defend. */
+    /**
+     * Defend (p.14): the Attack, each card's Defense total against it, Don't defend. No card saves Tigerclaw here, so
+     * nothing is chosen for the player and "Don't defend · keep your cards" is the button.
+     */
     @Test
-    fun tableDefendDark() = capture(ThemeMode.DARK) {
+    fun tableDefendDark() = capture(ThemeMode.DARK) { Game(remember { at(DecisionKind.DEFEND) }) }
+
+    /** A card chosen anyway: the button names it ("Defend · Blink Strike"), the rule row counts it. */
+    @Test
+    fun tableDefendLight() = capture(ThemeMode.LIGHT) {
         Game(remember { at(DecisionKind.DEFEND) { s -> s.pending!!.options.first() } })
     }
-
-    @Test fun tableDefendLight() = capture(ThemeMode.LIGHT) { Game(remember { at(DecisionKind.DEFEND) }) }
 
     @Config(qualifiers = "w384dp-h832dp-xxhdpi")
     @Test

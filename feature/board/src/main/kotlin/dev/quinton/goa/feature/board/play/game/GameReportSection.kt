@@ -10,7 +10,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -27,6 +26,9 @@ import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import dev.quinton.goa.core.designsystem.component.GoaOutlinedButton
+import dev.quinton.goa.core.designsystem.component.SectionHeader
+import dev.quinton.goa.core.designsystem.component.SectionHeaderPaddingTight
 import dev.quinton.goa.core.designsystem.theme.GoaTextStyles
 import dev.quinton.goa.core.designsystem.theme.Spacing
 import dev.quinton.goa.core.game.DecisionKind
@@ -52,10 +54,10 @@ internal fun GameReportSection(
 ) {
     val ui = play.report
     Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-        Overline(stringResource(R.string.report_title))
+        SectionHeader(stringResource(R.string.report_title), padding = SectionHeaderPaddingTight)
         when {
             ui == null -> {
-                OutlinedButton(
+                GoaOutlinedButton(
                     onClick = { onAction(GameAction.StartReport) },
                     modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp),
                 ) { Text(stringResource(R.string.report_start)) }
@@ -71,16 +73,6 @@ internal fun GameReportSection(
             ui.report != null -> Report(play, ui.report!!, focus, onLogAt)
         }
     }
-}
-
-@Composable
-private fun Overline(text: String) {
-    Text(
-        text.uppercase(),
-        style = GoaTextStyles.overline,
-        color = MaterialTheme.colorScheme.primary,
-        modifier = Modifier.semantics { heading() },
-    )
 }
 
 @Composable
