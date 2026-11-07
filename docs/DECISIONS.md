@@ -2808,3 +2808,45 @@ draws a scan larger than 1.6 times its own pixels, with "Read the card as text" 
 
 **Consequences:** A sharper source exists (Stats-of-Atlantis, 775×1071 against our 546×768); using it means raising the
 import's 768 px cap and re-running `import-catalog`.
+
+## ADR-072 — Decide first: whose decision, outcomes on the button, look before you pick (2026-11-07)
+**Context:** Round 2 of the UI hill climb (ADR-066). Both judges: in the game and puzzle panels the choices fell below the
+fold, the header named one hero while the footer showed another's hand, defence options weren't comparable, and in the
+draft a tap on a pool tile could start a pick while one meant to look.
+
+**Decision:** At 100 % on a 411 dp phone every choice and the commit button show without scrolling. The panel strip names
+the deciding seat with portrait and team mark ("Wasp decides · Space"); only that seat's hand shows, hidden while the
+computer decides. A card-asked action question has no prompt plate. Every defence option states its engine verdict
+("Defeated", "Defends", "Blocks it", "Its text decides") and the commit label carries it. Choosable cards carry a 14 sp
+name and catalog numbers, with Read card beside the commit button. A puzzle's setup moves to a Setup sheet, verbatim and
+never truncated. Steel controls follow the theme. In the draft a pool tile's tap opens the hero sheet; its pinned Pick or
+Ban commits (the confirm dialog is gone; still two taps). Recording a result: winner radio cards and a pinned bronze Save,
+off until valid with the reason under it. Extends ADR-068 and ADR-069.
+
+**Consequences:** The shared defence labels in `core:play` read "Defends"/"Defeated", so the web's text changes too.
+
+## ADR-073 — One frame, one choice look (2026-11-07)
+**Decision:** A section is one steel plate with brackets; rows inside it have no ground or border of their own (a hairline
+`PlateRowDivider` between them), and a selected row inside a plate is full width with a bronze wash, a 3 dp bronze bar at
+its leading edge and its radio. Every selection (chip, segment, plate, tab, tile) is bronze edge, bronze wash and a check
+or radio. A disabled button is a filled unlit slab with its reason under it (`DisabledReason`), never an outline that
+reads as a text field; a disabled banner icon is white at 40 % with a dark halo. Overlines are at least 13 sp. One hero stat
+readout (`HeroStatBlock`). The hero page's Overview, Deck and FAQ are real tabs.
+
+## ADR-074 — Crest shields, podiums, and the table's own strip and dashboard (2026-11-07)
+**Decision:** Player crests are filled heraldic shields (bronze in steel or steel in bronze, alternating; still team-neutral,
+ADR-070), generated from the line masters by `design/tools/crest_shields.py`; online accounts show a steel shield with an
+initial. Leaderboards stand their top three on a `Podium` (tied places on equal steps; rows from font scale 1.3) and end
+short lists in `BattlefieldFoot`; "Provisional" is said once when it applies to all. The turn track has its own opaque
+strip under the HUD; card names take two lines before shrinking. Look-alike minions in a question are numbered on the map
+and in the list. The hero dashboard is redrawn as vectors after p.16 (ADR-058): steel frame, title plate, parchment Turn
+tabs, Level and Coins as chips; the upscaled frame image stays for the web. The map's NOW tag is bronze.
+
+## ADR-075 — Compact bars, and card scans at their own size (2026-11-07)
+**Decision:** Bars narrower than 380 dp or at text scale 1.5× and above end in the banner's plain rounded end without the
+medallion (`bannerCompact`); regular bars keep it (refines ADR-058, ADR-067). Card scans are bundled at the pinned
+dmrediger/goa2 size, 729×1026, instead of 546×768; the viewer's cap (ADR-071) follows. **Corrects ADR-071:** the
+Stats-of-Atlantis images are frameless card art, not scans, so they cannot replace ours.
+
+**Consequences:** Card assets grow from about 33 MB to 61 MB; a release APK from about 43 MB to about 71 MB, under the
+~100 MB ceiling in ARCHITECTURE.md.
