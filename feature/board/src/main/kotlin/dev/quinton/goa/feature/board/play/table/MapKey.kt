@@ -36,7 +36,9 @@ import dev.quinton.goa.core.game.Choice
 import dev.quinton.goa.feature.board.ui.ArtBoardPalette
 import dev.quinton.goa.feature.board.ui.PlateSurface
 import dev.quinton.goa.feature.board.ui.drawFastTravelCell
+import dev.quinton.goa.feature.board.ui.drawNumberChip
 import dev.quinton.goa.feature.board.ui.drawRadiusCell
+import dev.quinton.goa.feature.board.ui.drawRangeCell
 import dev.quinton.goa.feature.board.ui.drawTargetCell
 import kotlin.math.PI
 import kotlin.math.cos
@@ -162,24 +164,25 @@ private fun KeySwatch(item: MapKeyItem) {
                 drawText(text, topLeft = c - Offset(text.size.width / 2f, text.size.height / 2f))
             }
 
+            // The map's own strokes at the swatch's size: a space's faint edge with the violet inner outline (what a
+            // range cell is on the map, with or without a number in it), not a free-standing violet hexagon.
             MapKeyItem.RANGE -> {
-                val hex = hexagon(c, r * 0.78f)
-                drawPath(hex, palette.halo, style = Stroke(width = r * 0.3f, join = StrokeJoin.Round))
-                drawPath(hex, palette.range, style = Stroke(width = r * 0.15f, join = StrokeJoin.Round))
+                drawPath(hexagon(c, r * 0.95f), CellEdge, style = Stroke(width = r * 0.06f, join = StrokeJoin.Round))
+                drawRangeCell(corners(c, r * 0.95f), c, r * 0.95f, palette)
             }
 
             MapKeyItem.PATH, MapKeyItem.MEASURE -> drawPathSwatch(r, palette.halo, palette.measure)
 
+            // A lit space with the region's white edge and the map's own number chip (dark, cream rim).
             MapKeyItem.MOVEMENT -> {
                 val hex = hexagon(c, r * 0.95f)
                 drawPath(hex, LitFill)
                 drawPath(hex, Color.White, style = Stroke(width = r * 0.14f, join = StrokeJoin.Round))
-                drawCircle(ChipGround, radius = r * 0.5f, center = c)
                 val text = measurer.measure(
                     "2",
                     TextStyle(color = Color.White, fontSize = 9.sp, fontWeight = FontWeight.Bold),
                 )
-                drawText(text, topLeft = c - Offset(text.size.width / 2f, text.size.height / 2f))
+                drawNumberChip(text, c, r * 1.2f)
             }
 
             MapKeyItem.FAST_TRAVEL -> drawFastTravelCell(corners(c, r * 0.95f), c, r * 0.95f, palette)
@@ -224,3 +227,4 @@ private const val KEY_MAX_SCALE = 1.3f
 private val LitFill = Color(0xFFD9C9A3)
 private val ChipGround = Color(0xFF0B1622)
 private val ChipEdge = Color(0xFFF3EBD6)
+private val CellEdge = Color(0x80F3EBD6)

@@ -157,6 +157,7 @@ fun DecisionPanel(
                 }
                 NoteBox(PlateColor.of(source.color), table, decision, focus)
                 SpellReasonsIfNoPrimary(table)
+                Footnote(table, decision)
             }
 
             layout == PanelLayout.CARD_BESIDE && source != null -> {
@@ -173,6 +174,7 @@ fun DecisionPanel(
                     Choices(table, table.buttonOptions, onAnswer, busy) { CastPreview(table, focus) }
                     NoteBox(PlateColor.of(source.color), table, decision, focus)
                     SpellReasonsIfNoPrimary(table)
+                    Footnote(table, decision)
                 }
                 if (board) BoardChips(table, onSelect)
             }
@@ -185,6 +187,7 @@ fun DecisionPanel(
                 }
                 Choices(table, table.buttonOptions, onAnswer, busy)
                 NoteBox(PlateColor.SILVER, table, decision, focus)
+                Footnote(table, decision)
             }
         }
     }
@@ -192,32 +195,34 @@ fun DecisionPanel(
 
 private fun hasBoardOptions(table: TableUi) = table.spaceOptions.isNotEmpty() || table.pieceOptions.isNotEmpty()
 
-/** What a question rests on that no card prints, in the app's words, in a line of its own. */
-private fun footnote(table: TableUi, decision: Decision): String? = when {
-    // With the primary offered, its chip says it ("Its text applies (p.7)").
-    decision.kind == DecisionKind.CHOOSE_ACTION && table.buttonOptions.any { it is Choice.Action } &&
-        Choice.Action(ActionType.PRIMARY) !in table.buttonOptions ->
-        "Only the primary action applies the card's text (p.7)."
+/** What a question rests on that no card prints, in the app's words, and the rulebook page it is on. */
+private fun footnote(table: TableUi, decision: Decision): Pair<String, String>? = when {
+    decision.kind == DecisionKind.CHOOSE_ACTION && table.buttonOptions.any { it is Choice.Action } ->
+        "Only the card action (the card's primary action) applies the card's text." to "p.7"
 
     // A bare "who acts first?" over two portraits told nothing about why it was asked.
     decision.kind == DecisionKind.ACT_FIRST ->
         "Heroes of one team on the same initiative choose which of them acts first; between " +
-            "teams the Tie Breaker coin decides, then it flips (p.7)."
+            "teams the Tie Breaker coin decides, then it flips." to "p.7"
 
     else -> null
 }
 
+/** The question's one rule row ([RuleRow]): its page there, and nowhere on its buttons. */
+@Composable
+private fun Footnote(table: TableUi, decision: Decision) {
+    footnote(table, decision)?.let { (text, page) -> RuleRow(text, page, live = false) }
+}
+
 /**
- * The app's notes on the question in the asking card's text box, in the app's type: the actions it can't offer (a
- * reason may be situational), then what it rests on. Its tab says "Note": these are not the rulebook's words.
+ * The actions the asking card prints that the question can't offer, in the card's text box, in the app's type (a
+ * reason may be situational). Its tab says "Note": these are not the rulebook's words.
  */
 @Composable
 private fun NoteBox(color: PlateColor, table: TableUi, decision: Decision, focus: CardFocusState) {
-    val note = footnote(table, decision)
-    if (note == null && unavailableActions(decision).isEmpty()) return
+    if (unavailableActions(decision).isEmpty()) return
     CardTextBox(color, Modifier.fillMaxWidth(), cap = "Note") {
         Unavailable(table, decision, focus)
-        note?.let { Text(it, style = smallBoxText()) }
     }
 }
 
@@ -235,13 +240,16 @@ private fun QuestionBox(
     val action = table.track?.slots
         ?.firstOrNull { it.heroId == decision.seat && it.cards.any { view -> view.cardId == card.id } }
         ?.action
+    // A question that isn't the card's action (respawning before it resolves, p.7) is labelled by what it asks: never
+    // an ATTACK tab and crossed blades over "Respawn in your Throne Zone?".
+    val own = ownQuestion(decision.kind)
     CardTextBox(
-        PlateColor.of(card.color),
+        if (own != null) PlateColor.SILVER else PlateColor.of(card.color),
         Modifier.fillMaxWidth(),
-        cap = action?.let { actionWord(it, card) } ?: PlayText.primary(card.primary),
+        cap = own ?: action?.let { actionWord(it, card) } ?: PlayText.primary(card.primary),
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            lookAction(action, card)?.let {
+            lookAction(action, card)?.takeIf { own == null }?.let {
                 ActionIcon(it, size = scaledIconSize(28.dp, 1.3f))
                 Spacer(Modifier.width(Spacing.sm))
             }
@@ -255,6 +263,12 @@ private fun QuestionBox(
             }
         }
     }
+}
+
+/** The tab of a question asked while a card resolves but not by its action, by the question's own kind; else null. */
+private fun ownQuestion(kind: DecisionKind): String? = when (kind) {
+    DecisionKind.RESPAWN, DecisionKind.ACT_FIRST, DecisionKind.MINION_RETURN, DecisionKind.REMOVE_MINION -> kindTitle(kind)
+    else -> null
 }
 
 /** A question the panel shows by its answers alone, for TalkBack (a polite live region, as the shown prompt). */
@@ -526,7 +540,12 @@ private fun CardBeside(
                                 true
                             }
                         },
-                ) { TableCard(card, width = width) }
+                ) {
+                    Box {
+                        TableCard(card, width = width)
+                        if (!spell) CardNumbers(card, width, foot = large)
+                    }
+                }
                 reach?.let {
                     Text(
                         it,
@@ -830,8 +849,9 @@ private fun ActionChip(
 ) {
     val card = table.sourceCard
     val primary = action == ActionType.PRIMARY
-    val label = actionLabel(action, card)
-    val rule = if (primary) PRIMARY_RULE else actionRule(action)
+    val label = if (primary) "Card action · ${actionLabel(action, card)}" else actionLabel(action, card)
+    // The rule a card doesn't print, in a few words; its page is in the question's rule row, not on the chip.
+    val rule = actionRule(action)?.replace(PAGE, "")?.trim()
     val tone = if (primary) PlateTone.GOLD else PlateTone.STEEL
     val content = tone.content
     PlateToneSurface(
@@ -842,7 +862,7 @@ private fun ActionChip(
             .heightIn(min = 48.dp)
             .clearAndSetSemantics {
                 contentDescription =
-                    listOfNotNull(label, "primary action".takeIf { primary }, rule).joinToString(", ")
+                    listOfNotNull(label, "the card's primary action".takeIf { primary }, rule).joinToString(", ")
                 role = Role.Button
                 if (busy) disabled()
                 onClick(label = "Choose") {
@@ -870,18 +890,14 @@ private fun ActionChip(
             )
             Spacer(Modifier.width(Spacing.sm))
             Column(Modifier.weight(1f)) {
-                if (primary) Text("PRIMARY", style = GoaTextStyles.overline, color = content, maxLines = 1)
-                // Brief (a short side panel): the rule's page on the label's own line, "Fast Travel (p.11)".
-                val page = rule?.takeIf { brief }?.let { PAGE.find(it)?.value }
                 Text(
-                    if (page != null) "$label  $page" else label,
+                    label,
                     style = MaterialTheme.typography.titleSmall,
                     color = content,
                     fontWeight = FontWeight.SemiBold,
                 )
-                if (page == null) {
-                    rule?.let { Text(it, style = MaterialTheme.typography.bodySmall, color = content) }
-                }
+                // Brief (a short side panel): the label alone, every action in view (TalkBack hears the rule).
+                if (!brief) rule?.let { Text(it, style = MaterialTheme.typography.bodySmall, color = content) }
             }
         }
     }
@@ -900,9 +916,6 @@ private val PAGE = Regex("\\(p\\.\\d+\\)$")
 /** A phone held sideways with little height: the asking card beside compact actions, every one in view. */
 @Composable
 private fun shortSideways(): Boolean = isLandscape() && LocalConfiguration.current.screenHeightDp < SHORT_LANDSCAPE_DP
-
-/** The primary chip's line: what no card prints about it. */
-private const val PRIMARY_RULE = "Its text applies (p.7)"
 
 /** Sideways and shorter than this, the asking card beside the actions is small: every action stays in view. */
 private const val SHORT_LANDSCAPE_DP = 480

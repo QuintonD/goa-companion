@@ -511,7 +511,7 @@ private fun dpToSp(value: Float): TextUnit = with(LocalDensity.current) { value.
 @Composable
 internal fun ItemsSection(table: TableUi, hero: HeroView, focus: CardFocusState) {
     if (hero.itemStats.isEmpty() && hero.items.isEmpty()) return
-    HeroSection("Items · p.16")
+    HeroSection("Items")
     if (hero.itemStats.isNotEmpty()) {
         FlowRow(
             horizontalArrangement = Arrangement.spacedBy(Spacing.md),
@@ -542,7 +542,7 @@ internal fun ItemsSection(table: TableUi, hero: HeroView, focus: CardFocusState)
         // A puzzle shows the other side's too, and there "only you" isn't so.
         Quiet(
             if (hero.heroId in table.mine) {
-                "Tucked under the dashboard: only you see which cards (p.4)."
+                "Tucked under the dashboard: only you see which cards."
             } else {
                 "Tucked under the dashboard: open in this puzzle."
             },

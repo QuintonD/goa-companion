@@ -6,10 +6,12 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -19,32 +21,45 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.EmojiEvents
+import androidx.compose.material.icons.outlined.HeartBroken
 import androidx.compose.material.icons.outlined.Lightbulb
+import androidx.compose.material.icons.outlined.MilitaryTech
+import androidx.compose.material.icons.outlined.Person
+import androidx.compose.material.icons.outlined.Replay
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.RectangleShape
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
-import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import dev.quinton.goa.core.designsystem.component.ActionIcon
+import dev.quinton.goa.core.designsystem.component.CoinIcon
+import dev.quinton.goa.core.designsystem.component.GoaButton
+import dev.quinton.goa.core.designsystem.component.GoaOutlinedButton
+import dev.quinton.goa.core.designsystem.component.GoaPlateTheme
 import dev.quinton.goa.core.designsystem.component.HeroPortrait
+import dev.quinton.goa.core.designsystem.component.LookAction
+import dev.quinton.goa.core.designsystem.component.SectionHeader
+import dev.quinton.goa.core.designsystem.component.SectionHeaderPaddingTight
 import dev.quinton.goa.core.designsystem.component.TeamMark
 import dev.quinton.goa.core.designsystem.component.TitlePlate
 import dev.quinton.goa.core.designsystem.component.scaledIconSize
+import dev.quinton.goa.core.designsystem.component.slatePlate
 import dev.quinton.goa.core.designsystem.component.teamColor
 import dev.quinton.goa.core.designsystem.theme.GoaTextStyles
 import dev.quinton.goa.core.designsystem.theme.GoaTheme
@@ -54,14 +69,14 @@ import dev.quinton.goa.core.game.Controller
 import dev.quinton.goa.core.model.match.Team
 import dev.quinton.goa.feature.board.BoardText
 import dev.quinton.goa.feature.board.play.PlayText
-import dev.quinton.goa.feature.board.ui.PlateButton
 import dev.quinton.goa.feature.board.ui.PlateSurface
 import dev.quinton.goa.feature.board.ui.cards.CardFocusState
 
 /**
- * Game over: who won and how, in the rulebook's words; how each hero did; take backs and nudges;
- * the coach's turning points (when Coach is on), each with its round and turn; Rematch (same
- * setup, a new coin flip), New game, Done. Online (ADR-056): whose team won and whether it counted, with
+ * Game over: who won and how, in the rulebook's words; how each hero did as a grid (Level, heroes and minions
+ * defeated, times defeated, coins) with an icon over each column; take backs and nudges; the coach's turning points
+ * (when Coach is on), each with its round and turn; the report; New game. Rematch (same setup, a new coin flip) and
+ * Done are pinned under it, in reach without scrolling. Online (ADR-056): whose team won and whether it counted, with
  * no report, rematch or new game: those need a whole game, which a phone doesn't hold.
  */
 @Composable
@@ -75,146 +90,170 @@ internal fun GameOverContent(
     focus: CardFocusState? = null,
     onLogAt: (Int) -> Unit = {},
 ) {
-    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.TopCenter) {
-        Column(
-            Modifier
-                .widthIn(max = 640.dp)
-                .fillMaxWidth()
-                .verticalScroll(rememberScrollState())
-                .padding(horizontal = Spacing.screen, vertical = Spacing.lg),
-            verticalArrangement = Arrangement.spacedBy(Spacing.lg),
-        ) {
-            PlateSurface(
-                brackets = true,
-                border = BorderStroke(2.dp, teamColor(over.winner)),
-                modifier = Modifier.fillMaxWidth(),
+    Column(Modifier.fillMaxSize()) {
+        Box(Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.TopCenter) {
+            Column(
+                Modifier
+                    .widthIn(max = 640.dp)
+                    .fillMaxWidth()
+                    .verticalScroll(rememberScrollState())
+                    .padding(horizontal = Spacing.screen, vertical = Spacing.lg),
+                verticalArrangement = Arrangement.spacedBy(Spacing.lg),
             ) {
-                val winColor = teamColor(over.winner)
-                Column(
-                    Modifier.padding(Spacing.lg).semantics(mergeDescendants = true) {},
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(Spacing.xs),
-                ) {
-                    Icon(
-                        Icons.Outlined.EmojiEvents,
-                        null,
-                        tint = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.size(40.dp),
-                    )
-                    TitlePlate(
-                        when {
-                            play.online != null -> if (over.youWon) "Your team won" else "Your team lost"
-                            over.youWon -> "You won"
-                            else -> "The computer won"
-                        },
-                        Modifier.fillMaxWidth(),
-                        style = GoaTextStyles.plateTitle.copy(fontSize = 22.sp, lineHeight = 28.sp),
-                    )
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        TeamMark(over.winner, markSize = scaledIconSize(12.dp))
-                        Spacer(Modifier.width(Spacing.xs))
-                        Text(
-                            "${BoardText.team(over.winner)} wins · ${PlayText.winTitle(over.reason)}",
-                            style = MaterialTheme.typography.titleMedium,
-                            color = winColor,
-                            fontWeight = FontWeight.SemiBold,
-                        )
-                    }
-                    Text(
-                        PlayText.winReason(over.reason, over.winner),
-                        style = MaterialTheme.typography.bodyMedium,
-                        textAlign = TextAlign.Center,
-                    )
-                    Text(
-                        if (play.online != null) {
-                            BoardText.count(over.rounds, "round")
-                        } else {
-                            listOf(
-                                BoardText.count(over.rounds, "round"),
-                                BoardText.count(over.takeBacks, "take back"),
-                                if (over.coach) BoardText.count(over.nudges, "coach nudge") else "Coach off",
-                            ).joinToString(" · ")
-                        },
-                        style = MaterialTheme.typography.labelLarge,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                    play.online?.let { online ->
-                        ratedWords(online)?.let {
-                            Text(it, style = MaterialTheme.typography.labelLarge, textAlign = TextAlign.Center)
-                        }
-                    }
-                }
-            }
-
-            Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-                Overline("How each hero did")
-                // One plate for the section, dividers between its rows: not a frame round every row.
-                PlateSurface(brackets = true, modifier = Modifier.fillMaxWidth()) {
-                    Column {
-                        val heroes = Team.entries.flatMap { team -> over.heroes.filter { it.team == team } }
-                        heroes.forEachIndexed { i, result ->
-                            if (i > 0) HorizontalDivider(color = GoaTheme.colors.engravedBorder)
-                            HeroResultRow(play, result, onHero)
-                        }
-                    }
-                }
-            }
-
-            if (over.coach) {
-                Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-                    Overline("Coach · turning points")
-                    val points = over.turningPoints
-                    when {
-                        points == null -> Row(verticalAlignment = Alignment.CenterVertically) {
-                            CircularProgressIndicator(Modifier.size(16.dp), strokeWidth = 2.dp)
-                            Spacer(Modifier.width(Spacing.sm))
-                            Text("The coach is going through the game…", style = MaterialTheme.typography.bodyMedium)
-                        }
-
-                        points.isEmpty() -> Text(
-                            "No single moment decided this one.",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-
-                        else -> PlateSurface(brackets = true, modifier = Modifier.fillMaxWidth()) {
-                            Column {
-                                points.forEachIndexed { i, note ->
-                                    if (i > 0) HorizontalDivider(color = GoaTheme.colors.engravedBorder)
-                                    TurningPoint(note)
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-
-            if (play.online != null) {
-                PlateButton(onClick = onDone, modifier = Modifier.fillMaxWidth().heightIn(min = 52.dp)) {
-                    Text("Done", style = MaterialTheme.typography.titleMedium)
-                }
-            } else {
-                GameReportSection(play, onAction, focus, onLogAt)
+                ResultPlate(play, over)
 
                 Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-                    PlateButton(onClick = {
-                        onAction(GameAction.Rematch)
-                    }, modifier = Modifier.fillMaxWidth().heightIn(min = 52.dp)) {
-                        Text("Rematch", style = MaterialTheme.typography.titleMedium)
+                    SectionHeader("How each hero did", padding = SectionHeaderPaddingTight)
+                    // One plate for the section, dividers between its rows: not a frame round every row.
+                    PlateSurface(brackets = true, modifier = Modifier.fillMaxWidth()) {
+                        HeroResults(play, over, onHero)
                     }
-                    Text(
-                        "Same heroes and seats; the app flips the Tie Breaker coin again.",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        textAlign = TextAlign.Center,
-                        modifier = Modifier.fillMaxWidth(),
-                    )
-                    OutlinedButton(onClick = onNewGame, modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp)) {
+                }
+
+                if (over.coach) TurningPoints(over)
+
+                if (play.online == null) {
+                    GameReportSection(play, onAction, focus, onLogAt)
+                    GoaOutlinedButton(onClick = onNewGame, modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp)) {
                         Text("New game")
                     }
-                    TextButton(onClick = onDone, modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp)) {
-                        Text("Done")
+                }
+            }
+        }
+        GameOverBar(online = play.online != null, onRematch = { onAction(GameAction.Rematch) }, onDone = onDone)
+    }
+}
+
+/** Who won, how (the rulebook's words, its page left to the rules), and the game's length. */
+@Composable
+private fun ResultPlate(play: PlayUi, over: GameOverUi) {
+    PlateSurface(
+        brackets = true,
+        border = BorderStroke(2.dp, teamColor(over.winner)),
+        modifier = Modifier.fillMaxWidth(),
+    ) {
+        val winColor = teamColor(over.winner)
+        Column(
+            Modifier.padding(Spacing.lg).semantics(mergeDescendants = true) {},
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(Spacing.xs),
+        ) {
+            Icon(
+                Icons.Outlined.EmojiEvents,
+                null,
+                tint = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.size(40.dp),
+            )
+            TitlePlate(
+                when {
+                    play.online != null -> if (over.youWon) "Your team won" else "Your team lost"
+                    over.youWon -> "You won"
+                    else -> "The computer won"
+                },
+                Modifier.fillMaxWidth(),
+                style = GoaTextStyles.plateTitle.copy(fontSize = 22.sp, lineHeight = 28.sp),
+            )
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                TeamMark(over.winner, markSize = scaledIconSize(12.dp))
+                Spacer(Modifier.width(Spacing.xs))
+                Text(
+                    "${BoardText.team(over.winner)} wins · ${PlayText.winTitle(over.reason)}",
+                    style = MaterialTheme.typography.titleMedium,
+                    color = winColor,
+                    fontWeight = FontWeight.SemiBold,
+                )
+            }
+            Text(
+                withoutPages(PlayText.winReason(over.reason, over.winner)),
+                style = MaterialTheme.typography.bodyMedium,
+                textAlign = TextAlign.Center,
+            )
+            Text(
+                if (play.online != null) {
+                    BoardText.count(over.rounds, "round")
+                } else {
+                    listOf(
+                        BoardText.count(over.rounds, "round"),
+                        BoardText.count(over.takeBacks, "take back"),
+                        if (over.coach) BoardText.count(over.nudges, "coach nudge") else "Coach off",
+                    ).joinToString(" · ")
+                },
+                style = MaterialTheme.typography.labelLarge,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            play.online?.let { online ->
+                ratedWords(online)?.let {
+                    Text(it, style = MaterialTheme.typography.labelLarge, textAlign = TextAlign.Center)
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun TurningPoints(over: GameOverUi) {
+    Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+        SectionHeader("Coach · turning points", padding = SectionHeaderPaddingTight)
+        val points = over.turningPoints
+        when {
+            points == null -> Row(verticalAlignment = Alignment.CenterVertically) {
+                CircularProgressIndicator(Modifier.size(16.dp), strokeWidth = 2.dp)
+                Spacer(Modifier.width(Spacing.sm))
+                Text("The coach is going through the game…", style = MaterialTheme.typography.bodyMedium)
+            }
+
+            points.isEmpty() -> Text(
+                "No single moment decided this one.",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+
+            else -> PlateSurface(brackets = true, modifier = Modifier.fillMaxWidth()) {
+                Column {
+                    points.forEachIndexed { i, note ->
+                        if (i > 0) HorizontalDivider(color = GoaTheme.colors.engravedBorder)
+                        TurningPoint(note)
                     }
+                }
+            }
+        }
+    }
+}
+
+/**
+ * Rematch (bronze, the common next step) and Done, pinned under the content on the slate, as every flow's commit is;
+ * online, Done alone.
+ */
+@Composable
+private fun GameOverBar(online: Boolean, onRematch: () -> Unit, onDone: () -> Unit) {
+    GoaPlateTheme {
+        Row(
+            Modifier
+                .fillMaxWidth()
+                .slatePlate(RectangleShape, brackets = false)
+                .navigationBarsPadding()
+                .padding(horizontal = Spacing.screen, vertical = Spacing.md),
+            horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            if (online) {
+                GoaButton(onClick = onDone, modifier = Modifier.weight(1f).heightIn(min = 52.dp)) { Text("Done") }
+            } else {
+                GoaOutlinedButton(onClick = onDone, modifier = Modifier.weight(1f).heightIn(min = 52.dp)) {
+                    Text("Done")
+                }
+                GoaButton(
+                    onClick = onRematch,
+                    modifier = Modifier
+                        .weight(REMATCH_SHARE)
+                        .heightIn(min = 52.dp)
+                        .semantics {
+                            contentDescription = "Rematch: same heroes and seats; the app flips the Tie Breaker coin again"
+                        },
+                ) {
+                    Icon(Icons.Outlined.Replay, contentDescription = null)
+                    Spacer(Modifier.width(Spacing.sm))
+                    Text("Rematch")
                 }
             }
         }
@@ -228,15 +267,10 @@ private fun ratedWords(online: OnlineUi): String? = when (online.rated) {
     null -> null
 }
 
-@Composable
-private fun Overline(text: String) {
-    Text(
-        text.uppercase(),
-        style = GoaTextStyles.overline,
-        color = MaterialTheme.colorScheme.primary,
-        modifier = Modifier.semantics { heading() },
-    )
-}
+/** "(p.13)" and the like out of a sentence: a result screen is not a rules lookup. */
+private fun withoutPages(text: String): String = text.replace(PAGES, "")
+
+private val PAGES = Regex(" \\(p\\.\\d+(?:[,;] ?p\\.\\d+)*\\)")
 
 @Composable
 private fun TurningPoint(note: CoachNote) {
@@ -254,13 +288,13 @@ private fun TurningPoint(note: CoachNote) {
             }
             Text(
                 // The heading already says when: no "Round 1, turn 1:" again.
-                if (at.isNotEmpty()) withoutWhen(note.text) else note.text,
+                withoutPages(if (at.isNotEmpty()) withoutWhen(note.text) else note.text),
                 style = MaterialTheme.typography.titleSmall,
                 color = MaterialTheme.colorScheme.onSecondaryContainer,
             )
             if (note.detail.isNotBlank()) {
                 Text(
-                    note.detail,
+                    withoutPages(note.detail),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSecondaryContainer,
                 )
@@ -269,8 +303,100 @@ private fun TurningPoint(note: CoachNote) {
     }
 }
 
+/** The grid's columns, in order: what each counts, its icon and its head. */
+private enum class ResultColumn(val head: String, val spoken: String) {
+    LEVEL("Level", "Level"),
+    HEROES("Heroes", "heroes defeated"),
+    MINIONS("Minions", "minions defeated"),
+    FALLEN("KO'd", "times defeated"),
+    COINS("Coins", "coins gained"),
+}
+
+private fun ResultColumn.of(r: HeroResult): Int = when (this) {
+    ResultColumn.LEVEL -> r.level
+    ResultColumn.HEROES -> r.heroDefeats
+    ResultColumn.MINIONS -> r.minionDefeats
+    ResultColumn.FALLEN -> r.defeated
+    ResultColumn.COINS -> r.coins
+}
+
 @Composable
-private fun HeroResultRow(play: PlayUi, result: HeroResult, onHero: (String) -> Unit) {
+private fun ColumnIcon(column: ResultColumn) {
+    val size = scaledIconSize(20.dp, 1.3f)
+    val tint = MaterialTheme.colorScheme.primary
+    when (column) {
+        ResultColumn.LEVEL -> Icon(Icons.Outlined.MilitaryTech, null, tint = tint, modifier = Modifier.size(size))
+        ResultColumn.HEROES -> ActionIcon(LookAction.ATTACK, size = size)
+        ResultColumn.MINIONS -> Icon(Icons.Outlined.Person, null, tint = tint, modifier = Modifier.size(size))
+        ResultColumn.FALLEN -> Icon(Icons.Outlined.HeartBroken, null, tint = tint, modifier = Modifier.size(size))
+        ResultColumn.COINS -> CoinIcon(size = size)
+    }
+}
+
+/**
+ * How each hero did, as a grid to compare across heroes at a glance: a head row of icons over short words, then a row
+ * per hero (portrait in its team ring, team mark, name, who played it) with its figures in the same columns. With large
+ * text the figures go under the name, the columns spanning the row. A row opens that hero's sheet.
+ */
+@Composable
+private fun HeroResults(play: PlayUi, over: GameOverUi, onHero: (String) -> Unit) {
+    val stacked = LocalDensity.current.fontScale > STACKED_SCALE
+    val heroes = Team.entries.flatMap { team -> over.heroes.filter { it.team == team } }
+    Column {
+        if (!stacked) {
+            Row(
+                Modifier
+                    .fillMaxWidth()
+                    .padding(start = Spacing.md, end = Spacing.md, top = Spacing.sm)
+                    .clearAndSetSemantics {},
+                verticalAlignment = Alignment.Bottom,
+            ) {
+                Spacer(Modifier.weight(1f))
+                Heads(Modifier.width(FIGURE * ResultColumn.entries.size))
+            }
+        }
+        heroes.forEachIndexed { i, result ->
+            if (i > 0 || !stacked) HorizontalDivider(color = GoaTheme.colors.engravedBorder)
+            HeroResultRow(play, result, stacked, onHero)
+        }
+    }
+}
+
+@Composable
+private fun Heads(modifier: Modifier) {
+    Row(modifier) {
+        ResultColumn.entries.forEach { column ->
+            Column(Modifier.weight(1f), horizontalAlignment = Alignment.CenterHorizontally) {
+                ColumnIcon(column)
+                Text(
+                    column.head,
+                    style = MaterialTheme.typography.labelMedium.copy(fontSize = 13.sp, letterSpacing = 0.sp),
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                    softWrap = false,
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun RowScope.Figures(result: HeroResult, width: Dp?) {
+    Row(if (width != null) Modifier.width(width * ResultColumn.entries.size) else Modifier.weight(1f)) {
+        ResultColumn.entries.forEach { column ->
+            Text(
+                "${column.of(result)}",
+                style = GoaTextStyles.score.copy(fontSize = 20.sp, lineHeight = 24.sp),
+                textAlign = TextAlign.Center,
+                color = if (column.of(result) == 0) MaterialTheme.colorScheme.onSurfaceVariant else LocalContentColor.current,
+                modifier = Modifier.weight(1f),
+            )
+        }
+    }
+}
+
+@Composable
+private fun HeroResultRow(play: PlayUi, result: HeroResult, stacked: Boolean, onHero: (String) -> Unit) {
     val info = play.table.hero(result.heroId)
     val who = when {
         // Online every seat is a person: the player's name, not "You" on all of them.
@@ -281,13 +407,9 @@ private fun HeroResultRow(play: PlayUi, result: HeroResult, onHero: (String) -> 
 
         else -> PlayText.controller(result.controller)
     }
-    val facts = listOf(
-        "Level ${result.level}",
-        BoardText.count(result.heroDefeats, "hero defeated", "heroes defeated"),
-        BoardText.count(result.minionDefeats, "minion defeated", "minions defeated"),
-        "defeated ${BoardText.count(result.defeated, "time")}",
-        BoardText.count(result.coins, "coin") + " gained",
-    )
+    val spoken = ResultColumn.entries.joinToString(", ") { c ->
+        if (c == ResultColumn.LEVEL) "Level ${result.level}" else "${c.of(result)} ${c.spoken}"
+    }
     Surface(
         onClick = { onHero(result.heroId) },
         color = Color.Transparent,
@@ -295,37 +417,43 @@ private fun HeroResultRow(play: PlayUi, result: HeroResult, onHero: (String) -> 
         modifier = Modifier
             .fillMaxWidth()
             .clearAndSetSemantics {
-                contentDescription = "${info.name}, ${BoardText.team(result.team)}, $who. " + facts.joinToString(", ")
+                contentDescription = "${info.name}, ${BoardText.team(result.team)}, $who. $spoken"
             },
     ) {
-        Row(Modifier.padding(Spacing.md), verticalAlignment = Alignment.CenterVertically) {
-            HeroPortrait(
-                result.heroId,
-                info.portrait,
-                null,
-                Modifier.size(44.dp).border(2.dp, teamColor(result.team), CircleShape),
-                shape = CircleShape,
-                framed = false,
-            )
-            Spacer(Modifier.width(Spacing.md))
-            Column(Modifier.weight(1f)) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    TeamMark(result.team, markSize = 9.dp)
-                    Spacer(Modifier.width(4.dp))
-                    Text(info.name, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
-                    Spacer(Modifier.width(Spacing.sm))
+        Column(Modifier.padding(horizontal = Spacing.md, vertical = Spacing.sm)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                HeroPortrait(
+                    result.heroId,
+                    info.portrait,
+                    null,
+                    Modifier.size(PORTRAIT).border(2.dp, teamColor(result.team), CircleShape),
+                    shape = CircleShape,
+                    framed = false,
+                )
+                Spacer(Modifier.width(Spacing.sm))
+                Column(Modifier.weight(1f)) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        TeamMark(result.team, markSize = 10.dp)
+                        Spacer(Modifier.width(4.dp))
+                        Text(info.name, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
+                    }
                     Text(
                         who,
                         style = MaterialTheme.typography.labelMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
-                Text(
-                    facts.joinToString(" · "),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
+                if (!stacked) Figures(result, FIGURE)
+            }
+            if (stacked) {
+                Heads(Modifier.fillMaxWidth().padding(top = Spacing.sm))
+                Row { Figures(result, null) }
             }
         }
     }
 }
+
+private val FIGURE = 48.dp
+private val PORTRAIT = 36.dp
+private const val STACKED_SCALE = 1.3f
+private const val REMATCH_SHARE = 1.4f

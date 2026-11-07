@@ -33,6 +33,7 @@ import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.outlined.Block
 import androidx.compose.material.icons.outlined.CheckCircle
 import androidx.compose.material.icons.outlined.ErrorOutline
+import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material.icons.outlined.TouchApp
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -69,9 +70,7 @@ import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import dev.quinton.goa.core.designsystem.cardtext.GameIcons
 import dev.quinton.goa.core.designsystem.component.CardTextBox
-import dev.quinton.goa.core.designsystem.component.GoaDarkTheme
 import dev.quinton.goa.core.designsystem.component.PlateColor
 import dev.quinton.goa.core.designsystem.component.scaledIconSize
 import dev.quinton.goa.core.designsystem.theme.GoaTextStyles
@@ -82,7 +81,6 @@ import dev.quinton.goa.core.game.Decision
 import dev.quinton.goa.core.game.DecisionKind
 import dev.quinton.goa.core.model.catalog.Card
 import dev.quinton.goa.core.model.catalog.CardText
-import dev.quinton.goa.core.model.catalog.PrimaryAction
 import dev.quinton.goa.core.model.catalog.Stat
 import dev.quinton.goa.feature.board.play.PlayText
 import dev.quinton.goa.feature.board.ui.PlateButton
@@ -171,11 +169,11 @@ internal fun HandPicker(
     val decision = table.decision ?: return
     FocusLifecycle(focus, decision, busy)
     table.decider?.takeIf { it.at == null }?.let { hero ->
-        Text(
+        RuleRow(
             "${table.hero(hero.heroId).name} is off the board. When this card resolves you may respawn in " +
-                "your Throne Zone, then act with it (p.7).",
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                "your Throne Zone, then act with it.",
+            page = "p.7",
+            live = false,
         )
     }
     table.decider?.let { HandRuneLine(table, it) }
@@ -262,10 +260,10 @@ internal fun CardPicker(
         )
     }
     if (decision.kind == DecisionKind.KEEP_UPGRADE) {
-        Text(
-            "One goes to your hand; the other is tucked under your hero as an item (p.15, p.16).",
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        RuleRow(
+            "One goes to your hand; the other is tucked under your hero as an item.",
+            page = "p.15",
+            live = false,
         )
     }
 }
@@ -289,8 +287,8 @@ internal fun CommitButton(
     busy: Boolean,
     onAnswer: (Choice) -> Unit,
     modifier: Modifier = Modifier,
-    /** What committing comes to, after the move ("Defend with Blink Strike — still defeated"). */
-    outcome: String? = null,
+    /** The button's words when the question has its own ("Defend · Blink Strike"); else the move is named. */
+    label: String? = null,
 ) {
     val decision = table.decision ?: return
     // The button is under the cards: once one is chosen, it scrolls into view.
@@ -301,14 +299,14 @@ internal fun CommitButton(
         is Choice.Card -> table.card(chosen.cardId)?.let { cardAction(decision, it) } ?: table.label(chosen)
         else -> table.label(chosen)
     }
-    val label = move?.let { m -> outcome?.let { "$m — $it" } ?: m }
+    val words = label ?: move
     PlateButton(
         onClick = { if (chosen != null) onAnswer(chosen) },
         enabled = chosen != null && !busy,
         contentPadding = PaddingValues(horizontal = Spacing.lg, vertical = Spacing.sm),
         modifier = modifier.fillMaxWidth().heightIn(min = 52.dp).bringIntoViewRequester(requester),
     ) {
-        Text(label ?: waiting, textAlign = TextAlign.Center)
+        Text(words ?: waiting, textAlign = TextAlign.Center)
     }
 }
 
@@ -324,12 +322,12 @@ internal fun CommitRow(
     waiting: String,
     busy: Boolean,
     onAnswer: (Choice) -> Unit,
-    outcome: String? = null,
+    label: String? = null,
     onRead: () -> Unit,
 ) {
     Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm), verticalAlignment = Alignment.CenterVertically) {
         ReadCardButton(onRead)
-        CommitButton(table, chosen, waiting, busy, onAnswer, Modifier.weight(1f), outcome = outcome)
+        CommitButton(table, chosen, waiting, busy, onAnswer, Modifier.weight(1f), label = label)
     }
 }
 
@@ -349,60 +347,21 @@ internal fun ReadCardButton(onRead: () -> Unit) {
 }
 
 /**
- * Under a card to choose: its name in the game's type, readable at arm's length where the scan's own print is not,
- * and, with [numbers], the values it prints that a choice weighs (its Initiative and its primary action's value), from
- * the catalog. TalkBack hears the card on its node already: this is for the eye.
+ * Under a card to choose: its name in the game's type, readable at arm's length where the scan's own print is not (its
+ * numbers are badges on the card itself, [CardNumbers]). TalkBack hears the card on its node already: this is for the
+ * eye.
  */
-@OptIn(ExperimentalLayoutApi::class)
 @Composable
-internal fun CardCaption(card: Card, width: Dp, numbers: Boolean = true) {
-    Column(
+internal fun CardCaption(card: Card, width: Dp) {
+    Text(
+        // A narrow card breaks "Light-Fingered" after its hyphen, never mid-word.
+        card.name.replace("-", "-​"),
+        style = CardNameStyle,
+        textAlign = TextAlign.Center,
+        color = MaterialTheme.colorScheme.onSurface,
         // A little air either side: in a fanned hand the cards touch, their names must not.
-        Modifier.width(width).padding(horizontal = 3.dp).clearAndSetSemantics {},
-        horizontalAlignment = Alignment.CenterHorizontally,
-    ) {
-        Text(
-            // A narrow card breaks "Light-Fingered" after its hyphen, never mid-word.
-            card.name.replace("-", "-​"),
-            style = CardNameStyle,
-            textAlign = TextAlign.Center,
-            color = MaterialTheme.colorScheme.onSurface,
-        )
-        if (numbers) {
-            // Initiative (who acts first, p.7) and the primary action's value: one line under any card width.
-            val values = listOfNotNull(
-                card.initiative?.let { GameIcons.initiative to it },
-                when (card.primary) {
-                    PrimaryAction.ATTACK -> card.values.attack?.let { GameIcons.attack to it }
-
-                    PrimaryAction.DEFENSE, PrimaryAction.DEFENSE_SKILL ->
-                        card.values.defense?.let { GameIcons.defense to it }
-
-                    PrimaryAction.MOVEMENT -> card.values.movement?.let { GameIcons.movement to it }
-
-                    else -> null
-                },
-            )
-            FlowRow(horizontalArrangement = Arrangement.Center, itemVerticalAlignment = Alignment.CenterVertically) {
-                values.forEach { (icon, value) ->
-                    Row(Modifier.padding(horizontal = 3.dp), verticalAlignment = Alignment.CenterVertically) {
-                        Icon(
-                            icon.vector,
-                            null,
-                            tint = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.size(scaledIconSize(13.dp, 1.3f)),
-                        )
-                        Text(
-                            "$value",
-                            style = MaterialTheme.typography.labelLarge,
-                            fontWeight = FontWeight.SemiBold,
-                            color = MaterialTheme.colorScheme.onSurface,
-                        )
-                    }
-                }
-            }
-        }
-    }
+        modifier = Modifier.width(width).padding(horizontal = 3.dp).clearAndSetSemantics {},
+    )
 }
 
 /** A card's name under it: Crimson, as the game prints it, at 14 sp. */
@@ -554,7 +513,7 @@ private fun OfferedThumb(
         },
     ) {
         ChoosableCard(card, width, chosen, offered, focus, tap)
-        CardCaption(card, cardWidth(card, width), numbers = !keep)
+        CardCaption(card, cardWidth(card, width))
         if (keep) card.item?.let { ItemCaption(it) }
         if (!offered) {
             Icon(
@@ -581,6 +540,8 @@ internal fun ChoosableCard(
     onTap: () -> Unit,
     shape: RoundedCornerShape = RoundedCornerShape(width * 0.08f),
     border: BorderStroke? = null,
+    /** Its Initiative and values as crisp badges over the scan ([CardNumbers]). */
+    numbers: Boolean = true,
 ) {
     Box {
         Surface(
@@ -594,7 +555,10 @@ internal fun ChoosableCard(
                 .graphicsLayer { translationY = if (chosen) -LIFT.toPx() else 0f }
                 .alpha(if (offered) 1f else DIMMED),
         ) {
-            TableCard(card, width = width)
+            Box {
+                TableCard(card, width = width)
+                if (numbers && !card.isSpell) CardNumbers(card, width)
+            }
         }
         if (chosen) ChosenTick(Modifier.align(Alignment.TopEnd).offset(x = 5.dp, y = -LIFT - 5.dp))
     }
@@ -623,11 +587,12 @@ internal val LIFT = 8.dp
 // ---- Defense (p.14) ---------------------------------------------------------------------
 
 /**
- * Attacked: the attacker's card with the Attack total, then the hand's cards themselves (their
- * Defense is printed on them), each with the verdict under it: "Holds" or "Falls" in words and an
- * icon (never colour alone) and the Defense total as it counts. A tap chooses a card (again: read it
- * large); "Don't defend" is chosen the same way. What is chosen shows its outcome in the engine's
- * numbers ("Defense 3 = card 2 + minion 1 against Attack 6"), and the bronze button answers.
+ * Attacked: the attacker's card with the Attack total, then the hand's cards themselves, each with its Defense total as
+ * the engine counts it against the Attack under it ("Def 2 vs 6", a mark and a colour; a Block "Blocks it" or "Block
+ * fails"; a card whose text decides, that condition verbatim), and "Don't defend" as a card-sized tile. Nothing is
+ * chosen for the player, except that when no card saves the hero, "Don't defend · keep your cards" is the bronze button
+ * from the start and one line says so. One rule row (with its page) says how the choice is counted; the button names
+ * the move in one line ("Defend · Blink Strike").
  */
 @Composable
 internal fun DefensePanel(
@@ -655,10 +620,12 @@ internal fun DefensePanel(
     val focusCards = offered.mapIndexed { i, item -> FocusCard(item.card, verdict = rows[i].verdict) }
     val summary = listOfNotNull(heading, attack?.let { "Attack $it" }).joinToString(" · ")
     val chosen = chosenCard(table)
-    // The whole decision in view without scrolling: the cards and "Don't defend" in one row, the outcome in a
-    // line, the button (the hint is the button's own words until something is chosen).
     val declines = table.buttonOptions
-    // Under narrow cards the words stop growing at 1.3× (as the attack's header): "Falls" never breaks mid-word.
+    // No card saves the hero: not defending (and keeping the cards) is what the button offers until a card is chosen.
+    val hopeless = offered.isNotEmpty() && rows.all { it.verdict.holds == false } && declines.isNotEmpty()
+    val declined = table.selected?.takeIf { it !is Choice.Card && it in declines }
+    val answer: Choice? = chosen ?: declined ?: declines.firstOrNull()?.takeIf { hopeless }
+    // Under narrow cards the words stop growing at 1.3× (as the attack's header): a total never breaks mid-word.
     val density = LocalDensity.current
     val capped = Density(density.density, minOf(density.fontScale, ATTACK_MAX_SCALE))
     CompositionLocalProvider(LocalDensity provides capped) {
@@ -677,6 +644,7 @@ internal fun DefensePanel(
                     DefenseCard(
                         item.card,
                         rows[i],
+                        attack,
                         width,
                         focus,
                         chosen = isChosen,
@@ -685,26 +653,40 @@ internal fun DefensePanel(
                     )
                 }
                 declines.forEach { choice ->
-                    DeclineTile(table.label(choice), choice == table.selected, width) { onSelect(choice) }
+                    DeclineTile(table.label(choice), choice == answer, width) { onSelect(choice) }
                 }
             }
         }
     }
-    val declined = table.selected?.takeIf { it !is Choice.Card && it in table.buttonOptions }
     val picked = chosen?.let { c -> offered.indexOfFirst { it.choice == c }.takeIf { it >= 0 } }
-    if (picked != null) {
-        val items = table.decider?.itemStats?.count { it == Stat.DEFENSE } ?: 0
-        DefenseOutcome(offered[picked].card, rows[picked], attack, context.minionModifier, items, context.rangedAttack)
-    } else if (declined != null) {
-        DeclineOutcome()
+    val hero = table.decider?.let { table.hero(it.heroId).name }
+    when {
+        picked != null -> {
+            val items = table.decider?.itemStats?.count { it == Stat.DEFENSE } ?: 0
+            DefenseOutcome(offered[picked].card, rows[picked], attack, context.minionModifier, items, context.rangedAttack)
+        }
+
+        answer != null -> RuleRow(
+            if (hopeless && declined == null) {
+                "No card saves ${hero ?: "you"}" + attack?.let { " against Attack $it" }.orEmpty() +
+                    ": not defending, you keep your cards."
+            } else {
+                "Not defending: defeated, and you keep your cards."
+            },
+            page = "p.14",
+            verdict = false,
+        )
+
+        else -> Unit
     }
-    // The button says how the choice ends, in the engine's verdict (p.14), so a losing defence is never a surprise.
-    val outcome = when {
-        picked != null -> commitOutcome(rows[picked].verdict.holds, rows[picked].verdict.label)
-        declined != null -> "defeated"
-        else -> null
-    }
-    CommitRow(table, chosen ?: declined, "Tap a card to defend with, or Don't defend", busy, onAnswer, outcome) {
+    CommitRow(
+        table,
+        answer,
+        "Tap a card to defend with, or Don't defend",
+        busy,
+        onAnswer,
+        label = defendLabel(table, answer),
+    ) {
         if (offered.isNotEmpty()) {
             openOffered(
                 focus,
@@ -720,6 +702,13 @@ internal fun DefensePanel(
     }
 }
 
+/** The Defend button in one line: "Defend · Blink Strike", "Don't defend · keep your cards". */
+private fun defendLabel(table: TableUi, answer: Choice?): String? = when (answer) {
+    null -> null
+    is Choice.Card -> table.card(answer.cardId)?.let { "Defend · ${it.name}" }
+    else -> "${table.label(answer)} · keep your cards"
+}
+
 /**
  * Each option's end in a few words, from the engine's verdict (DecisionContext.defensePreview/blockPreview): p.14 "If
  * you cannot defend successfully, or choose not to defend, you are defeated."
@@ -730,105 +719,101 @@ internal fun optionOutcome(holds: Boolean?, label: String): String = when (holds
     null -> "Its text decides"
 }
 
-/** The end of the commit button's label: "— still defeated", "— blocks this attack", "— its text decides". */
-private fun commitOutcome(holds: Boolean?, label: String): String = when (holds) {
-    true -> if (label == "Blocks") "blocks this attack" else "defends"
-    false -> "still defeated"
-    null -> "its text decides"
-}
-
-/** Not defending, in words as the defence's: the hero is defeated and keeps its cards (p.14). */
-@Composable
-private fun DeclineOutcome() {
-    Row(
-        Modifier.fillMaxWidth().semantics(mergeDescendants = true) { liveRegion = LiveRegionMode.Polite },
-        verticalAlignment = Alignment.Top,
-    ) {
-        Icon(
-            Icons.Outlined.ErrorOutline,
-            null,
-            tint = MaterialTheme.colorScheme.error,
-            modifier = Modifier.padding(top = 2.dp).size(scaledIconSize(16.dp, 1.3f)),
-        )
-        Spacer(Modifier.width(Spacing.xs))
-        Text(
-            "Defeated: not defending, you keep your cards (p.14).",
-            style = MaterialTheme.typography.bodySmall,
-            fontWeight = FontWeight.SemiBold,
-            color = MaterialTheme.colorScheme.onSurface,
-        )
-    }
+/** An option's line under its card: "Def 2 vs 6" for a total, "Blocks it" / "Block fails" for a Block, else null. */
+internal fun defenseVs(line: DefenseLine, attack: Int?): String? = when {
+    line.total != null -> "Def ${line.total}" + attack?.let { " vs $it" }.orEmpty()
+    line.verdict.holds == true -> "Blocks it"
+    line.verdict.holds == false -> "Block fails"
+    else -> null
 }
 
 /**
- * What defending with the chosen card comes to, from the engine's numbers: the verdict in words and shape, the
- * Defense total and how it is made against the Attack; for a card whose text decides, that text verbatim and the
- * attack it is weighed against (melee or ranged, its value), as the engine knows them now.
+ * What defending with the chosen card comes to, from the engine's numbers, as the decision's rule row: how the Defense
+ * total is made against the Attack; for a card whose text decides, that text verbatim and the attack it is weighed
+ * against (melee or ranged, its value), as the engine knows them now.
  */
 @Composable
 private fun DefenseOutcome(card: Card, line: DefenseLine, attack: Int?, minion: Int?, items: Int, ranged: Boolean?) {
     val sum = defenseSum(line.total, card.values.defense, minion, items)
     val against = attack?.let { " against Attack $it" }.orEmpty()
-    val result = when (line.verdict.holds) {
-        true -> if (line.verdict.label == "Blocks") "Blocks this attack" else "Defends: the attack fails"
-        false -> "Defeated: the attack succeeds"
-        null -> "Decided by its text"
-    }
-    val numbers = when {
-        line.total == null -> line.detail
+    val text = when {
+        line.verdict.holds == null -> {
+            val words = CardText.plain(card.text).trim()
+            val kind = ranged?.let { if (it) "a ranged attack" else "a melee attack" }
+            val facts = listOfNotNull(kind, attack?.let { "Attack $it" })
+            listOfNotNull(
+                words.takeIf { it.isNotEmpty() }?.let { "“$it”" } ?: "Its text decides.",
+                facts.takeIf { it.isNotEmpty() }?.let { "This is ${it.joinToString(", ")}." },
+            ).joinToString(" ")
+        }
+
+        line.total == null -> line.verdict.detail
         sum != null -> "$sum$against"
         else -> "Defense ${line.total}$against"
     }
-    val color = when (line.verdict.holds) {
-        true -> MaterialTheme.colorScheme.secondary
-        false -> MaterialTheme.colorScheme.error
-        null -> MaterialTheme.colorScheme.onSurfaceVariant
-    }
-    // One or two lines over the button: what the choice comes to, then how it is counted (p.14).
+    RuleRow(text, page = "p.14", verdict = line.verdict.holds)
+}
+
+/**
+ * A decision's one rule line: what the choice rests on, with the rulebook page it comes from as a small bronze pill at
+ * its end (never "(p.14)" in a button or caption). [verdict] puts its mark first (a tick, a warning), when it has one.
+ */
+@Composable
+internal fun RuleRow(
+    text: String,
+    page: String?,
+    modifier: Modifier = Modifier,
+    verdict: Boolean? = null,
+    /** It changes with the choice (TalkBack hears it as it does); a fixed note is read in its turn. */
+    live: Boolean = true,
+) {
     Row(
-        Modifier.fillMaxWidth().semantics(mergeDescendants = true) { liveRegion = LiveRegionMode.Polite },
+        modifier.fillMaxWidth().semantics(mergeDescendants = true) {
+            if (live) liveRegion = LiveRegionMode.Polite
+            contentDescription = listOfNotNull(text, page?.let { "Rulebook ${it.replace("p.", "page ")}" })
+                .joinToString(". ")
+        },
         verticalAlignment = Alignment.Top,
     ) {
-        if (line.verdict.holds != null) {
-            Icon(
-                if (line.verdict.holds == true) Icons.Outlined.CheckCircle else Icons.Outlined.ErrorOutline,
-                null,
-                tint = color,
-                modifier = Modifier.padding(top = 2.dp).size(scaledIconSize(16.dp, 1.3f)),
-            )
+        Icon(
+            when (verdict) {
+                true -> Icons.Outlined.CheckCircle
+                false -> Icons.Outlined.ErrorOutline
+                null -> Icons.Outlined.Info
+            },
+            null,
+            tint = if (verdict == null) MaterialTheme.colorScheme.onSurfaceVariant else verdictColor(verdict),
+            modifier = Modifier.padding(top = 2.dp).size(scaledIconSize(16.dp, 1.3f)),
+        )
+        Spacer(Modifier.width(Spacing.xs))
+        Text(
+            text,
+            style = MaterialTheme.typography.bodySmall,
+            fontWeight = FontWeight.SemiBold,
+            color = MaterialTheme.colorScheme.onSurface,
+            modifier = Modifier.weight(1f),
+        )
+        page?.let {
             Spacer(Modifier.width(Spacing.xs))
-        }
-        Column(Modifier.weight(1f)) {
-            if (line.verdict.holds == null) {
-                // The card's own words decide: its text verbatim, and the attack it is weighed against.
-                val text = CardText.plain(card.text).trim()
-                val kind = ranged?.let { if (it) "ranged" else "melee" }
-                val attackLine = listOfNotNull(kind?.let { "a $it attack" }, attack?.let { "Attack $it" })
-                Text(
-                    "$result (p.14)" + (text.takeIf { it.isNotEmpty() }?.let { ": “$it”" } ?: ""),
-                    style = MaterialTheme.typography.bodySmall,
-                    fontWeight = FontWeight.SemiBold,
-                    color = MaterialTheme.colorScheme.onSurface,
-                )
-                attackLine.takeIf { it.isNotEmpty() }?.let {
-                    Text(
-                        "This is ${it.joinToString(", ")}.",
-                        style = MaterialTheme.typography.bodySmall,
-                        fontStyle = FontStyle.Italic,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
-            } else {
-                // The outcome is under the card and on the button: here, how it is counted, on one line.
-                Text(
-                    "$numbers (p.14)",
-                    style = MaterialTheme.typography.bodySmall,
-                    fontWeight = FontWeight.SemiBold,
-                    color = MaterialTheme.colorScheme.onSurface,
-                )
-            }
+            PagePill(it)
         }
     }
+}
+
+/** "p.14" as a small bronze-edged pill: where a rule is in the rulebook, out of the way of the words. */
+@Composable
+internal fun PagePill(page: String, modifier: Modifier = Modifier) {
+    Text(
+        page,
+        style = MaterialTheme.typography.labelMedium,
+        fontWeight = FontWeight.SemiBold,
+        color = MaterialTheme.colorScheme.primary,
+        maxLines = 1,
+        softWrap = false,
+        modifier = modifier
+            .border(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.6f), RoundedCornerShape(50))
+            .padding(horizontal = 6.dp, vertical = 1.dp),
+    )
 }
 
 /**
@@ -853,7 +838,6 @@ private fun AttackHeader(
     }
 }
 
-@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun AttackBox(
     heading: String,
@@ -901,7 +885,7 @@ private fun AttackBox(
                     )
                     minionModifier?.takeIf { it != 0 }?.let { m ->
                         Text(
-                            "Minion defense ${if (m > 0) "+$m" else "$m"} counted below (p.14)",
+                            "Minion defense ${if (m > 0) "+$m" else "$m"} counted in each total",
                             style = MaterialTheme.typography.bodySmall,
                             modifier = Modifier.weight(1f),
                         )
@@ -913,22 +897,29 @@ private fun AttackBox(
 }
 
 /**
- * One hand card to defend with: the official card, under it the verdict in words and shape and its Defense total as
- * it counts ("Defense 3 vs 6"; a Block or a card whose text decides says so). A tap chooses it, again reads it.
+ * One hand card to defend with: the official card, its name, and under it what it comes to against this attack ("Def
+ * 2 vs 6" with a mark, in the verdict's colour; a Block's verdict; a card whose text decides, that text verbatim). A tap
+ * chooses it, again reads it.
  */
-@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun DefenseCard(
     card: Card,
     line: DefenseLine,
+    attack: Int?,
     width: Dp,
     focus: CardFocusState,
     chosen: Boolean,
     onChoose: (() -> Unit)?,
     onOpen: () -> Unit,
 ) {
-    val spoken = listOf(card.name, line.verdict.detail, optionOutcome(line.verdict.holds, line.verdict.label))
-        .joinToString(", ")
+    val vs = defenseVs(line, attack)
+    val condition = CardText.plain(card.text).trim().takeIf { line.verdict.holds == null && it.isNotEmpty() }
+    val spoken = listOfNotNull(
+        card.name,
+        vs ?: line.verdict.detail,
+        optionOutcome(line.verdict.holds, line.verdict.label),
+        condition,
+    ).joinToString(", ")
     val tap = onChoose ?: onOpen
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -954,67 +945,31 @@ private fun DefenseCard(
                 }
             },
     ) {
-        Box {
-            ChoosableCard(card, width, chosen, offered = true, focus = focus, onTap = tap)
-            // The verdict's mark and the Defense total as the engine counts it, on a badge over the card's foot (where
-            // the scan's print is too small to read anyway): it rises with the card when chosen.
-            VerdictBadge(
-                line,
-                Modifier
-                    .align(Alignment.BottomCenter)
-                    .graphicsLayer { translationY = (if (chosen) -LIFT.toPx() else 0f) - BADGE_RISE.toPx() },
+        ChoosableCard(card, width, chosen, offered = true, focus = focus, onTap = tap, numbers = false)
+        CardCaption(card, width)
+        if (vs != null) {
+            Verdict(line.verdict.holds, vs)
+        } else if (condition != null) {
+            // The card's own condition decides (p.14): its words, verbatim, where the others have their totals.
+            Text(
+                "“$condition”",
+                style = GoaTextStyles.printed.copy(fontSize = 13.sp, lineHeight = 15.sp),
+                fontStyle = FontStyle.Italic,
+                textAlign = TextAlign.Center,
+                color = MaterialTheme.colorScheme.onSurface,
             )
         }
-        CardCaption(card, width, numbers = false)
-        // Each option's end in words ("Defeated", "Blocks it", "Its text decides"): they compare at a glance; the
-        // line under the row says how the chosen one is counted.
-        Verdict(line.verdict.holds, optionOutcome(line.verdict.holds, line.verdict.label), icon = false)
     }
 }
 
-/** "! 🛡2" on a dark pill edged in the verdict's colour; a card whose text decides has no number to show. */
-@Composable
-private fun VerdictBadge(line: DefenseLine, modifier: Modifier = Modifier) {
-    val holds = line.verdict.holds ?: return
-    Row(
-        modifier
-            .background(BadgeGround, RoundedCornerShape(50))
-            .border(1.5.dp, verdictColor(holds), RoundedCornerShape(50))
-            .padding(horizontal = 6.dp, vertical = 1.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        GoaDarkTheme {
-            VerdictMark(holds)
-            line.total?.let { total ->
-                Icon(
-                    GameIcons.defense.vector,
-                    null,
-                    tint = BadgeInk,
-                    modifier = Modifier.size(scaledIconSize(13.dp, 1.3f)),
-                )
-                Text(
-                    "$total",
-                    style = MaterialTheme.typography.labelLarge,
-                    fontWeight = FontWeight.Bold,
-                    color = BadgeInk,
-                )
-            }
-        }
-    }
-}
-
-private val BadgeGround = Color(0xE6141B21)
-private val BadgeInk = Color(0xFFF1EBDD)
-private val BADGE_RISE = 4.dp
-
-/** "Defends" with a tick or "Defeated" with a warning sign: words and shape, not colour alone. */
+/** "✓ Def 4 vs 3" or "! Def 2 vs 6": words and shape, not colour alone. */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-private fun Verdict(verdict: Boolean?, text: String, icon: Boolean = true) {
+private fun Verdict(verdict: Boolean?, text: String) {
     val color = verdictColor(verdict)
-    // Under a narrow card with large text the word goes under its icon rather than breaking ("Fal / ls").
+    // Under a narrow card with large text the words go under the mark rather than breaking mid-word.
     FlowRow(horizontalArrangement = Arrangement.Center, itemVerticalAlignment = Alignment.CenterVertically) {
-        if (icon) VerdictMark(verdict)
+        VerdictMark(verdict)
         val style = MaterialTheme.typography.labelLarge
         Text(
             text,
@@ -1022,10 +977,8 @@ private fun Verdict(verdict: Boolean?, text: String, icon: Boolean = true) {
             color = color,
             fontWeight = FontWeight.Bold,
             textAlign = TextAlign.Center,
-            // A verdict word never breaks or clips: under a narrow card with large text it steps down to fit;
-            // only "Its text decides" may take two lines.
-            softWrap = verdict == null,
-            maxLines = if (verdict == null) 2 else 1,
+            maxLines = 1,
+            softWrap = false,
             autoSize = TextAutoSize.StepBased(minFontSize = VERDICT_SMALLEST, maxFontSize = style.fontSize),
         )
     }
@@ -1052,23 +1005,10 @@ private fun verdictColor(verdict: Boolean?): Color = when (verdict) {
 
 /**
  * Not defending, as a tile the size of a card at the end of the row (so the whole choice is in one row, in view):
- * chosen like a card, lifted with the bronze edge and tick.
+ * chosen like a card, lifted with the bronze edge and tick. It says what it keeps; the rule row says the rest.
  */
 @Composable
 private fun DeclineTile(label: String, selected: Boolean, width: Dp, onClick: () -> Unit) {
-    Column(
-        Modifier.width(width),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(4.dp),
-    ) {
-        DeclineCard(label, selected, width, onClick)
-        // Its end under it, as every card's: not defending is a defeat too (p.14).
-        Box(Modifier.clearAndSetSemantics {}) { Verdict(false, optionOutcome(false, ""), icon = false) }
-    }
-}
-
-@Composable
-private fun DeclineCard(label: String, selected: Boolean, width: Dp, onClick: () -> Unit) {
     Box(Modifier.width(width)) {
         Surface(
             shape = RoundedCornerShape(width * 0.08f),
@@ -1084,7 +1024,7 @@ private fun DeclineCard(label: String, selected: Boolean, width: Dp, onClick: ()
                 .selectable(selected = selected, role = Role.RadioButton, onClick = onClick)
                 .semantics {
                     this.selected = selected
-                    contentDescription = "$label: defeated, you keep your cards (p.14)"
+                    contentDescription = "$label: defeated, you keep your cards"
                 },
         ) {
             Column(
@@ -1101,12 +1041,12 @@ private fun DeclineCard(label: String, selected: Boolean, width: Dp, onClick: ()
                 Spacer(Modifier.height(4.dp))
                 Text(
                     label,
-                    style = MaterialTheme.typography.labelMedium,
+                    style = MaterialTheme.typography.labelLarge,
                     fontWeight = FontWeight.SemiBold,
                     textAlign = TextAlign.Center,
                 )
                 Text(
-                    "Keep your cards (p.14)",
+                    "Keep your cards",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     textAlign = TextAlign.Center,

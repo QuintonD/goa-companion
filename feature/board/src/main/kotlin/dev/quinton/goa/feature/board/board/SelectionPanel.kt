@@ -266,7 +266,7 @@ private fun HeroMeasures(
     val movementNote = when {
         card == null -> "Pick a card first."
         card.values.movement == null -> "This card has no Movement value."
-        else -> "Spaces it can end on, with the fewest spaces each needs (p.11)."
+        else -> "Spaces it can end on, with the fewest spaces each needs."
     }
     OverlayRow(
         title = "Movement" + (overlay.movementValue?.let { " $it" } ?: ""),
@@ -285,9 +285,9 @@ private fun HeroMeasures(
     OverlayRow(
         title = "Fast Travel",
         note = if (settings.fastTravel && overlay.fastTravel.isEmpty()) {
-            "Not now: an enemy hero or minion is in this Zone, or no space is free (p.11)."
+            "Not now: an enemy hero or minion is in this Zone, or no space is free."
         } else {
-            "Own or an adjacent Zone, with no enemy hero or minion in either (p.11)."
+            "Own or an adjacent Zone, with no enemy hero or minion in either."
         },
         checked = settings.fastTravel,
         enabled = true,
@@ -302,7 +302,7 @@ private fun HeroMeasures(
         ) {
             "This card has no Range value."
         } else {
-            "Spaces within range, obstacles and the water around the board counted (p.9, p.19)."
+            "Spaces within range, obstacles and the water around the board counted."
         },
         checked = settings.range && overlay.rangeValue != null,
         enabled = overlay.rangeValue != null,
@@ -319,7 +319,7 @@ private fun HeroMeasures(
         ) {
             "This card has no Radius value."
         } else {
-            "Spaces within the radius, obstacles and the water around the board counted (p.9, p.19)."
+            "Spaces within the radius, obstacles and the water around the board counted."
         },
         checked = settings.radius && overlay.radiusValue != null,
         enabled = overlay.radiusValue != null,
@@ -349,9 +349,9 @@ private fun StepsMeasure(
     OverlayRow(
         title = "Movement ${settings.steps}",
         note = if (piece is MinionPiece) {
-            "Where a card's “move N” could take it (p.11)."
+            "Where a card's “move N” could take it."
         } else {
-            "Where it could be moved N spaces (p.11)."
+            "Where it could be moved N spaces."
         },
         checked = settings.movement,
         enabled = true,
@@ -403,7 +403,7 @@ private fun MovementRules(settings: OverlaySettings, onAction: (BoardAction) -> 
         }
         Text(
             when (settings.path) {
-                MovePath.NORMAL -> "Only through empty spaces (p.11)."
+                MovePath.NORMAL -> "Only through empty spaces."
 
                 MovePath.THROUGH_TOKENS ->
                     "Also through tokens, never units or terrain: tokens a card lets units move through, " +
@@ -418,7 +418,7 @@ private fun MovementRules(settings: OverlaySettings, onAction: (BoardAction) -> 
     }
     SwitchRow(
         title = "In a straight line",
-        note = "One of the six directions, stopping at the first obstacle it may not pass (p.19).",
+        note = "One of the six directions, stopping at the first obstacle it may not pass.",
         checked = settings.straightLine,
         onToggle = { onAction(BoardAction.ToggleStraightLine) },
     )

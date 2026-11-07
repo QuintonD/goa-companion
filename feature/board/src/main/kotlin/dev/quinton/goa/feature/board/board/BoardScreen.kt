@@ -704,7 +704,9 @@ private fun boardKey(state: BoardUiState.Ready, short: Boolean): Map<MapKeyItem,
             }
             if (overlay.fastTravel.isNotEmpty()) put(MapKeyItem.FAST_TRAVEL, "Fast Travel")
             if (overlay.range.isNotEmpty()) {
-                put(MapKeyItem.RANGE, listOfNotNull("Range", overlay.rangeValue).joinToString(" "))
+                val range = listOfNotNull("Range", overlay.rangeValue).joinToString(" ")
+                // A violet space with no number is in reach but not on a move: the words say what the outline is.
+                put(MapKeyItem.RANGE, if (short) range else "$range: in reach from here")
             }
             if (overlay.radius.isNotEmpty()) {
                 put(MapKeyItem.RADIUS, listOfNotNull("Radius", overlay.radiusValue).joinToString(" "))
