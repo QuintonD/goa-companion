@@ -24,6 +24,9 @@ import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.onClick
 import androidx.compose.ui.semantics.role
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import dev.quinton.goa.core.designsystem.theme.Spacing
@@ -33,6 +36,7 @@ import dev.quinton.goa.core.designsystem.theme.Spacing
  * ([avatar], given its size), "Playing as Ann", the scope it counts in under it ("Online", "Group · Friday nights",
  * "Guest practice"), and a chevron when a tap changes it. Read only, with no chevron, where it can't be changed here
  * (no [onClick]). One quiet plate and one TalkBack node ("Playing as Ann, you. Group · Friday nights").
+ * [compact] sets it as one 48 dp line ("Playing as Ann · Online"), for a screen whose own action must stay in view.
  */
 @Composable
 fun IdentitySelector(
@@ -44,6 +48,7 @@ fun IdentitySelector(
     onClickLabel: String = "Change player",
     spoken: String = "$title. $scope",
     tag: (@Composable () -> Unit)? = null,
+    compact: Boolean = false,
 ) {
     val click = if (onClick != null) {
         Modifier.clip(PlateShape).clickable(onClickLabel = onClickLabel, role = Role.Button, onClick = onClick)
@@ -53,7 +58,7 @@ fun IdentitySelector(
     GoaPlate(
         modifier
             .fillMaxWidth()
-            .heightIn(min = 64.dp)
+            .heightIn(min = if (compact) 48.dp else 64.dp)
             .then(click)
             .clearAndSetSemantics {
                 contentDescription = spoken
@@ -66,29 +71,44 @@ fun IdentitySelector(
                 }
             },
         brackets = false,
-        contentPadding = PaddingValues(horizontal = Spacing.lg, vertical = Spacing.md),
+        contentPadding = PaddingValues(horizontal = Spacing.lg, vertical = if (compact) Spacing.xs else Spacing.md),
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            avatar(scaledIconSize(IDENTITY_AVATAR, maxScale = 1.5f))
+            avatar(scaledIconSize(if (compact) COMPACT_AVATAR else IDENTITY_AVATAR, maxScale = 1.5f))
             Spacer(Modifier.width(Spacing.md))
-            Column(Modifier.weight(1f)) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(
-                        title,
-                        style = MaterialTheme.typography.titleMedium,
-                        color = MaterialTheme.colorScheme.onSurface,
-                        modifier = Modifier.weight(1f, fill = false),
-                    )
-                    if (tag != null) {
-                        Spacer(Modifier.width(Spacing.sm))
-                        tag()
-                    }
-                }
+            if (compact) {
+                val muted = MaterialTheme.colorScheme.onSurfaceVariant
+                val small = MaterialTheme.typography.bodyMedium.fontSize
                 Text(
-                    scope,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    buildAnnotatedString {
+                        append(title)
+                        // A no-break space: the dot stays with the scope's first word, never alone at a line's end.
+                        withStyle(SpanStyle(color = muted, fontSize = small)) { append("\u00A0· $scope") }
+                    },
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    modifier = Modifier.weight(1f),
                 )
+            } else {
+                Column(Modifier.weight(1f)) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(
+                            title,
+                            style = MaterialTheme.typography.titleMedium,
+                            color = MaterialTheme.colorScheme.onSurface,
+                            modifier = Modifier.weight(1f, fill = false),
+                        )
+                        if (tag != null) {
+                            Spacer(Modifier.width(Spacing.sm))
+                            tag()
+                        }
+                    }
+                    Text(
+                        scope,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
             }
             if (onClick != null) {
                 Icon(
@@ -104,3 +124,6 @@ fun IdentitySelector(
 
 /** The mark's size in an [IdentitySelector]: big enough for the most-played hero badge. */
 private val IDENTITY_AVATAR = 40.dp
+
+/** The mark's size in a compact [IdentitySelector]. */
+private val COMPACT_AVATAR = 32.dp

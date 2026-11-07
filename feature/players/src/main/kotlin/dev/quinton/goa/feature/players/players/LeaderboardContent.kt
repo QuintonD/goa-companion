@@ -327,8 +327,14 @@ private fun LeaderboardRowItem(
                 }
             }
         }
+        // Every row opens the player's page and the chevron says so; with large text the trend needs its width, and
+        // the row, clickable and labelled "View player", still says it to TalkBack.
+        val chevron = LocalDensity.current.fontScale < LARGE_FONT_SCALE
         if (rating.games > 0) {
-            Column(horizontalAlignment = Alignment.End, modifier = Modifier.padding(horizontal = Spacing.sm)) {
+            Column(
+                horizontalAlignment = Alignment.End,
+                modifier = Modifier.padding(start = Spacing.sm, end = if (chevron) Spacing.sm else 0.dp),
+            ) {
                 Text(
                     formatRating(rating.value),
                     style = figureStyle(RowFigure),
@@ -345,8 +351,7 @@ private fun LeaderboardRowItem(
                 )
             }
         }
-        // Every row opens the player's page: the chevron says so, rated or not.
-        OpenChevron()
+        if (chevron) OpenChevron()
     }
 }
 

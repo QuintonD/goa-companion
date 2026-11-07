@@ -32,15 +32,16 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.selectableGroup
-import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.CheckBox
 import androidx.compose.material.icons.filled.EmojiEvents
 import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material.icons.outlined.ArrowDropDown
 import androidx.compose.material.icons.outlined.CalendarMonth
+import androidx.compose.material.icons.outlined.CheckBoxOutlineBlank
 import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.EmojiEvents
@@ -102,7 +103,6 @@ import dev.quinton.goa.core.designsystem.component.GoaPlateTheme
 import dev.quinton.goa.core.designsystem.component.GoaScreen
 import dev.quinton.goa.core.designsystem.component.GoaSegment
 import dev.quinton.goa.core.designsystem.component.GoaSegmentedRow
-import dev.quinton.goa.core.designsystem.component.GoaSwitch
 import dev.quinton.goa.core.designsystem.component.HeroPortrait
 import dev.quinton.goa.core.designsystem.component.PlateShape
 import dev.quinton.goa.core.designsystem.component.SelectablePlate
@@ -818,27 +818,32 @@ private fun SeatEditor(
                 Icon(Icons.Outlined.Close, contentDescription = "Remove seat: $heroLabel")
             }
         }
-        // The pilot is a field to choose from ("Ann ▾"), the Handicap card a quiet switch row under it, a double
-        // pilot a plain line: three kinds of thing, three looks, the pilot first.
-        Box(Modifier.padding(top = Spacing.xs, end = Spacing.md)) {
-            PilotField(pilot, error = problem == "Choose a pilot", onClick = onPickPilot)
-        }
-        Row(
-            Modifier
-                .padding(end = Spacing.md)
-                .fillMaxWidth()
-                .heightIn(min = 48.dp)
-                .toggleable(value = seat.handicap, role = Role.Switch, onValueChange = { onToggleHandicap() })
-                .semantics(mergeDescendants = true) { contentDescription = "Handicap card for $heroLabel" },
-            verticalAlignment = Alignment.CenterVertically,
+        // The pilot is a field to choose from ("Ann ▾"), the Handicap card a chip with a box beside it, a double
+        // pilot a plain line: three kinds of thing, three looks, in one row so the next seat stays in view.
+        FlowRow(
+            Modifier.padding(top = Spacing.xs, end = Spacing.md),
+            horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+            verticalArrangement = Arrangement.spacedBy(Spacing.xs),
+            itemVerticalAlignment = Alignment.CenterVertically,
         ) {
-            Text(
-                "Handicap card",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.weight(1f),
+            PilotField(pilot, error = problem == "Choose a pilot", onClick = onPickPilot)
+            FilterChip(
+                selected = seat.handicap,
+                onClick = onToggleHandicap,
+                label = { Text("Handicap") },
+                leadingIcon = {
+                    Icon(
+                        if (seat.handicap) Icons.Filled.CheckBox else Icons.Outlined.CheckBoxOutlineBlank,
+                        contentDescription = null,
+                        modifier = Modifier.size(18.dp),
+                    )
+                },
+                colors = goaFilterChipColors(),
+                border = selectableChipBorder(seat.handicap),
+                modifier = Modifier.heightIn(min = 48.dp).semantics {
+                    contentDescription = "Handicap card for $heroLabel"
+                },
             )
-            GoaSwitch(checked = seat.handicap, onCheckedChange = null)
         }
         if (pilotSeats > 1 && pilot != null) {
             Row(Modifier.padding(top = Spacing.xs), verticalAlignment = Alignment.CenterVertically) {

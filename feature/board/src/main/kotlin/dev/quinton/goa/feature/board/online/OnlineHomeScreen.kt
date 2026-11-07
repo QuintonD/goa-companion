@@ -273,11 +273,13 @@ private fun Ready(
     heroes: Map<String, BoardHero>,
     actions: OnlineHomeActions,
 ) {
-    // Who this phone plays as, the row Card trivia and Group sync show too; read only here (Rename is in the account).
+    // Who this phone plays as, the row Card trivia and Group sync show too; read only here (Rename is in the account),
+    // and one compact line, so Create room stays in view.
     IdentitySelector(
         title = "Playing as ${state.name}",
         scope = "Online",
         avatar = { size -> AccountAvatar(state.you ?: state.name, state.name, size = size) },
+        compact = true,
     )
     if (state.games.isNotEmpty()) MyGames(state, mapNames, heroes, actions)
     JoinRoom(state, actions)
@@ -516,7 +518,7 @@ private fun NewRoom(state: OnlineHomeUi, mapNames: Map<String, String>, actions:
                 Column(Modifier.weight(1f)) {
                     Text("Ranked", style = MaterialTheme.typography.titleSmall)
                     Text(
-                        "A finished game counts on the public leaderboard.",
+                        "Counts on the public leaderboard.",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
