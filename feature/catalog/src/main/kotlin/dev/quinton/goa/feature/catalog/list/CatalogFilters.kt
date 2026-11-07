@@ -146,7 +146,7 @@ internal fun CatalogFilterContent(
                 }
             }
             if (options.hasOwnedProducts) {
-                HorizontalDivider(Modifier.padding(top = Spacing.lg), color = MaterialTheme.colorScheme.outlineVariant)
+                HorizontalDivider(Modifier.padding(top = Spacing.md), color = MaterialTheme.colorScheme.outlineVariant)
                 Row(
                     Modifier
                         .fillMaxWidth()
@@ -187,7 +187,7 @@ internal fun CatalogFilterContent(
 @Composable
 private fun FilterGroup(title: String, note: String? = null, content: @Composable () -> Unit) {
     // The app's one section head (copper small caps and their rule), as on the hero page and in Settings.
-    SectionHeader(title, padding = PaddingValues(top = Spacing.lg, bottom = Spacing.xs))
+    SectionHeader(title, padding = PaddingValues(top = Spacing.sm, bottom = Spacing.xs))
     if (note != null) {
         Text(
             note,
