@@ -98,11 +98,12 @@ when a map has `art` (all four do); the drawn map stays as the fallback while lo
 
 - **Group sync:** not in a group, one line on what it is for, then two plates, Scan an invite (the one bronze button) and Start a group (outlined), one sentence and one button each; a form (paste an invite, name the group) opens only in the plate chosen, and its button stays on and says what is missing rather than greying out. The transport, the server and the key fold under "How syncing works"; the foot is the app's beacons painting. In a group, the bronze action names its transport ("Sync with nearby phones"; with a server "Sync through the server", nearby outlined under it), then "Phone-to-phone sync", the normal way, in one line with the phones synced with; a server that is set up sits open under "Remote sync", otherwise it waits folded at the foot as "Optional remote sync". Hosting is an explicit state machine under its steps (Collect, Merge, Send back, Done: bronze now, teal ticks behind, hollow ahead), each phone's state on its row: Sync is off and says what it waits for ("Waiting for Cid's data…") until a phone's data is in; with every phone in it names them ("Sync with Bob and Cid"); while some still send it reads "Sync automatically when ready", with who is left out and why under it ("Eve isn't included: old invite"), and a tap arms it: the button gives way to a status in a well ("Waiting for Cid · sync starts automatically") with Cancel, then "Merging…". Each change is announced politely. A phone with an old invite offers "Show new invite" on its own row (the group's QR over the sheet). It ends on a summary plate: who is up to date, what changed on this phone, who to sync again.
 - **Online:** My games is compact so New room stays in view: games waiting on you first, each a tight plate with a bronze edge, "Your turn" in teal with a hand, the map and Play; the rest one line each in one plate (state in words with an icon, then the map). Every game shows its heroes (a seat is its hero) as small overlapping round portraits in their team rings; TalkBack hears who plays whom. In a lobby a free seat is a dashed ring in its team's colour around "+", with "+ Tap to sit here" in teal; a taken seat without a hero yet, a solid ring around a silhouette; every taken seat ends in its state, a mark and a word ("Choose hero", "Not ready", teal "Ready"), and your own carries "Change hero". Under the teams a checklist of what the start waits for (seats taken, heroes chosen, ready, who starts), then only your next step in bronze: "Choose your hero", "I'm ready", then for the host "Start the game"; the host sees "Start the game" throughout (off, with its reason, until everyone is ready) over "You start the game; the server flips the Tie Breaker coin."; taking ready back is outlined.
-- **Trivia question:** whose card, which card and what is asked are one plate: the hero's art as a band (at most 16:9; never the card's scan, which would give the number away), the hero's portrait and name under it, the card's name in Cinzel 28 beside its colour's ribbon, its kind, and the asked number on the title plate; the answers sit right under it, the group centred, spare room shared above and below it. Once answered the group drops its frame (the reveal scrolls it under the banner).
+- **Trivia home:** a Practice / Challenge `GoaSegmentedRow` at the top, then who's playing (the row stays in both modes; its line follows the mode). Practice shows progress, the setup and per-hero rows; Challenge shows its fixed round. The pinned bar holds one Start that names the mode ("Start practice", "Start challenge"; as Guest the Challenge asks who's playing first).
+- **Trivia question:** whose card, which card and what is asked are one plate: the hero's art as a band (at most 184 dp; never the card's scan, which would give the number away), the hero's portrait and name under it, the card's name in Cinzel 28 beside its colour's ribbon, its kind, and the asked number on the title plate; the answers sit right under it and grow into the room left below (up to 168 dp each), so there are no empty bands. The header (question N of M, score, who's playing) is pinned above the scroll in portrait, so it stays in view once answered.
 
 **Rules the screens keep:**
 - **Bronze is selected and primary; teal is next, correct, "you can act"** (a running clock, a right answer, a rating gained). Chips, switches and picked rows are bronze on every screen, all through the one selection look (`SelectablePlate`, `GoaPlate(selected =)`, chips and segments: the bronze 1.5 dp edge, a bronze wash and a leading check or radio; timer presets and setup, draft methods and options, game options); never a teal or team-coloured outline for a pick. Team colours mark teams only. Timer's teal progress arc is the running clock; a running Hurry up's arc is bronze.
-- **One plate per section, dividers inside, brackets on the outer plate only:** a team's seats, a preset's phases, the timer's presets and setup choices, the rules topics, both leaderboards, every settings group (`SettingsGroup`). Plates never nest (an inner one is a well; an inner choice is a row). A list's action never floats over it: the match log docks "Log match" on a slate bar under the list (as trivia's Start bar), the leaderboard ends with "Add player". **Leaderboards** (Players, trivia, online) put their top three on a `Podium` at the head of their plate (crest or portrait, name, figure; two columns' worth of name wraps, never cut), the rest as rows under it (tied places stand on equal steps), and end in the hall of banners (`ScreenFoot(FootArt.HALL)`); from font scale 1.3 the podium gives way to rows. A provisional rating is a small hourglass by the name (TalkBack: "Provisional rating"), and when every rating is provisional the scope line says it once instead; a match's result, with no such line, writes "Provisional" beside the hourglass.
+- **One plate per section, dividers inside, brackets on the outer plate only:** a team's seats, a preset's phases, the timer's presets and setup choices, the rules topics, both leaderboards, every settings group (`SettingsGroup`). Plates never nest (an inner one is a well; an inner choice is a row). A list's action never floats over it: the match log docks "Log match" on a slate bar under the list (as trivia's Start bar), the leaderboard ends with "Add player". **Leaderboards** (Players, trivia, online) put their top three on a `Podium` at the head of their plate (crest or portrait, name, figure; two columns' worth of name wraps, never cut; a name breaks only between words or after a hyphen, two lines at most, one size smaller before any ellipsis, and the figures sit in one fixed-width column), the rest as rows under it (tied places stand on equal steps), and end in the hall of banners (`ScreenFoot(FootArt.HALL)`); from font scale 1.3 the podium gives way to rows. A provisional rating is a small hourglass by the name (TalkBack: "Provisional rating"), and when every rating is provisional the scope line says it once instead; a match's result, with no such line, writes "Provisional" beside the hourglass.
 - **A title on the banner** shrinks, then takes two lines, and only then is cut (`BannerTitle`, `.goa-topbar-title`); a long rules topic shows its head there and its whole title on the page. The timer's second line goes on a phone under 360 wide (TalkBack still hears it).
 - **The search field** is the plate's slot: the slate in the dark theme, paper with a steel edge in the light one.
 - **The light theme is designed, not inverted:** the warm paper canvas, paper plates with steel edges, ink text; the steel banner, the timer and the map stay dark, as on the page.
@@ -282,8 +283,10 @@ Hurry up takes the dial (its countdown is the big clock, "⚡ HURRY UP" above th
 the table-rule actions under the dial, "⚡ Start hurry-up · 0:30" and "Time-out +0:40", are 48 dp outlined pills with
 a bronze edge and icon and a verb, never the plain slate of a status pill)
 and a slim Hurry up bar with Restart and Stop is pinned above the controls (in landscape too, on the right; the round view,
-which has no dial, keeps the bar with the countdown in it); the top bar's coin chip is the Tie Breaker coin's face (the
-face is the label; TalkBack: "Tie Breaker coin: Red") with "Red", the face alone only where it doesn't fit, and its second
+which has no dial, keeps the bar with the countdown in it); the top bar holds only the coin chip and the overflow menu,
+where every other tool is named (Levels & defeats, Tie Breaker coin…, Restart phase, Skip to end of round, the view
+switch, Rules, Settings, End match… last); the coin chip is the Tie Breaker coin's face with "Coin Red" (TalkBack: "Tie
+Breaker coin: Red"), the face alone only where it doesn't fit, and the bar's second
 line says "Table rules · 14:32" ("Game 14:32" with large text); landscape runs a thin steel banner the full width (round
 and subtitle on one line) and gives the dial the whole left column under it, step, table rules and controls on the right
 (round view the same: list | step); paused = blinking
@@ -292,23 +295,31 @@ section headings — done rows ticked in bronze and stepped back by colour, neve
 keep their contrast; the current row an expanded teal-bordered card whose border and digits turn
 bronze in the final seconds and red in overtime; digits sized in dp so font scale 2 doesn't blow
 them up; landscape = list left, clock and controls right) · Players list → Player profile (rating chart) · Match log/editor ·
-Meta dashboard · Draft setup → Draft board (sticky step banner over a scrolling list of sequence
-chips, two team columns with role coverage and ban chips, then a dense pool grid with search,
-role chips and "Hide taken"; taken heroes shrink to chips; landscape moves the banner and teams
-to a side column so the pool keeps the full height; four tiles across on a phone (three at 360 dp), names up to 15 sp,
+Meta dashboard · Draft setup (the bar's back arrow leaves the draft: choices are saved as they are made; the in-flow
+Back steps back) → Draft board (a sticky step banner: team-edged plate, the step on its title plate with its clock
+beside it, then "Step 4 of 8 · 1 of 2 · for Ada"; the step chips; one team bar, per team its mark, name, a portrait or
+empty ring per seat and its bans counted, which a tap opens into both rosters, equal-height columns with "Roles covered"
+and ban chips, capped at 45 % of the height; then search with Hide taken and the role chips, pinned; the pool grid
+follows, at least two rows in view at 411 dp. Large text or a phone under 640 dp tall pins only the banner. Taken
+heroes shrink to chips; landscape moves the banner and teams to a side column so the pool keeps the full height; four tiles across on a phone (three at 360 dp), names up to 15 sp,
 stepping down only for the longest; a pool tile's tap opens the hero peek sheet (one tap, one meaning: no inspect
 button on the art; Open hero page sits under the hero, above the stats, so the footer never hides it), whose
 commitment is pinned under its scrolling content: whom it is for, wrapping ("◆ Red · for Ada ·
 Pick 1 of 2"), then the bronze primary with a short label that never truncates ("Pick Arien"), which commits; before the
-first choice "Swap out of the pool instead" under it. Draft complete: a seat row offers the Handicap card as a small
-chip only on the larger team (odd counts) or once it is on; elsewhere it sits in the row's ⋮ menu) · Draft methods
-(a radio plate per method, the chosen one bronze, its sequence in team colours; "Continue with …" pinned below; Sources,
-Duplicate, Edit and Delete in each plate's menu; New method at the list's end; the methods' own "A"/"B" mapped once
-under the layout chips: "A is the team the Tie Breaker coin shows").
-Timer start reads as a start button: the preset's name and durations with tonight's length in them, in bronze ("Play a
-card 0:45 ×4 tonight"), one bronze Start timer, one row "Draft first · Match setup" (draft → setup → timer → log is the
-game-night flow), then one folded "Adjust for tonight" row that still names its values ("Play a card 0:45 (preset 0:30)
-· 4 heroes") and opens to the per-turn ±15 s (named as the preset names the phase) and Heroes at the table.
+first choice "Swap out of the pool instead" under it. Draft complete: a plate per team, rows divided by hairlines,
+each row with a quiet Swap; after one tap swapping is a named mode: the bar says "Swap Arien with another ◆ Blue hero"
+with Cancel, teammates offer a bronze Swap here and the other team steps back. One bronze Set up match is pinned with a
+⋮ menu: Log result later, Try on the board, Handicap cards… and Deal again) · Draft methods (a radio plate per method,
+its name in the list-title style (Inter), the chosen one bronze, its sequence in team colours; "Continue with …"
+pinned below; Sources, Duplicate, Edit and Delete in each plate's menu; New method at the list's end; the methods'
+Team A and B are said as "coin team" and "other team" everywhere, with a mark legend under the layout chips).
+Timer start reads as a start button: one plate with the active preset as a tappable row ("Preset · Table rules ·
+Change ›", opens the presets), its phases as a labelled two-column grid (`PhaseGrid`: the phase's name over its length,
+"0:30 ×4", "0:30 per hero"; never dot-joined prose), tonight's length in bronze in its cell with a "Tonight" tag and
+"Preset 0:30" under it, one folded "Adjust for tonight" row ("Play a card length · 4 heroes") that opens to the per-turn
+±15 s and Heroes at the table, and one bronze Start timer, the plate's only button. Under the plate a quiet row of two
+text buttons, "Draft first" and "Match setup" (draft → setup → timer → log is the game-night flow), then pending
+matches; the presets are listed once, on Timer presets, each preset's phases in the same grid.
 Who won? / match editor: the winners are radio cards (an empty trophy outline, a bronze trophy and the bronze selection
 frame once chosen) under "Which team won? · Required"; the win condition says "· Optional"; the bronze Save ("Save
 result", "Save match", "Save changes") is pinned under the form, off until the form can be saved, with the reason under it
@@ -324,9 +335,10 @@ in a labelled overflow menu, "More options" (`BarActions`): Heroes shows the lay
 Settings in the menu; Players shows Group sync (its attention dot also on the menu button), then your player
 page, Share stats, Backup and Settings; Play keeps Settings (the board style is set there). The **Play tab** opens on the game in progress (Resume), then plates
 with painted scenes (the app's own art in the official portraits' flat, bright brushwork, `third_party/ASSETS.md`), the
-name engraved over the scene and the state in bronze: Play vs computer across the width, then Puzzles (a teal tick and
+name engraved over the scene and the state in bronze: Play vs computer across the width, then Game night (Draft, then
+Match setup, then the timer: it opens the Draft; Draft also stays in More), Puzzles (a teal tick and
 "1 of 50 positions", "1 of 22 rounds": the same lines, `SolvedCount`, as over the puzzle list's two parts), Board sandbox, Online and Card
-trivia two by two (one column at large text, four across in landscape); the scenes grow with the screen's height
+trivia two by two (one column at large text, three across on a wide screen); the scenes grow with the screen's height
 so the plates fill it. Settings groups are the restrained plate (`GoaPlate(style = Secondary)` via `SettingsGroup`: flat, a
 quiet hairline, no brackets; More's groups too), one per section with hairlines between rows, never a plate inside a plate; the theme switch is a `GoaSegmentedRow` (each option's glyph, the picked one's check); About's prose sits on the page, only rows you tap on a group. An entry the engine can't serve says "Not available in this build", never "Coming soon".
 Board sandbox is the saved-board list only. The bottom nav is hidden on the

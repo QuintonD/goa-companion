@@ -45,9 +45,9 @@ class GameNight(private val rule: AppRule, private val checkpoint: (String) -> U
         checkpoint("Draft setup · Heroes")
         rule.tapText("Next: Tie Breaker")
         rule.tapText("Flip the coin")
-        rule.waitForText("is Team A", substring = true)
+        rule.waitForText("is the coin team", substring = true)
         checkpoint("Draft setup · Tie Breaker")
-        val teamA = if (rule.exists(hasText("◆ Red is Team A"))) Side.RED else Side.BLUE
+        val teamA = if (rule.exists(hasText("◆ Red is the coin team"))) Side.RED else Side.BLUE
         val teamB = teamA.other
         rule.tap(hasText("Start draft", substring = true) and hasClickAction())
 
@@ -193,7 +193,8 @@ class GameNight(private val rule: AppRule, private val checkpoint: (String) -> U
         assertPhase("Pre-round strategy", "ROUND START")
 
         // ---- End match (confirmed) → Log result.
-        rule.tapDescription("End match")
+        rule.tapDescription("More options")
+        rule.tap(hasText("End match…") and hasClickAction())
         rule.waitForText("End the match?")
         rule.tap(hasAnyAncestor(isDialog()) and hasText("End match") and hasClickAction())
         rule.waitForText("Log result")

@@ -229,6 +229,7 @@ object TimerUiMapper {
         name = preset.name,
         summary = TimerText.presetSummary(preset),
         usesActionTimer = preset.phases.any { it.enabled && it.kind == PhaseKind.ACTION },
+        phases = TimerText.phaseDurations(preset),
     )
 
     /**

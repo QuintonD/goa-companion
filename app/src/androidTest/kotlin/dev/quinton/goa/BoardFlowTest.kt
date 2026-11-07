@@ -27,7 +27,8 @@ class BoardFlowTest {
     fun tryADraftOnTheBoardMoveAHeroAndFindItInBoards() {
         val redPicks = draftTwoVersusTwo()
 
-        // Draft complete: "Try on the board" sets up the opening in one tap.
+        // Draft complete: "Try on the board" (in Set up match's menu) sets up the opening.
+        rule.tapDescription("More ways to finish")
         rule.tap(hasText("Try on the board") and hasClickAction())
 
         // The first Red pick stands on a Red hero Spawn point in the Red Throne Zone.
@@ -48,7 +49,7 @@ class BoardFlowTest {
         // Back returns to the finished draft (the draft board hides the tabs); Back again leaves it,
         // then Play › Board sandbox: the board is saved under its line-up.
         rule.tapDescription("Back")
-        rule.waitForText("Try on the board")
+        rule.waitForText("Set up match")
         rule.tapDescription("Back")
         rule.openTab("catalog")
         rule.waitForText("32 heroes")
@@ -74,8 +75,8 @@ class BoardFlowTest {
         rule.tap(hasText("House draft") and hasClickAction())
         rule.tapText("Next: Tie Breaker")
         rule.tapText("Flip the coin")
-        rule.waitForText("is Team A", substring = true)
-        val teamA = if (rule.exists(hasText("◆ Red is Team A"))) "◆" else "●"
+        rule.waitForText("is the coin team", substring = true)
+        val teamA = if (rule.exists(hasText("◆ Red is the coin team"))) "◆" else "●"
         rule.tap(hasText("Start draft", substring = true) and hasClickAction())
 
         // House draft 2v2: Ban A · Pick A · Ban B · Pick B · Pick B · Pick A.
@@ -108,7 +109,7 @@ class BoardFlowTest {
             if (action == "Pick" && glyph == "◆") redPicks += chosen
         }
         assertEquals(2, redPicks.size)
-        rule.reveal(hasText("Try on the board"))
+        rule.reveal(hasText("Set up match"))
         return redPicks
     }
 }

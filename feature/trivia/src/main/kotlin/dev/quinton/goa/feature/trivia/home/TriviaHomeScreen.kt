@@ -7,11 +7,9 @@ import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
-import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -33,7 +31,7 @@ import androidx.compose.material.icons.outlined.MoreVert
 import androidx.compose.material.icons.outlined.PlayArrow
 import androidx.compose.material.icons.outlined.Quiz
 import androidx.compose.material.icons.outlined.RestartAlt
-import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material.icons.outlined.School
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -59,9 +57,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.rememberTextMeasurer
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import dev.quinton.goa.core.data.trivia.HeroProgressUi
@@ -71,16 +67,20 @@ import dev.quinton.goa.core.data.trivia.TriviaHomeUiState
 import dev.quinton.goa.core.data.trivia.TriviaText
 import dev.quinton.goa.core.designsystem.component.ConfirmDialog
 import dev.quinton.goa.core.designsystem.component.EmptyState
+import dev.quinton.goa.core.designsystem.component.FootArt
 import dev.quinton.goa.core.designsystem.component.GoaButton
 import dev.quinton.goa.core.designsystem.component.GoaCard
 import dev.quinton.goa.core.designsystem.component.GoaFilterChip
-import dev.quinton.goa.core.designsystem.component.GoaOutlinedButton
 import dev.quinton.goa.core.designsystem.component.GoaPlate
 import dev.quinton.goa.core.designsystem.component.GoaPlateTheme
 import dev.quinton.goa.core.designsystem.component.GoaScreen
+import dev.quinton.goa.core.designsystem.component.GoaSegment
+import dev.quinton.goa.core.designsystem.component.GoaSegmentCheck
+import dev.quinton.goa.core.designsystem.component.GoaSegmentedRow
 import dev.quinton.goa.core.designsystem.component.GoaSwitch
 import dev.quinton.goa.core.designsystem.component.HeroPortrait
 import dev.quinton.goa.core.designsystem.component.PlateShape
+import dev.quinton.goa.core.designsystem.component.ScreenFoot
 import dev.quinton.goa.core.designsystem.component.SectionHeader
 import dev.quinton.goa.core.designsystem.component.UnverifiedBadge
 import dev.quinton.goa.core.designsystem.component.scaledIconSize
@@ -89,6 +89,7 @@ import dev.quinton.goa.core.designsystem.theme.GoaTextStyles
 import dev.quinton.goa.core.designsystem.theme.Spacing
 import dev.quinton.goa.core.domain.trivia.AnswerStyle
 import dev.quinton.goa.core.domain.trivia.CardGroup
+import dev.quinton.goa.core.domain.trivia.TriviaChallenge
 import dev.quinton.goa.core.domain.trivia.TriviaConfig
 import dev.quinton.goa.core.domain.trivia.TriviaStat
 import dev.quinton.goa.feature.trivia.ui.MasteryBar
@@ -97,8 +98,9 @@ import dev.quinton.goa.feature.trivia.ui.SetupLabel
 import dev.quinton.goa.feature.trivia.ui.spokenUnverified
 
 /**
- * Trivia home: who is playing, overall progress, the quiz setup, and progress per hero; Start quiz
- * and the Challenge pinned at the bottom, the leaderboard on the top bar (ADR-028, ADR-032).
+ * Trivia home: Practice or Challenge first, then who is playing; in Practice the overall progress, the quiz setup
+ * and progress per hero, in Challenge its fixed round. The mode's one Start is pinned at the bottom, the
+ * leaderboard on the top bar (ADR-028, ADR-032).
  */
 @Suppress("LongParameterList")
 @Composable
@@ -115,12 +117,14 @@ fun TriviaHomeScreen(
     onLeaderboard: () -> Unit = {},
     playingAsActions: PlayingAsActions = PlayingAsActions(),
     initialPlayingAsPicker: PlayingAsPicker? = null,
+    initialMode: TriviaMode = TriviaMode.PRACTICE,
 ) {
     val ready = state as? TriviaHomeUiState.Ready
     var menu by rememberSaveable { mutableStateOf(false) }
     var confirmReset by rememberSaveable { mutableStateOf(false) }
     var picker by rememberSaveable { mutableStateOf(initialHeroPicker) }
     var playingAsPicker by rememberSaveable { mutableStateOf(initialPlayingAsPicker) }
+    var mode by rememberSaveable { mutableStateOf(initialMode) }
     BoxWithConstraints(modifier) {
         val trophyInBar = leaderboardInBar(maxWidth)
         GoaScreen(
@@ -177,6 +181,8 @@ fun TriviaHomeScreen(
 
                     is TriviaHomeUiState.Ready -> HomeContent(
                         state = state,
+                        mode = mode,
+                        onMode = { mode = it },
                         onAction = onAction,
                         onStart = onStart,
                         onStartHero = onStartHero,
@@ -234,10 +240,15 @@ fun TriviaHomeScreen(
     }
 }
 
+/** What the home starts: a practice round on the setup below, or the fixed, ranked Challenge (ADR-032). */
+enum class TriviaMode { PRACTICE, CHALLENGE }
+
 @Suppress("LongParameterList")
 @Composable
 private fun HomeContent(
     state: TriviaHomeUiState.Ready,
+    mode: TriviaMode,
+    onMode: (TriviaMode) -> Unit,
     onAction: (TriviaHomeAction) -> Unit,
     onStart: () -> Unit,
     onStartHero: (String) -> Unit,
@@ -245,124 +256,116 @@ private fun HomeContent(
     onChoosePlayer: () -> Unit,
     onChallenge: () -> Unit,
 ) {
-    BoxWithConstraints(Modifier.fillMaxSize()) {
-        // The start bar's content is inset by the screen padding on both sides.
-        val layout = barLayout(maxWidth - Spacing.screen * 2, challengeLabel(state.playingAs.isGuest))
-        HomeColumn(state, onAction, onStart, onStartHero, onChooseHeroes, onChoosePlayer, onChallenge, layout)
-    }
-}
-
-/**
- * How the pinned bar lays out its buttons. [wide]: text and buttons side by side (landscape).
- * [stacked]: Start quiz and Challenge don't both fit their half of the row at this width and text
- * size, so they stack, and the Challenge line moves into the list to leave the list room.
- */
-private data class BarLayout(val wide: Boolean, val stacked: Boolean, val compactChallenge: Boolean = false)
-
-/**
- * Measures the two button labels (with icon, gap and padding) against half of [width]. The Challenge
- * label may take two lines in its half ("Choose player & / challenge" for Guest), so the bar stays
- * one row and the list keeps its room.
- */
-@Composable
-private fun barLayout(width: Dp, challenge: String): BarLayout {
-    val density = LocalDensity.current
-    val measurer = rememberTextMeasurer()
-    val style = MaterialTheme.typography.titleMedium
-    val icon = scaledIconSize(20.dp)
-    return remember(width, density, style, icon, challenge) {
-        if (width >= WIDE_START_BAR) return@remember BarLayout(wide = true, stacked = false)
-        val half = (width - Spacing.sm) / 2
-        fun fits(label: String, lines: Int, chrome: Dp): Boolean {
-            val room = with(density) { (half - chrome).roundToPx() }.coerceAtLeast(1)
-            val text = measurer.measure(label, style, maxLines = lines, constraints = Constraints(maxWidth = room))
-            return !text.hasVisualOverflow && text.lineCount <= lines
-        }
-        val full = icon + Spacing.sm + BUTTON_CHROME
-        val oneLine = fits(challenge, 1, full)
-        val compact = !oneLine && fits(challenge, 2, COMPACT_CHROME)
-        BarLayout(
-            wide = false,
-            stacked = !fits(START_LABEL, 1, full) || !(oneLine || compact),
-            compactChallenge = compact,
-        )
-    }
-}
-
-/** A two-line Challenge button: no icon, 12 dp side padding, the border and a rounding margin. */
-private val COMPACT_CHROME = 30.dp
-private val CompactPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp)
-
-/** A button's horizontal content padding (24 dp each side), border and a rounding margin. */
-private val BUTTON_CHROME = 54.dp
-private const val START_LABEL = "Start quiz"
-private const val CHALLENGE_LABEL = "Challenge"
-private const val GUEST_CHALLENGE_LABEL = "Choose player & challenge"
-
-/** Guest can't be ranked: the Challenge button says it picks a player first (the picker opens). */
-private fun challengeLabel(guest: Boolean) = if (guest) GUEST_CHALLENGE_LABEL else CHALLENGE_LABEL
-
-@Suppress("LongParameterList")
-@Composable
-private fun HomeColumn(
-    state: TriviaHomeUiState.Ready,
-    onAction: (TriviaHomeAction) -> Unit,
-    onStart: () -> Unit,
-    onStartHero: (String) -> Unit,
-    onChooseHeroes: () -> Unit,
-    onChoosePlayer: () -> Unit,
-    onChallenge: () -> Unit,
-    layout: BarLayout,
-) {
-    val largeText = layout.stacked
     val padded = Modifier.padding(horizontal = Spacing.screen)
-    Column(Modifier.fillMaxSize()) {
-        LazyColumn(
-            Modifier.weight(1f).fillMaxWidth(),
-            contentPadding = PaddingValues(top = Spacing.md, bottom = Spacing.xl),
-        ) {
-            item(key = "playing-as") { PlayingAsRow(state.playingAs, onChoosePlayer, padded) }
-            if (largeText) {
-                item(key = "challenge-line") {
-                    Text(
-                        challengeExplain(state.playingAs.isGuest),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = padded.padding(top = Spacing.sm),
-                    )
-                }
-            }
-            item(key = "overall") { OverallCard(state, padded.padding(top = Spacing.md)) }
-            item(key = "setup-title") { SectionHeader("New quiz", padded) }
-            item(key = "setup") { SetupBlock(state, onAction, onChooseHeroes, padded) }
-            item(key = "heroes-title") {
-                SectionHeader(
-                    "By hero",
-                    padded,
-                    trailing = {
-                        Text(
-                            "Tap one to quiz it",
-                            style = MaterialTheme.typography.labelMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                    },
-                )
-            }
-            items(state.heroes, key = { "hero-${it.heroId}" }) { hero ->
-                GoaPlate(
-                    Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = Spacing.screen, vertical = Spacing.xs)
-                        .clip(PlateShape),
-                    brackets = false,
-                    contentPadding = PaddingValues(0.dp),
+    val challenge = mode == TriviaMode.CHALLENGE
+    BoxWithConstraints(Modifier.fillMaxSize()) {
+        val wide = maxWidth >= WIDE_START_BAR
+        Column(Modifier.fillMaxSize()) {
+            Box(Modifier.weight(1f).fillMaxWidth()) {
+                // The Challenge's page is short: it ends in the leaderboards' hall of banners, not in empty navy.
+                if (challenge) ScreenFoot(FootArt.HALL)
+                LazyColumn(
+                    Modifier.fillMaxSize(),
+                    contentPadding = PaddingValues(top = Spacing.md, bottom = Spacing.xl),
                 ) {
-                    HeroProgressRow(hero, onClick = { onStartHero(hero.heroId) })
+                    // The choice first: practice on your own setup, or the Challenge that is the same for everyone.
+                    item(key = "mode") { ModeChoice(mode, onMode, padded) }
+                    item(key = "playing-as") {
+                        PlayingAsRow(state.playingAs, mode, onChoosePlayer, padded.padding(top = Spacing.md))
+                    }
+                    if (challenge) {
+                        item(key = "challenge") { ChallengeCard(padded.padding(top = Spacing.md)) }
+                    } else {
+                        item(key = "overall") { OverallCard(state, padded.padding(top = Spacing.md)) }
+                        item(key = "setup-title") { SectionHeader("New quiz", padded) }
+                        item(key = "setup") { SetupBlock(state, onAction, onChooseHeroes, padded) }
+                        item(key = "heroes-title") {
+                            SectionHeader(
+                                "By hero",
+                                padded,
+                                trailing = {
+                                    Text(
+                                        "Tap one to quiz it",
+                                        style = MaterialTheme.typography.labelMedium,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    )
+                                },
+                            )
+                        }
+                        items(state.heroes, key = { "hero-${it.heroId}" }) { hero ->
+                            GoaPlate(
+                                Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = Spacing.screen, vertical = Spacing.xs)
+                                    .clip(PlateShape),
+                                brackets = false,
+                                contentPadding = PaddingValues(0.dp),
+                            ) {
+                                HeroProgressRow(hero, onClick = { onStartHero(hero.heroId) })
+                            }
+                        }
+                    }
                 }
+            }
+            // Pinned: the live line and the one Start for the chosen mode, however far the list is scrolled.
+            StartBar(state, mode, if (challenge) onChallenge else onStart, wide)
+        }
+    }
+}
+
+/** Practice or Challenge, side by side: the one choice the home's Start depends on. */
+@Composable
+private fun ModeChoice(mode: TriviaMode, onMode: (TriviaMode) -> Unit, modifier: Modifier) {
+    GoaSegmentedRow(modifier.fillMaxWidth()) {
+        TriviaMode.entries.forEach { option ->
+            val selected = option == mode
+            GoaSegment(
+                selected = selected,
+                onClick = { onMode(option) },
+                // The mode's own mark until chosen, then the shared bronze check.
+                icon = {
+                    if (selected) {
+                        GoaSegmentCheck(true)
+                    } else {
+                        Icon(
+                            if (option == TriviaMode.PRACTICE) Icons.Outlined.School else Icons.Outlined.Bolt,
+                            contentDescription = null,
+                            modifier = Modifier.size(scaledIconSize(18.dp, 1.4f)),
+                        )
+                        Spacer(Modifier.width(Spacing.xs))
+                    }
+                },
+            ) {
+                Text(modeLabel(option), style = MaterialTheme.typography.titleSmall, maxLines = 1)
             }
         }
-        // Pinned: the live count, Start and the Challenge are always in reach, however far the list is scrolled.
-        StartBar(state, onStart, onChallenge, layout)
+    }
+}
+
+internal fun modeLabel(mode: TriviaMode): String = when (mode) {
+    TriviaMode.PRACTICE -> "Practice"
+    TriviaMode.CHALLENGE -> "Challenge"
+}
+
+/**
+ * The Challenge (ADR-032) as it is: the fixed round of [TriviaChallenge.CONFIG] (every number, every card group,
+ * four choices, duels), the same for everyone; each player's best one is on the board.
+ */
+@Composable
+private fun ChallengeCard(modifier: Modifier) {
+    GoaCard(modifier.fillMaxWidth()) {
+        Text(
+            "${TriviaChallenge.QUESTIONS} questions on every hero",
+            style = MaterialTheme.typography.headlineSmall,
+            color = MaterialTheme.colorScheme.onSurface,
+        )
+        Spacer(Modifier.height(Spacing.xs))
+        Text(
+            "The same quiz for everyone: every number on every card, four choices, initiative duels. Each " +
+                "player's best is ranked on the group's leaderboard.",
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
     }
 }
 
@@ -371,13 +374,10 @@ private fun HomeColumn(
  * leaderboard, and a note when the player isn't this phone's "You" (whose learning progress this is).
  */
 @Composable
-private fun PlayingAsRow(playing: PlayingAsState, onClick: () -> Unit, modifier: Modifier) {
+private fun PlayingAsRow(playing: PlayingAsState, mode: TriviaMode, onClick: () -> Unit, modifier: Modifier) {
     val name = playing.player?.name ?: "Guest"
     val isMe = playing.player?.let { it.id == playing.me?.id } == true
-    val subtitle = when {
-        playing.isGuest -> GUEST_LINE
-        else -> PLAYER_LINE
-    }
+    val subtitle = rankLine(playing, mode)
     val note = playingAsNote(playing)
     Column(modifier.fillMaxWidth()) {
         GoaPlate(
@@ -641,83 +641,45 @@ private fun DuelsRow(state: TriviaHomeUiState.Ready, onAction: (TriviaHomeAction
 }
 
 /**
- * The bar pinned under the home's list: the live "N numbers in this quiz · M learned" line (or why
- * Start is off), Start quiz and the Challenge with its one-line explanation. Side by side on a wide
- * window (landscape), so the list keeps room; the two buttons stack at large text.
+ * The bar pinned under the home's list: the live line ("N numbers in this quiz · M learned", or why Start is off)
+ * and the chosen mode's one Start. Side by side on a wide window (landscape), so the list keeps room.
  */
 @Composable
-private fun StartBar(
-    state: TriviaHomeUiState.Ready,
-    onStart: () -> Unit,
-    onChallenge: () -> Unit,
-    layout: BarLayout,
-) {
-    val selection = state.selection
-    val line = "${TriviaText.count(selection.total, "number")} in this quiz · " +
-        "${TriviaText.number(selection.mastered)} learned"
-    val note = startNote(state)
-    val stacked = layout.stacked
-    val wide = layout.wide
-    val challenge = challengeLabel(state.playingAs.isGuest)
+private fun StartBar(state: TriviaHomeUiState.Ready, mode: TriviaMode, onStart: () -> Unit, wide: Boolean) {
+    val challenge = mode == TriviaMode.CHALLENGE
+    // The Challenge's card says what it asks: its bar is the button alone.
+    val line = if (challenge) {
+        null
+    } else {
+        "${TriviaText.count(state.selection.total, "number")} in this quiz · " +
+            "${TriviaText.number(state.selection.mastered)} learned"
+    }
+    val note = if (challenge) null else startNote(state)
+    val enabled = challenge || state.canStart
     GoaPlateTheme {
-        val noteColor = MaterialTheme.colorScheme.run { if (state.canStart) onSurfaceVariant else error }
+        val noteColor = MaterialTheme.colorScheme.run { if (enabled) onSurfaceVariant else error }
         Column(Modifier.slatePlate(RectangleShape, brackets = false)) {
-            Box(
-                Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = Spacing.screen, vertical = Spacing.md),
-            ) {
-                val texts: @Composable () -> Unit = {
+            val texts: @Composable () -> Unit = {
+                if (line != null) {
                     Text(line, style = GoaTextStyles.numeric, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    if (note != null) {
-                        Spacer(Modifier.height(Spacing.xs))
-                        Text(note, style = MaterialTheme.typography.bodyMedium, color = noteColor)
-                    }
                 }
-                val explain: @Composable () -> Unit = {
-                    Text(
-                        challengeExplain(state.playingAs.isGuest),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
+                if (note != null) {
+                    Spacer(Modifier.height(Spacing.xs))
+                    Text(note, style = MaterialTheme.typography.bodyMedium, color = noteColor)
                 }
-                if (wide) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Column(Modifier.weight(1f)) {
-                            texts()
-                            Spacer(Modifier.height(Spacing.xs))
-                            explain()
-                        }
-                        Spacer(Modifier.width(Spacing.lg))
-                        ChallengeButton(challenge, onChallenge, Modifier.widthIn(min = 160.dp))
-                        Spacer(Modifier.width(Spacing.sm))
-                        StartButton(state.canStart, onStart, Modifier.widthIn(min = 200.dp))
-                    }
-                } else {
-                    Column {
-                        texts()
-                        Spacer(Modifier.height(Spacing.sm))
-                        if (stacked) {
-                            // Stacked: the explanation sits in the list (under Playing as) so the
-                            // pinned bar leaves the list room.
-                            StartButton(state.canStart, onStart, Modifier.fillMaxWidth())
-                            Spacer(Modifier.height(Spacing.sm))
-                            ChallengeButton(challenge, onChallenge, Modifier.fillMaxWidth())
-                        } else {
-                            Row(Modifier.height(IntrinsicSize.Min)) {
-                                ChallengeButton(
-                                    challenge,
-                                    onChallenge,
-                                    Modifier.weight(1f).fillMaxHeight(),
-                                    compact = layout.compactChallenge,
-                                )
-                                Spacer(Modifier.width(Spacing.sm))
-                                StartButton(state.canStart, onStart, Modifier.weight(1f).fillMaxHeight())
-                            }
-                            Spacer(Modifier.height(Spacing.xs))
-                            explain()
-                        }
-                    }
+            }
+            val padding = Modifier.fillMaxWidth().padding(horizontal = Spacing.screen, vertical = Spacing.md)
+            if (wide) {
+                Row(padding, verticalAlignment = Alignment.CenterVertically) {
+                    Column(Modifier.weight(1f)) { texts() }
+                    Spacer(Modifier.width(Spacing.lg))
+                    StartButton(mode, enabled, onStart, Modifier.widthIn(min = 240.dp))
+                }
+            } else {
+                Column(padding) {
+                    texts()
+                    if (line != null || note != null) Spacer(Modifier.height(Spacing.sm))
+                    StartButton(mode, enabled, onStart, Modifier.fillMaxWidth())
                 }
             }
         }
@@ -725,46 +687,30 @@ private fun StartBar(
 }
 
 @Composable
-private fun StartButton(enabled: Boolean, onStart: () -> Unit, modifier: Modifier) {
+private fun StartButton(mode: TriviaMode, enabled: Boolean, onStart: () -> Unit, modifier: Modifier) {
     GoaButton(onClick = onStart, enabled = enabled, modifier = modifier.heightIn(min = 56.dp)) {
-        Icon(Icons.Outlined.PlayArrow, contentDescription = null, modifier = Modifier.size(scaledIconSize(20.dp)))
+        Icon(
+            if (mode == TriviaMode.CHALLENGE) Icons.Outlined.Bolt else Icons.Outlined.PlayArrow,
+            contentDescription = null,
+            modifier = Modifier.size(scaledIconSize(20.dp)),
+        )
         Spacer(Modifier.width(Spacing.sm))
-        Text(START_LABEL, style = MaterialTheme.typography.titleMedium, maxLines = 1)
+        Text(startLabel(mode), style = MaterialTheme.typography.titleMedium, maxLines = 1)
     }
 }
 
-/** The fixed Challenge (ADR-032): never off, whatever the setup above it. */
-@Composable
-private fun ChallengeButton(label: String, onChallenge: () -> Unit, modifier: Modifier, compact: Boolean = false) {
-    GoaOutlinedButton(
-        onClick = onChallenge,
-        modifier = modifier.heightIn(min = 56.dp),
-        // Two lines in half the bar: no icon and narrower sides, so the bar stays one row.
-        contentPadding = if (compact) CompactPadding else ButtonDefaults.ContentPadding,
-    ) {
-        if (!compact) {
-            Icon(Icons.Outlined.Bolt, contentDescription = null, modifier = Modifier.size(scaledIconSize(20.dp)))
-            Spacer(Modifier.width(Spacing.sm))
-        }
-        Text(label, style = MaterialTheme.typography.titleMedium, maxLines = 2, textAlign = TextAlign.Center)
-    }
+internal fun startLabel(mode: TriviaMode): String = when (mode) {
+    TriviaMode.PRACTICE -> "Start practice"
+    TriviaMode.CHALLENGE -> "Start challenge"
 }
 
-/**
- * Under the Challenge: what it is and where it counts. Guest practice is unranked, so for Guest it
- * says a player is picked first (the button opens the picker).
- */
-internal fun challengeExplain(guest: Boolean): String = if (guest) GUEST_CHALLENGE_LINE else PLAYER_CHALLENGE_LINE
-
-internal const val PLAYER_CHALLENGE_LINE =
-    "Challenge: 20 questions on every hero, ranked on the group's trivia leaderboard."
-internal const val GUEST_CHALLENGE_LINE =
-    "Guest practice is unranked. A Challenge is ranked under a player's name on the group's trivia " +
-        "leaderboard."
-
-/** Under "Playing as": whether this player's rounds are ranked. */
-private const val GUEST_LINE = "Practice only · unranked"
-private const val PLAYER_LINE = "Rounds count on the group's trivia leaderboard"
+/** Under "Playing as": whether this player's rounds are ranked, in the chosen mode. */
+internal fun rankLine(playing: PlayingAsState, mode: TriviaMode): String = when {
+    mode == TriviaMode.CHALLENGE && playing.isGuest -> "Choose a player: a Challenge is ranked by name"
+    mode == TriviaMode.CHALLENGE -> "Ranked on the Challenge leaderboard"
+    playing.isGuest -> "Practice only · unranked"
+    else -> "Rounds count on the Practice leaderboard"
+}
 
 /**
  * "Card trivia" must never be clipped (S25 Ultra: 384 dp wide). The title is measured; when it and

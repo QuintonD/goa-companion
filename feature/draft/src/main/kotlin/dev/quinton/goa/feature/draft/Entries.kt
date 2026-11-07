@@ -29,6 +29,7 @@ fun EntryProviderScope<NavKey>.draftEntries(navigator: Navigator) {
             onManageMethods = { navigator.navigate(DraftMethodsRoute) },
             onAddPlayer = { navigator.navigate(PlayerEditRoute()) },
             onOpenSettings = { navigator.navigate(SettingsRoute) },
+            onExit = navigator::back,
         )
     }
     entry<DraftBoardRoute> {

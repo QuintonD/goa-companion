@@ -19,6 +19,7 @@ import dev.quinton.goa.core.domain.draft.DraftEngine
 import dev.quinton.goa.core.domain.draft.DraftMethod
 import dev.quinton.goa.core.domain.draft.DraftSession
 import dev.quinton.goa.core.domain.draft.DraftSetup
+import dev.quinton.goa.core.domain.draft.MethodOrigin
 import dev.quinton.goa.core.domain.draft.SequenceRule
 import dev.quinton.goa.core.domain.draft.TeamSlot
 import dev.quinton.goa.core.domain.draft.pick
@@ -239,7 +240,10 @@ class DraftScreenshotTest {
         DraftBoardScreen(board(session(1, method = hidden)), BoardActions.None)
     }
 
-    @Test fun boardCompleteDark() = capture {
+    @Test fun boardCompleteDark() = capture { DraftBoardScreen(board(session(8)), BoardActions.None) }
+
+    /** After one row's Swap: the bar says what the next tap does, the teammates offer Swap here. */
+    @Test fun boardCompleteSwapDark() = capture {
         val done = session(8)
         DraftBoardScreen(board(done, BoardLocal(selectedSeat = done.seats.first().id)), BoardActions.None)
     }
@@ -275,16 +279,20 @@ class DraftScreenshotTest {
 
     // ---- Methods
 
+    /** The shipped methods (draft-methods.json), the default chosen, and one of the group's own. */
     private fun methods(): MethodsUiState {
         val layout = PreviewLayout.OPTIONS.first()
-        val m = PreviewData.pattern
-        val custom = m.copy(id = "c", name = "Blind pairs")
+        val file = bundledMethods
+        val house = file.methods.first { it.id == file.defaultMethodId }
+        val custom = house.copy(id = "c", name = "Blind pairs", origin = MethodOrigin.CUSTOM)
         return MethodsUiState(
             loading = false,
             layout = layout,
-            builtIn = listOf(MethodRow(m, previewOf(m, layout, Team.BLUE), isDefault = true)),
+            builtIn = file.methods.map {
+                MethodRow(it, previewOf(it, layout, Team.BLUE), isDefault = it.id == file.defaultMethodId)
+            },
             custom = listOf(MethodRow(custom, previewOf(custom, layout, Team.BLUE), isDefault = false)),
-            selectedId = m.id,
+            selectedId = house.id,
         )
     }
 

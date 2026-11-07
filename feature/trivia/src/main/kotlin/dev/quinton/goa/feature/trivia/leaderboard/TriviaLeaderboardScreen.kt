@@ -4,6 +4,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
@@ -18,7 +19,6 @@ import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
@@ -54,9 +54,15 @@ import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.rememberTextMeasurer
+import androidx.compose.ui.text.style.Hyphens
+import androidx.compose.ui.text.style.LineBreak
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Constraints
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.LifecycleResumeEffect
 import dev.quinton.goa.core.data.trivia.LeaderboardRowUi
@@ -245,9 +251,10 @@ private fun BoardContent(state: TriviaLeaderboardUiState.Ready, actions: Leaderb
                                 )
                             }
                             val rows = if (podium) state.rows.drop(PODIUM_PLACES) else state.rows
+                            val scoreColumn = scoreColumnWidth(rows)
                             rows.forEachIndexed { i, row ->
                                 if (i > 0 || podium) HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
-                                RankedRow(row, onClick = { actions.onOpenPlayer(row.player.id) })
+                                RankedRow(row, scoreColumn, onClick = { actions.onOpenPlayer(row.player.id) })
                             }
                         }
                     }
@@ -263,8 +270,8 @@ private fun PodiumStanding(row: LeaderboardRowUi) {
     PlayerAvatar(row.player, size = if (row.place == 1) 60.dp else 50.dp, showFace = true)
     Spacer(Modifier.height(Spacing.xs))
     Text(
-        row.player.name,
-        style = MaterialTheme.typography.titleSmall,
+        breakable(row.player.name),
+        style = nameStyle(MaterialTheme.typography.titleSmall),
         textAlign = TextAlign.Center,
         maxLines = 2,
         overflow = TextOverflow.Ellipsis,
@@ -320,7 +327,7 @@ private fun EmptyBoard(state: TriviaLeaderboardUiState.Ready, modifier: Modifier
 }
 
 @Composable
-private fun RankedRow(row: LeaderboardRowUi, onClick: () -> Unit) {
+private fun RankedRow(row: LeaderboardRowUi, scoreColumn: Dp, onClick: () -> Unit) {
     if (LocalDensity.current.fontScale >= LARGE_FONT_SCALE) {
         LargeRankedRow(row, onClick)
         return
@@ -340,13 +347,7 @@ private fun RankedRow(row: LeaderboardRowUi, onClick: () -> Unit) {
         Spacer(Modifier.width(Spacing.md))
         Column(Modifier.weight(1f)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(
-                    row.player.name,
-                    style = MaterialTheme.typography.titleMedium,
-                    maxLines = 3,
-                    overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.weight(1f, fill = false),
-                )
+                FittedName(breakable(row.player.name), Modifier.weight(1f, fill = false))
                 if (row.isMe) {
                     Spacer(Modifier.width(Spacing.sm))
                     YouTag()
@@ -359,7 +360,8 @@ private fun RankedRow(row: LeaderboardRowUi, onClick: () -> Unit) {
             )
         }
         Spacer(Modifier.width(Spacing.sm))
-        Column(horizontalAlignment = Alignment.End, modifier = Modifier.widthIn(min = 48.dp)) {
+        // One width for every row's figure: the scores line up, whatever the name beside them does.
+        Column(horizontalAlignment = Alignment.End, modifier = Modifier.width(scoreColumn)) {
             Text(
                 row.main,
                 style = GoaTextStyles.scoreMedium,
@@ -377,6 +379,66 @@ private fun RankedRow(row: LeaderboardRowUi, onClick: () -> Unit) {
         }
     }
 }
+
+/**
+ * [name] with a break opportunity after each hyphen (a zero-width space): the line breaker does not offer one
+ * there by itself, so "Featherstonehaugh-Llewellyn" was cut inside a word.
+ */
+internal fun breakable(name: String): String = name.replace("-", "-\u200B")
+
+/**
+ * A name breaks between words or after a hyphen, never inside a word ("Kit Featherstonehaugh-" / "Llewellyn"):
+ * greedy, strict line breaking without hyphenation.
+ */
+internal fun nameStyle(style: TextStyle): TextStyle = style.copy(
+    lineBreak = LineBreak(LineBreak.Strategy.Simple, LineBreak.Strictness.Strict, LineBreak.WordBreak.Default),
+    hyphens = Hyphens.None,
+)
+
+/**
+ * A row's name in two lines at most, broken only between words or after a hyphen: one size smaller when the
+ * row's size would need a third line, the ellipsis only when even that can't hold it.
+ */
+@Composable
+private fun FittedName(name: String, modifier: Modifier = Modifier) {
+    BoxWithConstraints(modifier) {
+        val measurer = rememberTextMeasurer()
+        val large = nameStyle(MaterialTheme.typography.titleMedium)
+        val small = nameStyle(MaterialTheme.typography.titleSmall)
+        val width = constraints.maxWidth
+        val style = remember(name, width, large, small) {
+            val fits = !measurer.measure(
+                name,
+                large,
+                maxLines = 2,
+                constraints = Constraints(maxWidth = width),
+            ).hasVisualOverflow
+            if (fits) large else small
+        }
+        Text(name, style = style, maxLines = 2, overflow = TextOverflow.Ellipsis)
+    }
+}
+
+/** The widest ranked figure (and its caption) of [rows], so the score column is one width down the board. */
+@Composable
+private fun scoreColumnWidth(rows: List<LeaderboardRowUi>): Dp {
+    val measurer = rememberTextMeasurer()
+    val density = LocalDensity.current
+    val score = GoaTextStyles.scoreMedium.copy(fontWeight = FontWeight.SemiBold)
+    val caption = MaterialTheme.typography.labelSmall
+    return remember(rows, density, score, caption) {
+        val px = rows.maxOfOrNull { row ->
+            maxOf(
+                measurer.measure(row.main, score, maxLines = 1, softWrap = false).size.width,
+                measurer.measure(row.mainCaption ?: SCORE_CAPTION, caption, maxLines = 1, softWrap = false).size.width,
+            )
+        } ?: 0
+        maxOf(with(density) { px.toDp() } + SCORE_SLACK, MIN_SCORE_COLUMN)
+    }
+}
+
+private val SCORE_SLACK = 2.dp
+private val MIN_SCORE_COLUMN = 48.dp
 
 /**
  * At large text there is no room for a column on the right: the name (and You) wrap freely and the
@@ -404,7 +466,7 @@ private fun LargeRankedRow(row: LeaderboardRowUi, onClick: () -> Unit) {
                 horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
                 itemVerticalAlignment = Alignment.CenterVertically,
             ) {
-                Text(row.player.name, style = MaterialTheme.typography.titleMedium)
+                Text(breakable(row.player.name), style = nameStyle(MaterialTheme.typography.titleMedium))
                 if (row.isMe) YouTag()
             }
             Text(

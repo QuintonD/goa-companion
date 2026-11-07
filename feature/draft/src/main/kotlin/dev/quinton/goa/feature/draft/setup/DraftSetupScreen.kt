@@ -124,6 +124,7 @@ import dev.quinton.goa.feature.draft.ui.SequenceStrip
 import dev.quinton.goa.feature.draft.ui.TeamText
 import dev.quinton.goa.feature.draft.ui.TieBreakerCoin
 import dev.quinton.goa.feature.draft.ui.TileState
+import dev.quinton.goa.feature.draft.ui.coinTeamWords
 import dev.quinton.goa.feature.draft.ui.goaFilterChipColors
 import dev.quinton.goa.feature.draft.ui.goaTonalButtonColors
 import dev.quinton.goa.feature.draft.ui.plateEdge
@@ -192,6 +193,12 @@ interface SetupActions {
 
     fun openSettings() {}
 
+    /**
+     * Leaves the draft for the screen that opened it (the bar's back arrow). Nothing to confirm: every choice is
+     * saved as it is made, and the setup opens where it was left.
+     */
+    fun exit() {}
+
     companion object {
         val None = object : SetupActions {}
     }
@@ -204,6 +211,7 @@ fun DraftSetupDestination(
     onManageMethods: () -> Unit,
     onAddPlayer: () -> Unit,
     onOpenSettings: () -> Unit,
+    onExit: () -> Unit = {},
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     LaunchedEffect(viewModel) {
@@ -241,6 +249,7 @@ fun DraftSetupDestination(
             override fun discardActive() = viewModel.discardActive()
             override fun dismissMessage() = viewModel.dismissMessage()
             override fun openSettings() = onOpenSettings()
+            override fun exit() = onExit()
         }
     }
     BackHandler(enabled = state.stage != SetupStage.PLAYERS) { viewModel.back() }
@@ -258,6 +267,8 @@ fun DraftSetupScreen(state: SetupUiState, actions: SetupActions) {
     }
     GoaScreen(
         title = "Draft",
+        // The bar's arrow leaves the draft, as on every sub-screen; Back in the bottom bar steps back a stage.
+        onBack = actions::exit,
         actions = {
             BarActions(
                 listOf(
@@ -804,7 +815,7 @@ private fun HeroesStage(state: SetupUiState, actions: SetupActions) {
                     ChoiceCard(
                         title = option.method.name,
                         badge = DraftSetupPresenter.originLabel(option.method),
-                        body = option.unavailable ?: option.method.summary,
+                        body = option.unavailable ?: coinTeamWords(option.method.summary),
                         selected = selected,
                         onClick = { actions.selectMethod(option.method.id) },
                         extra = if (selected && option.preview.isNotEmpty()) {
@@ -979,14 +990,14 @@ private fun CoinStage(state: SetupUiState, actions: SetupActions) {
     val form = state.form
     Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
         Text(
-            "The team showing on the Tie Breaker coin is Team A. Team A starts the draft.",
+            "The team the Tie Breaker coin shows is the coin team: it starts the draft.",
             style = MaterialTheme.typography.bodyLarge,
             textAlign = TextAlign.Center,
         )
         TieBreakerCoin(result = form.teamA, flipCount = form.flipCount)
         val teamA = form.teamA
         TeamText(
-            text = if (teamA == null) "Not flipped yet" else "${teamLabel(teamA)} is Team A",
+            text = if (teamA == null) "Not flipped yet" else "${teamLabel(teamA)} is the coin team",
             style = MaterialTheme.typography.headlineSmall,
             color = teamA?.let { teamColor(it) } ?: MaterialTheme.colorScheme.onSurfaceVariant,
         )
@@ -1023,7 +1034,7 @@ private fun CoinStage(state: SetupUiState, actions: SetupActions) {
 private fun SummaryCard(state: SetupUiState) {
     val form = state.form
     val method = state.selectedMethod ?: return
-    SectionCard(title = method.method.name, subtitle = method.method.summary) {
+    SectionCard(title = method.method.name, subtitle = coinTeamWords(method.method.summary)) {
         if (form.teamMode == TeamMode.PLAYER_DRAFT) {
             Hint("Heroes first, then captains draft players.")
         } else {

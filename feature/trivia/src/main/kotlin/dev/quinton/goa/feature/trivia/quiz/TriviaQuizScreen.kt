@@ -4,7 +4,6 @@ import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
@@ -29,12 +28,14 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.semantics.contentDescription
@@ -187,30 +188,43 @@ private fun QuizPlaying(state: TriviaQuizUiState.Playing, onAnswer: (TriviaAnswe
             }
         } else {
             Column(Modifier.fillMaxSize()) {
+                // Pinned: where the round is and the score stay in sight, also once answered and scrolled to the scan.
+                QuizHeader(
+                    state,
+                    Modifier
+                        .padding(horizontal = Spacing.screen)
+                        .padding(top = Spacing.md, bottom = Spacing.sm),
+                )
                 val scroll = rememberScrollState()
                 BoxWithConstraints(Modifier.weight(1f)) {
-                    val imageMax = imageRoom(maxHeight, padding = Spacing.lg * 2)
+                    val imageMax = imageRoom(maxHeight, padding = Spacing.md * 2)
                     val art = artRoom(maxHeight, maxWidth - Spacing.screen * 2)
-                    // The header at the top; the card, the question and the answers as one group, the answers
-                    // right under the question. The art takes up the room, up to a 16:9 band; what is left is
-                    // shared above and below the group (centred), never inside it.
+                    // The question (whose card, which card, what is asked) with the answers right under it, one
+                    // group from the header down; the answers grow into the room left, so no band is left empty.
+                    // Measured before the answer only. Once answered the buttons take their own height again, so
+                    // the reveal (scrolled to the scan) keeps the question and the marked answers above the verdict.
+                    var panel by remember(state.number) { mutableIntStateOf(0) }
+                    val density = LocalDensity.current
+                    val fill = with(density) { maxHeight - Spacing.md * 3 - panel.toDp() }
                     Column(
                         Modifier
                             .fillMaxSize()
                             .verticalScroll(scroll)
-                            .heightIn(min = maxHeight)
-                            .padding(horizontal = Spacing.screen, vertical = Spacing.lg),
-                        verticalArrangement = Arrangement.SpaceBetween,
+                            .padding(horizontal = Spacing.screen, vertical = Spacing.md),
                     ) {
-                        QuizHeader(state)
-                        Column {
-                            Spacer(Modifier.height(Spacing.lg))
-                            QuestionPanel(state.question, artHeight = art, framed = !state.answered)
-                            Spacer(Modifier.height(Spacing.md))
-                            AnswerArea(state, onAnswer)
-                            Reveal(state, scroll = scroll, imageMaxHeight = imageMax)
-                        }
-                        Spacer(Modifier.height(0.dp))
+                        QuestionPanel(
+                            state.question,
+                            artHeight = art,
+                            framed = !state.answered,
+                            modifier = Modifier.onSizeChanged { if (!state.answered) panel = it.height },
+                        )
+                        Spacer(Modifier.height(Spacing.md))
+                        AnswerArea(
+                            state,
+                            onAnswer,
+                            fillHeight = if (panel > 0 && !state.answered) fill else 0.dp,
+                        )
+                        Reveal(state, scroll = scroll, imageMaxHeight = imageMax)
                     }
                 }
                 NextBar(state, onNext)
@@ -243,10 +257,10 @@ private fun artRoom(viewport: Dp, width: Dp): Dp {
     return if (room < MIN_ART) 0.dp else room.coerceAtMost(band)
 }
 
-/** Header, card name and kind, question plate, four answers and the spacing between them. */
-private val QUESTION_CHROME = 556.dp
+/** Card name and kind, question plate, four answers at their least, the spacing (the header is above). */
+private val QUESTION_CHROME = 492.dp
 private val MIN_ART = 96.dp
-private val MAX_ART = 200.dp
+private val MAX_ART = 184.dp
 private const val ART_ASPECT = 9f / 16f
 
 /** Room for the feedback line (up to two lines) and its spacing above the scan. */
@@ -269,9 +283,9 @@ private fun AnswerHaptics(state: TriviaQuizUiState.Playing) {
 }
 
 @Composable
-private fun QuizHeader(state: TriviaQuizUiState.Playing) {
+private fun QuizHeader(state: TriviaQuizUiState.Playing, modifier: Modifier = Modifier) {
     val length = state.length
-    Column(Modifier.fillMaxWidth()) {
+    Column(modifier.fillMaxWidth()) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text(
                 if (length != null) "Question ${state.number} of $length" else "Question ${state.number}",

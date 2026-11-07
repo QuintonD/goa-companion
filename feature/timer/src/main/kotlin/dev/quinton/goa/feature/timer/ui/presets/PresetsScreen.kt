@@ -46,6 +46,7 @@ import dev.quinton.goa.core.designsystem.component.GoaScreen
 import dev.quinton.goa.core.designsystem.component.PlateRowDivider
 import dev.quinton.goa.core.designsystem.component.PlateShape
 import dev.quinton.goa.core.designsystem.theme.Spacing
+import dev.quinton.goa.feature.timer.ui.components.PhaseGrid
 import dev.quinton.goa.feature.timer.ui.timer.PresetOption
 
 data class PresetsActions(
@@ -150,7 +151,12 @@ private fun PresetRow(preset: PresetOption, selected: Boolean, canDelete: Boolea
             RadioButton(selected = selected, onClick = null, modifier = Modifier.padding(Spacing.sm))
             Column(Modifier.weight(1f)) {
                 Text(preset.name, style = MaterialTheme.typography.titleSmall)
-                Text(preset.summary, style = MaterialTheme.typography.bodySmall, color = colors.onSurfaceVariant)
+                // The phases as a labelled grid, as on the Timer tab: never one line of dot-joined prose.
+                if (preset.phases.isEmpty()) {
+                    Text(preset.summary, style = MaterialTheme.typography.bodySmall, color = colors.onSurfaceVariant)
+                } else {
+                    PhaseGrid(preset.phases, Modifier.fillMaxWidth().padding(top = Spacing.xs), dense = true)
+                }
             }
             IconButton(onClick = { actions.onEdit(preset.id) }) {
                 Icon(Icons.Outlined.Edit, contentDescription = "Edit ${preset.name}")

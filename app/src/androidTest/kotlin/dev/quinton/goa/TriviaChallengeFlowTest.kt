@@ -43,6 +43,7 @@ class TriviaChallengeFlowTest {
         rule.waitForDescription("Playing as Sam", substring = true)
 
         rule.tapText("Challenge")
+        rule.tapText("Start challenge")
         rule.waitForText("as Sam")
         for (question in 1..ROUND) {
             rule.waitForText("Question $question of $ROUND")

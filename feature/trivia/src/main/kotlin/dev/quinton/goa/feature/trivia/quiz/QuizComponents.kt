@@ -169,15 +169,25 @@ internal fun QuestionPanel(
 // ---- Answers --------------------------------------------------------------------------------
 
 @Composable
-internal fun AnswerArea(state: TriviaQuizUiState.Playing, onAnswer: (TriviaAnswer) -> Unit) {
+internal fun AnswerArea(
+    state: TriviaQuizUiState.Playing,
+    onAnswer: (TriviaAnswer) -> Unit,
+    /** The room under the question: the number buttons grow into it (up to a cap), so no empty band is left. */
+    fillHeight: Dp = 0.dp,
+) {
     when (val q = state.question) {
-        is QuizQuestionUi.Number -> NumberChoices(q, state.answer as? TriviaAnswer.Number, onAnswer)
+        is QuizQuestionUi.Number -> NumberChoices(q, state.answer as? TriviaAnswer.Number, onAnswer, fillHeight)
         is QuizQuestionUi.Duel -> DuelChoices(q, state.answer as? TriviaAnswer.Duel, onAnswer)
     }
 }
 
 @Composable
-private fun NumberChoices(q: QuizQuestionUi.Number, answer: TriviaAnswer.Number?, onAnswer: (TriviaAnswer) -> Unit) {
+private fun NumberChoices(
+    q: QuizQuestionUi.Number,
+    answer: TriviaAnswer.Number?,
+    onAnswer: (TriviaAnswer) -> Unit,
+    fillHeight: Dp,
+) {
     val recall = q.choices.size > CHOICE_GRID
     val style = GoaTextStyles.timerDigitsSmall
     val labels = q.choices.map { TriviaText.value(it, q.plus) }
@@ -188,6 +198,9 @@ private fun NumberChoices(q: QuizQuestionUi.Number, answer: TriviaAnswer.Number?
         val cell = maxOf(widest + (badge + BADGE_INSET) * 2, MIN_CELL)
         val fit = ((maxWidth + Spacing.sm) / (cell + Spacing.sm)).toInt()
         val columns = fit.coerceIn(1, if (recall) MAX_COLUMNS else 2)
+        val rows = (q.choices.size + columns - 1) / columns
+        val base = if (recall) 64.dp else 84.dp
+        val tile = ((fillHeight - Spacing.sm * (rows - 1)) / rows).coerceIn(base, maxOf(base, MAX_TILE))
         Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
             q.choices.zip(labels).chunked(columns).forEach { row ->
                 Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
@@ -202,7 +215,7 @@ private fun NumberChoices(q: QuizQuestionUi.Number, answer: TriviaAnswer.Number?
                             text = label,
                             spoken = TriviaText.spokenValue(value, q.plus),
                             mark = mark,
-                            minHeight = if (recall) 64.dp else 84.dp,
+                            minHeight = tile,
                             onClick = { onAnswer(TriviaAnswer.Number(value)) },
                             modifier = Modifier.weight(1f),
                             style = style,
@@ -570,6 +583,9 @@ private const val MAX_COLUMNS = 5
 
 /** The narrowest an answer button gets, whatever its label. */
 private val MIN_CELL = 64.dp
+
+/** The tallest a number button grows to fill the room under the question. */
+private val MAX_TILE = 168.dp
 
 /** The corner mark: a disc this size, this far in from the button's corner. */
 private val BADGE_SIZE = 16.dp
