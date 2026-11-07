@@ -2886,3 +2886,31 @@ draft board shows the pool right after the pick banner, the rosters folded into 
 mode with Cancel; a finished draft has one primary action. "Team A/B" are "coin team" and "other team". Trivia asks
 Practice or Challenge first and Start names the mode; the quiz header is pinned. The Play hub gains Game night (Draft →
 Match setup → Timer); Draft stays in More. Refines ADR-067 and ADR-070.
+
+## ADR-079 — The table layers, the map makes room, the defeat is shown (2026-11-07)
+**Context:** Round 4 of the UI hill climb (ADR-066). The table's chrome still left a shallow map; the header didn't say
+whether a decision was the person's or the computer's; map targets were small and the floating buttons sat on pieces;
+the defend panel didn't say what not defending costs.
+
+**Decision:** While a space is chosen the panel opens at a peek (owner, instruction, "12 spaces · tap a lit one",
+Confirm); piece questions such as the Minion Battle open whole. The header is two lines in near-white with a team bar:
+the owner ("You choose · Wasp", "Computer · Wasp acting", an online name) and the instruction; it is a live region. The
+hero strip keeps the turn track's cells in every state; State is in the bar in both orientations. A question's spaces are
+framed at about 48 dp when they fit, else numbered on the map with a matching list; framing keeps the options, the actor
+and a hint's target fully in view and only nudges pieces clear of the docked Fit/Flip column. The sandbox shows one overlay
+at a time with a docked key. When no card saves the hero, the engine plays "don't defend" out on a copy of the game and
+the panel shows the result ("Defeated · Blue −1 (1 left) · Arien +2"); the button reads "Accept defeat · keep cards".
+Confirm is one line ("Move here · 3"). Game options show the starting Waves and Lives. Refines ADR-072 and ADR-076.
+
+## ADR-080 — One identity, one label per action, rules every screen inherits (2026-11-07)
+**Decision:** A player is their crest everywhere, with their most-played hero as a small badge only at 40 dp and above
+(derived from the log, nothing stored); round 3's hero-portrait faces are withdrawn (revises ADR-077). "Who is this
+phone" is one shared `IdentitySelector`. An action keeps one label on every screen ("Open match setup", "Open in
+sandbox"), and a blocked action states its reason beside it. Shared rules: chips at least 48 dp that wrap; sideways rows
+start on the gutter and fade under a chevron in their own edge strip, six items or fewer wrap; secondary text 14 sp at
+7:1; team words use `teamTextColor`; sliders and progress bars are bronze on steel (teal never means progress); one
+bracketed section plate, no inner frames, the gear only on phase or outcome titles (revises ADR-077's quiet plate). The
+hero stats are "Hero ratings · 1–8", not card values. The timer's sea and battlefield and the leaderboard and sync
+paintings are repainted at full resolution (the silhouette replaces its Real-ESRGAN upscale).
+
+**Consequences:** On a 384 dp phone (the S25 Ultra) the Heroes grid shows two columns at the 14 sp name floor.
