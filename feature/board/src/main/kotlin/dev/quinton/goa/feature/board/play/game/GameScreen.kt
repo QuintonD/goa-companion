@@ -92,6 +92,7 @@ import dev.quinton.goa.feature.board.play.review.ReviewButton
 import dev.quinton.goa.feature.board.play.review.ReviewOpenEffect
 import dev.quinton.goa.feature.board.play.review.ReviewSheet
 import dev.quinton.goa.feature.board.play.review.ReviewTab
+import dev.quinton.goa.feature.board.play.table.BoardPeek
 import dev.quinton.goa.feature.board.play.table.DecisionPanel
 import dev.quinton.goa.feature.board.play.table.DecisionWho
 import dev.quinton.goa.feature.board.play.table.EventFeed
@@ -163,14 +164,15 @@ fun GameScreen(
             onAction(GameAction.MessageShown(play.messageId))
         }
     }
-    // "Round 2 · Turn 3" in full on every screen (the HUD shows the turn's pips, not the round again). On a
-    // phone upright the game-state review goes into More, so the title has the room for one line.
+    // "Round 2 · Turn 3" in full where the bar has the room; on a phone upright "Round 2", the turn named over the
+    // HUD's pips ("TURN 3"), so the labelled State control fits beside Undo, Log and More in both orientations.
     val wideBar = LocalConfiguration.current.screenWidthDp >= WIDE_BAR_DP
     BoardScaffold(
         title = when {
             play == null -> "Play"
             play.over != null || closed != null -> "Game over"
-            else -> "Round ${play.table.view.round} · Turn ${play.table.view.turn}"
+            wideBar -> "Round ${play.table.view.round} · Turn ${play.table.view.turn}"
+            else -> "Round ${play.table.view.round}"
         },
         onBack = onBack,
         modifier = modifier,
@@ -187,7 +189,7 @@ fun GameScreen(
                         enabled = play.canTakeBack && !play.busy,
                     )
                 }
-                if (wideBar) ReviewButton(onClick = { sheet = PlaySheet.Review() })
+                ReviewButton(onClick = { sheet = PlaySheet.Review() })
                 BarLabelButton(
                     "Log",
                     Icons.AutoMirrored.Outlined.FormatListBulleted,
@@ -204,7 +206,7 @@ fun GameScreen(
                         onDismiss = { menu = false },
                         onAction = onAction,
                         onEnd = { ending = true },
-                        onReview = if (wideBar) null else ({ sheet = PlaySheet.Review() }),
+                        onReview = null,
                     )
                 }
             }
@@ -264,8 +266,17 @@ fun GameScreen(
                             initialPanelHidden = initialPanelHidden,
                             focus = focus,
                             onSpellbook = { sheet = PlaySheet.Spellbook(it) },
-                            panelTitle = if (state.play.status is TurnStatus.YourTurn && state.play.nudge == null) {
+                            // Who decides, on the strip: the person ("You choose · Wasp") or the computer
+                            // ("Computer · Wasp acting"), never only remembered.
+                            panelTitle = if (headerShown(state.play)) {
                                 { DecisionWho(state.play.table) }
+                            } else {
+                                null
+                            },
+                            peekBody = if (state.play.status is TurnStatus.YourTurn && state.play.nudge == null) {
+                                {
+                                    BoardPeek(state.play.table, { onAction(GameAction.Answer(it)) }, state.play.busy)
+                                }
                             } else {
                                 null
                             },
@@ -565,6 +576,10 @@ private fun CoachLooking() {
     }
 }
 
+/** The panel's strip names who decides: the person's question, or the computer's while it chooses one. */
+private fun headerShown(play: PlayUi): Boolean = play.nudge == null && play.table.decision != null &&
+    (play.status is TurnStatus.YourTurn || play.status is TurnStatus.Computer)
+
 /**
  * The computer is choosing for one of its heroes ("thinking…" once it takes a while), with the card
  * it is resolving beside it (tap to read it).
@@ -575,35 +590,50 @@ private fun ComputerMove(table: TableUi, status: TurnStatus.Computer, focus: Car
     val info = table.hero(status.heroId)
     val computer = hero?.controller as? Controller.Ai
     val card = table.sourceCard ?: hero?.played?.takeIf { !it.facedown }?.cardId?.let(table::card)
+    // The strip's header says who ("Computer · Wasp acting", DecisionWho) when there is a question; here what it is.
+    val header = table.decision != null
     Row(verticalAlignment = Alignment.CenterVertically) {
-        HeroPortrait(
-            status.heroId,
-            info.portrait,
-            null,
-            Modifier.size(40.dp).border(
-                2.dp,
-                hero?.team?.let {
-                    teamColor(it)
-                } ?: GoaTheme.colors.engravedBorder,
-                CircleShape,
-            ),
-            shape = CircleShape,
-            framed = false,
-        )
-        Spacer(Modifier.width(Spacing.md))
+        if (!header) {
+            HeroPortrait(
+                status.heroId,
+                info.portrait,
+                null,
+                Modifier.size(40.dp).border(
+                    2.dp,
+                    hero?.team?.let {
+                        teamColor(it)
+                    } ?: GoaTheme.colors.engravedBorder,
+                    CircleShape,
+                ),
+                shape = CircleShape,
+                framed = false,
+            )
+            Spacer(Modifier.width(Spacing.md))
+        }
         Column(Modifier.weight(1f).semantics(mergeDescendants = true) { liveRegion = LiveRegionMode.Polite }) {
-            Text(
-                "COMPUTER${computer?.let { " · ${PlayText.strength(it).uppercase()}" }.orEmpty()}",
-                style = GoaTextStyles.overline,
-                color = MaterialTheme.colorScheme.primary,
-            )
-            Text(
-                if (status.thinking) "${info.name} is thinking…" else "${info.name} is choosing",
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.SemiBold,
-            )
+            if (header) {
+                Text(
+                    listOfNotNull(
+                        computer?.let { "Computer ${PlayText.strength(it)}" },
+                        if (status.thinking) "thinking…" else "choosing",
+                    ).joinToString(" · "),
+                    style = MaterialTheme.typography.labelLarge,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            } else {
+                Text(
+                    "COMPUTER${computer?.let { " · ${PlayText.strength(it).uppercase()}" }.orEmpty()}",
+                    style = GoaTextStyles.overline,
+                    color = MaterialTheme.colorScheme.primary,
+                )
+                Text(
+                    if (status.thinking) "${info.name} is thinking…" else "${info.name} is choosing",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.SemiBold,
+                )
+            }
             table.decision?.prompt?.let {
-                Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text(it, style = MaterialTheme.typography.bodyMedium)
             }
         }
         if (card != null && table.decision?.kind != DecisionKind.PLAY_CARD) {

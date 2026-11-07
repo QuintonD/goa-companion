@@ -7,7 +7,8 @@ import dev.quinton.goa.feature.board.boardHeroes
 import dev.quinton.goa.feature.board.bundledCatalog
 import dev.quinton.goa.feature.board.bundledMaps
 import dev.quinton.goa.feature.board.play.table.TableUi
-import dev.quinton.goa.feature.board.play.table.decisionOwnerLine
+import dev.quinton.goa.feature.board.play.table.decisionDirective
+import dev.quinton.goa.feature.board.play.table.decisionOwner
 import dev.quinton.goa.feature.board.play.table.responderId
 import dev.quinton.goa.feature.board.play.table.turnLog
 import org.junit.Test
@@ -48,7 +49,8 @@ class ResponderTest {
         assertThat(defender).isNotEqualTo(acting)
         assertThat(responderId(table)).isEqualTo(defender)
         val attacker = table.pieceName(table.decision!!.context.attackerId!!)
-        assertThat(decisionOwnerLine(table)).isEqualTo("${table.hero(defender).name} defends against $attacker")
+        assertThat(decisionOwner(table)).isEqualTo("You choose · ${table.hero(defender).name}")
+        assertThat(decisionDirective(table)).isEqualTo("Defend against $attacker")
     }
 
     @Test
@@ -56,7 +58,8 @@ class ResponderTest {
         val table = tableAt(DecisionKind.CHOOSE_ACTION)
         assertThat(responderId(table)).isNull()
         val name = table.hero(table.decision!!.seat).name
-        assertThat(decisionOwnerLine(table)).isEqualTo("$name decides · Action")
+        assertThat(decisionOwner(table)).isEqualTo("You choose · $name")
+        assertThat(decisionDirective(table)).isEqualTo("Choose an action")
     }
 
     private companion object {
