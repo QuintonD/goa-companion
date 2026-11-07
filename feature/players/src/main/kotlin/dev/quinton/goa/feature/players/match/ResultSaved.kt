@@ -66,7 +66,7 @@ import dev.quinton.goa.core.domain.match.RematchKind
 import dev.quinton.goa.feature.players.common.Dates
 import dev.quinton.goa.feature.players.common.EngravedCard
 import dev.quinton.goa.feature.players.common.LARGE_FONT_SCALE
-import dev.quinton.goa.feature.players.common.ProvisionalPill
+import dev.quinton.goa.feature.players.common.ProvisionalMark
 import dev.quinton.goa.feature.players.common.RowFigure
 import dev.quinton.goa.feature.players.common.SectionHeader
 import dev.quinton.goa.feature.players.common.figureStyle
@@ -280,7 +280,7 @@ private fun PlayerChangeRow(line: PlayerChangeUi, ready: Boolean) {
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
-                if (ready && line.rating.provisional) ProvisionalPill()
+                if (ready && line.rating.provisional) ProvisionalMark(label = true)
             }
             // Large text: the figures go under the name, where they have the row's width.
             if (ready && large) {

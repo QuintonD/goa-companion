@@ -208,52 +208,38 @@ private fun Monogram(letter: String, tint: Color, side: Dp) {
 }
 
 /**
- * Player crest (one of 24, `player.avatarId`): one bronze glyph in a steel-ringed medallion; the
- * initial when the crest index is unknown, "?" when [player] is null. Team-neutral on purpose: red
- * and blue belong to the teams (gear and star), so a player's mark never reads as a side; the
- * crest's shape is the identity. Decorative: pair it with the player's name.
+ * Player crest (one of 24, `player.avatarId`): a filled heraldic shield in the game's icon style, its charge in
+ * dark ink on a bronze or steel field (`design/crests/`, composed by `design/tools/crest_shields.py`); a steel
+ * shield with the initial when the crest index is unknown, "?" when [player] is null. Team-neutral on purpose:
+ * red and blue belong to the teams (gear and star), so a player's mark never reads as a side; the charge and
+ * the field's metal are the identity. Drawn as is, never tinted. Decorative: pair it with the player's name.
  */
 @Composable
 fun PlayerAvatar(player: Player?, modifier: Modifier = Modifier, size: Dp = 40.dp) {
-    val colors = GoaTheme.colors
-    val color = if (player == null) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.primary
-    val face = MaterialTheme.colorScheme.surfaceVariant
     val crest = player?.let { PlayerCrests.drawableFor(it.avatarId) }
-    Box(
-        modifier
-            .size(size)
-            .clip(CircleShape)
-            .background(Brush.verticalGradient(listOf(face, colors.medallion)))
-            .border(
-                if (size >= 40.dp) 2.dp else 1.5.dp,
-                Brush.verticalGradient(listOf(colors.bannerHighlight, AVATAR_STEEL_LOW)),
-                CircleShape,
-            )
-            .clearAndSetSemantics {},
-        contentAlignment = Alignment.Center,
-    ) {
-        if (crest != null) {
-            Image(
-                painter = painterResource(crest),
-                contentDescription = null,
-                colorFilter = ColorFilter.tint(color),
-                modifier = Modifier.size(size * 0.56f),
-            )
-        } else {
+    Box(modifier.size(size).clearAndSetSemantics {}, contentAlignment = Alignment.Center) {
+        Image(
+            painter = painterResource(crest ?: PlayerCrests.blank),
+            contentDescription = null,
+            modifier = Modifier.fillMaxSize(),
+        )
+        if (crest == null) {
             Text(
                 text = player?.name?.trim()?.take(1)?.uppercase()?.ifEmpty { "?" } ?: "?",
-                color = color,
+                color = AVATAR_INK,
                 fontFamily = GoaFonts.display,
                 fontWeight = FontWeight.Bold,
-                fontSize = (size.value * 0.42f).sp,
+                fontSize = (size.value * 0.38f).sp,
                 maxLines = 1,
+                // The field's middle sits a little above the box's: the shield narrows to its point.
+                modifier = Modifier.padding(bottom = size * 0.1f),
             )
         }
     }
 }
 
-/** The lower, shaded side of the avatar's steel ring (the top catches the banner's highlight). */
-private val AVATAR_STEEL_LOW = Color(0xFF55636F)
+/** The crests' ink: the charge's colour on the metal field, for the initial on a blank shield. */
+private val AVATAR_INK = Color(0xFF1B1712)
 
 /** Team identity is never colour-only: ◆ Red / ● Blue (docs/DESIGN.md). */
 @Composable

@@ -142,7 +142,7 @@ class OnlineScreenshotTest {
     )
 
     @Composable
-    private fun Home(state: OnlineHomeUi) = OnlineHomeScreen(state, mapNames, OnlineHomeActions())
+    private fun Home(state: OnlineHomeUi) = OnlineHomeScreen(state, mapNames, OnlineHomeActions(), heroes = heroes)
 
     @Test fun onlineHomePickNameDark() = capture(ThemeMode.DARK) { Home(pickName) }
 
@@ -391,11 +391,14 @@ class OnlineScreenshotTest {
             LeaderRow("acc-bob", "Bob", 1_620, 20, 14),
             LeaderRow("acc", "Ann", 1_540, 9, 5),
             LeaderRow("acc-cid", "Former player", 1_490, 12, 5),
+            LeaderRow("acc-dee", "Dee", 1_472, 15, 6),
+            LeaderRow("acc-eve", "Eve", 1_455, 8, 3),
         ),
         heroes = listOf(
             LeaderRow("arien", "Arien", 1_580, 30, 18),
             LeaderRow("brogan", "Brogan", 1_515, 26, 14),
             LeaderRow("wasp", "Wasp", 1_470, 22, 9),
+            LeaderRow("tigerclaw", "Tigerclaw", 1_462, 19, 8),
         ),
     )
 
@@ -403,7 +406,13 @@ class OnlineScreenshotTest {
         LeaderboardPresenter.present(LeaderboardLoad(snapshot, origin, age), tab, "acc")
 
     @Composable
-    private fun Board(state: LeaderboardUi) = OnlineLeaderboardScreen(state, {}, {}, {})
+    private fun Board(state: LeaderboardUi) = OnlineLeaderboardScreen(
+        state,
+        {},
+        {},
+        {},
+        portraits = bundledCatalog.heroes.associate { it.id to it.portrait },
+    )
 
     @Test
     fun onlineLeaderboardPlayersDark() = capture(ThemeMode.DARK) {

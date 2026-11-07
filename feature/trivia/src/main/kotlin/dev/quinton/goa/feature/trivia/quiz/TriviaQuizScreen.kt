@@ -190,9 +190,10 @@ private fun QuizPlaying(state: TriviaQuizUiState.Playing, onAnswer: (TriviaAnswe
                 val scroll = rememberScrollState()
                 BoxWithConstraints(Modifier.weight(1f)) {
                     val imageMax = imageRoom(maxHeight, padding = Spacing.lg * 2)
-                    val art = artRoom(maxHeight)
-                    // The question and the hero's art at the top, the answers at the bottom in thumb
-                    // reach: the column is at least the screen tall and splits the room between them.
+                    val art = artRoom(maxHeight, maxWidth - Spacing.screen * 2)
+                    // The header at the top; the card, the question and the answers as one group, the answers
+                    // right under the question. The art takes up the room, up to a 16:9 band; what is left is
+                    // shared above and below the group (centred), never inside it.
                     Column(
                         Modifier
                             .fillMaxSize()
@@ -201,16 +202,15 @@ private fun QuizPlaying(state: TriviaQuizUiState.Playing, onAnswer: (TriviaAnswe
                             .padding(horizontal = Spacing.screen, vertical = Spacing.lg),
                         verticalArrangement = Arrangement.SpaceBetween,
                     ) {
+                        QuizHeader(state)
                         Column {
-                            QuizHeader(state)
                             Spacer(Modifier.height(Spacing.lg))
-                            QuestionPanel(state.question, artHeight = art)
-                            Spacer(Modifier.height(Spacing.lg))
-                        }
-                        Column {
+                            QuestionPanel(state.question, artHeight = art, framed = !state.answered)
+                            Spacer(Modifier.height(Spacing.md))
                             AnswerArea(state, onAnswer)
                             Reveal(state, scroll = scroll, imageMaxHeight = imageMax)
                         }
+                        Spacer(Modifier.height(0.dp))
                     }
                 }
                 NextBar(state, onNext)
@@ -235,16 +235,19 @@ private fun imageRoom(viewport: Dp, padding: Dp): Dp {
  * large text leaves too little.
  */
 @Composable
-private fun artRoom(viewport: Dp): Dp {
+private fun artRoom(viewport: Dp, width: Dp): Dp {
     val fontScale = LocalDensity.current.fontScale.coerceIn(1f, 2f)
     val room = viewport - QUESTION_CHROME * fontScale
-    return if (room < MIN_ART) 0.dp else room.coerceAtMost(MAX_ART)
+    // A band, never the screen's hero: at most 16:9 of the plate's width.
+    val band = (width * ART_ASPECT).coerceAtMost(MAX_ART)
+    return if (room < MIN_ART) 0.dp else room.coerceAtMost(band)
 }
 
 /** Header, card name and kind, question plate, four answers and the spacing between them. */
-private val QUESTION_CHROME = 520.dp
+private val QUESTION_CHROME = 556.dp
 private val MIN_ART = 96.dp
-private val MAX_ART = 240.dp
+private val MAX_ART = 200.dp
+private const val ART_ASPECT = 9f / 16f
 
 /** Room for the feedback line (up to two lines) and its spacing above the scan. */
 private val FEEDBACK_ROOM = 96.dp

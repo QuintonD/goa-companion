@@ -55,6 +55,7 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.LifecycleResumeEffect
@@ -64,14 +65,18 @@ import dev.quinton.goa.core.data.trivia.PlayerRoundsUi
 import dev.quinton.goa.core.data.trivia.RoundUi
 import dev.quinton.goa.core.data.trivia.TriviaLeaderboardUiState
 import dev.quinton.goa.core.data.trivia.TriviaText
+import dev.quinton.goa.core.designsystem.component.BattlefieldFoot
 import dev.quinton.goa.core.designsystem.component.ConfirmDialog
 import dev.quinton.goa.core.designsystem.component.EmptyState
 import dev.quinton.goa.core.designsystem.component.GoaFilterChip
 import dev.quinton.goa.core.designsystem.component.GoaPlate
 import dev.quinton.goa.core.designsystem.component.GoaScreen
 import dev.quinton.goa.core.designsystem.component.GoaSheet
+import dev.quinton.goa.core.designsystem.component.PODIUM_PLACES
 import dev.quinton.goa.core.designsystem.component.PlateShape
 import dev.quinton.goa.core.designsystem.component.PlayerAvatar
+import dev.quinton.goa.core.designsystem.component.Podium
+import dev.quinton.goa.core.designsystem.component.PodiumPlace
 import dev.quinton.goa.core.designsystem.component.scaledIconSize
 import dev.quinton.goa.core.designsystem.theme.GoaTextStyles
 import dev.quinton.goa.core.designsystem.theme.Spacing
@@ -178,56 +183,110 @@ private fun BoardContent(state: TriviaLeaderboardUiState.Ready, actions: Leaderb
                 )
             }
         }
-        LazyColumn(
-            Modifier.fillMaxSize(),
-            contentPadding = PaddingValues(bottom = Spacing.xxl),
-        ) {
-            item(key = "header") {
-                Column(Modifier.padding(horizontal = Spacing.screen, vertical = Spacing.md)) {
-                    FlowRow(
-                        horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
-                        verticalArrangement = Arrangement.spacedBy(Spacing.xs),
-                    ) {
-                        LeaderboardPeriod.entries.forEach { period ->
-                            GoaFilterChip(
-                                selected = period == state.period,
-                                onClick = { actions.onPeriod(period) },
-                                label = periodLabel(period),
-                            )
+        // A short board ends in the rulebook's battlefield, not in empty navy.
+        Box(Modifier.fillMaxSize()) {
+            BattlefieldFoot()
+            val podium = state.rows.size >= PODIUM_PLACES && LocalDensity.current.fontScale < PODIUM_FONT_SCALE
+            LazyColumn(
+                Modifier.fillMaxSize(),
+                contentPadding = PaddingValues(bottom = Spacing.xxl),
+            ) {
+                item(key = "header") {
+                    Column(Modifier.padding(horizontal = Spacing.screen, vertical = Spacing.md)) {
+                        FlowRow(
+                            horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+                            verticalArrangement = Arrangement.spacedBy(Spacing.xs),
+                        ) {
+                            LeaderboardPeriod.entries.forEach { period ->
+                                GoaFilterChip(
+                                    selected = period == state.period,
+                                    onClick = { actions.onPeriod(period) },
+                                    label = periodLabel(period),
+                                )
+                            }
                         }
+                        Spacer(Modifier.height(Spacing.xs))
+                        Text(
+                            if (state.tab == LeaderboardTab.CHALLENGE) {
+                                "Your group only · each player's best Challenge: most right answers, then the " +
+                                    "quicker time."
+                            } else {
+                                "Your group only · every round played as a player, Challenges included: most right " +
+                                    "answers, then accuracy."
+                            },
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
                     }
-                    Spacer(Modifier.height(Spacing.xs))
-                    Text(
-                        if (state.tab == LeaderboardTab.CHALLENGE) {
-                            "Your group only · each player's best Challenge: most right answers, then the " +
-                                "quicker time."
-                        } else {
-                            "Your group only · every round played as a player, Challenges included: most right " +
-                                "answers, then accuracy."
-                        },
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
                 }
-            }
-            if (state.rows.isEmpty()) {
-                item(key = "empty") { EmptyBoard(state, Modifier.fillMaxWidth()) }
-            } else {
-                item(key = "board-${state.tab}") {
-                    // One plate with dividers, as the Players leaderboard.
-                    GoaPlate(
-                        Modifier.fillMaxWidth().padding(horizontal = Spacing.screen).clip(PlateShape),
-                        contentPadding = PaddingValues(0.dp),
-                    ) {
-                        state.rows.forEachIndexed { i, row ->
-                            if (i > 0) HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
-                            RankedRow(row, onClick = { actions.onOpenPlayer(row.player.id) })
+                if (state.rows.isEmpty()) {
+                    item(key = "empty") { EmptyBoard(state, Modifier.fillMaxWidth()) }
+                } else {
+                    item(key = "board-${state.tab}") {
+                        // One plate with dividers, as the Players leaderboard.
+                        GoaPlate(
+                            Modifier.fillMaxWidth().padding(horizontal = Spacing.screen).clip(PlateShape),
+                            contentPadding = PaddingValues(0.dp),
+                        ) {
+                            // The top three on a podium, the rest as rows under it, in the same plate.
+                            if (podium) {
+                                Podium(
+                                    state.rows.take(PODIUM_PLACES).map { row ->
+                                        PodiumPlace(
+                                            place = row.place,
+                                            label = if (row.tied) "=${row.place}" else "${row.place}",
+                                            description = row.spoken,
+                                            onClick = { actions.onOpenPlayer(row.player.id) },
+                                            onClickLabel = "See rounds",
+                                        ) { PodiumStanding(row) }
+                                    },
+                                    Modifier.padding(start = Spacing.sm, end = Spacing.sm, top = Spacing.md),
+                                )
+                            }
+                            val rows = if (podium) state.rows.drop(PODIUM_PLACES) else state.rows
+                            rows.forEachIndexed { i, row ->
+                                if (i > 0 || podium) HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+                                RankedRow(row, onClick = { actions.onOpenPlayer(row.player.id) })
+                            }
                         }
                     }
                 }
             }
         }
     }
+}
+
+/** A podium place: the crest large, the name (two lines if it needs them), the ranked figure, the detail. */
+@Composable
+private fun PodiumStanding(row: LeaderboardRowUi) {
+    PlayerAvatar(row.player, size = if (row.place == 1) 60.dp else 50.dp)
+    Spacer(Modifier.height(Spacing.xs))
+    Text(
+        row.player.name,
+        style = MaterialTheme.typography.titleSmall,
+        textAlign = TextAlign.Center,
+        maxLines = 2,
+        overflow = TextOverflow.Ellipsis,
+    )
+    if (row.isMe) YouTag()
+    Text(
+        row.main,
+        style = GoaTextStyles.scoreMedium,
+        fontWeight = FontWeight.SemiBold,
+        color = if (row.place == 1) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
+        maxLines = 1,
+    )
+    Text(
+        row.mainCaption ?: SCORE_CAPTION,
+        style = MaterialTheme.typography.labelSmall,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+    )
+    Text(
+        row.detail,
+        style = MaterialTheme.typography.bodySmall,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        textAlign = TextAlign.Center,
+    )
 }
 
 @Composable
@@ -283,7 +342,7 @@ private fun RankedRow(row: LeaderboardRowUi, onClick: () -> Unit) {
                 Text(
                     row.player.name,
                     style = MaterialTheme.typography.titleMedium,
-                    maxLines = 1,
+                    maxLines = 3,
                     overflow = TextOverflow.Ellipsis,
                     modifier = Modifier.weight(1f, fill = false),
                 )
@@ -532,6 +591,9 @@ internal fun tabLabel(tab: LeaderboardTab): String = TriviaText.tabLabel(tab)
 internal fun periodLabel(period: LeaderboardPeriod): String = TriviaText.periodLabel(period)
 
 private const val PODIUM = 3
+
+/** From this font scale the podium's three columns give way to rows. */
+private const val PODIUM_FONT_SCALE = 1.3f
 
 /** From this font scale the rows reflow ([LargeRankedRow]). */
 private const val LARGE_FONT_SCALE = 1.5f
