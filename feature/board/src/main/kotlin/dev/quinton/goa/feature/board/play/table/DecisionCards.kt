@@ -8,8 +8,6 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.ExperimentalLayoutApi
-import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -663,13 +661,20 @@ internal fun DefensePanel(
     when {
         picked != null -> {
             val items = table.decider?.itemStats?.count { it == Stat.DEFENSE } ?: 0
-            DefenseOutcome(offered[picked].card, rows[picked], attack, context.minionModifier, items, context.rangedAttack)
+            DefenseOutcome(
+                offered[picked].card,
+                rows[picked],
+                attack,
+                context.minionModifier,
+                items,
+                context.rangedAttack,
+            )
         }
 
         answer != null -> RuleRow(
             if (hopeless && declined == null) {
-                "No card saves ${hero ?: "you"}" + attack?.let { " against Attack $it" }.orEmpty() +
-                    ": not defending, you keep your cards."
+                // The Attack is in the header, keeping your cards on the button: one short line.
+                "No card saves ${hero ?: "you"}."
             } else {
                 "Not defending: defeated, and you keep your cards."
             },
@@ -748,7 +753,9 @@ private fun DefenseOutcome(card: Card, line: DefenseLine, attack: Int?, minion: 
         }
 
         line.total == null -> line.verdict.detail
+
         sum != null -> "$sum$against"
+
         else -> "Defense ${line.total}$against"
     }
     RuleRow(text, page = "p.14", verdict = line.verdict.holds)
@@ -897,9 +904,9 @@ private fun AttackBox(
 }
 
 /**
- * One hand card to defend with: the official card, its name, and under it what it comes to against this attack ("Def
- * 2 vs 6" with a mark, in the verdict's colour; a Block's verdict; a card whose text decides, that text verbatim). A tap
- * chooses it, again reads it.
+ * One hand card to defend with: the official card, its name, and under it what it comes to against this attack
+ * ("Def 2 vs 6" with a mark, in the verdict's colour; a Block's verdict; a card whose text decides, that text
+ * verbatim). A tap chooses it, again reads it.
  */
 @Composable
 private fun DefenseCard(
@@ -963,12 +970,13 @@ private fun DefenseCard(
 }
 
 /** "✓ Def 4 vs 3" or "! Def 2 vs 6": words and shape, not colour alone. */
-@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun Verdict(verdict: Boolean?, text: String) {
     val color = verdictColor(verdict)
-    // Under a narrow card with large text the words go under the mark rather than breaking mid-word.
-    FlowRow(horizontalArrangement = Arrangement.Center, itemVerticalAlignment = Alignment.CenterVertically) {
+    // One line under the card, the mark first: the words step down to fit a narrow card rather than wrapping; with
+    // large text (the row stops growing at 1.3×) they may take two lines ("Def 4 / vs 5"), never losing a word.
+    val lines = if (LocalDensity.current.fontScale >= ATTACK_MAX_SCALE) 2 else 1
+    Row(horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically) {
         VerdictMark(verdict)
         val style = MaterialTheme.typography.labelLarge
         Text(
@@ -977,8 +985,7 @@ private fun Verdict(verdict: Boolean?, text: String) {
             color = color,
             fontWeight = FontWeight.Bold,
             textAlign = TextAlign.Center,
-            maxLines = 1,
-            softWrap = false,
+            maxLines = lines,
             autoSize = TextAutoSize.StepBased(minFontSize = VERDICT_SMALLEST, maxFontSize = style.fontSize),
         )
     }
@@ -1041,7 +1048,7 @@ private fun DeclineTile(label: String, selected: Boolean, width: Dp, onClick: ()
                 Spacer(Modifier.height(4.dp))
                 Text(
                     label,
-                    style = MaterialTheme.typography.labelLarge,
+                    style = MaterialTheme.typography.labelMedium,
                     fontWeight = FontWeight.SemiBold,
                     textAlign = TextAlign.Center,
                 )

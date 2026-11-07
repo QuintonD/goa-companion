@@ -367,7 +367,7 @@ private fun NumberBadge(modifier: Modifier, values: List<Pair<Stat, Int>>) {
 private val BadgeGround = Color(0xE6101820)
 private val BadgeEdge = Color(0xFFC9A35B)
 private val BadgeInk = Color(0xFFF4EEDF)
-private val BADGE_ICON = 12.dp
+private val BADGE_ICON = 14.dp
 private const val BADGE_SCALE = 1.3f
 
 /** From this width a card's foot has room for three values. */

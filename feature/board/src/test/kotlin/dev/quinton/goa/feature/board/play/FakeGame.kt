@@ -1072,7 +1072,7 @@ private val DEFENSE: Map<String, Int?> by lazy {
     dev.quinton.goa.feature.board.bundledCatalog.heroes.flatMap { it.allCards }.associate { it.id to it.values.defense }
 }
 
-/** Block cards whose condition is a ranged attack ("Block a ranged attack."), as the engine's previewBlock settles them. */
+/** Block cards whose condition is a ranged attack ("Block a ranged attack."), as the engine's previewBlock settles. */
 private val BLOCKS_RANGED: Set<String> by lazy {
     dev.quinton.goa.feature.board.bundledCatalog.heroes.flatMap { it.allCards }
         .filter { it.block && it.text.trim() == "Block a ranged attack." }.map { it.id }.toSet()

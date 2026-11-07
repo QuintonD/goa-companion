@@ -11,7 +11,6 @@ import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performClick
-import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.unit.Density
 import androidx.test.core.app.ApplicationProvider
 import com.github.takahirom.roborazzi.captureRoboImage
@@ -480,7 +479,8 @@ class OnlineScreenshotTest {
         compose.onNodeWithText("Rematch").assertDoesNotExist()
         compose.onNodeWithText("New game").assertDoesNotExist()
         compose.onNodeWithText("Coach off", substring = true).assertDoesNotExist()
-        compose.onNodeWithText("Done").performScrollTo().assertIsDisplayed()
+        // Pinned under the page, in view without scrolling.
+        compose.onNodeWithText("Done").assertIsDisplayed()
     }
 
     @Test

@@ -198,7 +198,7 @@ private fun hasBoardOptions(table: TableUi) = table.spaceOptions.isNotEmpty() ||
 /** What a question rests on that no card prints, in the app's words, and the rulebook page it is on. */
 private fun footnote(table: TableUi, decision: Decision): Pair<String, String>? = when {
     decision.kind == DecisionKind.CHOOSE_ACTION && table.buttonOptions.any { it is Choice.Action } ->
-        "Only the card action (the card's primary action) applies the card's text." to "p.7"
+        "Only the card action applies the card's text." to "p.7"
 
     // A bare "who acts first?" over two portraits told nothing about why it was asked.
     decision.kind == DecisionKind.ACT_FIRST ->
@@ -267,7 +267,9 @@ private fun QuestionBox(
 
 /** The tab of a question asked while a card resolves but not by its action, by the question's own kind; else null. */
 private fun ownQuestion(kind: DecisionKind): String? = when (kind) {
-    DecisionKind.RESPAWN, DecisionKind.ACT_FIRST, DecisionKind.MINION_RETURN, DecisionKind.REMOVE_MINION -> kindTitle(kind)
+    DecisionKind.RESPAWN, DecisionKind.ACT_FIRST, DecisionKind.MINION_RETURN, DecisionKind.REMOVE_MINION ->
+        kindTitle(kind)
+
     else -> null
 }
 

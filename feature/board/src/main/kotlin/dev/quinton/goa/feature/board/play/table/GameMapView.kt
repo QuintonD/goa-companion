@@ -214,17 +214,20 @@ fun GameMapView(
                         // several smaller than that zooms in on them first (tap to focus), then a tap chooses.
                         val near = optionsNear(current, layout, viewport, down.position, touchPx)
                         val crowded = near.size > 1 && viewport.hexPx < targetPx && viewport.canZoomIn
+                        val target = resolveAt(current, hex, figure)
+                            ?: near.singleOrNull()?.let { resolve(current, it) }
                         val did = when {
                             crowded -> {
                                 scope.launch { viewport.zoomIn(down.position) }
                                 true
                             }
 
-                            else -> (resolveAt(current, hex, figure) ?: near.singleOrNull()?.let { resolve(current, it) })
-                                ?.let {
-                                    tap(it)
-                                    true
-                                } ?: false
+                            target != null -> {
+                                tap(target)
+                                true
+                            }
+
+                            else -> false
                         }
                         val double = !did && hex == lastHex && up - lastUp < viewConfiguration.doubleTapTimeoutMillis
                         if (double) scope.launch { viewport.zoomStep(down.position) }
@@ -327,8 +330,14 @@ internal fun heroAt(table: TableUi, hex: Hex): String? {
     return table.view.pieces.firstOrNull { it.id == occupant }?.let(::figureOf)
 }
 
-/** The spaces of the question's options (spaces, and where its pieces stand) whose centres are within [radius] px of [at]. */
-internal fun optionsNear(table: TableUi, layout: MapLayout, viewport: MapViewport, at: Offset, radius: Float): List<Hex> {
+/** The spaces of the question's options (spaces, and where its pieces stand) centred within [radius] px of [at]. */
+internal fun optionsNear(
+    table: TableUi,
+    layout: MapLayout,
+    viewport: MapViewport,
+    at: Offset,
+    radius: Float,
+): List<Hex> {
     if (table.decision == null) return emptyList()
     val hexes = table.spaceOptions.keys + table.pieceOptions.keys.mapNotNull(table::at)
     return hexes.distinct().filter { hex -> (viewport.mapToScreen(layout.center(hex)) - at).getDistance() <= radius }

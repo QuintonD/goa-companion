@@ -443,7 +443,7 @@ private const val BADGE_X = 0.68f
 private const val BADGE_Y = 0.53f
 private const val BADGE_RADIUS = 0.37f
 
-/** The team's gear or star on a type badge: its radius and how far up and right of the badge's centre, in badge radii. */
+/** The team's gear or star on a type badge: its radius and how far up and right of the badge's centre (badge radii). */
 private const val TEAM_BADGE = 0.58f
 private const val TEAM_BADGE_AT = 0.82f
 

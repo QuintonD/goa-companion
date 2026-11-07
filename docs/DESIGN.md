@@ -490,8 +490,8 @@ question and the action chips, each a label only (TalkBack hears its rule whole)
 no card prints in a few words (Fast Travel "To your Zone or an adjacent one, no enemy
 hero or minion in either", Hold "Do nothing", Clear). **Rulebook pages never sit in a button or caption:** a decision
 has at most one **rule row** (`RuleRow`: an info icon or the verdict's mark, the rule or count in bodySmall semibold, and
-the page as a small bronze-edged pill, "p.7"); for an action question "Only the card action (the card's primary action)
-applies the card's text." p.7. A question asked while a card resolves but not by its action (Respawn, an initiative
+the page as a small bronze-edged pill, "p.7"); for an action question "Only the card action applies
+the card's text." p.7. A question asked while a card resolves but not by its action (Respawn, an initiative
 tie, a minion's way back, the Minion Battle) has its own name on the text box's tab, a silver box and no action
 symbol: never ATTACK over "Respawn in your Throne Zone?". Under the chips, one line (info
 icon, bodySmall) for each action the card prints that isn't offered, with the engine's reason and

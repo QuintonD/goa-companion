@@ -18,6 +18,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.text.TextAutoSize
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.EmojiEvents
@@ -34,6 +35,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -44,6 +46,7 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -70,6 +73,8 @@ import dev.quinton.goa.core.model.match.Team
 import dev.quinton.goa.feature.board.BoardText
 import dev.quinton.goa.feature.board.play.PlayText
 import dev.quinton.goa.feature.board.ui.PlateSurface
+import dev.quinton.goa.feature.board.ui.TeamBadge
+import dev.quinton.goa.feature.board.ui.badgeOverhang
 import dev.quinton.goa.feature.board.ui.cards.CardFocusState
 
 /**
@@ -248,7 +253,8 @@ private fun GameOverBar(online: Boolean, onRematch: () -> Unit, onDone: () -> Un
                         .weight(REMATCH_SHARE)
                         .heightIn(min = 52.dp)
                         .semantics {
-                            contentDescription = "Rematch: same heroes and seats; the app flips the Tie Breaker coin again"
+                            contentDescription =
+                                "Rematch: same heroes and seats; the app flips the Tie Breaker coin again"
                         },
                 ) {
                     Icon(Icons.Outlined.Replay, contentDescription = null)
@@ -364,16 +370,28 @@ private fun HeroResults(play: PlayUi, over: GameOverUi, onHero: (String) -> Unit
 
 @Composable
 private fun Heads(modifier: Modifier) {
+    // A head is a word over a column a fifth of the row wide: it grows with the text only to 1.3×, never clipped.
+    val density = LocalDensity.current
+    CompositionLocalProvider(LocalDensity provides Density(density.density, minOf(density.fontScale, STACKED_SCALE))) {
+        HeadRow(modifier)
+    }
+}
+
+@Composable
+private fun HeadRow(modifier: Modifier) {
     Row(modifier) {
         ResultColumn.entries.forEach { column ->
             Column(Modifier.weight(1f), horizontalAlignment = Alignment.CenterHorizontally) {
                 ColumnIcon(column)
+                val style = MaterialTheme.typography.labelMedium.copy(fontSize = 13.sp, letterSpacing = 0.sp)
                 Text(
                     column.head,
-                    style = MaterialTheme.typography.labelMedium.copy(fontSize = 13.sp, letterSpacing = 0.sp),
+                    style = style,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     maxLines = 1,
-                    softWrap = false,
+                    // Heads never touch: a word wider than its column steps down a little.
+                    autoSize = TextAutoSize.StepBased(minFontSize = 11.sp, maxFontSize = style.fontSize),
+                    modifier = Modifier.padding(horizontal = 1.dp),
                 )
             }
         }
@@ -388,7 +406,11 @@ private fun RowScope.Figures(result: HeroResult, width: Dp?) {
                 "${column.of(result)}",
                 style = GoaTextStyles.score.copy(fontSize = 20.sp, lineHeight = 24.sp),
                 textAlign = TextAlign.Center,
-                color = if (column.of(result) == 0) MaterialTheme.colorScheme.onSurfaceVariant else LocalContentColor.current,
+                color = if (column.of(result) == 0) {
+                    MaterialTheme.colorScheme.onSurfaceVariant
+                } else {
+                    LocalContentColor.current
+                },
                 modifier = Modifier.weight(1f),
             )
         }
@@ -422,21 +444,29 @@ private fun HeroResultRow(play: PlayUi, result: HeroResult, stacked: Boolean, on
     ) {
         Column(Modifier.padding(horizontal = Spacing.md, vertical = Spacing.sm)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                HeroPortrait(
-                    result.heroId,
-                    info.portrait,
-                    null,
-                    Modifier.size(PORTRAIT).border(2.dp, teamColor(result.team), CircleShape),
-                    shape = CircleShape,
-                    framed = false,
-                )
+                // The team's mark on the portrait's foot (as the decision strip has it): the name keeps the width.
+                Box {
+                    HeroPortrait(
+                        result.heroId,
+                        info.portrait,
+                        null,
+                        Modifier.size(PORTRAIT).border(2.dp, teamColor(result.team), CircleShape),
+                        shape = CircleShape,
+                        framed = false,
+                    )
+                    TeamBadge(result.team, Modifier.align(Alignment.BottomEnd).badgeOverhang(BADGE), size = BADGE)
+                }
                 Spacer(Modifier.width(Spacing.sm))
                 Column(Modifier.weight(1f)) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        TeamMark(result.team, markSize = 10.dp)
-                        Spacer(Modifier.width(4.dp))
-                        Text(info.name, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
-                    }
+                    // A name is never broken mid-word: a long one steps down to fit its column.
+                    val nameStyle = MaterialTheme.typography.titleSmall
+                    Text(
+                        info.name,
+                        style = nameStyle,
+                        fontWeight = FontWeight.SemiBold,
+                        maxLines = 1,
+                        autoSize = TextAutoSize.StepBased(minFontSize = 11.sp, maxFontSize = nameStyle.fontSize),
+                    )
                     Text(
                         who,
                         style = MaterialTheme.typography.labelMedium,
@@ -453,7 +483,8 @@ private fun HeroResultRow(play: PlayUi, result: HeroResult, stacked: Boolean, on
     }
 }
 
-private val FIGURE = 48.dp
+private val FIGURE = 46.dp
+private val BADGE = 14.dp
 private val PORTRAIT = 36.dp
 private const val STACKED_SCALE = 1.3f
 private const val REMATCH_SHARE = 1.4f
