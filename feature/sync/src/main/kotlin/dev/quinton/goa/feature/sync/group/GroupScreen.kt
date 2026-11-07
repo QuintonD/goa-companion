@@ -48,7 +48,6 @@ import androidx.compose.material.icons.outlined.Sync
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
@@ -343,7 +342,7 @@ private fun InGroup(state: GroupUiState, actions: GroupActions, padding: Padding
                 }
                 if (state.server.active) {
                     Spacer(Modifier.size(Spacing.sm))
-                    OutlinedButton(
+                    GoaOutlinedButton(
                         onClick = actions.onSyncAtTable,
                         modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp),
                     ) {
@@ -353,7 +352,7 @@ private fun InGroup(state: GroupUiState, actions: GroupActions, padding: Padding
                     }
                 }
                 Spacer(Modifier.size(Spacing.sm))
-                OutlinedButton(onClick = {
+                GoaOutlinedButton(onClick = {
                     showInvite = true
                 }, modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp)) {
                     Icon(Icons.Outlined.QrCode2, null)

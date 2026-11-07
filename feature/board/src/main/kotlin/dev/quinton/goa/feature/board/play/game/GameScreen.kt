@@ -41,7 +41,6 @@ import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
-import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -73,6 +72,7 @@ import dev.quinton.goa.core.designsystem.component.CardTextBox
 import dev.quinton.goa.core.designsystem.component.ConfirmDialog
 import dev.quinton.goa.core.designsystem.component.EmptyState
 import dev.quinton.goa.core.designsystem.component.GoaButton
+import dev.quinton.goa.core.designsystem.component.GoaSwitch
 import dev.quinton.goa.core.designsystem.component.HeroPortrait
 import dev.quinton.goa.core.designsystem.component.PlateColor
 import dev.quinton.goa.core.designsystem.component.TeamMark
@@ -394,7 +394,7 @@ private fun GameMenu(
                     }
                 },
                 leadingIcon = { Icon(Icons.Outlined.Lightbulb, contentDescription = null) },
-                trailingIcon = { Switch(checked = play.coach, onCheckedChange = null) },
+                trailingIcon = { GoaSwitch(checked = play.coach, onCheckedChange = null) },
                 onClick = { onAction(GameAction.SetCoach(!play.coach)) },
             )
             HorizontalDivider()

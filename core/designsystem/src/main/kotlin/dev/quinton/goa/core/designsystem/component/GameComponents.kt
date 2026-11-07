@@ -355,7 +355,7 @@ fun ComplexityStars(
                     imageVector = if (filled) Icons.Filled.Star else Icons.Outlined.StarOutline,
                     contentDescription = null,
                     // The unfilled stars carry the scale (2 of 4): a muted tone that still makes 3:1.
-                    tint = if (filled) MaterialTheme.colorScheme.primary else GoaTheme.colors.glyphMuted,
+                    tint = if (filled) GoaTheme.colors.bronzeInk else GoaTheme.colors.glyphMuted,
                     modifier = Modifier.size(size),
                 )
             }

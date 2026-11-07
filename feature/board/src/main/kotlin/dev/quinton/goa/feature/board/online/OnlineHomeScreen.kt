@@ -35,13 +35,8 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.SegmentedButton
-import androidx.compose.material3.SegmentedButtonDefaults
-import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Surface
-import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -72,8 +67,12 @@ import dev.quinton.goa.core.designsystem.component.CardTextBox
 import dev.quinton.goa.core.designsystem.component.ConfirmDialog
 import dev.quinton.goa.core.designsystem.component.GoaButton
 import dev.quinton.goa.core.designsystem.component.GoaDialog
+import dev.quinton.goa.core.designsystem.component.GoaOutlinedButton
 import dev.quinton.goa.core.designsystem.component.GoaPlate
 import dev.quinton.goa.core.designsystem.component.GoaScreen
+import dev.quinton.goa.core.designsystem.component.GoaSegment
+import dev.quinton.goa.core.designsystem.component.GoaSegmentedRow
+import dev.quinton.goa.core.designsystem.component.GoaSwitch
 import dev.quinton.goa.core.designsystem.component.HeroPortrait
 import dev.quinton.goa.core.designsystem.component.PlateColor
 import dev.quinton.goa.core.designsystem.component.PlateShape
@@ -97,7 +96,6 @@ import dev.quinton.goa.feature.board.play.online.MyGameStatuses
 import dev.quinton.goa.feature.board.play.online.OnlineHomeUi
 import dev.quinton.goa.feature.board.play.online.OnlineRooms
 import dev.quinton.goa.feature.board.play.online.OnlineWords
-import dev.quinton.goa.feature.board.ui.bronzeSegments
 
 /** What the online home can do; a class rather than two dozen parameters. */
 class OnlineHomeActions(
@@ -219,7 +217,7 @@ private fun PickName(state: OnlineHomeUi, actions: OnlineHomeActions) {
                 keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Characters),
                 modifier = Modifier.fillMaxWidth(),
             )
-            OutlinedButton(
+            GoaOutlinedButton(
                 onClick = actions.onLink,
                 enabled = !state.working,
                 modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp),
@@ -252,7 +250,7 @@ private fun CodeGate(state: OnlineHomeUi, actions: OnlineHomeActions) {
                     modifier = Modifier.fillMaxWidth(),
                 )
             }
-            OutlinedButton(
+            GoaOutlinedButton(
                 onClick = { actions.onCopyCode(code) },
                 modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp),
             ) {
@@ -483,7 +481,7 @@ private fun JoinRoom(state: OnlineHomeUi, actions: OnlineHomeActions) {
                 modifier = Modifier.fillMaxWidth(),
             )
             Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-                OutlinedButton(
+                GoaOutlinedButton(
                     onClick = actions.onScan,
                     enabled = !state.working,
                     modifier = Modifier.weight(1f).heightIn(min = 48.dp),
@@ -521,7 +519,7 @@ private fun NewRoom(state: OnlineHomeUi, mapNames: Map<String, String>, actions:
                     )
                 }
                 Spacer(Modifier.width(Spacing.sm))
-                Switch(checked = form.ranked, onCheckedChange = actions.onRanked)
+                GoaSwitch(checked = form.ranked, onCheckedChange = actions.onRanked)
             }
             GoaButton(
                 onClick = actions.onCreateRoom,
@@ -534,13 +532,11 @@ private fun NewRoom(state: OnlineHomeUi, mapNames: Map<String, String>, actions:
 
 @Composable
 private fun <T> Segments(options: List<T>, selected: T, label: (T) -> String, onPick: (T) -> Unit) {
-    SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth()) {
+    GoaSegmentedRow(Modifier.fillMaxWidth()) {
         options.forEachIndexed { i, option ->
-            SegmentedButton(
+            GoaSegment(
                 selected = option == selected,
                 onClick = { onPick(option) },
-                shape = SegmentedButtonDefaults.itemShape(i, options.size),
-                colors = bronzeSegments(),
                 modifier = Modifier.heightIn(min = 48.dp),
             ) { Text(label(option)) }
         }
@@ -549,7 +545,7 @@ private fun <T> Segments(options: List<T>, selected: T, label: (T) -> String, on
 
 @Composable
 private fun LeaderboardEntry(actions: OnlineHomeActions) {
-    OutlinedButton(onClick = actions.onLeaderboard, modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp)) {
+    GoaOutlinedButton(onClick = actions.onLeaderboard, modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp)) {
         Icon(Icons.Outlined.EmojiEvents, contentDescription = null, modifier = Modifier.padding(end = Spacing.sm))
         Text("Online ratings")
     }

@@ -67,6 +67,7 @@ import dev.quinton.goa.core.designsystem.component.OfficialArt
 import dev.quinton.goa.core.designsystem.component.OfficialIcon
 import dev.quinton.goa.core.designsystem.component.TeamMark
 import dev.quinton.goa.core.designsystem.component.WaveCounterIcon
+import dev.quinton.goa.core.designsystem.component.horizontalEdgeFade
 import dev.quinton.goa.core.designsystem.component.scaledIconSize
 import dev.quinton.goa.core.designsystem.component.teamColor
 import dev.quinton.goa.core.designsystem.theme.GoaTextStyles
@@ -303,8 +304,9 @@ fun HeroStrip(table: TableUi, onHero: (String) -> Unit, modifier: Modifier = Mod
         table.view.heroes.sortedBy { it.team.ordinal }
     }
     if (compact) {
+        val strip = rememberScrollState()
         Row(
-            modifier.horizontalScroll(rememberScrollState()),
+            modifier.horizontalEdgeFade(strip).horizontalScroll(strip),
             horizontalArrangement = Arrangement.spacedBy(Spacing.xs),
         ) {
             heroes.forEach { hero ->
@@ -327,7 +329,8 @@ fun HeroStrip(table: TableUi, onHero: (String) -> Unit, modifier: Modifier = Mod
 internal fun SharedWidthRow(modifier: Modifier = Modifier, gap: Dp = Spacing.xs, content: @Composable () -> Unit) {
     BoxWithConstraints(modifier) {
         val viewport = constraints.maxWidth
-        Layout(content, Modifier.horizontalScroll(rememberScrollState())) { items, _ ->
+        val strip = rememberScrollState()
+        Layout(content, Modifier.horizontalEdgeFade(strip).horizontalScroll(strip)) { items, _ ->
             val gap = gap.roundToPx()
             val natural = items.map { it.maxIntrinsicWidth(Constraints.Infinity) }
             val free = viewport - natural.sum() - gap * (items.size - 1)

@@ -35,7 +35,6 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -67,6 +66,7 @@ import androidx.compose.ui.unit.dp
 import dev.quinton.goa.core.designsystem.component.CardTextBox
 import dev.quinton.goa.core.designsystem.component.GoaButton
 import dev.quinton.goa.core.designsystem.component.GoaDialog
+import dev.quinton.goa.core.designsystem.component.GoaOutlinedButton
 import dev.quinton.goa.core.designsystem.component.GoaPlate
 import dev.quinton.goa.core.designsystem.component.GoaScreen
 import dev.quinton.goa.core.designsystem.component.HeroPortrait
@@ -186,7 +186,7 @@ private fun Facts(room: RoomView, mapNames: Map<String, String>) {
 private fun Invite(state: LobbyUi, actions: OnlineLobbyActions, onQr: () -> Unit) {
     OnlineSection("Invite")
     Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-        OutlinedButton(
+        GoaOutlinedButton(
             onClick = { actions.onShare(shareText(state)) },
             modifier = Modifier.weight(1f).heightIn(min = 48.dp),
         ) {
@@ -194,7 +194,7 @@ private fun Invite(state: LobbyUi, actions: OnlineLobbyActions, onQr: () -> Unit
             Spacer(Modifier.width(Spacing.xs))
             Text("Share")
         }
-        OutlinedButton(onClick = onQr, modifier = Modifier.weight(1f).heightIn(min = 48.dp)) {
+        GoaOutlinedButton(onClick = onQr, modifier = Modifier.weight(1f).heightIn(min = 48.dp)) {
             Icon(Icons.Outlined.QrCode2, contentDescription = null)
             Spacer(Modifier.width(Spacing.xs))
             Text("QR")
@@ -391,7 +391,7 @@ private fun seatWords(seat: RoomSeat, mine: Boolean, heroName: String?, room: Ro
 private fun Actions(state: LobbyUi, actions: OnlineLobbyActions, onPick: () -> Unit) {
     val seat = state.yourSeat
     Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-        OutlinedButton(
+        GoaOutlinedButton(
             onClick = onPick,
             enabled = seat != null && state.connected,
             modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp),

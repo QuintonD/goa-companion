@@ -39,12 +39,8 @@ import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.SegmentedButton
-import androidx.compose.material3.SegmentedButtonDefaults
-import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Slider
 import androidx.compose.material3.Surface
-import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -74,6 +70,9 @@ import dev.quinton.goa.core.designsystem.component.GoaButton
 import dev.quinton.goa.core.designsystem.component.GoaDialog
 import dev.quinton.goa.core.designsystem.component.GoaPlateTheme
 import dev.quinton.goa.core.designsystem.component.GoaScreen
+import dev.quinton.goa.core.designsystem.component.GoaSegment
+import dev.quinton.goa.core.designsystem.component.GoaSegmentedRow
+import dev.quinton.goa.core.designsystem.component.GoaSwitch
 import dev.quinton.goa.core.designsystem.component.HeroPortrait
 import dev.quinton.goa.core.designsystem.component.SectionHeader
 import dev.quinton.goa.core.designsystem.component.SectionHeaderPaddingTight
@@ -104,7 +103,6 @@ import dev.quinton.goa.feature.board.setup.SourcesContent
 import dev.quinton.goa.feature.board.setup.TeamSwitch
 import dev.quinton.goa.feature.board.setup.Teams
 import dev.quinton.goa.feature.board.ui.PlateSurface
-import dev.quinton.goa.feature.board.ui.bronzeSegments
 import dev.quinton.goa.feature.board.ui.cards.CardFocusHost
 import dev.quinton.goa.feature.board.ui.cards.rememberCardFocusState
 import kotlin.math.roundToInt
@@ -392,13 +390,11 @@ private fun OptionsStep(
             }
 
             Section("Length", note = PlayText.lengthNote(state.form.length)) {
-                SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth()) {
+                GoaSegmentedRow(Modifier.fillMaxWidth()) {
                     GameLength.entries.forEachIndexed { i, length ->
-                        SegmentedButton(
+                        GoaSegment(
                             selected = state.form.length == length,
                             onClick = { onAction(NewGameAction.SetLength(length)) },
-                            shape = SegmentedButtonDefaults.itemShape(i, GameLength.entries.size),
-                            colors = bronzeSegments(),
                             modifier = Modifier.heightIn(min = 48.dp),
                         ) { Text(PlayText.length(length)) }
                     }
@@ -430,7 +426,7 @@ private fun OptionsStep(
                     )
                 }
                 Spacer(Modifier.width(Spacing.sm))
-                Switch(checked = state.form.coach, onCheckedChange = null)
+                GoaSwitch(checked = state.form.coach, onCheckedChange = null)
             }
         }
         Column(Modifier.fillMaxWidth()) {
@@ -479,9 +475,9 @@ private fun YouPlay(state: NewGameUiState.Ready, onAction: (NewGameAction) -> Un
     val myTeam = teamOf(state, control)
     if (teams.isNotEmpty()) {
         val kinds = listOf(false, true)
-        SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth()) {
+        GoaSegmentedRow(Modifier.fillMaxWidth()) {
             kinds.forEachIndexed { i, kind ->
-                SegmentedButton(
+                GoaSegment(
                     selected = whole == kind,
                     onClick = {
                         if (whole != kind) {
@@ -494,8 +490,6 @@ private fun YouPlay(state: NewGameUiState.Ready, onAction: (NewGameAction) -> Un
                             next?.let { onAction(NewGameAction.SetControl(it)) }
                         }
                     },
-                    shape = SegmentedButtonDefaults.itemShape(i, kinds.size),
-                    colors = bronzeSegments(),
                     modifier = Modifier.heightIn(min = 48.dp),
                 ) { Text(if (kind) "Whole team" else "One hero", maxLines = 1) }
             }

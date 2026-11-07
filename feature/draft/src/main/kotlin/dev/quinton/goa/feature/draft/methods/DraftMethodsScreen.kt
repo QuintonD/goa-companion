@@ -33,7 +33,6 @@ import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -56,6 +55,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dev.quinton.goa.core.designsystem.component.GoaButton
 import dev.quinton.goa.core.designsystem.component.GoaDialog
+import dev.quinton.goa.core.designsystem.component.GoaOutlinedButton
 import dev.quinton.goa.core.designsystem.component.GoaPlate
 import dev.quinton.goa.core.designsystem.component.GoaScreen
 import dev.quinton.goa.core.designsystem.component.PlateShape
@@ -149,7 +149,7 @@ fun DraftMethodsScreen(state: MethodsUiState, actions: MethodsActions) {
                     MethodCard(row, row.method.id == state.selectedId, actions, onDelete = { deleting = row.method.id })
                 }
                 item {
-                    OutlinedButton(onClick = actions::create, modifier = Modifier.heightIn(min = 48.dp)) {
+                    GoaOutlinedButton(onClick = actions::create, modifier = Modifier.heightIn(min = 48.dp)) {
                         Icon(Icons.Filled.Add, contentDescription = null)
                         Spacer(Modifier.width(Spacing.xs))
                         Text("New method")

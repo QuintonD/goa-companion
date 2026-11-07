@@ -31,7 +31,6 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -60,6 +59,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.LifecycleResumeEffect
 import dev.quinton.goa.core.designsystem.component.GoaButton
 import dev.quinton.goa.core.designsystem.component.GoaCard
+import dev.quinton.goa.core.designsystem.component.GoaOutlinedButton
 import dev.quinton.goa.core.designsystem.component.GoaPlate
 import dev.quinton.goa.core.designsystem.component.scaledIconSize
 import dev.quinton.goa.core.designsystem.theme.GoaTheme
@@ -238,7 +238,7 @@ private fun StageContent(state: SyncSessionUiState, actions: SyncSessionActions)
             title = "This phone's data needs a fix first",
             body = stage.message + "\n\nOpen each match in the match log and correct it, then sync again.",
             error = true,
-        ) { OutlinedButton(onClick = actions.onClose, modifier = Modifier.heightIn(min = 48.dp)) { Text("Close") } }
+        ) { GoaOutlinedButton(onClick = actions.onClose, modifier = Modifier.heightIn(min = 48.dp)) { Text("Close") } }
 
         is SessionStage.Hosting -> Hosting(stage.state, state, actions)
 
@@ -314,7 +314,7 @@ private fun PermissionContent(permission: PermissionUi, actions: SyncSessionActi
             error = true,
         ) {
             GoaButton(onClick = actions.onAllow, modifier = Modifier.heightIn(min = 48.dp)) { Text("Ask again") }
-            OutlinedButton(onClick = actions.onUseFile, modifier = Modifier.heightIn(min = 48.dp)) {
+            GoaOutlinedButton(onClick = actions.onUseFile, modifier = Modifier.heightIn(min = 48.dp)) {
                 Text("Use a sync file")
             }
             TextButton(onClick = actions.onCancel, modifier = Modifier.heightIn(min = 48.dp)) { Text("Not now") }
@@ -330,7 +330,7 @@ private fun PermissionContent(permission: PermissionUi, actions: SyncSessionActi
             GoaButton(onClick = actions.onOpenSettings, modifier = Modifier.heightIn(min = 48.dp)) {
                 Text("Open settings")
             }
-            OutlinedButton(onClick = actions.onUseFile, modifier = Modifier.heightIn(min = 48.dp)) {
+            GoaOutlinedButton(onClick = actions.onUseFile, modifier = Modifier.heightIn(min = 48.dp)) {
                 Text("Use a sync file")
             }
             TextButton(onClick = actions.onCancel, modifier = Modifier.heightIn(min = 48.dp)) { Text("Cancel") }
@@ -522,7 +522,7 @@ private fun Joining(client: ClientState, state: SyncSessionUiState, actions: Syn
     client.progress?.let { LinearProgressIndicator(progress = { it }, modifier = Modifier.fillMaxWidth()) }
     if (client.phase == ClientPhase.CHOOSING) {
         client.hosts.forEach { option ->
-            OutlinedButton(
+            GoaOutlinedButton(
                 onClick = { actions.onChooseHost(option.peer) },
                 modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp),
             ) { Text("Join ${option.name}") }
@@ -562,7 +562,7 @@ private fun Finish(state: SyncSessionUiState, actions: SyncSessionActions) {
 @Composable
 private fun Retry(actions: SyncSessionActions) {
     GoaButton(onClick = actions.onRetry, modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp)) { Text("Try again") }
-    OutlinedButton(onClick = actions.onUseFile, modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp)) {
+    GoaOutlinedButton(onClick = actions.onUseFile, modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp)) {
         Text("Use a sync file instead")
     }
     TextButton(onClick = actions.onClose, modifier = Modifier.heightIn(min = 48.dp)) { Text("Close") }

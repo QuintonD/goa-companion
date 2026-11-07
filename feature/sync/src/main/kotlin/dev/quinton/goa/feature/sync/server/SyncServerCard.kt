@@ -21,9 +21,7 @@ import androidx.compose.material.icons.outlined.ExpandLess
 import androidx.compose.material.icons.outlined.ExpandMore
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -44,6 +42,8 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import dev.quinton.goa.core.designsystem.component.GoaCard
+import dev.quinton.goa.core.designsystem.component.GoaOutlinedButton
+import dev.quinton.goa.core.designsystem.component.GoaSwitch
 import dev.quinton.goa.core.designsystem.component.scaledIconSize
 import dev.quinton.goa.core.designsystem.theme.Spacing
 
@@ -146,7 +146,7 @@ private fun EnabledRow(enabled: Boolean, onEnabled: (Boolean) -> Unit) {
     ) {
         Text("Sync through the server", style = MaterialTheme.typography.bodyLarge, modifier = Modifier.weight(1f))
         Spacer(Modifier.width(Spacing.md))
-        Switch(checked = enabled, onCheckedChange = null)
+        GoaSwitch(checked = enabled, onCheckedChange = null)
     }
 }
 
@@ -201,7 +201,7 @@ private fun Advanced(server: SyncServerUi, actions: SyncServerActions) {
         modifier = Modifier.fillMaxWidth(),
     )
     Spacer(Modifier.size(Spacing.sm))
-    OutlinedButton(
+    GoaOutlinedButton(
         onClick = { actions.onSaveAddress(address) },
         enabled = address.isNotBlank() && address != server.host,
         modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp),

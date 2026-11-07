@@ -61,13 +61,13 @@ class ControlSteel internal constructor(val lit: Color, val shade: Color, val re
     companion object {
         internal val Dark = ControlSteel(
             lit = Color(0xFF9AA7AF),
-            shade = Color(0xFF46525A),
+            shade = Color(0xFF63707A),
             recess = Color(0xFF11161A),
             face = Color(0xFF27313A),
         )
         internal val Light = ControlSteel(
-            lit = Color(0xFF9AA4AB),
-            shade = Color(0xFF5E6970),
+            lit = Color(0xFF737D84),
+            shade = Color(0xFF4E585F),
             recess = Color(0xFFE6DFD1),
             face = Color(0xFFFCFAF4),
         )

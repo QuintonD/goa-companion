@@ -64,11 +64,26 @@ data class AppInfo(val name: String, val versionName: String, val versionCode: L
 internal const val DONATE_URL = "https://ko-fi.com/quintonde"
 
 /** Community projects whose published data informed the catalog import (credit only, no code reused). */
+/** A community project the catalog is built from: its name, what it gives, and where it is published. */
+internal data class DataSourceCredit(val name: String, val what: String, val where: String)
+
 internal val DataSourceCredits = listOf(
-    "Stats-of-Atlantis (QuasiStellar)" to "Card data, hero details and artwork",
-    "goa2-faq (yvo-niedrich)" to "Card text cross-check and FAQ rulings",
-    "goa2 (dmrediger)" to "Full card images",
-    "guards-of-atlantis-ii-data (colefin8)" to "Card values cross-check",
+    DataSourceCredit(
+        "Stats-of-Atlantis (QuasiStellar)",
+        "Card data, hero details and artwork",
+        "github.com/QuasiStellar/Stats-of-Atlantis",
+    ),
+    DataSourceCredit(
+        "goa2-faq (yvo-niedrich)",
+        "Card text cross-check and FAQ rulings",
+        "github.com/yvo-niedrich/goa2-faq",
+    ),
+    DataSourceCredit("goa2 (dmrediger)", "Full card images", "github.com/dmrediger/goa2"),
+    DataSourceCredit(
+        "guards-of-atlantis-ii-data (colefin8)",
+        "Card values cross-check",
+        "github.com/colefin8/guards-of-atlantis-ii-data",
+    ),
 )
 
 @Composable
@@ -149,11 +164,18 @@ fun AboutScreen(info: AppInfo, onBack: () -> Unit, modifier: Modifier = Modifier
                     Prose(
                         "Thanks to these community projects, whose published data helped build and check the catalog:",
                     )
-                    DataSourceCredits.forEach { (name, what) ->
+                    DataSourceCredits.forEach { credit ->
                         Spacer(Modifier.size(Spacing.md))
-                        Text(name, style = MaterialTheme.typography.titleMedium)
-                        Prose(what)
+                        Text(credit.name, style = MaterialTheme.typography.titleMedium)
+                        Prose(credit.what)
+                        Text(
+                            credit.where,
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
                     }
+                    Spacer(Modifier.size(Spacing.md))
+                    Prose("Each hero page names its sources; Verified means its data was checked against two of them.")
                 }
             }
             item { SectionHeader("Original artwork") }

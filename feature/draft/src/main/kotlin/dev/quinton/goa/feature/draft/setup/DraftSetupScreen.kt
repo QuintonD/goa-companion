@@ -52,15 +52,10 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.SegmentedButton
-import androidx.compose.material3.SegmentedButtonDefaults
-import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
-import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberModalBottomSheetState
@@ -94,9 +89,13 @@ import dev.quinton.goa.core.designsystem.component.ConfirmDialog
 import dev.quinton.goa.core.designsystem.component.EmptyState
 import dev.quinton.goa.core.designsystem.component.GoaButton
 import dev.quinton.goa.core.designsystem.component.GoaFilterChip
+import dev.quinton.goa.core.designsystem.component.GoaOutlinedButton
 import dev.quinton.goa.core.designsystem.component.GoaPlate
 import dev.quinton.goa.core.designsystem.component.GoaScreen
+import dev.quinton.goa.core.designsystem.component.GoaSegment
+import dev.quinton.goa.core.designsystem.component.GoaSegmentedRow
 import dev.quinton.goa.core.designsystem.component.GoaSheet
+import dev.quinton.goa.core.designsystem.component.GoaSwitch
 import dev.quinton.goa.core.designsystem.component.PlateShape
 import dev.quinton.goa.core.designsystem.component.PlayerAvatar
 import dev.quinton.goa.core.designsystem.component.TeamBadge
@@ -126,7 +125,6 @@ import dev.quinton.goa.feature.draft.ui.TeamText
 import dev.quinton.goa.feature.draft.ui.TieBreakerCoin
 import dev.quinton.goa.feature.draft.ui.TileState
 import dev.quinton.goa.feature.draft.ui.goaFilterChipColors
-import dev.quinton.goa.feature.draft.ui.goaSegmentedColors
 import dev.quinton.goa.feature.draft.ui.goaTonalButtonColors
 import dev.quinton.goa.feature.draft.ui.plateEdge
 import dev.quinton.goa.feature.draft.ui.plural
@@ -370,7 +368,7 @@ private fun BottomBar(state: SetupUiState, actions: SetupActions) {
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 if (state.stage != SetupStage.PLAYERS) {
-                    OutlinedButton(onClick = actions::back, modifier = Modifier.heightIn(min = 52.dp)) { Text("Back") }
+                    GoaOutlinedButton(onClick = actions::back, modifier = Modifier.heightIn(min = 52.dp)) { Text("Back") }
                 }
                 val last = state.stage == SetupStage.COIN
                 GoaButton(
@@ -402,7 +400,7 @@ private fun androidx.compose.foundation.lazy.LazyListScope.playersStage(state: S
                 message = "Add the people at the table above, or create full profiles in Players.",
                 modifier = Modifier.fillMaxWidth(),
                 action = {
-                    OutlinedButton(onClick = actions::openPlayerEditor) {
+                    GoaOutlinedButton(onClick = actions::openPlayerEditor) {
                         Icon(Icons.Outlined.PersonAdd, contentDescription = null)
                         Spacer(Modifier.width(Spacing.sm))
                         Text("New player profile")
@@ -554,13 +552,11 @@ private fun PlayerRow(option: PlayerOption, selected: Boolean, onToggle: () -> U
 private fun TeamsStage(state: SetupUiState, actions: SetupActions) {
     val form = state.form
     Column(verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
-        SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth()) {
+        GoaSegmentedRow(Modifier.fillMaxWidth()) {
             TeamMode.entries.forEachIndexed { i, mode ->
-                SegmentedButton(
-                    colors = goaSegmentedColors(),
+                GoaSegment(
                     selected = form.teamMode == mode,
                     onClick = { actions.setTeamMode(mode) },
-                    shape = SegmentedButtonDefaults.itemShape(i, TeamMode.entries.size),
                     label = {
                         Text(
                             mode.label,
@@ -830,13 +826,11 @@ private fun HeroesStage(state: SetupUiState, actions: SetupActions) {
                     modifier = Modifier.padding(bottom = Spacing.sm),
                 )
             }
-            SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth()) {
+            GoaSegmentedRow(Modifier.fillMaxWidth()) {
                 PoolSource.entries.forEachIndexed { i, source ->
-                    SegmentedButton(
-                        colors = goaSegmentedColors(),
+                    GoaSegment(
                         selected = form.poolSource == source,
                         onClick = { actions.setPoolSource(source) },
-                        shape = SegmentedButtonDefaults.itemShape(i, PoolSource.entries.size),
                         label = {
                             Text(
                                 when (source) {
@@ -857,7 +851,7 @@ private fun HeroesStage(state: SetupUiState, actions: SetupActions) {
                     "Heroes from the products you own (${state.ownedProductsLabel}, set in Settings).",
                 )
 
-                PoolSource.CUSTOM -> OutlinedButton(onClick = {
+                PoolSource.CUSTOM -> GoaOutlinedButton(onClick = {
                     choosing = true
                 }, modifier = Modifier.heightIn(min = 48.dp)) {
                     Text("Choose heroes (${form.customSelection.size})")
@@ -895,7 +889,7 @@ private fun HeroesStage(state: SetupUiState, actions: SetupActions) {
             }
         }
         SectionCard(title = "Step timer", subtitle = "Optional countdown on every ban and pick", trailing = {
-            Switch(
+            GoaSwitch(
                 checked = form.stepTimer,
                 onCheckedChange = actions::setStepTimer,
                 modifier = Modifier.semantics { contentDescription = "Step timer" },

@@ -89,6 +89,7 @@ import dev.quinton.goa.core.designsystem.component.LARGE_FONT_SCALE
 import dev.quinton.goa.core.designsystem.component.PlateShape
 import dev.quinton.goa.core.designsystem.component.SelectionMarkIcon
 import dev.quinton.goa.core.designsystem.component.TeamMark
+import dev.quinton.goa.core.designsystem.component.horizontalEdgeFade
 import dev.quinton.goa.core.designsystem.component.selectableChipColors
 import dev.quinton.goa.core.designsystem.component.selectableSegmentColors
 import dev.quinton.goa.core.designsystem.component.slatePlate
@@ -447,8 +448,9 @@ internal fun SequenceStrip(
             verticalArrangement = Arrangement.spacedBy(Spacing.xs),
         ) { content() }
     } else {
+        val strip = rememberScrollState()
         Row(
-            modifier.then(semantics).horizontalScroll(rememberScrollState()),
+            modifier.then(semantics).horizontalEdgeFade(strip).horizontalScroll(strip),
             horizontalArrangement = Arrangement.spacedBy(Spacing.xs),
         ) { content() }
     }
