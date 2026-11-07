@@ -57,7 +57,7 @@ class DoublePilotMatchTest {
         assertEquals(setOf("Cal", "Dee", "Eve"), rule.winnerPilots("Blue"))
         rule.tapDescription("Red won", substring = true)
         rule.tapText("Throne")
-        rule.tap(hasText("Save") and hasClickAction())
+        rule.tap(hasText("Save", substring = true) and hasClickAction())
         // The result shows its rating changes (one line per player) and Rematch before closing.
         rule.waitForText("Result saved")
         val changes = rule.ratingChanges(5)

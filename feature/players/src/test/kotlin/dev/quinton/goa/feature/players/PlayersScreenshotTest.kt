@@ -280,12 +280,20 @@ class PlayersScreenshotTest {
 
     @Test fun matchEditErrorsDark() = shot { MatchEditScreen(Shots.editor(showErrors = true), MatchEditActions()) }
 
+    /** As the app opens it after a game: no winner yet, so Save result is off and says why. */
     @Test fun whoWonDark() = shot {
         val state = Shots.editor()
+        val form = state.form.copy(winner = null, winCondition = null)
         MatchEditScreen(
-            state.copy(resultFirst = true, form = state.form.copy(winner = null, winCondition = null)),
+            state.copy(resultFirst = true, form = form, errors = MatchValidation.validate(form)),
             MatchEditActions(),
         )
+    }
+
+    /** The winner chosen: the bronze trophy and frame, and Save result on. */
+    @Test fun whoWonChosenDark() = shot {
+        val state = Shots.editor()
+        MatchEditScreen(state.copy(resultFirst = true), MatchEditActions())
     }
 
     @Test fun resultSavedDark() = shot { MatchEditScreen(Shots.saved(), MatchEditActions()) }
