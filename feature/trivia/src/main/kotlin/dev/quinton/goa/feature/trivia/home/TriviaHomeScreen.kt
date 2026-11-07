@@ -460,7 +460,7 @@ internal fun playingAsNote(playing: PlayingAsState): String? = TriviaText.playin
 
 /**
  * Mastery as one header, not a panel: the learned figure large (Inter, as every score), what it counts in the
- * section's Cinzel, the bar and its legend under it. What "learned" means is with the quiz options.
+ * section's Cinzel, the bar and its legend under it, and what "learned" means in one caption.
  */
 @Composable
 private fun MasteryHeader(state: TriviaHomeUiState.Ready, modifier: Modifier) {
@@ -493,6 +493,12 @@ private fun MasteryHeader(state: TriviaHomeUiState.Ready, modifier: Modifier) {
         MasteryBar(overall, height = 8.dp)
         Spacer(Modifier.height(Spacing.sm))
         MasteryLegend(overall)
+        Text(
+            "A number is learned after three right answers in a row.",
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.padding(top = Spacing.xs),
+        )
     }
 }
 
@@ -565,8 +571,8 @@ internal fun quizSummary(state: TriviaHomeUiState.Ready): String {
     } else {
         CardGroup.entries.filter { it in setup.groups }.joinToString(", ") { TriviaText.group(it) }
     }
-    val answers = if (setup.answerStyle == AnswerStyle.CHOICES) "4 choices" else "recall"
-    val length = if (setup.length == TriviaConfig.ENDLESS) "endless" else "${setup.length} questions"
+    val answers = if (setup.answerStyle == AnswerStyle.CHOICES) "4\u00A0choices" else "recall"
+    val length = if (setup.length == TriviaConfig.ENDLESS) "endless" else "${setup.length}\u00A0questions"
     // A no-break space before each dot: a wrapped line never starts with one.
     return listOf(heroes, numbers, cards, answers, length).joinToString("\u00A0· ")
 }
@@ -648,11 +654,6 @@ private fun SetupBlock(
             }
         }
         DuelsRow(state, onAction)
-        Text(
-            "A number counts as learned after three right answers in a row.",
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
     }
 }
 

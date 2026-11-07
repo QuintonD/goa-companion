@@ -94,17 +94,13 @@ internal enum class Mark { OPEN, RIGHT, WRONG, OTHER }
 
 /**
  * The question. For a card number it leads with the card (its name large beside its colour's ribbon, its kind, whose
- * it is) and asks on the title plate ("What is its Defense?"); with [artHeight] the card's painting heads it (held
- * sideways, where there is no stage under it). For a duel, the question on its plate.
+ * it is) and asks on the title plate ("What is its Defense?"); with [artHeight] the card's painting sits between the
+ * two, cropped clear of every printed number. For a duel, the question on its plate.
  */
 @Composable
 internal fun QuestionPanel(question: QuizQuestionUi, modifier: Modifier = Modifier, artHeight: Dp = 0.dp) {
     when (question) {
         is QuizQuestionUi.Number -> GoaPlate(modifier.fillMaxWidth()) {
-            if (artHeight > 0.dp) {
-                CardArt(question.card, Modifier.fillMaxWidth().height(artHeight))
-                Spacer(Modifier.height(Spacing.md))
-            }
             Column(Modifier.fillMaxWidth().semantics(mergeDescendants = true) {}) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     ColourRibbon(
@@ -123,6 +119,10 @@ internal fun QuestionPanel(question: QuizQuestionUi, modifier: Modifier = Modifi
                 }
                 Spacer(Modifier.height(Spacing.xs))
                 HeroLine(question.card, portraitSize = 24.dp)
+            }
+            if (artHeight > 0.dp) {
+                Spacer(Modifier.height(Spacing.md))
+                CardArt(question.card, Modifier.fillMaxWidth().height(artHeight))
             }
             Spacer(Modifier.height(Spacing.md))
             val asked = "What is its ${TriviaText.stat(question.stat)}?"
@@ -148,31 +148,6 @@ internal fun QuestionPanel(question: QuizQuestionUi, modifier: Modifier = Modifi
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
-        }
-    }
-}
-
-/**
- * Between a number question and its answers: before the answer the card's painting fills it ([CardArt], no printed
- * number shows); once answered the verdict heads it and the whole scan, as large as the stage allows, proves it. The
- * stage keeps its height either way, so the question above and the answers below stay where they were.
- */
-@Composable
-internal fun CardStage(
-    state: TriviaQuizUiState.Playing,
-    question: QuizQuestionUi.Number,
-    modifier: Modifier = Modifier,
-) {
-    Column(modifier, horizontalAlignment = Alignment.CenterHorizontally) {
-        // One polite live region, there before the answer, so TalkBack reads the verdict when it fills in.
-        FeedbackLine(state.feedback, state.correct)
-        if (!state.answered) {
-            CardArt(question.card, Modifier.fillMaxWidth().weight(1f))
-        } else {
-            Spacer(Modifier.height(Spacing.sm))
-            Box(Modifier.fillMaxWidth().weight(1f), contentAlignment = Alignment.Center) {
-                CardImage(question.card, Modifier.fillMaxHeight())
-            }
         }
     }
 }

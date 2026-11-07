@@ -22,6 +22,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -204,10 +205,10 @@ private fun QuizPlaying(state: TriviaQuizUiState.Playing, onAnswer: (TriviaAnswe
 }
 
 /**
- * A card-number question upright, in three bands that never move when it is answered: the question (the card's name,
- * whose it is, "What is its Defense?") at the top, the answers at the foot over Next, and between them the card's
- * stage: its painting before the answer (cropped clear of every printed number), the verdict and the whole scan
- * after it. The stage takes the room the other two leave, so nothing jumps and no band is left empty.
+ * A card-number question upright. The question (the card's name, whose it is, its painting cropped clear of every
+ * printed number, "What is its Defense?") and the answers under it never change size or place when it is answered:
+ * the painting takes the room the screen leaves before the answer and keeps it after. The verdict and the whole scan,
+ * as large as round 3 had it (up to 300 dp wide), are added under the answers, and the list scrolls to them.
  */
 @Composable
 private fun NumberQuestion(
@@ -216,24 +217,35 @@ private fun NumberQuestion(
     modifier: Modifier = Modifier,
 ) {
     val question = state.question as QuizQuestionUi.Number
+    val scroll = rememberScrollState()
     BoxWithConstraints(modifier.fillMaxWidth()) {
-        var top by remember(state.number) { mutableIntStateOf(0) }
-        var foot by remember(state.number) { mutableIntStateOf(0) }
         val density = LocalDensity.current
-        val chrome = Spacing.md * 4
-        val room = with(density) { maxHeight - chrome - top.toDp() - foot.toDp() }
-        val stage = room.coerceAtLeast(MIN_STAGE * density.fontScale.coerceIn(1f, 1.5f))
+        // The panel without its painting, and the answers, as measured; the painting fills what they leave.
+        var rest by remember(state.number) { mutableIntStateOf(0) }
+        var foot by remember(state.number) { mutableIntStateOf(0) }
+        var kept by remember(state.number) { mutableStateOf<Dp?>(null) }
+        // The list's padding and gap, and a margin over Next.
+        val room = with(density) { maxHeight - Spacing.md * 4 - rest.toDp() - foot.toDp() }
+        val art = kept ?: if (room < MIN_ART) 0.dp else room.coerceAtMost(MAX_ART)
+        // Answered: the painting keeps its height, so nothing above the verdict moves.
+        if (state.answered && kept == null && rest > 0) SideEffect { kept = art }
+        val imageMax = imageRoom(maxHeight, padding = Spacing.md * 2)
         Column(
             Modifier
                 .fillMaxSize()
-                .verticalScroll(rememberScrollState())
+                .verticalScroll(scroll)
                 .padding(horizontal = Spacing.screen, vertical = Spacing.md),
         ) {
-            QuestionPanel(question, modifier = Modifier.onSizeChanged { top = it.height })
-            Spacer(Modifier.height(Spacing.md))
-            CardStage(state, question, Modifier.fillMaxWidth().height(stage))
+            QuestionPanel(
+                question,
+                artHeight = art,
+                modifier = Modifier.onSizeChanged {
+                    rest = it.height - with(density) { (if (art > 0.dp) art + Spacing.md else 0.dp).roundToPx() }
+                },
+            )
             Spacer(Modifier.height(Spacing.md))
             Box(Modifier.onSizeChanged { foot = it.height }) { AnswerArea(state, onAnswer) }
+            Reveal(state, scroll = scroll, imageMaxHeight = imageMax)
         }
     }
 }
@@ -272,8 +284,9 @@ private fun imageRoom(viewport: Dp, padding: Dp): Dp {
     return (viewport - padding - FEEDBACK_ROOM * fontScale).coerceAtLeast(MIN_IMAGE_HEIGHT)
 }
 
-/** The card's stage between question and answers: never shorter than this (larger text scrolls instead). */
-private val MIN_STAGE = 200.dp
+/** The card's painting in the question: none below this (large text), never taller than this. */
+private val MIN_ART = 96.dp
+private val MAX_ART = 320.dp
 
 /** The card's painting beside the answers when held sideways. */
 private val LANDSCAPE_ART = 120.dp

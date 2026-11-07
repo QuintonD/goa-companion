@@ -92,8 +92,8 @@ fun HeroStatBlocks(stats: HeroStats, modifier: Modifier = Modifier, style: StatR
  */
 const val HERO_RATINGS_TITLE = "Hero ratings · 1–8"
 
-/** What the arrow means and what the figures are, in one short line under every [HeroStatBlock] set. */
-const val HERO_RATINGS_NOTE = "Base → upgraded\nComparative ratings, not card values"
+/** What the arrow and the scale mean and what the figures are, two short lines under every [HeroStatBlock] set. */
+const val HERO_RATINGS_NOTE = "Base → upgraded · 1 very poor, 8 exceptional\nComparative ratings, not card values"
 
 /** [HERO_RATINGS_NOTE], quiet, under the readouts; [align] centres it under tiles. */
 @Composable
