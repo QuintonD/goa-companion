@@ -65,9 +65,9 @@ import dev.quinton.goa.core.data.trivia.PlayerRoundsUi
 import dev.quinton.goa.core.data.trivia.RoundUi
 import dev.quinton.goa.core.data.trivia.TriviaLeaderboardUiState
 import dev.quinton.goa.core.data.trivia.TriviaText
-import dev.quinton.goa.core.designsystem.component.BattlefieldFoot
 import dev.quinton.goa.core.designsystem.component.ConfirmDialog
 import dev.quinton.goa.core.designsystem.component.EmptyState
+import dev.quinton.goa.core.designsystem.component.FootArt
 import dev.quinton.goa.core.designsystem.component.GoaFilterChip
 import dev.quinton.goa.core.designsystem.component.GoaPlate
 import dev.quinton.goa.core.designsystem.component.GoaScreen
@@ -77,6 +77,7 @@ import dev.quinton.goa.core.designsystem.component.PlateShape
 import dev.quinton.goa.core.designsystem.component.PlayerAvatar
 import dev.quinton.goa.core.designsystem.component.Podium
 import dev.quinton.goa.core.designsystem.component.PodiumPlace
+import dev.quinton.goa.core.designsystem.component.ScreenFoot
 import dev.quinton.goa.core.designsystem.component.scaledIconSize
 import dev.quinton.goa.core.designsystem.theme.GoaTextStyles
 import dev.quinton.goa.core.designsystem.theme.Spacing
@@ -185,7 +186,7 @@ private fun BoardContent(state: TriviaLeaderboardUiState.Ready, actions: Leaderb
         }
         // A short board ends in the rulebook's battlefield, not in empty navy.
         Box(Modifier.fillMaxSize()) {
-            BattlefieldFoot()
+            ScreenFoot(FootArt.HALL)
             val podium = state.rows.size >= PODIUM_PLACES && LocalDensity.current.fontScale < PODIUM_FONT_SCALE
             LazyColumn(
                 Modifier.fillMaxSize(),
