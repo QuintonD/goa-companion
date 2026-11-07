@@ -8,8 +8,9 @@ Mock-ups: `design/mockups/original-look/`.
 area, `goa-look-*.css`). Every part falls back to a flat colour while its image loads:
 - **Steel banner** (`GoaScreen`, `Modifier.steelBanner`): the rulebook's band redrawn (ADR-058), stretched, and its star medallion at the end at
   its own proportions, its disc toned into the band so it reads as ornament, not a control. Titles are `BevelText` (white metal
-  with a dark outline). At most two labelled glyphs on it (`BarActions`, see "Bottom nav" below), clear of the medallion
-  (`BannerEndSpacer`). Words as actions on it are `BannerTextButton`, light with a dark edge.
+  with a dark outline). Compact bars (narrower than 380 dp, or text at 1.5x and more; `bannerCompact`) end in the frame's
+  plain steel end instead of the medallion, so it never takes the title's or an action's room. At most two labelled glyphs
+  on it (`BarActions`, see "Bottom nav" below), clear of the end (`BannerEndSpacer`, `bannerEndWidth`). Words as actions on it are `BannerTextButton`, light with a dark edge.
 - **Slate plate** (`GoaPlate`, `Modifier.slatePlate`, `GoaCard`, `.goa-plate`, `.goa-card`): the dashboard's dark plate with a steel edge and
   small teal corner brackets. In the light theme the plate is the rulebook's white page: paper (`#FEFCF8` → `#F8F4EB`) with a steel edge
   (`#6F7C89` over a `#B4BEC8` rim), ink text, bronze accents, the same brackets. What sits on a plate is themed as the plate (`GoaPlateTheme`).
@@ -265,7 +266,7 @@ ends with the bronze primary "Pick Arien for ◆ Red…"; a tile's tap chooses a
 Duplicate, Edit and Delete in each plate's menu; New method at the list's end; the methods' own "A"/"B" mapped once
 under the layout chips: "A is the team the Tie Breaker coin shows").
 Timer start offers "Draft heroes first" beside Match setup: draft → setup → timer → log is the game-night flow.
-Bottom nav: Heroes, Play, Timer, Players, More (original icons: shield, a board space with a play mark,
+Bottom nav: Heroes, Play, Timer, Players, More (original icons: shield with the brand mark's trident, a board space with a play mark,
 hourglass, companions, a plate with three studs; solid variant when selected; labels share one size, capped by
 the width, at large text). **More** lists, as labelled rows with icon and purpose: Draft (At the table), Rules
 (Reference), Group sync and Backup and restore (Your group), Settings and About (App). The Draft keeps a back
@@ -275,8 +276,9 @@ labelled (TalkBack and a long-press tooltip, `BarIconButton`); with more actions
 in a labelled overflow menu, "More options" (`BarActions`): Heroes shows the layout switch, then Rules and
 Settings in the menu; Players shows Group sync (its attention dot also on the menu button), then your player
 page, Share stats, Backup and Settings; Play keeps Settings (the board style is set there). The **Play tab** opens on the game in progress (Resume), then plates
-with painted scenes (the app's own art, `third_party/ASSETS.md`), the name engraved over the scene and the state
-in bronze: Play vs computer across the width, then Puzzles ("3 of 50 solved"), Board sandbox, Online and Card
+with painted scenes (the app's own art in the official portraits' flat, bright brushwork, `third_party/ASSETS.md`), the
+name engraved over the scene and the state in bronze: Play vs computer across the width, then Puzzles (a teal tick and
+"1 of 50 positions", "1 of 22 rounds": the same lines, `SolvedCount`, as over the puzzle list's two parts), Board sandbox, Online and Card
 trivia two by two (one column at large text, four across in landscape); the scenes grow with the screen's height
 so the plates fill it. Settings groups are secondary plates (`PlateStyle.Secondary` via `SettingsGroup`: flat, a hairline, no brackets), one per
 section with hairlines between rows, never a plate inside a plate; About's prose sits on the page, only rows you tap on a group. An entry the engine can't serve says "Not available in this build", never "Coming soon".
