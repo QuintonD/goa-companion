@@ -63,10 +63,10 @@ data class AppInfo(val name: String, val versionName: String, val versionCode: L
 /** The maker's Ko-fi page, for anyone who wants to give something towards the app (as on the web). */
 internal const val DONATE_URL = "https://ko-fi.com/quintonde"
 
-/** Community projects whose published data informed the catalog import (credit only, no code reused). */
 /** A community project the catalog is built from: its name, what it gives, and where it is published. */
 internal data class DataSourceCredit(val name: String, val what: String, val where: String)
 
+/** Community projects whose published data informed the catalog import (credit only, no code reused). */
 internal val DataSourceCredits = listOf(
     DataSourceCredit(
         "Stats-of-Atlantis (QuasiStellar)",

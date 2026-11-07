@@ -368,7 +368,9 @@ private fun BottomBar(state: SetupUiState, actions: SetupActions) {
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 if (state.stage != SetupStage.PLAYERS) {
-                    GoaOutlinedButton(onClick = actions::back, modifier = Modifier.heightIn(min = 52.dp)) { Text("Back") }
+                    GoaOutlinedButton(onClick = actions::back, modifier = Modifier.heightIn(min = 52.dp)) {
+                        Text("Back")
+                    }
                 }
                 val last = state.stage == SetupStage.COIN
                 GoaButton(
