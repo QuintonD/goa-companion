@@ -61,10 +61,10 @@ class PlayFlowTest {
         rule.waitFor(hasContentDescription("1st to act", substring = true), timeout = GAME_TIMEOUT)
         // After the reveal someone acts: Wasp is asked, or a computer hero is choosing.
         rule.waitUntilOrDump("the first card resolves", GAME_TIMEOUT) {
-            rule.exists(hasText("WASP · ACTION", substring = true)) ||
+            rule.exists(hasContentDescription("Wasp decides · Action", substring = true)) ||
                 rule.exists(hasText(" is choosing", substring = true)) ||
                 rule.exists(hasText(" is thinking", substring = true)) ||
-                rule.exists(hasText("Choose an action for", substring = true))
+                rule.exists(hasContentDescription("Choose an action for", substring = true))
         }
     }
 
