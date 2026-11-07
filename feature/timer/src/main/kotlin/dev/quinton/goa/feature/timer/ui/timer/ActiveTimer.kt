@@ -155,7 +155,14 @@ internal fun ActiveTimer(state: ActiveUiState, actions: TimerActions) {
                         ),
                 ) {
                     val header: @Composable () -> Unit = {
-                        TimerHeader(state, actions, onEnd = { confirmEnd = true }, onCoin = { coinDialog = true })
+                        // Landscape: one thin line, so the full-width banner costs the dial as little as it can.
+                        TimerHeader(
+                            state,
+                            actions,
+                            onEnd = { confirmEnd = true },
+                            onCoin = { coinDialog = true },
+                            compact = maxWidth > maxHeight,
+                        )
                         if (state.alertsOff) {
                             AlertsOffBanner(
                                 onOpenSettings = actions.onOpenNotificationSettings,
@@ -272,8 +279,8 @@ internal fun PinnedShotClock(state: ActiveUiState, actions: TimerActions, compac
 private val ActiveUiState.dialShown: Boolean get() = checklist == null || timed
 
 /**
- * Landscape: the steel banner across the top, as on every screen; under it the dial on the left (a running
- * Hurry up under it), phase, extras and controls on the right.
+ * Landscape: a thin steel banner across the top; under it the dial with the whole left column, and on the right
+ * the phase and extras, then Hurry up, time-outs and a running Hurry up pinned above the controls.
  */
 @Composable
 private fun LandscapeTimer(state: ActiveUiState, actions: TimerActions, header: @Composable () -> Unit) {
@@ -288,8 +295,8 @@ private fun LandscapeTimer(state: ActiveUiState, actions: TimerActions, header: 
 
 @Composable
 private fun LandscapeDialColumn(state: ActiveUiState, actions: TimerActions, modifier: Modifier) {
-    // Hurry up and time-outs (and a running Hurry up) sit under the dial here, leaving the right
-    // column to the step text: there they scrolled under the controls in a 384 dp-tall window.
+    // The dial takes the column's whole height (across the table it is what must read): Hurry up, time-outs and a
+    // running Hurry up's bar are pinned above the controls on the right, outside its scrolling step text.
     Column(modifier) {
         BoxWithConstraints(
             Modifier.weight(1f).fillMaxWidth().padding(horizontal = Spacing.md, vertical = Spacing.sm),
@@ -302,11 +309,8 @@ private fun LandscapeDialColumn(state: ActiveUiState, actions: TimerActions, mod
             }
         }
         if (state.dialShown) {
-            PhaseClockLine(state, Modifier.align(Alignment.CenterHorizontally).padding(bottom = Spacing.xs))
+            PhaseClockLine(state, Modifier.align(Alignment.CenterHorizontally).padding(bottom = Spacing.sm))
         }
-        Column(Modifier.padding(horizontal = Spacing.screen)) { TableRulesBar(state, actions) }
-        PinnedShotClock(state, actions, compact = true, inDial = state.dialShown)
-        Spacer(Modifier.height(Spacing.sm))
     }
 }
 
@@ -328,6 +332,10 @@ private fun LandscapeStepColumn(state: ActiveUiState, actions: TimerActions, mod
             SecondaryArea(state, actions, tableRules = false)
             Spacer(Modifier.height(Spacing.md))
         }
+        Column(Modifier.padding(start = Spacing.screen, end = Spacing.screen, bottom = Spacing.xs)) {
+            TableRulesBar(state, actions)
+        }
+        PinnedShotClock(state, actions, compact = true, inDial = state.dialShown)
         TimerControls(state, actions, compact = true)
     }
 }
@@ -428,7 +436,13 @@ private fun SecondaryArea(state: ActiveUiState, actions: TimerActions, tableRule
 
 /** The steel banner, as on every screen, holding the round: "Round N" must never be clipped. */
 @Composable
-private fun TimerHeader(state: ActiveUiState, actions: TimerActions, onEnd: () -> Unit, onCoin: () -> Unit) {
+private fun TimerHeader(
+    state: ActiveUiState,
+    actions: TimerActions,
+    onEnd: () -> Unit,
+    onCoin: () -> Unit,
+    compact: Boolean = false,
+) {
     var coinUndo by remember { mutableStateOf(false) }
     val banner = GoaTheme.colors
     val largeText = LocalDensity.current.fontScale > LARGE_FONT_SCALE
@@ -436,10 +450,23 @@ private fun TimerHeader(state: ActiveUiState, actions: TimerActions, onEnd: () -
         val tools = headerTools(state, maxWidth, coinUndo)
         val subtitle = maxWidth >= SMALL_PHONE_WIDTH
         Row(
-            Modifier.fillMaxWidth().padding(start = Spacing.screen, top = Spacing.xs, bottom = Spacing.xs),
+            Modifier
+                .fillMaxWidth()
+                .padding(start = Spacing.screen, top = if (compact) 0.dp else Spacing.xs)
+                .padding(bottom = if (compact) 0.dp else Spacing.xs),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Column(Modifier.weight(1f)) {
+            // Compact (landscape): the round and its subtitle on one line, the bar no taller than its buttons.
+            val titleLines: @Composable (@Composable () -> Unit) -> Unit = { content ->
+                if (compact) {
+                    Row(Modifier.weight(1f), verticalAlignment = Alignment.CenterVertically) {
+                        content()
+                    }
+                } else {
+                    Column(Modifier.weight(1f)) { content() }
+                }
+            }
+            titleLines {
                 // A small phone's banner has no room for a second line: it would land on the metal edge.
                 val spoken = "${state.presetName}, match time ${state.matchClock}"
                 BevelText(
@@ -454,6 +481,7 @@ private fun TimerHeader(state: ActiveUiState, actions: TimerActions, onEnd: () -
                 // Large text: the game clock alone, so it isn't what gets cut (TalkBack still hears both);
                 // there "Game" stays with it, so the number never stands without saying what it counts.
                 if (subtitle) {
+                    if (compact) Spacer(Modifier.width(Spacing.md))
                     HeaderSubtitle(
                         if (largeText) "Game ${state.matchClock}" else "${state.presetName} · ${state.matchClock}",
                         spoken,

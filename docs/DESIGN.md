@@ -248,11 +248,12 @@ Hurry up takes the dial (its countdown is the big clock, "⚡ HURRY UP" above th
 "TIME!" under them, so urgency is in words as well as colour; the step's own clock moves to a slate pill under the dial;
 the table-rule actions under the dial, "⚡ Start hurry-up · 0:30" and "Time-out +0:40", are 48 dp outlined pills with
 a bronze edge and icon and a verb, never the plain slate of a status pill)
-and a slim Hurry up bar with Restart and Stop is pinned above the controls (under the dial in landscape; the round view,
+and a slim Hurry up bar with Restart and Stop is pinned above the controls (in landscape too, on the right; the round view,
 which has no dial, keeps the bar with the countdown in it); the top bar's coin chip is the Tie Breaker coin's face (the
 face is the label; TalkBack: "Tie Breaker coin: Red") with "Red", the face alone only where it doesn't fit, and its second
-line says "Table rules · 14:32" ("Game 14:32" with large text); landscape runs the steel banner the full width and puts
-the dial on the left under it, step and controls on the right (round view the same: list | step); paused = blinking
+line says "Table rules · 14:32" ("Game 14:32" with large text); landscape runs a thin steel banner the full width (round
+and subtitle on one line) and gives the dial the whole left column under it, step, table rules and controls on the right
+(round view the same: list | step); paused = blinking
 digits and a large "PAUSED" label; the **round view** alternative lists the whole round under
 section headings — done rows ticked in bronze and stepped back by colour, never by alpha, so they
 keep their contrast; the current row an expanded teal-bordered card whose border and digits turn
@@ -263,7 +264,8 @@ chips, two team columns with role coverage and ban chips, then a dense pool grid
 role chips and "Hide taken"; taken heroes shrink to chips; landscape moves the banner and teams
 to a side column so the pool keeps the full height; four tiles across on a phone (three at 360 dp), names up to 15 sp,
 stepping down only for the longest; a pool tile's tap opens the hero peek sheet (one tap, one meaning: no inspect
-button on the art), whose commitment is pinned under its scrolling content: whom it is for, wrapping ("◆ Red · for Ada ·
+button on the art; Open hero page sits under the hero, above the stats, so the footer never hides it), whose
+commitment is pinned under its scrolling content: whom it is for, wrapping ("◆ Red · for Ada ·
 Pick 1 of 2"), then the bronze primary with a short label that never truncates ("Pick Arien"), which commits; before the
 first choice "Swap out of the pool instead" under it. Draft complete: a seat row offers the Handicap card as a small
 chip only on the larger team (odd counts) or once it is on; elsewhere it sits in the row's ⋮ menu) · Draft methods
