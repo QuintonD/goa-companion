@@ -208,11 +208,11 @@ private fun Monogram(letter: String, tint: Color, side: Dp) {
 }
 
 /**
- * A player's mark: their crest (one of 24, `player.avatarId`), a filled heraldic shield in the game's icon style, its
- * charge in dark ink on a bronze or steel field (`design/crests/`, composed by `design/tools/crest_shields.py`); a steel
- * shield with the initial when the crest index is unknown, "?" when [player] is null. The crest is the player's one
- * identity on every screen. Team-neutral on purpose: red and blue belong to the teams (gear and star), so a player's
- * mark never reads as a side. Drawn as is, never tinted. Decorative: pair it with the player's name.
+ * A player's mark: their crest (one of 24, `player.avatarId`), a filled heraldic shield in the game's icon style,
+ * its charge in dark ink on a bronze or steel field (`design/crests/`, composed by `design/tools/crest_shields.py`);
+ * a steel shield with the initial when the crest index is unknown, "?" when [player] is null. The crest is the
+ * player's one identity on every screen. Team-neutral on purpose: red and blue belong to the teams (gear and star),
+ * so a player's mark never reads as a side. Drawn as is, never tinted. Decorative: pair it with the player's name.
  * With [showFace], on player-centred lists and pages, and only from [FACE_MIN_SIZE], a small round badge of their
  * most-played hero sits at the crest's lower right ([LocalPlayerFaces], derived from the match log, never stored).
  */

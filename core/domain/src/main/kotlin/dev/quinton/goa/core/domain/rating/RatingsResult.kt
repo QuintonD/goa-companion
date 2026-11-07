@@ -84,8 +84,8 @@ data class RatingsResult(
         playerHeroRecords[PlayerHeroKey(playerId, heroId)] ?: WinLoss.NONE
 
     /**
-     * Each player's most-played hero in rated games (most games, then most wins, then hero id): the small hero badge on
-     * their crest (`PlayerAvatar`). Two players may share one; the crest is the identity, the badge says what they play.
+     * Each player's most-played hero in rated games (most games, then most wins, then hero id): the small hero badge
+     * on their crest (`PlayerAvatar`). Two players may share one: the crest is the identity, the badge what they play.
      * Derived like everything here, so nothing about it is stored or synced.
      */
     fun mostPlayedHeroes(): Map<String, String> {
