@@ -245,11 +245,14 @@ card as text", a full-width steel button right under the scan, which shows the v
 never drawn larger than 1.6 times its own pixels, so its print stays sharp) · Timer (full-screen, giant ring countdown, phase chip with
 "Previous phase" beside it, turn/round pips; bottom controls are Pause and Next only; a running
 Hurry up takes the dial (its countdown is the big clock, "⚡ HURRY UP" above the digits and "LEFT", "LAST SECONDS!" or
-"TIME!" under them, so urgency is in words as well as colour; the step's own clock moves to a slate pill under the dial)
+"TIME!" under them, so urgency is in words as well as colour; the step's own clock moves to a slate pill under the dial;
+the table-rule actions under the dial, "⚡ Start hurry-up · 0:30" and "Time-out +0:40", are 48 dp outlined pills with
+a bronze edge and icon and a verb, never the plain slate of a status pill)
 and a slim Hurry up bar with Restart and Stop is pinned above the controls (under the dial in landscape; the round view,
 which has no dial, keeps the bar with the countdown in it); the top bar's coin chip is the Tie Breaker coin's face (the
 face is the label; TalkBack: "Tie Breaker coin: Red") with "Red", the face alone only where it doesn't fit, and its second
-line says "Table rules · 14:32" ("Game 14:32" with large text); landscape puts the dial on the left half; paused = blinking
+line says "Table rules · 14:32" ("Game 14:32" with large text); landscape runs the steel banner the full width and puts
+the dial on the left under it, step and controls on the right (round view the same: list | step); paused = blinking
 digits and a large "PAUSED" label; the **round view** alternative lists the whole round under
 section headings — done rows ticked in bronze and stepped back by colour, never by alpha, so they
 keep their contrast; the current row an expanded teal-bordered card whose border and digits turn
@@ -258,13 +261,23 @@ them up; landscape = list left, clock and controls right) · Players list → Pl
 Meta dashboard · Draft setup → Draft board (sticky step banner over a scrolling list of sequence
 chips, two team columns with role coverage and ban chips, then a dense pool grid with search,
 role chips and "Hide taken"; taken heroes shrink to chips; landscape moves the banner and teams
-to a side column so the pool keeps the full height; each pool tile has an inspect button in its corner (ⓘ on a
-24 dp disc in a 48 dp target, a named TalkBack action too; long-press still works) that opens the hero peek sheet, which
-ends with the bronze primary "Pick Arien for ◆ Red…"; a tile's tap chooses and always asks to confirm) · Draft methods
+to a side column so the pool keeps the full height; four tiles across on a phone (three at 360 dp), names up to 15 sp,
+stepping down only for the longest; a pool tile's tap opens the hero peek sheet (one tap, one meaning: no inspect
+button on the art), whose commitment is pinned under its scrolling content: whom it is for, wrapping ("◆ Red · for Ada ·
+Pick 1 of 2"), then the bronze primary with a short label that never truncates ("Pick Arien"), which commits; before the
+first choice "Swap out of the pool instead" under it. Draft complete: a seat row offers the Handicap card as a small
+chip only on the larger team (odd counts) or once it is on; elsewhere it sits in the row's ⋮ menu) · Draft methods
 (a radio plate per method, the chosen one bronze, its sequence in team colours; "Continue with …" pinned below; Sources,
 Duplicate, Edit and Delete in each plate's menu; New method at the list's end; the methods' own "A"/"B" mapped once
 under the layout chips: "A is the team the Tie Breaker coin shows").
-Timer start offers "Draft heroes first" beside Match setup: draft → setup → timer → log is the game-night flow.
+Timer start reads as a start button: the preset's name and durations with tonight's length in them, in bronze ("Play a
+card 0:45 ×4 tonight"), one bronze Start timer, one row "Draft first · Match setup" (draft → setup → timer → log is the
+game-night flow), then one folded "Adjust for tonight" row that still names its values ("Play a card 0:45 (preset 0:30)
+· 4 heroes") and opens to the per-turn ±15 s (named as the preset names the phase) and Heroes at the table.
+Who won? / match editor: the winners are radio cards (an empty trophy outline, a bronze trophy and the bronze selection
+frame once chosen) under "Which team won? · Required"; the win condition says "· Optional"; the bronze Save ("Save
+result", "Save match", "Save changes") is pinned under the form, off until the form can be saved, with the reason under it
+(no Save in the banner).
 Bottom nav: Heroes, Play, Timer, Players, More (original icons: shield, a board space with a play mark,
 hourglass, companions, a plate with three studs; solid variant when selected; labels share one size, capped by
 the width, at large text). **More** lists, as labelled rows with icon and purpose: Draft (At the table), Rules
