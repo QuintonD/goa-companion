@@ -130,7 +130,7 @@ fun MatchSetupScreen(state: MatchSetupUiState, actions: SetupActions) {
                 if (state.layouts.size > 1 || state.layouts.firstOrNull()?.guidance != null) {
                     SectionHeader("Teams")
                     // One section plate; its choices are rows of it (DESIGN.md "Framing levels").
-                    GoaPlate(Modifier.fillMaxWidth(), contentPadding = PaddingValues(Spacing.xs)) {
+                    GoaPlate(Modifier.fillMaxWidth(), contentPadding = PaddingValues(Spacing.sm)) {
                         Column(Modifier.selectableGroup(), verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
                             state.layouts.forEach { layout ->
                                 LayoutCard(layout, layout.id == state.selectedLayoutId, state.layouts.size > 1) {
@@ -141,7 +141,7 @@ fun MatchSetupScreen(state: MatchSetupUiState, actions: SetupActions) {
                     }
                 }
                 SectionHeader("Mode")
-                GoaPlate(Modifier.fillMaxWidth(), contentPadding = PaddingValues(Spacing.xs)) {
+                GoaPlate(Modifier.fillMaxWidth(), contentPadding = PaddingValues(Spacing.sm)) {
                     Column(Modifier.selectableGroup(), verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
                         state.modes.forEach { mode ->
                             ModeCard(mode, mode.mode == state.selectedMode) { actions.onMode(mode.mode) }

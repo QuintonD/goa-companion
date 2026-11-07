@@ -115,7 +115,7 @@ fun PresetsScreen(state: PresetsUiState, actions: PresetsActions) {
             }
             // One section plate; each preset is a row of it (DESIGN.md "Framing levels").
             item(key = "presets") {
-                GoaPlate(Modifier.fillMaxWidth(), contentPadding = PaddingValues(Spacing.xs)) {
+                GoaPlate(Modifier.fillMaxWidth(), contentPadding = PaddingValues(Spacing.sm)) {
                     Column(verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
                         state.presets.forEach { preset ->
                             key(preset.id) {
