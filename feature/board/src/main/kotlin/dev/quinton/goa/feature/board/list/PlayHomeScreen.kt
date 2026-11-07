@@ -32,14 +32,17 @@ data class PlayHomeActions(
     val onBoards: () -> Unit = {},
     val onOnline: () -> Unit = {},
     val onTrivia: () -> Unit = {},
+    /** Game night at the table: the Draft, which goes on to Match setup and the Timer. */
+    val onGameNight: () -> Unit = {},
     /** Settings: the board style matters on this tab. */
     val onSettings: () -> Unit = {},
 )
 
 /**
  * The Play tab's first screen (ADR-055): the game in progress to resume, then the headline entry, Play vs computer
- * (ADR-035), and Puzzles, the Board sandbox (ADR-033), Online (ADR-056) and Card trivia (ADR-028), each a plate
- * with a painted scene. The plates share the screen's height, so the tab opens on a full page, not a short list.
+ * (ADR-035), and Game night (the table's own path: Draft, Match setup, Timer), Puzzles, the Board sandbox (ADR-033),
+ * Online (ADR-056) and Card trivia (ADR-028), each a plate with a painted scene. The plates share the screen's
+ * height, so the tab opens on a full page, not a short list.
  */
 @Composable
 fun PlayHomeScreen(state: PlayHomeUiState, actions: PlayHomeActions, modifier: Modifier = Modifier) {
@@ -53,7 +56,7 @@ fun PlayHomeScreen(state: PlayHomeUiState, actions: PlayHomeActions, modifier: M
         BoxWithConstraints(Modifier.fillMaxSize().padding(padding)) {
             val fontScale = LocalDensity.current.fontScale
             val columns = when {
-                maxWidth >= WIDE -> 4
+                maxWidth >= WIDE -> 3
                 fontScale > LARGE_TEXT || maxWidth < NARROW -> 1
                 else -> 2
             }
@@ -82,6 +85,13 @@ fun PlayHomeScreen(state: PlayHomeUiState, actions: PlayHomeActions, modifier: M
                 )
                 val puzzles = play.puzzles
                 val tiles = listOf(
+                    // The real game at the table, the way most evenings start: draft, set up, time it.
+                    Tile(
+                        R.drawable.play_art_gamenight,
+                        "Game night",
+                        "Draft heroes, set up the match, run the phase timer.",
+                        onClick = actions.onGameNight,
+                    ),
                     Tile(
                         R.drawable.play_art_puzzles,
                         "Puzzles",
