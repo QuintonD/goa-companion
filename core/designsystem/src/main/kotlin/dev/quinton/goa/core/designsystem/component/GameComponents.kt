@@ -214,12 +214,13 @@ private fun Monogram(letter: String, tint: Color, side: Dp) {
  * composed by `design/tools/crest_shields.py`); a steel shield with the initial when the crest index is unknown,
  * "?" when [player] is null. Team-neutral on purpose: red and blue belong to the teams (gear and star), so a
  * player's mark never reads as a side. Drawn as is, never tinted. Decorative: pair it with the player's name.
- * [showFace] = false keeps the crest where a hero portrait would read as the hero being assigned (beside a draft
- * pick or a match seat's hero).
+ * The face is opt-in ([showFace]) for player-centred screens (leaderboards, the player page, this phone's player),
+ * and only from [FACE_MIN_SIZE]: smaller, a portrait is a dark blob, and among heroes (meta, a draft pick, a match
+ * seat) it would read as a hero. Everywhere else the crest.
  */
 @Composable
-fun PlayerAvatar(player: Player?, modifier: Modifier = Modifier, size: Dp = 40.dp, showFace: Boolean = true) {
-    val face = player?.takeIf { showFace }?.let { LocalPlayerFaces.current[it.id] }
+fun PlayerAvatar(player: Player?, modifier: Modifier = Modifier, size: Dp = 40.dp, showFace: Boolean = false) {
+    val face = player?.takeIf { showFace && size >= FACE_MIN_SIZE }?.let { LocalPlayerFaces.current[it.id] }
     if (face != null) {
         HeroFaceAvatar(face, modifier, size)
         return

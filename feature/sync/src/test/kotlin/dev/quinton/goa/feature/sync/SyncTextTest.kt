@@ -46,6 +46,8 @@ class SyncTextTest {
         assertThat(SyncText.hostWaiting(all)).isEqualTo("1 ready · 1 sending its data · 1 needs a new invite")
         // Sync waits for uploads still under way (SyncHost.merge): a tap now arms it, and the button says so.
         assertThat(SyncText.syncLabel(all)).isEqualTo("Sync automatically when ready")
+        assertThat(SyncText.hostLeftOut(all)).isEqualTo("Eve isn't included: old invite")
+        assertThat(SyncText.hostLeftOut(listOf(bob))).isNull()
         assertThat(SyncText.syncLabel(listOf(bob))).isEqualTo("Sync with Bob")
         assertThat(
             SyncText.syncLabel(listOf(bob, cid.copy(stage = PeerStage.READY))),

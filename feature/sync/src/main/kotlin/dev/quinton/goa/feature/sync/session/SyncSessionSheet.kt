@@ -400,11 +400,13 @@ private fun Hosting(host: HostState, state: SyncSessionUiState, actions: SyncSes
                 enabled = host.canSync,
                 modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp),
             ) { Text(SyncText.syncLabel(host.peers), textAlign = TextAlign.Center) }
+            SyncText.hostLeftOut(host.peers)?.let { LeftOut(it) }
             TextButton(onClick = actions.onCancel, modifier = Modifier.heightIn(min = 48.dp)) { Text("Cancel") }
         }
 
         armed -> {
             ArmedStatus(SyncText.hostArmed(host.peers))
+            SyncText.hostLeftOut(host.peers)?.let { LeftOut(it) }
             TextButton(onClick = actions.onCancel, modifier = Modifier.heightIn(min = 48.dp)) { Text("Cancel") }
         }
 
@@ -422,6 +424,21 @@ private fun Hosting(host: HostState, state: SyncSessionUiState, actions: SyncSes
             onShare = { state.invite?.let(actions.onShareInvite) },
             onDismiss = { showInvite = false },
         )
+    }
+}
+
+/** Who this sync leaves out and why, right under its action, so nobody thinks Eve will be synced. */
+@Composable
+private fun LeftOut(text: String) {
+    Row(verticalAlignment = Alignment.Top) {
+        Icon(
+            Icons.Outlined.ErrorOutline,
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.padding(top = 2.dp).size(scaledIconSize(16.dp)),
+        )
+        Spacer(Modifier.width(Spacing.xs))
+        Text(text, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
     }
 }
 

@@ -334,7 +334,7 @@ private fun InGroup(state: GroupUiState, actions: GroupActions, padding: Padding
             GoaCard(Modifier.fillMaxWidth(), onClick = actions.onWhoAreYou) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     if (state.me != null) {
-                        PlayerAvatar(state.me)
+                        PlayerAvatar(state.me, showFace = true)
                     } else {
                         Icon(
                             Icons.Outlined.PersonOutline,

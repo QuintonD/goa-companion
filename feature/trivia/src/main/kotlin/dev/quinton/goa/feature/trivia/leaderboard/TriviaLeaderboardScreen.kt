@@ -260,7 +260,7 @@ private fun BoardContent(state: TriviaLeaderboardUiState.Ready, actions: Leaderb
 /** A podium place: the crest large, the name (two lines if it needs them), the ranked figure, the detail. */
 @Composable
 private fun PodiumStanding(row: LeaderboardRowUi) {
-    PlayerAvatar(row.player, size = if (row.place == 1) 60.dp else 50.dp)
+    PlayerAvatar(row.player, size = if (row.place == 1) 60.dp else 50.dp, showFace = true)
     Spacer(Modifier.height(Spacing.xs))
     Text(
         row.player.name,
@@ -336,7 +336,7 @@ private fun RankedRow(row: LeaderboardRowUi, onClick: () -> Unit) {
     ) {
         PlaceBadge(row.place, row.tied)
         Spacer(Modifier.width(Spacing.md))
-        PlayerAvatar(row.player, size = scaledIconSize(44.dp, maxScale = 1.4f))
+        PlayerAvatar(row.player, size = scaledIconSize(44.dp, maxScale = 1.4f), showFace = true)
         Spacer(Modifier.width(Spacing.md))
         Column(Modifier.weight(1f)) {
             Row(verticalAlignment = Alignment.CenterVertically) {

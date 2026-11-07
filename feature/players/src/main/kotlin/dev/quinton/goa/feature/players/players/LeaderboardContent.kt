@@ -227,7 +227,7 @@ private fun LeaderboardRow.spoken(archived: Boolean): String {
 @Composable
 private fun PodiumStanding(row: LeaderboardRow, showProvisional: Boolean) {
     val rating = row.rating
-    PlayerAvatar(row.player, size = if (row.rank == 1) 60.dp else 50.dp)
+    PlayerAvatar(row.player, size = if (row.rank == 1) 60.dp else 50.dp, showFace = true)
     Spacer(Modifier.height(Spacing.xs))
     Text(
         row.player.name,
@@ -276,7 +276,7 @@ private fun LeaderboardRowItem(
     ) {
         RankBadge(row.rank)
         Spacer(Modifier.width(Spacing.md))
-        PlayerAvatar(row.player, size = 44.dp)
+        PlayerAvatar(row.player, size = 44.dp, showFace = true)
         Spacer(Modifier.width(Spacing.md))
         Column(Modifier.weight(1f)) {
             Row(verticalAlignment = Alignment.CenterVertically) {

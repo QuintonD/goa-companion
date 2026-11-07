@@ -89,6 +89,9 @@ fun AccountAvatar(
 /** The crest index an online account shows: stable for its id. */
 fun accountCrest(id: String): Int = Math.floorMod(id.hashCode(), PlayerCrests.count)
 
+/** Below this a hero portrait in its ring is no longer recognisable: [PlayerAvatar] draws the crest. */
+val FACE_MIN_SIZE = 40.dp
+
 private const val RING_SHARE = 0.075f
 
 /** The portrait tucks a little under the band, so no sliver of backdrop shows between them. */

@@ -527,16 +527,21 @@ private fun Actions(state: LobbyUi, actions: OnlineLobbyActions, onPick: () -> U
                 modifier = Modifier.fillMaxWidth().heightIn(min = 52.dp),
             ) { Text("I'm ready") }
 
-            state.isHost -> {
-                GoaButton(
-                    onClick = actions.onStart,
-                    enabled = state.canStart,
-                    modifier = Modifier.fillMaxWidth().heightIn(min = 52.dp),
-                ) { Text("Start the game") }
-                if (!state.canStart) DisabledReason("Starts when every seat is taken and everyone is ready.")
-            }
-
             else -> Unit
+        }
+        // The host always sees the start (unlit, with its reason, until everyone is ready) and who flips the coin.
+        if (state.isHost) {
+            GoaButton(
+                onClick = actions.onStart,
+                enabled = state.canStart,
+                modifier = Modifier.fillMaxWidth().heightIn(min = 52.dp),
+            ) { Text("Start the game") }
+            if (!state.canStart) DisabledReason("Starts when every seat is taken and everyone is ready.")
+            Text(
+                "You start the game; the server flips the Tie Breaker coin.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
         }
         if (ready) {
             GoaOutlinedButton(

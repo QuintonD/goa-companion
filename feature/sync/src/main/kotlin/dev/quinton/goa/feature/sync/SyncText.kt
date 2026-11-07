@@ -71,6 +71,16 @@ object SyncText {
         }
     }
 
+    /**
+     * Who the sync leaves out, and why, beside its button: "Eve isn't included: old invite", "Dee and Fay aren't
+     * included: dropped out". Null when every phone is in.
+     */
+    fun hostLeftOut(peers: List<PeerProgress>): String? = peers.filter { it.stage == PeerStage.FAILED }
+        .groupBy { if (it.failure == SyncFailure.WRONG_KEY) "old invite" else "dropped out" }
+        .map { (why, out) -> "${names(out)} ${if (out.size == 1) "isn't" else "aren't"} included: $why" }
+        .joinToString(". ")
+        .ifEmpty { null }
+
     /** The sync was tapped while phones were still sending: it waits for them and starts by itself. */
     fun armed(phase: HostPhase, peers: List<PeerProgress>): Boolean =
         phase == HostPhase.MERGING && sending(peers).isNotEmpty()
