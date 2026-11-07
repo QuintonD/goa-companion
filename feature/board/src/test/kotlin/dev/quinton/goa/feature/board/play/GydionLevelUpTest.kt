@@ -162,7 +162,7 @@ class GydionLevelUpTest {
         val moment = play.table.moment!!
         compose.onAllNodes(hasContentDescription(moment.title)).onFirst().assertExists()
         compose.onAllNodes(hasText(moment.text, substring = true)).assertCountEquals(0)
-        compose.onAllNodes(hasContentDescription("You choose · Gydion. Level up")).onFirst().assertExists()
+        compose.onAllNodes(hasContentDescription("You choose · Gydion", substring = true)).onFirst().assertExists()
     }
 
     @Test

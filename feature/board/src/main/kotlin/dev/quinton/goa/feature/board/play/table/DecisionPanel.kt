@@ -465,9 +465,6 @@ fun DecisionWho(table: TableUi, modifier: Modifier = Modifier) {
  */
 internal val LocalPanelPeeking = staticCompositionLocalOf { false }
 
-/** Shows the whole panel from its peek ([GameTable]); null where the panel has no peek. */
-internal val LocalPanelExpand = staticCompositionLocalOf<(() -> Unit)?> { null }
-
 private val WHO_PORTRAIT = 34.dp
 private val WHO_BAR = 4.dp
 private const val DIRECTIVE_ALPHA = 0.94f
@@ -508,22 +505,18 @@ private fun PromptHeader(
                     parts
                 }
             }
-            // The header on the strip already says a short instruction ("Discard a card"): no plate repeating it.
-            val said = if (who) null else decisionDirective(table)
-            val plate = parts.title
-            val repeated = parts.text == null && plate != null && said?.contains(plate, true) == true
-            if (!repeated) {
-                Column(
-                    Modifier
-                        .fillMaxWidth()
-                        .semantics(mergeDescendants = true) { liveRegion = LiveRegionMode.Polite },
-                    verticalArrangement = Arrangement.spacedBy(6.dp),
-                ) {
-                    parts.title?.let { TitlePlate(it, Modifier.fillMaxWidth(), maxLines = Int.MAX_VALUE) }
-                    parts.text?.let { text ->
-                        val color = table.sourceCard?.let { PlateColor.of(it.color) } ?: PlateColor.SILVER
-                        CardTextBox(color, Modifier.fillMaxWidth()) { Text(text, style = boxText()) }
-                    }
+            // The parchment plate is the question's title ("DISCARD A CARD"); the header's second line then says only
+            // whom it answers, never the same words again in another style ([decisionDirective]).
+            Column(
+                Modifier
+                    .fillMaxWidth()
+                    .semantics(mergeDescendants = true) { liveRegion = LiveRegionMode.Polite },
+                verticalArrangement = Arrangement.spacedBy(6.dp),
+            ) {
+                parts.title?.let { TitlePlate(it, Modifier.fillMaxWidth(), maxLines = Int.MAX_VALUE) }
+                parts.text?.let { text ->
+                    val color = table.sourceCard?.let { PlateColor.of(it.color) } ?: PlateColor.SILVER
+                    CardTextBox(color, Modifier.fillMaxWidth()) { Text(text, style = boxText()) }
                 }
             }
         }
@@ -685,41 +678,30 @@ private fun BoardConfirm(table: TableUi, onAnswer: (Choice) -> Unit, busy: Boole
 }
 
 /**
- * The panel at its peek while a space or piece is chosen on the map ([GameTable]): under the header (who decides, the
- * whole instruction), only the commit: Confirm naming the choice once one is tapped, else how to answer on the map;
- * and any answer that isn't on the map ("Don't respawn"). The card and the list are one drag or tap up.
+ * The panel at its peek while a space is chosen on the map ([GameTable]): under the header (who decides, the whole
+ * instruction), how many spaces it offers in one line ("12 spaces · tap a lit one"), then only the commit: Confirm
+ * naming the choice once one is tapped, and any answer that isn't on the map ("Don't respawn"). The asking card is
+ * one drag or tap up.
  */
 @Composable
 fun BoardPeek(table: TableUi, onAnswer: (Choice) -> Unit, busy: Boolean) {
     Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Icon(
+                Icons.Outlined.TouchApp,
+                null,
+                tint = MaterialTheme.colorScheme.secondary,
+                modifier = Modifier.size(scaledIconSize(18.dp, 1.3f)),
+            )
+            Spacer(Modifier.width(Spacing.xs))
+            val count = table.spaceOptions.size
+            Text(
+                if (count == 1) "1 space · tap the lit one" else "$count spaces · tap a lit one",
+                style = MaterialTheme.typography.bodyLarge,
+            )
+        }
         if (table.selected?.let { it is Choice.Space || it is Choice.Unit || it is Choice.Token } == true) {
             BoardConfirm(table, onAnswer, busy)
-        } else {
-            // The list of pieces is in the whole panel: one tap to it, for whoever would rather not aim at the map.
-            val expand = LocalPanelExpand.current?.takeIf { table.pieceOptions.isNotEmpty() }
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(
-                    Icons.Outlined.TouchApp,
-                    null,
-                    tint = MaterialTheme.colorScheme.secondary,
-                    modifier = Modifier.size(scaledIconSize(18.dp, 1.3f)),
-                )
-                Spacer(Modifier.width(Spacing.xs))
-                val what = if (table.pieceOptions.isNotEmpty()) "piece" else "space"
-                Text(
-                    "Tap a lit $what on the map." + longPressHint(table),
-                    style = MaterialTheme.typography.bodyLarge,
-                    modifier = Modifier.weight(1f),
-                )
-                if (expand != null) {
-                    PlateButton(
-                        onClick = expand,
-                        tone = PlateTone.STEEL,
-                        modifier = Modifier.heightIn(min = 48.dp),
-                        contentPadding = PaddingValues(horizontal = Spacing.md),
-                    ) { Text("Show list") }
-                }
-            }
         }
         Choices(table, table.buttonOptions, onAnswer, busy, brief = true)
     }

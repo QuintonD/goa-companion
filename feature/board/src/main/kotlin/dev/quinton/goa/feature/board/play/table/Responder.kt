@@ -46,9 +46,8 @@ internal fun decisionOwner(table: TableUi): String? {
 
 /**
  * What the decision asks, the header's second line, short and imperative for the person ("Choose a space", "Defend
- * against Arien", "Answer Tigerclaw · Discard a card"); a short prompt is said as the engine words it ("Discard a
- * card", [shortPrompt]), and the panel then doesn't repeat it on a plate. While someone
- * else decides, what they are doing ("Choosing an action").
+ * against Arien", "Answer Tigerclaw"), or null; never what the panel's title plate already says. While someone else
+ * decides, what they are doing ("Choosing an action").
  */
 internal fun decisionDirective(table: TableUi): String? {
     val decision = table.decision ?: return null
@@ -59,27 +58,18 @@ internal fun decisionDirective(table: TableUi): String? {
         val verb = if (asking) "Defend" else "Defending"
         return attacker?.let { "$verb against $it" } ?: verb
     }
-    // An action, a respawn, a card to play or to level up: the panel itself says it (chips, the card's box, the cards).
-    val worded = decision.kind !in setOf(
-        DecisionKind.CHOOSE_ACTION,
-        DecisionKind.RESPAWN,
-        DecisionKind.PLAY_CARD,
-        DecisionKind.UPGRADE_CARD,
-        DecisionKind.KEEP_UPGRADE,
-    )
+    // A question the panel titles on a parchment plate ("DISCARD A CARD") is said there, once, in the game's style: the
+    // header then only says whom it answers (the Minion Battle keeps its name over "Remove a minion").
+    val plated = asking && decision.kind != DecisionKind.REMOVE_MINION &&
+        panelLayout(decision.kind, table.sourceCard != null) != PanelLayout.CARD_BESIDE &&
+        promptParts(decision.prompt).title != null
     val own = when {
         !asking -> doingWords(decision.kind)
-        worded -> shortPrompt(decision.prompt) ?: askWords(decision.kind)
+        plated -> null
         else -> askWords(decision.kind)
     }
     val acting = responderId(table)?.let { table.track?.acting?.heroId } ?: return own
-    return "${if (asking) "Answer" else "Answering"} ${table.hero(acting).name} · $own"
-}
-
-/** A prompt short enough to be the header's instruction as the engine words it ("Discard a card"), or null. */
-internal fun shortPrompt(prompt: String): String? {
-    val parts = promptParts(prompt)
-    return parts.title?.takeIf { parts.text == null }
+    return listOfNotNull("${if (asking) "Answer" else "Answering"} ${table.hero(acting).name}", own).joinToString(" · ")
 }
 
 private fun askWords(kind: DecisionKind): String = when (kind) {
@@ -95,7 +85,7 @@ private fun askWords(kind: DecisionKind): String = when (kind) {
     DecisionKind.CHOOSE_OPTION -> "Choose one"
     DecisionKind.CONFIRM -> "Yes or no"
     DecisionKind.CHOOSE_NUMBER -> "Choose a number"
-    DecisionKind.REMOVE_MINION -> "Minion Battle · remove a minion"
+    DecisionKind.REMOVE_MINION -> "Minion Battle"
     DecisionKind.MINION_RETURN -> "Minion back"
     DecisionKind.UPGRADE_CARD, DecisionKind.KEEP_UPGRADE -> "Level up"
 }

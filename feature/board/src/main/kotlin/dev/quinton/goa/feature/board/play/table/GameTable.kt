@@ -146,10 +146,11 @@ fun GameTable(
         // the map rather than over it, so the panel keeps its height for the question.
         val column = landscape && !hidden && table.track != null
         val mapStart = if (column) SIDE_COLUMN else 0.dp
-        // A space or piece chosen on the map: the panel starts at its peek (who, what, the commit), so the map has the
-        // room; the whole panel is one drag or tap up, and each new question starts at the peek again.
+        // A space chosen on the map: the panel starts at its peek (who, what, the commit), so the map has the room; the
+        // whole panel is one drag or tap up, and each new question starts at the peek again. Pieces keep the whole
+        // panel: their numbered list (distance, lane) is part of the decision.
         val boardChoice = table.asking && !table.handDecision &&
-            (table.spaceOptions.isNotEmpty() || table.pieceOptions.isNotEmpty())
+            table.spaceOptions.isNotEmpty() && table.pieceOptions.isEmpty()
         var expanded by rememberSaveable(table.decision?.id) { mutableStateOf(false) }
         val peeking = peekBody != null && boardChoice && !landscape && !expanded
         // Where the question ends in the panel: the panel needn't be taller than that and a look at what follows.
@@ -164,7 +165,8 @@ fun GameTable(
             questionEnd?.let { end ->
                 val strip = maxOf(PanelStripHeight, with(density) { stripHeight.toDp() })
                 val height = with(density) { end.toDp() } + strip + PANEL_PAST_QUESTION
-                (height / maxHeight).coerceAtMost(PANEL_SHARE)
+                // The whole question with its commit row, never cut at the screen's foot: up to [QUESTION_SHARE].
+                (height / maxHeight).coerceAtMost(QUESTION_SHARE)
             } ?: PANEL_SHARE
             )
 
@@ -314,10 +316,7 @@ fun GameTable(
             }
         }
 
-        CompositionLocalProvider(
-            LocalPanelPeeking provides peeking,
-            LocalPanelExpand provides { expanded = true },
-        ) {
+        CompositionLocalProvider(LocalPanelPeeking provides peeking) {
             HideablePanel(
                 landscape = landscape,
                 hidden = hidden,
@@ -507,3 +506,6 @@ private const val SQRT3 = 1.7320508f
 private const val ZONE_MARGIN = 48f
 private const val SIDE_SHARE = 0.42f
 private const val PANEL_SHARE = 0.48f
+
+/** A question sized to its end may take this much, so its commit row is whole (a defence under the two-line header). */
+private const val QUESTION_SHARE = 0.56f

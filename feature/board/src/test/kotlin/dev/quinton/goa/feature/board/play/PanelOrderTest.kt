@@ -26,6 +26,7 @@ import dev.quinton.goa.core.model.settings.ThemeMode
 import dev.quinton.goa.feature.board.play.game.GameScreen
 import dev.quinton.goa.feature.board.play.game.GameUiState
 import dev.quinton.goa.feature.board.play.game.PlayUi
+import dev.quinton.goa.feature.board.play.table.promptParts
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -77,26 +78,18 @@ class PanelOrderTest {
     private fun panelScroll(): Float =
         panel().fetchSemanticsNode().config[SemanticsProperties.VerticalScrollAxisRange].value()
 
-    /** A question on the map opens at the panel's peek (UI hill climb, round 4): the whole panel is one tap up. */
-    private fun expand() {
-        compose.onNodeWithContentDescription("Show the whole panel").performClick()
-        compose.waitForIdle()
-    }
-
     @Test
-    fun `minion battle - the panel peeks with who, what and how - whole, the summary is one folded row`() {
+    fun `minion battle - the round's summary is one folded row, the question and its list in view`() {
         val s = EndOfRoundGame.session()
         val play = GydionLevelUpGame.play(s)
         show(play)
         val screen = compose.onRoot().fetchSemanticsNode().size.height
-        // At the peek the header carries the whole instruction.
-        val header = compose.onNodeWithContentDescription(s.pending!!.prompt, substring = true).fetchSemanticsNode()
-        assertThat(header.positionInRoot.y).isLessThan(screen.toFloat())
-        expand()
+        // A question about pieces never peeks: its numbered list is the decision (round 4 gate).
+        compose.onAllNodes(hasContentDescription("Show the whole panel")).assertCountEquals(0)
         val moment = play.table.moment!!
         compose.onNodeWithContentDescription(moment.title).assertExists()
         compose.onAllNodes(hasText(moment.text, substring = true)).assertCountEquals(0)
-        // Whole, the options are in view under the folded summary.
+        assertThat(top(promptParts(s.pending!!.prompt).text!!)).isLessThan(screen.toFloat())
         val row = compose.onAllNodes(hasContentDescription("spaces from", substring = true)).onFirst()
         assertThat(row.fetchSemanticsNode().positionInRoot.y).isLessThan(screen.toFloat())
         // A tap opens the steps.
@@ -110,7 +103,6 @@ class PanelOrderTest {
         val s = EndOfRoundGame.session()
         val battle = GydionLevelUpGame.play(s)
         show(battle)
-        expand()
         panel().performSemanticsAction(SemanticsActions.ScrollBy) { it(0f, SCROLL) }
         compose.waitForIdle()
         val scrolled = panelScroll()

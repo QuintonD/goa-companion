@@ -524,13 +524,15 @@ round the table (UI hill climb, round 4): a 4 dp bar in the team's colour, the d
 ring, the team's mark on its badge; a team's question: the mark), then in near-white (ink on the light theme's
 paper), never team-coloured text, the owner in 16 sp bold, "You choose · Arien", "Computer · Wasp acting" (online the
 player's name, a puzzle's other side "The other side · …"), and the instruction in 16 sp, "Choose a space", "Defend
-against Arien", "Answer Tigerclaw · Discard a card" (a short prompt as the engine words it). One TalkBack node, a
-polite live region, so a new owner is heard. A short instruction in the header is not repeated on a plate below.
-While a space or piece is chosen on the map the panel opens at its **peek** (portrait): the header, with the engine's
-whole prompt as its instruction, and only the commit (Confirm naming the choice once one is tapped, else how to
-answer on the map; answers not on the map such as "Don't respawn"); a tap on the strip, a drag up or its ⌃ shows the
-whole panel, a drag down or ⌄ goes down a detent (whole → peek → hidden). Each new board question starts at the peek;
-the map frames the question again whenever the panel changes size. Then the prompt in titleMedium (a live region). Choosing the action
+against Arien", "Answer Tigerclaw"; up to 1.4× with large text). What the question's parchment title plate says
+("DISCARD A CARD") is said there only, never again in the header. One TalkBack node, a polite live region, so a new
+owner is heard. A question sized to its end may take up to 56 % of the height, so its commit row is always whole.
+While a **space** is chosen on the map the panel opens at its **peek** (portrait): the header, with the engine's
+whole prompt as its instruction, one line with the count ("12 spaces · tap a lit one"), and only the commit (Confirm
+naming the choice once one is tapped; answers not on the map such as "Don't respawn"); a tap on the strip, a drag up
+or its ⌃ shows the whole panel (the asking card beside the question), a drag down or ⌄ goes down a detent (whole →
+peek → hidden). Each new space question starts at the peek; a question about pieces (the Minion Battle's numbered
+minions) shows its list at once. The map frames the question again whenever the panel changes size. Then the prompt in titleMedium (a live region). Choosing the action
 for the card beside the chips has no prompt plate: the card and its chips are the question (TalkBack still hears the
 prompt). A question's title already on the strip is not repeated: "Minion Battle: remove a minion" puts "Remove a
 minion" on the plate. Pinned at the panel's foot, under what scrolls, only the **deciding hero's hand**, and only when
