@@ -16,11 +16,18 @@ object SyncText {
 
     fun peerStage(peer: PeerProgress): String = when (peer.stage) {
         PeerStage.VERIFYING -> "Checking the group key…"
-        PeerStage.RECEIVING -> peer.progress?.let { "Sending its data… ${(it * PERCENT).toInt()} %" } ?: "Sending its data…"
+
+        PeerStage.RECEIVING -> peer.progress?.let { "Sending its data… ${(it * PERCENT).toInt()} %" }
+            ?: "Sending its data…"
+
         PeerStage.READY -> "Ready"
+
         PeerStage.SENDING -> "Receiving the merged data…"
+
         PeerStage.CONFIRMING -> "Saving…"
+
         PeerStage.DONE -> "Synced"
+
         PeerStage.FAILED -> peerFailure(peer)
     }
 

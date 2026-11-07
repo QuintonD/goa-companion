@@ -50,6 +50,7 @@ import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -61,15 +62,14 @@ import dev.quinton.goa.core.data.trivia.QuizQuestionUi
 import dev.quinton.goa.core.data.trivia.TriviaCardUi
 import dev.quinton.goa.core.data.trivia.TriviaQuizUiState
 import dev.quinton.goa.core.data.trivia.TriviaText
-import androidx.compose.ui.text.font.FontWeight
-import dev.quinton.goa.core.designsystem.component.UnverifiedBadge
-import dev.quinton.goa.core.designsystem.component.PlateColor
-import dev.quinton.goa.core.designsystem.component.GoaPlate
 import dev.quinton.goa.core.designsystem.component.ColourRibbon
+import dev.quinton.goa.core.designsystem.component.GoaPlate
 import dev.quinton.goa.core.designsystem.component.GoaPlateTheme
 import dev.quinton.goa.core.designsystem.component.HeroPortrait
 import dev.quinton.goa.core.designsystem.component.LARGE_FONT_SCALE
+import dev.quinton.goa.core.designsystem.component.PlateColor
 import dev.quinton.goa.core.designsystem.component.TitlePlate
+import dev.quinton.goa.core.designsystem.component.UnverifiedBadge
 import dev.quinton.goa.core.designsystem.component.assetUrl
 import dev.quinton.goa.core.designsystem.component.scaledIconSize
 import dev.quinton.goa.core.designsystem.component.slatePlate

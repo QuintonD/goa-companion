@@ -65,16 +65,16 @@ import dev.quinton.goa.core.data.trivia.PlayerRoundsUi
 import dev.quinton.goa.core.data.trivia.RoundUi
 import dev.quinton.goa.core.data.trivia.TriviaLeaderboardUiState
 import dev.quinton.goa.core.data.trivia.TriviaText
+import dev.quinton.goa.core.designsystem.component.BattlefieldFoot
 import dev.quinton.goa.core.designsystem.component.ConfirmDialog
 import dev.quinton.goa.core.designsystem.component.EmptyState
 import dev.quinton.goa.core.designsystem.component.GoaFilterChip
 import dev.quinton.goa.core.designsystem.component.GoaPlate
 import dev.quinton.goa.core.designsystem.component.GoaScreen
 import dev.quinton.goa.core.designsystem.component.GoaSheet
+import dev.quinton.goa.core.designsystem.component.PODIUM_PLACES
 import dev.quinton.goa.core.designsystem.component.PlateShape
 import dev.quinton.goa.core.designsystem.component.PlayerAvatar
-import dev.quinton.goa.core.designsystem.component.BattlefieldFoot
-import dev.quinton.goa.core.designsystem.component.PODIUM_PLACES
 import dev.quinton.goa.core.designsystem.component.Podium
 import dev.quinton.goa.core.designsystem.component.PodiumPlace
 import dev.quinton.goa.core.designsystem.component.scaledIconSize
@@ -185,72 +185,72 @@ private fun BoardContent(state: TriviaLeaderboardUiState.Ready, actions: Leaderb
         }
         // A short board ends in the rulebook's battlefield, not in empty navy.
         Box(Modifier.fillMaxSize()) {
-        BattlefieldFoot()
-        val podium = state.rows.size >= PODIUM_PLACES && LocalDensity.current.fontScale < PODIUM_FONT_SCALE
-        LazyColumn(
-            Modifier.fillMaxSize(),
-            contentPadding = PaddingValues(bottom = Spacing.xxl),
-        ) {
-            item(key = "header") {
-                Column(Modifier.padding(horizontal = Spacing.screen, vertical = Spacing.md)) {
-                    FlowRow(
-                        horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
-                        verticalArrangement = Arrangement.spacedBy(Spacing.xs),
-                    ) {
-                        LeaderboardPeriod.entries.forEach { period ->
-                            GoaFilterChip(
-                                selected = period == state.period,
-                                onClick = { actions.onPeriod(period) },
-                                label = periodLabel(period),
-                            )
+            BattlefieldFoot()
+            val podium = state.rows.size >= PODIUM_PLACES && LocalDensity.current.fontScale < PODIUM_FONT_SCALE
+            LazyColumn(
+                Modifier.fillMaxSize(),
+                contentPadding = PaddingValues(bottom = Spacing.xxl),
+            ) {
+                item(key = "header") {
+                    Column(Modifier.padding(horizontal = Spacing.screen, vertical = Spacing.md)) {
+                        FlowRow(
+                            horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+                            verticalArrangement = Arrangement.spacedBy(Spacing.xs),
+                        ) {
+                            LeaderboardPeriod.entries.forEach { period ->
+                                GoaFilterChip(
+                                    selected = period == state.period,
+                                    onClick = { actions.onPeriod(period) },
+                                    label = periodLabel(period),
+                                )
+                            }
                         }
-                    }
-                    Spacer(Modifier.height(Spacing.xs))
-                    Text(
-                        if (state.tab == LeaderboardTab.CHALLENGE) {
-                            "Your group only · each player's best Challenge: most right answers, then the " +
-                                "quicker time."
-                        } else {
-                            "Your group only · every round played as a player, Challenges included: most right " +
-                                "answers, then accuracy."
-                        },
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
-            }
-            if (state.rows.isEmpty()) {
-                item(key = "empty") { EmptyBoard(state, Modifier.fillMaxWidth()) }
-            } else {
-                item(key = "board-${state.tab}") {
-                    // One plate with dividers, as the Players leaderboard.
-                    GoaPlate(
-                        Modifier.fillMaxWidth().padding(horizontal = Spacing.screen).clip(PlateShape),
-                        contentPadding = PaddingValues(0.dp),
-                    ) {
-                        // The top three on a podium, the rest as rows under it, in the same plate.
-                        if (podium) {
-                            Podium(
-                                state.rows.take(PODIUM_PLACES).map { row ->
-                                    PodiumPlace(
-                                        label = if (row.tied) "=${row.place}" else "${row.place}",
-                                        description = row.spoken,
-                                        onClick = { actions.onOpenPlayer(row.player.id) },
-                                        onClickLabel = "See rounds",
-                                    ) { PodiumStanding(row) }
-                                },
-                                Modifier.padding(start = Spacing.sm, end = Spacing.sm, top = Spacing.md),
-                            )
-                        }
-                        val rows = if (podium) state.rows.drop(PODIUM_PLACES) else state.rows
-                        rows.forEachIndexed { i, row ->
-                            if (i > 0 || podium) HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
-                            RankedRow(row, onClick = { actions.onOpenPlayer(row.player.id) })
-                        }
+                        Spacer(Modifier.height(Spacing.xs))
+                        Text(
+                            if (state.tab == LeaderboardTab.CHALLENGE) {
+                                "Your group only · each player's best Challenge: most right answers, then the " +
+                                    "quicker time."
+                            } else {
+                                "Your group only · every round played as a player, Challenges included: most right " +
+                                    "answers, then accuracy."
+                            },
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
                     }
                 }
+                if (state.rows.isEmpty()) {
+                    item(key = "empty") { EmptyBoard(state, Modifier.fillMaxWidth()) }
+                } else {
+                    item(key = "board-${state.tab}") {
+                        // One plate with dividers, as the Players leaderboard.
+                        GoaPlate(
+                            Modifier.fillMaxWidth().padding(horizontal = Spacing.screen).clip(PlateShape),
+                            contentPadding = PaddingValues(0.dp),
+                        ) {
+                            // The top three on a podium, the rest as rows under it, in the same plate.
+                            if (podium) {
+                                Podium(
+                                    state.rows.take(PODIUM_PLACES).map { row ->
+                                        PodiumPlace(
+                                            label = if (row.tied) "=${row.place}" else "${row.place}",
+                                            description = row.spoken,
+                                            onClick = { actions.onOpenPlayer(row.player.id) },
+                                            onClickLabel = "See rounds",
+                                        ) { PodiumStanding(row) }
+                                    },
+                                    Modifier.padding(start = Spacing.sm, end = Spacing.sm, top = Spacing.md),
+                                )
+                            }
+                            val rows = if (podium) state.rows.drop(PODIUM_PLACES) else state.rows
+                            rows.forEachIndexed { i, row ->
+                                if (i > 0 || podium) HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+                                RankedRow(row, onClick = { actions.onOpenPlayer(row.player.id) })
+                            }
+                        }
+                    }
+                }
             }
-        }
         }
     }
 }

@@ -1,31 +1,22 @@
 package dev.quinton.goa.feature.board.online
 
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.text.style.TextOverflow
-import dev.quinton.goa.core.designsystem.component.BattlefieldFoot
-import dev.quinton.goa.core.designsystem.component.HeroPortrait
-import dev.quinton.goa.core.designsystem.component.PODIUM_PLACES
-import dev.quinton.goa.core.designsystem.component.PlayerAvatar
-import dev.quinton.goa.core.designsystem.component.Podium
-import dev.quinton.goa.core.designsystem.component.PodiumPlace
-import dev.quinton.goa.core.model.player.Player
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.CloudOff
@@ -44,6 +35,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
@@ -51,14 +43,22 @@ import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import dev.quinton.goa.core.designsystem.component.BattlefieldFoot
 import dev.quinton.goa.core.designsystem.component.EmptyState
 import dev.quinton.goa.core.designsystem.component.GoaPlate
 import dev.quinton.goa.core.designsystem.component.GoaScreen
+import dev.quinton.goa.core.designsystem.component.HeroPortrait
+import dev.quinton.goa.core.designsystem.component.PODIUM_PLACES
+import dev.quinton.goa.core.designsystem.component.PlayerAvatar
+import dev.quinton.goa.core.designsystem.component.Podium
+import dev.quinton.goa.core.designsystem.component.PodiumPlace
 import dev.quinton.goa.core.designsystem.component.scaledIconSize
 import dev.quinton.goa.core.designsystem.theme.GoaTextStyles
 import dev.quinton.goa.core.designsystem.theme.GoaTheme
 import dev.quinton.goa.core.designsystem.theme.Spacing
+import dev.quinton.goa.core.model.player.Player
 import dev.quinton.goa.feature.board.play.online.leaderboard.LeaderboardPresenter
 import dev.quinton.goa.feature.board.play.online.leaderboard.LeaderboardRowUi
 import dev.quinton.goa.feature.board.play.online.leaderboard.LeaderboardTab
@@ -91,49 +91,49 @@ fun OnlineLeaderboardScreen(
     ) { padding ->
         // A short board ends in the rulebook's battlefield, not in empty navy.
         Box(Modifier.fillMaxSize().padding(padding)) {
-        BattlefieldFoot()
-        Column(
-            Modifier
-                .fillMaxSize()
-                .verticalScroll(rememberScrollState())
-                .padding(Spacing.screen),
-            verticalArrangement = Arrangement.spacedBy(Spacing.md),
-        ) {
-            SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth()) {
-                state.tabs.forEachIndexed { i, tab ->
-                    SegmentedButton(
-                        selected = state.tab == tab,
-                        onClick = { onTab(tab) },
-                        shape = SegmentedButtonDefaults.itemShape(i, state.tabs.size),
-                        colors = bronzeSegments(),
-                        modifier = Modifier.heightIn(min = 48.dp),
-                    ) { Text(tab.label) }
+            BattlefieldFoot()
+            Column(
+                Modifier
+                    .fillMaxSize()
+                    .verticalScroll(rememberScrollState())
+                    .padding(Spacing.screen),
+                verticalArrangement = Arrangement.spacedBy(Spacing.md),
+            ) {
+                SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth()) {
+                    state.tabs.forEachIndexed { i, tab ->
+                        SegmentedButton(
+                            selected = state.tab == tab,
+                            onClick = { onTab(tab) },
+                            shape = SegmentedButtonDefaults.itemShape(i, state.tabs.size),
+                            colors = bronzeSegments(),
+                            modifier = Modifier.heightIn(min = 48.dp),
+                        ) { Text(tab.label) }
+                    }
                 }
-            }
-            Text(
-                "Public Elo ratings from ranked online games. A " +
-                    (if (state.tab == LeaderboardTab.HEROES) "hero" else "player") +
-                    " appears after ${LeaderboardPresenter.GAMES_TO_APPEAR} rated games.",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-            state.status?.let { Status(it, state.stale) }
-            when {
-                state.rows.isNotEmpty() -> {
-                    if (state.loading) LinearProgressIndicator(Modifier.fillMaxWidth())
-                    Rows(state, portraits)
-                }
-
-                state.loading -> CircularProgressIndicator(Modifier.align(Alignment.CenterHorizontally))
-
-                else -> EmptyState(
-                    icon = Icons.Outlined.EmojiEvents,
-                    title = "Nothing here yet",
-                    message = state.empty.orEmpty(),
-                    modifier = Modifier.fillMaxWidth(),
+                Text(
+                    "Public Elo ratings from ranked online games. A " +
+                        (if (state.tab == LeaderboardTab.HEROES) "hero" else "player") +
+                        " appears after ${LeaderboardPresenter.GAMES_TO_APPEAR} rated games.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
+                state.status?.let { Status(it, state.stale) }
+                when {
+                    state.rows.isNotEmpty() -> {
+                        if (state.loading) LinearProgressIndicator(Modifier.fillMaxWidth())
+                        Rows(state, portraits)
+                    }
+
+                    state.loading -> CircularProgressIndicator(Modifier.align(Alignment.CenterHorizontally))
+
+                    else -> EmptyState(
+                        icon = Icons.Outlined.EmojiEvents,
+                        title = "Nothing here yet",
+                        message = state.empty.orEmpty(),
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                }
             }
-        }
         }
     }
 }

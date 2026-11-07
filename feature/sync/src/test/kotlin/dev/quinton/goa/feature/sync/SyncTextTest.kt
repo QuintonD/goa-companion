@@ -47,7 +47,9 @@ class SyncTextTest {
         assertThat(SyncText.syncLabel(all)).isEqualTo("Sync when Cid's data is in")
         assertThat(SyncText.hostWaitingHint(all)).isEqualTo("Sync waits for Cid's data. Eve isn't included.")
         assertThat(SyncText.syncLabel(listOf(bob))).isEqualTo("Sync with Bob")
-        assertThat(SyncText.syncLabel(listOf(bob, cid.copy(stage = PeerStage.READY)))).isEqualTo("Sync with Bob and Cid")
+        assertThat(
+            SyncText.syncLabel(listOf(bob, cid.copy(stage = PeerStage.READY))),
+        ).isEqualTo("Sync with Bob and Cid")
         assertThat(SyncText.hostWaitingHint(listOf(bob))).isNull()
         assertThat(SyncText.syncLabel(List(3) { bob.copy(linkId = "$it") })).isEqualTo("Sync 3 phones")
         // Nothing to sync yet: the switched-off button says what it waits for.
