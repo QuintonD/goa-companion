@@ -23,6 +23,8 @@ data class PlayersUiState(
     val archived: List<LeaderboardRow> = emptyList(),
     val showArchived: Boolean = false,
     val ratedMatches: Int = 0,
+    /** A rating is provisional until a player has this many rated games (`EloConfig.provisionalGames`). */
+    val provisionalGames: Int = 10,
     /** This phone's player (resolved through merges), if chosen. */
     val meId: String? = null,
     /** The phone is in a sync group: the sync action opens the sync sheet directly. */
@@ -33,6 +35,9 @@ data class PlayersUiState(
     val serverSyncOn: Boolean = false,
 ) {
     val isEmpty: Boolean get() = !loading && ranked.isEmpty() && unrated.isEmpty() && archived.isEmpty()
+
+    /** Every rated player is still provisional: said once for the list, not on every row. */
+    val allProvisional: Boolean get() = ranked.isNotEmpty() && ranked.all { it.rating.provisional }
 }
 
 const val TREND_GAMES = 5
@@ -69,6 +74,7 @@ object Leaderboard {
             archived = archived.sortedBy { it.name.lowercase() }.map { row(it, null) },
             showArchived = showArchived,
             ratedMatches = ratings.replayOrder.size,
+            provisionalGames = snapshot.config.provisionalGames,
             meId = meId?.takeIf { id -> players.any { it.id == id } },
         )
     }

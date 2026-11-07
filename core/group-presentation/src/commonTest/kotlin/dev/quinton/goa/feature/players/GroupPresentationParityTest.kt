@@ -94,6 +94,9 @@ class GroupPresentationParityTest {
         )
         assertEquals("p1", board.meId)
         assertEquals(12, board.ratedMatches)
+        // Said once for the list when every rating is still provisional (each player has under 10 games here).
+        assertEquals(snapshot.config.provisionalGames, board.provisionalGames)
+        assertEquals(board.ranked.all { it.rating.provisional }, board.allProvisional)
     }
 
     @Test

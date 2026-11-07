@@ -1,5 +1,17 @@
 package dev.quinton.goa.feature.board.online
 
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.text.style.TextOverflow
+import dev.quinton.goa.core.designsystem.component.BattlefieldFoot
+import dev.quinton.goa.core.designsystem.component.HeroPortrait
+import dev.quinton.goa.core.designsystem.component.PODIUM_PLACES
+import dev.quinton.goa.core.designsystem.component.PlayerAvatar
+import dev.quinton.goa.core.designsystem.component.Podium
+import dev.quinton.goa.core.designsystem.component.PodiumPlace
+import dev.quinton.goa.core.model.player.Player
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -64,6 +76,8 @@ fun OnlineLeaderboardScreen(
     onRefresh: () -> Unit,
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
+    /** Each hero's portrait by id, for the Heroes tab's podium. */
+    portraits: Map<String, String?> = emptyMap(),
 ) {
     GoaScreen(
         title = "Online ratings",
@@ -75,10 +89,12 @@ fun OnlineLeaderboardScreen(
             }
         },
     ) { padding ->
+        // A short board ends in the rulebook's battlefield, not in empty navy.
+        Box(Modifier.fillMaxSize().padding(padding)) {
+        BattlefieldFoot()
         Column(
             Modifier
                 .fillMaxSize()
-                .padding(padding)
                 .verticalScroll(rememberScrollState())
                 .padding(Spacing.screen),
             verticalArrangement = Arrangement.spacedBy(Spacing.md),
@@ -105,7 +121,7 @@ fun OnlineLeaderboardScreen(
             when {
                 state.rows.isNotEmpty() -> {
                     if (state.loading) LinearProgressIndicator(Modifier.fillMaxWidth())
-                    Rows(state)
+                    Rows(state, portraits)
                 }
 
                 state.loading -> CircularProgressIndicator(Modifier.align(Alignment.CenterHorizontally))
@@ -117,6 +133,7 @@ fun OnlineLeaderboardScreen(
                     modifier = Modifier.fillMaxWidth(),
                 )
             }
+        }
         }
     }
 }
@@ -146,15 +163,76 @@ private fun Status(text: String, stale: Boolean) {
 
 /** One plate for the board, dividers inside (DESIGN.md), under a header that says what each number is. */
 @Composable
-private fun Rows(state: LeaderboardUi) {
+private fun Rows(state: LeaderboardUi, portraits: Map<String, String?>) {
+    val heroes = state.tab == LeaderboardTab.HEROES
+    // The top three on a podium while three columns have room; the rest as rows under it, in the same plate.
+    val podium = state.rows.size >= PODIUM_PLACES && LocalDensity.current.fontScale < PODIUM_FONT_SCALE
     GoaPlate(Modifier.fillMaxWidth(), contentPadding = PaddingValues(0.dp)) {
-        Header(if (state.tab == LeaderboardTab.HEROES) "Hero" else "Player")
-        state.rows.forEachIndexed { i, row ->
+        if (podium) {
+            Podium(
+                state.rows.take(PODIUM_PLACES).map { row ->
+                    PodiumPlace(label = row.rank.toString(), description = spoken(row)) {
+                        Standing(row, heroes, portraits[row.id])
+                    }
+                },
+                Modifier.padding(start = Spacing.sm, end = Spacing.sm, top = Spacing.md),
+            )
+        }
+        val rows = if (podium) state.rows.drop(PODIUM_PLACES) else state.rows
+        if (rows.isNotEmpty()) {
+            if (podium) HorizontalDivider(color = GoaTheme.colors.engravedBorder)
+            Header(if (heroes) "Hero" else "Player")
+        }
+        rows.forEachIndexed { i, row ->
             if (i > 0) HorizontalDivider(color = GoaTheme.colors.engravedBorder)
             BoardRow(row)
         }
     }
 }
+
+/**
+ * A podium place: the hero's portrait, or for a player a plain steel shield with their initial (online accounts
+ * have no crest); the name, the rating, the record.
+ */
+@Composable
+private fun Standing(row: LeaderboardRowUi, hero: Boolean, portrait: String?) {
+    val size = if (row.rank == 1) 60.dp else 50.dp
+    if (hero) {
+        HeroPortrait(row.id, portrait, null, Modifier.size(size), CircleShape)
+    } else {
+        PlayerAvatar(Player(id = row.id, name = row.name, color = 0, avatarId = -1, createdAt = 0), size = size)
+    }
+    Spacer(Modifier.height(Spacing.xs))
+    Text(
+        row.name,
+        style = MaterialTheme.typography.titleSmall,
+        fontWeight = FontWeight.SemiBold,
+        textAlign = TextAlign.Center,
+        maxLines = 2,
+        overflow = TextOverflow.Ellipsis,
+    )
+    if (row.isYou) Text("You", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary)
+    Text(
+        row.rating.toString(),
+        style = GoaTextStyles.scoreMedium,
+        color = if (row.rank == 1) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
+    )
+    Text(
+        "${row.wins} wins · ${row.games} games",
+        style = MaterialTheme.typography.bodySmall,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        textAlign = TextAlign.Center,
+    )
+}
+
+private fun spoken(row: LeaderboardRowUi): String = buildString {
+    append("Rank ${row.rank}: ${row.name}")
+    if (row.isYou) append(" (you)")
+    append(", rating ${row.rating}, ${row.wins} wins in ${row.games} games")
+}
+
+/** From this font scale the podium's three columns give way to rows. */
+private const val PODIUM_FONT_SCALE = 1.3f
 
 /** "# · PLAYER · RATING": the columns, for the eye (each row's TalkBack line says them). */
 @Composable
@@ -179,11 +257,7 @@ private fun Header(what: String) {
 
 @Composable
 private fun BoardRow(row: LeaderboardRowUi) {
-    val spoken = buildString {
-        append("Rank ${row.rank}: ${row.name}")
-        if (row.isYou) append(" (you)")
-        append(", rating ${row.rating}, ${row.wins} wins in ${row.games} games")
-    }
+    val spoken = spoken(row)
     Row(
         Modifier
             .fillMaxWidth()

@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -39,17 +40,24 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import dev.quinton.goa.core.designsystem.component.BattlefieldFoot
 import dev.quinton.goa.core.designsystem.component.EmptyState
 import dev.quinton.goa.core.designsystem.component.GoaButton
+import dev.quinton.goa.core.designsystem.component.PODIUM_PLACES
 import dev.quinton.goa.core.designsystem.component.PlayerAvatar
+import dev.quinton.goa.core.designsystem.component.Podium
+import dev.quinton.goa.core.designsystem.component.PodiumPlace
 import dev.quinton.goa.core.designsystem.theme.GoaTextStyles
 import dev.quinton.goa.core.designsystem.theme.Spacing
 import dev.quinton.goa.feature.players.common.DeltaIndicator
 import dev.quinton.goa.feature.players.common.EngravedCard
 import dev.quinton.goa.feature.players.common.LoadingState
-import dev.quinton.goa.feature.players.common.ProvisionalPill
+import dev.quinton.goa.feature.players.common.ProvisionalMark
+import dev.quinton.goa.feature.players.common.allProvisionalCaption
 import dev.quinton.goa.feature.players.common.RowFigure
 import dev.quinton.goa.feature.players.common.SectionHeader
 import dev.quinton.goa.feature.players.common.figureStyle
@@ -87,8 +95,26 @@ fun LeaderboardContent(
             )
         }
 
-        else -> LazyColumn(
-            modifier = modifier.fillMaxSize(),
+        else -> Box(modifier.fillMaxSize()) {
+            // The list's foot is the rulebook's battlefield, so a short group doesn't end in empty navy.
+            BattlefieldFoot()
+            Board(state, onOpenPlayer, onAddPlayer, onToggleArchived)
+        }
+    }
+}
+
+@Composable
+private fun Board(
+    state: PlayersUiState,
+    onOpenPlayer: (String) -> Unit,
+    onAddPlayer: () -> Unit,
+    onToggleArchived: () -> Unit,
+) {
+    // Three on a podium while the columns have room for the names; large text keeps the rows.
+    val podium = state.ranked.size >= PODIUM_PLACES && LocalDensity.current.fontScale < LARGE_FONT_SCALE
+    val allProvisional = state.allProvisional
+    LazyColumn(
+            modifier = Modifier.fillMaxSize(),
             contentPadding = PaddingValues(start = Spacing.screen, end = Spacing.screen, bottom = LIST_END_PADDING),
         ) {
             if (state.ranked.isNotEmpty()) {
@@ -98,7 +124,9 @@ fun LeaderboardContent(
                         // One scope line: what the number is, what it's built from, and whose it is.
                         Text(
                             "Elo from ${plural(state.ratedMatches, "rated match", "rated matches")} · " +
-                                if (state.inGroup) "shared by your group's phones" else "logged on this phone",
+                                (if (state.inGroup) "shared by your group's phones" else "logged on this phone") +
+                                // Said once here rather than as a pill on every row.
+                                (if (allProvisional) ". " + allProvisionalCaption(state.provisionalGames) else ""),
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
@@ -107,9 +135,29 @@ fun LeaderboardContent(
                 item(key = "ranked") {
                     EngravedCard(Modifier.fillMaxWidth()) {
                         Column {
-                            state.ranked.forEachIndexed { i, row ->
-                                if (i > 0) HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
-                                LeaderboardRowItem(row, onClick = { onOpenPlayer(row.player.id) })
+                            val rows = if (podium) {
+                                Podium(
+                                    state.ranked.take(PODIUM_PLACES).map { row ->
+                                        PodiumPlace(
+                                            label = row.rank.toString(),
+                                            description = row.spoken(archived = false),
+                                            onClick = { onOpenPlayer(row.player.id) },
+                                            onClickLabel = "Open profile",
+                                        ) { PodiumStanding(row, showProvisional = !allProvisional) }
+                                    },
+                                    Modifier.padding(start = Spacing.sm, end = Spacing.sm, top = Spacing.md),
+                                )
+                                state.ranked.drop(PODIUM_PLACES)
+                            } else {
+                                state.ranked
+                            }
+                            rows.forEachIndexed { i, row ->
+                                if (i > 0 || podium) HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+                                LeaderboardRowItem(
+                                    row,
+                                    onClick = { onOpenPlayer(row.player.id) },
+                                    showProvisional = !allProvisional,
+                                )
                             }
                         }
                     }
@@ -151,27 +199,71 @@ fun LeaderboardContent(
                     }
                 }
             }
-        }
     }
 }
 
 @Composable
-private fun LeaderboardRowItem(row: LeaderboardRow, onClick: () -> Unit, archived: Boolean = false) {
-    val rating = row.rating
-    val description = buildString {
+/** The row as TalkBack reads it: rank, name, rating, provisional, record, trend. */
+private fun LeaderboardRow.spoken(archived: Boolean): String {
+    val row = this
+    return buildString {
         row.rank?.let { append("Rank $it, ") }
         append(row.player.name)
         if (row.isMe) append(", you")
-        if (rating.games > 0) {
-            append(", rating ${formatRating(rating.value)}")
-            if (rating.provisional) append(", provisional")
-            append(", ${spokenRecord(rating.wins, rating.losses)}")
+        if (row.rating.games > 0) {
+            append(", rating ${formatRating(row.rating.value)}")
+            if (row.rating.provisional) append(", provisional")
+            append(", ${spokenRecord(row.rating.wins, row.rating.losses)}")
             row.trend?.let { append(", ${formatDelta(it)} over the last ${plural(row.trendGames, "game")}") }
         } else {
             append(", no games yet")
         }
         if (archived) append(", archived")
     }
+}
+
+/** A podium place: the crest large, the name (two lines if it needs them), the rating, the record and trend. */
+@Composable
+private fun PodiumStanding(row: LeaderboardRow, showProvisional: Boolean) {
+    val rating = row.rating
+    PlayerAvatar(row.player, size = if (row.rank == 1) 60.dp else 50.dp)
+    Spacer(Modifier.height(Spacing.xs))
+    Text(
+        row.player.name,
+        style = MaterialTheme.typography.titleSmall,
+        textAlign = TextAlign.Center,
+        maxLines = 2,
+        overflow = TextOverflow.Ellipsis,
+    )
+    if (row.isMe) YouPill()
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        Text(
+            formatRating(rating.value),
+            style = figureStyle(RowFigure),
+            color = if (row.rank == 1) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
+        )
+        if (showProvisional && rating.provisional) {
+            Spacer(Modifier.width(2.dp))
+            ProvisionalMark()
+        }
+    }
+    Text(
+        winLoss(rating.wins, rating.games),
+        style = MaterialTheme.typography.bodySmall,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+    )
+    DeltaIndicator(row.trend, caption = "last ${row.trendGames}")
+}
+
+@Composable
+private fun LeaderboardRowItem(
+    row: LeaderboardRow,
+    onClick: () -> Unit,
+    archived: Boolean = false,
+    showProvisional: Boolean = true,
+) {
+    val rating = row.rating
+    val description = row.spoken(archived)
     Row(
         Modifier
             .fillMaxWidth()
@@ -195,6 +287,10 @@ private fun LeaderboardRowItem(row: LeaderboardRow, onClick: () -> Unit, archive
                     color = if (archived) MaterialTheme.colorScheme.onSurfaceVariant else Color.Unspecified,
                     modifier = Modifier.weight(1f, fill = false),
                 )
+                if (showProvisional && rating.provisional) {
+                    Spacer(Modifier.width(Spacing.xs))
+                    ProvisionalMark()
+                }
                 if (row.isMe) {
                     Spacer(Modifier.width(Spacing.sm))
                     YouPill()
@@ -213,7 +309,6 @@ private fun LeaderboardRowItem(row: LeaderboardRow, onClick: () -> Unit, archive
                     )
                     // Self-explaining: the change over the last few games, e.g. "↗ +24 last 5".
                     DeltaIndicator(row.trend, caption = "last ${row.trendGames}")
-                    if (rating.provisional) ProvisionalPill()
                 } else {
                     Text(
                         if (archived) "Archived" else "Log a match to get rated",
@@ -298,3 +393,6 @@ private fun YouPill() {
             .padding(horizontal = Spacing.sm, vertical = 2.dp),
     )
 }
+
+/** From this font scale the podium's three columns give way to rows (DESIGN.md "Large text"). */
+private const val LARGE_FONT_SCALE = 1.3f
