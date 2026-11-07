@@ -19,11 +19,13 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.OpenInNew
+import androidx.compose.material.icons.outlined.SwapHoriz
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -40,12 +42,12 @@ import androidx.compose.ui.unit.dp
 import dev.quinton.goa.core.designsystem.component.CardScan
 import dev.quinton.goa.core.designsystem.component.ComplexityStars
 import dev.quinton.goa.core.designsystem.component.GoaButton
+import dev.quinton.goa.core.designsystem.component.GoaOutlinedButton
 import dev.quinton.goa.core.designsystem.component.GoaSheet
 import dev.quinton.goa.core.designsystem.component.HeroPortrait
 import dev.quinton.goa.core.designsystem.component.HeroStatBlocks
 import dev.quinton.goa.core.designsystem.component.HeroSymbol
 import dev.quinton.goa.core.designsystem.component.LARGE_FONT_SCALE
-import dev.quinton.goa.core.designsystem.component.PlateGround
 import dev.quinton.goa.core.designsystem.component.StatReadoutStyle
 import dev.quinton.goa.core.designsystem.component.TitlePlate
 import dev.quinton.goa.core.designsystem.component.cardColor
@@ -57,14 +59,23 @@ import dev.quinton.goa.core.model.catalog.CardColor
 import dev.quinton.goa.core.model.catalog.Role
 import dev.quinton.goa.core.model.match.Team
 
-/** The peek's way to commit: the step's team, its words ("Pick Arien for ◆ Red…") and what it opens (the confirm). */
-internal class PeekCommit(val team: Team, val label: String, val onCommit: () -> Unit)
+/**
+ * The peek's way to commit: a short verb and name ("Pick Arien") that never truncates, whom it is for
+ * ([recipient], "◆ Red · for Ada · Pick 1 of 2", wrapping above it), and, before the first choice, a swap.
+ */
+internal class PeekCommit(
+    val team: Team,
+    val label: String,
+    val recipient: String,
+    val onCommit: () -> Unit,
+    val onSwapOut: (() -> Unit)? = null,
+)
 
 /**
- * Hero peek during a draft (a pool tile's inspect button, or a long-press): complexity, roles, stat bars
- * (base → max), the five starting cards, Gydion's spellbook (his hero page opened at it) and a link to the
- * full hero page. Catalog data only, never draft state, so it can't reveal a hidden choice. [commit], when
- * the hero can be chosen now, ends it with the step's own button, which still asks to confirm.
+ * Hero peek during a draft (a pool tile's tap, or a long-press): complexity, roles, stat bars (base → max),
+ * the five starting cards, Gydion's spellbook (his hero page opened at it) and a link to the full hero page.
+ * Catalog data only, never draft state, so it can't reveal a hidden choice. [commit], when the hero can be
+ * chosen now, is pinned under it: the step's own Pick or Ban, always in view. [note] says why it can't be.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -74,6 +85,7 @@ internal fun HeroPeekSheet(
     onOpenHero: ((String) -> Unit)?,
     onOpenSpellbook: ((String) -> Unit)? = null,
     commit: PeekCommit? = null,
+    note: String? = null,
 ) {
     GoaSheet(
         onDismissRequest = onDismiss,
@@ -81,9 +93,10 @@ internal fun HeroPeekSheet(
     ) {
         Column(
             Modifier
+                .weight(1f, fill = false)
                 .verticalScroll(rememberScrollState())
                 .padding(horizontal = Spacing.screen)
-                .padding(bottom = Spacing.xl),
+                .padding(bottom = if (commit == null && note == null) Spacing.xl else Spacing.md),
             verticalArrangement = Arrangement.spacedBy(Spacing.md),
         ) {
             TitlePlate(hero.name, Modifier.fillMaxWidth())
@@ -107,6 +120,31 @@ internal fun HeroPeekSheet(
                     RoleChips(hero.roles)
                 }
             }
+            // The links sit under the hero, not at the end: the pinned Pick footer must never hide them.
+            if (onOpenHero != null && hero.known) {
+                GoaOutlinedButton(
+                    onClick = { onOpenHero(hero.id) },
+                    modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp),
+                ) {
+                    Icon(Icons.AutoMirrored.Outlined.OpenInNew, contentDescription = null)
+                    Spacer(Modifier.width(Spacing.sm))
+                    Text("Open hero page")
+                }
+            }
+            // Choosing Gydion: his deck casts spells from a spellbook of its own (ADR-040); the hero
+            // page shows the spell cards, opened at them.
+            if (onOpenSpellbook != null && hero.known && hero.spellCards > 0) {
+                GoaOutlinedButton(
+                    onClick = { onOpenSpellbook(hero.id) },
+                    modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp),
+                ) {
+                    if (hero.symbol != null) {
+                        HeroSymbol(hero.id, hero.symbol, Modifier.size(scaledIconSize(24.dp, 1.3f)))
+                        Spacer(Modifier.width(Spacing.sm))
+                    }
+                    Text("${hero.name}'s spellbook · ${hero.spellCards} spell cards")
+                }
+            }
             if (!hero.known) {
                 Text(
                     "This hero isn't in the catalog.",
@@ -126,44 +164,67 @@ internal fun HeroPeekSheet(
                     )
                 }
                 StartingCardScans(hero.startingCards)
-                // Choosing Gydion: his deck casts spells from a spellbook of its own (ADR-040); the hero
-                // page shows the spell cards, opened at them.
-                if (onOpenSpellbook != null && hero.spellCards > 0) {
-                    OutlinedButton(
-                        onClick = { onOpenSpellbook(hero.id) },
-                        modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp),
-                    ) {
-                        if (hero.symbol != null) {
-                            HeroSymbol(hero.id, hero.symbol, Modifier.size(scaledIconSize(24.dp, 1.3f)))
-                            Spacer(Modifier.width(Spacing.sm))
-                        }
-                        Text("${hero.name}'s spellbook · ${hero.spellCards} spell cards")
-                    }
-                }
             }
-            if (onOpenHero != null && hero.known) {
-                OutlinedButton(
-                    onClick = { onOpenHero(hero.id) },
-                    modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp),
-                ) {
-                    Icon(Icons.AutoMirrored.Outlined.OpenInNew, contentDescription = null)
-                    Spacer(Modifier.width(Spacing.sm))
-                    Text("Open hero page")
-                }
-            }
-            if (commit != null) {
-                // The bronze primary, as every primary action; the team rides in its words with its mark.
-                GoaButton(onClick = commit.onCommit, modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp)) {
-                    TeamText(
-                        commit.label,
-                        style = MaterialTheme.typography.titleMedium,
-                        markGround = PlateGround,
-                        modifier = Modifier.semantics { contentDescription = commit.label.withoutTeamGlyph() },
-                    )
-                }
+        }
+        if (commit != null) PeekCommitBar(commit)
+        if (note != null) PeekNote(note)
+    }
+}
+
+/**
+ * The step's commitment, pinned under the scrolling peek: whom it is for, wrapping, then the bronze primary
+ * with a short label that never truncates; before the first choice, the swap under it.
+ */
+@Composable
+private fun PeekCommitBar(commit: PeekCommit) {
+    // An engraved line over the bar: it is pinned, the peek scrolls under it.
+    HorizontalDivider(color = GoaTheme.colors.engravedBorder)
+    Column(
+        Modifier
+            .fillMaxWidth()
+            .padding(horizontal = Spacing.screen)
+            .padding(top = Spacing.md, bottom = Spacing.lg),
+        verticalArrangement = Arrangement.spacedBy(Spacing.sm),
+    ) {
+        TeamText(
+            commit.recipient,
+            style = MaterialTheme.typography.titleSmall,
+            color = MaterialTheme.colorScheme.onSurface,
+            textAlign = TextAlign.Center,
+            modifier = Modifier.fillMaxWidth(),
+        )
+        GoaButton(
+            onClick = commit.onCommit,
+            modifier = Modifier
+                .fillMaxWidth()
+                .heightIn(min = 56.dp)
+                .semantics { contentDescription = "${commit.label}, ${commit.recipient.withoutTeamGlyph()}" },
+        ) {
+            Text(commit.label, style = MaterialTheme.typography.titleMedium, textAlign = TextAlign.Center)
+        }
+        commit.onSwapOut?.let { swap ->
+            TextButton(onClick = swap, modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp)) {
+                Icon(Icons.Outlined.SwapHoriz, contentDescription = null)
+                Spacer(Modifier.width(Spacing.xs))
+                Text("Swap out of the pool instead")
             }
         }
     }
+}
+
+/** Why the hero can't be chosen now (a dealt-hands draft: not in this player's hand). */
+@Composable
+private fun PeekNote(note: String) {
+    Text(
+        note,
+        style = MaterialTheme.typography.bodyMedium,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        textAlign = TextAlign.Center,
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = Spacing.screen)
+            .padding(top = Spacing.sm, bottom = Spacing.xl),
+    )
 }
 
 @Composable

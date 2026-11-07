@@ -697,7 +697,7 @@ private fun NotAnOption(modifier: Modifier) {
     }
 }
 
-/** "✓ Holds" / "! Falls" on the card's corner: word and shape, never colour alone. */
+/** "✓ Defends" / "! Defeated" on the card's corner: word and shape, never colour alone. */
 @Composable
 internal fun VerdictBadge(verdict: CardVerdict, modifier: Modifier = Modifier) {
     PlateSurface(shape = RoundedCornerShape(50), modifier = modifier) {

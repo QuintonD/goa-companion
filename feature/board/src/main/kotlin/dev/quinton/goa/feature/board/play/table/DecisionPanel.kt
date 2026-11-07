@@ -1,8 +1,10 @@
 package dev.quinton.goa.feature.board.play.table
 
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
@@ -17,7 +19,9 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.TextAutoSize
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.CheckCircle
 import androidx.compose.material.icons.outlined.Info
@@ -47,11 +51,11 @@ import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import dev.quinton.goa.core.designsystem.component.ActionIcon
 import dev.quinton.goa.core.designsystem.component.CardTextBox
+import dev.quinton.goa.core.designsystem.component.HeroPortrait
 import dev.quinton.goa.core.designsystem.component.LookAction
 import dev.quinton.goa.core.designsystem.component.OfficialIcon
 import dev.quinton.goa.core.designsystem.component.PlateColor
@@ -78,6 +82,8 @@ import dev.quinton.goa.feature.board.ui.PlateButton
 import dev.quinton.goa.feature.board.ui.PlateTone
 import dev.quinton.goa.feature.board.ui.PlateToneSurface
 import dev.quinton.goa.feature.board.ui.PlateWell
+import dev.quinton.goa.feature.board.ui.TeamBadge
+import dev.quinton.goa.feature.board.ui.badgeOverhang
 import dev.quinton.goa.feature.board.ui.boxText
 import dev.quinton.goa.feature.board.ui.cards.CardFocusState
 import dev.quinton.goa.feature.board.ui.cards.cardFocusOrigin
@@ -156,7 +162,13 @@ fun DecisionPanel(
             layout == PanelLayout.CARD_BESIDE && source != null -> {
                 val board = hasBoardOptions(table)
                 CardBeside(table, source, focus, large = !board) {
-                    QuestionBox(table, source, decision, board)
+                    // "Choose an action for <the card beside>" said nothing the card and its chips don't: the
+                    // header names who decides, the chips are the question (TalkBack still hears the prompt).
+                    if (board || decision.kind != DecisionKind.CHOOSE_ACTION) {
+                        QuestionBox(table, source, decision, board)
+                    } else {
+                        SpokenPrompt(decision.prompt)
+                    }
                     if (board) BoardConfirm(table, onAnswer, busy)
                     Choices(table, table.buttonOptions, onAnswer, busy) { CastPreview(table, focus) }
                     NoteBox(PlateColor.of(source.color), table, decision, focus)
@@ -245,6 +257,17 @@ private fun QuestionBox(
     }
 }
 
+/** A question the panel shows by its answers alone, for TalkBack (a polite live region, as the shown prompt). */
+@Composable
+private fun SpokenPrompt(prompt: String) {
+    Box(
+        Modifier.size(1.dp).semantics {
+            contentDescription = prompt
+            liveRegion = LiveRegionMode.Polite
+        },
+    )
+}
+
 /**
  * For a short side panel: the asking card at a size its printed numbers read at (tap to read it large), beside it
  * the question and under that the [answers], compact.
@@ -274,11 +297,16 @@ private fun CompactQuestion(
         ) { TableCard(card, width = CARD_IN_SHORT_PANEL) }
         Spacer(Modifier.width(Spacing.sm))
         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
-            Text(
-                decision.prompt,
-                style = MaterialTheme.typography.titleSmall,
-                modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite },
-            )
+            // Choosing the action for the card beside: the chips are the question.
+            if (decision.kind == DecisionKind.CHOOSE_ACTION) {
+                SpokenPrompt(decision.prompt)
+            } else {
+                Text(
+                    decision.prompt,
+                    style = MaterialTheme.typography.titleSmall,
+                    modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite },
+                )
+            }
             answers()
         }
     }
@@ -338,25 +366,51 @@ private fun Unavailable(table: TableUi, decision: Decision, focus: CardFocusStat
 }
 
 /**
- * Who is asked and what: the deciding hero and the kind, small caps in the team's colour with its mark,
- * as on the panel's strip in mock-up 01.
+ * Who is asked and what, so a phone passed round the table says whose decision it is: the deciding hero's portrait
+ * in its team ring with the team's mark at its foot (a team's question: the mark alone), then "Wasp decides · Space"
+ * in small caps in the team's colour, as on the panel's strip in mock-up 01.
  */
 @Composable
 fun DecisionWho(table: TableUi, modifier: Modifier = Modifier) {
     val decision = table.decision ?: return
-    val name = table.decider?.let { table.hero(it.heroId).name } ?: BoardText.team(decision.team)
-    Row(modifier, verticalAlignment = Alignment.CenterVertically) {
-        TeamMark(decision.team, markSize = scaledIconSize(13.dp, 1.3f))
+    val hero = table.decider?.let { table.hero(it.heroId) }
+    val name = hero?.name ?: BoardText.team(decision.team)
+    val line = "$name decides · ${kindTitle(decision.kind)}"
+    Row(
+        modifier.clearAndSetSemantics { contentDescription = line },
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        if (hero != null) {
+            Box {
+                HeroPortrait(
+                    hero.id,
+                    hero.portrait,
+                    null,
+                    Modifier
+                        .size(WHO_PORTRAIT)
+                        .border(1.5.dp, teamColor(decision.team), CircleShape),
+                    shape = CircleShape,
+                    framed = false,
+                )
+                TeamBadge(decision.team, Modifier.align(Alignment.BottomEnd).badgeOverhang(WHO_BADGE), size = WHO_BADGE)
+            }
+        } else {
+            TeamMark(decision.team, markSize = scaledIconSize(13.dp, 1.3f))
+        }
         Spacer(Modifier.width(Spacing.sm))
+        // Whose decision is never cut: with large text on the 40 dp strip the words step down to fit one line.
         Text(
-            "$name · ${kindTitle(decision.kind)}",
+            line,
             style = GoaTextStyles.plateTitle.copy(fontSize = 15.sp, lineHeight = 20.sp),
             color = teamColor(decision.team),
             maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
+            autoSize = TextAutoSize.StepBased(minFontSize = 9.sp, maxFontSize = 15.sp),
         )
     }
 }
+
+private val WHO_PORTRAIT = 28.dp
+private val WHO_BADGE = 13.dp
 
 /**
  * [DecisionWho] unless the panel's strip says it ([who]), the prompt (a live region; a question asked by a card
@@ -419,15 +473,12 @@ private fun AskedBy(card: Card, decision: Decision, focus: CardFocusState) {
                 style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
-            Text(card.name, style = MaterialTheme.typography.labelLarge, maxLines = 1, overflow = TextOverflow.Ellipsis)
-            reach?.let {
-                Text(
-                    " · $it",
-                    style = MaterialTheme.typography.labelLarge,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 1,
-                )
-            }
+            // The card's name and its reach wrap rather than being cut.
+            Text(
+                listOfNotNull(card.name, reach).joinToString(" · "),
+                style = MaterialTheme.typography.labelLarge,
+                modifier = Modifier.weight(1f, fill = false),
+            )
         }
     }
 }
@@ -793,7 +844,11 @@ private fun ActionChip(
             Icon(
                 actionIcon(action, card).vector,
                 null,
-                tint = if (primary) content else SteelIconBronze,
+                tint = when {
+                    primary -> content
+                    GoaTheme.isDark -> SteelIconBronze // Bright bronze on the dark steel.
+                    else -> MaterialTheme.colorScheme.primary // Dark bronze on the light steel.
+                },
                 modifier = Modifier.size(scaledIconSize(20.dp, 1.3f)),
             )
             Spacer(Modifier.width(Spacing.sm))

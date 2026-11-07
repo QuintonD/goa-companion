@@ -42,8 +42,11 @@ data class StartUiState(
     val selected: PresetOption? get() = presets.firstOrNull { it.id == selectedPresetId }
 }
 
-/** Quick "tonight" turn length on the start card; [adjusted] = differs from the preset. */
-data class TonightUi(val seconds: Int, val presetSeconds: Int) {
+/**
+ * Quick "tonight" turn length on the start card; [adjusted] = differs from the preset. [phaseName] is the
+ * preset's own name for the per-turn phase it changes ("Play a card"), so the card can say which.
+ */
+data class TonightUi(val seconds: Int, val presetSeconds: Int, val phaseName: String = "Turn") {
     val adjusted: Boolean get() = seconds != presetSeconds
 }
 

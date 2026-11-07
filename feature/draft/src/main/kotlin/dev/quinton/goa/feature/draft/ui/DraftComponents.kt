@@ -31,6 +31,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.TextAutoSize
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Block
 import androidx.compose.material.icons.filled.Check
@@ -68,6 +69,7 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalInspectionMode
 import androidx.compose.ui.semantics.CustomAccessibilityAction
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.customActions
 import androidx.compose.ui.semantics.semantics
@@ -119,7 +121,8 @@ internal fun rememberReducedMotion(): Boolean {
  * Out of play it loses the parchment; banned it is crossed out and dimmed, never colour alone.
  * [onLongClick] opens the hero peek; a tile without [onClick] then opens it on tap too. A tile with both
  * shows the peek as a visible inspect button in its corner (48 dp, a named TalkBack action too), so
- * looking at a hero is never a hidden gesture and never the same tap as choosing it.
+ * looking at a hero is never a hidden gesture and never the same tap as choosing it. The draft board's pool
+ * passes only [onClick], which opens the peek with the Pick or Ban in it, and names that tap in [clickLabel].
  */
 @Composable
 internal fun HeroTile(
@@ -130,8 +133,9 @@ internal fun HeroTile(
     selected: Boolean = false,
     onLongClick: (() -> Unit)? = null,
     compact: Boolean = false,
+    clickLabel: String? = null,
 ) {
-    GoaPlateTheme { HeroTileBody(hero, state, onClick, modifier, selected, onLongClick, compact) }
+    GoaPlateTheme { HeroTileBody(hero, state, onClick, modifier, selected, onLongClick, compact, clickLabel) }
 }
 
 @Composable
@@ -143,6 +147,7 @@ private fun HeroTileBody(
     selected: Boolean,
     onLongClick: (() -> Unit)?,
     compact: Boolean,
+    clickLabel: String?,
 ) {
     val reduced = rememberReducedMotion()
     val alpha by animateFloatAsState(
@@ -186,8 +191,11 @@ private fun HeroTileBody(
                         onClick = onClick ?: onLongClick,
                     )
 
-                    onClick != null ->
-                        Modifier.clickable(role = Role.Button, onClickLabel = "Choose ${hero.name}", onClick = onClick)
+                    onClick != null -> Modifier.clickable(
+                        role = Role.Button,
+                        onClickLabel = clickLabel ?: "Choose ${hero.name}",
+                        onClick = onClick,
+                    )
 
                     else -> Modifier
                 },
@@ -313,29 +321,41 @@ private fun TileName(name: String, state: TileState, compact: Boolean) {
     val style = when {
         large -> MaterialTheme.typography.labelMedium
 
-        // The longest names (Silverarrow) step down so the whole name still fits a dense tile.
-        compact -> GoaTextStyles.plateCap.copy(
-            letterSpacing = 0.sp,
-            fontSize = if (name.length > LONG_NAME) 9.5.sp else GoaTextStyles.plateCap.fontSize,
-        )
+        // Read at arm's length: as large as the tile allows; only the longest names (Silverarrow) step down.
+        compact -> GoaTextStyles.plateCap.copy(letterSpacing = 0.sp, fontSize = TILE_NAME_MAX, lineHeight = 18.sp)
 
         else -> GoaTextStyles.plateTitle.copy(fontSize = 14.sp, lineHeight = 18.sp)
     }
     val colors = GoaTheme.colors
-    Text(
-        text = name,
-        style = style,
-        maxLines = 1,
-        overflow = TextOverflow.Ellipsis,
-        textAlign = TextAlign.Center,
-        textDecoration = if (state is TileState.Banned) TextDecoration.LineThrough else null,
-        color = if (parchment) colors.onParchment else MaterialTheme.colorScheme.onSurfaceVariant,
-        modifier = Modifier
+    Box(
+        Modifier
             .fillMaxWidth()
             .then(if (parchment) Modifier.background(colors.parchment, TILE_ART_SHAPE) else Modifier)
             .padding(horizontal = 1.dp, vertical = 2.dp),
-    )
+        contentAlignment = Alignment.Center,
+    ) {
+        // Unseen, at the full size: a shrunk name keeps its plate, and so its tile, the height of the others.
+        Text("H", style = style, maxLines = 1, modifier = Modifier.alpha(0f).clearAndSetSemantics {})
+        Text(
+            text = name,
+            style = style,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            textAlign = TextAlign.Center,
+            textDecoration = if (state is TileState.Banned) TextDecoration.LineThrough else null,
+            color = if (parchment) colors.onParchment else MaterialTheme.colorScheme.onSurfaceVariant,
+            autoSize = if (compact && !large) {
+                TextAutoSize.StepBased(minFontSize = TILE_NAME_MIN, maxFontSize = TILE_NAME_MAX, stepSize = 0.5.sp)
+            } else {
+                null
+            },
+            modifier = Modifier.fillMaxWidth(),
+        )
+    }
 }
+
+private val TILE_NAME_MAX = 15.sp
+private val TILE_NAME_MIN = 10.sp
 
 /** Crossed out, in red with a dark edge so it shows on any art: banned without relying on colour. */
 internal fun Modifier.crossedOut(): Modifier = drawWithContent {
@@ -357,7 +377,6 @@ private val TILE_EDGE = Color(0xFF5D6B70)
 private val CROSS = Color(0xFFFF6B6B)
 private val CROSS_EDGE = Color(0xE6060C12)
 private const val TILE_SYMBOL = 0.32f
-private const val LONG_NAME = 9
 
 @Composable
 private fun StateChip(text: String?, team: Team, icon: Boolean, modifier: Modifier = Modifier) {

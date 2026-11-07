@@ -22,6 +22,18 @@ class WhyItWorksTest {
     }
 
     @Test
+    fun aSetupReadsOneSentenceALineWordForWord() {
+        val intro = "Round 3, turn 4. Brogan has played Mighty Punch (9) and acts first, then Arien with " +
+            "Dangerous Current (8); Wasp and Xargatha act after them. Wasp holds Lift Up (p.14). Red has two Life " +
+            "counters left."
+        val lines = PuzzleText.sentences(intro)
+        assertEquals(4, lines.size)
+        assertEquals("Round 3, turn 4.", lines.first())
+        assertEquals("Wasp holds Lift Up (p.14).", lines[2])
+        assertEquals(intro, lines.joinToString(" "))
+    }
+
+    @Test
     fun aFullRoundSplitsByTurnWithWhatComesBeforeAsTheLead() {
         val text = "This is one way through, and other plans win too.\n\nTurn 1: Trinkets holds.\n\n" +
             "Turn 2: Whisper defeats a minion. Widget moves.\n\nTurn 4: The last push."
