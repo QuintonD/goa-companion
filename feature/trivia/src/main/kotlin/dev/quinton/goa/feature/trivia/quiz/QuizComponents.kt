@@ -61,7 +61,11 @@ import dev.quinton.goa.core.data.trivia.QuizQuestionUi
 import dev.quinton.goa.core.data.trivia.TriviaCardUi
 import dev.quinton.goa.core.data.trivia.TriviaQuizUiState
 import dev.quinton.goa.core.data.trivia.TriviaText
-import dev.quinton.goa.core.designsystem.component.GoaCard
+import androidx.compose.ui.text.font.FontWeight
+import dev.quinton.goa.core.designsystem.component.UnverifiedBadge
+import dev.quinton.goa.core.designsystem.component.PlateColor
+import dev.quinton.goa.core.designsystem.component.GoaPlate
+import dev.quinton.goa.core.designsystem.component.ColourRibbon
 import dev.quinton.goa.core.designsystem.component.GoaPlateTheme
 import dev.quinton.goa.core.designsystem.component.HeroPortrait
 import dev.quinton.goa.core.designsystem.component.LARGE_FONT_SCALE
@@ -90,29 +94,34 @@ internal enum class Mark { OPEN, RIGHT, WRONG, OTHER }
 @Composable
 internal fun QuestionPanel(question: QuizQuestionUi, modifier: Modifier = Modifier, artHeight: Dp = 0.dp) {
     when (question) {
-        is QuizQuestionUi.Number -> Column(modifier.fillMaxWidth()) {
-            GoaCard(Modifier.fillMaxWidth().semantics(mergeDescendants = true) {}) {
+        is QuizQuestionUi.Number -> GoaPlate(modifier.fillMaxWidth()) {
+            // One group: whose card (the hero's art, bounded, never the card's scan, which would give the answer
+            // away), which card (its name large, beside its colour's ribbon), and what is asked, on its plate.
+            Column(Modifier.fillMaxWidth().semantics(mergeDescendants = true) {}) {
                 if (artHeight > 0.dp) {
-                    // The hero's art, never the card (its scan would give the answer away).
-                    HeroPortrait(
-                        heroId = question.card.heroId,
-                        portrait = question.card.portrait,
-                        contentDescription = null,
-                        modifier = Modifier.fillMaxWidth().height(artHeight),
-                    )
+                    HeroArt(question.card, artHeight)
                     Spacer(Modifier.height(Spacing.md))
+                } else {
+                    HeroLine(question.card)
+                    Spacer(Modifier.height(Spacing.sm))
                 }
-                HeroLine(question.card)
-                Spacer(Modifier.height(Spacing.md))
-                Text(
-                    question.card.name,
-                    style = MaterialTheme.typography.headlineSmall,
-                    color = MaterialTheme.colorScheme.onSurface,
-                )
-                Spacer(Modifier.height(Spacing.xs))
-                CardKindLine(question.card)
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    ColourRibbon(
+                        PlateColor.of(question.card.color),
+                        Modifier.size(width = scaledIconSize(16.dp), height = scaledIconSize(34.dp)),
+                    )
+                    Spacer(Modifier.width(Spacing.md))
+                    Column(Modifier.weight(1f)) {
+                        Text(
+                            question.card.name,
+                            style = MaterialTheme.typography.headlineMedium,
+                            color = MaterialTheme.colorScheme.onSurface,
+                        )
+                        CardKindLine(question.card)
+                    }
+                }
             }
-            Spacer(Modifier.height(Spacing.xl))
+            Spacer(Modifier.height(Spacing.md))
             TitlePlate(
                 "${TriviaText.stat(question.stat)}?",
                 style = QuestionPlateStyle,
@@ -137,6 +146,42 @@ internal fun QuestionPanel(question: QuizQuestionUi, modifier: Modifier = Modifi
         }
     }
 }
+
+/** The hero's art over the card, cropped to a band ([height] high), the hero's name on its foot. */
+@Composable
+private fun HeroArt(card: TriviaCardUi, height: Dp) {
+    Box(Modifier.fillMaxWidth().height(height)) {
+        HeroPortrait(
+            heroId = card.heroId,
+            portrait = card.portrait,
+            contentDescription = null,
+            modifier = Modifier.matchParentSize(),
+        )
+        Row(
+            Modifier
+                .align(Alignment.BottomStart)
+                .padding(Spacing.sm)
+                .clip(MaterialTheme.shapes.small)
+                .background(ART_LABEL_GROUND)
+                .padding(horizontal = Spacing.sm, vertical = Spacing.xs),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(
+                card.heroName,
+                style = MaterialTheme.typography.titleSmall,
+                color = Color.White,
+                fontWeight = FontWeight.SemiBold,
+            )
+            if (!card.heroVerified) {
+                Spacer(Modifier.width(Spacing.sm))
+                UnverifiedBadge()
+            }
+        }
+    }
+}
+
+/** The slate under the hero's name on the art, dark in both themes as the art is. */
+private val ART_LABEL_GROUND = Color(0xD90B1622)
 
 // ---- Answers --------------------------------------------------------------------------------
 
@@ -174,7 +219,7 @@ private fun NumberChoices(q: QuizQuestionUi.Number, answer: TriviaAnswer.Number?
                             text = label,
                             spoken = TriviaText.spokenValue(value, q.plus),
                             mark = mark,
-                            minHeight = if (recall) 64.dp else 76.dp,
+                            minHeight = if (recall) 64.dp else 84.dp,
                             onClick = { onAnswer(TriviaAnswer.Number(value)) },
                             modifier = Modifier.weight(1f),
                             style = style,
