@@ -120,7 +120,7 @@ class TablePresentationParityTest {
         )
         out.appendLine(canon(PresetEdits.move(edited, "new", -1)))
         out.appendLine(PresetEdits.validate(edited, rules.endOfRound).map { PresetEdits.issueText(it) }.toString())
-        assertTranscript("f2d9c90d1e25a6b619320ed26a3c6f52eef28cc1c9dba358f64976045b093c4f", out.toString(), "timer")
+        assertTranscript("a3d17f75aefeccec4863c74b547a046824c76207a44b06118bcbe0abceeee3f2", out.toString(), "timer")
     }
 
     @Test
@@ -166,7 +166,7 @@ class TablePresentationParityTest {
         val pending = TimerUiMapper.pendingMatches(listOf(match), catalog) { "at $it" }
         out.appendLine(canon(pending))
         assertTranscript(
-            "11c870be6966fb9e26a303aaab4899c5dd0c4539b984804975c10b24c60f7510",
+            "39fbcdd355c456c83cab2b5c06529c348c2bea98987e678a97298d4063d3af9f",
             out.toString(),
             "match setup",
         )

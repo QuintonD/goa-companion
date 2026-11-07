@@ -268,8 +268,10 @@ Hurry up takes the dial (its countdown is the big clock, "⚡ HURRY UP" above th
 the table-rule actions under the dial, "⚡ Start hurry-up · 0:30" and "Time-out +0:40", are 48 dp outlined pills with
 a bronze edge and icon and a verb, never the plain slate of a status pill)
 and a slim Hurry up bar with Restart and Stop is pinned above the controls (in landscape too, on the right; the round view,
-which has no dial, keeps the bar with the countdown in it); the top bar's coin chip is the Tie Breaker coin's face (the
-face is the label; TalkBack: "Tie Breaker coin: Red") with "Red", the face alone only where it doesn't fit, and its second
+which has no dial, keeps the bar with the countdown in it); the top bar holds only the coin chip and the overflow menu,
+where every other tool is named (Levels & defeats, Tie Breaker coin…, Restart phase, Skip to end of round, the view
+switch, Rules, Settings, End match… last); the coin chip is the Tie Breaker coin's face with "Coin Red" (TalkBack: "Tie
+Breaker coin: Red"), the face alone only where it doesn't fit, and the bar's second
 line says "Table rules · 14:32" ("Game 14:32" with large text); landscape runs a thin steel banner the full width (round
 and subtitle on one line) and gives the dial the whole left column under it, step, table rules and controls on the right
 (round view the same: list | step); paused = blinking
@@ -291,10 +293,13 @@ chip only on the larger team (odd counts) or once it is on; elsewhere it sits in
 (a radio plate per method, the chosen one bronze, its sequence in team colours; "Continue with …" pinned below; Sources,
 Duplicate, Edit and Delete in each plate's menu; New method at the list's end; the methods' own "A"/"B" mapped once
 under the layout chips: "A is the team the Tie Breaker coin shows").
-Timer start reads as a start button: the preset's name and durations with tonight's length in them, in bronze ("Play a
-card 0:45 ×4 tonight"), one bronze Start timer, one row "Draft first · Match setup" (draft → setup → timer → log is the
-game-night flow), then one folded "Adjust for tonight" row that still names its values ("Play a card 0:45 (preset 0:30)
-· 4 heroes") and opens to the per-turn ±15 s (named as the preset names the phase) and Heroes at the table.
+Timer start reads as a start button: one plate with the active preset as a tappable row ("Preset · Table rules ·
+Change ›", opens the presets), its phases as a labelled two-column grid (`PhaseGrid`: the phase's name over its length,
+"0:30 ×4", "0:30 per hero"; never dot-joined prose), tonight's length in bronze in its cell with a "Tonight" tag and
+"Preset 0:30" under it, one folded "Adjust for tonight" row ("Play a card length · 4 heroes") that opens to the per-turn
+±15 s and Heroes at the table, and one bronze Start timer, the plate's only button. Under the plate a quiet row of two
+text buttons, "Draft first" and "Match setup" (draft → setup → timer → log is the game-night flow), then pending
+matches; the presets are listed once, on Timer presets, each preset's phases in the same grid.
 Who won? / match editor: the winners are radio cards (an empty trophy outline, a bronze trophy and the bronze selection
 frame once chosen) under "Which team won? · Required"; the win condition says "· Optional"; the bronze Save ("Save
 result", "Save match", "Save changes") is pinned under the form, off until the form can be saved, with the reason under it

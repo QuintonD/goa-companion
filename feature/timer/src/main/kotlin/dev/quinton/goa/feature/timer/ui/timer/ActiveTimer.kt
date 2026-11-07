@@ -82,6 +82,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shadow
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.LiveRegionMode
@@ -524,19 +525,14 @@ private val SUBTITLE_EDGE = Color(0xFF05090D)
 private const val SUBTITLE_EDGE_WIDTH = 5f
 private const val HEADER_TITLE_MAX_SCALE = 1.5f
 
-/** Which optional top-bar parts sit in the bar; the icons that don't are in the overflow menu. */
-private data class HeaderTools(
-    val levels: Boolean,
-    val viewSwitch: Boolean,
-    val endMatch: Boolean,
-    val coinLabel: Boolean,
-)
+/** Whether the coin chip keeps its words beside the coin's face. */
+private data class HeaderTools(val coinLabel: Boolean)
 
 /**
- * "Round N" must never be clipped (S25 Ultra: 384 dp wide, where Blue's coin chip plus four icons left
- * too little room; a small phone has less). The title, coin chip and its Undo are measured; the view
- * switch moves into the menu first (it is also in Settings), then Levels & defeats, then End match, and
- * last the coin chip keeps only the coin's face. Large text: the view switch and Levels are in the menu.
+ * "Round N" must never be clipped (S25 Ultra: 384 dp wide; a small phone has less). The bar holds only the
+ * coin chip and the labelled overflow menu (Levels & defeats, End match, the view switch are named there, never
+ * bare glyphs); the title, coin chip and its Undo are measured, and where they don't fit the chip keeps only the
+ * coin's face (TalkBack still hears "Tie Breaker coin: Red").
  */
 @Composable
 private fun headerTools(state: ActiveUiState, width: Dp, coinUndo: Boolean): HeaderTools {
@@ -552,17 +548,11 @@ private fun headerTools(state: ActiveUiState, width: Dp, coinUndo: Boolean): Hea
         fun textWidth(text: String, style: TextStyle) =
             with(density) { measurer.measure(text, style, maxLines = 1, softWrap = false).size.width.toDp() }
         val chipMark = if (team != null) CHIP_INSET * 2 + coin else 0.dp
-        val chip = team?.let { chipMark + COIN_GAP + textWidth(teamName(it), labelStyle) } ?: 0.dp
+        val chip = team?.let { chipMark + COIN_GAP + textWidth(COIN_WORD + teamName(it), labelStyle) } ?: 0.dp
         val undoButton = if (undo) maxOf(UNDO_MIN_WIDTH, textWidth("Undo", labelStyle) + UNDO_PADDING) else 0.dp
         val fixed = Spacing.screen + bannerEnd + HEADER_SLACK + undoButton + HEADER_ICON
         val room = width - fixed - textWidth("Round ${state.round}", titleStyle)
-        val large = density.fontScale > LARGE_FONT_SCALE
-        HeaderTools(
-            levels = !large && room - chip >= HEADER_ICON * 2,
-            viewSwitch = !large && room - chip >= HEADER_ICON * 3,
-            endMatch = room - chip >= HEADER_ICON,
-            coinLabel = room >= chip,
-        )
+        HeaderTools(coinLabel = room >= chip)
     }
 }
 
@@ -582,8 +572,8 @@ private val UNDO_PADDING = 24.dp
 private val HEADER_SLACK = 4.dp
 
 /**
- * Top-bar actions, left to right: Tie Breaker coin (when tracked), Levels & defeats (rules
- * reference), step / round view switch, End match, overflow menu (with Rules).
+ * Top-bar actions: the Tie Breaker coin (when tracked) and the overflow menu, where every other tool has its name
+ * (Levels & defeats, End match, the view switch, Rules, Settings).
  */
 @Composable
 private fun RowScope.TimerTopActions(
@@ -607,104 +597,51 @@ private fun RowScope.TimerTopActions(
     } else {
         LaunchedEffect(Unit) { onCoinUndo(false) }
     }
-    // What doesn't fit beside "Round N" (narrow phones, large text) is in the menu instead.
     val roundView = state.layout == TimerLayout.ROUND
-    val switchLayout = { actions.onTimerLayout(if (roundView) TimerLayout.STEPS else TimerLayout.ROUND) }
-    if (tools.levels) {
-        IconButton(onClick = actions.onOpenLevels) {
-            Icon(Icons.Outlined.MilitaryTech, contentDescription = "Levels and defeats")
-        }
-    }
-    if (tools.viewSwitch) {
-        IconButton(onClick = switchLayout) {
-            Icon(
-                if (roundView) Icons.Outlined.Timer else Icons.Outlined.ViewAgenda,
-                contentDescription = if (roundView) "Show one step at a time" else "Show the whole round",
-            )
-        }
-    }
-    if (tools.endMatch) {
-        IconButton(onClick = onEnd) { Icon(Icons.Outlined.Flag, contentDescription = "End match") }
-    }
     Box {
         IconButton(onClick = { menu = true }) { Icon(Icons.Outlined.MoreVert, contentDescription = "More options") }
         DropdownMenu(expanded = menu, onDismissRequest = { menu = false }) {
-            DropdownMenuItem(
-                text = { Text("Restart phase") },
-                leadingIcon = { Icon(Icons.Outlined.Replay, contentDescription = null) },
-                onClick = {
+            val close: (() -> Unit) -> () -> Unit = { action ->
+                {
                     menu = false
-                    actions.onRestart()
-                },
+                    action()
+                }
+            }
+            // Most used first; End match last, away from a quick tap.
+            TimerMenuItem("Levels & defeats", Icons.Outlined.MilitaryTech, close(actions.onOpenLevels))
+            TimerMenuItem(
+                if (state.tieBreaker == null) "Track Tie Breaker coin…" else "Tie Breaker coin…",
+                Icons.Outlined.Toll,
+                close(onCoin),
             )
-            DropdownMenuItem(
-                text = { Text("Skip to end of round") },
-                leadingIcon = { Icon(Icons.Outlined.SkipNext, contentDescription = null) },
+            TimerMenuItem("Restart phase", Icons.Outlined.Replay, close(actions.onRestart))
+            TimerMenuItem(
+                "Skip to end of round",
+                Icons.Outlined.SkipNext,
+                close(actions.onSkipToEnd),
                 enabled = state.section != RoundSection.ROUND_END,
-                onClick = {
-                    menu = false
-                    actions.onSkipToEnd()
-                },
             )
-            DropdownMenuItem(
-                text = { Text(if (state.tieBreaker == null) "Track Tie Breaker coin…" else "Tie Breaker coin…") },
-                leadingIcon = { Icon(Icons.Outlined.Toll, contentDescription = null) },
-                onClick = {
-                    menu = false
-                    onCoin()
-                },
+            TimerMenuItem(
+                if (roundView) "Step-by-step view" else "Whole-round view",
+                if (roundView) Icons.Outlined.Timer else Icons.Outlined.ViewAgenda,
+                close { actions.onTimerLayout(if (roundView) TimerLayout.STEPS else TimerLayout.ROUND) },
             )
-            DropdownMenuItem(
-                text = { Text("End match…") },
-                leadingIcon = { Icon(Icons.Outlined.Flag, contentDescription = null) },
-                onClick = {
-                    menu = false
-                    onEnd()
-                },
-            )
-            if (!tools.viewSwitch) {
-                DropdownMenuItem(
-                    text = { Text(if (roundView) "Step-by-step view" else "Whole-round view") },
-                    leadingIcon = {
-                        Icon(
-                            if (roundView) Icons.Outlined.Timer else Icons.Outlined.ViewAgenda,
-                            contentDescription = null,
-                        )
-                    },
-                    onClick = {
-                        menu = false
-                        switchLayout()
-                    },
-                )
-            }
-            if (!tools.levels) {
-                DropdownMenuItem(
-                    text = { Text("Levels & defeats") },
-                    leadingIcon = { Icon(Icons.Outlined.MilitaryTech, contentDescription = null) },
-                    onClick = {
-                        menu = false
-                        actions.onOpenLevels()
-                    },
-                )
-            }
-            DropdownMenuItem(
-                text = { Text("Rules") },
-                leadingIcon = { Icon(Icons.AutoMirrored.Outlined.MenuBook, contentDescription = null) },
-                onClick = {
-                    menu = false
-                    actions.onOpenRules()
-                },
-            )
-            DropdownMenuItem(
-                text = { Text("Settings") },
-                leadingIcon = { Icon(Icons.Outlined.Settings, contentDescription = null) },
-                onClick = {
-                    menu = false
-                    actions.onSettings()
-                },
-            )
+            TimerMenuItem("Rules", Icons.AutoMirrored.Outlined.MenuBook, close(actions.onOpenRules))
+            TimerMenuItem("Settings", Icons.Outlined.Settings, close(actions.onSettings))
+            TimerMenuItem("End match…", Icons.Outlined.Flag, close(onEnd))
         }
     }
+}
+
+/** One labelled row of the timer's overflow menu. */
+@Composable
+private fun TimerMenuItem(label: String, icon: ImageVector, onClick: () -> Unit, enabled: Boolean = true) {
+    DropdownMenuItem(
+        text = { Text(label) },
+        leadingIcon = { Icon(icon, contentDescription = null) },
+        enabled = enabled,
+        onClick = onClick,
+    )
 }
 
 /**

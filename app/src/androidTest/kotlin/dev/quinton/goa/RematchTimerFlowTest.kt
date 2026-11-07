@@ -67,7 +67,8 @@ class RematchTimerFlowTest {
 
         // ---- Rules from the running timer: the Levels & defeats sheet knows this match's heroes
         // (it lists only their cards), so the timer is linked to the rematch.
-        rule.tapDescription("Levels and defeats")
+        rule.tapDescription("More options")
+        rule.tap(hasText("Levels & defeats") and hasClickAction())
         rule.waitForText("Levels & defeats")
         rule.reveal(hasText("Cards in this match that change this", ignoreCase = true))
         pressBack()
@@ -101,7 +102,8 @@ class RematchTimerFlowTest {
         rule.waitGone(hasClickLabel("Open the timer"))
 
         // ---- End match → "Who won?" with the rematch's teams; Blue takes game 2.
-        rule.tapDescription("End match")
+        rule.tapDescription("More options")
+        rule.tap(hasText("End match…") and hasClickAction())
         rule.waitForText("End the match?")
         rule.tap(hasAnyAncestor(isDialog()) and hasText("End match") and hasClickAction())
         rule.tapText("Log result")

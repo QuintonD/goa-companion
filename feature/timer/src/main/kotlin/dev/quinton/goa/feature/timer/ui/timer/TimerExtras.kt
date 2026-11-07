@@ -63,10 +63,13 @@ import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.onClick
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
+import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import dev.quinton.goa.core.designsystem.component.GoaDialog
@@ -182,7 +185,7 @@ internal fun TieBreakerChip(
                 }
             },
     ) {
-        // The coin's own face is the label (the team's symbol on it), with the team's name: not a bare team mark.
+        // The coin's own face with what it is and whose side shows ("Coin Red"): not a bare team mark.
         Row(
             Modifier.padding(horizontal = CHIP_INSET, vertical = Spacing.sm),
             verticalAlignment = Alignment.CenterVertically,
@@ -191,9 +194,11 @@ internal fun TieBreakerChip(
             if (showLabel) {
                 Spacer(Modifier.width(COIN_GAP))
                 Text(
-                    teamName(team),
+                    buildAnnotatedString {
+                        append(COIN_WORD)
+                        withStyle(SpanStyle(color = teamColor(team))) { append(teamName(team)) }
+                    },
                     style = coinChipLabelStyle(),
-                    color = teamColor(team),
                     maxLines = 1,
                 )
             }
@@ -218,6 +223,9 @@ internal fun coinChipLabelStyle(): TextStyle = MaterialTheme.typography.labelLar
 
 /** The chip's padding at each side. */
 internal val CHIP_INSET = 10.dp
+
+/** The chip's word before the team's name: "Coin Red". */
+internal const val COIN_WORD = "Coin "
 
 /** Gap between the coin and its words. */
 internal val COIN_GAP = 6.dp
