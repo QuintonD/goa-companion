@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -50,6 +51,7 @@ import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -61,11 +63,14 @@ import dev.quinton.goa.core.data.trivia.QuizQuestionUi
 import dev.quinton.goa.core.data.trivia.TriviaCardUi
 import dev.quinton.goa.core.data.trivia.TriviaQuizUiState
 import dev.quinton.goa.core.data.trivia.TriviaText
-import dev.quinton.goa.core.designsystem.component.GoaCard
+import dev.quinton.goa.core.designsystem.component.ColourRibbon
+import dev.quinton.goa.core.designsystem.component.GoaPlate
 import dev.quinton.goa.core.designsystem.component.GoaPlateTheme
 import dev.quinton.goa.core.designsystem.component.HeroPortrait
 import dev.quinton.goa.core.designsystem.component.LARGE_FONT_SCALE
+import dev.quinton.goa.core.designsystem.component.PlateColor
 import dev.quinton.goa.core.designsystem.component.TitlePlate
+import dev.quinton.goa.core.designsystem.component.UnverifiedBadge
 import dev.quinton.goa.core.designsystem.component.assetUrl
 import dev.quinton.goa.core.designsystem.component.scaledIconSize
 import dev.quinton.goa.core.designsystem.component.slatePlate
@@ -88,42 +93,65 @@ internal enum class Mark { OPEN, RIGHT, WRONG, OTHER }
  * whose card it is and the asked number on its plate; for a duel, the question on its plate.
  */
 @Composable
-internal fun QuestionPanel(question: QuizQuestionUi, modifier: Modifier = Modifier, artHeight: Dp = 0.dp) {
+internal fun QuestionPanel(
+    question: QuizQuestionUi,
+    modifier: Modifier = Modifier,
+    artHeight: Dp = 0.dp,
+    /** Off once answered: the reveal scrolls the group under the banner, and a cut frame reads as broken. */
+    framed: Boolean = true,
+) {
     when (question) {
-        is QuizQuestionUi.Number -> Column(modifier.fillMaxWidth()) {
-            GoaCard(Modifier.fillMaxWidth().semantics(mergeDescendants = true) {}) {
-                if (artHeight > 0.dp) {
-                    // The hero's art, never the card (its scan would give the answer away).
-                    HeroPortrait(
-                        heroId = question.card.heroId,
-                        portrait = question.card.portrait,
-                        contentDescription = null,
-                        modifier = Modifier.fillMaxWidth().height(artHeight),
-                    )
-                    Spacer(Modifier.height(Spacing.md))
+        is QuizQuestionUi.Number -> {
+            // One group: whose card (the hero's art, bounded, then the hero's portrait and name), which card (its
+            // name large, beside its colour's ribbon), and what is asked, on its plate.
+            val content: @Composable ColumnScope.() -> Unit = {
+                Column(Modifier.fillMaxWidth().semantics(mergeDescendants = true) {}) {
+                    if (artHeight > 0.dp) {
+                        // The hero's art, never the card (its scan would give the answer away).
+                        HeroPortrait(
+                            heroId = question.card.heroId,
+                            portrait = question.card.portrait,
+                            contentDescription = null,
+                            modifier = Modifier.fillMaxWidth().height(artHeight),
+                        )
+                        Spacer(Modifier.height(Spacing.sm))
+                    }
+                    HeroLine(question.card, portraitSize = 28.dp)
+                    Spacer(Modifier.height(Spacing.sm))
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        ColourRibbon(
+                            PlateColor.of(question.card.color),
+                            Modifier.size(width = scaledIconSize(16.dp), height = scaledIconSize(34.dp)),
+                        )
+                        Spacer(Modifier.width(Spacing.md))
+                        Column(Modifier.weight(1f)) {
+                            Text(
+                                question.card.name,
+                                style = MaterialTheme.typography.headlineMedium,
+                                color = MaterialTheme.colorScheme.onSurface,
+                            )
+                            CardKindLine(question.card)
+                        }
+                    }
                 }
-                HeroLine(question.card)
                 Spacer(Modifier.height(Spacing.md))
-                Text(
-                    question.card.name,
-                    style = MaterialTheme.typography.headlineSmall,
-                    color = MaterialTheme.colorScheme.onSurface,
+                TitlePlate(
+                    "${TriviaText.stat(question.stat)}?",
+                    style = QuestionPlateStyle,
+                    heading = false,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .semantics(mergeDescendants = true) {
+                            heading()
+                            contentDescription = "What is its ${TriviaText.stat(question.stat)}?"
+                        },
                 )
-                Spacer(Modifier.height(Spacing.xs))
-                CardKindLine(question.card)
             }
-            Spacer(Modifier.height(Spacing.xl))
-            TitlePlate(
-                "${TriviaText.stat(question.stat)}?",
-                style = QuestionPlateStyle,
-                heading = false,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .semantics(mergeDescendants = true) {
-                        heading()
-                        contentDescription = "What is its ${TriviaText.stat(question.stat)}?"
-                    },
-            )
+            if (framed) {
+                GoaPlate(modifier.fillMaxWidth(), content = content)
+            } else {
+                Column(modifier.fillMaxWidth().padding(Spacing.md), content = content)
+            }
         }
 
         is QuizQuestionUi.Duel -> Column(modifier.fillMaxWidth()) {
@@ -174,7 +202,7 @@ private fun NumberChoices(q: QuizQuestionUi.Number, answer: TriviaAnswer.Number?
                             text = label,
                             spoken = TriviaText.spokenValue(value, q.plus),
                             mark = mark,
-                            minHeight = if (recall) 64.dp else 76.dp,
+                            minHeight = if (recall) 64.dp else 84.dp,
                             onClick = { onAnswer(TriviaAnswer.Number(value)) },
                             modifier = Modifier.weight(1f),
                             style = style,

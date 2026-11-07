@@ -8,8 +8,9 @@ Mock-ups: `design/mockups/original-look/`.
 area, `goa-look-*.css`). Every part falls back to a flat colour while its image loads:
 - **Steel banner** (`GoaScreen`, `Modifier.steelBanner`): the rulebook's band redrawn (ADR-058), stretched, and its star medallion at the end at
   its own proportions, its disc toned into the band so it reads as ornament, not a control. Titles are `BevelText` (white metal
-  with a dark outline). At most two labelled glyphs on it (`BarActions`, see "Bottom nav" below), clear of the medallion
-  (`BannerEndSpacer`). Words as actions on it are `BannerTextButton`, light with a dark edge.
+  with a dark outline). Compact bars (narrower than 380 dp, or text at 1.5x and more; `bannerCompact`) end in the frame's
+  plain steel end instead of the medallion, so it never takes the title's or an action's room. At most two labelled glyphs
+  on it (`BarActions`, see "Bottom nav" below), clear of the end (`BannerEndSpacer`, `bannerEndWidth`). Words as actions on it are `BannerTextButton`, light with a dark edge.
 - **Slate plate** (`GoaPlate`, `Modifier.slatePlate`, `GoaCard`, `.goa-plate`, `.goa-card`): the dashboard's dark plate with a steel edge and
   small teal corner brackets. In the light theme the plate is the rulebook's white page: paper (`#FEFCF8` → `#F8F4EB`) with a steel edge
   (`#6F7C89` over a `#B4BEC8` rim), ink text, bronze accents, the same brackets. What sits on a plate is themed as the plate (`GoaPlateTheme`).
@@ -68,9 +69,13 @@ when a map has `art` (all four do); the drawn map stays as the fallback while lo
 - **Timer:** the painted sea under a navy veil, the battlefield silhouette at the foot, phase on a title plate, steel double ring, digits in Inter on a near-black disc. Stays dark in both themes. Next (bronze) is wider than Pause (steel) because its label runs long.
 - **Draft:** step on a title plate in a team-edged plate; pool tiles with portrait, symbol and parchment name; bans crossed out, dimmed and struck through. Words that name a team show its mark in line (`TeamText`). Once the coin has named the teams the draft speaks in colours only ("◆ Red picks 2", "Step 4 of 8 · 1 of 2 · for Ada", columns "Blue" and "Red"); "Team A"/"Team B" are the method editor's words, and the coin's team is marked by the coin's face ("Tie Breaker coin"). A finished draft is a plate per team with the seats divided; only the selected seat is framed.
 
+- **Group sync:** not in a group, one line on what it is for, then two equal plates, Scan an invite and Start a group, one sentence and one button each; a form (paste an invite, name the group) opens only in the plate chosen, and its button stays on and says what is missing rather than greying out. The transport, the server and the key fold under "How syncing works". Hosting shows its steps (Collect, Merge, Send back, Done: bronze now, teal ticks behind, hollow ahead) and each phone's state on its row; Sync is off and says what it waits for ("Waiting for Cid's data…") until a phone's data is in, and while others still send it says the tap queues ("Sync when Cid's data is in"). It ends on a summary plate: who is up to date, what changed on this phone, who to sync again.
+- **Online:** My games is compact so New room stays in view: games waiting on you first, each a tight plate with a bronze edge, "Your turn" in teal with a hand, the map and Play; the rest one line each in one plate (state in words with an icon, then the map). Every game shows its heroes (a seat is its hero) as small overlapping round portraits in their team rings; TalkBack hears who plays whom. In a lobby a free seat is a dashed ring in its team's colour around "+", with "+ Tap to sit here" in teal; a taken seat without a hero yet, a solid ring around a silhouette.
+- **Trivia question:** whose card, which card and what is asked are one plate: the hero's art as a band (at most 16:9; never the card's scan, which would give the number away), the hero's portrait and name under it, the card's name in Cinzel 28 beside its colour's ribbon, its kind, and the asked number on the title plate; the answers sit right under it, the group centred, spare room shared above and below it. Once answered the group drops its frame (the reveal scrolls it under the banner).
+
 **Rules the screens keep:**
 - **Bronze is selected and primary; teal is next, correct, "you can act"** (a running clock, a right answer, a rating gained). Chips, switches and picked rows are bronze on every screen, all through the one selection look (`SelectablePlate`, `GoaPlate(selected =)`: a bronze 2 dp edge, a bronze tint and the bronze radio; timer presets and setup, draft methods and options, game options); never a teal or team-coloured outline for a pick. Team colours mark teams only. Timer's teal progress arc is the running clock; a running Hurry up's arc is bronze.
-- **One plate per section, dividers inside, brackets on the outer plate only:** a team's seats, a preset's phases, the rules topics, both leaderboards. Plates never nest (an inner one is a well). Settings and prose are secondary plates (`SettingsGroup` is one). A list's action never floats over it: the match log docks "Log match" on a slate bar under the list (as trivia's Start bar), the leaderboard ends with "Add player".
+- **One plate per section, dividers inside, brackets on the outer plate only:** a team's seats, a preset's phases, the rules topics, both leaderboards. Plates never nest (an inner one is a well). Settings and prose are secondary plates (`SettingsGroup` is one). A list's action never floats over it: the match log docks "Log match" on a slate bar under the list (as trivia's Start bar), the leaderboard ends with "Add player". **Leaderboards** (Players, trivia, online) put their top three on a `Podium` at the head of their plate (crest or portrait, name, figure; two columns' worth of name wraps, never cut), the rest as rows under it (tied places stand on equal steps), and end in the `BattlefieldFoot`; from font scale 1.3 the podium gives way to rows. A provisional rating is a small hourglass by the name (TalkBack: "Provisional rating"), and when every rating is provisional the scope line says it once instead; a match's result, with no such line, writes "Provisional" beside the hourglass.
 - **A title on the banner** shrinks, then takes two lines, and only then is cut (`BannerTitle`, `.goa-topbar-title`); a long rules topic shows its head there and its whole title on the page. The timer's second line goes on a phone under 360 wide (TalkBack still hears it).
 - **The search field** is the plate's slot: the slate in the dark theme, paper with a steel edge in the light one.
 - **The light theme is designed, not inverted:** the warm paper canvas, paper plates with steel edges, ink text; the steel banner, the timer and the map stay dark, as on the page.
@@ -220,7 +225,7 @@ small caps + fading rule) · `SubHeader` · `GoaButton` / `MetalButton` / `GoaOu
 `UnverifiedBadge` · `CardColorDot` · `ConfirmDialog` · `DurationText` · `EmptyState` ·
 `HeroPortrait` (bronze double frame, inner gradient, sigil fallback; `framed = false` for the
 grid tile, which draws its own fade, to keep scrolling cheap) · `HeroSigil` (monogram
-fallback) · `PlayerAvatar` (bronze crest in a steel-ringed medallion, team-neutral; initial fallback) · `TeamBadge` / `TeamMark`
+fallback) · `PlayerAvatar` (a filled heraldic shield: dark charge on a bronze or steel field, team-neutral; a steel shield with the initial as fallback) · `Podium` (a leaderboard's top three on gold, steel and copper steps, 2 · 1 · 3; rows below at large text) · `BattlefieldFoot` (the timer's battlefield silhouette faded into the canvas at a short list's foot) · `TeamBadge` / `TeamMark`
 · `ComplexityStars` (`showLabel` adds Challenging / Complex / Very Complex / Wizard). The
 gallery screenshot test (`GalleryScreenshotTest`) shows them all, dark/light, font scale 1 and 2.
 `cardtext/CardTextView` renders printed card text (inline `GameIcons`, italic reminders, bold
@@ -280,7 +285,7 @@ Who won? / match editor: the winners are radio cards (an empty trophy outline, a
 frame once chosen) under "Which team won? · Required"; the win condition says "· Optional"; the bronze Save ("Save
 result", "Save match", "Save changes") is pinned under the form, off until the form can be saved, with the reason under it
 (no Save in the banner).
-Bottom nav: Heroes, Play, Timer, Players, More (original icons: shield, a board space with a play mark,
+Bottom nav: Heroes, Play, Timer, Players, More (original icons: shield with the brand mark's trident, a board space with a play mark,
 hourglass, companions, a plate with three studs; solid variant when selected; labels share one size, capped by
 the width, at large text). **More** lists, as labelled rows with icon and purpose: Draft (At the table), Rules
 (Reference), Group sync and Backup and restore (Your group), Settings and About (App). The Draft keeps a back
@@ -290,8 +295,9 @@ labelled (TalkBack and a long-press tooltip, `BarIconButton`); with more actions
 in a labelled overflow menu, "More options" (`BarActions`): Heroes shows the layout switch, then Rules and
 Settings in the menu; Players shows Group sync (its attention dot also on the menu button), then your player
 page, Share stats, Backup and Settings; Play keeps Settings (the board style is set there). The **Play tab** opens on the game in progress (Resume), then plates
-with painted scenes (the app's own art, `third_party/ASSETS.md`), the name engraved over the scene and the state
-in bronze: Play vs computer across the width, then Puzzles ("3 of 50 solved"), Board sandbox, Online and Card
+with painted scenes (the app's own art in the official portraits' flat, bright brushwork, `third_party/ASSETS.md`), the
+name engraved over the scene and the state in bronze: Play vs computer across the width, then Puzzles (a teal tick and
+"1 of 50 positions", "1 of 22 rounds": the same lines, `SolvedCount`, as over the puzzle list's two parts), Board sandbox, Online and Card
 trivia two by two (one column at large text, four across in landscape); the scenes grow with the screen's height
 so the plates fill it. Settings groups are secondary plates (`PlateStyle.Secondary` via `SettingsGroup`: flat, a hairline, no brackets), one per
 section with hairlines between rows, never a plate inside a plate; About's prose sits on the page, only rows you tap on a group. An entry the engine can't serve says "Not available in this build", never "Coming soon".
@@ -739,12 +745,12 @@ Two kinds of asset (ADR-006, ADR-034):
 - UI icons not in Material Symbols, empty-state illustrations.
 - Hero **sigils**: small geometric emblems per hero (24-unit grid, 2-unit stroke), now only the
   fallback when official art (portrait, deck symbol) is missing or still loading.
-- Player avatars: 24 original abstract crests, one bronze tone in a steel ring: red and blue are the teams' alone (gear and star), so a crest never reads as a side; its shape is the identity.
+- Player avatars: 24 original crests as filled heraldic shields in the game's icon style (dark outline, metal rim, a field lit from the left, the charge in dark ink with a light emboss). Even crests are a bronze field in a steel rim, odd ones steel in bronze, so neighbours differ at a glance; red and blue are the teams' alone (gear and star), so a crest never reads as a side; charge and metal are the identity. The charges are line masters in `design/avatars/` (the web draws those, tinted); `python -P -E design/tools/crest_shields.py` sets them on the shields in `design/crests/`, which `svg2vd.py` converts.
 - Pipeline (as built): hand-authored SVG in `design/` → `python -P -E design/tools/svg2vd.py`
   → `core/designsystem/src/main/res/drawable/` (and `app/.../drawable/ic_launcher_*`). The
-  converter is deliberately small (path/line/poly/circle/ellipse/rect, untransformed groups,
-  user-space gradients) and refuses anything else, so output is predictable; `--check` reports
-  stale drawables. Review renders in `GalleryScreenshotTest`; the SVG is the master.
+  converter is deliberately small (path/line/poly/circle/ellipse/rect, groups untransformed or
+  `translate() scale()`, user-space gradients) and refuses anything else, so output is predictable;
+  `--check` reports stale drawables. Review renders in `GalleryScreenshotTest`; the SVG is the master.
 - App icon: bronze-gradient heater shield bearing a navy trident, on a deep-ocean gradient
   with a teal glow; themed icon = shield outline + trident. The splash shows the foreground
   on the canvas colour and is held until settings (theme) have loaded.

@@ -80,7 +80,7 @@ class OnlineViewModelsTest {
         gateway: FakeGateway = FakeGateway(),
         route: OnlineHomeRoute = OnlineHomeRoute(),
         savedState: SavedStateHandle = SavedStateHandle(),
-    ) = OnlineHomeViewModel(route, savedState, gateway, identities, maps)
+    ) = OnlineHomeViewModel(route, savedState, gateway, identities, maps, catalog)
 
     @Test
     fun `a new account is saved on the device only after I've saved it`() = runTest(dispatcher) {
@@ -557,6 +557,7 @@ class OnlineViewModelsTest {
     ) = OnlineLeaderboardViewModel(
         LeaderboardRepository({ url -> files[url] }, cache, "https://host.example/game") { 1_000 + 12 * MINUTE },
         identities,
+        catalog,
     )
 
     private val snapshotText = OnlineProtocol.json.encodeToString(LeaderboardSnapshot.serializer(), snapshot)
@@ -604,6 +605,7 @@ class OnlineViewModelsTest {
         val vm = OnlineLeaderboardViewModel(
             LeaderboardRepository({ url -> files[url] }, Cache(), "https://host.example/game") { 1_000L },
             FakeIdentities(null),
+            catalog,
         )
         runCurrent()
         assertThat(vm.uiState.value.empty).isEqualTo(LeaderboardPresenter.NO_BOARD)

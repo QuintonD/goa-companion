@@ -23,6 +23,11 @@ import dev.quinton.goa.feature.board.bundledCatalog
 import dev.quinton.goa.feature.board.bundledMaps
 import dev.quinton.goa.feature.board.list.PlayHomeUiState
 import dev.quinton.goa.feature.board.list.PlayHomeViewModel
+import dev.quinton.goa.feature.board.play.puzzles.PuzzleFilters
+import dev.quinton.goa.feature.board.play.puzzles.PuzzleListUiState
+import dev.quinton.goa.feature.board.play.puzzles.puzzleList
+import dev.quinton.goa.feature.board.play.puzzles.realPuzzleBook
+import dev.quinton.goa.feature.board.play.puzzles.screenshotPuzzleProgress
 import dev.quinton.goa.feature.board.play.setup.Control
 import dev.quinton.goa.feature.board.play.setup.NewGameAction
 import dev.quinton.goa.feature.board.play.setup.NewGameStep
@@ -187,6 +192,32 @@ class NewGameViewModelTest {
 
         val unreadable = PlayHomeViewModel.resumeOf(StoredGame.Unreadable, emptyMap())
         assertThat(unreadable?.unreadable).isTrue()
+    }
+
+    @Test
+    fun `Play counts the puzzles part by part, as the puzzle list does`() = runTest(dispatcher) {
+        val book = realPuzzleBook
+        val progress = screenshotPuzzleProgress()
+        val home = PlayHomeViewModel(
+            FakeCatalogRepository(bundledCatalog),
+            FakeGameSaveRepository(),
+            EditClock { 1L },
+            { factory },
+            { book },
+            FakePuzzleProgressRepository(progress),
+        )
+        val ready = home.uiState.first { it is PlayHomeUiState.Ready } as PlayHomeUiState.Ready
+        val hub = requireNotNull(ready.play.puzzles)
+        val list = puzzleList(
+            book.puzzles,
+            emptyMap(),
+            progress,
+            PuzzleFilters(),
+        ) as PuzzleListUiState.Ready
+        assertThat(hub.positionsSolved to hub.positionsTotal).isEqualTo(list.positionsSolved to list.positionsTotal)
+        assertThat(hub.roundsSolved to hub.roundsTotal).isEqualTo(list.roundsSolved to list.roundsTotal)
+        assertThat(hub.positionsSolved).isEqualTo(1)
+        assertThat(hub.roundsSolved).isEqualTo(if (hub.roundsTotal > 0) 1 else 0)
     }
 
     @Test

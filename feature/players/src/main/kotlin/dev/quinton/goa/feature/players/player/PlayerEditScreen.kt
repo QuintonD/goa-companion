@@ -1,7 +1,5 @@
 package dev.quinton.goa.feature.players.player
 
-import androidx.compose.animation.core.animateDpAsState
-import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -15,7 +13,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.selectable
-import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
@@ -26,10 +24,8 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
@@ -41,10 +37,10 @@ import dev.quinton.goa.core.designsystem.component.BannerTextButton
 import dev.quinton.goa.core.designsystem.component.EmptyState
 import dev.quinton.goa.core.designsystem.component.GoaScreen
 import dev.quinton.goa.core.designsystem.component.PlayerAvatar
+import dev.quinton.goa.core.designsystem.component.selectionFrame
 import dev.quinton.goa.core.designsystem.icon.PlayerCrests
 import dev.quinton.goa.core.designsystem.theme.Spacing
 import dev.quinton.goa.feature.players.common.LoadingState
-import dev.quinton.goa.feature.players.common.Motion
 import dev.quinton.goa.feature.players.common.SectionHeader
 
 data class PlayerEditActions(
@@ -114,18 +110,11 @@ fun PlayerEditScreen(state: PlayerEditUiState, actions: PlayerEditActions, modif
                 ) {
                     repeat(PlayerCrests.count) { id ->
                         val selected = id == state.avatarId
-                        val ring by animateDpAsState(if (selected) 3.dp else 0.dp, Motion.spec(), label = "crest-ring")
+                        // The one selection look: a bronze edge over a bronze tint around the shield.
                         Box(
                             Modifier
                                 .size(56.dp)
-                                .clip(CircleShape)
-                                .then(
-                                    if (ring > 0.dp) {
-                                        Modifier.border(ring, MaterialTheme.colorScheme.primary, CircleShape)
-                                    } else {
-                                        Modifier
-                                    },
-                                )
+                                .selectionFrame(selected, RoundedCornerShape(12.dp))
                                 .selectable(selected = selected, role = Role.RadioButton) { actions.onAvatarChange(id) }
                                 .semantics {
                                     contentDescription = PlayerCrests.names.getOrElse(id) { "Crest ${id + 1}" }

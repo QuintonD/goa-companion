@@ -10,7 +10,9 @@ import kotlin.math.roundToInt
 /** Image decoding, region signatures and WebP encoding (scrimage + bundled libwebp). */
 object ImageIo {
     const val QUALITY = 80
-    const val CARD_MAX_EDGE = 768
+
+    /** The card scans' own height (dmrediger/goa2, 729 × 1026): bundled at full size, never upscaled (ADR-071). */
+    const val CARD_MAX_EDGE = 1026
     const val PORTRAIT_MAX_EDGE = 512
 
     fun load(file: File): ImmutableImage = if (file.name.endsWith(".webp", ignoreCase = true)) {

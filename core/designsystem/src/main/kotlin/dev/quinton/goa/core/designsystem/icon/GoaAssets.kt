@@ -76,6 +76,9 @@ object PlayerCrests {
 
     val count: Int get() = all.size
 
+    /** The steel shield without a charge, for a player's initial. */
+    @DrawableRes val blank: Int = R.drawable.crest_blank
+
     @DrawableRes
     fun drawableFor(avatarId: Int): Int? = all.getOrNull(avatarId)
 }

@@ -62,11 +62,17 @@ class OnlineHomeViewModel @AssistedInject constructor(
     gateway: OnlineGateway,
     identities: OnlineIdentityStore,
     mapRepository: BoardMapRepository,
+    catalogRepository: CatalogRepository,
 ) : ViewModel() {
     @AssistedFactory
     interface Factory {
         fun create(route: OnlineHomeRoute): OnlineHomeViewModel
     }
+
+    private val heroList = MutableStateFlow<Map<String, BoardHero>>(emptyMap())
+
+    /** Every hero's name and portrait: a game's seats are its heroes. */
+    val heroes: StateFlow<Map<String, BoardHero>> = heroList.asStateFlow()
 
     private val presenter = OnlineHomePresenter(gateway, identities, viewModelScope)
     val uiState: StateFlow<OnlineHomeUi> = presenter.state
@@ -79,6 +85,7 @@ class OnlineHomeViewModel @AssistedInject constructor(
     init {
         presenter.start()
         viewModelScope.launch { names.value = mapRepository.maps.first().associate { it.id to it.name } }
+        viewModelScope.launch { heroList.value = catalogRepository.catalog.first().boardHeroes() }
         // An invite link waits for an account, and is used once: the route comes back after process death.
         route.invite?.takeIf { savedState.get<Boolean>(KEY_INVITE_USED) != true }?.let { invite ->
             viewModelScope.launch {
@@ -287,7 +294,13 @@ class OnlineGameViewModel internal constructor(
 class OnlineLeaderboardViewModel @Inject constructor(
     private val repository: LeaderboardRepository,
     private val identities: OnlineIdentityStore,
+    catalogRepository: CatalogRepository,
 ) : ViewModel() {
+    private val portraitMap = MutableStateFlow<Map<String, String?>>(emptyMap())
+
+    /** Each hero's portrait by id, for the Heroes tab's podium. */
+    val portraits: StateFlow<Map<String, String?>> = portraitMap.asStateFlow()
+
     private var load: LeaderboardLoad? = null
     private var tab = LeaderboardTab.PLAYERS
     private var accountId: String? = null
@@ -297,6 +310,9 @@ class OnlineLeaderboardViewModel @Inject constructor(
 
     init {
         refresh()
+        viewModelScope.launch {
+            portraitMap.value = catalogRepository.catalog.first().heroes.associate { it.id to it.portrait }
+        }
     }
 
     fun refresh() {

@@ -2,6 +2,7 @@ package dev.quinton.goa.feature.sync
 
 import dev.quinton.goa.core.domain.sync.SyncChanges
 import dev.quinton.goa.core.domain.sync.protocol.ClientPhase
+import dev.quinton.goa.core.domain.sync.protocol.HostPhase
 import dev.quinton.goa.core.domain.sync.protocol.PeerProgress
 import dev.quinton.goa.core.domain.sync.protocol.PeerStage
 import dev.quinton.goa.core.domain.sync.protocol.SyncDevice
@@ -15,11 +16,18 @@ object SyncText {
 
     fun peerStage(peer: PeerProgress): String = when (peer.stage) {
         PeerStage.VERIFYING -> "Checking the group key…"
-        PeerStage.RECEIVING -> "Sending its data…"
+
+        PeerStage.RECEIVING -> peer.progress?.let { "Sending its data… ${(it * PERCENT).toInt()} %" }
+            ?: "Sending its data…"
+
         PeerStage.READY -> "Ready"
+
         PeerStage.SENDING -> "Receiving the merged data…"
+
         PeerStage.CONFIRMING -> "Saving…"
+
         PeerStage.DONE -> "Synced"
+
         PeerStage.FAILED -> peerFailure(peer)
     }
 
@@ -58,20 +66,90 @@ object SyncText {
         ).joinToString(" ").ifEmpty { null }
     }
 
-    /** The host's button: "Sync with Bob and Cid", "Sync 4 phones", or "Sync" before anyone is in. */
+    /**
+     * The host's button. Every phone's data in: "Sync with Bob and Cid" ("Sync 4 phones"). Some still sending: the tap
+     * queues the sync, and the button says so ("Sync when Cid's data is in"). No phone's data in yet: the button is off
+     * and says what it waits for ([hostWaitingLabel]).
+     */
     fun syncLabel(peers: List<PeerProgress>): String {
         val taken = syncing(peers)
+        val sending = sending(peers)
         return when {
-            taken.isEmpty() -> "Sync"
+            taken.isEmpty() || taken.size == sending.size -> hostWaitingLabel(peers)
+            sending.isNotEmpty() && sending.size <= NAMED_PHONES -> "Sync when ${names(sending)}'s data is in"
+            sending.isNotEmpty() -> "Sync when every phone's data is in"
             taken.size <= NAMED_PHONES -> "Sync with ${names(taken)}"
             else -> "Sync ${taken.size} phones"
         }
     }
 
+    /** What the host's switched-off button waits for: "Waiting for a phone to join…", "Waiting for Cid's data…". */
+    fun hostWaitingLabel(peers: List<PeerProgress>): String {
+        val sending = sending(peers)
+        return when {
+            peers.none { it.stage != PeerStage.FAILED } -> "Waiting for a phone to join…"
+            sending.size in 1..NAMED_PHONES -> "Waiting for ${names(sending)}'s data…"
+            else -> "Waiting for the phones' data…"
+        }
+    }
+
+    /** Where a host's sync stands, as the step it is on (0 collect, 1 merge, 2 send back, 3 done). */
+    fun hostStep(phase: HostPhase): Int = when (phase) {
+        HostPhase.WAITING -> 0
+        HostPhase.MERGING -> 1
+        HostPhase.SENDING -> 2
+        HostPhase.DONE -> 3
+        HostPhase.FAILED -> 0
+    }
+
+    /** The steps a host's sync goes through, named for the stepper. */
+    val hostSteps: List<String> = listOf("Collect", "Merge", "Send back", "Done")
+
+    /** The host after Sync was tapped: merging, or still waiting for an upload first. */
+    fun hostMerging(peers: List<PeerProgress>): String {
+        val sending = sending(peers)
+        return when {
+            sending.isEmpty() -> "Merging everyone's data…"
+            sending.size <= NAMED_PHONES -> "Waiting for ${names(sending)}'s data, then merging…"
+            else -> "Waiting for ${sending.size} phones' data, then merging…"
+        }
+    }
+
+    /**
+     * The final word on a finished sync: "Every phone is up to date: Bob and Cid", or who made it and who didn't
+     * ("Synced with Bob. Cid didn't finish: sync again.").
+     */
+    fun hostDoneTitle(all: List<PeerProgress>): String {
+        val peers = all.filter { it.failure != SyncFailure.WRONG_KEY }
+        val done = peers.filter { it.stage == PeerStage.DONE }
+        val missed = peers.filter { it.stage != PeerStage.DONE }
+        return when {
+            done.isEmpty() -> "No other phone got the result"
+            missed.isEmpty() && done.size <= NAMED_PHONES -> "Every phone is up to date: ${names(done)}"
+            missed.isEmpty() -> "All ${done.size} phones are up to date"
+            done.size <= NAMED_PHONES -> "Synced with ${names(done)}"
+            else -> "Synced with ${done.size} phones"
+        }
+    }
+
+    /** Phones that didn't end with the result, for the summary: "Cid didn't finish: sync again to include it." */
+    fun hostDoneMissed(all: List<PeerProgress>): String? {
+        // A phone with the wrong key was never in the sync: its own row says to scan the invite again.
+        val missed = all.filter { it.stage != PeerStage.DONE && it.failure != SyncFailure.WRONG_KEY }
+        if (missed.isEmpty()) return null
+        val them = if (missed.size == 1) "it" else "them"
+        return "${names(missed)} didn't finish: sync again to include $them."
+    }
+
+    private fun sending(peers: List<PeerProgress>) =
+        peers.filter { it.stage == PeerStage.VERIFYING || it.stage == PeerStage.RECEIVING }
+
     private fun names(peers: List<PeerProgress>): String {
         val all = peers.map { it.name }
         return if (all.size <= 1) all.joinToString() else all.dropLast(1).joinToString(", ") + " and " + all.last()
     }
+
+    private const val PERCENT = 100
 
     /** Up to this many phones, the Sync button names them. */
     private const val NAMED_PHONES = 2
