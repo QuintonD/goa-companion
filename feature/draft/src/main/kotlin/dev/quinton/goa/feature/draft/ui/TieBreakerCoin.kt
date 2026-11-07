@@ -71,7 +71,7 @@ internal fun TieBreakerCoin(result: Team?, flipCount: Int, modifier: Modifier = 
                 liveRegion = LiveRegionMode.Polite
                 contentDescription = when (result) {
                     null -> "Tie Breaker coin, not flipped yet"
-                    else -> "Tie Breaker coin shows ${teamName(result)}. ${teamName(result)} is Team A"
+                    else -> "Tie Breaker coin shows ${teamName(result)}. ${teamName(result)} is the coin team"
                 }
             },
         contentAlignment = Alignment.Center,

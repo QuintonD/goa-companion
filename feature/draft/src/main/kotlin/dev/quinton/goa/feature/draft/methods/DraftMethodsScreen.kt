@@ -48,6 +48,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
@@ -63,12 +64,17 @@ import dev.quinton.goa.core.designsystem.component.SectionHeader
 import dev.quinton.goa.core.designsystem.component.selectableChipBorder
 import dev.quinton.goa.core.designsystem.component.selectedCheck
 import dev.quinton.goa.core.designsystem.theme.Spacing
+import dev.quinton.goa.core.model.match.Team
+import dev.quinton.goa.feature.draft.ui.COIN_TEAM
+import dev.quinton.goa.feature.draft.ui.OTHER_TEAM
 import dev.quinton.goa.feature.draft.ui.PlateBar
 import dev.quinton.goa.feature.draft.ui.SelectionRadio
 import dev.quinton.goa.feature.draft.ui.SequenceStrip
 import dev.quinton.goa.feature.draft.ui.TeamText
+import dev.quinton.goa.feature.draft.ui.coinTeamWords
 import dev.quinton.goa.feature.draft.ui.goaFilterChipColors
-import dev.quinton.goa.feature.draft.ui.teamLabel
+import dev.quinton.goa.feature.draft.ui.teamGlyph
+import dev.quinton.goa.feature.draft.ui.teamName
 
 interface MethodsActions {
     fun back() {}
@@ -221,17 +227,21 @@ private fun PreviewFor(state: MethodsUiState, actions: MethodsActions) {
                 )
             }
         }
-        // The methods' own words say A and B (the rulebook's, p.22): the mapping is said once, here.
-        val team = teamLabel(state.previewTeamA)
+        // The methods' Team A and Team B, named as the table knows them: the coin's team and the other one.
+        // The steps below show each in a team's colour and mark; this says which is which.
+        val coin = state.previewTeamA
+        val other = if (coin == Team.RED) Team.BLUE else Team.RED
         TeamText(
-            if (state.coinKnown) {
-                "A is the team the Tie Breaker coin shows: $team. B is the other team."
-            } else {
-                "A is the team the Tie Breaker coin shows, B the other. The steps show A as $team; " +
-                    "the coin decides at the table."
-            },
-            style = MaterialTheme.typography.bodySmall,
+            "${teamGlyph(coin)} $COIN_TEAM    ${teamGlyph(other)} $OTHER_TEAM",
+            style = MaterialTheme.typography.labelLarge,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.padding(top = Spacing.xs).semantics {
+                contentDescription = if (state.coinKnown) {
+                    "The coin team is ${teamName(coin)}, the other team ${teamName(other)}."
+                } else {
+                    "Steps in ${teamName(coin)} are the coin team's, steps in ${teamName(other)} the other team's."
+                }
+            },
         )
     }
 }
@@ -251,10 +261,10 @@ private fun MethodCard(row: MethodRow, selected: Boolean, actions: MethodsAction
         Row(Modifier.fillMaxWidth().padding(start = Spacing.sm, top = Spacing.sm, bottom = Spacing.lg)) {
             SelectionRadio(selected, Modifier.padding(top = Spacing.md, end = Spacing.xs))
             Column(Modifier.weight(1f).padding(top = Spacing.sm)) {
-                MethodTitle(row, selected)
+                MethodTitle(row)
                 Spacer(Modifier.height(Spacing.xs))
                 Text(
-                    method.summary,
+                    coinTeamWords(method.summary),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -297,12 +307,13 @@ private fun MethodCard(row: MethodRow, selected: Boolean, actions: MethodsAction
 }
 
 @Composable
-private fun MethodTitle(row: MethodRow, selected: Boolean) {
+private fun MethodTitle(row: MethodRow) {
     Row(verticalAlignment = Alignment.CenterVertically) {
+        // A list item's title, as on every other list (Cinzel is for section heads).
         Text(
             row.method.name,
-            style = MaterialTheme.typography.titleLarge,
-            color = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
+            style = MaterialTheme.typography.titleMedium,
+            color = MaterialTheme.colorScheme.onSurface,
             modifier = Modifier.weight(1f, fill = false),
         )
         Spacer(Modifier.width(Spacing.sm))

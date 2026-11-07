@@ -64,6 +64,7 @@ import dev.quinton.goa.feature.draft.ui.goaFilterChipColors
 import dev.quinton.goa.feature.draft.ui.goaSegmentedColors
 import dev.quinton.goa.feature.draft.ui.goaTonalIconColors
 import dev.quinton.goa.feature.draft.ui.plateEdge
+import dev.quinton.goa.feature.draft.ui.slotName
 
 interface MethodEditActions {
     fun back() {}
@@ -266,7 +267,7 @@ private fun StepsCard(
                 MethodEdits.ADDABLE.forEach { spec ->
                     AssistChip(
                         onClick = { actions.addStep(section, spec) },
-                        label = { Text("${actionName(spec.action)} ${spec.team.name}") },
+                        label = { Text("${actionName(spec.action)} · ${slotName(spec.team)}") },
                         leadingIcon = { Icon(Icons.Filled.Add, contentDescription = null) },
                         modifier = Modifier.heightIn(min = 48.dp),
                     )
@@ -298,8 +299,8 @@ private fun StepRow(section: StepSection, index: Int, step: StepSpec, count: Int
                 colors = goaFilterChipColors(),
                 selected = step.team == TeamSlot.A,
                 onClick = { actions.toggleTeam(section, index) },
-                label = { Text("Team ${step.team.name}") },
-                modifier = Modifier.semantics { contentDescription = "Team ${step.team.name}, tap to switch" },
+                label = { Text(slotName(step.team)) },
+                modifier = Modifier.semantics { contentDescription = "${slotName(step.team)}, tap to switch" },
             )
             Spacer(Modifier.weight(1f))
             StepRowButtons(section, index, step, count, actions)
