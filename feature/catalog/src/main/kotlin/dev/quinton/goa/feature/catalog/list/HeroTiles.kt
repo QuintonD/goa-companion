@@ -1,5 +1,7 @@
 package dev.quinton.goa.feature.catalog.list
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -17,11 +19,14 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.TextAutoSize
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.KeyboardArrowRight
+import androidx.compose.material.icons.automirrored.outlined.Notes
 import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
@@ -36,8 +41,11 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.zIndex
@@ -48,11 +56,13 @@ import dev.quinton.goa.core.designsystem.component.HeroPortrait
 import dev.quinton.goa.core.designsystem.component.HeroSymbol
 import dev.quinton.goa.core.designsystem.component.LookAction
 import dev.quinton.goa.core.designsystem.component.complexityName
+import dev.quinton.goa.core.designsystem.component.scaledIconSize
 import dev.quinton.goa.core.designsystem.theme.GoaTextStyles
 import dev.quinton.goa.core.designsystem.theme.GoaTheme
 import dev.quinton.goa.core.designsystem.theme.Spacing
 import dev.quinton.goa.core.domain.catalog.CatalogSort
 import dev.quinton.goa.core.domain.catalog.HeroListItem
+import dev.quinton.goa.core.domain.catalog.MatchField
 import dev.quinton.goa.core.domain.catalog.label
 import dev.quinton.goa.core.domain.catalog.matchHint
 import dev.quinton.goa.core.domain.catalog.metricLine
@@ -106,8 +116,9 @@ internal fun HeroGridTile(
                     textAlign = TextAlign.Center,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
+                    // Never under 14 sp: the grid's columns are as wide as the longest name needs at that size.
                     autoSize = TextAutoSize.StepBased(
-                        minFontSize = with(LocalDensity.current) { TILE_NAME_SMALLEST.toSp() },
+                        minFontSize = tileNameFloor(),
                         maxFontSize = TILE_NAME.fontSize,
                         stepSize = TILE_NAME_STEP,
                     ),
@@ -163,6 +174,43 @@ private fun TileArtwork(item: HeroListItem) {
         if (!hero.verified) {
             UnverifiedBadge(compact = true, modifier = Modifier.align(Alignment.BottomEnd).padding(2.dp))
         }
+        // Why a search found this hero: the matched card on a parchment chip at the art's foot, whole (two lines).
+        MatchChip(item, Modifier.align(Alignment.BottomStart).padding(3.dp))
+    }
+}
+
+/**
+ * The card (or alias) a search matched this hero through, as a small parchment chip: the card's name only, whole,
+ * wrapping to a second line rather than cut ("Card: …" is what TalkBack hears, in the tile's label). Nothing when the
+ * hero matched by name, title or role, or nothing is searched.
+ */
+@Composable
+internal fun MatchChip(item: HeroListItem, modifier: Modifier = Modifier) {
+    val hint = item.matchHint() ?: return
+    val label = item.hit?.card?.name ?: hint
+    val shape = RoundedCornerShape(6.dp)
+    Row(
+        modifier
+            .clip(shape)
+            .background(GoaTheme.colors.parchment)
+            .border(1.dp, GoaTheme.colors.onParchment.copy(alpha = 0.35f), shape)
+            .padding(horizontal = 6.dp, vertical = 2.dp)
+            .clearAndSetSemantics {},
+        verticalAlignment = Alignment.Top,
+    ) {
+        Icon(
+            if (item.hit?.field == MatchField.CARD_TEXT) Icons.AutoMirrored.Outlined.Notes else Icons.Outlined.Search,
+            contentDescription = null,
+            modifier = Modifier.padding(top = 3.dp, end = 4.dp).size(scaledIconSize(14.dp, 1.4f)),
+            tint = GoaTheme.colors.onParchment,
+        )
+        Text(
+            label,
+            style = MATCH_CHIP,
+            color = GoaTheme.colors.onParchment,
+            maxLines = HINT_MAX_LINES,
+            overflow = TextOverflow.Ellipsis,
+        )
     }
 }
 
@@ -210,11 +258,10 @@ private fun TileText(item: HeroListItem, sort: CatalogSort, footnotes: TileFootn
  * Which footnote rows the grid's tiles keep. A lazy grid doesn't stretch the tiles of a line, so when any tile
  * of the results has a sort metric or a search hint, every tile keeps the room for it.
  */
-internal class TileFootnoteRoom(val metric: Boolean, val hint: Boolean) {
+internal class TileFootnoteRoom(val metric: Boolean) {
     companion object {
         fun of(heroes: List<HeroListItem>, sort: CatalogSort) = TileFootnoteRoom(
             metric = heroes.any { it.metricLine(sort) != null },
-            hint = heroes.any { it.matchHint() != null },
         )
     }
 }
@@ -230,36 +277,6 @@ private fun TileFootnotes(item: HeroListItem, sort: CatalogSort, room: TileFootn
             color = MaterialTheme.colorScheme.primary,
             modifier = Modifier.padding(top = Spacing.xs),
         )
-    }
-    val hint = item.matchHint()
-    if (hint == null) {
-        if (room.hint) {
-            Text(
-                "",
-                style = MaterialTheme.typography.bodyMedium,
-                minLines = HINT_LINES,
-                modifier = Modifier.padding(top = Spacing.xs),
-            )
-        }
-    } else {
-        Row(Modifier.padding(top = Spacing.xs), verticalAlignment = Alignment.Top) {
-            Icon(
-                Icons.Outlined.Search,
-                contentDescription = null,
-                modifier = Modifier.padding(top = 3.dp).size(14.dp),
-                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-            Spacer(Modifier.width(4.dp))
-            Text(
-                hint,
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                minLines = if (room.hint) HINT_LINES else 1,
-                // A card's name is never cut: a long one takes a third line.
-                maxLines = HINT_MAX_LINES,
-                overflow = TextOverflow.Ellipsis,
-            )
-        }
     }
 }
 
@@ -342,6 +359,7 @@ internal fun HeroListRow(
                     )
                 }
                 TileFootnotes(item, sort)
+                MatchChip(item, Modifier.padding(top = Spacing.xs))
             }
             Icon(
                 Icons.AutoMirrored.Outlined.KeyboardArrowRight,
@@ -359,9 +377,8 @@ private const val PORTRAIT_RATIO = 1.14f
 private fun tileLines(fontScale: Float): Int = if (fontScale in 1.1f..1.2f || fontScale > 1.6f) 2 else 1
 
 private const val TILE_ROLES = 2
-private const val HINT_LINES = 2
 private const val HINT_MAX_LINES = 3
-private val NO_ROOM = TileFootnoteRoom(metric = false, hint = false)
+private val NO_ROOM = TileFootnoteRoom(metric = false)
 private val STARS_LINE = 20.dp
 private val TILE_STAR = 14.dp
 private val RANGED_ICON = 16.dp
@@ -377,15 +394,53 @@ private val SYMBOL_CENTER_Y = 20.dp
 private val SYMBOL_SHADE_RADIUS = 24.dp
 private val SYMBOL_SHADE = Color(0x8C000000)
 private val TILE_ROLE @Composable get() =
-    MaterialTheme.typography.bodyMedium.copy(lineHeight = 17.sp, letterSpacing = 0.sp)
-private val TILE_NAME = GoaTextStyles.plateTitle.copy(fontSize = 13.sp, lineHeight = 16.sp, letterSpacing = 0.sp)
+    MaterialTheme.typography.bodyMedium.copy(fontSize = 15.sp, lineHeight = 19.sp, letterSpacing = 0.sp)
+private val MATCH_CHIP @Composable get() =
+    MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold, lineHeight = 18.sp, letterSpacing = 0.sp)
+private val TILE_NAME = GoaTextStyles.plateTitle.copy(fontSize = 15.sp, lineHeight = 18.sp, letterSpacing = 0.sp)
 
-/** In dp: at a large font scale a long name still has to fit its plate. */
-private val TILE_NAME_SMALLEST = 7.dp
+/** The least a tile's name is set at: a long one ("Silverarrow") steps down to it, never further. */
+private val TILE_NAME_FLOOR = 14.sp
+
+/**
+ * With large text (above 130 %) the floor is held at 19 dp, a third over the 14 sp one at 100 %, so two columns
+ * stay on a phone at 200 % (360 dp wide too) rather than one tile a row; every name is still larger than at 100 %.
+ */
+private val LARGE_TEXT_NAME_FLOOR = 19.dp
+private const val LARGE_TEXT = 1.3f
+
+@Composable
+private fun tileNameFloor(): TextUnit {
+    val density = LocalDensity.current
+    return if (density.fontScale > LARGE_TEXT) with(density) { LARGE_TEXT_NAME_FLOOR.toSp() } else TILE_NAME_FLOOR
+}
 private val TILE_NAME_STEP = 0.25.sp
+
+/** Around a tile's name: the plate's two rounded ends and the tile's own inset. */
+private val TILE_NAME_CHROME = 24.dp
 private val TILE_TITLE = GoaTextStyles.printedSmall.copy(
     fontStyle = FontStyle.Italic,
-    fontSize = 14.sp,
-    lineHeight = 18.sp,
+    fontSize = 15.sp,
+    lineHeight = 19.sp,
     letterSpacing = 0.sp,
 )
+
+/**
+ * The narrowest a grid tile may be so the longest name of [heroes] fits its plate at its floor on one line,
+ * at the current font scale: the grid's columns follow (three on a 411 dp phone at 100 %, fewer with larger text or a
+ * narrower phone). Only grows while the screen lives, so filtering never changes the column count under the player.
+ */
+@Composable
+internal fun rememberTileNameWidth(heroes: List<HeroListItem>): Dp {
+    val measurer = rememberTextMeasurer()
+    val density = LocalDensity.current
+    val floor = tileNameFloor()
+    val widest = remember(heroes, density, floor) {
+        val style = TILE_NAME.copy(fontSize = floor)
+        val px = heroes.maxOfOrNull { measurer.measure(it.hero.name, style, maxLines = 1).size.width } ?: 0
+        with(density) { px.toDp() } + TILE_NAME_CHROME
+    }
+    val most = remember(density) { mutableStateOf(0.dp) }
+    if (widest > most.value) most.value = widest
+    return most.value
+}

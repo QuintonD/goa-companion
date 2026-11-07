@@ -4,6 +4,8 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.material3.Icon
@@ -75,12 +77,34 @@ fun HeroStatBlock(
     StatReadout(stat, rangeText(range), modifier, spoken, style)
 }
 
-/** The hero's four profile stats as a row of [HeroStatBlock]s in the printed order, each [style]. */
+/** The hero's four profile stats as [HeroStatBlock]s in the printed order, each [style], then [HeroRatingsNote]. */
 @Composable
 fun HeroStatBlocks(stats: HeroStats, modifier: Modifier = Modifier, style: StatReadoutStyle = StatReadoutStyle.Bar) {
     Column(modifier, verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
         HeroProfileStats.forEach { HeroStatBlock(it, stats.get(it), style = style) }
+        HeroRatingsNote(Modifier.padding(top = Spacing.xs))
     }
+}
+
+/**
+ * The head over a hero's profile stats wherever they show (the hero page, the draft's peek): they are the Hero
+ * Profile's comparative ratings on its 1..8 scale, not numbers printed on a card, so they are never titled "Stats".
+ */
+const val HERO_RATINGS_TITLE = "Hero ratings · 1–8"
+
+/** What the arrow and the scale mean and what the figures are, two short lines under every [HeroStatBlock] set. */
+const val HERO_RATINGS_NOTE = "Base → upgraded · 1 very poor, 8 exceptional\nComparative ratings, not card values"
+
+/** [HERO_RATINGS_NOTE], quiet, under the readouts; [align] centres it under tiles. */
+@Composable
+fun HeroRatingsNote(modifier: Modifier = Modifier, align: TextAlign = TextAlign.Start) {
+    Text(
+        HERO_RATINGS_NOTE,
+        style = MaterialTheme.typography.bodyMedium,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        textAlign = align,
+        modifier = modifier.fillMaxWidth(),
+    )
 }
 
 /**
