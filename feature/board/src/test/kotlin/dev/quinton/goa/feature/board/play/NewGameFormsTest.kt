@@ -2,8 +2,10 @@ package dev.quinton.goa.feature.board.play
 
 import com.google.common.truth.Truth.assertThat
 import dev.quinton.goa.core.game.AiStrength
+import dev.quinton.goa.core.game.GameLength
 import dev.quinton.goa.feature.board.play.setup.NewGameForm
 import dev.quinton.goa.feature.board.play.setup.NewGameForms
+import dev.quinton.goa.feature.board.play.setup.startingCounters
 import dev.quinton.goa.feature.board.setup.NewBoardForm
 import org.junit.Test
 
@@ -26,5 +28,13 @@ class NewGameFormsTest {
         assertThat(form.strength).isEqualTo(10)
         assertThat(form.seatStrengths).containsExactly("wasp", 2)
         assertThat(NewGameForms.decode("""{"red":["arien"]}""")!!.strength).isEqualTo(AiStrength.DEFAULT)
+    }
+
+    /** Quick and Long say the counters they start with, as the engine sets them up (p.5; sol #17). */
+    @Test
+    fun `each length names its starting counters`() {
+        assertThat(startingCounters(lanes = 1, length = GameLength.QUICK, heroes = 4)).isEqualTo("3 Waves · 4 Lives")
+        assertThat(startingCounters(lanes = 1, length = GameLength.LONG, heroes = 4)).isEqualTo("5 Waves · 6 Lives")
+        assertThat(startingCounters(lanes = 1, length = GameLength.QUICK, heroes = 6)).isEqualTo("3 Waves · 5 Lives")
     }
 }

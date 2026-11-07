@@ -155,11 +155,20 @@ private fun PuzzleList(state: PuzzleListUiState.Ready, onAction: (PuzzleListActi
                     modifier = Modifier.padding(top = Spacing.sm),
                 ) {
                     if (state.difficulties.size > 1) {
+                        // "All" is the checked state of no difficulty filter: the chips read as a filter at once
+                        // (opus #13), each with how many puzzles it holds.
+                        val chosen = state.filters.difficulties
+                        GoaFilterChip(
+                            selected = chosen.isEmpty(),
+                            onClick = { chosen.forEach { onAction(PuzzleListAction.ToggleDifficulty(it)) } },
+                            label = "All · ${state.difficultyCounts.values.sum().takeIf { it > 0 } ?: state.total}",
+                        )
                         state.difficulties.forEach { d ->
                             GoaFilterChip(
-                                selected = d in state.filters.difficulties,
+                                selected = d in chosen,
                                 onClick = { onAction(PuzzleListAction.ToggleDifficulty(d)) },
-                                label = PuzzleText.difficulty(d),
+                                label = listOfNotNull(PuzzleText.difficulty(d), state.difficultyCounts[d])
+                                    .joinToString(" · "),
                             )
                         }
                     }

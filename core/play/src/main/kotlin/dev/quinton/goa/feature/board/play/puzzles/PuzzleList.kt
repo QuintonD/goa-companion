@@ -42,6 +42,8 @@ sealed interface PuzzleListUiState {
         val themes: List<String>,
         val roundsSolved: Int = 0,
         val roundsTotal: Int = 0,
+        /** How many of the book's puzzles each difficulty has (the filter chips say it). */
+        val difficultyCounts: Map<Int, Int> = emptyMap(),
     ) : PuzzleListUiState {
         /** The book's first part, the positions ("Puzzle 3 of 50"). */
         val positionsSolved: Int get() = solved - roundsSolved
@@ -97,5 +99,6 @@ fun puzzleList(
         themes = list.groupingBy { it.theme }.eachCount().filterValues { it > 1 }.keys.sorted(),
         roundsSolved = rows.count { it.info.fullRound && it.progress.solved },
         roundsTotal = rows.count { it.info.fullRound },
+        difficultyCounts = list.groupingBy { it.difficulty }.eachCount(),
     )
 }

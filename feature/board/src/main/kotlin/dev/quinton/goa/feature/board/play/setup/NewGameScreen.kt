@@ -86,6 +86,7 @@ import dev.quinton.goa.core.designsystem.theme.GoaTheme
 import dev.quinton.goa.core.designsystem.theme.Spacing
 import dev.quinton.goa.core.game.AiStrength
 import dev.quinton.goa.core.game.GameLength
+import dev.quinton.goa.core.game.engine.Counters
 import dev.quinton.goa.core.model.match.Team
 import dev.quinton.goa.feature.board.BoardText
 import dev.quinton.goa.feature.board.board.BoardSheet
@@ -394,13 +395,28 @@ private fun OptionsStep(
                 if (state.aiSeats.size > 1) Advanced(state, onAction)
             }
 
-            Section("Length", note = PlayText.lengthNote(state.form.length)) {
+            Section("Length", note = lengthNote(state)) {
+                // Each length with the counters it starts with, as the engine sets them up (p.5): the choice reads
+                // without the rulebook (sol #17).
+                val lanes = state.map?.lanes ?: 1
+                val heroes = state.red.size + state.blue.size
                 GoaSegmentedRow(Modifier.fillMaxWidth()) {
-                    GameLength.entries.forEachIndexed { i, length ->
+                    GameLength.entries.forEach { length ->
+                        val counts = startingCounters(lanes, length, heroes)
                         GoaSegment(
                             selected = state.form.length == length,
                             onClick = { onAction(NewGameAction.SetLength(length)) },
-                        ) { Text(PlayText.length(length)) }
+                        ) {
+                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                Text(PlayText.length(length), maxLines = 1)
+                                Text(
+                                    counts,
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    textAlign = TextAlign.Center,
+                                )
+                            }
+                        }
                     }
                 }
             }
@@ -782,3 +798,18 @@ private fun CoinDialog(coin: Team, starting: Boolean, onStart: () -> Unit, onDis
 }
 
 private const val LARGE_FONT = 1.3f
+
+/** "3 Waves · 4 Lives": the Wave counters (per Lane) and Life counters (per team) a game starts with (p.5, p.20). */
+internal fun startingCounters(lanes: Int, length: GameLength, heroes: Int): String {
+    val waves = Counters.waves(lanes, length)
+    val life = Counters.life(lanes, length, heroes)
+    val wavesText = if (lanes > 1) "$lanes × $waves Waves" else "$waves Waves"
+    return "$wavesText · $life Lives"
+}
+
+/** What the length's counts are, and where the rulebook sets them. */
+private fun lengthNote(state: NewGameUiState.Ready): String {
+    val heroes = state.red.size + state.blue.size
+    val page = if (state.form.length == GameLength.LONG) "p.23" else "p.5"
+    return "Wave counters, and Life counters per team, at the start with $heroes heroes ($page)."
+}
