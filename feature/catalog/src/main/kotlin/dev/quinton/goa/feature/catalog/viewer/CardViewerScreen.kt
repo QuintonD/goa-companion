@@ -221,7 +221,7 @@ private fun CardPage(card: Card, isHandicap: Boolean, textOnly: Boolean, zoom: Z
     var imageFailed by remember(card.id) { mutableStateOf(false) }
     val showsDesigned = !hasImage || imageFailed
     // The scan's own width in pixels, once decoded: the card is shown at most [MAX_UPSCALE] times that, so a
-    // phone's density never blows a 546 px scan up until its print goes soft. "Read the card as text" is crisp.
+    // phone's density never blows a 729 px scan up until its print goes soft. "Read the card as text" is crisp.
     var scanWidth by remember(card.id) { mutableIntStateOf(SCAN_WIDTH_PX) }
     val cardMax = with(LocalDensity.current) { (scanWidth * MAX_UPSCALE).toDp() }.coerceAtMost(MAX_CARD_WIDTH)
     Column(
@@ -462,8 +462,8 @@ private fun IconLabel(
 
 private const val CARD_ASPECT = 729f / 1026f
 
-/** A deck scan's width as bundled (cards are at most 768 px tall, official/SOURCES.md), until one decodes. */
-private const val SCAN_WIDTH_PX = 546
+/** A deck scan's width as bundled (729 × 1026, the scans' own size, official/SOURCES.md), until one decodes. */
+private const val SCAN_WIDTH_PX = 729
 
 /** How far a scan is enlarged at most: past about one and a half times, its printed text goes soft. */
 private const val MAX_UPSCALE = 1.6f

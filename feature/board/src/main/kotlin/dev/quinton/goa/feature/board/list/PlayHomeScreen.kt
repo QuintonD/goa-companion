@@ -22,6 +22,7 @@ import dev.quinton.goa.core.designsystem.component.GoaScreen
 import dev.quinton.goa.core.designsystem.component.SettingsActionButton
 import dev.quinton.goa.core.designsystem.theme.Spacing
 import dev.quinton.goa.feature.board.R
+import dev.quinton.goa.feature.board.play.puzzles.SolvedCount
 
 /** The Play tab's entries, as the screen opens them. */
 data class PlayHomeActions(
@@ -85,9 +86,16 @@ fun PlayHomeScreen(state: PlayHomeUiState, actions: PlayHomeActions, modifier: M
                         R.drawable.play_art_puzzles,
                         "Puzzles",
                         "Hard positions, gentle nudges, the rule behind each answer.",
-                        puzzles?.let { "${it.solved} of ${it.total} solved" } ?: "Not available in this build",
+                        if (puzzles == null) "Not available in this build" else null,
                         enabled = puzzles != null,
                         onClick = actions.onPuzzles,
+                        // The same lines as over the parts of the puzzle list, part by part.
+                        progress = puzzles?.let { p ->
+                            {
+                                SolvedCount(p.positionsSolved, p.positionsTotal, rounds = false)
+                                if (p.roundsTotal > 0) SolvedCount(p.roundsSolved, p.roundsTotal, rounds = true)
+                            }
+                        },
                     ),
                     Tile(
                         R.drawable.play_art_sandbox,
@@ -119,6 +127,7 @@ fun PlayHomeScreen(state: PlayHomeUiState, actions: PlayHomeActions, modifier: M
                                 status = tile.status,
                                 enabled = tile.enabled,
                                 onClick = tile.onClick,
+                                progress = tile.progress,
                                 artHeight = tileArt,
                                 modifier = Modifier.weight(1f).fillMaxHeight(),
                             )
@@ -137,6 +146,7 @@ private class Tile(
     val status: String? = null,
     val enabled: Boolean = true,
     val onClick: () -> Unit,
+    val progress: (@Composable () -> Unit)? = null,
 )
 
 private val WIDE: Dp = 720.dp

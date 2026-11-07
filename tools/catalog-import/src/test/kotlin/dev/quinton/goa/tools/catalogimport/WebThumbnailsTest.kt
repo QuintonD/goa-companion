@@ -21,7 +21,7 @@ class WebThumbnailsTest {
 
             val card = ImageIo.load(out.resolve("cards/arien-gold.webp"))
             assertThat(card.width).isEqualTo(WebThumbnails.CARD_WIDTH)
-            assertThat(card.height).isEqualTo(540) // 546 × 768 keeps its shape
+            assertThat(card.height).isEqualTo(540) // 729 × 1026 keeps its shape
             assertThat(ImageIo.load(out.resolve("cards/gydion-spell-banishment.webp")).width)
                 .isEqualTo(WebThumbnails.CARD_WIDTH)
             val symbol = ImageIo.load(out.resolve("heroes/arien/symbol.webp"))
