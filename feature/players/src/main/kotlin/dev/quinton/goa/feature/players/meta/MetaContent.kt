@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -332,8 +333,9 @@ private fun HeroHeader(state: MetaUiState, actions: MetaActions) {
                 color = GoaTheme.colors.heading,
                 modifier = Modifier.weight(1f).semantics { heading() },
             )
-            GoaSegmentedRow {
-                MetaView.entries.forEachIndexed { i, view ->
+            // As wide as its two words: the heading keeps the rest of the line.
+            GoaSegmentedRow(Modifier.width(IntrinsicSize.Max)) {
+                MetaView.entries.forEach { view ->
                     GoaSegment(
                         selected = state.view == view,
                         onClick = { actions.onView(view) },
