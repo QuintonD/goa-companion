@@ -423,7 +423,8 @@ dots at each step; a decision's other highlights (a card's range) use the violet
 acting hero's space is outlined in bronze with a bronze **"NOW"** tag over its piece (dark letters; the turn's state is bronze on the map as on the track, the ring keeps the team's colour; growing with large text up to 1.5×,
 outside the zoom; TalkBack hears "acting now" on the space); an immune minion is ringed with a dashed
 teal circle (TalkBack: "immune"). Map taps select, a **Confirm** button with the choice spelled out
-("Confirm · Lane Zone 3 · 3 spaces from Wasp") answers. Every option is a 48 dp target: a tap within 24 dp of a lone
+("Confirm · Lane Zone 3 · 3 spaces from Wasp") answers. The sandbox's key is one compact row of short words ("Move 4",
+"Range 2") with an info mark; a tap opens the full words ("Range 2: in reach from here") and closes them again. Every option is a 48 dp target: a tap within 24 dp of a lone
 option's centre takes it, and a tap among several options while a space is narrower than 48 dp on screen zooms in a
 step around the finger first (**tap to focus**); the next tap chooses. While the person's question lights the map a **map key**
 (`MapKey`, a small plate under the round at a glance and the turn track, inside what the map frames below, so it
@@ -488,10 +489,13 @@ question and the action chips, each a label only (TalkBack hears its rule whole)
 **Actions** are compact chips beside the card: the game's icon and the value the card prints
 ("Movement 4"; the primary filled bronze and named "Card action · Attack 6"), only the rules
 no card prints in a few words (Fast Travel "To your Zone or an adjacent one, no enemy
-hero or minion in either", Hold "Do nothing", Clear). **Rulebook pages never sit in a button or caption:** a decision
-has at most one **rule row** (`RuleRow`: an info icon or the verdict's mark, the rule or count in bodySmall semibold, and
-the page as a small bronze-edged pill, "p.7"); for an action question "Only the card action applies
-the card's text." p.7. A question asked while a card resolves but not by its action (Respawn, an initiative
+hero or minion in either", Hold "Do nothing", Clear), each chip ending in its rulebook page as a small pill (`PagePill`:
+"p.7" on the card action, "p.11" Fast Travel, "p.12" Hold, in the chip's ink). **Rulebook pages are never inline words
+("(p.7)") in a button or caption:** a chip or a head carries its page as that pill, and a decision has at most one
+**rule row** (`RuleRow`: an info icon or the verdict's mark, the rule or count in bodySmall semibold, the page pill at
+its end); for an action question without the card action, "Only the card action applies the card's text." p.7. The
+hero sheet's Items and Ultimate heads, the sandbox's Movement, Fast Travel, Range and Radius rows and game over's
+reasons carry their pages the same way. A question asked while a card resolves but not by its action (Respawn, an initiative
 tie, a minion's way back, the Minion Battle) has its own name on the text box's tab, a silver box and no action
 symbol: never ATTACK over "Respawn in your Throne Zone?". Under the chips, one line (info
 icon, bodySmall) for each action the card prints that isn't offered, with the engine's reason and
@@ -509,13 +513,12 @@ keep) show "Asked by <card>" (28 dp thumbnail) when another card asks, and the c
 images: the hand as 84 dp cards shrinking to 60 dp to fit five, two or three cards larger (112 / 92
 dp, so Keep's two next-Tier cards sit side by side with their item stats), a card the question
 doesn't offer dimmed with a block icon. Under every card to choose (hand, discard, defend, upgrade, keep) its
-**name** in Crimson 14 sp semibold (wraps, after a hyphen if need be, never cut). **Card numbers** (`CardNumbers`) sit on
-the scan itself, crisp over its soft print: the Initiative on a dark bronze-edged badge over the printed corner, and
-along the foot (over the text box) the primary action's value, then Range, then Movement, each with the game's own item
-icon and the figure in 16 sp bold (two values under 100 dp wide, three above); from the catalog, growing with the text
-only to 1.3×. On cards to choose (not a defence, which shows its total instead), the card beside an action question
-(its corner only beside a board question) and the hero sheet's hand. The scan is for recognition, the badges and the
-caption for reading. The foot of a card question is one row: a steel **Read card** button (book icon; the chosen card, else
+**name** in Crimson 14 sp semibold (wraps, after a hyphen if need be, never cut). **Card numbers** (`CardNumbers`) follow
+in a strip of their own under the name, so they hide none of the card's title or text: the Initiative, then the
+primary action's value, then Range, then Movement, each with the game's own item icon and the figure in 16 sp bold
+(a card under 100 dp wide shows the first two, on one line); from the catalog, growing with the text only to 1.3×. On cards to choose
+(not a defence, which shows its total instead), under the card beside an action question (name and numbers) and under
+the hero sheet's hand (name and numbers). The scan is for recognition, the strip for reading. The foot of a card question is one row: a steel **Read card** button (book icon; the chosen card, else
 the first, in the card viewer with its words as text) and the bronze commit button. **A tap never both shows and commits:** a tap chooses a card (`TableUi.selected`; lifted 8 dp, a 3 dp
 bronze edge and a bronze tick at its corner; TalkBack: "Chosen", its click "Choose", "Look at the card" a custom
 action), a tap on the chosen card reads it in the **card focus** viewer (below), and only the bronze button
@@ -575,9 +578,10 @@ keeps every line). The coach's nudge is a secondary-container card with "Choose 
 (outlined) and "Rethink" (filled). Game over leads with "You won" / "The computer won" in a card
 bordered in the winner's colour, the rulebook reason (no page), then **How each hero did** as a grid under one
 `SectionHeader`: a head row of icons over 13 sp words (Level, Heroes, Minions, KO'd, Coins; the game's crossed blades
-and coin), a row per hero (portrait in its team ring, mark, name, who played it) with its figures in those columns
-(20 sp, a zero muted); with large text the figures go under the name. Then the coach's turning points by round and
-turn, the report and an outlined New game; **Rematch** (bronze, with its icon) and **Done** (outlined) are pinned under
+and coin) in fixed columns as wide as their word plus air, a row per hero (portrait in its team ring with the mark on
+its foot, name, who played it, wrapping) with its figures in those columns (20 sp, a zero muted); with large text the
+figures go under the name. Then the report ("Review your decisions", in view over the bar), the coach's turning points
+by round and turn, and an outlined New game; **Rematch** (bronze, with its icon) and **Done** (outlined) are pinned under
 the page on the slate, as every flow's commit is (online: Done alone). New game reuses New board's picker; heroes not
 yet playable are veiled and marked "Later". Options: the line-up plate, then
 **You play** as "One hero | Whole team" (2 v 2 and up) and portrait chips for the heroes or the teams (the

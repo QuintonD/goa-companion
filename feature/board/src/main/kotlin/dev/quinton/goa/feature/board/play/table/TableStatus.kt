@@ -759,7 +759,7 @@ private fun UltimateAndHand(table: TableUi, hero: HeroView, focus: CardFocusStat
     Row(horizontalArrangement = Arrangement.spacedBy(Spacing.md)) {
         if (ultimate != null) {
             Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                Section("Ultimate")
+                HeroSection("Ultimate", page = "p.16")
                 CardRow(listOf(CardView(ultimate.id)), table, focus, "$name · Ultimate", width = SHEET_CARD)
             }
         } else if (hero.ultimate) {
@@ -919,10 +919,12 @@ private fun ThumbRow(
                     border = if (view.active) BorderStroke(2.dp, MaterialTheme.colorScheme.secondary) else null,
                     modifier = if (card != null) origin(card) else Modifier,
                 ) {
-                    Box {
-                        TableCard(card, width = width, backOf = backOf)
-                        if (card != null && !card.isSpell && width >= NUMBERED_THUMB) CardNumbers(card, width)
-                    }
+                    TableCard(card, width = width, backOf = backOf)
+                }
+                // A hand-sized card says its name and numbers in a strip under it (the scan's print is too small).
+                if (card != null && !card.isSpell && width >= NUMBERED_THUMB) {
+                    CardCaption(card, width)
+                    CardNumbers(card, width)
                 }
                 val caption = captions.getOrNull(i).orEmpty()
                 if (caption.isNotEmpty()) {
@@ -943,7 +945,7 @@ private const val OFF_BOARD_ALPHA = 0.45f
 private val WIDE_SHEET = 600.dp
 private val THUMB_CARD = 64.dp
 
-/** From this width a thumbnail carries its numbers as badges ([CardNumbers]): the hand, not the small rows. */
+/** From this width a thumbnail carries its name and numbers under it ([CardNumbers]): the hand, not small rows. */
 private val NUMBERED_THUMB = 80.dp
 
 /** The Ultimate and the hand on the hero sheet (mock-up 05). */

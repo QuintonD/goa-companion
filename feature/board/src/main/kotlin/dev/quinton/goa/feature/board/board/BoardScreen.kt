@@ -381,11 +381,17 @@ private fun BoardContent(
                 }
                 ToolBanner(state, onAction)
                 // What each mark on the map means, for the layers shown now (the panel's switches turn them on).
-                val key = boardKey(state, short = LocalDensity.current.fontScale > LARGE_FONT)
+                // One compact row of short words over the map; a tap opens the full words, and closes them again.
+                var keyOpen by rememberSaveable { mutableStateOf(false) }
+                val key = boardKey(state, short = !keyOpen || LocalDensity.current.fontScale > LARGE_FONT)
+                val fullKey = boardKey(state, short = false)
                 MapKey(
                     key.keys.toList(),
                     Modifier.onGloballyPositioned { keyBottom = it.boundsInParent().bottom.toInt() },
                     words = { key[it].orEmpty() },
+                    full = { fullKey[it].orEmpty() },
+                    expanded = keyOpen,
+                    onToggle = { keyOpen = !keyOpen },
                 )
             }
             Spacer(Modifier.width(Spacing.sm))

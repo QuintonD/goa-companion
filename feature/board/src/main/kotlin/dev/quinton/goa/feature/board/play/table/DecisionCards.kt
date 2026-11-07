@@ -346,8 +346,7 @@ internal fun ReadCardButton(onRead: () -> Unit) {
 
 /**
  * Under a card to choose: its name in the game's type, readable at arm's length where the scan's own print is not (its
- * numbers are badges on the card itself, [CardNumbers]). TalkBack hears the card on its node already: this is for the
- * eye.
+ * numbers follow in a strip, [CardNumbers]). TalkBack hears the card on its node already: this is for the eye.
  */
 @Composable
 internal fun CardCaption(card: Card, width: Dp) {
@@ -512,6 +511,7 @@ private fun OfferedThumb(
     ) {
         ChoosableCard(card, width, chosen, offered, focus, tap)
         CardCaption(card, cardWidth(card, width))
+        if (!card.isSpell) CardNumbers(card, cardWidth(card, width))
         if (keep) card.item?.let { ItemCaption(it) }
         if (!offered) {
             Icon(
@@ -538,8 +538,6 @@ internal fun ChoosableCard(
     onTap: () -> Unit,
     shape: RoundedCornerShape = RoundedCornerShape(width * 0.08f),
     border: BorderStroke? = null,
-    /** Its Initiative and values as crisp badges over the scan ([CardNumbers]). */
-    numbers: Boolean = true,
 ) {
     Box {
         Surface(
@@ -553,10 +551,7 @@ internal fun ChoosableCard(
                 .graphicsLayer { translationY = if (chosen) -LIFT.toPx() else 0f }
                 .alpha(if (offered) 1f else DIMMED),
         ) {
-            Box {
-                TableCard(card, width = width)
-                if (numbers && !card.isSpell) CardNumbers(card, width)
-            }
+            TableCard(card, width = width)
         }
         if (chosen) ChosenTick(Modifier.align(Alignment.TopEnd).offset(x = 5.dp, y = -LIFT - 5.dp))
     }
@@ -809,16 +804,16 @@ internal fun RuleRow(
 
 /** "p.14" as a small bronze-edged pill: where a rule is in the rulebook, out of the way of the words. */
 @Composable
-internal fun PagePill(page: String, modifier: Modifier = Modifier) {
+internal fun PagePill(page: String, modifier: Modifier = Modifier, color: Color = MaterialTheme.colorScheme.primary) {
     Text(
         page,
         style = MaterialTheme.typography.labelMedium,
         fontWeight = FontWeight.SemiBold,
-        color = MaterialTheme.colorScheme.primary,
+        color = color,
         maxLines = 1,
         softWrap = false,
         modifier = modifier
-            .border(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.6f), RoundedCornerShape(50))
+            .border(1.dp, color.copy(alpha = 0.6f), RoundedCornerShape(50))
             .padding(horizontal = 6.dp, vertical = 1.dp),
     )
 }
@@ -952,7 +947,7 @@ private fun DefenseCard(
                 }
             },
     ) {
-        ChoosableCard(card, width, chosen, offered = true, focus = focus, onTap = tap, numbers = false)
+        ChoosableCard(card, width, chosen, offered = true, focus = focus, onTap = tap)
         CardCaption(card, width)
         if (vs != null) {
             Verdict(line.verdict.holds, vs)

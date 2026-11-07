@@ -5,6 +5,8 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
@@ -72,6 +74,7 @@ import dev.quinton.goa.core.game.Controller
 import dev.quinton.goa.core.model.match.Team
 import dev.quinton.goa.feature.board.BoardText
 import dev.quinton.goa.feature.board.play.PlayText
+import dev.quinton.goa.feature.board.play.table.PagePill
 import dev.quinton.goa.feature.board.ui.PlateSurface
 import dev.quinton.goa.feature.board.ui.TeamBadge
 import dev.quinton.goa.feature.board.ui.badgeOverhang
@@ -115,10 +118,12 @@ internal fun GameOverContent(
                     }
                 }
 
+                // The review is the person's next step after the result: in view over the pinned bar, before the coach.
+                if (play.online == null) GameReportSection(play, onAction, focus, onLogAt)
+
                 if (over.coach) TurningPoints(over)
 
                 if (play.online == null) {
-                    GameReportSection(play, onAction, focus, onLogAt)
                     GoaOutlinedButton(onClick = onNewGame, modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp)) {
                         Text("New game")
                     }
@@ -129,7 +134,7 @@ internal fun GameOverContent(
     }
 }
 
-/** Who won, how (the rulebook's words, its page left to the rules), and the game's length. */
+/** Who won, how (the rulebook's words, its page as a small pill), and the game's length. */
 @Composable
 private fun ResultPlate(play: PlayUi, over: GameOverUi) {
     PlateSurface(
@@ -168,11 +173,9 @@ private fun ResultPlate(play: PlayUi, over: GameOverUi) {
                     fontWeight = FontWeight.SemiBold,
                 )
             }
-            Text(
-                withoutPages(PlayText.winReason(over.reason, over.winner)),
-                style = MaterialTheme.typography.bodyMedium,
-                textAlign = TextAlign.Center,
-            )
+            WithPage(PlayText.winReason(over.reason, over.winner), centred = true) {
+                Text(it, style = MaterialTheme.typography.bodyMedium, textAlign = TextAlign.Center)
+            }
             Text(
                 if (play.online != null) {
                     BoardText.count(over.rounds, "round")
@@ -273,8 +276,27 @@ private fun ratedWords(online: OnlineUi): String? = when (online.rated) {
     null -> null
 }
 
-/** "(p.13)" and the like out of a sentence: a result screen is not a rules lookup. */
+/** "(p.13)" and the like out of a sentence: the page goes in a pill after it ([WithPage]), never in the words. */
 private fun withoutPages(text: String): String = text.replace(PAGES, "")
+
+/** A sentence that cites the rulebook, its pages as small bronze pills after the words ("… counter." p.13). */
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun WithPage(text: String, centred: Boolean = false, words: @Composable (String) -> Unit) {
+    val pages = PAGES.findAll(text).flatMap { PAGE_NUMBER.findAll(it.value).map { m -> m.value } }.toList()
+    FlowRow(
+        horizontalArrangement = Arrangement.spacedBy(
+            Spacing.xs,
+            if (centred) Alignment.CenterHorizontally else Alignment.Start,
+        ),
+        itemVerticalAlignment = Alignment.CenterVertically,
+    ) {
+        words(withoutPages(text))
+        pages.forEach { PagePill(it) }
+    }
+}
+
+private val PAGE_NUMBER = Regex("p\\.\\d+")
 
 private val PAGES = Regex(" \\(p\\.\\d+(?:[,;] ?p\\.\\d+)*\\)")
 
@@ -299,23 +321,25 @@ private fun TurningPoint(note: CoachNote) {
                 color = MaterialTheme.colorScheme.onSecondaryContainer,
             )
             if (note.detail.isNotBlank()) {
-                Text(
-                    withoutPages(note.detail),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSecondaryContainer,
-                )
+                WithPage(note.detail) {
+                    Text(
+                        it,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSecondaryContainer,
+                    )
+                }
             }
         }
     }
 }
 
 /** The grid's columns, in order: what each counts, its icon and its head. */
-private enum class ResultColumn(val head: String, val spoken: String) {
-    LEVEL("Level", "Level"),
-    HEROES("Heroes", "heroes defeated"),
-    MINIONS("Minions", "minions defeated"),
-    FALLEN("KO'd", "times defeated"),
-    COINS("Coins", "coins gained"),
+private enum class ResultColumn(val head: String, val spoken: String, val width: Dp) {
+    LEVEL("Level", "Level", 42.dp),
+    HEROES("Heroes", "heroes defeated", 54.dp),
+    MINIONS("Minions", "minions defeated", 60.dp),
+    FALLEN("KO'd", "times defeated", 42.dp),
+    COINS("Coins", "coins gained", 46.dp),
 }
 
 private fun ResultColumn.of(r: HeroResult): Int = when (this) {
@@ -358,7 +382,7 @@ private fun HeroResults(play: PlayUi, over: GameOverUi, onHero: (String) -> Unit
                 verticalAlignment = Alignment.Bottom,
             ) {
                 Spacer(Modifier.weight(1f))
-                Heads(Modifier.width(FIGURE * ResultColumn.entries.size))
+                Heads(Modifier.width(FIGURES), fixed = true)
             }
         }
         heroes.forEachIndexed { i, result ->
@@ -369,19 +393,21 @@ private fun HeroResults(play: PlayUi, over: GameOverUi, onHero: (String) -> Unit
 }
 
 @Composable
-private fun Heads(modifier: Modifier) {
-    // A head is a word over a column a fifth of the row wide: it grows with the text only to 1.3×, never clipped.
+private fun Heads(modifier: Modifier, fixed: Boolean = false) {
+    // A head is a word over its column: it grows with the text only to 1.3×, never clipped.
     val density = LocalDensity.current
     CompositionLocalProvider(LocalDensity provides Density(density.density, minOf(density.fontScale, STACKED_SCALE))) {
-        HeadRow(modifier)
+        HeadRow(modifier, fixed)
     }
 }
 
+/** The heads in their columns: [fixed] widths beside the names, else shares of a row of their own. */
 @Composable
-private fun HeadRow(modifier: Modifier) {
+private fun HeadRow(modifier: Modifier, fixed: Boolean) {
     Row(modifier) {
         ResultColumn.entries.forEach { column ->
-            Column(Modifier.weight(1f), horizontalAlignment = Alignment.CenterHorizontally) {
+            val cell = if (fixed) Modifier.width(column.width) else Modifier.weight(1f)
+            Column(cell, horizontalAlignment = Alignment.CenterHorizontally) {
                 ColumnIcon(column)
                 val style = MaterialTheme.typography.labelMedium.copy(fontSize = 13.sp, letterSpacing = 0.sp)
                 Text(
@@ -391,7 +417,7 @@ private fun HeadRow(modifier: Modifier) {
                     maxLines = 1,
                     // Heads never touch: a word wider than its column steps down a little.
                     autoSize = TextAutoSize.StepBased(minFontSize = 11.sp, maxFontSize = style.fontSize),
-                    modifier = Modifier.padding(horizontal = 1.dp),
+                    modifier = Modifier.padding(horizontal = HEAD_GAP),
                 )
             }
         }
@@ -399,8 +425,8 @@ private fun HeadRow(modifier: Modifier) {
 }
 
 @Composable
-private fun RowScope.Figures(result: HeroResult, width: Dp?) {
-    Row(if (width != null) Modifier.width(width * ResultColumn.entries.size) else Modifier.weight(1f)) {
+private fun RowScope.Figures(result: HeroResult, fixed: Boolean) {
+    Row(if (fixed) Modifier.width(FIGURES) else Modifier.weight(1f)) {
         ResultColumn.entries.forEach { column ->
             Text(
                 "${column.of(result)}",
@@ -411,7 +437,7 @@ private fun RowScope.Figures(result: HeroResult, width: Dp?) {
                 } else {
                     LocalContentColor.current
                 },
-                modifier = Modifier.weight(1f),
+                modifier = if (fixed) Modifier.width(column.width) else Modifier.weight(1f),
             )
         }
     }
@@ -468,23 +494,28 @@ private fun HeroResultRow(play: PlayUi, result: HeroResult, stacked: Boolean, on
                         autoSize = TextAutoSize.StepBased(minFontSize = 11.sp, maxFontSize = nameStyle.fontSize),
                     )
                     Text(
-                        who,
+                        // "Computer ·" / "Hard 8" when it wraps: the dot stays with the word before it.
+                        who.replace(" · ", "\u00A0· "),
                         style = MaterialTheme.typography.labelMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
-                if (!stacked) Figures(result, FIGURE)
+                if (!stacked) Figures(result, fixed = true)
             }
             if (stacked) {
                 Heads(Modifier.fillMaxWidth().padding(top = Spacing.sm))
-                Row { Figures(result, null) }
+                Row { Figures(result, fixed = false) }
             }
         }
     }
 }
 
-private val FIGURE = 46.dp
+/** The figures' columns, each as wide as its head word with air on both sides (a gap between heads). */
+private val FIGURES = ResultColumn.entries.fold(0.dp) { sum, c -> sum + c.width }
 private val BADGE = 14.dp
 private val PORTRAIT = 36.dp
+
+/** Air either side of a head word: neighbouring heads never touch. */
+private val HEAD_GAP = 3.dp
 private const val STACKED_SCALE = 1.3f
 private const val REMATCH_SHARE = 1.4f

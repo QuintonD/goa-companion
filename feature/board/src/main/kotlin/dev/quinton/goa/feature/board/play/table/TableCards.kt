@@ -6,7 +6,6 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
@@ -38,7 +37,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.layout.ContentScale
@@ -292,33 +290,54 @@ internal fun statIcon(stat: Stat): GameIcon = when (stat) {
 }
 
 /**
- * The numbers a choice weighs, crisp over a card scan's soft print (sol #5, opus #4): its Initiative on the corner
- * where the card prints it, and along its foot (over the text box, which a thumbnail can't print legibly anyway) the
- * primary action's value, then Range or Movement when the card prints them, each with the game's own item icon, at
- * 16 sp. Values come from the catalog; a narrow card keeps the corner and the first value. Decorative for TalkBack:
- * every caller speaks the card ([spokenCard]). Put it in a [Box] over a [TableCard] of the same [width].
+ * The numbers a choice weighs, crisp under a card scan whose print is too small to read, in a strip of their own so
+ * they hide none of the card's title or text: its Initiative, then the primary action's value, then
+ * Range and Movement when the card prints them, each with the game's own item icon and the figure in 16 sp bold. Values
+ * come from the catalog; a card under 100 dp shows the first two. Decorative for TalkBack: every caller speaks the
+ * card ([spokenCard]). Put it under the card's name ([CardCaption]), as wide as the card.
  */
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
-fun BoxScope.CardNumbers(card: Card, width: Dp, foot: Boolean = true) {
+fun CardNumbers(card: Card, width: Dp, modifier: Modifier = Modifier) {
+    // One line under any card: a narrow one keeps its Initiative and the first value that matters most.
+    val values = (listOfNotNull(card.initiative?.let { Stat.INITIATIVE to it }) + cardValues(card))
+        .take(if (width >= WIDE_STRIP) Int.MAX_VALUE else 2)
+    if (values.isEmpty()) return
     val density = LocalDensity.current
-    // The badges grow with the text only to 1.3×: past that a thumbnail has no room for them.
+    // The strip grows with the text only to 1.3×: past that it would take more lines than the card is tall.
     CompositionLocalProvider(LocalDensity provides Density(density.density, minOf(density.fontScale, BADGE_SCALE))) {
-        card.initiative?.let { initiative ->
-            NumberBadge(
-                Modifier.align(Alignment.TopStart).padding(start = width * 0.02f, top = width * 0.02f),
-                listOf(Stat.INITIATIVE to initiative),
-            )
-        }
-        if (foot) {
-            val values = cardValues(card).take(if (width >= WIDE_BADGES) 3 else 2)
-            if (values.isNotEmpty()) {
-                NumberBadge(Modifier.align(Alignment.BottomCenter).padding(bottom = width * 0.04f), values)
+        FlowRow(
+            modifier.width(width).clearAndSetSemantics {},
+            horizontalArrangement = Arrangement.spacedBy(6.dp, Alignment.CenterHorizontally),
+            itemVerticalAlignment = Alignment.CenterVertically,
+        ) {
+            values.forEach { (stat, value) ->
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    OfficialIcon(
+                        OfficialArt.itemIcon(stat),
+                        Modifier.size(width = BADGE_ICON * ITEM_ICON_ASPECT, height = BADGE_ICON),
+                    ) {
+                        Icon(
+                            statIcon(stat).vector,
+                            null,
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(BADGE_ICON),
+                        )
+                    }
+                    Text(
+                        "$value",
+                        style = GoaTextStyles.numeric.copy(fontSize = 16.sp, lineHeight = 20.sp),
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        maxLines = 1,
+                    )
+                }
             }
         }
     }
 }
 
-/** The values along a card's foot, in order: the primary action's, then Range, then Movement (each once). */
+/** The values after a card's Initiative, in order: the primary action's, then Range, then Movement (each once). */
 fun cardValues(card: Card): List<Pair<Stat, Int>> {
     val primary = when (card.primary) {
         PrimaryAction.ATTACK -> card.values.attack?.let { Stat.ATTACK to it }
@@ -333,42 +352,8 @@ fun cardValues(card: Card): List<Pair<Stat, Int>> {
     ).distinctBy { it.first }
 }
 
-@Composable
-private fun NumberBadge(modifier: Modifier, values: List<Pair<Stat, Int>>) {
-    Row(
-        modifier
-            .background(BadgeGround, RoundedCornerShape(6.dp))
-            .border(1.dp, BadgeEdge, RoundedCornerShape(6.dp))
-            .padding(horizontal = 4.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(5.dp),
-    ) {
-        values.forEach { (stat, value) ->
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                OfficialIcon(
-                    OfficialArt.itemIcon(stat),
-                    Modifier.size(width = BADGE_ICON * ITEM_ICON_ASPECT, height = BADGE_ICON),
-                ) {
-                    Icon(statIcon(stat).vector, null, tint = BadgeEdge, modifier = Modifier.size(BADGE_ICON))
-                }
-                Text(
-                    "$value",
-                    style = GoaTextStyles.numeric.copy(fontSize = 16.sp, lineHeight = 19.sp),
-                    fontWeight = FontWeight.Bold,
-                    color = BadgeInk,
-                    maxLines = 1,
-                    softWrap = false,
-                )
-            }
-        }
-    }
-}
-
-private val BadgeGround = Color(0xE6101820)
-private val BadgeEdge = Color(0xFFC9A35B)
-private val BadgeInk = Color(0xFFF4EEDF)
-private val BADGE_ICON = 14.dp
+private val BADGE_ICON = 13.dp
 private const val BADGE_SCALE = 1.3f
 
-/** From this width a card's foot has room for three values. */
-private val WIDE_BADGES = 100.dp
+/** From this width a card's strip has room for all its values on one line. */
+private val WIDE_STRIP = 100.dp

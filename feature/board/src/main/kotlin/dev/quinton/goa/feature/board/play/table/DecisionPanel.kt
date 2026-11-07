@@ -197,7 +197,9 @@ private fun hasBoardOptions(table: TableUi) = table.spaceOptions.isNotEmpty() ||
 
 /** What a question rests on that no card prints, in the app's words, and the rulebook page it is on. */
 private fun footnote(table: TableUi, decision: Decision): Pair<String, String>? = when {
-    decision.kind == DecisionKind.CHOOSE_ACTION && table.buttonOptions.any { it is Choice.Action } ->
+    // With the card action offered, its chip carries p.7; without it, why the card's text doesn't apply.
+    decision.kind == DecisionKind.CHOOSE_ACTION && table.buttonOptions.any { it is Choice.Action } &&
+        Choice.Action(ActionType.PRIMARY) !in table.buttonOptions ->
         "Only the card action applies the card's text." to "p.7"
 
     // A bare "who acts first?" over two portraits told nothing about why it was asked.
@@ -543,10 +545,12 @@ private fun CardBeside(
                             }
                         },
                 ) {
-                    Box {
-                        TableCard(card, width = width)
-                        if (!spell) CardNumbers(card, width, foot = large)
-                    }
+                    TableCard(card, width = width)
+                }
+                // Beside the answers there is room: the card's name and numbers in a strip under it, as in a hand.
+                if (large && !spell) {
+                    CardCaption(card, width)
+                    CardNumbers(card, width)
                 }
                 reach?.let {
                     Text(
@@ -852,8 +856,10 @@ private fun ActionChip(
     val card = table.sourceCard
     val primary = action == ActionType.PRIMARY
     val label = if (primary) "Card action · ${actionLabel(action, card)}" else actionLabel(action, card)
-    // The rule a card doesn't print, in a few words; its page is in the question's rule row, not on the chip.
-    val rule = actionRule(action)?.replace(PAGE, "")?.trim()
+    // The rule a card doesn't print, in a few words; its page a small pill at the chip's end, never in the words.
+    val full = actionRule(action)
+    val rule = full?.replace(PAGE, "")?.trim()
+    val page = if (primary) "p.7" else full?.let { PAGE.find(it)?.value?.trim('(', ')') }
     val tone = if (primary) PlateTone.GOLD else PlateTone.STEEL
     val content = tone.content
     PlateToneSurface(
@@ -900,6 +906,10 @@ private fun ActionChip(
                 )
                 // Brief (a short side panel): the label alone, every action in view (TalkBack hears the rule).
                 if (!brief) rule?.let { Text(it, style = MaterialTheme.typography.bodySmall, color = content) }
+            }
+            page?.let {
+                Spacer(Modifier.width(Spacing.sm))
+                PagePill(it, color = content)
             }
         }
     }

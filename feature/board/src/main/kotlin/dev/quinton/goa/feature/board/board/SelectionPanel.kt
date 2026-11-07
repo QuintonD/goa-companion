@@ -84,6 +84,7 @@ import dev.quinton.goa.core.model.catalog.Stat
 import dev.quinton.goa.feature.board.BoardHero
 import dev.quinton.goa.feature.board.BoardText
 import dev.quinton.goa.feature.board.hero
+import dev.quinton.goa.feature.board.play.table.PagePill
 import dev.quinton.goa.feature.board.ui.ArtBoardPalette
 import dev.quinton.goa.feature.board.ui.ArtSwatchGround
 import dev.quinton.goa.feature.board.ui.BoardPalette
@@ -280,6 +281,7 @@ private fun HeroMeasures(
             onAction(BoardAction.MovementBonus(delta))
         }.takeIf { card?.values?.movement != null },
         onToggle = { onAction(BoardAction.ToggleMovement) },
+        page = "p.11",
     )
     if (settings.movement && overlay.movementValue != null) MovementRules(settings, onAction)
     OverlayRow(
@@ -294,6 +296,7 @@ private fun HeroMeasures(
         swatch = { c, m, u -> drawFastTravelCell(c, m, u, palette) },
         palette = palette,
         onToggle = { onAction(BoardAction.ToggleFastTravel) },
+        page = "p.11",
     )
     OverlayRow(
         title = "Range" + (overlay.rangeValue?.let { " $it" } ?: ""),
@@ -311,6 +314,7 @@ private fun HeroMeasures(
         bonus = settings.rangeBonus,
         onBonus = { delta: Int -> onAction(BoardAction.RangeBonus(delta)) }.takeIf { card?.values?.range != null },
         onToggle = { onAction(BoardAction.ToggleRange) },
+        page = "p.9",
     )
     OverlayRow(
         title = "Radius" + (overlay.radiusValue?.let { " $it" } ?: ""),
@@ -328,6 +332,7 @@ private fun HeroMeasures(
         bonus = settings.radiusBonus,
         onBonus = { delta: Int -> onAction(BoardAction.RadiusBonus(delta)) }.takeIf { card?.values?.radius != null },
         onToggle = { onAction(BoardAction.ToggleRadius) },
+        page = "p.9",
     )
     if (card != null && card.text.isNotBlank()) {
         Overline("Card text")
@@ -657,6 +662,8 @@ private fun OverlayRow(
     onBonus: ((Int) -> Unit)? = null,
     steps: Int? = null,
     onSteps: ((Int) -> Unit)? = null,
+    /** The rulebook page the layer follows, as a small pill after its title (never in its note). */
+    page: String? = null,
 ) {
     Column(Modifier.fillMaxWidth()) {
         Row(
@@ -673,12 +680,18 @@ private fun OverlayRow(
             }
             Spacer(Modifier.width(Spacing.md))
             Column(Modifier.weight(1f)) {
-                Text(
-                    title,
-                    style = MaterialTheme.typography.titleSmall,
-                    fontWeight = FontWeight.SemiBold,
-                    color = MaterialTheme.colorScheme.run { if (enabled) onSurface else onSurfaceVariant },
-                )
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        title,
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.SemiBold,
+                        color = MaterialTheme.colorScheme.run { if (enabled) onSurface else onSurfaceVariant },
+                    )
+                    page?.let {
+                        Spacer(Modifier.width(Spacing.sm))
+                        PagePill(it)
+                    }
+                }
                 Text(
                     note,
                     style = MaterialTheme.typography.bodySmall,
