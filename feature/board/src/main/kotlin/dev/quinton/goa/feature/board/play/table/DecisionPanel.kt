@@ -820,6 +820,7 @@ private fun Choices(
                             busy,
                             modifier = Modifier.weight(1f).fillMaxHeight(),
                             brief = true,
+                            paired = true,
                         ) { onAnswer(choice) }
                     }
                     if (pair.size == 1) Spacer(Modifier.weight(1f))
@@ -888,6 +889,8 @@ private fun ActionChip(
     modifier: Modifier = Modifier.fillMaxWidth(),
     /** A short side panel: a long rule shows only its page on the chip (TalkBack still hears it whole). */
     brief: Boolean = false,
+    /** Two to a row (a short side panel): the glyph and page over the words, which keep the chip's width. */
+    paired: Boolean = false,
     onClick: () -> Unit,
 ) {
     val card = table.sourceCard
@@ -916,6 +919,10 @@ private fun ActionChip(
                 }
             },
     ) {
+        if (paired) {
+            PairedChipContent(action, card, primary, page, content)
+            return@PlateToneSurface
+        }
         Row(
             Modifier.padding(horizontal = if (brief) Spacing.sm else Spacing.md, vertical = 6.dp),
             verticalAlignment = Alignment.CenterVertically,
@@ -949,6 +956,37 @@ private fun ActionChip(
                 PagePill(it, color = content)
             }
         }
+    }
+}
+
+/**
+ * An action chip two to a row: the game's glyph and the rule's page on a line of their own, then the words at the
+ * chip's whole width ("Card action" over the card's value for the primary), so no word is broken.
+ */
+@Composable
+private fun PairedChipContent(action: ActionType, card: Card?, primary: Boolean, page: String?, content: Color) {
+    Column(Modifier.fillMaxWidth().padding(horizontal = Spacing.sm, vertical = 6.dp)) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Icon(
+                actionIcon(action, card).vector,
+                null,
+                tint = when {
+                    primary -> content
+                    GoaTheme.isDark -> SteelIconBronze
+                    else -> MaterialTheme.colorScheme.primary
+                },
+                modifier = Modifier.size(scaledIconSize(20.dp, 1.3f)),
+            )
+            Spacer(Modifier.weight(1f))
+            page?.let { PagePill(it, color = content) }
+        }
+        if (primary) Text("Card action", style = MaterialTheme.typography.labelMedium, color = content)
+        Text(
+            actionLabel(action, card),
+            style = MaterialTheme.typography.titleSmall,
+            color = content,
+            fontWeight = FontWeight.SemiBold,
+        )
     }
 }
 

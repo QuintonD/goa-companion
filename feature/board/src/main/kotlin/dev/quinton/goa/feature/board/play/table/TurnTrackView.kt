@@ -294,8 +294,9 @@ private fun cellWord(role: CellRole, slot: TrackSlot, table: TableUi): String = 
 /**
  * The strip the cells lie on. [stretch]ed, one row of equal cells sharing the width, each stacked: portrait and
  * initiative, the name, the card played ([TrackCell]); they scroll at a fixed width when a cell would get narrower
- * than [MIN_CELL], or when the strip isn't stretched (sideways beside the round at a glance). [vertical]: one cell under
- * another, each portrait beside its words (the column at the map's edge sideways), scrolling when they don't all fit.
+ * than [MIN_CELL], or when the strip isn't stretched (sideways beside the round at a glance). [vertical]: one cell
+ * under another, each portrait beside its words (the column at the map's edge sideways), scrolling when they don't
+ * all fit.
  * [framed]: on a plate of its own; else it lies on the plate it is put on (the score bar's, [TableHud]'s `below`).
  */
 @Composable
