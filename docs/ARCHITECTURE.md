@@ -430,6 +430,6 @@ Kotlin (once they target JS, F1) under a DOM UI in Compose HTML; rules never liv
 - `app/src/main/assets/official/board/*.webp` — Spawn point symbols and Tie Breaker coin faces from the rulebook.
 - `app/src/main/assets/official/SOURCES.md` — where each official file came from.
 
-Images: WebP q80, portraits ≤ 512 px, cards ≤ 768 px, deck symbols ≤ 256 px on the long edge (≈ 650 card images
+Images: WebP q80, portraits ≤ 512 px, cards ≤ 1026 px (the scans' own size), deck symbols ≤ 256 px on the long edge (≈ 650 card images
 plus artwork — keep the APK under ~100 MB). Missing image → hero sigil fallback, never a crash or broken tile.
 Generated files are never hand-edited; fix the importer or its override file instead.
