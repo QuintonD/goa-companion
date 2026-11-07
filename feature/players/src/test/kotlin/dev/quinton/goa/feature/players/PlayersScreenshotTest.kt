@@ -22,11 +22,13 @@ import com.github.takahirom.roborazzi.captureRoboImage
 import com.github.takahirom.roborazzi.captureScreenRoboImage
 import dev.quinton.goa.core.data.backup.BackupSummary
 import dev.quinton.goa.core.data.rating.RatingsSnapshot
+import dev.quinton.goa.core.designsystem.component.LocalPlayerFaces
 import dev.quinton.goa.core.designsystem.theme.GoaTheme
 import dev.quinton.goa.core.domain.meta.GroupStats
 import dev.quinton.goa.core.domain.meta.MetaStats
 import dev.quinton.goa.core.domain.rating.EloCalculator
 import dev.quinton.goa.core.domain.rating.EloConfig
+import dev.quinton.goa.core.domain.rating.PlayerFaces
 import dev.quinton.goa.core.model.catalog.Catalog
 import dev.quinton.goa.core.model.match.GameMode
 import dev.quinton.goa.core.model.match.MatchStatus
@@ -113,6 +115,9 @@ private object Shots {
         GroupStats.compute(log, EloCalculator.replay(log, EloConfig.DEFAULT)),
     )
     val byId = Fixtures.players.associateBy { it.id }
+
+    /** Each player's most-played hero, as the app derives it at its root. */
+    val faces = PlayerFaces.from(snapshot.ratings, catalog)
     val today: LocalDate = LocalDate.of(2026, 10, 15)
 
     val players: PlayersUiState = PlayersViewModel.leaderboard(Fixtures.players, snapshot, showArchived = false)
@@ -187,7 +192,10 @@ class PlayersScreenshotTest {
     private fun setContent(mode: ThemeMode, fontScale: Float, content: @Composable () -> Unit) {
         compose.setContent {
             val density = LocalDensity.current
-            CompositionLocalProvider(LocalDensity provides Density(density.density, fontScale)) {
+            CompositionLocalProvider(
+                LocalDensity provides Density(density.density, fontScale),
+                LocalPlayerFaces provides Shots.faces,
+            ) {
                 GoaTheme(themeMode = mode) {
                     Surface(color = MaterialTheme.colorScheme.background) { content() }
                 }

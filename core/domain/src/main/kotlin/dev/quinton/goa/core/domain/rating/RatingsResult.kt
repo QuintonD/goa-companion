@@ -83,6 +83,21 @@ data class RatingsResult(
     fun record(playerId: String, heroId: String): WinLoss =
         playerHeroRecords[PlayerHeroKey(playerId, heroId)] ?: WinLoss.NONE
 
+    /**
+     * Each player's most-played hero in rated games (most games, then most wins, then hero id): the face the app
+     * shows for a player. Derived like everything here, so nothing about it is stored or synced. Players without a
+     * rated game with a known hero are absent.
+     */
+    fun mostPlayedHeroes(): Map<String, String> = playerHeroRecords.entries
+        .groupBy { it.key.playerId }
+        .mapValues { (_, records) ->
+            records.sortedWith(
+                compareByDescending<Map.Entry<PlayerHeroKey, WinLoss>> { it.value.games }
+                    .thenByDescending { it.value.wins }
+                    .thenBy { it.key.heroId },
+            ).first().key.heroId
+        }
+
     companion object {
         val EMPTY = RatingsResult(
             players = emptyMap(),
