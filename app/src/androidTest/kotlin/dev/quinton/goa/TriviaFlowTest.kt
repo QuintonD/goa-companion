@@ -47,7 +47,7 @@ class TriviaFlowTest {
         rule.waitForDescription("Heroes: Arien", substring = true)
         rule.reveal(hasText("in this quiz", substring = true))
 
-        rule.tapText("Start quiz")
+        rule.tapText("Start practice")
         for (question in 1..ROUND) {
             rule.waitForText("Question $question of $ROUND")
             if (rule.exists(hasText("Same initiative") and hasClickAction())) {
