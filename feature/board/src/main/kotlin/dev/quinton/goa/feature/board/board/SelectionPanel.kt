@@ -297,7 +297,7 @@ private fun HeroMeasures(
         page = "p.11",
     )
     OverlayRow(
-        title = "Range" + (overlay.rangeValue?.let { " $it" } ?: ""),
+        title = "Card range" + (overlay.rangeValue?.let { " $it" } ?: ""),
         note = if (card != null &&
             card.values.range == null
         ) {

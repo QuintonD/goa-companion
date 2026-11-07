@@ -75,10 +75,12 @@ import dev.quinton.goa.core.game.ActionType
 import dev.quinton.goa.core.game.Choice
 import dev.quinton.goa.core.game.Decision
 import dev.quinton.goa.core.game.DecisionKind
+import dev.quinton.goa.core.model.board.Hex
 import dev.quinton.goa.core.model.board.MinionPiece
 import dev.quinton.goa.core.model.catalog.Card
 import dev.quinton.goa.core.model.catalog.PrimaryAction
 import dev.quinton.goa.feature.board.play.PlayText
+import dev.quinton.goa.feature.board.play.game.DefeatPreview
 import dev.quinton.goa.feature.board.ui.MinionTypeBadge
 import dev.quinton.goa.feature.board.ui.PlateButton
 import dev.quinton.goa.feature.board.ui.PlateTone
@@ -120,6 +122,8 @@ fun DecisionPanel(
     modifier: Modifier = Modifier,
     busy: Boolean = false,
     who: Boolean = true,
+    /** A DEFEND: what not defending comes to, as the engine plays it out (the consequence row above the commit). */
+    defeat: DefeatPreview? = null,
 ) {
     val decision = table.decision ?: return
     val source = table.sourceCard
@@ -146,7 +150,14 @@ fun DecisionPanel(
         when {
             decision.kind == DecisionKind.PLAY_CARD -> HandPicker(table, onSelect, onAnswer, focus, busy)
 
-            decision.kind == DecisionKind.DEFEND -> DefensePanel(table, onSelect, onAnswer, focus, busy)
+            decision.kind == DecisionKind.DEFEND -> DefensePanel(
+                table,
+                onSelect,
+                onAnswer,
+                focus,
+                busy,
+                defeat?.takeIf { it.decisionId == decision.id },
+            )
 
             decision.kind == DecisionKind.UPGRADE_CARD -> UpgradePicker(table, onSelect, onAnswer, focus, busy)
 
@@ -595,9 +606,44 @@ private fun CardBeside(
 
 // ---- Board options ----------------------------------------------------------------------
 
-/** How a board question is answered: spaces, units or tokens are tapped on the board. */
+/**
+ * How a board question is answered: spaces, units or tokens are tapped on the board. Once one is tapped, what it is in
+ * full ("Chosen: Lane Zone 3 · 3 spaces from Wasp"): the Confirm button says only what it does (opus #21).
+ */
 private fun boardHint(table: TableUi): String =
-    boardHint(table.spaceOptions.size, table.pieceOptions.size) + longPressHint(table)
+    boardChoice(table)?.let { "Chosen: ${table.label(it)}" }
+        ?: (boardHint(table.spaceOptions.size, table.pieceOptions.size) + longPressHint(table))
+
+/** The space, unit or token tapped on the board and not confirmed yet. */
+private fun boardChoice(table: TableUi): Choice? =
+    table.selected?.takeIf { it is Choice.Space || it is Choice.Unit || it is Choice.Token }
+
+/**
+ * The board Confirm in one line (opus #21): what the tap does and, for a move, how many spaces the engine's path takes
+ * ("Move here · 3"); a piece by its number when look-alikes are numbered, else by name. Where it is goes in the plate.
+ */
+internal fun confirmLabel(table: TableUi, selected: Choice): String {
+    val kind = table.decision?.kind
+    return when (selected) {
+        is Choice.Space -> {
+            val from = (table.subject ?: table.decision?.seat)?.let(table::at)
+            val steps = table.pathTo(selected.hex).count { it != from }
+            when {
+                kind == DecisionKind.RESPAWN -> "Respawn here"
+                steps > 0 -> "Move here · $steps"
+                else -> "Choose this space"
+            }
+        }
+
+        is Choice.Unit, is Choice.Token -> {
+            val id = if (selected is Choice.Unit) selected.unitId else (selected as Choice.Token).tokenId
+            val which = minionNumbers(table)[id]?.let { "number $it" } ?: table.pieceName(id)
+            if (kind == DecisionKind.REMOVE_MINION) "Remove · $which" else "Choose · $which"
+        }
+
+        else -> "Confirm · ${table.label(selected)}"
+    }
+}
 
 /** [boardHint] for a question no card asks, on the plate itself. */
 @Composable
@@ -618,18 +664,25 @@ private fun BoardHint(table: TableUi) {
     }
 }
 
-/** Confirm with the choice spelled out, once one is tapped on the board. */
+/**
+ * Confirm, once a space or piece is tapped on the board: one line at 56 dp saying what it does ([confirmLabel]); the
+ * plate above says which one it is. TalkBack hears both.
+ */
 @Composable
 private fun BoardConfirm(table: TableUi, onAnswer: (Choice) -> Unit, busy: Boolean) {
-    val selected = table.selected?.takeIf { it is Choice.Space || it is Choice.Unit || it is Choice.Token }
+    val selected = boardChoice(table)
     if (selected != null) {
+        val label = confirmLabel(table, selected)
         PlateButton(
             onClick = { onAnswer(selected) },
             enabled = !busy,
-            modifier = Modifier.fillMaxWidth().heightIn(min = 52.dp),
+            modifier = Modifier
+                .fillMaxWidth()
+                .heightIn(min = 56.dp)
+                .semantics { contentDescription = "$label, ${table.label(selected)}" },
             contentPadding = PaddingValues(horizontal = Spacing.lg, vertical = Spacing.sm),
         ) {
-            Text("Confirm · ${table.label(selected)}", textAlign = TextAlign.Center)
+            Text(label, textAlign = TextAlign.Center, maxLines = 2)
         }
     }
 }
@@ -652,6 +705,12 @@ private fun BoardChips(table: TableUi, onSelect: (Choice) -> Unit) {
     val spaces = table.spaceOptions.values.toList()
     val pieces = table.pieceOptions.values.toList()
     val selected = table.selected?.takeIf { it is Choice.Space || it is Choice.Unit || it is Choice.Token }
+    // Spaces too crowded on the map to be 48 dp targets: numbered there and listed here, a row each (sol #1).
+    val listed = if (LocalOptionsCrowded.current) spaceNumbers(table) else emptyMap()
+    if (listed.isNotEmpty() && pieces.isEmpty()) {
+        SpaceRows(table, listed, selected, onSelect)
+        return
+    }
     // A chip must say which one it is: spaces whose names repeat ("Red Throne Zone" three times)
     // are only told apart on the board.
     val spaceChips = spaces.takeIf { list ->
@@ -683,6 +742,83 @@ private fun BoardChips(table: TableUi, onSelect: (Choice) -> Unit) {
         chips.forEach { choice -> OptionChip(table.label(choice), choice == selected) { onSelect(choice) } }
     }
 }
+
+/**
+ * The question's spaces by their numbers on the map, two to a row where they fit: how far each is first ("3 spaces from
+ * Wasp"), its Zone under it. A row is a 48 dp radio, bronze once chosen; TalkBack hears its number and its words.
+ */
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun SpaceRows(table: TableUi, listed: Map<Hex, Int>, selected: Choice?, onSelect: (Choice) -> Unit) {
+    val two = LocalDensity.current.fontScale < TWO_ROWS_UNTIL_SCALE
+    FlowRow(
+        Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(Spacing.xs),
+        verticalArrangement = Arrangement.spacedBy(Spacing.xs),
+        maxItemsInEachRow = if (two) 2 else 1,
+    ) {
+        listed.entries.sortedBy { it.value }.forEach { (hex, n) ->
+            val choice = table.spaceOptions[hex] ?: return@forEach
+            val parts = table.label(choice).split(" · ")
+            val first = parts.getOrNull(1) ?: parts.first()
+            val second = if (parts.size > 1) (listOf(parts.first()) + parts.drop(2)).joinToString(" · ") else null
+            NumberedRow(
+                number = n,
+                first = first,
+                second = second,
+                spoken = table.label(choice),
+                selected = choice == selected,
+                modifier = Modifier.weight(1f),
+            ) { onSelect(choice) }
+        }
+    }
+}
+
+/** A numbered option row (a space's number on the map leading it), as [MinionRow] without the minion's marks. */
+@Composable
+private fun NumberedRow(
+    number: Int,
+    first: String,
+    second: String?,
+    spoken: String,
+    selected: Boolean,
+    modifier: Modifier = Modifier,
+    onClick: () -> Unit,
+) {
+    Surface(
+        shape = RoundedCornerShape(7.dp),
+        color = if (selected) MaterialTheme.colorScheme.primaryContainer else PlateWell,
+        border = BorderStroke(
+            if (selected) 2.dp else 1.dp,
+            if (selected) MaterialTheme.colorScheme.primary else GoaTheme.colors.engravedBorder,
+        ),
+        modifier = modifier
+            .heightIn(min = 48.dp)
+            .selectable(selected = selected, role = Role.RadioButton, onClick = onClick)
+            .semantics(mergeDescendants = true) { contentDescription = "Number $number, $spoken" },
+    ) {
+        Row(
+            Modifier.padding(horizontal = Spacing.sm, vertical = Spacing.xs),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            OptionNumberBadge(number, chosen = selected)
+            Spacer(Modifier.width(Spacing.sm))
+            Column(Modifier.weight(1f).clearAndSetSemantics {}) {
+                Text(first, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
+                second?.let {
+                    Text(
+                        it,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            }
+        }
+    }
+}
+
+/** Spaces are listed two to a row below this font scale; one, full width, from it. */
+private const val TWO_ROWS_UNTIL_SCALE = 1.5f
 
 /**
  * One minion to choose, full width: its number on the map (when several read alike), its team and type as marks,

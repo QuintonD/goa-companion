@@ -116,6 +116,8 @@ fun GameMapView(
     lane: Rect? = null,
     onLongPressHero: ((String) -> Unit)? = null,
     buttons: Rect? = null,
+    /** The question's spaces stay crowded: each carries its number from the panel's list ([spaceNumbers]). */
+    crowded: Boolean = false,
 ) {
     val painting = rememberMapPainting(table.map)
     val palette = if (painting != null) ArtBoardPalette else boardPalette()
@@ -266,10 +268,10 @@ fun GameMapView(
                 painted = painting != null,
             )
             Box(transform.semantics { isTraversalGroup = true }) {
-                DecisionOverlay(table, layout, unit, palette)
+                DecisionOverlay(table, layout, unit, palette, crowded)
                 GamePieces(table, layout, unit, palette, look)
                 MinionNumbers(table, layout, unit)
-                GameSpaceNodes(table, layout, viewport, onTap = { tap(it) }, onHero = longPress)
+                GameSpaceNodes(table, layout, viewport, onTap = { tap(it) }, onHero = longPress, crowded = crowded)
             }
             ActingTag(table, layout, viewport, palette)
         }
@@ -368,24 +370,42 @@ private fun labelBusy(table: TableUi, layout: MapLayout): List<Offset> = remembe
 
 /** Options, highlights, the selection and its path, the acting hero, immune minions. */
 @Composable
-private fun DecisionOverlay(table: TableUi, layout: MapLayout, unit: Float, palette: BoardPalette) {
+private fun DecisionOverlay(table: TableUi, layout: MapLayout, unit: Float, palette: BoardPalette, crowded: Boolean) {
     val decision = table.decision
     val selected = table.selected
     val view = table.view
     val hint = table.hintAt
     val measurer = rememberTextMeasurer(cacheSize = 16)
     val grow = minOf(LocalDensity.current.fontScale, MAP_MARK_MAX_SCALE)
-    val draw = remember(decision, table.asking, selected, hint, table.planned, view, layout, unit, palette, grow) {
+    val draw = remember(
+        decision,
+        table.asking,
+        selected,
+        hint,
+        table.planned,
+        view,
+        layout,
+        unit,
+        palette,
+        grow,
+        crowded,
+    ) {
         Modifier.drawWithCache {
             fun cell(hex: Hex) = layout.corners(hex).map { it * unit } to layout.center(hex) * unit
             val highlight = decision?.context?.highlight.orEmpty().map(::cell)
+            // Crowded, each space shows its number in the panel's list (teal, as the Minion Battle's), its steps there.
+            val listed = if (crowded) spaceNumbers(table) else emptyMap()
             // On a painting a space that a move reaches shows its number in a chip, the rest their dashes.
-            val numbered = if (palette.onArt) spacesOnAPath(table) else emptyMap()
+            val numbered = if (palette.onArt && listed.isEmpty()) spacesOnAPath(table) else emptyMap()
             val options = (table.spaceOptions.keys + table.pieceOptions.keys.mapNotNull(table::at))
                 .filter { it !in numbered }.map(::cell)
             val chipStyle = TextStyle(fontWeight = FontWeight.Bold, fontSize = (unit * CHIP_TEXT * grow).toSp())
             val chips = numbered.map { (hex, steps) ->
                 Triple(layout.center(hex) * unit, measurer.measure(steps.toString(), chipStyle), hex)
+            }
+            val listStyle = TextStyle(fontWeight = FontWeight.Bold, fontSize = (unit * LIST_NUMBER_TEXT * grow).toSp())
+            val listMarks = listed.map { (hex, n) ->
+                Triple(layout.center(hex) * unit, measurer.measure("$n", listStyle), hex)
             }
             val chosen = when (selected) {
                 is Choice.Space -> selected.hex
@@ -439,6 +459,9 @@ private fun DecisionOverlay(table: TableUi, layout: MapLayout, unit: Float, pale
                 chosenCell?.let { (c, m) -> drawSelectionCell(c, m, unit, palette) }
                 chips.forEach { (at, text, hex) ->
                     drawNumberChip(text, at, unit, chosen = hex == chosen, scale = grow)
+                }
+                listMarks.forEach { (at, text, hex) ->
+                    drawOptionNumber(text, at, unit * LIST_NUMBER_RADIUS * grow, chosen = hex == chosen)
                 }
                 immune.forEach { m ->
                     if (palette.onArt) {
@@ -527,6 +550,7 @@ private fun GameSpaceNodes(
     viewport: MapViewport,
     onTap: (TableTap) -> Unit,
     onHero: ((String) -> Unit)?,
+    crowded: Boolean = false,
 ) {
     val density = LocalDensity.current
     val unit = viewport.unit
@@ -548,6 +572,9 @@ private fun GameSpaceNodes(
     }
     val occupancy = table.occupancy
     val numbers = remember(table.decision, table.asking, table.view) { minionNumbers(table) }
+    val listed = remember(table.decision, table.asking, table.view, crowded) {
+        if (crowded) spaceNumbers(table) else emptyMap()
+    }
     inView.forEach { space ->
         key(space.hex) {
             val occupant = occupancy[space.hex]
@@ -564,7 +591,7 @@ private fun GameSpaceNodes(
                 else -> false
             }
             val description = buildList {
-                numbers[occupant]?.let { add("Number $it") }
+                (numbers[occupant] ?: listed[space.hex])?.let { add("Number $it") }
                 add(occupant?.let(table::pieceName) ?: "Empty space")
                 // An option says how far it is from the hero asked ("Lane Zone 3 · 3 spaces from Wasp").
                 add(if (option) table.spaceLabel(space.hex) else BoardText.zone(table.map, space.zone))
@@ -656,6 +683,10 @@ private const val NUMBER_DX = 0.62f
 private const val NUMBER_DY = 0.5f
 private const val NUMBER_RADIUS = 0.3f
 private const val NUMBER_TEXT = 0.4f
+
+/** A listed space's number, in the space's centre (map units): as large as the step chips it stands for. */
+private const val LIST_NUMBER_RADIUS = 0.42f
+private const val LIST_NUMBER_TEXT = 0.52f
 
 /** Side of a space's TalkBack node in map units: neighbours never overlap (see BoardMapView). */
 private const val SPACE_NODE = 1.46f

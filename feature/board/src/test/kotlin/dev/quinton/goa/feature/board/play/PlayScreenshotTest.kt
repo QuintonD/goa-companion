@@ -69,6 +69,7 @@ import dev.quinton.goa.feature.board.play.game.ReportUi
 import dev.quinton.goa.feature.board.play.game.RevealedCard
 import dev.quinton.goa.feature.board.play.game.SuggestUi
 import dev.quinton.goa.feature.board.play.game.TurnStatus
+import dev.quinton.goa.feature.board.play.game.defeatPreview
 import dev.quinton.goa.feature.board.play.game.panelWorthy
 import dev.quinton.goa.feature.board.play.game.recentSince
 import dev.quinton.goa.feature.board.play.setup.Control
@@ -218,6 +219,9 @@ class PlayScreenshotTest {
             emptyList()
         },
         over = over,
+        // As the game works it out: "don't defend" played out on a fork of the session.
+        defeat = session.pending?.takeIf { status == TurnStatus.YourTurn && it.seat in humans }
+            ?.let { defeatPreview(session, it) },
     )
 
     @Composable
@@ -425,6 +429,16 @@ class PlayScreenshotTest {
     @Test
     fun tableChooseSpaceLight() = capture(ThemeMode.LIGHT) {
         Game(remember { at(DecisionKind.CHOOSE_SPACE) { s -> s.pending!!.options.last() } })
+    }
+
+    /**
+     * A move on a short phone held sideways: its spaces can't be 48 dp targets there, so they are numbered on the map
+     * and listed in the panel, two to a row (sol #1, sol-b #2).
+     */
+    @Config(qualifiers = "w800dp-h330dp-land-xxhdpi")
+    @Test
+    fun tableChooseSpaceLandscapeShortDark() = capture(ThemeMode.DARK) {
+        Game(remember { at(DecisionKind.CHOOSE_SPACE) })
     }
 
     // ---- The panel hidden: the whole board, the question in the peek bar ------------------

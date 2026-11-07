@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -58,8 +59,11 @@ enum class MapKeyItem(val words: String) {
     /** The number in a dark chip on a space a move reaches. */
     STEPS("Spaces to get there"),
 
+    /** Crowded spaces: a teal number, the same as the option's row in the panel. */
+    LISTED("Numbered as in the list"),
+
     /** A card's reach (violet inner outline). */
-    RANGE("In range"),
+    RANGE("Card range"),
 
     /** The chosen space's path (a bronze line with a dot at each step). */
     PATH("Your path"),
@@ -81,7 +85,7 @@ enum class MapKeyItem(val words: String) {
 }
 
 /** The key's items for the question on the table: only what the map shows now. */
-internal fun mapKeyItems(table: TableUi): List<MapKeyItem> {
+internal fun mapKeyItems(table: TableUi, crowded: Boolean = false): List<MapKeyItem> {
     val decision = table.decision ?: return emptyList()
     if (!table.asking) return emptyList()
     val options = table.spaceOptions.isNotEmpty() || table.pieceOptions.isNotEmpty()
@@ -90,7 +94,13 @@ internal fun mapKeyItems(table: TableUi): List<MapKeyItem> {
     val path = (table.selected as? Choice.Space)?.let { table.pathTo(it.hex).any { hex -> hex != from } } == true
     return buildList {
         if (options) add(MapKeyItem.CHOOSE)
-        if (steps) add(MapKeyItem.STEPS)
+        // Crowded spaces carry their list numbers instead of their steps (the rows say how far).
+        val listed = crowded && spaceNumbers(table).isNotEmpty()
+        if (listed) {
+            add(MapKeyItem.LISTED)
+        } else if (steps) {
+            add(MapKeyItem.STEPS)
+        }
         if (decision.context.highlight.isNotEmpty()) add(MapKeyItem.RANGE)
         if (path) add(MapKeyItem.PATH)
     }
@@ -111,14 +121,17 @@ internal fun MapKey(
     full: (MapKeyItem) -> String = words,
     expanded: Boolean = false,
     onToggle: (() -> Unit)? = null,
+    /** Docked to the map's top edge: full width and square-topped, a strip of the map rather than a plate over it. */
+    docked: Boolean = false,
 ) {
     if (items.isEmpty()) return
     // Map furniture: it grows with large text up to 1.3×, so it never takes the map's top half.
     val fontScale = LocalDensity.current.fontScale
     val cap = minOf(fontScale, KEY_MAX_SCALE) / fontScale
     PlateSurface(
-        shape = RoundedCornerShape(8.dp),
+        shape = if (docked) DockedShape else RoundedCornerShape(8.dp),
         modifier = modifier
+            .then(if (docked) Modifier.fillMaxWidth() else Modifier)
             .then(
                 if (onToggle != null) {
                     Modifier.clickable(onClickLabel = if (expanded) "Shorten" else "Explain") {
@@ -140,7 +153,10 @@ internal fun MapKey(
     ) {
         FlowRow(
             // Tappable, it is a little taller: a finger finds it without covering more of the map.
-            Modifier.padding(horizontal = 8.dp, vertical = if (onToggle != null) 9.dp else 5.dp),
+            Modifier.padding(
+                horizontal = if (docked) 12.dp else 8.dp,
+                vertical = if (onToggle != null) 9.dp else 5.dp,
+            ),
             itemVerticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(10.dp),
             verticalArrangement = Arrangement.spacedBy(4.dp),
@@ -188,6 +204,11 @@ private fun KeySwatch(item: MapKeyItem) {
                     style = Stroke(width = r * 0.34f, join = StrokeJoin.Round),
                 )
                 drawPath(hex, Color.White, style = Stroke(width = r * 0.16f, join = StrokeJoin.Round))
+            }
+
+            MapKeyItem.LISTED -> {
+                val text = measurer.measure("1", TextStyle(fontSize = 11.sp, fontWeight = FontWeight.Bold))
+                drawOptionNumber(text, c, r * 0.78f, chosen = false)
             }
 
             MapKeyItem.STEPS -> {
@@ -260,6 +281,7 @@ private fun hexagon(c: Offset, r: Float) = Path().apply {
 }
 
 private const val KEY_MAX_SCALE = 1.3f
+private val DockedShape = RoundedCornerShape(bottomStart = 8.dp, bottomEnd = 8.dp)
 private val LitFill = Color(0xFFD9C9A3)
 private val ChipGround = Color(0xFF0B1622)
 private val ChipEdge = Color(0xFFF3EBD6)

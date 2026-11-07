@@ -16,20 +16,16 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.CenterFocusStrong
-import androidx.compose.material.icons.outlined.SwapVert
-import androidx.compose.material.icons.outlined.ZoomIn
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.staticCompositionLocalOf
@@ -54,8 +50,7 @@ import dev.quinton.goa.core.designsystem.theme.Spacing
 import dev.quinton.goa.core.game.Choice
 import dev.quinton.goa.core.game.DecisionKind
 import dev.quinton.goa.core.game.GameEvent
-import dev.quinton.goa.feature.board.BoardText
-import dev.quinton.goa.feature.board.board.MapButton
+import dev.quinton.goa.feature.board.board.MapToolbar
 import dev.quinton.goa.feature.board.map.MapLayout
 import dev.quinton.goa.feature.board.map.MapOrientation
 import dev.quinton.goa.feature.board.map.MapViewport
@@ -67,13 +62,15 @@ import dev.quinton.goa.feature.board.ui.PanelStripHeight
 import dev.quinton.goa.feature.board.ui.PlateButton
 import dev.quinton.goa.feature.board.ui.PlateSurface
 import dev.quinton.goa.feature.board.ui.cards.CardFocusState
-import kotlinx.coroutines.launch
 
 /**
  * Where the question ends in the panel's content, px, reported by [DecisionPanel]; null when none is asked. The panel
  * stops a little past it, so what follows (what happened, the hands) doesn't take the map's room: it scrolls.
  */
 internal val LocalPanelQuestionEnd = staticCompositionLocalOf<((Int?) -> Unit)?> { null }
+
+/** The question's spaces stay crowded on the map (framed under 40 dp): the panel lists them by number too. */
+internal val LocalOptionsCrowded = compositionLocalOf { false }
 
 /**
  * The game table: the map full screen (the Lane up the screen in portrait, left to right in
@@ -117,13 +114,14 @@ fun GameTable(
     // Where the table and its map buttons are on the screen: the Zone labels keep clear of the buttons.
     var origin by remember { mutableStateOf(Offset.Zero) }
     var buttons by remember { mutableStateOf<Rect?>(null) }
+    // The map's own controls alone (Fit, Flip): the views keep every piece clear of them.
+    var toolbar by remember { mutableStateOf<Rect?>(null) }
     BoxWithConstraints(modifier.fillMaxSize().onGloballyPositioned { origin = it.positionInRoot() }) {
         val landscape = maxWidth > maxHeight
         val orientation = if (landscape) MapOrientation.LANDSCAPE else MapOrientation.PORTRAIT
         val layout =
             remember(table.map, orientation, table.bottomTeam) { MapLayout(table.map, orientation, table.bottomTeam) }
         val lane = remember(layout, table.map) { layout.laneRegion(table.map, table.geometry) }
-        val scope = rememberCoroutineScope()
         val density = LocalDensity.current
         var cover by remember { mutableStateOf(PanelCover()) }
         var topHeight by remember { mutableIntStateOf(0) }
@@ -154,9 +152,6 @@ fun GameTable(
             } ?: PANEL_SHARE
             )
 
-        // The map's key while a question lights it, under the round at a glance and the track: the options are
-        // framed below it, so it never covers a piece.
-        val keyItems = mapKeyItems(table)
         LaunchedEffect(cover, topHeight) {
             viewport.updateInsets(bottom = cover.bottom.toFloat(), end = cover.end.toFloat(), top = topHeight.toFloat())
         }
@@ -169,6 +164,7 @@ fun GameTable(
         // whole board is in view.
         val decision = table.decision
         val gesturesAtQuestion = remember(decision?.id, table.asking) { viewport.gestures }
+        var crowdedFor by remember { mutableStateOf<Long?>(null) }
         LaunchedEffect(
             decision?.id,
             table.asking,
@@ -202,7 +198,29 @@ fun GameTable(
                 w.width * hex <= viewport.visible.width - ZONE_MARGIN &&
                     w.height * hex <= viewport.visible.height - ZONE_MARGIN
             } ?: region
-            viewport.reveal(framed, framed.center, shrink = OPTIONS_SHRINK, clearEnd = buttonsWidth.toFloat())
+            // Options answered on the map are framed as 48 dp targets when they fit (sol #1), else as large as fits.
+            val target = with(density) { TOUCH_HEX.toPx() }.takeIf { onMap }
+            viewport.reveal(
+                framed,
+                framed.center,
+                shrink = OPTIONS_SHRINK,
+                clearEnd = buttonsWidth.toFloat(),
+                hexPx = target,
+            )
+            if (target != null && viewport.hexPx < target * CROWDED_BELOW && spaceNumbers(table).isNotEmpty()) {
+                crowdedFor = decision.id
+            }
+        }
+
+        // Spaces the framing couldn't make finger targets are numbered on the map and listed in the panel (sol #1,
+        // sol-b #2). Once for a question it stays (the list makes the panel taller, which only shrinks them further).
+        val crowded = table.asking && crowdedFor != null && crowdedFor == decision?.id
+
+        // No piece under the map's controls: the views are framed clear of them (opus #8).
+        val pieceCentres = remember(table.view, layout) { table.pieces.mapNotNull { it.at }.map(layout::center) }
+        val mapStartPx = with(density) { mapStart.toPx() }
+        LaunchedEffect(toolbar, pieceCentres, origin, mapStartPx) {
+            viewport.updateAvoid(toolbar?.translate(-Offset(origin.x + mapStartPx, origin.y)), pieceCentres)
         }
 
         // A new question (another decision) starts at the top of the panel, its header in view; the
@@ -228,6 +246,7 @@ fun GameTable(
             lane = lane,
             onLongPressHero = onHero,
             buttons = buttons?.translate(-mapOrigin),
+            crowded = crowded,
         )
         val turnOrder = table.track
         if (column && turnOrder != null) {
@@ -264,7 +283,9 @@ fun GameTable(
 
                     else -> ScoreBar(table, onHero, focus, heroes = !hidden)
                 }
-                MapKey(keyItems)
+                // The map's key while a question lights it, under the round at a glance and the track: the options
+                // are framed below it, so it never covers a piece.
+                MapKey(mapKeyItems(table, crowded))
             }
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
                 Box(Modifier.weight(1f)) { feed?.invoke() }
@@ -275,17 +296,11 @@ fun GameTable(
                     verticalArrangement = Arrangement.spacedBy(Spacing.sm),
                     horizontalAlignment = Alignment.End,
                 ) {
-                    if (viewport.isFit) {
-                        MapButton(Icons.Outlined.ZoomIn, "Zoom to the lane") { scope.launch { viewport.animateLane() } }
-                    } else {
-                        MapButton(Icons.Outlined.CenterFocusStrong, "Fit the whole board") {
-                            scope.launch { viewport.animateFit() }
-                        }
-                    }
-                    MapButton(
-                        Icons.Outlined.SwapVert,
-                        "Flip: ${BoardText.team(table.bottomTeam.opponent)} at the bottom",
+                    MapToolbar(
+                        viewport,
+                        table.bottomTeam,
                         onFlip,
+                        Modifier.onGloballyPositioned { toolbar = it.boundsInRoot() },
                     )
                     // Gydion's spellbook, one tap at any point of the game (ADR-040): under the map buttons,
                     // so it never covers the round at a glance, the turn track or the hero strip.
@@ -309,7 +324,10 @@ fun GameTable(
             peekTrailing = peekTrailing,
             title = panelTitle,
         ) {
-            CompositionLocalProvider(LocalPanelQuestionEnd provides { questionEnd = it }) {
+            CompositionLocalProvider(
+                LocalPanelQuestionEnd provides { questionEnd = it },
+                LocalOptionsCrowded provides crowded,
+            ) {
                 Column(
                     Modifier
                         .weight(1f, fill = false)
@@ -469,7 +487,13 @@ private val PANEL_INSET = 12.dp
 private val PANEL_PAST_QUESTION = 32.dp
 private val HAND_SIDE_PANEL = 480.dp
 private const val HAND_SIDE_SHARE = 0.5f
-private val ZONE_HEX_TAP = 38.dp
+private val ZONE_HEX_TAP = 48.dp
+
+/** Spaces framed smaller than this share of [TOUCH_HEX] (about 40 dp) are numbered and listed as well. */
+private const val CROWDED_BELOW = 0.83f
+
+/** A space answered on the map is framed at least this wide when the options fit: a finger's target (sol #1). */
+internal val TOUCH_HEX = 48.dp
 private val ZONE_HEX_READ = 31.dp
 private const val SQRT3 = 1.7320508f
 private const val ZONE_MARGIN = 48f

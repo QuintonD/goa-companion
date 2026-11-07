@@ -367,8 +367,11 @@ class BoardViewModelTest {
         val overlay = vm.ready().overlay!!
         val state = vm.ready().board.state
         assertThat(overlay.movement).isEqualTo(BoardRules.movementReach(geometry, state, hero.at!!, 2))
-        assertThat(overlay.range).isEqualTo(BoardRules.within(geometry, hero.at!!, 2))
+        // One overlay to start with (sol #12): the card's Movement; its Range is a switch away.
+        assertThat(overlay.range).isEmpty()
         assertThat(overlay.radius).isEmpty()
+        vm.onAction(BoardAction.ToggleRange)
+        assertThat(vm.ready().overlay!!.range).isEqualTo(BoardRules.within(geometry, hero.at!!, 2))
 
         vm.onAction(BoardAction.RangeBonus(1))
         assertThat(vm.ready().overlay!!.range).isEqualTo(BoardRules.within(geometry, hero.at!!, 3))

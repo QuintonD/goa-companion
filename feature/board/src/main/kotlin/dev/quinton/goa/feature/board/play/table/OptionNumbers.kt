@@ -23,6 +23,7 @@ import dev.quinton.goa.core.designsystem.component.scaledIconSize
 import dev.quinton.goa.core.designsystem.theme.GoaTextStyles
 import dev.quinton.goa.core.domain.board.HexGrid
 import dev.quinton.goa.core.game.Choice
+import dev.quinton.goa.core.model.board.Hex
 
 /*
  * Minions to choose between that read alike (the Minion Battle's "Remove a minion": three Red Melee minions): each
@@ -48,6 +49,28 @@ internal fun minionNumbers(table: TableUi): Map<String, Int> {
             ),
         )
         .mapIndexed { i, minion -> minion.id to i + 1 }
+        .toMap()
+}
+
+/**
+ * Spaces to choose that stay crowded on the map (sol #1, sol-b #2): each gets a number, nearest the hero asked first
+ * (ties by the words, then the space), shown on the map in the space and leading its row in the panel, as the Minion
+ * Battle's minions are. Empty unless the question offers between two and [MAX_LISTED] spaces.
+ */
+internal fun spaceNumbers(table: TableUi): Map<Hex, Int> {
+    val hexes = table.spaceOptions.keys
+    if (hexes.size < 2 || hexes.size > MAX_LISTED) return emptyMap()
+    val from = (table.subject ?: table.decision?.seat)?.let(table::at)
+    return hexes
+        .sortedWith(
+            compareBy<Hex>(
+                { hex -> from?.let { HexGrid.distance(it, hex) } ?: 0 },
+                { hex -> table.label(Choice.Space(hex)) },
+                { it.r },
+                { it.q },
+            ),
+        )
+        .mapIndexed { i, hex -> hex to i + 1 }
         .toMap()
 }
 
@@ -81,6 +104,9 @@ internal fun OptionNumberBadge(number: Int, chosen: Boolean, modifier: Modifier 
 }
 
 private val OptionInk = Color(0xFF0B1622)
+
+/** At most this many spaces are listed by number; more are left to the map (and its tap to zoom). */
+internal const val MAX_LISTED = 12
 
 /** How far a row's number grows with the font scale. */
 private const val OPTION_NUMBER_SCALE = 1.4f

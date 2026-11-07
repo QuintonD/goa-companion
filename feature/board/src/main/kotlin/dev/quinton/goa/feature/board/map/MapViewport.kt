@@ -80,6 +80,12 @@ class MapViewport {
     private var lane: Rect? = null
     private var laneMayCrop = true
 
+    /** The map's own controls (screen px, the viewport's coordinates): no piece is framed under them. */
+    private var avoid: Rect? = null
+
+    /** Where the pieces stand (map units): what [avoid] must not cover when the view is framed. */
+    private var obstacles: List<Offset> = emptyList()
+
     /**
      * Lays [layout] out in a viewport of [size] (px) and frames the [lane] region, the first time
      * and again when the layout or the viewport changes (rotation, flip). [minHexPx]: the smallest
@@ -113,6 +119,19 @@ class MapViewport {
         if (layout == null) return
         reframe()
         if (grew && mode == ViewMode.MOVED) pan = fillPan(pan, zoom)
+    }
+
+    /**
+     * The map's controls are at [rect] (screen px, null: none) and the pieces at [pieces] (map units): the Lane and Fit
+     * views, and every reveal, are offset so that no piece stands under the controls (opus #8). The person's own view
+     * is left alone.
+     */
+    fun updateAvoid(rect: Rect?, pieces: List<Offset>) {
+        if (rect == avoid && pieces == obstacles) return
+        avoid = rect
+        obstacles = pieces
+        if (layout == null || mode == ViewMode.MOVED) return
+        reframe()
     }
 
     private fun reframe() {
@@ -171,15 +190,44 @@ class MapViewport {
     private fun applyLane(region: Rect) {
         val z = laneZoom(region)
         zoom = z
-        pan = clampPan(centerOn(region.center, z), z)
+        pan = clearOfControls(clampPan(centerOn(region.center, z), z), z)
         mode = ViewMode.LANE
     }
 
     private fun applyFit() {
         val z = fitZoom(fullMap()).coerceIn(minZoom, maxZoom)
         zoom = z
-        pan = centerOn(fullMap().center, z)
+        pan = clearOfControls(centerOn(fullMap().center, z), z)
         mode = ViewMode.FIT
+    }
+
+    /**
+     * [candidate], moved as little as it takes (to the start side, or down) so that no piece stands under the map's
+     * controls, provided no piece in view leaves it for that; else [candidate] as it is.
+     */
+    private fun clearOfControls(candidate: Offset, z: Float): Offset {
+        val controls = avoid ?: return candidate
+        if (obstacles.isEmpty() || unit == 0f) return candidate
+        val scale = unit * z
+        val radius = PIECE_CLEAR * scale
+        fun at(p: Offset, piece: Offset) = p + piece * scale
+        fun under(p: Offset) = obstacles.filter { piece ->
+            val s = at(p, piece)
+            s.x + radius > controls.left && s.x - radius < controls.right &&
+                s.y + radius > controls.top && s.y - radius < controls.bottom
+        }
+        val covered = under(candidate)
+        if (covered.isEmpty()) return candidate
+        val v = visible
+        fun shown(p: Offset) = obstacles.count { v.contains(at(p, it)) }
+        val before = shown(candidate)
+        val toStart = controls.left - covered.maxOf { at(candidate, it).x + radius }
+        val down = controls.bottom - covered.minOf { at(candidate, it).y - radius }
+        return listOf(Offset(toStart, 0f), Offset(0f, down))
+            .sortedBy { it.getDistance() }
+            .map { clampPan(candidate + it, z) }
+            .firstOrNull { under(it).isEmpty() && shown(it) >= before }
+            ?: candidate
     }
 
     private fun centerOn(map: Offset, z: Float, v: Rect = visible): Offset {
@@ -192,7 +240,7 @@ class MapViewport {
     suspend fun animateFit() {
         val z = fitZoom(fullMap()).coerceIn(minZoom, maxZoom)
         userMoved = false
-        animateTo(z, centerOn(fullMap().center, z))
+        animateTo(z, clearOfControls(centerOn(fullMap().center, z), z))
         mode = ViewMode.FIT
     }
 
@@ -201,7 +249,7 @@ class MapViewport {
         val region = lane ?: return animateFit()
         val z = laneZoom(region)
         userMoved = false
-        animateTo(z, clampPan(centerOn(region.center, z), z))
+        animateTo(z, clearOfControls(clampPan(centerOn(region.center, z), z), z))
         mode = ViewMode.LANE
     }
 
@@ -279,13 +327,15 @@ class MapViewport {
      * [shrink] (< 1) lets hexes get that much smaller than comfortable when that is what it takes
      * for the whole region to fit (a question's options: every one should be seen without panning);
      * [clearEnd] (px) keeps the region clear of a band on the end side too (the map buttons), when
-     * the region fits beside it.
+     * the region fits beside it. [hexPx] asks for hexes that large when the region fits at that size (a question's
+     * options as 48 dp targets, sol #1); they never get smaller than [shrink] × comfortable for it.
      */
-    suspend fun reveal(region: Rect, focus: Offset, shrink: Float = 1f, clearEnd: Float = 0f) {
+    suspend fun reveal(region: Rect, focus: Offset, shrink: Float = 1f, clearEnd: Float = 0f, hexPx: Float? = null) {
         if (unit == 0f) return
         val clear = visibleClear(clearEnd).takeIf { clearEnd > 0f }
+        val comfort = hexPx?.let { maxOf(it / (SQRT3 * unit), comfortableZoom) } ?: comfortableZoom
         val smallest = (comfortableZoom * shrink).coerceAtMost(comfortableZoom)
-        var z = maxOf(zoom, comfortableZoom).coerceAtMost(maxZoom)
+        var z = maxOf(zoom, comfort).coerceAtMost(maxZoom)
         var v = visible
         if (!fits(region, z, v)) z = maxOf(minOf(z, fitZoom(region)), smallest).coerceIn(minZoom, maxZoom)
         // Beside the buttons when the region fits there at a size no smaller than that.
@@ -297,7 +347,7 @@ class MapViewport {
             }
         }
         val target = if (fits(region, z, v)) panToShow(region, z, v) else centerOn(focus, z)
-        val clamped = clampPan(target, z)
+        val clamped = clearOfControls(clampPan(target, z), z)
         if (z == zoom && (clamped - pan).getDistance() < 1f) return
         animateTo(z, clamped)
         mode = ViewMode.MOVED
@@ -367,6 +417,9 @@ class MapViewport {
         const val DOUBLE_TAP_FACTOR = 2f
         const val MIN_ZOOM_SLACK = 0.9f
         const val MARGIN_PX = 24f
+
+        /** How far from its space's centre a piece reaches, map units (a piece is 1.46 across, a figure stands). */
+        const val PIECE_CLEAR = 0.8f
 
         /** How far the Lane view may shrink hexes (38 → 32 dp) to show the Lane's length. */
         const val LANE_SHRINK = 0.84f
