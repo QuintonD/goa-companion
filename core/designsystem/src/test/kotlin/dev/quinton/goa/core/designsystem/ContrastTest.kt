@@ -54,6 +54,13 @@ class ContrastTest {
         check("$theme parchmentInk (icons)", x.parchmentInk, x.parchment, TEXT)
     }
 
+    /** The rules reader's page in each theme: the passage, its reminder words and the printed heads on it. */
+    @Test fun readerPage() = themes().forEach { (theme, _, x) ->
+        check("$theme onPage", x.onPage, x.page, TEXT)
+        check("$theme onPageVariant", x.onPageVariant, x.page, TEXT)
+        check("$theme pageInk (heads)", x.pageInk, x.page, TEXT)
+    }
+
     @Test fun bodyText() = themes().forEach { (theme, scheme, _) ->
         listOf(scheme.background, scheme.surface, scheme.surfaceVariant).forEach { bg ->
             check("$theme onSurface", scheme.onSurface, bg, TEXT)

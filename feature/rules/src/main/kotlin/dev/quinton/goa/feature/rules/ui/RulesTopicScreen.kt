@@ -3,7 +3,7 @@ package dev.quinton.goa.feature.rules.ui
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -15,36 +15,47 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.outlined.List
 import androidx.compose.material.icons.automirrored.outlined.MenuBook
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateMapOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.BlendMode
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.Shadow
 import androidx.compose.ui.graphics.drawscope.clipRect
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.layout.onPlaced
+import androidx.compose.ui.layout.positionInParent
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.Role
@@ -56,9 +67,14 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import dev.quinton.goa.core.designsystem.component.EmptyState
+import dev.quinton.goa.core.designsystem.component.GoaPlate
 import dev.quinton.goa.core.designsystem.component.GoaScreen
+import dev.quinton.goa.core.designsystem.component.GoaSheet
 import dev.quinton.goa.core.designsystem.component.LARGE_FONT_SCALE
+import dev.quinton.goa.core.designsystem.component.PlateRowDivider
+import dev.quinton.goa.core.designsystem.component.SelectablePlate
 import dev.quinton.goa.core.designsystem.component.bannerEndWidth
+import dev.quinton.goa.core.designsystem.component.fadingHorizontalScroll
 import dev.quinton.goa.core.designsystem.component.rememberOfficialBitmap
 import dev.quinton.goa.core.designsystem.component.steelBanner
 import dev.quinton.goa.core.designsystem.theme.GoaTextStyles
@@ -71,8 +87,8 @@ import dev.quinton.goa.feature.rules.RulesTopicUiState
 import kotlinx.coroutines.launch
 
 /**
- * One quick-reference topic set like the rulebook's page, on the parchment in both themes: the topic's title when
- * the banner holds only its head, a navigator over a long topic, an optional labelled summary, then the verbatim
+ * One quick-reference topic set like the rulebook's page (parchment when light, a dark parchment when dark): the
+ * title when the banner holds only its head, a navigator over a long topic, an optional labelled summary, the verbatim
  * passages, with the page reference in the banner at the foot (a plain line at the page's end when sideways or
  * with large text).
  */
@@ -99,6 +115,7 @@ fun RulesTopicScreen(state: RulesTopicUiState, onBack: () -> Unit) {
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 internal fun TopicContent(topic: RulesTopic) {
     val colors = GoaTheme.colors
@@ -121,8 +138,13 @@ internal fun TopicContent(topic: RulesTopic) {
                 .firstOrNull { it.key != NAV_KEY && it.offset + it.size > navHeight }?.index ?: 0
             val atEnd = !list.canScrollForward && list.canScrollBackward
             val excerpt = if (atEnd) topic.excerpts.lastIndex else top - lead
-            sections.lastOrNull { it.excerpt <= excerpt }
+            // Above the first passage (the title, the summary) the reader is at the first section.
+            sections.lastOrNull { it.excerpt <= excerpt } ?: sections.firstOrNull()
         }
+    }
+    var contentsOpen by rememberSaveable { mutableStateOf(false) }
+    val open: (TopicSection) -> Unit = { section ->
+        scope.launch { list.animateScrollToItem(lead + section.excerpt, -navHeight) }
     }
     val margin = Modifier.padding(horizontal = PAGE_MARGIN)
     ParchmentPage(Modifier.fillMaxSize()) {
@@ -135,16 +157,13 @@ internal fun TopicContent(topic: RulesTopic) {
             if (showTitle) item(key = "title") { TopicTitle(topic.title, margin) }
             if (sections.isNotEmpty()) {
                 stickyHeader(key = NAV_KEY) {
-                    TopicNavigator(sections, active) { section ->
-                        val index = lead + section.excerpt
-                        scope.launch { list.animateScrollToItem(index, -navHeight) }
-                    }
+                    TopicNavigator(sections, active, onSelect = open, onContents = { contentsOpen = true })
                 }
             }
             topic.summary?.let { summary -> item(key = "summary") { SummaryNote(summary, margin) } }
             itemsIndexed(topic.excerpts, key = { i, _ -> "excerpt-$i" }) { i, excerpt ->
                 Column(margin, verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
-                    if (i > 0 && excerpt.heading != null) HorizontalDivider(color = colors.parchmentEdge)
+                    if (i > 0 && excerpt.heading != null) HorizontalDivider(color = colors.pageEdge)
                     val diagram = remember(excerpt) { RulesDiagrams.of(excerpt) }
                     if (diagram != null) DiagramWithCaption(diagram, excerpt) else ExcerptBlock(excerpt)
                 }
@@ -155,17 +174,25 @@ internal fun TopicContent(topic: RulesTopic) {
                     verticalArrangement = Arrangement.spacedBy(Spacing.xs),
                 ) {
                     if (plainFoot) {
-                        Text(pages, style = MaterialTheme.typography.labelLarge, color = colors.onParchmentVariant)
+                        Text(pages, style = MaterialTheme.typography.labelLarge, color = colors.onPageVariant)
                     }
                     Text(
                         "Source: the official Guards of Atlantis II rulebook, 2nd printing (printed page numbers).",
                         style = MaterialTheme.typography.bodyMedium,
-                        color = colors.onParchmentVariant,
+                        color = colors.onPageVariant,
                     )
                 }
             }
         }
         if (!plainFoot) RulesFooter(pages)
+    }
+    if (contentsOpen) {
+        GoaSheet(onDismissRequest = { contentsOpen = false }) {
+            TopicContents(sections, active) { section ->
+                contentsOpen = false
+                open(section)
+            }
+        }
     }
 }
 
@@ -178,7 +205,7 @@ private fun TopicTitle(title: String, modifier: Modifier = Modifier) {
     Text(
         title,
         style = GoaTextStyles.sectionHead.copy(fontSize = 20.sp, lineHeight = 24.sp),
-        color = GoaTheme.colors.onParchment,
+        color = GoaTheme.colors.onPage,
         modifier = modifier.semantics { heading() },
     )
 }
@@ -186,49 +213,113 @@ private fun TopicTitle(title: String, modifier: Modifier = Modifier) {
 /**
  * The topic's parts, held at the top of the page as you read: the rulebook's own heads (and "Diagrams"), a tap
  * opens that passage. The one you are reading is bronze, as everything selected is (and filled, not only
- * coloured). Scrolls sideways when the heads don't fit, the edge that hides more fading into the page.
+ * coloured), and stays in view as you read. Scrolls sideways when the heads don't fit, the edge that hides more
+ * fading out (the design system's edge fade); "Contents" at the end lists every part at once.
  */
 @Composable
-private fun TopicNavigator(sections: List<TopicSection>, active: TopicSection?, onSelect: (TopicSection) -> Unit) {
+private fun TopicNavigator(
+    sections: List<TopicSection>,
+    active: TopicSection?,
+    onSelect: (TopicSection) -> Unit,
+    onContents: () -> Unit,
+) {
     val colors = GoaTheme.colors
     val row = rememberScrollState()
-    Column(Modifier.fillMaxWidth().background(colors.parchment)) {
-        Box(Modifier.fillMaxWidth()) {
+    val density = LocalDensity.current
+    val starts = remember(sections) { mutableStateMapOf<Int, Int>() }
+    // The chip being read stays in view: scrolled to just past the gutter whenever the reader moves on.
+    LaunchedEffect(active, row.maxValue) {
+        val x = active?.let { starts[it.excerpt] } ?: return@LaunchedEffect
+        val lead = with(density) { (PAGE_MARGIN + Spacing.lg).roundToPx() }
+        val target = (x - lead).coerceIn(0, row.maxValue)
+        if (row.value != target) row.animateScrollTo(target)
+    }
+    Column(Modifier.fillMaxWidth().background(colors.page)) {
+        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
             Row(
                 Modifier
-                    .fillMaxWidth()
+                    .weight(1f)
                     .heightIn(min = NAV_HEIGHT)
-                    .horizontalScroll(row)
-                    .padding(horizontal = PAGE_MARGIN - Spacing.xs)
+                    .fadingHorizontalScroll(row, gutter = PAGE_MARGIN - Spacing.xs)
                     .semantics { contentDescription = "Sections" },
                 horizontalArrangement = Arrangement.spacedBy(Spacing.xs),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 sections.forEach { section ->
-                    SectionChip(section.label, selected = section == active) { onSelect(section) }
+                    SectionChip(
+                        section.label,
+                        selected = section == active,
+                        modifier = Modifier.onPlaced { starts[section.excerpt] = it.positionInParent().x.toInt() },
+                    ) { onSelect(section) }
                 }
             }
-            if (row.canScrollBackward) EdgeFade(Modifier.align(Alignment.CenterStart), toEnd = false)
-            if (row.canScrollForward) EdgeFade(Modifier.align(Alignment.CenterEnd), toEnd = true)
+            ContentsButton(onContents)
         }
-        Box(Modifier.fillMaxWidth().height(1.dp).background(colors.parchmentEdge))
+        Box(Modifier.fillMaxWidth().height(1.dp).background(colors.pageEdge))
     }
 }
 
-/** The page showing through at an edge that hides more chips: the row scrolls. */
+/** "Contents", pinned at the navigator's end: every part of the topic in one list. */
 @Composable
-private fun EdgeFade(modifier: Modifier, toEnd: Boolean) {
-    val page = GoaTheme.colors.parchment
-    val stops = if (toEnd) listOf(page.copy(alpha = 0f), page) else listOf(page, page.copy(alpha = 0f))
-    Box(modifier.width(EDGE_FADE).height(NAV_HEIGHT).background(Brush.horizontalGradient(stops)))
+private fun ContentsButton(onClick: () -> Unit) {
+    val colors = GoaTheme.colors
+    Row(
+        Modifier
+            .heightIn(min = NAV_HEIGHT)
+            .clickable(role = Role.Button, onClickLabel = "Open the list of sections", onClick = onClick)
+            .padding(end = PAGE_MARGIN - Spacing.xs),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Box(Modifier.width(1.dp).height(24.dp).background(colors.pageEdge))
+        Icon(
+            Icons.AutoMirrored.Outlined.List,
+            contentDescription = null,
+            tint = colors.pageInk,
+            modifier = Modifier.padding(start = Spacing.sm, end = Spacing.xs).size(20.dp),
+        )
+        Text(
+            "Contents",
+            style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold),
+            color = colors.onPage,
+            maxLines = 1,
+        )
+    }
+}
+
+/** Every part of a topic, the one being read marked as selected; a tap closes the list and opens that part. */
+@Composable
+internal fun TopicContents(sections: List<TopicSection>, active: TopicSection?, onSelect: (TopicSection) -> Unit) {
+    Column(
+        Modifier.fillMaxWidth().padding(horizontal = Spacing.screen).padding(bottom = Spacing.xl),
+        verticalArrangement = Arrangement.spacedBy(Spacing.sm),
+    ) {
+        Text(
+            "Contents",
+            style = GoaTextStyles.sectionHead.copy(fontSize = 22.sp, lineHeight = 28.sp),
+            color = GoaTheme.colors.heading,
+            modifier = Modifier.semantics { heading() },
+        )
+        GoaPlate(Modifier.fillMaxWidth().selectableGroup(), contentPadding = PaddingValues(0.dp)) {
+            sections.forEachIndexed { i, section ->
+                if (i > 0) PlateRowDivider()
+                SelectablePlate(
+                    selected = section == active,
+                    onClick = { onSelect(section) },
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Text(section.label, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.weight(1f))
+                }
+            }
+        }
+    }
 }
 
 @Composable
-private fun SectionChip(label: String, selected: Boolean, onClick: () -> Unit) {
+private fun SectionChip(label: String, selected: Boolean, modifier: Modifier = Modifier, onClick: () -> Unit) {
     val colors = GoaTheme.colors
     val shape = RoundedCornerShape(16.dp)
     Box(
-        Modifier
+        modifier
             .heightIn(min = NAV_HEIGHT)
             .selectable(selected = selected, role = Role.Tab, onClick = onClick)
             .padding(horizontal = Spacing.xs),
@@ -239,28 +330,37 @@ private fun SectionChip(label: String, selected: Boolean, onClick: () -> Unit) {
             style = MaterialTheme.typography.bodyMedium.copy(
                 fontWeight = if (selected) FontWeight.Bold else FontWeight.SemiBold,
             ),
-            color = colors.onParchment,
+            // Selected, dark ink on the bronze in both themes (about 7:1); otherwise the page's own ink.
+            color = if (selected) CHIP_ON_BRONZE else colors.onPage,
             maxLines = 1,
             modifier = Modifier
                 .clip(shape)
                 .then(if (selected) Modifier.background(CHIP_BRONZE, shape) else Modifier)
-                .border(if (selected) 1.5.dp else 1.dp, if (selected) CHIP_BRONZE_EDGE else colors.parchmentEdge, shape)
+                .border(if (selected) 1.5.dp else 1.dp, if (selected) CHIP_BRONZE_EDGE else colors.pageEdge, shape)
                 .padding(horizontal = 12.dp, vertical = 7.dp),
         )
     }
 }
 
 /**
- * A diagram the book prints, its white page multiplied into the parchment so it lies on our page as on the
- * book's, over its printed caption (in italics, as printed). Decorative for TalkBack: the caption says what
- * it shows. Space stays reserved while it loads.
+ * A diagram the book prints, over its printed caption (in italics, as printed). On the light page its white page is
+ * multiplied into the parchment so it lies on our page as on the book's; on the dark page it is a framed plate in a
+ * muted parchment, so the picture keeps its colours without flashing a white page. Decorative for TalkBack: the
+ * caption says what it shows. Space stays reserved while it loads.
  */
 @Composable
 private fun DiagramWithCaption(diagram: RulesDiagrams.Entry, caption: RulesExcerpt) {
     val image = rememberOfficialBitmap(diagram.art)
-    val page = GoaTheme.colors.parchment
+    val dark = GoaTheme.isDark
+    val page = if (dark) DIAGRAM_DARK_PAPER else GoaTheme.colors.page
+    val frameShape = RoundedCornerShape(6.dp)
+    val frame = if (dark) {
+        Modifier.clip(frameShape).border(1.dp, GoaTheme.colors.pageEdge, frameShape).background(page)
+    } else {
+        Modifier
+    }
     Column(verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
-        Box(Modifier.fillMaxWidth().aspectRatio(diagram.aspect)) {
+        Box(Modifier.fillMaxWidth().then(frame).aspectRatio(diagram.aspect)) {
             if (image != null) {
                 Image(
                     image,
@@ -320,11 +420,14 @@ private const val BANNER_WHOLE = 18
 private const val BANNER_HEAD = 16
 private const val NAV_KEY = "sections"
 private val NAV_HEIGHT = 48.dp
-private val EDGE_FADE = 40.dp
 
-/** Bronze on the parchment, the same in both themes as the page is: its ink on it is about 7:1. */
+/** Bronze on the page, the same in both themes: the dark ink on it is about 7:1, and it stands out on either page. */
 private val CHIP_BRONZE = Color(0xFFC9A35B)
 private val CHIP_BRONZE_EDGE = Color(0xFF84662A)
+private val CHIP_ON_BRONZE = Color(0xFF231C14)
+
+/** The diagram's paper on the dark page: a muted parchment, well below the light page's brightness. */
+private val DIAGRAM_DARK_PAPER = Color(0xFFB3AA96)
 
 private const val DIAGRAM_EDGE = 0.015f
 private val PAGE_MARGIN = 18.dp
