@@ -27,8 +27,10 @@ import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.MenuBook
+import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
@@ -53,6 +55,7 @@ import dev.quinton.goa.core.designsystem.component.GoaPlateTheme
 import dev.quinton.goa.core.designsystem.component.LARGE_FONT_SCALE
 import dev.quinton.goa.core.designsystem.component.ParchmentPanel
 import dev.quinton.goa.core.designsystem.component.SectionHeader
+import dev.quinton.goa.core.designsystem.component.selectionFrame
 import dev.quinton.goa.core.designsystem.component.slatePlate
 import dev.quinton.goa.core.designsystem.theme.GoaTextStyles
 import dev.quinton.goa.core.designsystem.theme.GoaTheme
@@ -67,10 +70,17 @@ import dev.quinton.goa.feature.rules.LadderUiState
 /**
  * "Levels & defeats": pick the defeated hero's level for the three numbers that matter, the full
  * p.13/p.15 table, the rules behind it (verbatim) and the cards in play that change it (verbatim).
- * The sheet is a dark plate in both themes; what the book prints sits on parchment on it.
+ * The sheet is a dark plate in both themes; what the book prints sits on parchment on it. A bottom sheet over the
+ * screen it opens from: under the sheet's drag handle, its title with a Close button ([onClose]), so how to leave it
+ * is plain.
  */
 @Composable
-fun LevelLadderSheet(state: LadderUiState, onSelectLevel: (Int) -> Unit, onOpenRules: (() -> Unit)?) {
+fun LevelLadderSheet(
+    state: LadderUiState,
+    onSelectLevel: (Int) -> Unit,
+    onOpenRules: (() -> Unit)?,
+    onClose: (() -> Unit)? = null,
+) {
     GoaPlateTheme {
         Box(Modifier.fillMaxWidth().slatePlate(RoundedCornerShape(0.dp), brackets = false)) {
             when (state) {
@@ -93,7 +103,7 @@ fun LevelLadderSheet(state: LadderUiState, onSelectLevel: (Int) -> Unit, onOpenR
                     ),
                     verticalArrangement = Arrangement.spacedBy(Spacing.md),
                 ) {
-                    ladderContent(state, onSelectLevel, onOpenRules)
+                    ladderContent(state, onSelectLevel, onOpenRules, onClose)
                 }
             }
         }
@@ -104,6 +114,7 @@ private fun LazyListScope.ladderContent(
     state: LadderUiState.Ready,
     onSelectLevel: (Int) -> Unit,
     onOpenRules: (() -> Unit)?,
+    onClose: (() -> Unit)?,
 ) {
     val ladder = state.ladder
     item(key = "title") {
@@ -115,6 +126,11 @@ private fun LazyListScope.ladderContent(
                 modifier = Modifier.weight(1f).semantics { heading() },
             )
             PageTag(ladder.pages)
+            if (onClose != null) {
+                IconButton(onClick = onClose, modifier = Modifier.padding(start = Spacing.xs)) {
+                    Icon(Icons.Outlined.Close, contentDescription = "Close")
+                }
+            }
         }
     }
     item(key = "picker") { LevelPicker(ladder.levels, state.selectedLevel, onSelectLevel) }
@@ -181,17 +197,16 @@ private fun LevelPicker(levels: List<LevelRow>, selected: Int?, onSelect: (Int) 
             levels.forEach { row ->
                 val isSelected = row.level == selected
                 val colors = MaterialTheme.colorScheme
+                // The app's one selected look (bronze wash and edge, the numeral in bronze), as every choice.
                 Surface(
                     shape = MaterialTheme.shapes.medium,
-                    color = if (isSelected) colors.primary else colors.surface,
-                    contentColor = if (isSelected) colors.onPrimary else colors.onSurface,
-                    border = BorderStroke(
-                        1.dp,
-                        if (isSelected) colors.primary else GoaTheme.colors.engravedBorder,
-                    ),
+                    color = if (isSelected) Color.Transparent else colors.surface,
+                    contentColor = if (isSelected) GoaTheme.colors.selection else colors.onSurface,
+                    border = if (isSelected) null else BorderStroke(1.dp, GoaTheme.colors.engravedBorder),
                     modifier = Modifier
                         .weight(1f)
                         .heightIn(min = 52.dp)
+                        .selectionFrame(isSelected, MaterialTheme.shapes.medium, hairline = false)
                         .selectable(selected = isSelected, role = Role.RadioButton) { onSelect(row.level) }
                         .semantics { contentDescription = "Level ${row.level}" },
                 ) {
@@ -199,6 +214,7 @@ private fun LevelPicker(levels: List<LevelRow>, selected: Int?, onSelect: (Int) 
                         Text(
                             "${row.level}",
                             style = GoaTextStyles.timerDigitsSmall.copy(fontSize = 24.sp, lineHeight = 28.sp),
+                            fontWeight = if (isSelected) FontWeight.Bold else null,
                         )
                     }
                 }

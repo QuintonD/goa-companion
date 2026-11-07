@@ -62,9 +62,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import dev.quinton.goa.core.designsystem.cardtext.CardTextView
-import dev.quinton.goa.core.designsystem.cardtext.GameIcon
 import dev.quinton.goa.core.designsystem.cardtext.GameIcons
 import dev.quinton.goa.core.designsystem.component.CardColorDot
+import dev.quinton.goa.core.designsystem.component.StatReadout
 import dev.quinton.goa.core.designsystem.component.UnverifiedBadge
 import dev.quinton.goa.core.designsystem.component.cardColor
 import dev.quinton.goa.core.designsystem.component.cardColorName
@@ -546,36 +546,23 @@ private const val WRAP_SCALE = 1.3f
 @Composable
 private fun CardSummary(card: Card) {
     val values = listOfNotNull(
-        card.initiative?.let { GameIcons.initiative to "Initiative $it" },
-        card.values.attack?.let { GameIcons.attack to "Attack $it${plus(card, Stat.ATTACK)}" },
-        card.values.defense?.let { GameIcons.defense to "Defense $it${plus(card, Stat.DEFENSE)}" },
-        card.values.movement?.let { GameIcons.movement to "Movement $it${plus(card, Stat.MOVEMENT)}" },
-        card.values.range?.let { GameIcons.range to "Range $it${plus(card, Stat.RANGE)}" },
-        card.values.radius?.let { GameIcons.radius to "Radius $it${plus(card, Stat.RADIUS)}" },
+        card.initiative?.let { Stat.INITIATIVE to "$it" },
+        card.values.attack?.let { Stat.ATTACK to "$it${plus(card, Stat.ATTACK)}" },
+        card.values.defense?.let { Stat.DEFENSE to "$it${plus(card, Stat.DEFENSE)}" },
+        card.values.movement?.let { Stat.MOVEMENT to "$it${plus(card, Stat.MOVEMENT)}" },
+        card.values.range?.let { Stat.RANGE to "$it${plus(card, Stat.RANGE)}" },
+        card.values.radius?.let { Stat.RADIUS to "$it${plus(card, Stat.RADIUS)}" },
     )
     FlowRow(
         horizontalArrangement = Arrangement.spacedBy(Spacing.md),
         modifier = Modifier.padding(top = Spacing.xs, bottom = Spacing.xs),
     ) {
-        values.forEach { (icon, text) -> ValueLabel(icon, text) }
+        // The app's one stat readout (icon, value, name), as on the hero page.
+        values.forEach { (stat, value) -> StatReadout(stat, value) }
     }
 }
 
 private fun plus(card: Card, stat: Stat) = if (stat in card.values.plus) "+" else ""
-
-@Composable
-private fun ValueLabel(icon: GameIcon, text: String) {
-    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.semantics(mergeDescendants = true) {}) {
-        Icon(
-            icon.vector,
-            contentDescription = null,
-            tint = MaterialTheme.colorScheme.primary,
-            modifier = Modifier.size(scaledIconSize(16.dp)),
-        )
-        Spacer(Modifier.width(Spacing.xs))
-        Text(text, style = MaterialTheme.typography.bodyMedium)
-    }
-}
 
 /** The card's printed text, verbatim, with its icons and bold keywords (as the card viewer shows it). */
 @Composable

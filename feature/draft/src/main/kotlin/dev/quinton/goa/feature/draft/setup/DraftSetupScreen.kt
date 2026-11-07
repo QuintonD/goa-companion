@@ -101,6 +101,8 @@ import dev.quinton.goa.core.designsystem.component.PlateShape
 import dev.quinton.goa.core.designsystem.component.PlayerAvatar
 import dev.quinton.goa.core.designsystem.component.TeamBadge
 import dev.quinton.goa.core.designsystem.component.TitlePlate
+import dev.quinton.goa.core.designsystem.component.selectableChipBorder
+import dev.quinton.goa.core.designsystem.component.selectedCheck
 import dev.quinton.goa.core.designsystem.component.teamColor
 import dev.quinton.goa.core.designsystem.theme.GoaTextStyles
 import dev.quinton.goa.core.designsystem.theme.GoaTheme
@@ -760,6 +762,7 @@ private fun PlayerDraftSetup(state: SetupUiState, actions: SetupActions) {
                         val chosen = if (team == Team.RED) form.redCaptain == id else form.blueCaptain == id
                         FilterChip(
                             colors = goaFilterChipColors(),
+                            border = selectableChipBorder(chosen),
                             selected = chosen,
                             onClick = { actions.setCaptain(team, id) },
                             label = { Text(state.player(id)?.player?.name ?: "Unknown") },
@@ -869,17 +872,21 @@ private fun HeroesStage(state: SetupUiState, actions: SetupActions) {
             FlowRow(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
                 FilterChip(
                     colors = goaFilterChipColors(),
+                    border = selectableChipBorder(form.maxComplexity == null),
                     selected = form.maxComplexity == null,
                     onClick = { actions.setMaxComplexity(null) },
                     label = { Text("Any") },
+                    leadingIcon = selectedCheck(form.maxComplexity == null),
                     modifier = Modifier.heightIn(min = 48.dp),
                 )
                 for (stars in 1..3) {
                     FilterChip(
                         colors = goaFilterChipColors(),
+                        border = selectableChipBorder(form.maxComplexity == stars),
                         selected = form.maxComplexity == stars,
                         onClick = { actions.setMaxComplexity(stars) },
                         label = { Text("${"★".repeat(stars)} ${ComplexityFilter.name(stars)}") },
+                        leadingIcon = selectedCheck(form.maxComplexity == stars),
                         modifier = Modifier
                             .heightIn(min = 48.dp)
                             .semantics { contentDescription = "Up to $stars stars, ${ComplexityFilter.name(stars)}" },
@@ -899,9 +906,11 @@ private fun HeroesStage(state: SetupUiState, actions: SetupActions) {
                     listOf(15, 30, 45, 60, 90).forEach { s ->
                         FilterChip(
                             colors = goaFilterChipColors(),
+                            border = selectableChipBorder(form.stepSeconds == s),
                             selected = form.stepSeconds == s,
                             onClick = { actions.setStepSeconds(s) },
                             label = { Text("${s}s") },
+                            leadingIcon = selectedCheck(form.stepSeconds == s),
                             modifier = Modifier.heightIn(min = 48.dp),
                         )
                     }

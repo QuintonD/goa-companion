@@ -55,6 +55,7 @@ import dev.quinton.goa.core.designsystem.component.CardTextBox
 import dev.quinton.goa.core.designsystem.component.LookAction
 import dev.quinton.goa.core.designsystem.component.OfficialIcon
 import dev.quinton.goa.core.designsystem.component.PlateColor
+import dev.quinton.goa.core.designsystem.component.SteelIconBronze
 import dev.quinton.goa.core.designsystem.component.TeamMark
 import dev.quinton.goa.core.designsystem.component.TitlePlate
 import dev.quinton.goa.core.designsystem.component.cardColor
@@ -792,7 +793,7 @@ private fun ActionChip(
             Icon(
                 actionIcon(action, card).vector,
                 null,
-                tint = if (primary) content else MaterialTheme.colorScheme.primary,
+                tint = if (primary) content else SteelIconBronze,
                 modifier = Modifier.size(scaledIconSize(20.dp, 1.3f)),
             )
             Spacer(Modifier.width(Spacing.sm))

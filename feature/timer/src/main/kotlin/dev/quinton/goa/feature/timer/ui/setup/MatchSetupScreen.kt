@@ -129,18 +129,23 @@ fun MatchSetupScreen(state: MatchSetupUiState, actions: SetupActions) {
                 PlayersCard(state, actions.onPlayers)
                 if (state.layouts.size > 1 || state.layouts.firstOrNull()?.guidance != null) {
                     SectionHeader("Teams")
-                    Column(Modifier.selectableGroup(), verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-                        state.layouts.forEach { layout ->
-                            LayoutCard(layout, layout.id == state.selectedLayoutId, state.layouts.size > 1) {
-                                actions.onLayout(layout.id)
+                    // One section plate; its choices are rows of it (DESIGN.md "Framing levels").
+                    GoaPlate(Modifier.fillMaxWidth(), contentPadding = PaddingValues(Spacing.xs)) {
+                        Column(Modifier.selectableGroup(), verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
+                            state.layouts.forEach { layout ->
+                                LayoutCard(layout, layout.id == state.selectedLayoutId, state.layouts.size > 1) {
+                                    actions.onLayout(layout.id)
+                                }
                             }
                         }
                     }
                 }
                 SectionHeader("Mode")
-                Column(Modifier.selectableGroup(), verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-                    state.modes.forEach { mode ->
-                        ModeCard(mode, mode.mode == state.selectedMode) { actions.onMode(mode.mode) }
+                GoaPlate(Modifier.fillMaxWidth(), contentPadding = PaddingValues(Spacing.xs)) {
+                    Column(Modifier.selectableGroup(), verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
+                        state.modes.forEach { mode ->
+                            ModeCard(mode, mode.mode == state.selectedMode) { actions.onMode(mode.mode) }
+                        }
                     }
                 }
                 Note(state.firstGameAdvice)

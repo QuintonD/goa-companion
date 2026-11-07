@@ -1,6 +1,6 @@
 package dev.quinton.goa.feature.catalog
 
-import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
@@ -18,6 +18,7 @@ import androidx.compose.ui.unit.dp
 import androidx.test.core.app.ApplicationProvider
 import com.github.takahirom.roborazzi.captureRoboImage
 import dev.quinton.goa.core.designsystem.component.GoaPlateTheme
+import dev.quinton.goa.core.designsystem.component.GoaSheetHandle
 import dev.quinton.goa.core.designsystem.component.slatePlate
 import dev.quinton.goa.core.designsystem.theme.GoaTheme
 import dev.quinton.goa.core.domain.catalog.AttackStyle
@@ -44,6 +45,7 @@ import dev.quinton.goa.core.model.player.Player
 import dev.quinton.goa.core.model.rating.HeroUsage
 import dev.quinton.goa.core.model.rating.Rating
 import dev.quinton.goa.core.model.settings.ThemeMode
+import dev.quinton.goa.core.navigation.HeroDetailRoute
 import dev.quinton.goa.core.testing.BundledAssetImages
 import dev.quinton.goa.core.testing.TestCatalog
 import dev.quinton.goa.core.testing.bundledAsset
@@ -369,10 +371,13 @@ class CatalogScreenshotTest {
 
     @Test fun emptyCatalogLight() = shot(ThemeMode.LIGHT) { Catalog(CatalogUiState.Unavailable(error = false)) }
 
-    /** A sheet's plate, dark in both themes, as `GoaSheet` gives its content. */
+    /** A sheet's plate as `GoaSheet` gives its content, with the drag handle the player sees over it. */
     @Composable
     private fun OnSheet(content: @Composable () -> Unit) = GoaPlateTheme {
-        Box(Modifier.slatePlate(RoundedCornerShape(0.dp), brackets = false)) { content() }
+        Column(Modifier.slatePlate(RoundedCornerShape(0.dp), brackets = false)) {
+            GoaSheetHandle()
+            content()
+        }
     }
 
     /** The real roles and products, a complexity, a role and a product chosen, and the count the button gives. */
@@ -389,7 +394,7 @@ class CatalogScreenshotTest {
             {},
             {},
             {},
-            Modifier.padding(vertical = 16.dp),
+            Modifier.padding(bottom = 16.dp),
         )
     }
 
@@ -420,12 +425,24 @@ class CatalogScreenshotTest {
         compose.setContent {
             GoaTheme(themeMode = ThemeMode.DARK) {
                 Surface(color = MaterialTheme.colorScheme.background) {
-                    HeroDetailScreen(ShotData.detail(), onBack = {}, onCardClick = { _, _ -> }, onLearnNumbers = {})
+                    HeroDetailScreen(
+                        ShotData.detail(),
+                        onBack = {},
+                        onCardClick = { _, _ -> },
+                        onLearnNumbers = {},
+                        initialSection = HeroDetailRoute.DECK,
+                    )
                 }
             }
         }
         compose.onNode(hasScrollToKeyAction()).performScrollToKey("deck-trivia")
         capture()
+    }
+
+    /** The FAQ tab: the rulings under the compact identity, the FAQ tab selected. */
+    @Test fun detailFaqDark() = shot {
+        HeroDetailScreen(ShotData.detail(), onBack = {
+        }, onCardClick = { _, _ -> }, initialSection = HeroDetailRoute.FAQ)
     }
 
     @Test fun detailNotFoundDark() = shot {

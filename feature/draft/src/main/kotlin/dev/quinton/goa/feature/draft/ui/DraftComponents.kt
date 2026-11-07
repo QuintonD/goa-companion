@@ -46,7 +46,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.RadioButtonDefaults
 import androidx.compose.material3.SegmentedButtonColors
-import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.SelectableChipColors
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -88,6 +87,8 @@ import dev.quinton.goa.core.designsystem.component.LARGE_FONT_SCALE
 import dev.quinton.goa.core.designsystem.component.PlateShape
 import dev.quinton.goa.core.designsystem.component.SelectionMarkIcon
 import dev.quinton.goa.core.designsystem.component.TeamMark
+import dev.quinton.goa.core.designsystem.component.selectableChipColors
+import dev.quinton.goa.core.designsystem.component.selectableSegmentColors
 import dev.quinton.goa.core.designsystem.component.slatePlate
 import dev.quinton.goa.core.designsystem.component.teamColor
 import dev.quinton.goa.core.designsystem.theme.GoaTextStyles
@@ -582,16 +583,11 @@ private fun RowScope.ChoiceCardBody(
 }
 
 /*
- * Selection colours in the bronze palette. The shared scheme leaves Material's default
- * (purple-grey) secondaryContainer, so selected chips/segments set their colours explicitly.
+ * Selection colours: the design system's one selected look (bronze wash and edge; chips add
+ * `border = selectableChipBorder(selected)` and `leadingIcon = selectedCheck(selected)`).
  */
 @Composable
-internal fun goaFilterChipColors(): SelectableChipColors = FilterChipDefaults.filterChipColors(
-    selectedContainerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.18f),
-    selectedLabelColor = MaterialTheme.colorScheme.primary,
-    selectedLeadingIconColor = MaterialTheme.colorScheme.primary,
-    selectedTrailingIconColor = MaterialTheme.colorScheme.primary,
-)
+internal fun goaFilterChipColors(): SelectableChipColors = selectableChipColors()
 
 /** Filter chip in a team's colour (Tie Breaker "Red shows" / "Blue shows"). */
 @Composable
@@ -606,13 +602,7 @@ internal fun teamFilterChipColors(team: Team): SelectableChipColors {
 }
 
 @Composable
-internal fun goaSegmentedColors(): SegmentedButtonColors = SegmentedButtonDefaults.colors(
-    activeContainerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.18f),
-    activeContentColor = MaterialTheme.colorScheme.primary,
-    activeBorderColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.7f),
-    inactiveContainerColor = Color.Transparent,
-    inactiveBorderColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.3f),
-)
+internal fun goaSegmentedColors(): SegmentedButtonColors = selectableSegmentColors()
 
 @Composable
 internal fun goaTonalButtonColors(): ButtonColors = ButtonDefaults.filledTonalButtonColors(

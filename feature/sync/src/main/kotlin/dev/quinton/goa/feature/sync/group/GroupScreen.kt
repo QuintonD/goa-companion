@@ -70,6 +70,7 @@ import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import dev.quinton.goa.core.designsystem.component.ConfirmDialog
+import dev.quinton.goa.core.designsystem.component.DisabledReason
 import dev.quinton.goa.core.designsystem.component.GoaButton
 import dev.quinton.goa.core.designsystem.component.GoaCard
 import dev.quinton.goa.core.designsystem.component.GoaDialog
@@ -238,20 +239,13 @@ private fun NoGroup(state: GroupUiState, actions: GroupActions, padding: Padding
  */
 @Composable
 private fun StepButton(label: String, enabled: Boolean, helper: String, onClick: () -> Unit) {
-    // The design system's outlined button: disabled, it keeps its shape and edge (Modifier.disabled).
+    // The design system's outlined button: disabled, the filled unlit face (never a field's outline), the reason under.
     GoaOutlinedButton(
         onClick = onClick,
         enabled = enabled,
         modifier = Modifier.fillMaxWidth().heightIn(min = 52.dp),
     ) { Text(label, style = MaterialTheme.typography.titleMedium) }
-    if (!enabled) {
-        Text(
-            helper,
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.padding(top = Spacing.xs),
-        )
-    }
+    if (!enabled) DisabledReason(helper)
 }
 
 @Composable

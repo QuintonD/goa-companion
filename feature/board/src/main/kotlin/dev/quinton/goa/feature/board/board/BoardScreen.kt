@@ -78,6 +78,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import dev.quinton.goa.core.designsystem.component.BarIconButton
 import dev.quinton.goa.core.designsystem.component.ConfirmDialog
 import dev.quinton.goa.core.designsystem.component.EmptyState
 import dev.quinton.goa.core.designsystem.component.GoaDarkTheme
@@ -152,10 +153,10 @@ fun BoardScreen(
         snackbarHost = { SnackbarHost(snackbar) },
         actions = {
             if (ready != null) {
-                IconButton(onClick = { onAction(BoardAction.Undo) }, enabled = ready.canUndo) {
+                BarIconButton("Undo", onClick = { onAction(BoardAction.Undo) }, enabled = ready.canUndo) {
                     Icon(Icons.AutoMirrored.Outlined.Undo, contentDescription = "Undo")
                 }
-                IconButton(onClick = { onAction(BoardAction.Redo) }, enabled = ready.canRedo) {
+                BarIconButton("Redo", onClick = { onAction(BoardAction.Redo) }, enabled = ready.canRedo) {
                     Icon(Icons.AutoMirrored.Outlined.Redo, contentDescription = "Redo")
                 }
                 Box {

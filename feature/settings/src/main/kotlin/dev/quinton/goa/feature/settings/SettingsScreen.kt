@@ -69,6 +69,7 @@ import dev.quinton.goa.core.designsystem.component.GoaScreen
 import dev.quinton.goa.core.designsystem.component.LARGE_FONT_SCALE
 import dev.quinton.goa.core.designsystem.component.PlateStyle
 import dev.quinton.goa.core.designsystem.component.SectionHeader
+import dev.quinton.goa.core.designsystem.component.selectableSegmentColors
 import dev.quinton.goa.core.designsystem.theme.GoaTheme
 import dev.quinton.goa.core.designsystem.theme.Spacing
 import dev.quinton.goa.core.domain.settings.ProductOption
@@ -318,14 +319,9 @@ private fun <T> ChoiceSelector(options: List<ChoiceOption<T>>, selected: T, onSe
                         Icon(option.icon, contentDescription = null, modifier = Modifier.size(18.dp))
                     }
                 },
-                colors = SegmentedButtonDefaults.colors(
-                    activeContainerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.18f),
-                    activeContentColor = MaterialTheme.colorScheme.onSurface,
-                    activeBorderColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.7f),
-                    inactiveContainerColor = MaterialTheme.colorScheme.surface,
-                    inactiveContentColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                    inactiveBorderColor = GoaTheme.colors.engravedBorder,
-                ),
+                // The app's one selected look: bronze wash and edge, and the segment's check.
+                colors = selectableSegmentColors(),
+
             ) { Text(option.label, maxLines = 1, overflow = TextOverflow.Ellipsis) }
         }
     }

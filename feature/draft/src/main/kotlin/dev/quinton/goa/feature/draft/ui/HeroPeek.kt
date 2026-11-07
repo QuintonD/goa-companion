@@ -42,10 +42,11 @@ import dev.quinton.goa.core.designsystem.component.ComplexityStars
 import dev.quinton.goa.core.designsystem.component.GoaButton
 import dev.quinton.goa.core.designsystem.component.GoaSheet
 import dev.quinton.goa.core.designsystem.component.HeroPortrait
+import dev.quinton.goa.core.designsystem.component.HeroStatBlocks
 import dev.quinton.goa.core.designsystem.component.HeroSymbol
 import dev.quinton.goa.core.designsystem.component.LARGE_FONT_SCALE
 import dev.quinton.goa.core.designsystem.component.PlateGround
-import dev.quinton.goa.core.designsystem.component.StatBar
+import dev.quinton.goa.core.designsystem.component.StatReadoutStyle
 import dev.quinton.goa.core.designsystem.component.TitlePlate
 import dev.quinton.goa.core.designsystem.component.cardColor
 import dev.quinton.goa.core.designsystem.component.scaledIconSize
@@ -54,7 +55,6 @@ import dev.quinton.goa.core.designsystem.theme.GoaTheme
 import dev.quinton.goa.core.designsystem.theme.Spacing
 import dev.quinton.goa.core.model.catalog.CardColor
 import dev.quinton.goa.core.model.catalog.Role
-import dev.quinton.goa.core.model.catalog.Stat
 import dev.quinton.goa.core.model.match.Team
 
 /** The peek's way to commit: the step's team, its words ("Pick Arien for ◆ Red…") and what it opens (the confirm). */
@@ -115,9 +115,8 @@ internal fun HeroPeekSheet(
                 )
             } else {
                 PeekHeading("Stats · base → max")
-                Column(verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
-                    for ((label, stat) in PEEK_STATS) StatBar(label, hero.stats.get(stat))
-                }
+                // The app's one stat readout (HeroStatBlock), with its 1..8 bar, in the order the card prints.
+                HeroStatBlocks(hero.stats, style = StatReadoutStyle.Bar)
                 PeekHeading("Starting cards")
                 if (hero.startingCards.isEmpty()) {
                     Text(
@@ -166,13 +165,6 @@ internal fun HeroPeekSheet(
         }
     }
 }
-
-private val PEEK_STATS = listOf(
-    "Attack" to Stat.ATTACK,
-    "Defense" to Stat.DEFENSE,
-    "Initiative" to Stat.INITIATIVE,
-    "Movement" to Stat.MOVEMENT,
-)
 
 @Composable
 private fun PeekHeading(text: String) {

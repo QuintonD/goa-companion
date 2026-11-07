@@ -321,7 +321,7 @@ internal fun HeroListRow(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
                 ) {
-                    ComplexityStars(hero.complexity, starSize = 12.dp)
+                    ComplexityStars(hero.complexity, starSize = 12.dp, showLabel = true)
                     MetaPill(item.productName, modifier = Modifier.weight(1f, fill = false))
                     item.rangedLabel?.let { MetaPill(it, color = MaterialTheme.colorScheme.primary) }
                     if (!hero.verified) UnverifiedBadge(compact = true)
