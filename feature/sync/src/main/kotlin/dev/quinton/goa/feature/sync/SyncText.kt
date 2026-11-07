@@ -55,32 +55,31 @@ object SyncText {
         ).joinToString(" · ")
     }
 
-    /** What tapping Sync does with these phones, in a line; null when no phone is in. */
-    fun hostWaitingHint(peers: List<PeerProgress>): String? {
-        val sending = peers.filter { it.stage == PeerStage.VERIFYING || it.stage == PeerStage.RECEIVING }
-        val out = peers.filter { it.stage == PeerStage.FAILED }
-        if (syncing(peers).isEmpty()) return null
-        return listOfNotNull(
-            "Sync waits for ${names(sending)}'s data.".takeIf { sending.isNotEmpty() },
-            "${names(out)} ${if (out.size == 1) "isn't" else "aren't"} included.".takeIf { out.isNotEmpty() },
-        ).joinToString(" ").ifEmpty { null }
-    }
-
     /**
      * The host's button. Every phone's data in: "Sync with Bob and Cid" ("Sync 4 phones"). Some still sending: the tap
-     * queues the sync, and the button says so ("Sync when Cid's data is in"). No phone's data in yet: the button is off
-     * and says what it waits for ([hostWaitingLabel]).
+     * arms the sync, which starts on its own once their data is in ("Sync automatically when ready"; then
+     * [hostArmed]). No phone's data in yet: the button is off and says what it waits for ([hostWaitingLabel]).
      */
     fun syncLabel(peers: List<PeerProgress>): String {
         val taken = syncing(peers)
         val sending = sending(peers)
         return when {
             taken.isEmpty() || taken.size == sending.size -> hostWaitingLabel(peers)
-            sending.isNotEmpty() && sending.size <= NAMED_PHONES -> "Sync when ${names(sending)}'s data is in"
-            sending.isNotEmpty() -> "Sync when every phone's data is in"
+            sending.isNotEmpty() -> "Sync automatically when ready"
             taken.size <= NAMED_PHONES -> "Sync with ${names(taken)}"
             else -> "Sync ${taken.size} phones"
         }
+    }
+
+    /** The sync was tapped while phones were still sending: it waits for them and starts by itself. */
+    fun armed(phase: HostPhase, peers: List<PeerProgress>): Boolean =
+        phase == HostPhase.MERGING && sending(peers).isNotEmpty()
+
+    /** Armed, as a status: "Waiting for Cid · sync starts automatically". */
+    fun hostArmed(peers: List<PeerProgress>): String {
+        val sending = sending(peers)
+        val who = if (sending.size <= NAMED_PHONES) names(sending) else "${sending.size} phones"
+        return "Waiting for $who · sync starts automatically"
     }
 
     /** What the host's switched-off button waits for: "Waiting for a phone to join…", "Waiting for Cid's data…". */
@@ -93,10 +92,13 @@ object SyncText {
         }
     }
 
-    /** Where a host's sync stands, as the step it is on (0 collect, 1 merge, 2 send back, 3 done). */
-    fun hostStep(phase: HostPhase): Int = when (phase) {
+    /**
+     * Where a host's sync stands, as the step it is on (0 collect, 1 merge, 2 send back, 3 done). Armed and still
+     * waiting for a phone's data is still collecting.
+     */
+    fun hostStep(phase: HostPhase, peers: List<PeerProgress> = emptyList()): Int = when (phase) {
         HostPhase.WAITING -> 0
-        HostPhase.MERGING -> 1
+        HostPhase.MERGING -> if (armed(phase, peers)) 0 else 1
         HostPhase.SENDING -> 2
         HostPhase.DONE -> 3
         HostPhase.FAILED -> 0
@@ -105,15 +107,9 @@ object SyncText {
     /** The steps a host's sync goes through, named for the stepper. */
     val hostSteps: List<String> = listOf("Collect", "Merge", "Send back", "Done")
 
-    /** The host after Sync was tapped: merging, or still waiting for an upload first. */
-    fun hostMerging(peers: List<PeerProgress>): String {
-        val sending = sending(peers)
-        return when {
-            sending.isEmpty() -> "Merging everyone's data…"
-            sending.size <= NAMED_PHONES -> "Waiting for ${names(sending)}'s data, then merging…"
-            else -> "Waiting for ${sending.size} phones' data, then merging…"
-        }
-    }
+    /** The host after Sync was tapped: armed while an upload is still under way ([hostArmed]), then merging. */
+    fun hostMerging(peers: List<PeerProgress>): String =
+        if (sending(peers).isNotEmpty()) hostArmed(peers) else "Merging…"
 
     /**
      * The final word on a finished sync: "Every phone is up to date: Bob and Cid", or who made it and who didn't

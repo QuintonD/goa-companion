@@ -1,5 +1,6 @@
 package dev.quinton.goa.feature.sync
 
+import android.content.Context
 import android.content.Intent
 import androidx.activity.compose.LocalActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -52,6 +53,7 @@ fun EntryProviderScope<NavKey>.syncEntries(navigator: Navigator) {
             creationCallback = { it.create(key.role, key.firstSync) },
         )
         val state by vm.uiState.collectAsStateWithLifecycle()
+        val context = LocalContext.current
         val toGroup = {
             navigator.back()
             if (!key.fromGroup) navigator.navigate(GroupSyncRoute)
@@ -68,6 +70,7 @@ fun EntryProviderScope<NavKey>.syncEntries(navigator: Navigator) {
                 },
                 onUseFile = toGroup,
                 onOpenGroup = toGroup,
+                onShareInvite = { shareInvite(context, it) },
             ),
         )
     }
@@ -164,13 +167,7 @@ private fun GroupEntry(navigator: Navigator) {
             onShareFile = vm::shareFile,
             // Some providers report the file as octet-stream or nothing useful, so accept any file.
             onImportFile = { importLauncher.launch(arrayOf("*/*")) },
-            onShareInvite = { invite ->
-                // With what to do with it: a bare goa-sync: link means nothing in a chat.
-                val text = GroupInvite.parseInvite(invite).getOrNull()
-                    ?.let { GroupInvite.shareText(it.group, it.serverUrl) } ?: invite
-                val send = Intent(Intent.ACTION_SEND).setType("text/plain").putExtra(Intent.EXTRA_TEXT, text)
-                context.startActivity(Intent.createChooser(send, "Share invite"))
-            },
+            onShareInvite = { shareInvite(context, it) },
             onLeave = vm::leave,
             server = SyncServerActions(
                 onEnabled = vm::setServerSyncEnabled,
@@ -180,4 +177,12 @@ private fun GroupEntry(navigator: Navigator) {
             ),
         ),
     )
+}
+
+/** Shares the group's invite as text, with what to do with it: a bare goa-sync: link means nothing in a chat. */
+private fun shareInvite(context: Context, invite: String) {
+    val text = GroupInvite.parseInvite(invite).getOrNull()
+        ?.let { GroupInvite.shareText(it.group, it.serverUrl) } ?: invite
+    val send = Intent(Intent.ACTION_SEND).setType("text/plain").putExtra(Intent.EXTRA_TEXT, text)
+    context.startActivity(Intent.createChooser(send, "Share invite"))
 }
