@@ -144,7 +144,10 @@ class CardFocusDecisionTest {
 
     /** The panel's bronze button (the viewer's has its tag). */
     private fun panelButton(text: String) =
-        compose.onAllNodes(hasText(text) and hasClickAction() and !hasTestTag(CONFIRM_TAG)).onFirst().performScrollTo()
+        // A defence's button says how it ends after the move ("Defend with … — still defeated").
+        compose.onAllNodes(hasText(text, substring = true) and hasClickAction() and !hasTestTag(CONFIRM_TAG))
+            .onFirst()
+            .performScrollTo()
 
     @Test
     fun `discard - a tap chooses, a tap on the chosen card reads it, only the button answers`() {
