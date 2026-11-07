@@ -1,13 +1,13 @@
 package dev.quinton.goa.feature.trivia.quiz
 
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -42,6 +42,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.FilterQuality
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.LiveRegionMode
@@ -56,6 +57,8 @@ import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.IntOffset
+import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil3.compose.AsyncImage
@@ -72,6 +75,7 @@ import dev.quinton.goa.core.designsystem.component.PlateColor
 import dev.quinton.goa.core.designsystem.component.TitlePlate
 import dev.quinton.goa.core.designsystem.component.UnverifiedBadge
 import dev.quinton.goa.core.designsystem.component.assetUrl
+import dev.quinton.goa.core.designsystem.component.rememberOfficialBitmap
 import dev.quinton.goa.core.designsystem.component.scaledIconSize
 import dev.quinton.goa.core.designsystem.component.slatePlate
 import dev.quinton.goa.core.designsystem.theme.GoaTextStyles
@@ -89,69 +93,51 @@ internal enum class Mark { OPEN, RIGHT, WRONG, OTHER }
 // ---- Question -------------------------------------------------------------------------------
 
 /**
- * The question: for a card number, the hero's official art (as tall as [artHeight]; none at 0),
- * whose card it is and the asked number on its plate; for a duel, the question on its plate.
+ * The question. For a card number it leads with the card (its name large beside its colour's ribbon, its kind, whose
+ * it is) and asks on the title plate ("What is its Defense?"); with [artHeight] the card's painting heads it (held
+ * sideways, where there is no stage under it). For a duel, the question on its plate.
  */
 @Composable
-internal fun QuestionPanel(
-    question: QuizQuestionUi,
-    modifier: Modifier = Modifier,
-    artHeight: Dp = 0.dp,
-    /** Off once answered: the reveal scrolls the group under the banner, and a cut frame reads as broken. */
-    framed: Boolean = true,
-) {
+internal fun QuestionPanel(question: QuizQuestionUi, modifier: Modifier = Modifier, artHeight: Dp = 0.dp) {
     when (question) {
-        is QuizQuestionUi.Number -> {
-            // One group: whose card (the hero's art, bounded, then the hero's portrait and name), which card (its
-            // name large, beside its colour's ribbon), and what is asked, on its plate.
-            val content: @Composable ColumnScope.() -> Unit = {
-                Column(Modifier.fillMaxWidth().semantics(mergeDescendants = true) {}) {
-                    if (artHeight > 0.dp) {
-                        // The hero's art, never the card (its scan would give the answer away).
-                        HeroPortrait(
-                            heroId = question.card.heroId,
-                            portrait = question.card.portrait,
-                            contentDescription = null,
-                            modifier = Modifier.fillMaxWidth().height(artHeight),
+        is QuizQuestionUi.Number -> GoaPlate(modifier.fillMaxWidth()) {
+            if (artHeight > 0.dp) {
+                CardArt(question.card, Modifier.fillMaxWidth().height(artHeight))
+                Spacer(Modifier.height(Spacing.md))
+            }
+            Column(Modifier.fillMaxWidth().semantics(mergeDescendants = true) {}) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    ColourRibbon(
+                        PlateColor.of(question.card.color),
+                        Modifier.size(width = scaledIconSize(16.dp), height = scaledIconSize(34.dp)),
+                    )
+                    Spacer(Modifier.width(Spacing.md))
+                    Column(Modifier.weight(1f)) {
+                        Text(
+                            question.card.name,
+                            style = MaterialTheme.typography.headlineMedium,
+                            color = MaterialTheme.colorScheme.onSurface,
                         )
-                        Spacer(Modifier.height(Spacing.sm))
-                    }
-                    HeroLine(question.card, portraitSize = 28.dp)
-                    Spacer(Modifier.height(Spacing.sm))
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        ColourRibbon(
-                            PlateColor.of(question.card.color),
-                            Modifier.size(width = scaledIconSize(16.dp), height = scaledIconSize(34.dp)),
-                        )
-                        Spacer(Modifier.width(Spacing.md))
-                        Column(Modifier.weight(1f)) {
-                            Text(
-                                question.card.name,
-                                style = MaterialTheme.typography.headlineMedium,
-                                color = MaterialTheme.colorScheme.onSurface,
-                            )
-                            CardKindLine(question.card)
-                        }
+                        CardKindLine(question.card)
                     }
                 }
-                Spacer(Modifier.height(Spacing.md))
-                TitlePlate(
-                    "${TriviaText.stat(question.stat)}?",
-                    style = QuestionPlateStyle,
-                    heading = false,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .semantics(mergeDescendants = true) {
-                            heading()
-                            contentDescription = "What is its ${TriviaText.stat(question.stat)}?"
-                        },
-                )
+                Spacer(Modifier.height(Spacing.xs))
+                HeroLine(question.card, portraitSize = 24.dp)
             }
-            if (framed) {
-                GoaPlate(modifier.fillMaxWidth(), content = content)
-            } else {
-                Column(modifier.fillMaxWidth().padding(Spacing.md), content = content)
-            }
+            Spacer(Modifier.height(Spacing.md))
+            val asked = "What is its ${TriviaText.stat(question.stat)}?"
+            TitlePlate(
+                asked,
+                style = QuestionPlateStyle,
+                heading = false,
+                maxLines = 2,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .semantics(mergeDescendants = true) {
+                        heading()
+                        contentDescription = asked
+                    },
+            )
         }
 
         is QuizQuestionUi.Duel -> Column(modifier.fillMaxWidth()) {
@@ -166,17 +152,84 @@ internal fun QuestionPanel(
     }
 }
 
+/**
+ * Between a number question and its answers: before the answer the card's painting fills it ([CardArt], no printed
+ * number shows); once answered the verdict heads it and the whole scan, as large as the stage allows, proves it. The
+ * stage keeps its height either way, so the question above and the answers below stay where they were.
+ */
+@Composable
+internal fun CardStage(
+    state: TriviaQuizUiState.Playing,
+    question: QuizQuestionUi.Number,
+    modifier: Modifier = Modifier,
+) {
+    Column(modifier, horizontalAlignment = Alignment.CenterHorizontally) {
+        // One polite live region, there before the answer, so TalkBack reads the verdict when it fills in.
+        FeedbackLine(state.feedback, state.correct)
+        if (!state.answered) {
+            CardArt(question.card, Modifier.fillMaxWidth().weight(1f))
+        } else {
+            Spacer(Modifier.height(Spacing.sm))
+            Box(Modifier.fillMaxWidth().weight(1f), contentAlignment = Alignment.Center) {
+                CardImage(question.card, Modifier.fillMaxHeight())
+            }
+        }
+    }
+}
+
+/**
+ * The card's own painting, cropped from its scan to the window that holds no printed number (the Initiative, the
+ * left-hand ribbon's values, the tier and the text box's values all lie outside it; checked on every deck card's
+ * scan), filling [modifier]'s box. A card without a portrait scan (none, or a landscape spellbook page) shows its
+ * hero's art instead. Decorative for TalkBack: the panel names the card.
+ */
+@Composable
+internal fun CardArt(card: TriviaCardUi, modifier: Modifier = Modifier) {
+    val shape = RoundedCornerShape(10.dp)
+    val bitmap = card.image?.let { rememberOfficialBitmap(it) }
+    val portraitScan = bitmap != null && bitmap.height > bitmap.width
+    when {
+        card.image == null || (bitmap != null && !portraitScan) -> HeroPortrait(
+            heroId = card.heroId,
+            portrait = card.portrait,
+            contentDescription = null,
+            modifier = modifier.clip(shape),
+        )
+
+        bitmap == null -> Box(modifier.clip(shape).background(MaterialTheme.colorScheme.surface))
+
+        else -> Canvas(modifier.clip(shape).clearAndSetSemantics {}) {
+            val left = bitmap.width * ART_WINDOW_LEFT
+            val top = bitmap.height * ART_WINDOW_TOP
+            val windowWidth = bitmap.width * (ART_WINDOW_RIGHT - ART_WINDOW_LEFT)
+            val windowHeight = bitmap.height * (ART_WINDOW_BOTTOM - ART_WINDOW_TOP)
+            // Cropped to the box's shape inside the window, centred: never past the window's edges.
+            val scale = maxOf(size.width / windowWidth, size.height / windowHeight)
+            val w = (size.width / scale).coerceAtMost(windowWidth)
+            val h = (size.height / scale).coerceAtMost(windowHeight)
+            drawImage(
+                bitmap,
+                srcOffset = IntOffset((left + (windowWidth - w) / 2).toInt(), (top + (windowHeight - h) / 2).toInt()),
+                srcSize = IntSize(w.toInt(), h.toInt()),
+                dstSize = IntSize(size.width.toInt(), size.height.toInt()),
+                filterQuality = FilterQuality.High,
+            )
+        }
+    }
+}
+
+/** The painting's window on a portrait deck card's scan (fractions of its width and height): no printed number. */
+private const val ART_WINDOW_LEFT = 0.25f
+private const val ART_WINDOW_TOP = 0.12f
+private const val ART_WINDOW_RIGHT = 0.96f
+private const val ART_WINDOW_BOTTOM = 0.50f
+
 // ---- Answers --------------------------------------------------------------------------------
 
 @Composable
-internal fun AnswerArea(
-    state: TriviaQuizUiState.Playing,
-    onAnswer: (TriviaAnswer) -> Unit,
-    /** The room under the question: the number buttons grow into it (up to a cap), so no empty band is left. */
-    fillHeight: Dp = 0.dp,
-) {
+internal fun AnswerArea(state: TriviaQuizUiState.Playing, onAnswer: (TriviaAnswer) -> Unit) {
     when (val q = state.question) {
-        is QuizQuestionUi.Number -> NumberChoices(q, state.answer as? TriviaAnswer.Number, onAnswer, fillHeight)
+        is QuizQuestionUi.Number -> NumberChoices(q, state.answer as? TriviaAnswer.Number, onAnswer)
         is QuizQuestionUi.Duel -> DuelChoices(q, state.answer as? TriviaAnswer.Duel, onAnswer)
     }
 }
@@ -186,7 +239,6 @@ private fun NumberChoices(
     q: QuizQuestionUi.Number,
     answer: TriviaAnswer.Number?,
     onAnswer: (TriviaAnswer) -> Unit,
-    fillHeight: Dp,
 ) {
     val recall = q.choices.size > CHOICE_GRID
     val style = GoaTextStyles.timerDigitsSmall
@@ -198,9 +250,8 @@ private fun NumberChoices(
         val cell = maxOf(widest + (badge + BADGE_INSET) * 2, MIN_CELL)
         val fit = ((maxWidth + Spacing.sm) / (cell + Spacing.sm)).toInt()
         val columns = fit.coerceIn(1, if (recall) MAX_COLUMNS else 2)
-        val rows = (q.choices.size + columns - 1) / columns
-        val base = if (recall) 64.dp else 84.dp
-        val tile = ((fillHeight - Spacing.sm * (rows - 1)) / rows).coerceIn(base, maxOf(base, MAX_TILE))
+        // A thumb's target at arm's length, the same height answered or not.
+        val tile = if (recall) RECALL_TILE else CHOICE_TILE
         Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
             q.choices.zip(labels).chunked(columns).forEach { row ->
                 Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
@@ -493,12 +544,8 @@ private fun FeedbackLine(feedback: String?, correct: Boolean?) {
                 )
             }
             Spacer(Modifier.width(Spacing.md))
+            Text(feedback, style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurface)
         }
-        Text(
-            feedback.orEmpty(),
-            style = MaterialTheme.typography.titleMedium,
-            color = MaterialTheme.colorScheme.onSurface,
-        )
     }
 }
 
@@ -584,8 +631,9 @@ private const val MAX_COLUMNS = 5
 /** The narrowest an answer button gets, whatever its label. */
 private val MIN_CELL = 64.dp
 
-/** The tallest a number button grows to fill the room under the question. */
-private val MAX_TILE = 168.dp
+/** A number button's height: four choices two by two; recall's many choices a row of up to five. */
+private val CHOICE_TILE = 88.dp
+private val RECALL_TILE = 64.dp
 
 /** The corner mark: a disc this size, this far in from the button's corner. */
 private val BADGE_SIZE = 16.dp
@@ -596,4 +644,4 @@ private val BADGE_INSET = 4.dp
 private const val CARD_ASPECT = 729f / 1026f
 
 /** The question on its title plate, large enough to read from across the table. */
-private val QuestionPlateStyle = GoaTextStyles.plateTitle.copy(fontSize = 26.sp, lineHeight = 32.sp)
+private val QuestionPlateStyle = GoaTextStyles.plateTitle.copy(fontSize = 22.sp, lineHeight = 28.sp)
