@@ -453,10 +453,10 @@ which next", a "will do nothing" warning on errorContainer with a warning icon, 
 spells one line each with the engine's reason (also after the action's own line when no spell can be
 cast); the Note box's "Only the primary action applies the card's text (p.7)." only when the primary isn't offered. Card questions (play, discard, retrieve, upgrade,
 keep) show "Asked by <card>" (28 dp thumbnail) when another card asks, and the cards as official
-images: the hand as 84 dp cards shrinking to 60 dp to fit five, two or three cards larger (140 / 92
+images: the hand as 84 dp cards shrinking to 60 dp to fit five, two or three cards larger (112 / 92
 dp, so Keep's two next-Tier cards sit side by side with their item stats), a card the question
 doesn't offer dimmed with a block icon. Under every card to choose (hand, discard, defend, upgrade, keep) its
-**name** in Crimson 15 sp semibold (wraps, after a hyphen if need be, never cut) and, where the choice weighs them
+**name** in Crimson 14 sp semibold (wraps, after a hyphen if need be, never cut) and, where the choice weighs them
 (play, discard, retrieve), its printed Initiative and its primary action's value with the game's icons ("⚡12 ⚔3"),
 from the catalog, on one line; a defence shows its outcome instead (below): the scan is for recognition, the caption for
 reading. The foot of a card question is one row: a steel **Read card** button (book icon; the chosen card, else

@@ -405,10 +405,10 @@ internal fun CardCaption(card: Card, width: Dp, numbers: Boolean = true) {
     }
 }
 
-/** A card's name under it: Crimson, as the game prints it, at 15 sp. */
+/** A card's name under it: Crimson, as the game prints it, at 14 sp. */
 private val CardNameStyle = GoaTextStyles.printed.copy(
-    fontSize = 15.sp,
-    lineHeight = 17.sp,
+    fontSize = 14.sp,
+    lineHeight = 16.sp,
     fontWeight = FontWeight.SemiBold,
     // A word wider than a narrow card at large text breaks with a hyphen, not bare ("Aspirin / g").
     hyphens = Hyphens.Auto,
@@ -992,7 +992,12 @@ private fun VerdictBadge(line: DefenseLine, modifier: Modifier = Modifier) {
                     tint = BadgeInk,
                     modifier = Modifier.size(scaledIconSize(13.dp, 1.3f)),
                 )
-                Text("$total", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold, color = BadgeInk)
+                Text(
+                    "$total",
+                    style = MaterialTheme.typography.labelLarge,
+                    fontWeight = FontWeight.Bold,
+                    color = BadgeInk,
+                )
             }
         }
     }
@@ -1114,7 +1119,7 @@ private fun DeclineCard(label: String, selected: Boolean, width: Dp, onClick: ()
 
 /** The largest a card in a row of [n] grows: few cards are shown large enough to read. */
 private fun largestCard(n: Int): Dp = when {
-    n <= 2 -> 140.dp
+    n <= 2 -> 112.dp
     n == 3 -> 92.dp
     else -> HAND_CARD
 }
