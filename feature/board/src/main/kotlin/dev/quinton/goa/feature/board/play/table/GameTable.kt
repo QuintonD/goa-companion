@@ -137,11 +137,14 @@ fun GameTable(
         var questionEnd by remember { mutableStateOf<Int?>(null) }
         // The hand's tab pinned under the question ([panelFooter]): the panel holds both.
         var footerHeight by remember { mutableIntStateOf(0) }
-        val panelShare = questionEnd?.let { end ->
-            val footer = if (panelFooter != null) footerHeight else 0
-            val height = with(density) { (end + footer).toDp() } + PanelStripHeight + PANEL_PAST_QUESTION
-            (height / maxHeight).coerceAtMost(PANEL_SHARE)
-        } ?: PANEL_SHARE
+        // The tab comes on top of the question's share: it never pushes the question's commit below the fold.
+        val footer = with(density) { (if (panelFooter != null) footerHeight else 0).toDp() } / maxHeight
+        val panelShare = footer + (
+            questionEnd?.let { end ->
+                val height = with(density) { end.toDp() } + PanelStripHeight + PANEL_PAST_QUESTION
+                (height / maxHeight).coerceAtMost(PANEL_SHARE)
+            } ?: PANEL_SHARE
+            )
 
         // The map's key while a question lights it, under the round at a glance and the track: the options are
         // framed below it, so it never covers a piece.

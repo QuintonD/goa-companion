@@ -397,13 +397,13 @@ fun DecisionWho(table: TableUi, modifier: Modifier = Modifier) {
             TeamMark(decision.team, markSize = scaledIconSize(13.dp, 1.3f))
         }
         Spacer(Modifier.width(Spacing.sm))
-        // Whose decision is never cut: with large text on the 40 dp strip the words step down to fit one line.
+        // Whose decision is never cut: with large text the words step down, then take a second line (the strip grows).
         Text(
             line,
             style = GoaTextStyles.plateTitle.copy(fontSize = 15.sp, lineHeight = 20.sp),
             color = teamColor(decision.team),
-            maxLines = 1,
-            autoSize = TextAutoSize.StepBased(minFontSize = 9.sp, maxFontSize = 15.sp),
+            maxLines = 2,
+            autoSize = TextAutoSize.StepBased(minFontSize = 11.sp, maxFontSize = 15.sp),
         )
     }
 }

@@ -15,7 +15,6 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -157,7 +156,7 @@ private fun PanelStrip(landscape: Boolean, title: (@Composable () -> Unit)?, onH
     Box(
         Modifier
             .fillMaxWidth()
-            .height(STRIP)
+            .heightIn(min = STRIP)
             .draggable(
                 drag,
                 orientation = if (landscape) Orientation.Horizontal else Orientation.Vertical,
@@ -175,15 +174,22 @@ private fun PanelStrip(landscape: Boolean, title: (@Composable () -> Unit)?, onH
             )
         }
         if (title != null) {
-            Box(Modifier.align(Alignment.CenterStart).padding(start = Spacing.md, end = TITLE_END)) { title() }
+            // Clear of the drag handle above it; two lines of large text make the strip taller.
+            Box(
+                Modifier
+                    .align(Alignment.CenterStart)
+                    .padding(start = Spacing.md, end = TITLE_END, top = if (landscape) 2.dp else 8.dp, bottom = 2.dp),
+            ) { title() }
         }
-        // A 48 dp touch target overlapping the strip's 40 dp.
-        IconButton(onClick = onHide, modifier = Modifier.align(Alignment.CenterEnd).padding(end = Spacing.xs)) {
-            Icon(
-                if (landscape) Icons.AutoMirrored.Outlined.KeyboardArrowRight else Icons.Outlined.ExpandMore,
-                contentDescription = "Hide panel",
-                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
+        // A 48 dp touch target overlapping the strip's 40 dp: sized by the strip, never sizing it.
+        Box(Modifier.matchParentSize()) {
+            IconButton(onClick = onHide, modifier = Modifier.align(Alignment.CenterEnd).padding(end = Spacing.xs)) {
+                Icon(
+                    if (landscape) Icons.AutoMirrored.Outlined.KeyboardArrowRight else Icons.Outlined.ExpandMore,
+                    contentDescription = "Hide panel",
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
         }
     }
 }

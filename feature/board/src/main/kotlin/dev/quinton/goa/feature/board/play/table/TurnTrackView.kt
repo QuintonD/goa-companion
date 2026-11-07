@@ -288,10 +288,11 @@ private fun cellWord(role: CellRole, slot: TrackSlot, table: TableUi): String = 
 }
 
 /**
- * The strip the cells lie on, one row of [CELL_MIN] height: [stretch]ed, the cells share the width (the acting hero's
- * [WIDE_SHARE] times the others', for its name and card); they scroll, at fixed widths, when a cell would get narrower
- * than [MIN_CELL] or the strip isn't stretched, scrolled so the acting hero is in view. [framed]: on a plate of its own;
- * else it lies on the plate it is put on (the score bar's, [TableHud]'s `below`).
+ * The strip the cells lie on, one row of [CELL_MIN] height: [stretch]ed, the cells share the width (the acting
+ * hero's [WIDE_SHARE] times the others', for its name and card); on a narrow strip the others take [TIGHT_CELL] and
+ * the acting hero the rest; they scroll, at fixed widths, when even that doesn't fit or the strip isn't stretched,
+ * scrolled so the acting hero is in view. [framed]: on a plate of its own; else it lies on the plate it is put on
+ * (the score bar's, [TableHud]'s `below`).
  */
 @Composable
 private fun TrackStrip(
@@ -543,7 +544,7 @@ private fun HeroName(name: String, modifier: Modifier) {
     )
 }
 
-/** The initiative as it counts, in large figures: "=11" while tied with another hero still to act, "–" without one. */
+/** The initiative as it counts, in large figures: "=11" while tied with another hero still to act, else "–". */
 @Composable
 private fun Initiative(slot: TrackSlot) {
     Text(

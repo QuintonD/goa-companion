@@ -3,10 +3,10 @@ package dev.quinton.goa.feature.board.play
 import com.google.common.truth.Truth.assertThat
 import dev.quinton.goa.core.game.DecisionKind
 import dev.quinton.goa.core.model.match.Team
+import dev.quinton.goa.feature.board.boardHeroes
 import dev.quinton.goa.feature.board.bundledCatalog
 import dev.quinton.goa.feature.board.bundledMaps
 import dev.quinton.goa.feature.board.play.table.TableUi
-import dev.quinton.goa.feature.board.boardHeroes
 import dev.quinton.goa.feature.board.play.table.decisionOwnerLine
 import dev.quinton.goa.feature.board.play.table.responderId
 import dev.quinton.goa.feature.board.play.table.turnLog
@@ -21,14 +21,17 @@ class ResponderTest {
 
     private fun tableAt(kind: DecisionKind): TableUi {
         val session = fakeFactory().newGame(fakeSetup(humans = all)) as FakeGameSession
-        var guard = 0
-        while (session.pending?.kind != kind && guard++ < 80) session.answer(session.pending!!.id, session.preferred()!!)
+        repeat(MAX_ANSWERS) {
+            val pending = session.pending
+            if (pending != null && pending.kind != kind) session.answer(pending.id, session.preferred()!!)
+        }
         val catalog = bundledCatalog
+        val cards = catalog.heroes.flatMap { hero -> hero.allCards }.associateBy { card -> card.id }
         return TableUi(
-            map = bundledMaps.first { it.id == "forgotten-island" },
+            map = bundledMaps.first { map -> map.id == "forgotten-island" },
             view = session.view("arien"),
             heroes = catalog.boardHeroes(),
-            cards = catalog.heroes.flatMap { it.allCards }.associateBy { it.id },
+            cards = cards,
             mine = all,
             decision = session.pending,
             asking = true,
@@ -54,5 +57,9 @@ class ResponderTest {
         assertThat(responderId(table)).isNull()
         val name = table.hero(table.decision!!.seat).name
         assertThat(decisionOwnerLine(table)).isEqualTo("$name decides · Action")
+    }
+
+    private companion object {
+        const val MAX_ANSWERS = 80
     }
 }
