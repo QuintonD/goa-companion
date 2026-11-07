@@ -748,11 +748,17 @@ fun BoardPeek(table: TableUi, onAnswer: (Choice) -> Unit, busy: Boolean) {
             )
             Spacer(Modifier.width(Spacing.xs))
             val count = table.spaceOptions.size
-            // Once one is tapped, which one in full: the Confirm under it says only what it does (opus #21).
             Text(
-                boardChoice(table)?.let { "Chosen: ${table.label(it)}" }
-                    ?: if (count == 1) "1 space · tap the lit one" else "$count spaces · tap a lit one",
+                if (count == 1) "1 space · tap the lit one" else "$count spaces · tap a lit one",
                 style = MaterialTheme.typography.bodyLarge,
+            )
+        }
+        // Once one is tapped, which one in full: the Confirm under it says only what it does (opus #21).
+        boardChoice(table)?.let {
+            Text(
+                "Chosen: ${table.label(it)}",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
         if (table.selected?.let { it is Choice.Space || it is Choice.Unit || it is Choice.Token } == true) {

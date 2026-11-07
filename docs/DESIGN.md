@@ -433,7 +433,9 @@ steel column docked at the map's end edge, under the key or the HUD: "Fit board"
 view", each its glyph over its word as the game's top bar (`BarLabelButton`), the full words in a long-press tooltip and
 for TalkBack. A flip says "View flipped · Blue at the bottom" beside the column for a moment (TalkBack hears it). Every
 framing (the opening, Fit, a reveal) moves aside, to the start or down, so **no piece stands under the column**
-(`MapViewport.updateAvoid`), unless that would push a piece in view out of it. Each space's TalkBack node is a square inside its hex (1.46 map units, so neighbours never
+(`MapViewport.updateAvoid`), only where there is slack: never cutting a piece in view at an edge nor cropping what a
+question is about (its options, the actor, a hint's target), zooming out a little rather than cropping. On a short
+screen sideways (under 480 dp) the column is the glyphs alone, 48 dp each, the words in the tooltip. Each space's TalkBack node is a square inside its hex (1.46 map units, so neighbours never
 overlap and Android keeps each node whole). The card strip starts one card before the chosen card
 and fades at an edge with more cards beyond; from font scale 1.3 its chips wrap two to a row, each half the width, every name whole. The chosen card takes the one selection look (bronze edge and tint, a tick), never its own colour. **New board** fits a 384 dp phone without scrolling:
 one slot on top holds the latest draft's or match's line-up (a card with Set up) until the first
@@ -787,7 +789,8 @@ and WHY IT WORKS as numbered lines (the explanation split sentence by sentence, 
 "Turn 2" mark; never reworded), then RULES. The list has two parts, POSITIONS · 50 and FULL ROUNDS · 22, each with
 "n of m solved"; the Continue card says "Up next · Puzzle 2 of 50", the count the puzzle's own screen uses. The
 difficulty filter is one checked segmented bar, **"All" checked** by default, then Hard, Harder, Hardest, each with its
-number of puzzles under the name, so it reads as a filter at once (one difficulty at a time).
+number of positions under the name ("All · 50 positions", as the Positions part counts), so it reads as a filter at
+once (one difficulty at a time).
 The **replay** panel has Back / Next arrows around "SOLUTION · STEP n OF m", the move in titleMedium
 (its card beside it), WHAT HAPPENED, and the explanation below. The list's numbers are Cinzel in a
 bronze ring (filled when solved); Continue is a secondary-container card (all solved: the seal).

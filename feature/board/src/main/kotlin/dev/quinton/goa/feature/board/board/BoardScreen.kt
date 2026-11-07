@@ -276,6 +276,8 @@ private fun BoardContent(
     var hidden by rememberSaveable { mutableStateOf(initialPanelHidden) }
     BoxWithConstraints(Modifier.fillMaxSize()) {
         val landscape = maxWidth > maxHeight
+        // A short screen sideways: the map controls are glyphs only.
+        val shortSideways = landscape && maxHeight < 480.dp
         val orientation = if (landscape) MapOrientation.LANDSCAPE else MapOrientation.PORTRAIT
         val layout =
             remember(state.map, orientation, state.bottomTeam) { MapLayout(state.map, orientation, state.bottomTeam) }
@@ -412,6 +414,7 @@ private fun BoardContent(
                     viewport,
                     state.bottomTeam,
                     onFlip = { onAction(BoardAction.Flip) },
+                    compact = shortSideways,
                     modifier = Modifier.onGloballyPositioned {
                         toolbar = it.boundsInRoot().translate(0f, -boardTop.toFloat())
                     },

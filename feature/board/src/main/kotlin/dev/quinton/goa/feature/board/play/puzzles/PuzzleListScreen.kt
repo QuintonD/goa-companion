@@ -312,7 +312,8 @@ private fun PartHeading(
 
 /**
  * The difficulty filter as one checked segmented bar (opus #13): "All" checked by default, then each difficulty, each
- * with how many puzzles it holds under its name. One is shown at a time; "All" clears the filter.
+ * with how many positions it holds under its name ("All / 50 positions", as the Positions part counts). One is shown at
+ * a time; "All" clears the filter.
  */
 @Composable
 private fun DifficultyFilter(state: PuzzleListUiState.Ready, onAction: (PuzzleListAction) -> Unit) {
@@ -321,9 +322,9 @@ private fun DifficultyFilter(state: PuzzleListUiState.Ready, onAction: (PuzzleLi
         chosen.filter { it != d }.forEach { onAction(PuzzleListAction.ToggleDifficulty(it)) }
         if (d != null && d !in chosen) onAction(PuzzleListAction.ToggleDifficulty(d))
     }
-    val all = state.difficultyCounts.values.sum().takeIf { it > 0 } ?: state.total
+    val all = state.difficultyCounts.values.sum().takeIf { it > 0 } ?: state.positionsTotal
     GoaSegmentedRow(Modifier.fillMaxWidth()) {
-        GoaSegment(selected = chosen.isEmpty(), onClick = { only(null) }) { FilterLabel("All", all) }
+        GoaSegment(selected = chosen.isEmpty(), onClick = { only(null) }) { FilterLabel("All", all, "positions") }
         state.difficulties.forEach { d ->
             GoaSegment(selected = chosen == setOf(d), onClick = { only(d) }) {
                 FilterLabel(PuzzleText.difficulty(d), state.difficultyCounts[d])
@@ -333,12 +334,12 @@ private fun DifficultyFilter(state: PuzzleListUiState.Ready, onAction: (PuzzleLi
 }
 
 @Composable
-private fun FilterLabel(name: String, count: Int?) {
+private fun FilterLabel(name: String, count: Int?, unit: String? = null) {
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
         Text(name, maxLines = 1)
         count?.let {
             Text(
-                "$it",
+                listOfNotNull("$it", unit).joinToString(" "),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 maxLines = 1,

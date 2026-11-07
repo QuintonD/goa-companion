@@ -123,6 +123,8 @@ fun GameTable(
     var toolbar by remember { mutableStateOf<Rect?>(null) }
     BoxWithConstraints(modifier.fillMaxSize().onGloballyPositioned { origin = it.positionInRoot() }) {
         val landscape = maxWidth > maxHeight
+        // A short screen sideways: the map controls are glyphs only.
+        val shortSideways = landscape && maxHeight < SHORT_HEIGHT
         val orientation = if (landscape) MapOrientation.LANDSCAPE else MapOrientation.PORTRAIT
         val layout =
             remember(table.map, orientation, table.bottomTeam) { MapLayout(table.map, orientation, table.bottomTeam) }
@@ -213,7 +215,7 @@ fun GameTable(
             val alsoAbout = listOfNotNull(decision.context.attackerId, table.view.acting).mapNotNull(table::at)
             val hexes = table.spaceOptions.keys + table.pieceOptions.keys.mapNotNull(table::at) +
                 decision.context.highlight + listOfNotNull(table.subject?.let(table::at)) +
-                who.mapNotNull(table::at) + alsoAbout
+                who.mapNotNull(table::at) + alsoAbout + listOfNotNull(table.hintAt)
             val region = layout.bounds(hexes, pad = 1.1f) ?: return@LaunchedEffect
             // The Battle Zone around them when it fits in the free area: it is where the game is. A question answered
             // on the map keeps its spaces comfortable to tap; any other may take the smaller size for it.
@@ -322,6 +324,8 @@ fun GameTable(
                         table.bottomTeam,
                         onFlip,
                         Modifier.onGloballyPositioned { toolbar = it.boundsInRoot() },
+                        // A short screen sideways: glyphs only (tooltips and TalkBack keep the words).
+                        compact = shortSideways,
                     )
                     // Gydion's spellbook, one tap at any point of the game (ADR-040): under the map buttons,
                     // so it never covers the round at a glance, the turn track or the hero strip.
@@ -521,10 +525,13 @@ private val PANEL_INSET = 12.dp
 private val PANEL_PAST_QUESTION = 12.dp
 private val HAND_SIDE_PANEL = 480.dp
 private const val HAND_SIDE_SHARE = 0.5f
-private val ZONE_HEX_TAP = 48.dp
+private val ZONE_HEX_TAP = 38.dp
 
 /** Spaces framed smaller than this share of [TOUCH_HEX] (about 40 dp) are numbered and listed as well. */
 private const val CROWDED_BELOW = 0.83f
+
+/** Sideways, a table shorter than this has the map controls as glyphs only. */
+private val SHORT_HEIGHT = 480.dp
 
 /** A space answered on the map is framed at least this wide when the options fit: a finger's target (sol #1). */
 internal val TOUCH_HEX = 48.dp

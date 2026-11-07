@@ -6,15 +6,24 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.CenterFocusStrong
 import androidx.compose.material.icons.outlined.SwapVert
 import androidx.compose.material.icons.outlined.ZoomIn
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.PlainTooltip
 import androidx.compose.material3.Text
+import androidx.compose.material3.TooltipAnchorPosition
+import androidx.compose.material3.TooltipBox
+import androidx.compose.material3.TooltipDefaults
+import androidx.compose.material3.rememberTooltipState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
@@ -25,6 +34,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.Layout
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.liveRegion
@@ -49,7 +59,14 @@ import kotlinx.coroutines.launch
  * the bottom"), and TalkBack hears it; the note never changes the column's size, so the map isn't re-framed for it.
  */
 @Composable
-internal fun MapToolbar(viewport: MapViewport, bottomTeam: Team, onFlip: () -> Unit, modifier: Modifier = Modifier) {
+internal fun MapToolbar(
+    viewport: MapViewport,
+    bottomTeam: Team,
+    onFlip: () -> Unit,
+    modifier: Modifier = Modifier,
+    /** A short screen sideways: the glyphs alone, 48 dp each; the words stay in the tooltip and for TalkBack. */
+    compact: Boolean = false,
+) {
     val scope = rememberCoroutineScope()
     var flips by remember { mutableIntStateOf(0) }
     var notice by remember { mutableStateOf(false) }
@@ -70,32 +87,23 @@ internal fun MapToolbar(viewport: MapViewport, bottomTeam: Team, onFlip: () -> U
                         verticalArrangement = Arrangement.spacedBy(2.dp),
                     ) {
                         if (viewport.isFit) {
-                            BarLabelButton(
-                                "Lane view",
-                                Icons.Outlined.ZoomIn,
-                                onClick = { scope.launch { viewport.animateLane() } },
-                                description = "Zoom to the lane",
-                                modifier = Modifier.widthIn(min = TOOL_WIDTH),
-                            )
+                            MapTool("Lane view", Icons.Outlined.ZoomIn, "Zoom to the lane", compact) {
+                                scope.launch { viewport.animateLane() }
+                            }
                         } else {
-                            BarLabelButton(
-                                "Fit board",
-                                Icons.Outlined.CenterFocusStrong,
-                                onClick = { scope.launch { viewport.animateFit() } },
-                                description = "Fit the whole board",
-                                modifier = Modifier.widthIn(min = TOOL_WIDTH),
-                            )
+                            MapTool("Fit board", Icons.Outlined.CenterFocusStrong, "Fit the whole board", compact) {
+                                scope.launch { viewport.animateFit() }
+                            }
                         }
-                        BarLabelButton(
+                        MapTool(
                             "Flip view",
                             Icons.Outlined.SwapVert,
-                            onClick = {
-                                onFlip()
-                                flips++
-                            },
-                            description = "Flip the view: ${BoardText.team(bottomTeam.opponent)} at the bottom",
-                            modifier = Modifier.widthIn(min = TOOL_WIDTH),
-                        )
+                            "Flip the view: ${BoardText.team(bottomTeam.opponent)} at the bottom",
+                            compact,
+                        ) {
+                            onFlip()
+                            flips++
+                        }
                     }
                     AnimatedVisibility(notice, enter = fadeIn(), exit = fadeOut()) {
                         Text(
@@ -122,6 +130,29 @@ internal fun MapToolbar(viewport: MapViewport, bottomTeam: Team, onFlip: () -> U
                 }
             }
         }
+    }
+}
+
+/** One control: its glyph over its word, or (compact) the glyph alone with the word in its tooltip. */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun MapTool(label: String, icon: ImageVector, description: String, compact: Boolean, onClick: () -> Unit) {
+    if (!compact) {
+        BarLabelButton(
+            label,
+            icon,
+            onClick = onClick,
+            description = description,
+            modifier = Modifier.widthIn(min = TOOL_WIDTH),
+        )
+        return
+    }
+    TooltipBox(
+        positionProvider = TooltipDefaults.rememberTooltipPositionProvider(TooltipAnchorPosition.Start),
+        tooltip = { PlainTooltip { Text(description) } },
+        state = rememberTooltipState(),
+    ) {
+        IconButton(onClick = onClick, modifier = Modifier.size(48.dp)) { Icon(icon, contentDescription = description) }
     }
 }
 

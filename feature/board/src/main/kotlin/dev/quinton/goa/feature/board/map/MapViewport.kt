@@ -86,6 +86,9 @@ class MapViewport {
     /** Where the pieces stand (map units): what [avoid] must not cover when the view is framed. */
     private var obstacles: List<Offset> = emptyList()
 
+    /** What the last reveal brought into view (map units): it stays whole when the view moves aside. */
+    private var revealed: Rect? = null
+
     /**
      * Lays [layout] out in a viewport of [size] (px) and frames the [lane] region, the first time
      * and again when the layout or the viewport changes (rotation, flip). [minHexPx]: the smallest
@@ -133,7 +136,7 @@ class MapViewport {
         if (layout == null || userMoved) return
         // A view the app framed (the Lane, Fit, a reveal) moves aside; one the person moved is theirs.
         if (mode == ViewMode.MOVED) {
-            val clear = clearOfControls(pan, zoom)
+            val clear = clearOfControls(pan, zoom, revealed)
             zoom = clear.zoom
             pan = clear.pan
         } else {
@@ -217,48 +220,73 @@ class MapViewport {
 
     /**
      * [candidate] at [z], moved as little as it takes so that no piece in view stands under the map's controls: to the
-     * start side or down, else a little smaller (to 78 %) towards the view's start-bottom corner, provided no piece in
-     * view leaves it for that; else [candidate] as it is.
+     * start side or down, else a little smaller (to 78 %) about [keep] (what the question is about), provided no piece
+     * leaves the view or is cut at its edge and [keep] stays whole in view (gate r4: a nudge only where there is
+     * slack, never a crop); else [candidate] as it is.
      */
-    private fun clearOfControls(candidate: Offset, z: Float): Framing {
+    private fun clearOfControls(candidate: Offset, z: Float, keep: Rect? = null): Framing {
         val unchanged = Framing(candidate, z)
         val controls = avoid ?: return unchanged
-        if (obstacles.isEmpty() || unit == 0f) return unchanged
         val v = visible
-        fun at(f: Framing, piece: Offset) = f.pan + piece * (unit * f.zoom)
-        fun radius(f: Framing) = PIECE_CLEAR * unit * f.zoom
-
-        // Only a piece that would be seen counts: one under the top's plates or the panel is hidden anyway.
-        fun under(f: Framing) = obstacles.filter { piece ->
-            val s = at(f, piece)
-            val r = radius(f)
-            s.y > v.top && s.y < v.bottom &&
-                s.x + r > controls.left && s.x - r < controls.right &&
-                s.y + r > controls.top && s.y - r < controls.bottom
-        }
-        val covered = under(unchanged)
-        if (covered.isEmpty()) return unchanged
-        fun shown(f: Framing) = obstacles.count { v.contains(at(f, it)) }
-        val before = shown(unchanged)
-        fun moves(f: Framing): List<Framing> {
-            val hit = under(f)
-            if (hit.isEmpty()) return listOf(f)
-            val r = radius(f)
-            val toStart = controls.left - hit.maxOf { at(f, it).x + r }
-            val down = controls.bottom - hit.minOf { at(f, it).y - r }
-            return listOf(Offset(toStart, 0f), Offset(0f, down))
-                .sortedBy { it.getDistance() }
-                .map { Framing(clampPan(f.pan + it, f.zoom), f.zoom) }
-        }
-        val corner = Offset(v.left + MARGIN_PX, v.bottom - MARGIN_PX)
+        val nothingToDo = obstacles.isEmpty() || unit == 0f ||
+            !keepsInView(unchanged, keep, v) || underControls(unchanged, controls, v).isEmpty()
+        if (nothingToDo) return unchanged
+        val before = wholeInView(unchanged, v)
+        val anchor = keep?.let { candidate + it.center * (unit * z) }
+            ?: Offset(v.left + MARGIN_PX, v.bottom - MARGIN_PX)
         val smaller = SHRINK_STEPS.map { k ->
             val zk = maxOf(z * k, minZoom)
-            val applied = zk / z
-            Framing(clampPan(corner - (corner - candidate) * applied, zk), zk)
+            Framing(clampPan(anchor - (anchor - candidate) * (zk / z), zk), zk)
         }
-        return (moves(unchanged) + smaller.flatMap { listOf(it) + moves(it) })
-            .firstOrNull { under(it).isEmpty() && shown(it) >= before }
-            ?: unchanged
+        return (movesAside(unchanged, controls, v) + smaller.flatMap { listOf(it) + movesAside(it, controls, v) })
+            .firstOrNull {
+                underControls(it, controls, v).isEmpty() && wholeInView(it, v) >= before && keepsInView(it, keep, v)
+            } ?: unchanged
+    }
+
+    private fun screenAt(f: Framing, piece: Offset): Offset = f.pan + piece * (unit * f.zoom)
+
+    private fun pieceRadius(f: Framing): Float = PIECE_CLEAR * unit * f.zoom
+
+    /** The pieces seen under [controls] at [f] (one under the top's plates or the panel is hidden anyway). */
+    private fun underControls(f: Framing, controls: Rect, v: Rect): List<Offset> {
+        val r = pieceRadius(f)
+        return obstacles.filter { piece ->
+            val s = screenAt(f, piece)
+            s.y > v.top && s.y < v.bottom && s.x + r > controls.left && s.x - r < controls.right &&
+                s.y + r > controls.top && s.y - r < controls.bottom
+        }
+    }
+
+    /** How many pieces are whole in view at [f]: the nudge never cuts one at an edge. */
+    private fun wholeInView(f: Framing, v: Rect): Int {
+        val r = pieceRadius(f)
+        return obstacles.count { piece ->
+            val s = screenAt(f, piece)
+            s.x - r >= v.left && s.x + r <= v.right && s.y - r >= v.top && s.y + r <= v.bottom
+        }
+    }
+
+    /** Whether [keep] (map units) is whole in view at [f]; true without one. */
+    private fun keepsInView(f: Framing, keep: Rect?, v: Rect): Boolean {
+        if (keep == null) return true
+        val scale = unit * f.zoom
+        val left = f.pan.x + keep.left * scale
+        val top = f.pan.y + keep.top * scale
+        return left >= v.left && top >= v.top &&
+            left + keep.width * scale <= v.right && top + keep.height * scale <= v.bottom
+    }
+
+    /** [f] moved to the start side, or down, just enough that the pieces under [controls] are clear of them. */
+    private fun movesAside(f: Framing, controls: Rect, v: Rect): List<Framing> {
+        val hit = underControls(f, controls, v)
+        if (hit.isEmpty()) return listOf(f)
+        val r = pieceRadius(f)
+        val toStart = controls.left - hit.maxOf { screenAt(f, it).x + r }
+        val down = controls.bottom - hit.minOf { screenAt(f, it).y - r }
+        return listOf(Offset(toStart, 0f), Offset(0f, down))
+            .sortedBy { it.getDistance() }
+            .map { Framing(clampPan(f.pan + it, f.zoom), f.zoom) }
     }
 
     private fun centerOn(map: Offset, z: Float, v: Rect = visible): Offset {
@@ -380,7 +408,8 @@ class MapViewport {
             }
         }
         val target = if (fits(region, z, v)) panToShow(region, z, v) else centerOn(focus, z)
-        val aside = clearOfControls(clampPan(target, z), z)
+        revealed = region
+        val aside = clearOfControls(clampPan(target, z), z, region)
         z = aside.zoom
         val clamped = aside.pan
         if (z == zoom && (clamped - pan).getDistance() < 1f) return
