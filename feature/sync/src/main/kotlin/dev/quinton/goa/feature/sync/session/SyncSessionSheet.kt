@@ -3,6 +3,17 @@ package dev.quinton.goa.feature.sync.session
 import androidx.activity.compose.LocalActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material.icons.filled.Check
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.text.style.TextAlign
+import dev.quinton.goa.core.designsystem.component.GoaPlate
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -327,32 +338,40 @@ private fun PermissionContent(permission: PermissionUi, actions: SyncSessionActi
     }
 }
 
+/**
+ * Hosting, in explicit steps (Collect, Merge, Send back, Done): each phone's own state on its row (sending its data,
+ * ready, receiving the result, synced); the Sync button off and saying what it waits for until a phone's data is in,
+ * or, while some phones are still sending, saying that a tap queues the sync ("Sync when Cid's data is in"); then a
+ * final summary of who is up to date.
+ */
 @Composable
 private fun Hosting(host: HostState, state: SyncSessionUiState, actions: SyncSessionActions) {
-    val status = when (host.phase) {
-        HostPhase.WAITING -> if (host.peers.isEmpty()) {
-            "Hosting. On each other phone: Group sync → Sync now → Join."
-        } else {
-            SyncText.hostWaiting(host.peers)
-        }
-
-        HostPhase.MERGING -> "Merging everyone's data…"
-
-        HostPhase.SENDING -> "Sending the merged data…"
-
-        HostPhase.DONE -> "Done. This phone: ${host.changes?.let(SyncText::summary) ?: "Already up to date"}"
-
-        HostPhase.FAILED -> host.failure?.let { SyncText.failure(it, host.message) } ?: "Sync stopped"
-    }
     val waiting = host.phase == HostPhase.WAITING
     val working = host.phase == HostPhase.MERGING || host.phase == HostPhase.SENDING
-    StatusLine(
-        status,
-        working = working,
-        error = host.phase == HostPhase.FAILED,
-        // Waiting on people, not on work: a phone, not a spinner (a frozen spinner read as a stray mark).
-        waitingIcon = Icons.Outlined.PhonelinkRing.takeIf { waiting },
-    )
+    if (host.phase != HostPhase.FAILED) SyncSteps(SyncText.hostStep(host.phase), SyncText.hostSteps)
+    when (host.phase) {
+        HostPhase.DONE -> HostDone(host)
+
+        else -> StatusLine(
+            when (host.phase) {
+                HostPhase.WAITING -> if (host.peers.isEmpty()) {
+                    "Hosting. On each other phone: Group sync → Sync now → Join."
+                } else {
+                    SyncText.hostWaiting(host.peers)
+                }
+
+                HostPhase.MERGING -> SyncText.hostMerging(host.peers)
+
+                HostPhase.SENDING -> "Sending the merged data back…"
+
+                else -> host.failure?.let { SyncText.failure(it, host.message) } ?: "Sync stopped"
+            },
+            working = working,
+            error = host.phase == HostPhase.FAILED,
+            // Waiting on people, not on work: a phone, not a spinner (a frozen spinner read as a stray mark).
+            waitingIcon = Icons.Outlined.PhonelinkRing.takeIf { waiting },
+        )
+    }
     host.peers.forEach { PeerRow(it) }
     if (waiting && host.peers.isEmpty()) {
         LinearProgressIndicator(Modifier.fillMaxWidth())
@@ -368,22 +387,12 @@ private fun Hosting(host: HostState, state: SyncSessionUiState, actions: SyncSes
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
+            // Off, the button says what it waits for; on with phones still sending, it says the tap queues the sync.
             GoaButton(
                 onClick = actions.onSyncNow,
                 enabled = host.canSync,
                 modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp),
-            ) { Text(SyncText.syncLabel(host.peers)) }
-            if (!host.canSync) {
-                Text(
-                    if (host.peers.isEmpty()) {
-                        "Sync turns on once a phone has joined."
-                    } else {
-                        "Sync turns on once a phone's data is in."
-                    },
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
+            ) { Text(SyncText.syncLabel(host.peers), textAlign = TextAlign.Center) }
             TextButton(onClick = actions.onCancel, modifier = Modifier.heightIn(min = 48.dp)) { Text("Cancel") }
         }
 
@@ -393,6 +402,97 @@ private fun Hosting(host: HostState, state: SyncSessionUiState, actions: SyncSes
         HostPhase.DONE -> Finish(state, actions)
 
         HostPhase.FAILED -> Retry(actions)
+    }
+}
+
+/** The finished sync's summary: who is up to date, what changed on this phone, who to sync again. */
+@Composable
+private fun HostDone(host: HostState) {
+    GoaPlate(Modifier.fillMaxWidth().semantics(mergeDescendants = true) { liveRegion = LiveRegionMode.Polite }) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Icon(
+                Icons.Outlined.CheckCircle,
+                null,
+                tint = MaterialTheme.colorScheme.secondary,
+                modifier = Modifier.size(scaledIconSize(28.dp)),
+            )
+            Spacer(Modifier.width(Spacing.md))
+            Text(
+                SyncText.hostDoneTitle(host.peers),
+                style = MaterialTheme.typography.titleMedium,
+                modifier = Modifier.semantics { heading() },
+            )
+        }
+        Spacer(Modifier.size(Spacing.sm))
+        Text(
+            "This phone: ${host.changes?.let(SyncText::summary) ?: "Already up to date"}",
+            style = MaterialTheme.typography.bodyMedium,
+        )
+        SyncText.hostDoneMissed(host.peers)?.let {
+            Text(it, style = MaterialTheme.typography.bodyMedium, color = GoaTheme.colors.unverified)
+        }
+    }
+}
+
+/**
+ * The sync's steps in a row, the current one bronze, the ones behind it ticked in teal, the ones ahead hollow:
+ * where the sync stands, in shape and word, never colour alone. One TalkBack node ("Step 2 of 4: Merge").
+ */
+@Composable
+private fun SyncSteps(current: Int, steps: List<String>) {
+    Row(
+        Modifier
+            .fillMaxWidth()
+            .clearAndSetSemantics {
+                contentDescription = "Step ${current + 1} of ${steps.size}: ${steps[current]}"
+            },
+        horizontalArrangement = Arrangement.spacedBy(Spacing.xs),
+    ) {
+        steps.forEachIndexed { i, label ->
+            val done = i < current || (i == current && i == steps.lastIndex)
+            val now = i == current && !done
+            val primary = MaterialTheme.colorScheme.primary
+            val teal = MaterialTheme.colorScheme.secondary
+            val muted = MaterialTheme.colorScheme.onSurfaceVariant
+            Column(Modifier.weight(1f), horizontalAlignment = Alignment.CenterHorizontally) {
+                Box(
+                    Modifier
+                        .size(scaledIconSize(26.dp))
+                        .clip(CircleShape)
+                        .background(
+                            when {
+                                done -> teal
+                                now -> primary
+                                else -> Color.Transparent
+                            },
+                        )
+                        .border(1.5.dp, if (done) teal else if (now) primary else muted, CircleShape),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    if (done) {
+                        Icon(
+                            Icons.Filled.Check,
+                            null,
+                            tint = MaterialTheme.colorScheme.onSecondary,
+                            modifier = Modifier.size(scaledIconSize(16.dp)),
+                        )
+                    } else {
+                        Text(
+                            "${i + 1}",
+                            style = MaterialTheme.typography.labelLarge,
+                            color = if (now) MaterialTheme.colorScheme.onPrimary else muted,
+                        )
+                    }
+                }
+                Spacer(Modifier.size(Spacing.xs))
+                Text(
+                    label,
+                    style = MaterialTheme.typography.labelMedium,
+                    color = if (now) primary else muted,
+                    textAlign = TextAlign.Center,
+                )
+            }
+        }
     }
 }
 

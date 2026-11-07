@@ -43,13 +43,32 @@ class SyncTextTest {
         val eve = PeerProgress("3", "Eve", stage = PeerStage.FAILED, failure = SyncFailure.WRONG_KEY)
         val all = listOf(bob, cid, eve)
         assertThat(SyncText.hostWaiting(all)).isEqualTo("1 ready · 1 sending its data · 1 needs a new invite")
-        // Sync waits for uploads still under way (SyncHost.merge), so Cid is in; Eve is not.
-        assertThat(SyncText.syncLabel(all)).isEqualTo("Sync with Bob and Cid")
+        // Sync waits for uploads still under way (SyncHost.merge): a tap now is queued, and the button says so.
+        assertThat(SyncText.syncLabel(all)).isEqualTo("Sync when Cid's data is in")
         assertThat(SyncText.hostWaitingHint(all)).isEqualTo("Sync waits for Cid's data. Eve isn't included.")
         assertThat(SyncText.syncLabel(listOf(bob))).isEqualTo("Sync with Bob")
+        assertThat(SyncText.syncLabel(listOf(bob, cid.copy(stage = PeerStage.READY)))).isEqualTo("Sync with Bob and Cid")
         assertThat(SyncText.hostWaitingHint(listOf(bob))).isNull()
-        assertThat(SyncText.syncLabel(listOf(eve))).isEqualTo("Sync")
         assertThat(SyncText.syncLabel(List(3) { bob.copy(linkId = "$it") })).isEqualTo("Sync 3 phones")
+        // Nothing to sync yet: the switched-off button says what it waits for.
+        assertThat(SyncText.syncLabel(listOf(eve))).isEqualTo("Waiting for a phone to join…")
+        assertThat(SyncText.syncLabel(emptyList())).isEqualTo("Waiting for a phone to join…")
+        assertThat(SyncText.syncLabel(listOf(cid))).isEqualTo("Waiting for Cid's data…")
+        // After the tap, while Cid's upload is still under way.
+        assertThat(SyncText.hostMerging(all)).isEqualTo("Waiting for Cid's data, then merging…")
+        assertThat(SyncText.hostMerging(listOf(bob))).isEqualTo("Merging everyone's data…")
+    }
+
+    @Test
+    fun hostDoneSaysWhoIsUpToDate() {
+        val bob = PeerProgress("1", "Bob", stage = PeerStage.DONE)
+        val cid = PeerProgress("2", "Cid", stage = PeerStage.DONE)
+        val eve = PeerProgress("3", "Eve", stage = PeerStage.FAILED, failure = SyncFailure.WRONG_KEY)
+        val dee = PeerProgress("4", "Dee", stage = PeerStage.FAILED, failure = SyncFailure.DISCONNECTED)
+        assertThat(SyncText.hostDoneTitle(listOf(bob, cid, eve))).isEqualTo("Every phone is up to date: Bob and Cid")
+        assertThat(SyncText.hostDoneMissed(listOf(bob, cid, eve))).isNull()
+        assertThat(SyncText.hostDoneTitle(listOf(bob, dee))).isEqualTo("Synced with Bob")
+        assertThat(SyncText.hostDoneMissed(listOf(bob, dee))).isEqualTo("Dee didn't finish: sync again to include it.")
     }
 
     @Test

@@ -11,6 +11,7 @@ import androidx.compose.ui.test.hasSetTextAction
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onRoot
+import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTextInput
 import androidx.compose.ui.unit.Density
 import androidx.test.core.app.ApplicationProvider
@@ -106,6 +107,16 @@ class SyncScreenshotTest {
 
     @Test fun groupNoGroupLightFontScale2() = shot(ThemeMode.LIGHT, 2f) { Group(noGroup) }
 
+    /** Start a group chosen (its form open in its plate) and How syncing works unfolded. */
+    @Test
+    fun groupNoGroupStartingLight() {
+        setContent(ThemeMode.LIGHT, 1f) { Group(noGroup) }
+        compose.onNode(hasText("Start a group") and hasClickAction()).performClick()
+        compose.onNode(hasText("How syncing works") and hasClickAction()).performClick()
+        compose.waitUntil(ART_TIMEOUT_MS) { BundledAssetImages.idle }
+        compose.onRoot().captureRoboImage()
+    }
+
     @Test fun groupJoinedDark() = shot { Group(joined) }
 
     @Test fun groupJoinedLight() = shot(ThemeMode.LIGHT) { Group(joined.copy(me = null)) }
@@ -123,7 +134,8 @@ class SyncScreenshotTest {
     @Test
     fun groupPasteInviteShortDark() {
         setContent(ThemeMode.DARK, 1f) { Group(noGroup) }
-        compose.onNode(hasSetTextAction() and hasText("Or paste an invite"))
+        compose.onNode(hasText("Paste an invite instead") and hasClickAction()).performClick()
+        compose.onNode(hasSetTextAction() and hasText("Paste an invite"))
             .performTextInput("Join “Friday nights” in Atlantis Companion: goa1-abc")
         compose.waitForIdle()
         compose.onNode(hasText("Join") and hasClickAction()).assertIsDisplayed()
@@ -153,6 +165,17 @@ class SyncScreenshotTest {
 
     @Test fun sessionHostingDark() = shot {
         Sheet(session.copy(stage = SessionStage.Hosting(HostState(peers = peers))))
+    }
+
+    /** No phone's data in yet: Sync is off and says what it waits for. */
+    @Test fun sessionHostWaitingForDataDark() = shot {
+        Sheet(session.copy(stage = SessionStage.Hosting(HostState(peers = peers.subList(1, 2)))))
+    }
+
+    /** Sync tapped while Cid's upload is still under way: the merge waits for it, and says so. */
+    @Test fun sessionHostMergingDark() = shot {
+        val merging = HostState(phase = HostPhase.MERGING, peers = peers.take(2))
+        Sheet(session.copy(stage = SessionStage.Hosting(merging)))
     }
 
     @Test fun sessionHostDoneLight() = shot(ThemeMode.LIGHT) {

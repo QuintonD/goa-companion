@@ -32,8 +32,13 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.Logout
+import androidx.compose.material.icons.outlined.ContentPaste
+import androidx.compose.material.icons.outlined.ExpandLess
+import androidx.compose.material.icons.outlined.ExpandMore
 import androidx.compose.material.icons.outlined.FileDownload
+import androidx.compose.material.icons.outlined.GroupAdd
 import androidx.compose.material.icons.outlined.Groups
+import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material.icons.outlined.IosShare
 import androidx.compose.material.icons.outlined.PersonOutline
 import androidx.compose.material.icons.outlined.PhoneAndroid
@@ -65,16 +70,20 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import dev.quinton.goa.core.designsystem.component.BattlefieldFoot
 import dev.quinton.goa.core.designsystem.component.ConfirmDialog
 import dev.quinton.goa.core.designsystem.component.GoaButton
 import dev.quinton.goa.core.designsystem.component.GoaCard
 import dev.quinton.goa.core.designsystem.component.GoaDialog
 import dev.quinton.goa.core.designsystem.component.GoaOutlinedButton
+import dev.quinton.goa.core.designsystem.component.GoaPlate
 import dev.quinton.goa.core.designsystem.component.GoaScreen
+import dev.quinton.goa.core.designsystem.component.PlateStyle
 import dev.quinton.goa.core.designsystem.component.PlayerAvatar
 import dev.quinton.goa.core.designsystem.component.SectionHeader
 import dev.quinton.goa.core.designsystem.component.scaledIconSize
@@ -121,15 +130,29 @@ fun GroupScreen(
 
             state.inGroup -> InGroup(state, actions, padding, showInvite)
 
-            else -> NoGroup(state, actions, padding)
+            // Two plates leave the foot of the screen free: the rulebook's battlefield anchors it.
+            else -> Box(Modifier.fillMaxSize()) {
+                BattlefieldFoot(Modifier.padding(padding))
+                NoGroup(state, actions, padding)
+            }
         }
     }
 }
 
+/**
+ * Not in a group yet: one line on what syncing is for, then the two ways in as equal plates (Scan an invite, Start a
+ * group), one sentence and one button each; a form opens only in the plate you chose. How it works (Bluetooth and
+ * Wi-Fi, the sync server, the group key) waits under "How syncing works".
+ */
 @Composable
 private fun NoGroup(state: GroupUiState, actions: GroupActions, padding: PaddingValues) {
     var name by rememberSaveable { mutableStateOf("") }
     var invite by rememberSaveable { mutableStateOf("") }
+    var pasting by rememberSaveable { mutableStateOf(false) }
+    var starting by rememberSaveable { mutableStateOf(false) }
+    var nameMissing by rememberSaveable { mutableStateOf(false) }
+    var inviteMissing by rememberSaveable { mutableStateOf(false) }
+    var howItWorks by rememberSaveable { mutableStateOf(false) }
     Column(
         Modifier
             .fillMaxSize()
@@ -141,116 +164,135 @@ private fun NoGroup(state: GroupUiState, actions: GroupActions, padding: Padding
             .padding(horizontal = Spacing.screen, vertical = Spacing.lg),
         verticalArrangement = Arrangement.spacedBy(Spacing.lg),
     ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Icon(
-                Icons.Outlined.Groups,
-                null,
-                tint = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.size(scaledIconSize(32.dp)),
-            )
-            Spacer(Modifier.width(Spacing.md))
-            Text(
-                "Play on every phone",
-                style = MaterialTheme.typography.titleLarge,
-                modifier = Modifier.semantics {
-                    heading()
-                },
-            )
-        }
         Text(
-            "Each friend's phone keeps the same matches, players and ratings. Phones sync face to face at the " +
-                "table over Bluetooth and Wi-Fi, and through the group's sync server when there's internet. No " +
-                "accounts, and the server only ever sees the data locked with the group key.",
-            style = MaterialTheme.typography.bodyMedium,
+            "Keep the same matches, players and ratings on every friend's phone.",
+            style = MaterialTheme.typography.bodyLarge,
         )
-        GoaCard(Modifier.fillMaxWidth()) {
-            Text(
-                "Join a group",
-                style = MaterialTheme.typography.titleMedium,
-                modifier = Modifier.semantics {
-                    heading()
-                },
-            )
-            Text(
-                "On a phone that's already in the group: Group sync → Invite. Scan its QR code here, or paste " +
-                    "the invite it shared as text.",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-            Spacer(Modifier.size(Spacing.md))
+        WayIn(
+            icon = Icons.Outlined.QrCodeScanner,
+            title = "Scan an invite",
+            body = "Join a friend's group: their phone shows the invite under Group sync → Invite a friend.",
+        ) {
             GoaButton(onClick = actions.onScan, modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp)) {
                 Icon(Icons.Outlined.QrCodeScanner, null)
                 Spacer(Modifier.width(Spacing.sm))
                 Text("Scan invite QR code")
             }
-            Spacer(Modifier.size(Spacing.md))
-            PasteInvite(
-                invite = invite,
-                onInvite = {
-                    invite = it
-                    actions.onClearJoinError()
-                },
-                error = state.joinError,
-                onJoin = { actions.onPaste(invite) },
-            )
+            if (pasting || invite.isNotEmpty() || state.joinError != null) {
+                Spacer(Modifier.size(Spacing.md))
+                PasteInvite(
+                    invite = invite,
+                    onInvite = {
+                        invite = it
+                        inviteMissing = false
+                        actions.onClearJoinError()
+                    },
+                    error = state.joinError ?: "Paste the invite your friend shared first.".takeIf { inviteMissing },
+                    onJoin = { if (invite.isBlank()) inviteMissing = true else actions.onPaste(invite) },
+                )
+            } else {
+                TextButton(onClick = { pasting = true }, modifier = Modifier.heightIn(min = 48.dp)) {
+                    Icon(Icons.Outlined.ContentPaste, null, modifier = Modifier.size(scaledIconSize(18.dp)))
+                    Spacer(Modifier.width(Spacing.sm))
+                    Text("Paste an invite instead")
+                }
+            }
         }
-        GoaCard(Modifier.fillMaxWidth()) {
-            Text(
-                "Start a group",
-                style = MaterialTheme.typography.titleMedium,
-                modifier = Modifier.semantics {
-                    heading()
-                },
-            )
-            Text(
-                "One phone starts the group, then invites the others.",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-            Spacer(Modifier.size(Spacing.md))
-            OutlinedTextField(
-                value = name,
-                onValueChange = { name = it.take(40) },
-                label = { Text("Group name") },
-                placeholder = { Text("Friday nights") },
-                singleLine = true,
-                keyboardOptions = KeyboardOptions(
-                    capitalization = KeyboardCapitalization.Words,
-                    imeAction = ImeAction.Done,
-                ),
-                keyboardActions = KeyboardActions(onDone = { actions.onStart(name) }),
-                modifier = Modifier.fillMaxWidth(),
-            )
-            Spacer(Modifier.size(Spacing.sm))
-            StepButton(
-                label = "Start group",
-                enabled = name.isNotBlank(),
-                helper = "Name the group to start it.",
-                onClick = { actions.onStart(name) },
-            )
+        WayIn(
+            icon = Icons.Outlined.GroupAdd,
+            title = "Start a group",
+            body = "Start one on this phone, then invite the others to join it.",
+        ) {
+            if (!starting) {
+                GoaButton(onClick = { starting = true }, modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp)) {
+                    Icon(Icons.Outlined.GroupAdd, null)
+                    Spacer(Modifier.width(Spacing.sm))
+                    Text("Start a group")
+                }
+            } else {
+                val start = { if (name.isBlank()) nameMissing = true else actions.onStart(name) }
+                OutlinedTextField(
+                    value = name,
+                    onValueChange = {
+                        name = it.take(40)
+                        nameMissing = false
+                    },
+                    label = { Text("Group name") },
+                    placeholder = { Text("Friday nights") },
+                    singleLine = true,
+                    isError = nameMissing,
+                    supportingText = if (nameMissing) {
+                        { Text("Name the group first.") }
+                    } else {
+                        null
+                    },
+                    keyboardOptions = KeyboardOptions(
+                        capitalization = KeyboardCapitalization.Words,
+                        imeAction = ImeAction.Done,
+                    ),
+                    keyboardActions = KeyboardActions(onDone = { start() }),
+                    modifier = Modifier.fillMaxWidth(),
+                )
+                Spacer(Modifier.size(Spacing.sm))
+                GoaButton(onClick = start, modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp)) {
+                    Text("Start group")
+                }
+            }
         }
+        HowSyncingWorks(expanded = howItWorks, onToggle = { howItWorks = !howItWorks })
     }
 }
 
-/**
- * A full-width outlined button that still looks like one while it waits for its input (a clear
- * edge, dimmed words), with a line under it that says what turns it on.
- */
+/** One way into a group: icon and title, one sentence, then its button (and the form it opens). */
 @Composable
-private fun StepButton(label: String, enabled: Boolean, helper: String, onClick: () -> Unit) {
-    // The design system's outlined button: disabled, it keeps its shape and edge (Modifier.disabled).
-    GoaOutlinedButton(
-        onClick = onClick,
-        enabled = enabled,
-        modifier = Modifier.fillMaxWidth().heightIn(min = 52.dp),
-    ) { Text(label, style = MaterialTheme.typography.titleMedium) }
-    if (!enabled) {
+private fun WayIn(icon: ImageVector, title: String, body: String, content: @Composable () -> Unit) {
+    GoaPlate(Modifier.fillMaxWidth()) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Icon(icon, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(scaledIconSize(28.dp)))
+            Spacer(Modifier.width(Spacing.md))
+            Text(
+                title,
+                style = MaterialTheme.typography.titleLarge,
+                modifier = Modifier.semantics { heading() },
+            )
+        }
+        Spacer(Modifier.size(Spacing.xs))
         Text(
-            helper,
-            style = MaterialTheme.typography.bodySmall,
+            body,
+            style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.padding(top = Spacing.xs),
         )
+        Spacer(Modifier.size(Spacing.md))
+        content()
+    }
+}
+
+/** The background, folded: how phones sync and what the server sees. */
+@Composable
+private fun HowSyncingWorks(expanded: Boolean, onToggle: () -> Unit) {
+    Column {
+        TextButton(
+            onClick = onToggle,
+            modifier = Modifier.heightIn(min = 48.dp).semantics {
+                stateDescription = if (expanded) "Expanded" else "Collapsed"
+            },
+        ) {
+            Icon(Icons.Outlined.Info, null, modifier = Modifier.size(scaledIconSize(18.dp)))
+            Spacer(Modifier.width(Spacing.sm))
+            Text("How syncing works")
+            Spacer(Modifier.width(Spacing.xs))
+            Icon(if (expanded) Icons.Outlined.ExpandLess else Icons.Outlined.ExpandMore, null)
+        }
+        if (expanded) {
+            GoaPlate(Modifier.fillMaxWidth(), style = PlateStyle.Secondary) {
+                Text(
+                    "Phones sync face to face at the table over Bluetooth and Wi-Fi, with no internet needed, and " +
+                        "through the group's sync server when there's internet. There are no accounts: the group " +
+                        "key in the invite locks the data, and the server only ever sees it locked.",
+                    style = MaterialTheme.typography.bodyMedium,
+                )
+            }
+        }
     }
 }
 
@@ -463,7 +505,7 @@ private fun PasteInvite(invite: String, onInvite: (String) -> Unit, error: Strin
         OutlinedTextField(
             value = invite,
             onValueChange = onInvite,
-            label = { Text("Or paste an invite") },
+            label = { Text("Paste an invite") },
             singleLine = true,
             isError = error != null,
             supportingText = error?.let { { Text(it) } },
@@ -472,12 +514,9 @@ private fun PasteInvite(invite: String, onInvite: (String) -> Unit, error: Strin
             modifier = Modifier.fillMaxWidth().onFocusChanged { focused = it.isFocused },
         )
         Spacer(Modifier.size(Spacing.sm))
-        StepButton(
-            label = "Join",
-            enabled = invite.isNotBlank(),
-            helper = "Paste an invite to join.",
-            onClick = onJoin,
-        )
+        GoaOutlinedButton(onClick = onJoin, modifier = Modifier.fillMaxWidth().heightIn(min = 52.dp)) {
+            Text("Join", style = MaterialTheme.typography.titleMedium)
+        }
     }
 }
 
