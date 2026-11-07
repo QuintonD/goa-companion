@@ -144,7 +144,7 @@ private fun Board(
                                         label = row.rank.toString(),
                                         description = row.spoken(archived = false),
                                         onClick = { onOpenPlayer(row.player.id) },
-                                        onClickLabel = "Open profile",
+                                        onClickLabel = "View player",
                                     ) { PodiumStanding(row, showProvisional = !allProvisional) }
                                 },
                                 Modifier.padding(start = Spacing.sm, end = Spacing.sm, top = Spacing.md),
@@ -223,19 +223,27 @@ private fun LeaderboardRow.spoken(archived: Boolean): String {
     }
 }
 
-/** A podium place: the crest large, the name (two lines if it needs them), the rating, the record and trend. */
+/**
+ * A podium place: the crest large with the most-played hero badge, the name (two lines if it needs them) and a
+ * chevron, the rating, the record and trend.
+ */
 @Composable
 private fun PodiumStanding(row: LeaderboardRow, showProvisional: Boolean) {
     val rating = row.rating
     PlayerAvatar(row.player, size = if (row.rank == 1) 60.dp else 50.dp, showFace = true)
     Spacer(Modifier.height(Spacing.xs))
-    Text(
-        row.player.name,
-        style = MaterialTheme.typography.titleSmall,
-        textAlign = TextAlign.Center,
-        maxLines = 2,
-        overflow = TextOverflow.Ellipsis,
-    )
+    // The chevron says the place opens the player, like the rows under it.
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        Text(
+            row.player.name,
+            style = MaterialTheme.typography.titleSmall,
+            textAlign = TextAlign.Center,
+            maxLines = 2,
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.weight(1f, fill = false),
+        )
+        OpenChevron(Modifier.size(18.dp))
+    }
     if (row.isMe) YouPill()
     Row(verticalAlignment = Alignment.CenterVertically) {
         Text(
@@ -269,7 +277,7 @@ private fun LeaderboardRowItem(
         Modifier
             .fillMaxWidth()
             .heightIn(min = 64.dp)
-            .clickable(onClickLabel = "Open profile", role = Role.Button, onClick = onClick)
+            .clickable(onClickLabel = "View player", role = Role.Button, onClick = onClick)
             .semantics(mergeDescendants = true) { contentDescription = description }
             .padding(horizontal = Spacing.md, vertical = Spacing.sm),
         verticalAlignment = Alignment.CenterVertically,
@@ -319,8 +327,14 @@ private fun LeaderboardRowItem(
                 }
             }
         }
+        // Every row opens the player's page and the chevron says so; with large text the trend needs its width, and
+        // the row, clickable and labelled "View player", still says it to TalkBack.
+        val chevron = LocalDensity.current.fontScale < LARGE_FONT_SCALE
         if (rating.games > 0) {
-            Column(horizontalAlignment = Alignment.End, modifier = Modifier.padding(start = Spacing.sm)) {
+            Column(
+                horizontalAlignment = Alignment.End,
+                modifier = Modifier.padding(start = Spacing.sm, end = if (chevron) Spacing.sm else 0.dp),
+            ) {
                 Text(
                     formatRating(rating.value),
                     style = figureStyle(RowFigure),
@@ -336,14 +350,19 @@ private fun LeaderboardRowItem(
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
-        } else {
-            Icon(
-                Icons.AutoMirrored.Filled.KeyboardArrowRight,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
         }
+        if (chevron) OpenChevron()
     }
+}
+
+@Composable
+private fun OpenChevron(modifier: Modifier = Modifier) {
+    Icon(
+        Icons.AutoMirrored.Filled.KeyboardArrowRight,
+        contentDescription = null,
+        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+        modifier = modifier,
+    )
 }
 
 @Composable

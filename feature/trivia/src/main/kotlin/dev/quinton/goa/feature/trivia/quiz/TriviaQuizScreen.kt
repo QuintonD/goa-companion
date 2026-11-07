@@ -1,9 +1,6 @@
 package dev.quinton.goa.feature.trivia.quiz
 
 import androidx.activity.compose.BackHandler
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
@@ -24,6 +21,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -42,6 +40,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.LifecycleResumeEffect
+import dev.quinton.goa.core.data.trivia.QuizQuestionUi
 import dev.quinton.goa.core.data.trivia.TriviaQuizUiState
 import dev.quinton.goa.core.designsystem.component.BannerTextButton
 import dev.quinton.goa.core.designsystem.component.ConfirmDialog
@@ -53,7 +52,6 @@ import dev.quinton.goa.core.designsystem.component.GoaProgressBar
 import dev.quinton.goa.core.designsystem.component.GoaScreen
 import dev.quinton.goa.core.designsystem.component.slatePlate
 import dev.quinton.goa.core.designsystem.theme.GoaTextStyles
-import dev.quinton.goa.core.designsystem.theme.Motion
 import dev.quinton.goa.core.designsystem.theme.Spacing
 import dev.quinton.goa.core.domain.trivia.TriviaAnswer
 
@@ -167,7 +165,7 @@ private fun QuizPlaying(state: TriviaQuizUiState.Playing, onAnswer: (TriviaAnswe
                 ) {
                     QuizHeader(state)
                     Spacer(Modifier.height(Spacing.lg))
-                    QuestionPanel(state.question)
+                    QuestionPanel(state.question, artHeight = LANDSCAPE_ART)
                 }
                 Column(Modifier.weight(1f).fillMaxSize()) {
                     val scroll = rememberScrollState()
@@ -188,47 +186,90 @@ private fun QuizPlaying(state: TriviaQuizUiState.Playing, onAnswer: (TriviaAnswe
             }
         } else {
             Column(Modifier.fillMaxSize()) {
-                // Pinned: where the round is and the score stay in sight, also once answered and scrolled to the scan.
+                // Pinned: where the round is and the score stay in sight, also once answered.
                 QuizHeader(
                     state,
                     Modifier
                         .padding(horizontal = Spacing.screen)
                         .padding(top = Spacing.md, bottom = Spacing.sm),
                 )
-                val scroll = rememberScrollState()
-                BoxWithConstraints(Modifier.weight(1f)) {
-                    val imageMax = imageRoom(maxHeight, padding = Spacing.md * 2)
-                    val art = artRoom(maxHeight, maxWidth - Spacing.screen * 2)
-                    // The question (whose card, which card, what is asked) with the answers right under it, one
-                    // group from the header down; the answers grow into the room left, so no band is left empty.
-                    // Measured before the answer only. Once answered the buttons take their own height again, so
-                    // the reveal (scrolled to the scan) keeps the question and the marked answers above the verdict.
-                    var panel by remember(state.number) { mutableIntStateOf(0) }
-                    val density = LocalDensity.current
-                    val fill = with(density) { maxHeight - Spacing.md * 3 - panel.toDp() }
-                    Column(
-                        Modifier
-                            .fillMaxSize()
-                            .verticalScroll(scroll)
-                            .padding(horizontal = Spacing.screen, vertical = Spacing.md),
-                    ) {
-                        QuestionPanel(
-                            state.question,
-                            artHeight = art,
-                            framed = !state.answered,
-                            modifier = Modifier.onSizeChanged { if (!state.answered) panel = it.height },
-                        )
-                        Spacer(Modifier.height(Spacing.md))
-                        AnswerArea(
-                            state,
-                            onAnswer,
-                            fillHeight = if (panel > 0 && !state.answered) fill else 0.dp,
-                        )
-                        Reveal(state, scroll = scroll, imageMaxHeight = imageMax)
-                    }
+                if (state.question is QuizQuestionUi.Number) {
+                    NumberQuestion(state, onAnswer, Modifier.weight(1f))
+                } else {
+                    DuelQuestion(state, onAnswer, Modifier.weight(1f))
                 }
                 NextBar(state, onNext)
             }
+        }
+    }
+}
+
+/**
+ * A card-number question upright. The question (the card's name, whose it is, its painting cropped clear of every
+ * printed number, "What is its Defense?") and the answers under it never change size or place when it is answered:
+ * the painting takes the room the screen leaves before the answer and keeps it after. The verdict and the whole scan,
+ * as large as round 3 had it (up to 300 dp wide), are added under the answers, and the list scrolls to them.
+ */
+@Composable
+private fun NumberQuestion(
+    state: TriviaQuizUiState.Playing,
+    onAnswer: (TriviaAnswer) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val question = state.question as QuizQuestionUi.Number
+    val scroll = rememberScrollState()
+    BoxWithConstraints(modifier.fillMaxWidth()) {
+        val density = LocalDensity.current
+        // The panel without its painting, and the answers, as measured; the painting fills what they leave.
+        var rest by remember(state.number) { mutableIntStateOf(0) }
+        var foot by remember(state.number) { mutableIntStateOf(0) }
+        var kept by remember(state.number) { mutableStateOf<Dp?>(null) }
+        // The list's padding and gap, and a margin over Next.
+        val room = with(density) { maxHeight - Spacing.md * 4 - rest.toDp() - foot.toDp() }
+        val art = kept ?: if (room < MIN_ART) 0.dp else room.coerceAtMost(MAX_ART)
+        // Answered: the painting keeps its height, so nothing above the verdict moves.
+        if (state.answered && kept == null && rest > 0) SideEffect { kept = art }
+        val imageMax = imageRoom(maxHeight, padding = Spacing.md * 2)
+        Column(
+            Modifier
+                .fillMaxSize()
+                .verticalScroll(scroll)
+                .padding(horizontal = Spacing.screen, vertical = Spacing.md),
+        ) {
+            QuestionPanel(
+                question,
+                artHeight = art,
+                modifier = Modifier.onSizeChanged {
+                    rest = it.height - with(density) { (if (art > 0.dp) art + Spacing.md else 0.dp).roundToPx() }
+                },
+            )
+            Spacer(Modifier.height(Spacing.md))
+            Box(Modifier.onSizeChanged { foot = it.height }) { AnswerArea(state, onAnswer) }
+            Reveal(state, scroll = scroll, imageMaxHeight = imageMax)
+        }
+    }
+}
+
+/** A duel upright: the question, the two cards to tap, and once answered the verdict with both scans under them. */
+@Composable
+private fun DuelQuestion(
+    state: TriviaQuizUiState.Playing,
+    onAnswer: (TriviaAnswer) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val scroll = rememberScrollState()
+    BoxWithConstraints(modifier.fillMaxWidth()) {
+        val imageMax = imageRoom(maxHeight, padding = Spacing.md * 2)
+        Column(
+            Modifier
+                .fillMaxSize()
+                .verticalScroll(scroll)
+                .padding(horizontal = Spacing.screen, vertical = Spacing.md),
+        ) {
+            QuestionPanel(state.question)
+            Spacer(Modifier.height(Spacing.md))
+            AnswerArea(state, onAnswer)
+            Reveal(state, scroll = scroll, imageMaxHeight = imageMax)
         }
     }
 }
@@ -243,25 +284,12 @@ private fun imageRoom(viewport: Dp, padding: Dp): Dp {
     return (viewport - padding - FEEDBACK_ROOM * fontScale).coerceAtLeast(MIN_IMAGE_HEIGHT)
 }
 
-/**
- * How tall the hero's art over a question may be: what the screen has left after the header, the
- * card's lines, the question plate and the answers, within a range that stays a picture. None when
- * large text leaves too little.
- */
-@Composable
-private fun artRoom(viewport: Dp, width: Dp): Dp {
-    val fontScale = LocalDensity.current.fontScale.coerceIn(1f, 2f)
-    val room = viewport - QUESTION_CHROME * fontScale
-    // A band, never the screen's hero: at most 16:9 of the plate's width.
-    val band = (width * ART_ASPECT).coerceAtMost(MAX_ART)
-    return if (room < MIN_ART) 0.dp else room.coerceAtMost(band)
-}
-
-/** Card name and kind, question plate, four answers at their least, the spacing (the header is above). */
-private val QUESTION_CHROME = 492.dp
+/** The card's painting in the question: none below this (large text), never taller than this. */
 private val MIN_ART = 96.dp
-private val MAX_ART = 184.dp
-private const val ART_ASPECT = 9f / 16f
+private val MAX_ART = 320.dp
+
+/** The card's painting beside the answers when held sideways. */
+private val LANDSCAPE_ART = 120.dp
 
 /** Room for the feedback line (up to two lines) and its spacing above the scan. */
 private val FEEDBACK_ROOM = 96.dp
@@ -320,25 +348,25 @@ private fun QuizHeader(state: TriviaQuizUiState.Playing, modifier: Modifier = Mo
 
 @Composable
 private fun NextBar(state: TriviaQuizUiState.Playing, onNext: () -> Unit) {
-    AnimatedVisibility(
-        visible = state.answered,
-        enter = fadeIn(Motion.standard(Motion.SHORT_MS)),
-        exit = fadeOut(Motion.standard(Motion.SHORT_MS)),
-    ) {
-        GoaPlateTheme {
-            Column(Modifier.slatePlate(RectangleShape, brackets = false)) {
-                GoaButton(
-                    onClick = onNext,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = Spacing.screen, vertical = Spacing.md)
-                        .heightIn(min = 56.dp),
-                ) {
-                    Text(
-                        if (state.lastQuestion) "See results" else "Next",
-                        style = MaterialTheme.typography.titleMedium,
-                    )
-                }
+    GoaPlateTheme {
+        Column(Modifier.slatePlate(RectangleShape, brackets = false)) {
+            // Always in its slot, so the answers above never move: off, and saying what it waits for, until answered.
+            GoaButton(
+                onClick = onNext,
+                enabled = state.answered,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = Spacing.screen, vertical = Spacing.md)
+                    .heightIn(min = 56.dp),
+            ) {
+                Text(
+                    when {
+                        !state.answered -> "Answer to go on"
+                        state.lastQuestion -> "See results"
+                        else -> "Next"
+                    },
+                    style = MaterialTheme.typography.titleMedium,
+                )
             }
         }
     }

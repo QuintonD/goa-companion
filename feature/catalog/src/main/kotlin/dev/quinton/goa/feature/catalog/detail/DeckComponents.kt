@@ -14,18 +14,23 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -52,6 +57,8 @@ import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import dev.quinton.goa.core.designsystem.cardtext.CardTextView
 import dev.quinton.goa.core.designsystem.cardtext.GameIcon
 import dev.quinton.goa.core.designsystem.cardtext.GameIcons
@@ -60,10 +67,13 @@ import dev.quinton.goa.core.designsystem.component.CARD_ASPECT
 import dev.quinton.goa.core.designsystem.component.CardScan
 import dev.quinton.goa.core.designsystem.component.GoaPlate
 import dev.quinton.goa.core.designsystem.component.GoaPlateTheme
+import dev.quinton.goa.core.designsystem.component.HERO_RATINGS_TITLE
+import dev.quinton.goa.core.designsystem.component.HeroRatingsNote
 import dev.quinton.goa.core.designsystem.component.HeroStatBlock
 import dev.quinton.goa.core.designsystem.component.LARGE_FONT_SCALE
 import dev.quinton.goa.core.designsystem.component.PlateColor
 import dev.quinton.goa.core.designsystem.component.SectionHeader
+import dev.quinton.goa.core.designsystem.component.SubHeader
 import dev.quinton.goa.core.designsystem.component.cardColor
 import dev.quinton.goa.core.designsystem.component.slatePlate
 import dev.quinton.goa.core.designsystem.theme.Spacing
@@ -92,15 +102,16 @@ import dev.quinton.goa.feature.catalog.ui.InitiativeBadge
 import dev.quinton.goa.feature.catalog.ui.ValueChip
 
 /**
- * The Hero Profile on a plate with the official item icons: each value as base → max, one value when
- * they are equal. The note says what the arrow means (the conditional part: level-up choices or card
- * text) and what the numbers are out of (1 "Very poor" to 8 "Exceptional").
+ * The Hero Profile on a plate with the official item icons, titled as what it is ("Hero ratings · 1–8"): each value
+ * as base → max, one value when they are equal, and the shared note under it (the arrow is the upgraded rating; these
+ * are comparative ratings, not numbers printed on a card). The draft's peek says the same (`HeroStatBlocks`).
  */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 internal fun StatPlate(stats: HeroStats, modifier: Modifier = Modifier) {
     val perRow = if (LocalDensity.current.fontScale > LARGE_FONT_SCALE) STATS_LARGE_FONT else STATS_PER_ROW
     GoaPlate(modifier.fillMaxWidth(), contentPadding = PaddingValues(Spacing.md)) {
+        SubHeader(HERO_RATINGS_TITLE)
         FlowRow(
             Modifier.fillMaxWidth(),
             maxItemsInEachRow = perRow,
@@ -108,13 +119,7 @@ internal fun StatPlate(stats: HeroStats, modifier: Modifier = Modifier) {
         ) {
             stats.profileBars().forEach { bar -> HeroStatBlock(bar.stat, bar.range, Modifier.weight(1f)) }
         }
-        Text(
-            "Base → with level-ups and card text\n1 is very poor · 8 is exceptional",
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            textAlign = TextAlign.Center,
-            modifier = Modifier.fillMaxWidth().padding(top = Spacing.sm),
-        )
+        HeroRatingsNote(Modifier.padding(top = Spacing.sm), align = TextAlign.Center)
     }
 }
 
@@ -203,14 +208,17 @@ internal fun ExtrasSection(layout: DeckLayout, onCardClick: (Card) -> Unit, modi
 
 /** Width ÷ height of a spellbook page scan (landscape, about 737 × 510). */
 private const val SPELL_ASPECT = 737f / 510f
-private val CARD_MIN_WIDTH = 100.dp
-private val SPELL_MIN_WIDTH = 150.dp
+
+/** Two cards across a phone held upright, each about 180 dp: big enough to read the printed numbers. */
+private val CARD_MIN_WIDTH = 160.dp
+private val SPELL_MIN_WIDTH = 160.dp
 
 /**
- * The official card scans in a grid: as many columns of at least [minWidth] as fit (three on a
- * phone held upright, a whole colour's five in a row on a wider screen), each card with its name
- * under it. The scan is the card (its values and text are printed on it); TalkBack hears the
- * card's full summary and text, and a tap opens the card viewer. A card without a scan shows the
+ * The official card scans in a grid: as many columns of at least [minWidth] as fit (two on a
+ * phone held upright, more on a wider screen), each card with its name under it. The scan is the
+ * card (its values and text are printed on it); TalkBack hears the card's full summary and text,
+ * a tap opens the card viewer, and press-and-hold shows the scan full screen until let go of
+ * (TalkBack: the "Show full screen" action; a tap closes it). A card without a scan shows the
  * designed tile instead.
  */
 @Composable
@@ -224,8 +232,9 @@ internal fun DeckCardGrid(
 ) {
     // Large text: wider cards, so a caption never breaks a word and the printed name reads.
     val scaledMin = minWidth * LocalDensity.current.fontScale.coerceIn(1f, MAX_WIDTH_SCALE)
+    var peek by remember { mutableStateOf<Card?>(null) }
     BoxWithConstraints(modifier.fillMaxWidth()) {
-        val gap = Spacing.sm
+        val gap = Spacing.md
         val columns = ((maxWidth + gap) / (scaledMin + gap)).toInt().coerceIn(1, MAX_COLUMNS)
         val cardWidth = (maxWidth - gap * (columns - 1)) / columns
         // From this width the name printed on the scan is readable: no caption repeats it.
@@ -234,23 +243,66 @@ internal fun DeckCardGrid(
             cards.chunked(columns).forEach { chunk ->
                 Row(horizontalArrangement = Arrangement.spacedBy(gap), verticalAlignment = Alignment.Top) {
                     chunk.forEach { card ->
-                        DeckCard(card, isHandicap, aspect, showName, onClick = {
-                            onCardClick(card)
-                        }, Modifier.weight(1f))
+                        DeckCard(
+                            card,
+                            isHandicap,
+                            aspect,
+                            showName,
+                            onClick = { onCardClick(card) },
+                            onHold = { peek = card },
+                            modifier = Modifier.weight(1f),
+                        )
                     }
                     repeat(columns - chunk.size) { Spacer(Modifier.weight(1f)) }
                 }
             }
         }
     }
+    peek?.let { card -> CardPeek(card, aspect, onDismiss = { peek = null }) }
 }
+
+/**
+ * A card's scan over the whole screen, on a dark veil, as large as the screen allows but never more than 1.6 times
+ * its own pixels (ADR-071). Opened by press-and-hold in the deck; a tap anywhere or Back closes it.
+ */
+@Composable
+private fun CardPeek(card: Card, aspect: Float, onDismiss: () -> Unit) {
+    val image = card.image ?: return
+    val density = LocalDensity.current
+    // The scan's own width (729 px a deck card, 737 a spellbook page) at most 1.6 times.
+    val most = with(density) { (SCAN_PIXELS * PEEK_MAX_ZOOM).toDp() }
+    Dialog(onDismissRequest = onDismiss, properties = DialogProperties(usePlatformDefaultWidth = false)) {
+        Box(
+            Modifier
+                .fillMaxSize()
+                .background(PEEK_VEIL)
+                .clickable(onClickLabel = "Close", role = Role.Button, onClick = onDismiss)
+                .padding(Spacing.md),
+            contentAlignment = Alignment.Center,
+        ) {
+            CardScan(
+                image = image,
+                contentDescription = card.spokenSummary(false),
+                aspect = aspect,
+                modifier = Modifier.widthIn(max = most).fillMaxWidth(),
+                elevation = 8.dp,
+            ) {}
+        }
+    }
+}
+
+private const val SCAN_PIXELS = 729f
+private const val PEEK_MAX_ZOOM = 1.6f
+private val PEEK_VEIL = Color(0xE6070A0D)
 
 private const val MAX_COLUMNS = 6
 
 /** A card's name under its scan: 14 sp, wrapping to two lines rather than shrinking. */
 private val CAPTION @Composable get() = MaterialTheme.typography.labelLarge.copy(letterSpacing = 0.sp)
 private const val MAX_WIDTH_SCALE = 1.6f
-private val NAME_PRINTED_WIDTH = 140.dp
+
+/** Only a card this wide prints a name you can read from the scan: under it, the name is repeated as a caption. */
+private val NAME_PRINTED_WIDTH = 260.dp
 
 @Composable
 private fun DeckCard(
@@ -259,6 +311,7 @@ private fun DeckCard(
     aspect: Float,
     showName: Boolean,
     onClick: () -> Unit,
+    onHold: () -> Unit,
     modifier: Modifier,
 ) {
     if (card.image == null) {
@@ -273,6 +326,7 @@ private fun DeckCard(
             image = card.image,
             contentDescription = summary,
             onClick = onClick,
+            onLongClick = onHold,
             aspect = aspect,
             modifier = Modifier.fillMaxWidth(),
         ) {}

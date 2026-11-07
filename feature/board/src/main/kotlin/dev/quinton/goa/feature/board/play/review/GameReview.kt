@@ -69,6 +69,7 @@ import dev.quinton.goa.core.designsystem.component.HeroPortrait
 import dev.quinton.goa.core.designsystem.component.TeamMark
 import dev.quinton.goa.core.designsystem.component.scaledIconSize
 import dev.quinton.goa.core.designsystem.component.teamColor
+import dev.quinton.goa.core.designsystem.component.teamTextColor
 import dev.quinton.goa.core.designsystem.theme.GoaTextStyles
 import dev.quinton.goa.core.designsystem.theme.GoaTheme
 import dev.quinton.goa.core.designsystem.theme.Spacing
@@ -336,7 +337,7 @@ private fun TeamHeader(team: Team, table: TableUi) {
             "${BoardText.team(team).uppercase()} TEAM" +
                 if (table.mine.any { table.heroView(it)?.team == team }) " · YOURS" else "",
             style = GoaTextStyles.overline,
-            color = teamColor(team),
+            color = teamTextColor(team),
         )
     }
 }

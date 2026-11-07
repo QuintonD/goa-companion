@@ -79,15 +79,19 @@ class PanelOrderTest {
         panel().fetchSemanticsNode().config[SemanticsProperties.VerticalScrollAxisRange].value()
 
     @Test
-    fun `minion battle - the round's summary is one folded row, the question in view`() {
+    fun `minion battle - the round's summary is one folded row, the question and its list in view`() {
         val s = EndOfRoundGame.session()
         val play = GydionLevelUpGame.play(s)
         show(play)
+        val screen = compose.onRoot().fetchSemanticsNode().size.height
+        // A question about pieces never peeks: its numbered list is the decision (round 4 gate).
+        compose.onAllNodes(hasContentDescription("Show the whole panel")).assertCountEquals(0)
         val moment = play.table.moment!!
         compose.onNodeWithContentDescription(moment.title).assertExists()
         compose.onAllNodes(hasText(moment.text, substring = true)).assertCountEquals(0)
-        val screen = compose.onRoot().fetchSemanticsNode().size.height
         assertThat(top(promptParts(s.pending!!.prompt).text!!)).isLessThan(screen.toFloat())
+        val row = compose.onAllNodes(hasContentDescription("spaces from", substring = true)).onFirst()
+        assertThat(row.fetchSemanticsNode().positionInRoot.y).isLessThan(screen.toFloat())
         // A tap opens the steps.
         compose.onNodeWithContentDescription(moment.title).performClick()
         compose.waitForIdle()

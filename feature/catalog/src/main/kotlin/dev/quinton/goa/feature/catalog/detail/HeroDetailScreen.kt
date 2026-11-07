@@ -33,6 +33,7 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.HelpOutline
+import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material.icons.outlined.ExpandMore
 import androidx.compose.material.icons.outlined.PersonSearch
 import androidx.compose.material.icons.outlined.Quiz
@@ -95,6 +96,7 @@ import dev.quinton.goa.core.designsystem.theme.GoaTextStyles
 import dev.quinton.goa.core.designsystem.theme.GoaTheme
 import dev.quinton.goa.core.designsystem.theme.Spacing
 import dev.quinton.goa.core.domain.catalog.DeckGroupKind
+import dev.quinton.goa.core.domain.catalog.DeckLayout
 import dev.quinton.goa.core.domain.catalog.HANDICAP_EXPLANATION
 import dev.quinton.goa.core.domain.catalog.HeroPilotStat
 import dev.quinton.goa.core.domain.catalog.attackProfile
@@ -124,6 +126,8 @@ fun HeroDetailScreen(
     onCardClick: (heroId: String, cardId: String) -> Unit,
     modifier: Modifier = Modifier,
     onLearnNumbers: ((heroId: String) -> Unit)? = null,
+    /** "Log a match with …" on the Overview's empty record: a new match with this hero in a seat. */
+    onLogMatch: ((heroId: String) -> Unit)? = null,
     /**
      * Where the page opens: [HeroDetailRoute.DECK], [HeroDetailRoute.FAQ], or [HeroDetailRoute.SPELLBOOK] (the Deck
      * scrolled to the spellbook, once; back and rotation keep where you are). Null: the Overview.
@@ -153,6 +157,7 @@ fun HeroDetailScreen(
                     openAtSpellbook = initialSection == HeroDetailRoute.SPELLBOOK,
                     onCardClick = onCardClick,
                     onLearnNumbers = onLearnNumbers,
+                    onLogMatch = onLogMatch,
                 )
             }
         }
@@ -172,6 +177,7 @@ private fun HeroPage(
     openAtSpellbook: Boolean,
     onCardClick: (heroId: String, cardId: String) -> Unit,
     onLearnNumbers: ((heroId: String) -> Unit)?,
+    onLogMatch: ((heroId: String) -> Unit)?,
 ) {
     val overview = rememberLazyListState()
     val deck = rememberLazyListState()
@@ -187,7 +193,12 @@ private fun HeroPage(
     var barHeight by remember { mutableIntStateOf(navHeight) }
     val trivia = onLearnNumbers != null
     var tier by rememberSaveable { mutableStateOf<Int?>(null) }
-    val shown = remember(state, tier) { state.copy(deck = state.deck.onlyTier(tier)) }
+    var pickedPart by rememberSaveable { mutableStateOf<String?>(null) }
+    val tiered = remember(state, tier) { state.deck.onlyTier(tier) }
+    // The colour filter offers the parts the tier leaves; one it removes falls back to all colours.
+    val parts = remember(tiered) { deckParts(tiered) }
+    val part = pickedPart?.takeIf { key -> parts.any { it.key == key } }
+    val shown = remember(state, tiered, part) { state.copy(deck = tiered.onlyPart(part)) }
     val deckKeys = remember(shown, trivia) { deckTabKeys(shown, trivia) }
     var opened by rememberSaveable { mutableStateOf(false) }
     LaunchedEffect(Unit) {
@@ -195,10 +206,11 @@ private fun HeroPage(
         opened = true
         if (openAtSpellbook) deckKeys.indexOf(EXTRAS_KEY).takeIf { it >= 0 }?.let { deck.scrollToItem(it, -navHeight) }
     }
-    val jumpTo: (String) -> Unit = { key ->
-        val index = deckKeys.indexOf(key)
-        // Just under the sticky bar.
-        if (index >= 0) scope.launch { deck.animateScrollToItem(index, -barHeight) }
+    // A changed filter brings the cards' head back under the sticky bar when the list was scrolled past it.
+    val filter: (() -> Unit) -> Unit = { change ->
+        change()
+        val head = deckKeys.indexOf(DECK_KEY)
+        if (head >= 0 && deck.firstVisibleItemIndex > head) scope.launch { deck.scrollToItem(head, -barHeight) }
     }
     val select: (HeroSection) -> Unit = { next ->
         if (next != section) {
@@ -218,24 +230,25 @@ private fun HeroPage(
             Column(Modifier.background(MaterialTheme.colorScheme.background).onSizeChanged { barHeight = it.height }) {
                 HeroSectionBar(section, faqCount = state.hero.faq.size, onSelect = select)
                 if (section == HeroSection.DECK) {
-                    DeckJumpBar(
-                        jumps = deckJumps(shown.deck),
+                    DeckFilterBar(
+                        parts = parts,
+                        part = part,
+                        onPart = { key -> filter { pickedPart = key } },
                         tiers = deckTiers(state.deck),
                         tier = tier,
-                        onJump = jumpTo,
-                        onTier = { tier = it },
-                        modifier = Modifier.padding(vertical = Spacing.xs),
+                        onTier = { t -> filter { tier = t } },
+                        modifier = Modifier.padding(bottom = Spacing.sm),
                     )
                     Box(Modifier.fillMaxWidth().height(1.dp).background(GoaTheme.colors.engravedBorder))
                 }
             }
         }
         when (section) {
-            HeroSection.OVERVIEW -> overviewContent(state)
+            HeroSection.OVERVIEW -> overviewContent(state, onLogMatch?.let { log -> { log(state.hero.id) } })
 
             HeroSection.DECK -> deckContent(
                 shown,
-                tier,
+                deckCount(state, shown.deck, tier, parts.firstOrNull { it.key == part }?.label),
                 onCardClick = { onCardClick(state.hero.id, it.id) },
                 onLearnNumbers = onLearnNumbers?.let { learn -> { learn(state.hero.id) } },
             )
@@ -268,13 +281,13 @@ internal const val FAQ_KEY = "faq-title"
 private val padded = Modifier.padding(horizontal = Spacing.screen)
 
 /** The Overview: the Hero Profile, your table's record with the hero, the lore and where the data comes from. */
-private fun LazyListScope.overviewContent(state: HeroDetailUiState.Ready) {
+private fun LazyListScope.overviewContent(state: HeroDetailUiState.Ready, onLogMatch: (() -> Unit)?) {
     val hero = state.hero
     item(key = "profile") { StatPlate(hero.stats, padded.padding(top = Spacing.md)) }
     item(key = "stats") {
         Column(padded) {
             SectionHeader("Your table")
-            PersonalStatsCard(state.stats)
+            PersonalStatsCard(state.stats, hero.name, onLogMatch)
         }
     }
     hero.lore?.takeIf { it.isNotBlank() }?.let { lore ->
@@ -290,25 +303,27 @@ private fun LazyListScope.overviewContent(state: HeroDetailUiState.Ready) {
 
 /**
  * One count everywhere: the deck's own cards, the Handicap card named apart ("18 cards + Handicap"), as the card
- * viewer counts them; with a [tier] picked, that tier's cards ("Tier II · 6 cards").
+ * viewer counts them; narrowed, what the filters leave, named by them ("Red · Tier II · 2 cards").
  */
-private fun deckCount(state: HeroDetailUiState.Ready, tier: Int?): String = if (tier == null) {
-    plural(state.hero.cards.size, "card") + if (state.hero.handicap != null) " + Handicap" else ""
-} else {
-    "Tier ${tierNumeral(tier)} · " + plural(state.deck.groups.sumOf { it.cards.size }, "card")
-}
+internal fun deckCount(state: HeroDetailUiState.Ready, shown: DeckLayout, tier: Int?, part: String?): String =
+    if (tier == null && part == null) {
+        plural(state.hero.cards.size, "card") + if (state.hero.handicap != null) " + Handicap" else ""
+    } else {
+        (listOfNotNull(part, tier?.let { "Tier ${tierNumeral(it)}" }) + plural(shown.shownCount(), "card"))
+            .joinToString(" · ")
+    }
 
 /** The Deck under its jump bar: the cards by colour, the Handicap card and any extras; with a [tier], only those. */
 private fun LazyListScope.deckContent(
     state: HeroDetailUiState.Ready,
-    tier: Int?,
+    count: String,
     onCardClick: (Card) -> Unit,
     onLearnNumbers: (() -> Unit)?,
 ) {
     val hero = state.hero
     item(key = DECK_KEY) {
         Text(
-            deckCount(state, tier),
+            count,
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = padded.padding(top = Spacing.sm),
@@ -576,16 +591,27 @@ private fun VerifiedPill() {
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-private fun PersonalStatsCard(stats: HeroPersonalStats) {
+private fun PersonalStatsCard(stats: HeroPersonalStats, heroName: String, onLogMatch: (() -> Unit)?) {
     GoaPlate(Modifier.fillMaxWidth(), contentPadding = PaddingValues(Spacing.lg)) {
         if (!stats.hasGames) {
             Text("No games logged with this hero yet", style = MaterialTheme.typography.titleSmall)
             Text(
-                "Log a match in the Players tab to see Elo, win rate and who plays this hero best.",
+                "A logged match shows Elo, win rate and who plays this hero best.",
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(top = Spacing.xs),
             )
+            if (onLogMatch != null) {
+                // The step where the need is: a new match with this hero already in a seat.
+                GoaOutlinedButton(
+                    onClick = onLogMatch,
+                    modifier = Modifier.fillMaxWidth().padding(top = Spacing.md).heightIn(min = 48.dp),
+                ) {
+                    Icon(Icons.Outlined.Add, contentDescription = null, modifier = Modifier.size(scaledIconSize(18.dp)))
+                    Spacer(Modifier.width(Spacing.sm))
+                    Text("Log a match with $heroName")
+                }
+            }
             return@GoaPlate
         }
         val rating = stats.rating
@@ -742,11 +768,12 @@ private fun LoreBlock(lore: String) {
                 .heightIn(min = 24.dp)
                 .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.5f), RoundedCornerShape(1.dp)),
         )
+        // A quotation from the game's world: the serif the game prints in (Crimson), italic as quoted.
         Text(
             lore,
-            style = MaterialTheme.typography.bodyLarge,
+            style = GoaTextStyles.printed.copy(fontSize = 19.sp, lineHeight = 27.sp),
             fontStyle = FontStyle.Italic,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            color = MaterialTheme.colorScheme.onSurface,
             modifier = Modifier.padding(start = Spacing.md),
         )
     }

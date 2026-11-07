@@ -651,4 +651,4 @@ private val SlotSteel = Color(0xFFB4BEC8)
 private const val PORTRAIT_BIAS = -0.45f
 
 /** The action that opens a hero's sheet, as TalkBack says it (map piece, hero strip, turn track). */
-internal fun showGameState(name: String): String = "Show $name's game state"
+internal fun showGameState(name: String): String = "Open $name's state"

@@ -82,6 +82,7 @@ import dev.quinton.goa.feature.board.play.game.PlaySheet
 import dev.quinton.goa.feature.board.play.review.ReviewButton
 import dev.quinton.goa.feature.board.play.review.ReviewOpenEffect
 import dev.quinton.goa.feature.board.play.review.ReviewSheet
+import dev.quinton.goa.feature.board.play.table.BoardPeek
 import dev.quinton.goa.feature.board.play.table.DecisionPanel
 import dev.quinton.goa.feature.board.play.table.DecisionWho
 import dev.quinton.goa.feature.board.play.table.EventLog
@@ -203,6 +204,19 @@ fun PuzzleScreen(
                         onSpellbook = { sheet = PlaySheet.Spellbook(it) },
                         panelTitle = if (p.asksOnPanel()) {
                             { DecisionWho(p.table) }
+                        } else {
+                            null
+                        },
+                        // A space or piece on the map, no nudge open: the panel peeks with the goal and the commit.
+                        peekBody = if (p.asksOnPanel() && p.nudge == null && p.phase == PuzzlePhase.SOLVING) {
+                            {
+                                Text(
+                                    p.info.goal.text,
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
+                                BoardPeek(p.table, { onAction(PuzzleAction.Answer(it)) }, p.busy)
+                            }
                         } else {
                             null
                         },

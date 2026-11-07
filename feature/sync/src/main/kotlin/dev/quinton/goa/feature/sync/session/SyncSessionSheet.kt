@@ -21,6 +21,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.outlined.CheckCircle
+import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.outlined.ErrorOutline
 import androidx.compose.material.icons.outlined.Groups
 import androidx.compose.material.icons.outlined.HourglassTop
@@ -31,6 +32,7 @@ import androidx.compose.material.icons.outlined.WifiTethering
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -211,11 +213,21 @@ fun SyncSessionSheet(
             .padding(start = Spacing.screen, end = Spacing.screen, bottom = Spacing.xxl),
         verticalArrangement = Arrangement.spacedBy(Spacing.md),
     ) {
-        Text(
-            if (state.firstSync) "First sync" else "Sync with nearby phones",
-            style = MaterialTheme.typography.headlineSmall,
-            modifier = Modifier.semantics { heading() },
-        )
+        // The title with a close X beside it (under the sheet's drag handle), so leaving never hunts for Cancel.
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text(
+                if (state.firstSync) "First sync" else "Sync with nearby phones",
+                style = MaterialTheme.typography.headlineSmall,
+                modifier = Modifier.weight(1f).semantics { heading() },
+            )
+            // Hidden only while a joined phone writes the merged data: nothing can stop that safely.
+            if (closable(state)) {
+                IconButton(
+                    onClick = if (permission == null && !state.finished) actions.onCancel else actions.onClose,
+                    modifier = Modifier.padding(start = Spacing.sm),
+                ) { Icon(Icons.Outlined.Close, contentDescription = "Close") }
+            }
+        }
         state.groupName?.let {
             Text(
                 "Group “$it” · this phone shows as ${state.deviceName}",
@@ -228,6 +240,17 @@ fun SyncSessionSheet(
             else -> StageContent(state, actions)
         }
     }
+}
+
+private fun closable(state: SyncSessionUiState): Boolean = when (val stage = state.stage) {
+    is SessionStage.Joining -> stage.state.phase != ClientPhase.RECEIVING && stage.state.phase != ClientPhase.APPLYING
+    else -> true
+}
+
+/** The sheet's way out under its actions: a full-width outlined button ("Cancel", "Stop"). */
+@Composable
+private fun SheetCancel(label: String, onClick: () -> Unit) {
+    GoaOutlinedButton(onClick = onClick, modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp)) { Text(label) }
 }
 
 @Composable
@@ -273,7 +296,7 @@ private fun ChooseRole(actions: SyncSessionActions) {
         body = "Another phone hosts. This one sends its data and gets everything back.",
         onClick = { actions.onChoose(SessionRole.JOIN) },
     )
-    TextButton(onClick = actions.onCancel, modifier = Modifier.heightIn(min = 48.dp)) { Text("Cancel") }
+    SheetCancel("Cancel", actions.onCancel)
 }
 
 @Composable
@@ -349,10 +372,11 @@ private fun PermissionContent(permission: PermissionUi, actions: SyncSessionActi
 /**
  * Hosting, as an explicit state machine under a row of steps (Collect, Merge, Send back, Done). Collecting: each
  * phone's own state on its row (sending its data, ready, receiving the result, synced; one that needs the invite
- * again offers it), and one button. Off while no phone's data is in, saying what it waits for; "Sync with Bob and
- * Cid" when every phone is in; "Sync automatically when ready" while some are still sending, which arms the sync.
- * Armed: no button, a status ("Waiting for Cid · sync starts automatically") and Cancel. Then "Merging…", sending
- * back, and a final summary of who is up to date. Every change of state is announced politely to TalkBack.
+ * again offers it), the phones left out in a callout of their own, and one command with its count. Off while no
+ * phone's data is in, saying what it waits for; "Sync 2 phones now" when every phone is in; "Sync 2 phones when
+ * ready" while some are still sending, which arms the sync. Armed: no button, a status ("Waiting for Cid · sync
+ * starts automatically") and Cancel. Then "Merging…", sending back, and a final summary of who is up to date. Every
+ * change of state is announced politely to TalkBack.
  */
 @Composable
 private fun Hosting(host: HostState, state: SyncSessionUiState, actions: SyncSessionActions) {
@@ -392,6 +416,7 @@ private fun Hosting(host: HostState, state: SyncSessionUiState, actions: SyncSes
     }
     state.duplicateHint?.let { Hint(it) }
     state.versionHint?.let { Hint(it) }
+    if (waiting || armed) SyncText.hostLeftOut(host.peers)?.let { LeftOut(it) }
     when {
         waiting -> {
             GoaButton(
@@ -399,18 +424,15 @@ private fun Hosting(host: HostState, state: SyncSessionUiState, actions: SyncSes
                 enabled = host.canSync,
                 modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp),
             ) { Text(SyncText.syncLabel(host.peers), textAlign = TextAlign.Center) }
-            SyncText.hostLeftOut(host.peers)?.let { LeftOut(it) }
-            TextButton(onClick = actions.onCancel, modifier = Modifier.heightIn(min = 48.dp)) { Text("Cancel") }
+            SheetCancel("Cancel", actions.onCancel)
         }
 
         armed -> {
             ArmedStatus(SyncText.hostArmed(host.peers))
-            SyncText.hostLeftOut(host.peers)?.let { LeftOut(it) }
-            TextButton(onClick = actions.onCancel, modifier = Modifier.heightIn(min = 48.dp)) { Text("Cancel") }
+            SheetCancel("Cancel", actions.onCancel)
         }
 
-        host.phase == HostPhase.MERGING || host.phase == HostPhase.SENDING ->
-            TextButton(onClick = actions.onCancel, modifier = Modifier.heightIn(min = 48.dp)) { Text("Stop") }
+        host.phase == HostPhase.MERGING || host.phase == HostPhase.SENDING -> SheetCancel("Stop", actions.onCancel)
 
         host.phase == HostPhase.DONE -> Finish(state, actions)
 
@@ -426,18 +448,23 @@ private fun Hosting(host: HostState, state: SyncSessionUiState, actions: SyncSes
     }
 }
 
-/** Who this sync leaves out and why, right under its action, so nobody thinks Eve will be synced. */
+/**
+ * Who this sync leaves out and why, in a callout of its own just above the command, so nobody counts Eve among the
+ * phones it names ("Eve isn't included: old invite").
+ */
 @Composable
 private fun LeftOut(text: String) {
-    Row(verticalAlignment = Alignment.Top) {
-        Icon(
-            Icons.Outlined.ErrorOutline,
-            contentDescription = null,
-            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.padding(top = 2.dp).size(scaledIconSize(16.dp)),
-        )
-        Spacer(Modifier.width(Spacing.xs))
-        Text(text, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+    GoaPlate(Modifier.fillMaxWidth(), brackets = false, style = PlateStyle.Well) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Icon(
+                Icons.Outlined.ErrorOutline,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.error,
+                modifier = Modifier.size(scaledIconSize(20.dp)),
+            )
+            Spacer(Modifier.width(Spacing.md))
+            Text(text, style = MaterialTheme.typography.bodyMedium)
+        }
     }
 }
 
@@ -600,7 +627,7 @@ private fun Joining(client: ClientState, state: SyncSessionUiState, actions: Syn
         ClientPhase.RECEIVING, ClientPhase.APPLYING -> Unit
 
         // seconds; nothing to stop safely mid-write
-        else -> TextButton(onClick = actions.onCancel, modifier = Modifier.heightIn(min = 48.dp)) { Text("Cancel") }
+        else -> SheetCancel("Cancel", actions.onCancel)
     }
 }
 

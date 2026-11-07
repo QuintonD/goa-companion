@@ -85,7 +85,7 @@ import dev.quinton.goa.feature.draft.ui.teamLabel
 import dev.quinton.goa.feature.draft.ui.teamName
 
 /**
- * Finished draft: arrange heroes on seats, then save and hand off to match setup. One bronze Set up match is pinned
+ * Finished draft: arrange heroes on seats, then save and hand off to match setup. One bronze Open match setup is pinned
  * under the teams with the other ways out (Log result later, Try on the board, Handicap cards, Deal again) in its
  * menu; on a short screen (landscape) the bar scrolls with the rest. Swapping who plays which hero is a mode of its
  * own: a row's Swap starts it, the bar then says what the next tap does, with Cancel.
@@ -192,7 +192,7 @@ private fun SwapBar(
 }
 
 /**
- * One bronze Set up match (saves a pending match and opens Match setup); the rest in its menu: Log result later
+ * One bronze Open match setup (saves a pending match and opens Match setup); the rest in its menu: Log result later
  * (saves the pending match only), Try on the board, the Handicap cards and, while allowed, Deal again.
  */
 @Composable
@@ -212,7 +212,7 @@ private fun CompletionActions(
         ) {
             Icon(Icons.Outlined.Timer, contentDescription = null)
             Spacer(Modifier.width(Spacing.sm))
-            Text("Set up match")
+            Text("Open match setup")
         }
         Spacer(Modifier.width(Spacing.sm))
         Box {
@@ -483,7 +483,7 @@ private fun SwapButton(label: String, onClick: () -> Unit, strong: Boolean = fal
         Text(label)
     }
     val padding = PaddingValues(horizontal = Spacing.md)
-    // Quiet until a swap waits: six outlined buttons would compete with Set up match.
+    // Quiet until a swap waits: six outlined buttons would compete with Open match setup.
     if (strong) {
         GoaButton(onClick = onClick, modifier = modifier, contentPadding = padding, content = content)
     } else {

@@ -44,6 +44,7 @@ import dev.quinton.goa.core.designsystem.component.ComplexityStars
 import dev.quinton.goa.core.designsystem.component.GoaButton
 import dev.quinton.goa.core.designsystem.component.GoaOutlinedButton
 import dev.quinton.goa.core.designsystem.component.GoaSheet
+import dev.quinton.goa.core.designsystem.component.HERO_RATINGS_TITLE
 import dev.quinton.goa.core.designsystem.component.HeroPortrait
 import dev.quinton.goa.core.designsystem.component.HeroStatBlocks
 import dev.quinton.goa.core.designsystem.component.HeroSymbol
@@ -152,8 +153,9 @@ internal fun HeroPeekSheet(
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             } else {
-                PeekHeading("Stats · base → max")
-                // The app's one stat readout (HeroStatBlock), with its 1..8 bar, in the order the card prints.
+                PeekHeading(HERO_RATINGS_TITLE)
+                // The app's one stat readout (HeroStatBlock), with its 1..8 bar, in the order the card prints, and the
+                // shared note that these are ratings, not card values.
                 HeroStatBlocks(hero.stats, style = StatReadoutStyle.Bar)
                 PeekHeading("Starting cards")
                 if (hero.startingCards.isEmpty()) {

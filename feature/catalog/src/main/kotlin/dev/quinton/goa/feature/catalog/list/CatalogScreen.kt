@@ -546,7 +546,9 @@ private fun Results(
         // Applied at the next measure, before key-based position keeping can scroll the top away.
         gridState.requestScrollToItem(0)
     }
-    val minCell = if (LocalDensity.current.fontScale > LARGE_FONT_SCALE) GRID_MIN_CELL_LARGE_FONT else GRID_MIN_CELL
+    // As many columns as keep every name at 14 sp or more on its plate (and the tile's text whole) at this font scale.
+    val baseCell = if (LocalDensity.current.fontScale > LARGE_FONT_SCALE) GRID_MIN_CELL_LARGE_FONT else GRID_MIN_CELL
+    val minCell = maxOf(baseCell, rememberTileNameWidth(state.heroes))
     val plateArt = rememberPlateArt()
     val footnotes =
         remember(state.heroes, state.controls.sort) { TileFootnoteRoom.of(state.heroes, state.controls.sort) }

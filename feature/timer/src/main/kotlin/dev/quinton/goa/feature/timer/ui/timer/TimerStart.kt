@@ -23,6 +23,7 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Remove
+import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.Flag
 import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material.icons.outlined.Tune
@@ -377,7 +378,10 @@ internal fun Stepper(
     }
 }
 
-/** A pending match: its heroes per team and when it was set up, with Set up (the card) and Discard. */
+/**
+ * A pending match: its heroes per team and when it was set up, with "Open match setup" (the card, and its trailing
+ * button) and Discard, both 48 dp text buttons with their icon.
+ */
 @Composable
 private fun PendingMatchCard(match: PendingMatchItem, onClick: () -> Unit, onDiscard: () -> Unit) {
     var confirm by rememberSaveable(match.id) { mutableStateOf(false) }
@@ -391,16 +395,26 @@ private fun PendingMatchCard(match: PendingMatchItem, onClick: () -> Unit, onDis
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                TextButton(onClick = { confirm = true }) { Text("Discard") }
+            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                TextButton(
+                    onClick = { confirm = true },
+                    modifier = Modifier.heightIn(min = 48.dp),
+                    contentPadding = PaddingValues(horizontal = Spacing.sm),
+                ) {
+                    Icon(Icons.Outlined.Delete, contentDescription = null, modifier = Modifier.size(18.dp))
+                    Spacer(Modifier.width(Spacing.xs))
+                    Text("Discard")
+                }
                 Spacer(Modifier.weight(1f))
-                Text("Set up", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
-                Icon(
-                    Icons.AutoMirrored.Filled.KeyboardArrowRight,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.padding(end = Spacing.sm),
-                )
+                TextButton(
+                    onClick = onClick,
+                    modifier = Modifier.heightIn(min = 48.dp),
+                    contentPadding = PaddingValues(horizontal = Spacing.sm),
+                ) {
+                    Icon(Icons.Outlined.Flag, contentDescription = null, modifier = Modifier.size(18.dp))
+                    Spacer(Modifier.width(Spacing.xs))
+                    Text("Open match setup")
+                }
             }
         }
     }
