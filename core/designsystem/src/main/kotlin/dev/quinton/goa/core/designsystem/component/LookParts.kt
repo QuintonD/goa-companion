@@ -505,17 +505,24 @@ class TitlePlateSize(val minHeight: Dp, val cap: Dp, val vertical: Dp, val gear:
  * The cards' parchment title plate behind what this holds, with the gear at its end, and the padding that keeps the
  * words off the gear. [plate] is the title plate's art (`rememberOfficialBitmap(LookArt.TITLE_PLATE)`), null while
  * it loads: then the parchment is flat. For a plate with more than one string in it; else use [TitlePlate].
+ * Without [gear] the pill ends in its own rounded end: the gear is ceremony for the game's states (a turn, a phase,
+ * a team's hero), never on a catalog tile or a page title, where it would pass for a control or a team mark.
  */
-fun Modifier.titlePlate(plate: ImageBitmap?, size: TitlePlateSize = TitlePlateSize.Large, fallback: Color): Modifier =
+fun Modifier.titlePlate(
+    plate: ImageBitmap?,
+    size: TitlePlateSize = TitlePlateSize.Large,
+    fallback: Color,
+    gear: Boolean = true,
+): Modifier =
     defaultMinSize(minHeight = size.minHeight)
         .drawWithCache {
-            val gear = size.gear.toPx()
-            val center = Offset(this.size.width - gear / 2f, this.size.height / 2f)
+            val gearPx = size.gear.toPx()
+            val center = Offset(this.size.width - gearPx / 2f, this.size.height / 2f)
             // The parchment runs a little past the gear's middle, under it, as on the cards.
-            val pillEnd = center.x + GEAR_OVERLAP * gear
+            val pillEnd = if (gear) center.x + GEAR_OVERLAP * gearPx else this.size.width
             val cap = size.cap.roundToPx()
             val rim = size.vertical.roundToPx()
-            val cog = GearArt(center, gear / 2f)
+            val cog = if (gear) GearArt(center, gearPx / 2f) else null
             onDrawBehind {
                 if (plate != null) {
                     drawPill(plate, pillEnd.toInt(), cap, rim)
@@ -526,12 +533,12 @@ fun Modifier.titlePlate(plate: ImageBitmap?, size: TitlePlateSize = TitlePlateSi
                         cornerRadius = CornerRadius(minOf(this.size.height, size.minHeight.toPx()) / 2f),
                     )
                 }
-                cog.draw(this)
+                cog?.draw(this)
             }
         }
         .padding(
             start = size.start,
-            end = size.gear + GEAR_GAP,
+            end = if (gear) size.gear + GEAR_GAP else size.start,
             top = size.vertical - 1.dp,
             bottom =
                 size.vertical - 1.dp,
@@ -540,7 +547,7 @@ fun Modifier.titlePlate(plate: ImageBitmap?, size: TitlePlateSize = TitlePlateSi
 /**
  * The cards' parchment title plate (the pill with the gear at its end), holding a title: a hero's
  * name, what a question asks, a timer phase. Grows with its text; the gear keeps its size and the words keep
- * clear of it. [heading] marks it for TalkBack.
+ * clear of it. [heading] marks it for TalkBack; [gear] false for the restrained plate (see [titlePlate]).
  */
 @Composable
 fun TitlePlate(
@@ -549,11 +556,12 @@ fun TitlePlate(
     style: TextStyle = GoaTextStyles.plateTitle,
     heading: Boolean = true,
     maxLines: Int = 2,
+    gear: Boolean = true,
 ) {
     val plate = rememberOfficialBitmap(LookArt.TITLE_PLATE)
     val colors = GoaTheme.colors
     Box(
-        modifier.titlePlate(plate, TitlePlateSize.Large, colors.parchment),
+        modifier.titlePlate(plate, TitlePlateSize.Large, colors.parchment, gear),
         contentAlignment = Alignment.Center,
     ) {
         Text(

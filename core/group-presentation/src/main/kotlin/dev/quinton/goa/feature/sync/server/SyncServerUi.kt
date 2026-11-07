@@ -45,8 +45,8 @@ object SyncServerText {
             "Add a server's address under Advanced."
     const val OFF = "Off: this phone syncs face to face and by sync file only."
     const val AUTOMATIC =
-        "Sync now goes through the server. It also syncs on its own when the app opens, shortly after " +
-            "every change and every hour. The server only ever sees the group's data locked with the group key."
+        "It syncs on its own when the app opens, shortly after every change and every hour, and right away " +
+            "from Sync through the server. The server only ever sees the group's data locked with the group key."
     const val ADVANCED_HINT =
         "Every phone in the group needs the same server. New invites from this phone carry the address."
     const val NOT_AN_ADDRESS =

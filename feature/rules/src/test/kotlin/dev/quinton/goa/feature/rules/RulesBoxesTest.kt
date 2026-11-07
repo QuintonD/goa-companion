@@ -45,12 +45,14 @@ class RulesBoxesTest {
         assertNull(RulesBoxes.of(endOfRound[0]))
     }
 
-    /** WCAG contrast of each box's text on its ground: at least 4.5:1. */
+    /** WCAG contrast of each box's text on its ground, on the light and on the dark page: at least 4.5:1. */
     @Test
     fun `box text is readable`() {
         RulesBox.entries.forEach { box ->
-            val ratio = contrast(box.ground.luminance(), box.onGround.luminance())
-            assertTrue("$box is only $ratio:1", ratio >= 4.5)
+            listOf(false, true).forEach { dark ->
+                val ratio = contrast(box.ground(dark).luminance(), box.onGround.luminance())
+                assertTrue("$box (dark=$dark) is only $ratio:1", ratio >= 4.5)
+            }
         }
     }
 

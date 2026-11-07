@@ -22,7 +22,6 @@ import androidx.compose.material.icons.outlined.Quiz
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -49,6 +48,7 @@ import dev.quinton.goa.core.designsystem.component.BannerTextButton
 import dev.quinton.goa.core.designsystem.component.ConfirmDialog
 import dev.quinton.goa.core.designsystem.component.EmptyState
 import dev.quinton.goa.core.designsystem.component.GoaButton
+import dev.quinton.goa.core.designsystem.component.GoaOutlinedButton
 import dev.quinton.goa.core.designsystem.component.GoaPlateTheme
 import dev.quinton.goa.core.designsystem.component.GoaScreen
 import dev.quinton.goa.core.designsystem.component.slatePlate
@@ -116,7 +116,7 @@ fun TriviaQuizScreen(
                     title = "Nothing to ask",
                     message = "None of the chosen cards print these numbers. Go back and add a number or more cards.",
                     modifier = Modifier.align(Alignment.Center),
-                    action = { OutlinedButton(onClick = onDone) { Text("Back to setup") } },
+                    action = { GoaOutlinedButton(onClick = onDone) { Text("Back to setup") } },
                 )
 
                 is TriviaQuizUiState.Playing -> QuizPlaying(state, onAnswer, onNext)

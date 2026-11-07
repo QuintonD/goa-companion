@@ -28,9 +28,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.SegmentedButton
-import androidx.compose.material3.SegmentedButtonDefaults
-import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -45,25 +42,26 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import dev.quinton.goa.core.designsystem.component.BattlefieldFoot
+import dev.quinton.goa.core.designsystem.component.AccountAvatar
 import dev.quinton.goa.core.designsystem.component.EmptyState
+import dev.quinton.goa.core.designsystem.component.FootArt
 import dev.quinton.goa.core.designsystem.component.GoaPlate
 import dev.quinton.goa.core.designsystem.component.GoaScreen
+import dev.quinton.goa.core.designsystem.component.GoaSegment
+import dev.quinton.goa.core.designsystem.component.GoaSegmentedRow
 import dev.quinton.goa.core.designsystem.component.HeroPortrait
 import dev.quinton.goa.core.designsystem.component.PODIUM_PLACES
-import dev.quinton.goa.core.designsystem.component.PlayerAvatar
 import dev.quinton.goa.core.designsystem.component.Podium
 import dev.quinton.goa.core.designsystem.component.PodiumPlace
+import dev.quinton.goa.core.designsystem.component.ScreenFoot
 import dev.quinton.goa.core.designsystem.component.scaledIconSize
 import dev.quinton.goa.core.designsystem.theme.GoaTextStyles
 import dev.quinton.goa.core.designsystem.theme.GoaTheme
 import dev.quinton.goa.core.designsystem.theme.Spacing
-import dev.quinton.goa.core.model.player.Player
 import dev.quinton.goa.feature.board.play.online.leaderboard.LeaderboardPresenter
 import dev.quinton.goa.feature.board.play.online.leaderboard.LeaderboardRowUi
 import dev.quinton.goa.feature.board.play.online.leaderboard.LeaderboardTab
 import dev.quinton.goa.feature.board.play.online.leaderboard.LeaderboardUi
-import dev.quinton.goa.feature.board.ui.bronzeSegments
 
 /**
  * The public leaderboards (ADR-056), named for what they rank: "Online ratings", Players and Heroes, a line on
@@ -91,7 +89,7 @@ fun OnlineLeaderboardScreen(
     ) { padding ->
         // A short board ends in the rulebook's battlefield, not in empty navy.
         Box(Modifier.fillMaxSize().padding(padding)) {
-            BattlefieldFoot()
+            ScreenFoot(FootArt.HALL)
             Column(
                 Modifier
                     .fillMaxSize()
@@ -99,14 +97,11 @@ fun OnlineLeaderboardScreen(
                     .padding(Spacing.screen),
                 verticalArrangement = Arrangement.spacedBy(Spacing.md),
             ) {
-                SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth()) {
+                GoaSegmentedRow(Modifier.fillMaxWidth()) {
                     state.tabs.forEachIndexed { i, tab ->
-                        SegmentedButton(
+                        GoaSegment(
                             selected = state.tab == tab,
                             onClick = { onTab(tab) },
-                            shape = SegmentedButtonDefaults.itemShape(i, state.tabs.size),
-                            colors = bronzeSegments(),
-                            modifier = Modifier.heightIn(min = 48.dp),
                         ) { Text(tab.label) }
                     }
                 }
@@ -191,8 +186,8 @@ private fun Rows(state: LeaderboardUi, portraits: Map<String, String?>) {
 }
 
 /**
- * A podium place: the hero's portrait, or for a player a plain steel shield with their initial (online accounts
- * have no crest); the name, the rating, the record.
+ * A podium place: the hero's portrait, or for a player the crest their account id picks (the board carries no
+ * hero per account, and a bare initial read as unfinished); the name, the rating, the record.
  */
 @Composable
 private fun Standing(row: LeaderboardRowUi, hero: Boolean, portrait: String?) {
@@ -200,7 +195,7 @@ private fun Standing(row: LeaderboardRowUi, hero: Boolean, portrait: String?) {
     if (hero) {
         HeroPortrait(row.id, portrait, null, Modifier.size(size), CircleShape)
     } else {
-        PlayerAvatar(Player(id = row.id, name = row.name, color = 0, avatarId = -1, createdAt = 0), size = size)
+        AccountAvatar(row.id, row.name, size = size)
     }
     Spacer(Modifier.height(Spacing.xs))
     Text(

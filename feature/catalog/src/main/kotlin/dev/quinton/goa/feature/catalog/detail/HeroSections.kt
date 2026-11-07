@@ -6,8 +6,6 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.ExperimentalLayoutApi
-import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -17,6 +15,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -43,10 +42,14 @@ import androidx.compose.ui.unit.dp
 import dev.quinton.goa.core.designsystem.component.ColourRibbon
 import dev.quinton.goa.core.designsystem.component.LARGE_FONT_SCALE
 import dev.quinton.goa.core.designsystem.component.PlateColor
+import dev.quinton.goa.core.designsystem.component.fadingHorizontalScroll
 import dev.quinton.goa.core.designsystem.component.scaledIconSize
+import dev.quinton.goa.core.designsystem.component.selectionFrame
 import dev.quinton.goa.core.designsystem.theme.GoaTheme
 import dev.quinton.goa.core.designsystem.theme.Spacing
+import dev.quinton.goa.core.domain.catalog.DeckGroupKind
 import dev.quinton.goa.core.domain.catalog.DeckLayout
+import dev.quinton.goa.core.domain.catalog.tierNumeral
 import dev.quinton.goa.core.navigation.HeroDetailRoute
 
 /** The hero page's three tabs. */
@@ -152,22 +155,95 @@ internal fun deckJumps(layout: DeckLayout): List<DeckJump> = buildList {
     }
 }
 
+/** The tiers the deck's colours are printed in (I, II, III), for the jump bar's tier chips. */
+internal fun deckTiers(layout: DeckLayout): List<Int> = layout.groups
+    .filter { it.kind in COLOUR_KINDS }
+    .flatMap { group -> group.rows.mapNotNull { it.tier } }
+    .distinct()
+    .sorted()
+
+/** Shows only the cards of [tier] (null: every card): each colour keeps its rows of that tier. */
+internal fun DeckLayout.onlyTier(tier: Int?): DeckLayout = if (tier == null) {
+    this
+} else {
+    copy(
+        groups = groups.filter { it.kind in COLOUR_KINDS }
+            .map { it.copy(rows = it.rows.filter { row -> row.tier == tier }) }
+            .filter { it.rows.isNotEmpty() },
+        handicap = null,
+        extras = extras.filter { it.tier == tier },
+    )
+}
+
+private val COLOUR_KINDS = setOf(DeckGroupKind.RED, DeckGroupKind.GREEN, DeckGroupKind.BLUE)
+
 /**
- * A compact row of the deck's colours under its title, each with the cards' own ribbon: a tap scrolls to that
- * colour. It wraps rather than scrolls, so every stop shows.
+ * The deck's jump bar, held under the tabs while the deck scrolls. Its colours, each with the cards' own ribbon (a
+ * tap scrolls there), on one line that scrolls sideways with the edge that hides more fading out; under them Tier
+ * I, II and III (a tap shows only that tier's cards in every colour; again, all of them).
  */
-@OptIn(ExperimentalLayoutApi::class)
 @Composable
-internal fun DeckJumpRow(jumps: List<DeckJump>, onJump: (String) -> Unit, modifier: Modifier = Modifier) {
-    if (jumps.size < 2) return
-    FlowRow(
-        modifier
-            .fillMaxWidth()
-            .padding(bottom = Spacing.xs)
-            .semantics { contentDescription = "Jump to a part of the deck" },
-        horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+internal fun DeckJumpBar(
+    jumps: List<DeckJump>,
+    tiers: List<Int>,
+    tier: Int?,
+    onJump: (String) -> Unit,
+    onTier: (Int?) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val row = rememberScrollState()
+    Column(modifier.fillMaxWidth()) {
+        if (jumps.size >= 2) {
+            Row(
+                Modifier
+                    .fillMaxWidth()
+                    .fadingHorizontalScroll(row)
+                    .semantics { contentDescription = "Jump to a part of the deck" },
+                horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                jumps.forEach { jump -> JumpChip(jump) { onJump(jump.key) } }
+            }
+        }
+        if (tiers.isNotEmpty()) {
+            Row(
+                Modifier.fillMaxWidth().padding(horizontal = Spacing.screen),
+                horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                tiers.forEach { t -> TierChip(t, selected = tier == t) { onTier(if (tier == t) null else t) } }
+            }
+        }
+    }
+}
+
+/** A tier's chip: "Tier II", selected (bronze) while the deck shows only that tier. */
+@Composable
+private fun TierChip(tier: Int, selected: Boolean, onClick: () -> Unit) {
+    val shape = RoundedCornerShape(10.dp)
+    Box(
+        Modifier
+            .heightIn(min = 48.dp)
+            .selectable(selected = selected, role = Role.Checkbox, onClick = onClick)
+            .semantics { contentDescription = "Only Tier ${tierNumeral(tier)} cards" },
+        contentAlignment = Alignment.Center,
     ) {
-        jumps.forEach { jump -> JumpChip(jump) { onJump(jump.key) } }
+        Box(
+            Modifier
+                .clip(shape)
+                .background(MaterialTheme.colorScheme.surface)
+                .selectionFrame(selected, shape)
+                .heightIn(min = 38.dp)
+                .padding(horizontal = 12.dp),
+            contentAlignment = Alignment.Center,
+        ) {
+            Text(
+                "Tier ${tierNumeral(tier)}",
+                style = MaterialTheme.typography.bodyMedium,
+                fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium,
+                maxLines = 1,
+            )
+        }
     }
 }
 

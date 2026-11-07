@@ -202,7 +202,7 @@ class HeroStateSheetTest {
         wasp.performTouchInput { longClick() }
         compose.waitForIdle()
         assertThat(tapped).isNull()
-        compose.onAllNodes(hasText("Open information (p.4)")).onFirst().assertExists()
+        compose.onAllNodes(hasText("Open information", substring = true)).onFirst().assertExists()
         assertThat(words()).contains("+1 Defense")
     }
 
@@ -217,6 +217,6 @@ class HeroStateSheetTest {
         assertThat(actions.map { it.label }).contains("Show Wasp's game state")
         compose.runOnUiThread { actions.first { it.label == "Show Wasp's game state" }.action() }
         compose.waitForIdle()
-        compose.onAllNodes(hasText("Open information (p.4)")).onFirst().assertExists()
+        compose.onAllNodes(hasText("Open information", substring = true)).onFirst().assertExists()
     }
 }

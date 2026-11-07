@@ -27,6 +27,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -47,8 +48,10 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import coil3.compose.AsyncImage
 import dev.quinton.goa.core.designsystem.cardtext.CardTextView
 import dev.quinton.goa.core.designsystem.cardtext.GameIcon
@@ -63,6 +66,7 @@ import dev.quinton.goa.core.designsystem.theme.GoaTextStyles
 import dev.quinton.goa.core.designsystem.theme.GoaTheme
 import dev.quinton.goa.core.designsystem.theme.Spacing
 import dev.quinton.goa.core.model.catalog.Card
+import dev.quinton.goa.core.model.catalog.PrimaryAction
 import dev.quinton.goa.core.model.catalog.Stat
 import dev.quinton.goa.feature.board.board.cardKindLabel
 import dev.quinton.goa.feature.board.board.tierLabel
@@ -284,3 +288,72 @@ internal fun statIcon(stat: Stat): GameIcon = when (stat) {
     Stat.RANGE -> GameIcons.range
     Stat.RADIUS -> GameIcons.radius
 }
+
+/**
+ * The numbers a choice weighs, crisp under a card scan whose print is too small to read, in a strip of their own so
+ * they hide none of the card's title or text: its Initiative, then the primary action's value, then
+ * Range and Movement when the card prints them, each with the game's own item icon and the figure in 16 sp bold. Values
+ * come from the catalog; a card under 100 dp shows the first two. Decorative for TalkBack: every caller speaks the
+ * card ([spokenCard]). Put it under the card's name ([CardCaption]), as wide as the card.
+ */
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+fun CardNumbers(card: Card, width: Dp, modifier: Modifier = Modifier) {
+    // One line under any card: a narrow one keeps its Initiative and the first value that matters most.
+    val values = (listOfNotNull(card.initiative?.let { Stat.INITIATIVE to it }) + cardValues(card))
+        .take(if (width >= WIDE_STRIP) Int.MAX_VALUE else 2)
+    if (values.isEmpty()) return
+    val density = LocalDensity.current
+    // The strip grows with the text only to 1.3×: past that it would take more lines than the card is tall.
+    CompositionLocalProvider(LocalDensity provides Density(density.density, minOf(density.fontScale, BADGE_SCALE))) {
+        FlowRow(
+            modifier.width(width).clearAndSetSemantics {},
+            horizontalArrangement = Arrangement.spacedBy(6.dp, Alignment.CenterHorizontally),
+            itemVerticalAlignment = Alignment.CenterVertically,
+        ) {
+            values.forEach { (stat, value) ->
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    OfficialIcon(
+                        OfficialArt.itemIcon(stat),
+                        Modifier.size(width = BADGE_ICON * ITEM_ICON_ASPECT, height = BADGE_ICON),
+                    ) {
+                        Icon(
+                            statIcon(stat).vector,
+                            null,
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(BADGE_ICON),
+                        )
+                    }
+                    Text(
+                        "$value",
+                        style = GoaTextStyles.numeric.copy(fontSize = 16.sp, lineHeight = 20.sp),
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        maxLines = 1,
+                    )
+                }
+            }
+        }
+    }
+}
+
+/** The values after a card's Initiative, in order: the primary action's, then Range, then Movement (each once). */
+fun cardValues(card: Card): List<Pair<Stat, Int>> {
+    val primary = when (card.primary) {
+        PrimaryAction.ATTACK -> card.values.attack?.let { Stat.ATTACK to it }
+        PrimaryAction.DEFENSE, PrimaryAction.DEFENSE_SKILL -> card.values.defense?.let { Stat.DEFENSE to it }
+        PrimaryAction.MOVEMENT -> card.values.movement?.let { Stat.MOVEMENT to it }
+        else -> null
+    }
+    return listOfNotNull(
+        primary,
+        card.values.range?.let { Stat.RANGE to it },
+        card.values.movement?.let { Stat.MOVEMENT to it },
+    ).distinctBy { it.first }
+}
+
+private val BADGE_ICON = 13.dp
+private const val BADGE_SCALE = 1.3f
+
+/** From this width a card's strip has room for all its values on one line. */
+private val WIDE_STRIP = 100.dp

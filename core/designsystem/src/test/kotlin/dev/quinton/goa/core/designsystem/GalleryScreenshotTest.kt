@@ -40,7 +40,11 @@ import dev.quinton.goa.core.designsystem.component.EmptyState
 import dev.quinton.goa.core.designsystem.component.GoaButton
 import dev.quinton.goa.core.designsystem.component.GoaCard
 import dev.quinton.goa.core.designsystem.component.GoaFilterChip
+import dev.quinton.goa.core.designsystem.component.GoaOutlinedButton
 import dev.quinton.goa.core.designsystem.component.GoaPlate
+import dev.quinton.goa.core.designsystem.component.GoaSegment
+import dev.quinton.goa.core.designsystem.component.GoaSegmentedRow
+import dev.quinton.goa.core.designsystem.component.GoaSwitch
 import dev.quinton.goa.core.designsystem.component.HeroPortrait
 import dev.quinton.goa.core.designsystem.component.HeroSigil
 import dev.quinton.goa.core.designsystem.component.HeroSymbol
@@ -325,6 +329,18 @@ private fun Components() {
         GoaFilterChip(selected = true, onClick = {}, label = "Melee")
         GoaFilterChip(selected = false, onClick = {}, label = "Healer")
         GoaFilterChip(selected = true, onClick = {}, label = "★★★")
+    }
+    SectionHeader("Controls")
+    GoaSegmentedRow(Modifier.fillMaxWidth()) {
+        listOf("Quick", "Long").forEachIndexed { i, label ->
+            GoaSegment(selected = i == 0, onClick = {}) { Text(label) }
+        }
+    }
+    Spacer(Modifier.height(Spacing.sm))
+    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.md)) {
+        GoaSwitch(checked = true, onCheckedChange = {})
+        GoaSwitch(checked = false, onCheckedChange = {})
+        GoaOutlinedButton(onClick = {}) { Text("Scan QR") }
     }
     Spacer(Modifier.height(Spacing.sm))
     FlowRow(

@@ -26,7 +26,6 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -37,6 +36,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import dev.quinton.goa.core.designsystem.component.EmptyState
+import dev.quinton.goa.core.designsystem.component.GoaOutlinedButton
 import dev.quinton.goa.core.designsystem.component.GoaScreen
 import dev.quinton.goa.core.designsystem.component.HeroPortrait
 import dev.quinton.goa.core.designsystem.component.PlayerAvatar
@@ -174,7 +174,7 @@ fun PlayerDetailScreen(state: PlayerDetailUiState, actions: PlayerDetailActions,
                         Modifier.fillMaxWidth().padding(top = Spacing.xl),
                         horizontalAlignment = Alignment.CenterHorizontally,
                     ) {
-                        OutlinedButton(onClick = { actions.onSetArchived(!player.archived) }) {
+                        GoaOutlinedButton(onClick = { actions.onSetArchived(!player.archived) }) {
                             Icon(
                                 if (player.archived) Icons.Outlined.Unarchive else Icons.Outlined.Archive,
                                 contentDescription = null,
@@ -205,7 +205,7 @@ private fun Header(state: PlayerDetailUiState) {
         Modifier.fillMaxWidth().padding(vertical = Spacing.md).semantics(mergeDescendants = true) {},
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        PlayerAvatar(player, size = 72.dp)
+        PlayerAvatar(player, size = 72.dp, showFace = true)
         Spacer(Modifier.width(Spacing.lg))
         Column(Modifier.weight(1f)) {
             // Plain text, not a title plate: the plate's end cap sat over short names ("ANN").

@@ -83,6 +83,31 @@ data class RatingsResult(
     fun record(playerId: String, heroId: String): WinLoss =
         playerHeroRecords[PlayerHeroKey(playerId, heroId)] ?: WinLoss.NONE
 
+    /**
+     * The hero each player is shown as: their most-played hero in rated games (most games, then most wins, then hero
+     * id), with no two players sharing one. Players claim in order of rated games played (most first, then player id);
+     * a player whose hero is already claimed takes their next most-played free one, and a player with none left is
+     * absent (the crest). Derived like everything here, so nothing about it is stored or synced.
+     */
+    fun mostPlayedHeroes(): Map<String, String> {
+        val byPlayer = playerHeroRecords.entries.groupBy { it.key.playerId }
+        val ranked = compareByDescending<Map.Entry<PlayerHeroKey, WinLoss>> { it.value.games }
+            .thenByDescending { it.value.wins }
+            .thenBy { it.key.heroId }
+        val order = byPlayer.keys.sortedWith(
+            compareByDescending<String> { id -> byPlayer.getValue(id).sumOf { it.value.games } }.thenBy { it },
+        )
+        val taken = HashSet<String>()
+        val faces = LinkedHashMap<String, String>()
+        order.forEach { id ->
+            byPlayer.getValue(id).sortedWith(ranked).map { it.key.heroId }.firstOrNull { it !in taken }?.let {
+                taken += it
+                faces[id] = it
+            }
+        }
+        return faces
+    }
+
     companion object {
         val EMPTY = RatingsResult(
             players = emptyMap(),

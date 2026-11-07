@@ -38,10 +38,6 @@ import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.SegmentedButton
-import androidx.compose.material3.SegmentedButtonDefaults
-import androidx.compose.material3.SingleChoiceSegmentedButtonRow
-import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -78,12 +74,15 @@ import dev.quinton.goa.core.designsystem.component.GoaFilterChip
 import dev.quinton.goa.core.designsystem.component.GoaPlate
 import dev.quinton.goa.core.designsystem.component.GoaPlateTheme
 import dev.quinton.goa.core.designsystem.component.GoaScreen
+import dev.quinton.goa.core.designsystem.component.GoaSegment
+import dev.quinton.goa.core.designsystem.component.GoaSegmentCheck
+import dev.quinton.goa.core.designsystem.component.GoaSegmentedRow
+import dev.quinton.goa.core.designsystem.component.GoaSwitch
 import dev.quinton.goa.core.designsystem.component.HeroPortrait
 import dev.quinton.goa.core.designsystem.component.PlateShape
 import dev.quinton.goa.core.designsystem.component.SectionHeader
 import dev.quinton.goa.core.designsystem.component.UnverifiedBadge
 import dev.quinton.goa.core.designsystem.component.scaledIconSize
-import dev.quinton.goa.core.designsystem.component.selectableSegmentColors
 import dev.quinton.goa.core.designsystem.component.slatePlate
 import dev.quinton.goa.core.designsystem.theme.GoaTextStyles
 import dev.quinton.goa.core.designsystem.theme.Spacing
@@ -316,24 +315,25 @@ private fun HomeContent(
 /** Practice or Challenge, side by side: the one choice the home's Start depends on. */
 @Composable
 private fun ModeChoice(mode: TriviaMode, onMode: (TriviaMode) -> Unit, modifier: Modifier) {
-    SingleChoiceSegmentedButtonRow(modifier.fillMaxWidth()) {
-        TriviaMode.entries.forEachIndexed { index, option ->
+    GoaSegmentedRow(modifier.fillMaxWidth()) {
+        TriviaMode.entries.forEach { option ->
             val selected = option == mode
-            SegmentedButton(
+            GoaSegment(
                 selected = selected,
                 onClick = { onMode(option) },
-                shape = SegmentedButtonDefaults.itemShape(index, TriviaMode.entries.size),
-                colors = selectableSegmentColors(),
+                // The mode's own mark until chosen, then the shared bronze check.
                 icon = {
-                    SegmentedButtonDefaults.Icon(active = selected) {
+                    if (selected) {
+                        GoaSegmentCheck(true)
+                    } else {
                         Icon(
                             if (option == TriviaMode.PRACTICE) Icons.Outlined.School else Icons.Outlined.Bolt,
                             contentDescription = null,
-                            modifier = Modifier.size(SegmentedButtonDefaults.IconSize),
+                            modifier = Modifier.size(scaledIconSize(18.dp, 1.4f)),
                         )
+                        Spacer(Modifier.width(Spacing.xs))
                     }
                 },
-                modifier = Modifier.heightIn(min = 48.dp),
             ) {
                 Text(modeLabel(option), style = MaterialTheme.typography.titleSmall, maxLines = 1)
             }
@@ -635,7 +635,7 @@ private fun DuelsRow(state: TriviaHomeUiState.Ready, onAction: (TriviaHomeAction
             )
         }
         Spacer(Modifier.width(Spacing.md))
-        Switch(checked = checked, onCheckedChange = null, enabled = enabled)
+        GoaSwitch(checked = checked, onCheckedChange = null, enabled = enabled)
     }
 }
 

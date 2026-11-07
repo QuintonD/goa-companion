@@ -166,7 +166,7 @@ private fun PagerHeader(state: CardViewerUiState.Ready, pager: PagerState) {
                 fontWeight = FontWeight.Bold,
             )
             Text(
-                "${state.hero.name} · ${index + 1} of ${state.cards.size}",
+                "${state.hero.name} · ${state.position(index)}",
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )

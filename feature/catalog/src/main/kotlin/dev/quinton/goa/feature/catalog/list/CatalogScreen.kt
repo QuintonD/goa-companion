@@ -22,6 +22,7 @@ import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyRow
@@ -31,6 +32,7 @@ import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.shape.CircleShape
@@ -61,7 +63,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.InputChip
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
@@ -92,13 +93,18 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import dev.quinton.goa.core.designsystem.component.BarAction
 import dev.quinton.goa.core.designsystem.component.BarActions
+import dev.quinton.goa.core.designsystem.component.EdgeFadeGutter
 import dev.quinton.goa.core.designsystem.component.EmptyState
+import dev.quinton.goa.core.designsystem.component.GoaOutlinedButton
 import dev.quinton.goa.core.designsystem.component.GoaPlate
 import dev.quinton.goa.core.designsystem.component.GoaPlateTheme
 import dev.quinton.goa.core.designsystem.component.GoaScreen
+import dev.quinton.goa.core.designsystem.component.GoaSegment
+import dev.quinton.goa.core.designsystem.component.GoaSegmentedRow
 import dev.quinton.goa.core.designsystem.component.GoaSheet
 import dev.quinton.goa.core.designsystem.component.LARGE_FONT_SCALE
 import dev.quinton.goa.core.designsystem.component.PlateGround
+import dev.quinton.goa.core.designsystem.component.horizontalEdgeFade
 import dev.quinton.goa.core.designsystem.component.selectionFrame
 import dev.quinton.goa.core.designsystem.theme.GoaTextStyles
 import dev.quinton.goa.core.designsystem.theme.GoaTheme
@@ -206,6 +212,9 @@ private fun ReadyContent(
     onCardClick: (heroId: String, cardId: String) -> Unit,
     onOpenFilters: () -> Unit,
 ) {
+    // A search that finds both cards and heroes: All, or one kind. A new search starts on All.
+    var tab by rememberSaveable(query) { mutableStateOf(SearchTab.ALL) }
+    val tabbed = state.cards.isNotEmpty() && state.heroes.isNotEmpty()
     Column(Modifier.fillMaxSize()) {
         SearchField(query = query, onQueryChange = { onAction(CatalogAction.Search(it)) })
         ControlsRow(state = state, onAction = onAction, onOpenFilters = onOpenFilters)
@@ -213,6 +222,7 @@ private fun ReadyContent(
             ResultSummary(state = state, query = query, modifier = Modifier.weight(1f))
             LayoutToggle(state.controls.layout, onSelect = { onAction(CatalogAction.SetLayout(it)) })
         }
+        if (tabbed) SearchTabs(tab, cards = state.cards.size, heroes = state.heroes.size, onSelect = { tab = it })
         if (state.heroes.isEmpty()) {
             Box(Modifier.fillMaxSize(), contentAlignment = Alignment.TopCenter) {
                 NoResults(state, query, onAction)
@@ -222,7 +232,17 @@ private fun ReadyContent(
                 targetState = state.controls.layout,
                 transitionSpec = { fadeIn(tween(MOTION_MS)) togetherWith fadeOut(tween(MOTION_MS)) },
                 label = "catalogLayout",
-            ) { layout -> Results(state, layout, query, onHeroClick, onCardClick) }
+            ) { layout ->
+                Results(
+                    state = state,
+                    layout = layout,
+                    query = query,
+                    tab = if (tabbed) tab else SearchTab.ALL,
+                    onHeroClick = onHeroClick,
+                    onCardClick = onCardClick,
+                    onAllCards = { tab = SearchTab.CARDS },
+                )
+            }
         }
     }
 }
@@ -240,7 +260,7 @@ private fun NoResults(state: CatalogUiState.Ready, query: String, onAction: (Cat
                 message = "${plural(hidden, "hero", "heroes")} from products you don't own " +
                     (if (hidden == 1) "matches" else "match") + ". Your collection is set in Settings.",
                 action = {
-                    OutlinedButton(
+                    GoaOutlinedButton(
                         onClick = {
                             onAction(CatalogAction.SetFilter(state.controls.filter.copy(includeUnowned = true)))
                         },
@@ -260,7 +280,7 @@ private fun NoResults(state: CatalogUiState.Ready, query: String, onAction: (Cat
                 else -> "Nothing matches “${query.trim()}”. Try another word, or fewer words."
             },
             action = {
-                OutlinedButton(onClick = { onAction(CatalogAction.ClearAll) }) {
+                GoaOutlinedButton(onClick = { onAction(CatalogAction.ClearAll) }) {
                     Text(if (filtered) "Clear search and filters" else "Clear search")
                 }
             },
@@ -307,9 +327,12 @@ private fun SearchField(query: String, onQueryChange: (String) -> Unit) {
 @Composable
 private fun ControlsRow(state: CatalogUiState.Ready, onAction: (CatalogAction) -> Unit, onOpenFilters: () -> Unit) {
     val filter = state.controls.filter
+    val row = rememberLazyListState()
     GoaPlateTheme {
         LazyRow(
-            contentPadding = PaddingValues(horizontal = Spacing.screen),
+            state = row,
+            modifier = Modifier.horizontalEdgeFade(row),
+            contentPadding = EdgeFadeGutter,
             horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
             verticalAlignment = Alignment.CenterVertically,
         ) {
@@ -326,6 +349,22 @@ private fun ControlsRow(state: CatalogUiState.Ready, onAction: (CatalogAction) -
                 )
             }
             item(key = "sort") { SortChip(state.controls.sort) { onAction(CatalogAction.SetSort(it)) } }
+            // The collection hides heroes: said where the filters are, and removable like them.
+            if (state.collectionLimited) {
+                item(key = "collection") {
+                    InputChip(
+                        colors = goaInputChipColors(),
+                        border = goaInputChipBorder(),
+                        selected = true,
+                        onClick = { onAction(CatalogAction.SetFilter(filter.copy(includeUnowned = true))) },
+                        label = { Text("Owned only") },
+                        trailingIcon = { Icon(Icons.Outlined.Close, contentDescription = null, Modifier.size(16.dp)) },
+                        modifier = Modifier.semantics {
+                            contentDescription = "Only heroes from products you own. Show all products"
+                        },
+                    )
+                }
+            }
             items(activeFilterChips(filter, state.options), key = { it.key }) { chip ->
                 InputChip(
                     colors = goaInputChipColors(),
@@ -336,6 +375,35 @@ private fun ControlsRow(state: CatalogUiState.Ready, onAction: (CatalogAction) -
                     trailingIcon = { Icon(Icons.Outlined.Close, contentDescription = null, Modifier.size(16.dp)) },
                     modifier = Modifier.semantics { contentDescription = "Remove filter ${chip.label}" },
                 )
+            }
+        }
+    }
+}
+
+/** What a search shows: everything, or only the cards or only the heroes it found. */
+internal enum class SearchTab { ALL, CARDS, HEROES }
+
+/** All / Cards n / Heroes n over a search that found both, as one segmented bar. */
+@Composable
+private fun SearchTabs(tab: SearchTab, cards: Int, heroes: Int, onSelect: (SearchTab) -> Unit) {
+    GoaPlateTheme {
+        GoaSegmentedRow(
+            Modifier
+                .fillMaxWidth()
+                .padding(horizontal = Spacing.screen)
+                .padding(bottom = Spacing.sm),
+        ) {
+            SearchTab.entries.forEach { option ->
+                GoaSegment(selected = tab == option, onClick = { onSelect(option) }, icon = {}) {
+                    Text(
+                        when (option) {
+                            SearchTab.ALL -> "All"
+                            SearchTab.CARDS -> "Cards $cards"
+                            SearchTab.HEROES -> "Heroes $heroes"
+                        },
+                        maxLines = 1,
+                    )
+                }
             }
         }
     }
@@ -451,18 +519,24 @@ private fun LayoutOption(
  * hero page).
  */
 @Composable
+@Suppress("LongParameterList")
 private fun Results(
     state: CatalogUiState.Ready,
     layout: CatalogLayout,
     query: String,
+    tab: SearchTab,
     onHeroClick: (String) -> Unit,
     onCardClick: (heroId: String, cardId: String) -> Unit,
+    onAllCards: () -> Unit,
 ) {
     val grid = layout == CatalogLayout.GRID
     val gap = if (grid) Spacing.sm else Spacing.xs
-    val showCards = state.cards.isNotEmpty()
+    val showCards = state.cards.isNotEmpty() && tab != SearchTab.HEROES
+    val showHeroes = tab != SearchTab.CARDS
+    // On All, a few cards then the heroes: the rest of the cards are a tap away (the Cards tab).
+    val cards = if (tab == SearchTab.ALL && state.heroes.isNotEmpty()) state.cards.take(CARDS_ON_ALL) else state.cards
     val gridState = rememberLazyGridState()
-    val resultsKey = resultsKey(query, state.controls)
+    val resultsKey = resultsKey(query, state.controls) + "|" + tab
     val shownFor = remember { arrayOf(resultsKey) }
     if (shownFor[0] != resultsKey) {
         shownFor[0] = resultsKey
@@ -486,22 +560,29 @@ private fun Results(
                 ResultsHeader("Cards", state.cards.size)
             }
             items(
-                state.cards,
+                cards,
                 key = { "card-" + it.card.id },
                 span = { GridItemSpan(maxLineSpan) },
                 contentType = { CARD },
             ) { result ->
                 CardResultRow(result, query, onClick = { onCardClick(result.hero.id, result.card.id) })
             }
+            if (cards.size < state.cards.size) {
+                item(key = "cards-more", span = { GridItemSpan(maxLineSpan) }, contentType = HEADER) {
+                    GoaOutlinedButton(onClick = onAllCards, modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp)) {
+                        Text("All ${state.cards.size} cards")
+                    }
+                }
+            }
         }
-        if (showCards && state.cardsFirst) cardSection()
-        if (showCards) {
+        if (showCards && (state.cardsFirst || !showHeroes)) cardSection()
+        if (showCards && showHeroes) {
             item(key = "heroes-header", span = { GridItemSpan(maxLineSpan) }, contentType = HEADER) {
                 ResultsHeader("Heroes", state.heroes.size)
             }
         }
         // Content types let a tile scrolled out be reused for the next tile, not rebuilt.
-        items(state.heroes, key = { it.hero.id }, contentType = { HERO }) { item ->
+        items(if (showHeroes) state.heroes else emptyList(), key = { it.hero.id }, contentType = { HERO }) { item ->
             val onClick = { onHeroClick(item.hero.id) }
             if (grid) {
                 HeroGridTile(item, state.controls.sort, plateArt, footnotes, onClick, Modifier.animateItem())
@@ -509,7 +590,7 @@ private fun Results(
                 HeroListRow(item, state.controls.sort, plateArt, onClick, Modifier.animateItem())
             }
         }
-        if (showCards && !state.cardsFirst) cardSection()
+        if (showCards && showHeroes && !state.cardsFirst) cardSection()
         item(key = "end", span = { GridItemSpan(maxLineSpan) }, contentType = HEADER) {
             Spacer(Modifier.height(Spacing.sm))
         }
@@ -595,4 +676,7 @@ private const val HEADER = "header"
 private const val HERO = "hero"
 private const val CARD = "card"
 private const val PULSE_MS = 900
+
+/** Cards shown on a search's All tab before "All n cards", so the heroes it found are on the first screen. */
+private const val CARDS_ON_ALL = 3
 private const val SKELETON_TILES = 6

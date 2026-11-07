@@ -40,9 +40,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
-import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -66,6 +64,8 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import dev.quinton.goa.core.designsystem.component.EmptyState
 import dev.quinton.goa.core.designsystem.component.GoaButton
+import dev.quinton.goa.core.designsystem.component.GoaOutlinedButton
+import dev.quinton.goa.core.designsystem.component.GoaSwitch
 import dev.quinton.goa.core.designsystem.component.TitlePlate
 import dev.quinton.goa.core.designsystem.component.scaledIconSize
 import dev.quinton.goa.core.designsystem.theme.GoaTextStyles
@@ -287,7 +287,7 @@ private fun PuzzleMenu(puzzle: PuzzleUi, expanded: Boolean, onDismiss: () -> Uni
                 }
             },
             leadingIcon = { Spacer(Modifier.size(24.dp)) },
-            trailingIcon = { Switch(checked = puzzle.nudgesOn, onCheckedChange = null) },
+            trailingIcon = { GoaSwitch(checked = puzzle.nudgesOn, onCheckedChange = null) },
             onClick = { onAction(PuzzleAction.SetNudges(!puzzle.nudgesOn)) },
             modifier = Modifier.semantics { stateDescription = if (puzzle.nudgesOn) "On" else "Off" },
         )
@@ -537,7 +537,7 @@ private fun MissCard(puzzle: PuzzleUi, onAction: (PuzzleAction) -> Unit) {
                 horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
                 verticalArrangement = Arrangement.spacedBy(Spacing.xs),
             ) {
-                OutlinedButton(
+                GoaOutlinedButton(
                     onClick = { onAction(PuzzleAction.Restart) },
                     enabled = !puzzle.busy,
                     modifier = Modifier.heightIn(min = 48.dp),
@@ -603,7 +603,7 @@ private fun SolvedPanel(
     ) {
         val next = puzzle.next
         if (next != null) {
-            OutlinedButton(onClick = { onNext(next) }, modifier = Modifier.heightIn(min = 48.dp)) {
+            GoaOutlinedButton(onClick = { onNext(next) }, modifier = Modifier.heightIn(min = 48.dp)) {
                 Text("Next puzzle")
                 Spacer(Modifier.width(Spacing.xs))
                 Icon(
@@ -741,7 +741,7 @@ private fun ReplayPanel(puzzle: PuzzleUi, replay: ReplayUi, onAction: (PuzzleAct
         )
     }
     Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-        OutlinedButton(
+        GoaOutlinedButton(
             onClick = { onAction(PuzzleAction.CloseReplay) },
             modifier = Modifier.weight(1f).heightIn(min = 48.dp),
         ) { Text(if (replay.afterSolve) "Done" else "Back to the puzzle") }

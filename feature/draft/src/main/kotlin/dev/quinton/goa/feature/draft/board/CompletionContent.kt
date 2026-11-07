@@ -68,6 +68,7 @@ import dev.quinton.goa.core.designsystem.component.PlateRowDivider
 import dev.quinton.goa.core.designsystem.component.PlayerAvatar
 import dev.quinton.goa.core.designsystem.component.TeamMark
 import dev.quinton.goa.core.designsystem.component.TitlePlate
+import dev.quinton.goa.core.designsystem.component.selectableChipBorder
 import dev.quinton.goa.core.designsystem.component.selectionRow
 import dev.quinton.goa.core.designsystem.component.teamColor
 import dev.quinton.goa.core.designsystem.theme.GoaTextStyles
@@ -495,6 +496,7 @@ private fun SwapButton(label: String, onClick: () -> Unit, strong: Boolean = fal
 private fun HandicapChip(on: Boolean, onToggle: () -> Unit) {
     FilterChip(
         colors = goaFilterChipColors(),
+        border = selectableChipBorder(on),
         selected = on,
         onClick = onToggle,
         label = { Text("Handicap card") },

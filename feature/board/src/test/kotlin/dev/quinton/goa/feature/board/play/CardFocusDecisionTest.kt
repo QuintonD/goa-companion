@@ -144,7 +144,7 @@ class CardFocusDecisionTest {
 
     /** The panel's bronze button (the viewer's has its tag). */
     private fun panelButton(text: String) =
-        // A defence's button says how it ends after the move ("Defend with … — still defeated").
+        // A defence's button names the card in one line ("Defend · Blink Strike").
         compose.onAllNodes(hasText(text, substring = true) and hasClickAction() and !hasTestTag(CONFIRM_TAG))
             .onFirst()
             .performScrollTo()
@@ -179,7 +179,7 @@ class CardFocusDecisionTest {
         assertThat(actions.filterIsInstance<GameAction.Answer>()).isEmpty()
         tapInPanel(p, 1)
         compose.onAllNodes(hasText("against Attack", substring = true)).onFirst().assertExists()
-        panelButton("Defend with ${name(p, 1)}").performClick()
+        panelButton("Defend · ${name(p, 1)}").performClick()
         compose.waitForIdle()
         assertThat(actions.last()).isEqualTo(GameAction.Answer(option(p, 1)))
     }

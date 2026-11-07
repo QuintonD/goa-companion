@@ -1,5 +1,7 @@
 package dev.quinton.goa.core.designsystem.component
 
+import android.graphics.BitmapFactory
+import androidx.annotation.DrawableRes
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -18,6 +20,11 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -28,6 +35,9 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.ColorMatrix
 import androidx.compose.ui.graphics.FilterQuality
+import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
@@ -40,11 +50,14 @@ import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import dev.quinton.goa.core.designsystem.R
 import dev.quinton.goa.core.designsystem.theme.GoaFonts
 import dev.quinton.goa.core.designsystem.theme.LocalGoaIsDark
 import dev.quinton.goa.core.designsystem.theme.Spacing
 import kotlin.math.min
 import kotlin.math.roundToInt
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 
 /**
  * One place on a [Podium]: its [place] (1 to 3; tied places share a number, and so their step's height and metal),
@@ -150,17 +163,35 @@ private val COPPER = Triple(Color(0xFFEDB585), Color(0xFFC07A45), Color(0xFF7E45
 private val STEP_EDGE = Color(0xFF15181C)
 private val STEP_INK = Color(0xFF1B1712)
 
+/** The paintings a short screen can end in (`ScreenFoot`). */
+enum class FootArt {
+    /** The rulebook's broken-swords battlefield (`official/ui/silhouette.webp`): the running timer's own. */
+    BATTLEFIELD,
+
+    /** A hall of honour: banners in both teams' colours over the steps to a laurel. Leaderboards. */
+    HALL,
+
+    /** Two beacon towers across a strait, messenger birds between them. Group sync. */
+    BEACONS,
+}
+
 /**
- * The rulebook's battlefield (`official/ui/silhouette.webp`), as the running timer has it, faded into the canvas
- * along the foot of a screen whose list is short, so the screen ends in the game's art rather than in empty navy.
- * Put it first in a full-screen [Box] (it draws under what follows). Decorative: TalkBack skips it. Nothing while the
- * art loads.
+ * A painting faded into the canvas along the foot of a screen whose content is short, so the screen ends in the
+ * game's world rather than in empty navy; each kind of screen has its own ([FootArt]: leaderboards the hall of
+ * banners, sync the beacons, painted in the official style for the app, `third_party/ASSETS.md`). Put it first in
+ * a full-screen [Box] (it draws under what follows). Decorative: TalkBack skips it. Nothing while the art loads.
  */
 @Composable
-fun BattlefieldFoot(modifier: Modifier = Modifier) {
-    val field = rememberOfficialBitmap(LookArt.SILHOUETTE) ?: return
+fun ScreenFoot(art: FootArt, modifier: Modifier = Modifier) {
+    val field = when (art) {
+        FootArt.BATTLEFIELD -> rememberOfficialBitmap(LookArt.SILHOUETTE)
+        FootArt.HALL -> rememberFootBitmap(R.drawable.foot_hall)
+        FootArt.BEACONS -> rememberFootBitmap(R.drawable.foot_beacons)
+    } ?: return
     val ground = MaterialTheme.colorScheme.background
     val dark = LocalGoaIsDark.current
+    // The rulebook's silhouette is printed nearly black and gets lifted; the app's paintings are lit already.
+    val official = art == FootArt.BATTLEFIELD
     Canvas(modifier.fillMaxSize().clearAndSetSemantics {}) {
         val w = size.width
         val h = size.height
@@ -171,9 +202,13 @@ fun BattlefieldFoot(modifier: Modifier = Modifier) {
             field,
             dstOffset = IntOffset(((w - drawn.width) / 2f).roundToInt(), top.roundToInt()),
             dstSize = drawn,
-            alpha = if (dark) FOOT_ALPHA_DARK else FOOT_ALPHA_LIGHT,
+            alpha = when {
+                !dark -> FOOT_ALPHA_LIGHT
+                official -> FOOT_ALPHA_DARK
+                else -> FOOT_ALPHA_PAINTED
+            },
             filterQuality = FilterQuality.Medium,
-            colorFilter = if (dark) FOOT_LIFT else null,
+            colorFilter = if (dark && official) FOOT_LIFT else null,
         )
         // The art rises out of the canvas: solid ground at its top edge, clear by its middle.
         drawRect(
@@ -189,10 +224,28 @@ fun BattlefieldFoot(modifier: Modifier = Modifier) {
     }
 }
 
+/** One of the app's own foot paintings, decoded off the main thread once per process. */
+@Composable
+private fun rememberFootBitmap(@DrawableRes res: Int): ImageBitmap? {
+    val context = LocalContext.current
+    var bitmap by remember(res) { mutableStateOf(footBitmaps[res]) }
+    if (bitmap == null) {
+        LaunchedEffect(res) {
+            bitmap = withContext(Dispatchers.IO) {
+                footBitmaps.getOrPut(res) { BitmapFactory.decodeResource(context.resources, res).asImageBitmap() }
+            }
+        }
+    }
+    return bitmap
+}
+
+private val footBitmaps = java.util.concurrent.ConcurrentHashMap<Int, ImageBitmap>()
+
 private const val FOOT_WIDTH = 1.15f
 private const val FOOT_MAX_HEIGHT = 0.36f
 private const val FOOT_FADE = 0.55f
 private const val FOOT_ALPHA_DARK = 0.6f
+private const val FOOT_ALPHA_PAINTED = 0.85f
 private const val FOOT_ALPHA_LIGHT = 0.16f
 
 /** The silhouette is printed nearly black: lifted so it reads on the navy (as the timer lifts it). */

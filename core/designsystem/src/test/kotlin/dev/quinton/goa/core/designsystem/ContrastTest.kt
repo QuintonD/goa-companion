@@ -4,6 +4,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.compositeOver
 import androidx.compose.ui.graphics.luminance
 import com.google.common.truth.Truth.assertWithMessage
+import dev.quinton.goa.core.designsystem.component.ControlSteel
 import dev.quinton.goa.core.designsystem.component.DisabledFace
 import dev.quinton.goa.core.designsystem.component.OfficialArt
 import dev.quinton.goa.core.designsystem.component.SteelIconBronze
@@ -54,6 +55,13 @@ class ContrastTest {
         check("$theme parchmentInk (icons)", x.parchmentInk, x.parchment, TEXT)
     }
 
+    /** The rules reader's page in each theme: the passage, its reminder words and the printed heads on it. */
+    @Test fun readerPage() = themes().forEach { (theme, _, x) ->
+        check("$theme onPage", x.onPage, x.page, TEXT)
+        check("$theme onPageVariant", x.onPageVariant, x.page, TEXT)
+        check("$theme pageInk (heads)", x.pageInk, x.page, TEXT)
+    }
+
     @Test fun bodyText() = themes().forEach { (theme, scheme, _) ->
         listOf(scheme.background, scheme.surface, scheme.surfaceVariant).forEach { bg ->
             check("$theme onSurface", scheme.onSurface, bg, TEXT)
@@ -97,6 +105,33 @@ class ContrastTest {
         }
         listOf(Color(0xFF34424B), Color(0xFF222C33)).forEach { steel ->
             check("bronze glyph on steel", SteelIconBronze, steel, GRAPHIC)
+        }
+    }
+
+    /** Bronze that carries meaning (a star, a check, a symbol): words-strong on every ground of its theme. */
+    @Test fun bronzeInk() = themes().forEach { (theme, scheme, x) ->
+        listOf(scheme.background, x.plate, x.plateWell, scheme.surface).forEach { bg ->
+            check("$theme bronzeInk", x.bronzeInk, bg, TEXT)
+        }
+    }
+
+    /**
+     * The game's controls: the steel edge of a chip, a segmented bar and a switch's off track, and the switch's bronze
+     * on track, ≥ 3:1 on the grounds they sit on; words on a segmented bar and on its picked segment.
+     */
+    @Test fun controls() {
+        listOf(
+            Triple("dark", ControlSteel.Dark, DarkExtended to DarkColors),
+            Triple("light", ControlSteel.Light, LightExtended to LightColors),
+        ).forEach { (theme, steel, pair) ->
+            val (x, scheme) = pair
+            listOf(scheme.background, x.plate).forEach { bg ->
+                check("$theme steel edge (lit)", steel.lit, bg, GRAPHIC)
+                check("$theme steel edge (shade)", steel.shade, bg, GRAPHIC)
+                check("$theme switch on track", x.selection, bg, GRAPHIC)
+            }
+            check("$theme words on a segmented bar", scheme.onSurface, steel.recess, TEXT)
+            check("$theme words on a picked segment", scheme.onSurface, x.selectionFill.compositeOver(steel.face), TEXT)
         }
     }
 

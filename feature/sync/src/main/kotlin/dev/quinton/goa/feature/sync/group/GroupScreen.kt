@@ -32,23 +32,23 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.Logout
+import androidx.compose.material.icons.outlined.Cloud
+import androidx.compose.material.icons.outlined.CloudSync
 import androidx.compose.material.icons.outlined.ContentPaste
 import androidx.compose.material.icons.outlined.ExpandLess
 import androidx.compose.material.icons.outlined.ExpandMore
 import androidx.compose.material.icons.outlined.FileDownload
 import androidx.compose.material.icons.outlined.GroupAdd
-import androidx.compose.material.icons.outlined.Groups
 import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material.icons.outlined.IosShare
 import androidx.compose.material.icons.outlined.PersonOutline
 import androidx.compose.material.icons.outlined.PhoneAndroid
+import androidx.compose.material.icons.outlined.PhonelinkRing
 import androidx.compose.material.icons.outlined.QrCode2
 import androidx.compose.material.icons.outlined.QrCodeScanner
-import androidx.compose.material.icons.outlined.Sync
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
@@ -75,16 +75,18 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import dev.quinton.goa.core.designsystem.component.BattlefieldFoot
 import dev.quinton.goa.core.designsystem.component.ConfirmDialog
+import dev.quinton.goa.core.designsystem.component.FootArt
 import dev.quinton.goa.core.designsystem.component.GoaButton
 import dev.quinton.goa.core.designsystem.component.GoaCard
 import dev.quinton.goa.core.designsystem.component.GoaDialog
 import dev.quinton.goa.core.designsystem.component.GoaOutlinedButton
 import dev.quinton.goa.core.designsystem.component.GoaPlate
 import dev.quinton.goa.core.designsystem.component.GoaScreen
+import dev.quinton.goa.core.designsystem.component.PlateRowDivider
 import dev.quinton.goa.core.designsystem.component.PlateStyle
 import dev.quinton.goa.core.designsystem.component.PlayerAvatar
+import dev.quinton.goa.core.designsystem.component.ScreenFoot
 import dev.quinton.goa.core.designsystem.component.SectionHeader
 import dev.quinton.goa.core.designsystem.component.scaledIconSize
 import dev.quinton.goa.core.designsystem.theme.Spacing
@@ -130,9 +132,9 @@ fun GroupScreen(
 
             state.inGroup -> InGroup(state, actions, padding, showInvite)
 
-            // Two plates leave the foot of the screen free: the rulebook's battlefield anchors it.
+            // Two plates leave the foot of the screen free: the beacons that carry word between phones anchor it.
             else -> Box(Modifier.fillMaxSize()) {
-                BattlefieldFoot(Modifier.padding(padding))
+                ScreenFoot(FootArt.BEACONS, Modifier.padding(padding))
                 NoGroup(state, actions, padding)
             }
         }
@@ -204,7 +206,11 @@ private fun NoGroup(state: GroupUiState, actions: GroupActions, padding: Padding
             body = "Start one on this phone, then invite the others to join it.",
         ) {
             if (!starting) {
-                GoaButton(onClick = { starting = true }, modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp)) {
+                // The second way in: outlined, so Scan invite stays the one bronze action.
+                GoaOutlinedButton(
+                    onClick = { starting = true },
+                    modifier = Modifier.fillMaxWidth().heightIn(min = 52.dp),
+                ) {
                     Icon(Icons.Outlined.GroupAdd, null)
                     Spacer(Modifier.width(Spacing.sm))
                     Text("Start a group")
@@ -296,10 +302,20 @@ private fun HowSyncingWorks(expanded: Boolean, onToggle: () -> Unit) {
     }
 }
 
+/**
+ * In a group: the group with its one bronze action, which names how it syncs ("Sync with nearby phones", or with a
+ * server "Sync through the server" and nearby as the second way), and Invite a friend; then phone-to-phone sync,
+ * the normal way, with the phones this one has synced with; this phone's player; the sync file; and, quiet at the
+ * foot, the optional remote sync (a sync server), unless the group already uses one.
+ */
 @Composable
 private fun InGroup(state: GroupUiState, actions: GroupActions, padding: PaddingValues, showInviteInitially: Boolean) {
     var showInvite by rememberSaveable { mutableStateOf(showInviteInitially) }
     var confirmLeave by rememberSaveable { mutableStateOf(false) }
+    // A server that is set up is part of how this group syncs: shown open, under its own head. Without one, it
+    // waits folded at the foot as an option.
+    val serverSetUp = state.server.url != null
+    var remoteOpen by rememberSaveable { mutableStateOf(false) }
     LazyColumn(
         Modifier.fillMaxSize(),
         contentPadding = PaddingValues(
@@ -310,66 +326,15 @@ private fun InGroup(state: GroupUiState, actions: GroupActions, padding: Padding
         ),
         verticalArrangement = Arrangement.spacedBy(Spacing.md),
     ) {
-        item {
-            GoaCard(Modifier.fillMaxWidth()) {
-                Text(
-                    state.groupName.orEmpty(),
-                    style = MaterialTheme.typography.headlineSmall,
-                    modifier = Modifier.semantics {
-                        heading()
-                    },
-                )
-                Text(
-                    "${state.players} players · ${state.matches} matches on this phone" +
-                        (state.lastSync?.let { " · last synced $it" } ?: ""),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-                Spacer(Modifier.size(Spacing.md))
-                // With a server, Sync now syncs through it; face to face is the secondary way.
-                val syncing = state.server.active && state.server.syncing
-                GoaButton(
-                    onClick = actions.onSyncNow,
-                    enabled = !syncing,
-                    modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp),
-                ) {
-                    if (syncing) {
-                        CircularProgressIndicator(Modifier.size(18.dp), strokeWidth = 2.dp)
-                    } else {
-                        Icon(Icons.Outlined.Sync, null)
-                    }
-                    Spacer(Modifier.width(Spacing.sm))
-                    Text(if (syncing) "Syncing…" else "Sync now")
-                }
-                if (state.server.active) {
-                    Spacer(Modifier.size(Spacing.sm))
-                    OutlinedButton(
-                        onClick = actions.onSyncAtTable,
-                        modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp),
-                    ) {
-                        Icon(Icons.Outlined.Groups, null)
-                        Spacer(Modifier.width(Spacing.sm))
-                        Text("Sync at the table (no internet)")
-                    }
-                }
-                Spacer(Modifier.size(Spacing.sm))
-                OutlinedButton(onClick = {
-                    showInvite = true
-                }, modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp)) {
-                    Icon(Icons.Outlined.QrCode2, null)
-                    Spacer(Modifier.width(Spacing.sm))
-                    Text("Invite a friend")
-                }
-            }
-        }
-        item { SectionHeader("Sync server") }
-        item { SyncServerCard(state.server, actions.server) }
+        item { GroupCard(state, actions, onInvite = { showInvite = true }) }
+        item { SectionHeader("Phone-to-phone sync") }
+        item { PhoneToPhone(state) }
         item { SectionHeader("This phone") }
         item {
             GoaCard(Modifier.fillMaxWidth(), onClick = actions.onWhoAreYou) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     if (state.me != null) {
-                        PlayerAvatar(state.me)
+                        PlayerAvatar(state.me, showFace = true)
                     } else {
                         Icon(
                             Icons.Outlined.PersonOutline,
@@ -393,36 +358,11 @@ private fun InGroup(state: GroupUiState, actions: GroupActions, padding: Padding
                 }
             }
         }
-        item { SectionHeader("Phones synced with") }
-        if (state.phones.isEmpty()) {
-            item {
-                Text(
-                    if (state.server.active) {
-                        "None face to face yet. Tap Sync at the table with a friend's phone next to this one."
-                    } else {
-                        "None yet. Tap Sync now with a friend's phone next to this one."
-                    },
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-        } else {
-            state.phones.forEach { phone ->
-                item {
-                    Row(Modifier.fillMaxWidth().heightIn(min = 48.dp), verticalAlignment = Alignment.CenterVertically) {
-                        Icon(Icons.Outlined.PhoneAndroid, null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
-                        Spacer(Modifier.width(Spacing.md))
-                        Text(phone.name, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.weight(1f))
-                        Text(
-                            phone.lastSynced,
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                    }
-                }
-            }
+        if (serverSetUp) {
+            item { SectionHeader("Remote sync") }
+            item { SyncServerCard(state.server, actions.server) }
         }
-        item { SectionHeader("Without Nearby") }
+        item { SectionHeader("By sync file") }
         item {
             GoaCard(Modifier.fillMaxWidth(), contentPadding = PaddingValues(vertical = Spacing.sm)) {
                 LinkRow(
@@ -440,6 +380,12 @@ private fun InGroup(state: GroupUiState, actions: GroupActions, padding: Padding
                 )
             }
         }
+        if (!serverSetUp) {
+            item {
+                Foldout("Optional remote sync", Icons.Outlined.Cloud, remoteOpen) { remoteOpen = !remoteOpen }
+            }
+            if (remoteOpen) item { SyncServerCard(state.server, actions.server) }
+        }
         item {
             TextButton(onClick = { confirmLeave = true }, modifier = Modifier.heightIn(min = 48.dp)) {
                 Icon(Icons.AutoMirrored.Outlined.Logout, null)
@@ -449,7 +395,12 @@ private fun InGroup(state: GroupUiState, actions: GroupActions, padding: Padding
         }
     }
     if (showInvite) {
-        InviteDialog(state, onShare = { state.invite?.let(actions.onShareInvite) }, onDismiss = { showInvite = false })
+        InviteDialog(
+            groupName = state.groupName.orEmpty(),
+            invite = state.invite,
+            onShare = { state.invite?.let(actions.onShareInvite) },
+            onDismiss = { showInvite = false },
+        )
     }
     if (confirmLeave) {
         ConfirmDialog(
@@ -464,6 +415,129 @@ private fun InGroup(state: GroupUiState, actions: GroupActions, padding: Padding
             },
             onDismiss = { confirmLeave = false },
         )
+    }
+}
+
+/** The group, what this phone holds, and its actions: one bronze sync that names its way, Invite a friend. */
+@Composable
+private fun GroupCard(state: GroupUiState, actions: GroupActions, onInvite: () -> Unit) {
+    GoaCard(Modifier.fillMaxWidth()) {
+        Text(
+            state.groupName.orEmpty(),
+            style = MaterialTheme.typography.headlineSmall,
+            modifier = Modifier.semantics { heading() },
+        )
+        Text(
+            "${state.players} players · ${state.matches} matches on this phone" +
+                (state.lastSync?.let { " · last synced $it" } ?: ""),
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        Spacer(Modifier.size(Spacing.md))
+        val server = state.server.active
+        val syncing = server && state.server.syncing
+        GoaButton(
+            onClick = actions.onSyncNow,
+            enabled = !syncing,
+            modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp),
+        ) {
+            if (syncing) {
+                CircularProgressIndicator(Modifier.size(18.dp), strokeWidth = 2.dp)
+            } else {
+                Icon(if (server) Icons.Outlined.CloudSync else Icons.Outlined.PhonelinkRing, null)
+            }
+            Spacer(Modifier.width(Spacing.sm))
+            Text(
+                when {
+                    syncing -> "Syncing…"
+                    server -> "Sync through the server"
+                    else -> "Sync with nearby phones"
+                },
+            )
+        }
+        if (server) {
+            Spacer(Modifier.size(Spacing.sm))
+            GoaOutlinedButton(
+                onClick = actions.onSyncAtTable,
+                modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp),
+            ) {
+                Icon(Icons.Outlined.PhonelinkRing, null)
+                Spacer(Modifier.width(Spacing.sm))
+                Text("Sync with nearby phones")
+            }
+        }
+        Spacer(Modifier.size(Spacing.sm))
+        GoaOutlinedButton(onClick = onInvite, modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp)) {
+            Icon(Icons.Outlined.QrCode2, null)
+            Spacer(Modifier.width(Spacing.sm))
+            Text("Invite a friend")
+        }
+    }
+}
+
+/**
+ * Phone-to-phone sync, the group's normal way: how it goes in one line, then each phone this one has synced with
+ * and when (one plate, dividers inside).
+ */
+@Composable
+private fun PhoneToPhone(state: GroupUiState) {
+    GoaPlate(Modifier.fillMaxWidth()) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Icon(
+                Icons.Outlined.PhonelinkRing,
+                null,
+                tint = MaterialTheme.colorScheme.secondary,
+                modifier = Modifier.size(scaledIconSize(24.dp)),
+            )
+            Spacer(Modifier.width(Spacing.md))
+            Text(
+                "Phones side by side at the table, over Bluetooth and Wi-Fi. No internet needed.",
+                style = MaterialTheme.typography.bodyMedium,
+                modifier = Modifier.weight(1f),
+            )
+        }
+        if (state.phones.isEmpty()) {
+            PlateRowDivider(Modifier.padding(vertical = Spacing.sm))
+            Text(
+                "No phone synced yet: tap Sync with nearby phones with a friend's phone beside this one.",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        } else {
+            state.phones.forEach { phone ->
+                PlateRowDivider()
+                Row(
+                    Modifier.fillMaxWidth().heightIn(min = 48.dp).semantics(mergeDescendants = true) {},
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Icon(Icons.Outlined.PhoneAndroid, null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Spacer(Modifier.width(Spacing.md))
+                    Text(phone.name, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.weight(1f))
+                    Text(
+                        "Synced ${phone.lastSynced}",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            }
+        }
+    }
+}
+
+/** A quiet folding row: the label, its icon, and which way it opens; TalkBack hears Expanded or Collapsed. */
+@Composable
+private fun Foldout(label: String, icon: ImageVector, expanded: Boolean, onToggle: () -> Unit) {
+    TextButton(
+        onClick = onToggle,
+        modifier = Modifier.heightIn(min = 48.dp).semantics {
+            stateDescription = if (expanded) "Expanded" else "Collapsed"
+        },
+    ) {
+        Icon(icon, null, modifier = Modifier.size(scaledIconSize(18.dp)))
+        Spacer(Modifier.width(Spacing.sm))
+        Text(label)
+        Spacer(Modifier.width(Spacing.xs))
+        Icon(if (expanded) Icons.Outlined.ExpandLess else Icons.Outlined.ExpandMore, null)
     }
 }
 
@@ -522,14 +596,14 @@ private fun PasteInvite(invite: String, onInvite: (String) -> Unit, error: Strin
 
 /** The invite QR code, big and on white (scanners need the contrast), with what to do on the other phone. */
 @Composable
-fun InviteDialog(state: GroupUiState, onShare: () -> Unit, onDismiss: () -> Unit) {
-    val invite = state.invite ?: return
+fun InviteDialog(groupName: String, invite: String?, onShare: () -> Unit, onDismiss: () -> Unit) {
+    invite ?: return
     // A link to the web app with the invite in its fragment: the app's scanner finds the invite in
     // it, and an iPhone's Camera opens the web app ready to join (ADR-043).
     val qr = remember(invite) { InviteQr.bitmap(GroupInvite.link(invite)) }
     GoaDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Invite to “${state.groupName}”") },
+        title = { Text("Invite to “$groupName”") },
         text = {
             Column(
                 horizontalAlignment = Alignment.CenterHorizontally,
@@ -541,7 +615,7 @@ fun InviteDialog(state: GroupUiState, onShare: () -> Unit, onDismiss: () -> Unit
                         .fillMaxWidth()
                         .background(Color.White, RoundedCornerShape(12.dp))
                         .padding(Spacing.md)
-                        .semantics { contentDescription = "Invite QR code for ${state.groupName}" },
+                        .semantics { contentDescription = "Invite QR code for $groupName" },
                 ) {
                     Image(
                         bitmap = qr,
@@ -551,7 +625,7 @@ fun InviteDialog(state: GroupUiState, onShare: () -> Unit, onDismiss: () -> Unit
                     )
                 }
                 Text(
-                    "On your friend's phone: install the app, open Settings → Group sync → Scan invite QR code. " +
+                    "On your friend's phone: install the app, open More → Group sync → Scan invite QR code. " +
                         "On an iPhone, point the Camera at it: it opens the web app, ready to join. Or share it " +
                         "as text and paste it on the other phone. Anyone with this code can join, so only show " +
                         "it at the table or send it to the group.",

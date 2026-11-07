@@ -36,9 +36,12 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.CheckBox
 import androidx.compose.material.icons.filled.EmojiEvents
 import androidx.compose.material.icons.outlined.Add
+import androidx.compose.material.icons.outlined.ArrowDropDown
 import androidx.compose.material.icons.outlined.CalendarMonth
+import androidx.compose.material.icons.outlined.CheckBoxOutlineBlank
 import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.EmojiEvents
@@ -46,6 +49,7 @@ import androidx.compose.material.icons.outlined.ErrorOutline
 import androidx.compose.material.icons.outlined.EventBusy
 import androidx.compose.material.icons.outlined.Hexagon
 import androidx.compose.material.icons.outlined.People
+import androidx.compose.material.icons.outlined.Person
 import androidx.compose.material.icons.outlined.Schedule
 import androidx.compose.material.icons.outlined.SwapVert
 import androidx.compose.material3.AssistChip
@@ -58,12 +62,9 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.SegmentedButton
-import androidx.compose.material3.SegmentedButtonDefaults
+import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.SelectableDates
-import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TimePicker
@@ -81,8 +82,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.onClick
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
@@ -94,15 +97,19 @@ import androidx.compose.ui.unit.dp
 import dev.quinton.goa.core.designsystem.component.EmptyState
 import dev.quinton.goa.core.designsystem.component.GoaButton
 import dev.quinton.goa.core.designsystem.component.GoaDialog
+import dev.quinton.goa.core.designsystem.component.GoaOutlinedButton
 import dev.quinton.goa.core.designsystem.component.GoaPlate
 import dev.quinton.goa.core.designsystem.component.GoaPlateTheme
 import dev.quinton.goa.core.designsystem.component.GoaScreen
+import dev.quinton.goa.core.designsystem.component.GoaSegment
+import dev.quinton.goa.core.designsystem.component.GoaSegmentedRow
 import dev.quinton.goa.core.designsystem.component.HeroPortrait
 import dev.quinton.goa.core.designsystem.component.PlateShape
-import dev.quinton.goa.core.designsystem.component.PlayerAvatar
 import dev.quinton.goa.core.designsystem.component.SelectablePlate
 import dev.quinton.goa.core.designsystem.component.SelectionMark
 import dev.quinton.goa.core.designsystem.component.TeamBadge
+import dev.quinton.goa.core.designsystem.component.scaledIconSize
+import dev.quinton.goa.core.designsystem.component.selectableChipBorder
 import dev.quinton.goa.core.designsystem.component.slatePlate
 import dev.quinton.goa.core.designsystem.component.teamColor
 import dev.quinton.goa.core.designsystem.theme.GoaTheme
@@ -112,15 +119,14 @@ import dev.quinton.goa.core.model.match.GameMode
 import dev.quinton.goa.core.model.match.MatchStatus
 import dev.quinton.goa.core.model.match.Team
 import dev.quinton.goa.core.model.match.WinCondition
+import dev.quinton.goa.core.model.player.Player
 import dev.quinton.goa.feature.players.common.Dates
 import dev.quinton.goa.feature.players.common.EdgedPlate
 import dev.quinton.goa.feature.players.common.LARGE_FONT_SCALE
 import dev.quinton.goa.feature.players.common.LoadingState
 import dev.quinton.goa.feature.players.common.Motion
-import dev.quinton.goa.feature.players.common.Pill
 import dev.quinton.goa.feature.players.common.SectionHeader
 import dev.quinton.goa.feature.players.common.goaFilterChipColors
-import dev.quinton.goa.feature.players.common.goaSegmentedColors
 import dev.quinton.goa.feature.players.common.label
 import java.time.Instant
 import java.time.LocalDate
@@ -407,7 +413,7 @@ private fun ColumnScope.MatchFormFields(
     val boardRed = form.seats(Team.RED).mapNotNull { it.heroId }
     val boardBlue = form.seats(Team.BLUE).mapNotNull { it.heroId }
     if (!state.isNew && (boardRed.isNotEmpty() || boardBlue.isNotEmpty())) {
-        OutlinedButton(
+        GoaOutlinedButton(
             onClick = { actions.onOpenBoard(boardRed, boardBlue) },
             modifier = Modifier.fillMaxWidth().padding(top = Spacing.lg).heightIn(min = 52.dp),
         ) {
@@ -531,6 +537,7 @@ private fun WinnerAndCondition(state: MatchEditUiState, actions: MatchEditAction
                         null
                     },
                     colors = goaFilterChipColors(),
+                    border = selectableChipBorder(selected),
                     // Outer semantics win over the chip's own Checkbox role.
                     modifier = Modifier.heightIn(min = 48.dp).semantics { role = Role.RadioButton },
                 )
@@ -723,7 +730,11 @@ private fun TeamEditor(
                 SeatEditor(
                     seat = seat,
                     state = state,
-                    doublePilot = seat.playerId != null && seat.playerId in doublePilots,
+                    pilotSeats = if (seat.playerId != null && seat.playerId in doublePilots) {
+                        seats.count { it.playerId == seat.playerId }
+                    } else {
+                        1
+                    },
                     problem = problems[seat.key],
                     onPickHero = { onPickHero(team, seat.key) },
                     onPickPilot = { onPickPilot(team, seat.key) },
@@ -739,7 +750,8 @@ private fun TeamEditor(
 private fun SeatEditor(
     seat: SeatDraft,
     state: MatchEditUiState,
-    doublePilot: Boolean,
+    /** How many of this team's seats the seat's pilot has (2 or more: a double pilot). */
+    pilotSeats: Int,
     problem: String?,
     onPickHero: () -> Unit,
     onPickPilot: () -> Unit,
@@ -791,42 +803,47 @@ private fun SeatEditor(
                 Icon(Icons.Outlined.Close, contentDescription = "Remove seat: $heroLabel")
             }
         }
+        // The pilot is a field to choose from ("Ann ▾"), the Handicap card a toggle with a box, a double pilot a
+        // plain line: three kinds of thing, three looks.
         FlowRow(
             Modifier.padding(top = Spacing.xs, end = Spacing.md),
             horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
             verticalArrangement = Arrangement.spacedBy(Spacing.xs),
             itemVerticalAlignment = Alignment.CenterVertically,
         ) {
-            AssistChip(
-                onClick = onPickPilot,
-                label = { Text(pilot?.name ?: "Choose pilot", maxLines = 1, overflow = TextOverflow.Ellipsis) },
-                leadingIcon = {
-                    if (pilot != null) {
-                        PlayerAvatar(pilot, size = 24.dp)
-                    } else {
-                        Icon(Icons.Outlined.People, contentDescription = null)
-                    }
-                },
-                modifier = Modifier.heightIn(min = 48.dp).semantics {
-                    contentDescription = "Pilot: ${pilot?.name ?: "none"}. Change pilot"
-                },
-            )
+            PilotField(pilot, error = problem == "Choose a pilot", onClick = onPickPilot)
             FilterChip(
                 selected = seat.handicap,
                 onClick = onToggleHandicap,
                 label = { Text("Handicap") },
-                leadingIcon = if (seat.handicap) {
-                    { Icon(Icons.Filled.Check, contentDescription = null, modifier = Modifier.size(18.dp)) }
-                } else {
-                    null
+                leadingIcon = {
+                    Icon(
+                        if (seat.handicap) Icons.Filled.CheckBox else Icons.Outlined.CheckBoxOutlineBlank,
+                        contentDescription = null,
+                        modifier = Modifier.size(18.dp),
+                    )
                 },
                 colors = goaFilterChipColors(),
+                border = selectableChipBorder(seat.handicap),
                 modifier = Modifier.heightIn(min = 48.dp).semantics {
                     contentDescription = "Handicap card for $heroLabel"
                 },
             )
-            if (doublePilot) {
-                Pill("Double pilot", icon = Icons.Outlined.People)
+        }
+        if (pilotSeats > 1 && pilot != null) {
+            Row(Modifier.padding(top = Spacing.xs), verticalAlignment = Alignment.CenterVertically) {
+                Icon(
+                    Icons.Outlined.People,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.size(scaledIconSize(16.dp)),
+                )
+                Spacer(Modifier.width(Spacing.xs))
+                Text(
+                    "${pilot.name} pilots $pilotSeats heroes",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
             }
         }
         if (problem != null) {
@@ -839,6 +856,54 @@ private fun SeatEditor(
         }
     }
 }
+
+/**
+ * The seat's pilot as a dropdown field: "Pilot" on its outline, the player's face and name, a ▾. A tap opens the
+ * pilot picker. One TalkBack node ("Pilot: Ann. Change pilot").
+ */
+@Composable
+private fun PilotField(pilot: Player?, error: Boolean, onClick: () -> Unit) {
+    val name = pilot?.name ?: "Choose pilot"
+    Box(
+        Modifier
+            .width(scaledIconSize(PILOT_FIELD_WIDTH, PILOT_FIELD_SCALE))
+            .clickable(onClickLabel = "Change pilot", role = Role.DropdownList, onClick = onClick)
+            .clearAndSetSemantics {
+                contentDescription = "Pilot: ${pilot?.name ?: "none"}. Change pilot"
+                role = Role.DropdownList
+                onClick(label = "Change pilot") {
+                    onClick()
+                    true
+                }
+            },
+    ) {
+        val ink = MaterialTheme.colorScheme.onSurface
+        val muted = MaterialTheme.colorScheme.onSurfaceVariant
+        OutlinedTextField(
+            value = name,
+            onValueChange = {},
+            modifier = Modifier.fillMaxWidth(),
+            enabled = false,
+            singleLine = true,
+            label = { Text("Pilot") },
+            // No face here: beside the seat's hero, a player's most-played hero would read as a second hero.
+            leadingIcon = { Icon(Icons.Outlined.Person, contentDescription = null) },
+            trailingIcon = { Icon(Icons.Outlined.ArrowDropDown, contentDescription = null) },
+            // Drawn as an enabled field: it is one, the tap just lands on the box around it.
+            colors = OutlinedTextFieldDefaults.colors(
+                disabledTextColor = if (pilot != null) ink else muted,
+                disabledBorderColor = if (error) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.outline,
+                disabledLabelColor = if (error) MaterialTheme.colorScheme.error else muted,
+                disabledLeadingIconColor = muted,
+                disabledTrailingIconColor = ink,
+            ),
+        )
+    }
+}
+
+/** Room for a name like "Kit Featherstone" beside the face and the ▾; it grows with the text up to 1.5×. */
+private val PILOT_FIELD_WIDTH = 188.dp
+private const val PILOT_FIELD_SCALE = 1.5f
 
 /** The team's pilots in seat order, each once (a double pilot sits twice). */
 private fun MatchEditUiState.pilotNames(team: Team): List<String> =
@@ -937,18 +1002,17 @@ private fun <T> ChoiceRow(options: List<T>, selected: T, label: (T) -> String, o
                         null
                     },
                     colors = goaFilterChipColors(),
+                    border = selectableChipBorder(isSelected),
                     modifier = Modifier.heightIn(min = 48.dp),
                 )
             }
         }
     } else {
-        SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth()) {
+        GoaSegmentedRow(Modifier.fillMaxWidth()) {
             options.forEachIndexed { i, option ->
-                SegmentedButton(
+                GoaSegment(
                     selected = option == selected,
                     onClick = { onSelect(option) },
-                    shape = SegmentedButtonDefaults.itemShape(i, options.size),
-                    colors = goaSegmentedColors(),
                 ) { Text(label(option), maxLines = 1) }
             }
         }

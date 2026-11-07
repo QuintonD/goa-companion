@@ -71,6 +71,7 @@ import dev.quinton.goa.core.designsystem.component.CardTextBox
 import dev.quinton.goa.core.designsystem.component.HeroPortrait
 import dev.quinton.goa.core.designsystem.component.PlateColor
 import dev.quinton.goa.core.designsystem.component.TeamMark
+import dev.quinton.goa.core.designsystem.component.horizontalEdgeFade
 import dev.quinton.goa.core.designsystem.component.teamColor
 import dev.quinton.goa.core.designsystem.theme.GoaTextStyles
 import dev.quinton.goa.core.designsystem.theme.Spacing
@@ -255,8 +256,9 @@ private fun TrackStrip(
         modifier = if (stretch) modifier.fillMaxWidth() else modifier,
     ) {
         if (!stretch) {
+            val strip = rememberScrollState()
             Row(
-                Modifier.horizontalScroll(rememberScrollState()).padding(STRIP_PAD).height(IntrinsicSize.Min),
+                Modifier.horizontalEdgeFade(strip).horizontalScroll(strip).padding(STRIP_PAD).height(IntrinsicSize.Min),
                 horizontalArrangement = Arrangement.spacedBy(CHIP_GAP),
             ) {
                 val size = cardNameSize(played, SIDE_CHIP)
@@ -276,8 +278,9 @@ private fun TrackStrip(
                     slots.forEach { chip(it, Modifier.weight(1f), size) }
                 }
             } else {
+                val strip = rememberScrollState()
                 Row(
-                    Modifier.horizontalScroll(rememberScrollState()).height(IntrinsicSize.Min),
+                    Modifier.horizontalEdgeFade(strip).horizontalScroll(strip).height(IntrinsicSize.Min),
                     horizontalArrangement = Arrangement.spacedBy(CHIP_GAP),
                 ) {
                     val size = cardNameSize(played, MIN_CHIP)

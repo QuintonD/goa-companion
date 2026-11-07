@@ -11,7 +11,6 @@ import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performClick
-import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.unit.Density
 import androidx.test.core.app.ApplicationProvider
 import com.github.takahirom.roborazzi.captureRoboImage
@@ -201,6 +200,26 @@ class OnlineScreenshotTest {
     fun onlineLobbyHeroPickerDark() = capture(ThemeMode.DARK, screen = true) { Lobby(lobby, picking = true) }
 
     @Test fun onlineLobbyQrDark() = capture(ThemeMode.DARK, screen = true) { Lobby(lobby, qr = true) }
+
+    /** Every seat taken, every hero chosen, everyone ready: the host's one bronze step is Start the game. */
+    @Test
+    fun onlineLobbyAllReadyDark() = capture(ThemeMode.DARK) {
+        Lobby(
+            lobby.copy(
+                room = room(
+                    size = 2,
+                    filled = 4,
+                    hero = { listOf("arien", "brogan", "wasp", "tigerclaw")[it] },
+                    ready = { true },
+                    ranked = true,
+                ),
+            ),
+        )
+    }
+
+    /** A guest who hasn't chosen a hero yet: their one bronze step is Choose your hero. */
+    @Test
+    fun onlineLobbyGuestNoHeroLight() = capture(ThemeMode.LIGHT) { Lobby(lobby.copy(you = "acc-cid")) }
 
     // ---- The table -------------------------------------------------------------------------------
 
@@ -480,7 +499,8 @@ class OnlineScreenshotTest {
         compose.onNodeWithText("Rematch").assertDoesNotExist()
         compose.onNodeWithText("New game").assertDoesNotExist()
         compose.onNodeWithText("Coach off", substring = true).assertDoesNotExist()
-        compose.onNodeWithText("Done").performScrollTo().assertIsDisplayed()
+        // Pinned under the page, in view without scrolling.
+        compose.onNodeWithText("Done").assertIsDisplayed()
     }
 
     @Test

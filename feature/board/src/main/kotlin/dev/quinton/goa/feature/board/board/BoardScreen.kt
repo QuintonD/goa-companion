@@ -381,11 +381,17 @@ private fun BoardContent(
                 }
                 ToolBanner(state, onAction)
                 // What each mark on the map means, for the layers shown now (the panel's switches turn them on).
-                val key = boardKey(state, short = LocalDensity.current.fontScale > LARGE_FONT)
+                // One compact row of short words over the map; a tap opens the full words, and closes them again.
+                var keyOpen by rememberSaveable { mutableStateOf(false) }
+                val key = boardKey(state, short = !keyOpen || LocalDensity.current.fontScale > LARGE_FONT)
+                val fullKey = boardKey(state, short = false)
                 MapKey(
                     key.keys.toList(),
                     Modifier.onGloballyPositioned { keyBottom = it.boundsInParent().bottom.toInt() },
                     words = { key[it].orEmpty() },
+                    full = { fullKey[it].orEmpty() },
+                    expanded = keyOpen,
+                    onToggle = { keyOpen = !keyOpen },
                 )
             }
             Spacer(Modifier.width(Spacing.sm))
@@ -704,7 +710,9 @@ private fun boardKey(state: BoardUiState.Ready, short: Boolean): Map<MapKeyItem,
             }
             if (overlay.fastTravel.isNotEmpty()) put(MapKeyItem.FAST_TRAVEL, "Fast Travel")
             if (overlay.range.isNotEmpty()) {
-                put(MapKeyItem.RANGE, listOfNotNull("Range", overlay.rangeValue).joinToString(" "))
+                val range = listOfNotNull("Range", overlay.rangeValue).joinToString(" ")
+                // A violet space with no number is in reach but not on a move: the words say what the outline is.
+                put(MapKeyItem.RANGE, if (short) range else "$range: in reach from here")
             }
             if (overlay.radius.isNotEmpty()) {
                 put(MapKeyItem.RADIUS, listOfNotNull("Radius", overlay.radiusValue).joinToString(" "))

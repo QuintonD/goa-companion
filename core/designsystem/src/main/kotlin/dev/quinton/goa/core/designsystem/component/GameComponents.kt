@@ -208,14 +208,23 @@ private fun Monogram(letter: String, tint: Color, side: Dp) {
 }
 
 /**
- * Player crest (one of 24, `player.avatarId`): a filled heraldic shield in the game's icon style, its charge in
- * dark ink on a bronze or steel field (`design/crests/`, composed by `design/tools/crest_shields.py`); a steel
- * shield with the initial when the crest index is unknown, "?" when [player] is null. Team-neutral on purpose:
- * red and blue belong to the teams (gear and star), so a player's mark never reads as a side; the charge and
- * the field's metal are the identity. Drawn as is, never tinted. Decorative: pair it with the player's name.
+ * A player's face: their most-played hero's portrait in a steel ring when the screen provides it
+ * ([LocalPlayerFaces], derived from the match log), else their crest (one of 24, `player.avatarId`): a filled
+ * heraldic shield in the game's icon style, its charge in dark ink on a bronze or steel field (`design/crests/`,
+ * composed by `design/tools/crest_shields.py`); a steel shield with the initial when the crest index is unknown,
+ * "?" when [player] is null. Team-neutral on purpose: red and blue belong to the teams (gear and star), so a
+ * player's mark never reads as a side. Drawn as is, never tinted. Decorative: pair it with the player's name.
+ * The face is opt-in ([showFace]) for player-centred screens (leaderboards, the player page, this phone's player),
+ * and only from [FACE_MIN_SIZE]: smaller, a portrait is a dark blob, and among heroes (meta, a draft pick, a match
+ * seat) it would read as a hero. Everywhere else the crest.
  */
 @Composable
-fun PlayerAvatar(player: Player?, modifier: Modifier = Modifier, size: Dp = 40.dp) {
+fun PlayerAvatar(player: Player?, modifier: Modifier = Modifier, size: Dp = 40.dp, showFace: Boolean = false) {
+    val face = player?.takeIf { showFace && size >= FACE_MIN_SIZE }?.let { LocalPlayerFaces.current[it.id] }
+    if (face != null) {
+        HeroFaceAvatar(face, modifier, size)
+        return
+    }
     val crest = player?.let { PlayerCrests.drawableFor(it.avatarId) }
     Box(modifier.size(size).clearAndSetSemantics {}, contentAlignment = Alignment.Center) {
         Image(
@@ -355,7 +364,7 @@ fun ComplexityStars(
                     imageVector = if (filled) Icons.Filled.Star else Icons.Outlined.StarOutline,
                     contentDescription = null,
                     // The unfilled stars carry the scale (2 of 4): a muted tone that still makes 3:1.
-                    tint = if (filled) MaterialTheme.colorScheme.primary else GoaTheme.colors.glyphMuted,
+                    tint = if (filled) GoaTheme.colors.bronzeInk else GoaTheme.colors.glyphMuted,
                     modifier = Modifier.size(size),
                 )
             }

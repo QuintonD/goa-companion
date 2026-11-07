@@ -33,7 +33,7 @@ area, `goa-look-*.css`). Every part falls back to a flat colour while its image 
   gold and silver, white on the rest): question text and the attack header in the asking card's colour, moments in gold, coach and nudges in green. The app's own words in a box are Inter (and its tab says "Note", never "Rule"); only text the game prints is Crimson.
 - **Ribbons, counters, icons:** `ColourRibbon` on a card colour's section head (`SectionHeader(ribbon =)`); `LifeCounterIcon`, `WaveCounterIcon`,
   `CoinIcon`, `ActionIcon`, the official item icons as stats. **Team marks** are the official gear and star (`TeamMark`).
-- **Buttons:** `GoaButton` (bronze metal with a sheen, the app's filled button), `MetalButton`, `GoaOutlinedButton` (bronze edge), `SlateButton`
+- **Buttons:** `GoaButton` (bronze metal with a sheen, the app's filled button), `MetalButton`, `GoaOutlinedButton` (the secondary button: a slate plate with a steel bevel; paper in the light theme), `SlateButton`
   over art. Disabled, a metal or outlined button is a filled, unlit slab with muted but legible words (`DisabledFace`, ≥ 4.5:1): clearly off,
   never a faded bronze and never an outline that passes for a text field. Say why under it (`DisabledReason`: an info glyph and a line).
   Slate buttons over art fade at 42 % (`Modifier.disabled`). Team-coloured draft buttons stay Material. A bronze glyph on a steel face is
@@ -42,7 +42,21 @@ area, `goa-look-*.css`). Every part falls back to a flat colour while its image 
 - **Selection** (`SelectablePlate`, `GoaPlate(selected =)`, `Modifier.selectionFrame`, `SelectionMarkIcon`, `GoaFilterChip`,
   `selectableChipColors` / `selectableChipBorder` / `selectedCheck`, `selectableSegmentColors`): one look for every single and multi choice,
   chip, segment, plate or tile: the bronze `SelectedEdge` (1.5 dp) over a bronze wash (`selection`, `selectionFill` 20 %, 16 % light) and a
-  leading check (a radio on a one-of-several plate). Unselected chips are small steel plates with a quiet edge.
+  leading check (a radio on a one-of-several plate). Unselected chips are small steel plates with a steel bevel (lit top, shaded foot).
+- **Controls** (`Controls.kt`, round 3 of the hill climb): the game's own, never stock Material shapes. A **segmented bar**
+  (`GoaSegmentedRow` / `GoaSegment`) is a recessed steel track with a bevelled edge, 48 dp high (each segment the whole
+  height as its target); the selected segment is a bronze inset drawn inside it (wash, 1.5 dp edge, check). A **switch** (`GoaSwitch`): off, a recess with a steel edge and a light thumb; on, a bronze track with a
+  parchment thumb carrying a check. **Chips** take `selectableChipBorder` (the steel bevel). Steel edges and the on track are ≥ 3:1 on
+  their grounds (`ContrastTest.controls`). Material's `SegmentedButton` stays only where the segment is a team colour (New board's Red | Blue).
+- **Sideways rows** (`Modifier.horizontalEdgeFade(state)`, `fadingHorizontalScroll`, `EdgeFadeGutter`): every row that scrolls sideways
+  fades out at the edge that hides more (a mask, so it works on any ground) and starts on the screen's gutter: the catalog's controls,
+  the rules navigator, meta sort chips, the draft's step strip and role chips, the table's hero and turn strips.
+  A page over a pinned bar fades into it while more is below (`bottomEdgeFade`: Game options over its coin bar).
+- **Ceremony is for the game's states.** The title plate's gear (`titlePlate(gear =)`, `TitlePlate(gear =)`) and the bracketed Primary
+  plate mark a turn, a phase, a team's hero, a screen's one key summary; routine rows and lists (More, Settings, About) sit on the
+  restrained `PlateStyle.Secondary` and a catalog tile's name on the gearless plate, so an ornament never passes for a control.
+- **Bronze on cream:** a symbol, star or check that carries meaning uses `bronzeInk` (the bronze in the dark theme, `#6A4A12` in the
+  light one, ≥ 4.5:1 on paper and canvas), never the pale bronze of a fill.
 - **Stat readout** (`HeroStatBlock`, `StatReadout`, `StatIcon`): one readout everywhere: the game's item icon, the value as base → max, the
   name. Tiles on the hero page, with the 1..8 bar in the draft's peek (`StatReadoutStyle.Bar`, the card's printed order), one line each on a
   sheet over the map (`Compact`, a card's printed values).
@@ -63,7 +77,7 @@ when a map has `art` (all four do); the drawn map stays as the fallback while lo
 - **Spaces a question offers take the light** (`MapLighting`): lit, white-edged, numbered in small dark chips, the chosen one bronze; the Battle Zone keeps a thin line
   meanwhile. Occupied spaces you can't end on stay dark. Range and Radius stay patterns. Overlays use `ArtBoardPalette`, the same in both themes, each with a dark halo.
 - **Board style** (Settings → Appearance; `LocalBoardStyle`): Miniatures, or Grid and discs (hex hairlines, discs with the type's glyph). Miniatures stand on a team-coloured base
-  with a small round type badge drawn above every figure; a Heavy is larger. Team on a miniature is colour plus each team's own sculpt; TalkBack names it.
+  with a small round type badge drawn above every figure, and on the badge's upper right the team's official gear or star on a small dark badge, as every hero carries it; a Heavy is larger. A disc (Grid and discs) carries the same gear or star. Team on a minion is never colour alone; TalkBack names it.
 - **Hero tokens:** portrait in a team ring with the mark on a dark badge. Max zoom on art maps: 88 dp a hex.
 - Spaces in `art.uncovered` have copied ground (ADR-053); only their Spawn symbols and Zone edges are drawn.
 
@@ -74,21 +88,21 @@ when a map has `art` (all four do); the drawn map stays as the fallback while lo
 - **Hero sheet:** the dashboard (p.16) redrawn at the phone's density (ADR-058: the upscaled print, `official/ui/dashboard-frame`, was soft at this size; the web still uses it): a steel band with a bronze hairline and the plate's teal brackets, "Hero the Title" on the cards' title plate, a parchment **TURN n** tab over each of four slots, the played cards in them. Tigerclaw's art is the rulebook's; other heroes' portraits sit under the frame, cropped around the
   head and darkened toward the edges; either way the painting is a backdrop under a slate veil (60 %). An empty slot is a dark well (62 %) with a dashed steel edge and its turn's number in Cinzel, 18 dp at the 411 dp reference width. The dashboard's dials are chips in the header (**LEVEL 2**, coin **COINS 2**), never bars. Items as icons with "+n", the Ultimate, the hand or card backs.
   A marker with a Turn slot (Snorri's runes, ADR-054) lies on a strip under its slot (only when a slot has one): .053 of the frame's width, the active one .063 with a bronze ring and "ACTIVE" beside it, never by colour alone. "Runes" under the frame says it in words. The active rune also rides on the hero chip (bottom left of the portrait) and over the hand.
-- **Heroes grid:** slate tile, name on the title plate, portrait with the deck symbol at its top left, italic Crimson title, stars (a ranged hero has the game's Range icon beside them), two roles, one a line at 14 sp. No product chip on a tile: it is on the hero page and in the filter. Every row keeps its height, so the tiles of a line are one height. Two columns from font scale 1.3. Unfilled stars are `glyphMuted` (≥ 3:1); the list row names the complexity beside them. Grid or list is a two-segment switch at the end of the result count (both glyphs shown, the current one selected), not a banner glyph.
+- **Heroes grid:** slate tile, name on the restrained title plate (no gear: on a tile it passed for a control or a team mark; the gear and star stay for teams), portrait with the deck symbol at its top left, italic Crimson title, stars at 14 dp in bronze leading the text (a ranged hero has the game's Range icon beside them), then two roles in the muted tone, one a line at 14 sp. No product chip on a tile: it is on the hero page and in the filter. Every row keeps its height, so the tiles of a line are one height. Two columns from font scale 1.3. Unfilled stars are `glyphMuted` (≥ 3:1); the list row names the complexity beside them. Grid or list is a two-segment switch at the end of the result count (both glyphs shown, the current one selected), not a banner glyph. The closed Filters chip counts what is applied ("Filters · 3"); each applied filter follows as a removable chip, and "Owned only" when the collection (Settings) hides heroes; the row fades at the edge that hides more. A search that finds cards and heroes shows **All · Cards n · Heroes n** (a segmented bar); All lists the first three cards, "All n cards", then the heroes, so both kinds are on the first screen.
 - **Hero page:** art edge to edge fading into the canvas (dashboard art or the portrait cropped toward the top), symbol and name on the plate, stats as icons with base → max on a plate; the banner always names the hero. With large text the stars and roles run across the width under the plate.
-  Under the header **Overview · Deck · FAQ** are true tabs (sticky; the tab you are on selected in bronze: wash, word and rule; each keeps its own scroll). The Overview has the art, the profile, your table, lore and sources. The Deck and FAQ open with a compact identity (symbol, name plate, stars and roles) instead of the art, so the Deck's colour and tier jump chips (each with its colour's ribbon and count: Basic, Red, Green, Blue, Ultimate, Handicap, Spellbook) and the cards come first. `HeroDetailRoute.DECK` / `FAQ` / `SPELLBOOK` open a tab.
+  Under the header **Overview · Deck · FAQ** are true tabs (sticky; the tab you are on selected in bronze: wash, word and rule; each keeps its own scroll). The Overview has the art, the profile, your table, lore and one quiet line for the data ("Data: Stats of Atlantis · Verified"; each project and its address are in About → Data sources, the pinned versions in docs/DOMAIN.md). The Deck and FAQ open with a compact identity (symbol, name plate, stars and roles) instead of the art. On the Deck a jump bar rides under the tabs (sticky): the colour chips on one line scrolling sideways with the edge fade, each with its colour's ribbon and count (Basic, Red, Green, Blue, Ultimate, Handicap, Spellbook; a tap scrolls there), and under them **Tier I · II · III** (a tap shows only that tier's cards in every colour, "Tier II · 6 cards"; again, all). **Deck count:** one model everywhere: the deck's own cards, the Handicap card named apart: "18 cards + Handicap" over the deck, "3 of 18" in the card viewer, "Handicap" on the Handicap card, "Spellbook 2 of 12" on an extra. `HeroDetailRoute.DECK` / `FAQ` / `SPELLBOOK` open a tab.
 - **Text that carries information** (roles, card captions, counts, notes, metadata pills) is at least 14 sp and wraps; it never shrinks to fit.
-- **Rules:** the topic list is sentence-case Inter semibold (17 sp) for scanning, the topic page keeps the book's Cinzel heads. A long topic title gives the banner its head ("Turn sequence") and opens the page whole, in Cinzel. A topic with three or more stops has a sticky **section navigator** of chips: the rulebook's own heads verbatim, "Diagrams", and (in a topic with few heads) its headless boxed passages by their opening words; the passage you are reading is the bronze chip, and an edge that hides more chips fades into the page. The whole title is set compact (Cinzel 20 sp), so the rules start on the first screen. Parchment page in both themes, copper heads, passages in the box the rulebook prints them in: blue `#0F6F99`, green `#2B7A33` and orange `#A8560F` (the print's green and orange darkened to 5.3:1 and 5.2:1). Pushing the Lane has the p.8 diagrams, multiplied into the page, each over its printed caption (`RulesDiagrams`; verbatim, in italics, checked against the PDF as any excerpt). The topic list is one plate with dividers. A topic's foot is the steel band; sideways and with large text a plain line at the page's end instead. The ladder (Levels & defeats) is a bottom sheet: its drag handle, then its title with the pages and a Close button; a picked level key is solid bronze with a check (read at a glance). Its table becomes one block per level with large text, so no number is off-screen.
+- **Rules:** the topic list is sentence-case Inter semibold (17 sp) for scanning, the topic page keeps the book's Cinzel heads. A long topic title gives the banner its head ("Turn sequence") and opens the page whole, in Cinzel. A topic with three or more stops has a sticky **section navigator** of chips: the rulebook's own heads verbatim, "Diagrams", and (in a topic with few heads) its headless boxed passages by their opening words; the passage you are reading is always the bronze chip (the first section above the first passage) and is kept scrolled into view, the row uses the shared edge fade (`horizontalEdgeFade`), and **Contents** in the banner (a labelled glyph) opens a sheet listing every section, the current one selected, so the chips keep the whole row. The whole title is set compact (Cinzel 20 sp), so the rules start on the first screen. The reader's page (`GoaTheme.colors.page`, `onPage`, `pageInk`, `pageEdge`) is the parchment in the light theme and a dark parchment `#221E19` with warm light Crimson ink `#EAE0CC` in the dark theme, so opening a passage never flashes a bright page at a dim table (`ContrastTest.readerPage`). Copper heads; passages in the box the rulebook prints them in: blue `#0F6F99`, green `#2B7A33` and orange `#A8560F` (the print's green and orange darkened to 5.3:1 and 5.2:1), a shade deeper on the dark page (`#0C5778`, `#225F28`, `#86440C`). Pushing the Lane has the p.8 diagrams, each over its printed caption (`RulesDiagrams`; verbatim, in italics, checked against the PDF as any excerpt): multiplied into the light page; on the dark page a framed plate in a muted parchment. Their soft map is the PDF's own: the map art is embedded at about 100 ppi, so no higher render exists (only the vector labels sharpen). The topic list is one plate with dividers. A topic's foot is the steel band; sideways and with large text a plain line at the page's end instead. The ladder (Levels & defeats) is a bottom sheet: its drag handle, then its title with the pages and a Close button; a picked level key is solid bronze with a check (read at a glance), and that level's three numbers are the default view. The full table sits behind **Compare all levels**: the Level column pinned, the other six scrolling sideways with one-line 14 sp heads, 17 sp figures and the shared edge fade, the picked level's row in bronze; with large text it becomes one block per level, so no number is off-screen.
 - **Timer:** the painted sea under a navy veil, the battlefield silhouette at the foot, phase on a title plate, steel double ring, digits in Inter on a near-black disc. Stays dark in both themes. Next (bronze) is wider than Pause (steel) because its label runs long.
 - **Draft:** step on a title plate in a team-edged plate; pool tiles with portrait, symbol and parchment name; bans crossed out, dimmed and struck through. Words that name a team show its mark in line (`TeamText`). Once the coin has named the teams the draft speaks in colours only ("◆ Red picks 2", "Step 4 of 8 · 1 of 2 · for Ada", columns "Blue" and "Red"); "Team A"/"Team B" are the method editor's words, and the coin's team is marked by the coin's face ("Tie Breaker coin"). A finished draft is a plate per team with the seats divided; only the selected seat is framed.
 
-- **Group sync:** not in a group, one line on what it is for, then two equal plates, Scan an invite and Start a group, one sentence and one button each; a form (paste an invite, name the group) opens only in the plate chosen, and its button stays on and says what is missing rather than greying out. The transport, the server and the key fold under "How syncing works". Hosting shows its steps (Collect, Merge, Send back, Done: bronze now, teal ticks behind, hollow ahead) and each phone's state on its row; Sync is off and says what it waits for ("Waiting for Cid's data…") until a phone's data is in, and while others still send it says the tap queues ("Sync when Cid's data is in"). It ends on a summary plate: who is up to date, what changed on this phone, who to sync again.
-- **Online:** My games is compact so New room stays in view: games waiting on you first, each a tight plate with a bronze edge, "Your turn" in teal with a hand, the map and Play; the rest one line each in one plate (state in words with an icon, then the map). Every game shows its heroes (a seat is its hero) as small overlapping round portraits in their team rings; TalkBack hears who plays whom. In a lobby a free seat is a dashed ring in its team's colour around "+", with "+ Tap to sit here" in teal; a taken seat without a hero yet, a solid ring around a silhouette.
+- **Group sync:** not in a group, one line on what it is for, then two plates, Scan an invite (the one bronze button) and Start a group (outlined), one sentence and one button each; a form (paste an invite, name the group) opens only in the plate chosen, and its button stays on and says what is missing rather than greying out. The transport, the server and the key fold under "How syncing works"; the foot is the app's beacons painting. In a group, the bronze action names its transport ("Sync with nearby phones"; with a server "Sync through the server", nearby outlined under it), then "Phone-to-phone sync", the normal way, in one line with the phones synced with; a server that is set up sits open under "Remote sync", otherwise it waits folded at the foot as "Optional remote sync". Hosting is an explicit state machine under its steps (Collect, Merge, Send back, Done: bronze now, teal ticks behind, hollow ahead), each phone's state on its row: Sync is off and says what it waits for ("Waiting for Cid's data…") until a phone's data is in; with every phone in it names them ("Sync with Bob and Cid"); while some still send it reads "Sync automatically when ready", with who is left out and why under it ("Eve isn't included: old invite"), and a tap arms it: the button gives way to a status in a well ("Waiting for Cid · sync starts automatically") with Cancel, then "Merging…". Each change is announced politely. A phone with an old invite offers "Show new invite" on its own row (the group's QR over the sheet). It ends on a summary plate: who is up to date, what changed on this phone, who to sync again.
+- **Online:** My games is compact so New room stays in view: games waiting on you first, each a tight plate with a bronze edge, "Your turn" in teal with a hand, the map and Play; the rest one line each in one plate (state in words with an icon, then the map). Every game shows its heroes (a seat is its hero) as small overlapping round portraits in their team rings; TalkBack hears who plays whom. In a lobby a free seat is a dashed ring in its team's colour around "+", with "+ Tap to sit here" in teal; a taken seat without a hero yet, a solid ring around a silhouette; every taken seat ends in its state, a mark and a word ("Choose hero", "Not ready", teal "Ready"), and your own carries "Change hero". Under the teams a checklist of what the start waits for (seats taken, heroes chosen, ready, who starts), then only your next step in bronze: "Choose your hero", "I'm ready", then for the host "Start the game"; the host sees "Start the game" throughout (off, with its reason, until everyone is ready) over "You start the game; the server flips the Tie Breaker coin."; taking ready back is outlined.
 - **Trivia question:** whose card, which card and what is asked are one plate: the hero's art as a band (at most 16:9; never the card's scan, which would give the number away), the hero's portrait and name under it, the card's name in Cinzel 28 beside its colour's ribbon, its kind, and the asked number on the title plate; the answers sit right under it, the group centred, spare room shared above and below it. Once answered the group drops its frame (the reveal scrolls it under the banner).
 
 **Rules the screens keep:**
 - **Bronze is selected and primary; teal is next, correct, "you can act"** (a running clock, a right answer, a rating gained). Chips, switches and picked rows are bronze on every screen, all through the one selection look (`SelectablePlate`, `GoaPlate(selected =)`, chips and segments: the bronze 1.5 dp edge, a bronze wash and a leading check or radio; timer presets and setup, draft methods and options, game options); never a teal or team-coloured outline for a pick. Team colours mark teams only. Timer's teal progress arc is the running clock; a running Hurry up's arc is bronze.
-- **One plate per section, dividers inside, brackets on the outer plate only:** a team's seats, a preset's phases, the timer's presets and setup choices, the rules topics, both leaderboards, every settings group (`SettingsGroup`). Plates never nest (an inner one is a well; an inner choice is a row). A list's action never floats over it: the match log docks "Log match" on a slate bar under the list (as trivia's Start bar), the leaderboard ends with "Add player". **Leaderboards** (Players, trivia, online) put their top three on a `Podium` at the head of their plate (crest or portrait, name, figure; two columns' worth of name wraps, never cut), the rest as rows under it (tied places stand on equal steps), and end in the `BattlefieldFoot`; from font scale 1.3 the podium gives way to rows. A provisional rating is a small hourglass by the name (TalkBack: "Provisional rating"), and when every rating is provisional the scope line says it once instead; a match's result, with no such line, writes "Provisional" beside the hourglass.
+- **One plate per section, dividers inside, brackets on the outer plate only:** a team's seats, a preset's phases, the timer's presets and setup choices, the rules topics, both leaderboards, every settings group (`SettingsGroup`). Plates never nest (an inner one is a well; an inner choice is a row). A list's action never floats over it: the match log docks "Log match" on a slate bar under the list (as trivia's Start bar), the leaderboard ends with "Add player". **Leaderboards** (Players, trivia, online) put their top three on a `Podium` at the head of their plate (crest or portrait, name, figure; two columns' worth of name wraps, never cut), the rest as rows under it (tied places stand on equal steps), and end in the hall of banners (`ScreenFoot(FootArt.HALL)`); from font scale 1.3 the podium gives way to rows. A provisional rating is a small hourglass by the name (TalkBack: "Provisional rating"), and when every rating is provisional the scope line says it once instead; a match's result, with no such line, writes "Provisional" beside the hourglass.
 - **A title on the banner** shrinks, then takes two lines, and only then is cut (`BannerTitle`, `.goa-topbar-title`); a long rules topic shows its head there and its whole title on the page. The timer's second line goes on a phone under 360 wide (TalkBack still hears it).
 - **The search field** is the plate's slot: the slate in the dark theme, paper with a steel edge in the light one.
 - **The light theme is designed, not inverted:** the warm paper canvas, paper plates with steel edges, ink text; the steel banner, the timer and the map stay dark, as on the page.
@@ -239,7 +253,7 @@ small caps + fading rule) · `SubHeader` · `GoaButton` / `MetalButton` / `GoaOu
 `UnverifiedBadge` · `CardColorDot` · `ConfirmDialog` · `DurationText` · `EmptyState` ·
 `HeroPortrait` (bronze double frame, inner gradient, sigil fallback; `framed = false` for the
 grid tile, which draws its own fade, to keep scrolling cheap) · `HeroSigil` (monogram
-fallback) · `PlayerAvatar` (a filled heraldic shield: dark charge on a bronze or steel field, team-neutral; a steel shield with the initial as fallback) · `Podium` (a leaderboard's top three on gold, steel and copper steps, 2 · 1 · 3; rows below at large text) · `BattlefieldFoot` (the timer's battlefield silhouette faded into the canvas at a short list's foot) · `TeamBadge` / `TeamMark`
+fallback) · `PlayerAvatar` (with `showFace` and from 40 dp, the player's most-played hero in a steel ring, distinct per player, from `LocalPlayerFaces`, which the app derives from the match log at its root; else the crest, a filled heraldic shield, team-neutral; a steel shield with the initial as last fallback) · `AccountAvatar` (an online account: the crest its id picks) · `Podium` (a leaderboard's top three on gold, steel and copper steps, 2 · 1 · 3; rows below at large text) · `ScreenFoot` (a painting faded into the canvas at a short screen's foot: `HALL` for leaderboards, `BEACONS` for group sync, `BATTLEFIELD` the rulebook's) · `TeamBadge` / `TeamMark`
 · `ComplexityStars` (`showLabel` adds Challenging / Complex / Very Complex / Wizard). The
 gallery screenshot test (`GalleryScreenshotTest`) shows them all, dark/light, font scale 1 and 2.
 `cardtext/CardTextView` renders printed card text (inline `GameIcons`, italic reminders, bold
@@ -303,7 +317,7 @@ matches; the presets are listed once, on Timer presets, each preset's phases in 
 Who won? / match editor: the winners are radio cards (an empty trophy outline, a bronze trophy and the bronze selection
 frame once chosen) under "Which team won? · Required"; the win condition says "· Optional"; the bronze Save ("Save
 result", "Save match", "Save changes") is pinned under the form, off until the form can be saved, with the reason under it
-(no Save in the banner).
+(no Save in the banner). Each seat: the hero row, then the pilot as a dropdown field ("Pilot" on its outline, the name, ▾; it opens the pilot picker; no face, which would read as a second hero) beside the Handicap card as a filter chip with a box that ticks, and a double pilot as a plain caption ("Ann pilots 2 heroes"), not a control.
 Bottom nav: Heroes, Play, Timer, Players, More (original icons: shield with the brand mark's trident, a board space with a play mark,
 hourglass, companions, a plate with three studs; solid variant when selected; labels share one size, capped by
 the width, at large text). **More** lists, as labelled rows with icon and purpose: Draft (At the table), Rules
@@ -318,8 +332,8 @@ with painted scenes (the app's own art in the official portraits' flat, bright b
 name engraved over the scene and the state in bronze: Play vs computer across the width, then Puzzles (a teal tick and
 "1 of 50 positions", "1 of 22 rounds": the same lines, `SolvedCount`, as over the puzzle list's two parts), Board sandbox, Online and Card
 trivia two by two (one column at large text, four across in landscape); the scenes grow with the screen's height
-so the plates fill it. Settings groups are the section plate (`GoaPlate` via `SettingsGroup`: steel edge, brackets), one per
-section with hairlines between rows, never a plate inside a plate; the theme switch is a segmented control in the one selected look; About's prose sits on the page, only rows you tap on a group. An entry the engine can't serve says "Not available in this build", never "Coming soon".
+so the plates fill it. Settings groups are the restrained plate (`GoaPlate(style = Secondary)` via `SettingsGroup`: flat, a
+quiet hairline, no brackets; More's groups too), one per section with hairlines between rows, never a plate inside a plate; the theme switch is a `GoaSegmentedRow` (each option's glyph, the picked one's check); About's prose sits on the page, only rows you tap on a group. An entry the engine can't serve says "Not available in this build", never "Coming soon".
 Board sandbox is the saved-board list only. The bottom nav is hidden on the
 running timer (no tab to mis-tap beside Next; back leaves to Heroes), on the draft board and on a board;
 while a session runs, every other screen shows the **timer running bar** above the nav (timer
@@ -408,9 +422,12 @@ and fades at an edge with more cards beyond; from font scale 1.3 its chips wrap 
 one slot on top holds the latest draft's or match's line-up (a card with Set up) until the first
 pick, then the teams (pick chips sharing the row, "Next pick" spelled out on an empty team, the
 border and the switch otherwise); search with a segmented Red | Blue switch beside it (under it at
-large text); a portrait grid with as many columns as it takes to fit every hero (tiles 42–64 dp,
-each with the gap around it and the name under it, semibold titleSmall (14 sp), one size for the whole grid: the size the longest name needs across its cell (never a
-smaller name on one tile); the height the columns leave makes the portraits taller (up to 1.3× their width), so the grid fills the screen; one tap target of at
+large text); a portrait grid with every hero on one screen, **names first**: the fewest columns whose every name
+reads on one line at 13 sp or more and whose rows still fit with portraits as short as 0.74× their width (32 heroes at
+411 × 891 dp: 5 columns, names 13–14 sp); only where that can't fit, as many columns as it takes (tiles 42–64 dp,
+square at least). Each tile has the gap around it and the name under it, semibold, one size for the whole grid: the
+size the longest name needs across its cell (never a smaller name on one tile); the height the columns leave makes the
+portraits taller (up to 1.3× their width), so the grid fills the screen; one tap target of at
 least 48 dp; a pick's badge is the team's mark and its number in labelLarge); and the Map menu beside Set up in the
 bottom bar. A finished draft pins Set up match, Log result later and Try on the board
 under the teams on a phone held upright.
@@ -425,7 +442,10 @@ dots at each step; a decision's other highlights (a card's range) use the violet
 acting hero's space is outlined in bronze with a bronze **"NOW"** tag over its piece (dark letters; the turn's state is bronze on the map as on the track, the ring keeps the team's colour; growing with large text up to 1.5×,
 outside the zoom; TalkBack hears "acting now" on the space); an immune minion is ringed with a dashed
 teal circle (TalkBack: "immune"). Map taps select, a **Confirm** button with the choice spelled out
-("Confirm · Lane Zone 3 · 3 spaces from Wasp") answers. While the person's question lights the map a **map key**
+("Confirm · Lane Zone 3 · 3 spaces from Wasp") answers. The sandbox's key is one compact row of short words ("Move 4",
+"Range 2") with an info mark; a tap opens the full words ("Range 2: in reach from here") and closes them again. Every option is a 48 dp target: a tap within 24 dp of a lone
+option's centre takes it, and a tap among several options while a space is narrower than 48 dp on screen zooms in a
+step around the finger first (**tap to focus**); the next tap chooses. While the person's question lights the map a **map key**
 (`MapKey`, a small plate under the round at a glance and the turn track, inside what the map frames below, so it
 covers no piece) names
 each mark with its own swatch: "You can choose" (a lit, white-edged hex), "Spaces to get there" (the dark number
@@ -484,11 +504,19 @@ instruction and the legal choices, the card a reminder beside them. A question a
 shows **the card beside its answers**: 28 % of the panel wide (84–108 dp; a landscape spell goes above them) for
 buttons, 72 dp beside a board question's tap hint and Confirm; tap it to read it. Sideways under 480 dp tall the
 actions must all be in view: the card is 64 dp (its printed numbers read; tap it to read it large), beside it the
-question and the action chips, each rule shown only by its page ("Fast Travel (p.11)"; TalkBack hears it whole).
+question and the action chips, each a label only (TalkBack hears its rule whole).
 **Actions** are compact chips beside the card: the game's icon and the value the card prints
-("Attack 6", "Movement 4"; the primary filled primaryContainer with "PRIMARY" above and "Its text applies (p.7)" under), only the rules
-no card prints in a few words with the page (Fast Travel "To your Zone or an adjacent one, no enemy
-hero or minion in either (p.11)", Hold "Do nothing (p.12)", Clear); under the chips, one line (info
+("Movement 4"; the primary filled bronze and named "Card action · Attack 6"), only the rules
+no card prints in a few words (Fast Travel "To your Zone or an adjacent one, no enemy
+hero or minion in either", Hold "Do nothing", Clear), each chip ending in its rulebook page as a small pill (`PagePill`:
+"p.7" on the card action, "p.11" Fast Travel, "p.12" Hold, in the chip's ink). **Rulebook pages are never inline words
+("(p.7)") in a button or caption:** a chip or a head carries its page as that pill, and a decision has at most one
+**rule row** (`RuleRow`: an info icon or the verdict's mark, the rule or count in bodySmall semibold, the page pill at
+its end); for an action question without the card action, "Only the card action applies the card's text." p.7. The
+hero sheet's Items and Ultimate heads, the sandbox's Movement, Fast Travel, Range and Radius rows and game over's
+reasons carry their pages the same way. A question asked while a card resolves but not by its action (Respawn, an initiative
+tie, a minion's way back, the Minion Battle) has its own name on the text box's tab, a silver box and no action
+symbol: never ATTACK over "Respawn in your Throne Zone?". Under the chips, one line (info
 icon, bodySmall) for each action the card prints that isn't offered, with the engine's reason and
 source (`DecisionContext.unavailable`, ADR-041): "Its Skill can't start: the spellbook is empty until
 Prepare Spells is performed (designer, BGG 3491113).", "Its Attack can't start: no target in range
@@ -499,42 +527,45 @@ as its landscape card (40 dp portrait-equivalent, tap to read) with "Casts Fireb
 "Its only target: Brogan" (bodySmall), several spells as cards with "Casts one of these: you choose
 which next", a "will do nothing" warning on errorContainer with a warning icon, and the card's other
 spells one line each with the engine's reason (also after the action's own line when no spell can be
-cast); the Note box's "Only the primary action applies the card's text (p.7)." only when the primary isn't offered. Card questions (play, discard, retrieve, upgrade,
+cast); the Note box holds only the actions the card can't offer. Card questions (play, discard, retrieve, upgrade,
 keep) show "Asked by <card>" (28 dp thumbnail) when another card asks, and the cards as official
 images: the hand as 84 dp cards shrinking to 60 dp to fit five, two or three cards larger (112 / 92
 dp, so Keep's two next-Tier cards sit side by side with their item stats), a card the question
 doesn't offer dimmed with a block icon. Under every card to choose (hand, discard, defend, upgrade, keep) its
-**name** in Crimson 14 sp semibold (wraps, after a hyphen if need be, never cut) and, where the choice weighs them
-(play, discard, retrieve), its printed Initiative and its primary action's value with the game's icons ("⚡12 ⚔3"),
-from the catalog, on one line; a defence shows its outcome instead (below): the scan is for recognition, the caption for
-reading. The foot of a card question is one row: a steel **Read card** button (book icon; the chosen card, else
+**name** in Crimson 14 sp semibold (wraps, after a hyphen if need be, never cut). **Card numbers** (`CardNumbers`) follow
+in a strip of their own under the name, so they hide none of the card's title or text: the Initiative, then the
+primary action's value, then Range, then Movement, each with the game's own item icon and the figure in 16 sp bold
+(a card under 100 dp wide shows the first two, on one line); from the catalog, growing with the text only to 1.3×. On cards to choose
+(not a defence, which shows its total instead), under the card beside an action question (name and numbers) and under
+the hero sheet's hand (name and numbers). The scan is for recognition, the strip for reading. The foot of a card question is one row: a steel **Read card** button (book icon; the chosen card, else
 the first, in the card viewer with its words as text) and the bronze commit button. **A tap never both shows and commits:** a tap chooses a card (`TableUi.selected`; lifted 8 dp, a 3 dp
 bronze edge and a bronze tick at its corner; TalkBack: "Chosen", its click "Choose", "Look at the card" a custom
 action), a tap on the chosen card reads it in the **card focus** viewer (below), and only the bronze button
-under the cards answers, naming the commitment ("Discard Magnetic Dagger", "Play Shock facedown", "Defend with
+under the cards answers, naming the commitment ("Discard Magnetic Dagger", "Play Shock facedown", "Defend ·
 Blink Strike", "Upgrade Liquid Leap"); before a card is chosen it is there, dimmed, saying what to do ("Choose a
 card to discard"), so the panel doesn't jump. One extra tap at most: choose, then commit. **Level up** (which card to
 upgrade, ADR-045) is a row per card that may be upgraded: the hand card framed 2 dp in its colour (the
 choice, chosen and committed as any card), an arrow, then the two cards it would become with their item (the official icon and "+1
 Initiative"), three cards across the panel (60–100 dp); under each card the spells it names (Gydion,
-landscape, as wide as the card, tap to read); "The card on the left is the choice…" under the rows.
+landscape, as wide as the card, tap to read); "The card on the left is the choice…" as the rule row (p.15) under the rows.
 Keep's two cards have their spells under them the same way. Whenever the question is the person's
 own (any kind, game and puzzles) the resolution flow and then the moment (reveal, turn over, the end of
 round summary) come after it, and a new question opens the panel at its top. **Defend** is the attacking card's
 text box, "Arien attacks · melee" on its tab, the attacker's card (40 dp, tap to read) and the Attack total with
 the minion modifier counted beside it, carrying "Discard a card to defend" for TalkBack; then the options as
-**comparable outcomes**: each hand card with, on a dark pill over its foot, the verdict's mark and the Defense total
-as the engine counts it (a shield and the number), then its name and how that choice ends in words, from the
-engine's verdict (p.14: "If you cannot defend successfully, or choose not to defend, you are defeated"):
-"Defeated" red, "Defends" or "Blocks it" teal, "Its text decides" grey; "Don't defend" is a card-sized tile at the
-row's end (a block icon, "Keep your cards (p.14)") with "Defeated" under it like the cards. The whole decision is
-in view at 100 % on a 411 dp phone: the row, then one line of how the chosen one is counted, from the engine's
-numbers only ("Defense 2 = card 1 + minion 1 against Attack 6 (p.14)"; items, the minion modifier, and whatever
-else the engine counted as "effects"; a card whose text decides: "Decided by its text (p.14): “Block a ranged
-attack.”" verbatim and the attack it meets, "This is a melee attack, Attack 6."; not defending: "Defeated: not
-defending, you keep your cards (p.14)."), then Read card and the button, which ends with the outcome ("Defend with Blink Strike — still defeated",
-"Don't defend — defeated", "… — blocks this attack"; "Tap a card to defend with, or Don't defend" until something is
-chosen): a losing choice stays possible, never a surprise. Declines and Pass are outlined. With large
+**comparable outcomes**: each hand card, its name, and under it its Defense total as the engine counts it against the
+Attack, "Def 2 vs 6", with the verdict's mark (warning or tick) in its colour (p.14: "If you cannot defend
+successfully, or choose not to defend, you are defeated"); a Block settled up front "Blocks it" or "Block fails"; a
+card whose text decides shows that condition verbatim in italic Crimson (“Block a ranged attack.”). "Don't defend" is a
+card-sized tile at the row's end (a block icon, "Keep your cards"). **Nothing is chosen for the player**, except that
+when no card saves the hero, "Don't defend · keep your cards" is the bronze button from the start (its tile lit), with
+one rule row "No card saves Tigerclaw against Attack 6: not defending, you keep your cards." p.14. The whole decision
+is in view at 100 % on a 411 dp phone: the row, then the rule row of how the chosen one is counted, from the engine's
+numbers only ("Defense 2 = card 1 + minion 1 against Attack 6", p.14; items, the minion modifier, and whatever else the
+engine counted as "effects"; a card whose text decides: its words verbatim and the attack it meets, "This is a melee
+attack, Attack 6."), then Read card and the one-line button ("Defend · Blink Strike", "Don't defend · keep your cards";
+"Tap a card to defend with, or Don't defend" until something is chosen): a losing choice stays possible, never a
+surprise. Declines and Pass are outlined. With large
 text the asking card goes above the answers. The computer's move shows its portrait, band and strength
 ("COMPUTER · HARD 7") and prompt
 and the card it resolves (56 dp, tap to read), a linear progress bar once it is "thinking…".
@@ -564,9 +595,14 @@ button ("Wasp's defense card: Lift Up, …", "Read the card"). Built only from t
 appears only where the log names it. The hidden panel's peek and the log sheet are unchanged (the log
 keeps every line). The coach's nudge is a secondary-container card with "Choose anyway"
 (outlined) and "Rethink" (filled). Game over leads with "You won" / "The computer won" in a card
-bordered in the winner's colour, the rulebook reason, each hero's results, then the coach's turning
-points by round and turn. New game reuses New board's picker; heroes not yet playable are veiled and
-marked "Later". Options: the line-up plate, then
+bordered in the winner's colour, the rulebook reason (no page), then **How each hero did** as a grid under one
+`SectionHeader`: a head row of icons over 13 sp words (Level, Heroes, Minions, KO'd, Coins; the game's crossed blades
+and coin) in fixed columns as wide as their word plus air, a row per hero (portrait in its team ring with the mark on
+its foot, name, who played it, wrapping) with its figures in those columns (20 sp, a zero muted); with large text the
+figures go under the name. Then the report ("Review your decisions", in view over the bar), the coach's turning points
+by round and turn, and an outlined New game; **Rematch** (bronze, with its icon) and **Done** (outlined) are pinned under
+the page on the slate, as every flow's commit is (online: Done alone). New game reuses New board's picker; heroes not
+yet playable are veiled and marked "Later". Options: the line-up plate, then
 **You play** as "One hero | Whole team" (2 v 2 and up) and portrait chips for the heroes or the teams (the
 chosen one bordered in its team's colour with a check), "The computer plays …" under them; strength, length
 (its note under the segments), map and a Coach switch row, all above the fixed coin button. **Computer strength** (ADR-039) is a Material 3 slider, 1 to 10 with a tick per step
@@ -764,7 +800,7 @@ Two kinds of asset (ADR-006, ADR-034):
 - UI icons not in Material Symbols, empty-state illustrations.
 - Hero **sigils**: small geometric emblems per hero (24-unit grid, 2-unit stroke), now only the
   fallback when official art (portrait, deck symbol) is missing or still loading.
-- Player avatars: 24 original crests as filled heraldic shields in the game's icon style (dark outline, metal rim, a field lit from the left, the charge in dark ink with a light emboss). Even crests are a bronze field in a steel rim, odd ones steel in bronze, so neighbours differ at a glance; red and blue are the teams' alone (gear and star), so a crest never reads as a side; charge and metal are the identity. The charges are line masters in `design/avatars/` (the web draws those, tinted); `python -P -E design/tools/crest_shields.py` sets them on the shields in `design/crests/`, which `svg2vd.py` converts.
+- Player avatars: a player with rated games shows their most-played hero (games, then wins, then hero id; `RatingsResult.mostPlayedHeroes`) as the official portrait in a steel ring, and no two players share one (players claim in order of games played; a taken hero passes to their next most-played, none left is the crest); derived from the log, so nothing is stored or synced. Only on player-centred screens (leaderboards, the player page, this phone's player) and only from 40 dp: smaller, or among heroes (meta, draft, match seats), the crest. Otherwise one of 24 original crests as filled heraldic shields in the game's icon style (dark outline, metal rim, a field lit from the left, the charge in dark ink with a light emboss). Even crests are a bronze field in a steel rim, odd ones steel in bronze, so neighbours differ at a glance; red and blue are the teams' alone (gear and star), so a crest never reads as a side; charge and metal are the identity. The charges are line masters in `design/avatars/` (the web draws those, tinted); `python -P -E design/tools/crest_shields.py` sets them on the shields in `design/crests/`, which `svg2vd.py` converts.
 - Pipeline (as built): hand-authored SVG in `design/` → `python -P -E design/tools/svg2vd.py`
   → `core/designsystem/src/main/res/drawable/` (and `app/.../drawable/ic_launcher_*`). The
   converter is deliberately small (path/line/poly/circle/ellipse/rect, groups untransformed or

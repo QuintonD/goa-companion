@@ -108,7 +108,8 @@ internal val LargePlate = TitlePlateSize.Large
 
 /**
  * The cards' parchment title plate from a shared bitmap, grown by what it holds. Takes any content,
- * where the design system's `TitlePlate` takes one string: the hero page sets name and title apart.
+ * where the design system's `TitlePlate` takes one string: the hero page sets name and title apart. The restrained
+ * plate, without the gear: in the catalog a gear would pass for a control or a team mark (DESIGN.md "Ornaments").
  */
 @Composable
 internal fun SharedTitlePlate(
@@ -118,7 +119,7 @@ internal fun SharedTitlePlate(
     content: @Composable BoxScope.() -> Unit,
 ) {
     Box(
-        modifier.titlePlate(plate, size, GoaTheme.colors.parchment),
+        modifier.titlePlate(plate, size, GoaTheme.colors.parchment, gear = false),
         contentAlignment = Alignment.Center,
         content = content,
     )

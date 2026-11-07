@@ -62,6 +62,23 @@ no playing cards, no game symbols, no hexagon grid. Generic anonymous figures on
 In the first set, a "computer" scene of two champions duelling came out too close to Arien and Brogan themselves
 and was not used.
 
+Two foot paintings (`ScreenFoot`, 2026-11-07), so leaderboards and group sync stop ending in the rulebook's
+battlefield: same model and size, refs the rulebook's battlefield silhouette (`official/ui/silhouette.webp` on a flat
+navy, PNG) and Arien's portrait. The flat navy was keyed out to transparency and the result cropped to its content and
+saved at 1200 px wide as WebP (quality 80) in `core/designsystem/src/main/res/drawable-nodpi/`. Both prompts end with:
+"Painted in exactly the style of the first reference image: a dark painted silhouette scene rising from the bottom
+edge, loose visible flat painterly brush strokes, simplified shapes, muted dark rust-brown, slate and deep teal tones
+with only small touches of light, matte finish. The whole upper half and all space around the objects is one single
+perfectly flat, uniform, empty dark navy blue colour (#283C5A) exactly like the first reference's background, with no
+gradient, no stars, no clouds, no texture. Not photographic, not glossy, not a 3D render, no lens flare, no vignette.
+No text, no letters, no numbers, no logos, no user interface, no playing cards, no game symbols, no hexagon grid, no
+people, no faces."
+
+| File | Size | Prompt (before the style line) |
+|------|------|--------------------------------|
+| `foot_hall.webp` (leaderboards) | 1200 x 751 | Along the bottom edge, the stone steps of an ancient Atlantean hall of honour: a low stepped dais with a bronze laurel-wreath trophy on a short pedestal at its centre, flanked by a row of tall banner poles of different heights from which long ragged hanging pennants fall, some ember red, some teal blue, some dull bronze, a broken column at one side. The objects occupy only the lower 45 percent of the picture, wider on the right. |
+| `foot_beacons.webp` (group sync) | 1200 x 491 | Along the bottom edge, a dark rocky sea coast: on two separate headlands stand two slender ancient Atlantean stone beacon towers, each with a small teal flame burning in a brazier at its top; between them three small dark messenger birds fly from one tower toward the other, low over calm dark water. The rocks and towers occupy only the lower 45 percent of the picture (the birds may be a little higher), the taller tower on the right. |
+
 ## Web app libraries (code, ADR-043)
 
 The web app bundles three npm libraries; their licences ship in the site as

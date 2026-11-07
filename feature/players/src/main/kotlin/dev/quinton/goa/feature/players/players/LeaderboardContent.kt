@@ -28,7 +28,6 @@ import androidx.compose.material.icons.outlined.PersonAdd
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -44,13 +43,15 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import dev.quinton.goa.core.designsystem.component.BattlefieldFoot
 import dev.quinton.goa.core.designsystem.component.EmptyState
+import dev.quinton.goa.core.designsystem.component.FootArt
 import dev.quinton.goa.core.designsystem.component.GoaButton
+import dev.quinton.goa.core.designsystem.component.GoaOutlinedButton
 import dev.quinton.goa.core.designsystem.component.PODIUM_PLACES
 import dev.quinton.goa.core.designsystem.component.PlayerAvatar
 import dev.quinton.goa.core.designsystem.component.Podium
 import dev.quinton.goa.core.designsystem.component.PodiumPlace
+import dev.quinton.goa.core.designsystem.component.ScreenFoot
 import dev.quinton.goa.core.designsystem.theme.GoaTextStyles
 import dev.quinton.goa.core.designsystem.theme.Spacing
 import dev.quinton.goa.feature.players.common.DeltaIndicator
@@ -97,7 +98,7 @@ fun LeaderboardContent(
 
         else -> Box(modifier.fillMaxSize()) {
             // The list's foot is the rulebook's battlefield, so a short group doesn't end in empty navy.
-            BattlefieldFoot()
+            ScreenFoot(FootArt.HALL)
             Board(state, onOpenPlayer, onAddPlayer, onToggleArchived)
         }
     }
@@ -172,7 +173,7 @@ private fun Board(
         }
         // Under the list, never over it (a floating button covered the last rating at large text).
         item(key = "add-player") {
-            OutlinedButton(
+            GoaOutlinedButton(
                 onClick = onAddPlayer,
                 modifier = Modifier
                     .padding(top = Spacing.lg)
@@ -226,7 +227,7 @@ private fun LeaderboardRow.spoken(archived: Boolean): String {
 @Composable
 private fun PodiumStanding(row: LeaderboardRow, showProvisional: Boolean) {
     val rating = row.rating
-    PlayerAvatar(row.player, size = if (row.rank == 1) 60.dp else 50.dp)
+    PlayerAvatar(row.player, size = if (row.rank == 1) 60.dp else 50.dp, showFace = true)
     Spacer(Modifier.height(Spacing.xs))
     Text(
         row.player.name,
@@ -275,7 +276,7 @@ private fun LeaderboardRowItem(
     ) {
         RankBadge(row.rank)
         Spacer(Modifier.width(Spacing.md))
-        PlayerAvatar(row.player, size = 44.dp)
+        PlayerAvatar(row.player, size = 44.dp, showFace = true)
         Spacer(Modifier.width(Spacing.md))
         Column(Modifier.weight(1f)) {
             Row(verticalAlignment = Alignment.CenterVertically) {

@@ -129,6 +129,8 @@ fun GameMapView(
     val tap by rememberUpdatedState(onTap)
     val maxHexPx = with(density) { maxHex(table.map).toPx() }
     val minHexPx = with(density) { COMFORTABLE_HEX.toPx() }
+    val targetPx = with(density) { TOUCH_TARGET.toPx() }
+    val touchPx = targetPx / 2f
     val battleZones = table.battleZones
     val spotlight = remember(table.decision, table.asking, table.view) { questionSpotlight(table) }
     Box(
@@ -208,10 +210,25 @@ fun GameMapView(
                         } else {
                             null
                         }
-                        val did = resolveAt(current, hex, figure)?.let {
-                            tap(it)
-                            true
-                        } ?: false
+                        // Every option a 48 dp target (sol #1): a tap near one small option takes it; a tap among
+                        // several smaller than that zooms in on them first (tap to focus), then a tap chooses.
+                        val near = optionsNear(current, layout, viewport, down.position, touchPx)
+                        val crowded = near.size > 1 && viewport.hexPx < targetPx && viewport.canZoomIn
+                        val target = resolveAt(current, hex, figure)
+                            ?: near.singleOrNull()?.let { resolve(current, it) }
+                        val did = when {
+                            crowded -> {
+                                scope.launch { viewport.zoomIn(down.position) }
+                                true
+                            }
+
+                            target != null -> {
+                                tap(target)
+                                true
+                            }
+
+                            else -> false
+                        }
                         val double = !did && hex == lastHex && up - lastUp < viewConfiguration.doubleTapTimeoutMillis
                         if (double) scope.launch { viewport.zoomStep(down.position) }
                         lastUp = if (double) 0L else up
@@ -311,6 +328,19 @@ internal fun heroAt(table: TableUi, hex: Hex): String? {
     val occupant = table.occupancy[hex] ?: return null
     if (table.heroView(occupant) != null) return occupant
     return table.view.pieces.firstOrNull { it.id == occupant }?.let(::figureOf)
+}
+
+/** The spaces of the question's options (spaces, and where its pieces stand) centred within [radius] px of [at]. */
+internal fun optionsNear(
+    table: TableUi,
+    layout: MapLayout,
+    viewport: MapViewport,
+    at: Offset,
+    radius: Float,
+): List<Hex> {
+    if (table.decision == null) return emptyList()
+    val hexes = table.spaceOptions.keys + table.pieceOptions.keys.mapNotNull(table::at)
+    return hexes.distinct().filter { hex -> (viewport.mapToScreen(layout.center(hex)) - at).getDistance() <= radius }
 }
 
 /** What a tap on [hex] means: an option, else a piece (to read about it), else nothing. */
@@ -632,3 +662,6 @@ private const val SPACE_NODE = 1.46f
 
 /** Hexes at least this wide (dp) when the board frames the Lane; as the sandbox. */
 private val COMFORTABLE_HEX = 38.dp
+
+/** The smallest target a finger takes: options closer together than this on screen are zoomed to first. */
+private val TOUCH_TARGET = 48.dp
