@@ -13,4 +13,7 @@ mkdir -p "$tmp"
 find "$tmp" -maxdepth 1 -mindepth 1 -mmin +1440 -exec rm -rf {} + 2>/dev/null
 export JAVA_TOOL_OPTIONS="${JAVA_TOOL_OPTIONS:+$JAVA_TOOL_OPTIONS }-Djava.io.tmpdir=$tmp"
 echo "[build.sh] waiting for the build lock ($root)" >&2
-exec flock "$HOME/.cache/goa-hillclimb-build.lock" env GOA_DIR="$root" goa-gradle "$@"
+# No daemons left behind: with several worktrees, each kept an idle Gradle and Kotlin daemon (up to ~2 GB each)
+# and the next build was OOM-killed. Slower to start, but the memory goes back when the build ends.
+exec flock "$HOME/.cache/goa-hillclimb-build.lock" env GOA_DIR="$root" goa-gradle --no-daemon \
+  -Pkotlin.compiler.execution.strategy=in-process "$@"
