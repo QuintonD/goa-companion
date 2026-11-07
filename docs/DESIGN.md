@@ -17,7 +17,11 @@ area, `goa-look-*.css`). Every part falls back to a flat colour while its image 
   **Dark in both themes by design** (`GoaDarkTheme`): the running timer, what floats over the painted map (`MapButton`, `SlateButton`),
   a card's own frame (`DesignedCard`), the hero dashboard. `PlateGround` is that slate's flat tone; a themed plate's is `GoaTheme.colors.plate`.
 - **Plate styles** (`PlateStyle`): `Primary` (steel edge, brackets) for a screen's main summary, the current turn, a hero; `Secondary` (flat, a
-  quiet hairline, no brackets) for settings, prose, lists of rows; `Well`, a recess. A plate inside a plate draws as a well: frames never nest.
+  quiet hairline, no brackets) for prose and lone rows; `Well`, a recess. A plate inside a plate draws as a well: frames never nest.
+- **Framing levels** (one rule, every screen): a section is one `GoaPlate` (steel edge, teal brackets): settings groups, a filter's groups,
+  timer presets and setup choices, draft options. Rows inside it are separated by spacing or hairlines, with no border of their own: a
+  `SelectablePlate` or `GoaPlate(selected =)` inside a plate is a row of it (no ground or edge; selected, the bronze wash and edge). Parchment
+  (title plate, text box) only for the principal title or prompt.
 - **Title plate** (`TitlePlate`, `Modifier.titlePlate`, `.goa-title-plate`): the cards' parchment pill (redrawn, ADR-058; its ends from the art, the
   right one mirrored) growing with its text, and the cards' gear drawn as vectors at its own size (`TitlePlateSize`: 34 dp, 25 dp on a tile)
   over the pill's end, whatever the plate's height: steel teeth lit from the upper left, a dark face, a bronze hub. The words keep clear of
@@ -28,10 +32,18 @@ area, `goa-look-*.css`). Every part falls back to a flat colour while its image 
 - **Ribbons, counters, icons:** `ColourRibbon` on a card colour's section head (`SectionHeader(ribbon =)`); `LifeCounterIcon`, `WaveCounterIcon`,
   `CoinIcon`, `ActionIcon`, the official item icons as stats. **Team marks** are the official gear and star (`TeamMark`).
 - **Buttons:** `GoaButton` (bronze metal with a sheen, the app's filled button), `MetalButton`, `GoaOutlinedButton` (bronze edge), `SlateButton`
-  over art. Disabled, a metal button is a flat unlit slate with a visible edge and muted words (`DisabledFace`, ≥ 3:1): clearly off, never a faded
-  bronze. Outlined and slate buttons keep their shape at 42 % (`Modifier.disabled`). Team-coloured draft buttons stay Material.
-- **Selection** (`SelectablePlate`, `GoaPlate(selected =)`, `Modifier.selectionFrame`, `SelectionMarkIcon`, `GoaFilterChip`): one look for every
-  single choice: a quiet plate, selected with a bronze 2 dp outline over a bronze tint (`selection`, `selectionFill`) and a bronze radio or check.
+  over art. Disabled, a metal or outlined button is a filled, unlit slab with muted but legible words (`DisabledFace`, ≥ 4.5:1): clearly off,
+  never a faded bronze and never an outline that passes for a text field. Say why under it (`DisabledReason`: an info glyph and a line).
+  Slate buttons over art fade at 42 % (`Modifier.disabled`). Team-coloured draft buttons stay Material. A bronze glyph on a steel face is
+  `SteelIconBronze` (6:1), never the theme's primary. **On the banner** a disabled glyph (undo with nothing to undo) is white at 40 % over a
+  1 dp dark halo (`BarIconButton`), so it stays in sight.
+- **Selection** (`SelectablePlate`, `GoaPlate(selected =)`, `Modifier.selectionFrame`, `SelectionMarkIcon`, `GoaFilterChip`,
+  `selectableChipColors` / `selectableChipBorder` / `selectedCheck`, `selectableSegmentColors`): one look for every single and multi choice,
+  chip, segment, plate or tile: the bronze `SelectedEdge` (1.5 dp) over a bronze wash (`selection`, `selectionFill` 20 %, 16 % light) and a
+  leading check (a radio on a one-of-several plate). Unselected chips are small steel plates with a quiet edge.
+- **Stat readout** (`HeroStatBlock`, `StatReadout`, `StatIcon`): one readout everywhere: the game's item icon, the value as base → max, the
+  name. Tiles on the hero page, with the 1..8 bar in the draft's peek (`StatReadoutStyle.Bar`, the card's printed order), one line each on a
+  sheet over the map (`Compact`, a card's printed values).
 - **Heads:** `SectionHeader` is the one section head (Cinzel small caps in copper, a fading copper hairline, an optional action; a card colour's
   section may carry its ribbon). Inside a plate, `SubHeader` (Inter 13 semibold, muted, no rule).
 - **Numbers:** ratings and scores are `GoaTextStyles.score` / `scoreMedium` / `scoreLarge` (Inter semibold, lining tabular figures) on every
@@ -60,17 +72,17 @@ when a map has `art` (all four do); the drawn map stays as the fallback while lo
 - **Hero sheet:** the real dashboard (`official/ui/dashboard-frame`, upscaled, ADR-058) with played cards in its Turn slots. Tigerclaw's art is the rulebook's; other heroes' portraits cover the frame, cropped around the
   head and darkened toward the edges; either way the painting is a backdrop under a slate veil (55 %), so the slots read over it. An empty slot is a dark well (62 %) with a dashed steel edge and its turn's number in Cinzel, 18 dp at the frame's reference width. Items as icons with "+n", the Ultimate, the hand or card backs. Frame fractions: Turn plates y .272, x .170, .389, .607, .829; slots y .335 to .83.
   A marker with a Turn slot (Snorri's runes, ADR-054) lies on the frame's lower strip, y .905, centred under its slot: .105 of the frame's height, the active one .125 with a bronze ring and "ACTIVE" beside it, never by colour alone. "Runes" under the frame says it in words. The active rune also rides on the hero chip (bottom left of the portrait) and over the hand.
-- **Heroes grid:** slate tile, name on the title plate, portrait with the deck symbol at its top left, italic Crimson title, stars (a ranged hero has the game's Range icon beside them), two roles, one a line at 14 sp. No product chip on a tile: it is on the hero page and in the filter. Every row keeps its height, so the tiles of a line are one height. Two columns from font scale 1.3.
+- **Heroes grid:** slate tile, name on the title plate, portrait with the deck symbol at its top left, italic Crimson title, stars (a ranged hero has the game's Range icon beside them), two roles, one a line at 14 sp. No product chip on a tile: it is on the hero page and in the filter. Every row keeps its height, so the tiles of a line are one height. Two columns from font scale 1.3. Unfilled stars are `glyphMuted` (≥ 3:1); the list row names the complexity beside them. Grid or list is a two-segment switch at the end of the result count (both glyphs shown, the current one selected), not a banner glyph.
 - **Hero page:** art edge to edge fading into the canvas (dashboard art or the portrait cropped toward the top), symbol and name on the plate, stats as icons with base → max on a plate; the banner always names the hero. With large text the stars and roles run across the width under the plate.
-  Under the header a sticky **Overview · Deck · FAQ** bar (the part you are reading selected in bronze: tint, word and rule) scrolls to that part, landing under the bar; under the Deck's title a row of jump chips, each with its colour's ribbon and count (Basic, Red, Green, Blue, Ultimate, Handicap, Spellbook).
+  Under the header **Overview · Deck · FAQ** are true tabs (sticky; the tab you are on selected in bronze: wash, word and rule; each keeps its own scroll). The Overview has the art, the profile, your table, lore and sources. The Deck and FAQ open with a compact identity (symbol, name plate, stars and roles) instead of the art, so the Deck's colour and tier jump chips (each with its colour's ribbon and count: Basic, Red, Green, Blue, Ultimate, Handicap, Spellbook) and the cards come first. `HeroDetailRoute.DECK` / `FAQ` / `SPELLBOOK` open a tab.
 - **Text that carries information** (roles, card captions, counts, notes, metadata pills) is at least 14 sp and wraps; it never shrinks to fit.
-- **Rules:** the topic list is sentence-case Inter semibold (17 sp) for scanning, the topic page keeps the book's Cinzel heads. A long topic title gives the banner its head ("Turn sequence") and opens the page whole, in Cinzel. A topic with three or more stops has a sticky **section navigator** of chips: the rulebook's own heads verbatim, "Diagrams", and (in a topic with few heads) its headless boxed passages by their opening words; the passage you are reading is the bronze chip, and an edge that hides more chips fades into the page. The whole title is set compact (Cinzel 20 sp), so the rules start on the first screen. Parchment page in both themes, copper heads, passages in the box the rulebook prints them in: blue `#0F6F99`, green `#2B7A33` and orange `#A8560F` (the print's green and orange darkened to 5.3:1 and 5.2:1). Pushing the Lane has the p.8 diagrams, multiplied into the page, each over its printed caption (`RulesDiagrams`; verbatim, in italics, checked against the PDF as any excerpt). The topic list is one plate with dividers. A topic's foot is the steel band; sideways and with large text a plain line at the page's end instead. The ladder's table becomes one block per level with large text, so no number is off-screen.
+- **Rules:** the topic list is sentence-case Inter semibold (17 sp) for scanning, the topic page keeps the book's Cinzel heads. A long topic title gives the banner its head ("Turn sequence") and opens the page whole, in Cinzel. A topic with three or more stops has a sticky **section navigator** of chips: the rulebook's own heads verbatim, "Diagrams", and (in a topic with few heads) its headless boxed passages by their opening words; the passage you are reading is the bronze chip, and an edge that hides more chips fades into the page. The whole title is set compact (Cinzel 20 sp), so the rules start on the first screen. Parchment page in both themes, copper heads, passages in the box the rulebook prints them in: blue `#0F6F99`, green `#2B7A33` and orange `#A8560F` (the print's green and orange darkened to 5.3:1 and 5.2:1). Pushing the Lane has the p.8 diagrams, multiplied into the page, each over its printed caption (`RulesDiagrams`; verbatim, in italics, checked against the PDF as any excerpt). The topic list is one plate with dividers. A topic's foot is the steel band; sideways and with large text a plain line at the page's end instead. The ladder (Levels & defeats) is a bottom sheet: its drag handle, then its title with the pages and a Close button; its level keys use the one selected look. Its table becomes one block per level with large text, so no number is off-screen.
 - **Timer:** the painted sea under a navy veil, the battlefield silhouette at the foot, phase on a title plate, steel double ring, digits in Inter on a near-black disc. Stays dark in both themes. Next (bronze) is wider than Pause (steel) because its label runs long.
 - **Draft:** step on a title plate in a team-edged plate; pool tiles with portrait, symbol and parchment name; bans crossed out, dimmed and struck through. Words that name a team show its mark in line (`TeamText`). Once the coin has named the teams the draft speaks in colours only ("◆ Red picks 2", "Step 4 of 8 · 1 of 2 · for Ada", columns "Blue" and "Red"); "Team A"/"Team B" are the method editor's words, and the coin's team is marked by the coin's face ("Tie Breaker coin"). A finished draft is a plate per team with the seats divided; only the selected seat is framed.
 
 **Rules the screens keep:**
-- **Bronze is selected and primary; teal is next, correct, "you can act"** (a running clock, a right answer, a rating gained). Chips, switches and picked rows are bronze on every screen, all through the one selection look (`SelectablePlate`, `GoaPlate(selected =)`: a bronze 2 dp edge, a bronze tint and the bronze radio; timer presets and setup, draft methods and options, game options); never a teal or team-coloured outline for a pick. Team colours mark teams only. Timer's teal progress arc is the running clock; a running Hurry up's arc is bronze.
-- **One plate per section, dividers inside, brackets on the outer plate only:** a team's seats, a preset's phases, the rules topics, both leaderboards. Plates never nest (an inner one is a well). Settings and prose are secondary plates (`SettingsGroup` is one). A list's action never floats over it: the match log docks "Log match" on a slate bar under the list (as trivia's Start bar), the leaderboard ends with "Add player".
+- **Bronze is selected and primary; teal is next, correct, "you can act"** (a running clock, a right answer, a rating gained). Chips, switches and picked rows are bronze on every screen, all through the one selection look (`SelectablePlate`, `GoaPlate(selected =)`, chips and segments: the bronze 1.5 dp edge, a bronze wash and a leading check or radio; timer presets and setup, draft methods and options, game options); never a teal or team-coloured outline for a pick. Team colours mark teams only. Timer's teal progress arc is the running clock; a running Hurry up's arc is bronze.
+- **One plate per section, dividers inside, brackets on the outer plate only:** a team's seats, a preset's phases, the timer's presets and setup choices, the rules topics, both leaderboards, every settings group (`SettingsGroup`). Plates never nest (an inner one is a well; an inner choice is a row). A list's action never floats over it: the match log docks "Log match" on a slate bar under the list (as trivia's Start bar), the leaderboard ends with "Add player".
 - **A title on the banner** shrinks, then takes two lines, and only then is cut (`BannerTitle`, `.goa-topbar-title`); a long rules topic shows its head there and its whole title on the page. The timer's second line goes on a phone under 360 wide (TalkBack still hears it).
 - **The search field** is the plate's slot: the slate in the dark theme, paper with a steel edge in the light one.
 - **The light theme is designed, not inverted:** the warm paper canvas, paper plates with steel edges, ink text; the steel banner, the timer and the map stay dark, as on the page.
@@ -195,7 +207,8 @@ fails the build when a token change breaks one:
 - onSurface and onSurfaceVariant on background, surface and surfaceHigh, both themes (as above).
 
 - **Type:** display = Cinzel (titles, headlines, `GoaTextStyles.bannerTitle` on the steel banner,
-  `GoaTextStyles.sectionHead` copper small-caps heads, `overline` caps), body/UI = Inter, printed
+  `GoaTextStyles.sectionHead` copper small-caps heads, `overline` caps at 13 sp and ≤ 0.08 em tracking, the floor for
+  Cinzel caps), body/UI = Inter, printed
   = Crimson Pro (`GoaTextStyles.printed` 18 sp, `printedSmall` 16 sp: card text, rulebook excerpts;
   the rules pages read it at 20 sp). Static instances in `core/designsystem/src/main/res/font/`, licences in
   `third_party/` (see `third_party/ASSETS.md`). Numbers use tabular figures:
@@ -216,7 +229,7 @@ fails the build when a token change breaks one:
 `GoaScreen` (steel-banner title bar, optional snackbar host) · `SteelBanner` / `Modifier.steelBanner`
 (the banner for a bar of one's own: the board screens) · `GoaPlate` / `GoaCard` (`PlateStyle`, `selected`) · `SelectablePlate` · `SectionHeader` (copper
 small caps + fading rule) · `SubHeader` · `GoaButton` / `MetalButton` / `GoaOutlinedButton` / `SlateButton` ·
-`StatBar` (1..8 base→max) · `FilterChipRow` / `GoaFilterChip` · `VerifiedBadge` /
+`StatBar` (1..8 base→max) · `HeroStatBlock` / `StatReadout` · `FilterChipRow` / `GoaFilterChip` · `DisabledReason` · `GoaSheetHandle` · `VerifiedBadge` /
 `UnverifiedBadge` · `CardColorDot` · `ConfirmDialog` · `DurationText` · `EmptyState` ·
 `HeroPortrait` (bronze double frame, inner gradient, sigil fallback; `framed = false` for the
 grid tile, which draws its own fade, to keep scrolling cheap) · `HeroSigil` (monogram
@@ -278,8 +291,8 @@ page, Share stats, Backup and Settings; Play keeps Settings (the board style is 
 with painted scenes (the app's own art, `third_party/ASSETS.md`), the name engraved over the scene and the state
 in bronze: Play vs computer across the width, then Puzzles ("3 of 50 solved"), Board sandbox, Online and Card
 trivia two by two (one column at large text, four across in landscape); the scenes grow with the screen's height
-so the plates fill it. Settings groups are secondary plates (`PlateStyle.Secondary` via `SettingsGroup`: flat, a hairline, no brackets), one per
-section with hairlines between rows, never a plate inside a plate; About's prose sits on the page, only rows you tap on a group. An entry the engine can't serve says "Not available in this build", never "Coming soon".
+so the plates fill it. Settings groups are the section plate (`GoaPlate` via `SettingsGroup`: steel edge, brackets), one per
+section with hairlines between rows, never a plate inside a plate; the theme switch is a segmented control in the one selected look; About's prose sits on the page, only rows you tap on a group. An entry the engine can't serve says "Not available in this build", never "Coming soon".
 Board sandbox is the saved-board list only. The bottom nav is hidden on the
 running timer (no tab to mis-tap beside Next; back leaves to Heroes), on the draft board and on a board;
 while a session runs, every other screen shows the **timer running bar** above the nav (timer

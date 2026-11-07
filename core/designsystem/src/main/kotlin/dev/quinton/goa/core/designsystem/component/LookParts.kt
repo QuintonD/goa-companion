@@ -223,7 +223,7 @@ fun GoaDarkTheme(content: @Composable () -> Unit) {
 enum class PlateStyle { Primary, Secondary, Well }
 
 /** True inside a [GoaPlate]: a plate in it draws as a [PlateStyle.Well]. */
-private val LocalInPlate = staticCompositionLocalOf { false }
+internal val LocalInPlate = staticCompositionLocalOf { false }
 
 /**
  * The plate the cards and dashboards are printed on, as a background: in the dark theme the slate, in the light theme
@@ -377,7 +377,9 @@ private class PlateGroundArt(
 /**
  * A plate holding [content], themed as the plate. With [onClick] the whole plate is one button. [style] picks the
  * frame ([PlateStyle]); a plate inside another plate is always a [PlateStyle.Well]. With [selected] it is one choice
- * of several: a quiet plate, bronze-framed when selected ([selectionFrame]); the caller adds its `selectable`.
+ * of several: a quiet plate, bronze-framed when selected ([selectionFrame]); the caller adds its `selectable`. A
+ * choice inside a section's plate is a row of it instead: no ground or edge of its own, only the selected wash
+ * (DESIGN.md "Framing levels").
  */
 @Composable
 fun GoaPlate(
@@ -391,16 +393,19 @@ fun GoaPlate(
     content: @Composable ColumnScope.() -> Unit,
 ) {
     val click = if (onClick != null) Modifier.clip(shape).clickable(onClick = onClick) else Modifier
+    val inPlate = LocalInPlate.current
     val drawn = when {
-        LocalInPlate.current -> PlateStyle.Well
+        inPlate -> PlateStyle.Well
         selected != null -> PlateStyle.Secondary
         else -> style
     }
+    val row = inPlate && selected != null
     GoaPlateTheme {
-        val frame = if (selected != null) Modifier.selectionFrame(selected, shape) else Modifier
+        val frame = if (selected != null) Modifier.selectionFrame(selected, shape, hairline = !row) else Modifier
+        val ground = if (row) Modifier else Modifier.slatePlate(shape, brackets, style = drawn)
         CompositionLocalProvider(LocalInPlate provides true) {
             Column(
-                modifier.slatePlate(shape, brackets, style = drawn).then(frame).then(click).padding(contentPadding),
+                modifier.then(ground).then(frame).then(click).padding(contentPadding),
                 content = content,
             )
         }
@@ -428,18 +433,26 @@ fun GoaSheet(
             containerColor = GoaTheme.colors.plate,
             contentColor = MaterialTheme.colorScheme.onSurface,
             // The plate under the drag handle too, with no edge between them: no seam below the handle.
-            dragHandle = {
-                Box(
-                    Modifier.fillMaxWidth().slatePlate(RoundedCornerShape(0.dp), brackets = false, edge = false),
-                    contentAlignment = Alignment.Center,
-                ) { BottomSheetDefaults.DragHandle(color = MaterialTheme.colorScheme.onSurfaceVariant) }
-            },
+            dragHandle = { GoaSheetHandle() },
         ) {
             Box(Modifier.fillMaxWidth().slatePlate(RoundedCornerShape(0.dp), brackets = false, edge = false)) {
                 Column(Modifier.fillMaxWidth().navigationBarsPadding(), content = content)
             }
         }
     }
+}
+
+/**
+ * A [GoaSheet]'s drag handle on the plate. Exposed so a sheet's screenshot, which draws its content without the
+ * sheet's window, shows the handle the player sees.
+ */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun GoaSheetHandle(modifier: Modifier = Modifier) {
+    Box(
+        modifier.fillMaxWidth().slatePlate(RoundedCornerShape(0.dp), brackets = false, edge = false),
+        contentAlignment = Alignment.Center,
+    ) { BottomSheetDefaults.DragHandle(color = MaterialTheme.colorScheme.onSurfaceVariant) }
 }
 
 /** Draws [image] into [size], the corners kept and the edges stretched; insets in source pixels and in px. */

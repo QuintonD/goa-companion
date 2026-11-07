@@ -28,7 +28,6 @@ import androidx.compose.material.icons.automirrored.outlined.HelpOutline
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.outlined.Verified
 import androidx.compose.material3.FilterChip
-import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -234,23 +233,26 @@ fun SubHeader(text: String, modifier: Modifier = Modifier, trailing: (@Composabl
 enum class SelectionMark { Radio, Check, None }
 
 /**
- * The selected look, for layouts of their own (a tile, a chip-like pair): the bronze 2 dp outline over a bronze
- * tint when [selected], a quiet hairline otherwise. Bronze is selected (teal is next and correct; team colours only
- * mark teams). Pair it with `selectable` for its semantics, or use [SelectablePlate].
+ * The selected look, for layouts of their own (a tile, a chip-like pair): the bronze [SelectedEdge] over a bronze
+ * wash when [selected], a quiet hairline otherwise ([hairline] false: nothing, for a row inside a plate). Bronze is
+ * selected (teal is next and correct; team colours only mark teams). Pair it with `selectable` for its semantics, or
+ * use [SelectablePlate].
  */
 @Composable
-fun Modifier.selectionFrame(selected: Boolean, shape: Shape = SelectionShape): Modifier {
+fun Modifier.selectionFrame(selected: Boolean, shape: Shape = SelectionShape, hairline: Boolean = true): Modifier {
     val colors = GoaTheme.colors
-    return if (selected) {
-        clip(shape).background(colors.selectionFill).border(2.dp, colors.selection, shape)
-    } else {
-        clip(shape).border(1.dp, MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.28f), shape)
+    return when {
+        selected -> clip(shape).background(colors.selectionFill).border(SelectedEdge, colors.selection, shape)
+        hairline -> clip(shape).border(1.dp, MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.28f), shape)
+        else -> clip(shape)
     }
 }
 
 /**
  * One choice of several, the same on every screen: a quiet plate with a bronze radio ([mark]) and the content;
  * selected, a bronze outline and tint ([selectionFrame]). The whole plate is one target with its role for TalkBack.
+ * Inside a [GoaPlate] (a section's plate) it is a row of that plate instead: no ground or edge of its own, only the
+ * selected wash, so frames never nest (DESIGN.md "Framing levels").
  */
 @Composable
 fun SelectablePlate(
@@ -262,12 +264,18 @@ fun SelectablePlate(
     contentPadding: PaddingValues = PaddingValues(horizontal = Spacing.md, vertical = Spacing.md),
     content: @Composable RowScope.() -> Unit,
 ) {
+    val row = LocalInPlate.current
+    val ground = if (row) {
+        Modifier
+    } else {
+        Modifier.slatePlate(SelectionShape, brackets = false, style = PlateStyle.Secondary)
+    }
     GoaPlateTheme {
         Row(
             modifier
                 .heightIn(min = 48.dp)
-                .slatePlate(SelectionShape, brackets = false, style = PlateStyle.Secondary)
-                .selectionFrame(selected)
+                .then(ground)
+                .selectionFrame(selected, hairline = !row)
                 .selectable(
                     selected = selected,
                     enabled = enabled,
@@ -362,39 +370,15 @@ fun <T> FilterChipRow(
 /** One themed filter chip, for custom layouts (FlowRow) outside [FilterChipRow]. */
 @Composable
 fun GoaFilterChip(selected: Boolean, onClick: () -> Unit, label: String, modifier: Modifier = Modifier) {
-    val primary = MaterialTheme.colorScheme.primary
     FilterChip(
         selected = selected,
         onClick = onClick,
         label = { Text(label, maxLines = 1) },
         modifier = modifier,
-        leadingIcon = if (selected) {
-            {
-                Icon(
-                    Icons.Filled.Check,
-                    contentDescription = null,
-                    modifier = Modifier.size(FilterChipDefaults.IconSize),
-                )
-            }
-        } else {
-            null
-        },
+        leadingIcon = selectedCheck(selected),
         shape = RoundedCornerShape(10.dp),
-        colors = FilterChipDefaults.filterChipColors(
-            containerColor = MaterialTheme.colorScheme.surface,
-            labelColor = MaterialTheme.colorScheme.onSurfaceVariant,
-            selectedContainerColor = primary.copy(alpha = 0.18f),
-            selectedLabelColor = MaterialTheme.colorScheme.onSurface,
-            selectedLeadingIconColor = primary,
-        ),
-        border = FilterChipDefaults.filterChipBorder(
-            enabled = true,
-            selected = selected,
-            borderColor = GoaTheme.colors.engravedBorder,
-            selectedBorderColor = primary.copy(alpha = 0.7f),
-            borderWidth = 1.dp,
-            selectedBorderWidth = 1.dp,
-        ),
+        colors = selectableChipColors(),
+        border = selectableChipBorder(selected),
     )
 }
 

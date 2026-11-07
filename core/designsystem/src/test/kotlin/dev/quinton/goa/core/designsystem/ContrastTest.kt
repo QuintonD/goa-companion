@@ -6,6 +6,7 @@ import androidx.compose.ui.graphics.luminance
 import com.google.common.truth.Truth.assertWithMessage
 import dev.quinton.goa.core.designsystem.component.DisabledFace
 import dev.quinton.goa.core.designsystem.component.OfficialArt
+import dev.quinton.goa.core.designsystem.component.SteelIconBronze
 import dev.quinton.goa.core.designsystem.theme.DarkColors
 import dev.quinton.goa.core.designsystem.theme.DarkExtended
 import dev.quinton.goa.core.designsystem.theme.GoaExtendedColors
@@ -73,14 +74,29 @@ class ContrastTest {
         check("$theme selection edge", x.selection, x.plate, GRAPHIC)
     }
 
-    /** A disabled metal button: its words legible as disabled UI, its edge visible on the canvas around it. */
+    /**
+     * A disabled button: its words muted but legible (text contrast) on its filled face, its edge visible on the
+     * canvas around it.
+     */
     @Test fun disabledButtons() {
         listOf(
             Triple("dark", DisabledFace.Dark, DarkColors.background),
             Triple("light", DisabledFace.Light, LightColors.background),
         ).forEach { (theme, face, canvas) ->
-            check("$theme disabled words", face.ink, face.fill, GRAPHIC)
+            check("$theme disabled words", face.ink, face.fill, TEXT)
             check("$theme disabled edge", face.edge, canvas, DISABLED_EDGE)
+        }
+    }
+
+    /** Glyphs that carry meaning: unfilled complexity stars, a bronze glyph on a steel face. */
+    @Test fun meaningfulGlyphs() {
+        themes().forEach { (theme, scheme, x) ->
+            listOf(scheme.background, x.plate, scheme.surface).forEach { bg ->
+                check("$theme glyphMuted", x.glyphMuted, bg, GRAPHIC)
+            }
+        }
+        listOf(Color(0xFF34424B), Color(0xFF222C33)).forEach { steel ->
+            check("bronze glyph on steel", SteelIconBronze, steel, GRAPHIC)
         }
     }
 
