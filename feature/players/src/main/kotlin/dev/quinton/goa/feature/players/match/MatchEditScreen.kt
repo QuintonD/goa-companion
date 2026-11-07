@@ -111,6 +111,7 @@ import dev.quinton.goa.core.designsystem.component.TeamBadge
 import dev.quinton.goa.core.designsystem.component.scaledIconSize
 import dev.quinton.goa.core.designsystem.component.slatePlate
 import dev.quinton.goa.core.designsystem.component.teamColor
+import dev.quinton.goa.core.designsystem.component.teamTextColor
 import dev.quinton.goa.core.designsystem.theme.GoaTheme
 import dev.quinton.goa.core.designsystem.theme.Spacing
 import dev.quinton.goa.core.domain.match.RematchKind
@@ -937,7 +938,7 @@ private fun WinnerOption(
                 Text(
                     " won",
                     style = MaterialTheme.typography.labelLarge,
-                    color = teamColor(team),
+                    color = teamTextColor(team),
                     fontWeight = FontWeight.SemiBold,
                 )
             }

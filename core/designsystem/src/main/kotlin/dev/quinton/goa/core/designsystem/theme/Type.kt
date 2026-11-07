@@ -96,7 +96,7 @@ internal val GoaTypography = Typography(
     // apart from body text by its colour (onSurfaceVariant, ≥ 7:1), not by a smaller size. 12 sp is for tags only.
     bodySmall = body(14, 20, tracking = 0.2),
     labelLarge = body(14, 20, FontWeight.Medium, 0.1),
-    /** Tags and pills: the only 12 sp text. */
+    // Tags and pills: the only 12 sp text.
     labelMedium = body(12, 16, FontWeight.Medium, 0.5),
     labelSmall = body(12, 16, FontWeight.Medium, 0.4),
 )

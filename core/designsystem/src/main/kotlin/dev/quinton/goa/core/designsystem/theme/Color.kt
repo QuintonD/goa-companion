@@ -12,6 +12,7 @@ internal object Tokens {
     val DarkSurface = Color(0xFF1E2327)
     val DarkSurfaceHigh = Color(0xFF2A3136)
     val DarkOnSurface = Color(0xFFE8E2D6)
+
     // Secondary text: ≥ 7:1 on the slate, the canvas, the raised surface and a steel chip, for a dim table (round 4).
     val DarkOnSurfaceVariant = Color(0xFFBCC6CF)
     val DarkPrimary = Color(0xFFC9A35B)

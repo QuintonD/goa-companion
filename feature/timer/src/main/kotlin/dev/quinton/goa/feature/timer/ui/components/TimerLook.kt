@@ -25,8 +25,8 @@ import androidx.compose.ui.unit.dp
 import dev.quinton.goa.core.designsystem.component.LookArt
 import dev.quinton.goa.core.designsystem.component.PlateShape
 import dev.quinton.goa.core.designsystem.component.TimerPaintings
-import dev.quinton.goa.core.designsystem.component.rememberPaintingBitmap
 import dev.quinton.goa.core.designsystem.component.rememberOfficialBitmap
+import dev.quinton.goa.core.designsystem.component.rememberPaintingBitmap
 import kotlin.math.max
 import kotlin.math.min
 import kotlin.math.roundToInt

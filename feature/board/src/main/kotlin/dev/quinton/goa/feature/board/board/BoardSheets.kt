@@ -62,6 +62,7 @@ import dev.quinton.goa.core.designsystem.component.TeamMark
 import dev.quinton.goa.core.designsystem.component.TitlePlate
 import dev.quinton.goa.core.designsystem.component.scaledIconSize
 import dev.quinton.goa.core.designsystem.component.teamColor
+import dev.quinton.goa.core.designsystem.component.teamTextColor
 import dev.quinton.goa.core.designsystem.theme.GoaTextStyles
 import dev.quinton.goa.core.designsystem.theme.GoaTheme
 import dev.quinton.goa.core.designsystem.theme.Spacing
@@ -396,7 +397,7 @@ private fun PushButtons(lane: String?, onPush: (Team) -> Unit) {
                 Spacer(Modifier.width(Spacing.sm))
                 Text(
                     "${BoardText.team(team)} won",
-                    color = teamColor(team),
+                    color = teamTextColor(team),
                     modifier = Modifier.semantics {
                         contentDescription =
                             listOfNotNull(lane, "${BoardText.team(team)} won the push").joinToString(": ")

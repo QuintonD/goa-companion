@@ -70,6 +70,7 @@ import dev.quinton.goa.core.designsystem.component.TeamMark
 import dev.quinton.goa.core.designsystem.component.TitlePlate
 import dev.quinton.goa.core.designsystem.component.selectionRow
 import dev.quinton.goa.core.designsystem.component.teamColor
+import dev.quinton.goa.core.designsystem.component.teamTextColor
 import dev.quinton.goa.core.designsystem.theme.GoaTextStyles
 import dev.quinton.goa.core.designsystem.theme.Spacing
 import dev.quinton.goa.core.domain.draft.DraftEngine
@@ -325,7 +326,7 @@ private fun TeamResult(
                 Text(
                     teamName(team),
                     style = GoaTextStyles.sectionHead.copy(fontSize = 20.sp, lineHeight = 26.sp),
-                    color = teamColor(team),
+                    color = teamTextColor(team),
                     modifier = Modifier.weight(1f),
                 )
                 // The team the coin shows holds the Tie Breaker: said with the coin itself.

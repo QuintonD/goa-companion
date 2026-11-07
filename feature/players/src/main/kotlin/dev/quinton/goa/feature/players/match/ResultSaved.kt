@@ -60,6 +60,7 @@ import dev.quinton.goa.core.designsystem.component.TeamBadge
 import dev.quinton.goa.core.designsystem.component.TeamMark
 import dev.quinton.goa.core.designsystem.component.scaledIconSize
 import dev.quinton.goa.core.designsystem.component.teamColor
+import dev.quinton.goa.core.designsystem.component.teamTextColor
 import dev.quinton.goa.core.designsystem.theme.GoaTextStyles
 import dev.quinton.goa.core.designsystem.theme.Spacing
 import dev.quinton.goa.core.domain.match.RematchKind
@@ -107,7 +108,7 @@ fun ResultSavedContent(
                     " won" + (match.winCondition?.let { " · ${it.label()}" } ?: ""),
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.SemiBold,
-                    color = teamColor(winner),
+                    color = teamTextColor(winner),
                 )
             }
         }
