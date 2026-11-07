@@ -83,6 +83,7 @@ import dev.quinton.goa.core.designsystem.component.PlateColor
 import dev.quinton.goa.core.designsystem.component.TeamMark
 import dev.quinton.goa.core.designsystem.component.teamColor
 import dev.quinton.goa.core.designsystem.theme.GoaTextStyles
+import dev.quinton.goa.core.designsystem.theme.GoaTheme
 import dev.quinton.goa.core.designsystem.theme.Spacing
 import dev.quinton.goa.core.game.ActionType
 import dev.quinton.goa.core.model.catalog.Card
@@ -563,11 +564,12 @@ private fun Initiative(slot: TrackSlot) {
 /** The band across a cell's foot: the state in a word, DONE with a tick; an empty band for a hero acting later. */
 @Composable
 private fun CellBand(role: CellRole, word: String) {
+    val dark = GoaTheme.isDark
     val (background, content) = when (role) {
         CellRole.ACTS, CellRole.ANSWERS -> NowBand to BandInk
         CellRole.NEXT -> NextBand to BandInk
-        CellRole.RESOLVING -> SteelBand to NowBand
-        else -> SteelBand to SteelInk
+        CellRole.RESOLVING -> if (dark) SteelBand to NowBand else PaperBand to BronzeInk
+        else -> if (dark) SteelBand to SteelInk else PaperBand to PaperInk
     }
     Row(
         Modifier
@@ -974,6 +976,11 @@ private val STRIP_PAD = 4.dp
 /** The steel band of a resolved or later hero, and its words. */
 private val SteelBand = Color(0xFF2A343B)
 private val SteelInk = Color(0xFFE8E2D6)
+
+/** The same bands on the light theme's paper (ADR-068): a light steel with ink, bronze words a shade deeper. */
+private val PaperBand = Color(0xFFD5DCE0)
+private val PaperInk = Color(0xFF22303A)
+private val BronzeInk = Color(0xFF7A5A1E)
 
 /** A cell: at least a touch target's height, its portrait, the gap between cells. */
 private val CELL_MIN = 48.dp
