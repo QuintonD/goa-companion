@@ -190,7 +190,9 @@ fun AppRule.tapDescription(text: String, substring: Boolean = false) =
 /** An entry of the Play tab's first screen ("Play vs computer", "Puzzles", "Board sandbox", "Online", "Card trivia"). */
 fun AppRule.openFromPlay(label: String) {
     openTab("play")
-    tapText(label)
+    // The hub's plates fill more than a screen: scroll the one asked for into view first.
+    reveal(hasText(label) and hasClickAction() and !hasSetTextAction()).performScrollTo().performClick()
+    waitForIdle()
 }
 
 fun AppRule.typeInto(label: String, value: String) {
