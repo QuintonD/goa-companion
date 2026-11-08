@@ -31,10 +31,14 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -47,6 +51,7 @@ import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -276,11 +281,44 @@ private fun PlayersCard(state: MatchSetupUiState, onPlayers: (Int) -> Unit) {
                     Stepper(state.players, state.playerRange, onPlayers, label = "players")
                 }
             }
-            state.extendedNote?.let {
-                Spacer(Modifier.height(Spacing.sm))
-                Note(it)
+            state.extendedNote?.takeIf { it.isNotBlank() }?.let {
+                Spacer(Modifier.height(Spacing.xs))
+                ExtendedNotice(it)
             }
         }
+    }
+}
+
+/**
+ * An odd or large player count: one line that says so, and "Read the rule" opening the rulebook's own words
+ * (verbatim, with its pages) under it, so the warning never pushes the teams down.
+ */
+@Composable
+private fun ExtendedNotice(rule: String) {
+    var open by rememberSaveable { mutableStateOf(false) }
+    Column {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Icon(
+                Icons.Outlined.Info,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.size(18.dp),
+            )
+            Spacer(Modifier.width(Spacing.sm))
+            Text(
+                "Advanced player count",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurface,
+                modifier = Modifier.weight(1f),
+            )
+            TextButton(
+                onClick = { open = !open },
+                modifier = Modifier.heightIn(min = 48.dp).semantics {
+                    stateDescription = if (open) "Expanded" else "Collapsed"
+                },
+            ) { Text(if (open) "Hide the rule" else "Read the rule") }
+        }
+        if (open) Note(rule)
     }
 }
 

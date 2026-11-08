@@ -24,7 +24,6 @@ import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Remove
 import androidx.compose.material.icons.outlined.Delete
-import androidx.compose.material.icons.outlined.Flag
 import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material.icons.outlined.Tune
 import androidx.compose.material3.FilledTonalIconButton
@@ -42,9 +41,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
-import androidx.compose.ui.graphics.painter.Painter
-import androidx.compose.ui.graphics.vector.rememberVectorPainter
-import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
@@ -61,7 +58,8 @@ import dev.quinton.goa.core.designsystem.component.PlateRowDivider
 import dev.quinton.goa.core.designsystem.component.SectionHeader
 import dev.quinton.goa.core.designsystem.component.TeamBadge
 import dev.quinton.goa.core.designsystem.component.TitlePlate
-import dev.quinton.goa.core.designsystem.icon.GoaIcons
+import dev.quinton.goa.core.designsystem.icon.Destination
+import dev.quinton.goa.core.designsystem.icon.icon
 import dev.quinton.goa.core.designsystem.theme.GoaTheme
 import dev.quinton.goa.core.designsystem.theme.Spacing
 import dev.quinton.goa.core.model.match.Team
@@ -184,13 +182,13 @@ private fun StepsBefore(actions: TimerActions) {
         Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.SpaceEvenly,
     ) {
-        StepButton(painterResource(GoaIcons.NavDraft), "Draft first", actions.onOpenDraft)
-        StepButton(rememberVectorPainter(Icons.Outlined.Flag), "Match setup", { actions.onOpenSetup(null) })
+        StepButton(Destination.DRAFT.icon, "Draft first", actions.onOpenDraft)
+        StepButton(Destination.MATCH_SETUP.icon, Destination.MATCH_SETUP.label, { actions.onOpenSetup(null) })
     }
 }
 
 @Composable
-private fun StepButton(icon: Painter, label: String, onClick: () -> Unit, modifier: Modifier = Modifier) {
+private fun StepButton(icon: ImageVector, label: String, onClick: () -> Unit, modifier: Modifier = Modifier) {
     TextButton(
         onClick = onClick,
         modifier = modifier.heightIn(min = 48.dp),
@@ -411,7 +409,7 @@ private fun PendingMatchCard(match: PendingMatchItem, onClick: () -> Unit, onDis
                     modifier = Modifier.heightIn(min = 48.dp),
                     contentPadding = PaddingValues(horizontal = Spacing.sm),
                 ) {
-                    Icon(Icons.Outlined.Flag, contentDescription = null, modifier = Modifier.size(18.dp))
+                    Icon(Destination.MATCH_SETUP.icon, contentDescription = null, modifier = Modifier.size(18.dp))
                     Spacer(Modifier.width(Spacing.xs))
                     Text("Open match setup")
                 }
