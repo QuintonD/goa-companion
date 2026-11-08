@@ -81,6 +81,8 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import dev.quinton.goa.core.designsystem.component.DoneMark
+import dev.quinton.goa.core.designsystem.component.DoneTick
 import dev.quinton.goa.core.designsystem.component.GoaPlate
 import dev.quinton.goa.core.designsystem.component.GoaPlateTheme
 import dev.quinton.goa.core.designsystem.component.HeroPortrait
@@ -89,7 +91,9 @@ import dev.quinton.goa.core.designsystem.component.LARGE_FONT_SCALE
 import dev.quinton.goa.core.designsystem.component.PlateShape
 import dev.quinton.goa.core.designsystem.component.SelectionMarkIcon
 import dev.quinton.goa.core.designsystem.component.TeamMark
+import dev.quinton.goa.core.designsystem.component.TintTag
 import dev.quinton.goa.core.designsystem.component.horizontalEdgeFade
+import dev.quinton.goa.core.designsystem.component.mutedOutline
 import dev.quinton.goa.core.designsystem.component.selectableChipColors
 import dev.quinton.goa.core.designsystem.component.selectableSegmentColors
 import dev.quinton.goa.core.designsystem.component.slatePlate
@@ -427,7 +431,7 @@ internal fun ConcealedTile(team: Team, modifier: Modifier = Modifier) {
 
 /**
  * Compact sequence preview: "Ban A · Pick A · …" chips. Bans are outlined, picks filled; the
- * [current] step is highlighted and finished steps fade.
+ * [current] step is highlighted and finished steps step back (a tick, a muted edge, no fill).
  */
 @Composable
 internal fun SequenceStrip(
@@ -456,6 +460,10 @@ internal fun SequenceStrip(
     }
 }
 
+/**
+ * One step of the sequence. A past step steps back by losing its fill and its team-coloured edge (a thin muted edge, a
+ * tick, the words in the muted token), never by fading (DESIGN.md "Muted states"); the current step is the strongest.
+ */
 @Composable
 private fun StepChipView(token: StepToken, index: Int, current: Int?) {
     val accent = token.team?.let { teamColor(it) } ?: MaterialTheme.colorScheme.primary
@@ -463,30 +471,42 @@ private fun StepChipView(token: StepToken, index: Int, current: Int?) {
     val active = current == index
     val isBan = token.action == DraftAction.BAN
     val shape = RoundedCornerShape(6.dp)
-    TeamText(
-        text = (if (token.hidden) "🔒 " else "") + token.label,
-        style = MaterialTheme.typography.labelMedium,
-        fontWeight = if (active) FontWeight.Bold else FontWeight.Medium,
-        color = if (isBan &&
-            !active
-        ) {
-            MaterialTheme.colorScheme.onSurfaceVariant
-        } else {
-            MaterialTheme.colorScheme.onSurface
-        },
-        modifier = Modifier
-            .alpha(if (done) 0.5f else 1f)
+    Row(
+        Modifier
             .background(
                 when {
+                    done -> Color.Transparent
                     active -> accent.copy(alpha = 0.28f)
                     isBan -> Color.Transparent
                     else -> accent.copy(alpha = 0.12f)
                 },
                 shape,
             )
-            .border(if (active) 2.dp else 1.dp, accent.copy(alpha = if (done) 0.3f else 0.8f), shape)
+            .then(
+                if (done) {
+                    Modifier.mutedOutline(shape)
+                } else {
+                    Modifier.border(if (active) 2.dp else 1.dp, accent.copy(alpha = 0.8f), shape)
+                },
+            )
             .padding(horizontal = Spacing.sm, vertical = Spacing.xs),
-    )
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        if (done) {
+            DoneMark(size = DoneTick)
+            Spacer(Modifier.width(2.dp))
+        }
+        TeamText(
+            text = (if (token.hidden) "🔒 " else "") + token.label,
+            style = MaterialTheme.typography.labelMedium,
+            fontWeight = if (active) FontWeight.Bold else FontWeight.Medium,
+            color = when {
+                done -> GoaTheme.colors.textMuted
+                isBan && !active -> MaterialTheme.colorScheme.onSurfaceVariant
+                else -> MaterialTheme.colorScheme.onSurface
+            },
+        )
+    }
 }
 
 /** Section card on the dark plate, used across draft screens. [titleTeam] heads it with a team's mark. */
@@ -573,19 +593,9 @@ private fun RowScope.ChoiceCardBody(
                 modifier = Modifier.weight(1f),
                 color = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
             )
+            // A tint, not an outline: the choice is a row of its section's plate (DESIGN.md "Framing levels").
             if (badge != null) {
-                Text(
-                    badge,
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.secondary,
-                    modifier = Modifier
-                        .border(
-                            1.dp,
-                            MaterialTheme.colorScheme.secondary.copy(alpha = 0.6f),
-                            RoundedCornerShape(50),
-                        )
-                        .padding(horizontal = Spacing.sm, vertical = 2.dp),
-                )
+                TintTag(badge, color = MaterialTheme.colorScheme.secondary, style = MaterialTheme.typography.labelSmall)
             }
         }
         if (body.isNotEmpty()) {

@@ -622,13 +622,15 @@ private fun HeroSheetHeader(table: TableUi, hero: HeroView, onDone: () -> Unit) 
     }
 }
 
-/** A dial of the dashboard as a chip: its name in small caps and its value in large figures ("LEVEL 2"). */
+/**
+ * A dial of the dashboard: its name in small caps and its value in large figures ("LEVEL 2") on a well, without an
+ * edge of its own: the sheet is the frame (DESIGN.md "Framing levels").
+ */
 @Composable
 private fun DialChip(label: String, value: Int, icon: (@Composable () -> Unit)? = null) {
     Row(
         Modifier
             .background(PlateWell, RoundedCornerShape(6.dp))
-            .border(1.dp, GoaTheme.colors.engravedBorder, RoundedCornerShape(6.dp))
             .padding(horizontal = 8.dp, vertical = 2.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {

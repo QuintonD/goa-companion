@@ -81,10 +81,12 @@ import dev.quinton.goa.core.designsystem.cardtext.GameIcon
 import dev.quinton.goa.core.designsystem.cardtext.GameIcons
 import dev.quinton.goa.core.designsystem.component.CardTextBox
 import dev.quinton.goa.core.designsystem.component.CoinIcon
+import dev.quinton.goa.core.designsystem.component.DoneLabel
 import dev.quinton.goa.core.designsystem.component.HeroPortrait
 import dev.quinton.goa.core.designsystem.component.PlateColor
 import dev.quinton.goa.core.designsystem.component.TeamMark
 import dev.quinton.goa.core.designsystem.component.horizontalEdgeFade
+import dev.quinton.goa.core.designsystem.component.mutedOutline
 import dev.quinton.goa.core.designsystem.component.scaledIconSize
 import dev.quinton.goa.core.designsystem.component.teamColor
 import dev.quinton.goa.core.designsystem.theme.GoaTextStyles
@@ -464,7 +466,8 @@ private fun TrackCell(
                     letterSpacing = 0.sp,
                 ),
                 fontWeight = FontWeight.Medium,
-                color = LocalContentColor.current.copy(alpha = CARD_NAME_ALPHA),
+                // Secondary words at full strength; a done hero's in the muted token, never faded (round 5).
+                color = if (stepped) GoaTheme.colors.textMuted else MaterialTheme.colorScheme.onSurfaceVariant,
                 textAlign = align,
                 maxLines = cardFit.lines,
                 modifier = Modifier.fillMaxWidth(),
@@ -475,7 +478,8 @@ private fun TrackCell(
         modifier
             .fillMaxHeight()
             .clip(shape)
-            .background(PlateWell)
+            // A done hero steps back by losing its ground, keeping a thin muted edge: its words stay legible.
+            .then(if (stepped) Modifier.mutedOutline(shape) else Modifier.background(PlateWell))
             .then(if (edge != null) Modifier.border(edge, shape) else Modifier)
             .combinedClickable(onClick = onOpen, onLongClick = onHero)
             .clearAndSetSemantics {
@@ -499,16 +503,15 @@ private fun TrackCell(
         val content = Modifier
             .fillMaxWidth()
             .padding(start = 4.dp, end = 4.dp, top = 2.dp, bottom = 1.dp)
-            .alpha(if (stepped) STEPPED_ALPHA else 1f)
         if (side) {
             Row(content, verticalAlignment = Alignment.CenterVertically) {
                 ChipPortrait(table, slot, firstCard, SIDE_PORTRAIT)
                 Spacer(Modifier.width(5.dp))
                 Column(Modifier.weight(1f)) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Initiative(slot.initiative, slot.tied)
+                        Initiative(slot.initiative, slot.tied, muted = stepped)
                         Spacer(Modifier.width(5.dp))
-                        HeroName(info.name, Modifier.weight(1f), TextAlign.Start)
+                        HeroName(info.name, Modifier.weight(1f), TextAlign.Start, muted = stepped)
                     }
                     cardName(TextAlign.Start)
                 }
@@ -518,9 +521,9 @@ private fun TrackCell(
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     ChipPortrait(table, slot, firstCard, CELL_PORTRAIT)
                     Spacer(Modifier.width(5.dp))
-                    Initiative(slot.initiative, slot.tied)
+                    Initiative(slot.initiative, slot.tied, muted = stepped)
                 }
-                HeroName(info.name, Modifier.fillMaxWidth(), TextAlign.Center)
+                HeroName(info.name, Modifier.fillMaxWidth(), TextAlign.Center, muted = stepped)
                 cardName(TextAlign.Center)
             }
         }
@@ -531,7 +534,7 @@ private fun TrackCell(
 
 /** The hero's name whole on its cell: a step smaller rather than cut ("Tigerclaw" at large text). */
 @Composable
-private fun HeroName(name: String, modifier: Modifier, align: TextAlign) {
+private fun HeroName(name: String, modifier: Modifier, align: TextAlign, muted: Boolean = false) {
     val nameSize = cappedSp(NAME_SP)
     BasicText(
         name,
@@ -539,8 +542,8 @@ private fun HeroName(name: String, modifier: Modifier, align: TextAlign) {
             fontSize = nameSize,
             lineHeight = nameSize * CARD_LINE,
             letterSpacing = 0.sp,
-            fontWeight = FontWeight.Bold,
-            color = LocalContentColor.current,
+            fontWeight = if (muted) FontWeight.SemiBold else FontWeight.Bold,
+            color = if (muted) GoaTheme.colors.textMuted else LocalContentColor.current,
             textAlign = align,
         ),
         maxLines = 1,
@@ -552,7 +555,7 @@ private fun HeroName(name: String, modifier: Modifier, align: TextAlign) {
 
 /** The initiative as it counts, in large figures: "=11" while tied with another hero still to act, else "–". */
 @Composable
-private fun Initiative(initiative: Int?, tied: Boolean) {
+private fun Initiative(initiative: Int?, tied: Boolean, muted: Boolean = false) {
     Text(
         initiative?.let { if (tied) "=$it" else "$it" } ?: "–",
         style = GoaTextStyles.numeric.copy(
@@ -560,15 +563,39 @@ private fun Initiative(initiative: Int?, tied: Boolean) {
             lineHeight = cappedSp(INITIATIVE_SP + 2f),
             fontWeight = FontWeight.Bold,
         ),
-        color = MaterialTheme.colorScheme.run { if (tied) secondary else onSurface },
+        color = when {
+            tied -> MaterialTheme.colorScheme.secondary
+            muted -> GoaTheme.colors.textMuted
+            else -> MaterialTheme.colorScheme.onSurface
+        },
         maxLines = 1,
         softWrap = false,
     )
 }
 
-/** The band across a cell's foot: the state in a word, DONE with a tick; an empty band for a hero acting later. */
+/**
+ * The band across a cell's foot: the state in a word, DONE with a tick; an empty band for a hero acting later. A past
+ * state (DONE, PASS, OUT) has no band at all: the tick and the word in the muted token over a hairline.
+ */
 @Composable
 private fun CellBand(role: CellRole, word: String, tick: Boolean = true) {
+    val past = tick && (role == CellRole.DONE || role == CellRole.PASSED || role == CellRole.SKIPPED)
+    if (past) {
+        Column(Modifier.fillMaxWidth()) {
+            Box(Modifier.fillMaxWidth().height(1.dp).background(GoaTheme.colors.outlineMuted))
+            DoneLabel(
+                word,
+                style = TextStyle(
+                    fontSize = fixedSp(BAND_SP),
+                    lineHeight = fixedSp(BAND_SP + 2f),
+                    letterSpacing = fixedSp(0.5f),
+                ),
+                tick = role == CellRole.DONE,
+                modifier = Modifier.align(Alignment.CenterHorizontally),
+            )
+        }
+        return
+    }
     val dark = GoaTheme.isDark
     val (background, content) = when (role) {
         CellRole.ACTS, CellRole.ANSWERS -> NowBand to BandInk
@@ -1052,7 +1079,7 @@ private fun HeroCellNumbers(hero: HeroView) {
         lineHeight = size * CARD_LINE,
         fontWeight = FontWeight.Medium,
     )
-    val color = LocalContentColor.current.copy(alpha = CARD_NAME_ALPHA)
+    val color = MaterialTheme.colorScheme.onSurfaceVariant
     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(3.dp)) {
         Text("Lv${hero.level}", style = number, color = color, maxLines = 1, softWrap = false)
         CoinIcon(size = scaledIconSize(12.dp, MAX_NAME_SCALE))
@@ -1128,7 +1155,6 @@ private val CHIP_BADGE = 14.dp
 private val SMALL_BADGE = 11.dp
 private val SMALL_PORTRAIT = 30.dp
 private val COMPACT_PORTRAIT_BELOW = 34.dp
-private const val STEPPED_ALPHA = 0.72f
 private const val CARD_NAME_SP = 12f
 private const val NAME_SP = 13f
 private const val INITIATIVE_SP = 18f
@@ -1142,7 +1168,6 @@ private val WORD_BREAK = Regex("(?<=[ -])")
 
 /** A hero's name may step down to this share of its size to stay whole in a narrow cell. */
 private const val NAME_MIN_SHARE = 0.78f
-private const val CARD_NAME_ALPHA = 0.82f
 private val STRIP_PAD = 4.dp
 
 /** The steel band of a resolved or later hero, and its words. */

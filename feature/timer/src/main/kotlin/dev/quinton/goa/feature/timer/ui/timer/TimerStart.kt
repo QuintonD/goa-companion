@@ -28,7 +28,6 @@ import androidx.compose.material.icons.outlined.Flag
 import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material.icons.outlined.Tune
 import androidx.compose.material3.FilledTonalIconButton
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -62,13 +61,11 @@ import dev.quinton.goa.core.designsystem.component.SectionHeader
 import dev.quinton.goa.core.designsystem.component.TeamBadge
 import dev.quinton.goa.core.designsystem.component.TitlePlate
 import dev.quinton.goa.core.designsystem.icon.GoaIcons
-import dev.quinton.goa.core.designsystem.theme.GoaTheme
 import dev.quinton.goa.core.designsystem.theme.Spacing
 import dev.quinton.goa.core.model.match.Team
 import dev.quinton.goa.feature.timer.TimerText
 import dev.quinton.goa.feature.timer.ui.components.PhaseGrid
 import dev.quinton.goa.feature.timer.ui.components.goaTonalIconColors
-import dev.quinton.goa.feature.timer.ui.components.plateEdge
 import dev.quinton.goa.feature.timer.ui.components.timerDigits
 
 @Composable
@@ -130,8 +127,9 @@ private fun ReadyCard(state: StartUiState, actions: TimerActions) {
         }
         val seats = state.seats.takeIf { selected?.usesActionTimer == true }
         if (state.tonight != null || seats != null) {
-            Spacer(Modifier.height(Spacing.sm))
+            PlateRowDivider()
             AdjustForTonight(state.tonight, seats, actions)
+            PlateRowDivider()
         }
         Spacer(Modifier.height(Spacing.lg))
         MetalButton(
@@ -207,7 +205,8 @@ private const val SUMMARY_SEPARATOR = " · "
 /**
  * Tonight's changes, folded away under one row that names what it changes ("Play a card length · 4 heroes"; the
  * grid above shows the values): the per-turn length (±15 s, the preset unchanged unless saved) and, when the
- * preset times each hero's Action, the heroes at the table.
+ * preset times each hero's Action, the heroes at the table. A row of the start plate between hairlines, with no
+ * frame of its own (DESIGN.md "Framing levels").
  */
 @Composable
 private fun AdjustForTonight(tonight: TonightUi?, seats: Int?, actions: TimerActions) {
@@ -217,11 +216,7 @@ private fun AdjustForTonight(tonight: TonightUi?, seats: Int?, actions: TimerAct
         tonight?.let { "${it.phaseName} length" },
         seats?.let { "$it heroes" },
     ).joinToString(SUMMARY_SEPARATOR)
-    Column(
-        Modifier
-            .fillMaxWidth()
-            .plateEdge(GoaTheme.colors.engravedBorder, 1.dp, MaterialTheme.shapes.medium),
-    ) {
+    Column(Modifier.fillMaxWidth()) {
         Row(
             Modifier
                 .fillMaxWidth()
@@ -229,7 +224,7 @@ private fun AdjustForTonight(tonight: TonightUi?, seats: Int?, actions: TimerAct
                 .clickable(onClickLabel = if (open) "Hide" else "Adjust") { open = !open }
                 .semantics { stateDescription = if (open) "Expanded" else "Collapsed" }
                 .heightIn(min = 56.dp)
-                .padding(horizontal = Spacing.md, vertical = Spacing.sm),
+                .padding(vertical = Spacing.sm),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Icon(Icons.Outlined.Tune, contentDescription = null, tint = colors.primary, modifier = Modifier.size(22.dp))
@@ -245,14 +240,9 @@ private fun AdjustForTonight(tonight: TonightUi?, seats: Int?, actions: TimerAct
             )
         }
         if (open) {
-            Column(Modifier.padding(start = Spacing.md, end = Spacing.md, bottom = Spacing.sm)) {
+            Column(Modifier.padding(bottom = Spacing.sm)) {
                 tonight?.let { TonightTurn(it, actions) }
-                if (tonight != null && seats != null) {
-                    HorizontalDivider(
-                        Modifier.padding(vertical = Spacing.sm),
-                        color = GoaTheme.colors.engravedBorder,
-                    )
-                }
+                if (tonight != null && seats != null) PlateRowDivider(Modifier.padding(vertical = Spacing.sm))
                 seats?.let { SeatsStepper(it, actions.onSeatsChange) }
             }
         }

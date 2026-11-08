@@ -55,7 +55,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import dev.quinton.goa.core.designsystem.cardtext.CardTextView
 import dev.quinton.goa.core.designsystem.cardtext.GameIcons
-import dev.quinton.goa.core.designsystem.component.CardColorDot
+import dev.quinton.goa.core.designsystem.component.CardFamilyLabel
 import dev.quinton.goa.core.designsystem.component.GoaFilterChip
 import dev.quinton.goa.core.designsystem.component.GoaSegment
 import dev.quinton.goa.core.designsystem.component.GoaSegmentedRow
@@ -511,22 +511,22 @@ private fun CardChip(
             },
     ) {
         Column(Modifier.padding(horizontal = Spacing.sm, vertical = 6.dp)) {
+            // The shared family label (its colour's ribbon and the words). Its own line with large text: "Silver Basic",
+            // which may break between its words, never inside.
             val family: @Composable (Modifier) -> Unit = { modifier ->
-                Text(
-                    // Its own line with large text: "Silver Basic", which may break between its words, never inside.
-                    if (wide) familyLabel(card).replace("\u00A0·\u00A0", " ") else familyLabel(card),
+                CardFamilyLabel(
+                    card.color,
+                    card.tier,
+                    modifier,
+                    text = if (wide) familyLabel(card).replace("\u00A0·\u00A0", " ") else familyLabel(card),
                     style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = modifier,
                 )
             }
             Row(verticalAlignment = Alignment.CenterVertically) {
-                CardColorDot(card.color, size = 10.dp)
-                Spacer(Modifier.width(6.dp))
                 // Large text in a half-width chip: the family on a line of its own under the name, never broken.
                 if (!wide) family(Modifier.weight(1f, fill = false))
                 card.initiative?.let {
-                    Spacer(Modifier.width(6.dp))
+                    if (!wide) Spacer(Modifier.width(6.dp))
                     Icon(
                         GameIcons.initiative.vector,
                         null,

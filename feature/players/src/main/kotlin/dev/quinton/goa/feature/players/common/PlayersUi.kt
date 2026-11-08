@@ -202,14 +202,13 @@ fun ResultChip(status: MatchStatus, winner: Team?, modifier: Modifier = Modifier
 /** Big number over a caption, for stat rows. */
 @Composable
 fun StatTile(value: String, caption: String, modifier: Modifier = Modifier) {
-    GoaPlateTheme { StatTileContent(value, caption, modifier) }
+    GoaPlateTheme { StatTileContent(value, caption, modifier.slatePlate(PlateShape, brackets = false)) }
 }
 
 @Composable
 private fun StatTileContent(value: String, caption: String, modifier: Modifier) {
     Column(
         modifier
-            .slatePlate(PlateShape, brackets = false)
             .padding(horizontal = Spacing.md, vertical = Spacing.sm)
             .semantics(mergeDescendants = true) {},
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -292,28 +291,39 @@ object Motion {
         androidx.compose.animation.core.tween(DURATION_MS, easing = androidx.compose.animation.core.FastOutSlowInEasing)
 }
 
-/** Equal-height row of [StatTile]s; wraps two per row at large font scales. */
+/**
+ * Big numbers over captions on one plate, divided by hairlines, rather than a framed tile each (DESIGN.md "Framing
+ * levels": one frame per section); two per line at large font scales.
+ */
 @Composable
 fun StatRow(tiles: List<Pair<String, String>>, modifier: Modifier = Modifier) {
     val large = androidx.compose.ui.platform.LocalDensity.current.fontScale >= LARGE_FONT_SCALE
-    if (large) {
-        androidx.compose.foundation.layout.FlowRow(
-            modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
-            verticalArrangement = Arrangement.spacedBy(Spacing.sm),
-            maxItemsInEachRow = 2,
-        ) {
-            tiles.forEach { (value, caption) -> StatTile(value, caption, Modifier.weight(1f)) }
-        }
-    } else {
-        Row(
-            modifier.fillMaxWidth().height(androidx.compose.foundation.layout.IntrinsicSize.Min),
-            horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
-        ) {
-            tiles.forEach { (value, caption) -> StatTile(value, caption, Modifier.weight(1f).fillMaxHeight()) }
+    GoaPlateTheme {
+        val plate = modifier.fillMaxWidth().slatePlate(PlateShape, brackets = false)
+        if (large) {
+            androidx.compose.foundation.layout.FlowRow(
+                plate.padding(vertical = Spacing.xs),
+                maxItemsInEachRow = 2,
+            ) {
+                tiles.forEach { (value, caption) -> StatTileContent(value, caption, Modifier.weight(1f)) }
+            }
+        } else {
+            Row(plate.height(androidx.compose.foundation.layout.IntrinsicSize.Min)) {
+                tiles.forEachIndexed { i, (value, caption) ->
+                    if (i > 0) {
+                        androidx.compose.material3.VerticalDivider(
+                            Modifier.padding(vertical = Spacing.sm),
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = STAT_DIVIDER_ALPHA),
+                        )
+                    }
+                    StatTileContent(value, caption, Modifier.weight(1f).fillMaxHeight())
+                }
+            }
         }
     }
 }
+
+private const val STAT_DIVIDER_ALPHA = 0.12f
 
 /** Font scale from which compact controls switch to roomier, wrapping layouts. */
 const val LARGE_FONT_SCALE = 1.3f
