@@ -42,13 +42,11 @@ import androidx.compose.material.icons.automirrored.outlined.ArrowForward
 import androidx.compose.material.icons.outlined.ArrowDropDown
 import androidx.compose.material.icons.outlined.Check
 import androidx.compose.material.icons.outlined.DeleteOutline
-import androidx.compose.material.icons.outlined.History
 import androidx.compose.material.icons.outlined.SwapHoriz
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SegmentedButton
 import androidx.compose.material3.SegmentedButtonDefaults
@@ -148,9 +146,8 @@ fun NewBoardScreen(
                 if (ready.form.lineup.red.isNotEmpty() || ready.form.lineup.blue.isNotEmpty()) {
                     BannerTextButton("Clear", onClick = { onAction(NewBoardAction.Clear) })
                 }
-                IconButton(onClick = { sources = true }, enabled = ready.sources.isNotEmpty()) {
-                    Icon(Icons.Outlined.History, contentDescription = "Use a draft or match")
-                }
+                // Past line-ups in words on the bar ("History"), there only when there is one to use.
+                if (ready.sources.isNotEmpty()) HistoryButton(onClick = { sources = true })
             }
         },
     ) { padding ->
@@ -897,6 +894,19 @@ private fun SetUpBar(state: NewBoardUiState.Ready, onAction: (NewBoardAction) ->
     }
 }
 
+/** The line-ups of past drafts and matches: the bar menu's line and the sheet's title (New board, New game). */
+internal const val RECENT_LINEUPS = "Use a draft or match"
+
+/** "History" on the bar of New board and New game: opens the line-ups of past drafts and matches. */
+@Composable
+internal fun HistoryButton(onClick: () -> Unit) {
+    BannerTextButton(
+        "History",
+        onClick = onClick,
+        modifier = Modifier.semantics { contentDescription = "History: $RECENT_LINEUPS" },
+    )
+}
+
 /** Finished drafts, pending and logged matches, newest first: one tap fills both teams. */
 @Composable
 internal fun SourcesContent(
@@ -906,7 +916,7 @@ internal fun SourcesContent(
     modifier: Modifier = Modifier,
 ) {
     Column(modifier.fillMaxWidth().fillMaxHeight(SHEET_HEIGHT)) {
-        SheetTitle("Use a draft or match", "Fills both teams in pick order.", onDone)
+        SheetTitle(RECENT_LINEUPS, "Fills both teams in pick order.", onDone)
         LazyColumn(Modifier.weight(1f)) {
             items(sources, key = { it.key }) { source -> SourceRow(source, onClick = { onUse(source) }) }
             if (sources.isEmpty()) {

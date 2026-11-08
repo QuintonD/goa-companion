@@ -21,10 +21,8 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.EventNote
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.outlined.Casino
-import androidx.compose.material.icons.outlined.Hexagon
 import androidx.compose.material.icons.outlined.MoreVert
 import androidx.compose.material.icons.outlined.SwapVert
-import androidx.compose.material.icons.outlined.Timer
 import androidx.compose.material.icons.outlined.Tune
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.DropdownMenu
@@ -71,6 +69,8 @@ import dev.quinton.goa.core.designsystem.component.TitlePlate
 import dev.quinton.goa.core.designsystem.component.selectionRow
 import dev.quinton.goa.core.designsystem.component.teamColor
 import dev.quinton.goa.core.designsystem.component.teamTextColor
+import dev.quinton.goa.core.designsystem.icon.Destination
+import dev.quinton.goa.core.designsystem.icon.icon
 import dev.quinton.goa.core.designsystem.theme.GoaTextStyles
 import dev.quinton.goa.core.designsystem.theme.Spacing
 import dev.quinton.goa.core.domain.draft.DraftEngine
@@ -210,7 +210,8 @@ private fun CompletionActions(
             enabled = !state.local.saving,
             modifier = Modifier.weight(1f).heightIn(min = 56.dp),
         ) {
-            Icon(Icons.Outlined.Timer, contentDescription = null)
+            // The flag is Match setup wherever a screen links to it (Destination).
+            Icon(Destination.MATCH_SETUP.icon, contentDescription = null)
             Spacer(Modifier.width(Spacing.sm))
             Text("Open match setup")
         }
@@ -231,7 +232,7 @@ private fun CompletionActions(
                 )
                 DropdownMenuItem(
                     text = { MenuText("Try on the board", "This line-up on the map") },
-                    leadingIcon = { Icon(Icons.Outlined.Hexagon, contentDescription = null) },
+                    leadingIcon = { Icon(Destination.BOARD.icon, contentDescription = null) },
                     onClick = {
                         menu = false
                         // Pick order per team: the board's opening places heroes in that order (p.20).

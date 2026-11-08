@@ -8,7 +8,6 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
-import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -50,20 +49,22 @@ import androidx.compose.material3.SegmentedButtonColors
 import androidx.compose.material3.SelectableChipColors
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.drawWithCache
 import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.StrokeCap
-import androidx.compose.ui.graphics.drawOutline
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.layout.positionInParent
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalInspectionMode
@@ -89,10 +90,10 @@ import dev.quinton.goa.core.designsystem.component.HeroPortrait
 import dev.quinton.goa.core.designsystem.component.HeroSymbol
 import dev.quinton.goa.core.designsystem.component.LARGE_FONT_SCALE
 import dev.quinton.goa.core.designsystem.component.PlateShape
-import dev.quinton.goa.core.designsystem.component.SelectionMarkIcon
 import dev.quinton.goa.core.designsystem.component.TeamMark
 import dev.quinton.goa.core.designsystem.component.TintTag
-import dev.quinton.goa.core.designsystem.component.horizontalEdgeFade
+import dev.quinton.goa.core.designsystem.component.bleedHorizontally
+import dev.quinton.goa.core.designsystem.component.fadingHorizontalScroll
 import dev.quinton.goa.core.designsystem.component.mutedOutline
 import dev.quinton.goa.core.designsystem.component.selectableChipColors
 import dev.quinton.goa.core.designsystem.component.selectableSegmentColors
@@ -103,6 +104,8 @@ import dev.quinton.goa.core.designsystem.theme.GoaTheme
 import dev.quinton.goa.core.designsystem.theme.Spacing
 import dev.quinton.goa.core.model.draft.DraftAction
 import dev.quinton.goa.core.model.match.Team
+import dev.quinton.goa.feature.draft.board.DraftBoardText
+import kotlin.math.roundToInt
 
 /** Motion tokens (docs/DESIGN.md: 200–300 ms emphasised). */
 internal object DraftMotion {
@@ -430,8 +433,11 @@ internal fun ConcealedTile(team: Team, modifier: Modifier = Modifier) {
 }
 
 /**
- * Compact sequence preview: "Ban A · Pick A · …" chips. Bans are outlined, picks filled; the
- * [current] step is highlighted and finished steps step back (a tick, a muted edge, no fill).
+ * A sequence as numbered steps, each a run of one side's bans or picks with its count ("4 · ◆ Red picks 2"; the
+ * shared [DraftStep] numbering). Bans are outlined, picks filled. On the board ([current], a plan index) the step
+ * in play is bold with a heavier edge; finished steps step back by losing their fill and team edge (a tick, a muted
+ * edge, the words in the readable muted token, never faded: DESIGN.md "Muted states"); a sideways strip keeps the
+ * step before, the step in play and the next in view. [named] false shows a side by its mark only.
  */
 @Composable
 internal fun SequenceStrip(
@@ -439,70 +445,117 @@ internal fun SequenceStrip(
     modifier: Modifier = Modifier,
     current: Int? = null,
     wrap: Boolean = true,
+    named: Boolean = true,
+    /** The parent column's side padding, which a sideways strip ([wrap] false) runs out to. */
+    gutter: Dp = Spacing.screen,
 ) {
-    val description = tokens.spoken()
-    val content: @Composable () -> Unit = {
-        tokens.forEachIndexed { i, token -> StepChipView(token, index = i, current = current) }
+    val steps = remember(tokens) { tokens.steps() }
+    val active = current?.let { slot -> steps.indexOfFirst { slot in it } }?.takeIf { it >= 0 }
+    val description = remember(steps, active) {
+        val now = active?.let { "Now ${steps[it].spoken}. " }.orEmpty()
+        now + "Sequence of ${steps.size} steps: " + steps.joinToString("; ") { it.spoken }
     }
-    val semantics = Modifier.semantics(mergeDescendants = true) { contentDescription = description }
+    val semantics = Modifier.clearAndSetSemantics { contentDescription = description }
+    fun state(i: Int) = when {
+        active == null -> StepState.UPCOMING
+        i < active -> StepState.DONE
+        i == active -> StepState.ACTIVE
+        else -> StepState.UPCOMING
+    }
     if (wrap) {
         FlowRow(
             modifier.then(semantics),
             horizontalArrangement = Arrangement.spacedBy(Spacing.xs),
             verticalArrangement = Arrangement.spacedBy(Spacing.xs),
-        ) { content() }
+        ) { steps.forEachIndexed { i, step -> StepChipView(step, state(i), named) } }
     } else {
         val strip = rememberScrollState()
+        val starts = remember(steps) { IntArray(steps.size) }
+        // The step before the one in play starts on the gutter, so it, the step in play and the next stay in view.
+        LaunchedEffect(active, steps) {
+            if (active == null) return@LaunchedEffect
+            withFrameNanos { } // the chips' places are known once they are laid out
+            strip.animateScrollTo(starts[(active - 1).coerceAtLeast(0)])
+        }
+        // The rail runs to the screen's edges and its chips start on the gutter: a cut chip is cut at the edge,
+        // under the fade and its chevron, never mid-column.
         Row(
-            modifier.then(semantics).horizontalEdgeFade(strip).horizontalScroll(strip),
+            modifier.then(semantics).bleedHorizontally(gutter).fadingHorizontalScroll(strip, gutter),
             horizontalArrangement = Arrangement.spacedBy(Spacing.xs),
-        ) { content() }
+        ) {
+            steps.forEachIndexed { i, step ->
+                StepChipView(
+                    step,
+                    state(i),
+                    named,
+                    Modifier.onGloballyPositioned { starts[i] = it.positionInParent().x.roundToInt() },
+                )
+            }
+        }
     }
 }
 
-/**
- * One step of the sequence. A past step steps back by losing its fill and its team-coloured edge (a thin muted edge, a
- * tick, the words in the muted token), never by fading (DESIGN.md "Muted states"); the current step is the strongest.
- */
+private enum class StepState { DONE, ACTIVE, UPCOMING }
+
+/** The step's countdown: teal digits on a dark face, red in overtime ("+0:05"). The banner's and the peek's. */
 @Composable
-private fun StepChipView(token: StepToken, index: Int, current: Int?) {
-    val accent = token.team?.let { teamColor(it) } ?: MaterialTheme.colorScheme.primary
-    val done = current != null && index < current
-    val active = current == index
-    val isBan = token.action == DraftAction.BAN
+internal fun StepClock(remaining: Int, modifier: Modifier = Modifier) {
+    val over = remaining < 0
+    val ink = if (over) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.secondary
+    Box(
+        modifier
+            .clip(RoundedCornerShape(7.dp))
+            .background(CLOCK_FACE)
+            .border(1.dp, ink, RoundedCornerShape(7.dp))
+            .padding(horizontal = Spacing.md, vertical = Spacing.xs)
+            .clearAndSetSemantics { contentDescription = DraftBoardText.spokenStepClock(remaining) },
+    ) {
+        Text(
+            DraftBoardText.stepClock(remaining),
+            style = GoaTextStyles.timerDigitsSmall.copy(fontSize = 22.sp, lineHeight = 28.sp),
+            color = ink,
+        )
+    }
+}
+
+private val CLOCK_FACE = Color(0xFF060C12)
+
+@Composable
+private fun StepChipView(step: DraftStep, state: StepState, named: Boolean, modifier: Modifier = Modifier) {
+    val accent = step.team?.let { teamColor(it) } ?: MaterialTheme.colorScheme.primary
+    val isBan = step.action == DraftAction.BAN
     val shape = RoundedCornerShape(6.dp)
     Row(
-        Modifier
+        modifier
             .background(
                 when {
-                    done -> Color.Transparent
-                    active -> accent.copy(alpha = 0.28f)
+                    state == StepState.DONE -> Color.Transparent
+                    state == StepState.ACTIVE -> accent.copy(alpha = 0.28f)
                     isBan -> Color.Transparent
                     else -> accent.copy(alpha = 0.12f)
                 },
                 shape,
             )
             .then(
-                if (done) {
+                if (state == StepState.DONE) {
                     Modifier.mutedOutline(shape)
                 } else {
-                    Modifier.border(if (active) 2.dp else 1.dp, accent.copy(alpha = 0.8f), shape)
+                    Modifier.border(if (state == StepState.ACTIVE) 2.dp else 1.dp, accent.copy(alpha = 0.85f), shape)
                 },
             )
             .padding(horizontal = Spacing.sm, vertical = Spacing.xs),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        if (done) {
+        if (state == StepState.DONE) {
             DoneMark(size = DoneTick)
             Spacer(Modifier.width(2.dp))
         }
         TeamText(
-            text = (if (token.hidden) "🔒 " else "") + token.label,
+            text = (if (step.hidden) "🔒 " else "") + step.label(named),
             style = MaterialTheme.typography.labelMedium,
-            fontWeight = if (active) FontWeight.Bold else FontWeight.Medium,
-            color = when {
-                done -> GoaTheme.colors.textMuted
-                isBan && !active -> MaterialTheme.colorScheme.onSurfaceVariant
+            fontWeight = if (state == StepState.ACTIVE) FontWeight.Bold else FontWeight.Medium,
+            color = when (state) {
+                StepState.DONE -> GoaTheme.colors.textMuted
                 else -> MaterialTheme.colorScheme.onSurface
             },
         )

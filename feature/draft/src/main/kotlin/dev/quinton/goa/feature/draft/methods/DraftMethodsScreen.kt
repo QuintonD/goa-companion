@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -23,6 +24,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.MenuBook
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.outlined.ContentCopy
 import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.Edit
@@ -44,11 +46,12 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
-import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -254,19 +257,15 @@ private fun MethodCard(row: MethodRow, selected: Boolean, actions: MethodsAction
         contentPadding = PaddingValues(0.dp),
         selected = selected,
     ) {
-        Row(Modifier.fillMaxWidth().padding(start = Spacing.sm, top = Spacing.sm, bottom = Spacing.lg)) {
+        // "Method details" (a 48 dp row) ends the plate: it brings its own room below, so the plate adds little.
+        Row(Modifier.fillMaxWidth().padding(start = Spacing.sm, top = Spacing.sm, bottom = Spacing.xs)) {
             SelectionRadio(selected, Modifier.padding(top = Spacing.md, end = Spacing.xs))
             Column(Modifier.weight(1f).padding(top = Spacing.sm)) {
                 MethodTitle(row)
                 Spacer(Modifier.height(Spacing.xs))
-                Text(
-                    coinTeamWords(method.summary),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-                Spacer(Modifier.height(Spacing.sm))
                 Text(row.poolLine, style = MaterialTheme.typography.labelLarge)
                 Spacer(Modifier.height(Spacing.sm))
+                // The steps carry the counts ("4 · ⚙ picks 2"), so the prose that spelled them out folds away.
                 val previewError = row.preview.error
                 when {
                     previewError != null -> Text(
@@ -277,8 +276,9 @@ private fun MethodCard(row: MethodRow, selected: Boolean, actions: MethodsAction
 
                     row.preview.tokens.isEmpty() -> Unit
 
-                    else -> SequenceStrip(row.preview.tokens)
+                    else -> SequenceStrip(row.preview.tokens, named = false)
                 }
+                MethodDetails(coinTeamWords(method.summary))
                 if (notes && method.notes.isNotEmpty()) {
                     Spacer(Modifier.height(Spacing.sm))
                     method.notes.forEach {
@@ -301,6 +301,36 @@ private fun MethodCard(row: MethodRow, selected: Boolean, actions: MethodsAction
         }
     }
 }
+
+/** "Method details": the method's own description, folded under a quiet text button. */
+@Composable
+private fun MethodDetails(summary: String) {
+    if (summary.isBlank()) return
+    var open by rememberSaveable(summary) { mutableStateOf(false) }
+    TextButton(
+        onClick = { open = !open },
+        contentPadding = PaddingValues(horizontal = 0.dp, vertical = Spacing.xs),
+        modifier = Modifier.heightIn(min = 48.dp).semantics {
+            stateDescription = if (open) "Expanded" else "Collapsed"
+        },
+    ) {
+        Text("Method details")
+        Icon(
+            Icons.Filled.KeyboardArrowDown,
+            contentDescription = null,
+            modifier = Modifier.size(20.dp).rotate(if (open) HALF_TURN else 0f),
+        )
+    }
+    if (open) {
+        Text(
+            summary,
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+    }
+}
+
+private const val HALF_TURN = 180f
 
 @Composable
 private fun MethodTitle(row: MethodRow) {

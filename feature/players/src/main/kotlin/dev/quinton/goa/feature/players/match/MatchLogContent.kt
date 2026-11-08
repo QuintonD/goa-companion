@@ -27,7 +27,6 @@ import androidx.compose.material.icons.outlined.MoreVert
 import androidx.compose.material.icons.outlined.Replay
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -54,6 +53,8 @@ import dev.quinton.goa.core.designsystem.component.GoaButton
 import dev.quinton.goa.core.designsystem.component.GoaOutlinedButton
 import dev.quinton.goa.core.designsystem.component.HeroPortrait
 import dev.quinton.goa.core.designsystem.component.TeamBadge
+import dev.quinton.goa.core.designsystem.icon.Destination
+import dev.quinton.goa.core.designsystem.icon.icon
 import dev.quinton.goa.core.designsystem.theme.Spacing
 import dev.quinton.goa.core.domain.match.RematchKind
 import dev.quinton.goa.core.model.match.MatchStatus
@@ -334,7 +335,15 @@ private fun PendingActions(onResume: (() -> Unit)?, onLogResult: (() -> Unit)?, 
     val padding = PaddingValues(horizontal = Spacing.md, vertical = Spacing.sm)
     val resume: @Composable (Modifier) -> Unit = { m ->
         onResume?.let {
-            GoaOutlinedButton(onClick = it, modifier = m.heightIn(min = 48.dp), contentPadding = padding) {
+            // Narrower sides than the trophy's half: the flag and the words share one line on a phone.
+            GoaOutlinedButton(
+                onClick = it,
+                modifier = m.heightIn(min = 48.dp),
+                contentPadding = PaddingValues(horizontal = Spacing.sm, vertical = Spacing.sm),
+            ) {
+                // The flag is Match setup on every screen that links to it (Destination).
+                Icon(Destination.MATCH_SETUP.icon, contentDescription = null, modifier = Modifier.size(16.dp))
+                Spacer(Modifier.width(Spacing.xs))
                 Text(OPEN_MATCH_SETUP, textAlign = TextAlign.Center)
             }
         }

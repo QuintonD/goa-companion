@@ -46,7 +46,7 @@ class RematchTimerFlowTest {
         // ---- Game 1, logged by hand: Red wins.
         rule.tap(hasText("Matches") and hasClickAction())
         rule.tapText("Log a match")
-        rule.waitForText("Duration (minutes, optional)")
+        rule.waitForDescription("Add seat to Red")
         (red + blue).forEach { (hero, pilot) -> rule.fillNextSeat(hero, pilot) }
         rule.tapDescription("Red won", substring = true)
         rule.tap(hasText("Save", substring = true) and hasClickAction())
