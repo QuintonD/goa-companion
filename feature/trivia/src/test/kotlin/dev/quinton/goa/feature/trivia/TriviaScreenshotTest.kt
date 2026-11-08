@@ -51,6 +51,7 @@ import dev.quinton.goa.feature.trivia.home.PlayingAsContent
 import dev.quinton.goa.feature.trivia.home.PlayingAsPicker
 import dev.quinton.goa.feature.trivia.home.TriviaHomeScreen
 import dev.quinton.goa.feature.trivia.home.TriviaHomeViewModel
+import dev.quinton.goa.feature.trivia.home.TriviaMode
 import dev.quinton.goa.feature.trivia.quiz.TriviaQuizScreen
 import dev.quinton.goa.feature.trivia.quiz.TriviaQuizViewModel
 import kotlin.random.Random
@@ -133,9 +134,17 @@ class TriviaScreenshotTest {
     )
 
     @Composable
-    private fun Home(vm: TriviaHomeViewModel) {
+    private fun Home(vm: TriviaHomeViewModel, mode: TriviaMode = TriviaMode.PRACTICE) {
         val state by vm.uiState.collectAsState()
-        TriviaHomeScreen(state, onAction = vm::onAction, onStart = {}, onStartHero = {}, onReset = {}, onBack = {})
+        TriviaHomeScreen(
+            state,
+            onAction = vm::onAction,
+            onStart = {},
+            onStartHero = {},
+            onReset = {},
+            onBack = {},
+            initialMode = mode,
+        )
     }
 
     @Test fun homeDark() = capture(ThemeMode.DARK) { Home(homeViewModel()) }
@@ -175,7 +184,21 @@ class TriviaScreenshotTest {
 
     // ---- Playing as and the Challenge (ADR-032) -------------------------------------------
 
-    /** Sam plays on Ann's phone: the note says whose progress this is; Challenge beside Start quiz. */
+    /** Challenge chosen as Guest: the fixed round, and the row asks for a player (Start asks too). */
+    @Test
+    fun homeChallengeDark() = capture(ThemeMode.DARK) { Home(homeViewModel(), TriviaMode.CHALLENGE) }
+
+    /** Challenge chosen as Sam: ranked under his name. */
+    @Test
+    fun homeChallengePlayerLight() =
+        capture(ThemeMode.LIGHT) { Home(homeViewModel(playingAs = "sam", me = "ann"), TriviaMode.CHALLENGE) }
+
+    @Config(qualifiers = "w384dp-h832dp-xxhdpi")
+    @Test
+    fun homeChallengeW384DarkFontScale2() =
+        capture(ThemeMode.DARK, 2f) { Home(homeViewModel(playingAs = "sam", me = "ann"), TriviaMode.CHALLENGE) }
+
+    /** Sam plays on Ann's phone: the note says whose progress this is. */
     @Test
     fun homePlayingAsOtherDark() = capture(ThemeMode.DARK) { Home(homeViewModel(playingAs = "sam", me = "ann")) }
 

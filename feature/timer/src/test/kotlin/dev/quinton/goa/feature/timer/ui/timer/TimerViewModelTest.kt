@@ -305,7 +305,7 @@ class TimerViewModelTest {
     @Test
     fun `tonight's turn length is one tap from the start card`() = runTest {
         val vm = vm()
-        assertThat(vm.uiState.first { it.start != null }.start!!.tonight).isEqualTo(TonightUi(30, 30))
+        assertThat(vm.uiState.first { it.start != null }.start!!.tonight).isEqualTo(TonightUi(30, 30, "Play a card"))
         vm.setTonightTurn(45)
         val adjusted = vm.uiState.first { it.start?.tonight?.adjusted == true }.start!!.tonight!!
         assertThat(adjusted.seconds).isEqualTo(45)

@@ -8,9 +8,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
-import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -27,6 +25,10 @@ import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import dev.quinton.goa.core.designsystem.component.GoaOutlinedButton
+import dev.quinton.goa.core.designsystem.component.GoaProgressBar
+import dev.quinton.goa.core.designsystem.component.SectionHeader
+import dev.quinton.goa.core.designsystem.component.SectionHeaderPaddingTight
 import dev.quinton.goa.core.designsystem.theme.GoaTextStyles
 import dev.quinton.goa.core.designsystem.theme.Spacing
 import dev.quinton.goa.core.game.DecisionKind
@@ -52,10 +54,10 @@ internal fun GameReportSection(
 ) {
     val ui = play.report
     Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-        Overline(stringResource(R.string.report_title))
+        SectionHeader(stringResource(R.string.report_title), padding = SectionHeaderPaddingTight)
         when {
             ui == null -> {
-                OutlinedButton(
+                GoaOutlinedButton(
                     onClick = { onAction(GameAction.StartReport) },
                     modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp),
                 ) { Text(stringResource(R.string.report_start)) }
@@ -74,16 +76,6 @@ internal fun GameReportSection(
 }
 
 @Composable
-private fun Overline(text: String) {
-    Text(
-        text.uppercase(),
-        style = GoaTextStyles.overline,
-        color = MaterialTheme.colorScheme.primary,
-        modifier = Modifier.semantics { heading() },
-    )
-}
-
-@Composable
 private fun Running(ui: ReportUi, onAction: (GameAction) -> Unit) {
     Column(
         Modifier.semantics(mergeDescendants = true) { liveRegion = LiveRegionMode.Polite },
@@ -98,12 +90,9 @@ private fun Running(ui: ReportUi, onAction: (GameAction) -> Unit) {
             style = MaterialTheme.typography.bodyMedium,
         )
         if (ui.total > 0) {
-            LinearProgressIndicator(
-                progress = { ui.done.toFloat() / ui.total },
-                modifier = Modifier.fillMaxWidth(),
-            )
+            GoaProgressBar({ ui.done.toFloat() / ui.total }, Modifier.fillMaxWidth())
         } else {
-            LinearProgressIndicator(Modifier.fillMaxWidth())
+            GoaProgressBar(null, Modifier.fillMaxWidth())
         }
     }
     TextButton(

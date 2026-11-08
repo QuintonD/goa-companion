@@ -14,17 +14,18 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.ErrorOutline
-import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.InputChipDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SelectableChipColors
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.ReadOnlyComposable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.compositeOver
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
@@ -32,6 +33,9 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import dev.quinton.goa.core.designsystem.cardtext.GameIcon
+import dev.quinton.goa.core.designsystem.component.SelectedEdge
+import dev.quinton.goa.core.designsystem.component.selectableChipBorder
+import dev.quinton.goa.core.designsystem.component.selectableChipColors
 import dev.quinton.goa.core.designsystem.theme.GoaTheme
 import dev.quinton.goa.core.designsystem.theme.Spacing
 
@@ -59,14 +63,14 @@ fun UnverifiedBadge(modifier: Modifier = Modifier, compact: Boolean = false) {
     }
 }
 
-/** Small engraved pill used for product names and other metadata. */
+/** Small engraved pill used for product names and other metadata; a long one wraps rather than being cut. */
 @Composable
 fun MetaPill(text: String, modifier: Modifier = Modifier, color: Color = MaterialTheme.colorScheme.onSurfaceVariant) {
     Text(
         text = text,
-        style = MaterialTheme.typography.labelSmall,
+        style = MaterialTheme.typography.bodyMedium,
         color = color,
-        maxLines = 1,
+        maxLines = 2,
         overflow = TextOverflow.Ellipsis,
         modifier = modifier
             .clip(RoundedCornerShape(6.dp))
@@ -119,27 +123,15 @@ fun InitiativeBadge(initiative: Int?, modifier: Modifier = Modifier, accent: Col
 }
 
 /**
- * The filter and sort chips: small steel plates, opaque so they read the same on the canvas of either
- * theme and on a sheet (use them under `GoaPlateTheme`); selected is bronze and carries its check or count.
+ * The filter and sort chips: the design system's one selected look (`selectableChipColors`): small steel plates,
+ * opaque so they read the same on the canvas and on a sheet (steel on the slate, paper in the light theme); selected
+ * is the bronze wash and edge with its check or count.
  */
 @Composable
-fun goaFilterChipColors(): SelectableChipColors = FilterChipDefaults.filterChipColors(
-    containerColor = CHIP_STEEL,
-    labelColor = MaterialTheme.colorScheme.onSurface,
-    iconColor = MaterialTheme.colorScheme.primary,
-    selectedContainerColor = CHIP_BRONZE,
-    selectedLabelColor = MaterialTheme.colorScheme.onSurface,
-    selectedLeadingIconColor = MaterialTheme.colorScheme.primary,
-    selectedTrailingIconColor = MaterialTheme.colorScheme.primary,
-)
+fun goaFilterChipColors(): SelectableChipColors = selectableChipColors()
 
 @Composable
-fun goaChipBorder(selected: Boolean): BorderStroke = FilterChipDefaults.filterChipBorder(
-    enabled = true,
-    selected = selected,
-    borderColor = CHIP_EDGE,
-    selectedBorderColor = MaterialTheme.colorScheme.primary,
-)
+fun goaChipBorder(selected: Boolean): BorderStroke = selectableChipBorder(selected)
 
 @Composable
 fun goaInputChipColors(): SelectableChipColors = InputChipDefaults.inputChipColors(
@@ -153,9 +145,14 @@ fun goaInputChipColors(): SelectableChipColors = InputChipDefaults.inputChipColo
 fun goaInputChipBorder(): BorderStroke = InputChipDefaults.inputChipBorder(
     enabled = true,
     selected = true,
-    selectedBorderColor = MaterialTheme.colorScheme.primary,
+    selectedBorderColor = GoaTheme.colors.selection,
+    selectedBorderWidth = SelectedEdge,
 )
 
-private val CHIP_STEEL = Color(0xFF2B363E)
-private val CHIP_BRONZE = Color(0xFF4A3D22)
-private val CHIP_EDGE = Color(0xFF5D6B70)
+// Steel on the slate, the light theme's paper on the page; selected, the bronze wash over it (as selectableChipColors).
+private val CHIP_STEEL: Color
+    @Composable @ReadOnlyComposable
+    get() = if (GoaTheme.isDark) Color(0xFF2B363E) else GoaTheme.colors.plate
+private val CHIP_BRONZE: Color
+    @Composable @ReadOnlyComposable
+    get() = GoaTheme.colors.selectionFill.compositeOver(CHIP_STEEL)

@@ -146,3 +146,52 @@ fun List<SlotStep>.tokens(teamA: Team? = null): List<StepToken> = map { step ->
 /** "Sequence: Ban Red, Pick Blue, …" for assistive tech. */
 fun List<StepToken>.spoken(): String =
     "Sequence: " + joinToString(", ") { it.label.replace("◆", "Red").replace("●", "Blue") }
+
+/**
+ * One step of a draft as the table says it: a run of one side's bans or picks, numbered from 1 ("4 · ◆ Red picks 2").
+ * The method previews, the live board's step chips and its banner all count with it, so there is one numbering.
+ */
+data class DraftStep(
+    val number: Int,
+    val action: DraftAction,
+    val team: Team?,
+    /** Who acts, in words: "Red", or "A" and "B" before the coin names the teams (the method editor). */
+    val who: String,
+    val count: Int,
+    val hidden: Boolean,
+    /** The plan index of the step's first ban or pick. */
+    val first: Int,
+) {
+    val last: Int get() = first + count - 1
+
+    operator fun contains(slot: Int): Boolean = slot in first..last
+
+    private val verb: String get() = if (action == DraftAction.BAN) "bans" else "picks"
+
+    /** "4 · ◆ Red picks 2"; [named] false keeps the team's mark and drops its name ("1 · ● bans 1"). */
+    fun label(named: Boolean = true): String {
+        val mark = team?.let { "${teamGlyph(it)} " }.orEmpty()
+        val name = if (team == null || named) "$who " else ""
+        return "$number · $mark$name$verb $count"
+    }
+
+    /** "Step 4, Red picks 2, hidden" for assistive tech. */
+    val spoken: String get() = "Step $number, $who $verb $count" + if (hidden) ", hidden" else ""
+}
+
+/** The steps of a sequence: consecutive bans or picks by the same side, counted. */
+fun List<StepToken>.steps(): List<DraftStep> {
+    val out = mutableListOf<DraftStep>()
+    forEachIndexed { i, token ->
+        val who = token.team?.let { teamName(it) } ?: token.label.substringAfterLast(' ')
+        val prev = out.lastOrNull()
+        val same = prev != null && prev.action == token.action && prev.team == token.team && prev.who == who &&
+            prev.hidden == token.hidden
+        if (prev != null && same) {
+            out[out.lastIndex] = prev.copy(count = prev.count + 1)
+        } else {
+            out += DraftStep(out.size + 1, token.action, token.team, who, 1, token.hidden, first = i)
+        }
+    }
+    return out
+}

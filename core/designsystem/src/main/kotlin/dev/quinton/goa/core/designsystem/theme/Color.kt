@@ -12,25 +12,36 @@ internal object Tokens {
     val DarkSurface = Color(0xFF1E2327)
     val DarkSurfaceHigh = Color(0xFF2A3136)
     val DarkOnSurface = Color(0xFFE8E2D6)
-    val DarkOnSurfaceVariant = Color(0xFFB4BEC8)
+
+    // Secondary text: ≥ 7:1 on the slate, the canvas, the raised surface and a steel chip, for a dim table (round 4).
+    val DarkOnSurfaceVariant = Color(0xFFBCC6CF)
     val DarkPrimary = Color(0xFFC9A35B)
     val DarkOnPrimary = Color(0xFF0B1622)
     val DarkSecondary = Color(0xFF3FC1B0)
     val DarkTeamRed = Color(0xFFE76C61)
     val DarkTeamBlue = Color(0xFF4F8FE0)
+
+    // Team colours for words (a team's name, an actor heading): lighter in the dark theme, deeper on paper, so a
+    // team-coloured word reads as well as the body text beside it (≥ 6:1 on the plate, ≥ 4.5:1 on any ground).
+    val DarkTeamRedText = Color(0xFFF29488)
+    val DarkTeamBlueText = Color(0xFF8DB9F5)
+    val LightTeamRedText = Color(0xFF8E2A21)
+    val LightTeamBlueText = Color(0xFF1E4C8F)
     val DarkError = Color(0xFFFF6B6B)
     val DarkUnverified = Color(0xFFE8B04A)
     val DarkMedallion = Color(0xFF07101A)
 
-    val LightBackground = Color(0xFFF4EFE6)
-    val LightSurface = Color(0xFFFFFFFF)
-    val LightSurfaceHigh = Color(0xFFEDE5D6)
-    val LightOnSurface = Color(0xFF1A1F26)
-    val LightOnSurfaceVariant = Color(0xFF4A5563)
-    val LightPrimary = Color(0xFF84662A)
+    // The light theme is the rulebook's page (ADR-053, round 1 of the hill climb): a warm paper canvas, plates of
+    // white paper with a steel edge, ink text and bronze accents. Only the timer and the map stay dark.
+    val LightBackground = Color(0xFFEDE7DB)
+    val LightSurface = Color(0xFFFCFAF4)
+    val LightSurfaceHigh = Color(0xFFF1EBDF)
+    val LightOnSurface = Color(0xFF221D17)
+    val LightOnSurfaceVariant = Color(0xFF4C4438)
+    val LightPrimary = Color(0xFF7A5A1E)
     val LightOnPrimary = Color(0xFFFFFFFF)
-    val LightSecondary = Color(0xFF1B786B)
-    val LightTeamRed = Color(0xFFB83A30)
+    val LightSecondary = Color(0xFF17695E)
+    val LightTeamRed = Color(0xFFB0362C)
     val LightTeamBlue = Color(0xFF2C63B0)
     val LightError = Color(0xFFB3261E)
     val LightUnverified = Color(0xFF8A5A00)
@@ -56,6 +67,30 @@ internal object Tokens {
     val ParchmentInk = Color(0xFF8A3F18)
     val DarkParchmentEdge = Color(0xFF8C826E)
     val LightParchmentEdge = Color(0xFFB9AE98)
+
+    val DarkPlate = Color(0xFF1D2124)
+    val DarkPlateWell = Color(0xFF15191B)
+    val LightPlate = LightSurface
+    val LightPlateWell = Color(0xFFF1ECE2)
+
+    // The rules reader's page: the rulebook's parchment in the light theme; at a dim table (the dark theme) a dark
+    // parchment with warm light ink, so opening a passage never flashes a bright page.
+    val DarkPage = Color(0xFF221E19)
+    val DarkOnPage = Color(0xFFEAE0CC)
+    val DarkOnPageVariant = Color(0xFFBDB19A)
+    val DarkPageInk = Color(0xFFE39B5F)
+    val DarkPageEdge = Color(0xFF51473A)
+
+    // Bronze strokes and words that must hold on cream (symbols, a selection's edge and check, unfilled stars).
+    val LightBronzeInk = Color(0xFF6A4A12)
+
+    // De-emphasised but readable (round 5): what is done, past, empty or off yet still informative. The words stay
+    // ≥ 5:1 on every ground of their theme (the steel chip included in the dark theme), the edges ≥ 3:1, so a muted
+    // state steps back by losing decoration (fill, weight, a thick edge), never by fading its text.
+    val DarkTextMuted = Color(0xFFA3ADB6)
+    val DarkOutlineMuted = Color(0xFF7C8994)
+    val LightTextMuted = Color(0xFF665B4C)
+    val LightOutlineMuted = Color(0xFF857A68)
 }
 
 internal val DarkColors = darkColorScheme(
@@ -92,7 +127,7 @@ internal val DarkColors = darkColorScheme(
 internal val LightColors = lightColorScheme(
     primary = Tokens.LightPrimary,
     onPrimary = Tokens.LightOnPrimary,
-    primaryContainer = Color(0xFFF1E2C0),
+    primaryContainer = Color(0xFFF0E1BF),
     onPrimaryContainer = Color(0xFF3A2A08),
     secondary = Tokens.LightSecondary,
     onSecondary = Tokens.LightOnPrimary,
@@ -114,8 +149,8 @@ internal val LightColors = lightColorScheme(
     surfaceContainer = Tokens.LightSurface,
     surfaceContainerHigh = Tokens.LightSurfaceHigh,
     surfaceContainerHighest = Tokens.LightSurfaceHigh,
-    outline = Tokens.LightPrimary.copy(alpha = 0.3f),
-    outlineVariant = Tokens.LightOnSurfaceVariant.copy(alpha = 0.3f),
+    outline = Tokens.LightPrimary.copy(alpha = 0.4f),
+    outlineVariant = Tokens.LightOnSurfaceVariant.copy(alpha = 0.25f),
     error = Tokens.LightError,
     onError = Tokens.LightOnPrimary,
 )
@@ -123,6 +158,7 @@ internal val LightColors = lightColorScheme(
 /** Colours outside the Material scheme (team identity, card colours). */
 @Immutable
 data class GoaExtendedColors(
+    /** A team's colour for marks, accent bars, rings and fills (≥ 3:1 on every ground of its theme). */
     val teamRed: Color,
     val teamBlue: Color,
     val cardGold: Color,
@@ -159,6 +195,46 @@ data class GoaExtendedColors(
     /** Inline game icons on parchment (≥ 4.9:1). */
     val parchmentInk: Color = Tokens.ParchmentInk,
     val parchmentEdge: Color = Tokens.DarkParchmentEdge,
+    /** A plate's flat tone (the slate, or the light theme's paper): fields and fades that sit on a plate. */
+    val plate: Color = Tokens.DarkPlate,
+    /** A recess on a plate: a field, a well, a quiet group. */
+    val plateWell: Color = Tokens.DarkPlateWell,
+    /** Selected: the bronze outline and the tint under a picked choice (`SelectablePlate`). */
+    val selection: Color = Tokens.DarkPrimary,
+    val selectionFill: Color = Tokens.DarkPrimary.copy(alpha = 0.2f),
+    /** A secondary glyph that still carries meaning (an unfilled complexity star): ≥ 3:1 on its plate and canvas. */
+    val glyphMuted: Color = Color(0xFF8A949C),
+    /**
+     * Bronze for a stroke, symbol or small word that carries meaning (a complexity star, a selection's check, a
+     * turn diamond): the theme's bronze in the dark theme, a deeper one on cream (≥ 4.5:1 on paper and canvas).
+     */
+    val bronzeInk: Color = Tokens.DarkPrimary,
+    /**
+     * The rules reader's page (a quoted passage): parchment when light, a dark parchment when dark. Its words
+     * ([onPage], [onPageVariant]) and the printed heads ([pageInk]) are ≥ 4.5:1 on it; [pageEdge] is its rules.
+     */
+    val page: Color = Tokens.DarkPage,
+    val onPage: Color = Tokens.DarkOnPage,
+    val onPageVariant: Color = Tokens.DarkOnPageVariant,
+    val pageInk: Color = Tokens.DarkPageInk,
+    val pageEdge: Color = Tokens.DarkPageEdge,
+    /**
+     * A team's colour for words (`teamTextColor`): a team's name or a heading that names who acts. ≥ 6:1 on the
+     * plate and ≥ 4.5:1 on every ground of its theme, as legible as the body text; [teamRed]/[teamBlue] stay for marks.
+     */
+    val teamRedText: Color = Tokens.DarkTeamRedText,
+    val teamBlueText: Color = Tokens.DarkTeamBlueText,
+    /**
+     * Words of a de-emphasised state (a done turn, a past draft step, an empty slot's number, a card name under a
+     * done hero): ≥ 4.5:1 on every ground of its theme, so it steps back from the body text without fading. Never
+     * draw muted text with alpha (DESIGN.md "Muted states").
+     */
+    val textMuted: Color = Tokens.DarkTextMuted,
+    /**
+     * The edge of a de-emphasised thing that still has to be seen (an empty slot's dashed outline, a past step's
+     * hairline, a done cell's frame): ≥ 3:1 on every ground of its theme.
+     */
+    val outlineMuted: Color = Tokens.DarkOutlineMuted,
 )
 
 internal val DarkExtended = GoaExtendedColors(
@@ -203,6 +279,21 @@ internal val LightExtended = GoaExtendedColors(
     parchment = Tokens.LightParchment,
     onParchmentVariant = Tokens.LightOnParchmentVariant,
     parchmentEdge = Tokens.LightParchmentEdge,
+    plate = Tokens.LightPlate,
+    plateWell = Tokens.LightPlateWell,
+    selection = Tokens.LightPrimary,
+    selectionFill = Tokens.LightPrimary.copy(alpha = 0.16f),
+    glyphMuted = Color(0xFF7A7062),
+    bronzeInk = Tokens.LightBronzeInk,
+    page = Tokens.LightParchment,
+    onPage = Tokens.OnParchment,
+    onPageVariant = Tokens.LightOnParchmentVariant,
+    pageInk = Tokens.ParchmentInk,
+    pageEdge = Tokens.LightParchmentEdge,
+    teamRedText = Tokens.LightTeamRedText,
+    teamBlueText = Tokens.LightTeamBlueText,
+    textMuted = Tokens.LightTextMuted,
+    outlineMuted = Tokens.LightOutlineMuted,
 )
 
 val LocalGoaColors = staticCompositionLocalOf { DarkExtended }

@@ -29,6 +29,27 @@ sealed interface CardViewerUiState {
         val initialIndex: Int,
     ) : CardViewerUiState {
         fun isHandicap(card: Card): Boolean = hero.handicap?.id == card.id
+
+        /**
+         * Where [index] sits, counted as the deck page counts (DESIGN.md "Deck count"): the hero's deck cards
+         * ("3 of 18"), then the Handicap card on its own ("Handicap"), then any extras ("Spellbook 2 of 12").
+         */
+        fun position(index: Int): String {
+            val deck = hero.cards.size
+            val card = cards.getOrNull(index) ?: return ""
+            return when {
+                isHandicap(card) -> "Handicap"
+
+                index < deck -> "${index + 1} of $deck"
+
+                else -> {
+                    val extras = cards.size - deck - (if (hero.handicap != null) 1 else 0)
+                    val at = index - deck - (if (hero.handicap != null) 1 else 0) + 1
+                    val spellbook = DeckLayout(emptyList(), null, hero.extras).extrasAreSpellbook
+                    "${if (spellbook) "Spellbook" else "Extra"} $at of $extras"
+                }
+            }
+        }
     }
 }
 

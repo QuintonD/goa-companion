@@ -90,6 +90,11 @@ import dev.quinton.goa.feature.board.hero
 import dev.quinton.goa.feature.board.ui.ArtBoardPalette
 import dev.quinton.goa.feature.board.ui.BoardPalette
 import dev.quinton.goa.feature.board.ui.CHIP_TEXT
+import dev.quinton.goa.feature.board.ui.ChooserEntry
+import dev.quinton.goa.feature.board.ui.MAP_MARK_MAX_SCALE
+import dev.quinton.goa.feature.board.ui.MINION_BADGE_AT
+import dev.quinton.goa.feature.board.ui.MapChoices
+import dev.quinton.goa.feature.board.ui.MapChooser
 import dev.quinton.goa.feature.board.ui.MiniatureBadge
 import dev.quinton.goa.feature.board.ui.PieceLook
 import dev.quinton.goa.feature.board.ui.PieceToken
@@ -151,7 +156,7 @@ internal const val PIECE_SIZE = 1.46f
  * A tap selects or moves (resolved by [onTap]); dragging the selected piece moves it, a long press
  * lifts any piece, dropping on another piece swaps them ([onDrop]); any other drag pans, pinch
  * zooms, a double tap on a space where nothing happened zooms in. When zoomed out, a tap near a
- * piece selects it; a tap between two close pieces calls [onAmbiguous] instead of guessing.
+ * piece selects it; a tap between close pieces asks which one at the finger ([MapChooser]) instead of guessing.
  */
 @Composable
 fun BoardMapView(
@@ -160,7 +165,6 @@ fun BoardMapView(
     viewport: MapViewport,
     onTap: (MapTap) -> Boolean,
     onDrop: (pieceId: String, hex: Hex) -> Unit,
-    onAmbiguous: (Offset) -> Unit,
     modifier: Modifier = Modifier,
     lane: Rect? = null,
 ) {
@@ -175,7 +179,8 @@ fun BoardMapView(
     val current by rememberUpdatedState(state)
     val tap by rememberUpdatedState(onTap)
     val drop by rememberUpdatedState(onDrop)
-    val ambiguous by rememberUpdatedState(onAmbiguous)
+    // A tap between close pieces: which one, at the finger.
+    var choices by remember { mutableStateOf<MapChoices?>(null) }
     val maxHexPx = with(density) { maxHex(state.map).toPx() }
     val minHexPx = with(density) { COMFORTABLE_HEX.toPx() }
     val touchPx = with(density) { TOUCH_RADIUS.toPx() }
@@ -274,7 +279,19 @@ fun BoardMapView(
                             } else {
                                 val at = down.position
                                 val resolved = resolveTap(current, layout, viewport, at, touchPx, currentLook)
-                                if (resolved == null) ambiguous(down.position)
+                                if (resolved == null) {
+                                    val board = current
+                                    val near = closePieces(board, layout, viewport, down.position, touchPx)
+                                    choices = MapChoices(
+                                        down.position,
+                                        near.map { piece ->
+                                            ChooserEntry(
+                                                label = choiceLabel(board, piece),
+                                                onClick = { tap(MapTap.Piece(piece.id)) },
+                                            )
+                                        },
+                                    )
+                                }
                                 val did = resolved != null && tap(resolved)
                                 lastTap = LastTap(upTime, hex, inert = resolved != null && !did)
                             }
@@ -316,10 +333,11 @@ fun BoardMapView(
             Box(transform.semantics { isTraversalGroup = true }) {
                 MapOverlays(state, layout, unit, palette)
                 DropTarget(state.geometry, layout, unit, palette, drag)
-                Pieces(state, layout, unit, palette, look, drag)
+                Pieces(state, layout, unit, palette, look, drag, zoom = { viewport.zoom })
                 SpaceNodes(state, layout, viewport, onTap = { tap(it) })
             }
         }
+        MapChooser(choices, onDismiss = { choices = null })
     }
 }
 
@@ -363,7 +381,7 @@ private fun figureUnder(
  * What a tap at [screen] means. A tap on a piece's space is that piece. With a piece selected, a waiting one
  * or a tool in hand, any other space is somewhere to go, so it stays the space. Otherwise a tap on a miniature's
  * body above its own hex is that figure; with the map zoomed out, a tap within [touchPx] of one piece selects
- * it; between two pieces about as close it is ambiguous (null) and the screen suggests zooming; else it is the
+ * it; between two pieces about as close it is ambiguous (null: the map asks which, [closePieces]); else it is the
  * space.
  */
 internal fun resolveTap(
@@ -392,6 +410,29 @@ internal fun resolveTap(
     }
 }
 
+/** A piece in the chooser: its name and where it stands ("Red Melee minion · Lane Zone 2"). */
+private fun choiceLabel(state: BoardUiState.Ready, piece: BoardPiece): String = listOf(
+    BoardText.piece(piece) { id -> state.heroes.hero(id).name },
+    BoardText.zone(state.map, piece.at?.let { state.geometry.spaces[it]?.zone }),
+).joinToString(" · ")
+
+/** The pieces a tap at [screen] could have meant when [resolveTap] can't tell: the nearest and those about as near. */
+internal fun closePieces(
+    state: BoardUiState.Ready,
+    layout: MapLayout,
+    viewport: MapViewport,
+    screen: Offset,
+    touchPx: Float,
+): List<BoardPiece> {
+    val reach = maxOf(touchPx, PIECE_SIZE / 2f * viewport.scale)
+    val near = BoardRules.occupancy(state.board.state).entries
+        .map { (at, piece) -> piece to (viewport.mapToScreen(layout.center(at)) - screen).getDistance() }
+        .filter { it.second <= reach }
+        .sortedBy { it.second }
+    val nearest = near.firstOrNull()?.second ?: return emptyList()
+    return near.filter { it.second <= nearest * AMBIGUITY }.map { it.first }
+}
+
 // ---- Drawing -----------------------------------------------------------------------------
 
 /** Overlays of the selection, the tray's targets and Measure: rebuilt only when one of them changes. */
@@ -403,12 +444,14 @@ private fun MapOverlays(state: BoardUiState.Ready, layout: MapLayout, unit: Floa
     val targets = state.trayTargets
     val selectedAt = state.selected?.at
     val measure = state.measure
-    val draw = remember(overlay, targets, selectedAt, measure, layout, unit, palette) {
+    // The numbers grow with large text, capped so a chip stays inside its space.
+    val grow = minOf(LocalDensity.current.fontScale, MAP_MARK_MAX_SCALE)
+    val draw = remember(overlay, targets, selectedAt, measure, layout, unit, palette, grow) {
         Modifier.drawWithCache {
             fun cell(hex: Hex) = layout.corners(hex).map { it * unit } to layout.center(hex) * unit
             val numbers = HashMap<Int, TextLayoutResult>()
             fun number(n: Int): TextLayoutResult = numbers.getOrPut(n) {
-                val size = unit * if (palette.onArt) CHIP_TEXT else 0.78f
+                val size = unit * if (palette.onArt) CHIP_TEXT * grow else 0.78f
                 measurer.measure(n.toString(), numberStyle.copy(fontSize = size.toSp()))
             }
             val radius = overlay?.radius.orEmpty().map(::cell)
@@ -426,7 +469,7 @@ private fun MapOverlays(state: BoardUiState.Ready, layout: MapLayout, unit: Floa
                 movement.forEach { (cell, text) ->
                     val (c, m) = cell
                     if (palette.onArt) {
-                        drawNumberChip(text, m, unit)
+                        drawNumberChip(text, m, unit, scale = grow)
                     } else {
                         drawMovementCell(c, m, palette)
                         drawText(text, topLeft = m - Offset(text.size.width / 2f, text.size.height / 2f))
@@ -490,6 +533,7 @@ private fun Pieces(
     palette: BoardPalette,
     look: PieceLook,
     drag: DragState,
+    zoom: () -> Float,
 ) {
     val density = LocalDensity.current
     val sizePx = PIECE_SIZE * unit
@@ -527,7 +571,7 @@ private fun Pieces(
                 modifier = placed.clearAndSetSemantics {},
             )
             if (look == PieceLook.MINIATURE && piece is MinionPiece) {
-                MiniatureBadge(piece, sizeDp, placed.zIndex(BADGE_LAYER))
+                MiniatureBadge(piece, sizeDp, placed.zIndex(BADGE_LAYER), zoom)
             }
         }
     }
@@ -603,7 +647,10 @@ private fun labelBusy(state: BoardUiState.Ready, layout: MapLayout): List<Offset
         } else {
             emptyList()
         }
-        hexes.distinct().map(layout::center) + line
+        // A minion's type badge and team mark stand out beside its figure: obstacles too.
+        val badges = state.pieces.filterIsInstance<MinionPiece>().mapNotNull { it.at }
+            .map { layout.center(it) + MINION_BADGE_AT }
+        hexes.distinct().map(layout::center) + line + badges
     }
 }
 

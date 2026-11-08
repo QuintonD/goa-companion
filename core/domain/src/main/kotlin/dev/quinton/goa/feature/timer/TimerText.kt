@@ -8,6 +8,7 @@ import dev.quinton.goa.core.domain.timer.TimerReadout
 import dev.quinton.goa.core.domain.timer.TimerSnapshot
 import dev.quinton.goa.core.domain.timer.TimerStep
 import dev.quinton.goa.core.model.match.GameMode
+import dev.quinton.goa.feature.timer.ui.timer.PhaseDuration
 import kotlin.math.abs
 
 /** Plain-text labels shared by the timer UI, notification and accessibility descriptions. */
@@ -167,9 +168,7 @@ object TimerText {
      */
     fun presetSummary(preset: TimerPreset): String {
         val enabled = preset.phases.filter { it.enabled }
-        val actionOn = enabled.any { it.kind == PhaseKind.ACTION && it.scope == PhaseScope.TURN }
-        val shown = enabled.filterNot { actionOn && it.kind == PhaseKind.RESOLVE }.sortedBy { it.scope.ordinal }
-        val parts = shown.map { phase ->
+        val parts = shownPhases(preset).map { phase ->
             val base = "${phase.name} ${durationLabel(phase.seconds)}".let {
                 if (phase.seconds == null) phase.name else it
             }
@@ -182,5 +181,31 @@ object TimerText {
         val summary = if (parts.isEmpty()) "Checklist only" else parts.joinToString(" · ")
         val untimed = enabled.all { it.seconds == null }
         return if (untimed && parts.isNotEmpty()) "Untimed · round and turn counters" else summary
+    }
+
+    /**
+     * The preset's phases as the Timer tab's grid shows them, in the summary's order: one cell per phase with its
+     * length and how often it runs ("×4", "per hero"). Empty for a preset with no timed phase (its summary says so).
+     */
+    fun phaseDurations(preset: TimerPreset): List<PhaseDuration> {
+        if (preset.phases.none { it.enabled && it.seconds != null }) return emptyList()
+        return shownPhases(preset).map { phase ->
+            PhaseDuration(
+                name = phase.name,
+                seconds = phase.seconds,
+                repeat = when (phase.kind) {
+                    PhaseKind.TURN -> "×${preset.turnsPerRound}"
+                    PhaseKind.ACTION -> "per hero"
+                    else -> null
+                },
+                perTurn = phase.kind == PhaseKind.TURN,
+            )
+        }
+    }
+
+    /** Enabled phases in play order; Resolve is left out where each hero's Action is timed instead. */
+    private fun shownPhases(preset: TimerPreset) = preset.phases.filter { it.enabled }.let { enabled ->
+        val actionOn = enabled.any { it.kind == PhaseKind.ACTION && it.scope == PhaseScope.TURN }
+        enabled.filterNot { actionOn && it.kind == PhaseKind.RESOLVE }.sortedBy { it.scope.ordinal }
     }
 }

@@ -24,7 +24,6 @@ import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material.icons.outlined.StarOutline
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -63,7 +62,6 @@ import dev.quinton.goa.core.designsystem.icon.PlayerCrests
 import dev.quinton.goa.core.designsystem.theme.GoaFonts
 import dev.quinton.goa.core.designsystem.theme.GoaTheme
 import dev.quinton.goa.core.designsystem.theme.Spacing
-import dev.quinton.goa.core.designsystem.theme.playerColor
 import dev.quinton.goa.core.model.catalog.CardColor
 import dev.quinton.goa.core.model.match.Team
 import dev.quinton.goa.core.model.player.Player
@@ -210,52 +208,51 @@ private fun Monogram(letter: String, tint: Color, side: Dp) {
 }
 
 /**
- * Player crest (one of 24, `player.avatarId`) tinted by the player's colour inside a circular
- * frame; initial letter when the crest index is unknown, "?" when [player] is null.
- * Decorative: pair it with the player's name.
+ * A player's mark: their crest (one of 24, `player.avatarId`), a filled heraldic shield in the game's icon style,
+ * its charge in dark ink on a bronze or steel field (`design/crests/`, composed by `design/tools/crest_shields.py`);
+ * a steel shield with the initial when the crest index is unknown, "?" when [player] is null. The crest is the
+ * player's one identity on every screen. Team-neutral on purpose: red and blue belong to the teams (gear and star),
+ * so a player's mark never reads as a side. Drawn as is, never tinted. Decorative: pair it with the player's name.
+ * With [showFace], on player-centred lists and pages, and only from [FACE_MIN_SIZE], a small round badge of their
+ * most-played hero sits at the crest's lower right ([LocalPlayerFaces], derived from the match log, never stored).
  */
 @Composable
-fun PlayerAvatar(player: Player?, modifier: Modifier = Modifier, size: Dp = 40.dp) {
-    val color = player?.let { playerColor(it.color) } ?: MaterialTheme.colorScheme.onSurfaceVariant
+fun PlayerAvatar(player: Player?, modifier: Modifier = Modifier, size: Dp = 40.dp, showFace: Boolean = false) {
+    val face = player?.takeIf { showFace && size >= FACE_MIN_SIZE }?.let { LocalPlayerFaces.current[it.id] }
     val crest = player?.let { PlayerCrests.drawableFor(it.avatarId) }
-    Box(
-        modifier
-            .size(size)
-            .clip(CircleShape)
-            .background(
-                Brush.radialGradient(
-                    listOf(color.copy(alpha = 0.26f), color.copy(alpha = 0.08f)),
-                ),
-            )
-            .border(if (size >= 40.dp) 2.dp else 1.5.dp, color, CircleShape)
-            .clearAndSetSemantics {},
-        contentAlignment = Alignment.Center,
-    ) {
-        if (crest != null) {
-            Image(
-                painter = painterResource(crest),
-                contentDescription = null,
-                colorFilter = ColorFilter.tint(color),
-                modifier = Modifier.size(size * 0.56f),
-            )
-        } else {
+    Box(modifier.size(size).clearAndSetSemantics {}, contentAlignment = Alignment.Center) {
+        Image(
+            painter = painterResource(crest ?: PlayerCrests.blank),
+            contentDescription = null,
+            modifier = Modifier.fillMaxSize(),
+        )
+        if (crest == null) {
             Text(
                 text = player?.name?.trim()?.take(1)?.uppercase()?.ifEmpty { "?" } ?: "?",
-                color = color,
+                color = AVATAR_INK,
                 fontFamily = GoaFonts.display,
                 fontWeight = FontWeight.Bold,
-                fontSize = (size.value * 0.42f).sp,
+                fontSize = (size.value * 0.38f).sp,
                 maxLines = 1,
+                // The field's middle sits a little above the box's: the shield narrows to its point.
+                modifier = Modifier.padding(bottom = size * 0.1f),
             )
+        }
+        if (face != null) {
+            HeroFaceAvatar(face, Modifier.align(Alignment.BottomEnd), size * FACE_BADGE_SHARE)
         }
     }
 }
+
+/** The crests' ink: the charge's colour on the metal field, for the initial on a blank shield. */
+private val AVATAR_INK = Color(0xFF1B1712)
 
 /** Team identity is never colour-only: ◆ Red / ● Blue (docs/DESIGN.md). */
 @Composable
 fun TeamBadge(team: Team, modifier: Modifier = Modifier, showLabel: Boolean = true) {
     val color = teamColor(team)
     val label = if (team == Team.RED) "Red" else "Blue"
+    val words = teamTextColor(team)
     Row(
         modifier.semantics(mergeDescendants = true) { contentDescription = "Team $label" },
         verticalAlignment = Alignment.CenterVertically,
@@ -265,7 +262,7 @@ fun TeamBadge(team: Team, modifier: Modifier = Modifier, showLabel: Boolean = tr
             Spacer(Modifier.width(6.dp))
             Text(
                 text = label,
-                color = color,
+                color = words,
                 style = MaterialTheme.typography.labelLarge,
                 fontWeight = FontWeight.SemiBold,
             )
@@ -309,8 +306,17 @@ fun TeamMark(team: Team, modifier: Modifier = Modifier, color: Color = teamColor
 /** The gear and star are busier than the old shapes: they get a little more room at the same call. */
 private const val TEAM_MARK_GROWTH = 1.25f
 
+/** A team's colour for its marks, accent bars, rings and fills. For words in a team's colour use [teamTextColor]. */
 @Composable
 fun teamColor(team: Team): Color = if (team == Team.RED) GoaTheme.colors.teamRed else GoaTheme.colors.teamBlue
+
+/**
+ * A team's colour for words: a team's name, a heading naming who acts. As legible as the body text beside it in both
+ * themes (≥ 6:1 on the plate); the operative instruction itself stays in the body colour, with the team mark beside it.
+ */
+@Composable
+fun teamTextColor(team: Team): Color =
+    if (team == Team.RED) GoaTheme.colors.teamRedText else GoaTheme.colors.teamBlueText
 
 @Composable
 fun cardColor(color: CardColor): Color = when (color) {
@@ -364,11 +370,8 @@ fun ComplexityStars(
                 Icon(
                     imageVector = if (filled) Icons.Filled.Star else Icons.Outlined.StarOutline,
                     contentDescription = null,
-                    tint = if (filled) {
-                        MaterialTheme.colorScheme.primary
-                    } else {
-                        MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.45f)
-                    },
+                    // The unfilled stars carry the scale (2 of 4): a muted tone that still makes 3:1.
+                    tint = if (filled) GoaTheme.colors.bronzeInk else GoaTheme.colors.glyphMuted,
                     modifier = Modifier.size(size),
                 )
             }
@@ -376,7 +379,7 @@ fun ComplexityStars(
         if (showLabel && name != null) {
             Text(
                 text = name,
-                style = MaterialTheme.typography.labelMedium,
+                style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 maxLines = 1,
             )
@@ -384,10 +387,10 @@ fun ComplexityStars(
     }
 }
 
-/** Top-bar action that opens Settings; place on every top-level screen. */
+/** Top-bar action that opens Settings (labelled, with a tooltip). Settings is on More; few screens need this. */
 @Composable
 fun SettingsActionButton(onClick: () -> Unit) {
-    IconButton(onClick = onClick) {
+    BarIconButton(label = "Settings", onClick = onClick) {
         Icon(Icons.Outlined.Settings, contentDescription = "Settings")
     }
 }

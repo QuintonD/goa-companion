@@ -29,7 +29,8 @@ sealed interface PuzzleListUiState {
     /**
      * [next]: the first unsolved puzzle in book order (Continue), null once all are solved.
      * [rows]: the puzzles that pass [filters]; [difficulties] and [themes] (those shared by two or
-     * more puzzles) are the choices there are.
+     * more puzzles) are the choices there are. [solved] and [total] count the whole book; [roundsSolved]
+     * and [roundsTotal] its full rounds (ADR-052), so the list and "Puzzle 3 of 50" agree part by part.
      */
     data class Ready(
         val rows: List<PuzzleRowUi>,
@@ -39,7 +40,16 @@ sealed interface PuzzleListUiState {
         val filters: PuzzleFilters,
         val difficulties: List<Int>,
         val themes: List<String>,
-    ) : PuzzleListUiState
+        val roundsSolved: Int = 0,
+        val roundsTotal: Int = 0,
+        /** How many of the book's positions each difficulty has (the filter says it, as "Positions" counts). */
+        val difficultyCounts: Map<Int, Int> = emptyMap(),
+    ) : PuzzleListUiState {
+        /** The book's first part, the positions ("Puzzle 3 of 50"). */
+        val positionsSolved: Int get() = solved - roundsSolved
+
+        val positionsTotal: Int get() = total - roundsTotal
+    }
 }
 
 sealed interface PuzzleListAction {
@@ -87,5 +97,9 @@ fun puzzleList(
         difficulties = list.map { it.difficulty }.distinct().sorted(),
         // Only themes shared by two or more puzzles make a useful filter.
         themes = list.groupingBy { it.theme }.eachCount().filterValues { it > 1 }.keys.sorted(),
+        roundsSolved = rows.count { it.info.fullRound && it.progress.solved },
+        roundsTotal = rows.count { it.info.fullRound },
+        // Counted as the list's first part is ("1 of 50 positions"): one way of counting on the screen.
+        difficultyCounts = list.filterNot { it.fullRound }.groupingBy { it.difficulty }.eachCount(),
     )
 }

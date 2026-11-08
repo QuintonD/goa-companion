@@ -1,5 +1,6 @@
 package dev.quinton.goa.feature.settings
 
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.platform.LocalDensity
@@ -10,11 +11,11 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.unit.Density
+import androidx.compose.ui.unit.dp
 import androidx.test.core.app.ApplicationProvider
 import com.github.takahirom.roborazzi.captureRoboImage
 import com.google.common.truth.Truth.assertThat
 import dev.quinton.goa.core.data.game.AiSpeed
-import dev.quinton.goa.core.designsystem.component.GoaCard
 import dev.quinton.goa.core.designsystem.theme.GoaTheme
 import dev.quinton.goa.core.model.settings.BoardStyle
 import dev.quinton.goa.core.model.settings.ThemeMode
@@ -50,6 +51,23 @@ class SettingsScreenshotTest {
 
     @Composable private fun About() = AboutScreen(PreviewAppInfo, onBack = {})
 
+    @Test fun moreDark() = capture(ThemeMode.DARK) { MoreScreen(onOpen = {}) }
+
+    @Test fun moreLight() = capture(ThemeMode.LIGHT) { MoreScreen(onOpen = {}) }
+
+    @Test
+    @Config(qualifiers = "w384dp-h832dp-xxhdpi")
+    fun moreW384DarkFontScale2() = capture(ThemeMode.DARK, 2f) { MoreScreen(onOpen = {}) }
+
+    @Test fun moreRowsSayWhereTheyGo() {
+        val opened = mutableListOf<MoreLink>()
+        compose.setContent { GoaTheme { MoreScreen(onOpen = { opened += it }) } }
+        compose.onNodeWithText("Draft").performClick()
+        compose.onNodeWithText("Rules").performClick()
+        compose.onNodeWithText("Group sync").performClick()
+        assertThat(opened).containsExactly(MoreLink.DRAFT, MoreLink.RULES, MoreLink.GROUP_SYNC).inOrder()
+    }
+
     @Test fun settingsDark() = capture(ThemeMode.DARK) { Settings() }
 
     @Test fun settingsLight() = capture(ThemeMode.LIGHT) { Settings() }
@@ -57,7 +75,7 @@ class SettingsScreenshotTest {
     @Test fun settingsDarkFontScale2() = capture(ThemeMode.DARK, 2f) { Settings() }
 
     /** The row sits below the fold of the whole screen; a long result must stay readable at large text. */
-    @Composable private fun Speed(test: SpeedTest) = GoaCard { SpeedRow(test) {} }
+    @Composable private fun Speed(test: SpeedTest) = SettingsGroup { SpeedRow(test) {} }
 
     @Test fun speedRunningDark() = capture(ThemeMode.DARK) { Speed(SpeedTest.Running(0.4f)) }
 
@@ -69,7 +87,8 @@ class SettingsScreenshotTest {
         Speed(SpeedTest.Done(AiSpeed(2_130, 145, 410, "line")))
     }
 
-    @Composable private fun BoardStyleCard(style: BoardStyle) = GoaCard { BoardStyleSelector(style) {} }
+    @Composable private fun BoardStyleCard(style: BoardStyle) =
+        SettingsGroup(contentPadding = PaddingValues(16.dp)) { BoardStyleSelector(style) {} }
 
     @Test fun boardStyleDark() = capture(ThemeMode.DARK) { BoardStyleCard(BoardStyle.MINIATURES) }
 

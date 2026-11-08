@@ -5,6 +5,7 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -28,26 +29,19 @@ import androidx.compose.material.icons.automirrored.outlined.FormatListBulleted
 import androidx.compose.material.icons.automirrored.outlined.Redo
 import androidx.compose.material.icons.automirrored.outlined.Undo
 import androidx.compose.material.icons.outlined.AddCircleOutline
-import androidx.compose.material.icons.outlined.CenterFocusStrong
 import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.outlined.Hexagon
 import androidx.compose.material.icons.outlined.KeyboardDoubleArrowUp
-import androidx.compose.material.icons.outlined.MoreVert
 import androidx.compose.material.icons.outlined.RestartAlt
 import androidx.compose.material.icons.outlined.SwapVert
-import androidx.compose.material.icons.outlined.ZoomIn
+import androidx.compose.material.icons.outlined.TouchApp
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.FilledTonalIconButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
-import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -57,15 +51,14 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.boundsInParent
+import androidx.compose.ui.layout.boundsInRoot
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
@@ -78,22 +71,28 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import dev.quinton.goa.core.designsystem.component.BarAction
+import dev.quinton.goa.core.designsystem.component.BarActions
 import dev.quinton.goa.core.designsystem.component.ConfirmDialog
 import dev.quinton.goa.core.designsystem.component.EmptyState
-import dev.quinton.goa.core.designsystem.component.GoaPlateTheme
+import dev.quinton.goa.core.designsystem.component.HeroPortrait
+import dev.quinton.goa.core.designsystem.component.TeamMark
 import dev.quinton.goa.core.designsystem.component.UnverifiedBadge
 import dev.quinton.goa.core.designsystem.component.scaledIconSize
-import dev.quinton.goa.core.designsystem.component.slatePlate
+import dev.quinton.goa.core.designsystem.component.teamColor
 import dev.quinton.goa.core.designsystem.theme.GoaTheme
 import dev.quinton.goa.core.designsystem.theme.Spacing
 import dev.quinton.goa.core.model.board.HeroPiece
 import dev.quinton.goa.core.model.board.MinionPiece
+import dev.quinton.goa.core.model.match.Team
 import dev.quinton.goa.feature.board.BoardText
 import dev.quinton.goa.feature.board.hero
 import dev.quinton.goa.feature.board.map.BoardMapView
 import dev.quinton.goa.feature.board.map.MapLayout
 import dev.quinton.goa.feature.board.map.MapOrientation
 import dev.quinton.goa.feature.board.map.MapViewport
+import dev.quinton.goa.feature.board.play.table.MapKey
+import dev.quinton.goa.feature.board.play.table.MapKeyItem
 import dev.quinton.goa.feature.board.ui.BoardScaffold
 import dev.quinton.goa.feature.board.ui.FitWhileHidden
 import dev.quinton.goa.feature.board.ui.HideablePanel
@@ -103,7 +102,6 @@ import dev.quinton.goa.feature.board.ui.PieceToken
 import dev.quinton.goa.feature.board.ui.PlateSurface
 import dev.quinton.goa.feature.board.ui.PlateWell
 import dev.quinton.goa.feature.board.ui.boardPalette
-import kotlinx.coroutines.launch
 
 /** Sheets and dialogs of the board, hoisted so screenshots can open one. */
 enum class BoardOverlay { ADD, PIECES, PUSH, RESET }
@@ -126,9 +124,7 @@ fun BoardScreen(
 ) {
     val ready = state as? BoardUiState.Ready
     var overlay by rememberSaveable { mutableStateOf(initialOverlay) }
-    var menu by remember { mutableStateOf(false) }
     val snackbar = remember { SnackbarHostState() }
-    val scope = rememberCoroutineScope()
     val viewport = remember { MapViewport() }
     // Back leaves a tool, then the selection, then the board.
     BackHandler(enabled = ready != null && (ready.tool != BoardTool.Move || ready.selectedId != null)) {
@@ -143,42 +139,30 @@ fun BoardScreen(
             onAction(BoardAction.HintShown(hint.id))
         }
     }
+    val heading = ready?.let(::boardHeading)
     BoardScaffold(
-        title = ready?.board?.name ?: "Board",
+        title = heading?.first ?: "Board",
+        subtitle = heading?.second,
+        shortTitles = ready?.let(::shortHeadings).orEmpty(),
+        lineup = ready?.let { state -> { LineupPortraits(state) } },
         onBack = onBack,
         modifier = modifier,
         snackbarHost = { SnackbarHost(snackbar) },
+        // At most two glyphs (Undo and the overflow): the bar's room goes to the board's name.
         actions = {
             if (ready != null) {
-                IconButton(onClick = { onAction(BoardAction.Undo) }, enabled = ready.canUndo) {
-                    Icon(Icons.AutoMirrored.Outlined.Undo, contentDescription = "Undo")
-                }
-                IconButton(onClick = { onAction(BoardAction.Redo) }, enabled = ready.canRedo) {
-                    Icon(Icons.AutoMirrored.Outlined.Redo, contentDescription = "Redo")
-                }
-                Box {
-                    IconButton(onClick = { menu = true }) {
-                        Icon(Icons.Outlined.MoreVert, contentDescription = "More options")
-                    }
-                    DropdownMenu(expanded = menu, onDismissRequest = { menu = false }) {
-                        DropdownMenuItem(
-                            text = { Text("Flip the board") },
-                            leadingIcon = { Icon(Icons.Outlined.SwapVert, contentDescription = null) },
-                            onClick = {
-                                menu = false
-                                onAction(BoardAction.Flip)
-                            },
-                        )
-                        DropdownMenuItem(
-                            text = { Text("Reset to opening") },
-                            leadingIcon = { Icon(Icons.Outlined.RestartAlt, contentDescription = null) },
-                            onClick = {
-                                menu = false
-                                overlay = BoardOverlay.RESET
-                            },
-                        )
-                    }
-                }
+                BarActions(
+                    listOf(
+                        BarAction("Undo", Icons.AutoMirrored.Outlined.Undo, {
+                            onAction(BoardAction.Undo)
+                        }, ready.canUndo),
+                        BarAction("Redo", Icons.AutoMirrored.Outlined.Redo, {
+                            onAction(BoardAction.Redo)
+                        }, ready.canRedo),
+                        BarAction("Flip the board", Icons.Outlined.SwapVert, { onAction(BoardAction.Flip) }),
+                        BarAction("Reset to opening", Icons.Outlined.RestartAlt, { overlay = BoardOverlay.RESET }),
+                    ),
+                )
             }
         },
     ) { padding ->
@@ -203,17 +187,6 @@ fun BoardScreen(
                     onAction = onAction,
                     onTap = onTap,
                     onOpen = { overlay = it },
-                    onAmbiguous = { at ->
-                        scope.launch {
-                            val result = snackbar.showSnackbar(
-                                "Two pieces are close together. Zoom in, or pick one from Pieces.",
-                                actionLabel = "Zoom in",
-                                withDismissAction = true,
-                                duration = SnackbarDuration.Short,
-                            )
-                            if (result == SnackbarResult.ActionPerformed) viewport.zoomStep(at)
-                        }
-                    },
                 )
             }
         }
@@ -281,7 +254,6 @@ private fun BoardContent(
     onAction: (BoardAction) -> Unit,
     onTap: (MapTap) -> Boolean,
     onOpen: (BoardOverlay) -> Unit,
-    onAmbiguous: (Offset) -> Unit,
 ) {
     // Hidden or shown is kept for the board (and survives rotation); it applies to every selection.
     var hidden by rememberSaveable { mutableStateOf(initialPanelHidden) }
@@ -292,33 +264,56 @@ private fun BoardContent(
             remember(state.map, orientation, state.bottomTeam) { MapLayout(state.map, orientation, state.bottomTeam) }
         // What the board opens on: the Lane between both teams' hero spawn areas, Battle Zones included.
         val lane = remember(layout, state.map) { layout.laneRegion(state.map, state.geometry) }
-        val scope = rememberCoroutineScope()
         var cover by remember { mutableStateOf(PanelCover()) }
         var toolsHeight by remember { mutableIntStateOf(0) }
         var badgeBottom by remember { mutableIntStateOf(0) }
+        var keyBottom by remember { mutableIntStateOf(0) }
+        // The board's top on the screen, and the map's controls in the board's coordinates.
+        var boardTop by remember { mutableIntStateOf(0) }
+        var toolbar by remember { mutableStateOf<Rect?>(null) }
         val selected = state.selected
         val panelShown = selected != null
+        // First use: how to start, until a piece is selected or the tip is closed (sol #8).
+        var tipDismissed by rememberSaveable { mutableStateOf(false) }
+        LaunchedEffect(selected != null) { if (selected != null) tipDismissed = true }
+        val showTip = !tipDismissed
         // The panel is hidden to see the whole board: its peek bar stays.
         val peeking = panelShown && hidden
         val sidePanelWidth = if (landscape) minOf(maxWidth * 0.46f, SIDE_PANEL) else 0.dp
         val sidePadPx = with(LocalDensity.current) { Spacing.sm.toPx() }
 
         // What floats over the map: the panel (bottom, or right in landscape), its peek bar, or the tools.
-        LaunchedEffect(panelShown, cover, toolsHeight, badgeBottom) {
+        val keyShown = boardKey(state, short = false).isNotEmpty()
+        LaunchedEffect(panelShown, cover, toolsHeight, badgeBottom, keyBottom, keyShown) {
             val bottom = if (panelShown) cover.bottom.toFloat() else toolsHeight.toFloat()
             val end = if (panelShown) cover.end.toFloat() else 0f
-            // The badge sits in a row padded by Spacing.sm.
-            val top = if (badgeBottom > 0) badgeBottom + sidePadPx else 0f
+            // The badge and the map key sit in a row padded by Spacing.sm: the map is framed under them.
+            val under = maxOf(badgeBottom, if (keyShown) keyBottom else 0)
+            val top = if (under > 0) under + sidePadPx else 0f
             viewport.updateInsets(bottom, end, top)
         }
         FitWhileHidden(viewport, peeking)
+
+        // No piece under the map's controls: the Lane and Fit views and each reveal keep clear of them (opus #8).
+        val pieceCentres = remember(state.board.state, layout) { state.pieces.mapNotNull { it.at }.map(layout::center) }
+        LaunchedEffect(toolbar, pieceCentres) { viewport.updateAvoid(toolbar, pieceCentres) }
 
         // Keep the selected piece and what its overlays reach comfortably in view (big enough to tap);
         // with the panel hidden the whole board is in view, unless the person has moved it.
         val at = selected?.at
         val reach = state.overlay?.reach.orEmpty()
         val measureTarget = state.measure?.target
-        LaunchedEffect(at, reach, measureTarget, viewport.unit, viewport.bottomInset, viewport.endInset, peeking) {
+        LaunchedEffect(
+            at,
+            reach,
+            measureTarget,
+            viewport.unit,
+            viewport.bottomInset,
+            viewport.endInset,
+            peeking,
+            toolbar,
+        ) {
+            viewport.updateAvoid(toolbar, pieceCentres)
             if (at == null || viewport.unit == 0f) return@LaunchedEffect
             if (peeking && !viewport.userMoved) return@LaunchedEffect
             val region = layout.bounds(reach + listOfNotNull(at, measureTarget), pad = 1.1f) ?: return@LaunchedEffect
@@ -352,9 +347,8 @@ private fun BoardContent(
             viewport = viewport,
             onTap = onTap,
             onDrop = { id, hex -> onAction(BoardAction.Drop(id, hex)) },
-            onAmbiguous = onAmbiguous,
             lane = lane,
-            modifier = Modifier.fillMaxSize(),
+            modifier = Modifier.fillMaxSize().onGloballyPositioned { boardTop = it.boundsInRoot().top.toInt() },
         )
 
         // TalkBack hears each move ("Brogan moved 2 spaces, to …").
@@ -367,36 +361,44 @@ private fun BoardContent(
             )
         }
 
-        // Top: the map's status on the left, view controls on the right, the active tool between.
-        Row(
-            Modifier
-                .fillMaxWidth()
-                .padding(end = if (panelShown && !hidden) sidePanelWidth else 0.dp)
-                .padding(Spacing.sm),
-            verticalAlignment = Alignment.Top,
-        ) {
-            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-                if (!state.map.verified) {
-                    // The badge stays put: the map is framed below it.
-                    UnverifiedMap(
-                        state.map.name,
-                        Modifier.onGloballyPositioned { badgeBottom = it.boundsInParent().bottom.toInt() },
-                    )
-                }
-                ToolBanner(state, onAction)
-            }
-            Spacer(Modifier.width(Spacing.sm))
-            Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-                if (viewport.isFit) {
-                    MapButton(Icons.Outlined.ZoomIn, "Zoom to the lane") { scope.launch { viewport.animateLane() } }
-                } else {
-                    MapButton(Icons.Outlined.CenterFocusStrong, "Fit the whole board") {
-                        scope.launch { viewport.animateFit() }
+        // Top: the map's key docked to the map's top edge, full width and one row, so it never floats over a piece
+        // (sol #12, sol-b #6); under it the map's status on the left, the map's controls docked at the end edge.
+        Column(Modifier.fillMaxWidth().padding(end = if (panelShown && !hidden) sidePanelWidth else 0.dp)) {
+            // What each mark on the map means, for the layers shown now (the panel's switches turn them on). One row
+            // of short words with each mark's sample; a tap opens the full words, and closes them again.
+            var keyOpen by rememberSaveable { mutableStateOf(false) }
+            val key = boardKey(state, short = !keyOpen || LocalDensity.current.fontScale > LARGE_FONT)
+            val fullKey = boardKey(state, short = false)
+            MapKey(
+                key.keys.toList(),
+                Modifier.onGloballyPositioned { keyBottom = it.boundsInParent().bottom.toInt() },
+                words = { key[it].orEmpty() },
+                full = { fullKey[it].orEmpty() },
+                expanded = keyOpen,
+                onToggle = { keyOpen = !keyOpen },
+                docked = true,
+            )
+            Row(Modifier.fillMaxWidth().padding(Spacing.sm), verticalAlignment = Alignment.Top) {
+                Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+                    if (!state.map.verified) {
+                        // The badge stays put: the map is framed below it.
+                        UnverifiedMap(
+                            state.map.name,
+                            Modifier.onGloballyPositioned { badgeBottom = it.boundsInRoot().bottom.toInt() - boardTop },
+                        )
                     }
+                    ToolBanner(state, onAction)
                 }
-                MapButton(Icons.Outlined.SwapVert, "Flip: ${BoardText.team(state.bottomTeam.opponent)} at the bottom") {
-                    onAction(BoardAction.Flip)
-                }
+                Spacer(Modifier.width(Spacing.sm))
+                MapToolbar(
+                    viewport,
+                    state.bottomTeam,
+                    onFlip = { onAction(BoardAction.Flip) },
+                    compact = true,
+                    modifier = Modifier.onGloballyPositioned {
+                        toolbar = it.boundsInRoot().translate(0f, -boardTop.toFloat())
+                    },
+                )
             }
         }
 
@@ -439,8 +441,34 @@ private fun BoardContent(
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
                 if (state.waiting.isNotEmpty()) WaitingTray(state, onAction, Modifier.widthIn(max = 560.dp))
+                if (state.tool == BoardTool.Move && showTip && state.waiting.isEmpty()) {
+                    FirstUseTip(onDismiss = { tipDismissed = true }, Modifier.widthIn(max = 560.dp))
+                }
                 if (state.tool == BoardTool.Move) Toolbar(onOpen, compact = landscape)
             }
+        }
+    }
+}
+
+/** The board's first-use tip: what a tap does, over the tools; it closes for good once a piece is selected. */
+@Composable
+private fun FirstUseTip(onDismiss: () -> Unit, modifier: Modifier = Modifier) {
+    PlateSurface(shape = RoundedCornerShape(10.dp), modifier = modifier.fillMaxWidth()) {
+        Row(Modifier.padding(start = Spacing.md), verticalAlignment = Alignment.CenterVertically) {
+            Icon(
+                Icons.Outlined.TouchApp,
+                null,
+                tint = MaterialTheme.colorScheme.secondary,
+                modifier = Modifier.size(scaledIconSize(20.dp, 1.3f)),
+            )
+            Spacer(Modifier.width(Spacing.sm))
+            Text(
+                "Tap a hero to see movement and range",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurface,
+                modifier = Modifier.weight(1f).padding(vertical = Spacing.sm),
+            )
+            IconButton(onClick = onDismiss) { Icon(Icons.Outlined.Close, contentDescription = "Close the tip") }
         }
     }
 }
@@ -515,23 +543,6 @@ private fun placeLabel(state: BoardUiState.Ready, piece: NewPiece): String = whe
     is NewPiece.Hero -> "${state.heroes.hero(piece.heroId).name} (${BoardText.team(piece.team)})"
     is NewPiece.Minion -> "the ${BoardText.team(piece.team)} ${BoardText.minion(piece.type).lowercase()}"
     is NewPiece.Token -> "the token “${piece.label}”"
-}
-
-/** A round button floating over the map (Fit, Flip): shared by the sandbox and the game table. */
-@Composable
-internal fun MapButton(icon: ImageVector, description: String, onClick: () -> Unit) {
-    GoaPlateTheme {
-        FilledTonalIconButton(
-            onClick = onClick,
-            colors = IconButtonDefaults.filledTonalIconButtonColors(
-                containerColor = Color.Transparent,
-                contentColor = MaterialTheme.colorScheme.onSurface,
-            ),
-            modifier = Modifier.size(48.dp).slatePlate(CircleShape, brackets = false),
-        ) {
-            Icon(icon, contentDescription = description)
-        }
-    }
 }
 
 /**
@@ -680,6 +691,97 @@ private fun WaitingTray(state: BoardUiState.Ready, onAction: (BoardAction) -> Un
     }
 }
 
+/**
+ * The bar's title is the board's name, its line-up ("Arien, Brogan vs Wasp, Tigerclaw"), which shrinks to two
+ * lines rather than being cut; the map's name goes under it only where both fit the bar.
+ */
+private fun boardHeading(state: BoardUiState.Ready): Pair<String, String?> = state.board.name to state.map.name
+
+/**
+ * The map key's lines for the layers on the map now, each with its value ("Movement 4", "Range 2"): the panel's
+ * switches say the same beside each swatch, but they scroll out of view under the card strip.
+ */
+private fun boardKey(state: BoardUiState.Ready, short: Boolean): Map<MapKeyItem, String> {
+    val overlay = state.overlay
+    return buildMap {
+        if (overlay != null) {
+            if (overlay.movement.isNotEmpty()) {
+                val value = overlay.movementValue?.let { " $it" }.orEmpty()
+                // Large text: the value only, so the key stays a line over the map.
+                put(MapKeyItem.MOVEMENT, if (short) "Movement$value" else "Movement$value: steps to each space")
+            }
+            if (overlay.fastTravel.isNotEmpty()) put(MapKeyItem.FAST_TRAVEL, "Fast Travel")
+            if (overlay.range.isNotEmpty()) {
+                val range = listOfNotNull("Card range", overlay.rangeValue).joinToString(" ")
+                // A violet space with no number is in reach but not on a move: the words say what the outline is.
+                put(MapKeyItem.RANGE, if (short) range else "$range: in reach from here")
+            }
+            if (overlay.radius.isNotEmpty()) {
+                put(MapKeyItem.RADIUS, listOfNotNull("Radius", overlay.radiusValue).joinToString(" "))
+            }
+        }
+        if (state.trayTargets.isNotEmpty() || overlay?.returnTo?.isNotEmpty() == true) {
+            put(MapKeyItem.GO_HERE, if (short) "Go here" else "Where it goes")
+        }
+        state.measure?.let {
+            put(
+                MapKeyItem.MEASURE,
+                if (short) BoardText.spaces(it.distance) else "Measure: ${BoardText.spaces(it.distance)}",
+            )
+        }
+    }
+}
+
+/**
+ * The line-up as its heroes under the bar's short title when its words don't fit: each team's mark, then its heroes'
+ * portraits in the team's ring, "vs" between (TalkBack hears the line-up in words, from the bar).
+ */
+@Composable
+private fun LineupPortraits(state: BoardUiState.Ready) {
+    val heroes = state.pieces.filterIsInstance<HeroPiece>()
+    // A fixed size: the line under the bar's title, which the bar's height is measured for.
+    val size = LINEUP_PORTRAIT
+    val vs = with(LocalDensity.current) { LINEUP_VS.toSp() }
+    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(2.dp)) {
+        Team.entries.forEachIndexed { i, team ->
+            if (i > 0) {
+                Text(
+                    "vs",
+                    style = MaterialTheme.typography.labelMedium.copy(fontSize = vs, lineHeight = vs),
+                    color = GoaTheme.colors.onBannerVariant,
+                    modifier = Modifier.padding(horizontal = 2.dp),
+                )
+            }
+            TeamMark(team, markSize = size * 0.6f)
+            heroes.filter { it.team == team }.forEach { piece ->
+                val hero = state.heroes.hero(piece.heroId)
+                HeroPortrait(
+                    hero.id,
+                    hero.portrait,
+                    null,
+                    Modifier.size(size).border(1.5.dp, teamColor(team), CircleShape),
+                    shape = CircleShape,
+                    framed = false,
+                )
+            }
+        }
+    }
+}
+
+/**
+ * What the bar says when the line-up is too long for one line: the teams' sizes and the map ("2 v 2 · Forgotten
+ * Island"), else just the sizes ("2 v 2 board"); the line-up goes under it where it fits whole.
+ */
+private fun shortHeadings(state: BoardUiState.Ready): List<String> {
+    val heroes = state.pieces.filterIsInstance<HeroPiece>()
+    val red = heroes.count { it.team == Team.RED }
+    val blue = heroes.count { it.team == Team.BLUE }
+    if (red == 0 && blue == 0) return listOf(state.map.name)
+    return listOf("$red v $blue · ${state.map.name}", "$red v $blue board")
+}
+
 private val SIDE_PANEL = 380.dp
 private const val PANEL_MAX = 0.5f
 private const val LARGE_FONT = 1.3f
+private val LINEUP_PORTRAIT = 18.dp
+private val LINEUP_VS = 12.dp

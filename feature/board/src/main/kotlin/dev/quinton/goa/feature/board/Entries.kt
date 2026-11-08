@@ -27,12 +27,15 @@ import dev.quinton.goa.core.navigation.PlayHomeRoute
 import dev.quinton.goa.core.navigation.PuzzleRoute
 import dev.quinton.goa.core.navigation.PuzzlesRoute
 import dev.quinton.goa.core.navigation.SettingsRoute
+import dev.quinton.goa.core.navigation.TopLevelTab
 import dev.quinton.goa.core.navigation.TriviaRoute
 import dev.quinton.goa.feature.board.board.BoardScreen
 import dev.quinton.goa.feature.board.board.BoardViewModel
 import dev.quinton.goa.feature.board.list.BoardsScreen
 import dev.quinton.goa.feature.board.list.BoardsViewModel
+import dev.quinton.goa.feature.board.list.PlayHomeActions
 import dev.quinton.goa.feature.board.list.PlayHomeScreen
+import dev.quinton.goa.feature.board.list.PlayHomeViewModel
 import dev.quinton.goa.feature.board.online.onlineEntries
 import dev.quinton.goa.feature.board.play.game.GameScreen
 import dev.quinton.goa.feature.board.play.game.GameUiState
@@ -53,19 +56,27 @@ import kotlinx.coroutines.launch
  */
 fun EntryProviderScope<NavKey>.boardEntries(navigator: Navigator) {
     entry<PlayHomeRoute> {
+        val viewModel = hiltViewModel<PlayHomeViewModel>()
+        val state by viewModel.uiState.collectAsStateWithLifecycle()
         PlayHomeScreen(
-            onBoard = { navigator.navigate(BoardsRoute) },
-            onOnline = { navigator.navigate(OnlineHomeRoute()) },
-            onTrivia = { navigator.navigate(TriviaRoute()) },
-            onSettings = { navigator.navigate(SettingsRoute) },
+            state = state,
+            actions = PlayHomeActions(
+                onPlay = { navigator.navigate(NewGameRoute()) },
+                onResume = { navigator.navigate(GameRoute) },
+                onPuzzles = { navigator.navigate(PuzzlesRoute) },
+                onBoards = { navigator.navigate(BoardsRoute) },
+                onOnline = { navigator.navigate(OnlineHomeRoute()) },
+                onTrivia = { navigator.navigate(TriviaRoute()) },
+                onGameNight = { navigator.navigateToTab(TopLevelTab.DRAFT) },
+                onSettings = { navigator.navigate(SettingsRoute) },
+            ),
         )
     }
     entry<BoardsRoute> {
         val viewModel = hiltViewModel<BoardsViewModel>()
         val state by viewModel.uiState.collectAsStateWithLifecycle()
         val scope = rememberCoroutineScope()
-        // Boards is also where games against the computer start and resume (ADR-035), so it no
-        // longer jumps straight to New board when there are no boards yet.
+        // With no boards yet, Boards shows the latest line-up and New board rather than jumping to New board.
         BoardsScreen(
             state = state,
             onOpen = { navigator.navigate(BoardRoute(boardId = it)) },
@@ -80,9 +91,6 @@ fun EntryProviderScope<NavKey>.boardEntries(navigator: Navigator) {
                 }
             },
             onBack = navigator::back,
-            onPlay = { navigator.navigate(NewGameRoute()) },
-            onResume = { navigator.navigate(GameRoute) },
-            onPuzzles = { navigator.navigate(PuzzlesRoute) },
         )
     }
     entry<NewBoardRoute> { key ->
@@ -186,7 +194,7 @@ private fun EntryProviderScope<NavKey>.playEntries(navigator: Navigator) {
                     starting = true
                     scope.launch {
                         if (viewModel.start()) {
-                            // The game replaces New game: Back from it returns to Boards.
+                            // The game replaces New game: Back from it returns to the Play tab.
                             navigator.back()
                             navigator.navigate(GameRoute)
                         } else {

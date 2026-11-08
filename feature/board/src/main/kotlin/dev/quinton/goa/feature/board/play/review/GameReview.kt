@@ -37,7 +37,6 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.PrimaryTabRow
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Tab
@@ -65,10 +64,12 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import dev.quinton.goa.core.designsystem.component.GoaOutlinedButton
 import dev.quinton.goa.core.designsystem.component.HeroPortrait
 import dev.quinton.goa.core.designsystem.component.TeamMark
 import dev.quinton.goa.core.designsystem.component.scaledIconSize
 import dev.quinton.goa.core.designsystem.component.teamColor
+import dev.quinton.goa.core.designsystem.component.teamTextColor
 import dev.quinton.goa.core.designsystem.theme.GoaTextStyles
 import dev.quinton.goa.core.designsystem.theme.GoaTheme
 import dev.quinton.goa.core.designsystem.theme.Spacing
@@ -336,7 +337,7 @@ private fun TeamHeader(team: Team, table: TableUi) {
             "${BoardText.team(team).uppercase()} TEAM" +
                 if (table.mine.any { table.heroView(it)?.team == team }) " · YOURS" else "",
             style = GoaTextStyles.overline,
-            color = teamColor(team),
+            color = teamTextColor(team),
         )
     }
 }
@@ -565,7 +566,7 @@ private fun TurnCard(table: TableUi, turn: TurnUi, onCard: OpenCard, onAction: (
                     if (turn.fromPosition) Quiet("The puzzle starts in this turn.")
                 }
                 if (turn.hasStart) {
-                    OutlinedButton(
+                    GoaOutlinedButton(
                         onClick = { onAction(ReviewAction.Rewind(turn.round, turn.turn)) },
                         modifier = Modifier.heightIn(min = 48.dp),
                         contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = Spacing.md),

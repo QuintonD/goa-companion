@@ -116,16 +116,17 @@ server" below). No accounts.
    that one time. No scanner? "Share as text" on the invite, then paste the whole message into
    **Or paste an invite**.
 4. The first sync starts right away: allow **Nearby devices** (Android 12+; "Location" on older
-   phones) when asked. On the inviting phone, tap Sync now → **Host**; the friend's phone joins
+   phones) when asked. On the inviting phone, tap Sync with nearby phones → **Host**; the friend's phone joins
    by itself.
 5. **Which player are you?** Pick yourself from the list, or type your name to add yourself.
 
-**At game night:** one phone taps Sync now → Host, everyone else Sync now → Join. The host shows
-each phone; tap **Sync** when they're all in. Every phone ends with the same matches, players,
+**At game night:** one phone taps Sync with nearby phones → Host, everyone else the same → Join.
+The host shows each phone; **Merge data from 2 phones** turns on once every phone's data is in (or switch on
+**Start automatically when ready** while some are still sending: it starts by itself once their data is in). Every phone ends with the same matches, players,
 deletions and rating constants. The later edit of a match or player wins; a deleted match is
 deleted everywhere.
 
-**Without Nearby:** Group sync → **Share sync file** sends this phone's data, locked with the
+**By sync file:** Group sync → **Share sync file** sends this phone's data, locked with the
 group key, through Quick Share, a message or Drive; the other phone opens it (or uses
 **Import sync file**) and merges it the same way. A file from another group can't be opened.
 
@@ -157,8 +158,9 @@ data at once, and phones stay in step between game nights without meeting.
 - **Per group:** Group sync → Sync server → **Advanced** sets another address for this group
   (https only in release builds) or goes back to the built-in one. New invites from that phone
   carry the address, so friends who scan them use the same server.
-- **Sync now:** with the server on, Group sync → **Sync now** and the Players tab's sync icon sync
-  through it; **Sync at the table (no internet)** is the face-to-face sync.
+- **Sync through the server:** with the server on, Group sync's bronze button and the Players tab's sync
+  icon sync through it; **Sync with nearby phones** is the face-to-face sync. Without a server, the
+  address waits folded under **Optional remote sync** at the foot of Group sync.
 - **Off switch:** "Sync through the server" on the same card; off = face to face and sync files only.
 - **Status:** the card shows when this phone last synced and, when something is wrong, what to do;
   a problem that needs a person also puts a dot on the Players tab's sync icon.

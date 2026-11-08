@@ -7,25 +7,32 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.HelpOutline
 import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material.icons.outlined.Verified
 import androidx.compose.material3.FilterChip
-import androidx.compose.material3.FilterChipDefaults
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -35,10 +42,15 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
@@ -47,6 +59,7 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import dev.quinton.goa.core.designsystem.theme.GoaTextStyles
 import dev.quinton.goa.core.designsystem.theme.GoaTheme
@@ -161,22 +174,24 @@ fun StatBar(label: String, range: StatRange?, modifier: Modifier = Modifier, sca
     StatBar(label = label, base = range?.base, max = range?.max, modifier = modifier, scale = scale)
 
 /**
- * Section head as the rulebook sets them: Cinzel small caps in copper ("Place the Board", p.5),
- * then a fading copper rule. Marked as a heading for TalkBack. [trailing] holds an optional
- * action (e.g. "See all").
+ * The one section head, as the rulebook sets them: Cinzel small caps in copper ("Place the Board", p.5),
+ * then a fading copper hairline. Marked as a heading for TalkBack. [trailing] holds an optional
+ * action (e.g. "Manage"); [ribbon] marks a card colour's section only; [padding] is [SectionHeaderPaddingTight] in a
+ * column that spaces its items itself. Inside a plate use [SubHeader].
  */
 @Composable
 fun SectionHeader(
     title: String,
     modifier: Modifier = Modifier,
     ribbon: PlateColor? = null,
+    padding: PaddingValues = SectionHeaderPadding,
     trailing: (@Composable () -> Unit)? = null,
 ) {
     val copper = GoaTheme.colors.heading
     Row(
         modifier
             .fillMaxWidth()
-            .padding(top = Spacing.lg, bottom = Spacing.sm),
+            .padding(padding),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         if (ribbon != null) {
@@ -204,19 +219,175 @@ fun SectionHeader(
 }
 
 /**
- * The app's card: 12 dp corners, surface fill with a faint bronze sheen at the top and the
- * engraved 1 dp bronze-at-30 % border. Clickable when [onClick] is set.
+ * A group's label inside a plate or sheet ("Computer strength", "Advanced"): Inter semibold in the muted tone, no
+ * rule, so it never competes with the [SectionHeader] the plate sits under. A heading for TalkBack.
+ */
+@Composable
+fun SubHeader(text: String, modifier: Modifier = Modifier, trailing: (@Composable () -> Unit)? = null) {
+    Row(
+        modifier.fillMaxWidth().padding(top = Spacing.sm, bottom = Spacing.xs),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(
+            text,
+            style = GoaTextStyles.subHead,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.weight(1f).semantics { heading() },
+        )
+        trailing?.invoke()
+    }
+}
+
+/** What marks a [SelectablePlate]'s choice: a radio for one of several, a check for on/off, or nothing. */
+enum class SelectionMark { Radio, Check, None }
+
+/**
+ * The selected look, for layouts of their own (a tile, a chip-like pair): the bronze [SelectedEdge] over a bronze
+ * wash when [selected], a quiet hairline otherwise. Bronze is selected (teal is next and correct; team colours only
+ * mark teams). Pair it with `selectable` for its semantics, or use [SelectablePlate]. A choice that is a row of a
+ * section's plate uses [selectionRow] instead.
+ */
+@Composable
+fun Modifier.selectionFrame(selected: Boolean, shape: Shape = SelectionShape): Modifier {
+    val colors = GoaTheme.colors
+    return if (selected) {
+        clip(shape).background(colors.selectionFill).border(SelectedEdge, colors.selection, shape)
+    } else {
+        clip(shape).border(1.dp, MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.28f), shape)
+    }
+}
+
+/**
+ * A choice that is a row of a section's plate: full width and no edge of its own; selected, the bronze wash and a
+ * [SelectedRowBar] bronze bar at its leading edge (with the row's own radio or check). DESIGN.md "Framing levels".
+ */
+@Composable
+fun Modifier.selectionRow(selected: Boolean): Modifier {
+    if (!selected) return this
+    val colors = GoaTheme.colors
+    return drawBehind {
+        drawRect(colors.selectionFill)
+        val bar = SelectedRowBar.toPx()
+        val x = if (layoutDirection == LayoutDirection.Rtl) size.width - bar else 0f
+        drawRect(colors.selection, topLeft = Offset(x, 0f), size = Size(bar, size.height))
+    }
+}
+
+/** The bronze bar at a selected row's leading edge ([selectionRow]). */
+val SelectedRowBar: Dp = 3.dp
+
+/** The hairline between the rows of a section's plate. */
+@Composable
+fun PlateRowDivider(modifier: Modifier = Modifier) {
+    HorizontalDivider(modifier, color = MaterialTheme.colorScheme.onSurface.copy(alpha = ROW_DIVIDER_ALPHA))
+}
+
+private const val ROW_DIVIDER_ALPHA = 0.12f
+
+/**
+ * One choice of several, the same on every screen: a quiet plate with a bronze radio ([mark]) and the content;
+ * selected, a bronze outline and tint ([selectionFrame]). The whole plate is one target with its role for TalkBack.
+ * Inside a [GoaPlate] (a section's plate) it is a row of that plate instead: full width, no ground or edge of its own,
+ * selected only by the wash and the leading bar ([selectionRow]), so frames never nest (DESIGN.md "Framing levels").
+ */
+@Composable
+fun SelectablePlate(
+    selected: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    enabled: Boolean = true,
+    mark: SelectionMark = SelectionMark.Radio,
+    contentPadding: PaddingValues = PaddingValues(horizontal = Spacing.md, vertical = Spacing.md),
+    content: @Composable RowScope.() -> Unit,
+) {
+    val row = LocalInPlate.current
+    val ground = if (row) {
+        Modifier
+    } else {
+        Modifier.slatePlate(SelectionShape, brackets = false, style = PlateStyle.Secondary)
+    }
+    GoaPlateTheme {
+        Row(
+            modifier
+                .heightIn(min = 48.dp)
+                .then(ground)
+                .then(if (row) Modifier.selectionRow(selected) else Modifier.selectionFrame(selected))
+                .selectable(
+                    selected = selected,
+                    enabled = enabled,
+                    role = if (mark == SelectionMark.Check) Role.Checkbox else Role.RadioButton,
+                    onClick = onClick,
+                )
+                .padding(contentPadding),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            if (mark != SelectionMark.None) {
+                SelectionMarkIcon(selected, mark)
+                Spacer(Modifier.width(Spacing.md))
+            }
+            content()
+        }
+    }
+}
+
+/** The bronze radio or check a [SelectablePlate] leads with (decorative: the plate carries the state). */
+@Composable
+fun SelectionMarkIcon(selected: Boolean, mark: SelectionMark = SelectionMark.Radio, modifier: Modifier = Modifier) {
+    val bronze = GoaTheme.colors.selection
+    val idle = MaterialTheme.colorScheme.onSurfaceVariant
+    val shape = if (mark == SelectionMark.Check) RoundedCornerShape(4.dp) else CircleShape
+    Box(
+        modifier
+            .size(20.dp)
+            .clip(shape)
+            .then(if (selected && mark == SelectionMark.Check) Modifier.background(bronze) else Modifier)
+            .border(2.dp, if (selected) bronze else idle, shape)
+            .clearAndSetSemantics {},
+        contentAlignment = Alignment.Center,
+    ) {
+        if (selected) {
+            if (mark == SelectionMark.Check) {
+                Icon(
+                    Icons.Filled.Check,
+                    null,
+                    tint = MaterialTheme.colorScheme.onPrimary,
+                    modifier = Modifier.size(16.dp),
+                )
+            } else {
+                Box(Modifier.size(10.dp).clip(CircleShape).background(bronze))
+            }
+        }
+    }
+}
+
+private val SelectionShape = RoundedCornerShape(8.dp)
+
+/** A [SectionHeader]'s room: a clear break above, the plate close below. */
+val SectionHeaderPadding = PaddingValues(top = Spacing.lg, bottom = Spacing.sm)
+
+/** For a column that spaces its items already (a form of short sections): the head sits on that spacing. */
+val SectionHeaderPaddingTight = PaddingValues(top = Spacing.xs, bottom = 0.dp)
+
+/**
+ * The app's card: a [GoaPlate] with roomier padding; [style] [PlateStyle.Secondary] for settings and prose.
+ * Clickable when [onClick] is set.
  */
 @Composable
 fun GoaCard(
     modifier: Modifier = Modifier,
     onClick: (() -> Unit)? = null,
     contentPadding: PaddingValues = PaddingValues(Spacing.lg),
+    style: PlateStyle = PlateStyle.Primary,
     content: @Composable ColumnScope.() -> Unit,
 ) {
-    GoaPlate(modifier = modifier, onClick = onClick, contentPadding = contentPadding, content = content)
+    GoaPlate(modifier = modifier, onClick = onClick, contentPadding = contentPadding, style = style, content = content)
 }
 
+/**
+ * A row of filter chips. Up to [FLOW_ROW_MAX] options wrap onto lines ([FlowRow]): nothing hides past the edge. More
+ * scroll sideways the app's way: starting on the gutter, fading and cued at the edge that hides more.
+ */
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun <T> FilterChipRow(
     options: List<T>,
@@ -226,8 +397,22 @@ fun <T> FilterChipRow(
     modifier: Modifier = Modifier,
     contentPadding: PaddingValues = PaddingValues(horizontal = Spacing.screen),
 ) {
+    if (options.size <= FLOW_ROW_MAX) {
+        FlowRow(
+            modifier.padding(contentPadding),
+            horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+            verticalArrangement = Arrangement.spacedBy(Spacing.sm),
+        ) {
+            options.forEach { option ->
+                GoaFilterChip(selected = option in selected, onClick = { onToggle(option) }, label = label(option))
+            }
+        }
+        return
+    }
+    val state = rememberLazyListState()
     LazyRow(
-        modifier = modifier,
+        modifier = modifier.horizontalEdgeFade(state),
+        state = state,
         contentPadding = contentPadding,
         horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
     ) {
@@ -237,42 +422,60 @@ fun <T> FilterChipRow(
     }
 }
 
+/**
+ * A search field's leading glyph: 24 dp, growing with the text to 32 dp at twice the size, so it stays in
+ * proportion to the words it leads.
+ */
+@Composable
+fun SearchFieldIcon() {
+    Icon(
+        Icons.Outlined.Search,
+        contentDescription = null,
+        modifier = Modifier.size(scaledIconSize(24.dp, SEARCH_GROWTH)),
+    )
+}
+
+private const val SEARCH_GROWTH = 4f / 3f
+
+/** A group this small wraps ([FlowRow]) rather than scroll sideways. */
+const val FLOW_ROW_MAX: Int = 6
+
 /** One themed filter chip, for custom layouts (FlowRow) outside [FilterChipRow]. */
 @Composable
-fun GoaFilterChip(selected: Boolean, onClick: () -> Unit, label: String, modifier: Modifier = Modifier) {
-    val primary = MaterialTheme.colorScheme.primary
+fun GoaFilterChip(
+    selected: Boolean,
+    onClick: () -> Unit,
+    label: String,
+    modifier: Modifier = Modifier,
+    enabled: Boolean = true,
+) = GoaFilterChip(selected = selected, onClick = onClick, modifier = modifier, enabled = enabled) { Text(label) }
+
+/**
+ * The app's chip (DESIGN.md "Chips"): a small steel plate, bronze when [selected], with a leading check. At least
+ * [ChipMinHeight] tall and grown by its words ([ChipLabelPadding] above and below), so at large text it never
+ * squeezes; the words wrap rather than cut. Put a group that can outgrow the width in a `FlowRow`.
+ */
+@Composable
+fun GoaFilterChip(
+    selected: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    enabled: Boolean = true,
+    leadingIcon: (@Composable () -> Unit)? = selectedCheck(selected),
+    trailingIcon: (@Composable () -> Unit)? = null,
+    label: @Composable () -> Unit,
+) {
     FilterChip(
         selected = selected,
         onClick = onClick,
-        label = { Text(label, maxLines = 1) },
-        modifier = modifier,
-        leadingIcon = if (selected) {
-            {
-                Icon(
-                    Icons.Filled.Check,
-                    contentDescription = null,
-                    modifier = Modifier.size(FilterChipDefaults.IconSize),
-                )
-            }
-        } else {
-            null
-        },
-        shape = RoundedCornerShape(10.dp),
-        colors = FilterChipDefaults.filterChipColors(
-            containerColor = MaterialTheme.colorScheme.surface,
-            labelColor = MaterialTheme.colorScheme.onSurfaceVariant,
-            selectedContainerColor = primary.copy(alpha = 0.18f),
-            selectedLabelColor = MaterialTheme.colorScheme.onSurface,
-            selectedLeadingIconColor = primary,
-        ),
-        border = FilterChipDefaults.filterChipBorder(
-            enabled = true,
-            selected = selected,
-            borderColor = GoaTheme.colors.engravedBorder,
-            selectedBorderColor = primary.copy(alpha = 0.7f),
-            borderWidth = 1.dp,
-            selectedBorderWidth = 1.dp,
-        ),
+        label = { ChipLabel(label) },
+        modifier = modifier.chipSize(),
+        enabled = enabled,
+        leadingIcon = leadingIcon,
+        trailingIcon = trailingIcon,
+        shape = ChipShape,
+        colors = selectableChipColors(),
+        border = selectableChipBorder(selected),
     )
 }
 

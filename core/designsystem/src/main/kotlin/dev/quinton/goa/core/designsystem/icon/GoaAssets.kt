@@ -76,6 +76,9 @@ object PlayerCrests {
 
     val count: Int get() = all.size
 
+    /** The steel shield without a charge, for a player's initial. */
+    @DrawableRes val blank: Int = R.drawable.crest_blank
+
     @DrawableRes
     fun drawableFor(avatarId: Int): Int? = all.getOrNull(avatarId)
 }
@@ -104,4 +107,8 @@ object GoaIcons {
     @DrawableRes val NavPlayers = R.drawable.ic_nav_players
 
     @DrawableRes val NavPlayersSelected = R.drawable.ic_nav_players_filled
+
+    @DrawableRes val NavMore = R.drawable.ic_nav_more
+
+    @DrawableRes val NavMoreSelected = R.drawable.ic_nav_more_filled
 }

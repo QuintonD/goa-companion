@@ -13,6 +13,7 @@ import dev.quinton.goa.core.navigation.SettingsRoute
 import dev.quinton.goa.core.navigation.TimerPresetEditRoute
 import dev.quinton.goa.core.navigation.TimerPresetsRoute
 import dev.quinton.goa.core.navigation.TimerRoute
+import dev.quinton.goa.core.navigation.TopLevelTab
 import dev.quinton.goa.feature.timer.ui.presets.PresetEditRoute
 import dev.quinton.goa.feature.timer.ui.presets.PresetEditViewModel
 import dev.quinton.goa.feature.timer.ui.presets.PresetsRoute
@@ -52,6 +53,7 @@ fun EntryProviderScope<NavKey>.timerEntries(navigator: Navigator) {
             },
             onOpenLevels = { heroIds -> navigator.navigate(LevelLadderRoute(heroIds)) },
             onOpenRules = { navigator.navigate(RulesRoute) },
+            onOpenDraft = { navigator.navigateToTab(TopLevelTab.DRAFT) },
         )
     }
     entry<MatchSetupRoute> { key ->

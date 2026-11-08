@@ -12,6 +12,7 @@ import dev.quinton.goa.core.data.GroupState
 import dev.quinton.goa.core.data.PlayerRepository
 import dev.quinton.goa.core.data.SyncRepository
 import dev.quinton.goa.core.data.backup.AppInfo
+import dev.quinton.goa.core.domain.sync.GroupInvite
 import dev.quinton.goa.core.domain.sync.SyncValidation
 import dev.quinton.goa.core.domain.sync.protocol.ClientPhase
 import dev.quinton.goa.core.domain.sync.protocol.ClientState
@@ -72,6 +73,10 @@ data class SyncSessionUiState(
     val duplicateHint: String? = null,
     /** The phones run different app versions (hero ratings can differ). */
     val versionHint: String? = null,
+    /** The group's invite, for a phone that needs it again (an old invite, another group); as Group sync shows it. */
+    val invite: String? = null,
+    /** Host: "Start automatically when ready" is armed; the merge starts once every included phone's data is in. */
+    val autoStart: Boolean = false,
 ) {
     /** Merged data is being written or sent: the sheet holds open (Cancel is still offered). */
     val busy: Boolean get() = when (val s = stage) {
@@ -133,6 +138,7 @@ class SyncSessionViewModel @AssistedInject constructor(
     private var transport: SessionTransport? = null
     private val requested =
         MutableStateFlow(SessionRole.entries.firstOrNull { it.name.equals(role, ignoreCase = true) })
+    private val autoStart = MutableStateFlow(false)
 
     private val stage: Flow<SessionStage?> = session.flatMapLatest { s ->
         when (s) {
@@ -148,7 +154,8 @@ class SyncSessionViewModel @AssistedInject constructor(
         groups.state,
         players.observePlayers(includeArchived = true),
         requested,
-    ) { stage, group, people, role ->
+        autoStart,
+    ) { stage, group, people, role, auto ->
         val finishedOk = when (stage) {
             is SessionStage.Hosting -> stage.state.phase == HostPhase.DONE
             is SessionStage.Joining -> stage.state.phase == ClientPhase.DONE
@@ -168,6 +175,9 @@ class SyncSessionViewModel @AssistedInject constructor(
             requestedRole = role,
             duplicateHint = if (finishedOk) SyncText.duplicateHint(SyncText.duplicateNames(people)) else null,
             versionHint = SyncText.versionHint(appInfo.versionName(), others),
+            // As the Group screen's invite: the server travels in it only when it isn't the app's own.
+            invite = group.group?.let { GroupInvite.format(it, group.server.activeUrl.takeIf { group.server.custom }) },
+            autoStart = auto,
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), SyncSessionUiState(firstSync = firstSync))
 
@@ -195,7 +205,13 @@ class SyncSessionViewModel @AssistedInject constructor(
                     SessionRole.HOST -> {
                         val host = SyncHost(opened, group, me, sync)
                         session.value = Session.Host(host)
+                        // Armed auto-start: merge once every included phone's data is in (never one still sending).
+                        val auto = launch {
+                            combine(host.state, autoStart) { s, on -> on && SyncText.readyToMerge(s) }.first { it }
+                            host.syncNow()
+                        }
                         host.run()
+                        auto.cancel()
                         host.state.value.takeIf { it.phase == HostPhase.DONE }
                             ?.let { groups.recordSync(it.synced, clock.now()) }
                     }
@@ -221,6 +237,11 @@ class SyncSessionViewModel @AssistedInject constructor(
         (session.value as? Session.Host)?.host?.syncNow()
     }
 
+    /** Host: arm or disarm "Start automatically when ready". */
+    fun setAutoStart(on: Boolean) {
+        autoStart.value = on
+    }
+
     /** Join: several hosts in range; join this one. */
     fun chooseHost(peer: SyncPeer) {
         (session.value as? Session.Client)?.client?.choose(peer)
@@ -229,6 +250,7 @@ class SyncSessionViewModel @AssistedInject constructor(
     /** Cancel, or "Try again" after a failure: back to Host / Join. */
     fun reset() {
         stop()
+        autoStart.value = false
         session.value = null
     }
 

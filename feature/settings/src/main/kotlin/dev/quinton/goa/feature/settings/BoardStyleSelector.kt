@@ -55,6 +55,7 @@ import dev.quinton.goa.core.designsystem.component.OfficialIcon
 import dev.quinton.goa.core.designsystem.component.PlateGround
 import dev.quinton.goa.core.designsystem.component.TeamMark
 import dev.quinton.goa.core.designsystem.component.assetUrl
+import dev.quinton.goa.core.designsystem.component.selectionFrame
 import dev.quinton.goa.core.designsystem.component.teamColor
 import dev.quinton.goa.core.designsystem.theme.GoaTheme
 import dev.quinton.goa.core.designsystem.theme.Spacing
@@ -97,12 +98,7 @@ private fun BoardStyleTile(
     val shape = RoundedCornerShape(8.dp)
     Column(
         modifier
-            .clip(shape)
-            .border(
-                if (selected) 2.dp else 1.dp,
-                if (selected) MaterialTheme.colorScheme.primary else GoaTheme.colors.engravedBorder,
-                shape,
-            )
+            .selectionFrame(selected, shape)
             .selectable(selected = selected, role = Role.RadioButton, onClick = { onSelect(style) }),
     ) {
         BoardStylePreview(

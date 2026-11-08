@@ -14,11 +14,12 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
-import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
@@ -31,9 +32,16 @@ import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.draw.drawWithCache
+import androidx.compose.ui.geometry.CornerRadius
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.geometry.center
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.drawOutline
+import androidx.compose.ui.graphics.drawscope.DrawScope
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.Role
@@ -50,11 +58,14 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
+import dev.quinton.goa.core.designsystem.component.GoaDarkTheme
 import dev.quinton.goa.core.designsystem.component.LookArt
 import dev.quinton.goa.core.designsystem.component.OfficialArt
 import dev.quinton.goa.core.designsystem.component.OfficialIcon
 import dev.quinton.goa.core.designsystem.component.PlateGround
+import dev.quinton.goa.core.designsystem.component.TitlePlate
 import dev.quinton.goa.core.designsystem.component.assetUrl
+import dev.quinton.goa.core.designsystem.component.emptySlotOutline
 import dev.quinton.goa.core.designsystem.component.scaledIconSize
 import dev.quinton.goa.core.designsystem.theme.GoaTextStyles
 import dev.quinton.goa.core.designsystem.theme.GoaTheme
@@ -118,10 +129,12 @@ private fun StateTag(state: HeroTurnState) {
 }
 
 /**
- * The hero's real dashboard (rulebook p.16, mock-up 05): the frame over the hero's art, "Hero the Title" on
- * its big plate, "Turn n" on its small ones and the round's cards lying in its slots, each slot one
- * TalkBack node. Tap a card to read it. It scales with the sheet, as printed: its words don't grow with
- * the font scale (TalkBack and the lines under it say them).
+ * The hero's dashboard (rulebook p.16, mock-up 05), redrawn at the phone's own density (ADR-058: the printed frame is
+ * too soft at this size): a steel frame with the plate's teal brackets over the hero's art (dimmed: a backdrop, not
+ * the content), "Hero the Title" on the cards' parchment title plate, a parchment "TURN n" tab over each of the four
+ * slots and the round's cards lying in them, each slot one TalkBack node. Tap a card to read it. Its words scale with
+ * the frame, not the font scale (TalkBack and the lines under it say them). Markers on a slot (Snorri's runes) lie on
+ * a strip under it.
  */
 @Composable
 internal fun HeroDashboard(table: TableUi, hero: HeroView, focus: CardFocusState, modifier: Modifier = Modifier) {
@@ -134,68 +147,130 @@ internal fun HeroDashboard(table: TableUi, hero: HeroView, focus: CardFocusState
             FocusCard(card, key = "$title/${card.id}", caption = "Turn ${slot.turn}")
         }
     }
-    BoxWithConstraints(modifier.aspectRatio(FRAME_ASPECT).clipToBounds().background(PlateGround)) {
+    val shape = RoundedCornerShape(FRAME_CORNER)
+    BoxWithConstraints(modifier.clip(shape).background(PlateGround)) {
         val w = maxWidth
-        val h = maxHeight
         val scale = w.value / FRAME_REFERENCE
-        val ink = GoaTheme.colors.onParchment
-        DashboardArt(hero.heroId, info.portrait, Modifier.fillMaxSize())
-        OfficialIcon(LookArt.DASHBOARD_FRAME, Modifier.fillMaxSize().clearAndSetSemantics {})
-        // The frame's blank upright plate at its right edge holds nothing here, and reads as a scrollbar.
-        Box(
+        val pad = FRAME_PAD * scale
+        val gap = SLOT_GAP * scale
+        val column = (w - pad * 2 - gap * 3) / 4
+        val cardWidth = column * CARD_SHARE
+        val markers = slots.any { it.marker != null }
+        DashboardArt(hero.heroId, info.portrait, Modifier.matchParentSize())
+        // The painting is the backdrop, not the content: dimmed under a slate veil so the slots read over it.
+        Box(Modifier.matchParentSize().background(PlateGround.copy(alpha = ART_VEIL)))
+        Column(
             Modifier
-                .offset(x = w * BLANK_PLATE_X, y = h * BLANK_PLATE_Y)
-                .size(w * BLANK_PLATE_WIDTH, h * BLANK_PLATE_HEIGHT)
-                .background(PlateGround, RoundedCornerShape(2.dp)),
-        )
-        val name = listOf(info.name, info.title).filter { it.isNotBlank() }.joinToString(" ")
-        // The big plate is about a third of the frame: a long title gets smaller rather than cut.
-        val nameSize = dpToSp(minOf(NAME_SP * scale, (w * BIG_PLATE_TEXT).value / (name.length * CINZEL_EM)))
-        Text(
-            name,
-            style = GoaTextStyles.plateTitle.copy(fontSize = nameSize, lineHeight = nameSize * 1.2f, color = ink),
-            maxLines = 1,
-            modifier = Modifier
-                .align(Alignment.TopCenter)
-                .offset(y = h * BIG_PLATE_Y - (nameSize.value * 0.6f).dp)
-                .clearAndSetSemantics {},
-        )
-        val slotHeight = h * (SLOTS_BOTTOM - SLOTS_TOP)
-        val cardWidth = slotHeight * CARD_ASPECT
-        slots.forEachIndexed { i, slot ->
-            val centre = w * SLOT_CENTRES[i]
-            val turnSize = dpToSp(TURN_SP * scale)
-            Text(
-                "Turn ${slot.turn}",
-                style = GoaTextStyles.plateTitle.copy(fontSize = turnSize, lineHeight = turnSize * 1.2f, color = ink),
-                textAlign = TextAlign.Center,
+                .fillMaxWidth()
+                .drawWithCache {
+                    val frame = DashboardFrame(size, FRAME_CORNER.toPx(), scale * density)
+                    onDrawBehind { frame.draw(this) }
+                }
+                .padding(start = pad, end = pad, top = pad * 0.8f, bottom = pad * 1.1f),
+            horizontalAlignment = Alignment.CenterHorizontally,
+        ) {
+            val name = listOf(info.name, info.title).filter { it.isNotBlank() }.joinToString(" ")
+            val nameSize = dpToSp(NAME_DP * scale)
+            TitlePlate(
+                name,
+                style = GoaTextStyles.plateTitle.copy(fontSize = nameSize, lineHeight = nameSize * 1.2f),
+                heading = false,
                 maxLines = 1,
-                modifier = Modifier
-                    .width(cardWidth)
-                    .offset(x = centre - cardWidth / 2, y = h * TURN_PLATE_Y - (turnSize.value * 0.6f).dp)
-                    .clearAndSetSemantics {},
+                modifier = Modifier.widthIn(max = w * NAME_PLATE_SHARE).clearAndSetSemantics {},
             )
-            val extra = if (slot.cards.size > 1) cardWidth * SECOND_CARD else 0.dp
-            SlotOnFrame(
-                hero.heroId,
-                table,
-                slot,
-                cardWidth,
-                scale,
-                focus,
-                title,
-                viewable,
-                Modifier.offset(x = centre - (cardWidth + extra) / 2, y = h * SLOTS_TOP),
-            )
-            slot.marker?.let { marker ->
-                val size = h * if (marker.active) MARKER_ACTIVE else MARKER_SIZE
-                SlotMarkerToken(
-                    marker,
-                    scale,
-                    Modifier.offset(x = centre - size / 2, y = h * MARKER_Y - size / 2),
-                    size,
-                )
+            Spacer(Modifier.height(TITLE_GAP * scale))
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(gap)) {
+                slots.forEach { slot ->
+                    Column(Modifier.weight(1f), horizontalAlignment = Alignment.CenterHorizontally) {
+                        TurnTab(slot.turn, scale, Modifier.width(cardWidth))
+                        Spacer(Modifier.height(TAB_GAP * scale))
+                        SlotOnFrame(hero.heroId, table, slot, cardWidth, scale, focus, title, viewable, Modifier)
+                        if (markers) {
+                            val size = w * MARKER_SHARE
+                            Box(Modifier.padding(top = TAB_GAP * scale).height(w * MARKER_ACTIVE_SHARE)) {
+                                slot.marker?.let { marker ->
+                                    SlotMarkerToken(
+                                        marker,
+                                        scale,
+                                        Modifier.align(Alignment.Center),
+                                        if (marker.active) w * MARKER_ACTIVE_SHARE else size,
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
             }
+        }
+    }
+}
+
+/** A slot's "TURN n" tab: a small parchment plate with a bronze edge, in the cards' Cinzel. */
+@Composable
+private fun TurnTab(turn: Int, scale: Float, modifier: Modifier) {
+    val size = dpToSp(TURN_DP * scale)
+    val shape = RoundedCornerShape(3.dp)
+    Text(
+        "Turn $turn",
+        style = GoaTextStyles.plateTitle.copy(
+            fontSize = size,
+            lineHeight = size * 1.25f,
+            fontWeight = FontWeight.Bold,
+            color = GoaTheme.colors.onParchment,
+        ),
+        textAlign = TextAlign.Center,
+        maxLines = 1,
+        modifier = modifier
+            .background(Brush.verticalGradient(listOf(TabParchmentTop, TabParchmentLow)), shape)
+            .border(1.dp, TabEdge, shape)
+            .padding(vertical = 1.dp)
+            .clearAndSetSemantics {},
+    )
+}
+
+/**
+ * The dashboard's frame, drawn as vectors so it is sharp at any size: a dark rim, a steel band lit from above, a
+ * bronze hairline inside it, and the plate's teal corner brackets.
+ */
+private class DashboardFrame(private val size: Size, private val corner: Float, private val px: Float) {
+    private val steel = Brush.verticalGradient(listOf(SteelLight, SteelMid, SteelDark, SteelMid))
+    private val band = maxOf(2f, 2.5f * px)
+    private val inset = band * 2.4f
+    private val arm = 13f * px
+    private val bracket = maxOf(1.5f, 2f * px)
+
+    fun draw(scope: DrawScope) = with(scope) {
+        val rim = band * 1.8f
+        drawRoundRect(
+            FrameShadow,
+            topLeft = Offset(rim / 2f, rim / 2f),
+            size = Size(size.width - rim, size.height - rim),
+            cornerRadius = CornerRadius(corner),
+            style = Stroke(rim),
+        )
+        drawRoundRect(
+            steel,
+            topLeft = Offset(band / 2f, band / 2f),
+            size = Size(size.width - band, size.height - band),
+            cornerRadius = CornerRadius(corner),
+            style = Stroke(band),
+        )
+        drawRoundRect(
+            BronzeLine,
+            topLeft = Offset(inset, inset),
+            size = Size(size.width - inset * 2, size.height - inset * 2),
+            cornerRadius = CornerRadius(maxOf(0f, corner - inset / 2f)),
+            style = Stroke(maxOf(1f, px)),
+        )
+        val e = inset + bracket * 2.5f
+        listOf(
+            Offset(e, e) to Offset(1f, 1f),
+            Offset(size.width - e, e) to Offset(-1f, 1f),
+            Offset(e, size.height - e) to Offset(1f, -1f),
+            Offset(size.width - e, size.height - e) to Offset(-1f, -1f),
+        ).forEach { (at, dir) ->
+            drawLine(BracketTeal, at, at + Offset(arm * dir.x, 0f), strokeWidth = bracket, cap = StrokeCap.Round)
+            drawLine(BracketTeal, at, at + Offset(0f, arm * dir.y), strokeWidth = bracket, cap = StrokeCap.Round)
         }
     }
 }
@@ -258,8 +333,8 @@ private fun SlotOnFrame(
                 TableCard(first, width = width, backOf = heroId)
                 if (slot.stepped) Box(Modifier.fillMaxSize().background(Color.Black.copy(alpha = STEPPED_SCRIM)))
             } else {
-                // The art under an empty slot can look almost like a card.
-                Box(Modifier.fillMaxSize().background(Color.Black.copy(alpha = EMPTY_SCRIM)))
+                // An empty slot: a dark well with a dashed steel edge and its turn's number, never mistaken for a card.
+                EmptySlot(slot.turn, scale, shape)
             }
             val (background, content) = bandColors(slot.now, slot.next)
             slot.word?.let { word ->
@@ -282,6 +357,35 @@ private fun SlotOnFrame(
                 )
             }
             if (slot.now || slot.next) Box(Modifier.fillMaxSize().border(2.dp, background, shape))
+        }
+    }
+}
+
+/**
+ * An empty Turn slot: the slate a little deeper than the frame (not a black hole), a dashed muted edge and the turn's
+ * number in the muted token (DESIGN.md "Muted states"), so it reads as a place to fill and stays legible in dim light.
+ */
+@Composable
+private fun EmptySlot(turn: Int, scale: Float, shape: RoundedCornerShape) {
+    val number = dpToSp(EMPTY_NUMBER_SP * scale)
+    // The dashboard is the dark slate in both themes: its muted tokens are the dark theme's.
+    GoaDarkTheme {
+        Box(
+            Modifier
+                .fillMaxSize()
+                .background(PlateGround.copy(alpha = EMPTY_FILL))
+                .emptySlotOutline(shape, inset = 3.dp),
+            contentAlignment = Alignment.Center,
+        ) {
+            Text(
+                "$turn",
+                style = GoaTextStyles.plateTitle.copy(
+                    fontSize = number,
+                    lineHeight = number * 1.1f,
+                    fontWeight = FontWeight.Bold,
+                ),
+                color = GoaTheme.colors.textMuted,
+            )
         }
     }
 }
@@ -399,26 +503,29 @@ private fun dpToSp(value: Float): TextUnit = with(LocalDensity.current) { value.
 @Composable
 internal fun ItemsSection(table: TableUi, hero: HeroView, focus: CardFocusState) {
     if (hero.itemStats.isEmpty() && hero.items.isEmpty()) return
-    HeroSection("Items · p.16")
-    FlowRow(
-        horizontalArrangement = Arrangement.spacedBy(Spacing.md),
-        verticalArrangement = Arrangement.spacedBy(4.dp),
-    ) {
-        itemGroups(hero.itemStats).forEach { (stat, count) ->
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.heightIn(min = 32.dp).clearAndSetSemantics {
-                    contentDescription = "+1 ${PlayText.stat(stat)}" + if (count > 1) ", $count items" else ", 1 item"
-                },
-            ) {
-                OfficialIcon(
-                    OfficialArt.itemIcon(stat),
-                    Modifier.size(width = ITEM_ICON_WIDTH, height = ITEM_ICON_HEIGHT),
+    HeroSection("Items", page = "p.16")
+    if (hero.itemStats.isNotEmpty()) {
+        FlowRow(
+            horizontalArrangement = Arrangement.spacedBy(Spacing.md),
+            verticalArrangement = Arrangement.spacedBy(4.dp),
+        ) {
+            itemGroups(hero.itemStats).forEach { (stat, count) ->
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.heightIn(min = 32.dp).clearAndSetSemantics {
+                        val items = if (count > 1) ", $count items" else ", 1 item"
+                        contentDescription = "+1 ${PlayText.stat(stat)}$items"
+                    },
                 ) {
-                    ItemIcon(stat)
+                    OfficialIcon(
+                        OfficialArt.itemIcon(stat),
+                        Modifier.size(width = ITEM_ICON_WIDTH, height = ITEM_ICON_HEIGHT),
+                    ) {
+                        ItemIcon(stat)
+                    }
+                    Spacer(Modifier.width(3.dp))
+                    Text("+$count", style = MaterialTheme.typography.titleSmall)
                 }
-                Spacer(Modifier.width(3.dp))
-                Text("+$count", style = MaterialTheme.typography.titleSmall)
             }
         }
     }
@@ -427,7 +534,7 @@ internal fun ItemsSection(table: TableUi, hero: HeroView, focus: CardFocusState)
         // A puzzle shows the other side's too, and there "only you" isn't so.
         Quiet(
             if (hero.heroId in table.mine) {
-                "Tucked under the dashboard: only you see which cards (p.4)."
+                "Tucked under the dashboard: only you see which cards."
             } else {
                 "Tucked under the dashboard: open in this puzzle."
             },
@@ -471,13 +578,20 @@ internal fun MarkersSection(table: TableUi, hero: HeroView) {
 }
 
 @Composable
-internal fun HeroSection(title: String) {
-    Text(
-        title,
-        style = GoaTextStyles.sectionHead,
-        color = GoaTheme.colors.heading,
-        modifier = Modifier.semantics { heading() },
-    )
+internal fun HeroSection(title: String, page: String? = null) {
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        Text(
+            title,
+            style = GoaTextStyles.sectionHead,
+            color = GoaTheme.colors.heading,
+            modifier = Modifier.semantics { heading() },
+        )
+        // The rulebook page as a small pill after the head, never in its words.
+        page?.let {
+            Spacer(Modifier.width(Spacing.sm))
+            PagePill(it)
+        }
+    }
 }
 
 @Composable
@@ -491,36 +605,41 @@ private val MarkerLabelInk = Color(0xFF0B1622)
 private val ITEM_ICON_WIDTH = 36.dp
 private val ITEM_ICON_HEIGHT = 27.dp
 
-// Positions as fractions of the 821 × 416 frame (official/ui/dashboard-frame).
-private const val FRAME_ASPECT = 821f / 416f
-private const val BIG_PLATE_Y = 0.19f
-private const val TURN_PLATE_Y = 0.272f
-private const val SLOTS_TOP = 0.335f
-private const val SLOTS_BOTTOM = 0.83f
-private const val MARKER_Y = 0.905f
-private const val MARKER_SIZE = 0.105f
-private const val MARKER_ACTIVE = 0.125f
-private const val MARKER_LABEL_SP = 7.5f
-private val SLOT_CENTRES = listOf(0.170f, 0.389f, 0.607f, 0.829f)
-
-/** The frame width the words below are sized for, and how much of it the big plate's text may take. */
+// The redrawn dashboard's proportions, in dp at the reference width (a phone held upright).
 private const val FRAME_REFERENCE = 411f
-private const val BIG_PLATE_TEXT = 0.29f
-private const val NAME_SP = 10.5f
-private const val CINZEL_EM = 0.6f
-private const val TURN_SP = 9.5f
-private const val BAND_SP = 10f
+private val FRAME_CORNER = 10.dp
+private val FRAME_PAD = 14.dp
+private val SLOT_GAP = 10.dp
+private val TITLE_GAP = 8.dp
+private val TAB_GAP = 4.dp
+
+/** A slot's card takes this share of its column; Emmitt's second card peeks out in the rest. */
+private const val CARD_SHARE = 0.85f
+private const val NAME_PLATE_SHARE = 0.86f
+private const val NAME_DP = 13f
+private const val TURN_DP = 11f
+private const val BAND_SP = 11f
+private const val MARKER_SHARE = 0.053f
+private const val MARKER_ACTIVE_SHARE = 0.063f
+private const val MARKER_LABEL_SP = 7.5f
+private val SteelLight = Color(0xFFC9D2D8)
+private val SteelMid = Color(0xFF7D8A93)
+private val SteelDark = Color(0xFF3E4950)
+private val FrameShadow = Color(0xB3000000)
+private val BronzeLine = Color(0xCC9A7440)
+private val BracketTeal = Color(0xFF3FC1B0)
+private val TabParchmentTop = Color(0xFFF1E8D2)
+private val TabParchmentLow = Color(0xFFDCCDA9)
+private val TabEdge = Color(0xFF9A7440)
 private const val SECOND_CARD = 0.17f
 private const val SECOND_ALPHA = 0.9f
 private const val STEPPED_SCRIM = 0.38f
-private const val EMPTY_SCRIM = 0.4f
-private const val BLANK_PLATE_X = 0.936f
-private const val BLANK_PLATE_Y = 0.445f
-private const val BLANK_PLATE_WIDTH = 0.029f
-private const val BLANK_PLATE_HEIGHT = 0.215f
+private const val EMPTY_FILL = 0.55f
+private const val EMPTY_NUMBER_SP = 18f
+private const val ART_VEIL = 0.6f
 
 /** A portrait's face sits above its middle. */
 private const val PORTRAIT_BIAS = -0.45f
 
 /** The action that opens a hero's sheet, as TalkBack says it (map piece, hero strip, turn track). */
-internal fun showGameState(name: String): String = "Show $name's game state"
+internal fun showGameState(name: String): String = "Open $name's state"

@@ -11,7 +11,6 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -23,6 +22,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import dev.quinton.goa.core.designsystem.component.GoaButton
 import dev.quinton.goa.core.designsystem.component.GoaCard
+import dev.quinton.goa.core.designsystem.component.GoaOutlinedButton
 import dev.quinton.goa.core.designsystem.component.GoaScreen
 import dev.quinton.goa.core.designsystem.theme.Spacing
 import dev.quinton.goa.core.domain.sync.SyncFileProblem
@@ -66,7 +66,7 @@ fun SyncFileImportScreen(state: SyncFileImportUiState, actions: SyncFileImportAc
                             Text("Group sync")
                         }
                     }
-                    OutlinedButton(onClick = actions.onBack, modifier = Modifier.heightIn(min = 48.dp)) {
+                    GoaOutlinedButton(onClick = actions.onBack, modifier = Modifier.heightIn(min = 48.dp)) {
                         Text("Close")
                     }
                 }

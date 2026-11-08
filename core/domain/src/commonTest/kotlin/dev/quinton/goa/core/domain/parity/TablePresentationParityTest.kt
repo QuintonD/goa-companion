@@ -120,7 +120,7 @@ class TablePresentationParityTest {
         )
         out.appendLine(canon(PresetEdits.move(edited, "new", -1)))
         out.appendLine(PresetEdits.validate(edited, rules.endOfRound).map { PresetEdits.issueText(it) }.toString())
-        assertTranscript("2b9a38fc1bb84bde660220cc386659ff323b09b616bb026c37424171ca5b9da3", out.toString(), "timer")
+        assertTranscript("a3d17f75aefeccec4863c74b547a046824c76207a44b06118bcbe0abceeee3f2", out.toString(), "timer")
     }
 
     @Test
@@ -166,7 +166,7 @@ class TablePresentationParityTest {
         val pending = TimerUiMapper.pendingMatches(listOf(match), catalog) { "at $it" }
         out.appendLine(canon(pending))
         assertTranscript(
-            "11c870be6966fb9e26a303aaab4899c5dd0c4539b984804975c10b24c60f7510",
+            "39fbcdd355c456c83cab2b5c06529c348c2bea98987e678a97298d4063d3af9f",
             out.toString(),
             "match setup",
         )
@@ -261,7 +261,7 @@ class TablePresentationParityTest {
             out.appendLine(DraftStorage.encodeProgress(progress))
         }
         out.appendLine(DraftSetupPresenter.quickAddPlayer(" Zed ", 13, "id", 5).toString())
-        assertTranscript("cdac15cb5d733353c643a534062c95f6c8c6b383951f8f1e661603eb6e3d9431", out.toString(), "draft")
+        assertTranscript("70da53dce43a431dae1d99ea39e25b8480be72a7c230f180db84bb20434f6c2b", out.toString(), "draft")
     }
 
     private fun percent(f: Float): Int = kotlin.math.round(f.toDouble() * 100).toInt()

@@ -88,13 +88,20 @@ private data class TabSpec(
     @param:DrawableRes val unselected: Int,
 )
 
+/**
+ * The bottom bar: every feature is one labelled tap away, Draft, Rules, Group sync and Settings on More.
+ * The Draft keeps its own stack ([TopLevelTab.DRAFT]) and lights More while it shows.
+ */
 private val Tabs = listOf(
     TabSpec(TopLevelTab.CATALOG, "Heroes", GoaIcons.NavHeroesSelected, GoaIcons.NavHeroes),
-    TabSpec(TopLevelTab.TIMER, "Timer", GoaIcons.NavTimerSelected, GoaIcons.NavTimer),
-    TabSpec(TopLevelTab.DRAFT, "Draft", GoaIcons.NavDraftSelected, GoaIcons.NavDraft),
     TabSpec(TopLevelTab.PLAY, "Play", GoaIcons.NavPlaySelected, GoaIcons.NavPlay),
+    TabSpec(TopLevelTab.TIMER, "Timer", GoaIcons.NavTimerSelected, GoaIcons.NavTimer),
     TabSpec(TopLevelTab.PLAYERS, "Players", GoaIcons.NavPlayersSelected, GoaIcons.NavPlayers),
+    TabSpec(TopLevelTab.MORE, "More", GoaIcons.NavMoreSelected, GoaIcons.NavMore),
 )
+
+/** The bottom-bar item lit for [tab]: the Draft has none of its own and sits under More. */
+internal fun barItemFor(tab: TopLevelTab): TopLevelTab = if (tab == TopLevelTab.DRAFT) TopLevelTab.MORE else tab
 
 /** Subtle push: content drifts 1/10 of the width while cross-fading (Motion tokens). */
 private fun push(forward: Boolean): ContentTransform {
@@ -272,8 +279,9 @@ internal fun GoaBottomBar(current: TopLevelTab, onSelect: (TopLevelTab) -> Unit)
         // The slate with its steel edge (mock-up 06); the plate is drawn here so it reaches under the system bar.
         Box(Modifier.slatePlate(RectangleShape)) {
             NavigationBar(containerColor = Color.Transparent, tonalElevation = 0.dp) {
+                val lit = barItemFor(current)
                 Tabs.forEach { spec ->
-                    val selected = current == spec.tab
+                    val selected = lit == spec.tab
                     NavigationBarItem(
                         selected = selected,
                         onClick = { onSelect(spec.tab) },

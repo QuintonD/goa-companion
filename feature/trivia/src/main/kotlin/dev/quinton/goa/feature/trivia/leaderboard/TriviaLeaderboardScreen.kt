@@ -4,6 +4,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
@@ -18,7 +19,6 @@ import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
@@ -31,10 +31,8 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.PrimaryTabRow
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
-import androidx.compose.material3.Tab
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberModalBottomSheetState
@@ -54,8 +52,15 @@ import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.rememberTextMeasurer
+import androidx.compose.ui.text.style.Hyphens
+import androidx.compose.ui.text.style.LineBreak
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Constraints
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.LifecycleResumeEffect
 import dev.quinton.goa.core.data.trivia.LeaderboardRowUi
@@ -66,12 +71,18 @@ import dev.quinton.goa.core.data.trivia.TriviaLeaderboardUiState
 import dev.quinton.goa.core.data.trivia.TriviaText
 import dev.quinton.goa.core.designsystem.component.ConfirmDialog
 import dev.quinton.goa.core.designsystem.component.EmptyState
+import dev.quinton.goa.core.designsystem.component.FootArt
 import dev.quinton.goa.core.designsystem.component.GoaFilterChip
 import dev.quinton.goa.core.designsystem.component.GoaPlate
 import dev.quinton.goa.core.designsystem.component.GoaScreen
 import dev.quinton.goa.core.designsystem.component.GoaSheet
+import dev.quinton.goa.core.designsystem.component.GoaTabRow
+import dev.quinton.goa.core.designsystem.component.PODIUM_PLACES
 import dev.quinton.goa.core.designsystem.component.PlateShape
 import dev.quinton.goa.core.designsystem.component.PlayerAvatar
+import dev.quinton.goa.core.designsystem.component.Podium
+import dev.quinton.goa.core.designsystem.component.PodiumPlace
+import dev.quinton.goa.core.designsystem.component.ScreenFoot
 import dev.quinton.goa.core.designsystem.component.scaledIconSize
 import dev.quinton.goa.core.designsystem.theme.GoaTextStyles
 import dev.quinton.goa.core.designsystem.theme.Spacing
@@ -117,7 +128,7 @@ fun TriviaLeaderboardScreen(
         }
     }
     GoaScreen(
-        title = "Leaderboard",
+        title = "Trivia leaderboard",
         onBack = onBack,
         modifier = modifier,
         snackbarHost = { SnackbarHost(snackbar) },
@@ -164,68 +175,117 @@ fun TriviaLeaderboardScreen(
 @Composable
 private fun BoardContent(state: TriviaLeaderboardUiState.Ready, actions: LeaderboardActions) {
     Column(Modifier.fillMaxSize()) {
-        PrimaryTabRow(
-            selectedTabIndex = state.tab.ordinal,
-            containerColor = MaterialTheme.colorScheme.background,
-            contentColor = MaterialTheme.colorScheme.primary,
-        ) {
-            LeaderboardTab.entries.forEach { tab ->
-                Tab(
-                    selected = tab == state.tab,
-                    onClick = { actions.onTab(tab) },
-                    text = { Text(tabLabel(tab), style = MaterialTheme.typography.titleSmall, maxLines = 1) },
-                    unselectedContentColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-        }
-        LazyColumn(
-            Modifier.fillMaxSize(),
-            contentPadding = PaddingValues(bottom = Spacing.xxl),
-        ) {
-            item(key = "header") {
-                Column(Modifier.padding(horizontal = Spacing.screen, vertical = Spacing.md)) {
-                    FlowRow(
-                        horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
-                        verticalArrangement = Arrangement.spacedBy(Spacing.xs),
-                    ) {
-                        LeaderboardPeriod.entries.forEach { period ->
-                            GoaFilterChip(
-                                selected = period == state.period,
-                                onClick = { actions.onPeriod(period) },
-                                label = periodLabel(period),
-                            )
+        // The app's one page-tab bar, as on a hero page and Players.
+        GoaTabRow(
+            LeaderboardTab.entries.map(::tabLabel),
+            state.tab.ordinal,
+            onSelect = { actions.onTab(LeaderboardTab.entries[it]) },
+        )
+        // A short board ends in the rulebook's battlefield, not in empty navy.
+        Box(Modifier.fillMaxSize()) {
+            ScreenFoot(FootArt.HALL)
+            val podium = state.rows.size >= PODIUM_PLACES && LocalDensity.current.fontScale < PODIUM_FONT_SCALE
+            LazyColumn(
+                Modifier.fillMaxSize(),
+                contentPadding = PaddingValues(bottom = Spacing.xxl),
+            ) {
+                item(key = "header") {
+                    Column(Modifier.padding(horizontal = Spacing.screen, vertical = Spacing.md)) {
+                        FlowRow(
+                            horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+                            verticalArrangement = Arrangement.spacedBy(Spacing.xs),
+                        ) {
+                            LeaderboardPeriod.entries.forEach { period ->
+                                GoaFilterChip(
+                                    selected = period == state.period,
+                                    onClick = { actions.onPeriod(period) },
+                                    label = periodLabel(period),
+                                )
+                            }
                         }
+                        Spacer(Modifier.height(Spacing.xs))
+                        Text(
+                            if (state.tab == LeaderboardTab.CHALLENGE) {
+                                "Your group only · each player's best Challenge: most right answers, then the " +
+                                    "quicker time."
+                            } else {
+                                "Your group only · every round played as a player, Challenges included: most right " +
+                                    "answers, then accuracy."
+                            },
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
                     }
-                    Spacer(Modifier.height(Spacing.xs))
-                    Text(
-                        if (state.tab == LeaderboardTab.CHALLENGE) {
-                            "Each player's best Challenge: most right answers, then the quicker time."
-                        } else {
-                            "Every round played as a player, Challenges included: most right answers, then accuracy."
-                        },
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
                 }
-            }
-            if (state.rows.isEmpty()) {
-                item(key = "empty") { EmptyBoard(state, Modifier.fillMaxWidth()) }
-            } else {
-                item(key = "board-${state.tab}") {
-                    // One plate with dividers, as the Players leaderboard.
-                    GoaPlate(
-                        Modifier.fillMaxWidth().padding(horizontal = Spacing.screen).clip(PlateShape),
-                        contentPadding = PaddingValues(0.dp),
-                    ) {
-                        state.rows.forEachIndexed { i, row ->
-                            if (i > 0) HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
-                            RankedRow(row, onClick = { actions.onOpenPlayer(row.player.id) })
+                if (state.rows.isEmpty()) {
+                    item(key = "empty") { EmptyBoard(state, Modifier.fillMaxWidth()) }
+                } else {
+                    item(key = "board-${state.tab}") {
+                        // One plate with dividers, as the Players leaderboard.
+                        GoaPlate(
+                            Modifier.fillMaxWidth().padding(horizontal = Spacing.screen).clip(PlateShape),
+                            contentPadding = PaddingValues(0.dp),
+                        ) {
+                            // The top three on a podium, the rest as rows under it, in the same plate.
+                            if (podium) {
+                                Podium(
+                                    state.rows.take(PODIUM_PLACES).map { row ->
+                                        PodiumPlace(
+                                            place = row.place,
+                                            label = if (row.tied) "=${row.place}" else "${row.place}",
+                                            description = row.spoken,
+                                            onClick = { actions.onOpenPlayer(row.player.id) },
+                                            onClickLabel = "See rounds",
+                                        ) { PodiumStanding(row) }
+                                    },
+                                    Modifier.padding(start = Spacing.sm, end = Spacing.sm, top = Spacing.md),
+                                )
+                            }
+                            val rows = if (podium) state.rows.drop(PODIUM_PLACES) else state.rows
+                            val scoreColumn = scoreColumnWidth(rows)
+                            rows.forEachIndexed { i, row ->
+                                if (i > 0 || podium) HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+                                RankedRow(row, scoreColumn, onClick = { actions.onOpenPlayer(row.player.id) })
+                            }
                         }
                     }
                 }
             }
         }
     }
+}
+
+/** A podium place: the crest large, the name (two lines if it needs them), the ranked figure, the detail. */
+@Composable
+private fun PodiumStanding(row: LeaderboardRowUi) {
+    PlayerAvatar(row.player, size = if (row.place == 1) 60.dp else 50.dp, showFace = true)
+    Spacer(Modifier.height(Spacing.xs))
+    Text(
+        breakable(row.player.name),
+        style = nameStyle(MaterialTheme.typography.titleSmall),
+        textAlign = TextAlign.Center,
+        maxLines = 2,
+        overflow = TextOverflow.Ellipsis,
+    )
+    if (row.isMe) YouTag()
+    Text(
+        row.main,
+        style = GoaTextStyles.scoreMedium,
+        fontWeight = FontWeight.SemiBold,
+        color = if (row.place == 1) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
+        maxLines = 1,
+    )
+    Text(
+        row.mainCaption ?: SCORE_CAPTION,
+        style = MaterialTheme.typography.labelSmall,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+    )
+    Text(
+        row.detail,
+        style = MaterialTheme.typography.bodySmall,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        textAlign = TextAlign.Center,
+    )
 }
 
 @Composable
@@ -258,7 +318,7 @@ private fun EmptyBoard(state: TriviaLeaderboardUiState.Ready, modifier: Modifier
 }
 
 @Composable
-private fun RankedRow(row: LeaderboardRowUi, onClick: () -> Unit) {
+private fun RankedRow(row: LeaderboardRowUi, scoreColumn: Dp, onClick: () -> Unit) {
     if (LocalDensity.current.fontScale >= LARGE_FONT_SCALE) {
         LargeRankedRow(row, onClick)
         return
@@ -274,17 +334,11 @@ private fun RankedRow(row: LeaderboardRowUi, onClick: () -> Unit) {
     ) {
         PlaceBadge(row.place, row.tied)
         Spacer(Modifier.width(Spacing.md))
-        PlayerAvatar(row.player, size = scaledIconSize(44.dp, maxScale = 1.4f))
+        PlayerAvatar(row.player, size = scaledIconSize(44.dp, maxScale = 1.4f), showFace = true)
         Spacer(Modifier.width(Spacing.md))
         Column(Modifier.weight(1f)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(
-                    row.player.name,
-                    style = MaterialTheme.typography.titleMedium,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.weight(1f, fill = false),
-                )
+                FittedName(breakable(row.player.name), Modifier.weight(1f, fill = false))
                 if (row.isMe) {
                     Spacer(Modifier.width(Spacing.sm))
                     YouTag()
@@ -297,15 +351,16 @@ private fun RankedRow(row: LeaderboardRowUi, onClick: () -> Unit) {
             )
         }
         Spacer(Modifier.width(Spacing.sm))
-        Column(horizontalAlignment = Alignment.End, modifier = Modifier.widthIn(min = 48.dp)) {
+        // One width for every row's figure: the scores line up, whatever the name beside them does.
+        Column(horizontalAlignment = Alignment.End, modifier = Modifier.width(scoreColumn)) {
             Text(
                 row.main,
-                style = GoaTextStyles.numeric.copy(fontSize = MaterialTheme.typography.titleLarge.fontSize),
+                style = GoaTextStyles.scoreMedium,
                 fontWeight = FontWeight.SemiBold,
                 color = if (row.place == 1) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
                 maxLines = 1,
             )
-            row.mainCaption?.let {
+            (row.mainCaption ?: SCORE_CAPTION).let {
                 Text(
                     it,
                     style = MaterialTheme.typography.labelSmall,
@@ -315,6 +370,66 @@ private fun RankedRow(row: LeaderboardRowUi, onClick: () -> Unit) {
         }
     }
 }
+
+/**
+ * [name] with a break opportunity after each hyphen (a zero-width space): the line breaker does not offer one
+ * there by itself, so "Featherstonehaugh-Llewellyn" was cut inside a word.
+ */
+internal fun breakable(name: String): String = name.replace("-", "-\u200B")
+
+/**
+ * A name breaks between words or after a hyphen, never inside a word ("Kit Featherstonehaugh-" / "Llewellyn"):
+ * greedy, strict line breaking without hyphenation.
+ */
+internal fun nameStyle(style: TextStyle): TextStyle = style.copy(
+    lineBreak = LineBreak(LineBreak.Strategy.Simple, LineBreak.Strictness.Strict, LineBreak.WordBreak.Default),
+    hyphens = Hyphens.None,
+)
+
+/**
+ * A row's name in two lines at most, broken only between words or after a hyphen: one size smaller when the
+ * row's size would need a third line, the ellipsis only when even that can't hold it.
+ */
+@Composable
+private fun FittedName(name: String, modifier: Modifier = Modifier) {
+    BoxWithConstraints(modifier) {
+        val measurer = rememberTextMeasurer()
+        val large = nameStyle(MaterialTheme.typography.titleMedium)
+        val small = nameStyle(MaterialTheme.typography.titleSmall)
+        val width = constraints.maxWidth
+        val style = remember(name, width, large, small) {
+            val fits = !measurer.measure(
+                name,
+                large,
+                maxLines = 2,
+                constraints = Constraints(maxWidth = width),
+            ).hasVisualOverflow
+            if (fits) large else small
+        }
+        Text(name, style = style, maxLines = 2, overflow = TextOverflow.Ellipsis)
+    }
+}
+
+/** The widest ranked figure (and its caption) of [rows], so the score column is one width down the board. */
+@Composable
+private fun scoreColumnWidth(rows: List<LeaderboardRowUi>): Dp {
+    val measurer = rememberTextMeasurer()
+    val density = LocalDensity.current
+    val score = GoaTextStyles.scoreMedium.copy(fontWeight = FontWeight.SemiBold)
+    val caption = MaterialTheme.typography.labelSmall
+    return remember(rows, density, score, caption) {
+        val px = rows.maxOfOrNull { row ->
+            maxOf(
+                measurer.measure(row.main, score, maxLines = 1, softWrap = false).size.width,
+                measurer.measure(row.mainCaption ?: SCORE_CAPTION, caption, maxLines = 1, softWrap = false).size.width,
+            )
+        } ?: 0
+        maxOf(with(density) { px.toDp() } + SCORE_SLACK, MIN_SCORE_COLUMN)
+    }
+}
+
+private val SCORE_SLACK = 2.dp
+private val MIN_SCORE_COLUMN = 48.dp
 
 /**
  * At large text there is no room for a column on the right: the name (and You) wrap freely and the
@@ -342,12 +457,12 @@ private fun LargeRankedRow(row: LeaderboardRowUi, onClick: () -> Unit) {
                 horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
                 itemVerticalAlignment = Alignment.CenterVertically,
             ) {
-                Text(row.player.name, style = MaterialTheme.typography.titleMedium)
+                Text(breakable(row.player.name), style = nameStyle(MaterialTheme.typography.titleMedium))
                 if (row.isMe) YouTag()
             }
             Text(
-                listOfNotNull(row.main, row.mainCaption).joinToString(" "),
-                style = GoaTextStyles.numeric.copy(fontSize = MaterialTheme.typography.titleLarge.fontSize),
+                "${row.main} ${row.mainCaption ?: SCORE_CAPTION}",
+                style = GoaTextStyles.scoreMedium,
                 fontWeight = FontWeight.SemiBold,
                 color = if (row.place == 1) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
             )
@@ -500,7 +615,7 @@ private fun RoundRow(round: RoundUi, onRemove: () -> Unit) {
                 Spacer(Modifier.width(Spacing.sm))
                 Text(
                     round.score,
-                    style = GoaTextStyles.numeric.copy(fontSize = MaterialTheme.typography.titleMedium.fontSize),
+                    style = GoaTextStyles.score,
                     fontWeight = FontWeight.SemiBold,
                     color = MaterialTheme.colorScheme.onSurface,
                     modifier = Modifier.clearAndSetSemantics {},
@@ -531,5 +646,11 @@ internal fun periodLabel(period: LeaderboardPeriod): String = TriviaText.periodL
 
 private const val PODIUM = 3
 
+/** From this font scale the podium's three columns give way to rows. */
+private const val PODIUM_FONT_SCALE = 1.3f
+
 /** From this font scale the rows reflow ([LargeRankedRow]). */
 private const val LARGE_FONT_SCALE = 1.5f
+
+/** A Challenge score ("18/20") says what it counts, as a practice total does ("40 right"). */
+private const val SCORE_CAPTION = "right"

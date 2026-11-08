@@ -1,9 +1,12 @@
 package dev.quinton.goa.feature.sync
 
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.hasClickAction
@@ -11,12 +14,18 @@ import androidx.compose.ui.test.hasSetTextAction
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onRoot
+import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTextInput
 import androidx.compose.ui.unit.Density
+import androidx.compose.ui.unit.dp
 import androidx.test.core.app.ApplicationProvider
 import com.github.takahirom.roborazzi.ExperimentalRoborazziApi
 import com.github.takahirom.roborazzi.captureRoboImage
 import com.github.takahirom.roborazzi.captureScreenRoboImage
+import dev.quinton.goa.core.designsystem.component.GoaPlateTheme
+import dev.quinton.goa.core.designsystem.component.GoaSheetHandle
+import dev.quinton.goa.core.designsystem.component.LocalPlayerFaces
+import dev.quinton.goa.core.designsystem.component.slatePlate
 import dev.quinton.goa.core.designsystem.theme.GoaTheme
 import dev.quinton.goa.core.domain.sync.GroupInvite
 import dev.quinton.goa.core.domain.sync.SyncChanges
@@ -29,6 +38,7 @@ import dev.quinton.goa.core.domain.sync.protocol.PeerProgress
 import dev.quinton.goa.core.domain.sync.protocol.PeerStage
 import dev.quinton.goa.core.domain.sync.protocol.SyncDevice
 import dev.quinton.goa.core.domain.sync.protocol.SyncFailure
+import dev.quinton.goa.core.model.player.PlayerFace
 import dev.quinton.goa.core.model.settings.ThemeMode
 import dev.quinton.goa.core.testing.BundledAssetImages
 import dev.quinton.goa.feature.sync.group.GroupActions
@@ -64,7 +74,11 @@ class SyncScreenshotTest {
     private fun setContent(mode: ThemeMode, fontScale: Float, content: @Composable () -> Unit) {
         compose.setContent {
             val d = LocalDensity.current
-            CompositionLocalProvider(LocalDensity provides Density(d.density, fontScale)) {
+            // Ann's most-played hero in her 41 matches, as the app derives it from the log (a real bundled hero).
+            CompositionLocalProvider(
+                LocalDensity provides Density(d.density, fontScale),
+                LocalPlayerFaces provides mapOf("ann" to PlayerFace("arien", "official/heroes/arien/portrait.webp")),
+            ) {
                 GoaTheme(themeMode = mode) { Surface(color = MaterialTheme.colorScheme.background) { content() } }
             }
         }
@@ -106,6 +120,16 @@ class SyncScreenshotTest {
 
     @Test fun groupNoGroupLightFontScale2() = shot(ThemeMode.LIGHT, 2f) { Group(noGroup) }
 
+    /** Start a group chosen (its form open in its plate) and How syncing works unfolded. */
+    @Test
+    fun groupNoGroupStartingLight() {
+        setContent(ThemeMode.LIGHT, 1f) { Group(noGroup) }
+        compose.onNode(hasText("Start a group") and hasClickAction()).performClick()
+        compose.onNode(hasText("How syncing works") and hasClickAction()).performClick()
+        compose.waitUntil(ART_TIMEOUT_MS) { BundledAssetImages.idle }
+        compose.onRoot().captureRoboImage()
+    }
+
     @Test fun groupJoinedDark() = shot { Group(joined) }
 
     @Test fun groupJoinedLight() = shot(ThemeMode.LIGHT) { Group(joined.copy(me = null)) }
@@ -123,7 +147,8 @@ class SyncScreenshotTest {
     @Test
     fun groupPasteInviteShortDark() {
         setContent(ThemeMode.DARK, 1f) { Group(noGroup) }
-        compose.onNode(hasSetTextAction() and hasText("Or paste an invite"))
+        compose.onNode(hasText("Paste an invite instead") and hasClickAction()).performClick()
+        compose.onNode(hasSetTextAction() and hasText("Paste an invite"))
             .performTextInput("Join “Friday nights” in Atlantis Companion: goa1-abc")
         compose.waitForIdle()
         compose.onNode(hasText("Join") and hasClickAction()).assertIsDisplayed()
@@ -131,15 +156,21 @@ class SyncScreenshotTest {
         compose.onRoot().captureRoboImage()
     }
 
-    private val session = SyncSessionUiState(groupName = "Friday nights", deviceName = "Ann")
+    private val session =
+        SyncSessionUiState(groupName = "Friday nights", deviceName = "Ann", invite = GroupInvite.format(TestGroup))
     private val peers = listOf(
         PeerProgress("1", "Bob", SyncDevice("b", "Bob"), PeerStage.READY),
         PeerProgress("2", "Cid", SyncDevice("c", "Cid"), PeerStage.RECEIVING, progress = 0.6f),
         PeerProgress("3", "Eve", stage = PeerStage.FAILED, failure = SyncFailure.WRONG_KEY),
     )
 
-    @Composable private fun Sheet(state: SyncSessionUiState, permission: PermissionUi? = null) =
-        SyncSessionSheet(state, permission, SyncSessionActions())
+    /** The sheet as `GoaSheet` shows it: on the plate, under the drag handle the player sees. */
+    @Composable private fun Sheet(state: SyncSessionUiState, permission: PermissionUi? = null) = GoaPlateTheme {
+        Column(Modifier.slatePlate(RoundedCornerShape(0.dp), brackets = false)) {
+            GoaSheetHandle()
+            SyncSessionSheet(state, permission, SyncSessionActions())
+        }
+    }
 
     @Test fun sessionChooseDark() = shot { Sheet(session) }
 
@@ -153,6 +184,41 @@ class SyncScreenshotTest {
 
     @Test fun sessionHostingDark() = shot {
         Sheet(session.copy(stage = SessionStage.Hosting(HostState(peers = peers))))
+    }
+
+    /** No phone's data in yet: Sync is off and says what it waits for. */
+    @Test fun sessionHostWaitingForDataDark() = shot {
+        Sheet(session.copy(stage = SessionStage.Hosting(HostState(peers = peers.subList(1, 2)))))
+    }
+
+    /** "Start automatically when ready" armed while Cid's upload is still under way: the command stays off. */
+    @Test fun sessionHostAutoStartDark() = shot {
+        Sheet(session.copy(stage = SessionStage.Hosting(HostState(peers = peers.take(2))), autoStart = true))
+    }
+
+    /** Every included phone's data in: "Merge data from 2 phones", on; Eve is still left out. */
+    @Test fun sessionHostReadyLight() = shot(ThemeMode.LIGHT) {
+        val ready = peers.mapIndexed { i, p -> if (i == 1) p.copy(stage = PeerStage.READY, progress = null) else p }
+        Sheet(session.copy(stage = SessionStage.Hosting(HostState(peers = ready))))
+    }
+
+    /** Every upload in: merging. */
+    @Test fun sessionHostMergingNowLight() = shot(ThemeMode.LIGHT) {
+        val merging = HostState(
+            phase = HostPhase.MERGING,
+            peers = peers.take(2).map { it.copy(stage = PeerStage.READY, progress = null) },
+        )
+        Sheet(session.copy(stage = SessionStage.Hosting(merging)))
+    }
+
+    /** Eve's old invite: "Show new invite" opens the group's invite over the sheet. */
+    @OptIn(ExperimentalRoborazziApi::class)
+    @Test
+    fun sessionHostShowInviteDark() {
+        setContent(ThemeMode.DARK, 1f) { Sheet(session.copy(stage = SessionStage.Hosting(HostState(peers = peers)))) }
+        compose.onNode(hasText("Show new invite") and hasClickAction()).performClick()
+        compose.waitForIdle()
+        captureScreenRoboImage()
     }
 
     @Test fun sessionHostDoneLight() = shot(ThemeMode.LIGHT) {

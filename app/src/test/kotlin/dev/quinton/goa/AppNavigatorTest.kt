@@ -5,27 +5,31 @@ import androidx.navigation3.runtime.NavKey
 import com.google.common.truth.Truth.assertThat
 import dev.quinton.goa.core.navigation.BoardRoute
 import dev.quinton.goa.core.navigation.CatalogRoute
+import dev.quinton.goa.core.navigation.DraftBoardRoute
 import dev.quinton.goa.core.navigation.DraftRoute
 import dev.quinton.goa.core.navigation.HeroDetailRoute
 import dev.quinton.goa.core.navigation.MatchEditRoute
 import dev.quinton.goa.core.navigation.MatchLogRoute
 import dev.quinton.goa.core.navigation.MatchSetupRoute
+import dev.quinton.goa.core.navigation.MoreRoute
 import dev.quinton.goa.core.navigation.PlayHomeRoute
 import dev.quinton.goa.core.navigation.PlayersRoute
 import dev.quinton.goa.core.navigation.TimerPresetsRoute
 import dev.quinton.goa.core.navigation.TimerRoute
 import dev.quinton.goa.core.navigation.TopLevelTab
 import dev.quinton.goa.ui.AppNavigator
+import dev.quinton.goa.ui.barItemFor
 import org.junit.Test
 
 class AppNavigatorTest {
     private val navigator = AppNavigator(
         stacks = mapOf(
             TopLevelTab.CATALOG to NavBackStack<NavKey>(CatalogRoute),
-            TopLevelTab.TIMER to NavBackStack<NavKey>(TimerRoute),
-            TopLevelTab.DRAFT to NavBackStack<NavKey>(DraftRoute),
             TopLevelTab.PLAY to NavBackStack<NavKey>(PlayHomeRoute),
+            TopLevelTab.TIMER to NavBackStack<NavKey>(TimerRoute),
             TopLevelTab.PLAYERS to NavBackStack<NavKey>(PlayersRoute),
+            TopLevelTab.MORE to NavBackStack<NavKey>(MoreRoute),
+            TopLevelTab.DRAFT to NavBackStack<NavKey>(DraftRoute),
         ),
         initialTab = TopLevelTab.CATALOG,
     )
@@ -60,7 +64,7 @@ class AppNavigatorTest {
         assertThat(navigator.currentStack.toList()).containsExactly(TimerRoute)
     }
 
-    /** Game night: Draft → Set up match → Start timer landed on Timer presets [88]. */
+    /** Game night: Draft → Open match setup → Start timer landed on Timer presets [88]. */
     @Test fun startingATimerFromSetupShowsTheTimerNotTheScreensLeftUnderneath() {
         navigator.selectTab(TopLevelTab.TIMER)
         navigator.navigate(TimerPresetsRoute)
@@ -108,6 +112,30 @@ class AppNavigatorTest {
         assertThat(navigator.currentStack.toList()).containsExactly(PlayersRoute)
         navigator.back()
         assertThat(navigator.currentTab).isEqualTo(TopLevelTab.CATALOG)
+    }
+
+    /** The Draft has no tab of its own: it keeps its stack, More is lit, and back on its root returns. */
+    @Test fun theDraftKeepsItsStackAndBackReturnsToWhereItWasOpened() {
+        navigator.selectTab(TopLevelTab.MORE)
+        navigator.navigateToTab(TopLevelTab.DRAFT)
+        navigator.navigate(DraftBoardRoute)
+        assertThat(barItemFor(navigator.currentTab)).isEqualTo(TopLevelTab.MORE)
+
+        navigator.selectTab(TopLevelTab.CATALOG)
+        navigator.selectTab(TopLevelTab.MORE)
+        assertThat(navigator.currentStack.toList()).containsExactly(MoreRoute)
+        navigator.navigateToTab(TopLevelTab.DRAFT)
+        assertThat(navigator.currentStack.toList()).containsExactly(DraftRoute, DraftBoardRoute).inOrder()
+
+        navigator.back()
+        navigator.back()
+        assertThat(navigator.currentTab).isEqualTo(TopLevelTab.MORE)
+
+        // From the match log, back on the Draft's root returns to Players.
+        navigator.selectTab(TopLevelTab.PLAYERS)
+        navigator.navigateToTab(TopLevelTab.DRAFT)
+        navigator.back()
+        assertThat(navigator.currentTab).isEqualTo(TopLevelTab.PLAYERS)
     }
 
     @Test fun messagesQueueUntilShown() {

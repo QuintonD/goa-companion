@@ -39,12 +39,12 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -56,6 +56,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.isSpecified
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.CustomAccessibilityAction
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.clearAndSetSemantics
@@ -72,6 +73,7 @@ import dev.quinton.goa.core.designsystem.cardtext.cardTextAnnotated
 import dev.quinton.goa.core.designsystem.component.EmptyState
 import dev.quinton.goa.core.designsystem.component.GoaPlate
 import dev.quinton.goa.core.designsystem.component.GoaScreen
+import dev.quinton.goa.core.designsystem.component.MetalButton
 import dev.quinton.goa.core.designsystem.component.OfficialArt
 import dev.quinton.goa.core.designsystem.component.OfficialIcon
 import dev.quinton.goa.core.designsystem.component.PrintedCardText
@@ -164,8 +166,8 @@ private fun PagerHeader(state: CardViewerUiState.Ready, pager: PagerState) {
                 fontWeight = FontWeight.Bold,
             )
             Text(
-                "${state.hero.name} · ${index + 1} of ${state.cards.size}",
-                style = MaterialTheme.typography.labelMedium,
+                "${state.hero.name} · ${state.position(index)}",
+                style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
@@ -218,6 +220,10 @@ private fun CardPage(card: Card, isHandicap: Boolean, textOnly: Boolean, zoom: Z
     val hasImage = card.image != null
     var imageFailed by remember(card.id) { mutableStateOf(false) }
     val showsDesigned = !hasImage || imageFailed
+    // The scan's own width in pixels, once decoded: the card is shown at most [MAX_UPSCALE] times that, so a
+    // phone's density never blows a 729 px scan up until its print goes soft. "Read the card as text" is crisp.
+    var scanWidth by remember(card.id) { mutableIntStateOf(SCAN_WIDTH_PX) }
+    val cardMax = with(LocalDensity.current) { (scanWidth * MAX_UPSCALE).toDp() }.coerceAtMost(MAX_CARD_WIDTH)
     Column(
         Modifier
             .fillMaxSize()
@@ -230,11 +236,17 @@ private fun CardPage(card: Card, isHandicap: Boolean, textOnly: Boolean, zoom: Z
             enter = fadeIn(tween(MOTION_MS)) + expandVertically(tween(MOTION_MS)),
             exit = fadeOut(tween(MOTION_MS)) + shrinkVertically(tween(MOTION_MS)),
         ) {
-            Box(Modifier.widthIn(max = MAX_CARD_WIDTH).fillMaxWidth(), contentAlignment = Alignment.Center) {
+            Box(
+                Modifier.widthIn(max = if (showsDesigned) MAX_CARD_WIDTH else cardMax).fillMaxWidth(),
+                contentAlignment = Alignment.Center,
+            ) {
                 if (showsDesigned) {
                     DesignedCard(card, isHandicap, Modifier.fillMaxWidth())
                 } else {
-                    OfficialCardImage(card, isHandicap, zoom, onError = { imageFailed = true })
+                    OfficialCardImage(card, isHandicap, zoom, onError = { imageFailed = true }, onWidth = {
+                        scanWidth =
+                            it
+                    })
                 }
             }
         }
@@ -259,7 +271,13 @@ private fun CardPage(card: Card, isHandicap: Boolean, textOnly: Boolean, zoom: Z
  * pages landscape), so no page shows empty bands around the image.
  */
 @Composable
-private fun OfficialCardImage(card: Card, isHandicap: Boolean, zoom: ZoomState, onError: () -> Unit) {
+private fun OfficialCardImage(
+    card: Card,
+    isHandicap: Boolean,
+    zoom: ZoomState,
+    onError: () -> Unit,
+    onWidth: (Int) -> Unit,
+) {
     val path = card.image ?: return
     var aspect by remember(card.id) { mutableFloatStateOf(CARD_ASPECT) }
     Box(
@@ -283,7 +301,10 @@ private fun OfficialCardImage(card: Card, isHandicap: Boolean, zoom: ZoomState, 
             error = { LaunchedEffect(Unit) { onError() } },
             onSuccess = { success ->
                 val size = success.painter.intrinsicSize
-                if (size.isSpecified && size.width > 0f && size.height > 0f) aspect = size.width / size.height
+                if (size.isSpecified && size.width > 0f && size.height > 0f) {
+                    aspect = size.width / size.height
+                    onWidth(size.width.toInt())
+                }
             },
         )
         if (!zoom.isZoomed) {
@@ -371,34 +392,42 @@ private fun CardDetailRows(card: Card, isHandicap: Boolean, includeText: Boolean
 
 /**
  * Under a card scan: what the card doesn't print or doesn't explain (which basic card a Handicap
- * card stands in for, what its item icon gives, p.16), and the way to read it as text.
+ * card stands in for, what its item icon gives, p.16), then the way to read it as crisp text, a steel
+ * button as wide as the card.
  */
 @Composable
 private fun NotOnTheCard(card: Card, isHandicap: Boolean, onShowText: () -> Unit, modifier: Modifier = Modifier) {
-    GoaPlate(modifier.fillMaxWidth()) {
-        Column(verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
-            val handicapBasis = if (isHandicap) card.handicapBasis() else null
-            if (handicapBasis != null) {
-                Text(handicapBasis, style = MaterialTheme.typography.bodyMedium)
-            }
-            card.item?.let { stat ->
-                Row(
-                    Modifier.fillMaxWidth().semantics(mergeDescendants = true) {},
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    OfficialIcon(OfficialArt.itemIcon(stat), Modifier.size(width = 40.dp, height = 30.dp))
-                    Spacer(Modifier.width(Spacing.sm))
-                    Text(
-                        "As an item: +1 ${stat.label} (the icon at the foot of the card, p.16)",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
+    Column(modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
+        MetalButton(
+            onClick = onShowText,
+            bronze = false,
+            modifier = Modifier.fillMaxWidth().heightIn(min = 52.dp),
+        ) {
+            Icon(Icons.AutoMirrored.Outlined.Article, contentDescription = null, modifier = Modifier.size(20.dp))
+            Spacer(Modifier.width(Spacing.sm))
+            Text("Read the card as text", style = MaterialTheme.typography.titleSmall)
+        }
+        val handicapBasis = if (isHandicap) card.handicapBasis() else null
+        if (handicapBasis == null && card.item == null) return@Column
+        GoaPlate(Modifier.fillMaxWidth(), brackets = false) {
+            Column(verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
+                if (handicapBasis != null) {
+                    Text(handicapBasis, style = MaterialTheme.typography.bodyMedium)
                 }
-            }
-            OutlinedButton(onClick = onShowText, modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp)) {
-                Icon(Icons.AutoMirrored.Outlined.Article, contentDescription = null, modifier = Modifier.size(18.dp))
-                Spacer(Modifier.width(Spacing.sm))
-                Text("Read the card as text")
+                card.item?.let { stat ->
+                    Row(
+                        Modifier.fillMaxWidth().semantics(mergeDescendants = true) {},
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        OfficialIcon(OfficialArt.itemIcon(stat), Modifier.size(width = 40.dp, height = 30.dp))
+                        Spacer(Modifier.width(Spacing.sm))
+                        Text(
+                            "As an item: +1 ${stat.label} (the icon at the foot of the card, p.16)",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                }
             }
         }
     }
@@ -432,5 +461,11 @@ private fun IconLabel(
 }
 
 private const val CARD_ASPECT = 729f / 1026f
+
+/** A deck scan's width as bundled (729 × 1026, the scans' own size, official/SOURCES.md), until one decodes. */
+private const val SCAN_WIDTH_PX = 729
+
+/** How far a scan is enlarged at most: past about one and a half times, its printed text goes soft. */
+private const val MAX_UPSCALE = 1.6f
 private val MAX_CARD_WIDTH = 480.dp
 private const val MOTION_MS = 250

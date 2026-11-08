@@ -80,8 +80,8 @@ import dev.quinton.goa.feature.board.setup.LatestCard
 import dev.quinton.goa.feature.board.setup.LineupSource
 
 /**
- * Saved boards, newest change first, under the latest draft's or match's line-up (Set up in one
- * tap), and "New board".
+ * The board sandbox (ADR-033): saved boards, newest change first, under the latest draft's or match's line-up
+ * (Set up in one tap), and "New board". Games against the computer and puzzles start from the Play tab.
  */
 @Composable
 fun BoardsScreen(
@@ -94,14 +94,11 @@ fun BoardsScreen(
     onDelete: (String) -> Unit,
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
-    onPlay: () -> Unit = {},
-    onResume: () -> Unit = {},
-    onPuzzles: () -> Unit = {},
 ) {
     var renaming by rememberSaveable { mutableStateOf<String?>(null) }
     val ready = state as? BoardsUiState.Ready
     GoaScreen(
-        title = "Boards",
+        title = "Board sandbox",
         onBack = onBack,
         modifier = modifier,
         floatingActionButton = {
@@ -121,14 +118,6 @@ fun BoardsScreen(
                 ready == null -> CircularProgressIndicator(Modifier.align(Alignment.Center))
 
                 ready.boards.isEmpty() -> Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
-                    PlayHub(
-                        ready.play,
-                        ready.now,
-                        onPlay,
-                        onResume,
-                        Modifier.padding(horizontal = Spacing.screen).padding(top = Spacing.lg),
-                        onPuzzles = onPuzzles,
-                    )
                     ready.latest?.let {
                         LatestCard(it, { onSetUp(it) }, Modifier.padding(Spacing.screen))
                     }
@@ -163,17 +152,16 @@ fun BoardsScreen(
                     verticalArrangement = Arrangement.spacedBy(Spacing.md),
                     modifier = Modifier.fillMaxSize(),
                 ) {
-                    item(key = "play") { PlayHub(ready.play, ready.now, onPlay, onResume, onPuzzles = onPuzzles) }
+                    ready.latest?.let { latest ->
+                        item(key = "latest") { LatestCard(latest, { onSetUp(latest) }) }
+                    }
                     item(key = "boards") {
                         Text(
-                            "BOARDS",
+                            "SAVED BOARDS",
                             style = GoaTextStyles.overline,
                             color = MaterialTheme.colorScheme.primary,
                             modifier = Modifier.padding(top = Spacing.sm).semantics { heading() },
                         )
-                    }
-                    ready.latest?.let { latest ->
-                        item(key = "latest") { LatestCard(latest, { onSetUp(latest) }) }
                     }
                     items(ready.boards, key = { it.id }) { board ->
                         BoardRow(

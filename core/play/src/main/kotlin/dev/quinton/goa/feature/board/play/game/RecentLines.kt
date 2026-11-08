@@ -82,6 +82,6 @@ fun merged(events: List<GameEvent>): List<GameEvent> {
 
 const val FACEDOWN = "plays a card facedown."
 private const val PITY = "(pity coin)."
-private const val MINION_BATTLE = "Minion Battle"
+internal const val MINION_BATTLE = "Minion Battle"
 private const val EARLIER = 2
 const val MAX_RECENT = 4

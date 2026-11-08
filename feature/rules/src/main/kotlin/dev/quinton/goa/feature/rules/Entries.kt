@@ -50,6 +50,7 @@ fun EntryProviderScope<NavKey>.rulesEntries(navigator: Navigator) {
             } else {
                 null
             },
+            onClose = navigator::back,
         )
     }
 }

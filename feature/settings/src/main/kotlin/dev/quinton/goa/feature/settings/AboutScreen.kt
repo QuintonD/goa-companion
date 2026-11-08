@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.Article
@@ -39,17 +40,14 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.semantics.heading
-import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontFamily
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.DialogProperties
-import dev.quinton.goa.core.designsystem.component.GoaCard
 import dev.quinton.goa.core.designsystem.component.GoaDialog
 import dev.quinton.goa.core.designsystem.component.GoaScreen
 import dev.quinton.goa.core.designsystem.component.SectionHeader
+import dev.quinton.goa.core.designsystem.component.TitlePlate
 import dev.quinton.goa.core.designsystem.icon.GoaIcons
 import dev.quinton.goa.core.designsystem.theme.FontLicense
 import dev.quinton.goa.core.designsystem.theme.GoaFontLicenses
@@ -63,12 +61,27 @@ data class AppInfo(val name: String, val versionName: String, val versionCode: L
 /** The maker's Ko-fi page, for anyone who wants to give something towards the app (as on the web). */
 internal const val DONATE_URL = "https://ko-fi.com/quintonde"
 
+/** A community project the catalog is built from: its name, what it gives, and where it is published. */
+internal data class DataSourceCredit(val name: String, val what: String, val where: String)
+
 /** Community projects whose published data informed the catalog import (credit only, no code reused). */
 internal val DataSourceCredits = listOf(
-    "Stats-of-Atlantis (QuasiStellar)" to "Card data, hero details and artwork",
-    "goa2-faq (yvo-niedrich)" to "Card text cross-check and FAQ rulings",
-    "goa2 (dmrediger)" to "Full card images",
-    "guards-of-atlantis-ii-data (colefin8)" to "Card values cross-check",
+    DataSourceCredit(
+        "Stats-of-Atlantis (QuasiStellar)",
+        "Card data, hero details and artwork",
+        "github.com/QuasiStellar/Stats-of-Atlantis",
+    ),
+    DataSourceCredit(
+        "goa2-faq (yvo-niedrich)",
+        "Card text cross-check and FAQ rulings",
+        "github.com/yvo-niedrich/goa2-faq",
+    ),
+    DataSourceCredit("goa2 (dmrediger)", "Full card images", "github.com/dmrediger/goa2"),
+    DataSourceCredit(
+        "guards-of-atlantis-ii-data (colefin8)",
+        "Card values cross-check",
+        "github.com/colefin8/guards-of-atlantis-ii-data",
+    ),
 )
 
 @Composable
@@ -116,68 +129,65 @@ fun AboutScreen(info: AppInfo, onBack: () -> Unit, modifier: Modifier = Modifier
             ),
         ) {
             item { AboutHeader(info) }
+            // Prose reads as prose, on the page; only the rows you can tap sit on a (flat) group.
             item {
-                GoaCard(Modifier.fillMaxWidth()) {
-                    Row(verticalAlignment = Alignment.Top) {
-                        Icon(Icons.Outlined.Info, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
-                        Spacer(Modifier.width(Spacing.md))
-                        Column {
-                            Text("A free fan companion", style = MaterialTheme.typography.titleMedium)
-                            Body(
-                                "Made by a player for their play group and shared free of charge: not sold, no " +
-                                    "ads. Your matches and players stay " +
-                                    "on this phone unless you join a group: then they sync phone to phone at the " +
-                                    "table, or through the group's sync server, which only ever holds them sealed " +
-                                    "and can't read them.",
-                            )
-                        }
-                    }
-                }
+                Prose(
+                    "Made by a player for their play group and shared free of charge: not sold, no " +
+                        "ads. Your matches and players stay " +
+                        "on this phone unless you join a group: then they sync phone to phone at the " +
+                        "table, or through the group's sync server, which only ever holds them sealed " +
+                        "and can't read them.",
+                    Modifier.padding(horizontal = Spacing.xs),
+                )
             }
-            item {
-                GoaCard(
-                    Modifier
-                        .fillMaxWidth()
-                        .padding(top = Spacing.md),
-                    contentPadding = PaddingValues(vertical = Spacing.sm),
-                ) { DonateRow() }
-            }
+            item { SettingsGroup(Modifier.padding(top = Spacing.lg)) { DonateRow() } }
             item { SectionHeader("Game content") }
             item {
-                GoaCard(Modifier.fillMaxWidth()) {
-                    Body(
+                Column(Modifier.padding(horizontal = Spacing.xs)) {
+                    Prose(
                         "Guards of Atlantis II, its heroes, card text, card images and artwork are by " +
                             "Wolff Designa. They appear here for non-commercial play by fans of the game.",
                     )
                     Spacer(Modifier.size(Spacing.sm))
                     Text(
                         "Not affiliated with or endorsed by Wolff Designa.",
-                        style = MaterialTheme.typography.bodyMedium,
+                        style = MaterialTheme.typography.bodyLarge,
                         color = MaterialTheme.colorScheme.onSurface,
                     )
                 }
             }
             item { SectionHeader("Data sources") }
             item {
-                GoaCard(Modifier.fillMaxWidth()) {
-                    Body("Thanks to these community projects, whose published data helped build and check the catalog:")
-                    DataSourceCredits.forEach { (name, what) ->
-                        Spacer(Modifier.size(Spacing.sm))
-                        Text(name, style = MaterialTheme.typography.titleSmall)
-                        Body(what)
+                Column(Modifier.padding(horizontal = Spacing.xs)) {
+                    Prose(
+                        "Thanks to these community projects, whose published data helped build and check the catalog:",
+                    )
+                    DataSourceCredits.forEach { credit ->
+                        Spacer(Modifier.size(Spacing.md))
+                        Text(credit.name, style = MaterialTheme.typography.titleMedium)
+                        Prose(credit.what)
+                        Text(
+                            credit.where,
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
                     }
+                    Spacer(Modifier.size(Spacing.md))
+                    Prose("Each hero page names its sources; Verified means its data was checked against two of them.")
                 }
             }
             item { SectionHeader("Original artwork") }
             item {
-                GoaCard(Modifier.fillMaxWidth()) {
-                    Body("Hero sigils, player crests, icons and the app icon were drawn for this app.")
-                }
+                Prose(
+                    "Hero sigils, player crests, icons and the app icon were drawn for this app.",
+                    Modifier.padding(horizontal = Spacing.xs),
+                )
             }
             item { SectionHeader("Fonts") }
             item {
-                GoaCard(Modifier.fillMaxWidth(), contentPadding = PaddingValues(vertical = Spacing.sm)) {
-                    GoaFontLicenses.forEach { font ->
+                SettingsGroup {
+                    GoaFontLicenses.forEachIndexed { i, font ->
+                        if (i > 0) GroupDivider()
                         FontRow(font) { openLicense = font.family }
                     }
                 }
@@ -199,12 +209,9 @@ private fun AboutHeader(info: AppInfo) {
     ) {
         Image(painterResource(GoaIcons.BrandMark), contentDescription = null, modifier = Modifier.size(88.dp))
         Spacer(Modifier.size(Spacing.lg))
-        Text(
-            info.name,
-            style = MaterialTheme.typography.headlineSmall,
-            textAlign = TextAlign.Center,
-            modifier = Modifier.semantics { heading() },
-        )
+        // The screen's one heading on the cards' parchment title plate, as other screens' headings are.
+        TitlePlate(info.name, Modifier.widthIn(max = TITLE_PLATE_MAX), gear = false)
+        Spacer(Modifier.size(Spacing.sm))
         Text(
             "Version ${info.versionName} (${info.versionCode})",
             style = MaterialTheme.typography.bodyMedium,
@@ -213,6 +220,20 @@ private fun AboutHeader(info: AppInfo) {
     }
 }
 
+private val TITLE_PLATE_MAX = 320.dp
+
+/** A paragraph on the page. */
+@Composable
+private fun Prose(text: String, modifier: Modifier = Modifier) {
+    Text(
+        text,
+        style = MaterialTheme.typography.bodyLarge,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        modifier = modifier,
+    )
+}
+
+/** A row's second line. */
 @Composable
 private fun Body(text: String) {
     Text(text, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)

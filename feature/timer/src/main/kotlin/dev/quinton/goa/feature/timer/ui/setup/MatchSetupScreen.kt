@@ -27,16 +27,18 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.outlined.Info
-import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -49,27 +51,29 @@ import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import dev.quinton.goa.core.designsystem.component.GoaFilterChip
+import dev.quinton.goa.core.designsystem.component.GoaOutlinedButton
 import dev.quinton.goa.core.designsystem.component.GoaPlate
 import dev.quinton.goa.core.designsystem.component.GoaPlateTheme
 import dev.quinton.goa.core.designsystem.component.GoaScreen
 import dev.quinton.goa.core.designsystem.component.LifeCounterIcon
 import dev.quinton.goa.core.designsystem.component.MetalButton
+import dev.quinton.goa.core.designsystem.component.PlateRowDivider
 import dev.quinton.goa.core.designsystem.component.PlateShape
 import dev.quinton.goa.core.designsystem.component.SectionHeader
 import dev.quinton.goa.core.designsystem.component.TeamBadge
 import dev.quinton.goa.core.designsystem.component.WaveCounterIcon
 import dev.quinton.goa.core.designsystem.component.slatePlate
 import dev.quinton.goa.core.designsystem.component.teamColor
+import dev.quinton.goa.core.designsystem.component.teamTextColor
 import dev.quinton.goa.core.designsystem.theme.Spacing
 import dev.quinton.goa.core.model.match.GameMode
 import dev.quinton.goa.core.model.match.Team
 import dev.quinton.goa.feature.timer.ui.components.CoinFace
-import dev.quinton.goa.feature.timer.ui.components.PlateTeal
-import dev.quinton.goa.feature.timer.ui.components.goaChipBorder
-import dev.quinton.goa.feature.timer.ui.components.goaChipColors
 import dev.quinton.goa.feature.timer.ui.components.plateEdge
 import dev.quinton.goa.feature.timer.ui.components.rememberReducedMotion
 import dev.quinton.goa.feature.timer.ui.components.rememberStartWithNotificationPermission
@@ -130,18 +134,25 @@ fun MatchSetupScreen(state: MatchSetupUiState, actions: SetupActions) {
                 PlayersCard(state, actions.onPlayers)
                 if (state.layouts.size > 1 || state.layouts.firstOrNull()?.guidance != null) {
                     SectionHeader("Teams")
-                    Column(Modifier.selectableGroup(), verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-                        state.layouts.forEach { layout ->
-                            LayoutCard(layout, layout.id == state.selectedLayoutId, state.layouts.size > 1) {
-                                actions.onLayout(layout.id)
+                    // One section plate; its choices are rows of it (DESIGN.md "Framing levels").
+                    GoaPlate(Modifier.fillMaxWidth(), contentPadding = PaddingValues(vertical = Spacing.xs)) {
+                        Column(Modifier.selectableGroup()) {
+                            state.layouts.forEachIndexed { i, layout ->
+                                if (i > 0) PlateRowDivider()
+                                LayoutCard(layout, layout.id == state.selectedLayoutId, state.layouts.size > 1) {
+                                    actions.onLayout(layout.id)
+                                }
                             }
                         }
                     }
                 }
                 SectionHeader("Mode")
-                Column(Modifier.selectableGroup(), verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-                    state.modes.forEach { mode ->
-                        ModeCard(mode, mode.mode == state.selectedMode) { actions.onMode(mode.mode) }
+                GoaPlate(Modifier.fillMaxWidth(), contentPadding = PaddingValues(vertical = Spacing.xs)) {
+                    Column(Modifier.selectableGroup()) {
+                        state.modes.forEachIndexed { i, mode ->
+                            if (i > 0) PlateRowDivider()
+                            ModeCard(mode, mode.mode == state.selectedMode) { actions.onMode(mode.mode) }
+                        }
                     }
                 }
                 Note(state.firstGameAdvice)
@@ -158,14 +169,11 @@ fun MatchSetupScreen(state: MatchSetupUiState, actions: SetupActions) {
                     verticalArrangement = Arrangement.spacedBy(Spacing.sm),
                 ) {
                     state.presets.forEach { preset ->
-                        FilterChip(
+                        GoaFilterChip(
                             selected = preset.id == state.selectedPresetId,
                             onClick = { actions.onPreset(preset.id) },
-                            label = { Text(preset.name) },
-                            colors = goaChipColors(),
-                            border = goaChipBorder(preset.id == state.selectedPresetId),
                             modifier = Modifier.heightIn(min = 48.dp),
-                        )
+                        ) { Text(preset.name) }
                     }
                 }
                 state.presets.firstOrNull { it.id == state.selectedPresetId }?.let {
@@ -210,16 +218,16 @@ fun MatchSetupScreen(state: MatchSetupUiState, actions: SetupActions) {
 @Composable
 private fun SetupCard(
     modifier: Modifier = Modifier,
-    highlighted: Boolean = false,
+    selected: Boolean? = null,
     content: @Composable () -> Unit,
 ) {
     GoaPlate(
         Modifier
             .fillMaxWidth()
-            .plateEdge(if (highlighted) PlateTeal else null)
             .clip(PlateShape)
             .then(modifier),
         contentPadding = PaddingValues(0.dp),
+        selected = selected,
     ) { content() }
 }
 
@@ -273,11 +281,44 @@ private fun PlayersCard(state: MatchSetupUiState, onPlayers: (Int) -> Unit) {
                     Stepper(state.players, state.playerRange, onPlayers, label = "players")
                 }
             }
-            state.extendedNote?.let {
-                Spacer(Modifier.height(Spacing.sm))
-                Note(it)
+            state.extendedNote?.takeIf { it.isNotBlank() }?.let {
+                Spacer(Modifier.height(Spacing.xs))
+                ExtendedNotice(it)
             }
         }
+    }
+}
+
+/**
+ * An odd or large player count: one line that says so, and "Read the rule" opening the rulebook's own words
+ * (verbatim, with its pages) under it, so the warning never pushes the teams down.
+ */
+@Composable
+private fun ExtendedNotice(rule: String) {
+    var open by rememberSaveable { mutableStateOf(false) }
+    Column {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Icon(
+                Icons.Outlined.Info,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.size(18.dp),
+            )
+            Spacer(Modifier.width(Spacing.sm))
+            Text(
+                "Advanced player count",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurface,
+                modifier = Modifier.weight(1f),
+            )
+            TextButton(
+                onClick = { open = !open },
+                modifier = Modifier.heightIn(min = 48.dp).semantics {
+                    stateDescription = if (open) "Expanded" else "Collapsed"
+                },
+            ) { Text(if (open) "Hide the rule" else "Read the rule") }
+        }
+        if (open) Note(rule)
     }
 }
 
@@ -316,7 +357,7 @@ private fun LayoutCard(layout: LayoutOptionUi, selected: Boolean, selectable: Bo
         } else {
             Modifier
         },
-        highlighted = selected && selectable,
+        selected = selected.takeIf { selectable },
     ) {
         Row(Modifier.padding(Spacing.md), verticalAlignment = Alignment.Top) {
             if (selectable) RadioButton(selected = selected, onClick = null, modifier = Modifier.padding(Spacing.xs))
@@ -354,7 +395,7 @@ private fun ModeCard(mode: ModeOptionUi, selected: Boolean, onClick: () -> Unit)
             // No alpha dimming: the "why unavailable" text must stay readable (>= 4.5:1). The disabled
             // radio button and muted title already signal that the mode can't be chosen.
             .selectable(selected = selected, enabled = mode.available, onClick = onClick, role = Role.RadioButton),
-        highlighted = selected,
+        selected = selected,
     ) {
         val colors = MaterialTheme.colorScheme
         Row(Modifier.padding(Spacing.md), verticalAlignment = Alignment.Top) {
@@ -566,7 +607,7 @@ private fun TieBreakerCard(state: MatchSetupUiState, actions: SetupActions) {
             Spacer(Modifier.height(Spacing.md))
             when {
                 // The coin was flipped once already (rulebook p.5): correct a mistake, don't flip again.
-                state.coinPlaced && !state.correctingCoin -> OutlinedButton(
+                state.coinPlaced && !state.correctingCoin -> GoaOutlinedButton(
                     onClick = actions.onCorrectCoin,
                     modifier = Modifier.heightIn(min = 48.dp),
                 ) { Text("Correct the coin") }
@@ -574,7 +615,7 @@ private fun TieBreakerCard(state: MatchSetupUiState, actions: SetupActions) {
                 state.coinPlaced -> CoinSideChips(coin, "Which side is showing?", actions.onSetCoin)
 
                 else -> {
-                    OutlinedButton(onClick = actions.onFlip, modifier = Modifier.heightIn(min = 48.dp)) {
+                    GoaOutlinedButton(onClick = actions.onFlip, modifier = Modifier.heightIn(min = 48.dp)) {
                         Text(if (coin == null) "Flip coin" else "Flip again")
                     }
                     Spacer(Modifier.height(Spacing.sm))
@@ -594,14 +635,11 @@ private fun CoinSideChips(selected: Team?, label: String, onSet: (Team) -> Unit)
         Spacer(Modifier.height(Spacing.xs))
         Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
             Team.entries.forEach { team ->
-                FilterChip(
+                GoaFilterChip(
                     selected = selected == team,
                     onClick = { onSet(team) },
-                    label = { Text("${teamName(team)} shows", color = teamColor(team)) },
-                    colors = goaChipColors(),
-                    border = goaChipBorder(selected == team),
                     modifier = Modifier.heightIn(min = 48.dp),
-                )
+                ) { Text("${teamName(team)} shows", color = teamTextColor(team)) }
             }
         }
     }

@@ -29,14 +29,11 @@ import androidx.compose.material3.AssistChipDefaults
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -56,8 +53,11 @@ import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import dev.quinton.goa.core.designsystem.component.GoaFilterChip
+import dev.quinton.goa.core.designsystem.component.GoaOutlinedButton
 import dev.quinton.goa.core.designsystem.component.GoaPlate
 import dev.quinton.goa.core.designsystem.component.GoaScreen
+import dev.quinton.goa.core.designsystem.component.GoaSwitch
 import dev.quinton.goa.core.designsystem.component.SectionHeader
 import dev.quinton.goa.core.designsystem.theme.GoaTheme
 import dev.quinton.goa.core.designsystem.theme.Spacing
@@ -69,8 +69,6 @@ import dev.quinton.goa.core.domain.timer.PresetIssue
 import dev.quinton.goa.core.domain.timer.TimerPresetValidator
 import dev.quinton.goa.feature.timer.TimerText
 import dev.quinton.goa.feature.timer.ui.components.PlateError
-import dev.quinton.goa.feature.timer.ui.components.goaChipBorder
-import dev.quinton.goa.feature.timer.ui.components.goaChipColors
 import dev.quinton.goa.feature.timer.ui.components.plateEdge
 import dev.quinton.goa.feature.timer.ui.timer.Stepper
 
@@ -344,7 +342,7 @@ private fun ToggleRow(title: String, subtitle: String, checked: Boolean, onChang
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
-        Switch(checked = checked, onCheckedChange = null)
+        GoaSwitch(checked = checked, onCheckedChange = null)
     }
 }
 
@@ -380,7 +378,7 @@ private fun ScopeSection(
             }
         }
     }
-    OutlinedButton(onClick = { actions.onAdd(scope) }, modifier = Modifier.heightIn(min = 48.dp)) {
+    GoaOutlinedButton(onClick = { actions.onAdd(scope) }, modifier = Modifier.heightIn(min = 48.dp)) {
         Icon(Icons.Filled.Add, contentDescription = null)
         Spacer(Modifier.width(Spacing.sm))
         Text("Add ${title.lowercase()} timer")
@@ -415,7 +413,7 @@ private fun PhaseCard(
                     color = colors.primary,
                 )
             }
-            Switch(checked = phase.enabled, onCheckedChange = null)
+            GoaSwitch(checked = phase.enabled, onCheckedChange = null)
         }
         Column(Modifier.alpha(if (phase.enabled) 1f else 0.55f)) {
             Spacer(Modifier.height(Spacing.sm))
@@ -458,16 +456,16 @@ private fun PhaseCard(
                     style = MaterialTheme.typography.labelMedium,
                     color = colors.onSurfaceVariant,
                 )
-                FlowRow(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+                FlowRow(
+                    horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+                    verticalArrangement = Arrangement.spacedBy(Spacing.sm),
+                ) {
                     PresetEdits.CUE_OPTIONS.filter { it < seconds }.forEach { cue ->
-                        FilterChip(
+                        GoaFilterChip(
                             selected = cue in phase.cues,
                             onClick = { actions.onToggleCue(phase.id, cue) },
-                            label = { Text(if (cue == 0) "Time's up" else "${cue}s") },
-                            colors = goaChipColors(),
-                            border = goaChipBorder(cue in phase.cues),
                             modifier = Modifier.heightIn(min = 48.dp),
-                        )
+                        ) { Text(if (cue == 0) "Time's up" else "${cue}s") }
                     }
                 }
             }

@@ -1,7 +1,11 @@
 package dev.quinton.goa.feature.board.list
 
+import androidx.annotation.DrawableRes
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
@@ -9,30 +13,38 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.Extension
+import androidx.compose.material.icons.automirrored.outlined.KeyboardArrowRight
 import androidx.compose.material.icons.outlined.PlayArrow
-import androidx.compose.material.icons.outlined.SportsEsports
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.graphics.ColorFilter
+import androidx.compose.ui.graphics.ColorMatrix
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import dev.quinton.goa.core.designsystem.component.BevelText
 import dev.quinton.goa.core.designsystem.component.GoaButton
-import dev.quinton.goa.core.designsystem.component.scaledIconSize
 import dev.quinton.goa.core.designsystem.theme.GoaTextStyles
 import dev.quinton.goa.core.designsystem.theme.Spacing
 import dev.quinton.goa.core.model.match.Team
@@ -41,85 +53,98 @@ import dev.quinton.goa.feature.board.changedHere
 import dev.quinton.goa.feature.board.ui.PlateSurface
 
 /**
- * Learning by playing (ADR-035), above the boards: a game in progress to resume, "Play against the
- * computer" (coming soon until heroes are playable) and Puzzles ("N of M solved"; coming soon until
- * a puzzle's heroes are playable).
+ * One of the Play tab's entries: a painted scene (the app's own art, `third_party/ASSETS.md`) framed in the slate
+ * plate, its name engraved over the scene, then, in bronze, its state ([status], or [progress]: "1 of 50 positions")
+ * and what it is. The whole plate is one button; TalkBack reads its name, its state and what it is.
  */
 @Composable
-internal fun PlayHub(
-    play: PlayHubUi,
-    now: Long,
-    onPlay: () -> Unit,
-    onResume: () -> Unit,
+internal fun ArtPlate(
+    @DrawableRes art: Int,
+    title: String,
+    text: String,
+    onClick: () -> Unit,
+    artHeight: Dp,
     modifier: Modifier = Modifier,
-    onPuzzles: () -> Unit = {},
+    status: String? = null,
+    enabled: Boolean = true,
+    artAlignment: Alignment = Alignment.Center,
+    progress: (@Composable () -> Unit)? = null,
 ) {
-    Column(modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-        play.resume?.let { ResumeCard(it, now, onResume) }
-        EntryCard(
-            icon = Icons.Outlined.SportsEsports,
-            title = "Play against the computer",
-            text = if (play.available) {
-                "The real game on the map: the app runs every rule, the computer plays at a strength from 1 to 10, a coach nudges."
-            } else {
-                "Coming soon: heroes join as each of their cards is built and tested."
-            },
-            enabled = play.available,
-            onClick = onPlay,
-        )
-        val puzzles = play.puzzles
-        EntryCard(
-            icon = Icons.Outlined.Extension,
-            title = "Puzzles",
-            text = if (puzzles != null) {
-                "${puzzles.solved} of ${puzzles.total} solved · hard positions, gentle nudges, the rule behind each answer."
-            } else {
-                "Coming soon: hard positions to solve, with gentle nudges and the rule behind each answer."
-            },
-            enabled = puzzles != null,
-            onClick = onPuzzles,
-        )
-    }
-}
-
-@Composable
-internal fun EntryCard(icon: ImageVector, title: String, text: String, enabled: Boolean, onClick: () -> Unit) {
     PlateSurface(
         onClick = onClick,
         enabled = enabled,
-        brackets = true,
-        modifier = Modifier
-            .fillMaxWidth()
-            .heightIn(min = 64.dp)
-            .semantics { if (!enabled) stateDescription = "Coming soon" },
+        // One choice of several side by side: the steel edge without the section's brackets, so the scene is the
+        // ornament and six tiles do not repeat four corner fittings each (DESIGN.md "Framing levels").
+        brackets = false,
+        modifier = modifier.semantics { if (!enabled) stateDescription = "Not available" },
     ) {
-        val content = if (enabled) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant
-        Row(
-            Modifier.padding(horizontal = Spacing.lg, vertical = Spacing.md),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Icon(
-                icon,
-                null,
-                tint = if (enabled) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.size(scaledIconSize(28.dp, 1.4f)),
-            )
-            Spacer(Modifier.width(Spacing.md))
-            Column(Modifier.weight(1f)) {
-                Text(title, style = MaterialTheme.typography.titleMedium, color = content)
-                Text(
-                    text,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+        Column(Modifier.padding(ART_INSET)) {
+            Box(
+                Modifier
+                    .fillMaxWidth()
+                    .height(artHeight)
+                    .clip(ArtShape),
+            ) {
+                Image(
+                    painterResource(art),
+                    contentDescription = null,
+                    contentScale = ContentScale.Crop,
+                    alignment = artAlignment,
+                    colorFilter = if (enabled) null else GREY,
+                    modifier = Modifier.matchParentSize(),
                 )
+                // The scene darkens toward its foot, where the name is engraved.
+                Box(Modifier.matchParentSize().background(SCRIM))
+                // The engraved name grows with large text only so far (1.5x), so it stays on the scene.
+                val scale = LocalDensity.current.fontScale
+                val size = TITLE_SP * scale.coerceAtMost(TITLE_MAX_SCALE) / scale
+                BevelText(
+                    title,
+                    style = GoaTextStyles.plateTitle.copy(fontSize = size.sp, lineHeight = (size * TITLE_LEAD).sp),
+                    maxLines = 2,
+                    modifier = Modifier
+                        .align(Alignment.BottomStart)
+                        .padding(horizontal = Spacing.md, vertical = Spacing.sm),
+                )
+            }
+            Row(
+                Modifier
+                    .fillMaxWidth()
+                    .padding(start = Spacing.md, end = Spacing.xs, top = Spacing.sm, bottom = Spacing.sm),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Column(Modifier.weight(1f)) {
+                    if (status != null) {
+                        Text(
+                            status,
+                            style = MaterialTheme.typography.labelLarge,
+                            fontWeight = FontWeight.Bold,
+                            color = with(MaterialTheme.colorScheme) { if (enabled) primary else onSurfaceVariant },
+                        )
+                    }
+                    progress?.invoke()
+                    Text(
+                        text,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+                if (enabled) {
+                    Icon(
+                        Icons.AutoMirrored.Outlined.KeyboardArrowRight,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary,
+                    )
+                }
             }
         }
     }
 }
 
+/** The game against the computer saved on this phone: its line-up, who plays it, and Resume. */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-private fun ResumeCard(resume: ResumeUi, now: Long, onResume: () -> Unit) {
+internal fun ResumeCard(resume: ResumeUi, now: Long, onResume: () -> Unit, modifier: Modifier = Modifier) {
     val names = listOf(resume.red, resume.blue).filter { it.isNotEmpty() }
         .joinToString(" vs ") { team -> team.joinToString(", ") { it.name } }
     // Large text: the button under the words, so they keep the width.
@@ -127,7 +152,7 @@ private fun ResumeCard(resume: ResumeUi, now: Long, onResume: () -> Unit) {
     PlateSurface(
         brackets = true,
         border = BorderStroke(1.dp, RESUME_EDGE),
-        modifier = Modifier.fillMaxWidth(),
+        modifier = modifier.fillMaxWidth(),
     ) {
         FlowRow(
             Modifier.padding(start = Spacing.md, end = Spacing.sm, top = Spacing.sm, bottom = Spacing.sm),
@@ -145,13 +170,9 @@ private fun ResumeCard(resume: ResumeUi, now: Long, onResume: () -> Unit) {
                     },
             ) {
                 Text(
-                    if (resume.savedAt >
-                        0
-                    ) {
-                        "GAME IN PROGRESS · ${BoardText.changedHere(
-                            resume.savedAt,
-                            now,
-                        ).removePrefix("Changed ").uppercase()}"
+                    if (resume.savedAt > 0) {
+                        "GAME IN PROGRESS · " +
+                            BoardText.changedHere(resume.savedAt, now).removePrefix("Changed ").uppercase()
                     } else {
                         "GAME IN PROGRESS"
                     },
@@ -195,5 +216,16 @@ private fun ResumeCard(resume: ResumeUi, now: Long, onResume: () -> Unit) {
     }
 }
 
+private val ART_INSET = 4.dp
+private val ArtShape = RoundedCornerShape(6.dp)
+private const val TITLE_SP = 19f
+private const val TITLE_MAX_SCALE = 1.5f
+private const val TITLE_LEAD = 1.2f
+private val SCRIM = Brush.verticalGradient(
+    0f to Color.Transparent,
+    0.45f to Color.Transparent,
+    1f to Color(0xD9070B10),
+)
+private val GREY = ColorFilter.colorMatrix(ColorMatrix().apply { setToSaturation(0f) })
 private val RESUME_EDGE = Color(0xFF3FC1B0)
 private const val LARGE_TEXT = 1.3f

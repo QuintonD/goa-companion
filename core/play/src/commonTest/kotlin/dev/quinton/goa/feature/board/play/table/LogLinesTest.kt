@@ -81,4 +81,62 @@ class LogLinesTest {
         assertEquals(listOf(false, false, true, true, true), lines.map { it.notice })
         assertEquals(listOf(false, false, false, true, false), lines.map { it.strong })
     }
+
+    @Test
+    fun logTurns_putsTheLatestTurnFirstWithItsEventsInPlayOrder() {
+        val lines = listOf(
+            event("Setup."),
+            heading("Round 1 begins."),
+            heading("Turn 1 of round 1."),
+            event("A"),
+            event("B"),
+            heading("Turn 2 of round 1."),
+            event("C"),
+            event("D"),
+        )
+
+        val turns = logTurns(lines)
+
+        assertEquals(3, turns.size)
+        assertEquals(listOf("Turn 2 of round 1."), turns[0].headings.map { it.value.text })
+        assertEquals(listOf("C", "D"), turns[0].events.map { it.value.text })
+        assertEquals(listOf("Round 1 begins.", "Turn 1 of round 1."), turns[1].headings.map { it.value.text })
+        assertEquals(listOf("A", "B"), turns[1].events.map { it.value.text })
+        assertEquals(listOf(0), turns[2].events.map { it.index })
+        assertTrue(turns[2].headings.isEmpty())
+    }
+
+    @Test
+    fun logLines_namesWhoAnEventIsAboutItsKindAndFoldsTheBookkeeping() {
+        val lines = logLines(
+            listOf(
+                GameEvent.ActionChosen(
+                    "arien",
+                    "c",
+                    dev.quinton.goa.core.game.ActionType.PRIMARY,
+                    "Arien chooses primary.",
+                ),
+                GameEvent.Attacked("arien", "tigerclaw", 6, "Arien attacks Tigerclaw with Attack 6."),
+                GameEvent.Defeated("tigerclaw", "arien", "Tigerclaw is defeated by Arien."),
+                GameEvent.Note("Brogan plays a card facedown."),
+            ),
+        )
+
+        assertEquals(listOf("arien", "arien", "tigerclaw", null), lines.map { it.actor })
+        assertEquals(listOf(LogKind.ACTION, LogKind.ATTACK, LogKind.DEFEAT, LogKind.OTHER), lines.map { it.kind })
+        assertEquals(listOf(true, false, false, true), lines.map { it.detail })
+    }
+
+    @Test
+    fun defenseSum_countsTheCardItemsMinionsAndTheRest() {
+        assertEquals("Defense 3 = card 2 + minion 1", defenseSum(total = 3, printed = 2, minion = 1, items = 0))
+        assertEquals(
+            "Defense 4 = card 2 + items 1 + minion 1",
+            defenseSum(total = 4, printed = 2, minion = 1, items = 1),
+        )
+        assertEquals("Defense 1 = card 2 − minion 1", defenseSum(total = 1, printed = 2, minion = -1, items = 0))
+        assertEquals("Defense 5 = card 3 + effects 2", defenseSum(total = 5, printed = 3, minion = null, items = 0))
+        assertEquals(null, defenseSum(total = 3, printed = 3, minion = 0, items = 0))
+        assertEquals(null, defenseSum(total = null, printed = 3, minion = 1, items = 0))
+    }
 }

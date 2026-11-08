@@ -254,14 +254,36 @@ fun focusCard(table: TableUi, offered: OfferedCard): FocusCard {
     )
 }
 
+/**
+ * How a Defense total is made, from the engine's numbers only (p.14): "Defense 3 = card 2 + minion 1". [printed]
+ * is the card's Defense, [minion] the minion defense modifier counted for this attack, [items] the hero's +1
+ * Defense items (p.16); whatever else the engine counted ([total] minus those) is "effects". Null when the
+ * total is unknown (the card's text decides) or nothing changes the printed value.
+ */
+fun defenseSum(total: Int?, printed: Int?, minion: Int?, items: Int): String? {
+    if (total == null) return null
+    val card = printed ?: 0
+    val minions = minion ?: 0
+    val effects = total - card - minions - items
+    val parts = buildList {
+        if (items != 0) add("items" to items)
+        if (minions != 0) add("minion" to minions)
+        if (effects != 0) add("effects" to effects)
+    }
+    if (parts.isEmpty()) return null
+    return "Defense $total = card $card" + parts.joinToString("") { (what, n) ->
+        if (n < 0) " − $what ${-n}" else " + $what $n"
+    }
+}
+
 /** A defense card's line: its Defense (or Block) and the verdict. */
 data class DefenseLine(val detail: String, val verdict: CardVerdict, val total: Int? = null)
 
 fun defenseLine(total: Int?, blocks: Boolean?, attack: Int?): DefenseLine {
     val verdict = defenseVerdict(total, blocks, attack)
     val label = when (verdict) {
-        true -> if (blocks == true) "Blocks" else "Holds"
-        false -> "Falls"
+        true -> if (blocks == true) "Blocks" else "Defends"
+        false -> "Defeated"
         null -> "Decided by its text"
     }
     val detail = when (blocks) {

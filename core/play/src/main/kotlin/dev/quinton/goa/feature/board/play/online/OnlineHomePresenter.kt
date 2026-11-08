@@ -57,8 +57,10 @@ data class OnlineHomeUi(
     val recoveryCode: String? = null,
     val room: RoomForm = RoomForm(),
     val joinText: String = "",
-    /** Games to go back to. */
+    /** Games to go back to, the ones that need you first ([MyGameStatuses.sorted]). */
     val games: List<MyGame> = emptyList(),
+    /** The signed-in account, for each game's "Your turn" ([MyGameStatuses.of]). */
+    val you: String? = null,
     /** A call is on its way: its button waits. */
     val working: Boolean = false,
     /** What went wrong, in words. */
@@ -251,7 +253,12 @@ class OnlineHomePresenter(
 
     private suspend fun loadGames() {
         when (val result = gateway.myGames()) {
-            is OnlineResult.Ok -> mutableState.update { it.copy(games = result.value.games, message = null) }
+            is OnlineResult.Ok -> {
+                val you = identities.load()?.accountId
+                mutableState.update {
+                    it.copy(games = MyGameStatuses.sorted(result.value.games, you), you = you, message = null)
+                }
+            }
 
             is OnlineResult.Refused -> {
                 // The token stays: a recovery code or a new account replaces it, nothing is thrown away.

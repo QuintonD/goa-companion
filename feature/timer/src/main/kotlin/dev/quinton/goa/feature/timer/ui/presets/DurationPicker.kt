@@ -13,9 +13,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.toggleable
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
@@ -32,14 +30,14 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
+import dev.quinton.goa.core.designsystem.component.GoaFilterChip
 import dev.quinton.goa.core.designsystem.component.GoaSheet
+import dev.quinton.goa.core.designsystem.component.GoaSwitch
 import dev.quinton.goa.core.designsystem.component.MetalButton
 import dev.quinton.goa.core.designsystem.component.TitlePlate
 import dev.quinton.goa.core.designsystem.theme.Spacing
 import dev.quinton.goa.core.domain.timer.TimerPresetValidator
 import dev.quinton.goa.feature.timer.TimerText
-import dev.quinton.goa.feature.timer.ui.components.goaChipBorder
-import dev.quinton.goa.feature.timer.ui.components.goaChipColors
 import dev.quinton.goa.feature.timer.ui.components.timerDigits
 import dev.quinton.goa.feature.timer.ui.timer.Stepper
 
@@ -95,7 +93,7 @@ internal fun DurationPickerContent(
         Modifier.fillMaxWidth().padding(horizontal = Spacing.xl, vertical = Spacing.md),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        TitlePlate(title, Modifier.fillMaxWidth())
+        TitlePlate(title, Modifier.fillMaxWidth(), gear = false)
         Spacer(Modifier.height(Spacing.lg))
         val label = if (untimed) "—:—" else TimerText.duration(seconds * 1000L, roundUp = false)
         Text(
@@ -143,17 +141,14 @@ internal fun DurationPickerContent(
             horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
         ) {
             QuickDurations.filter { it <= maxSeconds }.forEach { quick ->
-                FilterChip(
+                GoaFilterChip(
                     selected = !untimed && quick == seconds,
                     onClick = {
                         onUntimed(false)
                         onSeconds(quick)
                     },
-                    label = { Text(TimerText.durationLabel(quick)) },
-                    colors = goaChipColors(),
-                    border = goaChipBorder(!untimed && quick == seconds),
                     modifier = Modifier.heightIn(min = 48.dp),
-                )
+                ) { Text(TimerText.durationLabel(quick)) }
             }
         }
         Spacer(Modifier.height(Spacing.md))
@@ -173,7 +168,7 @@ internal fun DurationPickerContent(
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
-                Switch(checked = untimed, onCheckedChange = null)
+                GoaSwitch(checked = untimed, onCheckedChange = null)
             }
         }
         Spacer(Modifier.height(Spacing.lg))

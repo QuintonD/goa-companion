@@ -37,7 +37,8 @@ class CatalogFlowTest {
             rule.onAllNodes(hasText(role)).onFirst().assertExistsCompat(role)
         }
 
-        // Open a card from the deck and swipe to the next one.
+        // The Deck tab, then open a card and swipe to the next one.
+        rule.tap(hasText("Deck") and hasClickAction())
         rule.tap(hasClickLabel("View card"))
         rule.waitForText("Arien · ", substring = true)
         val (first, total) = pagerPosition()

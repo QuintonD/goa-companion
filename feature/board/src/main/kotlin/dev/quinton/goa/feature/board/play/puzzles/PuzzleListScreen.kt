@@ -57,6 +57,8 @@ import dev.quinton.goa.core.designsystem.component.EmptyState
 import dev.quinton.goa.core.designsystem.component.GoaButton
 import dev.quinton.goa.core.designsystem.component.GoaFilterChip
 import dev.quinton.goa.core.designsystem.component.GoaScreen
+import dev.quinton.goa.core.designsystem.component.GoaSegment
+import dev.quinton.goa.core.designsystem.component.GoaSegmentedRow
 import dev.quinton.goa.core.designsystem.component.HeroPortrait
 import dev.quinton.goa.core.designsystem.component.scaledIconSize
 import dev.quinton.goa.core.designsystem.theme.GoaTextStyles
@@ -66,9 +68,10 @@ import dev.quinton.goa.feature.board.BoardText
 import dev.quinton.goa.feature.board.ui.PlateSurface
 
 /**
- * The puzzles (PRODUCT §10): Continue with the first unsolved one at the top, "N of M solved",
- * difficulty and theme filters, then every puzzle by number with its title, theme, difficulty
- * (hexes and words), heroes and progress. Reset progress is in the menu, behind a confirmation.
+ * The puzzles (PRODUCT §10): Continue with the first unsolved one at the top ("Up next · Puzzle 2 of 50"),
+ * difficulty and theme filters, then the book's two parts, Positions and Full rounds, each with its progress
+ * as the Play tab shows it ("1 of 50 positions", [SolvedCount]), and every puzzle by number with its title,
+ * theme, difficulty (hexes and words), heroes and progress. Reset progress is in the menu, behind a confirmation.
  */
 @Composable
 fun PuzzleListScreen(
@@ -148,38 +151,36 @@ private fun PuzzleList(state: PuzzleListUiState.Ready, onAction: (PuzzleListActi
         item(key = "continue") { ContinueCard(state, onOpen) }
         if (state.difficulties.size > 1 || state.themes.size > 1) {
             item(key = "filters") {
-                FlowRow(
-                    horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
-                    verticalArrangement = Arrangement.spacedBy(Spacing.xs),
-                    modifier = Modifier.padding(top = Spacing.sm),
+                Column(
+                    Modifier.padding(top = Spacing.sm),
+                    verticalArrangement = Arrangement.spacedBy(Spacing.sm),
                 ) {
-                    if (state.difficulties.size > 1) {
-                        state.difficulties.forEach { d ->
-                            GoaFilterChip(
-                                selected = d in state.filters.difficulties,
-                                onClick = { onAction(PuzzleListAction.ToggleDifficulty(d)) },
-                                label = PuzzleText.difficulty(d),
-                            )
-                        }
-                    }
+                    if (state.difficulties.size > 1) DifficultyFilter(state, onAction)
                     if (state.themes.size > 1) {
-                        state.themes.forEach { theme ->
-                            GoaFilterChip(
-                                selected = theme in state.filters.themes,
-                                onClick = { onAction(PuzzleListAction.ToggleTheme(theme)) },
-                                label = theme,
-                            )
+                        FlowRow(
+                            horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+                            verticalArrangement = Arrangement.spacedBy(Spacing.xs),
+                        ) {
+                            state.themes.forEach { theme ->
+                                GoaFilterChip(
+                                    selected = theme in state.filters.themes,
+                                    onClick = { onAction(PuzzleListAction.ToggleTheme(theme)) },
+                                    label = theme,
+                                )
+                            }
                         }
                     }
                 }
             }
         }
         item(key = "heading") {
-            Text(
-                "ALL PUZZLES",
-                style = GoaTextStyles.overline,
-                color = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.padding(top = Spacing.sm).semantics { heading() },
+            PartHeading(
+                "Positions",
+                state.positionsSolved,
+                state.positionsTotal,
+                false,
+                "One position and a goal: find the line that makes it against the best replies.",
+                Modifier.padding(top = Spacing.sm),
             )
         }
         if (state.rows.isEmpty()) {
@@ -203,26 +204,21 @@ private fun PuzzleList(state: PuzzleListUiState.Ready, onAction: (PuzzleListActi
         val rounds = state.rows.filter { it.info.fullRound }
         if (rounds.isNotEmpty()) {
             item(key = "rounds-heading") {
-                Column(Modifier.padding(top = Spacing.md)) {
-                    Text(
-                        "FULL ROUNDS",
-                        style = GoaTextStyles.overline,
-                        color = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.semantics { heading() },
-                    )
-                    Text(
-                        "Four turns planned from turn 1, through the Minion Battle. You know what they will play.",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
+                PartHeading(
+                    "Full rounds",
+                    state.roundsSolved,
+                    state.roundsTotal,
+                    true,
+                    "Four turns planned from turn 1, through the Minion Battle. You know what they will play.",
+                    Modifier.padding(top = Spacing.md),
+                )
             }
             items(rounds, key = { it.info.id }) { row -> PuzzleRow(row) { onOpen(row.info.id) } }
         }
     }
 }
 
-/** The next unsolved puzzle with Continue (or Start), and how many are solved; all solved says so. */
+/** The next unsolved puzzle with Continue (or Start), "Up next · Puzzle 2 of 50"; all solved says so. */
 @Composable
 @OptIn(ExperimentalLayoutApi::class)
 private fun ContinueCard(state: PuzzleListUiState.Ready, onOpen: (String) -> Unit) {
@@ -240,19 +236,26 @@ private fun ContinueCard(state: PuzzleListUiState.Ready, onOpen: (String) -> Uni
         ) {
             if (next == null) SolvedSeal(size = 48.dp)
             Column(Modifier.weight(1f).semantics(mergeDescendants = true) {}) {
-                Text(
-                    "${state.solved} OF ${state.total} SOLVED",
-                    style = GoaTextStyles.overline,
-                    color = content,
-                )
                 if (next != null) {
+                    // "Puzzle 2 of 50": the same words and count as the puzzle's own screen.
+                    val part = if (next.info.fullRound) state.roundsTotal else state.positionsTotal
                     Text(
-                        PuzzleText.numbered(next.info),
-                        style = MaterialTheme.typography.titleMedium,
-                        color = content,
+                        "UP NEXT · ${PuzzleText.place(next.info, part).uppercase()}",
+                        style = GoaTextStyles.overline,
+                        color = MaterialTheme.colorScheme.primary,
                     )
+                    Text(next.info.title, style = MaterialTheme.typography.titleMedium, color = content)
                     Text(next.info.goal.text, style = MaterialTheme.typography.bodySmall, color = content)
                 } else {
+                    Text(
+                        listOfNotNull(
+                            PuzzleText.partCount(state.positionsSolved, state.positionsTotal, rounds = false),
+                            state.roundsTotal.takeIf { it > 0 }
+                                ?.let { PuzzleText.partCount(state.roundsSolved, it, rounds = true) },
+                        ).joinToString(" · ").uppercase(),
+                        style = GoaTextStyles.overline,
+                        color = MaterialTheme.colorScheme.primary,
+                    )
                     Text("Every puzzle solved", style = MaterialTheme.typography.titleMedium, color = content)
                     Text(
                         "Replay any of them below; more arrive as heroes become playable.",
@@ -272,6 +275,75 @@ private fun ContinueCard(state: PuzzleListUiState.Ready, onOpen: (String) -> Uni
                     Text(if (next.progress.tried) "Continue" else "Start", textAlign = TextAlign.Center)
                 }
             }
+        }
+    }
+}
+
+/**
+ * A part of the book: "POSITIONS" and its progress ("✓ 1 of 50 positions", the very line the Play tab shows) on one
+ * line, what the part is under it. The count is the one the puzzle's own screen uses ("Puzzle 3 of 50").
+ */
+@Composable
+@OptIn(ExperimentalLayoutApi::class)
+private fun PartHeading(
+    title: String,
+    solved: Int,
+    total: Int,
+    rounds: Boolean,
+    note: String,
+    modifier: Modifier = Modifier,
+) {
+    Column(modifier.fillMaxWidth().semantics(mergeDescendants = true) { heading() }) {
+        FlowRow(
+            horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+            itemVerticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(
+                title.uppercase(),
+                style = GoaTextStyles.overline,
+                color = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.weight(1f),
+            )
+            SolvedCount(solved, total, rounds)
+        }
+        Text(note, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+    }
+}
+
+/**
+ * The difficulty filter as one checked segmented bar (opus #13): "All" checked by default, then each difficulty, each
+ * with how many positions it holds under its name ("All / 50", as the Positions part under it counts). One is shown
+ * at a time; "All" clears the filter.
+ */
+@Composable
+private fun DifficultyFilter(state: PuzzleListUiState.Ready, onAction: (PuzzleListAction) -> Unit) {
+    val chosen = state.filters.difficulties
+    fun only(d: Int?) {
+        chosen.filter { it != d }.forEach { onAction(PuzzleListAction.ToggleDifficulty(it)) }
+        if (d != null && d !in chosen) onAction(PuzzleListAction.ToggleDifficulty(d))
+    }
+    val all = state.difficultyCounts.values.sum().takeIf { it > 0 } ?: state.positionsTotal
+    GoaSegmentedRow(Modifier.fillMaxWidth()) {
+        GoaSegment(selected = chosen.isEmpty(), onClick = { only(null) }) { FilterLabel("All", all) }
+        state.difficulties.forEach { d ->
+            GoaSegment(selected = chosen == setOf(d), onClick = { only(d) }) {
+                FilterLabel(PuzzleText.difficulty(d), state.difficultyCounts[d])
+            }
+        }
+    }
+}
+
+@Composable
+private fun FilterLabel(name: String, count: Int?) {
+    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+        Text(name, maxLines = 1)
+        count?.let {
+            Text(
+                "$it",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 1,
+            )
         }
     }
 }

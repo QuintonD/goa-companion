@@ -70,8 +70,8 @@ data class PuzzleUi(
     val nudgeCount: Int = 0,
     /** Settings → Puzzle nudges: on = they come by themselves when stuck; off = only when asked. */
     val nudgesOn: Boolean = true,
-    /** "What you know" is open (it folds once the first move is made). */
-    val introOpen: Boolean = true,
+    /** "What you know" is open; it starts folded to its first lines, and folds again once a move is made. */
+    val introOpen: Boolean = false,
     /** Tries on this phone so far (this one included once a move is made), for the summary. */
     val attempts: Int = 0,
     /** The most nudges shown in a try, for the summary. */

@@ -32,7 +32,7 @@ data class FocusCard(
     val itemLine: Boolean = true,
 )
 
-/** A defense card against the Attack (p.14): "Holds" / "Falls" / "Decided by its text", and why. */
+/** A defense card against the Attack (p.14): "Defends" / "Defeated" / "Decided by its text", and why. */
 data class CardVerdict(val holds: Boolean?, val label: String, val detail: String)
 
 /** A line of what choosing a card means; [item] puts the item icon of that stat before it (p.16). */

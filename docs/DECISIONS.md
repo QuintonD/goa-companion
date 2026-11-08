@@ -2728,3 +2728,202 @@ take back clears it. It takes no taps and screen readers skip it; the existing a
 the flow is the full account. `logLines` takes the game's hero ids, for which defeats are strong. The puzzle log reads
 newest first too (the same `EventLog`); the puzzles get no feed. Screenshot baselines of the log sheet are re-recorded; the table's are unchanged (the feed
 starts empty).
+
+## ADR-066 — A UI/UX hill climb with two judges; generated art for the app's own decoration (2026-11-07)
+**Context:** Owner: "Set up a hill climb with the goal of improving this apps UI and UX. Use both opus 5.5 high & 6.1 sol
+high as judges. Climb until both give 9/10 scores for all aspects of the ui & ux." They also opened image generation
+(gpt-image) for recreating assets in the game's style. Round 0 scored 7.4 (gpt-6.1-sol) and 7.0 (Claude Opus).
+
+**Decision:** `tools/ui-hillclimb/`: a corpus of about 70 Roborazzi screens in flow order with captions, one judge brief
+with 12 aspects, and two blind judges (gpt-6.1-sol, reasoning high, on Azure AI Foundry; Claude Opus 5.5, effort high, as an
+agent reading the same images). Work packages run in parallel worktrees (builds queue on one lock, ADR-038); a package is
+kept only when both judges prefer it side by side with left and right shuffled, and its regressions are fixed before the
+merge. Stop when both score every aspect 9 or more. Generated painted art (`hc.py imagegen`) is allowed for the app's
+own decoration only (the Play hub's scenes), recorded with model and prompt in `third_party/ASSETS.md`; never for
+anything that carries game data (cards, portraits, symbols, boards), which stays official (ADR-034, ADR-053, ADR-058).
+
+**Consequences:** The key lives outside the repo (`~/.config/goa-hillclimb/azure_key`). Screens are judged from
+Robolectric renders, so the table's motion, haptics and device performance are outside the score. Web (`web/`) did not
+follow in round 1.
+
+## ADR-067 — Five tabs with More, two glyphs a top bar, a painted Play hub (2026-11-07)
+**Context:** Both judges (ADR-066): Rules, Group sync and Settings hid behind unlabelled glyphs, top bars carried up to four
+of them, and the Play tab buried Play vs computer and Puzzles under Board.
+
+**Decision:** The bottom bar is Heroes, Play, Timer, Players, More. More lists Draft, Rules, Group sync, Backup,
+Settings and About as labelled rows. The Draft keeps a back stack of its own without an item (More is lit; back on its
+root returns to its opener), so Draft → Set up match → Timer and the match log's "open draft" are unchanged; Timer start
+offers "Draft heroes first". Top bars show at most two glyphs, each labelled (TalkBack and a long-press tooltip), the rest
+in a labelled overflow (`BarActions`). The banner medallion stays as toned ornament (ADR-058). The Play tab opens on
+Resume, then plates with painted scenes: Play vs computer, Puzzles, Board sandbox, Online, Card trivia
+(`PlayHomeViewModel`); Board sandbox lists saved boards only. Supersedes ADR-055's two-card Play home.
+
+**Consequences:** Draft takes one more tap from the bar. The web app keeps the old tabs until it follows.
+
+## ADR-068 — The light theme is the rulebook's page (2026-11-07)
+**Context:** ADR-053 kept plates dark in both themes, so the light theme only changed the canvas; both judges called it
+broken.
+
+**Decision:** Plates follow the theme: slate when dark, white paper with a steel edge and ink text when light
+(`GoaTheme.colors.plate`). `GoaDarkTheme` keeps the running timer, what floats over the painted map and a card's own
+frame dark in both. Plates come as Primary, Secondary and Well; a plate inside a plate draws as a well. One selection
+look everywhere (`SelectablePlate`, `GoaPlate(selected =)`: bronze edge, bronze wash, bronze radio), one section head
+(`SectionHeader`, copper Cinzel with a hairline; `SubHeader` inside a plate), one figure style for ratings and scores
+(`GoaTextStyles.score`, Inter tabular). The title plate's gear is drawn as vectors at a fixed size, text padded clear.
+A disabled metal button is a flat, unlit slate. Supersedes ADR-053's "plates are dark in both themes".
+
+**Consequences:** `ContrastTest` checks text on the plate, the well and the selected tint in both themes. The web
+keeps dark plates and the old title-plate border image until it follows.
+
+## ADR-069 — Choose, then commit: a card tap never answers (2026-11-07)
+**Context:** A tap on a card in the table's panel opened it, and a second tap on the same card committed a discard or
+a defence; both judges flagged an accidental commit.
+
+**Decision:** A tap on a card chooses it (lifted, bronze edge, a tick; `TableUi.selected`) or, when chosen, opens it to
+read. Only a bronze button that names the move answers ("Defend with …", "Discard …"), in the panel and in the viewer.
+The defence choice shows its outcome from the engine's numbers only ("Defense 3 = card 2 + minion 1 against Attack 6");
+a card decided by its text shows that text verbatim. The game log keeps turns newest first (ADR-065) but each turn's
+events in play order, one plate per turn with portrait, team mark and an icon; bookkeeping folds under Details. The HUD
+labels its counters, the turn track shows portrait, initiative, name and the card played.
+
+**Consequences:** Playing a card is still two taps. Revises ADR-065's order within a turn. The web keeps the old
+order and titles until it follows.
+
+## ADR-070 — The draft speaks in team colours; player crests are team-neutral (2026-11-07)
+**Context:** The draft mixed "Team A/B" with red and blue; player crests were tinted red, blue, teal or purple, so a red
+crest sat on the Blue team.
+
+**Decision:** Once the Tie Breaker coin is flipped the draft says only colours with team marks ("Red picks 2 · Step 4 of
+8"); "A" and "B" stay in the method editor, mapped once ("A is the team the Tie Breaker coin shows"). Player crests are
+one bronze glyph in a steel ring everywhere; red and blue mean teams. `Player.color` stays in the model and in sync
+(older phones and the web still read it), but the phone neither draws nor asks for it; no `SyncDocument.VERSION` bump.
+
+**Consequences:** A player's identity is the crest's shape plus the name.
+
+## ADR-071 — Section navigation on long pages; card scans at most 1.6× their pixels (2026-11-07)
+**Decision:** The hero page has sticky Overview · Deck · FAQ anchors and the deck a row of colour jump chips; a long
+rules topic has a sticky row of section chips labelled only by the rulebook's own headings, "Diagrams", or a boxed
+passage's own first words, never a paraphrase (a test checks every label against its passage). The card viewer never
+draws a scan larger than 1.6 times its own pixels, with "Read the card as text" as a full-width button beneath.
+
+**Consequences:** A sharper source exists (Stats-of-Atlantis, 775×1071 against our 546×768); using it means raising the
+import's 768 px cap and re-running `import-catalog`.
+
+## ADR-072 — Decide first: whose decision, outcomes on the button, look before you pick (2026-11-07)
+**Context:** Round 2 of the UI hill climb (ADR-066). Both judges: in the game and puzzle panels the choices fell below the
+fold, the header named one hero while the footer showed another's hand, defence options weren't comparable, and in the
+draft a tap on a pool tile could start a pick while one meant to look.
+
+**Decision:** At 100 % on a 411 dp phone every choice and the commit button show without scrolling. The panel strip names
+the deciding seat with portrait and team mark ("Wasp decides · Space"); only that seat's hand shows, hidden while the
+computer decides. A card-asked action question has no prompt plate. Every defence option states its engine verdict
+("Defeated", "Defends", "Blocks it", "Its text decides") and the commit label carries it. Choosable cards carry a 14 sp
+name and catalog numbers, with Read card beside the commit button. A puzzle's setup moves to a Setup sheet, verbatim and
+never truncated. Steel controls follow the theme. In the draft a pool tile's tap opens the hero sheet; its pinned Pick or
+Ban commits (the confirm dialog is gone; still two taps). Recording a result: winner radio cards and a pinned bronze Save,
+off until valid with the reason under it. Extends ADR-068 and ADR-069.
+
+**Consequences:** The shared defence labels in `core:play` read "Defends"/"Defeated", so the web's text changes too.
+
+## ADR-073 — One frame, one choice look (2026-11-07)
+**Decision:** A section is one steel plate with brackets; rows inside it have no ground or border of their own (a hairline
+`PlateRowDivider` between them), and a selected row inside a plate is full width with a bronze wash, a 3 dp bronze bar at
+its leading edge and its radio. Every selection (chip, segment, plate, tab, tile) is bronze edge, bronze wash and a check
+or radio. A disabled button is a filled unlit slab with its reason under it (`DisabledReason`), never an outline that
+reads as a text field; a disabled banner icon is white at 40 % with a dark halo. Overlines are at least 13 sp. One hero stat
+readout (`HeroStatBlock`). The hero page's Overview, Deck and FAQ are real tabs.
+
+## ADR-074 — Crest shields, podiums, and the table's own strip and dashboard (2026-11-07)
+**Decision:** Player crests are filled heraldic shields (bronze in steel or steel in bronze, alternating; still team-neutral,
+ADR-070), generated from the line masters by `design/tools/crest_shields.py`; online accounts show a steel shield with an
+initial. Leaderboards stand their top three on a `Podium` (tied places on equal steps; rows from font scale 1.3) and end
+short lists in `BattlefieldFoot`; "Provisional" is said once when it applies to all. The turn track has its own opaque
+strip under the HUD; card names take two lines before shrinking. Look-alike minions in a question are numbered on the map
+and in the list. The hero dashboard is redrawn as vectors after p.16 (ADR-058): steel frame, title plate, parchment Turn
+tabs, Level and Coins as chips; the upscaled frame image stays for the web. The map's NOW tag is bronze.
+
+## ADR-075 — Compact bars, and card scans at their own size (2026-11-07)
+**Decision:** Bars narrower than 380 dp or at text scale 1.5× and above end in the banner's plain rounded end without the
+medallion (`bannerCompact`); regular bars keep it (refines ADR-058, ADR-067). Card scans are bundled at the pinned
+dmrediger/goa2 size, 729×1026, instead of 546×768; the viewer's cap (ADR-071) follows. **Corrects ADR-071:** the
+Stats-of-Atlantis images are frameless card art, not scans, so they cannot replace ours.
+
+**Consequences:** Card assets grow from about 33 MB to 61 MB; a release APK from about 43 MB to about 71 MB, under the
+~100 MB ceiling in ARCHITECTURE.md.
+
+## ADR-076 — Map first, numbers on the cards, pages as pills (2026-11-07)
+**Context:** Round 3 of the UI hill climb (ADR-066). The game table's chrome took about 60 % of the height; "NOW" and
+"who must answer" competed; card numbers were unreadable; "(p.7)" was on every control; Respawn sat under an ATTACK
+plate; minions showed team by colour only.
+
+**Decision:** The HUD and the turn strip are one plate of about 136 dp: four equal cells, each with portrait,
+initiative, name and the card played (card names take two lines, never cut). While another hero must answer, the strip
+says RESOLVING and DEFENDS or ANSWERS, and the panel title names both ("Tigerclaw defends against Arien"). The hand is a
+tab pinned at the panel's foot, naming whose hand. Sideways, the turn order is a column beside the map and short screens
+put the actions two to a row. Defence shows each card's total against the attack ("Def 2 vs 6"); nothing is
+preselected, and when no card saves the hero "Don't defend · keep your cards" is the primary. Choosable cards carry a
+number strip under the scan (initiative, the action's value, range, movement, with the game's item icons). Page
+references are small bronze pills on actions and heads, never inline text. Decision plates are named by decision type.
+Minions carry the gear or star. Game over is a stat grid with Rematch and Done pinned. Hero pickers are five columns,
+all 32 on one screen. Refines ADR-069 and ADR-072.
+
+## ADR-077 — The game's own controls, a dark reader, faces and paintings (2026-11-07)
+**Decision:** Switches, segmented bars, chips and secondary buttons come from the design system (`GoaSwitch`,
+`GoaSegmentedRow`, `selectableChipBorder`, `GoaOutlinedButton`); Material's segmented button stays only where a segment is
+a team colour. Sideways-scrolling rows fade at their edge. The gear and the bracketed plate are for game states; routine
+rows use the quiet plate; catalog tiles have no gear. Meaningful bronze on cream uses `bronzeInk`. In the dark theme the
+rules reader is a dark parchment page; long topics have a Contents sheet; the level table sits behind "Compare all
+levels". Catalog search splits into All, Cards and Heroes; tier chips filter; decks count "18 cards + Handicap". A player
+is shown as their most-played hero (derived from the log, never stored; no two players in a list share a face; only at
+40 dp and above on player-centred screens; the crest elsewhere). Leaderboards end in a hall of banners and group sync in
+beacon towers (generated, decoration only); the timer keeps the battlefield. Group sync names its transport
+(phone-to-phone is the normal way) and arms hosting as "Sync automatically when ready".
+
+## ADR-078 — One next step at the table: timer start, draft, trivia, game night (2026-11-07)
+**Decision:** Timer start is one plate with one Start button; the preset is a row that opens the presets, its phases a
+labelled grid with tonight's change tagged. The running timer's bar keeps the coin chip and a menu of named tools. The
+draft board shows the pool right after the pick banner, the rosters folded into one bar; swapping seats is an explicit
+mode with Cancel; a finished draft has one primary action. "Team A/B" are "coin team" and "other team". Trivia asks
+Practice or Challenge first and Start names the mode; the quiz header is pinned. The Play hub gains Game night (Draft →
+Match setup → Timer); Draft stays in More. Refines ADR-067 and ADR-070.
+
+## ADR-079 — The table layers, the map makes room, the defeat is shown (2026-11-07)
+**Context:** Round 4 of the UI hill climb (ADR-066). The table's chrome still left a shallow map; the header didn't say
+whether a decision was the person's or the computer's; map targets were small and the floating buttons sat on pieces;
+the defend panel didn't say what not defending costs.
+
+**Decision:** While a space is chosen the panel opens at a peek (owner, instruction, "12 spaces · tap a lit one",
+Confirm); piece questions such as the Minion Battle open whole. The header is two lines in near-white with a team bar:
+the owner ("You choose · Wasp", "Computer · Wasp acting", an online name) and the instruction; it is a live region. The
+hero strip keeps the turn track's cells in every state; State is in the bar in both orientations. A question's spaces are
+framed at about 48 dp when they fit, else numbered on the map with a matching list; framing keeps the options, the actor
+and a hint's target fully in view and only nudges pieces clear of the docked Fit/Flip column. The sandbox shows one overlay
+at a time with a docked key. When no card saves the hero, the engine plays "don't defend" out on a copy of the game and
+the panel shows the result ("Defeated · Blue −1 (1 left) · Arien +2"); the button reads "Accept defeat · keep cards".
+Confirm is one line ("Move here · 3"). Game options show the starting Waves and Lives. Refines ADR-072 and ADR-076.
+
+## ADR-080 — One identity, one label per action, rules every screen inherits (2026-11-07)
+**Decision:** A player is their crest everywhere, with their most-played hero as a small badge only at 40 dp and above
+(derived from the log, nothing stored); round 3's hero-portrait faces are withdrawn (revises ADR-077). "Who is this
+phone" is one shared `IdentitySelector`. An action keeps one label on every screen ("Open match setup", "Open in
+sandbox"), and a blocked action states its reason beside it. Shared rules: chips at least 48 dp that wrap; sideways rows
+start on the gutter and fade under a chevron in their own edge strip, six items or fewer wrap; secondary text 14 sp at
+7:1; team words use `teamTextColor`; sliders and progress bars are bronze on steel (teal never means progress); one
+bracketed section plate, no inner frames, the gear only on phase or outcome titles (revises ADR-077's quiet plate). The
+hero stats are "Hero ratings · 1–8", not card values. The timer's sea and battlefield and the leaderboard and sync
+paintings are repainted at full resolution (the silhouette replaces its Real-ESRGAN upscale).
+
+**Consequences:** On a 384 dp phone (the S25 Ultra) the Heroes grid shows two columns at the 14 sp name floor.
+
+## ADR-081 — Round 5: one command per state, lists for every map choice, rosters first (2026-11-08)
+**Context:** Round 5 of the UI hill climb (ADR-066). sol, the stricter judge, kept flagging issues that earlier rounds had
+only half fixed (the sync host's button four rounds running), so its own suggested fixes were implemented as described.
+
+**Decision:** The sync host's button only shows a state the player can act on: disabled "Waiting for Cid · 60%", then
+"Merge data from 2 phones"; auto-start is a separate switch. Every map choice can be answered from a list: a List chip,
+lettered rows and the same letter on the map; an ambiguous tap asks "Which one?"; step counts are numerals on dark disks,
+never confused with letters. Defend is a list of one-line rows with the summary said once and "Don't defend" as its own
+row. The draft numbers its steps with counts ("4 · ◆ Red picks 2") and says whose turn it is; recording a result asks the
+winner first, then shows one-line rosters. Done, past and empty states lose decoration, never legibility (muted text ≥4.5:1,
+muted outline ≥3:1); a tag inside a frame is a tint, not an outline. One tab bar (`GoaTabRow`), one card-title face
+(`CardTitle`), one icon per destination (`Destination`). Online Join is disabled until a valid code. Refines ADR-072 to ADR-080.

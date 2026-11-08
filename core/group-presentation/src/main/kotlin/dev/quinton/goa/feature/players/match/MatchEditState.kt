@@ -26,7 +26,15 @@ data class PlayerChangeUi(
     val rating: Rating,
     /** Leaderboard position now (active players with rated games); null when unrated or archived. */
     val rank: Int?,
+    /**
+     * The player's rating before their last few rated matches up to and including this one, then after
+     * each (oldest first, at most [TREND_POINTS]); empty until the replay has run.
+     */
+    val trend: List<Double> = emptyList(),
 )
+
+/** Points in a "Result saved" rating trend: the rating before, then up to seven matches. */
+const val TREND_POINTS = 8
 
 /** Shown after a result is saved: what changed, and the way to play again. */
 data class SavedResultUi(
@@ -174,6 +182,7 @@ object MatchEditing {
                 delta = change?.playerDeltas?.get(seat.playerId),
                 rating = results.player(seat.playerId),
                 rank = rankOf[seat.playerId],
+                trend = trend(results, seat.playerId, match.id),
             )
         }.sortedWith(compareByDescending<PlayerChangeUi> { it.won }.thenByDescending { it.delta ?: 0.0 })
         val leader = ranked.firstOrNull()
@@ -186,6 +195,16 @@ object MatchEditing {
             leaderRating = leader?.let { results.player(it.id) },
             rematchOptions = rematchOptions(match),
         )
+    }
+
+    /** [PlayerChangeUi.trend]: the rating history around [matchId], ending with it; empty when it isn't rated. */
+    fun trend(results: RatingsResult, playerId: String, matchId: String): List<Double> {
+        val history = results.playerHistory[playerId].orEmpty()
+        val at = history.indexOfFirst { it.matchId == matchId }
+        if (at < 0) return emptyList()
+        val points = history.subList(maxOf(0, at - (TREND_POINTS - 2)), at + 1)
+        val first = points.first()
+        return listOf(first.value - first.delta) + points.map { it.value }
     }
 }
 

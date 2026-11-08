@@ -3,6 +3,7 @@ package dev.quinton.goa.feature.board.list
 import dev.quinton.goa.core.data.game.StoredGame
 import dev.quinton.goa.core.data.puzzle.PuzzleProgress
 import dev.quinton.goa.core.game.Controller
+import dev.quinton.goa.core.game.PuzzleInfo
 import dev.quinton.goa.core.model.board.BoardMap
 import dev.quinton.goa.core.model.board.SavedBoard
 import dev.quinton.goa.core.model.draft.DraftRecord
@@ -38,8 +39,15 @@ data class ResumeUi(
     val unreadable: Boolean = false,
 )
 
-/** The puzzles as the Boards entry shows them: how many of the playable ones are solved. */
-data class PuzzleHubUi(val solved: Int, val total: Int)
+/**
+ * The puzzles as the Play tab shows them: how many of the playable ones are solved, part by part as the puzzle
+ * list counts them (ADR-052): the positions ("1 of 50 positions") and the full rounds ("2 of 22 rounds").
+ */
+data class PuzzleHubUi(val solved: Int, val total: Int, val roundsSolved: Int = 0, val roundsTotal: Int = 0) {
+    val positionsSolved: Int get() = solved - roundsSolved
+
+    val positionsTotal: Int get() = total - roundsTotal
+}
 
 /**
  * Play against the computer (ADR-035): offered once heroes are playable; a game in progress to
@@ -91,6 +99,18 @@ object BoardsRules {
     /** How many of the playable puzzles ([ids]) are solved; null while none is playable. */
     fun puzzleHub(ids: List<String>, progress: Map<String, PuzzleProgress>): PuzzleHubUi? =
         if (ids.isEmpty()) null else PuzzleHubUi(solved = ids.count { progress[it]?.solved == true }, total = ids.size)
+
+    /** How many of the playable [puzzles] are solved, positions and full rounds apart; null while none is playable. */
+    fun puzzleHubByPart(puzzles: List<PuzzleInfo>, progress: Map<String, PuzzleProgress>): PuzzleHubUi? {
+        if (puzzles.isEmpty()) return null
+        val solved = puzzles.filter { progress[it.id]?.solved == true }
+        return PuzzleHubUi(
+            solved = solved.size,
+            total = puzzles.size,
+            roundsSolved = solved.count { it.fullRound },
+            roundsTotal = puzzles.count { it.fullRound },
+        )
+    }
 
     /** The saved game as its entry shows it: line-up, who you play, the computer's levels. */
     fun resumeOf(stored: StoredGame, heroes: Map<String, BoardHero>): ResumeUi? = when (stored) {

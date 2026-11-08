@@ -229,6 +229,7 @@ object TimerUiMapper {
         name = preset.name,
         summary = TimerText.presetSummary(preset),
         usesActionTimer = preset.phases.any { it.enabled && it.kind == PhaseKind.ACTION },
+        phases = TimerText.phaseDurations(preset),
     )
 
     /**
@@ -242,10 +243,12 @@ object TimerUiMapper {
         seats: Int,
         tonight: TonightTurn?,
     ): StartUiState {
-        val own = presets.firstOrNull { it.id == selectedId }
-            ?.phases?.firstOrNull { it.enabled && it.kind == PhaseKind.TURN }?.seconds
+        val turn = presets.firstOrNull { it.id == selectedId }
+            ?.phases?.firstOrNull { it.enabled && it.kind == PhaseKind.TURN }
         return StartUiState(
-            tonight = own?.let { TonightUi(tonight?.takeIf { t -> t.presetId == selectedId }?.seconds ?: it, it) },
+            tonight = turn?.seconds?.let { own ->
+                TonightUi(tonight?.takeIf { t -> t.presetId == selectedId }?.seconds ?: own, own, turn.name)
+            },
             presets = presets.map(::presetOption),
             selectedPresetId = selectedId,
             pendingMatches = pending,

@@ -1,6 +1,7 @@
 package dev.quinton.goa.feature.board.online
 
 import androidx.activity.compose.BackHandler
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -9,67 +10,103 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.text.input.TextFieldLineLimits
+import androidx.compose.foundation.text.input.rememberTextFieldState
+import androidx.compose.foundation.text.input.setTextAndPlaceCursorAtEnd
 import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.KeyboardArrowRight
 import androidx.compose.material.icons.outlined.ContentCopy
+import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material.icons.outlined.EmojiEvents
+import androidx.compose.material.icons.outlined.Flag
+import androidx.compose.material.icons.outlined.HourglassTop
 import androidx.compose.material.icons.outlined.PersonRemove
+import androidx.compose.material.icons.outlined.PlayCircleOutline
 import androidx.compose.material.icons.outlined.QrCodeScanner
+import androidx.compose.material.icons.outlined.TouchApp
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.SegmentedButton
-import androidx.compose.material3.SegmentedButtonDefaults
-import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Surface
-import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.TextFieldLabelPosition
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import dev.quinton.goa.core.designsystem.component.AccountAvatar
 import dev.quinton.goa.core.designsystem.component.CardTextBox
 import dev.quinton.goa.core.designsystem.component.ConfirmDialog
 import dev.quinton.goa.core.designsystem.component.GoaButton
 import dev.quinton.goa.core.designsystem.component.GoaDialog
+import dev.quinton.goa.core.designsystem.component.GoaOutlinedButton
 import dev.quinton.goa.core.designsystem.component.GoaPlate
 import dev.quinton.goa.core.designsystem.component.GoaScreen
+import dev.quinton.goa.core.designsystem.component.GoaSegment
+import dev.quinton.goa.core.designsystem.component.GoaSegmentedRow
+import dev.quinton.goa.core.designsystem.component.GoaSwitch
+import dev.quinton.goa.core.designsystem.component.HeroPortrait
+import dev.quinton.goa.core.designsystem.component.IdentitySelector
 import dev.quinton.goa.core.designsystem.component.PlateColor
+import dev.quinton.goa.core.designsystem.component.PlateShape
+import dev.quinton.goa.core.designsystem.component.SectionHeader
+import dev.quinton.goa.core.designsystem.component.SectionHeaderPaddingTight
 import dev.quinton.goa.core.designsystem.component.scaledIconSize
+import dev.quinton.goa.core.designsystem.component.teamColor
 import dev.quinton.goa.core.designsystem.theme.GoaTextStyles
+import dev.quinton.goa.core.designsystem.theme.GoaTheme
 import dev.quinton.goa.core.designsystem.theme.Spacing
 import dev.quinton.goa.core.game.GameLength
+import dev.quinton.goa.core.model.match.Team
 import dev.quinton.goa.core.online.MyGame
+import dev.quinton.goa.feature.board.BoardHero
+import dev.quinton.goa.feature.board.BoardText
+import dev.quinton.goa.feature.board.hero
 import dev.quinton.goa.feature.board.play.PlayText
 import dev.quinton.goa.feature.board.play.online.AccountStage
+import dev.quinton.goa.feature.board.play.online.MyGameState
+import dev.quinton.goa.feature.board.play.online.MyGameStatuses
 import dev.quinton.goa.feature.board.play.online.OnlineHomeUi
 import dev.quinton.goa.feature.board.play.online.OnlineRooms
 import dev.quinton.goa.feature.board.play.online.OnlineWords
-import dev.quinton.goa.feature.board.ui.bronzeSegments
+import dev.quinton.goa.feature.board.play.online.parseInvite
 
 /** What the online home can do; a class rather than two dozen parameters. */
 class OnlineHomeActions(
@@ -104,6 +141,8 @@ fun OnlineHomeScreen(
     mapNames: Map<String, String>,
     actions: OnlineHomeActions,
     modifier: Modifier = Modifier,
+    /** Every hero by id: a game's seats are its heroes, shown as portraits. */
+    heroes: Map<String, BoardHero> = emptyMap(),
 ) {
     val gate = state.stage == AccountStage.SAVE_CODE
     // Nothing leaves the gate but "I've saved it": linking has burnt the old code, so this one is the only one.
@@ -127,7 +166,7 @@ fun OnlineHomeScreen(
 
                 AccountStage.SAVE_CODE -> CodeGate(state, actions)
 
-                AccountStage.READY -> Ready(state, mapNames, actions)
+                AccountStage.READY -> Ready(state, mapNames, heroes, actions)
             }
         }
     }
@@ -146,12 +185,7 @@ private fun Message(text: String) {
 
 @Composable
 internal fun OnlineSection(title: String) {
-    Text(
-        title.uppercase(),
-        style = GoaTextStyles.overline,
-        color = MaterialTheme.colorScheme.primary,
-        modifier = Modifier.semantics { heading() },
-    )
+    SectionHeader(title, padding = SectionHeaderPaddingTight)
 }
 
 @Composable
@@ -194,7 +228,7 @@ private fun PickName(state: OnlineHomeUi, actions: OnlineHomeActions) {
                 keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Characters),
                 modifier = Modifier.fillMaxWidth(),
             )
-            OutlinedButton(
+            GoaOutlinedButton(
                 onClick = actions.onLink,
                 enabled = !state.working,
                 modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp),
@@ -227,7 +261,7 @@ private fun CodeGate(state: OnlineHomeUi, actions: OnlineHomeActions) {
                     modifier = Modifier.fillMaxWidth(),
                 )
             }
-            OutlinedButton(
+            GoaOutlinedButton(
                 onClick = { actions.onCopyCode(code) },
                 modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp),
             ) {
@@ -243,64 +277,260 @@ private fun CodeGate(state: OnlineHomeUi, actions: OnlineHomeActions) {
 }
 
 @Composable
-private fun Ready(state: OnlineHomeUi, mapNames: Map<String, String>, actions: OnlineHomeActions) {
-    Text("Playing as ${state.name}", style = MaterialTheme.typography.titleMedium)
-    if (state.games.isNotEmpty()) MyGames(state, mapNames, actions)
+private fun Ready(
+    state: OnlineHomeUi,
+    mapNames: Map<String, String>,
+    heroes: Map<String, BoardHero>,
+    actions: OnlineHomeActions,
+) {
+    // Who this phone plays as, the row Card trivia and Group sync show too; read only here (Rename is in the account),
+    // and one compact line, so Create room stays in view.
+    IdentitySelector(
+        title = "Playing as ${state.name}",
+        scope = "Online",
+        avatar = { size -> AccountAvatar(state.you ?: state.name, state.name, size = size) },
+        compact = true,
+    )
+    if (state.games.isNotEmpty()) MyGames(state, mapNames, heroes, actions)
     JoinRoom(state, actions)
     NewRoom(state, mapNames, actions)
     LeaderboardEntry(actions)
     Account(state, actions)
 }
 
+/**
+ * The games to go back to, compact so a new room stays in view. Those waiting on you come first, each on a tight
+ * plate of its own with a bronze edge ("Your turn" in teal with a hand: you can act, never colour alone) and Play;
+ * the rest in one plate, a line each saying where it stands in words with an icon ("Waiting for Bob", "Finished")
+ * and where. Every game shows its heroes as small overlapping portraits in their team's ring; TalkBack hears who
+ * plays whom.
+ */
 @Composable
-private fun MyGames(state: OnlineHomeUi, mapNames: Map<String, String>, actions: OnlineHomeActions) {
+private fun MyGames(
+    state: OnlineHomeUi,
+    mapNames: Map<String, String>,
+    heroes: Map<String, BoardHero>,
+    actions: OnlineHomeActions,
+) {
+    val (yours, others) = state.games.partition { MyGameStatuses.of(it, state.you).state == MyGameState.YOUR_TURN }
     OnlineSection("My games")
-    GoaPlate(Modifier.fillMaxWidth(), contentPadding = PaddingValues(0.dp)) {
-        state.games.forEachIndexed { i, game ->
-            if (i > 0) HorizontalDivider()
-            Surface(
-                onClick = { actions.onGame(game) },
-                color = Color.Transparent,
-                contentColor = MaterialTheme.colorScheme.onSurface,
-                modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp),
-            ) {
-                Row(
-                    Modifier.padding(horizontal = Spacing.md, vertical = Spacing.sm),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Column(Modifier.weight(1f)) {
-                        Text(
-                            game.seats.joinToString(", ") { it.name },
-                            style = MaterialTheme.typography.titleSmall,
-                        )
-                        Text(
-                            mapNames[game.mapId] ?: game.mapId,
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                    }
-                    Icon(Icons.AutoMirrored.Outlined.KeyboardArrowRight, contentDescription = "Back to this game")
-                }
+    yours.forEach { game -> YourTurnPlate(game, state, mapNames, heroes, actions) }
+    if (others.isNotEmpty()) {
+        GoaPlate(Modifier.fillMaxWidth(), contentPadding = PaddingValues(0.dp)) {
+            others.forEachIndexed { i, game ->
+                if (i > 0) HorizontalDivider()
+                GameRow(game, state, mapNames, heroes, actions)
             }
         }
     }
 }
 
+/** A game waiting on you, on a tight plate with a bronze edge: the heroes, "Your turn" and where, and Play. */
+@Composable
+private fun YourTurnPlate(
+    game: MyGame,
+    state: OnlineHomeUi,
+    mapNames: Map<String, String>,
+    heroes: Map<String, BoardHero>,
+    actions: OnlineHomeActions,
+) {
+    val status = MyGameStatuses.of(game, state.you)
+    val teal = MaterialTheme.colorScheme.secondary
+    GoaPlate(
+        Modifier
+            .fillMaxWidth()
+            .border(2.dp, GoaTheme.colors.selection, PlateShape)
+            .semantics(mergeDescendants = true) {
+                contentDescription = "${status.words}. ${spokenSeats(game, heroes)}. ${where(game, mapNames)}"
+            },
+        onClick = { actions.onGame(game) },
+        contentPadding = PaddingValues(horizontal = Spacing.md, vertical = Spacing.sm),
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            SeatPortraits(game, heroes, size = 32.dp)
+            Spacer(Modifier.width(Spacing.md))
+            Column(Modifier.weight(1f)) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                        Icons.Outlined.TouchApp,
+                        contentDescription = null,
+                        tint = teal,
+                        modifier = Modifier.size(scaledIconSize(18.dp, 1.4f)),
+                    )
+                    Spacer(Modifier.width(Spacing.xs))
+                    Text(
+                        status.words,
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = teal,
+                    )
+                }
+                Text(
+                    where(game, mapNames),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+            Spacer(Modifier.width(Spacing.sm))
+            GoaButton(
+                onClick = { actions.onGame(game) },
+                modifier = Modifier.heightIn(min = 48.dp).clearAndSetSemantics {},
+            ) { Text("Play") }
+        }
+    }
+}
+
+/** A game that isn't waiting on you, in one line: the heroes, where it stands in words with an icon, and where. */
+@Composable
+private fun GameRow(
+    game: MyGame,
+    state: OnlineHomeUi,
+    mapNames: Map<String, String>,
+    heroes: Map<String, BoardHero>,
+    actions: OnlineHomeActions,
+) {
+    val status = MyGameStatuses.of(game, state.you)
+    val muted = MaterialTheme.colorScheme.onSurfaceVariant
+    Surface(
+        onClick = { actions.onGame(game) },
+        color = Color.Transparent,
+        contentColor = MaterialTheme.colorScheme.onSurface,
+        modifier = Modifier
+            .fillMaxWidth()
+            .heightIn(min = 52.dp)
+            .semantics(mergeDescendants = true) {
+                contentDescription =
+                    "${status.words}. ${spokenSeats(game, heroes)}. ${where(game, mapNames)}. Back to this game"
+            },
+    ) {
+        Row(
+            Modifier.padding(horizontal = Spacing.md, vertical = Spacing.xs),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            SeatPortraits(game, heroes, size = 26.dp, dim = status.state == MyGameState.OVER)
+            Spacer(Modifier.width(Spacing.md))
+            Icon(
+                when (status.state) {
+                    MyGameState.YOUR_TURN -> Icons.Outlined.TouchApp
+                    MyGameState.WAITING -> Icons.Outlined.HourglassTop
+                    MyGameState.IN_PLAY -> Icons.Outlined.PlayCircleOutline
+                    MyGameState.OVER -> Icons.Outlined.Flag
+                },
+                contentDescription = null,
+                tint = muted,
+                modifier = Modifier.size(scaledIconSize(16.dp, 1.4f)),
+            )
+            Spacer(Modifier.width(Spacing.xs))
+            // Where it stands, then the map on a line of its own: a joined line broke the map's name in two.
+            Column(Modifier.weight(1f)) {
+                Text(status.words, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
+                Text(where(game, mapNames), style = MaterialTheme.typography.bodySmall, color = muted)
+            }
+            Icon(Icons.AutoMirrored.Outlined.KeyboardArrowRight, contentDescription = null)
+        }
+    }
+}
+
+/**
+ * A game's heroes as overlapping round portraits, each in its team's ring (the team is in the words too). Red's
+ * seats first. Decorative: the row's own words name everyone.
+ */
+@Composable
+private fun SeatPortraits(game: MyGame, heroes: Map<String, BoardHero>, size: Dp, dim: Boolean = false) {
+    val seats = game.seats.sortedBy { it.team != Team.RED }
+    val step = size * PORTRAIT_OVERLAP
+    val ground = MaterialTheme.colorScheme.surface
+    Box(
+        Modifier
+            .size(width = size + step * (seats.size - 1).coerceAtLeast(0), height = size)
+            .clearAndSetSemantics {}
+            .then(if (dim) Modifier.alpha(DIM_FINISHED) else Modifier),
+    ) {
+        seats.forEachIndexed { i, seat ->
+            val hero = heroes.hero(seat.seat)
+            HeroPortrait(
+                seat.seat,
+                hero.portrait,
+                null,
+                Modifier
+                    .offset(x = step * i)
+                    .size(size)
+                    .border(2.dp, ground, CircleShape)
+                    .padding(1.dp)
+                    .border(2.dp, teamColor(seat.team), CircleShape)
+                    .padding(2.dp),
+                CircleShape,
+                framed = false,
+            )
+        }
+    }
+}
+
+private fun where(game: MyGame, mapNames: Map<String, String>): String = mapNames[game.mapId] ?: game.mapId
+
+/** "Ann as Arien (Red), Bob as Wasp (Blue)": who plays whom, for TalkBack. */
+private fun spokenSeats(game: MyGame, heroes: Map<String, BoardHero>): String =
+    game.seats.joinToString(", ") { seat ->
+        val name = seat.name.ifBlank { "Former player" }
+        val hero = heroes[seat.seat]?.name
+        (if (hero != null) "$name as $hero" else name) + " (${BoardText.team(seat.team)})"
+    }
+
+/** How far each portrait in a stack sits from the last, as a share of its size. */
+private const val PORTRAIT_OVERLAP = 0.62f
+
+/** A finished game's portraits step back. */
+private const val DIM_FINISHED = 0.6f
+
+/**
+ * Join by code or link. The field's label sits above it for good ("Room code or invite link"), and Join stays off
+ * until the field holds a plausible code or link; the keyboard's Go with anything else says what a code is, under the
+ * field, until the text changes.
+ */
 @Composable
 private fun JoinRoom(state: OnlineHomeUi, actions: OnlineHomeActions) {
     OnlineSection("Join a room")
+    val field = rememberTextFieldState(state.joinText)
+    var invalid by rememberSaveable { mutableStateOf(false) }
+    // The field's text goes to the presenter; the presenter's (cleared after a join) comes back.
+    val joinText by rememberUpdatedState(state.joinText)
+    val onJoinText by rememberUpdatedState(actions.onJoinText)
+    LaunchedEffect(field) {
+        snapshotFlow { field.text.toString() }.collect {
+            if (it != joinText) {
+                invalid = false
+                onJoinText(it)
+            }
+        }
+    }
+    LaunchedEffect(state.joinText) {
+        if (field.text.toString() != state.joinText) field.setTextAndPlaceCursorAtEnd(state.joinText)
+    }
+    val plausible = parseInvite(inviteText(state.joinText)) != null
     GoaPlate(Modifier.fillMaxWidth()) {
         Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
             OutlinedTextField(
-                value = state.joinText,
-                onValueChange = actions.onJoinText,
+                state = field,
+                labelPosition = TextFieldLabelPosition.Above(),
                 label = { Text("Room code or invite link") },
-                singleLine = true,
-                keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Characters),
+                isError = invalid,
+                supportingText = if (invalid) {
+                    { Text(OnlineWords.NOT_A_CODE) }
+                } else {
+                    null
+                },
+                lineLimits = TextFieldLineLimits.SingleLine,
+                keyboardOptions = KeyboardOptions(
+                    capitalization = KeyboardCapitalization.Characters,
+                    imeAction = ImeAction.Go,
+                ),
+                onKeyboardAction = {
+                    if (plausible) actions.onJoin() else invalid = state.joinText.isNotBlank()
+                },
                 modifier = Modifier.fillMaxWidth(),
             )
             Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-                OutlinedButton(
+                GoaOutlinedButton(
                     onClick = actions.onScan,
                     enabled = !state.working,
                     modifier = Modifier.weight(1f).heightIn(min = 48.dp),
@@ -311,7 +541,7 @@ private fun JoinRoom(state: OnlineHomeUi, actions: OnlineHomeActions) {
                 }
                 GoaButton(
                     onClick = actions.onJoin,
-                    enabled = !state.working,
+                    enabled = !state.working && plausible,
                     modifier = Modifier.weight(1f).heightIn(min = 48.dp),
                 ) { Text("Join") }
             }
@@ -332,13 +562,13 @@ private fun NewRoom(state: OnlineHomeUi, mapNames: Map<String, String>, actions:
                 Column(Modifier.weight(1f)) {
                     Text("Ranked", style = MaterialTheme.typography.titleSmall)
                     Text(
-                        "A finished game counts on the public leaderboard.",
+                        "Counts on the public leaderboard.",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
                 Spacer(Modifier.width(Spacing.sm))
-                Switch(checked = form.ranked, onCheckedChange = actions.onRanked)
+                GoaSwitch(checked = form.ranked, onCheckedChange = actions.onRanked)
             }
             GoaButton(
                 onClick = actions.onCreateRoom,
@@ -351,14 +581,11 @@ private fun NewRoom(state: OnlineHomeUi, mapNames: Map<String, String>, actions:
 
 @Composable
 private fun <T> Segments(options: List<T>, selected: T, label: (T) -> String, onPick: (T) -> Unit) {
-    SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth()) {
+    GoaSegmentedRow(Modifier.fillMaxWidth()) {
         options.forEachIndexed { i, option ->
-            SegmentedButton(
+            GoaSegment(
                 selected = option == selected,
                 onClick = { onPick(option) },
-                shape = SegmentedButtonDefaults.itemShape(i, options.size),
-                colors = bronzeSegments(),
-                modifier = Modifier.heightIn(min = 48.dp),
             ) { Text(label(option)) }
         }
     }
@@ -366,9 +593,9 @@ private fun <T> Segments(options: List<T>, selected: T, label: (T) -> String, on
 
 @Composable
 private fun LeaderboardEntry(actions: OnlineHomeActions) {
-    OutlinedButton(onClick = actions.onLeaderboard, modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp)) {
+    GoaOutlinedButton(onClick = actions.onLeaderboard, modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp)) {
         Icon(Icons.Outlined.EmojiEvents, contentDescription = null, modifier = Modifier.padding(end = Spacing.sm))
-        Text("Leaderboard")
+        Text("Online ratings")
     }
 }
 
@@ -385,9 +612,19 @@ private fun Account(state: OnlineHomeUi, actions: OnlineHomeActions) {
                 style = MaterialTheme.typography.bodySmall,
             )
             Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-                TextButton(onClick = { renaming = true }, modifier = Modifier.heightIn(min = 48.dp)) { Text("Rename") }
-                TextButton(onClick = { deleting = true }, modifier = Modifier.heightIn(min = 48.dp)) {
-                    Text("Delete account", color = MaterialTheme.colorScheme.error)
+                TextButton(onClick = { renaming = true }, modifier = Modifier.heightIn(min = 48.dp)) {
+                    Icon(Icons.Outlined.Edit, contentDescription = null, modifier = Modifier.size(18.dp))
+                    Spacer(Modifier.width(Spacing.xs))
+                    Text("Rename")
+                }
+                TextButton(
+                    onClick = { deleting = true },
+                    modifier = Modifier.heightIn(min = 48.dp),
+                    colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error),
+                ) {
+                    Icon(Icons.Outlined.PersonRemove, contentDescription = null, modifier = Modifier.size(18.dp))
+                    Spacer(Modifier.width(Spacing.xs))
+                    Text("Delete account")
                 }
             }
         }

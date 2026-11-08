@@ -1,10 +1,8 @@
 package dev.quinton.goa
 
-import androidx.compose.ui.test.hasAnyAncestor
 import androidx.compose.ui.test.hasClickAction
 import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.hasText
-import androidx.compose.ui.test.isDialog
 import androidx.compose.ui.test.isEnabled
 import androidx.compose.ui.test.isSelected
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
@@ -17,7 +15,7 @@ import org.junit.runner.RunWith
 /**
  * Board sandbox from a finished draft (PRODUCT §8): a House draft 2v2, "Try on the board" (one
  * tap), the opening with the first Red pick on a Red hero Spawn point; select that hero and move it
- * through the TalkBack action of a named space right next to it, then find the board in Boards.
+ * through the TalkBack action of a named space right next to it, then find the board in the Board sandbox.
  * Every space in view is a node whose click does what a tap on it does, so the test drives the map
  * the way TalkBack would.
  */
@@ -29,7 +27,8 @@ class BoardFlowTest {
     fun tryADraftOnTheBoardMoveAHeroAndFindItInBoards() {
         val redPicks = draftTwoVersusTwo()
 
-        // Draft complete: "Try on the board" sets up the opening in one tap.
+        // Draft complete: "Try on the board" (in Open match setup's menu) sets up the opening.
+        rule.tapDescription("More ways to finish")
         rule.tap(hasText("Try on the board") and hasClickAction())
 
         // The first Red pick stands on a Red hero Spawn point in the Red Throne Zone.
@@ -48,13 +47,13 @@ class BoardFlowTest {
         rule.waitFor(hasContentDescription("Undo") and isEnabled())
 
         // Back returns to the finished draft (the draft board hides the tabs); Back again leaves it,
-        // then Heroes › Board: the board is saved under its line-up.
+        // then Play › Board sandbox: the board is saved under its line-up.
         rule.tapDescription("Back")
-        rule.waitForText("Try on the board")
+        rule.waitForText("Open match setup")
         rule.tapDescription("Back")
         rule.openTab("catalog")
         rule.waitForText("32 heroes")
-        rule.openFromPlay("Board")
+        rule.openFromPlay("Board sandbox")
         rule.waitForText("Changed today", substring = true)
         rule.waitFor(hasText(hero, substring = true) and hasText(" vs ", substring = true))
     }
@@ -76,8 +75,8 @@ class BoardFlowTest {
         rule.tap(hasText("House draft") and hasClickAction())
         rule.tapText("Next: Tie Breaker")
         rule.tapText("Flip the coin")
-        rule.waitForText("is Team A", substring = true)
-        val teamA = if (rule.exists(hasText("◆ Red is Team A"))) "◆" else "●"
+        rule.waitForText("is the coin team", substring = true)
+        val teamA = if (rule.exists(hasText("◆ Red is the coin team"))) "◆" else "●"
         rule.tap(hasText("Start draft", substring = true) and hasClickAction())
 
         // House draft 2v2: Ban A · Pick A · Ban B · Pick B · Pick B · Pick A.
@@ -102,13 +101,15 @@ class BoardFlowTest {
             rule.reveal(tile)
             val chosen = rule.onAllNodes(tile).fetchSemanticsNodes().first().descriptions.first()
             rule.tap(hasContentDescription(chosen) and tile)
-            rule.waitForText("$action $chosen?")
-            rule.tap(hasAnyAncestor(isDialog()) and hasClickAction() and hasText("$glyph $action"))
-            rule.waitGone(hasText("$action $chosen?"))
+            // The tile opens the hero's sheet; its pinned button commits, under whom it is for.
+            rule.waitForText("$action $chosen")
+            rule.waitForText("$glyph ", substring = true)
+            rule.tap(hasClickAction() and hasText("$action $chosen"))
+            rule.waitGone(hasText("$action $chosen"))
             if (action == "Pick" && glyph == "◆") redPicks += chosen
         }
         assertEquals(2, redPicks.size)
-        rule.reveal(hasText("Try on the board"))
+        rule.reveal(hasText("Open match setup"))
         return redPicks
     }
 }

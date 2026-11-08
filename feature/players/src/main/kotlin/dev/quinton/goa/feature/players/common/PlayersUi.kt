@@ -8,12 +8,14 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicText
 import androidx.compose.foundation.text.TextAutoSize
@@ -50,8 +52,10 @@ import dev.quinton.goa.core.designsystem.component.GoaPlateTheme
 import dev.quinton.goa.core.designsystem.component.PlateShape
 import dev.quinton.goa.core.designsystem.component.SectionHeader as RulebookSectionHeader
 import dev.quinton.goa.core.designsystem.component.TeamMark
+import dev.quinton.goa.core.designsystem.component.scaledIconSize
 import dev.quinton.goa.core.designsystem.component.slatePlate
-import dev.quinton.goa.core.designsystem.component.teamColor
+import dev.quinton.goa.core.designsystem.component.teamTextColor
+import dev.quinton.goa.core.designsystem.theme.GoaTextStyles
 import dev.quinton.goa.core.designsystem.theme.GoaTheme
 import dev.quinton.goa.core.designsystem.theme.Spacing
 import dev.quinton.goa.core.model.match.MatchStatus
@@ -77,6 +81,38 @@ fun Pill(
         Text(text, style = MaterialTheme.typography.labelSmall, color = color, maxLines = 1)
     }
 }
+
+/**
+ * A provisional rating where some are settled: a small hourglass beside the name, not a pill on every row (when
+ * every rating is provisional the list says it once). Its own words for TalkBack.
+ */
+@Composable
+fun ProvisionalMark(modifier: Modifier = Modifier, label: Boolean = false) {
+    val muted = MaterialTheme.colorScheme.onSurfaceVariant
+    if (!label) {
+        Icon(
+            Icons.Outlined.HourglassEmpty,
+            contentDescription = "Provisional rating",
+            tint = muted,
+            modifier = modifier.size(scaledIconSize(16.dp)),
+        )
+        return
+    }
+    // With its word, where no caption explains the hourglass (a match's result).
+    Row(modifier, verticalAlignment = Alignment.CenterVertically) {
+        Icon(
+            Icons.Outlined.HourglassEmpty,
+            contentDescription = null,
+            tint = muted,
+            modifier = Modifier.size(scaledIconSize(14.dp)),
+        )
+        Spacer(Modifier.width(2.dp))
+        Text("Provisional", style = MaterialTheme.typography.labelSmall, color = muted, maxLines = 1)
+    }
+}
+
+/** "All ratings are provisional until 10 games each." */
+fun allProvisionalCaption(games: Int): String = "All ratings are provisional until $games games each."
 
 @Composable
 fun ProvisionalPill(modifier: Modifier = Modifier) {
@@ -115,11 +151,11 @@ fun DeltaIndicator(
         Icon(icon, contentDescription = null, tint = color, modifier = Modifier.size(16.dp))
         Text(formatDelta(delta), style = MaterialTheme.typography.labelMedium, color = color)
         if (caption != null) {
+            // Never cut ("last 5" must not become "last"): its words stay together and, if need be, wrap whole.
             Text(
-                " $caption",
+                " ${caption.replace(' ', '\u00A0')}",
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
-                maxLines = 1,
             )
         }
     }
@@ -131,7 +167,7 @@ fun ResultChip(status: MatchStatus, winner: Team?, modifier: Modifier = Modifier
     val (text, color, icon) = when {
         status == MatchStatus.COMPLETED && winner != null -> Triple(
             "${winner.label()} won",
-            teamColor(winner),
+            teamTextColor(winner),
             Icons.Filled.EmojiEvents,
         )
 
@@ -166,14 +202,13 @@ fun ResultChip(status: MatchStatus, winner: Team?, modifier: Modifier = Modifier
 /** Big number over a caption, for stat rows. */
 @Composable
 fun StatTile(value: String, caption: String, modifier: Modifier = Modifier) {
-    GoaPlateTheme { StatTileContent(value, caption, modifier) }
+    GoaPlateTheme { StatTileContent(value, caption, modifier.slatePlate(PlateShape, brackets = false)) }
 }
 
 @Composable
 private fun StatTileContent(value: String, caption: String, modifier: Modifier) {
     Column(
         modifier
-            .slatePlate(PlateShape, brackets = false)
             .padding(horizontal = Spacing.md, vertical = Spacing.sm)
             .semantics(mergeDescendants = true) {},
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -182,11 +217,11 @@ private fun StatTileContent(value: String, caption: String, modifier: Modifier) 
         // Shrinks to fit rather than truncating ("69–38", not "69–…").
         BasicText(
             value,
-            style = MaterialTheme.typography.titleLarge.copy(color = MaterialTheme.colorScheme.onSurface),
+            style = figureStyle(RowFigure).copy(color = MaterialTheme.colorScheme.onSurface),
             maxLines = 1,
             autoSize = TextAutoSize.StepBased(
                 minFontSize = 12.sp,
-                maxFontSize = MaterialTheme.typography.titleLarge.fontSize,
+                maxFontSize = RowFigure,
             ),
         )
         Text(
@@ -256,46 +291,64 @@ object Motion {
         androidx.compose.animation.core.tween(DURATION_MS, easing = androidx.compose.animation.core.FastOutSlowInEasing)
 }
 
-/** Equal-height row of [StatTile]s; wraps two per row at large font scales. */
+/**
+ * Big numbers over captions on one plate, divided by hairlines, rather than a framed tile each (DESIGN.md "Framing
+ * levels": one frame per section); two per line at large font scales.
+ */
 @Composable
 fun StatRow(tiles: List<Pair<String, String>>, modifier: Modifier = Modifier) {
     val large = androidx.compose.ui.platform.LocalDensity.current.fontScale >= LARGE_FONT_SCALE
-    if (large) {
-        androidx.compose.foundation.layout.FlowRow(
-            modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
-            verticalArrangement = Arrangement.spacedBy(Spacing.sm),
-            maxItemsInEachRow = 2,
-        ) {
-            tiles.forEach { (value, caption) -> StatTile(value, caption, Modifier.weight(1f)) }
-        }
-    } else {
-        Row(
-            modifier.fillMaxWidth().height(androidx.compose.foundation.layout.IntrinsicSize.Min),
-            horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
-        ) {
-            tiles.forEach { (value, caption) -> StatTile(value, caption, Modifier.weight(1f).fillMaxHeight()) }
+    GoaPlateTheme {
+        val plate = modifier.fillMaxWidth().slatePlate(PlateShape, brackets = false)
+        if (large) {
+            androidx.compose.foundation.layout.FlowRow(
+                plate.padding(vertical = Spacing.xs),
+                maxItemsInEachRow = 2,
+            ) {
+                tiles.forEach { (value, caption) -> StatTileContent(value, caption, Modifier.weight(1f)) }
+            }
+        } else {
+            Row(plate.height(androidx.compose.foundation.layout.IntrinsicSize.Min)) {
+                tiles.forEachIndexed { i, (value, caption) ->
+                    if (i > 0) {
+                        androidx.compose.material3.VerticalDivider(
+                            Modifier.padding(vertical = Spacing.sm),
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = STAT_DIVIDER_ALPHA),
+                        )
+                    }
+                    StatTileContent(value, caption, Modifier.weight(1f).fillMaxHeight())
+                }
+            }
         }
     }
 }
 
+private const val STAT_DIVIDER_ALPHA = 0.12f
+
 /** Font scale from which compact controls switch to roomier, wrapping layouts. */
 const val LARGE_FONT_SCALE = 1.3f
 
-/** Selected chips in bronze, as selected is everywhere (docs/DESIGN.md). */
-@Composable
-fun goaFilterChipColors() = androidx.compose.material3.FilterChipDefaults.filterChipColors(
-    selectedContainerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.2f),
-    selectedLabelColor = MaterialTheme.colorScheme.onSurface,
-    selectedLeadingIconColor = MaterialTheme.colorScheme.primary,
-)
+/**
+ * The one style for figures across the Players screens (ratings, records, rates, scores): Inter with
+ * tabular lining figures, semibold, so the same rating looks the same on every screen. Cinzel stays
+ * for headings.
+ */
+fun figureStyle(size: androidx.compose.ui.unit.TextUnit): androidx.compose.ui.text.TextStyle =
+    // The design system's score figures (GoaTextStyles.score), at this screen's size.
+    dev.quinton.goa.core.designsystem.theme.GoaTextStyles.score.copy(
+        fontSize = size,
+        lineHeight = size * FIGURE_LINE,
+        fontWeight = FontWeight.SemiBold,
+    )
 
+private const val FIGURE_LINE = 1.2f
+
+/** Leaderboard and result rows. */
+val RowFigure: androidx.compose.ui.unit.TextUnit = 22.sp
+
+/** A player page's own rating. */
+val HeaderFigure: androidx.compose.ui.unit.TextUnit = 36.sp
+
+/** Chips are the design system's steel chips, bronze when selected (pair with `selectableChipBorder`). */
 @Composable
-fun goaSegmentedColors() = androidx.compose.material3.SegmentedButtonDefaults.colors(
-    activeContainerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.2f),
-    activeContentColor = MaterialTheme.colorScheme.onSurface,
-    activeBorderColor = MaterialTheme.colorScheme.primary,
-    inactiveContainerColor = Color.Transparent,
-    inactiveContentColor = MaterialTheme.colorScheme.onSurfaceVariant,
-    inactiveBorderColor = MaterialTheme.colorScheme.outline,
-)
+fun goaFilterChipColors() = dev.quinton.goa.core.designsystem.component.selectableChipColors()

@@ -27,7 +27,7 @@ class DoublePilotMatchTest {
         // An empty match log offers one call to action (no floating button on top of it).
         rule.waitForText("No matches yet")
         rule.tapText("Log a match")
-        rule.waitForText("Duration (minutes, optional)")
+        rule.waitForDescription("Add seat to Red")
 
         // New matches start 2v2; add the third seat on each team (Red's button comes first).
         rule.reveal(hasText("Add seat") and hasClickAction())
@@ -49,7 +49,11 @@ class DoublePilotMatchTest {
             "Xargatha" to "Eve",
         )
         seats.forEach { (hero, pilot) -> rule.fillNextSeat(hero, pilot) }
-        rule.waitForText("Double pilot")
+        // The roster line says a double pilot on the pilot itself ("Ana ×2"), once per seat.
+        rule.waitUntilOrDump("Ana on two seats") {
+            rule.onAllNodes(hasContentDescription("Pilot: Ana. Change pilot")).fetchSemanticsNodes().size == 2
+        }
+        rule.waitForText(" ×2")
 
         if (rule.exists(hasText("Completed") and hasClickAction())) rule.tapText("Completed")
         // The winner buttons name each team's pilots once, even Ana who sits twice.
@@ -57,7 +61,7 @@ class DoublePilotMatchTest {
         assertEquals(setOf("Cal", "Dee", "Eve"), rule.winnerPilots("Blue"))
         rule.tapDescription("Red won", substring = true)
         rule.tapText("Throne")
-        rule.tap(hasText("Save") and hasClickAction())
+        rule.tap(hasText("Save", substring = true) and hasClickAction())
         // The result shows its rating changes (one line per player) and Rematch before closing.
         rule.waitForText("Result saved")
         val changes = rule.ratingChanges(5)

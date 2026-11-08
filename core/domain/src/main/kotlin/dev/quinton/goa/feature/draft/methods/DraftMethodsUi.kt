@@ -12,6 +12,7 @@ import dev.quinton.goa.core.domain.draft.ban
 import dev.quinton.goa.core.domain.draft.pick
 import dev.quinton.goa.core.model.draft.DraftAction
 import dev.quinton.goa.core.model.draft.DraftMethodKind
+import dev.quinton.goa.core.model.match.Team
 import dev.quinton.goa.feature.draft.ui.StepToken
 import dev.quinton.goa.feature.draft.ui.plural
 import dev.quinton.goa.feature.draft.ui.tokens
@@ -40,7 +41,8 @@ data class PreviewLayout(val a: Int, val b: Int) {
 /** A method's sequence for one layout, or why it can't run. */
 data class SequencePreview(val tokens: List<StepToken>, val error: String?, val heroesNeeded: Int)
 
-fun previewOf(method: DraftMethod, layout: PreviewLayout): SequencePreview {
+/** [teamA]: the team the Tie Breaker coin shows, so the steps carry colours; null keeps "A" and "B" (the editor). */
+fun previewOf(method: DraftMethod, layout: PreviewLayout, teamA: Team? = null): SequencePreview {
     val plan = DraftPlanner.plan(method, layout.a, layout.b)
     val steps = plan.getOrNull()
     val error = when (val e = plan.exceptionOrNull()) {
@@ -54,7 +56,11 @@ fun previewOf(method: DraftMethod, layout: PreviewLayout): SequencePreview {
         is PoolRule.DealPerSeat -> (layout.a + layout.b) * pool.perSeat
         else -> steps?.size ?: 0
     }
-    return SequencePreview(steps?.tokens().orEmpty(), error, if (method.sequence is SequenceRule.Lineup) 0 else needed)
+    return SequencePreview(
+        steps?.tokens(teamA).orEmpty(),
+        error,
+        if (method.sequence is SequenceRule.Lineup) 0 else needed,
+    )
 }
 
 data class MethodRow(val method: DraftMethod, val preview: SequencePreview, val isDefault: Boolean) {
@@ -76,7 +82,15 @@ data class MethodsUiState(
     val layout: PreviewLayout = PreviewLayout.OPTIONS.first(),
     val builtIn: List<MethodRow> = emptyList(),
     val custom: List<MethodRow> = emptyList(),
-)
+    /** The method the draft setup will use. */
+    val selectedId: String? = null,
+    /** The team the previews show going as "A": the coin's, once flipped; else an example. */
+    val previewTeamA: Team = Team.BLUE,
+    /** False while [previewTeamA] is only an example: the coin isn't flipped yet. */
+    val coinKnown: Boolean = false,
+) {
+    val selected: MethodRow? get() = (builtIn + custom).firstOrNull { it.method.id == selectedId }
+}
 
 fun poolText(pool: PoolRule): String = when (pool) {
     PoolRule.All -> "Pool: every eligible hero"

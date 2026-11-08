@@ -40,9 +40,11 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.MenuBook
+import androidx.compose.material.icons.filled.Bolt
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PlayArrow
@@ -80,6 +82,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shadow
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.LiveRegionMode
@@ -100,17 +103,18 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.min
 import androidx.compose.ui.unit.sp
 import dev.quinton.goa.core.designsystem.component.BannerEndSpacer
-import dev.quinton.goa.core.designsystem.component.BannerMedallionWidth
 import dev.quinton.goa.core.designsystem.component.BevelText
 import dev.quinton.goa.core.designsystem.component.GoaButton
+import dev.quinton.goa.core.designsystem.component.GoaDarkTheme
 import dev.quinton.goa.core.designsystem.component.GoaDialog
 import dev.quinton.goa.core.designsystem.component.GoaPlate
-import dev.quinton.goa.core.designsystem.component.GoaPlateTheme
 import dev.quinton.goa.core.designsystem.component.LARGE_FONT_SCALE
 import dev.quinton.goa.core.designsystem.component.MetalButton
 import dev.quinton.goa.core.designsystem.component.PlateShape
 import dev.quinton.goa.core.designsystem.component.SlateButton
 import dev.quinton.goa.core.designsystem.component.TitlePlate
+import dev.quinton.goa.core.designsystem.component.bannerEndWidth
+import dev.quinton.goa.core.designsystem.component.slatePlate
 import dev.quinton.goa.core.designsystem.component.steelBanner
 import dev.quinton.goa.core.designsystem.theme.GoaTextStyles
 import dev.quinton.goa.core.designsystem.theme.GoaTheme
@@ -139,7 +143,7 @@ internal fun ActiveTimer(state: ActiveUiState, actions: TimerActions) {
         onTogglePause = actions.onTogglePause,
     ) {
         // Dark in both themes: the dim sea, so the running timer never lights up a dim room.
-        GoaPlateTheme {
+        GoaDarkTheme {
             Box(Modifier.fillMaxSize()) {
                 val round = state.layout == TimerLayout.ROUND
                 TimerBackdrop(silhouette = !round)
@@ -152,7 +156,14 @@ internal fun ActiveTimer(state: ActiveUiState, actions: TimerActions) {
                         ),
                 ) {
                     val header: @Composable () -> Unit = {
-                        TimerHeader(state, actions, onEnd = { confirmEnd = true }, onCoin = { coinDialog = true })
+                        // Landscape: one thin line, so the full-width banner costs the dial as little as it can.
+                        TimerHeader(
+                            state,
+                            actions,
+                            onEnd = { confirmEnd = true },
+                            onCoin = { coinDialog = true },
+                            compact = maxWidth > maxHeight,
+                        )
                         if (state.alertsOff) {
                             AlertsOffBanner(
                                 onOpenSettings = actions.onOpenNotificationSettings,
@@ -242,69 +253,95 @@ private fun PortraitTimer(state: ActiveUiState, actions: TimerActions, header: @
                 )
             }
         }
-        PinnedShotClock(state, actions, compact = short)
+        // A short screen (small phone, large text) may scroll the dial away: there the bar keeps the countdown too.
+        PinnedShotClock(state, actions, compact = short, inDial = state.dialShown && !short)
         TimerControls(state, actions)
     }
 }
 
-/** A running "Hurry up" sits above the controls, outside the scrolling area, so it is always in view. */
+/**
+ * A running "Hurry up" sits above the controls, outside the scrolling area, so it is always in view.
+ * [inDial]: the dial shows its countdown, so this is only its Restart and Stop.
+ */
 @Composable
-internal fun PinnedShotClock(state: ActiveUiState, actions: TimerActions, compact: Boolean) {
+internal fun PinnedShotClock(state: ActiveUiState, actions: TimerActions, compact: Boolean, inDial: Boolean = false) {
     val shot = state.shotClock ?: return
     ShotClockPanel(
         shot,
         onRestart = actions.onShotClock,
         onCancel = actions.onCancelShotClock,
         compact = compact,
+        clockInDial = inDial,
         modifier = Modifier.padding(horizontal = Spacing.screen, vertical = Spacing.xs),
     )
 }
 
+/** The dial is showing (not the untimed end-of-round step card): a running Hurry up takes it. */
+private val ActiveUiState.dialShown: Boolean get() = checklist == null || timed
+
 /**
- * Landscape: the dial fills the left half (a running Hurry up under it); header, phase, extras
- * and controls sit on the right.
+ * Landscape: a thin steel banner across the top; under it the dial with the whole left column, and on the right
+ * the phase and extras, then Hurry up, time-outs and a running Hurry up pinned above the controls.
  */
 @Composable
 private fun LandscapeTimer(state: ActiveUiState, actions: TimerActions, header: @Composable () -> Unit) {
-    Row(Modifier.fillMaxSize()) {
-        // Hurry up and time-outs (and a running Hurry up) sit under the dial here, leaving the right
-        // column to the step text: there they scrolled under the controls in a 384 dp-tall window.
-        Column(Modifier.weight(0.45f).fillMaxHeight()) {
-            BoxWithConstraints(
-                Modifier.weight(1f).fillMaxWidth().padding(Spacing.md),
-                contentAlignment = Alignment.Center,
-            ) {
-                if (state.checklist != null && !state.timed) {
-                    Column(Modifier.verticalScroll(rememberScrollState())) { ChecklistStepCard(state, actions.onNext) }
-                } else {
-                    TimerDial(state, min(maxWidth, maxHeight).coerceAtLeast(120.dp), actions.onTogglePause)
-                }
-            }
-            Column(Modifier.padding(horizontal = Spacing.screen)) { TableRulesBar(state, actions) }
-            PinnedShotClock(state, actions, compact = true)
-        }
-        Column(Modifier.weight(0.55f).fillMaxHeight()) {
-            header()
-            Column(
-                Modifier
-                    .weight(1f)
-                    .fillMaxWidth()
-                    .verticalScroll(rememberScrollState())
-                    .padding(horizontal = Spacing.screen),
-                horizontalAlignment = Alignment.CenterHorizontally,
-            ) {
-                // Compact heading: the step text must fit above the controls in a short window.
-                Spacer(Modifier.height(Spacing.xs))
-                PhaseHeading(state, actions.onBack, compact = true)
-                StepDetail(state, actions.onOpenLevels)
-                SecondaryArea(state, actions, tableRules = false)
-                Spacer(Modifier.height(Spacing.md))
-            }
-            TimerControls(state, actions, compact = true)
+    Column(Modifier.fillMaxSize()) {
+        header()
+        Row(Modifier.weight(1f).fillMaxWidth()) {
+            LandscapeDialColumn(state, actions, Modifier.weight(0.45f).fillMaxHeight())
+            LandscapeStepColumn(state, actions, Modifier.weight(0.55f).fillMaxHeight())
         }
     }
 }
 
+@Composable
+private fun LandscapeDialColumn(state: ActiveUiState, actions: TimerActions, modifier: Modifier) {
+    // The dial takes the column's whole height (across the table it is what must read): Hurry up, time-outs and a
+    // running Hurry up's bar are pinned above the controls on the right, outside its scrolling step text.
+    Column(modifier) {
+        BoxWithConstraints(
+            Modifier.weight(1f).fillMaxWidth().padding(horizontal = Spacing.md, vertical = Spacing.sm),
+            contentAlignment = Alignment.Center,
+        ) {
+            if (state.checklist != null && !state.timed) {
+                Column(Modifier.verticalScroll(rememberScrollState())) { ChecklistStepCard(state, actions.onNext) }
+            } else {
+                TimerDial(state, min(maxWidth, maxHeight).coerceAtLeast(120.dp), actions.onTogglePause)
+            }
+        }
+        if (state.dialShown) {
+            PhaseClockLine(state, Modifier.align(Alignment.CenterHorizontally).padding(bottom = Spacing.sm))
+        }
+    }
+}
+
+@Composable
+private fun LandscapeStepColumn(state: ActiveUiState, actions: TimerActions, modifier: Modifier) {
+    Column(modifier) {
+        Column(
+            Modifier
+                .weight(1f)
+                .fillMaxWidth()
+                .verticalScroll(rememberScrollState())
+                .padding(horizontal = Spacing.screen),
+            horizontalAlignment = Alignment.CenterHorizontally,
+        ) {
+            // Compact heading: the step text must fit above the controls in a short window.
+            Spacer(Modifier.height(Spacing.sm))
+            PhaseHeading(state, actions.onBack, compact = true)
+            StepDetail(state, actions.onOpenLevels)
+            SecondaryArea(state, actions, tableRules = false)
+            Spacer(Modifier.height(Spacing.md))
+        }
+        Column(Modifier.padding(start = Spacing.screen, end = Spacing.screen, bottom = Spacing.xs)) {
+            TableRulesBar(state, actions)
+        }
+        PinnedShotClock(state, actions, compact = true, inDial = state.dialShown)
+        TimerControls(state, actions, compact = true)
+    }
+}
+
+private val ROOMY_DIAL = 260.dp
 private const val SHORT_SCREEN_HEIGHT = 640
 private val SCROLL_FADE = 44.dp
 private val SCROLL_FADE_COLOR = Color(0xE6071019)
@@ -318,10 +355,49 @@ private fun dialScale(state: ActiveUiState): Float = when {
 
 @Composable
 private fun PrimaryArea(state: ActiveUiState, actions: TimerActions, size: Dp) {
-    if (state.checklist == null || state.timed) {
+    if (state.dialShown) {
         TimerDial(state, size, actions.onTogglePause)
+        PhaseClockLine(state, Modifier.padding(top = Spacing.md))
     } else {
         ChecklistStepCard(state, actions.onNext)
+    }
+}
+
+/**
+ * While Hurry up holds the dial: the step's own clock, smaller, just under it, so it is still there to
+ * read but never mistaken for the clock that matters now. TalkBack hears it with the dial.
+ */
+@Composable
+private fun PhaseClockLine(state: ActiveUiState, modifier: Modifier = Modifier) {
+    if (state.shotClock == null) return
+    val colors = MaterialTheme.colorScheme
+    val clock = when {
+        state.overtime -> "overtime ${state.clock}"
+        state.timed -> "${state.clock} left"
+        else -> "${state.clock} elapsed"
+    }
+    Row(
+        modifier
+            .heightIn(min = 40.dp)
+            .slatePlate(RoundedCornerShape(50), brackets = false)
+            .padding(horizontal = Spacing.lg, vertical = Spacing.xs)
+            .clearAndSetSemantics {},
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Icon(
+            Icons.Outlined.Timer,
+            contentDescription = null,
+            tint = colors.onSurfaceVariant,
+            modifier = Modifier.size(18.dp),
+        )
+        Spacer(Modifier.width(Spacing.sm))
+        Text(
+            "${state.title} · $clock",
+            style = MaterialTheme.typography.titleMedium.copy(fontFeatureSettings = "tnum"),
+            color = if (state.overtime) colors.error else colors.onSurface,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+        )
     }
 }
 
@@ -361,7 +437,13 @@ private fun SecondaryArea(state: ActiveUiState, actions: TimerActions, tableRule
 
 /** The steel banner, as on every screen, holding the round: "Round N" must never be clipped. */
 @Composable
-private fun TimerHeader(state: ActiveUiState, actions: TimerActions, onEnd: () -> Unit, onCoin: () -> Unit) {
+private fun TimerHeader(
+    state: ActiveUiState,
+    actions: TimerActions,
+    onEnd: () -> Unit,
+    onCoin: () -> Unit,
+    compact: Boolean = false,
+) {
     var coinUndo by remember { mutableStateOf(false) }
     val banner = GoaTheme.colors
     val largeText = LocalDensity.current.fontScale > LARGE_FONT_SCALE
@@ -369,10 +451,23 @@ private fun TimerHeader(state: ActiveUiState, actions: TimerActions, onEnd: () -
         val tools = headerTools(state, maxWidth, coinUndo)
         val subtitle = maxWidth >= SMALL_PHONE_WIDTH
         Row(
-            Modifier.fillMaxWidth().padding(start = Spacing.screen, top = Spacing.xs, bottom = Spacing.xs),
+            Modifier
+                .fillMaxWidth()
+                .padding(start = Spacing.screen, top = if (compact) 0.dp else Spacing.xs)
+                .padding(bottom = if (compact) 0.dp else Spacing.xs),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Column(Modifier.weight(1f)) {
+            // Compact (landscape): the round and its subtitle on one line, the bar no taller than its buttons.
+            val titleLines: @Composable (@Composable () -> Unit) -> Unit = { content ->
+                if (compact) {
+                    Row(Modifier.weight(1f), verticalAlignment = Alignment.CenterVertically) {
+                        content()
+                    }
+                } else {
+                    Column(Modifier.weight(1f)) { content() }
+                }
+            }
+            titleLines {
                 // A small phone's banner has no room for a second line: it would land on the metal edge.
                 val spoken = "${state.presetName}, match time ${state.matchClock}"
                 BevelText(
@@ -384,10 +479,12 @@ private fun TimerHeader(state: ActiveUiState, actions: TimerActions, onEnd: () -
                         if (!subtitle) contentDescription = "Round ${state.round}, $spoken"
                     },
                 )
-                // Large text: the match clock alone, so it isn't what gets cut (TalkBack still hears both).
+                // Large text: the game clock alone, so it isn't what gets cut (TalkBack still hears both);
+                // there "Game" stays with it, so the number never stands without saying what it counts.
                 if (subtitle) {
+                    if (compact) Spacer(Modifier.width(Spacing.md))
                     HeaderSubtitle(
-                        if (largeText) state.matchClock else "${state.presetName} · ${state.matchClock}",
+                        if (largeText) "Game ${state.matchClock}" else "${state.presetName} · ${state.matchClock}",
                         spoken,
                     )
                 }
@@ -428,44 +525,34 @@ private val SUBTITLE_EDGE = Color(0xFF05090D)
 private const val SUBTITLE_EDGE_WIDTH = 5f
 private const val HEADER_TITLE_MAX_SCALE = 1.5f
 
-/** Which optional top-bar parts sit in the bar; the icons that don't are in the overflow menu. */
-private data class HeaderTools(
-    val levels: Boolean,
-    val viewSwitch: Boolean,
-    val endMatch: Boolean,
-    val coinLabel: Boolean,
-)
+/** Whether the coin chip keeps its words beside the coin's face. */
+private data class HeaderTools(val coinLabel: Boolean)
 
 /**
- * "Round N" must never be clipped (S25 Ultra: 384 dp wide, where Blue's coin chip plus four icons left
- * too little room; a small phone has less). The title, coin chip and its Undo are measured; the view
- * switch moves into the menu first (it is also in Settings), then Levels & defeats, then End match, and
- * last the coin chip keeps only its mark. Large text: the view switch and Levels are in the menu.
+ * "Round N" must never be clipped (S25 Ultra: 384 dp wide; a small phone has less). The bar holds only the
+ * coin chip and the labelled overflow menu (Levels & defeats, End match, the view switch are named there, never
+ * bare glyphs); the title, coin chip and its Undo are measured, and where they don't fit the chip keeps only the
+ * coin's face (TalkBack still hears "Tie Breaker coin: Red").
  */
 @Composable
 private fun headerTools(state: ActiveUiState, width: Dp, coinUndo: Boolean): HeaderTools {
     val density = LocalDensity.current
     val measurer = rememberTextMeasurer()
     val titleStyle = headerTitleStyle()
-    val labelStyle = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.SemiBold)
+    val labelStyle = coinChipLabelStyle()
+    val coin = coinChipMark()
     val team = state.tieBreaker
     val undo = coinUndo && team != null
-    return remember(state.round, team, undo, width, density, titleStyle, labelStyle) {
+    val bannerEnd = bannerEndWidth()
+    return remember(state.round, team, undo, width, density, titleStyle, labelStyle, coin, bannerEnd) {
         fun textWidth(text: String, style: TextStyle) =
             with(density) { measurer.measure(text, style, maxLines = 1, softWrap = false).size.width.toDp() }
-        val chipMark = if (team != null) CHIP_CHROME * density.fontScale else 0.dp
-        val chip = team?.let { chipMark + textWidth(teamName(it), labelStyle) } ?: 0.dp
+        val chipMark = if (team != null) CHIP_INSET * 2 + coin else 0.dp
+        val chip = team?.let { chipMark + COIN_GAP + textWidth(COIN_WORD + teamName(it), labelStyle) } ?: 0.dp
         val undoButton = if (undo) maxOf(UNDO_MIN_WIDTH, textWidth("Undo", labelStyle) + UNDO_PADDING) else 0.dp
-        val fixed = Spacing.screen + BannerMedallionWidth + HEADER_SLACK + undoButton + HEADER_ICON
+        val fixed = Spacing.screen + bannerEnd + HEADER_SLACK + undoButton + HEADER_ICON
         val room = width - fixed - textWidth("Round ${state.round}", titleStyle)
-        val large = density.fontScale > LARGE_FONT_SCALE
-        val endMatch = room - chip >= HEADER_ICON
-        HeaderTools(
-            levels = !large && room - chip >= HEADER_ICON * 2,
-            viewSwitch = !large && room - chip >= HEADER_ICON * 3,
-            endMatch = endMatch,
-            coinLabel = room >= chip,
-        )
+        HeaderTools(coinLabel = room >= chip)
     }
 }
 
@@ -478,8 +565,6 @@ private fun headerTitleStyle(): TextStyle = with(LocalDensity.current) {
 
 private val HEADER_ICON = 48.dp
 
-/** Chip padding (12 dp each side), team mark (12 dp) and its gap (6 dp). */
-private val CHIP_CHROME = 42.dp
 private val UNDO_MIN_WIDTH = 58.dp
 private val UNDO_PADDING = 24.dp
 
@@ -487,8 +572,8 @@ private val UNDO_PADDING = 24.dp
 private val HEADER_SLACK = 4.dp
 
 /**
- * Top-bar actions, left to right: Tie Breaker coin (when tracked), Levels & defeats (rules
- * reference), step / round view switch, End match, overflow menu (with Rules).
+ * Top-bar actions: the Tie Breaker coin (when tracked) and the overflow menu, where every other tool has its name
+ * (Levels & defeats, End match, the view switch, Rules, Settings).
  */
 @Composable
 private fun RowScope.TimerTopActions(
@@ -512,104 +597,51 @@ private fun RowScope.TimerTopActions(
     } else {
         LaunchedEffect(Unit) { onCoinUndo(false) }
     }
-    // What doesn't fit beside "Round N" (narrow phones, large text) is in the menu instead.
     val roundView = state.layout == TimerLayout.ROUND
-    val switchLayout = { actions.onTimerLayout(if (roundView) TimerLayout.STEPS else TimerLayout.ROUND) }
-    if (tools.levels) {
-        IconButton(onClick = actions.onOpenLevels) {
-            Icon(Icons.Outlined.MilitaryTech, contentDescription = "Levels and defeats")
-        }
-    }
-    if (tools.viewSwitch) {
-        IconButton(onClick = switchLayout) {
-            Icon(
-                if (roundView) Icons.Outlined.Timer else Icons.Outlined.ViewAgenda,
-                contentDescription = if (roundView) "Show one step at a time" else "Show the whole round",
-            )
-        }
-    }
-    if (tools.endMatch) {
-        IconButton(onClick = onEnd) { Icon(Icons.Outlined.Flag, contentDescription = "End match") }
-    }
     Box {
         IconButton(onClick = { menu = true }) { Icon(Icons.Outlined.MoreVert, contentDescription = "More options") }
         DropdownMenu(expanded = menu, onDismissRequest = { menu = false }) {
-            DropdownMenuItem(
-                text = { Text("Restart phase") },
-                leadingIcon = { Icon(Icons.Outlined.Replay, contentDescription = null) },
-                onClick = {
+            val close: (() -> Unit) -> () -> Unit = { action ->
+                {
                     menu = false
-                    actions.onRestart()
-                },
+                    action()
+                }
+            }
+            // Most used first; End match last, away from a quick tap.
+            TimerMenuItem("Levels & defeats", Icons.Outlined.MilitaryTech, close(actions.onOpenLevels))
+            TimerMenuItem(
+                if (state.tieBreaker == null) "Track Tie Breaker coin…" else "Tie Breaker coin…",
+                Icons.Outlined.Toll,
+                close(onCoin),
             )
-            DropdownMenuItem(
-                text = { Text("Skip to end of round") },
-                leadingIcon = { Icon(Icons.Outlined.SkipNext, contentDescription = null) },
+            TimerMenuItem("Restart phase", Icons.Outlined.Replay, close(actions.onRestart))
+            TimerMenuItem(
+                "Skip to end of round",
+                Icons.Outlined.SkipNext,
+                close(actions.onSkipToEnd),
                 enabled = state.section != RoundSection.ROUND_END,
-                onClick = {
-                    menu = false
-                    actions.onSkipToEnd()
-                },
             )
-            DropdownMenuItem(
-                text = { Text(if (state.tieBreaker == null) "Track Tie Breaker coin…" else "Tie Breaker coin…") },
-                leadingIcon = { Icon(Icons.Outlined.Toll, contentDescription = null) },
-                onClick = {
-                    menu = false
-                    onCoin()
-                },
+            TimerMenuItem(
+                if (roundView) "Step-by-step view" else "Whole-round view",
+                if (roundView) Icons.Outlined.Timer else Icons.Outlined.ViewAgenda,
+                close { actions.onTimerLayout(if (roundView) TimerLayout.STEPS else TimerLayout.ROUND) },
             )
-            DropdownMenuItem(
-                text = { Text("End match…") },
-                leadingIcon = { Icon(Icons.Outlined.Flag, contentDescription = null) },
-                onClick = {
-                    menu = false
-                    onEnd()
-                },
-            )
-            if (!tools.viewSwitch) {
-                DropdownMenuItem(
-                    text = { Text(if (roundView) "Step-by-step view" else "Whole-round view") },
-                    leadingIcon = {
-                        Icon(
-                            if (roundView) Icons.Outlined.Timer else Icons.Outlined.ViewAgenda,
-                            contentDescription = null,
-                        )
-                    },
-                    onClick = {
-                        menu = false
-                        switchLayout()
-                    },
-                )
-            }
-            if (!tools.levels) {
-                DropdownMenuItem(
-                    text = { Text("Levels & defeats") },
-                    leadingIcon = { Icon(Icons.Outlined.MilitaryTech, contentDescription = null) },
-                    onClick = {
-                        menu = false
-                        actions.onOpenLevels()
-                    },
-                )
-            }
-            DropdownMenuItem(
-                text = { Text("Rules") },
-                leadingIcon = { Icon(Icons.AutoMirrored.Outlined.MenuBook, contentDescription = null) },
-                onClick = {
-                    menu = false
-                    actions.onOpenRules()
-                },
-            )
-            DropdownMenuItem(
-                text = { Text("Settings") },
-                leadingIcon = { Icon(Icons.Outlined.Settings, contentDescription = null) },
-                onClick = {
-                    menu = false
-                    actions.onSettings()
-                },
-            )
+            TimerMenuItem("Rules", Icons.AutoMirrored.Outlined.MenuBook, close(actions.onOpenRules))
+            TimerMenuItem("Settings", Icons.Outlined.Settings, close(actions.onSettings))
+            TimerMenuItem("End match…", Icons.Outlined.Flag, close(onEnd))
         }
     }
+}
+
+/** One labelled row of the timer's overflow menu. */
+@Composable
+private fun TimerMenuItem(label: String, icon: ImageVector, onClick: () -> Unit, enabled: Boolean = true) {
+    DropdownMenuItem(
+        text = { Text(label) },
+        leadingIcon = { Icon(icon, contentDescription = null) },
+        enabled = enabled,
+        onClick = onClick,
+    )
 }
 
 /**
@@ -687,33 +719,56 @@ private val PHASE_STYLE = GoaTextStyles.plateTitle.copy(fontSize = 20.sp, lineHe
 private const val PHASE_MAX_SCALE = 1.5f
 private val CONTEXT_STYLE = GoaTextStyles.sectionHead.copy(fontSize = 15.sp, lineHeight = 20.sp, shadow = TEXT_SHADOW)
 
+/**
+ * The dial. While Hurry up runs its countdown is what the table must read, so it takes the dial: the
+ * digits, the arc and a "Hurry up" word above them; the step's own clock moves under the dial ([PhaseClockLine]).
+ */
 @Composable
 private fun TimerDial(state: ActiveUiState, size: Dp, onToggle: () -> Unit) {
+    val shot = state.shotClock
     val tone = when {
+        shot != null && state.paused -> RingTone.PAUSED
+        shot != null && shot.over -> RingTone.OVERTIME
+        shot != null -> RingTone.WARNING
         !state.timed -> RingTone.UNTIMED
         state.paused -> RingTone.PAUSED
         state.overtime -> RingTone.OVERTIME
         state.warning -> RingTone.WARNING
         else -> RingTone.NORMAL
     }
-    // Paused, overtime and elapsed say so in words; otherwise the digits alone, as the mock-up.
+    // Paused, overtime and elapsed say so in words; otherwise the digits alone, as the mock-up. Hurry up
+    // names its urgency in words too, not by colour alone: left, the last seconds, time.
     val status = when {
         state.paused -> "Tap to resume"
+
+        shot != null && shot.over -> "Time!"
+
+        shot != null && shot.warning -> "Last seconds!"
+
+        shot != null -> "Left · tap to pause"
+
         state.overtime -> "Overtime"
-        !state.timed -> "Elapsed · tap to pause"
+
+        // A small dial (a phone held sideways) has no room for the hint inside the ring: the word alone.
+        !state.timed -> if (size >= ROOMY_DIAL) "Elapsed · tap to pause" else "Elapsed"
+
         else -> null
     }
-    val digitColor = when (tone) {
-        RingTone.OVERTIME -> MaterialTheme.colorScheme.error
-        RingTone.WARNING -> MaterialTheme.colorScheme.primary
-        RingTone.PAUSED -> MaterialTheme.colorScheme.onSurfaceVariant
+    val urgent = (state.overtime && shot == null) || shot?.over == true
+    val digitColor = when {
+        tone == RingTone.PAUSED -> MaterialTheme.colorScheme.onSurfaceVariant
+        urgent -> MaterialTheme.colorScheme.error
+        shot?.warning == true -> MaterialTheme.colorScheme.primary
+        shot != null -> DIGITS
+        tone == RingTone.WARNING -> MaterialTheme.colorScheme.primary
         else -> DIGITS
     }
+    val clock = shot?.clock ?: state.clock
     val density = LocalDensity.current
     // Sized from the ring, not the font scale: the digits are already as big as they can be.
     val digitScale = when {
-        state.clock.length <= SHORT_CLOCK -> DIGITS_SHORT
-        state.clock.length == SHORT_CLOCK + 1 -> DIGITS_MEDIUM
+        clock.length <= SHORT_CLOCK -> DIGITS_SHORT
+        clock.length == SHORT_CLOCK + 1 -> DIGITS_MEDIUM
         else -> DIGITS_LONG
     }
     val digitSize = with(density) { (size * digitScale).toSp() }
@@ -732,20 +787,25 @@ private fun TimerDial(state: ActiveUiState, size: Dp, onToggle: () -> Unit) {
         1f
     }
     CountdownRing(
-        fraction = state.fraction,
+        fraction = shot?.fraction ?: state.fraction,
         tone = tone,
         modifier = Modifier
             .size(size)
             .clip(CircleShape)
             .clickable(onClickLabel = if (state.paused) "Resume" else "Pause", role = Role.Button, onClick = onToggle)
             .semantics(mergeDescendants = true) {
-                contentDescription = "${state.title}. ${state.spokenClock}"
+                contentDescription = if (shot != null) {
+                    "${shot.spokenClock}. ${state.title}, ${state.spokenClock}"
+                } else {
+                    "${state.title}. ${state.spokenClock}"
+                }
                 stateDescription = if (state.paused) "Paused" else "Running"
+                if (shot?.over == true) liveRegion = LiveRegionMode.Polite
             },
     ) {
         // The digits keep the dial's centre; the words sit above and below, so nothing jumps.
         Text(
-            state.clock,
+            clock,
             style = timerDigits(
                 MaterialTheme.typography.displayLarge,
             ).copy(fontSize = digitSize, lineHeight = digitSize, shadow = DIGIT_SHADOW),
@@ -754,21 +814,27 @@ private fun TimerDial(state: ActiveUiState, size: Dp, onToggle: () -> Unit) {
             softWrap = false,
             modifier = Modifier.alpha(blink),
         )
-        if (state.paused) {
+        if (state.paused || shot != null) {
+            val word = if (state.paused) "PAUSED" else "HURRY UP"
+            val wordColor = if (urgent && !state.paused) {
+                MaterialTheme.colorScheme.error
+            } else {
+                MaterialTheme.colorScheme.primary
+            }
             Row(
                 Modifier.align(Alignment.TopCenter).padding(top = size * WORD_INSET),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Icon(
-                    Icons.Filled.Pause,
+                    if (state.paused) Icons.Filled.Pause else Icons.Filled.Bolt,
                     contentDescription = null,
                     modifier = Modifier.size(with(density) { pausedSize.toDp() }),
-                    tint = MaterialTheme.colorScheme.primary,
+                    tint = wordColor,
                 )
                 Text(
-                    "PAUSED",
+                    word,
                     style = GoaTextStyles.plateTitle.copy(fontSize = pausedSize, lineHeight = pausedSize),
-                    color = MaterialTheme.colorScheme.primary,
+                    color = wordColor,
                     maxLines = 1,
                     softWrap = false,
                 )
@@ -777,8 +843,19 @@ private fun TimerDial(state: ActiveUiState, size: Dp, onToggle: () -> Unit) {
         if (status != null) {
             Text(
                 status.uppercase(),
-                style = MaterialTheme.typography.labelLarge.copy(fontSize = labelSize, lineHeight = labelSize),
-                color = with(MaterialTheme.colorScheme) { if (state.overtime) error else onSurfaceVariant },
+                style = MaterialTheme.typography.labelLarge.copy(
+                    fontSize = labelSize,
+                    lineHeight = labelSize,
+                    fontWeight = if (shot?.warning == true || urgent) FontWeight.Bold else null,
+                ),
+                color = with(MaterialTheme.colorScheme) {
+                    when {
+                        state.paused -> onSurfaceVariant
+                        urgent -> error
+                        shot?.warning == true -> primary
+                        else -> onSurfaceVariant
+                    }
+                },
                 textAlign = TextAlign.Center,
                 maxLines = 1,
                 softWrap = false,

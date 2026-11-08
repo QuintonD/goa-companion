@@ -14,6 +14,7 @@ import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.SemanticsNodeInteraction
 import androidx.compose.ui.test.assertIsNotEnabled
+import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.click
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
@@ -43,9 +44,10 @@ import org.robolectric.annotation.Config
 
 /**
  * The card focus viewer's gestures and accessibility (docs/DESIGN.md, "Card focus"), with real
- * catalog cards: a first tap focuses, a second tap confirms the card on show, back / an upward
- * swipe / the scrim / × close with nothing chosen, a sideways swipe moves to the next card, a card
- * that isn't an option can't be confirmed, and TalkBack has Select, Next card, Previous card, Close.
+ * catalog cards: a tap focuses, a tap on the large card only reads it, the button naming the choice
+ * confirms the card on show, back / an upward swipe / the scrim / × close with nothing chosen, a sideways
+ * swipe moves to the next card, a card that isn't an option can't be confirmed, and TalkBack has Next
+ * card, Previous card, Close (the button is its own node).
  */
 @RunWith(RobolectricTestRunner::class)
 @Config(qualifiers = "w411dp-h891dp-xxhdpi")
@@ -111,27 +113,28 @@ class CardFocusTest {
         compose.waitForIdle()
         assertThat(state.isOpen).isTrue()
         assertThat(shownName()).startsWith(cards[1].name)
-        compose.onNodeWithText("Tap the card again to discard ${cards[1].name}").assertExists()
+        compose.onNodeWithTag(CONFIRM_TAG).assertTextEquals("Discard ${cards[1].name}")
         assertThat(confirmed).isEmpty()
     }
 
     @Test
-    fun `a second tap on the focused card confirms it, then the viewer closes`() {
+    fun `a tap on the focused card reads it and never confirms`() {
         row()
         compose.onNodeWithTag("thumb2").performClick()
         card().performClick()
         compose.waitForIdle()
-        assertThat(confirmed).containsExactly(2)
-        assertThat(state.isOpen).isFalse()
+        assertThat(confirmed).isEmpty()
+        assertThat(state.isOpen).isTrue()
     }
 
     @Test
-    fun `the Confirm button does what the second tap does`() {
+    fun `the button naming the choice confirms it, then the viewer closes`() {
         row()
         compose.onNodeWithTag("thumb0").performClick()
         compose.onNodeWithTag(CONFIRM_TAG).performClick()
         compose.waitForIdle()
         assertThat(confirmed).containsExactly(0)
+        assertThat(state.isOpen).isFalse()
     }
 
     @Test
@@ -197,14 +200,14 @@ class CardFocusTest {
     }
 
     @Test
-    fun `a sideways swipe shows the next card, and the second tap confirms that one`() {
+    fun `a sideways swipe shows the next card, and the button confirms that one`() {
         row()
         compose.onNodeWithTag("thumb0").performClick()
         card().performTouchInput { swipeLeft() }
         compose.waitForIdle()
         assertThat(state.index).isEqualTo(1)
         assertThat(shownName()).startsWith(cards[1].name)
-        card().performClick()
+        compose.onNodeWithTag(CONFIRM_TAG).performClick()
         compose.waitForIdle()
         assertThat(confirmed).containsExactly(1)
     }
@@ -223,20 +226,19 @@ class CardFocusTest {
     }
 
     @Test
-    fun `TalkBack has Select, Next card, Previous card and Close`() {
+    fun `TalkBack has Next card, Previous card and Close, and the button confirms`() {
         row()
         compose.onNodeWithTag("thumb1").performClick()
         compose.waitForIdle()
-        assertThat(customActionLabels()).containsExactly("Select", "Next card", "Previous card", "Close").inOrder()
-        assertThat(card().fetchSemanticsNode().config[SemanticsActions.OnClick].label)
-            .isEqualTo("Discard ${cards[1].name}")
+        assertThat(customActionLabels()).containsExactly("Next card", "Previous card", "Close").inOrder()
         customAction("Next card")
         assertThat(state.index).isEqualTo(2)
         customAction("Previous card")
         customAction("Previous card")
         assertThat(state.index).isEqualTo(0)
         assertThat(customActionLabels()).doesNotContain("Previous card")
-        customAction("Select")
+        compose.onNodeWithTag(CONFIRM_TAG).performClick()
+        compose.waitForIdle()
         assertThat(confirmed).containsExactly(0)
         compose.onNodeWithTag("thumb3").performClick()
         compose.waitForIdle()

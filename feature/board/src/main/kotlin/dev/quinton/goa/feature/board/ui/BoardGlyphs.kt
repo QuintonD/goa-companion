@@ -14,6 +14,7 @@ import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.StrokeJoin
 import androidx.compose.ui.graphics.drawscope.DrawScope
+import androidx.compose.ui.graphics.drawscope.Fill
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.clipPath
 import androidx.compose.ui.graphics.drawscope.translate
@@ -255,8 +256,8 @@ private fun DrawScope.drawHalo(path: Path, u: Float, stroke: Float, palette: Boa
 
 /**
  * Movement: a green fill and outline, the fewest spaces needed as a number. On a painting the map shows
- * movement with light and numbers in chips (mock-up 03), so this is only its legend swatch: a lit space
- * with an outline and a chip.
+ * movement with light and numbers in dark disks, so this is only its legend swatch: a lit space with an outline and
+ * a disk (the caller draws the numeral).
  */
 fun DrawScope.drawMovementCell(corners: List<Offset>, center: Offset, palette: BoardPalette) {
     val u = (corners[0] - center).getDistance()
@@ -265,30 +266,42 @@ fun DrawScope.drawMovementCell(corners: List<Offset>, center: Offset, palette: B
         drawHalo(path, u, u * 0.1f, palette)
         drawPath(path, Color.White, style = Stroke(width = u * 0.1f, join = StrokeJoin.Round))
         drawCircle(ChipGround, radius = u * CHIP_RADIUS, center = center)
-        drawCircle(ChipEdge, radius = u * CHIP_RADIUS, center = center, style = Stroke(width = u * 0.05f))
         return
     }
     drawPath(path, palette.movement.copy(alpha = 0.34f))
     drawPath(path, palette.movement, style = Stroke(width = u * 0.06f))
 }
 
-/** A number on a painting: white in a small dark chip, or dark on bronze for the [chosen] space (mock-up 03). */
-fun DrawScope.drawNumberChip(text: TextLayoutResult, center: Offset, u: Float, chosen: Boolean = false) {
-    val r = u * CHIP_RADIUS
-    drawCircle(if (chosen) ChipChosen else ChipGround, radius = r, center = center)
-    drawCircle(if (chosen) ChipGround else ChipEdge, radius = r, center = center, style = Stroke(width = u * 0.05f))
-    drawText(
-        text,
-        color = if (chosen) ChipGround else Color.White,
-        topLeft = center - Offset(text.size.width / 2f, text.size.height / 2f),
-    )
+/**
+ * A number on a painting, how many steps a space is away: a white numeral in a plain dark disk (it holds its contrast
+ * on any map art), dark on a bronze disk for the [chosen] space. Round and dark, never the teal rounded square of a
+ * list letter, so one map doesn't use one shape for two things (sol-b #16). [scale] grows it with large text (capped by
+ * the caller, so it stays inside its space); measure [text] at [CHIP_TEXT] times the same scale.
+ */
+fun DrawScope.drawNumberChip(
+    text: TextLayoutResult,
+    center: Offset,
+    u: Float,
+    chosen: Boolean = false,
+    scale: Float = 1f,
+) {
+    val r = u * CHIP_RADIUS * scale
+    drawCircle(if (chosen) ChipChosen else ChipGround.copy(alpha = 0.9f), radius = r, center = center)
+    drawCircle(ChipEdge, radius = r, center = center, style = Stroke(width = u * 0.04f))
+    val topLeft = center - Offset(text.size.width / 2f, text.size.height / 2f)
+    drawText(text, color = if (chosen) ChipGround else Color.White, topLeft = topLeft, drawStyle = Fill)
 }
 
 /** A number chip's text size in map units, for the callers that measure it. */
 const val CHIP_TEXT = 0.52f
-private const val CHIP_RADIUS = 0.42f
+
+/** How far the map's numbers and tags grow with the font scale: past it they would spill out of their space. */
+const val MAP_MARK_MAX_SCALE = 1.5f
+
+/** A step count's disk, map units, and its faint light edge. */
+private const val CHIP_RADIUS = 0.4f
+private val ChipEdge = Color(0x66F3EBD6)
 private val ChipGround = Color(0xFF0B1622)
-private val ChipEdge = Color(0xFFF3EBD6)
 private val ChipChosen = Color(0xFFC9A35B)
 
 /**

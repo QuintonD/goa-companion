@@ -26,7 +26,6 @@ import androidx.compose.material3.AssistChip
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilledTonalIconButton
-import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LocalContentColor
@@ -35,7 +34,6 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.SegmentedButton
 import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.SingleChoiceSegmentedButtonRow
-import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -51,7 +49,9 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dev.quinton.goa.core.designsystem.component.GoaButton
+import dev.quinton.goa.core.designsystem.component.GoaFilterChip
 import dev.quinton.goa.core.designsystem.component.GoaScreen
+import dev.quinton.goa.core.designsystem.component.GoaSwitch
 import dev.quinton.goa.core.designsystem.theme.GoaTheme
 import dev.quinton.goa.core.designsystem.theme.Spacing
 import dev.quinton.goa.core.domain.draft.StepSpec
@@ -60,10 +60,10 @@ import dev.quinton.goa.core.model.draft.DraftAction
 import dev.quinton.goa.feature.draft.ui.SectionCard
 import dev.quinton.goa.feature.draft.ui.SequenceStrip
 import dev.quinton.goa.feature.draft.ui.actionName
-import dev.quinton.goa.feature.draft.ui.goaFilterChipColors
 import dev.quinton.goa.feature.draft.ui.goaSegmentedColors
 import dev.quinton.goa.feature.draft.ui.goaTonalIconColors
 import dev.quinton.goa.feature.draft.ui.plateEdge
+import dev.quinton.goa.feature.draft.ui.slotName
 
 interface MethodEditActions {
     fun back() {}
@@ -202,15 +202,16 @@ fun DraftMethodEditScreen(state: MethodEditUiState, actions: MethodEditActions) 
 @Composable
 private fun PoolCard(state: MethodEditUiState, actions: MethodEditActions) {
     SectionCard(title = "Hero pool", subtitle = poolText(state.pool)) {
-        FlowRow(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+        FlowRow(
+            horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+            verticalArrangement = Arrangement.spacedBy(Spacing.sm),
+        ) {
             PoolKind.entries.forEach { kind ->
-                FilterChip(
-                    colors = goaFilterChipColors(),
+                GoaFilterChip(
                     selected = state.poolKind == kind,
                     onClick = { actions.setPoolKind(kind) },
-                    label = { Text(kind.label) },
                     modifier = Modifier.heightIn(min = 48.dp),
-                )
+                ) { Text(kind.label) }
             }
         }
         if (state.poolKind != PoolKind.ALL) {
@@ -266,7 +267,7 @@ private fun StepsCard(
                 MethodEdits.ADDABLE.forEach { spec ->
                     AssistChip(
                         onClick = { actions.addStep(section, spec) },
-                        label = { Text("${actionName(spec.action)} ${spec.team.name}") },
+                        label = { Text("${actionName(spec.action)} · ${slotName(spec.team)}") },
                         leadingIcon = { Icon(Icons.Filled.Add, contentDescription = null) },
                         modifier = Modifier.heightIn(min = 48.dp),
                     )
@@ -286,21 +287,17 @@ private fun StepRow(section: StepSection, index: Int, step: StepSpec, count: Int
             itemVerticalAlignment = Alignment.CenterVertically,
         ) {
             Text("${index + 1}.", style = MaterialTheme.typography.labelLarge, modifier = Modifier.width(28.dp))
-            FilterChip(
-                colors = goaFilterChipColors(),
+            GoaFilterChip(
                 selected = step.action == DraftAction.BAN,
                 onClick = { actions.toggleAction(section, index) },
-                label = { Text(actionName(step.action), fontWeight = FontWeight.SemiBold) },
                 modifier = Modifier.semantics { contentDescription = "${actionName(step.action)}, tap to switch" },
-            )
+            ) { Text(actionName(step.action), fontWeight = FontWeight.SemiBold) }
             Spacer(Modifier.width(Spacing.xs))
-            FilterChip(
-                colors = goaFilterChipColors(),
+            GoaFilterChip(
                 selected = step.team == TeamSlot.A,
                 onClick = { actions.toggleTeam(section, index) },
-                label = { Text("Team ${step.team.name}") },
-                modifier = Modifier.semantics { contentDescription = "Team ${step.team.name}, tap to switch" },
-            )
+                modifier = Modifier.semantics { contentDescription = "${slotName(step.team)}, tap to switch" },
+            ) { Text(slotName(step.team)) }
             Spacer(Modifier.weight(1f))
             StepRowButtons(section, index, step, count, actions)
         }
@@ -335,7 +332,7 @@ private fun TimerCard(state: MethodEditUiState, actions: MethodEditActions) {
         title = "Step timer",
         subtitle = state.stepSeconds?.let { "$it seconds per step by default" } ?: "Off by default",
         trailing = {
-            Switch(
+            GoaSwitch(
                 checked = state.stepSeconds != null,
                 onCheckedChange = { actions.setStepSeconds(if (it) 30 else null) },
                 modifier = Modifier.semantics { contentDescription = "Step timer" },
@@ -343,15 +340,16 @@ private fun TimerCard(state: MethodEditUiState, actions: MethodEditActions) {
         },
     ) {
         if (state.stepSeconds != null) {
-            FlowRow(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+            FlowRow(
+                horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+                verticalArrangement = Arrangement.spacedBy(Spacing.sm),
+            ) {
                 listOf(15, 30, 45, 60, 90).forEach { s ->
-                    FilterChip(
-                        colors = goaFilterChipColors(),
+                    GoaFilterChip(
                         selected = state.stepSeconds == s,
                         onClick = { actions.setStepSeconds(s) },
-                        label = { Text("${s}s") },
                         modifier = Modifier.heightIn(min = 48.dp),
-                    )
+                    ) { Text("${s}s") }
                 }
             }
         }
@@ -362,15 +360,16 @@ private fun TimerCard(state: MethodEditUiState, actions: MethodEditActions) {
 private fun PreviewCard(state: MethodEditUiState, actions: MethodEditActions) {
     val preview = state.preview
     SectionCard(title = "Preview", subtitle = "The exact order for a seat layout") {
-        FlowRow(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+        FlowRow(
+            horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+            verticalArrangement = Arrangement.spacedBy(Spacing.sm),
+        ) {
             PreviewLayout.OPTIONS.forEach { layout ->
-                FilterChip(
-                    colors = goaFilterChipColors(),
+                GoaFilterChip(
                     selected = state.layout == layout,
                     onClick = { actions.setLayout(layout) },
-                    label = { Text(layout.label) },
                     modifier = Modifier.heightIn(min = 48.dp),
-                )
+                ) { Text(layout.label) }
             }
         }
         Spacer(Modifier.width(Spacing.sm))

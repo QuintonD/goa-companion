@@ -130,9 +130,10 @@ internal fun PlayingAsContent(
                 )
                 Text(
                     if (challenge) {
-                        "Challenge scores go on the leaderboard under a player's name."
+                        "A Challenge is ranked under a player's name on the group's trivia leaderboard."
                     } else {
-                        "Rounds played as a player go on the leaderboard. Guest rounds aren't recorded."
+                        "Rounds played as a player count on the group's trivia leaderboard. " +
+                            "Guest practice is unranked."
                     },
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -155,7 +156,7 @@ internal fun PlayingAsContent(
                 PickRow(
                     selected = state.isGuest,
                     title = "Guest",
-                    subtitle = "Not on the leaderboard",
+                    subtitle = "Practice only · unranked",
                     isMe = false,
                     onClick = { onPick(GUEST_ID) },
                     leading = { GuestAvatar() },
@@ -279,10 +280,10 @@ internal fun YouTag(modifier: Modifier = Modifier) {
     )
 }
 
-/** Avatar for whoever is playing: their crest, or the Guest silhouette. */
+/** Avatar for whoever is playing: their crest (with the hero badge, [showFace]), or the Guest silhouette. */
 @Composable
-internal fun PlayingAvatar(player: Player?, size: Dp = 40.dp) {
-    if (player == null) GuestAvatar(size) else PlayerAvatar(player, size = size)
+internal fun PlayingAvatar(player: Player?, size: Dp = 40.dp, showFace: Boolean = false) {
+    if (player == null) GuestAvatar(size) else PlayerAvatar(player, size = size, showFace = showFace)
 }
 
 internal const val GUEST_ID = TriviaProgressRepository.GUEST

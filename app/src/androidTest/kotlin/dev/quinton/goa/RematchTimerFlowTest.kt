@@ -46,10 +46,10 @@ class RematchTimerFlowTest {
         // ---- Game 1, logged by hand: Red wins.
         rule.tap(hasText("Matches") and hasClickAction())
         rule.tapText("Log a match")
-        rule.waitForText("Duration (minutes, optional)")
+        rule.waitForDescription("Add seat to Red")
         (red + blue).forEach { (hero, pilot) -> rule.fillNextSeat(hero, pilot) }
         rule.tapDescription("Red won", substring = true)
-        rule.tap(hasText("Save") and hasClickAction())
+        rule.tap(hasText("Save", substring = true) and hasClickAction())
         rule.waitForText("Result saved")
         rule.ratingChanges(4)
 
@@ -67,7 +67,8 @@ class RematchTimerFlowTest {
 
         // ---- Rules from the running timer: the Levels & defeats sheet knows this match's heroes
         // (it lists only their cards), so the timer is linked to the rematch.
-        rule.tapDescription("Levels and defeats")
+        rule.tapDescription("More options")
+        rule.tap(hasText("Levels & defeats") and hasClickAction())
         rule.waitForText("Levels & defeats")
         rule.reveal(hasText("Cards in this match that change this", ignoreCase = true))
         pressBack()
@@ -101,7 +102,8 @@ class RematchTimerFlowTest {
         rule.waitGone(hasClickLabel("Open the timer"))
 
         // ---- End match → "Who won?" with the rematch's teams; Blue takes game 2.
-        rule.tapDescription("End match")
+        rule.tapDescription("More options")
+        rule.tap(hasText("End match…") and hasClickAction())
         rule.waitForText("End the match?")
         rule.tap(hasAnyAncestor(isDialog()) and hasText("End match") and hasClickAction())
         rule.tapText("Log result")
@@ -110,7 +112,7 @@ class RematchTimerFlowTest {
         assertEquals(blue.map { it.second }.toSet(), rule.winnerPilots("Blue"))
         (red + blue).forEach { (hero, _) -> rule.reveal(hasContentDescription("Hero: $hero. Change hero")) }
         rule.tapDescription("Blue won", substring = true)
-        rule.tap(hasText("Save") and hasClickAction())
+        rule.tap(hasText("Save", substring = true) and hasClickAction())
         rule.waitForText("Result saved")
         val changes = rule.ratingChanges(4)
         blue.forEach { (_, pilot) -> assertTrue(changes.getValue(pilot).raw, changes.getValue(pilot).delta > 0) }

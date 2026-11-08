@@ -9,15 +9,18 @@ import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -26,6 +29,7 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.GridItemSpan
@@ -34,6 +38,7 @@ import androidx.compose.foundation.lazy.grid.LazyGridScope
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -43,13 +48,13 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Undo
 import androidx.compose.material.icons.filled.Block
+import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.outlined.Casino
 import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.outlined.Delete
-import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material.icons.outlined.Lock
 import androidx.compose.material.icons.outlined.MoreVert
-import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material.icons.outlined.SwapHoriz
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -59,7 +64,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.SnackbarDuration
@@ -97,19 +101,24 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import dev.quinton.goa.core.designsystem.component.ComplexityStars
+import dev.quinton.goa.core.designsystem.component.EdgeFadeGutter
 import dev.quinton.goa.core.designsystem.component.EmptyState
 import dev.quinton.goa.core.designsystem.component.GoaButton
 import dev.quinton.goa.core.designsystem.component.GoaDialog
 import dev.quinton.goa.core.designsystem.component.GoaFilterChip
+import dev.quinton.goa.core.designsystem.component.GoaOutlinedButton
 import dev.quinton.goa.core.designsystem.component.GoaPlate
 import dev.quinton.goa.core.designsystem.component.GoaPlateTheme
 import dev.quinton.goa.core.designsystem.component.GoaScreen
 import dev.quinton.goa.core.designsystem.component.HeroPortrait
 import dev.quinton.goa.core.designsystem.component.LARGE_FONT_SCALE
-import dev.quinton.goa.core.designsystem.component.PlateGround
+import dev.quinton.goa.core.designsystem.component.PlateShape
+import dev.quinton.goa.core.designsystem.component.PlateStyle
+import dev.quinton.goa.core.designsystem.component.SearchFieldIcon
 import dev.quinton.goa.core.designsystem.component.TeamMark
 import dev.quinton.goa.core.designsystem.component.TitlePlate
+import dev.quinton.goa.core.designsystem.component.bleedHorizontally
+import dev.quinton.goa.core.designsystem.component.horizontalEdgeFade
 import dev.quinton.goa.core.designsystem.component.teamColor
 import dev.quinton.goa.core.designsystem.theme.GoaTextStyles
 import dev.quinton.goa.core.designsystem.theme.GoaTheme
@@ -117,24 +126,26 @@ import dev.quinton.goa.core.designsystem.theme.Spacing
 import dev.quinton.goa.core.domain.draft.DraftEngine
 import dev.quinton.goa.core.domain.draft.DraftSession
 import dev.quinton.goa.core.model.catalog.Role
-import dev.quinton.goa.core.model.draft.DraftAction
 import dev.quinton.goa.core.model.match.Team
 import dev.quinton.goa.feature.draft.ui.ConcealedTile
 import dev.quinton.goa.feature.draft.ui.HeroInfo
 import dev.quinton.goa.feature.draft.ui.HeroPeekSheet
 import dev.quinton.goa.feature.draft.ui.HeroTile
+import dev.quinton.goa.feature.draft.ui.PeekCommit
 import dev.quinton.goa.feature.draft.ui.RoleChips
 import dev.quinton.goa.feature.draft.ui.SequenceStrip
+import dev.quinton.goa.feature.draft.ui.StepClock
 import dev.quinton.goa.feature.draft.ui.StepToken
-import dev.quinton.goa.feature.draft.ui.TeamText
 import dev.quinton.goa.feature.draft.ui.TileState
 import dev.quinton.goa.feature.draft.ui.actionName
 import dev.quinton.goa.feature.draft.ui.crossedOut
 import dev.quinton.goa.feature.draft.ui.info
 import dev.quinton.goa.feature.draft.ui.label
 import dev.quinton.goa.feature.draft.ui.plateEdge
+import dev.quinton.goa.feature.draft.ui.plural
 import dev.quinton.goa.feature.draft.ui.rememberReducedMotion
 import dev.quinton.goa.feature.draft.ui.teamGlyph
+import dev.quinton.goa.feature.draft.ui.teamLabel
 import dev.quinton.goa.feature.draft.ui.teamName
 import dev.quinton.goa.feature.draft.ui.withoutTeamGlyph
 
@@ -147,6 +158,12 @@ interface BoardActions {
     fun confirm() {}
 
     fun cancelConfirm() {}
+
+    /** The peek's Pick or Ban button: the hero for the step on the clock, at once (the sheet was the look). */
+    fun choose(heroId: String) {
+        tapHero(heroId)
+        confirm()
+    }
 
     fun swapOut(heroId: String) {}
 
@@ -318,13 +335,25 @@ fun DraftBoardScreen(state: BoardUiState, actions: BoardActions) {
             SnackbarHost(snackbar, Modifier.align(Alignment.BottomCenter))
         }
     }
-    val confirming = state.local.confirm
-    if (board != null && !board.isComplete && confirming != null) {
-        ConfirmDialog(state, board, confirming, actions, onPeek = { peek = it })
-    }
     peek?.let { id ->
         HeroPeekSheet(
             hero = state.heroes.info(id),
+            commit = board?.let {
+                peekCommit(
+                    state,
+                    it,
+                    id,
+                    onCommit = {
+                        peek = null
+                        actions.choose(id)
+                    },
+                    onSwapOut = {
+                        peek = null
+                        actions.swapOut(id)
+                    },
+                )
+            },
+            note = if (board != null) DraftBoardText.notDealt(state, id).takeIf { notDealtTile(board, id) } else null,
             onDismiss = { peek = null },
             onOpenHero = { heroId ->
                 peek = null
@@ -352,6 +381,46 @@ fun DraftBoardScreen(state: BoardUiState, actions: BoardActions) {
             dismissButton = { TextButton(onClick = { confirmDiscard = false }) { Text("Keep drafting") } },
         )
     }
+}
+
+/**
+ * From the peek, the step's explicit commitment for a hero that can be chosen now: a short "Pick Arien" with
+ * whom it is for above it ("◆ Red · for Ada · Pick 1 of 2"). The button commits: the sheet was the look.
+ * Nothing while a hidden step waits for its team.
+ */
+private fun peekCommit(
+    state: BoardUiState,
+    session: DraftSession,
+    heroId: String,
+    onCommit: () -> Unit,
+    onSwapOut: () -> Unit,
+): PeekCommit? {
+    if (session.isComplete || state.privacyGate) return null
+    val step = session.currentStep ?: return null
+    val free = PoolView.of(session).open.any { it.heroId == heroId && it.state == TileState.Available }
+    if (!free) return null
+    val hero = state.heroes.info(heroId)
+    val verb = actionName(step.action)
+    // The banner's own words: "◆ Red · Ada: pick 1 of 2".
+    val recipient = listOfNotNull(
+        teamLabel(step.team),
+        DraftBoardText.turnLine(session, state::playerName),
+    ).joinToString(" · ")
+    return PeekCommit(
+        team = step.team,
+        label = "$verb ${hero.name}",
+        recipient = recipient,
+        onCommit = onCommit,
+        onSwapOut = onSwapOut.takeIf { session.poolEditable() },
+        // The step's clock keeps running while the hero is read: its badge comes along into the sheet.
+        remainingSeconds = state.local.remainingSeconds,
+    )
+}
+
+/** A dimmed tile in a dealt-hands draft: the peek says why it can't be chosen now. */
+private fun notDealtTile(session: DraftSession, heroId: String): Boolean {
+    val pool = PoolView.of(session)
+    return (pool.open + pool.otherHands).any { it.heroId == heroId && it.state == TileState.Inactive }
 }
 
 /**
@@ -383,6 +452,7 @@ private fun HeroBoard(state: BoardUiState, session: DraftSession, actions: Board
     var query by rememberSaveable { mutableStateOf("") }
     var roleKeys by rememberSaveable { mutableStateOf("") }
     var hideTaken by rememberSaveable { mutableStateOf(false) }
+    var teamsOpen by rememberSaveable { mutableStateOf(false) }
     val roles = remember(roleKeys) {
         roleKeys.split(',').mapNotNull { key -> Role.entries.firstOrNull { it.name == key } }.toSet()
     }
@@ -396,10 +466,17 @@ private fun HeroBoard(state: BoardUiState, session: DraftSession, actions: Board
         },
         onHideTaken = { hideTaken = it },
     )
-    val concealed = remember(session) { session.concealedIds() }
-    val chrome: @Composable () -> Unit = {
-        SequenceStrip(tokens, current = session.currentStepIndex, wrap = false)
+    val poolRoles = remember(session, state.heroes) {
+        Role.entries.filter { role -> session.pool.any { role in state.heroes.info(it).roles } }
     }
+    val searchable = session.pool.size > PoolView.SEARCH_FROM
+    val concealed = remember(session) { session.concealedIds() }
+    // The steps by mark only ("4 · ◆ picks 2"): the banner above names the team, and short chips keep the step
+    // before, the step in play and the next in view.
+    val chrome: @Composable (Dp) -> Unit = { gutter ->
+        SequenceStrip(tokens, current = session.currentStepIndex, wrap = false, named = false, gutter = gutter)
+    }
+    val full: LazyGridItemSpanScope.() -> GridItemSpan = { GridItemSpan(maxLineSpan) }
     BoxWithConstraints(Modifier.fillMaxSize()) {
         // Landscape on a phone: the board's chrome moves to a side column so the pool keeps
         // the full height instead of a sliver under the banner.
@@ -415,7 +492,7 @@ private fun HeroBoard(state: BoardUiState, session: DraftSession, actions: Board
                     verticalArrangement = Arrangement.spacedBy(Spacing.sm),
                 ) {
                     StepBanner(session, state.local.remainingSeconds, state::playerName, compact = true)
-                    chrome()
+                    chrome(Spacing.sm)
                     if (session.poolEditable()) PoolEditBanner(session, actions)
                     TeamsPanel(state, session, concealed, stacked = true)
                 }
@@ -424,29 +501,56 @@ private fun HeroBoard(state: BoardUiState, session: DraftSession, actions: Board
                     session,
                     pool,
                     filters,
-                    actions,
+                    poolRoles,
                     onPeek,
                     Modifier.weight(1f - SIDE_WEIGHT),
                     topGap = Spacing.screen - Spacing.xs,
+                    filtersInGrid = true,
                 ) {}
             }
         } else {
+            // Large text or a short phone: only the banner stays put; the rest scrolls with the pool so the
+            // pool still shows.
+            val large = LocalDensity.current.fontScale > LARGE_FONT_SCALE || maxHeight < STICKY_MIN_HEIGHT
+            val detailsCap = maxHeight * DETAILS_MAX_FRACTION
+            val toggleTeams = { teamsOpen = !teamsOpen }
             Column(Modifier.fillMaxSize()) {
-                // Sticky: whose turn it is stays on screen however far the pool is scrolled.
-                StepBanner(
-                    session,
-                    state.local.remainingSeconds,
-                    state::playerName,
-                    // Large text: a smaller headline so the sticky banner leaves room for the pool.
-                    compact = LocalDensity.current.fontScale > LARGE_FONT_SCALE,
-                    modifier = Modifier.padding(horizontal = Spacing.screen, vertical = Spacing.sm),
-                )
-                PoolGrid(state, session, pool, filters, actions, onPeek, Modifier.weight(1f), topGap = Spacing.xs) {
-                    item(span = { GridItemSpan(maxLineSpan) }) { chrome() }
-                    if (session.poolEditable()) {
-                        item(span = { GridItemSpan(maxLineSpan) }) { PoolEditBanner(session, actions) }
+                // Sticky, top to bottom: whose turn it is, the run of steps, both teams at a glance, the pool's
+                // search and filters. The pool comes straight after; the full rosters open on demand.
+                Column(
+                    Modifier.padding(start = Spacing.screen, end = Spacing.screen, top = Spacing.sm),
+                    verticalArrangement = Arrangement.spacedBy(Spacing.xs),
+                ) {
+                    StepBanner(
+                        session,
+                        state.local.remainingSeconds,
+                        state::playerName,
+                        compact = LocalDensity.current.fontScale > LARGE_FONT_SCALE,
+                    )
+                    if (!large) {
+                        chrome(Spacing.screen)
+                        TeamsBar(state, session, concealed, teamsOpen, toggleTeams, scrollCap = detailsCap)
+                        if (searchable) PoolSearch(filters, poolRoles)
                     }
-                    item(span = { GridItemSpan(maxLineSpan) }) { TeamsPanel(state, session, concealed) }
+                }
+                PoolGrid(
+                    state,
+                    session,
+                    pool,
+                    filters,
+                    poolRoles,
+                    onPeek,
+                    Modifier.weight(1f),
+                    topGap = Spacing.xs,
+                    filtersInGrid = large || !searchable,
+                ) {
+                    if (large) {
+                        item(span = full) { chrome(Spacing.screen) }
+                        item(span = full) { TeamsBar(state, session, concealed, teamsOpen, toggleTeams, null) }
+                    }
+                    if (session.poolEditable()) {
+                        item(span = full) { PoolEditBanner(session, actions) }
+                    }
                 }
             }
         }
@@ -459,13 +563,14 @@ private fun PoolGrid(
     session: DraftSession,
     pool: PoolView,
     filters: PoolFilters,
-    actions: BoardActions,
+    roles: List<Role>,
     onPeek: (String) -> Unit,
     modifier: Modifier,
     topGap: Dp,
+    filtersInGrid: Boolean,
     leading: LazyGridScope.() -> Unit,
 ) {
-    // Dense tiles (about five across on a phone) so a full roster fits in about two screens;
+    // Four across on a phone (three at 360 dp), names large enough to read at arm's length;
     // they grow with the font scale so names stay legible.
     val fontScale = LocalDensity.current.fontScale.coerceIn(1f, 1.7f)
     val open = pool.open.filter { filters.matches(state.heroes.info(it.heroId)) }
@@ -491,19 +596,19 @@ private fun PoolGrid(
             PoolHeader(
                 left = pool.left,
                 total = session.pool.size,
-                filters = filters,
+                filters = filters.takeIf { filtersInGrid },
                 searchable = session.pool.size > PoolView.SEARCH_FROM,
-                roles = Role.entries.filter { role -> session.pool.any { role in state.heroes.info(it).roles } },
+                roles = roles,
             )
         }
         val owner = pool.handOwner
         if (owner != null) {
             item(span = full) { SubHeading("${state.playerName(owner)}'s heroes") }
         }
-        poolTiles(state, open, actions, onPeek)
+        poolTiles(state, open, onPeek)
         if (others.isNotEmpty()) {
             item(span = full) { SubHeading("Dealt to other players") }
-            poolTiles(state, others, actions, onPeek)
+            poolTiles(state, others, onPeek)
         }
         if (open.isEmpty() && others.isEmpty()) {
             item(span = full) {
@@ -524,85 +629,121 @@ private fun PoolGrid(
 private fun LazyGridScope.poolTiles(
     state: BoardUiState,
     tiles: List<PoolTile>,
-    actions: BoardActions,
     onPeek: (String) -> Unit,
 ) {
     items(tiles, key = { it.heroId }) { tile ->
+        val hero = state.heroes.info(tile.heroId)
+        // One tap, one meaning: the tile opens the hero's sheet, and the step's Pick or Ban is the button there.
+        // No inspect button on the art, so looking can never start a pick.
         HeroTile(
-            hero = state.heroes.info(tile.heroId),
+            hero = hero,
             state = tile.state,
             compact = true,
-            onClick = when (tile.state) {
-                TileState.Available -> ({ actions.tapHero(tile.heroId) })
-                TileState.Inactive -> ({ actions.tapUnavailable(tile.heroId) })
-                else -> null
+            onClick = { onPeek(tile.heroId) },
+            clickLabel = when (tile.state) {
+                TileState.Available -> "Choose ${hero.name}"
+                TileState.Inactive -> "Why ${hero.name} can't be chosen"
+                else -> "Show ${hero.name}"
             },
-            onLongClick = { onPeek(tile.heroId) },
         )
     }
 }
 
+/**
+ * The pool's heading, "Pool · 9 of 12 left". With [filters] (landscape, large text, a pool too small to search)
+ * the filters sit with it and scroll; otherwise they are pinned above the pool ([PoolSearch]).
+ */
 @Composable
-private fun PoolHeader(left: Int, total: Int, filters: PoolFilters, searchable: Boolean, roles: List<Role>) {
-    val keyboard = LocalSoftwareKeyboardController.current
-    Column(Modifier.padding(top = Spacing.sm), verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
+private fun PoolHeader(left: Int, total: Int, filters: PoolFilters?, searchable: Boolean, roles: List<Role>) {
+    Column(Modifier.padding(top = Spacing.xs), verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
+        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.heightIn(min = 40.dp)) {
             Text(
                 "Pool · $left of $total left",
                 style = GoaTextStyles.sectionHead,
                 color = GoaTheme.colors.heading,
                 modifier = Modifier.weight(1f).semantics { heading() },
             )
+            if (filters != null) HideTakenChip(filters)
+        }
+        if (filters != null && searchable) {
+            SearchField(filters, Modifier.fillMaxWidth())
+            RoleFilters(filters, roles)
+        }
+    }
+}
+
+/** Pinned above the pool: search with Hide taken beside it, then the role filters. */
+@Composable
+private fun PoolSearch(filters: PoolFilters, roles: List<Role>) {
+    Column(verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            SearchField(filters, Modifier.weight(1f))
+            Spacer(Modifier.width(Spacing.sm))
+            HideTakenChip(filters)
+        }
+        RoleFilters(filters, roles)
+    }
+}
+
+@Composable
+private fun HideTakenChip(filters: PoolFilters) {
+    GoaFilterChip(
+        selected = filters.hideTaken,
+        onClick = { filters.onHideTaken(!filters.hideTaken) },
+        label = "Hide taken",
+    )
+}
+
+@Composable
+private fun SearchField(filters: PoolFilters, modifier: Modifier) {
+    val keyboard = LocalSoftwareKeyboardController.current
+    // A dark steel slot in both themes, as the Heroes and Rules searches are.
+    GoaPlateTheme {
+        OutlinedTextField(
+            value = filters.query,
+            onValueChange = filters.onQuery,
+            placeholder = { Text("Search heroes", maxLines = 1) },
+            leadingIcon = { SearchFieldIcon() },
+            trailingIcon = if (filters.query.isNotEmpty()) {
+                {
+                    IconButton(onClick = { filters.onQuery("") }) {
+                        Icon(Icons.Outlined.Close, contentDescription = "Clear search")
+                    }
+                }
+            } else {
+                null
+            },
+            singleLine = true,
+            shape = CircleShape,
+            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
+            keyboardActions = KeyboardActions(onSearch = { keyboard?.hide() }),
+            colors = OutlinedTextFieldDefaults.colors(
+                focusedContainerColor = GoaTheme.colors.plate,
+                unfocusedContainerColor = GoaTheme.colors.plate,
+                unfocusedBorderColor = SEARCH_EDGE,
+            ),
+            modifier = modifier,
+        )
+    }
+}
+
+@Composable
+private fun RoleFilters(filters: PoolFilters, roles: List<Role>) {
+    val roleRow = rememberLazyListState()
+    // Ten roles scroll: the rail runs to the screen's edges, its first chip on the gutter, a chevron at the edge.
+    LazyRow(
+        Modifier.bleedHorizontally(Spacing.screen).horizontalEdgeFade(roleRow),
+        state = roleRow,
+        contentPadding = EdgeFadeGutter,
+        horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+    ) {
+        items(roles, key = { it.name }) { role ->
             GoaFilterChip(
-                selected = filters.hideTaken,
-                onClick = { filters.onHideTaken(!filters.hideTaken) },
-                label = "Hide taken",
+                selected = role in filters.roles,
+                onClick = { filters.onToggleRole(role) },
+                label = role.label,
             )
         }
-        if (searchable) {
-            // A dark steel slot in both themes, as the Heroes and Rules searches are.
-            GoaPlateTheme {
-                OutlinedTextField(
-                    value = filters.query,
-                    onValueChange = filters.onQuery,
-                    placeholder = { Text("Search heroes") },
-                    leadingIcon = { Icon(Icons.Outlined.Search, contentDescription = null) },
-                    trailingIcon = if (filters.query.isNotEmpty()) {
-                        {
-                            IconButton(onClick = { filters.onQuery("") }) {
-                                Icon(Icons.Outlined.Close, contentDescription = "Clear search")
-                            }
-                        }
-                    } else {
-                        null
-                    },
-                    singleLine = true,
-                    shape = CircleShape,
-                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
-                    keyboardActions = KeyboardActions(onSearch = { keyboard?.hide() }),
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedContainerColor = PlateGround,
-                        unfocusedContainerColor = PlateGround,
-                        unfocusedBorderColor = SEARCH_EDGE,
-                    ),
-                    modifier = Modifier.fillMaxWidth(),
-                )
-            }
-            LazyRow(horizontalArrangement = Arrangement.spacedBy(Spacing.xs)) {
-                items(roles, key = { it.name }) { role ->
-                    GoaFilterChip(
-                        selected = role in filters.roles,
-                        onClick = { filters.onToggleRole(role) },
-                        label = role.label,
-                    )
-                }
-            }
-        }
-        Text(
-            "Long-press a hero for roles, stats and starting cards.",
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
     }
 }
 
@@ -645,7 +786,7 @@ private fun TakenChip(hero: HeroInfo, state: TileState, onClick: () -> Unit) {
         Surface(
             onClick = onClick,
             shape = RoundedCornerShape(6.dp),
-            color = PlateGround,
+            color = GoaTheme.colors.plate,
             border = BorderStroke(1.dp, color.copy(alpha = if (banned) 0.5f else 0.9f)),
             modifier = Modifier
                 .heightIn(min = 48.dp)
@@ -724,47 +865,20 @@ private fun StepBanner(
                         modifier = Modifier.fillMaxWidth(),
                     )
                 }
-            }
-            Spacer(Modifier.height(Spacing.xs))
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(
-                    DraftBoardText.bannerDetail(session, playerName).orEmpty(),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurface,
-                    modifier = Modifier.weight(1f),
-                )
+                // The step's clock beside its title: one row for "who, what, how long".
                 if (remaining != null) {
                     Spacer(Modifier.width(Spacing.sm))
                     StepClock(remaining)
                 }
             }
-        }
-    }
-}
-
-@Composable
-private fun StepClock(remaining: Int) {
-    val over = remaining < 0
-    val text = DraftBoardText.stepClock(remaining)
-    Box(
-        Modifier
-            .clip(RoundedCornerShape(7.dp))
-            .background(CLOCK_FACE)
-            .border(
-                1.dp,
-                if (over) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.secondary,
-                RoundedCornerShape(7.dp),
+            Spacer(Modifier.height(Spacing.xs))
+            // Whose turn inside the step, on its own line ("Ada: pick 1 of 2"); the step's number is on its chip.
+            Text(
+                DraftBoardText.turnLine(session, playerName).orEmpty(),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurface,
             )
-            .padding(horizontal = Spacing.md, vertical = Spacing.sm)
-            .semantics {
-                contentDescription = DraftBoardText.spokenStepClock(remaining)
-            },
-    ) {
-        Text(
-            text,
-            style = GoaTextStyles.timerDigitsSmall.copy(fontSize = 22.sp, lineHeight = 28.sp),
-            color = if (over) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.secondary,
-        )
+        }
     }
 }
 
@@ -775,12 +889,12 @@ private fun PoolEditBanner(session: DraftSession, actions: BoardActions) {
             Column(Modifier.weight(1f)) {
                 Text("Pool of ${session.pool.size} dealt", style = MaterialTheme.typography.titleSmall)
                 Text(
-                    "Before the first step you can re-roll it, or tap a hero to swap it out.",
+                    "Before the first step you can re-roll it, or swap a hero out from its sheet.",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
-            OutlinedButton(onClick = actions::reroll, modifier = Modifier.heightIn(min = 48.dp)) {
+            GoaOutlinedButton(onClick = actions::reroll, modifier = Modifier.heightIn(min = 48.dp)) {
                 Icon(Icons.Outlined.Casino, contentDescription = null, modifier = Modifier.size(18.dp))
                 Spacer(Modifier.width(Spacing.xs))
                 Text("Re-roll")
@@ -789,9 +903,146 @@ private fun PoolEditBanner(session: DraftSession, actions: BoardActions) {
     }
 }
 
+/**
+ * Both teams on the sticky part of the board. Closed: one line per team at a glance (seats as small portraits,
+ * bans counted), so the pool sits right under it. Open: the full rosters with roles and bans, capped at
+ * [scrollCap] (scrolling inside) so the pool never disappears; null where the bar scrolls with the pool.
+ */
+@Composable
+private fun TeamsBar(
+    state: BoardUiState,
+    session: DraftSession,
+    concealed: Set<String>,
+    open: Boolean,
+    onToggle: () -> Unit,
+    scrollCap: Dp?,
+) {
+    if (!open) {
+        TeamsSummary(state, session, concealed, onToggle)
+        return
+    }
+    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+        val capped = if (scrollCap != null) {
+            Modifier.heightIn(max = scrollCap).verticalScroll(rememberScrollState())
+        } else {
+            Modifier
+        }
+        Box(capped) { TeamsPanel(state, session, concealed) }
+        TextButton(onClick = onToggle, modifier = Modifier.heightIn(min = 48.dp)) {
+            Icon(Icons.Filled.KeyboardArrowUp, contentDescription = null)
+            Spacer(Modifier.width(Spacing.xs))
+            Text("Hide teams")
+        }
+    }
+}
+
+/** The closed team bar: per team its mark and name, a portrait (or an empty ring) per seat, its bans counted. */
+@Composable
+private fun TeamsSummary(state: BoardUiState, session: DraftSession, concealed: Set<String>, onExpand: () -> Unit) {
+    val teams = listOf(session.teamA, session.teamB)
+    val assignments = DraftEngine.assignments(session)
+    val spoken = teams.joinToString(". ") { team ->
+        val seats = assignments.filter { it.seat.team == team }
+        val heroes = seats.mapNotNull { it.heroId }
+            .map { if (it in concealed) "a hidden pick" else state.heroes.info(it).name }
+        val openSeats = seats.count { it.heroId == null }
+        val bans = session.bans.count { it.team == team }
+        listOfNotNull(
+            teamName(team),
+            heroes.joinToString(", ").ifEmpty { null },
+            plural(openSeats, "open seat").takeIf { openSeats > 0 },
+            plural(bans, "ban").takeIf { bans > 0 },
+        ).joinToString(", ")
+    }
+    GoaPlate(
+        Modifier
+            .fillMaxWidth()
+            .clip(PlateShape)
+            .clickable(onClickLabel = "Show teams", role = androidx.compose.ui.semantics.Role.Button) { onExpand() }
+            .semantics(mergeDescendants = true) { contentDescription = spoken },
+        brackets = false,
+        style = PlateStyle.Secondary,
+        contentPadding = PaddingValues(start = Spacing.md, end = Spacing.xs, top = Spacing.sm, bottom = Spacing.sm),
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            teams.forEachIndexed { i, team ->
+                if (i > 0) {
+                    Box(
+                        Modifier
+                            .padding(horizontal = Spacing.sm)
+                            .width(1.dp)
+                            .height(40.dp)
+                            .background(GoaTheme.colors.engravedBorder),
+                    )
+                }
+                TeamGlance(
+                    state,
+                    team,
+                    assignments.filter { it.seat.team == team }.map { it.heroId },
+                    bans = session.bans.count { it.team == team },
+                    concealed = concealed,
+                    modifier = Modifier.weight(1f),
+                )
+            }
+            Icon(
+                Icons.Filled.KeyboardArrowDown,
+                contentDescription = null,
+                modifier = Modifier.padding(start = Spacing.xs).size(24.dp),
+            )
+        }
+    }
+}
+
+@Composable
+private fun TeamGlance(
+    state: BoardUiState,
+    team: Team,
+    seats: List<String?>,
+    bans: Int,
+    concealed: Set<String>,
+    modifier: Modifier,
+) {
+    val color = teamColor(team)
+    Column(modifier) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            TeamMark(team, markSize = 14.dp)
+            Spacer(Modifier.width(Spacing.xs))
+            Text(
+                teamName(team),
+                style = MaterialTheme.typography.labelLarge,
+                color = color,
+                maxLines = 1,
+                modifier = Modifier.weight(1f),
+            )
+            if (bans > 0) {
+                Icon(Icons.Filled.Block, contentDescription = null, tint = color, modifier = Modifier.size(12.dp))
+                Spacer(Modifier.width(2.dp))
+                Text(
+                    plural(bans, "ban"),
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                )
+            }
+        }
+        Spacer(Modifier.height(Spacing.xs))
+        Row(horizontalArrangement = Arrangement.spacedBy(3.dp)) {
+            seats.forEach { heroId ->
+                val seat = Modifier.weight(1f, fill = false).widthIn(max = GLANCE_ART).aspectRatio(1f)
+                when {
+                    heroId == null -> Box(seat.border(1.dp, color.copy(alpha = 0.5f), MaterialTheme.shapes.small))
+                    heroId in concealed -> ConcealedTile(team, seat)
+                    else -> HeroPortrait(heroId, state.heroes.info(heroId).portrait, null, seat)
+                }
+            }
+        }
+    }
+}
+
 @Composable
 private fun TeamsPanel(state: BoardUiState, session: DraftSession, concealed: Set<String>, stacked: Boolean = false) {
-    // Side by side normally; stacked at large font scales and in the landscape side column.
+    // Side by side normally (the two plates the same height); stacked at large font scales and in the landscape
+    // side column.
     if (stacked || LocalDensity.current.fontScale > LARGE_FONT) {
         Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
             for (team in listOf(session.teamA, session.teamB)) {
@@ -799,9 +1050,9 @@ private fun TeamsPanel(state: BoardUiState, session: DraftSession, concealed: Se
             }
         }
     } else {
-        Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+        Row(Modifier.height(IntrinsicSize.Min), horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
             for (team in listOf(session.teamA, session.teamB)) {
-                TeamColumn(state, session, team, concealed, Modifier.weight(1f))
+                TeamColumn(state, session, team, concealed, Modifier.weight(1f).fillMaxHeight())
             }
         }
     }
@@ -835,19 +1086,12 @@ private fun TeamColumn(
             Row(verticalAlignment = Alignment.CenterVertically) {
                 TeamMark(team, markSize = 14.dp)
                 Spacer(Modifier.width(Spacing.xs))
+                // The team by its colour and mark only: "Team A" is the method editor's word, not the table's.
                 Text(
                     teamName(team),
                     style = GoaTextStyles.sectionHead,
                     color = color,
                     modifier = Modifier.weight(1f),
-                )
-                Text(
-                    if (team == session.teamA) "A" else "B",
-                    style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.semantics {
-                        contentDescription = if (team == session.teamA) "Team A" else "Team B"
-                    },
                 )
             }
             picks.forEach { (seat, heroId) ->
@@ -890,7 +1134,15 @@ private fun TeamColumn(
                     }
                 }
             }
-            if (covered.isNotEmpty()) RoleChips(Role.entries.filter { it in covered }, highlight = color)
+            if (covered.isNotEmpty()) {
+                // Labelled: the tags are the roles this team's revealed picks cover, not a filter.
+                Text(
+                    "Roles covered",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                RoleChips(Role.entries.filter { it in covered }, highlight = color)
+            }
             if (bans.isNotEmpty()) {
                 FlowRow(
                     horizontalArrangement = Arrangement.spacedBy(Spacing.xs),
@@ -987,82 +1239,6 @@ private fun HiddenChoice(label: String, secret: String, canPeek: Boolean, small:
 }
 
 @Composable
-private fun ConfirmDialog(
-    state: BoardUiState,
-    session: DraftSession,
-    heroId: String,
-    actions: BoardActions,
-    onPeek: (String) -> Unit,
-) {
-    val step = session.currentStep ?: return
-    val hero = state.heroes.info(heroId)
-    val color = teamColor(step.team)
-    val ban = step.action == DraftAction.BAN
-    val pilot = step.seatId?.let { session.seat(it) }?.pilotId?.let { state.playerName(it) }
-    GoaDialog(
-        onDismissRequest = actions::cancelConfirm,
-        icon = {
-            HeroPortrait(hero.id, hero.portrait, null, Modifier.size(width = 96.dp, height = 120.dp))
-        },
-        title = {
-            Text(
-                if (ban) "Ban ${hero.name}?" else "Pick ${hero.name}?",
-                textAlign = TextAlign.Center,
-                modifier = Modifier.fillMaxWidth(),
-            )
-        },
-        text = {
-            Column(
-                Modifier.fillMaxWidth(),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(Spacing.xs),
-            ) {
-                if (hero.title.isNotEmpty()) Text(hero.title, style = MaterialTheme.typography.bodyMedium)
-                ComplexityStars(hero.complexity, showLabel = true)
-                RoleChips(hero.roles)
-                TeamText(
-                    DraftBoardText.confirmText(session, pilot).orEmpty(),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    textAlign = TextAlign.Center,
-                )
-                TextButton(onClick = { onPeek(heroId) }, modifier = Modifier.heightIn(min = 48.dp)) {
-                    Icon(Icons.Outlined.Info, contentDescription = null)
-                    Spacer(Modifier.width(Spacing.xs))
-                    Text("Stats and starting cards")
-                }
-                if (session.poolEditable()) {
-                    TextButton(onClick = { actions.swapOut(heroId) }, modifier = Modifier.heightIn(min = 48.dp)) {
-                        Icon(Icons.Outlined.SwapHoriz, contentDescription = null)
-                        Spacer(Modifier.width(Spacing.xs))
-                        Text("Swap out of the pool instead")
-                    }
-                }
-            }
-        },
-        confirmButton = {
-            Button(
-                onClick = actions::confirm,
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = color,
-                    contentColor = MaterialTheme.colorScheme.background,
-                ),
-                modifier = Modifier.heightIn(min = 48.dp),
-            ) {
-                TeamText(
-                    "${teamGlyph(step.team)} ${if (ban) "Ban" else "Pick"}",
-                    markGround = MaterialTheme.colorScheme.background,
-                    modifier = Modifier.semantics {
-                        contentDescription = "${teamName(step.team)} ${if (ban) "ban" else "pick"}"
-                    },
-                )
-            }
-        },
-        dismissButton = { TextButton(onClick = actions::cancelConfirm) { Text("Cancel") } },
-    )
-}
-
-@Composable
 private fun PrivacyGate(session: DraftSession, actions: BoardActions) {
     val step = session.currentStep ?: return
     val color = teamColor(step.team)
@@ -1113,7 +1289,6 @@ private fun PrivacyGate(session: DraftSession, actions: BoardActions) {
 }
 
 private val STEP_STYLE = GoaTextStyles.plateTitle.copy(fontSize = 19.sp, lineHeight = 24.sp)
-private val CLOCK_FACE = Color(0xFF060C12)
 private val SEARCH_EDGE = Color(0xFF5D6B70)
 
 private const val LARGE_FONT = 1.5f
@@ -1121,5 +1296,12 @@ private const val DISABLED_ALPHA = 0.3f
 
 private const val SIDE_WEIGHT = 0.42f
 private val LANDSCAPE_MAX_HEIGHT = 520.dp
-private val TILE_MIN_WIDTH = 68.dp
+private val TILE_MIN_WIDTH = 84.dp
 private val SEAT_ART = 32.dp
+private val GLANCE_ART = 26.dp
+
+/** Below this height the board pins only its step banner. */
+private val STICKY_MIN_HEIGHT = 640.dp
+
+/** The open team rosters take at most this share of the board's height; they scroll inside beyond it. */
+private const val DETAILS_MAX_FRACTION = 0.45f

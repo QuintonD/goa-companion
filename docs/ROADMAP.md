@@ -562,6 +562,16 @@ passes (including an in-place upgrade from the morning build with real data). Ev
 - [ ] A phone's speed line for the new measure (version 2), and a 3v3 game night against the new 10
 - [x] Released as 0.14.0 with the log feed (ADR-065) and the donate link (ADR-059): the signed APK (same certificate) on GitHub and Pages — 2026-11-05; the Baseline Profile was not regenerated (it needs an emulator), the release build was not opened on an emulator or a phone
 
+## M32 — v0.15: the UI/UX hill climb (ADR-066 to ADR-081)
+- [x] Harness: two blind judges (gpt-6.1-sol, Claude Opus 5.5) score ~71 screenshots on 12 aspects; packages in parallel
+  worktrees kept only when both prefer them side by side (`tools/ui-hillclimb/`, ADR-066) — 2026-11-06
+- [x] Five rounds, 28 packages gated and merged: sol 7.4 → 7.8 → 7.6 → 7.8 → 7.8 → 7.9–8.0, Opus 7.0 → 7.8 → 7.9 → 8.1 → 8.2 → 8.1
+  (rounds 0–5); history in `~/goa-hillclimb/history.md` on oldboi
+- [ ] The goal (9 on every aspect from both judges) is not reached; sol's medium issues are the limit
+- [ ] Web (`web/`) follows the new look and flows
+- [ ] The game server's `MyGame.asked`/`over` (round 1) deployed, so "Your turn" shows on online game rows
+- [ ] Device check on the S25 Ultra (two Heroes columns at 384 dp, ADR-080)
+
 ## M5 — Polish & release readiness
 - [x] Accessibility pass: ATF checks on 25 screens (no errors), contrast fixes, TalkBack labels, font scale 2.0 screenshots — 2026-10-17 (emulator/JVM)
 - [ ] Tablet sanity check

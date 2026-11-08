@@ -1,5 +1,6 @@
 package dev.quinton.goa.feature.rules
 
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
@@ -14,6 +15,8 @@ import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
 import androidx.test.core.app.ApplicationProvider
 import com.github.takahirom.roborazzi.captureRoboImage
+import dev.quinton.goa.core.designsystem.component.GoaPlateTheme
+import dev.quinton.goa.core.designsystem.component.GoaSheetHandle
 import dev.quinton.goa.core.designsystem.theme.GoaTheme
 import dev.quinton.goa.core.domain.rules.DefeatExceptions
 import dev.quinton.goa.core.domain.rules.RulesText
@@ -24,6 +27,8 @@ import dev.quinton.goa.feature.rules.ui.LevelLadderSheet
 import dev.quinton.goa.feature.rules.ui.ParchmentPage
 import dev.quinton.goa.feature.rules.ui.RulesScreen
 import dev.quinton.goa.feature.rules.ui.RulesTopicScreen
+import dev.quinton.goa.feature.rules.ui.TopicContents
+import dev.quinton.goa.feature.rules.ui.topicSections
 import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
@@ -62,12 +67,18 @@ class RulesScreenshotTest {
         matchHeroesOnly = true,
     )
 
+    /** The ladder as the app shows it: a bottom sheet, its drag handle over the content (`GoaSheet`). */
     @Composable
-    private fun Ladder(state: LadderUiState = ladder) = Surface(
+    private fun Ladder(state: LadderUiState = ladder, compare: Boolean = false) = Surface(
         color = MaterialTheme.colorScheme.surface,
         modifier = Modifier.fillMaxSize(),
     ) {
-        LevelLadderSheet(state, onSelectLevel = {}, onOpenRules = {})
+        GoaPlateTheme {
+            Column {
+                GoaSheetHandle()
+                LevelLadderSheet(state, onSelectLevel = {}, onOpenRules = {}, onClose = {}, compareInitially = compare)
+            }
+        }
     }
 
     @Composable
@@ -92,6 +103,25 @@ class RulesScreenshotTest {
     @Test fun ladderLight() = capture(ThemeMode.LIGHT) { Ladder() }
 
     @Test fun ladderDarkFontScale2() = capture(ThemeMode.DARK, 2f) { Ladder() }
+
+    /** "Compare all levels" open: the Level column pinned, the other six scrolling sideways. */
+    @Test fun ladderCompareDark() = capture(ThemeMode.DARK) { Ladder(compare = true) }
+
+    @Test fun ladderCompareDarkFontScale2() = capture(ThemeMode.DARK, 2f) { Ladder(compare = true) }
+
+    /** A topic's Sections sheet: every section by its whole name, the one being read selected. */
+    @Test fun topicContentsDark() = capture(ThemeMode.DARK) {
+        val topic = bundledReference.topics.first { it.id == "turn-sequence" }
+        val sections = topicSections(topic)
+        Surface(color = MaterialTheme.colorScheme.surface, modifier = Modifier.fillMaxSize()) {
+            GoaPlateTheme {
+                Column {
+                    GoaSheetHandle()
+                    TopicContents(sections, sections[1]) {}
+                }
+            }
+        }
+    }
 
     @Test fun ladderNoLevelLight() = capture(ThemeMode.LIGHT) { Ladder(ladder.copy(selectedLevel = null)) }
 

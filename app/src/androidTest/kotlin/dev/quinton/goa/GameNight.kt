@@ -45,36 +45,41 @@ class GameNight(private val rule: AppRule, private val checkpoint: (String) -> U
         checkpoint("Draft setup · Heroes")
         rule.tapText("Next: Tie Breaker")
         rule.tapText("Flip the coin")
-        rule.waitForText("is Team A", substring = true)
+        rule.waitForText("is the coin team", substring = true)
         checkpoint("Draft setup · Tie Breaker")
-        val teamA = if (rule.exists(hasText("◆ Red is Team A"))) Side.RED else Side.BLUE
+        val teamA = if (rule.exists(hasText("◆ Red is the coin team"))) Side.RED else Side.BLUE
         val teamB = teamA.other
         rule.tap(hasText("Start draft", substring = true) and hasClickAction())
 
-        // ---- Draft board: House draft 2v2 = Ban A · Pick A · Ban B · Pick B · Pick B · Pick A.
+        // ---- Draft board: House draft 2v2 = Ban A · Pick A · Ban B · Pick B ×2 · Pick A (five steps), said in
+        // colours. The line under the step says whose turn it is ("Ada: pick 1 of 2", "Ada's pick"), or the step's
+        // number when a single ban has nothing more to say.
         val expected = listOf(
-            Step(teamA, "Ban", "Team A · Step 1 of 6"),
-            Step(teamA, "Pick", "Team A · Step 2 of 6"),
-            Step(teamB, "Ban", "Team B · Step 3 of 6"),
-            Step(teamB, "Pick 2", "Team B · Step 4 of 6 · 1 of 2"),
-            Step(teamB, "Pick 2", "Team B · Step 5 of 6 · 2 of 2"),
-            Step(teamA, "Pick", "Team A · Step 6 of 6"),
+            Step(teamA, "bans", "Step 1 of 5"),
+            Step(teamA, "picks", "'s pick", "Step 2 of 5"),
+            Step(teamB, "bans", "Step 3 of 5"),
+            Step(teamB, "picks 2", "ick 1 of 2"),
+            Step(teamB, "picks 2", "ick 2 of 2"),
+            Step(teamA, "picks", "'s pick", "Step 5 of 5"),
         )
         val picked = mutableListOf<String>()
         val pickedBy = linkedMapOf<String, Side>()
         expected.forEachIndexed { i, step ->
-            rule.waitForText("${step.team.label} — ${step.verb}")
-            rule.waitForText(step.subtitle, substring = true)
+            rule.waitForText("${step.team.label} ${step.verb}")
+            rule.waitUntilOrDump("turn line: ${step.subtitles.joinToString(" or ")}") {
+                step.subtitles.any { rule.exists(hasText(it, substring = true)) }
+            }
             if (i == 0) checkpoint("Draft board")
             val tile = hasClickLabelStartingWith("Choose ")
             rule.reveal(tile)
             val hero = rule.onAllNodes(tile).fetchSemanticsNodes().first().descriptions.first()
             rule.tap(hasContentDescription(hero) and tile)
-            val action = if (step.verb.startsWith("Ban")) "Ban" else "Pick"
-            rule.waitForText("$action $hero?")
-            if (i == 0) checkpoint("Draft confirm dialog")
-            rule.tap(hasAnyAncestor(isDialog()) and hasClickAction() and hasText("${step.team.glyph} $action"))
-            rule.waitGone(hasText("$action $hero?"))
+            val action = if (step.verb.startsWith("bans")) "Ban" else "Pick"
+            // The tile opens the hero's sheet; its pinned button commits, under whom it is for.
+            rule.waitForText("$action $hero")
+            if (i == 0) checkpoint("Draft hero sheet")
+            rule.tap(hasClickAction() and hasText("$action $hero"))
+            rule.waitGone(hasText("$action $hero"))
             if (action == "Pick") {
                 picked += hero
                 pickedBy[hero] = step.team
@@ -83,7 +88,7 @@ class GameNight(private val rule: AppRule, private val checkpoint: (String) -> U
         assertEquals(4, picked.distinct().size)
 
         // ---- Draft complete: every pick has a pilot.
-        rule.reveal(hasText("Set up match"))
+        rule.reveal(hasText("Open match setup"))
         checkpoint("Draft complete")
         val seatPattern = Regex("""^(.+), played by (.+?)(,.*)?$""")
         picked.forEach { hero -> rule.reveal(hasContentDescription("$hero, played by", substring = true)) }
@@ -93,7 +98,7 @@ class GameNight(private val rule: AppRule, private val checkpoint: (String) -> U
             requireNotNull(seatPattern.find(desc)).groupValues[2]
         }
         assertEquals(players.toSet(), pilotOf.values.toSet())
-        rule.tapText("Set up match")
+        rule.tapText("Open match setup")
 
         // ---- Match setup: Quick, 4 heroes → 3 Wave counters, 4 Life counters per team.
         rule.waitForText("Match setup")
@@ -192,7 +197,8 @@ class GameNight(private val rule: AppRule, private val checkpoint: (String) -> U
         assertPhase("Pre-round strategy", "ROUND START")
 
         // ---- End match (confirmed) → Log result.
-        rule.tapDescription("End match")
+        rule.tapDescription("More options")
+        rule.tap(hasText("End match…") and hasClickAction())
         rule.waitForText("End the match?")
         rule.tap(hasAnyAncestor(isDialog()) and hasText("End match") and hasClickAction())
         rule.waitForText("Log result")
@@ -200,9 +206,11 @@ class GameNight(private val rule: AppRule, private val checkpoint: (String) -> U
         rule.tapText("Log result")
 
         // ---- Match editor: drafted seats and duration pre-filled.
-        rule.waitForText("Duration (minutes, optional)")
+        rule.waitForDescription("Add seat to Red")
         picked.forEach { hero -> rule.waitForDescription("Hero: $hero. Change hero") }
         players.forEach { name -> rule.waitForDescription("Pilot: $name. Change pilot") }
+        // Duration and notes are folded under "Details".
+        rule.tap(hasText("Details") and hasClickAction())
         val duration = rule.onNode(hasSetTextAction() and hasText("Duration (minutes, optional)"))
             .fetchSemanticsNode().config.getOrNull(SemanticsProperties.EditableText)?.text.orEmpty()
         assertTrue("Duration pre-filled from the timer, was '$duration'", duration.toIntOrNull() != null)
@@ -228,7 +236,7 @@ class GameNight(private val rule: AppRule, private val checkpoint: (String) -> U
         if (rule.exists(hasText("Completed") and hasClickAction())) rule.tapText("Completed")
         rule.tapDescription("Red won", substring = true)
         rule.tapText("Throne")
-        rule.tap(hasText("Save") and hasClickAction())
+        rule.tap(hasText("Save", substring = true) and hasClickAction())
 
         // ---- Result saved: every player's rating change, winners up and losers down.
         rule.waitForText("Result saved")
@@ -334,5 +342,5 @@ class GameNight(private val rule: AppRule, private val checkpoint: (String) -> U
         val other get() = if (this == RED) BLUE else RED
     }
 
-    private data class Step(val team: Side, val verb: String, val subtitle: String)
+    private class Step(val team: Side, val verb: String, vararg val subtitles: String)
 }

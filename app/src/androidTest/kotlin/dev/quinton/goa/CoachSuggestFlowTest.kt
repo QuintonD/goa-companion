@@ -25,8 +25,7 @@ class CoachSuggestFlowTest {
     fun suggestAtTheFirstCardPlayAnswersNothing() {
         rule.openTab("catalog")
         rule.waitForText("32 heroes")
-        rule.openFromPlay("Board")
-        rule.tap(hasText("Play against the computer") and hasClickAction())
+        rule.openFromPlay("Play vs computer")
 
         rule.waitForText("Tap heroes below")
         listOf("Wasp", "Brogan", "Arien", "Xargatha", "Tigerclaw", "Sabina").forEach { hero ->
@@ -36,12 +35,13 @@ class CoachSuggestFlowTest {
         rule.tap(hasText("Next") and hasClickAction() and isEnabled())
 
         rule.waitForText("Game options")
+        rule.tapText("One hero")
         rule.tap(hasText("Wasp") and hasClickAction())
         rule.reveal(hasContentDescription("Computer strength"))
             .performSemanticsAction(SemanticsActions.SetProgress) { setProgress -> setProgress(2f) }
         rule.waitForText("2 · Easy")
         rule.reveal(hasText("Forgotten Island"))
-        rule.tapText("Flip the Tie Breaker coin")
+        rule.tapText("Start game · flip the coin")
         rule.waitForText("shows", substring = true)
         rule.tapText("Start the game")
 
@@ -53,8 +53,7 @@ class CoachSuggestFlowTest {
 
         // Nothing was answered: the question is still there, and the card can be played.
         rule.waitFor(hasText("Play a card facedown"), timeout = GAME_TIMEOUT)
-        rule.tap(hasClickLabel("Look at the card"))
-        rule.waitForText("Card 1 of", substring = true)
+        rule.tap(hasClickLabel("Choose"))
         rule.tap(
             hasText("facedown", substring = true) and hasText("Play ", substring = true) and
                 hasClickAction() and isEnabled(),

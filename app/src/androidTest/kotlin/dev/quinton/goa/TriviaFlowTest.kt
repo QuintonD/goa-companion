@@ -33,9 +33,9 @@ class TriviaFlowTest {
         rule.waitForText("32 heroes")
         rule.openFromPlay("Card trivia")
 
-        // Home: overall progress and the setup.
+        // Home: overall progress, and the setup folded into Quiz options.
         rule.waitForText("numbers learned", substring = true)
-        rule.waitForText("New quiz")
+        rule.tapText("Quiz options")
 
         // Heroes → only Arien.
         rule.tapDescription("Heroes: ", substring = true)
@@ -47,7 +47,7 @@ class TriviaFlowTest {
         rule.waitForDescription("Heroes: Arien", substring = true)
         rule.reveal(hasText("in this quiz", substring = true))
 
-        rule.tapText("Start quiz")
+        rule.tapText("Start practice")
         for (question in 1..ROUND) {
             rule.waitForText("Question $question of $ROUND")
             if (rule.exists(hasText("Same initiative") and hasClickAction())) {
@@ -68,8 +68,7 @@ class TriviaFlowTest {
 
         // Back on the home (where it was scrolled to), the setup still quizzes Arien and the
         // round's card-number answers were saved: some numbers are now being learned.
-        rule.reveal(hasText("New quiz"))
-        rule.reveal(hasContentDescription("Heroes: Arien", substring = true))
+        rule.reveal(hasContentDescription("Quiz options: Arien", substring = true))
         val learningSome =
             !hasContentDescription("Learning: 0") and hasContentDescription("Learning: ", substring = true)
         rule.reveal(learningSome)

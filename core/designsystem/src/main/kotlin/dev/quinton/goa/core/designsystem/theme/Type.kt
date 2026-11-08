@@ -92,10 +92,13 @@ internal val GoaTypography = Typography(
     titleSmall = body(14, 20, FontWeight.SemiBold, 0.1),
     bodyLarge = body(16, 24, tracking = 0.5),
     bodyMedium = body(14, 20, tracking = 0.25),
-    bodySmall = body(12, 16, tracking = 0.4),
+    // Secondary text (captions, subtitles, notes) is read at a dim table at arm's length: 14 sp at the least, set
+    // apart from body text by its colour (onSurfaceVariant, ≥ 7:1), not by a smaller size. 12 sp is for tags only.
+    bodySmall = body(14, 20, tracking = 0.2),
     labelLarge = body(14, 20, FontWeight.Medium, 0.1),
+    // Tags and pills: the only 12 sp text.
     labelMedium = body(12, 16, FontWeight.Medium, 0.5),
-    labelSmall = body(11, 16, FontWeight.Medium, 0.5),
+    labelSmall = body(12, 16, FontWeight.Medium, 0.4),
 )
 
 /**
@@ -120,14 +123,32 @@ object GoaTextStyles {
     /** Inline tabular numbers inside body copy (ratings, win rates, durations). */
     val numeric: TextStyle = body(14, 20, FontWeight.Medium, 0.0).copy(fontFeatureSettings = "tnum, lnum")
 
-    /** Small engraved caps for section overlines ("ROSTER", "OWNED PRODUCTS"). */
-    val overline: TextStyle = display(12, 16, FontWeight.Bold, 1.5)
+    /**
+     * Ratings and scores wherever they show (Elo, a leaderboard's points, a rating change): Inter semibold with lining
+     * tabular figures, so the same number looks the same on every screen. Cinzel stays for headings.
+     */
+    val score: TextStyle = body(16, 22, FontWeight.SemiBold, 0.0).copy(fontFeatureSettings = "tnum, lnum")
+
+    /** [score] in a row of a leaderboard or a stat tile. */
+    val scoreMedium: TextStyle = body(22, 28, FontWeight.SemiBold, -0.2).copy(fontFeatureSettings = "tnum, lnum")
+
+    /** [score] as a page's headline number (a player's rating). */
+    val scoreLarge: TextStyle = body(30, 36, FontWeight.SemiBold, -0.5).copy(fontFeatureSettings = "tnum, lnum")
+
+    /**
+     * Small engraved caps for overlines ("SAVED BOARDS", "UP NEXT"): 13 sp at the least and tracked at most 0.08 em,
+     * so a label in caps stays legible in bronze on navy. A label that heads a section is a `SectionHeader` instead.
+     */
+    val overline: TextStyle = display(13, 18, FontWeight.Bold, 1.0)
 
     /**
      * Section heads as the rulebook sets them: Cinzel in title case, whose lower case are small
      * caps ("Place the Board"). Coloured with `GoaTheme.colors.heading` (copper).
      */
     val sectionHead: TextStyle = display(16, 22, FontWeight.Bold, 0.6)
+
+    /** A group's label inside a plate (`SubHeader`): Inter semibold, muted, no rule. */
+    val subHead: TextStyle = body(13, 18, FontWeight.SemiBold, 0.2)
 
     /** Top-bar titles on the steel banner (Cinzel, engraved caps). */
     val bannerTitle: TextStyle = display(21, 28, FontWeight.Bold, 0.8)

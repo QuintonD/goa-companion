@@ -23,6 +23,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.FormatListBulleted
 import androidx.compose.material.icons.automirrored.outlined.Undo
 import androidx.compose.material.icons.outlined.Check
+import androidx.compose.material.icons.outlined.Dashboard
 import androidx.compose.material.icons.outlined.Flag
 import androidx.compose.material.icons.outlined.Hexagon
 import androidx.compose.material.icons.outlined.Lightbulb
@@ -33,14 +34,11 @@ import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
-import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -67,11 +65,12 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import dev.quinton.goa.core.data.game.AiPace
-import dev.quinton.goa.core.designsystem.component.BannerMedallionWidth
 import dev.quinton.goa.core.designsystem.component.CardTextBox
 import dev.quinton.goa.core.designsystem.component.ConfirmDialog
 import dev.quinton.goa.core.designsystem.component.EmptyState
 import dev.quinton.goa.core.designsystem.component.GoaButton
+import dev.quinton.goa.core.designsystem.component.GoaProgressBar
+import dev.quinton.goa.core.designsystem.component.GoaSwitch
 import dev.quinton.goa.core.designsystem.component.HeroPortrait
 import dev.quinton.goa.core.designsystem.component.PlateColor
 import dev.quinton.goa.core.designsystem.component.TeamMark
@@ -93,22 +92,26 @@ import dev.quinton.goa.feature.board.play.review.ReviewButton
 import dev.quinton.goa.feature.board.play.review.ReviewOpenEffect
 import dev.quinton.goa.feature.board.play.review.ReviewSheet
 import dev.quinton.goa.feature.board.play.review.ReviewTab
+import dev.quinton.goa.feature.board.play.table.BoardPeek
 import dev.quinton.goa.feature.board.play.table.DecisionPanel
 import dev.quinton.goa.feature.board.play.table.DecisionWho
 import dev.quinton.goa.feature.board.play.table.EventFeed
 import dev.quinton.goa.feature.board.play.table.EventLog
 import dev.quinton.goa.feature.board.play.table.GameTable
+import dev.quinton.goa.feature.board.play.table.HandTab
 import dev.quinton.goa.feature.board.play.table.HeroDetail
 import dev.quinton.goa.feature.board.play.table.MomentCard
+import dev.quinton.goa.feature.board.play.table.MomentKind
+import dev.quinton.goa.feature.board.play.table.MomentRow
 import dev.quinton.goa.feature.board.play.table.PeekConfirm
 import dev.quinton.goa.feature.board.play.table.ResolutionFlowView
 import dev.quinton.goa.feature.board.play.table.SpellbookSheet
 import dev.quinton.goa.feature.board.play.table.TableCard
 import dev.quinton.goa.feature.board.play.table.TableTap
 import dev.quinton.goa.feature.board.play.table.TableUi
-import dev.quinton.goa.feature.board.play.table.YourHand
 import dev.quinton.goa.feature.board.play.table.spellbookUi
 import dev.quinton.goa.feature.board.play.table.spokenCard
+import dev.quinton.goa.feature.board.ui.BarLabelButton
 import dev.quinton.goa.feature.board.ui.BoardScaffold
 import dev.quinton.goa.feature.board.ui.PlateButton
 import dev.quinton.goa.feature.board.ui.PlateTone
@@ -149,6 +152,7 @@ fun GameScreen(
     var menu by remember { mutableStateOf(false) }
     var ending by rememberSaveable { mutableStateOf(false) }
     var logAt by remember { mutableStateOf<Int?>(null) }
+    var handOpen by rememberSaveable { mutableStateOf(false) }
     val snackbar = remember { SnackbarHostState() }
     val viewport = remember { MapViewport() }
     val focus = rememberCardFocusState()
@@ -160,38 +164,50 @@ fun GameScreen(
             onAction(GameAction.MessageShown(play.messageId))
         }
     }
-    // The title shortens to fit beside the three actions: on a phone in portrait "R2 · Turn 3",
-    // with large text "R2 · T3" (the HUD and TalkBack say it in full).
-    val room = (LocalConfiguration.current.screenWidthDp - BannerMedallionWidth.value) /
-        androidx.compose.ui.platform.LocalDensity.current.fontScale
+    // "Round 2 · Turn 3" in full where the bar has the room; on a phone upright "Round 2", the turn named over the
+    // HUD's pips ("TURN 3"), so the labelled State control fits beside Undo, Log and More in both orientations.
+    val wideBar = LocalConfiguration.current.screenWidthDp >= WIDE_BAR_DP
     BoardScaffold(
         title = when {
             play == null -> "Play"
             play.over != null || closed != null -> "Game over"
-            else -> roundTitle(play.table.view.round, play.table.view.turn, room)
+            wideBar -> "Round ${play.table.view.round} · Turn ${play.table.view.turn}"
+            else -> "Round ${play.table.view.round}"
         },
         onBack = onBack,
         modifier = modifier,
         snackbarHost = { SnackbarHost(snackbar) },
         actions = {
             if (play != null && play.over == null && closed == null) {
+                // Each control with its word under its glyph, the same glyph for a destination in both orientations.
                 if (play.online == null) {
-                    IconButton(onClick = { onAction(GameAction.TakeBack) }, enabled = play.canTakeBack && !play.busy) {
-                        Icon(Icons.AutoMirrored.Outlined.Undo, contentDescription = "Take back")
-                    }
+                    BarLabelButton(
+                        "Undo",
+                        Icons.AutoMirrored.Outlined.Undo,
+                        onClick = { onAction(GameAction.TakeBack) },
+                        description = "Take back",
+                        enabled = play.canTakeBack && !play.busy,
+                    )
                 }
                 ReviewButton(onClick = { sheet = PlaySheet.Review() })
-                IconButton(onClick = { sheet = PlaySheet.Log }) {
-                    Icon(Icons.AutoMirrored.Outlined.FormatListBulleted, contentDescription = "Game log")
-                }
+                BarLabelButton(
+                    "Log",
+                    Icons.AutoMirrored.Outlined.FormatListBulleted,
+                    onClick = { sheet = PlaySheet.Log },
+                    description = "Game log",
+                )
                 Box {
-                    IconButton(onClick = {
+                    BarLabelButton("More", Icons.Outlined.MoreVert, onClick = {
                         menu = true
-                    }) { Icon(Icons.Outlined.MoreVert, contentDescription = "More options") }
-                    GameMenu(play, expanded = menu, onDismiss = { menu = false }, onAction = onAction, onEnd = {
-                        ending =
-                            true
-                    })
+                    }, description = "More options")
+                    GameMenu(
+                        play,
+                        expanded = menu,
+                        onDismiss = { menu = false },
+                        onAction = onAction,
+                        onEnd = { ending = true },
+                        onReview = null,
+                    )
                 }
             }
         },
@@ -250,13 +266,27 @@ fun GameScreen(
                             initialPanelHidden = initialPanelHidden,
                             focus = focus,
                             onSpellbook = { sheet = PlaySheet.Spellbook(it) },
-                            panelTitle = if (state.play.status is TurnStatus.YourTurn && state.play.nudge == null) {
+                            // Who decides, on the strip: the person ("You choose · Wasp") or the computer
+                            // ("Computer · Wasp acting"), never only remembered.
+                            panelTitle = if (headerShown(state.play)) {
                                 { DecisionWho(state.play.table) }
+                            } else {
+                                null
+                            },
+                            peekBody = if (state.play.status is TurnStatus.YourTurn && state.play.nudge == null) {
+                                {
+                                    BoardPeek(state.play.table, { onAction(GameAction.Answer(it)) }, state.play.busy)
+                                }
                             } else {
                                 null
                             },
                             topStrip = state.play.online?.let { online -> { OnlineStrip(online, state.play.table) } },
                             feed = { EventFeed(state.play.log) },
+                            panelFooter = if (state.play.nudge == null) {
+                                { HandTab(state.play.table, focus, handOpen, onOpenChange = { handOpen = it }) }
+                            } else {
+                                null
+                            },
                         ) {
                             Panel(state.play, onAction, focus)
                         }
@@ -285,8 +315,12 @@ fun GameScreen(
                 }
                 BoardSheet(onDismiss = close) {
                     Column(Modifier.fillMaxWidth().fillMaxHeight(SHEET_HEIGHT)) {
-                        SheetTitle("Game log", "Every event, the latest first.", onDone = close)
-                        EventLog(play.log, Modifier.weight(1f), at = logAt)
+                        SheetTitle(
+                            "Game log",
+                            "The latest turn first; each turn in the order it happened.",
+                            onDone = close,
+                        )
+                        EventLog(play.log, Modifier.weight(1f), at = logAt, table = play.table)
                     }
                 }
             }
@@ -353,8 +387,20 @@ private fun GameMenu(
     onDismiss: () -> Unit,
     onAction: (GameAction) -> Unit,
     onEnd: () -> Unit,
+    onReview: (() -> Unit)?,
 ) {
     DropdownMenu(expanded = expanded, onDismissRequest = onDismiss) {
+        if (onReview != null) {
+            DropdownMenuItem(
+                text = { Text("Game state") },
+                leadingIcon = { Icon(Icons.Outlined.Dashboard, contentDescription = null) },
+                onClick = {
+                    onDismiss()
+                    onReview()
+                },
+            )
+            HorizontalDivider()
+        }
         if (play.online == null) {
             DropdownMenuItem(
                 text = {
@@ -368,7 +414,7 @@ private fun GameMenu(
                     }
                 },
                 leadingIcon = { Icon(Icons.Outlined.Lightbulb, contentDescription = null) },
-                trailingIcon = { Switch(checked = play.coach, onCheckedChange = null) },
+                trailingIcon = { GoaSwitch(checked = play.coach, onCheckedChange = null) },
                 onClick = { onAction(GameAction.SetCoach(!play.coach)) },
             )
             HorizontalDivider()
@@ -438,11 +484,15 @@ private fun ColumnScope.Panel(play: PlayUi, onAction: (GameAction) -> Unit, focu
     // The person's own question comes before the moment (the reveal, a turn or the round ending): at
     // large text the round's summary filled the panel and the question's Confirm was below the fold.
     val questionFirst = play.status is TurnStatus.YourTurn
+    val roundEnding = moment?.takeIf { questionFirst && it.kind == MomentKind.ROUND_ENDING }
     if (moment != null && !questionFirst) MomentCard(moment, table, focus = focus)
     when {
         nudge != null -> CoachNudge(nudge, onAction)
 
         play.status is TurnStatus.YourTurn -> {
+            // The end of a round: one row over the question it brings (the Minion Battle), its steps a tap away,
+            // so the options stay in view and the summary is never cut under them.
+            roundEnding?.let { MomentRow(it, table, focus = focus) }
             DecisionPanel(
                 table,
                 onSelect = { onAction(GameAction.Select(it)) },
@@ -450,6 +500,7 @@ private fun ColumnScope.Panel(play: PlayUi, onAction: (GameAction) -> Unit, focu
                 focus = focus,
                 busy = play.busy,
                 who = false,
+                defeat = play.defeat,
             )
             if (play.busy && play.coach) CoachLooking()
             if (play.canSuggest) SuggestButton(enabled = !play.busy) { onAction(GameAction.AskSuggestions) }
@@ -467,8 +518,8 @@ private fun ColumnScope.Panel(play: PlayUi, onAction: (GameAction) -> Unit, focu
     // What happened since the person last chose, one entry per card resolved (ADR-046): right under
     // their question, before the moment (whose cards the flow's entries already show).
     if (nudge == null) ResolutionFlowView(play.flow, table, focus, Modifier.padding(top = Spacing.xs))
-    if (moment != null && questionFirst) MomentCard(moment, table, focus = focus)
-    if (!table.handDecision && nudge == null) YourHand(table, focus)
+    if (moment != null && questionFirst && roundEnding == null) MomentCard(moment, table, focus = focus)
+    // The hand is the panel's pinned tab (HandTab), never a heading cut at the screen's edge.
 }
 
 /** A gentle nudge before a clearly worse choice: never blocks, never chooses for you. */
@@ -526,6 +577,10 @@ private fun CoachLooking() {
     }
 }
 
+/** The panel's strip names who decides: the person's question, or the computer's while it chooses one. */
+private fun headerShown(play: PlayUi): Boolean = play.nudge == null && play.table.decision != null &&
+    (play.status is TurnStatus.YourTurn || play.status is TurnStatus.Computer)
+
 /**
  * The computer is choosing for one of its heroes ("thinking…" once it takes a while), with the card
  * it is resolving beside it (tap to read it).
@@ -536,35 +591,50 @@ private fun ComputerMove(table: TableUi, status: TurnStatus.Computer, focus: Car
     val info = table.hero(status.heroId)
     val computer = hero?.controller as? Controller.Ai
     val card = table.sourceCard ?: hero?.played?.takeIf { !it.facedown }?.cardId?.let(table::card)
+    // The strip's header says who ("Computer · Wasp acting", DecisionWho) when there is a question; here what it is.
+    val header = table.decision != null
     Row(verticalAlignment = Alignment.CenterVertically) {
-        HeroPortrait(
-            status.heroId,
-            info.portrait,
-            null,
-            Modifier.size(40.dp).border(
-                2.dp,
-                hero?.team?.let {
-                    teamColor(it)
-                } ?: GoaTheme.colors.engravedBorder,
-                CircleShape,
-            ),
-            shape = CircleShape,
-            framed = false,
-        )
-        Spacer(Modifier.width(Spacing.md))
+        if (!header) {
+            HeroPortrait(
+                status.heroId,
+                info.portrait,
+                null,
+                Modifier.size(40.dp).border(
+                    2.dp,
+                    hero?.team?.let {
+                        teamColor(it)
+                    } ?: GoaTheme.colors.engravedBorder,
+                    CircleShape,
+                ),
+                shape = CircleShape,
+                framed = false,
+            )
+            Spacer(Modifier.width(Spacing.md))
+        }
         Column(Modifier.weight(1f).semantics(mergeDescendants = true) { liveRegion = LiveRegionMode.Polite }) {
-            Text(
-                "COMPUTER${computer?.let { " · ${PlayText.strength(it).uppercase()}" }.orEmpty()}",
-                style = GoaTextStyles.overline,
-                color = MaterialTheme.colorScheme.primary,
-            )
-            Text(
-                if (status.thinking) "${info.name} is thinking…" else "${info.name} is choosing",
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.SemiBold,
-            )
+            if (header) {
+                Text(
+                    listOfNotNull(
+                        computer?.let { "Computer ${PlayText.strength(it)}" },
+                        if (status.thinking) "thinking…" else "choosing",
+                    ).joinToString(" · "),
+                    style = MaterialTheme.typography.labelLarge,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            } else {
+                Text(
+                    "COMPUTER${computer?.let { " · ${PlayText.strength(it).uppercase()}" }.orEmpty()}",
+                    style = GoaTextStyles.overline,
+                    color = MaterialTheme.colorScheme.primary,
+                )
+                Text(
+                    if (status.thinking) "${info.name} is thinking…" else "${info.name} is choosing",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.SemiBold,
+                )
+            }
             table.decision?.prompt?.let {
-                Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text(it, style = MaterialTheme.typography.bodyMedium)
             }
         }
         if (card != null && table.decision?.kind != DecisionKind.PLAY_CARD) {
@@ -586,7 +656,7 @@ private fun ComputerMove(table: TableUi, status: TurnStatus.Computer, focus: Car
             ) { TableCard(card, width = 56.dp) }
         }
     }
-    if (status.thinking) LinearProgressIndicator(Modifier.fillMaxWidth())
+    if (status.thinking) GoaProgressBar(null, Modifier.fillMaxWidth())
 }
 
 /** Simultaneous play (p.7): the person's card is down (shown to them only), the others still choose. */
@@ -658,4 +728,11 @@ private fun Unavailable(
     )
 }
 
-private const val SHEET_HEIGHT = 0.9f
+/**
+ * The log's and a hero's sheet: tall enough that its top meets the top bar, so the table's status panel is wholly
+ * behind it (and the scrim), never half of it showing over the sheet's corners (opus, round 4).
+ */
+private const val SHEET_HEIGHT = 0.95f
+
+/** From this width the top bar keeps the game-state review beside the log; narrower, it is in More. */
+private const val WIDE_BAR_DP = 600

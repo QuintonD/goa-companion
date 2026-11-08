@@ -5,13 +5,18 @@ import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.navigation3.runtime.NavKey
 import kotlinx.serialization.Serializable
 
-/**
+/*
  * Every navigable screen. Keys live here (not in features) so any feature can open another
  * feature's screen without a module dependency; each feature registers entries for its own keys
  * via `EntryProviderScope<NavKey>.<feature>Entries(navigator)`, wired in `app`.
  */
 
-enum class TopLevelTab { CATALOG, TIMER, DRAFT, PLAY, PLAYERS }
+/**
+ * The app's back stacks. The bottom bar shows Heroes, Play, Timer, Players and More; [DRAFT] keeps a stack of
+ * its own (a draft in progress survives switching tabs) but has no item: it is opened from More and the match
+ * log, and More is lit while it shows.
+ */
+enum class TopLevelTab { CATALOG, PLAY, TIMER, PLAYERS, MORE, DRAFT }
 
 /**
  * Intent extra naming the [TopLevelTab] to show when the app opens (e.g. "TIMER" from the timer
@@ -47,9 +52,14 @@ interface Navigator {
 // Catalog
 @Serializable data object CatalogRoute : NavKey
 
-/** A hero's page; [section] [SPELLBOOK] opens it at the hero's spellbook (Gydion, from the draft's peek). */
+/**
+ * A hero's page; [section] opens it at a tab: [DECK], [FAQ], or [SPELLBOOK] (the Deck at the hero's spellbook: Gydion,
+ * from the draft's peek). Null: the Overview.
+ */
 @Serializable data class HeroDetailRoute(val heroId: String, val section: String? = null) : NavKey {
     companion object {
+        const val DECK: String = "deck"
+        const val FAQ: String = "faq"
         const val SPELLBOOK: String = "spellbook"
     }
 }
@@ -100,7 +110,8 @@ interface Navigator {
  * defaults to Completed), used when a game has just ended: from the timer summary or a pending
  * match. [prefillPlayedAt] (epoch ms, e.g. the timer session's start) replaces the date of a new
  * or still pending match. [newMatchId] is the id a NEW match is saved under (the timer reserves
- * one so it can tell when the result it opened was saved).
+ * one so it can tell when the result it opened was saved). [prefillHeroId] seats that hero in a NEW match's first
+ * seat (a hero page's "Log a match with …").
  */
 @Serializable data class MatchEditRoute(
     val matchId: String? = null,
@@ -109,6 +120,7 @@ interface Navigator {
     val result: Boolean = false,
     val prefillPlayedAt: Long? = null,
     val newMatchId: String? = null,
+    val prefillHeroId: String? = null,
 ) : NavKey
 
 @Serializable data object MetaRoute : NavKey
@@ -149,7 +161,7 @@ object NavSheet {
 
 // The Play tab (ADR-055, owner: board)
 
-/** The Play tab's first screen: Board and Card trivia. */
+/** The Play tab's first screen: play against the computer, puzzles, the board sandbox, online, card trivia. */
 @Serializable data object PlayHomeRoute : NavKey
 
 // Card-number trivia (ADR-028, owner: trivia)
@@ -262,6 +274,9 @@ object NavSheet {
 
 /** Opens a sync file: [uri] is a content URI from the file picker, the share sheet or a file manager. */
 @Serializable data class SyncFileImportRoute(val uri: String) : NavKey
+
+// More (the bottom bar's fifth item: Draft, Rules, Group sync, Backup, Settings, About)
+@Serializable data object MoreRoute : NavKey
 
 // Settings
 @Serializable data object SettingsRoute : NavKey

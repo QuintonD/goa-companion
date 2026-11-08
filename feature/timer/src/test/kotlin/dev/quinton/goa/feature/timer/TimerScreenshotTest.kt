@@ -2,7 +2,9 @@ package dev.quinton.goa.feature.timer
 
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.onRoot
+import androidx.compose.ui.test.performClick
 import androidx.test.core.app.ApplicationProvider
 import com.github.takahirom.roborazzi.captureRoboImage
 import dev.quinton.goa.core.designsystem.theme.GoaTheme
@@ -49,6 +51,21 @@ class TimerScreenshotTest {
     @Test fun startDark() = capture { TimerScreen(TimerPreviewData.start, TimerActions()) }
 
     @Test fun startLight() = capture(ThemeMode.LIGHT) { TimerScreen(TimerPreviewData.start, TimerActions()) }
+
+    /** Adjust for tonight opened: the per-turn phase named, its preset length beside tonight's, the heroes. */
+    @Test fun startAdjustDark() {
+        compose.setContent {
+            GoaTheme(themeMode = ThemeMode.DARK) { TimerScreen(TimerPreviewData.start, TimerActions()) }
+        }
+        compose.onNodeWithText("Adjust for tonight").performClick()
+        compose.waitUntil(IMAGE_TIMEOUT_MS) { BundledAssetImages.idle }
+        compose.waitForIdle()
+        compose.onRoot().captureRoboImage()
+    }
+
+    @Test
+    @Config(fontScale = 2f)
+    fun startFontScale2() = capture { TimerScreen(TimerPreviewData.start, TimerActions()) }
 
     @Test fun turnDark() = active(TimerPreviewData.turn)
 

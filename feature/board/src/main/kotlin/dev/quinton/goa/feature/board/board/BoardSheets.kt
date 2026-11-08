@@ -20,7 +20,6 @@ import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Close
-import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -57,11 +56,13 @@ import dev.quinton.goa.core.designsystem.component.GoaDialog
 import dev.quinton.goa.core.designsystem.component.GoaFilterChip
 import dev.quinton.goa.core.designsystem.component.GoaSheet
 import dev.quinton.goa.core.designsystem.component.HeroPortrait
+import dev.quinton.goa.core.designsystem.component.SearchFieldIcon
 import dev.quinton.goa.core.designsystem.component.SectionHeader
 import dev.quinton.goa.core.designsystem.component.TeamMark
 import dev.quinton.goa.core.designsystem.component.TitlePlate
 import dev.quinton.goa.core.designsystem.component.scaledIconSize
 import dev.quinton.goa.core.designsystem.component.teamColor
+import dev.quinton.goa.core.designsystem.component.teamTextColor
 import dev.quinton.goa.core.designsystem.theme.GoaTextStyles
 import dev.quinton.goa.core.designsystem.theme.GoaTheme
 import dev.quinton.goa.core.designsystem.theme.Spacing
@@ -84,8 +85,13 @@ internal fun BoardSheet(onDismiss: () -> Unit, content: @Composable () -> Unit) 
     GoaSheet(
         onDismissRequest = onDismiss,
         sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
+        // The table's status and map above the sheet dimmed well back: behind it, never half of a panel (opus #4).
+        scrimColor = BoardSheetScrim,
     ) { content() }
 }
+
+/** What dims the board behind its sheets. */
+internal val BoardSheetScrim = Color.Black.copy(alpha = 0.6f)
 
 // ---- Add ---------------------------------------------------------------------------------
 
@@ -396,7 +402,7 @@ private fun PushButtons(lane: String?, onPush: (Team) -> Unit) {
                 Spacer(Modifier.width(Spacing.sm))
                 Text(
                     "${BoardText.team(team)} won",
-                    color = teamColor(team),
+                    color = teamTextColor(team),
                     modifier = Modifier.semantics {
                         contentDescription =
                             listOfNotNull(lane, "${BoardText.team(team)} won the push").joinToString(": ")
@@ -466,7 +472,7 @@ internal fun SearchField(
         onValueChange = onChange,
         modifier = modifier.fillMaxWidth().padding(horizontal = horizontalPadding, vertical = Spacing.sm),
         placeholder = { Text(placeholder, maxLines = 1, overflow = TextOverflow.Ellipsis) },
-        leadingIcon = { Icon(Icons.Outlined.Search, contentDescription = null) },
+        leadingIcon = { SearchFieldIcon() },
         trailingIcon = {
             if (query.isNotEmpty()) {
                 IconButton(onClick = {

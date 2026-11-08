@@ -17,10 +17,17 @@ import dev.quinton.goa.core.testing.FakeCatalogRepository
 import dev.quinton.goa.core.testing.FakeDraftRecordRepository
 import dev.quinton.goa.core.testing.FakeGameSaveRepository
 import dev.quinton.goa.core.testing.FakeMatchRepository
+import dev.quinton.goa.core.testing.FakePuzzleProgressRepository
 import dev.quinton.goa.core.testing.FakeSettingsRepository
 import dev.quinton.goa.feature.board.bundledCatalog
 import dev.quinton.goa.feature.board.bundledMaps
-import dev.quinton.goa.feature.board.list.BoardsViewModel
+import dev.quinton.goa.feature.board.list.PlayHomeUiState
+import dev.quinton.goa.feature.board.list.PlayHomeViewModel
+import dev.quinton.goa.feature.board.play.puzzles.PuzzleFilters
+import dev.quinton.goa.feature.board.play.puzzles.PuzzleListUiState
+import dev.quinton.goa.feature.board.play.puzzles.puzzleList
+import dev.quinton.goa.feature.board.play.puzzles.realPuzzleBook
+import dev.quinton.goa.feature.board.play.puzzles.screenshotPuzzleProgress
 import dev.quinton.goa.feature.board.play.setup.Control
 import dev.quinton.goa.feature.board.play.setup.NewGameAction
 import dev.quinton.goa.feature.board.play.setup.NewGameStep
@@ -166,26 +173,65 @@ class NewGameViewModelTest {
     }
 
     @Test
-    fun `Boards offers play once heroes are playable, and the game in progress to resume`() = runTest(dispatcher) {
+    fun `Play offers a game once heroes are playable, and the game in progress to resume`() = runTest(dispatcher) {
         val games = FakeGameSaveRepository(StoredGame.Saved(fakeInProgress(factory)))
-        val boards = BoardsViewModel(
+        val home = PlayHomeViewModel(
             FakeCatalogRepository(bundledCatalog),
-            FakeBoardMapRepository(bundledMaps),
-            dev.quinton.goa.core.testing.FakeBoardRepository(),
-            FakeDraftRecordRepository(),
-            FakeMatchRepository(),
-            EditClock { 1L },
-            backgroundScope,
             games,
+            EditClock { 1L },
             { factory },
+            { null },
+            FakePuzzleProgressRepository(),
         )
-        val ready = boards.uiState.first { it is dev.quinton.goa.feature.board.list.BoardsUiState.Ready }
-            as dev.quinton.goa.feature.board.list.BoardsUiState.Ready
+        val ready = home.uiState.first { it is PlayHomeUiState.Ready } as PlayHomeUiState.Ready
         assertThat(ready.play.available).isTrue()
         assertThat(ready.play.resume?.summary).isEqualTo("You play Arien · Computer: Hard 8")
         assertThat(ready.play.resume?.red?.map { it.id }).containsExactly("arien", "brogan").inOrder()
+        // No playable puzzle: the entry says so instead of a count.
+        assertThat(ready.play.puzzles).isNull()
 
-        val unreadable = BoardsViewModel.resumeOf(StoredGame.Unreadable, emptyMap())
+        val unreadable = PlayHomeViewModel.resumeOf(StoredGame.Unreadable, emptyMap())
         assertThat(unreadable?.unreadable).isTrue()
+    }
+
+    @Test
+    fun `Play counts the puzzles part by part, as the puzzle list does`() = runTest(dispatcher) {
+        val book = realPuzzleBook
+        val progress = screenshotPuzzleProgress()
+        val home = PlayHomeViewModel(
+            FakeCatalogRepository(bundledCatalog),
+            FakeGameSaveRepository(),
+            EditClock { 1L },
+            { factory },
+            { book },
+            FakePuzzleProgressRepository(progress),
+        )
+        val ready = home.uiState.first { it is PlayHomeUiState.Ready } as PlayHomeUiState.Ready
+        val hub = requireNotNull(ready.play.puzzles)
+        val list = puzzleList(
+            book.puzzles,
+            emptyMap(),
+            progress,
+            PuzzleFilters(),
+        ) as PuzzleListUiState.Ready
+        assertThat(hub.positionsSolved to hub.positionsTotal).isEqualTo(list.positionsSolved to list.positionsTotal)
+        assertThat(hub.roundsSolved to hub.roundsTotal).isEqualTo(list.roundsSolved to list.roundsTotal)
+        assertThat(hub.positionsSolved).isEqualTo(1)
+        assertThat(hub.roundsSolved).isEqualTo(if (hub.roundsTotal > 0) 1 else 0)
+    }
+
+    @Test
+    fun `Play says nothing can be played when the engine can't be built`() = runTest(dispatcher) {
+        val home = PlayHomeViewModel(
+            FakeCatalogRepository(bundledCatalog),
+            FakeGameSaveRepository(),
+            EditClock { 1L },
+            { error("no engine") },
+            { null },
+            FakePuzzleProgressRepository(),
+        )
+        val ready = home.uiState.first { it is PlayHomeUiState.Ready } as PlayHomeUiState.Ready
+        assertThat(ready.play.available).isFalse()
+        assertThat(ready.play.resume).isNull()
     }
 }

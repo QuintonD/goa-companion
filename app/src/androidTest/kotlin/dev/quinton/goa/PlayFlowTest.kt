@@ -13,7 +13,7 @@ import org.junit.Test
 import org.junit.runner.RunWith
 
 /**
- * Play against the computer from Boards (PRODUCT §9): a 2v2 on Forgotten Island, the person plays
+ * Play against the computer from the Play tab (PRODUCT §9): a 2v2 on Forgotten Island, the person plays
  * Wasp, the computer at strength 2 (Easy), Coach on. Play a card facedown, wait for the computer's three heroes to
  * play theirs, and see the reveal and the first question after it (the real engine and AI).
  */
@@ -25,8 +25,7 @@ class PlayFlowTest {
     fun startAGameFromBoardsAndPlayThroughTheFirstReveal() {
         rule.openTab("catalog")
         rule.waitForText("32 heroes")
-        rule.openFromPlay("Board")
-        rule.tap(hasText("Play against the computer") and hasClickAction())
+        rule.openFromPlay("Play vs computer")
 
         // Alternate picks: Red, Blue, Red, Blue.
         rule.waitForText("Tap heroes below")
@@ -38,20 +37,20 @@ class PlayFlowTest {
 
         // You play Wasp; the computer is Easy (strength 2); Coach is on by default; Forgotten Island is the map.
         rule.waitForText("Game options")
+        rule.tapText("One hero")
         rule.tap(hasText("Wasp") and hasClickAction())
         rule.reveal(hasContentDescription("Computer strength"))
             .performSemanticsAction(SemanticsActions.SetProgress) { setProgress -> setProgress(2f) }
         rule.waitForText("2 · Easy")
         rule.reveal(hasText("Forgotten Island"))
-        rule.tapText("Flip the Tie Breaker coin")
+        rule.tapText("Start game · flip the coin")
         rule.waitForText("shows", substring = true)
         rule.tapText("Start the game")
 
-        // Turn 1: Wasp's hand as cards; the first tap opens the card focus viewer (it answers
-        // nothing), then its "Play … facedown" button plays the card.
+        // Turn 1: Wasp's hand as cards; a tap chooses one (it answers nothing), then the bronze
+        // "Play … facedown" button under the hand plays it.
         rule.waitFor(hasText("Play a card facedown"), timeout = GAME_TIMEOUT)
-        rule.tap(hasClickLabel("Look at the card"))
-        rule.waitForText("Card 1 of", substring = true)
+        rule.tap(hasClickLabel("Choose"))
         rule.tap(
             hasText("facedown", substring = true) and hasText("Play ", substring = true) and
                 hasClickAction() and isEnabled(),
@@ -62,10 +61,11 @@ class PlayFlowTest {
         rule.waitFor(hasContentDescription("1st to act", substring = true), timeout = GAME_TIMEOUT)
         // After the reveal someone acts: Wasp is asked, or a computer hero is choosing.
         rule.waitUntilOrDump("the first card resolves", GAME_TIMEOUT) {
-            rule.exists(hasText("WASP · ACTION", substring = true)) ||
+            rule.exists(hasContentDescription("You choose · Wasp. Choose an action", substring = true)) ||
+                rule.exists(hasContentDescription(" acting. ", substring = true)) ||
                 rule.exists(hasText(" is choosing", substring = true)) ||
                 rule.exists(hasText(" is thinking", substring = true)) ||
-                rule.exists(hasText("Choose an action for", substring = true))
+                rule.exists(hasContentDescription("Choose an action for", substring = true))
         }
     }
 

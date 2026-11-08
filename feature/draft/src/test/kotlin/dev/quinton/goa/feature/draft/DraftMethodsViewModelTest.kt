@@ -8,6 +8,8 @@ import dev.quinton.goa.core.domain.draft.SequenceRule
 import dev.quinton.goa.core.domain.draft.TeamSlot
 import dev.quinton.goa.core.domain.draft.pick
 import dev.quinton.goa.core.model.draft.DraftMethodKind
+import dev.quinton.goa.core.model.match.Team
+import dev.quinton.goa.feature.draft.data.DraftSetupPrefills
 import dev.quinton.goa.feature.draft.methods.DraftMethodEditViewModel
 import dev.quinton.goa.feature.draft.methods.DraftMethodsViewModel
 import dev.quinton.goa.feature.draft.methods.MethodEditEvent
@@ -15,6 +17,7 @@ import dev.quinton.goa.feature.draft.methods.MethodsEvent
 import dev.quinton.goa.feature.draft.methods.PoolKind
 import dev.quinton.goa.feature.draft.methods.PreviewLayout
 import dev.quinton.goa.feature.draft.methods.StepSection
+import dev.quinton.goa.feature.draft.setup.SetupForm
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.runTest
@@ -33,12 +36,29 @@ class DraftMethodsViewModelTest {
         val house = vm.uiState.value.builtIn.first { it.method.id == "house" }
         assertThat(house.isDefault).isTrue()
         assertThat(house.preview.tokens.map { it.label })
-            .containsExactly("Ban A", "Pick A", "Ban B", "Pick B", "Pick B", "Pick A").inOrder()
+            // In colours, as the board shows them: Blue goes as A until the coin is flipped.
+            .containsExactly("Ban ●", "Pick ●", "Ban ◆", "Pick ◆", "Pick ◆", "Pick ●").inOrder()
         vm.setLayout(PreviewLayout(3, 3))
         assertThat(vm.uiState.value.builtIn.first { it.method.id == "house" }.preview.tokens).hasSize(8)
         val learning = vm.uiState.value.builtIn.first { it.method.id == "learning-game" }
         vm.setLayout(PreviewLayout(4, 4))
         assertThat(vm.uiState.value.builtIn.first { it.method.id == learning.method.id }.preview.error).isNotNull()
+    }
+
+    @Test
+    fun `choosing a method here is choosing it for the draft setup`() = runTest {
+        val prefills = DraftSetupPrefills()
+        val vm = DraftMethodsViewModel(drafts, FakeDraftEnvironment(), prefills)
+        backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { vm.uiState.collect {} }
+        assertThat(vm.uiState.value.selectedId).isEqualTo("house") // the library's default
+        drafts.setupFormState.value = SetupForm(teamA = Team.RED)
+        vm.select("pick-and-ban")
+        assertThat(drafts.setupFormState.value?.methodId).isEqualTo("pick-and-ban")
+        assertThat(drafts.setupFormState.value?.teamA).isEqualTo(Team.RED) // the rest of the form is kept
+        assertThat(vm.uiState.value.selectedId).isEqualTo("pick-and-ban")
+        assertThat(vm.uiState.value.coinKnown).isTrue()
+        assertThat(vm.uiState.value.builtIn.first { it.method.id == "house" }.preview.tokens.first().team)
+            .isEqualTo(Team.RED)
     }
 
     @Test

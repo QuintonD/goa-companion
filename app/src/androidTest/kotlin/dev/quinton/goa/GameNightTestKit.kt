@@ -119,10 +119,34 @@ fun AppRule.waitGone(matcher: SemanticsMatcher, timeout: Long = TIMEOUT) {
     waitUntilOrDump("${matcher.description} is gone", timeout) { !exists(matcher) }
 }
 
-/** Bottom navigation: "catalog", "timer", "draft", "play" or "players". */
+/**
+ * Bottom navigation: "catalog", "play", "timer", "players" or "more"; "draft" opens the Draft from More (it
+ * has no item of its own).
+ */
 fun AppRule.openTab(tab: String) {
+    if (tab == "draft") {
+        openFromMore("Draft")
+        return
+    }
     onNodeWithTagSafe("nav_$tab").performClick()
     waitForIdle()
+}
+
+/** A row of More ("Draft", "Rules", "Group sync", "Backup and restore", "Settings", "About"). */
+fun AppRule.openFromMore(label: String) {
+    openTab("more")
+    // More keeps its stack: a second tap on its item returns to its list.
+    if (!exists(hasText(MORE_LIST_ROW, substring = true))) openTab("more")
+    tapText(label)
+}
+
+/** Words only More's own list shows (the Draft row). */
+private const val MORE_LIST_ROW = "Pick and ban heroes"
+
+/** Settings, from More. */
+fun AppRule.openSettings() {
+    openFromMore("Settings")
+    waitForText("Theme")
 }
 
 private fun AppRule.onNodeWithTagSafe(tag: String): SemanticsNodeInteraction {
@@ -163,10 +187,12 @@ fun AppRule.tapLabel(label: String) = tap((hasText(label) or hasContentDescripti
 fun AppRule.tapDescription(text: String, substring: Boolean = false) =
     tap(hasContentDescription(text, substring = substring) and hasClickAction())
 
-/** An entry of the Play tab's first screen ("Board", "Card trivia"). */
+/** An entry of the Play tab's first screen ("Play vs computer", "Puzzles", "Board sandbox", "Online", "Card trivia"). */
 fun AppRule.openFromPlay(label: String) {
     openTab("play")
-    tapText(label)
+    // The hub's plates fill more than a screen: scroll the one asked for into view first.
+    reveal(hasText(label) and hasClickAction() and !hasSetTextAction()).performScrollTo().performClick()
+    waitForIdle()
 }
 
 fun AppRule.typeInto(label: String, value: String) {

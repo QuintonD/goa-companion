@@ -64,8 +64,14 @@ sealed interface CatalogUiState {
         val cards: List<CardResult> = emptyList(),
         /** Heroes that would match if products the group doesn't own were included. */
         val hiddenByCollection: Int = 0,
+        /** Every hero in the catalog, owned or not: more than [totalInScope] while the collection hides some. */
+        val totalHeroes: Int = totalInScope,
     ) : CatalogUiState {
         val isFiltered: Boolean get() = heroes.size != totalInScope
+
+        /** The collection (Settings → owned products) keeps some heroes out of the results. */
+        val collectionLimited: Boolean
+            get() = options.hasOwnedProducts && !controls.filter.includeUnowned && totalInScope < totalHeroes
 
         /** Cards answer the query better than any hero (e.g. a card phrase vs a hero's title). */
         val cardsFirst: Boolean get() = cardsAnswerFirst(cards, heroes)
@@ -184,6 +190,7 @@ class CatalogViewModel internal constructor(
             hiddenByCollection = results.hiddenByCollection,
             totalInScope = results.totalInScope,
             options = results.options,
+            totalHeroes = indexed.catalog.heroes.size,
         )
     }
 

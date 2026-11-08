@@ -23,9 +23,7 @@ import androidx.compose.material.icons.outlined.FileUpload
 import androidx.compose.material.icons.outlined.Lock
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.Icon
-import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
@@ -47,6 +45,8 @@ import dev.quinton.goa.core.data.backup.BackupSummary
 import dev.quinton.goa.core.data.backup.ImportMode
 import dev.quinton.goa.core.designsystem.component.GoaButton
 import dev.quinton.goa.core.designsystem.component.GoaDialog
+import dev.quinton.goa.core.designsystem.component.GoaOutlinedButton
+import dev.quinton.goa.core.designsystem.component.GoaProgressBar
 import dev.quinton.goa.core.designsystem.component.GoaScreen
 import dev.quinton.goa.core.designsystem.theme.Spacing
 import dev.quinton.goa.feature.players.common.Dates
@@ -82,7 +82,7 @@ fun BackupScreen(state: BackupUiState, actions: BackupActions, modifier: Modifie
                 verticalArrangement = Arrangement.spacedBy(Spacing.lg),
             ) {
                 if (state.working) {
-                    LinearProgressIndicator(Modifier.fillMaxWidth(), color = MaterialTheme.colorScheme.secondary)
+                    GoaProgressBar(null, Modifier.fillMaxWidth())
                 }
                 BackupCard(
                     icon = Icons.Outlined.FileUpload,
@@ -109,7 +109,7 @@ fun BackupScreen(state: BackupUiState, actions: BackupActions, modifier: Modifie
                             "or replace everything.",
                     detail = null,
                 ) {
-                    OutlinedButton(
+                    GoaOutlinedButton(
                         onClick = actions.onImport,
                         enabled = !state.working,
                         modifier = Modifier.heightIn(min = 48.dp),

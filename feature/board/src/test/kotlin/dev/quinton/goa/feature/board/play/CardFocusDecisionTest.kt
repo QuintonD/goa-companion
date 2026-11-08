@@ -7,14 +7,14 @@ import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.hasClickAction
 import androidx.compose.ui.test.hasContentDescription
+import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onFirst
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
-import androidx.compose.ui.test.performTouchInput
-import androidx.compose.ui.test.swipeLeft
+import androidx.compose.ui.test.performScrollTo
 import androidx.test.espresso.Espresso
 import com.google.common.truth.Truth.assertThat
 import dev.quinton.goa.core.data.game.AiPace
@@ -36,6 +36,7 @@ import dev.quinton.goa.feature.board.play.game.TurnStatus
 import dev.quinton.goa.feature.board.play.table.TableUi
 import dev.quinton.goa.feature.board.play.table.logLines
 import dev.quinton.goa.feature.board.ui.cards.CARD_TAG
+import dev.quinton.goa.feature.board.ui.cards.CONFIRM_TAG
 import dev.quinton.goa.feature.board.ui.cards.GO_TO_ANSWER_TAG
 import org.junit.Rule
 import org.junit.Test
@@ -44,10 +45,10 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
 /**
- * Card questions answered through the card focus viewer on the game screen: the first tap on a card
- * in the panel zooms it and answers nothing; the second tap answers with that card (the same
- * [GameAction.Answer] the Confirm button sends, so the Coach looks at it the same way); back answers
- * nothing; a swipe moves to the next card; a Coach nudge replaces the viewer like any answer's.
+ * Card questions on the game screen: a tap on a card in the panel chooses it ([GameAction.Select]) and answers
+ * nothing; a tap on the chosen card reads it in the card focus viewer, where a tap on the card answers nothing
+ * either; only a bronze button naming the choice answers ([GameAction.Answer], so the Coach looks at it the same
+ * way), in the panel or in the viewer; back answers nothing; a Coach nudge intercepts the answer.
  */
 @RunWith(RobolectricTestRunner::class)
 @Config(qualifiers = "w411dp-h891dp-xxhdpi")
@@ -62,6 +63,12 @@ class CardFocusDecisionTest {
     /** What the person did (the review sheet's open / closed reports aside). */
     private fun record(action: GameAction) {
         if (action !is GameAction.Review) actions += action
+    }
+
+    /** As the ViewModel does for a choice not yet committed: the table shows it selected. */
+    private fun applying(action: GameAction) {
+        record(action)
+        if (action is GameAction.Select) state = state!!.copy(table = state!!.table.copy(selected = action.choice))
     }
 
     private fun sessionAt(kind: DecisionKind, humans: Set<String> = all): FakeGameSession {
@@ -104,7 +111,7 @@ class CardFocusDecisionTest {
     private fun show(
         kind: DecisionKind,
         mine: Set<String> = all,
-        onAction: (GameAction) -> Unit = { record(it) },
+        onAction: (GameAction) -> Unit = { applying(it) },
     ): PlayUi {
         val p = play(sessionAt(kind, mine), mine)
         state = p
@@ -127,70 +134,89 @@ class CardFocusDecisionTest {
 
     private fun option(p: PlayUi, i: Int) = p.table.cardOptions[i]
 
+    private fun name(p: PlayUi, i: Int) = cards.getValue(option(p, i).cardId).name
+
     private fun tapInPanel(p: PlayUi, i: Int) {
-        val name = cards.getValue(option(p, i).cardId).name
-        compose.onAllNodes(hasContentDescription(name, substring = true) and hasClickAction()).onFirst().performClick()
+        compose.onAllNodes(hasContentDescription(name(p, i), substring = true) and hasClickAction()).onFirst()
+            .performClick()
         compose.waitForIdle()
     }
 
+    /** The panel's bronze button (the viewer's has its tag). */
+    private fun panelButton(text: String) =
+        // A defence's button names the card in one line ("Defend · Blink Strike").
+        compose.onAllNodes(hasText(text, substring = true) and hasClickAction() and !hasTestTag(CONFIRM_TAG))
+            .onFirst()
+            .performScrollTo()
+
     @Test
-    fun `discard - first tap zooms, second tap answers with that card`() {
+    fun `discard - a tap chooses, a tap on the chosen card reads it, only the button answers`() {
         val p = show(DecisionKind.CHOOSE_CARD)
         tapInPanel(p, 0)
+        assertThat(actions).containsExactly(GameAction.Select(option(p, 0)))
+        compose.onNodeWithTag(CARD_TAG).assertDoesNotExist()
+        tapInPanel(p, 0)
         compose.onNodeWithTag(CARD_TAG).assertExists()
-        assertThat(actions).isEmpty()
+        // The large card is for reading: a tap on it answers nothing.
         compose.onNodeWithTag(CARD_TAG).performClick()
         compose.waitForIdle()
-        assertThat(actions).containsExactly(GameAction.Answer(option(p, 0)))
+        assertThat(actions).containsExactly(GameAction.Select(option(p, 0)))
+        compose.onNodeWithTag(CONFIRM_TAG).performClick()
+        compose.waitForIdle()
+        assertThat(actions).containsExactly(GameAction.Select(option(p, 0)), GameAction.Answer(option(p, 0))).inOrder()
         compose.onNodeWithTag(CARD_TAG).assertDoesNotExist()
     }
 
     @Test
-    fun `defend - back answers nothing, a swipe then a tap defends with the next card`() {
+    fun `defend - back answers nothing, the button defends with the card chosen and says how it ends`() {
         val p = show(DecisionKind.DEFEND)
         tapInPanel(p, 0)
+        tapInPanel(p, 0)
+        compose.onNodeWithTag(CARD_TAG).assertExists()
         Espresso.pressBack()
         compose.waitForIdle()
         compose.onNodeWithTag(CARD_TAG).assertDoesNotExist()
-        assertThat(actions).isEmpty()
-        tapInPanel(p, 0)
-        compose.onNodeWithTag(CARD_TAG).performTouchInput { swipeLeft() }
+        assertThat(actions.filterIsInstance<GameAction.Answer>()).isEmpty()
+        tapInPanel(p, 1)
+        // The chosen row says how its total is counted ("Defense 3 = card 2 + minion 1 vs Attack 6").
+        compose.onAllNodes(hasContentDescription(" = card ", substring = true)).onFirst().assertExists()
+        panelButton("Defend · ${name(p, 1)}").performClick()
         compose.waitForIdle()
-        compose.onNodeWithTag(CARD_TAG).performClick()
-        compose.waitForIdle()
-        assertThat(actions).containsExactly(GameAction.Answer(option(p, 1)))
+        assertThat(actions.last()).isEqualTo(GameAction.Answer(option(p, 1)))
     }
 
     @Test
-    fun `play a card - the second tap plays it facedown`() {
+    fun `play a card - the button names the card and plays it facedown`() {
         val p = show(DecisionKind.PLAY_CARD)
         tapInPanel(p, 2)
-        compose.onNodeWithText("Play ${cards.getValue(option(p, 2).cardId).name} facedown").assertExists()
-        compose.onNodeWithTag(CARD_TAG).performClick()
+        panelButton("Play ${name(p, 2)} facedown").performClick()
         compose.waitForIdle()
-        assertThat(actions).containsExactly(GameAction.Answer(option(p, 2)))
+        assertThat(actions).containsExactly(GameAction.Select(option(p, 2)), GameAction.Answer(option(p, 2))).inOrder()
     }
 
     @Test
-    fun `a Coach nudge intercepts the second tap as it does the Confirm button`() {
+    fun `a Coach nudge intercepts the button's answer`() {
         lateinit var p: PlayUi
         p = show(DecisionKind.CHOOSE_CARD) { action ->
-            record(action)
+            applying(action)
             // As the ViewModel does: the answer goes to the coach first, who nudges.
             if (action is GameAction.Answer) {
-                state = p.copy(
-                    table = p.table.copy(asking = false),
+                state = state!!.copy(
+                    table = state!!.table.copy(asking = false),
                     nudge = PendingNudge(CoachNote("Keep it", "A note."), action.choice, "the card"),
                 )
             }
         }
         tapInPanel(p, 0)
-        compose.onNodeWithTag(CARD_TAG).performClick()
+        panelButton("Discard ${name(p, 0)}").performClick()
         compose.waitForIdle()
         compose.onNodeWithText("Coach: Keep it").assertExists()
-        compose.onNodeWithTag(CARD_TAG).assertDoesNotExist()
         compose.onNodeWithText("Choose anyway").performClick()
-        assertThat(actions).containsExactly(GameAction.Answer(option(p, 0)), GameAction.ChooseAnyway).inOrder()
+        assertThat(actions).containsExactly(
+            GameAction.Select(option(p, 0)),
+            GameAction.Answer(option(p, 0)),
+            GameAction.ChooseAnyway,
+        ).inOrder()
     }
 
     // ---- Level up (ADR-045): the upgrade cards are shown before the colour is chosen ----------
@@ -221,7 +247,6 @@ class CardFocusDecisionTest {
         show(DecisionKind.UPGRADE_CARD)
         tapUpgrade(upgrade)
         compose.onNodeWithText("Upgrade of ${cards.getValue(current).name}").assertExists()
-        // The second tap on an upgrade card answers nothing (it shakes): only the hand card is the choice.
         compose.onNodeWithTag(CARD_TAG).performClick()
         compose.waitForIdle()
         assertThat(actions).isEmpty()
@@ -229,19 +254,19 @@ class CardFocusDecisionTest {
         compose.onNodeWithTag(GO_TO_ANSWER_TAG).assertTextEquals("Go to ${cards.getValue(current).name}")
         compose.onNodeWithTag(GO_TO_ANSWER_TAG).performClick()
         compose.waitForIdle()
-        compose.onNodeWithText("Upgrade ${cards.getValue(current).name}").assertExists()
-        compose.onNodeWithTag(CARD_TAG).performClick()
+        compose.onNodeWithTag(CONFIRM_TAG).assertTextEquals("Upgrade ${cards.getValue(current).name}")
+        compose.onNodeWithTag(CONFIRM_TAG).performClick()
         compose.waitForIdle()
         assertThat(actions).containsExactly(GameAction.Answer(Choice.Card(current)))
     }
 
     @Test
-    fun `level up - the second tap on the hand card upgrades it`() {
+    fun `level up - a tap chooses the hand card, the button upgrades it`() {
         val p = show(DecisionKind.UPGRADE_CARD)
         tapInPanel(p, 1)
-        compose.onNodeWithTag(CARD_TAG).performClick()
+        panelButton("Upgrade ${name(p, 1)}").performClick()
         compose.waitForIdle()
-        assertThat(actions).containsExactly(GameAction.Answer(option(p, 1)))
+        assertThat(actions).containsExactly(GameAction.Select(option(p, 1)), GameAction.Answer(option(p, 1))).inOrder()
     }
 
     @Test

@@ -202,21 +202,21 @@ class HeroStateSheetTest {
         wasp.performTouchInput { longClick() }
         compose.waitForIdle()
         assertThat(tapped).isNull()
-        compose.onAllNodes(hasText("Open information (p.4)")).onFirst().assertExists()
+        compose.onAllNodes(hasText("Open information", substring = true)).onFirst().assertExists()
         assertThat(words()).contains("+1 Defense")
     }
 
     @Test
-    fun `TalkBack - a hero's space has the custom action Show Wasp's game state`() {
+    fun `TalkBack - a hero's space has the custom action Open Wasp's state`() {
         show(play(targeting()))
         val wasp = compose.onAllNodes(
             hasContentDescription("Wasp, ", substring = true) and hasContentDescription("option", substring = true),
         )
             .onFirst()
         val actions = wasp.fetchSemanticsNode().config[SemanticsActions.CustomActions]
-        assertThat(actions.map { it.label }).contains("Show Wasp's game state")
-        compose.runOnUiThread { actions.first { it.label == "Show Wasp's game state" }.action() }
+        assertThat(actions.map { it.label }).contains("Open Wasp's state")
+        compose.runOnUiThread { actions.first { it.label == "Open Wasp's state" }.action() }
         compose.waitForIdle()
-        compose.onAllNodes(hasText("Open information (p.4)")).onFirst().assertExists()
+        compose.onAllNodes(hasText("Open information", substring = true)).onFirst().assertExists()
     }
 }

@@ -14,33 +14,46 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.selectableGroup
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.CheckBox
 import androidx.compose.material.icons.filled.EmojiEvents
+import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.outlined.Add
+import androidx.compose.material.icons.outlined.ArrowDropDown
 import androidx.compose.material.icons.outlined.CalendarMonth
+import androidx.compose.material.icons.outlined.CheckBoxOutlineBlank
 import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.outlined.Delete
+import androidx.compose.material.icons.outlined.Edit
+import androidx.compose.material.icons.outlined.EmojiEvents
 import androidx.compose.material.icons.outlined.ErrorOutline
 import androidx.compose.material.icons.outlined.EventBusy
-import androidx.compose.material.icons.outlined.Hexagon
 import androidx.compose.material.icons.outlined.People
+import androidx.compose.material.icons.outlined.Person
 import androidx.compose.material.icons.outlined.Schedule
 import androidx.compose.material.icons.outlined.SwapVert
 import androidx.compose.material3.AssistChip
@@ -48,17 +61,11 @@ import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDefaults
 import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FilterChip
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.SegmentedButton
-import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.SelectableDates
-import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TimePicker
@@ -73,44 +80,60 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.rotate
+import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.onClick
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import dev.quinton.goa.core.designsystem.component.BannerTextButton
+import dev.quinton.goa.core.designsystem.component.ChipIconSize
 import dev.quinton.goa.core.designsystem.component.EmptyState
 import dev.quinton.goa.core.designsystem.component.GoaButton
 import dev.quinton.goa.core.designsystem.component.GoaDialog
+import dev.quinton.goa.core.designsystem.component.GoaFilterChip
+import dev.quinton.goa.core.designsystem.component.GoaOutlinedButton
 import dev.quinton.goa.core.designsystem.component.GoaPlate
+import dev.quinton.goa.core.designsystem.component.GoaPlateTheme
 import dev.quinton.goa.core.designsystem.component.GoaScreen
+import dev.quinton.goa.core.designsystem.component.GoaSegment
+import dev.quinton.goa.core.designsystem.component.GoaSegmentedRow
 import dev.quinton.goa.core.designsystem.component.HeroPortrait
+import dev.quinton.goa.core.designsystem.component.PlateRowDivider
 import dev.quinton.goa.core.designsystem.component.PlateShape
-import dev.quinton.goa.core.designsystem.component.PlayerAvatar
+import dev.quinton.goa.core.designsystem.component.SelectablePlate
+import dev.quinton.goa.core.designsystem.component.SelectionMark
 import dev.quinton.goa.core.designsystem.component.TeamBadge
+import dev.quinton.goa.core.designsystem.component.scaledIconSize
+import dev.quinton.goa.core.designsystem.component.slatePlate
 import dev.quinton.goa.core.designsystem.component.teamColor
+import dev.quinton.goa.core.designsystem.component.teamTextColor
+import dev.quinton.goa.core.designsystem.icon.Destination
+import dev.quinton.goa.core.designsystem.icon.icon
+import dev.quinton.goa.core.designsystem.theme.GoaTheme
 import dev.quinton.goa.core.designsystem.theme.Spacing
 import dev.quinton.goa.core.domain.match.RematchKind
 import dev.quinton.goa.core.model.match.GameMode
 import dev.quinton.goa.core.model.match.MatchStatus
 import dev.quinton.goa.core.model.match.Team
 import dev.quinton.goa.core.model.match.WinCondition
+import dev.quinton.goa.core.model.player.Player
 import dev.quinton.goa.feature.players.common.Dates
 import dev.quinton.goa.feature.players.common.EdgedPlate
 import dev.quinton.goa.feature.players.common.LARGE_FONT_SCALE
 import dev.quinton.goa.feature.players.common.LoadingState
 import dev.quinton.goa.feature.players.common.Motion
-import dev.quinton.goa.feature.players.common.Pill
 import dev.quinton.goa.feature.players.common.SectionHeader
-import dev.quinton.goa.feature.players.common.goaFilterChipColors
-import dev.quinton.goa.feature.players.common.goaSegmentedColors
 import dev.quinton.goa.feature.players.common.label
 import java.time.Instant
 import java.time.LocalDate
@@ -171,11 +194,7 @@ fun MatchEditScreen(state: MatchEditUiState, actions: MatchEditActions, modifier
         },
         modifier = modifier,
         onBack = requestBack,
-        actions = {
-            if (!state.loading && !state.notFound && saved == null) {
-                BannerTextButton("Save", onClick = actions.onSave, enabled = !state.saving)
-            }
-        },
+        // No Save in the banner: the form ends with the bronze Save pinned under it, as every flow does.
     ) { padding ->
         when {
             state.loading -> LoadingState(Modifier.padding(padding))
@@ -285,97 +304,138 @@ private fun MatchFormContent(
     val scroll = rememberScrollState()
     // A failed save shows the error card at the top: bring it into view (the Save button is at the bottom).
     LaunchedEffect(state.saveAttempts) { if (state.saveAttempts > 0) scroll.animateScrollTo(0) }
-    Column(
-        modifier
-            .fillMaxSize()
-            .imePadding()
-            .verticalScroll(scroll)
-            .padding(horizontal = Spacing.screen)
-            .padding(bottom = Spacing.xxl),
-    ) {
-        AnimatedVisibility(
-            visible = state.showErrors && state.errors.isNotEmpty(),
-            enter = fadeIn(Motion.spec()) + expandVertically(Motion.spec()),
-            exit = fadeOut(Motion.spec()) + shrinkVertically(Motion.spec()),
+    Column(modifier.fillMaxSize().imePadding()) {
+        Column(
+            Modifier
+                .weight(1f)
+                .fillMaxWidth()
+                .verticalScroll(scroll)
+                .padding(horizontal = Spacing.screen)
+                .padding(bottom = Spacing.xl),
         ) {
-            ErrorCard(state.errors.map { it.message })
+            MatchFormFields(state, actions, onPickHero, onPickPilot, onDelete)
         }
-        if (state.resultFirst) {
-            // "Who won?": the two answers the table has right now, then everything else.
-            WinnerAndCondition(state, actions, showHeader = false)
+        SaveBar(state, actions)
+    }
+}
+
+/**
+ * The bronze Save, pinned under the form so it is always in reach: it says what it saves ("Save result") and
+ * stays off until the form can be saved, with the reason under it ("Choose the winning team…").
+ */
+@Composable
+private fun SaveBar(state: MatchEditUiState, actions: MatchEditActions) {
+    val form = state.form
+    val reason = state.errors.firstOrNull()?.message?.let { first ->
+        if (state.errors.size > 1) "$first (and ${state.errors.size - 1} more)" else first
+    }
+    GoaPlateTheme {
+        Column(
+            Modifier
+                .fillMaxWidth()
+                .slatePlate(RectangleShape, brackets = false)
+                .navigationBarsPadding()
+                .padding(horizontal = Spacing.screen, vertical = Spacing.md),
+            verticalArrangement = Arrangement.spacedBy(Spacing.xs),
+        ) {
+            GoaButton(
+                onClick = actions.onSave,
+                enabled = !state.saving && reason == null,
+                modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp),
+            ) {
+                Text(
+                    when {
+                        state.resultFirst && form.status == MatchStatus.COMPLETED -> "Save result"
+                        state.isNew -> "Save match"
+                        else -> "Save changes"
+                    },
+                    style = MaterialTheme.typography.titleMedium,
+                )
+            }
+            if (reason != null) {
+                Text(
+                    reason,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun ColumnScope.MatchFormFields(
+    state: MatchEditUiState,
+    actions: MatchEditActions,
+    onPickHero: (Team, Long) -> Unit,
+    onPickPilot: (Team, Long) -> Unit,
+    onDelete: () -> Unit,
+) {
+    val form = state.form
+    AnimatedVisibility(
+        visible = state.showErrors && state.errors.isNotEmpty(),
+        enter = fadeIn(Motion.spec()) + expandVertically(Motion.spec()),
+        exit = fadeOut(Motion.spec()) + shrinkVertically(Motion.spec()),
+    ) {
+        ErrorCard(state.errors.map { it.message })
+    }
+    if (state.resultFirst) {
+        // "Who won?": the two answers the table has right now, then both line-ups as short rosters (a seat opens
+        // only to be edited), then the optional rest folded under labelled rows.
+        WinnerAndCondition(state, actions, showHeader = false)
+        TeamsSection(state, actions, onPickHero, onPickPilot)
+        WhenSection(form, actions)
+        DetailsSection(form, actions)
+        FoldSection("Match status", form.status.label()) { StatusChoice(form, actions) }
+    } else {
+        if (state.fromDraft && form.status == MatchStatus.PENDING) {
             Text(
-                "Everything below is optional: check the seats, then save.",
+                "Created from a draft. Fill in the result when the game ends.",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(top = Spacing.md),
             )
-            TeamsSection(state, actions, onPickHero, onPickPilot)
-            WhenSection(form, actions)
-            DetailsSection(form, actions)
-            SectionHeader("Match status")
-            StatusChoice(form, actions)
-        } else {
-            if (state.fromDraft && form.status == MatchStatus.PENDING) {
-                Text(
-                    "Created from a draft. Fill in the result when the game ends.",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(top = Spacing.md),
-                )
-            }
-            WhenSection(form, actions)
-            TeamsSection(state, actions, onPickHero, onPickPilot)
-            SectionHeader("Result")
-            StatusChoice(form, actions)
-            AnimatedVisibility(
-                visible = form.status == MatchStatus.COMPLETED,
-                enter = fadeIn(Motion.spec()) + expandVertically(Motion.spec()),
-                exit = fadeOut(Motion.spec()) + shrinkVertically(Motion.spec()),
-            ) {
-                WinnerAndCondition(state, actions, showHeader = true)
-            }
-            DetailsSection(form, actions)
         }
-        val boardRed = form.seats(Team.RED).mapNotNull { it.heroId }
-        val boardBlue = form.seats(Team.BLUE).mapNotNull { it.heroId }
-        if (!state.isNew && (boardRed.isNotEmpty() || boardBlue.isNotEmpty())) {
-            OutlinedButton(
-                onClick = { actions.onOpenBoard(boardRed, boardBlue) },
-                modifier = Modifier.fillMaxWidth().padding(top = Spacing.lg).heightIn(min = 52.dp),
-            ) {
-                Icon(Icons.Outlined.Hexagon, contentDescription = null)
-                Spacer(Modifier.width(Spacing.sm))
-                Text("Open on the board")
-            }
-        }
-        Spacer(Modifier.size(Spacing.xl))
-        GoaButton(
-            onClick = actions.onSave,
-            enabled = !state.saving,
-            modifier = Modifier.fillMaxWidth().heightIn(min = 52.dp),
+        TeamsSection(state, actions, onPickHero, onPickPilot)
+        SectionHeader("Result")
+        StatusChoice(form, actions)
+        AnimatedVisibility(
+            visible = form.status == MatchStatus.COMPLETED,
+            enter = fadeIn(Motion.spec()) + expandVertically(Motion.spec()),
+            exit = fadeOut(Motion.spec()) + shrinkVertically(Motion.spec()),
         ) {
-            Text(
-                when {
-                    state.resultFirst && form.status == MatchStatus.COMPLETED -> "Save result"
-                    state.isNew -> "Save match"
-                    else -> "Save changes"
-                },
-            )
+            WinnerAndCondition(state, actions, showHeader = true)
         }
-        if (!state.isNew) {
-            TextButton(onClick = onDelete, modifier = Modifier.fillMaxWidth().padding(top = Spacing.sm)) {
-                Icon(Icons.Outlined.Delete, contentDescription = null, tint = MaterialTheme.colorScheme.error)
-                Spacer(Modifier.width(Spacing.sm))
-                Text("Delete match", color = MaterialTheme.colorScheme.error)
-            }
-        }
-        Text(
-            "Ratings recompute from the whole match log whenever a match is saved, edited or deleted.",
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.padding(top = Spacing.md),
-        )
+        WhenSection(form, actions)
+        DetailsSection(form, actions)
     }
+    val boardRed = form.seats(Team.RED).mapNotNull { it.heroId }
+    val boardBlue = form.seats(Team.BLUE).mapNotNull { it.heroId }
+    if (!state.isNew && (boardRed.isNotEmpty() || boardBlue.isNotEmpty())) {
+        GoaOutlinedButton(
+            onClick = { actions.onOpenBoard(boardRed, boardBlue) },
+            modifier = Modifier.fillMaxWidth().padding(top = Spacing.lg).heightIn(min = 52.dp),
+        ) {
+            Icon(Destination.BOARD.icon, contentDescription = null)
+            Spacer(Modifier.width(Spacing.sm))
+            Text("Open on the board")
+        }
+    }
+    if (!state.isNew) {
+        TextButton(onClick = onDelete, modifier = Modifier.fillMaxWidth().padding(top = Spacing.sm)) {
+            Icon(Icons.Outlined.Delete, contentDescription = null, tint = MaterialTheme.colorScheme.error)
+            Spacer(Modifier.width(Spacing.sm))
+            Text("Delete match", color = MaterialTheme.colorScheme.error)
+        }
+    }
+    Text(
+        "Ratings recompute from the whole match log whenever a match is saved, edited or deleted.",
+        style = MaterialTheme.typography.bodySmall,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        modifier = Modifier.padding(top = Spacing.md),
+    )
 }
 
 @Composable
@@ -388,28 +448,79 @@ private fun StatusChoice(form: MatchForm, actions: MatchEditActions) {
     )
 }
 
+/** Date, time, mode and map: optional, folded under one row that says what they are now. */
 @Composable
 private fun WhenSection(form: MatchForm, actions: MatchEditActions) {
-    SectionHeader("When and where")
-    WhenRow(form.playedAt, actions.onPlayedAt)
-    Spacer(Modifier.size(Spacing.md))
-    ChoiceRow(
-        options = GameMode.entries,
-        selected = form.mode,
-        label = { it.label() },
-        onSelect = actions.onMode,
-    )
-    Spacer(Modifier.size(Spacing.md))
-    // Free text: the mode above already says single or double lane.
-    OutlinedTextField(
-        value = form.map,
-        onValueChange = actions.onMap,
-        label = { Text("Map or table (optional)") },
-        singleLine = true,
-        keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Sentences),
-        modifier = Modifier.fillMaxWidth(),
-    )
+    val summary = listOfNotNull(
+        Dates.day(form.playedAt),
+        Dates.time(form.playedAt),
+        form.mode.label(),
+        form.map.takeIf { it.isNotBlank() },
+    ).joinToString(SUMMARY_SEPARATOR)
+    FoldSection("When and where", summary) {
+        WhenRow(form.playedAt, actions.onPlayedAt)
+        Spacer(Modifier.size(Spacing.md))
+        ChoiceRow(
+            options = GameMode.entries,
+            selected = form.mode,
+            label = { it.label() },
+            onSelect = actions.onMode,
+        )
+        Spacer(Modifier.size(Spacing.md))
+        // Free text: the mode above already says single or double lane.
+        OutlinedTextField(
+            value = form.map,
+            onValueChange = actions.onMap,
+            label = { Text("Map or table (optional)") },
+            singleLine = true,
+            keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Sentences),
+            modifier = Modifier.fillMaxWidth(),
+        )
+    }
 }
+
+private const val SUMMARY_SEPARATOR = " · "
+
+/**
+ * An optional part of the form folded under one labelled row: its name, what it holds now ([summary]) and a chevron.
+ * A hairline above it; it opens in place.
+ */
+@Composable
+private fun FoldSection(title: String, summary: String, content: @Composable ColumnScope.() -> Unit) {
+    var open by rememberSaveable(title) { mutableStateOf(false) }
+    Column(Modifier.fillMaxWidth().padding(top = Spacing.md).animateContentSize(Motion.spec())) {
+        PlateRowDivider()
+        Row(
+            Modifier
+                .fillMaxWidth()
+                .clickable(onClickLabel = if (open) "Hide $title" else "Show $title") { open = !open }
+                .semantics(mergeDescendants = true) {
+                    heading()
+                    stateDescription = if (open) "Expanded" else "Collapsed"
+                }
+                .heightIn(min = 56.dp)
+                .padding(vertical = Spacing.sm),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Column(Modifier.weight(1f)) {
+                Text(title, style = MaterialTheme.typography.titleSmall)
+                Text(
+                    summary,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+            Icon(
+                Icons.Filled.KeyboardArrowDown,
+                contentDescription = null,
+                modifier = Modifier.rotate(if (open) HALF_TURN else 0f),
+            )
+        }
+        if (open) Column(Modifier.padding(bottom = Spacing.sm)) { content() }
+    }
+}
+
+private const val HALF_TURN = 180f
 
 @Composable
 private fun TeamsSection(
@@ -448,44 +559,50 @@ private fun TeamsSection(
 private fun WinnerAndCondition(state: MatchEditUiState, actions: MatchEditActions, showHeader: Boolean) {
     val form = state.form
     Column {
-        Text(
-            if (showHeader) "Winner" else "Which team won?",
-            style = if (showHeader) MaterialTheme.typography.titleSmall else MaterialTheme.typography.titleMedium,
-            modifier = Modifier.padding(top = Spacing.lg, bottom = Spacing.sm),
-        )
-        Row(Modifier.selectableGroup(), horizontalArrangement = Arrangement.spacedBy(Spacing.md)) {
+        QuestionLabel(if (showHeader) "Winner" else "Which team won?", "Required", showHeader)
+        Row(
+            Modifier.selectableGroup().height(IntrinsicSize.Min),
+            horizontalArrangement = Arrangement.spacedBy(Spacing.md),
+        ) {
             Team.entries.forEach { team ->
                 WinnerOption(
                     team = team,
                     pilots = state.pilotNames(team),
                     selected = form.winner == team,
                     onClick = { actions.onWinner(team) },
-                    modifier = Modifier.weight(1f),
+                    modifier = Modifier.weight(1f).fillMaxHeight(),
                 )
             }
         }
-        Text(
-            if (showHeader) "Win condition" else "How did they win?",
-            style = if (showHeader) MaterialTheme.typography.titleSmall else MaterialTheme.typography.titleMedium,
-            modifier = Modifier.padding(top = Spacing.lg, bottom = Spacing.xs),
-        )
-        // One choice (tap again to clear): radio semantics, so TalkBack reads "selected" per chip.
-        FlowRow(Modifier.selectableGroup(), horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-            WinCondition.entries.forEach { condition ->
-                val selected = form.winCondition == condition
-                FilterChip(
-                    selected = selected,
-                    onClick = { actions.onWinCondition(if (selected) null else condition) },
-                    label = { Text(condition.label()) },
-                    leadingIcon = if (selected) {
-                        { Icon(Icons.Filled.Check, contentDescription = null, modifier = Modifier.size(18.dp)) }
-                    } else {
-                        null
-                    },
-                    colors = goaFilterChipColors(),
-                    // Outer semantics win over the chip's own Checkbox role.
-                    modifier = Modifier.heightIn(min = 48.dp).semantics { role = Role.RadioButton },
-                )
+        QuestionLabel(if (showHeader) "Win condition" else "How did they win?", "Optional", showHeader)
+        // One choice (tap again to clear): radio semantics, so TalkBack reads "selected" per chip. A grid of equal
+        // cells, two to a row, so no option sits alone on a line of its own.
+        Column(Modifier.selectableGroup(), verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+            WinCondition.entries.chunked(WIN_CONDITION_COLUMNS).forEach { line ->
+                Row(
+                    Modifier.height(IntrinsicSize.Min),
+                    horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+                ) {
+                    line.forEach { condition ->
+                        val selected = form.winCondition == condition
+                        // The winner cards' look and role (radio, selected), so the two questions read alike.
+                        SelectablePlate(
+                            selected = selected,
+                            onClick = { actions.onWinCondition(if (selected) null else condition) },
+                            mark = SelectionMark.None,
+                            contentPadding = PaddingValues(horizontal = Spacing.sm, vertical = Spacing.sm),
+                            modifier = Modifier.weight(1f).fillMaxHeight(),
+                        ) {
+                            Text(
+                                condition.label(),
+                                style = MaterialTheme.typography.labelLarge,
+                                textAlign = TextAlign.Center,
+                                modifier = Modifier.weight(1f),
+                            )
+                        }
+                    }
+                    repeat(WIN_CONDITION_COLUMNS - line.size) { Spacer(Modifier.weight(1f)) }
+                }
             }
         }
     }
@@ -493,25 +610,30 @@ private fun WinnerAndCondition(state: MatchEditUiState, actions: MatchEditAction
 
 @Composable
 private fun DetailsSection(form: MatchForm, actions: MatchEditActions) {
-    Spacer(Modifier.size(Spacing.md))
-    OutlinedTextField(
-        value = form.duration,
-        onValueChange = actions.onDuration,
-        label = { Text("Duration (minutes, optional)") },
-        singleLine = true,
-        leadingIcon = { Icon(Icons.Outlined.Schedule, contentDescription = null) },
-        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-        modifier = Modifier.fillMaxWidth(),
-    )
-    Spacer(Modifier.size(Spacing.md))
-    OutlinedTextField(
-        value = form.notes,
-        onValueChange = actions.onNotes,
-        label = { Text("Notes") },
-        minLines = 2,
-        keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Sentences),
-        modifier = Modifier.fillMaxWidth(),
-    )
+    val summary = listOfNotNull(
+        form.duration.takeIf { it.isNotBlank() }?.let { "$it min" },
+        "Notes".takeIf { form.notes.isNotBlank() },
+    ).joinToString(SUMMARY_SEPARATOR).ifEmpty { "Duration and notes, optional" }
+    FoldSection("Details", summary) {
+        OutlinedTextField(
+            value = form.duration,
+            onValueChange = actions.onDuration,
+            label = { Text("Duration (minutes, optional)") },
+            singleLine = true,
+            leadingIcon = { Icon(Icons.Outlined.Schedule, contentDescription = null) },
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+            modifier = Modifier.fillMaxWidth(),
+        )
+        Spacer(Modifier.size(Spacing.md))
+        OutlinedTextField(
+            value = form.notes,
+            onValueChange = actions.onNotes,
+            label = { Text("Notes") },
+            minLines = 2,
+            keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Sentences),
+            modifier = Modifier.fillMaxWidth(),
+        )
+    }
 }
 
 @Composable
@@ -622,6 +744,8 @@ private fun TeamEditor(
     modifier: Modifier = Modifier,
 ) {
     val seats = state.form.seats(team)
+    // Seats open one at a time, on demand: the roster stays a short list (hero, pilot, Handicap) until edited.
+    var expanded by remember { mutableStateOf(emptySet<Long>()) }
     val doublePilots = state.form.doublePilots(team)
     val duplicates = state.form.heroesInUse().groupingBy { it }.eachCount().filterValues { it > 1 }.keys
     val otherTeam = state.form.seats(team.opponent).mapNotNull { it.playerId }.toSet()
@@ -643,13 +767,15 @@ private fun TeamEditor(
     ) {
         Column {
             Row(Modifier.padding(start = Spacing.md), verticalAlignment = Alignment.CenterVertically) {
-                TeamBadge(team)
-                Text(
-                    "  ·  ${seats.size} ${if (seats.size == 1) "seat" else "seats"}",
-                    style = MaterialTheme.typography.labelLarge,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.weight(1f),
-                )
+                // The count goes under the team as a whole when large text leaves no room beside it.
+                FlowRow(Modifier.weight(1f), itemVerticalAlignment = Alignment.CenterVertically) {
+                    TeamBadge(team)
+                    Text(
+                        "  ·  ${seats.size} ${if (seats.size == 1) "seat" else "seats"}".replace(' ', ' '),
+                        style = MaterialTheme.typography.labelLarge,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
                 TextButton(
                     onClick = { actions.onAddSeat(team) },
                     enabled = seats.size < MAX_SEATS_PER_TEAM,
@@ -669,11 +795,19 @@ private fun TeamEditor(
                 )
             }
             seats.forEach { seat ->
-                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+                PlateRowDivider()
                 SeatEditor(
                     seat = seat,
                     state = state,
-                    doublePilot = seat.playerId != null && seat.playerId in doublePilots,
+                    expanded = seat.key in expanded,
+                    onToggleExpanded = {
+                        expanded = if (seat.key in expanded) expanded - seat.key else expanded + seat.key
+                    },
+                    pilotSeats = if (seat.playerId != null && seat.playerId in doublePilots) {
+                        seats.count { it.playerId == seat.playerId }
+                    } else {
+                        1
+                    },
                     problem = problems[seat.key],
                     onPickHero = { onPickHero(team, seat.key) },
                     onPickPilot = { onPickPilot(team, seat.key) },
@@ -685,11 +819,19 @@ private fun TeamEditor(
     }
 }
 
+/**
+ * One seat as a short roster line: the hero (a tap changes it), the pilot as a dropdown pill (a tap changes them, "×2"
+ * for a double pilot), a Handicap tag when the seat plays its Handicap card, and an edit button that opens the
+ * rest (the Handicap card, removing the seat) under the line.
+ */
 @Composable
 private fun SeatEditor(
     seat: SeatDraft,
     state: MatchEditUiState,
-    doublePilot: Boolean,
+    expanded: Boolean,
+    onToggleExpanded: () -> Unit,
+    /** How many of this team's seats the seat's pilot has (2 or more: a double pilot). */
+    pilotSeats: Int,
     problem: String?,
     onPickHero: () -> Unit,
     onPickPilot: () -> Unit,
@@ -699,7 +841,8 @@ private fun SeatEditor(
     val hero = state.heroOption(seat.heroId)
     val heroLabel = if (seat.heroId == null) "Unknown hero" else state.heroName(seat.heroId)
     val pilot = seat.playerId?.let { state.playersById[it] }
-    Column(Modifier.padding(start = Spacing.md, top = Spacing.sm, bottom = Spacing.sm)) {
+    val large = LocalDensity.current.fontScale >= LARGE_FONT_SCALE
+    Column(Modifier.padding(start = Spacing.md, top = Spacing.xs, bottom = Spacing.xs)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Row(
                 Modifier
@@ -713,70 +856,96 @@ private fun SeatEditor(
                     seat.heroId ?: "?",
                     hero?.portrait,
                     contentDescription = null,
-                    modifier = Modifier.size(48.dp),
+                    modifier = Modifier.size(40.dp),
                 )
-                Spacer(Modifier.width(Spacing.md))
+                Spacer(Modifier.width(Spacing.sm))
                 Column {
                     Text(
-                        heroLabel,
-                        style = MaterialTheme.typography.titleMedium,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
+                        if (seat.heroId == null) "Choose hero" else heroLabel,
+                        style = MaterialTheme.typography.titleSmall,
+                        maxLines = 2,
                         color = if (seat.heroId == null) {
                             MaterialTheme.colorScheme.onSurfaceVariant
                         } else {
                             MaterialTheme.colorScheme.onSurface
                         },
                     )
-                    Text(
-                        hero?.title ?: "Tap to choose",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                    )
+                    if (seat.handicap) HandicapTag()
                 }
             }
-            IconButton(onClick = onRemove) {
-                Icon(Icons.Outlined.Close, contentDescription = "Remove seat: $heroLabel")
+            if (!large) {
+                Spacer(Modifier.width(Spacing.xs))
+                PilotPill(pilot, pilotSeats, error = problem == "Choose a pilot", onClick = onPickPilot)
+            }
+            IconButton(onClick = onToggleExpanded) {
+                Icon(
+                    if (expanded) Icons.Filled.KeyboardArrowUp else Icons.Outlined.Edit,
+                    contentDescription = if (expanded) "Done editing $heroLabel" else "Edit seat: $heroLabel",
+                )
             }
         }
-        FlowRow(
-            Modifier.padding(top = Spacing.xs, end = Spacing.md),
-            horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
-            verticalArrangement = Arrangement.spacedBy(Spacing.xs),
-            itemVerticalAlignment = Alignment.CenterVertically,
-        ) {
-            AssistChip(
+        // Large text: the pilot goes under the hero, so neither name breaks mid-word.
+        if (large) {
+            PilotPill(
+                pilot,
+                pilotSeats,
+                error = problem == "Choose a pilot",
                 onClick = onPickPilot,
-                label = { Text(pilot?.name ?: "Choose pilot", maxLines = 1, overflow = TextOverflow.Ellipsis) },
-                leadingIcon = {
-                    if (pilot != null) {
-                        PlayerAvatar(pilot, size = 24.dp)
-                    } else {
-                        Icon(Icons.Outlined.People, contentDescription = null)
-                    }
-                },
-                modifier = Modifier.heightIn(min = 48.dp).semantics {
-                    contentDescription = "Pilot: ${pilot?.name ?: "none"}. Change pilot"
-                },
+                modifier = Modifier.padding(start = 48.dp, end = Spacing.md, bottom = Spacing.xs),
             )
-            FilterChip(
-                selected = seat.handicap,
-                onClick = onToggleHandicap,
-                label = { Text("Handicap") },
-                leadingIcon = if (seat.handicap) {
-                    { Icon(Icons.Filled.Check, contentDescription = null, modifier = Modifier.size(18.dp)) }
-                } else {
-                    null
-                },
-                colors = goaFilterChipColors(),
-                modifier = Modifier.heightIn(min = 48.dp).semantics {
-                    contentDescription = "Handicap card for $heroLabel"
-                },
-            )
-            if (doublePilot) {
-                Pill("Double pilot", icon = Icons.Outlined.People)
+        }
+        if (expanded) {
+            FlowRow(
+                Modifier.padding(top = Spacing.xs, end = Spacing.md, bottom = Spacing.xs),
+                horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+                verticalArrangement = Arrangement.spacedBy(Spacing.xs),
+                itemVerticalAlignment = Alignment.CenterVertically,
+            ) {
+                GoaFilterChip(
+                    selected = seat.handicap,
+                    onClick = onToggleHandicap,
+                    modifier = Modifier.heightIn(min = 48.dp).semantics {
+                        contentDescription = "Handicap card for $heroLabel"
+                    },
+                    leadingIcon = {
+                        Icon(
+                            if (seat.handicap) Icons.Filled.CheckBox else Icons.Outlined.CheckBoxOutlineBlank,
+                            contentDescription = null,
+                            modifier = Modifier.size(scaledIconSize(ChipIconSize)),
+                        )
+                    },
+                ) { Text("Handicap card") }
+                TextButton(
+                    onClick = onRemove,
+                    modifier = Modifier.heightIn(min = 48.dp).semantics {
+                        contentDescription = "Remove seat: $heroLabel"
+                    },
+                ) {
+                    Icon(
+                        Icons.Outlined.Close,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.error,
+                        modifier = Modifier.size(18.dp),
+                    )
+                    Spacer(Modifier.width(Spacing.xs))
+                    Text("Remove seat", color = MaterialTheme.colorScheme.error)
+                }
+            }
+            if (pilotSeats > 1 && pilot != null) {
+                Row(Modifier.padding(bottom = Spacing.xs), verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                        Icons.Outlined.People,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.size(scaledIconSize(16.dp)),
+                    )
+                    Spacer(Modifier.width(Spacing.xs))
+                    Text(
+                        "${pilot.name} pilots $pilotSeats heroes",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
             }
         }
         if (problem != null) {
@@ -784,19 +953,102 @@ private fun SeatEditor(
                 problem,
                 style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.error,
-                modifier = Modifier.padding(top = Spacing.xs),
+                modifier = Modifier.padding(bottom = Spacing.xs),
             )
         }
     }
 }
+
+/** "Handicap" under the hero's name: this seat plays its Handicap card. */
+@Composable
+private fun HandicapTag() {
+    Text(
+        "Handicap",
+        style = MaterialTheme.typography.labelMedium,
+        color = MaterialTheme.colorScheme.onSurface,
+        maxLines = 1,
+        softWrap = false,
+        modifier = Modifier
+            .padding(top = 2.dp)
+            .border(1.dp, GoaTheme.colors.selection, RoundedCornerShape(4.dp))
+            .padding(horizontal = Spacing.xs),
+    )
+}
+
+/**
+ * The seat's pilot as a dropdown pill ("Ann ▾", "Ann ×2" for a double pilot); a tap opens the pilot picker.
+ * One TalkBack node ("Pilot: Ann. Change pilot").
+ */
+@Composable
+private fun PilotPill(
+    pilot: Player?,
+    seats: Int,
+    error: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val colors = MaterialTheme.colorScheme
+    val shape = RoundedCornerShape(8.dp)
+    Row(
+        modifier
+            .widthIn(max = scaledIconSize(PILOT_PILL_MAX, PILOT_PILL_SCALE))
+            .heightIn(min = 48.dp)
+            .clip(shape)
+            .border(1.dp, if (error) colors.error else colors.outline, shape)
+            .clickable(onClickLabel = "Change pilot", role = Role.DropdownList, onClick = onClick)
+            .clearAndSetSemantics {
+                contentDescription = "Pilot: ${pilot?.name ?: "none"}. Change pilot"
+                if (seats > 1) stateDescription = "Pilots $seats heroes"
+                role = Role.DropdownList
+                onClick(label = "Change pilot") {
+                    onClick()
+                    true
+                }
+            }
+            .padding(start = Spacing.sm, end = Spacing.xs),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Icon(
+            Icons.Outlined.Person,
+            contentDescription = null,
+            tint = colors.onSurfaceVariant,
+            modifier = Modifier.size(scaledIconSize(18.dp)),
+        )
+        Spacer(Modifier.width(Spacing.xs))
+        Text(
+            pilot?.name ?: "Choose pilot",
+            style = MaterialTheme.typography.bodyMedium,
+            color = when {
+                error -> colors.error
+                pilot == null -> colors.onSurfaceVariant
+                else -> colors.onSurface
+            },
+            maxLines = 2,
+            modifier = Modifier.weight(1f, fill = false),
+        )
+        if (seats > 1) {
+            Text(
+                " ×$seats",
+                style = MaterialTheme.typography.labelLarge,
+                color = colors.onSurfaceVariant,
+            )
+        }
+        Icon(Icons.Outlined.ArrowDropDown, contentDescription = null, tint = colors.onSurface)
+    }
+}
+
+/** Room for a name like "Kit Featherstone" beside the glyph and the ▾; it grows with the text up to 1.5×. */
+private val PILOT_PILL_MAX = 150.dp
+private const val PILOT_PILL_SCALE = 1.5f
 
 /** The team's pilots in seat order, each once (a double pilot sits twice). */
 private fun MatchEditUiState.pilotNames(team: Team): List<String> =
     form.seats(team).mapNotNull { seat -> seat.playerId?.let { playersById[it]?.name } }.distinct()
 
 /**
- * "Red won" with the team's pilots under it, so the table confirms who it is crediting at a
- * glance (the seats themselves are further down the form).
+ * "Red won" as a radio card: an empty trophy outline until chosen, then a bronze trophy and the bronze selection
+ * frame (bronze is selected; the team keeps its own mark and colour in the words). The team's pilots under it, so
+ * the table confirms who it is crediting at a glance (the seats themselves are further down the form).
  */
 @Composable
 private fun WinnerOption(
@@ -806,48 +1058,39 @@ private fun WinnerOption(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    EdgedPlate(
+    SelectablePlate(
+        selected = selected,
+        onClick = onClick,
+        mark = SelectionMark.None,
         modifier = modifier
-            .heightIn(min = 64.dp)
-            .selectable(selected = selected, role = Role.RadioButton, onClick = onClick)
+            .heightIn(min = 72.dp)
             .semantics {
                 contentDescription = "${team.label()} won" +
                     if (pilots.isEmpty()) "" else ": ${pilots.joinToString(", ")}"
             },
-        fill = { if (selected) teamColor(team).copy(alpha = 0.18f) else Color.Transparent },
-        edge = {
-            BorderStroke(
-                if (selected) 2.dp else 1.dp,
-                if (selected) teamColor(team) else MaterialTheme.colorScheme.outlineVariant,
-            )
-        },
     ) {
-        val color = teamColor(team)
-        Column(Modifier.padding(Spacing.md), horizontalAlignment = Alignment.CenterHorizontally) {
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.Center) {
+        Icon(
+            if (selected) Icons.Filled.EmojiEvents else Icons.Outlined.EmojiEvents,
+            contentDescription = null,
+            tint = if (selected) GoaTheme.colors.selection else MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.size(28.dp),
+        )
+        Spacer(Modifier.width(Spacing.sm))
+        Column(Modifier.weight(1f)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
                 TeamBadge(team)
                 Text(
                     " won",
                     style = MaterialTheme.typography.labelLarge,
-                    color = color,
+                    color = teamTextColor(team),
                     fontWeight = FontWeight.SemiBold,
                 )
-                if (selected) {
-                    Spacer(Modifier.width(Spacing.sm))
-                    Icon(
-                        Icons.Filled.EmojiEvents,
-                        contentDescription = null,
-                        tint = color,
-                        modifier = Modifier.size(20.dp),
-                    )
-                }
             }
             if (pilots.isNotEmpty()) {
                 Text(
                     pilots.joinToString(" · "),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurface,
-                    textAlign = TextAlign.Center,
                     modifier = Modifier.padding(top = Spacing.xs),
                 )
             }
@@ -855,35 +1098,60 @@ private fun WinnerOption(
     }
 }
 
+/** A question on the form with whether it must be answered ("Required") or may be left ("Optional"). */
+@Composable
+private fun QuestionLabel(text: String, need: String, small: Boolean) {
+    Row(
+        Modifier.fillMaxWidth().padding(top = Spacing.lg, bottom = Spacing.sm),
+        verticalAlignment = Alignment.Bottom,
+    ) {
+        Text(
+            text,
+            style = if (small) MaterialTheme.typography.titleSmall else MaterialTheme.typography.titleMedium,
+            modifier = Modifier.weight(1f, fill = false).semantics { heading() },
+        )
+        Spacer(Modifier.width(Spacing.sm))
+        Text(
+            "· $need",
+            style = MaterialTheme.typography.labelMedium,
+            color = if (need == REQUIRED) GoaTheme.colors.selection else MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+    }
+}
+
+private const val REQUIRED = "Required"
+
+/** Win conditions two to a row: four equal cells. */
+private const val WIN_CONDITION_COLUMNS = 2
+
 /** Single choice: a segmented row, or wrapping chips when the font is large. */
 @Composable
 private fun <T> ChoiceRow(options: List<T>, selected: T, label: (T) -> String, onSelect: (T) -> Unit) {
     if (LocalDensity.current.fontScale >= LARGE_FONT_SCALE) {
-        FlowRow(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+        FlowRow(
+            horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+            verticalArrangement = Arrangement.spacedBy(Spacing.sm),
+        ) {
             options.forEach { option ->
                 val isSelected = option == selected
-                FilterChip(
+                GoaFilterChip(
                     selected = isSelected,
                     onClick = { onSelect(option) },
-                    label = { Text(label(option)) },
+                    modifier = Modifier.heightIn(min = 48.dp),
                     leadingIcon = if (isSelected) {
                         { Icon(Icons.Filled.Check, contentDescription = null, modifier = Modifier.size(18.dp)) }
                     } else {
                         null
                     },
-                    colors = goaFilterChipColors(),
-                    modifier = Modifier.heightIn(min = 48.dp),
-                )
+                ) { Text(label(option)) }
             }
         }
     } else {
-        SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth()) {
+        GoaSegmentedRow(Modifier.fillMaxWidth()) {
             options.forEachIndexed { i, option ->
-                SegmentedButton(
+                GoaSegment(
                     selected = option == selected,
                     onClick = { onSelect(option) },
-                    shape = SegmentedButtonDefaults.itemShape(i, options.size),
-                    colors = goaSegmentedColors(),
                 ) { Text(label(option), maxLines = 1) }
             }
         }

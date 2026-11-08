@@ -274,16 +274,8 @@ class PuzzleScreenshotTest {
 
     // ---- The list --------------------------------------------------------------------------
 
-    private fun listProgress(): Map<String, PuzzleProgress> {
-        val ids = realPuzzleBook.puzzles.map { it.id }
-        return buildMap {
-            ids.getOrNull(0)?.let { put(it, PuzzleProgress(solved = true, solvedAt = 1, attempts = 1)) }
-            ids.getOrNull(1)?.let { put(it, PuzzleProgress(attempts = 3, nudgesUsed = 2, solutionShown = true)) }
-        }
-    }
-
     @Composable
-    private fun ListScreen(progress: Map<String, PuzzleProgress> = listProgress()) {
+    private fun ListScreen(progress: Map<String, PuzzleProgress> = screenshotPuzzleProgress()) {
         val vm = remember {
             PuzzleListViewModel(FakeCatalogRepository(bundledCatalog), FakePuzzleProgressRepository(progress)) {
                 realPuzzleBook

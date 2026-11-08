@@ -1,10 +1,10 @@
 package dev.quinton.goa.feature.players.meta
 
-import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -15,19 +15,13 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.outlined.Insights
 import androidx.compose.material.icons.outlined.Tune
-import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.SegmentedButton
-import androidx.compose.material3.SegmentedButtonDefaults
-import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -45,6 +39,9 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import dev.quinton.goa.core.designsystem.component.EmptyState
+import dev.quinton.goa.core.designsystem.component.GoaFilterChip
+import dev.quinton.goa.core.designsystem.component.GoaSegment
+import dev.quinton.goa.core.designsystem.component.GoaSegmentedRow
 import dev.quinton.goa.core.designsystem.component.HeroPortrait
 import dev.quinton.goa.core.designsystem.component.PlayerAvatar
 import dev.quinton.goa.core.designsystem.component.TeamBadge
@@ -63,8 +60,6 @@ import dev.quinton.goa.feature.players.common.SectionHeader
 import dev.quinton.goa.feature.players.common.StatRow
 import dev.quinton.goa.feature.players.common.formatPercent
 import dev.quinton.goa.feature.players.common.formatRating
-import dev.quinton.goa.feature.players.common.goaFilterChipColors
-import dev.quinton.goa.feature.players.common.goaSegmentedColors
 import dev.quinton.goa.feature.players.common.label
 import dev.quinton.goa.feature.players.common.plural
 import dev.quinton.goa.feature.players.common.spokenRecord
@@ -82,8 +77,9 @@ data class MetaActions(
 )
 
 /**
- * Meta dashboard: the last game night, how games end, sides and length, the hero ranking (compact
- * sortable table or cards, Wilson-ranked), rivalries and duos, hero pairs. All from the match log.
+ * Meta dashboard: the hero ranking first (compact sortable table or cards, Wilson-ranked), then the group's
+ * summary (totals, the last game night, how games end, sides and length), rivalries and duos, hero pairs. All from
+ * the match log.
  */
 @Composable
 fun MetaContent(state: MetaUiState, actions: MetaActions, modifier: Modifier = Modifier) {
@@ -102,30 +98,6 @@ fun MetaContent(state: MetaUiState, actions: MetaActions, modifier: Modifier = M
             modifier = modifier.fillMaxSize(),
             contentPadding = PaddingValues(start = Spacing.screen, end = Spacing.screen, bottom = Spacing.xxl),
         ) {
-            item(key = "summary") {
-                StatRow(
-                    listOf(
-                        state.totalMatches.toString() to "Rated matches",
-                        state.draftsWithBans.toString() to "Drafts with bans",
-                        (if (state.largerTeam.games == 0) "—" else formatPercent(state.largerTeam.winRate)) to
-                            (
-                                "Larger team won" + if (state.largerTeam.games >
-                                    0
-                                ) {
-                                    " (${state.largerTeam.games})"
-                                } else {
-                                    ""
-                                }
-                                ),
-                    ),
-                    Modifier.padding(top = Spacing.md),
-                )
-            }
-            state.night?.let { night -> item(key = "night") { GameNightCard(night, state.streaks) } }
-            if (state.winConditions.total > 0) {
-                item(key = "h-games") { SectionHeader("How games end") }
-                item(key = "games") { GamesCard(state) }
-            }
             item(key = "h-heroes") { HeroHeader(state, actions) }
             if (state.view == MetaView.TABLE) {
                 item(key = "table") { HeroCompactTable(state) }
@@ -144,6 +116,30 @@ fun MetaContent(state: MetaUiState, actions: MetaActions, modifier: Modifier = M
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(top = Spacing.md),
                 )
+            }
+            item(key = "h-summary") { SectionHeader("Group summary") }
+            item(key = "summary") {
+                StatRow(
+                    listOf(
+                        state.totalMatches.toString() to "Rated matches",
+                        state.draftsWithBans.toString() to "Drafts with bans",
+                        (if (state.largerTeam.games == 0) "—" else formatPercent(state.largerTeam.winRate)) to
+                            (
+                                "Larger team won" + if (state.largerTeam.games >
+                                    0
+                                ) {
+                                    " (${state.largerTeam.games})"
+                                } else {
+                                    ""
+                                }
+                                ),
+                    ),
+                )
+            }
+            state.night?.let { night -> item(key = "night") { GameNightCard(night, state.streaks) } }
+            if (state.winConditions.total > 0) {
+                item(key = "h-games") { SectionHeader("How games end") }
+                item(key = "games") { GamesCard(state) }
             }
             if (state.rivals.isNotEmpty()) {
                 item(key = "h-rivals") { SectionHeader("Rivalries") }
@@ -324,7 +320,7 @@ fun WinConditionBars(mix: WinConditionMix, modifier: Modifier = Modifier) {
 
 @Composable
 private fun HeroHeader(state: MetaUiState, actions: MetaActions) {
-    Column(Modifier.padding(top = Spacing.lg)) {
+    Column(Modifier.padding(top = Spacing.md)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text(
                 "Hero ranking",
@@ -332,39 +328,30 @@ private fun HeroHeader(state: MetaUiState, actions: MetaActions) {
                 color = GoaTheme.colors.heading,
                 modifier = Modifier.weight(1f).semantics { heading() },
             )
-            SingleChoiceSegmentedButtonRow {
-                MetaView.entries.forEachIndexed { i, view ->
-                    SegmentedButton(
+            // As wide as its two words: the heading keeps the rest of the line.
+            GoaSegmentedRow(Modifier.width(IntrinsicSize.Max)) {
+                MetaView.entries.forEach { view ->
+                    GoaSegment(
                         selected = state.view == view,
                         onClick = { actions.onView(view) },
-                        shape = SegmentedButtonDefaults.itemShape(i, MetaView.entries.size),
-                        colors = goaSegmentedColors(),
                         icon = {},
                     ) { Text(if (view == MetaView.TABLE) "Table" else "Cards", maxLines = 1) }
                 }
             }
         }
         if (state.view == MetaView.TABLE) {
-            Row(
-                Modifier.horizontalScroll(rememberScrollState()).padding(vertical = Spacing.sm),
+            // Six sorts wrap onto a second line rather than hide past the edge.
+            FlowRow(
+                Modifier.padding(vertical = Spacing.sm),
                 horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+                verticalArrangement = Arrangement.spacedBy(Spacing.sm),
             ) {
                 HeroSort.entries.forEach { sort ->
-                    val selected = state.sort == sort
-                    FilterChip(
-                        selected = selected,
+                    GoaFilterChip(
+                        selected = state.sort == sort,
                         onClick = { actions.onSort(sort) },
-                        label = { Text(sort.label) },
-                        leadingIcon = if (selected) {
-                            { Icon(Icons.Filled.Check, contentDescription = null, modifier = Modifier.size(18.dp)) }
-                        } else {
-                            null
-                        },
-                        colors = goaFilterChipColors(),
-                        modifier = Modifier.heightIn(min = 48.dp).semantics {
-                            contentDescription =
-                                "Sort by ${sort.label}"
-                        },
+                        label = sort.label,
+                        modifier = Modifier.semantics { contentDescription = "Sort by ${sort.label}" },
                     )
                 }
             }

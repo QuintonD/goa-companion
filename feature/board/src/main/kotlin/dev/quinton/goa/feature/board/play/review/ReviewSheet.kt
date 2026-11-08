@@ -2,22 +2,28 @@ package dev.quinton.goa.feature.board.play.review
 
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Dashboard
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Modifier
 import dev.quinton.goa.feature.board.board.BoardSheet
 import dev.quinton.goa.feature.board.play.game.PlaySheet
 import dev.quinton.goa.feature.board.play.table.TableUi
+import dev.quinton.goa.feature.board.ui.BarLabelButton
 import dev.quinton.goa.feature.board.ui.cards.CardFocusState
 
-/** The top bar's way into the review: one tap from the game and the puzzle screens. */
+/**
+ * The top bar's way into the review: one tap from the game and the puzzle screens, "State" under its glyph (the
+ * same glyph as the game's More menu gives it on a narrow phone).
+ */
 @Composable
 fun ReviewButton(onClick: () -> Unit, modifier: Modifier = Modifier) {
-    IconButton(onClick = onClick, modifier = modifier) {
-        Icon(Icons.Outlined.Dashboard, contentDescription = "Game state: cards played, turns, the board")
-    }
+    BarLabelButton(
+        "State",
+        Icons.Outlined.Dashboard,
+        onClick = onClick,
+        modifier = modifier,
+        description = "Game state: cards played, turns, the board",
+    )
 }
 
 /**

@@ -14,18 +14,23 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -46,34 +51,35 @@ import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.onClick
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import dev.quinton.goa.core.designsystem.cardtext.CardTextView
 import dev.quinton.goa.core.designsystem.cardtext.GameIcon
 import dev.quinton.goa.core.designsystem.cardtext.GameIcons
 import dev.quinton.goa.core.designsystem.cardtext.cardTextAnnotated
 import dev.quinton.goa.core.designsystem.component.CARD_ASPECT
 import dev.quinton.goa.core.designsystem.component.CardScan
+import dev.quinton.goa.core.designsystem.component.CardTitle
+import dev.quinton.goa.core.designsystem.component.CardTitleSize
 import dev.quinton.goa.core.designsystem.component.GoaPlate
 import dev.quinton.goa.core.designsystem.component.GoaPlateTheme
+import dev.quinton.goa.core.designsystem.component.HERO_RATINGS_TITLE
+import dev.quinton.goa.core.designsystem.component.HeroRatingsNote
+import dev.quinton.goa.core.designsystem.component.HeroStatBlock
 import dev.quinton.goa.core.designsystem.component.LARGE_FONT_SCALE
-import dev.quinton.goa.core.designsystem.component.OfficialArt
-import dev.quinton.goa.core.designsystem.component.OfficialIcon
 import dev.quinton.goa.core.designsystem.component.PlateColor
 import dev.quinton.goa.core.designsystem.component.SectionHeader
+import dev.quinton.goa.core.designsystem.component.SubHeader
 import dev.quinton.goa.core.designsystem.component.cardColor
 import dev.quinton.goa.core.designsystem.component.slatePlate
-import dev.quinton.goa.core.designsystem.theme.GoaTextStyles
 import dev.quinton.goa.core.designsystem.theme.Spacing
 import dev.quinton.goa.core.domain.catalog.DeckGroup
 import dev.quinton.goa.core.domain.catalog.DeckGroupKind
 import dev.quinton.goa.core.domain.catalog.DeckLayout
-import dev.quinton.goa.core.domain.catalog.ProfileBar
 import dev.quinton.goa.core.domain.catalog.SPELLBOOK_NOTE
 import dev.quinton.goa.core.domain.catalog.StartZone
 import dev.quinton.goa.core.domain.catalog.StartingCards
@@ -96,69 +102,29 @@ import dev.quinton.goa.feature.catalog.ui.InitiativeBadge
 import dev.quinton.goa.feature.catalog.ui.ValueChip
 
 /**
- * The Hero Profile on a plate with the official item icons: each value as base → max, one value when
- * they are equal. The note says what the arrow means (the conditional part: level-up choices or card
- * text) and what the numbers are out of (1 "Very poor" to 8 "Exceptional").
+ * The Hero Profile on a plate with the official item icons, titled as what it is ("Hero ratings · 1–8"): each value
+ * as base → max, one value when they are equal, and the shared note under it (the arrow is the upgraded rating; these
+ * are comparative ratings, not numbers printed on a card). The draft's peek says the same (`HeroStatBlocks`).
  */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 internal fun StatPlate(stats: HeroStats, modifier: Modifier = Modifier) {
     val perRow = if (LocalDensity.current.fontScale > LARGE_FONT_SCALE) STATS_LARGE_FONT else STATS_PER_ROW
     GoaPlate(modifier.fillMaxWidth(), contentPadding = PaddingValues(Spacing.md)) {
+        SubHeader(HERO_RATINGS_TITLE)
         FlowRow(
             Modifier.fillMaxWidth(),
             maxItemsInEachRow = perRow,
             verticalArrangement = Arrangement.spacedBy(Spacing.md),
         ) {
-            stats.profileBars().forEach { bar -> StatCell(bar, Modifier.weight(1f)) }
+            stats.profileBars().forEach { bar -> HeroStatBlock(bar.stat, bar.range, Modifier.weight(1f)) }
         }
-        Text(
-            "Base → with level-ups and card text\n1 is very poor · 8 is exceptional",
-            style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            textAlign = TextAlign.Center,
-            modifier = Modifier.fillMaxWidth().padding(top = Spacing.sm),
-        )
-    }
-}
-
-@Composable
-private fun StatCell(bar: ProfileBar, modifier: Modifier = Modifier) {
-    val description = bar.spoken
-    Column(
-        modifier.clearAndSetSemantics { contentDescription = description },
-        horizontalAlignment = Alignment.CenterHorizontally,
-    ) {
-        OfficialIcon(
-            OfficialArt.itemIcon(bar.stat),
-            Modifier.size(width = STAT_ICON_WIDTH, height = STAT_ICON_HEIGHT),
-            fallback = {
-                Icon(
-                    GameIcons.forStat(bar.stat).vector,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.primary,
-                )
-            },
-        )
-        Text(
-            bar.rangeText,
-            style = GoaTextStyles.numeric.copy(fontSize = 16.sp, lineHeight = 22.sp),
-            fontWeight = FontWeight.SemiBold,
-            textAlign = TextAlign.Center,
-        )
-        Text(
-            bar.stat.label,
-            style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            textAlign = TextAlign.Center,
-        )
+        HeroRatingsNote(Modifier.padding(top = Spacing.sm), align = TextAlign.Center)
     }
 }
 
 private const val STATS_PER_ROW = 4
 private const val STATS_LARGE_FONT = 2
-private val STAT_ICON_WIDTH = 40.dp
-private val STAT_ICON_HEIGHT = 27.dp
 
 /** One deck colour (or Basic / Ultimate) with its tier rows. */
 @Composable
@@ -171,7 +137,7 @@ internal fun DeckGroupSection(group: DeckGroup, onCardClick: (Card) -> Unit, mod
             trailing = {
                 Text(
                     "${group.cards.size}",
-                    style = MaterialTheme.typography.labelMedium,
+                    style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             },
@@ -193,7 +159,7 @@ private fun MultipleGoldNote(cards: List<Card>) {
     val note = multipleGoldNote(cards) ?: return
     Text(
         note,
-        style = MaterialTheme.typography.bodySmall,
+        style = MaterialTheme.typography.bodyMedium,
         color = MaterialTheme.colorScheme.onSurfaceVariant,
         modifier = Modifier.padding(bottom = Spacing.sm),
     )
@@ -211,7 +177,7 @@ internal fun ExtrasSection(layout: DeckLayout, onCardClick: (Card) -> Unit, modi
             trailing = {
                 Text(
                     "${layout.extras.size} cards",
-                    style = MaterialTheme.typography.labelMedium,
+                    style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             },
@@ -219,7 +185,7 @@ internal fun ExtrasSection(layout: DeckLayout, onCardClick: (Card) -> Unit, modi
         if (spellbook) {
             Text(
                 SPELLBOOK_NOTE,
-                style = MaterialTheme.typography.bodySmall,
+                style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
@@ -242,14 +208,17 @@ internal fun ExtrasSection(layout: DeckLayout, onCardClick: (Card) -> Unit, modi
 
 /** Width ÷ height of a spellbook page scan (landscape, about 737 × 510). */
 private const val SPELL_ASPECT = 737f / 510f
-private val CARD_MIN_WIDTH = 100.dp
-private val SPELL_MIN_WIDTH = 150.dp
+
+/** Two cards across a phone held upright, each about 180 dp: big enough to read the printed numbers. */
+private val CARD_MIN_WIDTH = 160.dp
+private val SPELL_MIN_WIDTH = 160.dp
 
 /**
- * The official card scans in a grid: as many columns of at least [minWidth] as fit (three on a
- * phone held upright, a whole colour's five in a row on a wider screen), each card with its name
- * under it. The scan is the card (its values and text are printed on it); TalkBack hears the
- * card's full summary and text, and a tap opens the card viewer. A card without a scan shows the
+ * The official card scans in a grid: as many columns of at least [minWidth] as fit (two on a
+ * phone held upright, more on a wider screen), each card with its name under it. The scan is the
+ * card (its values and text are printed on it); TalkBack hears the card's full summary and text,
+ * a tap opens the card viewer, and press-and-hold shows the scan full screen until let go of
+ * (TalkBack: the "Show full screen" action; a tap closes it). A card without a scan shows the
  * designed tile instead.
  */
 @Composable
@@ -263,8 +232,9 @@ internal fun DeckCardGrid(
 ) {
     // Large text: wider cards, so a caption never breaks a word and the printed name reads.
     val scaledMin = minWidth * LocalDensity.current.fontScale.coerceIn(1f, MAX_WIDTH_SCALE)
+    var peek by remember { mutableStateOf<Card?>(null) }
     BoxWithConstraints(modifier.fillMaxWidth()) {
-        val gap = Spacing.sm
+        val gap = Spacing.md
         val columns = ((maxWidth + gap) / (scaledMin + gap)).toInt().coerceIn(1, MAX_COLUMNS)
         val cardWidth = (maxWidth - gap * (columns - 1)) / columns
         // From this width the name printed on the scan is readable: no caption repeats it.
@@ -273,20 +243,64 @@ internal fun DeckCardGrid(
             cards.chunked(columns).forEach { chunk ->
                 Row(horizontalArrangement = Arrangement.spacedBy(gap), verticalAlignment = Alignment.Top) {
                     chunk.forEach { card ->
-                        DeckCard(card, isHandicap, aspect, showName, onClick = {
-                            onCardClick(card)
-                        }, Modifier.weight(1f))
+                        DeckCard(
+                            card,
+                            isHandicap,
+                            aspect,
+                            showName,
+                            onClick = { onCardClick(card) },
+                            onHold = { peek = card },
+                            modifier = Modifier.weight(1f),
+                        )
                     }
                     repeat(columns - chunk.size) { Spacer(Modifier.weight(1f)) }
                 }
             }
         }
     }
+    peek?.let { card -> CardPeek(card, aspect, onDismiss = { peek = null }) }
 }
 
+/**
+ * A card's scan over the whole screen, on a dark veil, as large as the screen allows but never more than 1.6 times
+ * its own pixels (ADR-071). Opened by press-and-hold in the deck; a tap anywhere or Back closes it.
+ */
+@Composable
+private fun CardPeek(card: Card, aspect: Float, onDismiss: () -> Unit) {
+    val image = card.image ?: return
+    val density = LocalDensity.current
+    // The scan's own width (729 px a deck card, 737 a spellbook page) at most 1.6 times.
+    val most = with(density) { (SCAN_PIXELS * PEEK_MAX_ZOOM).toDp() }
+    Dialog(onDismissRequest = onDismiss, properties = DialogProperties(usePlatformDefaultWidth = false)) {
+        Box(
+            Modifier
+                .fillMaxSize()
+                .background(PEEK_VEIL)
+                .clickable(onClickLabel = "Close", role = Role.Button, onClick = onDismiss)
+                .padding(Spacing.md),
+            contentAlignment = Alignment.Center,
+        ) {
+            CardScan(
+                image = image,
+                contentDescription = card.spokenSummary(false),
+                aspect = aspect,
+                modifier = Modifier.widthIn(max = most).fillMaxWidth(),
+                elevation = 8.dp,
+            ) {}
+        }
+    }
+}
+
+private const val SCAN_PIXELS = 729f
+private const val PEEK_MAX_ZOOM = 1.6f
+private val PEEK_VEIL = Color(0xE6070A0D)
+
 private const val MAX_COLUMNS = 6
+
 private const val MAX_WIDTH_SCALE = 1.6f
-private val NAME_PRINTED_WIDTH = 140.dp
+
+/** Only a card this wide prints a name you can read from the scan: under it, the name is repeated as a caption. */
+private val NAME_PRINTED_WIDTH = 260.dp
 
 @Composable
 private fun DeckCard(
@@ -295,6 +309,7 @@ private fun DeckCard(
     aspect: Float,
     showName: Boolean,
     onClick: () -> Unit,
+    onHold: () -> Unit,
     modifier: Modifier,
 ) {
     if (card.image == null) {
@@ -309,6 +324,7 @@ private fun DeckCard(
             image = card.image,
             contentDescription = summary,
             onClick = onClick,
+            onLongClick = onHold,
             aspect = aspect,
             modifier = Modifier.fillMaxWidth(),
         ) {}
@@ -316,20 +332,19 @@ private fun DeckCard(
         // card doesn't print (where a basic card starts, what a Handicap card stands in for) follows.
         val note = (if (isHandicap) card.handicapBasis() else null) ?: card.startsIn()
         if (showName) {
-            Text(
+            CardTitle(
                 card.name,
-                style = MaterialTheme.typography.labelMedium,
+                size = CardTitleSize.Caption,
                 color = MaterialTheme.colorScheme.onSurface,
                 textAlign = TextAlign.Center,
                 maxLines = 2,
-                overflow = TextOverflow.Ellipsis,
                 modifier = Modifier.padding(top = Spacing.xs).clearAndSetSemantics {},
             )
         }
         if (note != null) {
             Text(
                 note,
-                style = MaterialTheme.typography.labelSmall,
+                style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.secondary,
                 textAlign = TextAlign.Center,
                 modifier = Modifier.padding(top = if (showName) 0.dp else Spacing.xs).clearAndSetSemantics {},
@@ -369,7 +384,7 @@ internal fun CardTileGrid(
 }
 
 /** The ribbon over a colour's cards; Basic and the Ultimate use the neutral silver. */
-private fun groupRibbon(kind: DeckGroupKind): PlateColor = when (kind) {
+internal fun groupRibbon(kind: DeckGroupKind): PlateColor = when (kind) {
     DeckGroupKind.RED -> PlateColor.RED
     DeckGroupKind.GREEN -> PlateColor.GREEN
     DeckGroupKind.BLUE -> PlateColor.BLUE
@@ -430,13 +445,7 @@ private fun PlateCardTile(card: Card, onClick: () -> Unit, modifier: Modifier, i
         Box(Modifier.width(4.dp).fillMaxHeight().background(accent))
         Column(Modifier.padding(start = 10.dp, end = Spacing.sm, top = Spacing.sm, bottom = Spacing.sm).weight(1f)) {
             Row(verticalAlignment = Alignment.Top) {
-                Text(
-                    card.name,
-                    style = MaterialTheme.typography.titleSmall,
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.weight(1f).padding(end = Spacing.xs),
-                )
+                CardTitle(card.name, maxLines = 2, modifier = Modifier.weight(1f).padding(end = Spacing.xs))
                 InitiativeBadge(card.initiative, accent = accent, size = 28.dp)
             }
             card.primary?.let { primary ->

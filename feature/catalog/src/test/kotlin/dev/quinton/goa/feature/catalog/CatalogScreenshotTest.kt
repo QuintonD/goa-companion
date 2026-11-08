@@ -1,6 +1,6 @@
 package dev.quinton.goa.feature.catalog
 
-import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
@@ -9,7 +9,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.test.hasScrollAction
+import androidx.compose.ui.test.hasScrollToKeyAction
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performScrollToKey
@@ -18,6 +18,7 @@ import androidx.compose.ui.unit.dp
 import androidx.test.core.app.ApplicationProvider
 import com.github.takahirom.roborazzi.captureRoboImage
 import dev.quinton.goa.core.designsystem.component.GoaPlateTheme
+import dev.quinton.goa.core.designsystem.component.GoaSheetHandle
 import dev.quinton.goa.core.designsystem.component.slatePlate
 import dev.quinton.goa.core.designsystem.theme.GoaTheme
 import dev.quinton.goa.core.domain.catalog.AttackStyle
@@ -35,6 +36,8 @@ import dev.quinton.goa.core.model.catalog.CardColor
 import dev.quinton.goa.core.model.catalog.Catalog
 import dev.quinton.goa.core.model.catalog.Hero
 import dev.quinton.goa.core.model.catalog.PrimaryAction
+import dev.quinton.goa.core.model.catalog.Product
+import dev.quinton.goa.core.model.catalog.ProductKind
 import dev.quinton.goa.core.model.catalog.Ruling
 import dev.quinton.goa.core.model.catalog.SourceRef
 import dev.quinton.goa.core.model.catalog.Stat
@@ -42,8 +45,11 @@ import dev.quinton.goa.core.model.player.Player
 import dev.quinton.goa.core.model.rating.HeroUsage
 import dev.quinton.goa.core.model.rating.Rating
 import dev.quinton.goa.core.model.settings.ThemeMode
+import dev.quinton.goa.core.navigation.HeroDetailRoute
 import dev.quinton.goa.core.testing.BundledAssetImages
 import dev.quinton.goa.core.testing.TestCatalog
+import dev.quinton.goa.core.testing.bundledAsset
+import dev.quinton.goa.core.testing.bundledHero
 import dev.quinton.goa.feature.catalog.detail.CardTileGrid
 import dev.quinton.goa.feature.catalog.detail.ExtrasSection
 import dev.quinton.goa.feature.catalog.detail.HeroDetailScreen
@@ -230,6 +236,54 @@ private object ShotData {
     }
 }
 
+/**
+ * Every bundled hero, for the screens judged as a player meets them (a card search, the filter sheet): a sheet of
+ * "Test Pack" chips or "Card RED-2A" rows says nothing about how the real ones read.
+ */
+private object RealData {
+    private val productOrder = listOf("core", "devoted", "defiant", "renowned", "arcane", "wayward")
+
+    val catalog: Catalog by lazy {
+        val heroes = bundledAsset("catalog/heroes").list().orEmpty().sorted().map {
+            bundledHero(it.removeSuffix(".json"))
+        }
+        Catalog(
+            dataVersion = 1,
+            printing = 2,
+            products = heroes.map { it.product }.distinct().sortedBy { productOrder.indexOf(it) }.map {
+                Product(it, it.replaceFirstChar(Char::uppercase), ProductKind.HERO_PACK)
+            },
+            heroes = heroes,
+        )
+    }
+
+    val options: FilterOptions by lazy {
+        FilterOptions(
+            complexities = catalog.heroes.mapNotNull { it.complexity }.distinct().sorted(),
+            roles = catalog.heroes.flatMap { it.roles }.distinct().sortedBy { it.ordinal },
+            products = catalog.products,
+            attackStyles = AttackStyle.entries,
+            hasOwnedProducts = true,
+        )
+    }
+
+    private val index by lazy { CatalogSearchIndex(catalog.heroes) }
+
+    fun count(filter: CatalogFilter): Int =
+        CatalogBrowser.browse(catalog, index, "", filter, CatalogSort.NAME, emptySet()).size
+
+    fun ready(query: String): CatalogUiState.Ready {
+        val heroes = CatalogBrowser.browse(catalog, index, query, CatalogFilter(), CatalogSort.NAME, emptySet())
+        return CatalogUiState.Ready(
+            controls = CatalogControls(CatalogLayout.GRID, CatalogFilter(), CatalogSort.NAME),
+            heroes = heroes,
+            totalInScope = catalog.heroes.size,
+            options = options,
+            cards = CatalogBrowser.cards(index, query, heroes),
+        )
+    }
+}
+
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
 @Config(qualifiers = "w411dp-h891dp-xxhdpi")
@@ -278,10 +332,17 @@ class CatalogScreenshotTest {
 
     @Test fun listLight() = shot(ThemeMode.LIGHT) { Catalog(ShotData.ready(layout = CatalogLayout.LIST)) }
 
-    @Test fun searchByCardNameDark() = shot { Catalog(ShotData.ready(query = "red-2a"), query = "red-2a") }
+    /** A word in four real cards' names: the cards under their colour, then their heroes. */
+    @Test fun searchByCardNameDark() = shot { Catalog(RealData.ready(query = "dagger"), query = "dagger") }
 
     @Test fun filteredWithChipsDark() = shot {
         Catalog(ShotData.ready(filter = CatalogFilter(complexities = setOf(2, 3), attackStyle = AttackStyle.MELEE)))
+    }
+
+    /** The collection (Settings) hides some heroes: an "Owned only" chip says so where the filters are. */
+    @Test fun ownedOnlyDark() = shot {
+        val ready = ShotData.ready(filter = CatalogFilter(complexities = setOf(2)))
+        Catalog(ready.copy(totalHeroes = ready.totalInScope + 6))
     }
 
     @Test fun noResultsDark() = shot { Catalog(ShotData.ready(query = "zzz"), query = "zzz") }
@@ -316,32 +377,38 @@ class CatalogScreenshotTest {
 
     @Test fun emptyCatalogLight() = shot(ThemeMode.LIGHT) { Catalog(CatalogUiState.Unavailable(error = false)) }
 
-    /** A sheet's plate, dark in both themes, as `GoaSheet` gives its content. */
+    /** A sheet's plate as `GoaSheet` gives its content, with the drag handle the player sees over it. */
     @Composable
     private fun OnSheet(content: @Composable () -> Unit) = GoaPlateTheme {
-        Box(Modifier.slatePlate(RoundedCornerShape(0.dp), brackets = false)) { content() }
-    }
-
-    private val sheetFilter =
-        CatalogFilter(complexities = setOf(3), roles = setOf(ShotData.options.roles[1]), products = setOf("test-core"))
-
-    @Test fun filterSheetDark() = shot {
-        OnSheet {
-            CatalogFilterContent(sheetFilter, ShotData.options, 4, {}, {}, {}, Modifier.padding(vertical = 16.dp))
+        Column(Modifier.slatePlate(RoundedCornerShape(0.dp), brackets = false)) {
+            GoaSheetHandle()
+            content()
         }
     }
 
-    @Test fun filterSheetLight() = shot(ThemeMode.LIGHT) {
-        OnSheet {
-            CatalogFilterContent(sheetFilter, ShotData.options, 4, {}, {}, {}, Modifier.padding(vertical = 16.dp))
-        }
+    /** The real roles and products, a complexity, a role and a product chosen, and the count the button gives. */
+    private val sheetFilter by lazy {
+        CatalogFilter(complexities = setOf(1), roles = setOf(RealData.options.roles[1]), products = setOf("core"))
     }
 
-    @Test fun filterSheetFontScale2() = shot(fontScale = 2f) {
-        OnSheet {
-            CatalogFilterContent(sheetFilter, ShotData.options, 4, {}, {}, {}, Modifier.padding(vertical = 16.dp))
-        }
+    @Composable
+    private fun FilterSheet() = OnSheet {
+        CatalogFilterContent(
+            sheetFilter,
+            RealData.options,
+            RealData.count(sheetFilter),
+            {},
+            {},
+            {},
+            Modifier.padding(bottom = 16.dp),
+        )
     }
+
+    @Test fun filterSheetDark() = shot { FilterSheet() }
+
+    @Test fun filterSheetLight() = shot(ThemeMode.LIGHT) { FilterSheet() }
+
+    @Test fun filterSheetFontScale2() = shot(fontScale = 2f) { FilterSheet() }
 
     @Test
     @Config(qualifiers = "w411dp-h2900dp-xxhdpi")
@@ -364,12 +431,24 @@ class CatalogScreenshotTest {
         compose.setContent {
             GoaTheme(themeMode = ThemeMode.DARK) {
                 Surface(color = MaterialTheme.colorScheme.background) {
-                    HeroDetailScreen(ShotData.detail(), onBack = {}, onCardClick = { _, _ -> }, onLearnNumbers = {})
+                    HeroDetailScreen(
+                        ShotData.detail(),
+                        onBack = {},
+                        onCardClick = { _, _ -> },
+                        onLearnNumbers = {},
+                        initialSection = HeroDetailRoute.DECK,
+                    )
                 }
             }
         }
-        compose.onNode(hasScrollAction()).performScrollToKey("deck-trivia")
+        compose.onNode(hasScrollToKeyAction()).performScrollToKey("deck-trivia")
         capture()
+    }
+
+    /** The FAQ tab: the rulings under the compact identity, the FAQ tab selected. */
+    @Test fun detailFaqDark() = shot {
+        HeroDetailScreen(ShotData.detail(), onBack = {
+        }, onCardClick = { _, _ -> }, initialSection = HeroDetailRoute.FAQ)
     }
 
     @Test fun detailNotFoundDark() = shot {

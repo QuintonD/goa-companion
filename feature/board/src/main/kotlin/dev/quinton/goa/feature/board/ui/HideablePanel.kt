@@ -15,7 +15,6 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -61,7 +60,6 @@ import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import dev.quinton.goa.core.designsystem.component.TeamMark
 import dev.quinton.goa.core.designsystem.component.scaledIconSize
-import dev.quinton.goa.core.designsystem.component.teamColor
 import dev.quinton.goa.core.designsystem.theme.GoaFonts
 import dev.quinton.goa.core.designsystem.theme.Spacing
 import dev.quinton.goa.core.model.match.Team
@@ -92,6 +90,15 @@ internal fun BoxWithConstraintsScope.HideablePanel(
     peekLeading: (@Composable () -> Unit)? = null,
     peekTrailing: (@Composable () -> Unit)? = null,
     title: (@Composable () -> Unit)? = null,
+    /**
+     * A shown panel's peek detent (portrait): while [collapsed], only the strip and [peekBody] (the commit); a tap on
+     * the strip, a drag up or its expand button shows the whole panel, a drag down hides it. Null: no peek detent.
+     */
+    peekBody: (@Composable ColumnScope.() -> Unit)? = null,
+    collapsed: Boolean = false,
+    onCollapsedChange: (Boolean) -> Unit = {},
+    /** The shown strip's height, px: a header of two lines (or large text) makes it taller than [PanelStripHeight]. */
+    onStrip: (Int) -> Unit = {},
     content: @Composable ColumnScope.() -> Unit,
 ) {
     if (!hidden) {
@@ -115,8 +122,31 @@ internal fun BoxWithConstraintsScope.HideablePanel(
             brackets = true,
         ) {
             Column {
-                PanelStrip(landscape, title, onHide = { onHiddenChange(true) })
-                content()
+                val detents = peekBody != null && !landscape
+                val peeking = detents && collapsed
+                Box(Modifier.onSizeChanged { onStrip(it.height) }) {
+                    PanelStrip(
+                        landscape,
+                        title,
+                        onHide = { onHiddenChange(true) },
+                        detent = when {
+                            !detents -> null
+                            peeking -> PanelDetent.PEEK
+                            else -> PanelDetent.FULL
+                        },
+                        onDetent = { onCollapsedChange(it == PanelDetent.PEEK) },
+                    )
+                }
+                val body = peekBody?.takeIf { peeking }
+                if (body != null) {
+                    Column(
+                        Modifier.padding(start = PEEK_INSET, end = PEEK_INSET, bottom = Spacing.md),
+                        verticalArrangement = Arrangement.spacedBy(Spacing.sm),
+                        content = body,
+                    )
+                } else {
+                    content()
+                }
             }
         }
     } else {
@@ -145,24 +175,59 @@ internal fun BoxWithConstraintsScope.HideablePanel(
     }
 }
 
-/** The top of a shown panel: a drag handle and Hide. */
+/** A shown panel's height in portrait when it has a peek: the commit only, or everything. */
+internal enum class PanelDetent { PEEK, FULL }
+
+/**
+ * The top of a shown panel: a drag handle and Hide. With a [detent] (a panel that peeks): a tap on the strip toggles
+ * peek and full, a drag up goes up a detent and a drag down down one (from the peek, hidden); the end buttons say the
+ * same, ⌃ up a detent (at the peek only) and ⌄ down one.
+ */
 @Composable
-private fun PanelStrip(landscape: Boolean, title: (@Composable () -> Unit)?, onHide: () -> Unit) {
+private fun PanelStrip(
+    landscape: Boolean,
+    title: (@Composable () -> Unit)?,
+    onHide: () -> Unit,
+    detent: PanelDetent? = null,
+    onDetent: (PanelDetent) -> Unit = {},
+) {
     val hide by rememberUpdatedState(onHide)
+    val toDetent by rememberUpdatedState(onDetent)
+    val at by rememberUpdatedState(detent)
     val threshold = with(LocalDensity.current) { DRAG_TO_TOGGLE.toPx() }
     // Toward the end (right in LTR) hides a side panel.
     val sign = if (LocalLayoutDirection.current == LayoutDirection.Rtl) -1f else 1f
     var dragged by remember { mutableFloatStateOf(0f) }
     val drag = rememberDraggableState { dragged += it }
+    val down = {
+        if (at == PanelDetent.FULL) toDetent(PanelDetent.PEEK) else hide()
+    }
+    val toggle = { toDetent(if (at == PanelDetent.PEEK) PanelDetent.FULL else PanelDetent.PEEK) }
     Box(
         Modifier
             .fillMaxWidth()
-            .height(STRIP)
+            .heightIn(min = STRIP)
+            .then(
+                if (detent != null) {
+                    Modifier.clickable(
+                        onClickLabel = if (detent == PanelDetent.PEEK) "Show the whole panel" else "Show less",
+                        onClick = toggle,
+                    )
+                } else {
+                    Modifier
+                },
+            )
             .draggable(
                 drag,
                 orientation = if (landscape) Orientation.Horizontal else Orientation.Vertical,
                 onDragStarted = { dragged = 0f },
-                onDragStopped = { if (dragged * (if (landscape) sign else 1f) > threshold) hide() },
+                onDragStopped = {
+                    val toward = dragged * (if (landscape) sign else 1f)
+                    when {
+                        toward > threshold -> down()
+                        toward < -threshold && at == PanelDetent.PEEK -> toDetent(PanelDetent.FULL)
+                    }
+                },
             ),
     ) {
         if (!landscape) {
@@ -175,15 +240,37 @@ private fun PanelStrip(landscape: Boolean, title: (@Composable () -> Unit)?, onH
             )
         }
         if (title != null) {
-            Box(Modifier.align(Alignment.CenterStart).padding(start = Spacing.md, end = TITLE_END)) { title() }
+            // Clear of the drag handle above it; two lines of large text make the strip taller.
+            Box(
+                Modifier
+                    .align(Alignment.CenterStart)
+                    .padding(
+                        start = Spacing.md,
+                        end = if (detent == PanelDetent.PEEK) TITLE_END_TWO else TITLE_END,
+                        top = if (landscape) 2.dp else 12.dp,
+                        bottom = if (landscape) 2.dp else 6.dp,
+                    ),
+            ) { title() }
         }
-        // A 48 dp touch target overlapping the strip's 40 dp.
-        IconButton(onClick = onHide, modifier = Modifier.align(Alignment.CenterEnd).padding(end = Spacing.xs)) {
-            Icon(
-                if (landscape) Icons.AutoMirrored.Outlined.KeyboardArrowRight else Icons.Outlined.ExpandMore,
-                contentDescription = "Hide panel",
-                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
+        // 48 dp touch targets overlapping the strip's 40 dp: sized by the strip, never sizing it.
+        Row(
+            Modifier.matchParentSize().padding(end = Spacing.xs),
+            horizontalArrangement = Arrangement.End,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            val tint = MaterialTheme.colorScheme.onSurfaceVariant
+            if (detent == PanelDetent.PEEK) {
+                IconButton(onClick = { toDetent(PanelDetent.FULL) }) {
+                    Icon(Icons.Outlined.ExpandLess, contentDescription = "Show the whole panel", tint = tint)
+                }
+            }
+            IconButton(onClick = down) {
+                Icon(
+                    if (landscape) Icons.AutoMirrored.Outlined.KeyboardArrowRight else Icons.Outlined.ExpandMore,
+                    contentDescription = if (detent == PanelDetent.FULL) "Show less" else "Hide panel",
+                    tint = tint,
+                )
+            }
         }
     }
 }
@@ -298,7 +385,8 @@ private fun PeekText(
             TeamMark(it, markSize = scaledIconSize(9.dp))
             Spacer(Modifier.width(4.dp))
         }
-        val labelColor = peek.team?.let { teamColor(it) } ?: MaterialTheme.colorScheme.primary
+        // Near-white after the team's mark (ink on the light theme), never team-coloured text on slate (round 4).
+        val labelColor = MaterialTheme.colorScheme.run { if (peek.team != null) onSurface else primary }
         Text(
             buildAnnotatedString {
                 peek.label?.let { label ->
@@ -337,6 +425,12 @@ private val PEEK_ATTENTION = Color(0xFF3FC1B0)
 
 /** A title on the strip keeps clear of Hide. */
 private val TITLE_END = 52.dp
+
+/** Clear of both end buttons, at the peek. */
+private val TITLE_END_TWO = 100.dp
+
+/** The peek's commit, inset as the panel's content is. */
+private val PEEK_INSET = 12.dp
 private val PEEK_HEIGHT = 56.dp
 private val DRAG_TO_TOGGLE = 32.dp
 

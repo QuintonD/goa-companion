@@ -27,30 +27,23 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Add
+import androidx.compose.material.icons.outlined.CheckCircle
 import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.outlined.DeleteOutline
 import androidx.compose.material.icons.outlined.Remove
 import androidx.compose.material.icons.outlined.Straighten
-import androidx.compose.material3.FilterChip
-import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.SegmentedButton
-import androidx.compose.material3.SegmentedButtonDefaults
-import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Surface
-import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.geometry.Size
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.drawscope.DrawScope
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
@@ -61,13 +54,18 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import dev.quinton.goa.core.designsystem.cardtext.CardTextView
-import dev.quinton.goa.core.designsystem.cardtext.GameIcon
 import dev.quinton.goa.core.designsystem.cardtext.GameIcons
-import dev.quinton.goa.core.designsystem.component.CardColorDot
-import dev.quinton.goa.core.designsystem.component.PlateGround
+import dev.quinton.goa.core.designsystem.component.CardFamilyLabel
+import dev.quinton.goa.core.designsystem.component.GoaFilterChip
+import dev.quinton.goa.core.designsystem.component.GoaSegment
+import dev.quinton.goa.core.designsystem.component.GoaSegmentedRow
+import dev.quinton.goa.core.designsystem.component.GoaSwitch
+import dev.quinton.goa.core.designsystem.component.StatReadout
 import dev.quinton.goa.core.designsystem.component.UnverifiedBadge
+import dev.quinton.goa.core.designsystem.component.bleedHorizontally
 import dev.quinton.goa.core.designsystem.component.cardColor
 import dev.quinton.goa.core.designsystem.component.cardColorName
+import dev.quinton.goa.core.designsystem.component.horizontalEdgeFade
 import dev.quinton.goa.core.designsystem.component.scaledIconSize
 import dev.quinton.goa.core.designsystem.theme.GoaTextStyles
 import dev.quinton.goa.core.designsystem.theme.GoaTheme
@@ -83,13 +81,13 @@ import dev.quinton.goa.core.model.catalog.Stat
 import dev.quinton.goa.feature.board.BoardHero
 import dev.quinton.goa.feature.board.BoardText
 import dev.quinton.goa.feature.board.hero
+import dev.quinton.goa.feature.board.play.table.PagePill
 import dev.quinton.goa.feature.board.ui.ArtBoardPalette
 import dev.quinton.goa.feature.board.ui.ArtSwatchGround
 import dev.quinton.goa.feature.board.ui.BoardPalette
 import dev.quinton.goa.feature.board.ui.PieceToken
 import dev.quinton.goa.feature.board.ui.PlateWell
 import dev.quinton.goa.feature.board.ui.boardPalette
-import dev.quinton.goa.feature.board.ui.bronzeSegments
 import dev.quinton.goa.feature.board.ui.cards.isSpell
 import dev.quinton.goa.feature.board.ui.drawFastTravelCell
 import dev.quinton.goa.feature.board.ui.drawMovementCell
@@ -188,20 +186,33 @@ private fun PieceActions(state: BoardUiState.Ready, piece: BoardPiece, onAction:
     FlowRow(
         horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
         modifier = Modifier.padding(bottom = Spacing.sm),
+        verticalArrangement = Arrangement.spacedBy(Spacing.sm),
     ) {
         val measuring = state.tool == BoardTool.Measure
         if (piece.at != null) {
             PanelChip(
                 selected = measuring,
                 label = if (measuring) "Measuring" else "Measure",
-                icon = { Icon(Icons.Outlined.Straighten, contentDescription = null, modifier = Modifier.size(18.dp)) },
+                icon = {
+                    Icon(
+                        Icons.Outlined.Straighten,
+                        contentDescription = null,
+                        modifier = Modifier.size(scaledIconSize(18.dp, ICON_GROWTH)),
+                    )
+                },
                 onClick = { onAction(if (measuring) BoardAction.CancelTool else BoardAction.StartMeasure) },
             )
         }
         PanelChip(
             selected = false,
             label = "Remove",
-            icon = { Icon(Icons.Outlined.DeleteOutline, contentDescription = null, modifier = Modifier.size(18.dp)) },
+            icon = {
+                Icon(
+                    Icons.Outlined.DeleteOutline,
+                    contentDescription = null,
+                    modifier = Modifier.size(scaledIconSize(18.dp, ICON_GROWTH)),
+                )
+            },
             onClick = { onAction(BoardAction.Remove) },
         )
     }
@@ -209,26 +220,7 @@ private fun PieceActions(state: BoardUiState.Ready, piece: BoardPiece, onAction:
 
 @Composable
 private fun PanelChip(selected: Boolean, label: String, icon: @Composable () -> Unit, onClick: () -> Unit) {
-    FilterChip(
-        selected = selected,
-        onClick = onClick,
-        label = { Text(label, maxLines = 1) },
-        leadingIcon = icon,
-        shape = RoundedCornerShape(10.dp),
-        modifier = Modifier.heightIn(min = 40.dp),
-        colors = FilterChipDefaults.filterChipColors(
-            containerColor = MaterialTheme.colorScheme.surface,
-            selectedContainerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.18f),
-            selectedLabelColor = MaterialTheme.colorScheme.onSurface,
-            selectedLeadingIconColor = MaterialTheme.colorScheme.primary,
-        ),
-        border = FilterChipDefaults.filterChipBorder(
-            enabled = true,
-            selected = selected,
-            borderColor = GoaTheme.colors.engravedBorder,
-            selectedBorderColor = MaterialTheme.colorScheme.primary,
-        ),
-    )
+    GoaFilterChip(selected = selected, onClick = onClick, leadingIcon = icon) { Text(label) }
 }
 
 @Composable
@@ -253,7 +245,7 @@ private fun HeroMeasures(
     val movementNote = when {
         card == null -> "Pick a card first."
         card.values.movement == null -> "This card has no Movement value."
-        else -> "Spaces it can end on, with the fewest spaces each needs (p.11)."
+        else -> "Spaces it can end on, with the fewest spaces each needs."
     }
     OverlayRow(
         title = "Movement" + (overlay.movementValue?.let { " $it" } ?: ""),
@@ -267,29 +259,31 @@ private fun HeroMeasures(
             onAction(BoardAction.MovementBonus(delta))
         }.takeIf { card?.values?.movement != null },
         onToggle = { onAction(BoardAction.ToggleMovement) },
+        page = "p.11",
     )
     if (settings.movement && overlay.movementValue != null) MovementRules(settings, onAction)
     OverlayRow(
         title = "Fast Travel",
         note = if (settings.fastTravel && overlay.fastTravel.isEmpty()) {
-            "Not now: an enemy hero or minion is in this Zone, or no space is free (p.11)."
+            "Not now: an enemy hero or minion is in this Zone, or no space is free."
         } else {
-            "Own or an adjacent Zone, with no enemy hero or minion in either (p.11)."
+            "Own or an adjacent Zone, with no enemy hero or minion in either."
         },
         checked = settings.fastTravel,
         enabled = true,
         swatch = { c, m, u -> drawFastTravelCell(c, m, u, palette) },
         palette = palette,
         onToggle = { onAction(BoardAction.ToggleFastTravel) },
+        page = "p.11",
     )
     OverlayRow(
-        title = "Range" + (overlay.rangeValue?.let { " $it" } ?: ""),
+        title = "Card range" + (overlay.rangeValue?.let { " $it" } ?: ""),
         note = if (card != null &&
             card.values.range == null
         ) {
             "This card has no Range value."
         } else {
-            "Spaces within range, obstacles and the water around the board counted (p.9, p.19)."
+            "Spaces within range, obstacles and the water around the board counted."
         },
         checked = settings.range && overlay.rangeValue != null,
         enabled = overlay.rangeValue != null,
@@ -298,6 +292,7 @@ private fun HeroMeasures(
         bonus = settings.rangeBonus,
         onBonus = { delta: Int -> onAction(BoardAction.RangeBonus(delta)) }.takeIf { card?.values?.range != null },
         onToggle = { onAction(BoardAction.ToggleRange) },
+        page = "p.9",
     )
     OverlayRow(
         title = "Radius" + (overlay.radiusValue?.let { " $it" } ?: ""),
@@ -306,7 +301,7 @@ private fun HeroMeasures(
         ) {
             "This card has no Radius value."
         } else {
-            "Spaces within the radius, obstacles and the water around the board counted (p.9, p.19)."
+            "Spaces within the radius, obstacles and the water around the board counted."
         },
         checked = settings.radius && overlay.radiusValue != null,
         enabled = overlay.radiusValue != null,
@@ -315,6 +310,7 @@ private fun HeroMeasures(
         bonus = settings.radiusBonus,
         onBonus = { delta: Int -> onAction(BoardAction.RadiusBonus(delta)) }.takeIf { card?.values?.radius != null },
         onToggle = { onAction(BoardAction.ToggleRadius) },
+        page = "p.9",
     )
     if (card != null && card.text.isNotBlank()) {
         Overline("Card text")
@@ -336,9 +332,9 @@ private fun StepsMeasure(
     OverlayRow(
         title = "Movement ${settings.steps}",
         note = if (piece is MinionPiece) {
-            "Where a card's “move N” could take it (p.11)."
+            "Where a card's “move N” could take it."
         } else {
-            "Where it could be moved N spaces (p.11)."
+            "Where it could be moved N spaces."
         },
         checked = settings.movement,
         enabled = true,
@@ -365,16 +361,13 @@ private fun StepsMeasure(
 private fun MovementRules(settings: OverlaySettings, onAction: (BoardAction) -> Unit) {
     Column(Modifier.fillMaxWidth().padding(start = 40.dp, bottom = Spacing.xs)) {
         Text("Path", style = MaterialTheme.typography.bodyMedium)
-        SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth().padding(vertical = Spacing.xs)) {
+        GoaSegmentedRow(Modifier.fillMaxWidth().padding(vertical = Spacing.xs)) {
             val paths = MovePath.entries
             paths.forEachIndexed { i, path ->
-                SegmentedButton(
+                GoaSegment(
                     selected = settings.path == path,
                     onClick = { onAction(BoardAction.SetPath(path)) },
-                    shape = SegmentedButtonDefaults.itemShape(i, paths.size),
-                    colors = bronzeSegments(),
                     icon = {},
-                    modifier = Modifier.heightIn(min = 48.dp),
                 ) {
                     Text(
                         when (path) {
@@ -390,7 +383,7 @@ private fun MovementRules(settings: OverlaySettings, onAction: (BoardAction) -> 
         }
         Text(
             when (settings.path) {
-                MovePath.NORMAL -> "Only through empty spaces (p.11)."
+                MovePath.NORMAL -> "Only through empty spaces."
 
                 MovePath.THROUGH_TOKENS ->
                     "Also through tokens, never units or terrain: tokens a card lets units move through, " +
@@ -405,7 +398,7 @@ private fun MovementRules(settings: OverlaySettings, onAction: (BoardAction) -> 
     }
     SwitchRow(
         title = "In a straight line",
-        note = "One of the six directions, stopping at the first obstacle it may not pass (p.19).",
+        note = "One of the six directions, stopping at the first obstacle it may not pass.",
         checked = settings.straightLine,
         onToggle = { onAction(BoardAction.ToggleStraightLine) },
     )
@@ -413,44 +406,48 @@ private fun MovementRules(settings: OverlaySettings, onAction: (BoardAction) -> 
 
 /**
  * The hero's cards, Basic → Tier III → Ultimate; tap to measure with one (again to clear). The
- * chosen card scrolls into view with the card before it still showing, and a fade at either edge
- * says there are more cards that way.
+ * chosen card scrolls into view with the card before it still showing, and a fade and chevron at either edge
+ * say there are more cards that way.
  */
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun CardStrip(cards: List<Card>, selectedId: String?, onSelect: (String?) -> Unit) {
+    val toggle: (Card) -> Unit = { card -> onSelect(if (card.id == selectedId) null else card.id) }
+    // Large text: the chips wrap onto rows, every name whole and none cut at the screen's edge.
+    if (LocalDensity.current.fontScale > WRAP_SCALE) {
+        // Two to a row, each half the width: a name breaks only between its words.
+        FlowRow(
+            Modifier.fillMaxWidth().padding(vertical = Spacing.xs),
+            horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+            verticalArrangement = Arrangement.spacedBy(Spacing.sm),
+            maxItemsInEachRow = 2,
+        ) {
+            cards.forEach { card ->
+                CardChip(
+                    card,
+                    selected = card.id == selectedId,
+                    onClick = { toggle(card) },
+                    modifier = Modifier.weight(1f),
+                    wide = true,
+                )
+            }
+        }
+        return
+    }
     val listState = rememberLazyListState()
     LaunchedEffect(selectedId) {
         val index = cards.indexOfFirst { it.id == selectedId }
         if (index > 0) listState.animateScrollToItem(index - 1)
     }
-    val fade = PlateGround
+    // The rail runs to the panel's edges, its first card on the gutter; a hidden end fades under a chevron.
     LazyRow(
         state = listState,
         horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
-        contentPadding = PaddingValues(vertical = Spacing.xs),
+        contentPadding = PaddingValues(horizontal = Spacing.lg, vertical = Spacing.xs),
         modifier = Modifier
             .fillMaxWidth()
-            .drawWithContent {
-                drawContent()
-                val edge = 28.dp.toPx()
-                if (listState.canScrollBackward) {
-                    drawRect(
-                        Brush.horizontalGradient(listOf(fade, fade.copy(alpha = 0f)), startX = 0f, endX = edge),
-                        size = Size(edge, size.height),
-                    )
-                }
-                if (listState.canScrollForward) {
-                    drawRect(
-                        Brush.horizontalGradient(
-                            listOf(fade.copy(alpha = 0f), fade),
-                            startX = size.width - edge,
-                            endX = size.width,
-                        ),
-                        topLeft = Offset(size.width - edge, 0f),
-                        size = Size(edge, size.height),
-                    )
-                }
-            },
+            .bleedHorizontally(Spacing.lg)
+            .horizontalEdgeFade(listState),
     ) {
         items(cards, key = { it.id }) { card ->
             CardChip(card, selected = card.id == selectedId, onClick = {
@@ -468,9 +465,20 @@ private fun CardStrip(cards: List<Card>, selectedId: String?, onSelect: (String?
     }
 }
 
+/**
+ * A card to measure with: its family in words beside its colour's dot ("Red · II", "Gold · Basic": never the colour
+ * alone, sol #12), initiative and name. Chosen, it takes the one selection look (bronze edge and tint, a tick), never
+ * the card's own colour: colour is the card's, bronze is "chosen". [wide]: a share of a row (large text) rather than
+ * its own width.
+ */
 @Composable
-private fun CardChip(card: Card, selected: Boolean, onClick: () -> Unit) {
-    val accent = cardColor(card.color)
+private fun CardChip(
+    card: Card,
+    selected: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    wide: Boolean = false,
+) {
     val spoken = buildString {
         append(card.name)
         append(", ")
@@ -479,10 +487,22 @@ private fun CardChip(card: Card, selected: Boolean, onClick: () -> Unit) {
     }
     Surface(
         shape = RoundedCornerShape(10.dp),
-        color = if (selected) accent.copy(alpha = 0.16f) else PlateWell,
-        border = BorderStroke(if (selected) 2.dp else 1.dp, if (selected) accent else GoaTheme.colors.engravedBorder),
-        modifier = Modifier
-            .widthIn(min = 96.dp, max = 168.dp)
+        color = if (selected) MaterialTheme.colorScheme.primaryContainer else PlateWell,
+        border = BorderStroke(
+            if (selected) 2.dp else 1.dp,
+            if (selected) MaterialTheme.colorScheme.primary else GoaTheme.colors.engravedBorder,
+        ),
+        modifier = modifier
+            .then(
+                if (wide) {
+                    Modifier
+                } else {
+                    Modifier.widthIn(
+                        min = 96.dp,
+                        max = 168.dp * minOf(LocalDensity.current.fontScale, CHIP_GROWTH).coerceAtLeast(1f),
+                    )
+                },
+            )
             .heightIn(min = 48.dp)
             .selectable(selected = selected, role = Role.RadioButton, onClick = onClick)
             .clearAndSetSemantics {
@@ -491,22 +511,26 @@ private fun CardChip(card: Card, selected: Boolean, onClick: () -> Unit) {
             },
     ) {
         Column(Modifier.padding(horizontal = Spacing.sm, vertical = 6.dp)) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                CardColorDot(card.color, size = 10.dp)
-                Spacer(Modifier.width(6.dp))
-                Text(
-                    tierLabel(card),
+            // The shared family label (its colour's ribbon and the words). Its own line with large text:
+            // "Silver Basic", which may break between its words, never inside.
+            val family: @Composable (Modifier) -> Unit = { modifier ->
+                CardFamilyLabel(
+                    card.color,
+                    card.tier,
+                    modifier,
+                    text = if (wide) familyLabel(card).replace("\u00A0·\u00A0", " ") else familyLabel(card),
                     style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 1,
-                    modifier = Modifier.weight(1f, fill = false),
                 )
+            }
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                // Large text in a half-width chip: the family on a line of its own under the name, never broken.
+                if (!wide) family(Modifier.weight(1f, fill = false))
                 card.initiative?.let {
-                    Spacer(Modifier.width(6.dp))
+                    if (!wide) Spacer(Modifier.width(6.dp))
                     Icon(
                         GameIcons.initiative.vector,
                         null,
-                        Modifier.size(12.dp),
+                        Modifier.size(scaledIconSize(12.dp, ICON_GROWTH)),
                         tint = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                     Text(
@@ -515,46 +539,71 @@ private fun CardChip(card: Card, selected: Boolean, onClick: () -> Unit) {
                     )
                 }
             }
-            Text(card.name, style = MaterialTheme.typography.labelLarge, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            // Two lines before an ellipsis: with large text "Raging Stream" stays whole, not "Raging St…".
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    card.name,
+                    style = MaterialTheme.typography.labelLarge,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.weight(1f, fill = false),
+                )
+                if (selected) {
+                    Spacer(Modifier.width(4.dp))
+                    Icon(
+                        Icons.Outlined.CheckCircle,
+                        null,
+                        modifier = Modifier.size(scaledIconSize(16.dp, ICON_GROWTH)),
+                        tint = MaterialTheme.colorScheme.primary,
+                    )
+                }
+            }
+            if (wide) family(Modifier)
         }
     }
 }
+
+/**
+ * A card's family as its chip heads it: the deck colour in a word and the tier ("Red · II", "Gold · Basic",
+ * "Purple · Ultimate"), held together by non-breaking spaces; a spell page by its level as printed.
+ */
+internal fun familyLabel(card: Card): String = if (card.isSpell) {
+    tierLabel(card)
+} else {
+    "${cardColorName(card.color)}\u00A0·\u00A0${tierLabel(card).removePrefix("Tier ")}"
+}
+
+/** How much wider a card chip may grow with the font scale. */
+private const val CHIP_GROWTH = 1.5f
+
+/** How far the panel's small icons grow with large text, beside text that grows to twice its size. */
+private const val ICON_GROWTH = 1.6f
+
+/** From this font scale the card chips wrap rather than scroll. */
+private const val WRAP_SCALE = 1.3f
 
 /** Initiative and printed values of the chosen card, as printed ("Movement 4", "Range 1+"). */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun CardSummary(card: Card) {
     val values = listOfNotNull(
-        card.initiative?.let { GameIcons.initiative to "Initiative $it" },
-        card.values.attack?.let { GameIcons.attack to "Attack $it${plus(card, Stat.ATTACK)}" },
-        card.values.defense?.let { GameIcons.defense to "Defense $it${plus(card, Stat.DEFENSE)}" },
-        card.values.movement?.let { GameIcons.movement to "Movement $it${plus(card, Stat.MOVEMENT)}" },
-        card.values.range?.let { GameIcons.range to "Range $it${plus(card, Stat.RANGE)}" },
-        card.values.radius?.let { GameIcons.radius to "Radius $it${plus(card, Stat.RADIUS)}" },
+        card.initiative?.let { Stat.INITIATIVE to "$it" },
+        card.values.attack?.let { Stat.ATTACK to "$it${plus(card, Stat.ATTACK)}" },
+        card.values.defense?.let { Stat.DEFENSE to "$it${plus(card, Stat.DEFENSE)}" },
+        card.values.movement?.let { Stat.MOVEMENT to "$it${plus(card, Stat.MOVEMENT)}" },
+        card.values.range?.let { Stat.RANGE to "$it${plus(card, Stat.RANGE)}" },
+        card.values.radius?.let { Stat.RADIUS to "$it${plus(card, Stat.RADIUS)}" },
     )
     FlowRow(
         horizontalArrangement = Arrangement.spacedBy(Spacing.md),
         modifier = Modifier.padding(top = Spacing.xs, bottom = Spacing.xs),
     ) {
-        values.forEach { (icon, text) -> ValueLabel(icon, text) }
+        // The app's one stat readout (icon, value, name), as on the hero page.
+        values.forEach { (stat, value) -> StatReadout(stat, value) }
     }
 }
 
 private fun plus(card: Card, stat: Stat) = if (stat in card.values.plus) "+" else ""
-
-@Composable
-private fun ValueLabel(icon: GameIcon, text: String) {
-    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.semantics(mergeDescendants = true) {}) {
-        Icon(
-            icon.vector,
-            contentDescription = null,
-            tint = MaterialTheme.colorScheme.primary,
-            modifier = Modifier.size(scaledIconSize(16.dp)),
-        )
-        Spacer(Modifier.width(Spacing.xs))
-        Text(text, style = MaterialTheme.typography.bodyMedium)
-    }
-}
 
 /** The card's printed text, verbatim, with its icons and bold keywords (as the card viewer shows it). */
 @Composable
@@ -585,6 +634,8 @@ private fun OverlayRow(
     onBonus: ((Int) -> Unit)? = null,
     steps: Int? = null,
     onSteps: ((Int) -> Unit)? = null,
+    /** The rulebook page the layer follows, as a small pill after its title (never in its note). */
+    page: String? = null,
 ) {
     Column(Modifier.fillMaxWidth()) {
         Row(
@@ -601,12 +652,18 @@ private fun OverlayRow(
             }
             Spacer(Modifier.width(Spacing.md))
             Column(Modifier.weight(1f)) {
-                Text(
-                    title,
-                    style = MaterialTheme.typography.titleSmall,
-                    fontWeight = FontWeight.SemiBold,
-                    color = MaterialTheme.colorScheme.run { if (enabled) onSurface else onSurfaceVariant },
-                )
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        title,
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.SemiBold,
+                        color = MaterialTheme.colorScheme.run { if (enabled) onSurface else onSurfaceVariant },
+                    )
+                    page?.let {
+                        Spacer(Modifier.width(Spacing.sm))
+                        PagePill(it)
+                    }
+                }
                 Text(
                     note,
                     style = MaterialTheme.typography.bodySmall,
@@ -614,7 +671,7 @@ private fun OverlayRow(
                 )
             }
             Spacer(Modifier.width(Spacing.sm))
-            Switch(checked = checked, onCheckedChange = null, enabled = enabled)
+            GoaSwitch(checked = checked, onCheckedChange = null, enabled = enabled)
         }
         if (onBonus != null && checked) {
             Stepper(
@@ -666,7 +723,7 @@ private fun SwitchRow(title: String, note: String, checked: Boolean, onToggle: (
             Text(note, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
         Spacer(Modifier.width(Spacing.sm))
-        Switch(checked = checked, onCheckedChange = null)
+        GoaSwitch(checked = checked, onCheckedChange = null)
     }
 }
 

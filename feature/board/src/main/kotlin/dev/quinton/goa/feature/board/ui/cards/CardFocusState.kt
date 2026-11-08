@@ -19,8 +19,8 @@ import dev.quinton.goa.core.model.catalog.Stat
 
 /**
  * What confirming a focused card does. [action] names it for the card on show ("Discard Magnetic
- * Dagger", "Play Shock facedown"): the Confirm button's label and the hint "Tap the card again to
- * discard Magnetic Dagger". [onConfirm] gets the index of the confirmed card in the list opened.
+ * Dagger", "Play Shock facedown"): the Confirm button's label, the only way to confirm (a tap on the card reads it;
+ * it never confirms). [onConfirm] gets the index of the confirmed card in the list opened.
  * [context] is the question's own line above the card ("Arien attacks · melee · Attack 6").
  */
 @Immutable
@@ -103,10 +103,12 @@ class CardFocusState {
         title: String? = null,
         owner: Any? = null,
         onClose: (() -> Unit)? = null,
+        /** Opens with "Read the card as text" open (a panel's explicit Read card). */
+        asText: Boolean = false,
     ) {
         if (cards.isEmpty()) return
         val start = index.coerceIn(0, cards.lastIndex)
-        request = CardFocusRequest(next++, cards, start, title, selection, owner, onClose)
+        request = CardFocusRequest(next++, cards, start, title, selection, owner, onClose).also { it.asText = asText }
         this.index = start
         closing = false
         exit = FocusExit.SHRINK

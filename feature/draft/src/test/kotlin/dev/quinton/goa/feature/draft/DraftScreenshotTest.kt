@@ -6,7 +6,9 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onRoot
+import androidx.compose.ui.test.performClick
 import androidx.compose.ui.unit.dp
 import androidx.test.core.app.ApplicationProvider
 import com.github.takahirom.roborazzi.captureRoboImage
@@ -17,6 +19,7 @@ import dev.quinton.goa.core.domain.draft.DraftEngine
 import dev.quinton.goa.core.domain.draft.DraftMethod
 import dev.quinton.goa.core.domain.draft.DraftSession
 import dev.quinton.goa.core.domain.draft.DraftSetup
+import dev.quinton.goa.core.domain.draft.MethodOrigin
 import dev.quinton.goa.core.domain.draft.SequenceRule
 import dev.quinton.goa.core.domain.draft.TeamSlot
 import dev.quinton.goa.core.domain.draft.pick
@@ -28,7 +31,6 @@ import dev.quinton.goa.core.domain.teams.SeatLayouts
 import dev.quinton.goa.core.model.match.Team
 import dev.quinton.goa.core.model.settings.ThemeMode
 import dev.quinton.goa.core.testing.BundledAssetImages
-import dev.quinton.goa.core.testing.TestCatalog
 import dev.quinton.goa.core.testing.bundledHero
 import dev.quinton.goa.feature.draft.board.BoardActions
 import dev.quinton.goa.feature.draft.board.BoardLocal
@@ -52,8 +54,10 @@ import dev.quinton.goa.feature.draft.setup.previewSetupState
 import dev.quinton.goa.feature.draft.ui.HeroInfo
 import dev.quinton.goa.feature.draft.ui.HeroPeekSheet
 import dev.quinton.goa.feature.draft.ui.HeroTile
+import dev.quinton.goa.feature.draft.ui.PeekCommit
 import dev.quinton.goa.feature.draft.ui.PreviewData
 import dev.quinton.goa.feature.draft.ui.TileState
+import dev.quinton.goa.feature.draft.ui.teamLabel
 import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
@@ -69,7 +73,9 @@ import org.robolectric.annotation.GraphicsMode
 class DraftScreenshotTest {
     @get:Rule val compose = createComposeRule()
 
-    private val heroes = TestCatalog.heroes.associate { it.id to HeroInfo.of(it) }
+    /** Twelve real heroes from the bundled catalog, so the board shows portraits and real names. */
+    private val catalogHeroes = REAL_HEROES.map(::bundledHero)
+    private val heroes = catalogHeroes.associate { it.id to HeroInfo.of(it) }
     private val players = PreviewData.players.associateBy { it.id }
 
     @Before fun images() = BundledAssetImages.install(ApplicationProvider.getApplicationContext())
@@ -85,8 +91,19 @@ class DraftScreenshotTest {
     private fun capturePeek(theme: ThemeMode = ThemeMode.DARK, fontScale: Float = 1f, id: String = "arien") {
         if (fontScale != 1f) RuntimeEnvironment.setFontScale(fontScale)
         val hero = HeroInfo.of(bundledHero(id))
+        // As on the board, mid-draft: the step's own commitment ends the peek.
+        val commit = PeekCommit(
+            Team.RED,
+            label = "Pick ${hero.name}",
+            recipient = "${teamLabel(Team.RED)} · Ada: pick 1 of 2",
+            onCommit = {},
+            // The board's timed draft (boardMid shows 0:24): the clock comes along into the peek.
+            remainingSeconds = 24,
+        )
         compose.setContent {
-            GoaTheme(themeMode = theme) { HeroPeekSheet(hero, onDismiss = {}, onOpenHero = {}, onOpenSpellbook = {}) }
+            GoaTheme(themeMode = theme) {
+                HeroPeekSheet(hero, onDismiss = {}, onOpenHero = {}, onOpenSpellbook = {}, commit = commit)
+            }
         }
         compose.waitUntil(IMAGE_TIMEOUT_MS) { BundledAssetImages.idle }
         compose.waitForIdle()
@@ -112,7 +129,7 @@ class DraftScreenshotTest {
                 method,
                 seats,
                 Team.BLUE,
-                TestCatalog.heroes.map {
+                catalogHeroes.map {
                     it.id
                 },
                 seed = 9L,
@@ -181,6 +198,18 @@ class DraftScreenshotTest {
 
     @Test fun boardMidDark() = capture { DraftBoardScreen(board(session(3)), BoardActions.None) }
 
+    /** The real wiring: a pool tile's tap opens the peek, the step's Pick and whom it is for pinned under it. */
+    @Test fun boardTilePeekDark() {
+        compose.setContent {
+            GoaTheme(themeMode = ThemeMode.DARK) { DraftBoardScreen(board(session(3)), BoardActions.None) }
+        }
+        compose.waitUntil(IMAGE_TIMEOUT_MS) { BundledAssetImages.idle }
+        compose.onNodeWithContentDescription("Brogan").performClick()
+        compose.waitUntil(IMAGE_TIMEOUT_MS) { BundledAssetImages.idle }
+        compose.waitForIdle()
+        captureScreenRoboImage()
+    }
+
     @Test fun boardMidLight() = capture(ThemeMode.LIGHT) { DraftBoardScreen(board(session(3)), BoardActions.None) }
 
     @Test fun boardMidFontScale2() = capture(fontScale = 2f) { DraftBoardScreen(board(session(3)), BoardActions.None) }
@@ -195,7 +224,7 @@ class DraftScreenshotTest {
         val seats = SeatLayouts.build(ids.take(2), ids.drop(2).take(2), OddSeatMode.HANDICAP).getOrThrow()
         val single = bundledMethods.methods.first { it.id == "single-draft" }
         val s = DraftEngine.start(
-            DraftSetup("d", 0L, single, seats, Team.RED, TestCatalog.heroes.map { it.id }, seed = 9L),
+            DraftSetup("d", 0L, single, seats, Team.RED, catalogHeroes.map { it.id }, seed = 9L),
         ).getOrThrow()
         DraftBoardScreen(board(s, BoardLocal()), BoardActions.None)
     }
@@ -213,7 +242,10 @@ class DraftScreenshotTest {
         DraftBoardScreen(board(session(1, method = hidden)), BoardActions.None)
     }
 
-    @Test fun boardCompleteDark() = capture {
+    @Test fun boardCompleteDark() = capture { DraftBoardScreen(board(session(8)), BoardActions.None) }
+
+    /** After one row's Swap: the bar says what the next tap does, the teammates offer Swap here. */
+    @Test fun boardCompleteSwapDark() = capture {
         val done = session(8)
         DraftBoardScreen(board(done, BoardLocal(selectedSeat = done.seats.first().id)), BoardActions.None)
     }
@@ -228,13 +260,13 @@ class DraftScreenshotTest {
         val ids = PreviewData.players.map { it.id }
         var s = PlayerDraftSession.start(
             "p", 0, allPick, ids, ids[0], ids[1], Team.RED,
-            TestCatalog.heroes.map {
+            catalogHeroes.map {
                 it.id
             },
             1,
         ).getOrThrow()
         ids.forEachIndexed { i, id ->
-            s = s.copy(selection = HeroSelections.choose(s.selection, id, TestCatalog.heroes[i].id).getOrThrow())
+            s = s.copy(selection = HeroSelections.choose(s.selection, id, catalogHeroes[i].id).getOrThrow())
         }
         s = s.copy(captains = PlayerDraft.pick(s.captains, ids[2]).getOrThrow())
         DraftBoardScreen(
@@ -249,14 +281,20 @@ class DraftScreenshotTest {
 
     // ---- Methods
 
+    /** The shipped methods (draft-methods.json), the default chosen, and one of the group's own. */
     private fun methods(): MethodsUiState {
         val layout = PreviewLayout.OPTIONS.first()
-        val m = PreviewData.pattern
+        val file = bundledMethods
+        val house = file.methods.first { it.id == file.defaultMethodId }
+        val custom = house.copy(id = "c", name = "Blind pairs", origin = MethodOrigin.CUSTOM)
         return MethodsUiState(
             loading = false,
             layout = layout,
-            builtIn = listOf(MethodRow(m, previewOf(m, layout), isDefault = true)),
-            custom = listOf(MethodRow(m.copy(id = "c", name = "Blind pairs"), previewOf(m, layout), isDefault = false)),
+            builtIn = file.methods.map {
+                MethodRow(it, previewOf(it, layout, Team.BLUE), isDefault = it.id == file.defaultMethodId)
+            },
+            custom = listOf(MethodRow(custom, previewOf(custom, layout, Team.BLUE), isDefault = false)),
+            selectedId = house.id,
         )
     }
 
@@ -295,3 +333,18 @@ class DraftScreenshotTest {
 }
 
 private const val IMAGE_TIMEOUT_MS = 10_000L
+
+private val REAL_HEROES = listOf(
+    "arien",
+    "brogan",
+    "sabina",
+    "wasp",
+    "xargatha",
+    "gydion",
+    "tigerclaw",
+    "silverarrow",
+    "dodger",
+    "rowenna",
+    "bain",
+    "cutter",
+)

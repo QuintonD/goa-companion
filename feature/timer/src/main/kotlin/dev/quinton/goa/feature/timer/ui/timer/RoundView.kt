@@ -97,35 +97,45 @@ internal fun PortraitRoundTimer(state: ActiveUiState, actions: TimerActions, hea
     JumpDialog(state, jump, actions, onDismiss = { jump = null })
 }
 
-/** Landscape: the round list on the left; header, the current step's clock and the controls on the right. */
+/** Landscape: the header across the top; under it the round list on the left, the step's clock and controls right. */
 @Composable
 internal fun LandscapeRoundTimer(state: ActiveUiState, actions: TimerActions, header: @Composable () -> Unit) {
     var jump by remember { mutableStateOf<RoundRowUi?>(null) }
-    Row(Modifier.fillMaxSize()) {
-        RoundList(state, actions, expandCurrent = false, onJump = { jump = it }, Modifier.weight(0.45f).fillMaxHeight())
-        Column(Modifier.weight(0.55f).fillMaxHeight()) {
-            header()
-            BoxWithConstraints(Modifier.weight(1f).fillMaxWidth()) {
-                // A phone held sideways can leave ~130 dp here (S25 Ultra: 384 dp tall): the digits
-                // shrink so the clock stays in view above the pinned buttons instead of scrolling off.
-                val digits = (maxHeight - LANDSCAPE_CLOCK_CHROME).coerceIn(LANDSCAPE_DIGITS_MIN, LANDSCAPE_DIGITS)
-                Column(
-                    Modifier
-                        .fillMaxSize()
-                        .verticalScroll(rememberScrollState())
-                        .padding(horizontal = Spacing.screen),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                ) {
-                    LandscapeCurrentStep(state, actions, digits)
-                }
-            }
-            // Pinned here too: in a short landscape window it scrolled under the controls.
-            PinnedTableRules(state, actions)
-            PinnedShotClock(state, actions, compact = true)
-            TimerControls(state, actions, compact = true)
+    // The steel banner runs the full width, as on every screen; the list and the step sit side by side under it.
+    Column(Modifier.fillMaxSize()) {
+        header()
+        Row(Modifier.weight(1f).fillMaxWidth()) {
+            RoundList(state, actions, expandCurrent = false, onJump = {
+                jump = it
+            }, Modifier.weight(0.45f).fillMaxHeight())
+            LandscapeRoundStep(state, actions, Modifier.weight(0.55f).fillMaxHeight())
         }
     }
     JumpDialog(state, jump, actions, onDismiss = { jump = null })
+}
+
+@Composable
+private fun LandscapeRoundStep(state: ActiveUiState, actions: TimerActions, modifier: Modifier) {
+    Column(modifier) {
+        BoxWithConstraints(Modifier.weight(1f).fillMaxWidth()) {
+            // A phone held sideways can leave ~130 dp here (S25 Ultra: 384 dp tall): the digits
+            // shrink so the clock stays in view above the pinned buttons instead of scrolling off.
+            val digits = (maxHeight - LANDSCAPE_CLOCK_CHROME).coerceIn(LANDSCAPE_DIGITS_MIN, LANDSCAPE_DIGITS)
+            Column(
+                Modifier
+                    .fillMaxSize()
+                    .verticalScroll(rememberScrollState())
+                    .padding(horizontal = Spacing.screen),
+                horizontalAlignment = Alignment.CenterHorizontally,
+            ) {
+                LandscapeCurrentStep(state, actions, digits)
+            }
+        }
+        // Pinned here too: in a short landscape window it scrolled under the controls.
+        PinnedTableRules(state, actions)
+        PinnedShotClock(state, actions, compact = true)
+        TimerControls(state, actions, compact = true)
+    }
 }
 
 /** Step title (one line: the list beside it already places the step), clock, hint and extras. */

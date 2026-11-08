@@ -1,6 +1,7 @@
 package dev.quinton.goa.core.designsystem
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
@@ -12,6 +13,8 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Groups
@@ -32,25 +35,41 @@ import androidx.compose.ui.unit.dp
 import androidx.test.core.app.ApplicationProvider
 import com.github.takahirom.roborazzi.captureRoboImage
 import dev.quinton.goa.core.designsystem.component.CardColorDot
+import dev.quinton.goa.core.designsystem.component.CardFamilyLabel
 import dev.quinton.goa.core.designsystem.component.CardScan
 import dev.quinton.goa.core.designsystem.component.ComplexityStars
+import dev.quinton.goa.core.designsystem.component.DoneLabel
 import dev.quinton.goa.core.designsystem.component.DurationText
 import dev.quinton.goa.core.designsystem.component.EmptyState
+import dev.quinton.goa.core.designsystem.component.GoaButton
 import dev.quinton.goa.core.designsystem.component.GoaCard
 import dev.quinton.goa.core.designsystem.component.GoaFilterChip
+import dev.quinton.goa.core.designsystem.component.GoaOutlinedButton
+import dev.quinton.goa.core.designsystem.component.GoaPlate
+import dev.quinton.goa.core.designsystem.component.GoaSegment
+import dev.quinton.goa.core.designsystem.component.GoaSegmentedRow
+import dev.quinton.goa.core.designsystem.component.GoaSwitch
 import dev.quinton.goa.core.designsystem.component.HeroPortrait
 import dev.quinton.goa.core.designsystem.component.HeroSigil
 import dev.quinton.goa.core.designsystem.component.HeroSymbol
+import dev.quinton.goa.core.designsystem.component.MetalButton
 import dev.quinton.goa.core.designsystem.component.OfficialArt
 import dev.quinton.goa.core.designsystem.component.OfficialIcon
+import dev.quinton.goa.core.designsystem.component.PlateStyle
 import dev.quinton.goa.core.designsystem.component.PlayerAvatar
 import dev.quinton.goa.core.designsystem.component.PrintedCardText
 import dev.quinton.goa.core.designsystem.component.SectionHeader
+import dev.quinton.goa.core.designsystem.component.SelectablePlate
 import dev.quinton.goa.core.designsystem.component.StatBar
 import dev.quinton.goa.core.designsystem.component.SteelBanner
+import dev.quinton.goa.core.designsystem.component.SubHeader
 import dev.quinton.goa.core.designsystem.component.TeamBadge
+import dev.quinton.goa.core.designsystem.component.TintTag
+import dev.quinton.goa.core.designsystem.component.TitlePlate
 import dev.quinton.goa.core.designsystem.component.UnverifiedBadge
 import dev.quinton.goa.core.designsystem.component.VerifiedBadge
+import dev.quinton.goa.core.designsystem.component.emptySlotOutline
+import dev.quinton.goa.core.designsystem.component.mutedOutline
 import dev.quinton.goa.core.designsystem.icon.HeroSigils
 import dev.quinton.goa.core.designsystem.icon.PlayerCrests
 import dev.quinton.goa.core.designsystem.theme.GoaTextStyles
@@ -124,6 +143,72 @@ class GalleryScreenshotTest {
     @Test fun componentsDarkFontScale2() = capture(ThemeMode.DARK, fontScale = 2f) { Components() }
 
     @Test fun componentsLightFontScale2() = capture(ThemeMode.LIGHT, fontScale = 2f) { Components() }
+
+    @Test fun patternsDark() = capture(ThemeMode.DARK) { Patterns() }
+
+    @Test fun patternsLight() = capture(ThemeMode.LIGHT) { Patterns() }
+
+    @Test fun patternsLightFontScale2() = capture(ThemeMode.LIGHT, fontScale = 2f) { Patterns() }
+}
+
+/** The shared patterns: plate variants, one selection, one section head and its sub-head, scores, disabled buttons. */
+@Composable
+private fun Patterns() {
+    Column(Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+        SectionHeader("Section head", trailing = { TextButton(onClick = {}) { Text("Manage") } })
+        GoaPlate(Modifier.fillMaxWidth()) {
+            TitlePlate("Minion Battle", Modifier.fillMaxWidth())
+            SubHeader("Sub-head in a plate")
+            Text("A primary plate: steel edge and brackets.")
+            GoaPlate(Modifier.fillMaxWidth().padding(top = Spacing.sm)) { Text("A plate in a plate is a well.") }
+        }
+        GoaPlate(Modifier.fillMaxWidth(), style = PlateStyle.Secondary) {
+            Text("A secondary plate: flat, a quiet hairline.")
+        }
+        SelectablePlate(selected = true, onClick = {}, modifier = Modifier.fillMaxWidth()) {
+            Column(Modifier.weight(1f)) {
+                Text("Quick", style = MaterialTheme.typography.titleMedium)
+                Text("3 Wave counters", style = MaterialTheme.typography.bodySmall)
+            }
+        }
+        SelectablePlate(selected = false, onClick = {}, modifier = Modifier.fillMaxWidth()) {
+            Text("Long", style = MaterialTheme.typography.titleMedium)
+        }
+        Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm), verticalAlignment = Alignment.CenterVertically) {
+            Text("1332", style = GoaTextStyles.scoreLarge)
+            Text("+14", style = GoaTextStyles.score, color = MaterialTheme.colorScheme.secondary)
+            TitlePlate("Ann", Modifier.width(120.dp))
+        }
+        Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+            GoaButton(onClick = {}) { Text("Join") }
+            GoaButton(onClick = {}, enabled = false) { Text("Join") }
+            MetalButton(onClick = {}, bronze = false, enabled = false) { Text("Start") }
+        }
+        TitlePlate("Which hero has the highest Initiative card?", Modifier.fillMaxWidth())
+        // Muted states (round 5): done, past and empty step back by losing decoration, not legibility.
+        GoaPlate(Modifier.fillMaxWidth()) {
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                val shape = RoundedCornerShape(6.dp)
+                Column(Modifier.mutedOutline(shape).padding(Spacing.xs)) {
+                    Text("Wasp", color = GoaTheme.colors.textMuted)
+                    DoneLabel("DONE")
+                }
+                Box(Modifier.size(48.dp, 64.dp).emptySlotOutline(shape), contentAlignment = Alignment.Center) {
+                    Text("3", color = GoaTheme.colors.textMuted)
+                }
+                Column {
+                    TintTag("p.14")
+                    TintTag("Rulebook", color = MaterialTheme.colorScheme.secondary)
+                }
+            }
+            CardFamilyLabel(CardColor.RED, 2)
+            CardFamilyLabel(CardColor.GOLD, null)
+            CardFamilyLabel(CardColor.PURPLE, 4)
+        }
+    }
 }
 
 @OptIn(ExperimentalLayoutApi::class)
@@ -274,6 +359,18 @@ private fun Components() {
         GoaFilterChip(selected = true, onClick = {}, label = "Melee")
         GoaFilterChip(selected = false, onClick = {}, label = "Healer")
         GoaFilterChip(selected = true, onClick = {}, label = "★★★")
+    }
+    SectionHeader("Controls")
+    GoaSegmentedRow(Modifier.fillMaxWidth()) {
+        listOf("Quick", "Long").forEachIndexed { i, label ->
+            GoaSegment(selected = i == 0, onClick = {}) { Text(label) }
+        }
+    }
+    Spacer(Modifier.height(Spacing.sm))
+    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.md)) {
+        GoaSwitch(checked = true, onCheckedChange = {})
+        GoaSwitch(checked = false, onCheckedChange = {})
+        GoaOutlinedButton(onClick = {}) { Text("Scan QR") }
     }
     Spacer(Modifier.height(Spacing.sm))
     FlowRow(

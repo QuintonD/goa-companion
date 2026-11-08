@@ -15,14 +15,18 @@ import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.ColorMatrix
 import androidx.compose.ui.graphics.FilterQuality
 import androidx.compose.ui.graphics.Shape
+import androidx.compose.ui.graphics.drawOutline
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import dev.quinton.goa.core.designsystem.component.LookArt
 import dev.quinton.goa.core.designsystem.component.PlateShape
+import dev.quinton.goa.core.designsystem.component.TimerPaintings
 import dev.quinton.goa.core.designsystem.component.rememberOfficialBitmap
+import dev.quinton.goa.core.designsystem.component.rememberPaintingBitmap
 import kotlin.math.max
 import kotlin.math.min
 import kotlin.math.roundToInt
@@ -34,11 +38,14 @@ import kotlin.math.roundToInt
  */
 
 /**
- * The painted sea, cover, under a radial navy veil, with the rulebook's battlefield along the foot
+ * The painted sea (the app's own, at full resolution), cover, under a radial navy veil, with the rulebook's
+ * battlefield along the foot
  * when [silhouette] is set. Navy alone while the art loads and if it fails. Decorative.
  */
 private fun Modifier.timerBackdrop(silhouette: Boolean): Modifier = composed {
-    val sea = rememberOfficialBitmap(LookArt.SEA)
+    // The sea painted for the app at full resolution, a cut for each orientation (third_party/ASSETS.md).
+    val config = LocalConfiguration.current
+    val sea = rememberPaintingBitmap(TimerPaintings.sea(landscape = config.screenWidthDp > config.screenHeightDp))
     val field = if (silhouette) rememberOfficialBitmap(LookArt.SILHOUETTE) else null
     drawWithCache {
         val w = size.width
@@ -124,6 +131,7 @@ private val FIELD_BRIGHTEN = ColorFilter.colorMatrix(
     ColorMatrix().apply { setToScale(FIELD_LIFT, FIELD_LIFT, FIELD_LIFT, 1f) },
 )
 
-/** Plates are dark in both themes: an accent on one's edge, picked outside it, is the dark theme's. */
+/** Teal on a plate's edge: next and ready (DESIGN.md); a picked plate is `GoaPlate(selected =)`, bronze. */
 internal val PlateTeal = Color(0xFF3FC1B0)
+
 internal val PlateError = Color(0xFFFF6B6B)

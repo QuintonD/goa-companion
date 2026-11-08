@@ -5,7 +5,6 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -25,15 +24,12 @@ import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material.icons.outlined.History
 import androidx.compose.material.icons.outlined.MoreVert
-import androidx.compose.material.icons.outlined.PlayArrow
 import androidx.compose.material.icons.outlined.Replay
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -49,18 +45,23 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.customActions
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import dev.quinton.goa.core.designsystem.component.EmptyState
 import dev.quinton.goa.core.designsystem.component.GoaButton
+import dev.quinton.goa.core.designsystem.component.GoaOutlinedButton
 import dev.quinton.goa.core.designsystem.component.HeroPortrait
 import dev.quinton.goa.core.designsystem.component.TeamBadge
+import dev.quinton.goa.core.designsystem.icon.Destination
+import dev.quinton.goa.core.designsystem.icon.icon
 import dev.quinton.goa.core.designsystem.theme.Spacing
 import dev.quinton.goa.core.domain.match.RematchKind
 import dev.quinton.goa.core.model.match.MatchStatus
 import dev.quinton.goa.core.model.match.Team
 import dev.quinton.goa.feature.players.common.DeltaIndicator
 import dev.quinton.goa.feature.players.common.EngravedCard
+import dev.quinton.goa.feature.players.common.LARGE_FONT_SCALE
 import dev.quinton.goa.feature.players.common.LoadingState
 import dev.quinton.goa.feature.players.common.Pill
 import dev.quinton.goa.feature.players.common.ResultChip
@@ -142,7 +143,7 @@ fun MatchLogContent(
         else -> LazyColumn(
             modifier = modifier.fillMaxSize(),
             state = listState,
-            contentPadding = PaddingValues(start = Spacing.screen, end = Spacing.screen, bottom = FAB_CLEARANCE),
+            contentPadding = PaddingValues(start = Spacing.screen, end = Spacing.screen, bottom = LIST_END_PADDING),
             verticalArrangement = Arrangement.spacedBy(Spacing.sm),
         ) {
             state.groups.forEach { group ->
@@ -170,12 +171,12 @@ private const val FLASH_MS = 2_000L
 /** From Android's 1.15 font step up, a seat's rating change gets its own line. */
 private const val SEAT_STACK_FONT_SCALE = 1.1f
 
-/** Bottom padding of lists under an extended FAB: 56 dp FAB + 16 dp margin + room to read the last row. */
-val FAB_CLEARANCE = 112.dp
+/** Bottom padding of the Players lists: their actions are docked or inline, so only breathing room. */
+val LIST_END_PADDING = 32.dp
 
 /**
  * One match in a list. [onDelete] null hides the menu (e.g. on a profile). Completed matches offer
- * [onRematch]; pending ones show "Who won?" ([onLogResult]) and "Resume" ([onResume]) right on the card.
+ * [onRematch]; pending ones show "Who won?" ([onLogResult]) and "Open match setup" ([onResume]) right on the card.
  */
 @Composable
 fun MatchCard(
@@ -215,7 +216,7 @@ fun MatchCard(
                         }
                     },
                     onResume?.let {
-                        CustomAccessibilityAction("Resume in Match setup") {
+                        CustomAccessibilityAction(OPEN_MATCH_SETUP) {
                             it()
                             true
                         }
@@ -318,29 +319,59 @@ fun MatchCard(
                 )
             }
             if (onLogResult != null || onResume != null) {
-                FlowRow(
-                    Modifier.padding(top = Spacing.sm, end = Spacing.md),
-                    horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
-                ) {
-                    onLogResult?.let {
-                        GoaButton(onClick = it, modifier = Modifier.heightIn(min = 48.dp)) {
-                            Icon(Icons.Filled.EmojiEvents, contentDescription = null, modifier = Modifier.size(18.dp))
-                            Spacer(Modifier.width(Spacing.sm))
-                            Text("Who won?")
-                        }
-                    }
-                    onResume?.let {
-                        OutlinedButton(onClick = it, modifier = Modifier.heightIn(min = 48.dp)) {
-                            Icon(Icons.Outlined.PlayArrow, contentDescription = null, modifier = Modifier.size(18.dp))
-                            Spacer(Modifier.width(Spacing.sm))
-                            Text("Resume: setup & timer")
-                        }
-                    }
-                }
+                PendingActions(onResume, onLogResult, Modifier.padding(top = Spacing.md, end = Spacing.md))
             }
         }
     }
 }
+
+/**
+ * A pending match's two next steps, one row of equal halves: "Open match setup" (outlined, the shared label for this
+ * hop everywhere) and the primary "Who won?" (bronze) at the trailing end. Stacked full width at large text.
+ */
+@Composable
+private fun PendingActions(onResume: (() -> Unit)?, onLogResult: (() -> Unit)?, modifier: Modifier = Modifier) {
+    val stacked = LocalDensity.current.fontScale >= LARGE_FONT_SCALE
+    val padding = PaddingValues(horizontal = Spacing.md, vertical = Spacing.sm)
+    val resume: @Composable (Modifier) -> Unit = { m ->
+        onResume?.let {
+            // Narrower sides than the trophy's half: the flag and the words share one line on a phone.
+            GoaOutlinedButton(
+                onClick = it,
+                modifier = m.heightIn(min = 48.dp),
+                contentPadding = PaddingValues(horizontal = Spacing.sm, vertical = Spacing.sm),
+            ) {
+                // The flag is Match setup on every screen that links to it (Destination).
+                Icon(Destination.MATCH_SETUP.icon, contentDescription = null, modifier = Modifier.size(16.dp))
+                Spacer(Modifier.width(Spacing.xs))
+                Text(OPEN_MATCH_SETUP, textAlign = TextAlign.Center)
+            }
+        }
+    }
+    val won: @Composable (Modifier) -> Unit = { m ->
+        onLogResult?.let {
+            GoaButton(onClick = it, modifier = m.heightIn(min = 48.dp), contentPadding = padding) {
+                Icon(Icons.Filled.EmojiEvents, contentDescription = null, modifier = Modifier.size(18.dp))
+                Spacer(Modifier.width(Spacing.sm))
+                Text("Who won?", textAlign = TextAlign.Center)
+            }
+        }
+    }
+    if (stacked) {
+        Column(modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+            won(Modifier.fillMaxWidth())
+            resume(Modifier.fillMaxWidth())
+        }
+    } else {
+        Row(modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+            if (onResume != null) resume(Modifier.weight(1f))
+            if (onLogResult != null) won(Modifier.weight(1f))
+        }
+    }
+}
+
+/** The shared label for opening a match in Match setup (the log, Timer start, a finished draft). */
+const val OPEN_MATCH_SETUP = "Open match setup"
 
 @Composable
 private fun TeamColumn(team: Team, seats: List<SeatUi>, winner: Team?, modifier: Modifier = Modifier) {

@@ -13,6 +13,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import dev.quinton.goa.core.designsystem.component.scaledIconSize
 import dev.quinton.goa.core.designsystem.theme.Spacing
 import dev.quinton.goa.core.model.catalog.Card
 import dev.quinton.goa.feature.board.BoardHero
@@ -47,7 +48,7 @@ internal fun ReadCardsButton(hero: BoardHero, chosenId: String?, onMeasure: (Str
         contentPadding = PaddingValues(horizontal = Spacing.sm),
         modifier = Modifier.heightIn(min = 48.dp),
     ) {
-        Icon(Icons.Outlined.Style, contentDescription = null, modifier = Modifier.size(18.dp))
+        Icon(Icons.Outlined.Style, contentDescription = null, modifier = Modifier.size(scaledIconSize(18.dp, 1.6f)))
         Spacer(Modifier.width(Spacing.xs))
         Text("Read the cards")
     }

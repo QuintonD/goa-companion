@@ -18,6 +18,19 @@ data class PresetOption(
     val name: String,
     val summary: String,
     val usesActionTimer: Boolean,
+    /** The phases one by one, for the Timer tab's grid (empty when nothing is timed). */
+    val phases: List<PhaseDuration> = emptyList(),
+)
+
+/**
+ * One phase of a preset as the Timer tab's grid shows it: "Play a card" · 0:30 · "×4". [perTurn] marks the
+ * per-turn phase, the one tonight's length changes.
+ */
+data class PhaseDuration(
+    val name: String,
+    val seconds: Int?,
+    val repeat: String? = null,
+    val perTurn: Boolean = false,
 )
 
 /** A pending match on the Timer tab: mode and size, each team's heroes, and when it was set up. */
@@ -42,8 +55,11 @@ data class StartUiState(
     val selected: PresetOption? get() = presets.firstOrNull { it.id == selectedPresetId }
 }
 
-/** Quick "tonight" turn length on the start card; [adjusted] = differs from the preset. */
-data class TonightUi(val seconds: Int, val presetSeconds: Int) {
+/**
+ * Quick "tonight" turn length on the start card; [adjusted] = differs from the preset. [phaseName] is the
+ * preset's own name for the per-turn phase it changes ("Play a card"), so the card can say which.
+ */
+data class TonightUi(val seconds: Int, val presetSeconds: Int, val phaseName: String = "Turn") {
     val adjusted: Boolean get() = seconds != presetSeconds
 }
 

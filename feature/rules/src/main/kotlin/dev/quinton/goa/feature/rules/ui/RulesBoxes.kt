@@ -8,11 +8,22 @@ import dev.quinton.goa.core.model.rules.RulesExcerpt
  * The coloured boxes the rulebook prints some passages in, with text colours that pass 4.5:1:
  * blue #0F6F99 is the book's own (5.3:1); its green (#40A848, 3.0:1) and orange (#D07028, 3.5:1) carry
  * white too faintly, so they are darkened to 5.3:1 and 5.2:1. The book sets the green ones in italics.
+ * On the dark theme's page each box is a shade deeper ([darkGround]), the same hue, so it sits in the dim page
+ * without glowing.
  */
-internal enum class RulesBox(val ground: Color, val onGround: Color, val italic: Boolean = false) {
-    BLUE(Color(0xFF0F6F99), Color(0xFFF4FAFD)),
-    GREEN(Color(0xFF2B7A33), Color(0xFFFFFFFF), italic = true),
-    ORANGE(Color(0xFFA8560F), Color(0xFFFFFFFF)),
+internal enum class RulesBox(
+    val ground: Color,
+    val darkGround: Color,
+    val onGround: Color,
+    val italic: Boolean = false,
+) {
+    BLUE(Color(0xFF0F6F99), Color(0xFF0C5778), Color(0xFFF4FAFD)),
+    GREEN(Color(0xFF2B7A33), Color(0xFF225F28), Color(0xFFFFFFFF), italic = true),
+    ORANGE(Color(0xFFA8560F), Color(0xFF86440C), Color(0xFFFFFFFF)),
+    ;
+
+    /** The box's ground on the reader's page of the theme. */
+    fun ground(dark: Boolean): Color = if (dark) darkGround else ground
 }
 
 /**

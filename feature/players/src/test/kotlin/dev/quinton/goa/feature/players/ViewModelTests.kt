@@ -227,6 +227,11 @@ class ViewModelTests {
         assertThat(saved.players.map { it.name }).containsExactly("Bob", "Ann").inOrder()
         assertThat(saved.players.first().delta!!).isGreaterThan(0.0)
         assertThat(saved.players.last().delta!!).isLessThan(0.0)
+        // Each line's trend ends with this match: the rating before it, then the rating now.
+        saved.players.forEach { line ->
+            assertThat(line.trend.size).isAtLeast(2)
+            assertThat(line.trend.last() - line.trend[line.trend.size - 2]).isWithin(1e-9).of(line.delta!!)
+        }
         assertThat(saved.leaderName).isNotNull()
         assertThat(saved.rematchOptions.map { it.kind }).containsExactly(
             RematchKind.SAME_SEATS,

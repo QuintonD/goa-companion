@@ -33,12 +33,10 @@ import androidx.compose.material.icons.outlined.ExpandLess
 import androidx.compose.material.icons.outlined.ExpandMore
 import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material.icons.outlined.SwipeUp
-import androidx.compose.material.icons.outlined.TouchApp
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -64,9 +62,9 @@ import androidx.compose.ui.unit.sp
 import dev.quinton.goa.core.designsystem.cardtext.CardTextView
 import dev.quinton.goa.core.designsystem.cardtext.GameIcons
 import dev.quinton.goa.core.designsystem.component.CardTextBox
+import dev.quinton.goa.core.designsystem.component.GoaOutlinedButton
 import dev.quinton.goa.core.designsystem.component.LARGE_FONT_SCALE
 import dev.quinton.goa.core.designsystem.component.PlateColor
-import dev.quinton.goa.core.designsystem.component.PlateGround
 import dev.quinton.goa.core.designsystem.component.cardColor
 import dev.quinton.goa.core.designsystem.component.scaledIconSize
 import dev.quinton.goa.core.designsystem.theme.GoaTextStyles
@@ -172,7 +170,7 @@ private fun DetailsBody(
             if (asText) CardAsText(item.card, landscape)
         }
         if (scroll.canScrollForward) {
-            val surface = PlateGround
+            val surface = GoaTheme.colors.plate
             Box(
                 Modifier
                     .align(Alignment.BottomCenter)
@@ -389,7 +387,7 @@ private fun RelatedCard(card: Card, measuring: Boolean, onOpen: () -> Unit) {
     }
 }
 
-/** "Tap the card again to discard Magnetic Dagger", and the same as a button (TalkBack, switch access). */
+/** The button that confirms the card on show, naming the choice ("Discard Magnetic Dagger"): the only way to. */
 @Composable
 private fun ConfirmBar(
     item: FocusCard,
@@ -404,23 +402,6 @@ private fun ConfirmBar(
         verticalArrangement = Arrangement.spacedBy(Spacing.xs),
     ) {
         val can = item.enabled && canConfirm
-        // Large text: the button says it; the hint would take the room the card's sheet needs.
-        if (can && !largeText()) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(
-                    Icons.Outlined.TouchApp,
-                    null,
-                    tint = MaterialTheme.colorScheme.secondary,
-                    modifier = Modifier.size(scaledIconSize(18.dp, 1.3f)),
-                )
-                Spacer(Modifier.width(Spacing.xs))
-                Text(
-                    confirmHint(action),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.secondary,
-                )
-            }
-        }
         PlateButton(
             onClick = onConfirm,
             enabled = can,
@@ -461,7 +442,7 @@ private fun GoToAnswerBar(item: FocusCard, answer: Card, onGoTo: () -> Unit, lan
     ) {
         // Large text: the reason is in the sheet above (NotOnTheCard), the bar is the button.
         if (!largeText()) item.reason?.let { InfoLine(it) }
-        OutlinedButton(
+        GoaOutlinedButton(
             onClick = onGoTo,
             contentPadding = PaddingValues(horizontal = Spacing.lg, vertical = Spacing.sm),
             modifier = Modifier.fillMaxWidth().heightIn(min = 52.dp).testTag(GO_TO_ANSWER_TAG),

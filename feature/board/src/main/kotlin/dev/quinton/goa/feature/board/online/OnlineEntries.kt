@@ -54,11 +54,13 @@ internal fun EntryProviderScope<NavKey>.onlineEntries(navigator: Navigator) {
     entry<OnlineLeaderboardRoute> {
         val viewModel = hiltViewModel<OnlineLeaderboardViewModel>()
         val state by viewModel.uiState.collectAsStateWithLifecycle()
+        val portraits by viewModel.portraits.collectAsStateWithLifecycle()
         OnlineLeaderboardScreen(
             state = state,
             onTab = viewModel::selectTab,
             onRefresh = viewModel::refresh,
             onBack = navigator::back,
+            portraits = portraits,
         )
     }
 }
@@ -88,9 +90,11 @@ private fun OnlineHomeEntry(key: OnlineHomeRoute, navigator: Navigator) {
         lifecycle.addObserver(observer)
         onDispose { lifecycle.removeObserver(observer) }
     }
+    val heroes by viewModel.heroes.collectAsStateWithLifecycle()
     OnlineHomeScreen(
         state = state,
         mapNames = mapNames,
+        heroes = heroes,
         actions = OnlineHomeActions(
             onName = viewModel::setName,
             onCreateAccount = viewModel::createAccount,

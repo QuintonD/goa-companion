@@ -48,6 +48,7 @@ import dev.quinton.goa.core.designsystem.component.PlateShape
 import dev.quinton.goa.core.designsystem.component.TeamMark
 import dev.quinton.goa.core.designsystem.component.slatePlate
 import dev.quinton.goa.core.designsystem.theme.GoaTextStyles
+import dev.quinton.goa.core.designsystem.theme.GoaTheme
 import dev.quinton.goa.core.model.board.MinionPiece
 import dev.quinton.goa.core.model.match.Team
 
@@ -99,16 +100,52 @@ internal fun PlateSurface(
 }
 
 /** A recess on a plate, for what groups a few lines (a flow entry, a moment's recap): the slate shows through. */
-internal val PlateWell: Color = Color.Black.copy(alpha = 0.26f)
+internal val PlateWell: Color
+    @Composable @ReadOnlyComposable
+    get() = if (GoaTheme.isDark) Color.Black.copy(alpha = 0.26f) else LIGHT_WELL
 
-/** The mock-ups' two buttons on a plate: gold for the answer, steel for the rest. */
-internal enum class PlateTone(val brush: Brush, val content: Color) {
-    GOLD(
-        Brush.verticalGradient(0f to Color(0xFFE4C47E), 0.55f to Color(0xFFC9A35B), 1f to Color(0xFFA98744)),
-        Color(0xFF0B1622),
-    ),
-    STEEL(Brush.verticalGradient(listOf(Color(0xFF34424B), Color(0xFF222C33))), Color(0xFFE8E2D6)),
+/** The light theme's well: the paper a shade deeper, not grey. */
+private val LIGHT_WELL = Color(0x1F6A5634)
+
+/**
+ * The mock-ups' two buttons on a plate: gold for the answer, steel for the rest. Steel follows the theme (ADR-068):
+ * the dark slate on the slate, a light steel with ink on the light theme's paper (no dark slabs on paper); gold is
+ * the same metal in both.
+ */
+internal enum class PlateTone {
+    GOLD,
+    STEEL,
+    ;
+
+    val brush: Brush
+        @Composable @ReadOnlyComposable
+        get() = when {
+            this == GOLD -> GoldBrush
+            GoaTheme.isDark -> SteelBrush
+            else -> LightSteelBrush
+        }
+
+    val content: Color
+        @Composable @ReadOnlyComposable
+        get() = when {
+            this == GOLD -> GoldInk
+            GoaTheme.isDark -> SteelInk
+            else -> LightSteelInk
+        }
+
+    val edge: Color
+        @Composable @ReadOnlyComposable
+        get() = if (this == STEEL && !GoaTheme.isDark) LightSteelEdge else ToneEdge
 }
+
+private val GoldBrush =
+    Brush.verticalGradient(0f to Color(0xFFE4C47E), 0.55f to Color(0xFFC9A35B), 1f to Color(0xFFA98744))
+private val GoldInk = Color(0xFF0B1622)
+private val SteelBrush = Brush.verticalGradient(listOf(Color(0xFF34424B), Color(0xFF222C33)))
+private val SteelInk = Color(0xFFE8E2D6)
+private val LightSteelBrush = Brush.verticalGradient(listOf(Color(0xFFE8ECEE), Color(0xFFD5DCE0)))
+private val LightSteelInk = Color(0xFF16222B)
+private val LightSteelEdge = Color(0xFF8B979F)
 
 private val ToneShape = RoundedCornerShape(7.dp)
 private val ToneEdge = Color(0xFF0E1215)
@@ -158,7 +195,7 @@ internal fun PlateButton(
         ),
         elevation = null,
         contentPadding = contentPadding,
-        border = BorderStroke(1.dp, ToneEdge),
+        border = BorderStroke(1.dp, tone.edge),
         modifier = modifier.background(tone.brush, ToneShape, alpha = if (enabled) 1f else TONE_DISABLED),
         content = content,
     )
@@ -171,18 +208,19 @@ internal fun PlateToneSurface(
     modifier: Modifier = Modifier,
     tone: PlateTone = PlateTone.STEEL,
     enabled: Boolean = true,
-    border: BorderStroke? = BorderStroke(1.dp, ToneEdge),
+    border: BorderStroke? = BorderStroke(1.dp, tone.edge),
     content: @Composable () -> Unit,
 ) {
+    val ink = tone.content
     Surface(
         onClick = onClick,
         enabled = enabled,
         shape = ToneShape,
         color = Color.Transparent,
-        contentColor = tone.content,
+        contentColor = ink,
         border = border,
         modifier = modifier.background(tone.brush, ToneShape, alpha = if (enabled) 1f else TONE_DISABLED),
-    ) { CompositionLocalProvider(LocalContentColor provides tone.content, content = content) }
+    ) { CompositionLocalProvider(LocalContentColor provides ink, content = content) }
 }
 
 /**
@@ -200,6 +238,7 @@ internal fun smallBoxText(): TextStyle = MaterialTheme.typography.bodyMedium.cop
 
 /**
  * A [CardTextBox] whose tab is a heading (TalkBack can jump to it), for a box that stands on its own: a nudge.
+ * The word sits on the box's own coloured tab, as ATTACK or COACH do, never on its rim.
  */
 @Composable
 internal fun HeadedTextBox(
@@ -208,23 +247,7 @@ internal fun HeadedTextBox(
     modifier: Modifier = Modifier,
     content: @Composable ColumnScope.() -> Unit,
 ) {
-    Box(modifier) {
-        CardTextBox(color, Modifier.fillMaxWidth(), content = content)
-        Text(
-            heading,
-            style = GoaTextStyles.plateCap.copy(
-                color = Color.White,
-                shadow = Shadow(Color(0xB0000000), Offset(0f, 1f), 2f),
-            ),
-            textAlign = TextAlign.Center,
-            maxLines = 1,
-            modifier = Modifier
-                .fillMaxWidth()
-                .align(Alignment.TopCenter)
-                .padding(top = 1.dp)
-                .semantics { heading() },
-        )
-    }
+    CardTextBox(color, modifier, cap = heading, capHeading = true, content = content)
 }
 
 /** The team's mark on the dark badge the mock-ups put at a portrait's foot: team is never colour alone. */

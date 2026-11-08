@@ -5,13 +5,16 @@ Usage:
     python -P -E design/tools/svg2vd.py --check    # fail if any generated XML is stale
 
 Deliberately small: the masters only use <path>, <line>, <polyline>, <polygon>, <circle>,
-<ellipse>, <rect> (no rx), untransformed <g> groups, and <linearGradient>/<radialGradient>
-fills referenced as url(#id). Presentation attributes are inherited from <svg>/<g>.
-Anything else raises, so a master can never silently convert wrong.
+<ellipse>, <rect> (no rx), <g> groups (untransformed, or `translate(x y) scale(s)`, which becomes a
+VectorDrawable <group>), and <linearGradient>/<radialGradient> fills referenced as url(#id).
+Presentation attributes are inherited from <svg>/<g>. Anything else raises, so a master can never
+silently convert wrong.
 
 Mapping (master -> generated):
     design/sigils/<id>.svg            -> core/designsystem/src/main/res/drawable/sigil_<id>.xml
-    design/avatars/crest_NN.svg       -> core/designsystem/src/main/res/drawable/crest_NN.xml
+    design/crests/crest_*.svg         -> core/designsystem/src/main/res/drawable/crest_*.xml
+                                         (shields composed by crest_shields.py from the charges in
+                                         design/avatars/, which the web app draws itself)
     design/icons/<name>.svg           -> core/designsystem/src/main/res/drawable/ic_<name>.xml
     design/brand/ic_launcher_*.svg    -> app/src/main/res/drawable/ic_launcher_*.xml
 """
@@ -181,12 +184,35 @@ class Converter:
                         raise ValueError(f"{self.path}: unsupported <{gt}> in defs")
                     self.gradients[g.attrib["id"]] = g
                 continue
-            if "transform" in a:
-                raise ValueError(f"{self.path}: transforms not supported; bake coordinates")
+            if "transform" in a and tag != "g":
+                raise ValueError(f"{self.path}: transforms only on <g>; bake coordinates")
             if tag == "g":
+                group = self.group_head(a.get("transform"))
+                if group:
+                    self.out.append(group)
                 self.walk(child, {**inherited, **{k: v for k, v in a.items() if k in INHERITED}})
+                if group:
+                    self.out.append("    </group>")
             else:
                 self.emit_shape(tag, a, inherited)
+
+    def group_head(self, transform):
+        """`translate(x y) scale(s)` (either part optional) as a <group>; anything else raises."""
+        if transform is None:
+            return None
+        m = re.fullmatch(
+            r"\s*(?:translate\(\s*([-\d.]+)[\s,]+([-\d.]+)\s*\))?\s*(?:scale\(\s*([-\d.]+)\s*\))?\s*",
+            transform,
+        )
+        if not m or not any(m.groups()):
+            raise ValueError(f"{self.path}: unsupported transform {transform!r}; only translate(x y) scale(s)")
+        tx, ty, s = m.groups()
+        attrs = []
+        if tx is not None:
+            attrs += [f'android:translateX="{num(tx)}"', f'android:translateY="{num(ty)}"']
+        if s is not None:
+            attrs += [f'android:scaleX="{num(s)}"', f'android:scaleY="{num(s)}"']
+        return "    <group " + " ".join(attrs) + ">"
 
     def convert(self, width_dp, height_dp):
         vb = [float(v) for v in self.root.attrib["viewBox"].split()]
@@ -221,8 +247,9 @@ def jobs():
 
     for f in listdir("sigils"):
         yield os.path.join("sigils", f), os.path.join(DS_DRAWABLE, "sigil_" + f[:-4] + ".xml"), 24
-    for f in listdir("avatars"):
-        yield os.path.join("avatars", f), os.path.join(DS_DRAWABLE, f[:-4] + ".xml"), 24
+    # design/avatars/ holds the crests' charges, drawn by the web app; the phone draws the shields.
+    for f in listdir("crests"):
+        yield os.path.join("crests", f), os.path.join(DS_DRAWABLE, f[:-4] + ".xml"), 24
     for f in listdir("icons"):
         yield os.path.join("icons", f), os.path.join(DS_DRAWABLE, "ic_" + f[:-4] + ".xml"), 24
     for f in listdir("brand"):

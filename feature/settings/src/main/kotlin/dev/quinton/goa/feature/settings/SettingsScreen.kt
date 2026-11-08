@@ -36,17 +36,10 @@ import androidx.compose.material.icons.outlined.Vibration
 import androidx.compose.material.icons.outlined.ViewAgenda
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
-import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.RadioButton
-import androidx.compose.material3.SegmentedButton
-import androidx.compose.material3.SegmentedButtonDefaults
-import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Surface
-import androidx.compose.material3.Switch
-import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -66,9 +59,14 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import dev.quinton.goa.core.designsystem.component.GoaCard
+import dev.quinton.goa.core.designsystem.component.GoaProgressBar
 import dev.quinton.goa.core.designsystem.component.GoaScreen
+import dev.quinton.goa.core.designsystem.component.GoaSegment
+import dev.quinton.goa.core.designsystem.component.GoaSegmentCheck
+import dev.quinton.goa.core.designsystem.component.GoaSegmentedRow
+import dev.quinton.goa.core.designsystem.component.GoaSwitch
 import dev.quinton.goa.core.designsystem.component.LARGE_FONT_SCALE
+import dev.quinton.goa.core.designsystem.component.PlateStyle
 import dev.quinton.goa.core.designsystem.component.SectionHeader
 import dev.quinton.goa.core.designsystem.theme.GoaTheme
 import dev.quinton.goa.core.designsystem.theme.Spacing
@@ -123,34 +121,23 @@ private fun SettingsList(
     ) {
         item { SectionHeader("Appearance") }
         item {
-            GoaCard(Modifier.fillMaxWidth()) {
-                Text("Theme", style = MaterialTheme.typography.titleMedium)
-                Text(
-                    "Dark is easiest on the eyes at the table.",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-                Spacer(Modifier.size(Spacing.md))
-                ThemeSelector(state.theme) { onAction(SettingsAction.SetTheme(it)) }
-            }
-        }
-        item { Spacer(Modifier.size(Spacing.md)) }
-        item {
-            GoaCard(Modifier.fillMaxWidth()) {
-                Text("Board style", style = MaterialTheme.typography.titleMedium)
-                Text(
-                    "How pieces and spaces look on the painted maps.",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-                Spacer(Modifier.size(Spacing.md))
-                BoardStyleSelector(state.boardStyle) { onAction(SettingsAction.SetBoardStyle(it)) }
+            SettingsGroup {
+                ChoiceBlock(
+                    "Theme",
+                    "Dark is easiest on the eyes at the table. The timer and the map stay dark in both.",
+                ) {
+                    ThemeSelector(state.theme) { onAction(SettingsAction.SetTheme(it)) }
+                }
+                GroupDivider()
+                ChoiceBlock("Board style", "How pieces and spaces look on the painted maps.") {
+                    BoardStyleSelector(state.boardStyle) { onAction(SettingsAction.SetBoardStyle(it)) }
+                }
             }
         }
 
         item { SectionHeader("Collection") }
         item {
-            GoaCard(Modifier.fillMaxWidth(), contentPadding = PaddingValues(vertical = Spacing.sm)) {
+            SettingsGroup {
                 SwitchRow(
                     icon = Icons.Outlined.Inventory2,
                     title = "I own every product",
@@ -163,7 +150,7 @@ private fun SettingsList(
                     onCheckedChange = { onAction(SettingsAction.SetOwnsEverything(it)) },
                 )
                 if (state.products.isNotEmpty()) {
-                    HorizontalDivider(Modifier.padding(horizontal = Spacing.lg), color = GoaTheme.colors.engravedBorder)
+                    GroupDivider()
                     state.products.forEach { p ->
                         ProductRow(p, enabled = !state.ownsEverything) { onAction(SettingsAction.ToggleProduct(p.id)) }
                     }
@@ -173,7 +160,7 @@ private fun SettingsList(
 
         item { SectionHeader("At the table") }
         item {
-            GoaCard(Modifier.fillMaxWidth(), contentPadding = PaddingValues(vertical = Spacing.sm)) {
+            SettingsGroup {
                 SwitchRow(
                     icon = Icons.Outlined.Vibration,
                     title = "Haptics",
@@ -181,6 +168,7 @@ private fun SettingsList(
                     checked = state.hapticsEnabled,
                     onCheckedChange = { onAction(SettingsAction.SetHaptics(it)) },
                 )
+                GroupDivider()
                 SwitchRow(
                     icon = Icons.AutoMirrored.Outlined.VolumeUp,
                     title = "Sounds",
@@ -188,26 +176,22 @@ private fun SettingsList(
                     checked = state.soundsEnabled,
                     onCheckedChange = { onAction(SettingsAction.SetSounds(it)) },
                 )
-            }
-        }
-        item { Spacer(Modifier.size(Spacing.md)) }
-        item {
-            GoaCard(Modifier.fillMaxWidth()) {
-                Text("Running timer", style = MaterialTheme.typography.titleMedium)
-                Text(
+                GroupDivider()
+                ChoiceBlock(
+                    "Running timer",
                     "Step by step shows one big dial per phase; Whole round lists every phase of the round " +
                         "on one screen. Also switchable from the timer's top bar.",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-                Spacer(Modifier.size(Spacing.md))
-                ChoiceSelector(TimerLayoutOptions, state.timerLayout) { onAction(SettingsAction.SetTimerLayout(it)) }
+                ) {
+                    ChoiceSelector(TimerLayoutOptions, state.timerLayout) {
+                        onAction(SettingsAction.SetTimerLayout(it))
+                    }
+                }
             }
         }
 
         item { SectionHeader("Learning") }
         item {
-            GoaCard(Modifier.fillMaxWidth(), contentPadding = PaddingValues(vertical = Spacing.sm)) {
+            SettingsGroup {
                 SwitchRow(
                     icon = Icons.Outlined.Lightbulb,
                     title = "Puzzle nudges",
@@ -224,33 +208,59 @@ private fun SettingsList(
 
         item { SectionHeader("Game setup") }
         item {
-            GoaCard(Modifier.fillMaxWidth(), contentPadding = PaddingValues(vertical = Spacing.sm)) {
+            SettingsGroup {
                 LinkRow(Icons.Outlined.Timer, "Timer presets", "Phase lengths, cues and auto-advance") {
                     onOpen(SettingsLink.TIMER_PRESETS)
                 }
+                GroupDivider()
                 LinkRow(Icons.Outlined.SwapHoriz, "Draft methods", "House draft, official methods, your own") {
                     onOpen(SettingsLink.DRAFT_METHODS)
                 }
+                GroupDivider()
                 LinkRow(Icons.Outlined.Leaderboard, "Ratings", "Elo constants and double-pilot weighting") {
                     onOpen(SettingsLink.RATINGS)
                 }
             }
         }
 
-        item { SectionHeader("Data") }
+        item { SectionHeader("Your data") }
         item {
-            GoaCard(Modifier.fillMaxWidth(), contentPadding = PaddingValues(vertical = Spacing.sm)) {
+            SettingsGroup {
                 LinkRow(Icons.Outlined.Sync, "Group sync", "Share matches and players with your friends' phones") {
                     onOpen(SettingsLink.GROUP_SYNC)
                 }
+                GroupDivider()
                 LinkRow(Icons.Outlined.Backup, "Backup and restore", "Export or import all your data and settings") {
                     onOpen(SettingsLink.BACKUP)
                 }
-                SpeedRow(state.speedTest) { onAction(SettingsAction.ToggleSpeedTest) }
-                DonateRow()
-                LinkRow(Icons.Outlined.Info, "About", "Version, credits and licences") { onOpen(SettingsLink.ABOUT) }
             }
         }
+
+        item { SectionHeader("This app") }
+        item {
+            SettingsGroup {
+                LinkRow(Icons.Outlined.Info, "About", "Version, credits and licences") { onOpen(SettingsLink.ABOUT) }
+                GroupDivider()
+                DonateRow()
+                GroupDivider()
+                SpeedRow(state.speedTest) { onAction(SettingsAction.ToggleSpeedTest) }
+            }
+        }
+    }
+}
+
+/** A setting chosen from a few options: its name, what it does, then the choices under them. */
+@Composable
+private fun ChoiceBlock(title: String, subtitle: String, choices: @Composable () -> Unit) {
+    Column(Modifier.fillMaxWidth().padding(horizontal = Spacing.lg, vertical = Spacing.md)) {
+        Text(title, style = MaterialTheme.typography.titleMedium)
+        Text(
+            subtitle,
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        Spacer(Modifier.size(Spacing.md))
+        choices()
     }
 }
 
@@ -296,25 +306,20 @@ private fun <T> ChoiceSelector(options: List<ChoiceOption<T>>, selected: T, onSe
         }
         return
     }
-    SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth()) {
+    GoaSegmentedRow(Modifier.fillMaxWidth()) {
         options.forEachIndexed { index, option ->
-            SegmentedButton(
+            GoaSegment(
                 selected = option.value == selected,
                 onClick = { onSelect(option.value) },
-                shape = SegmentedButtonDefaults.itemShape(index, options.size),
+                // The app's one selected look: the bronze inset and its check; otherwise the option's own glyph.
                 icon = {
-                    SegmentedButtonDefaults.Icon(active = option.value == selected) {
+                    if (option.value == selected) {
+                        GoaSegmentCheck(selected = true)
+                    } else {
                         Icon(option.icon, contentDescription = null, modifier = Modifier.size(18.dp))
+                        Spacer(Modifier.width(Spacing.xs))
                     }
                 },
-                colors = SegmentedButtonDefaults.colors(
-                    activeContainerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.18f),
-                    activeContentColor = MaterialTheme.colorScheme.onSurface,
-                    activeBorderColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.7f),
-                    inactiveContainerColor = MaterialTheme.colorScheme.surface,
-                    inactiveContentColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                    inactiveBorderColor = GoaTheme.colors.engravedBorder,
-                ),
             ) { Text(option.label, maxLines = 1, overflow = TextOverflow.Ellipsis) }
         }
     }
@@ -359,14 +364,7 @@ private fun SwitchRow(
         RowIcon(icon)
         RowText(title, subtitle, Modifier.weight(1f))
         Spacer(Modifier.width(Spacing.md))
-        Switch(
-            checked = checked,
-            onCheckedChange = null,
-            colors = SwitchDefaults.colors(
-                checkedTrackColor = MaterialTheme.colorScheme.primary,
-                checkedThumbColor = MaterialTheme.colorScheme.onPrimary,
-            ),
-        )
+        GoaSwitch(checked = checked, onCheckedChange = null)
     }
 }
 
@@ -441,7 +439,7 @@ internal fun SpeedRow(test: SpeedTest, onToggle: () -> Unit) {
             }
             if (test is SpeedTest.Running) {
                 Spacer(Modifier.size(Spacing.sm))
-                LinearProgressIndicator(progress = { test.progress }, Modifier.fillMaxWidth())
+                GoaProgressBar({ test.progress }, Modifier.fillMaxWidth())
             }
             if (test is SpeedTest.Done) CopyLine(test.speed.line)
         }

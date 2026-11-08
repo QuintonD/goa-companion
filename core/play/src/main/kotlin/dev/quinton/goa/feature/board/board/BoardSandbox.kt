@@ -183,12 +183,16 @@ class BoardSandbox(
     ): OverlaySettings = when (action) {
         is BoardAction.ChooseCard -> {
             val card = ready.selectedHero()?.measurable?.firstOrNull { it.id == action.cardId }
-            // A newly chosen card shows what it has: its Movement, Range and Radius.
+            // A newly chosen card shows one overlay, so its marks never overlap (sol #12): its Movement, else its
+            // Range, else its Radius. The panel's switches add the others.
+            val values = card?.values
+            val movement = values?.movement != null || values == null
+            val range = !movement && values?.range != null
             settings.copy(
                 cardId = card?.id,
-                movement = true,
-                range = card?.values?.range != null,
-                radius = card?.values?.radius != null,
+                movement = movement,
+                range = range,
+                radius = !movement && !range && values?.radius != null,
             )
         }
 
@@ -445,7 +449,12 @@ class BoardSandbox(
 
     private fun defaultSettings(ready: BoardUiState.Ready, pieceId: String): OverlaySettings {
         val piece = ready.pieces.firstOrNull { it.id == pieceId }
-        return if (piece is HeroPiece) OverlaySettings() else OverlaySettings(steps = 1, movement = false)
+        // One overlay at a time to start with (sol #12): a hero's Movement; the panel's switches add Range and Radius.
+        return if (piece is HeroPiece) {
+            OverlaySettings(range = false, radius = false)
+        } else {
+            OverlaySettings(steps = 1, movement = false)
+        }
     }
 
     private fun measure(ready: BoardUiState.Ready, target: Hex): MeasureUi? {

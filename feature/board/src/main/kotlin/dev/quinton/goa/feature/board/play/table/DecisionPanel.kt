@@ -1,23 +1,31 @@
 package dev.quinton.goa.feature.board.play.table
 
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.TextAutoSize
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.CheckCircle
 import androidx.compose.material.icons.outlined.Info
@@ -29,11 +37,13 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.onPlaced
 import androidx.compose.ui.layout.positionInParent
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.Role
@@ -46,40 +56,44 @@ import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import dev.quinton.goa.core.designsystem.component.ActionIcon
 import dev.quinton.goa.core.designsystem.component.CardTextBox
+import dev.quinton.goa.core.designsystem.component.HeroPortrait
 import dev.quinton.goa.core.designsystem.component.LookAction
 import dev.quinton.goa.core.designsystem.component.OfficialIcon
 import dev.quinton.goa.core.designsystem.component.PlateColor
+import dev.quinton.goa.core.designsystem.component.SteelIconBronze
 import dev.quinton.goa.core.designsystem.component.TeamMark
 import dev.quinton.goa.core.designsystem.component.TitlePlate
 import dev.quinton.goa.core.designsystem.component.cardColor
 import dev.quinton.goa.core.designsystem.component.scaledIconSize
 import dev.quinton.goa.core.designsystem.component.teamColor
-import dev.quinton.goa.core.designsystem.theme.GoaTextStyles
 import dev.quinton.goa.core.designsystem.theme.GoaTheme
 import dev.quinton.goa.core.designsystem.theme.Spacing
 import dev.quinton.goa.core.game.ActionType
 import dev.quinton.goa.core.game.Choice
 import dev.quinton.goa.core.game.Decision
 import dev.quinton.goa.core.game.DecisionKind
+import dev.quinton.goa.core.model.board.Hex
 import dev.quinton.goa.core.model.board.MinionPiece
 import dev.quinton.goa.core.model.catalog.Card
 import dev.quinton.goa.core.model.catalog.PrimaryAction
-import dev.quinton.goa.feature.board.BoardText
 import dev.quinton.goa.feature.board.play.PlayText
+import dev.quinton.goa.feature.board.play.game.DefeatPreview
 import dev.quinton.goa.feature.board.ui.MinionTypeBadge
 import dev.quinton.goa.feature.board.ui.PlateButton
 import dev.quinton.goa.feature.board.ui.PlateTone
 import dev.quinton.goa.feature.board.ui.PlateToneSurface
 import dev.quinton.goa.feature.board.ui.PlateWell
+import dev.quinton.goa.feature.board.ui.TeamBadge
+import dev.quinton.goa.feature.board.ui.badgeOverhang
 import dev.quinton.goa.feature.board.ui.boxText
 import dev.quinton.goa.feature.board.ui.cards.CardFocusState
 import dev.quinton.goa.feature.board.ui.cards.cardFocusOrigin
 import dev.quinton.goa.feature.board.ui.cards.isSpell
+import dev.quinton.goa.feature.board.ui.isLandscape
 import dev.quinton.goa.feature.board.ui.smallBoxText
 
 /**
@@ -94,8 +108,8 @@ import dev.quinton.goa.feature.board.ui.smallBoxText
  * - "Choose one" options, yes / decline and numbers are buttons beside the card;
  * - spaces, units and tokens are tapped on the board (each also a TalkBack node), then confirmed,
  *   with the asking card beside the hint;
- * - cards (to play, discard, defend with, upgrade, keep) open in the card focus viewer: a first tap
- *   zooms the card, a second tap on it (or its Confirm button) answers (DecisionCards.kt);
+ * - cards (to play, discard, defend with, upgrade, keep): a tap chooses one, a tap on the chosen one reads it
+ *   in the card focus viewer, and a bronze button naming the choice answers (DecisionCards.kt);
  * - which card to upgrade shows, beside each, the two cards it would become (UpgradeCards.kt);
  * - Defend shows the attacker's card with the Attack, then the hand's cards with each verdict.
  * [onSelect] marks a tentative choice, [onAnswer] answers, [focus] is the screen's card viewer.
@@ -109,6 +123,8 @@ fun DecisionPanel(
     modifier: Modifier = Modifier,
     busy: Boolean = false,
     who: Boolean = true,
+    /** A DEFEND: what not defending comes to, as the engine plays it out (the consequence row above the commit). */
+    defeat: DefeatPreview? = null,
 ) {
     val decision = table.decision ?: return
     val source = table.sourceCard
@@ -133,22 +149,46 @@ fun DecisionPanel(
             askedBy = layout == PanelLayout.CARDS && decision.kind != DecisionKind.DEFEND,
         )
         when {
-            decision.kind == DecisionKind.PLAY_CARD -> HandPicker(table, onAnswer, focus, busy)
+            decision.kind == DecisionKind.PLAY_CARD -> HandPicker(table, onSelect, onAnswer, focus, busy)
 
-            decision.kind == DecisionKind.DEFEND -> DefensePanel(table, onSelect, onAnswer, focus, busy)
+            decision.kind == DecisionKind.DEFEND -> DefensePanel(
+                table,
+                onSelect,
+                onAnswer,
+                focus,
+                busy,
+                defeat?.takeIf { it.decisionId == decision.id },
+            )
 
-            decision.kind == DecisionKind.UPGRADE_CARD -> UpgradePicker(table, onAnswer, focus, busy)
+            decision.kind == DecisionKind.UPGRADE_CARD -> UpgradePicker(table, onSelect, onAnswer, focus, busy)
 
-            layout == PanelLayout.CARDS -> CardPicker(table, onAnswer, focus, busy)
+            layout == PanelLayout.CARDS -> CardPicker(table, onSelect, onAnswer, focus, busy)
+
+            // A phone sideways, short: every action in view beside a card still read at a glance.
+            layout == PanelLayout.CARD_BESIDE && source != null && !hasBoardOptions(table) && shortSideways() -> {
+                CompactQuestion(source, decision, focus) {
+                    Choices(table, table.buttonOptions, onAnswer, busy, brief = true) { CastPreview(table, focus) }
+                }
+                NoteBox(PlateColor.of(source.color), table, decision, focus)
+                SpellReasonsIfNoPrimary(table)
+                Footnote(table, decision)
+            }
 
             layout == PanelLayout.CARD_BESIDE && source != null -> {
                 val board = hasBoardOptions(table)
                 CardBeside(table, source, focus, large = !board) {
-                    QuestionBox(table, source, decision, board)
+                    // "Choose an action for <the card beside>" said nothing the card and its chips don't: the
+                    // header names who decides, the chips are the question (TalkBack still hears the prompt).
+                    if (board || decision.kind != DecisionKind.CHOOSE_ACTION) {
+                        QuestionBox(table, source, decision, board)
+                    } else {
+                        SpokenPrompt(decision.prompt)
+                    }
                     if (board) BoardConfirm(table, onAnswer, busy)
                     Choices(table, table.buttonOptions, onAnswer, busy) { CastPreview(table, focus) }
                     NoteBox(PlateColor.of(source.color), table, decision, focus)
                     SpellReasonsIfNoPrimary(table)
+                    Footnote(table, decision)
                 }
                 if (board) BoardChips(table, onSelect)
             }
@@ -161,6 +201,7 @@ fun DecisionPanel(
                 }
                 Choices(table, table.buttonOptions, onAnswer, busy)
                 NoteBox(PlateColor.SILVER, table, decision, focus)
+                Footnote(table, decision)
             }
         }
     }
@@ -168,30 +209,36 @@ fun DecisionPanel(
 
 private fun hasBoardOptions(table: TableUi) = table.spaceOptions.isNotEmpty() || table.pieceOptions.isNotEmpty()
 
-/** What a question rests on that no card prints, in the app's words, in a line of its own. */
-private fun footnote(table: TableUi, decision: Decision): String? = when {
-    decision.kind == DecisionKind.CHOOSE_ACTION && table.buttonOptions.any { it is Choice.Action } ->
-        "Only the primary action applies the card's text (p.7)."
+/** What a question rests on that no card prints, in the app's words, and the rulebook page it is on. */
+private fun footnote(table: TableUi, decision: Decision): Pair<String, String>? = when {
+    // With the card action offered, its chip carries p.7; without it, why the card's text doesn't apply.
+    decision.kind == DecisionKind.CHOOSE_ACTION && table.buttonOptions.any { it is Choice.Action } &&
+        Choice.Action(ActionType.PRIMARY) !in table.buttonOptions ->
+        "Only the card action applies the card's text." to "p.7"
 
     // A bare "who acts first?" over two portraits told nothing about why it was asked.
     decision.kind == DecisionKind.ACT_FIRST ->
         "Heroes of one team on the same initiative choose which of them acts first; between " +
-            "teams the Tie Breaker coin decides, then it flips (p.7)."
+            "teams the Tie Breaker coin decides, then it flips." to "p.7"
 
     else -> null
 }
 
+/** The question's one rule row ([RuleRow]): its page there, and nowhere on its buttons. */
+@Composable
+private fun Footnote(table: TableUi, decision: Decision) {
+    footnote(table, decision)?.let { (text, page) -> RuleRow(text, page, live = false) }
+}
+
 /**
- * The app's notes on the question in the asking card's text box, in the app's type: the actions it can't offer (a
- * reason may be situational), then what it rests on. Its tab says "Note": these are not the rulebook's words.
+ * The actions the asking card prints that the question can't offer, in the card's text box, in the app's type (a
+ * reason may be situational). Its tab says "Note": these are not the rulebook's words.
  */
 @Composable
 private fun NoteBox(color: PlateColor, table: TableUi, decision: Decision, focus: CardFocusState) {
-    val note = footnote(table, decision)
-    if (note == null && unavailableActions(decision).isEmpty()) return
+    if (unavailableActions(decision).isEmpty()) return
     CardTextBox(color, Modifier.fillMaxWidth(), cap = "Note") {
         Unavailable(table, decision, focus)
-        note?.let { Text(it, style = smallBoxText()) }
     }
 }
 
@@ -200,17 +247,25 @@ private fun NoteBox(color: PlateColor, table: TableUi, decision: Decision, focus
  * rulebook's action symbol, the prompt (a live region) and how to answer on the board.
  */
 @Composable
-private fun QuestionBox(table: TableUi, card: Card, decision: Decision, board: Boolean) {
+private fun QuestionBox(
+    table: TableUi,
+    card: Card,
+    decision: Decision,
+    board: Boolean,
+) {
     val action = table.track?.slots
         ?.firstOrNull { it.heroId == decision.seat && it.cards.any { view -> view.cardId == card.id } }
         ?.action
+    // A question that isn't the card's action (respawning before it resolves, p.7) is labelled by what it asks: never
+    // an ATTACK tab and crossed blades over "Respawn in your Throne Zone?".
+    val own = ownQuestion(decision.kind)
     CardTextBox(
-        PlateColor.of(card.color),
+        if (own != null) PlateColor.SILVER else PlateColor.of(card.color),
         Modifier.fillMaxWidth(),
-        cap = action?.let { actionWord(it, card) } ?: PlayText.primary(card.primary),
+        cap = own ?: action?.let { actionWord(it, card) } ?: PlayText.primary(card.primary),
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            lookAction(action, card)?.let {
+            lookAction(action, card)?.takeIf { own == null }?.let {
                 ActionIcon(it, size = scaledIconSize(28.dp, 1.3f))
                 Spacer(Modifier.width(Spacing.sm))
             }
@@ -220,8 +275,77 @@ private fun QuestionBox(table: TableUi, card: Card, decision: Decision, board: B
                     style = boxText(),
                     modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite },
                 )
-                if (board) Text(boardHint(table), style = boxText())
+                // How to answer, with the "List" chip beside it (sol #2): the map's options as rows, one tap away.
+                if (board) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(boardHint(table), style = boxText(), modifier = Modifier.weight(1f))
+                        MapListToggle(table, Modifier.padding(start = Spacing.xs))
+                    }
+                }
             }
+        }
+    }
+}
+
+/** The tab of a question asked while a card resolves but not by its action, by the question's own kind; else null. */
+private fun ownQuestion(kind: DecisionKind): String? = when (kind) {
+    DecisionKind.RESPAWN, DecisionKind.ACT_FIRST, DecisionKind.MINION_RETURN, DecisionKind.REMOVE_MINION ->
+        kindTitle(kind)
+
+    else -> null
+}
+
+/** A question the panel shows by its answers alone, for TalkBack (a polite live region, as the shown prompt). */
+@Composable
+private fun SpokenPrompt(prompt: String) {
+    Box(
+        Modifier.size(1.dp).semantics {
+            contentDescription = prompt
+            liveRegion = LiveRegionMode.Polite
+        },
+    )
+}
+
+/**
+ * For a short side panel: the asking card at a size its printed numbers read at (tap to read it large), beside it
+ * the question and under that the [answers], compact.
+ */
+@Composable
+private fun CompactQuestion(
+    card: Card,
+    decision: Decision,
+    focus: CardFocusState,
+    answers: @Composable ColumnScope.() -> Unit,
+) {
+    Row(verticalAlignment = Alignment.Top) {
+        Surface(
+            onClick = { focus.show(listOf(card), title = "Asked by") },
+            shape = RoundedCornerShape(4.dp),
+            color = Color.Transparent,
+            modifier = Modifier
+                .cardFocusOrigin(focus, card.id)
+                .clearAndSetSemantics {
+                    contentDescription = spokenCard(card)
+                    role = Role.Button
+                    onClick(label = "Read the card") {
+                        focus.show(listOf(card), title = "Asked by")
+                        true
+                    }
+                },
+        ) { TableCard(card, width = CARD_IN_SHORT_PANEL) }
+        Spacer(Modifier.width(Spacing.sm))
+        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
+            // Choosing the action for the card beside: the chips are the question.
+            if (decision.kind == DecisionKind.CHOOSE_ACTION) {
+                SpokenPrompt(decision.prompt)
+            } else {
+                Text(
+                    decision.prompt,
+                    style = MaterialTheme.typography.titleSmall,
+                    modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite },
+                )
+            }
+            answers()
         }
     }
 }
@@ -280,25 +404,95 @@ private fun Unavailable(table: TableUi, decision: Decision, focus: CardFocusStat
 }
 
 /**
- * Who is asked and what: the deciding hero and the kind, small caps in the team's colour with its mark,
- * as on the panel's strip in mock-up 01.
+ * Who decides and what, a two-line directive a phone passed round the table is read by (UI hill climb, round 4): a
+ * bar in the team's colour, the deciding hero's portrait in its team ring with the team's mark at its foot (a team's
+ * question: the mark alone), then in near-white (ink on the light theme's paper), never in team-coloured text: the
+ * owner, "You choose · Wasp" or "Computer · Wasp acting" ([decisionOwner]), and the instruction, "Choose a space" or
+ * "Defend against Arien" ([decisionDirective]). While the panel peeks ([LocalPanelPeeking]), the instruction is the
+ * engine's whole prompt, as nothing under it says it. One TalkBack node, a polite live region: a new owner is heard.
  */
 @Composable
 fun DecisionWho(table: TableUi, modifier: Modifier = Modifier) {
     val decision = table.decision ?: return
-    val name = table.decider?.let { table.hero(it.heroId).name } ?: BoardText.team(decision.team)
-    Row(modifier, verticalAlignment = Alignment.CenterVertically) {
-        TeamMark(decision.team, markSize = scaledIconSize(13.dp, 1.3f))
-        Spacer(Modifier.width(Spacing.sm))
-        Text(
-            "$name · ${kindTitle(decision.kind)}",
-            style = GoaTextStyles.plateTitle.copy(fontSize = 15.sp, lineHeight = 20.sp),
-            color = teamColor(decision.team),
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
+    val hero = table.decider?.let { table.hero(it.heroId) }
+    val owner = decisionOwner(table) ?: return
+    val peeking = LocalPanelPeeking.current && table.asking
+    val directive = if (peeking) decision.prompt else decisionDirective(table)
+    val spoken = listOfNotNull(owner, directive).joinToString(". ")
+    val ink = MaterialTheme.colorScheme.onSurface
+    val scale = LocalDensity.current.fontScale
+    val cap = minOf(scale, HEADER_MAX_SCALE) / scale
+    Row(
+        modifier
+            .height(IntrinsicSize.Min)
+            .clearAndSetSemantics {
+                contentDescription = spoken
+                liveRegion = LiveRegionMode.Polite
+            },
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Box(
+            Modifier
+                .width(WHO_BAR)
+                .fillMaxHeight()
+                .padding(vertical = 2.dp)
+                .background(teamColor(decision.team), RoundedCornerShape(2.dp)),
         )
+        Spacer(Modifier.width(Spacing.sm))
+        if (hero != null) {
+            Box {
+                HeroPortrait(
+                    hero.id,
+                    hero.portrait,
+                    null,
+                    Modifier
+                        .size(scaledIconSize(WHO_PORTRAIT, 1.2f))
+                        .border(2.dp, teamColor(decision.team), CircleShape),
+                    shape = CircleShape,
+                    framed = false,
+                )
+                TeamBadge(decision.team, Modifier.align(Alignment.BottomEnd).badgeOverhang(WHO_BADGE), size = WHO_BADGE)
+            }
+        } else {
+            TeamMark(decision.team, markSize = scaledIconSize(16.dp, 1.3f))
+        }
+        Spacer(Modifier.width(Spacing.sm + 2.dp))
+        // Never cut: both lines wrap, the strip grows.
+        Column(Modifier.weight(1f, fill = false)) {
+            Text(
+                owner,
+                style = MaterialTheme.typography.titleMedium.copy(fontSize = 16.sp * cap, lineHeight = 20.sp * cap),
+                fontWeight = FontWeight.Bold,
+                color = ink,
+            )
+            directive?.let {
+                Text(
+                    it,
+                    style = MaterialTheme.typography.bodyLarge.copy(fontSize = 16.sp * cap, lineHeight = 21.sp * cap),
+                    fontWeight = FontWeight.Medium,
+                    color = ink.copy(alpha = DIRECTIVE_ALPHA),
+                )
+            }
+        }
     }
 }
+
+/**
+ * True while the shown panel is at its peek (a space or piece being chosen on the map, [GameTable]): the header then
+ * carries the engine's whole instruction ([DecisionWho]).
+ */
+internal val LocalPanelPeeking = staticCompositionLocalOf { false }
+
+private val WHO_PORTRAIT = 34.dp
+private val WHO_BAR = 4.dp
+private const val DIRECTIVE_ALPHA = 0.94f
+
+/** The header grows with large text up to 1.4× (22 sp): past that it pushed the question under the fold. */
+private const val HEADER_MAX_SCALE = 1.4f
+
+/** The longest instruction that goes on a title plate (as `promptParts` puts a few words there). */
+private const val PROMPT_PLATE = 30
+private val WHO_BADGE = 13.dp
 
 /**
  * [DecisionWho] unless the panel's strip says it ([who]), the prompt (a live region; a question asked by a card
@@ -317,7 +511,20 @@ private fun PromptHeader(
     Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
         if (who) DecisionWho(table)
         if (prompt) {
-            val parts = promptParts(decision.prompt)
+            val parts = promptParts(decision.prompt).let { parts ->
+                // "Minion Battle: remove a minion" under "Gydion decides · Minion Battle": the title is said once,
+                // on the strip; the plate holds what to do.
+                val text = parts.text
+                if (parts.title.equals(kindTitle(decision.kind), ignoreCase = true) && text != null &&
+                    text.length <= PROMPT_PLATE
+                ) {
+                    PromptParts(text, null)
+                } else {
+                    parts
+                }
+            }
+            // The parchment plate is the question's title ("DISCARD A CARD"); the header's second line then says only
+            // whom it answers, never the same words again in another style ([decisionDirective]).
             Column(
                 Modifier
                     .fillMaxWidth()
@@ -361,15 +568,12 @@ private fun AskedBy(card: Card, decision: Decision, focus: CardFocusState) {
                 style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
-            Text(card.name, style = MaterialTheme.typography.labelLarge, maxLines = 1, overflow = TextOverflow.Ellipsis)
-            reach?.let {
-                Text(
-                    " · $it",
-                    style = MaterialTheme.typography.labelLarge,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 1,
-                )
-            }
+            // The card's name and its reach wrap rather than being cut.
+            Text(
+                listOfNotNull(card.name, reach).joinToString(" · "),
+                style = MaterialTheme.typography.labelLarge,
+                modifier = Modifier.weight(1f, fill = false),
+            )
         }
     }
 }
@@ -395,10 +599,11 @@ private fun CardBeside(
         val width = when {
             !large -> if (big) 56.dp else 72.dp
             spell -> SPELL_BESIDE
-            big -> (maxWidth * BESIDE_SHARE).coerceIn(84.dp, 112.dp)
-            else -> (maxWidth * BESIDE_SHARE).coerceIn(96.dp, 150.dp)
+            big -> (maxWidth * BESIDE_SHARE).coerceIn(80.dp, 100.dp)
+            else -> (maxWidth * BESIDE_SHARE).coerceIn(84.dp, 108.dp)
         }
         val read = { focus.show(listOf(card), title = "Asked by") }
+        // The answers come first: the card beside them is a reminder, tap it to read it large.
         val shown: @Composable () -> Unit = {
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                 Surface(
@@ -416,7 +621,14 @@ private fun CardBeside(
                                 true
                             }
                         },
-                ) { TableCard(card, width = width) }
+                ) {
+                    TableCard(card, width = width)
+                }
+                // Beside the answers there is room: the card's name and numbers in a strip under it, as in a hand.
+                if (large && !spell) {
+                    CardCaption(card, width)
+                    CardNumbers(card, width)
+                }
                 reach?.let {
                     Text(
                         it,
@@ -442,170 +654,6 @@ private fun CardBeside(
     }
 }
 
-// ---- Board options ----------------------------------------------------------------------
-
-/** How a board question is answered: spaces, units or tokens are tapped on the board. */
-private fun boardHint(table: TableUi): String =
-    boardHint(table.spaceOptions.size, table.pieceOptions.size) + longPressHint(table)
-
-/** [boardHint] for a question no card asks, on the plate itself. */
-@Composable
-private fun BoardHint(table: TableUi) {
-    Row(verticalAlignment = Alignment.CenterVertically) {
-        Icon(
-            Icons.Outlined.TouchApp,
-            null,
-            tint = MaterialTheme.colorScheme.secondary,
-            modifier = Modifier.size(scaledIconSize(18.dp, 1.3f)),
-        )
-        Spacer(Modifier.width(Spacing.xs))
-        Text(
-            boardHint(table),
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
-    }
-}
-
-/** Confirm with the choice spelled out, once one is tapped on the board. */
-@Composable
-private fun BoardConfirm(table: TableUi, onAnswer: (Choice) -> Unit, busy: Boolean) {
-    val selected = table.selected?.takeIf { it is Choice.Space || it is Choice.Unit || it is Choice.Token }
-    if (selected != null) {
-        PlateButton(
-            onClick = { onAnswer(selected) },
-            enabled = !busy,
-            modifier = Modifier.fillMaxWidth().heightIn(min = 52.dp),
-            contentPadding = PaddingValues(horizontal = Spacing.lg, vertical = Spacing.sm),
-        ) {
-            Text("Confirm · ${table.label(selected)}", textAlign = TextAlign.Center)
-        }
-    }
-}
-
-/**
- * When a hero's piece is an option (a tap there answers), how to read about that hero instead
- * (ADR-044): a long press always opens the hero's game state.
- */
-internal fun longPressHint(table: TableUi): String {
-    val heroOption = table.pieceOptions.keys.any { id ->
-        table.heroView(id) != null || table.view.pieces.firstOrNull { it.id == id }?.let(::figureOf) != null
-    }
-    return if (heroOption) " Long-press a hero for their game state." else ""
-}
-
-/** Units and tokens (and a short list of spaces whose names differ) as chips too; minions as rows. */
-@OptIn(ExperimentalLayoutApi::class)
-@Composable
-private fun BoardChips(table: TableUi, onSelect: (Choice) -> Unit) {
-    val spaces = table.spaceOptions.values.toList()
-    val pieces = table.pieceOptions.values.toList()
-    val selected = table.selected?.takeIf { it is Choice.Space || it is Choice.Unit || it is Choice.Token }
-    // A chip must say which one it is: spaces whose names repeat ("Red Throne Zone" three times)
-    // are only told apart on the board.
-    val spaceChips = spaces.takeIf { list ->
-        list.size <= MAX_SPACE_CHIPS && list.map(table::label).distinct().size == list.size
-    }.orEmpty()
-    val chips = pieces + spaceChips
-    if (chips.isEmpty()) return
-    // Several minions read alike but for where they stand: a row each, with the team and type as marks.
-    val minions = chips.map { choice ->
-        (choice as? Choice.Unit)?.let { c -> table.pieces.firstOrNull { it.id == c.unitId } as? MinionPiece }
-    }
-    if (minions.all { it != null }) {
-        Column(verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
-            chips.forEachIndexed { i, choice ->
-                MinionRow(table.label(choice), minions[i]!!, choice == selected) { onSelect(choice) }
-            }
-        }
-        return
-    }
-    FlowRow(
-        horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
-        verticalArrangement = Arrangement.spacedBy(Spacing.xs),
-    ) {
-        chips.forEach { choice -> OptionChip(table.label(choice), choice == selected) { onSelect(choice) } }
-    }
-}
-
-/** One minion to choose, full width: its team and type as marks, what tells it apart first. Bronze when chosen. */
-@Composable
-private fun MinionRow(label: String, minion: MinionPiece, selected: Boolean, onClick: () -> Unit) {
-    val (first, second) = minionRowLines(label)
-    Surface(
-        shape = RoundedCornerShape(7.dp),
-        color = if (selected) MaterialTheme.colorScheme.primaryContainer else PlateWell,
-        border = BorderStroke(
-            if (selected) 2.dp else 1.dp,
-            if (selected) MaterialTheme.colorScheme.primary else GoaTheme.colors.engravedBorder,
-        ),
-        modifier = Modifier
-            .fillMaxWidth()
-            .heightIn(min = 48.dp)
-            .selectable(selected = selected, role = Role.RadioButton, onClick = onClick)
-            .semantics(mergeDescendants = true) { contentDescription = label },
-    ) {
-        Row(
-            Modifier.padding(horizontal = Spacing.md, vertical = Spacing.xs),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            TeamMark(minion.team, markSize = scaledIconSize(14.dp, 1.3f))
-            Spacer(Modifier.width(Spacing.xs))
-            MinionTypeBadge(minion, size = scaledIconSize(28.dp, 1.3f))
-            Spacer(Modifier.width(Spacing.sm))
-            Column(Modifier.weight(1f).clearAndSetSemantics {}) {
-                Text(first, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
-                second?.let {
-                    Text(
-                        it,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
-            }
-            if (selected) {
-                Icon(
-                    Icons.Outlined.CheckCircle,
-                    null,
-                    modifier = Modifier.size(scaledIconSize(18.dp, 1.3f)),
-                    tint = MaterialTheme.colorScheme.primary,
-                )
-            }
-        }
-    }
-}
-
-@Composable
-private fun OptionChip(label: String, selected: Boolean, onClick: () -> Unit) {
-    Surface(
-        shape = RoundedCornerShape(7.dp),
-        color = if (selected) MaterialTheme.colorScheme.primaryContainer else PlateWell,
-        border = BorderStroke(
-            if (selected) 2.dp else 1.dp,
-            if (selected) MaterialTheme.colorScheme.primary else GoaTheme.colors.engravedBorder,
-        ),
-        modifier = Modifier
-            .heightIn(min = 48.dp)
-            .selectable(selected = selected, role = Role.RadioButton, onClick = onClick),
-    ) {
-        Row(
-            Modifier.padding(horizontal = Spacing.md, vertical = Spacing.sm),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            if (selected) {
-                Icon(
-                    Icons.Outlined.CheckCircle,
-                    null,
-                    modifier = Modifier.size(16.dp),
-                    tint = MaterialTheme.colorScheme.primary,
-                )
-                Spacer(Modifier.width(4.dp))
-            }
-            Text(label, style = MaterialTheme.typography.labelLarge)
-        }
-    }
-}
-
 // ---- Buttons ----------------------------------------------------------------------------
 
 /**
@@ -614,11 +662,13 @@ private fun OptionChip(label: String, selected: Boolean, onClick: () -> Unit) {
  */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-private fun Choices(
+internal fun Choices(
     table: TableUi,
     choices: List<Choice>,
     onAnswer: (Choice) -> Unit,
     busy: Boolean,
+    /** A short side panel: each action's rule only by its page (TalkBack still hears it whole). */
+    brief: Boolean = false,
     afterPrimary: @Composable () -> Unit = {},
 ) {
     if (choices.isEmpty()) return
@@ -641,11 +691,36 @@ private fun Choices(
         }
         return
     }
+    if (brief && choices.all { it is Choice.Action }) {
+        // A short side panel: two actions to a row, so all four are in view with the round and the hand's tab.
+        Column(verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
+            choices.filterIsInstance<Choice.Action>().chunked(2).forEach { pair ->
+                Row(Modifier.height(IntrinsicSize.Min), horizontalArrangement = Arrangement.spacedBy(Spacing.xs)) {
+                    // Fast Travel beside Hold takes the width Hold doesn't need: its condition reads on two lines.
+                    val roomy = pair.size == 2 && pair.any { it.action == ActionType.HOLD }
+                    pair.forEach { choice ->
+                        val share = if (roomy && pairedRule(choice.action) != null) ROOMY_SHARE else 1f
+                        ActionChip(
+                            table,
+                            choice.action,
+                            busy,
+                            modifier = Modifier.weight(share).fillMaxHeight(),
+                            brief = true,
+                            paired = true,
+                        ) { onAnswer(choice) }
+                    }
+                    if (pair.size == 1) Spacer(Modifier.weight(1f))
+                }
+                if (pair.any { it.action == ActionType.PRIMARY }) afterPrimary()
+            }
+        }
+        return
+    }
     Column(verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
         choices.forEach { choice ->
             when {
                 choice is Choice.Action -> {
-                    ActionChip(table, choice.action, busy) { onAnswer(choice) }
+                    ActionChip(table, choice.action, busy, brief = brief) { onAnswer(choice) }
                     if (choice.action == ActionType.PRIMARY) afterPrimary()
                 }
 
@@ -693,24 +768,35 @@ private fun Box48(content: @Composable () -> Unit) {
  * condition, Hold, Clear). TalkBack reads it whole.
  */
 @Composable
-private fun ActionChip(table: TableUi, action: ActionType, busy: Boolean, onClick: () -> Unit) {
+private fun ActionChip(
+    table: TableUi,
+    action: ActionType,
+    busy: Boolean,
+    modifier: Modifier = Modifier.fillMaxWidth(),
+    /** A short side panel: a long rule shows only its page on the chip (TalkBack still hears it whole). */
+    brief: Boolean = false,
+    /** Two to a row (a short side panel): the glyph and page over the words, which keep the chip's width. */
+    paired: Boolean = false,
+    onClick: () -> Unit,
+) {
     val card = table.sourceCard
     val primary = action == ActionType.PRIMARY
-    val label = actionLabel(action, card)
-    val rule = actionRule(action)
+    val label = if (primary) "Card action · ${actionLabel(action, card)}" else actionLabel(action, card)
+    // The rule a card doesn't print, in a few words; its page a small pill at the chip's end, never in the words.
+    val full = actionRule(action)
+    val rule = full?.replace(PAGE, "")?.trim()
+    val page = if (primary) "p.7" else full?.let { PAGE.find(it)?.value?.trim('(', ')') }
     val tone = if (primary) PlateTone.GOLD else PlateTone.STEEL
     val content = tone.content
     PlateToneSurface(
         onClick = onClick,
         enabled = !busy,
         tone = tone,
-        modifier = Modifier
-            .fillMaxWidth()
+        modifier = modifier
             .heightIn(min = 48.dp)
             .clearAndSetSemantics {
                 contentDescription =
-                    listOfNotNull(label, "primary action, the card's text applies".takeIf { primary }, rule)
-                        .joinToString(", ")
+                    listOfNotNull(label, "the card's primary action".takeIf { primary }, rule).joinToString(", ")
                 role = Role.Button
                 if (busy) disabled()
                 onClick(label = "Choose") {
@@ -719,41 +805,139 @@ private fun ActionChip(table: TableUi, action: ActionType, busy: Boolean, onClic
                 }
             },
     ) {
+        if (paired) {
+            PairedChipContent(action, card, primary, page, content, pairedRule(action))
+            return@PlateToneSurface
+        }
         Row(
-            Modifier.padding(horizontal = Spacing.md, vertical = 6.dp),
+            Modifier.padding(horizontal = if (brief) Spacing.sm else Spacing.md, vertical = 6.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Icon(
                 actionIcon(action, card).vector,
                 null,
-                tint = if (primary) content else MaterialTheme.colorScheme.primary,
+                tint = when {
+                    primary -> content
+
+                    GoaTheme.isDark -> SteelIconBronze
+
+                    // Bright bronze on the dark steel.
+                    else -> MaterialTheme.colorScheme.primary // Dark bronze on the light steel.
+                },
                 modifier = Modifier.size(scaledIconSize(20.dp, 1.3f)),
             )
             Spacer(Modifier.width(Spacing.sm))
             Column(Modifier.weight(1f)) {
-                if (primary) Text("PRIMARY", style = GoaTextStyles.overline, color = content, maxLines = 1)
                 Text(
                     label,
                     style = MaterialTheme.typography.titleSmall,
                     color = content,
                     fontWeight = FontWeight.SemiBold,
                 )
-                rule?.let {
-                    Text(
-                        it,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = content,
-                    )
-                }
+                // Brief (a short side panel): the label alone, every action in view (TalkBack hears the rule).
+                if (!brief) rule?.let { Text(it, style = MaterialTheme.typography.bodySmall, color = content) }
+            }
+            page?.let {
+                Spacer(Modifier.width(Spacing.sm))
+                PagePill(it, color = content)
             }
         }
     }
 }
 
+/**
+ * An action chip two to a row: the game's glyph and the rule's page on a line of their own, then the words at the
+ * chip's whole width ("Card action" over the card's value for the primary), so no word is broken.
+ */
+@Composable
+private fun PairedChipContent(
+    action: ActionType,
+    card: Card?,
+    primary: Boolean,
+    page: String?,
+    content: Color,
+    rule: String?,
+) {
+    if (rule != null) {
+        // A condition the card doesn't print (Fast Travel's), kept in view sideways too (sol-b #15): the glyph, the
+        // words and the page on one line, the condition under them.
+        Column(Modifier.fillMaxWidth().padding(horizontal = Spacing.sm, vertical = 4.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(
+                    actionIcon(action, card).vector,
+                    null,
+                    tint = if (GoaTheme.isDark) SteelIconBronze else MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(scaledIconSize(20.dp, 1.3f)),
+                )
+                Spacer(Modifier.width(4.dp))
+                Text(
+                    actionLabel(action, card),
+                    style = MaterialTheme.typography.titleSmall,
+                    color = content,
+                    fontWeight = FontWeight.SemiBold,
+                    // On one line: a little smaller rather than broken, never cut.
+                    maxLines = 1,
+                    autoSize = TextAutoSize.StepBased(minFontSize = 11.sp, maxFontSize = 14.sp),
+                    modifier = Modifier.weight(1f),
+                )
+                page?.let {
+                    Spacer(Modifier.width(Spacing.xs))
+                    PagePill(it, color = content)
+                }
+            }
+            Text(rule, style = MaterialTheme.typography.bodySmall, color = content)
+        }
+        return
+    }
+    Column(Modifier.fillMaxWidth().padding(horizontal = Spacing.sm, vertical = 6.dp)) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Icon(
+                actionIcon(action, card).vector,
+                null,
+                tint = when {
+                    primary -> content
+                    GoaTheme.isDark -> SteelIconBronze
+                    else -> MaterialTheme.colorScheme.primary
+                },
+                modifier = Modifier.size(scaledIconSize(20.dp, 1.3f)),
+            )
+            Spacer(Modifier.weight(1f))
+            page?.let { PagePill(it, color = content) }
+        }
+        if (primary) Text("Card action", style = MaterialTheme.typography.labelMedium, color = content)
+        Text(
+            actionLabel(action, card),
+            style = MaterialTheme.typography.titleSmall,
+            color = content,
+            fontWeight = FontWeight.SemiBold,
+        )
+    }
+}
+
+/**
+ * The condition an action chip two to a row keeps in view, in fewer words than [actionRule] (whose whole sentence
+ * TalkBack still hears): Fast Travel's, p.11. Null for the others (Hold's "Do nothing" is its name).
+ */
+private fun pairedRule(action: ActionType): String? = when (action) {
+    ActionType.FAST_TRAVEL -> "Your/adjacent Zone · no enemies"
+    else -> null
+}
+
+/** Fast Travel's share of its row beside Hold. */
+private const val ROOMY_SHARE = 2f
+
 // ---- Cards ------------------------------------------------------------------------------
 
-private const val MAX_SPACE_CHIPS = 6
 private val OPTION_MARKER = 36.dp
-private const val BESIDE_SHARE = 0.36f
+private const val BESIDE_SHARE = 0.28f
 private val SPELL_BESIDE = 96.dp
 private const val LARGE_TEXT = 1.3f
+private val CARD_IN_SHORT_PANEL = 64.dp
+private val PAGE = Regex("\\(p\\.\\d+\\)$")
+
+/** A phone held sideways with little height: the asking card beside compact actions, every one in view. */
+@Composable
+private fun shortSideways(): Boolean = isLandscape() && LocalConfiguration.current.screenHeightDp < SHORT_LANDSCAPE_DP
+
+/** Sideways and shorter than this, the asking card beside the actions is small: every action stays in view. */
+private const val SHORT_LANDSCAPE_DP = 480

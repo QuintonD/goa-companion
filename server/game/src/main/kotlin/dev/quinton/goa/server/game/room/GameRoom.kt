@@ -144,6 +144,9 @@ internal class GameRoom(
         return session.pending?.takeIf { answering(it) == seat }
     }
 
+    /** The seats with a question now, in seat order: what `/v1/me/games` says ("Your turn", "Waiting for Bob"). */
+    fun askedSeats(): List<String> = asked().keys.toList()
+
     private fun asked(): Map<String, AskedQuestion> = order.filter { it !in left }.mapNotNull { seat ->
         questionOf(seat)?.let { seat to AskedQuestion(ticketOf(seat), it.kind) }
     }.toMap()

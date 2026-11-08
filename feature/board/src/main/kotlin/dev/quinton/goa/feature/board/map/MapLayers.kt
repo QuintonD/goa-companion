@@ -365,31 +365,47 @@ internal fun ZoneLabels(
                             ?: Rect(viewport.viewport.width - corner.width, 0f, viewport.viewport.width, corner.height)
                         val w = placeable.width.toFloat()
                         val h = placeable.height.toFloat()
-                        val spot = label.places.firstNotNullOfOrNull { (anchor, side) ->
-                            val at = viewport.mapToScreen(anchor)
-                            val (x, y) = when (side) {
-                                LabelSide.ABOVE -> at.x - w / 2f to at.y - h
-                                LabelSide.BELOW -> at.x - w / 2f to at.y
-                                LabelSide.LEFT -> at.x - w to at.y - h / 2f
-                                LabelSide.RIGHT -> at.x to at.y - h / 2f
-                            }
-                            val rect = Rect(x, y, x + w, y + h)
-                            val inView = rect.left >= view.left + margin && rect.top >= view.top + margin &&
-                                rect.right <= view.right - margin && rect.bottom <= view.bottom - margin
-                            val hexPx = viewport.scale * 0.8f
-                            val clear = inView && !rect.overlaps(reserved) && busy.none { point ->
-                                val p = viewport.mapToScreen(point)
-                                p.x > rect.left - hexPx && p.x < rect.right + hexPx &&
-                                    p.y > rect.top - hexPx && p.y < rect.bottom + hexPx
-                            }
-                            rect.takeIf { clear }
+                        val unitPx = viewport.scale
+                        fun inView(r: Rect) = r.left >= view.left + margin && r.top >= view.top + margin &&
+                            r.right <= view.right - margin && r.bottom <= view.bottom - margin
+
+                        // A piece covers about its space and stands up to a space tall above it (a
+                        // miniature, its badge): the label keeps clear of all of that, not just the centre.
+                        fun covered(r: Rect) = busy.count { point ->
+                            val p = viewport.mapToScreen(point)
+                            p.x > r.left - unitPx * PIECE_HALF_WIDTH && p.x < r.right + unitPx * PIECE_HALF_WIDTH &&
+                                p.y > r.top - unitPx * PIECE_BELOW && p.y < r.bottom + unitPx * PIECE_ABOVE
                         }
+
+                        fun at(anchor: Offset, side: LabelSide): Rect {
+                            val a = viewport.mapToScreen(anchor)
+                            val (x, y) = when (side) {
+                                LabelSide.ABOVE -> a.x - w / 2f to a.y - h
+                                LabelSide.BELOW -> a.x - w / 2f to a.y
+                                LabelSide.LEFT -> a.x - w to a.y - h / 2f
+                                LabelSide.RIGHT -> a.x to a.y - h / 2f
+                            }
+                            return Rect(x, y, x + w, y + h)
+                        }
+                        val spot = label.places.map { (anchor, side) -> at(anchor, side) }
+                            .firstOrNull { inView(it) && !it.overlaps(reserved) && covered(it) == 0 }
+                            ?: if (label.team == null) {
+                                battleFallback(label, ::at, view, margin, w, h) { r ->
+                                    if (!inView(r) || r.overlaps(reserved)) null else covered(r)
+                                }
+                            } else {
+                                null
+                            }
                         spot?.let { placeable.place(it.left.roundToInt(), it.top.roundToInt()) }
                     }
                 }
                 .then(
                     if (painted) {
+                        // On the painting a slate pill under the bevelled words: legible over rock, sand and sea.
                         Modifier
+                            .background(PaintedLabelGround, RoundedCornerShape(50))
+                            .border(1.dp, PaintedLabelEdge, RoundedCornerShape(50))
+                            .padding(horizontal = 10.dp, vertical = 2.dp)
                     } else {
                         Modifier
                             .background(palette.labelBackground, RoundedCornerShape(50))
@@ -432,6 +448,44 @@ internal fun ZoneLabels(
             )
         }
     }
+}
+
+/**
+ * A Battle Zone's label is never hidden (it says where the game is): when no place outside the Zone is free, the
+ * free spot nearest the Zone along the Zone's own edges, the view's top and bottom edges or over the Zone's own
+ * empty spaces, where it may cover a little empty map but no piece; failing that, the spot covering the fewest.
+ * [score] is null for a spot out of view or over the map buttons, else how many pieces it covers.
+ */
+private fun battleFallback(
+    label: ZoneLabel,
+    at: (Offset, LabelSide) -> Rect,
+    view: Rect,
+    margin: Float,
+    w: Float,
+    h: Float,
+    score: (Rect) -> Int?,
+): Rect? {
+    val near = label.places.map { (anchor, side) -> at(anchor, side) }
+    val zone = Rect(near.minOf { it.left }, near.minOf { it.top }, near.maxOf { it.right }, near.maxOf { it.bottom })
+    val step = maxOf(w / 4f, 1f)
+    // Along the Zone's edges and the view's, then anywhere over the Zone itself in view (its empty spaces), so a
+    // free spot is found when one exists; a piece is never covered while it can be helped.
+    val inside = generateSequence(maxOf(zone.top, view.top + margin)) { it + h / 2f }
+        .takeWhile { it + h <= minOf(zone.bottom, view.bottom - margin) }.toList()
+    val rows = listOf(zone.top, zone.bottom - h, view.top + margin, view.bottom - margin - h) + inside
+    val sweep = rows.flatMap { y ->
+        generateSequence(view.left + margin) { it + step }.takeWhile { it + w <= view.right - margin }
+            .map { x -> Rect(x, y, x + w, y + h) }.toList()
+    }
+    val clamped = near.map { r ->
+        val x = r.left.coerceIn(view.left + margin, maxOf(view.left + margin, view.right - margin - w))
+        val y = r.top.coerceIn(view.top + margin, maxOf(view.top + margin, view.bottom - margin - h))
+        Rect(x, y, x + w, y + h)
+    }
+    val centre = zone.center
+    return (clamped + sweep).mapNotNull { r -> score(r)?.let { r to it } }
+        .minWithOrNull(compareBy<Pair<Rect, Int>> { it.second }.thenBy { (r, _) -> (r.center - centre).getDistance() })
+        ?.first
 }
 
 /**
@@ -488,13 +542,34 @@ private fun zoneLabels(map: BoardMap, battleZones: List<String>, bottomTeam: Tea
                 listOf(LabelSide.BELOW, LabelSide.LEFT, LabelSide.RIGHT, LabelSide.ABOVE)
             }
             val places = sides(hexes)
-            add(ZoneLabel(BoardText.battleZone(map, lane.id).uppercase(), null, order.map(places::getValue)))
+            // Then along its top and bottom edges, off the middle: a crowded Zone often leaves a corner free.
+            val top = hexes.minOf { it.y } - EDGE
+            val bottom = hexes.maxOf { it.y } + EDGE
+            val left = hexes.minOf { it.x } + EDGE
+            val right = hexes.maxOf { it.x } - EDGE
+            val more = listOf(
+                Offset(left, top) to LabelSide.ABOVE,
+                Offset(right, top) to LabelSide.ABOVE,
+                Offset(left, bottom) to LabelSide.BELOW,
+                Offset(right, bottom) to LabelSide.BELOW,
+            )
+            add(ZoneLabel(BoardText.battleZone(map, lane.id).uppercase(), null, order.map(places::getValue) + more))
         }
     }
 }
 
-/** How far outside a Zone's outermost space centre its label starts, in map units (a hex's edge). */
-private const val EDGE = 0.95f
+/** How far outside a Zone's outermost space centre its label starts, in map units (past a hex's edge). */
+private const val EDGE = 1.05f
+
+/**
+ * What a piece covers around its space's centre, in map units: half its width, below it, above it (a miniature with
+ * its badge stands about a space and a half tall).
+ */
+private const val PIECE_HALF_WIDTH = 0.85f
+private const val PIECE_BELOW = 0.75f
+private const val PIECE_ABOVE = 1.75f
+private val PaintedLabelGround = Color(0xCC10181E)
+private val PaintedLabelEdge = Color(0x66B4BEC8)
 
 private const val MAX_LABEL_SCALE = 1.3f
 

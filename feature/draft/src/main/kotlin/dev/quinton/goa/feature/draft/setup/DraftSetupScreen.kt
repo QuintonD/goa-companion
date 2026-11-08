@@ -6,7 +6,6 @@ import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.togetherWith
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -41,6 +40,7 @@ import androidx.compose.material.icons.outlined.Groups
 import androidx.compose.material.icons.outlined.LockOpen
 import androidx.compose.material.icons.outlined.PersonAdd
 import androidx.compose.material.icons.outlined.PlayArrow
+import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material.icons.outlined.Shuffle
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -49,20 +49,20 @@ import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
+import androidx.compose.material3.IconToggleButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.SegmentedButton
-import androidx.compose.material3.SegmentedButtonDefaults
-import androidx.compose.material3.SingleChoiceSegmentedButtonRow
+import androidx.compose.material3.PlainTooltip
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
-import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.TooltipAnchorPosition
+import androidx.compose.material3.TooltipBox
+import androidx.compose.material3.TooltipDefaults
 import androidx.compose.material3.rememberModalBottomSheetState
+import androidx.compose.material3.rememberTooltipState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -73,6 +73,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
@@ -87,15 +88,24 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import dev.quinton.goa.core.designsystem.component.BannerTextButton
+import dev.quinton.goa.core.designsystem.component.BarAction
+import dev.quinton.goa.core.designsystem.component.BarActions
+import dev.quinton.goa.core.designsystem.component.BarIconButton
 import dev.quinton.goa.core.designsystem.component.ConfirmDialog
 import dev.quinton.goa.core.designsystem.component.EmptyState
 import dev.quinton.goa.core.designsystem.component.GoaButton
+import dev.quinton.goa.core.designsystem.component.GoaFilterChip
+import dev.quinton.goa.core.designsystem.component.GoaOutlinedButton
 import dev.quinton.goa.core.designsystem.component.GoaPlate
 import dev.quinton.goa.core.designsystem.component.GoaScreen
+import dev.quinton.goa.core.designsystem.component.GoaSegment
+import dev.quinton.goa.core.designsystem.component.GoaSegmentedRow
 import dev.quinton.goa.core.designsystem.component.GoaSheet
+import dev.quinton.goa.core.designsystem.component.GoaSwitch
+import dev.quinton.goa.core.designsystem.component.LARGE_FONT_SCALE
 import dev.quinton.goa.core.designsystem.component.PlateShape
 import dev.quinton.goa.core.designsystem.component.PlayerAvatar
-import dev.quinton.goa.core.designsystem.component.SettingsActionButton
 import dev.quinton.goa.core.designsystem.component.TeamBadge
 import dev.quinton.goa.core.designsystem.component.TitlePlate
 import dev.quinton.goa.core.designsystem.component.teamColor
@@ -120,8 +130,7 @@ import dev.quinton.goa.feature.draft.ui.SequenceStrip
 import dev.quinton.goa.feature.draft.ui.TeamText
 import dev.quinton.goa.feature.draft.ui.TieBreakerCoin
 import dev.quinton.goa.feature.draft.ui.TileState
-import dev.quinton.goa.feature.draft.ui.goaFilterChipColors
-import dev.quinton.goa.feature.draft.ui.goaSegmentedColors
+import dev.quinton.goa.feature.draft.ui.coinTeamWords
 import dev.quinton.goa.feature.draft.ui.goaTonalButtonColors
 import dev.quinton.goa.feature.draft.ui.plateEdge
 import dev.quinton.goa.feature.draft.ui.plural
@@ -189,6 +198,12 @@ interface SetupActions {
 
     fun openSettings() {}
 
+    /**
+     * Leaves the draft for the screen that opened it (the bar's back arrow). Nothing to confirm: every choice is
+     * saved as it is made, and the setup opens where it was left.
+     */
+    fun exit() {}
+
     companion object {
         val None = object : SetupActions {}
     }
@@ -201,6 +216,7 @@ fun DraftSetupDestination(
     onManageMethods: () -> Unit,
     onAddPlayer: () -> Unit,
     onOpenSettings: () -> Unit,
+    onExit: () -> Unit = {},
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     LaunchedEffect(viewModel) {
@@ -238,6 +254,7 @@ fun DraftSetupDestination(
             override fun discardActive() = viewModel.discardActive()
             override fun dismissMessage() = viewModel.dismissMessage()
             override fun openSettings() = onOpenSettings()
+            override fun exit() = onExit()
         }
     }
     BackHandler(enabled = state.stage != SetupStage.PLAYERS) { viewModel.back() }
@@ -255,11 +272,23 @@ fun DraftSetupScreen(state: SetupUiState, actions: SetupActions) {
     }
     GoaScreen(
         title = "Draft",
+        // The bar's arrow leaves the draft, as on every sub-screen; Back in the bottom bar steps back a stage.
+        onBack = actions::exit,
         actions = {
-            IconButton(onClick = actions::manageMethods) {
-                Icon(Icons.AutoMirrored.Outlined.ListAlt, contentDescription = "Draft methods")
+            // The list glyph alone doesn't say "methods": it is named on the bar, the gear beside it. At large text
+            // the word gives way to the glyph (labelled for TalkBack and on a long press).
+            val methods = BarAction("Draft methods", Icons.AutoMirrored.Outlined.ListAlt, actions::manageMethods)
+            if (LocalDensity.current.fontScale < LARGE_FONT_SCALE) {
+                BannerTextButton(
+                    "Methods",
+                    onClick = methods.onClick,
+                    icon = methods.icon,
+                    modifier = Modifier.semantics { contentDescription = methods.label },
+                )
+                BarIconButton(BarAction("Settings", Icons.Outlined.Settings, actions::openSettings))
+            } else {
+                BarActions(listOf(methods, BarAction("Settings", Icons.Outlined.Settings, actions::openSettings)))
             }
-            SettingsActionButton(actions::openSettings)
         },
     ) { padding ->
         Box(Modifier.fillMaxSize().padding(padding)) {
@@ -273,7 +302,14 @@ fun DraftSetupScreen(state: SetupUiState, actions: SetupActions) {
                     label = "stage",
                 ) { stage ->
                     LazyColumn(
-                        contentPadding = PaddingValues(Spacing.screen),
+                        // The step tabs above already end in their own padding: a small top keeps the stage's
+                        // controls above the footer.
+                        contentPadding = PaddingValues(
+                            start = Spacing.screen,
+                            end = Spacing.screen,
+                            top = Spacing.sm,
+                            bottom = Spacing.screen,
+                        ),
                         verticalArrangement = Arrangement.spacedBy(Spacing.md),
                         modifier = Modifier.fillMaxSize(),
                     ) {
@@ -363,7 +399,9 @@ private fun BottomBar(state: SetupUiState, actions: SetupActions) {
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 if (state.stage != SetupStage.PLAYERS) {
-                    OutlinedButton(onClick = actions::back, modifier = Modifier.heightIn(min = 52.dp)) { Text("Back") }
+                    GoaOutlinedButton(onClick = actions::back, modifier = Modifier.heightIn(min = 52.dp)) {
+                        Text("Back")
+                    }
                 }
                 val last = state.stage == SetupStage.COIN
                 GoaButton(
@@ -395,7 +433,7 @@ private fun androidx.compose.foundation.lazy.LazyListScope.playersStage(state: S
                 message = "Add the people at the table above, or create full profiles in Players.",
                 modifier = Modifier.fillMaxWidth(),
                 action = {
-                    OutlinedButton(onClick = actions::openPlayerEditor) {
+                    GoaOutlinedButton(onClick = actions::openPlayerEditor) {
                         Icon(Icons.Outlined.PersonAdd, contentDescription = null)
                         Spacer(Modifier.width(Spacing.sm))
                         Text("New player profile")
@@ -547,13 +585,11 @@ private fun PlayerRow(option: PlayerOption, selected: Boolean, onToggle: () -> U
 private fun TeamsStage(state: SetupUiState, actions: SetupActions) {
     val form = state.form
     Column(verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
-        SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth()) {
+        GoaSegmentedRow(Modifier.fillMaxWidth()) {
             TeamMode.entries.forEachIndexed { i, mode ->
-                SegmentedButton(
-                    colors = goaSegmentedColors(),
+                GoaSegment(
                     selected = form.teamMode == mode,
                     onClick = { actions.setTeamMode(mode) },
-                    shape = SegmentedButtonDefaults.itemShape(i, TeamMode.entries.size),
                     label = {
                         Text(
                             mode.label,
@@ -583,11 +619,11 @@ private fun TeamColumns(state: SetupUiState, actions: SetupActions) {
     val balanced = form.teamMode == TeamMode.BALANCED
     SectionCard(
         title = if (balanced) "Balanced by Elo" else "Tap a player to switch teams",
-        subtitle = form.balanceDifference?.let { "Average Elo differs by ${it.roundToInt()}" }
-            ?: if (balanced) "Lock players to keep them on a team, then re-balance" else null,
+        subtitle = form.balanceDifference?.let { "Average Elo differs by ${it.roundToInt()}" },
         trailing = if (balanced) {
             {
-                FilledTonalButton(colors = goaTonalButtonColors(), onClick = actions::rebalance) {
+                // The shared secondary button: steel with light words, readable at the table.
+                GoaOutlinedButton(onClick = actions::rebalance, modifier = Modifier.heightIn(min = 48.dp)) {
                     Icon(Icons.Outlined.Shuffle, contentDescription = null, modifier = Modifier.size(18.dp))
                     Spacer(Modifier.width(Spacing.xs))
                     Text("Re-balance")
@@ -597,6 +633,7 @@ private fun TeamColumns(state: SetupUiState, actions: SetupActions) {
             null
         },
     ) {
+        if (balanced) LockCaption()
         Row(horizontalArrangement = Arrangement.spacedBy(Spacing.md)) {
             for (team in Team.entries) {
                 val ids = if (team == Team.RED) form.red else form.blue
@@ -625,6 +662,26 @@ private fun TeamColumns(state: SetupUiState, actions: SetupActions) {
     }
 }
 
+/** What the padlocks do, said once and always in view, under the section's head. */
+@Composable
+private fun LockCaption() {
+    Row(Modifier.padding(bottom = Spacing.sm), verticalAlignment = Alignment.CenterVertically) {
+        Icon(
+            Icons.Filled.Lock,
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.size(16.dp),
+        )
+        Spacer(Modifier.width(Spacing.xs))
+        Text(
+            LOCK_TIP,
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun TeamMemberChip(
     name: String,
@@ -640,8 +697,9 @@ private fun TeamMemberChip(
         onClick = onMove,
         enabled = !locked,
         shape = RoundedCornerShape(6.dp),
+        // A row of the teams' plate: the team's faint tint, no edge of its own (DESIGN.md "Framing levels"); the
+        // column's head names the team with its mark.
         color = color.copy(alpha = 0.10f),
-        border = BorderStroke(1.dp, color.copy(alpha = 0.6f)),
         modifier = Modifier
             .fillMaxWidth()
             .heightIn(min = 48.dp)
@@ -655,12 +713,27 @@ private fun TeamMemberChip(
             Spacer(Modifier.width(Spacing.sm))
             Text(name, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f), maxLines = 2)
             if (showLock) {
-                IconButton(onClick = onLock) {
-                    Icon(
-                        if (locked) Icons.Filled.Lock else Icons.Outlined.LockOpen,
-                        contentDescription = if (locked) "Unlock $name" else "Lock $name to ${teamName(team)}",
-                        tint = activeColor(locked),
-                    )
+                // A 48 dp toggle: "Keep Ada on Red when re-balancing", locked or not. What it does is its label and,
+                // on a long press, its tooltip, so the teams keep their room.
+                TooltipBox(
+                    positionProvider = TooltipDefaults.rememberTooltipPositionProvider(TooltipAnchorPosition.Above),
+                    tooltip = { PlainTooltip { Text(LOCK_TIP) } },
+                    state = rememberTooltipState(),
+                ) {
+                    IconToggleButton(
+                        checked = locked,
+                        onCheckedChange = { onLock() },
+                        modifier = Modifier.size(48.dp).semantics {
+                            contentDescription = "Keep $name on ${teamName(team)}"
+                            stateDescription = if (locked) "Locked" else "Not locked"
+                        },
+                    ) {
+                        Icon(
+                            if (locked) Icons.Filled.Lock else Icons.Outlined.LockOpen,
+                            contentDescription = null,
+                            tint = activeColor(locked),
+                        )
+                    }
                 }
             } else {
                 Spacer(Modifier.width(Spacing.sm))
@@ -724,13 +797,15 @@ private fun DoublePilotPicker(state: SetupUiState, actions: SetupActions) {
     val current = state.currentDoublePilot
     Column {
         Text("Who pilots two heroes?", style = MaterialTheme.typography.labelLarge)
-        FlowRow(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+        FlowRow(
+            horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+            verticalArrangement = Arrangement.spacedBy(Spacing.sm),
+        ) {
             smaller.forEach { id ->
-                FilterChip(
-                    colors = goaFilterChipColors(),
+                GoaFilterChip(
                     selected = id == current,
                     onClick = { actions.setDoublePilot(id) },
-                    label = { Text(state.player(id)?.player?.name ?: "Unknown") },
+                    label = state.player(id)?.player?.name ?: "Unknown",
                     modifier = Modifier.heightIn(min = 48.dp),
                 )
             }
@@ -754,14 +829,12 @@ private fun PlayerDraftSetup(state: SetupUiState, actions: SetupActions) {
                 ) {
                     form.selected.forEach { id ->
                         val chosen = if (team == Team.RED) form.redCaptain == id else form.blueCaptain == id
-                        FilterChip(
-                            colors = goaFilterChipColors(),
+                        GoaFilterChip(
                             selected = chosen,
                             onClick = { actions.setCaptain(team, id) },
-                            label = { Text(state.player(id)?.player?.name ?: "Unknown") },
-                            leadingIcon = { PlayerAvatar(state.player(id)?.player, size = 24.dp) },
                             modifier = Modifier.heightIn(min = 48.dp),
-                        )
+                            leadingIcon = { PlayerAvatar(state.player(id)?.player, size = 24.dp) },
+                        ) { Text(state.player(id)?.player?.name ?: "Unknown") }
                     }
                 }
             }
@@ -791,7 +864,7 @@ private fun HeroesStage(state: SetupUiState, actions: SetupActions) {
         SectionCard(
             title = "Method",
             subtitle = "How heroes are chosen",
-            trailing = { TextButton(onClick = actions::manageMethods) { Text("Manage") } },
+            trailing = { TextButton(onClick = actions::manageMethods) { Text("Compare all") } },
         ) {
             Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
                 state.methods.forEach { option ->
@@ -799,7 +872,7 @@ private fun HeroesStage(state: SetupUiState, actions: SetupActions) {
                     ChoiceCard(
                         title = option.method.name,
                         badge = DraftSetupPresenter.originLabel(option.method),
-                        body = option.unavailable ?: option.method.summary,
+                        body = option.unavailable ?: coinTeamWords(option.method.summary),
                         selected = selected,
                         onClick = { actions.selectMethod(option.method.id) },
                         extra = if (selected && option.preview.isNotEmpty()) {
@@ -823,13 +896,11 @@ private fun HeroesStage(state: SetupUiState, actions: SetupActions) {
                     modifier = Modifier.padding(bottom = Spacing.sm),
                 )
             }
-            SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth()) {
+            GoaSegmentedRow(Modifier.fillMaxWidth()) {
                 PoolSource.entries.forEachIndexed { i, source ->
-                    SegmentedButton(
-                        colors = goaSegmentedColors(),
+                    GoaSegment(
                         selected = form.poolSource == source,
                         onClick = { actions.setPoolSource(source) },
-                        shape = SegmentedButtonDefaults.itemShape(i, PoolSource.entries.size),
                         label = {
                             Text(
                                 when (source) {
@@ -850,7 +921,7 @@ private fun HeroesStage(state: SetupUiState, actions: SetupActions) {
                     "Heroes from the products you own (${state.ownedProductsLabel}, set in Settings).",
                 )
 
-                PoolSource.CUSTOM -> OutlinedButton(onClick = {
+                PoolSource.CUSTOM -> GoaOutlinedButton(onClick = {
                     choosing = true
                 }, modifier = Modifier.heightIn(min = 48.dp)) {
                     Text("Choose heroes (${form.customSelection.size})")
@@ -862,44 +933,44 @@ private fun HeroesStage(state: SetupUiState, actions: SetupActions) {
             Text("Least experienced player", style = MaterialTheme.typography.labelLarge)
             Hint("Removes heroes above their complexity (rulebook).")
             Spacer(Modifier.height(Spacing.sm))
-            FlowRow(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-                FilterChip(
-                    colors = goaFilterChipColors(),
+            FlowRow(
+                horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+                verticalArrangement = Arrangement.spacedBy(Spacing.sm),
+            ) {
+                GoaFilterChip(
                     selected = form.maxComplexity == null,
                     onClick = { actions.setMaxComplexity(null) },
-                    label = { Text("Any") },
                     modifier = Modifier.heightIn(min = 48.dp),
-                )
+                ) { Text("Any") }
                 for (stars in 1..3) {
-                    FilterChip(
-                        colors = goaFilterChipColors(),
+                    GoaFilterChip(
                         selected = form.maxComplexity == stars,
                         onClick = { actions.setMaxComplexity(stars) },
-                        label = { Text("${"★".repeat(stars)} ${ComplexityFilter.name(stars)}") },
                         modifier = Modifier
                             .heightIn(min = 48.dp)
                             .semantics { contentDescription = "Up to $stars stars, ${ComplexityFilter.name(stars)}" },
-                    )
+                    ) { Text("${"★".repeat(stars)} ${ComplexityFilter.name(stars)}") }
                 }
             }
         }
         SectionCard(title = "Step timer", subtitle = "Optional countdown on every ban and pick", trailing = {
-            Switch(
+            GoaSwitch(
                 checked = form.stepTimer,
                 onCheckedChange = actions::setStepTimer,
                 modifier = Modifier.semantics { contentDescription = "Step timer" },
             )
         }) {
             if (form.stepTimer) {
-                FlowRow(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+                FlowRow(
+                    horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+                    verticalArrangement = Arrangement.spacedBy(Spacing.sm),
+                ) {
                     listOf(15, 30, 45, 60, 90).forEach { s ->
-                        FilterChip(
-                            colors = goaFilterChipColors(),
+                        GoaFilterChip(
                             selected = form.stepSeconds == s,
                             onClick = { actions.setStepSeconds(s) },
-                            label = { Text("${s}s") },
                             modifier = Modifier.heightIn(min = 48.dp),
-                        )
+                        ) { Text("${s}s") }
                     }
                 }
             } else {
@@ -934,7 +1005,7 @@ private fun HeroChooserSheet(state: SetupUiState, onDone: (Set<String>) -> Unit)
     ) {
         Column(Modifier.padding(horizontal = Spacing.screen)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                TitlePlate("Custom pool · ${selection.size}", Modifier.weight(1f))
+                TitlePlate("Custom pool · ${selection.size}", Modifier.weight(1f), gear = false)
                 TextButton(onClick = { selection = state.heroes.map { it.id } }) { Text("All") }
                 TextButton(onClick = { selection = emptyList() }) { Text("None") }
             }
@@ -970,14 +1041,14 @@ private fun CoinStage(state: SetupUiState, actions: SetupActions) {
     val form = state.form
     Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
         Text(
-            "The team showing on the Tie Breaker coin is Team A. Team A starts the draft.",
+            "The team the Tie Breaker coin shows is the coin team: it starts the draft.",
             style = MaterialTheme.typography.bodyLarge,
             textAlign = TextAlign.Center,
         )
         TieBreakerCoin(result = form.teamA, flipCount = form.flipCount)
         val teamA = form.teamA
         TeamText(
-            text = if (teamA == null) "Not flipped yet" else "${teamLabel(teamA)} is Team A",
+            text = if (teamA == null) "Not flipped yet" else "${teamLabel(teamA)} is the coin team",
             style = MaterialTheme.typography.headlineSmall,
             color = teamA?.let { teamColor(it) } ?: MaterialTheme.colorScheme.onSurfaceVariant,
         )
@@ -1014,7 +1085,7 @@ private fun CoinStage(state: SetupUiState, actions: SetupActions) {
 private fun SummaryCard(state: SetupUiState) {
     val form = state.form
     val method = state.selectedMethod ?: return
-    SectionCard(title = method.method.name, subtitle = method.method.summary) {
+    SectionCard(title = method.method.name, subtitle = coinTeamWords(method.method.summary)) {
         if (form.teamMode == TeamMode.PLAYER_DRAFT) {
             Hint("Heroes first, then captains draft players.")
         } else {
@@ -1099,3 +1170,6 @@ private fun SetupPreview() {
 @Composable
 private fun activeColor(active: Boolean) =
     if (active) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
+
+/** A padlock's tooltip: what locking does. */
+private const val LOCK_TIP = "Locked players stay put when you re-balance"

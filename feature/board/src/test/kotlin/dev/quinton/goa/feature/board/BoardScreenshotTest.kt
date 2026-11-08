@@ -23,18 +23,13 @@ import androidx.test.core.app.ApplicationProvider
 import com.github.takahirom.roborazzi.captureRoboImage
 import com.github.takahirom.roborazzi.captureScreenRoboImage
 import dev.quinton.goa.core.data.EditClock
-import dev.quinton.goa.core.data.GameSaveRepository
-import dev.quinton.goa.core.data.PuzzleProgressRepository
 import dev.quinton.goa.core.data.game.StoredGame
-import dev.quinton.goa.core.data.puzzle.PuzzleProgress
 import dev.quinton.goa.core.designsystem.component.LocalBoardStyle
 import dev.quinton.goa.core.designsystem.theme.GoaTheme
 import dev.quinton.goa.core.domain.board.BoardGeometry
 import dev.quinton.goa.core.domain.board.BoardRules
 import dev.quinton.goa.core.domain.board.BoardSetup
 import dev.quinton.goa.core.domain.board.HexGrid
-import dev.quinton.goa.core.game.GameFactory
-import dev.quinton.goa.core.game.PuzzleBook
 import dev.quinton.goa.core.model.board.BoardLineup
 import dev.quinton.goa.core.model.board.HeroPiece
 import dev.quinton.goa.core.model.board.MinionPiece
@@ -73,11 +68,16 @@ import dev.quinton.goa.feature.board.board.NewPiece
 import dev.quinton.goa.feature.board.board.PiecesContent
 import dev.quinton.goa.feature.board.list.BoardsScreen
 import dev.quinton.goa.feature.board.list.BoardsViewModel
+import dev.quinton.goa.feature.board.list.PlayHomeActions
 import dev.quinton.goa.feature.board.list.PlayHomeScreen
+import dev.quinton.goa.feature.board.list.PlayHomeUiState
+import dev.quinton.goa.feature.board.list.PlayHomeViewModel
+import dev.quinton.goa.feature.board.list.PlayHubUi
 import dev.quinton.goa.feature.board.map.MapLayout
 import dev.quinton.goa.feature.board.map.MapOrientation
 import dev.quinton.goa.feature.board.map.MapViewport
 import dev.quinton.goa.feature.board.map.resolveTap
+import dev.quinton.goa.feature.board.play.puzzles.screenshotPuzzleProgress
 import dev.quinton.goa.feature.board.setup.NewBoardAction
 import dev.quinton.goa.feature.board.setup.NewBoardScreen
 import dev.quinton.goa.feature.board.setup.NewBoardUiState
@@ -167,14 +167,7 @@ class BoardScreenshotTest {
     }
 
     @Composable
-    private fun Boards(
-        boards: List<SavedBoard>,
-        withDraft: Boolean = true,
-        games: GameSaveRepository = FakeGameSaveRepository(),
-        engine: GameFactory? = null,
-        puzzles: PuzzleBook? = null,
-        puzzleProgress: PuzzleProgressRepository? = null,
-    ) {
+    private fun Boards(boards: List<SavedBoard>, withDraft: Boolean = true) {
         val vm =
             remember {
                 BoardsViewModel(
@@ -185,10 +178,6 @@ class BoardScreenshotTest {
                     if (withDraft) matches else FakeMatchRepository(),
                     EditClock { now },
                     CoroutineScope(Dispatchers.Unconfined),
-                    games,
-                    engine?.let { e -> { e } },
-                    puzzles?.let { b -> { b } },
-                    puzzleProgress,
                 )
             }
         val state by vm.uiState.collectAsState()
@@ -204,56 +193,69 @@ class BoardScreenshotTest {
         )
     }
 
-    /** No boards and no draft yet: play is coming soon, and New board. */
-    @Test fun playHomeDark() = capture(ThemeMode.DARK) { PlayHomeScreen({}, {}, {}, {}) }
+    // ---- Play home -----------------------------------------------------------------------
 
-    @Test fun playHomeLight() = capture(ThemeMode.LIGHT) { PlayHomeScreen({}, {}, {}, {}) }
-
-    @Test
-    @Config(qualifiers = "w384dp-h832dp-xxhdpi")
-    fun playHomeW384DarkFontScale2() = capture(ThemeMode.DARK, 2f) { PlayHomeScreen({}, {}, {}, {}) }
-
-    @Test fun boardsEmptyDark() = capture(ThemeMode.DARK) { Boards(emptyList(), withDraft = false) }
-
-    /** Heroes are playable and a game is in progress: Resume on top, then Play and the boards. */
-    @Test
-    fun boardsPlayResumeDark() = capture(ThemeMode.DARK) {
+    /**
+     * The Play tab as the app opens it: the real engine's heroes are playable and the real puzzle book is
+     * bundled, with the same progress as the puzzle list's screenshots; [game]: a game in progress to resume.
+     */
+    @Composable
+    private fun PlayHome(game: Boolean = false) {
         val factory = remember { dev.quinton.goa.feature.board.play.fakeFactory() }
-        val games = remember {
-            FakeGameSaveRepository(
+        val book = dev.quinton.goa.feature.board.play.puzzles.realPuzzleBook
+        val vm = remember {
+            val stored = if (game) {
                 StoredGame.Saved(
                     dev.quinton.goa.feature.board.play.fakeInProgress(factory).let {
                         it.copy(game = it.game.copy(savedAt = now - HOUR))
                     },
-                ),
+                )
+            } else {
+                StoredGame.None
+            }
+            PlayHomeViewModel(
+                FakeCatalogRepository(catalog),
+                FakeGameSaveRepository(stored),
+                EditClock { now },
+                { factory },
+                { book },
+                FakePuzzleProgressRepository(screenshotPuzzleProgress()),
             )
         }
-        Boards(savedBoards(), games = games, engine = factory)
+        val state by vm.uiState.collectAsState()
+        PlayHomeScreen(state, PlayHomeActions())
     }
+
+    @Test fun playHomeDark() = capture(ThemeMode.DARK) { PlayHome() }
+
+    @Test fun playHomeLight() = capture(ThemeMode.LIGHT) { PlayHome() }
+
+    @Test
+    @Config(qualifiers = "w384dp-h832dp-xxhdpi")
+    fun playHomeW384DarkFontScale2() = capture(ThemeMode.DARK, 2f) { PlayHome() }
+
+    @Config(qualifiers = "w891dp-h411dp-land-xxhdpi")
+    @Test
+    fun playHomeLandscapeDark() = capture(ThemeMode.DARK) { PlayHome() }
+
+    /** A game is in progress: Resume above the entries. */
+    @Test fun playHomeResumeDark() = capture(ThemeMode.DARK) { PlayHome(game = true) }
 
     @Config(qualifiers = "w384dp-h832dp-xxhdpi")
     @Test
-    fun boardsPlayResumeW384LightFontScale2() = capture(ThemeMode.LIGHT, 2f) {
-        val factory = remember { dev.quinton.goa.feature.board.play.fakeFactory() }
-        val games =
-            remember {
-                FakeGameSaveRepository(StoredGame.Saved(dev.quinton.goa.feature.board.play.fakeInProgress(factory)))
-            }
-        Boards(emptyList(), games = games, engine = factory)
+    fun playHomeResumeW384LightFontScale2() = capture(ThemeMode.LIGHT, 2f) { PlayHome(game = true) }
+
+    /** The engine can't be built: the entries that need it say so instead of opening. */
+    @Test fun playHomeUnavailableDark() = capture(ThemeMode.DARK) {
+        PlayHomeScreen(
+            PlayHomeUiState.Ready(PlayHubUi(available = false, puzzles = null), now),
+            PlayHomeActions(),
+        )
     }
 
-    /** Puzzles are playable: the entry says how many are solved and opens the list. */
-    @Test
-    fun boardsPuzzlesDark() = capture(ThemeMode.DARK) {
-        val factory = remember { dev.quinton.goa.feature.board.play.fakeFactory() }
-        val book = dev.quinton.goa.feature.board.play.puzzles.realPuzzleBook
-        val progress = remember {
-            FakePuzzleProgressRepository(
-                book.puzzles.take(1).associate { it.id to PuzzleProgress(solved = true, solvedAt = 1, attempts = 1) },
-            )
-        }
-        Boards(emptyList(), engine = factory, puzzles = book, puzzleProgress = progress)
-    }
+    // ---- Board sandbox list --------------------------------------------------------------
+
+    @Test fun boardsEmptyDark() = capture(ThemeMode.DARK) { Boards(emptyList(), withDraft = false) }
 
     /** No boards, but a finished draft: its line-up is one tap away. */
     @Test fun boardsEmptyLight() = capture(ThemeMode.LIGHT) { Boards(emptyList()) }

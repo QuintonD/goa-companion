@@ -2,6 +2,7 @@ package dev.quinton.goa.feature.board
 
 import androidx.compose.runtime.MonotonicFrameClock
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Size
 import dev.quinton.goa.core.domain.board.BoardGeometry
 import dev.quinton.goa.core.domain.board.HexGrid
@@ -109,6 +110,48 @@ class MapViewportTest {
         view.reveal(region, region.center)
         // Never smaller than comfortable.
         assertTrue(view.scale * sqrt(3f) >= 38 * px - 0.5f)
+    }
+
+    /** A Move 2 question: its spaces framed as 48 dp targets when they fit between the overlays (sol #1). */
+    @Test
+    fun aQuestionsSpacesAreFramedAsFingerTargets() = runBlocking(FrameClock) {
+        val view = MapViewport().apply {
+            updateInsets(bottom = 290 * px, end = 0f, top = 147 * px)
+            setUp(layout, Size(411 * px, 754 * px), layout.laneRegion(map, geometry), true, 38 * px, 120 * px)
+        }
+        val middle = layout.laneRegion(map, geometry)!!.center
+        val centre = map.spaces.map { it.hex }.minBy { (layout.center(it) - middle).getDistance() }
+        val options = map.spaces.map { it.hex }.filter { HexGrid.distance(it, centre) <= 2 }
+        val region = layout.bounds(options, pad = 1.1f)!!
+        view.reveal(region, region.center, shrink = 0.8f, clearEnd = 64 * px, hexPx = 48 * px)
+        assertTrue("hexes ${view.hexPx / px} dp", view.hexPx >= 48 * px - 0.5f)
+        val visible = view.visible
+        options.forEach { hex ->
+            val at = view.mapToScreen(layout.center(hex))
+            assertTrue("option $hex at $at outside $visible", visible.contains(at))
+        }
+    }
+
+    /** The opening never leaves a piece under the map's controls: the view moves aside (opus #8). */
+    @Test
+    fun noPieceStandsUnderTheMapControls() {
+        val view = opened()
+        // The space in view nearest the end edge, with the controls (72 dp wide) docked over it.
+        val visible = view.visible
+        val under = map.spaces.map { it.hex }
+            .filter { visible.contains(view.mapToScreen(layout.center(it))) }
+            .maxBy { view.mapToScreen(layout.center(it)).x }
+        val before = view.mapToScreen(layout.center(under))
+        val controls = Rect(visible.right - 72 * px, before.y - 60 * px, visible.right, before.y + 60 * px)
+        assertTrue("the piece starts under the controls", controls.contains(before))
+        val pieces = listOf(layout.center(under))
+        view.updateAvoid(controls, pieces)
+        val at = view.mapToScreen(layout.center(under))
+        val half = 0.8f * view.scale
+        assertTrue(
+            "piece at $at still under $controls",
+            at.x + half <= controls.left || at.y - half >= controls.bottom,
+        )
     }
 
     /** Runs the reveal's animation to its end at once. */

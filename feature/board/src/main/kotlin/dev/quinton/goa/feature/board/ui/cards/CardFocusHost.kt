@@ -13,7 +13,6 @@ import androidx.compose.foundation.gestures.Orientation
 import androidx.compose.foundation.gestures.draggable
 import androidx.compose.foundation.gestures.rememberDraggableState
 import androidx.compose.foundation.interaction.MutableInteractionSource
-import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -117,9 +116,9 @@ import kotlinx.coroutines.launch
  * show grows out of its thumbnail into a large card over a dimmed scrim, with its values, text and
  * the question's context beside or under it.
  * - **Swipe sideways** for the other cards (the neighbours peek at the edges; tap one to go to it).
- * - **Tap the focused card again** to confirm it (when opened with a [CardSelection]): it presses,
- *   settles with a tick, the phone gives a confirm tick, then the choice is made. The Confirm
- *   button under it does the same (TalkBack: the card's "Select" action).
+ * - **The button** under it, which names the choice ("Discard Magnetic Dagger"), confirms the card on
+ *   show (when opened with a [CardSelection]): the card presses, settles with a tick, the phone gives a
+ *   confirm tick, then the choice is made. A tap on the card itself never confirms: it is for reading.
  * - **Back** (the edge swipe, shown as the card shrinking while you drag), an **upward swipe** on
  *   the card, the scrim or × close it with nothing chosen.
  *
@@ -503,7 +502,7 @@ private fun PageDots(count: Int, index: Int) {
     }
 }
 
-/** The pager of large cards: swipe sideways, tap the focused one to confirm, swipe up to close. */
+/** The pager of large cards: swipe sideways, tap a neighbour to go to it, swipe up to close. */
 @Composable
 private fun CardStage(
     state: CardFocusState,
@@ -568,9 +567,7 @@ private fun FocusPage(
 ) {
     val item = request.cards[page]
     val current = page == state.index
-    val selectable = request.selection != null
     val interaction = remember { MutableInteractionSource() }
-    val pressed by interaction.collectIsPressedAsState()
     val density = LocalDensity.current
     val shakePx = with(density) { SHAKE.toPx() }
     val backShiftPx = with(density) { BACK_SHIFT.toPx() }
@@ -589,22 +586,7 @@ private fun FocusPage(
                 if (!item.enabled) item.reason ?: "Can't be chosen" else null,
                 "card ${page + 1} of ${request.cards.size}",
             ).joinToString(", ")
-            val selection = request.selection
-            if (selection != null && item.enabled) {
-                onClick(label = selection.action(item.card)) {
-                    actions.confirm()
-                    true
-                }
-            }
             customActions = buildList {
-                if (selection != null && item.enabled) {
-                    add(
-                        CustomAccessibilityAction("Select") {
-                            actions.confirm()
-                            true
-                        },
-                    )
-                }
                 if (page < request.cards.lastIndex) {
                     add(
                         CustomAccessibilityAction("Next card") {
@@ -647,11 +629,8 @@ private fun FocusPage(
             .then(semantics)
             .onGloballyPositioned { if (page == state.index) motion.target = it.boundsInWindow() }
             .clickable(interaction, indication = null) {
-                if (page == state.index) {
-                    if (selectable) actions.confirm()
-                } else {
-                    actions.step(page - state.index)
-                }
+                // The focused card is for reading; only the button under it confirms.
+                if (page != state.index) actions.step(page - state.index)
             },
     ) {
         Box(
@@ -677,9 +656,7 @@ private fun FocusPage(
                             scale = lerp(if (motion.exitKind == FocusExit.FLY_UP) 1f else ENTER_SCALE, 1f, t)
                             alpha = t
                         }
-                        scale *=
-                            motion.press.value * (1f - motion.back * BACK_SHRINK) *
-                            if (pressed && selectable) 0.98f else 1f
+                        scale *= motion.press.value * (1f - motion.back * BACK_SHRINK)
                         scaleX = scale
                         scaleY = scale
                         val edge = if (motion.backEdge == BackEventCompat.EDGE_LEFT) 1f else -1f
@@ -720,7 +697,7 @@ private fun NotAnOption(modifier: Modifier) {
     }
 }
 
-/** "✓ Holds" / "! Falls" on the card's corner: word and shape, never colour alone. */
+/** "✓ Defends" / "! Defeated" on the card's corner: word and shape, never colour alone. */
 @Composable
 internal fun VerdictBadge(verdict: CardVerdict, modifier: Modifier = Modifier) {
     PlateSurface(shape = RoundedCornerShape(50), modifier = modifier) {

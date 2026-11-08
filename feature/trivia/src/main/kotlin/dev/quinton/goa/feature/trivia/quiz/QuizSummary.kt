@@ -20,7 +20,6 @@ import androidx.compose.material.icons.automirrored.outlined.ArrowForward
 import androidx.compose.material.icons.outlined.EmojiEvents
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -37,8 +36,10 @@ import dev.quinton.goa.core.data.trivia.MissUi
 import dev.quinton.goa.core.data.trivia.TriviaCardUi
 import dev.quinton.goa.core.data.trivia.TriviaQuizUiState
 import dev.quinton.goa.core.data.trivia.TriviaText
+import dev.quinton.goa.core.designsystem.component.CardTitle
 import dev.quinton.goa.core.designsystem.component.GoaButton
 import dev.quinton.goa.core.designsystem.component.GoaCard
+import dev.quinton.goa.core.designsystem.component.GoaOutlinedButton
 import dev.quinton.goa.core.designsystem.component.SectionHeader
 import dev.quinton.goa.core.designsystem.component.scaledIconSize
 import dev.quinton.goa.core.designsystem.theme.GoaTextStyles
@@ -111,7 +112,7 @@ private fun SummaryActions(
         }
         if (state.canPractise) {
             if (onBoard) {
-                OutlinedButton(onClick = onPractise, modifier = big) {
+                GoaOutlinedButton(onClick = onPractise, modifier = big) {
                     Text("Practise the missed ones", style = MaterialTheme.typography.titleMedium)
                 }
             } else {
@@ -119,11 +120,11 @@ private fun SummaryActions(
                     Text("Practise the missed ones", style = MaterialTheme.typography.titleMedium)
                 }
             }
-            OutlinedButton(onClick = onPlayAgain, modifier = big) {
+            GoaOutlinedButton(onClick = onPlayAgain, modifier = big) {
                 Text("Play again", style = MaterialTheme.typography.titleMedium)
             }
         } else if (onBoard) {
-            OutlinedButton(onClick = onPlayAgain, modifier = big) {
+            GoaOutlinedButton(onClick = onPlayAgain, modifier = big) {
                 Text("Play again", style = MaterialTheme.typography.titleMedium)
             }
         } else {
@@ -289,6 +290,6 @@ private fun MissRow(miss: MissUi) {
 private fun MissCard(card: TriviaCardUi, showKind: Boolean) {
     HeroLine(card, portraitSize = 24.dp)
     Spacer(Modifier.height(Spacing.xs))
-    Text(card.name, style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurface)
+    CardTitle(card.name, color = MaterialTheme.colorScheme.onSurface)
     if (showKind) CardKindLine(card, showPrimary = false)
 }

@@ -6,6 +6,7 @@ import androidx.annotation.VisibleForTesting
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.Column
@@ -35,6 +36,7 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.onClick
+import androidx.compose.ui.semantics.onLongClick
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.TextStyle
@@ -209,14 +211,25 @@ fun CardScan(
     onClick: (() -> Unit)? = null,
     clickLabel: String = "View card",
     elevation: Dp = 3.dp,
+    /** Press and hold (e.g. the card full screen); TalkBack offers it as a named action. */
+    onLongClick: (() -> Unit)? = null,
+    longClickLabel: String = "Show full screen",
     fallback: @Composable BoxScope.() -> Unit,
 ) {
     var failed by remember(image) { mutableStateOf(false) }
     val shape = RoundedCornerShape(CARD_CORNER)
-    val click = if (onClick != null) {
-        Modifier.clickable(onClickLabel = clickLabel, role = Role.Button, onClick = onClick)
-    } else {
-        Modifier
+    val click = when {
+        onClick != null && onLongClick != null -> Modifier.combinedClickable(
+            onClickLabel = clickLabel,
+            role = Role.Button,
+            onLongClickLabel = longClickLabel,
+            onLongClick = onLongClick,
+            onClick = onClick,
+        )
+
+        onClick != null -> Modifier.clickable(onClickLabel = clickLabel, role = Role.Button, onClick = onClick)
+
+        else -> Modifier
     }
     Box(
         modifier
@@ -232,6 +245,12 @@ fun CardScan(
                     role = Role.Button
                     onClick(label = clickLabel) {
                         onClick()
+                        true
+                    }
+                }
+                if (onLongClick != null) {
+                    onLongClick(label = longClickLabel) {
+                        onLongClick()
                         true
                     }
                 }

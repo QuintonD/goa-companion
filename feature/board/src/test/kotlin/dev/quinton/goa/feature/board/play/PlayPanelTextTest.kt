@@ -10,7 +10,9 @@ import dev.quinton.goa.core.model.catalog.PrimaryAction
 import dev.quinton.goa.core.model.match.Team
 import dev.quinton.goa.feature.board.play.game.recentSince
 import dev.quinton.goa.feature.board.play.game.roundTitle
+import dev.quinton.goa.feature.board.play.table.defenseLine
 import dev.quinton.goa.feature.board.play.table.defenseVerdict
+import dev.quinton.goa.feature.board.play.table.defenseVs
 import dev.quinton.goa.feature.board.play.table.sourceReach
 import dev.quinton.goa.feature.board.play.table.unavailableLine
 import org.junit.Assert.assertEquals
@@ -78,6 +80,21 @@ class PlayPanelTextTest {
         assertEquals(true, defenseVerdict(total = null, blocks = true, attack = 9))
         assertEquals(false, defenseVerdict(total = 5, blocks = null, attack = 6))
         assertNull(defenseVerdict(total = null, blocks = null, attack = 6))
+    }
+
+    @Test
+    fun eachDefenceOptionSaysItsTotalAgainstTheAttack() {
+        // In each row: its total against the Attack, a Block's verdict, nothing for a card whose text decides.
+        assertEquals("Defense 2 vs Attack 6", defenseVs(defenseLine(total = 2, blocks = null, attack = 6), attack = 6))
+        assertEquals(
+            "Block: not against this attack",
+            defenseVs(defenseLine(total = null, blocks = false, attack = 6), attack = 6),
+        )
+        assertEquals(
+            "Block: stops this attack whatever its value",
+            defenseVs(defenseLine(total = null, blocks = true, attack = 6), attack = 6),
+        )
+        assertNull(defenseVs(defenseLine(total = null, blocks = null, attack = 6), attack = 6))
     }
 
     @Test

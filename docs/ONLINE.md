@@ -186,7 +186,7 @@ REST, under the base address. Bearer token on all but the ones marked.
 | `GET`, `PATCH`, `DELETE /v1/me` | `Me`; rename; delete anonymises the name and keeps match rows |
 | `POST /v1/rooms` `CreateRoom` | `201 RoomCreated`; `503 {"error":"rooms_full"}` + `Retry-After` when the open rooms are full |
 | `POST /v1/rooms/{code}/join`, `/leave` | `RoomView` |
-| `GET /v1/me/games` | `MyGames`: games to go back to |
+| `GET /v1/me/games` | `MyGames`: games to go back to, each with `asked` (the seats with a question now, which every table already shows through its stub and `locked`) and `over`, for "Your turn" / "Waiting for Bob" / "Finished" |
 | `GET /v1/leaderboard` (open) | `LeaderboardSnapshot`, with `ETag` |
 
 **Limits:** per client, by the last `X-Forwarded-For` hop, IPv6 by /64, and overall. `GET /v1/health` is exempt:

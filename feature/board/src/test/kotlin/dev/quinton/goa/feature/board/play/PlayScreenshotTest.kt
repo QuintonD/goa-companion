@@ -69,6 +69,7 @@ import dev.quinton.goa.feature.board.play.game.ReportUi
 import dev.quinton.goa.feature.board.play.game.RevealedCard
 import dev.quinton.goa.feature.board.play.game.SuggestUi
 import dev.quinton.goa.feature.board.play.game.TurnStatus
+import dev.quinton.goa.feature.board.play.game.defeatPreview
 import dev.quinton.goa.feature.board.play.game.panelWorthy
 import dev.quinton.goa.feature.board.play.game.recentSince
 import dev.quinton.goa.feature.board.play.setup.Control
@@ -218,6 +219,9 @@ class PlayScreenshotTest {
             emptyList()
         },
         over = over,
+        // As the game works it out: "don't defend" played out on a fork of the session.
+        defeat = session.pending?.takeIf { status == TurnStatus.YourTurn && it.seat in humans }
+            ?.let { defeatPreview(session, it) },
     )
 
     @Composable
@@ -427,6 +431,25 @@ class PlayScreenshotTest {
         Game(remember { at(DecisionKind.CHOOSE_SPACE) { s -> s.pending!!.options.last() } })
     }
 
+    /** The same move with "List" tapped: every space a lettered row in the panel, the same letter on the map. */
+    @Test
+    fun tableChooseSpaceListDark() = capture(
+        ThemeMode.DARK,
+        before = { compose.onNodeWithContentDescription("List the options").performClick() },
+    ) {
+        Game(remember { at(DecisionKind.CHOOSE_SPACE) { s -> s.pending!!.options.last() } })
+    }
+
+    /**
+     * A move on a short phone held sideways: its spaces are still framed as finger targets beside the turn order and
+     * the panel (sol #1); spaces that can't be are numbered on the map and listed in the panel.
+     */
+    @Config(qualifiers = "w800dp-h330dp-land-xxhdpi")
+    @Test
+    fun tableChooseSpaceLandscapeShortDark() = capture(ThemeMode.DARK) {
+        Game(remember { at(DecisionKind.CHOOSE_SPACE) })
+    }
+
     // ---- The panel hidden: the whole board, the question in the peek bar ------------------
 
     /** A move with the panel hidden: the whole board, the tapped space confirmed from the peek bar. */
@@ -453,13 +476,18 @@ class PlayScreenshotTest {
         Game(remember { at(DecisionKind.CHOOSE_UNIT) { Choice.Unit("tigerclaw") } })
     }
 
-    /** Defend (p.14): the Attack, each card's Defense total, Holds or Falls, Don't defend. */
+    /**
+     * Defend (p.14): the Attack, each card's Defense total against it, Don't defend. No card saves Tigerclaw here, so
+     * nothing is chosen for the player and "Don't defend · keep your cards" is the button.
+     */
     @Test
-    fun tableDefendDark() = capture(ThemeMode.DARK) {
+    fun tableDefendDark() = capture(ThemeMode.DARK) { Game(remember { at(DecisionKind.DEFEND) }) }
+
+    /** A card chosen anyway: the button names it ("Defend · Blink Strike"), the rule row counts it. */
+    @Test
+    fun tableDefendLight() = capture(ThemeMode.LIGHT) {
         Game(remember { at(DecisionKind.DEFEND) { s -> s.pending!!.options.first() } })
     }
-
-    @Test fun tableDefendLight() = capture(ThemeMode.LIGHT) { Game(remember { at(DecisionKind.DEFEND) }) }
 
     @Config(qualifiers = "w384dp-h832dp-xxhdpi")
     @Test
@@ -543,18 +571,22 @@ class PlayScreenshotTest {
         Game(remember { at(DecisionKind.UPGRADE_CARD) }, sheet = PlaySheet.Log)
     }
 
-    // ---- Card focus: a card tapped in the panel, large, ready for a second tap --------------
+    // ---- Card focus: the chosen card tapped again in the panel, large, its button naming the choice --
 
-    /** Taps the card called [name] in the panel (its thumbnail or defense row), as a first tap does. */
+    /** Taps the card called [name] in the panel (its thumbnail or defense row): on the chosen card, it reads it. */
     private fun tapCard(name: String) {
         compose.onAllNodes(hasContentDescription(name, substring = true) and hasClickAction()).onFirst().performClick()
     }
 
     private fun firstOption(play: PlayUi): String = play.table.card(play.table.cardOptions.first().cardId)!!.name
 
-    /** Discard a card (Blend Into Shadows): Magnetic Dagger focused, "Tap the card again to discard…". */
+    /** The question with its [i]th card chosen, as a first tap leaves it. */
+    private fun chosen(kind: DecisionKind, i: Int = 0) =
+        at(kind) { s -> s.pending!!.options.filterIsInstance<Choice.Card>()[i] }
+
+    /** Discard a card (Blend Into Shadows): Magnetic Dagger focused, its button "Discard Magnetic Dagger". */
     private fun focusedDiscard(mode: ThemeMode, fontScale: Float = 1f) {
-        val play = at(DecisionKind.CHOOSE_CARD)
+        val play = chosen(DecisionKind.CHOOSE_CARD)
         capture(mode, fontScale, before = { tapCard(firstOption(play)) }, screen = true) { Game(play) }
     }
 
@@ -580,7 +612,7 @@ class PlayScreenshotTest {
 
     /** "Read the card as text" opened (ADR-041): the name, kind, values and the text verbatim. */
     private fun focusedAsText(mode: ThemeMode, fontScale: Float = 1f) {
-        val play = at(DecisionKind.CHOOSE_CARD)
+        val play = chosen(DecisionKind.CHOOSE_CARD)
         capture(mode, fontScale, before = {
             tapCard(firstOption(play))
             compose.waitForIdle()
@@ -602,7 +634,7 @@ class PlayScreenshotTest {
     @Config(qualifiers = "w800dp-h330dp-land-xxhdpi")
     @Test
     fun tablePlayCardFocusLandscapeShortLight() {
-        val play = at(DecisionKind.PLAY_CARD)
+        val play = chosen(DecisionKind.PLAY_CARD, 1)
         capture(ThemeMode.LIGHT, before = {
             tapCard(play.table.card(play.table.cardOptions[1].cardId)!!.name)
         }, screen = true) {
@@ -613,14 +645,14 @@ class PlayScreenshotTest {
     /** Defend: the card large with its verdict on its corner and "Defense 3 against Attack 6". */
     @Test
     fun tableDefendFocusDark() {
-        val play = at(DecisionKind.DEFEND)
+        val play = chosen(DecisionKind.DEFEND)
         capture(ThemeMode.DARK, before = { tapCard(firstOption(play)) }, screen = true) { Game(play) }
     }
 
-    /** Play a card: the hand large, neighbours peeking, "Tap the card again to play … facedown". */
+    /** Play a card: the hand large, neighbours peeking, its button "Play … facedown". */
     @Test
     fun tablePlayCardFocusDark() {
-        val play = at(DecisionKind.PLAY_CARD)
+        val play = chosen(DecisionKind.PLAY_CARD, 1)
         capture(ThemeMode.DARK, before = {
             tapCard(play.table.card(play.table.cardOptions[1].cardId)!!.name)
         }, screen = true) {
@@ -631,17 +663,30 @@ class PlayScreenshotTest {
     /** Level up: the card to upgrade with the two of the next Tier it is replaced by. */
     @Test
     fun tableUpgradeFocusDark() {
-        val play = at(DecisionKind.UPGRADE_CARD)
+        val play = at(DecisionKind.UPGRADE_CARD) { Choice.Card("arien-red-1") }
         capture(ThemeMode.DARK, before = { tapCard(cards.getValue("arien-red-1").name) }, screen = true) { Game(play) }
     }
 
-    /** Your hand, view only: swipe between, no confirm. */
+    /** Your hand, view only: the panel's tab opened, a card tapped; swipe between, no confirm. */
     @Test
     fun tableHandViewDark() {
         val play = at(DecisionKind.CHOOSE_ACTION, 3)
         val first = play.table.heroView(play.table.mine.first { play.table.heroView(it)?.hand?.isNotEmpty() == true })!!
             .hand!!.first()
-        capture(ThemeMode.DARK, before = { tapCard(cards.getValue(first).name) }, screen = true) { Game(play) }
+        capture(ThemeMode.DARK, before = {
+            compose.onNodeWithContentDescription("Your hand", substring = true).performClick()
+            compose.waitForIdle()
+            tapCard(cards.getValue(first).name)
+        }, screen = true) { Game(play) }
+    }
+
+    /** The hand's tab opened under the question: the cards whole, the question still in view. */
+    @Test
+    fun tableHandOpenDark() {
+        val play = at(DecisionKind.CHOOSE_ACTION, 3)
+        capture(ThemeMode.DARK, before = {
+            compose.onNodeWithContentDescription("Your hand", substring = true).performClick()
+        }) { Game(play) }
     }
 
     // ---- Game over ------------------------------------------------------------------------
@@ -910,7 +955,10 @@ class PlayScreenshotTest {
         NewGameScreen(state, onAction = vm::onAction, onStart = {}, onBack = {}, starting = starting)
     }
 
-    private fun picked() = newGame().also { vm ->
+    /** Every hero of the catalog plays, as in the app (32 of 32): no "Not playable yet" fold. */
+    private fun everyHero() = FakeGameFactory(maps, playableHeroes = catalog.heroes.map { it.id }.toSet())
+
+    private fun picked(engine: FakeGameFactory = everyHero()) = newGame(engine).also { vm ->
         listOf("arien", "wasp", "brogan").forEach { vm.onAction(NewGameAction.Lineup(NewBoardAction.Tap(it))) }
     }
 
@@ -937,6 +985,17 @@ class PlayScreenshotTest {
     @Config(qualifiers = "w891dp-h411dp-land-xxhdpi")
     @Test
     fun newGameLineupLandscapeDark() = capture(ThemeMode.DARK) { NewGame(remember { picked() }) }
+
+    /** Heroes whose cards are still being tested (a new printing): veiled, "Later", and the note says how many. */
+    @Test
+    fun newGameLineupLaterDark() = capture(ThemeMode.DARK) {
+        NewGame(
+            remember {
+                val later = setOf("xargatha", "wuk", "widget")
+                picked(FakeGameFactory(maps, playableHeroes = catalog.heroes.map { it.id }.toSet() - later))
+            },
+        )
+    }
 
     @Test fun newGameOptionsDark() = capture(ThemeMode.DARK) { NewGame(remember { options() }) }
 

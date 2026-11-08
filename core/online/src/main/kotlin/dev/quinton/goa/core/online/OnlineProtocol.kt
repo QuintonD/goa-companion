@@ -324,8 +324,20 @@ data class RoomCreated(val code: String)
 @Serializable
 data class MyGames(val games: List<MyGame>)
 
+/**
+ * A game to go back to. [asked]: the seats with a question now (the table's `asked`, public to every seat), so
+ * the list can say "Your turn" or "Waiting for Bob"; [over]: it ended before the person heard. Both are empty
+ * and false from a server before them.
+ */
 @Serializable
-data class MyGame(val gameId: String, val roomCode: String, val mapId: String, val seats: List<SeatPlayer>)
+data class MyGame(
+    val gameId: String,
+    val roomCode: String,
+    val mapId: String,
+    val seats: List<SeatPlayer>,
+    val asked: List<String> = emptyList(),
+    val over: Boolean = false,
+)
 
 // Static files on GitHub Pages ------------------------------------------------------------------
 

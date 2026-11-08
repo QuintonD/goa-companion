@@ -1,8 +1,5 @@
 package dev.quinton.goa.feature.players.player
 
-import androidx.compose.animation.core.animateDpAsState
-import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -16,24 +13,19 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.selectable
-import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.outlined.PersonOff
-import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
@@ -45,23 +37,23 @@ import dev.quinton.goa.core.designsystem.component.BannerTextButton
 import dev.quinton.goa.core.designsystem.component.EmptyState
 import dev.quinton.goa.core.designsystem.component.GoaScreen
 import dev.quinton.goa.core.designsystem.component.PlayerAvatar
+import dev.quinton.goa.core.designsystem.component.selectionFrame
 import dev.quinton.goa.core.designsystem.icon.PlayerCrests
-import dev.quinton.goa.core.designsystem.theme.GoaTheme
-import dev.quinton.goa.core.designsystem.theme.PlayerColors
 import dev.quinton.goa.core.designsystem.theme.Spacing
-import dev.quinton.goa.core.designsystem.theme.playerColor
 import dev.quinton.goa.feature.players.common.LoadingState
-import dev.quinton.goa.feature.players.common.Motion
 import dev.quinton.goa.feature.players.common.SectionHeader
 
 data class PlayerEditActions(
     val onBack: () -> Unit = {},
     val onNameChange: (String) -> Unit = {},
-    val onColorChange: (Long) -> Unit = {},
     val onAvatarChange: (Int) -> Unit = {},
     val onSave: () -> Unit = {},
 )
 
+/**
+ * A player's name and crest. Crests are team-neutral (bronze on steel): red and blue are the teams'
+ * colours, so a player has no colour to pick (`Player.color` stays in the data for older phones).
+ */
 @Composable
 fun PlayerEditScreen(state: PlayerEditUiState, actions: PlayerEditActions, modifier: Modifier = Modifier) {
     LaunchedEffect(state.saved) { if (state.saved) actions.onBack() }
@@ -110,21 +102,6 @@ fun PlayerEditScreen(state: PlayerEditUiState, actions: PlayerEditActions, modif
                     keyboardActions = KeyboardActions(onDone = { actions.onSave() }),
                     modifier = Modifier.fillMaxWidth(),
                 )
-                SectionHeader("Colour")
-                FlowRow(
-                    Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
-                    verticalArrangement = Arrangement.spacedBy(Spacing.sm),
-                ) {
-                    PlayerColors.all.forEach { swatch ->
-                        ColorSwatch(
-                            color = playerColor(swatch.argb),
-                            name = swatch.name,
-                            selected = swatch.argb == state.color,
-                            onClick = { actions.onColorChange(swatch.argb) },
-                        )
-                    }
-                }
                 SectionHeader("Crest")
                 FlowRow(
                     Modifier.fillMaxWidth(),
@@ -133,18 +110,11 @@ fun PlayerEditScreen(state: PlayerEditUiState, actions: PlayerEditActions, modif
                 ) {
                     repeat(PlayerCrests.count) { id ->
                         val selected = id == state.avatarId
-                        val ring by animateDpAsState(if (selected) 3.dp else 0.dp, Motion.spec(), label = "crest-ring")
+                        // The one selection look: a bronze edge over a bronze tint around the shield.
                         Box(
                             Modifier
                                 .size(56.dp)
-                                .clip(CircleShape)
-                                .then(
-                                    if (ring > 0.dp) {
-                                        Modifier.border(ring, MaterialTheme.colorScheme.primary, CircleShape)
-                                    } else {
-                                        Modifier
-                                    },
-                                )
+                                .selectionFrame(selected, RoundedCornerShape(12.dp))
                                 .selectable(selected = selected, role = Role.RadioButton) { actions.onAvatarChange(id) }
                                 .semantics {
                                     contentDescription = PlayerCrests.names.getOrElse(id) { "Crest ${id + 1}" }
@@ -156,44 +126,14 @@ fun PlayerEditScreen(state: PlayerEditUiState, actions: PlayerEditActions, modif
                     }
                 }
                 Text(
-                    "Colour and crest identify the player on the leaderboard and in match records.",
+                    "The crest marks the player on the leaderboard and in match records. Team colours stay " +
+                        "with the teams.",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     textAlign = TextAlign.Center,
                     modifier = Modifier.padding(vertical = Spacing.xl),
                 )
             }
-        }
-    }
-}
-
-@Composable
-private fun ColorSwatch(color: Color, name: String, selected: Boolean, onClick: () -> Unit) {
-    val ring by animateDpAsState(if (selected) 3.dp else 0.dp, Motion.spec(), label = "swatch-ring")
-    Box(
-        Modifier
-            .size(48.dp)
-            .clip(CircleShape)
-            .then(
-                if (ring > 0.dp) {
-                    Modifier.border(ring, MaterialTheme.colorScheme.onSurface, CircleShape)
-                } else {
-                    Modifier
-                },
-            )
-            .selectable(selected = selected, role = Role.RadioButton, onClick = onClick)
-            .semantics { contentDescription = name }
-            .padding(6.dp)
-            .clip(CircleShape)
-            .background(color),
-        contentAlignment = Alignment.Center,
-    ) {
-        if (selected) {
-            Icon(
-                Icons.Filled.Check,
-                contentDescription = null,
-                tint = if (GoaTheme.isDark) Color(0xFF0B1622) else Color.White,
-            )
         }
     }
 }

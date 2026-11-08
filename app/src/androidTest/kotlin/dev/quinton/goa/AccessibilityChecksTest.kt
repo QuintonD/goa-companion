@@ -46,6 +46,7 @@ class AccessibilityChecksTest {
         rule.tap(hasText("Arien") and hasClickAction() and !hasSetTextAction())
         rule.waitForText("the Tidemaster")
         check("Hero detail")
+        rule.tap(hasText("Deck") and hasClickAction())
         rule.tap(hasClickLabel("View card"))
         rule.waitForText("Arien · ", substring = true)
         check("Card viewer")
@@ -66,7 +67,10 @@ class AccessibilityChecksTest {
         rule.tap(hasText("Meta") and hasClickAction())
         check("Meta")
 
-        rule.tapDescription("Settings")
+        rule.openTab("more")
+        rule.waitForText("Group sync")
+        check("More")
+        rule.tapText("Settings")
         rule.waitForText("Theme")
         check("Settings")
 

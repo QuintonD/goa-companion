@@ -14,7 +14,7 @@ import org.junit.runner.RunWith
 class AppSmokeTest {
     @get:Rule val compose = createAndroidComposeRule<MainActivity>()
 
-    private val tabs = listOf("Heroes", "Timer", "Draft", "Players")
+    private val tabs = listOf("Heroes", "Play", "Timer", "Players", "More")
 
     @Test
     fun everyTopLevelTabOpens() {

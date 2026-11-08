@@ -17,9 +17,6 @@ import androidx.compose.material.icons.outlined.RestartAlt
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.Slider
-import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -31,12 +28,13 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.unit.dp
 import dev.quinton.goa.core.designsystem.component.GoaDialog
+import dev.quinton.goa.core.designsystem.component.GoaOutlinedButton
 import dev.quinton.goa.core.designsystem.component.GoaScreen
+import dev.quinton.goa.core.designsystem.component.GoaSlider
 import dev.quinton.goa.core.designsystem.theme.Spacing
 import dev.quinton.goa.core.domain.rating.EloConfig
 import dev.quinton.goa.feature.players.common.EngravedCard
@@ -94,7 +92,7 @@ fun RatingSettingsScreen(state: RatingSettingsUiState, actions: RatingSettingsAc
                 }
             }
             Spacer(Modifier.heightIn(min = Spacing.xl))
-            OutlinedButton(
+            GoaOutlinedButton(
                 onClick = { confirmReset = true },
                 enabled = !state.isDefault,
                 modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp).padding(top = Spacing.lg),
@@ -169,19 +167,12 @@ private fun SliderSetting(
                 modifier = Modifier.padding(top = 2.dp),
             )
         }
-        Slider(
+        GoaSlider(
             value = current,
             onValueChange = { current = it },
             onValueChangeFinished = { onChange(snap(current.toDouble(), range.start, step)) },
             valueRange = range.start.toFloat()..range.endInclusive.toFloat(),
             steps = steps,
-            colors = SliderDefaults.colors(
-                thumbColor = MaterialTheme.colorScheme.primary,
-                activeTrackColor = MaterialTheme.colorScheme.primary,
-                inactiveTrackColor = MaterialTheme.colorScheme.surfaceVariant,
-                activeTickColor = Color.Transparent,
-                inactiveTickColor = Color.Transparent,
-            ),
             modifier = Modifier.semantics { stateDescription = format(current.toDouble()) },
         )
         HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)

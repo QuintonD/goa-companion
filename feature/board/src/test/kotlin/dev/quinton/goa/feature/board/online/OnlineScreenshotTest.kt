@@ -6,12 +6,14 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.hasContentDescription
+import androidx.compose.ui.test.hasSetTextAction
+import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performClick
-import androidx.compose.ui.test.performScrollTo
+import androidx.compose.ui.test.performImeAction
 import androidx.compose.ui.unit.Density
 import androidx.test.core.app.ApplicationProvider
 import com.github.takahirom.roborazzi.captureRoboImage
@@ -109,18 +111,40 @@ class OnlineScreenshotTest {
     private val ready = OnlineHomeUi(
         stage = AccountStage.READY,
         name = "Ann",
+        // As the presenter sorts them: your turn, waiting, finished.
         games = listOf(
             MyGame(
                 GAME,
                 CODE,
                 "forgotten-island",
                 listOf(SeatPlayer("arien", "acc", "Ann", Team.RED), SeatPlayer("wasp", "acc-bob", "Bob", Team.BLUE)),
+                asked = listOf("arien"),
+            ),
+            MyGame(
+                "game-2",
+                "EFGH5678",
+                "forgotten-island",
+                listOf(
+                    SeatPlayer("brogan", "acc", "Ann", Team.RED),
+                    SeatPlayer("sabina", "acc-cid", "Cid", Team.RED),
+                    SeatPlayer("tigerclaw", "acc-bob", "Bob", Team.BLUE),
+                    SeatPlayer("xargatha", "acc-dee", "Dee", Team.BLUE),
+                ),
+                asked = listOf("tigerclaw"),
+            ),
+            MyGame(
+                "game-3",
+                "JKLM9012",
+                "forgotten-island",
+                listOf(SeatPlayer("wasp", "acc", "Ann", Team.RED), SeatPlayer("arien", "acc-bob", "Bob", Team.BLUE)),
+                over = true,
             ),
         ),
+        you = "acc",
     )
 
     @Composable
-    private fun Home(state: OnlineHomeUi) = OnlineHomeScreen(state, mapNames, OnlineHomeActions())
+    private fun Home(state: OnlineHomeUi) = OnlineHomeScreen(state, mapNames, OnlineHomeActions(), heroes = heroes)
 
     @Test fun onlineHomePickNameDark() = capture(ThemeMode.DARK) { Home(pickName) }
 
@@ -132,6 +156,17 @@ class OnlineScreenshotTest {
 
     @Test
     fun onlineHomeServerAwayDark() = capture(ThemeMode.DARK) { Home(ready.copy(message = OnlineWords.UNREACHABLE)) }
+
+    /** Too short a code sent with the keyboard's Go: Join stays off, and the field says what a code is. */
+    @Test
+    fun onlineHomeJoinInvalidDark() {
+        compose.setContent { GoaTheme(themeMode = ThemeMode.DARK) { Home(ready.copy(joinText = "7KQ2")) } }
+        compose.onNode(hasSetTextAction() and hasText("7KQ2")).performImeAction()
+        compose.waitForIdle()
+        compose.onNodeWithText(OnlineWords.NOT_A_CODE).assertIsDisplayed()
+        compose.waitUntil(IMAGE_TIMEOUT_MS) { BundledImages.idle }
+        compose.onRoot().captureRoboImage()
+    }
 
     @Test fun onlineCodeGateDark() = capture(ThemeMode.DARK) { Home(gate) }
 
@@ -179,6 +214,26 @@ class OnlineScreenshotTest {
     fun onlineLobbyHeroPickerDark() = capture(ThemeMode.DARK, screen = true) { Lobby(lobby, picking = true) }
 
     @Test fun onlineLobbyQrDark() = capture(ThemeMode.DARK, screen = true) { Lobby(lobby, qr = true) }
+
+    /** Every seat taken, every hero chosen, everyone ready: the host's one bronze step is Start the game. */
+    @Test
+    fun onlineLobbyAllReadyDark() = capture(ThemeMode.DARK) {
+        Lobby(
+            lobby.copy(
+                room = room(
+                    size = 2,
+                    filled = 4,
+                    hero = { listOf("arien", "brogan", "wasp", "tigerclaw")[it] },
+                    ready = { true },
+                    ranked = true,
+                ),
+            ),
+        )
+    }
+
+    /** A guest who hasn't chosen a hero yet: their one bronze step is Choose your hero. */
+    @Test
+    fun onlineLobbyGuestNoHeroLight() = capture(ThemeMode.LIGHT) { Lobby(lobby.copy(you = "acc-cid")) }
 
     // ---- The table -------------------------------------------------------------------------------
 
@@ -369,11 +424,14 @@ class OnlineScreenshotTest {
             LeaderRow("acc-bob", "Bob", 1_620, 20, 14),
             LeaderRow("acc", "Ann", 1_540, 9, 5),
             LeaderRow("acc-cid", "Former player", 1_490, 12, 5),
+            LeaderRow("acc-dee", "Dee", 1_472, 15, 6),
+            LeaderRow("acc-eve", "Eve", 1_455, 8, 3),
         ),
         heroes = listOf(
             LeaderRow("arien", "Arien", 1_580, 30, 18),
             LeaderRow("brogan", "Brogan", 1_515, 26, 14),
             LeaderRow("wasp", "Wasp", 1_470, 22, 9),
+            LeaderRow("tigerclaw", "Tigerclaw", 1_462, 19, 8),
         ),
     )
 
@@ -381,7 +439,13 @@ class OnlineScreenshotTest {
         LeaderboardPresenter.present(LeaderboardLoad(snapshot, origin, age), tab, "acc")
 
     @Composable
-    private fun Board(state: LeaderboardUi) = OnlineLeaderboardScreen(state, {}, {}, {})
+    private fun Board(state: LeaderboardUi) = OnlineLeaderboardScreen(
+        state,
+        {},
+        {},
+        {},
+        portraits = bundledCatalog.heroes.associate { it.id to it.portrait },
+    )
 
     @Test
     fun onlineLeaderboardPlayersDark() = capture(ThemeMode.DARK) {
@@ -449,7 +513,8 @@ class OnlineScreenshotTest {
         compose.onNodeWithText("Rematch").assertDoesNotExist()
         compose.onNodeWithText("New game").assertDoesNotExist()
         compose.onNodeWithText("Coach off", substring = true).assertDoesNotExist()
-        compose.onNodeWithText("Done").performScrollTo().assertIsDisplayed()
+        // Pinned under the page, in view without scrolling.
+        compose.onNodeWithText("Done").assertIsDisplayed()
     }
 
     @Test

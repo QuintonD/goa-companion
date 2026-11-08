@@ -7,11 +7,16 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.semantics.SemanticsProperties
+import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.hasAnyDescendant
+import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.hasScrollAction
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onFirst
+import androidx.compose.ui.test.onNodeWithContentDescription
+import androidx.compose.ui.test.onRoot
+import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performSemanticsAction
 import androidx.compose.ui.unit.Density
 import com.google.common.truth.Truth.assertThat
@@ -30,9 +35,9 @@ import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 
 /**
- * The panel at the end of a round (hands-on re-check, findings 1 and 2): the person's own question
- * comes before the round's summary for every kind (the Minion Battle, not only the level up), and a
- * new question starts at the top of the panel while the same one keeps where the person scrolled.
+ * The panel at the end of a round (hands-on re-check, findings 1 and 2; UI hill climb round 3): the round's summary
+ * is one folded row over the question, so the question is in view and the summary never cut under it, and a new
+ * question starts at the top of the panel while the same one keeps where the person scrolled.
  */
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
@@ -67,17 +72,30 @@ class PanelOrderTest {
         compose.onAllNodes(hasText(text, substring = true)).onFirst().fetchSemanticsNode().positionInRoot.y
 
     private fun panel() = compose
-        .onAllNodes(hasScrollAction() and hasAnyDescendant(hasText("END OF ROUND", substring = true)))
+        .onAllNodes(hasScrollAction() and hasAnyDescendant(hasContentDescription("End of round", substring = true)))
         .onFirst()
 
     private fun panelScroll(): Float =
         panel().fetchSemanticsNode().config[SemanticsProperties.VerticalScrollAxisRange].value()
 
     @Test
-    fun `minion battle - the question comes before the round's summary`() {
+    fun `minion battle - the round's summary is one folded row, the question and its list in view`() {
         val s = EndOfRoundGame.session()
-        show(GydionLevelUpGame.play(s))
-        assertThat(top(promptParts(s.pending!!.prompt).text!!)).isLessThan(top("END OF ROUND"))
+        val play = GydionLevelUpGame.play(s)
+        show(play)
+        val screen = compose.onRoot().fetchSemanticsNode().size.height
+        // A question about pieces never peeks: its numbered list is the decision (round 4 gate).
+        compose.onAllNodes(hasContentDescription("Show the whole panel")).assertCountEquals(0)
+        val moment = play.table.moment!!
+        compose.onNodeWithContentDescription(moment.title).assertExists()
+        compose.onAllNodes(hasText(moment.text, substring = true)).assertCountEquals(0)
+        assertThat(top(promptParts(s.pending!!.prompt).text!!)).isLessThan(screen.toFloat())
+        val row = compose.onAllNodes(hasContentDescription("spaces from", substring = true)).onFirst()
+        assertThat(row.fetchSemanticsNode().positionInRoot.y).isLessThan(screen.toFloat())
+        // A tap opens the steps.
+        compose.onNodeWithContentDescription(moment.title).performClick()
+        compose.waitForIdle()
+        compose.onAllNodes(hasText(moment.text, substring = true)).onFirst().assertExists()
     }
 
     @Test

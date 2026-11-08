@@ -10,7 +10,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.material.icons.Icons
@@ -30,6 +29,7 @@ import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -43,10 +43,10 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dev.quinton.goa.core.designsystem.component.GoaPlate
 import dev.quinton.goa.core.designsystem.component.GoaScreen
+import dev.quinton.goa.core.designsystem.component.PlateRowDivider
 import dev.quinton.goa.core.designsystem.component.PlateShape
 import dev.quinton.goa.core.designsystem.theme.Spacing
-import dev.quinton.goa.feature.timer.ui.components.PlateTeal
-import dev.quinton.goa.feature.timer.ui.components.plateEdge
+import dev.quinton.goa.feature.timer.ui.components.PhaseGrid
 import dev.quinton.goa.feature.timer.ui.timer.PresetOption
 
 data class PresetsActions(
@@ -115,8 +115,18 @@ fun PresetsScreen(state: PresetsUiState, actions: PresetsActions) {
                     modifier = Modifier.padding(bottom = Spacing.sm),
                 )
             }
-            items(state.presets, key = { it.id }) { preset ->
-                PresetRow(preset, preset.id == state.selectedId, state.canDelete, actions)
+            // One section plate; each preset is a row of it (DESIGN.md "Framing levels").
+            item(key = "presets") {
+                GoaPlate(Modifier.fillMaxWidth(), contentPadding = PaddingValues(vertical = Spacing.xs)) {
+                    Column {
+                        state.presets.forEachIndexed { i, preset ->
+                            if (i > 0) PlateRowDivider()
+                            key(preset.id) {
+                                PresetRow(preset, preset.id == state.selectedId, state.canDelete, actions)
+                            }
+                        }
+                    }
+                }
             }
         }
     }
@@ -128,10 +138,10 @@ private fun PresetRow(preset: PresetOption, selected: Boolean, canDelete: Boolea
     GoaPlate(
         Modifier
             .fillMaxWidth()
-            .plateEdge(if (selected) PlateTeal else null)
             .clip(PlateShape)
             .selectable(selected = selected, onClick = { actions.onSelect(preset.id) }, role = Role.RadioButton),
         contentPadding = PaddingValues(0.dp),
+        selected = selected,
     ) {
         val colors = MaterialTheme.colorScheme
         Row(
@@ -141,7 +151,12 @@ private fun PresetRow(preset: PresetOption, selected: Boolean, canDelete: Boolea
             RadioButton(selected = selected, onClick = null, modifier = Modifier.padding(Spacing.sm))
             Column(Modifier.weight(1f)) {
                 Text(preset.name, style = MaterialTheme.typography.titleSmall)
-                Text(preset.summary, style = MaterialTheme.typography.bodySmall, color = colors.onSurfaceVariant)
+                // The phases as a labelled grid, as on the Timer tab: never one line of dot-joined prose.
+                if (preset.phases.isEmpty()) {
+                    Text(preset.summary, style = MaterialTheme.typography.bodySmall, color = colors.onSurfaceVariant)
+                } else {
+                    PhaseGrid(preset.phases, Modifier.fillMaxWidth().padding(top = Spacing.xs), dense = true)
+                }
             }
             IconButton(onClick = { actions.onEdit(preset.id) }) {
                 Icon(Icons.Outlined.Edit, contentDescription = "Edit ${preset.name}")

@@ -561,6 +561,8 @@ class FakeGameSession(
                         rangedAttack = false,
                         // The +1 minion defense modifier is inside each total, as the contract says.
                         defensePreview = hand.associateWith { id -> DEFENSE[id]?.plus(1) },
+                        // A melee attack: the engine settles "Block a ranged attack." (Dodge) up front as failing.
+                        blockPreview = hand.filter { it in BLOCKS_RANGED }.associateWith { false },
                         minionModifier = 1,
                         subjectId = "tigerclaw",
                     ),
@@ -1068,6 +1070,12 @@ private val CARD_NAMES: Map<String?, String> by lazy {
 /** A card's printed Defense, or null for a Defense card whose text decides (Tigerclaw's Dodge). */
 private val DEFENSE: Map<String, Int?> by lazy {
     dev.quinton.goa.feature.board.bundledCatalog.heroes.flatMap { it.allCards }.associate { it.id to it.values.defense }
+}
+
+/** Block cards whose condition is a ranged attack ("Block a ranged attack."), as the engine's previewBlock settles. */
+private val BLOCKS_RANGED: Set<String> by lazy {
+    dev.quinton.goa.feature.board.bundledCatalog.heroes.flatMap { it.allCards }
+        .filter { it.block && it.text.trim() == "Block a ranged attack." }.map { it.id }.toSet()
 }
 
 private val ITEM_DEFENSE: Set<String> by lazy {

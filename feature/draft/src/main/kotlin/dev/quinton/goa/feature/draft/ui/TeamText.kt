@@ -22,6 +22,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.em
 import dev.quinton.goa.core.designsystem.component.TeamMark
+import dev.quinton.goa.core.domain.draft.TeamSlot
 import dev.quinton.goa.core.model.match.Team
 
 /**
@@ -79,3 +80,28 @@ internal fun String.withoutTeamGlyph(): String = Team.entries.fold(this) { text,
 private fun glyphTeam(char: Char): Team? = Team.entries.firstOrNull { teamGlyph(it) == char.toString() }
 
 private const val MARK_EM = 1.25f
+
+/** What the draft calls the method's Team A: the team the Tie Breaker coin shows (rulebook p.22). */
+internal const val COIN_TEAM = "Coin team"
+
+/** The method's Team B. */
+internal const val OTHER_TEAM = "Other team"
+
+/** A method slot's name at the table: [COIN_TEAM] for A, [OTHER_TEAM] for B. */
+internal fun slotName(slot: TeamSlot): String = if (slot == TeamSlot.A) COIN_TEAM else OTHER_TEAM
+
+/**
+ * A method's own words with its teams named as the table knows them: "Team A bans 1" reads "The coin team bans 1",
+ * "Team B" "the other team". The words are the app's (draft-methods.json), so only the names change.
+ */
+internal fun coinTeamWords(text: String): String {
+    val named = text
+        .replace(TEAM_A, "the ${COIN_TEAM.lowercase()}")
+        .replace(TEAM_B, "the ${OTHER_TEAM.lowercase()}")
+    // A sentence that now starts with "the" starts with "The".
+    return SENTENCE_START.replace(named) { it.value.uppercase() }
+}
+
+private val TEAM_A = Regex("""\bTeam A\b""")
+private val TEAM_B = Regex("""\bTeam B\b""")
+private val SENTENCE_START = Regex("""(^|[.!?]\s+)[a-z]""")

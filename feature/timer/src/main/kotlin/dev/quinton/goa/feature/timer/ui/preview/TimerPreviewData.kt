@@ -36,6 +36,7 @@ import dev.quinton.goa.feature.timer.ui.timer.ActiveUiState
 import dev.quinton.goa.feature.timer.ui.timer.ChecklistItemUi
 import dev.quinton.goa.feature.timer.ui.timer.ChecklistState
 import dev.quinton.goa.feature.timer.ui.timer.PendingMatchItem
+import dev.quinton.goa.feature.timer.ui.timer.PhaseDuration
 import dev.quinton.goa.feature.timer.ui.timer.PresetOption
 import dev.quinton.goa.feature.timer.ui.timer.RoundPipsUi
 import dev.quinton.goa.feature.timer.ui.timer.SeatInfo
@@ -52,24 +53,35 @@ import dev.quinton.goa.feature.timer.ui.timer.TonightUi
 
 /** Sample states for previews and screenshot tests (shapes of real data, not game data). */
 object TimerPreviewData {
+    /** The bundled presets' phases (timer-presets.json), as `TimerText.phaseDurations` lists them. */
+    private fun phases(strategy: Int, turn: Int, action: Int, upgrade: Int) = listOf(
+        PhaseDuration("Pre-round strategy", strategy),
+        PhaseDuration("Play a card", turn, "×4", perTurn = true),
+        PhaseDuration("Action", action, "per hero"),
+        PhaseDuration("Upgrade", upgrade),
+    )
+
     val presets = listOf(
         PresetOption(
             "table-rules",
             "Table rules",
             "Pre-round strategy 1:30 · Play a card 0:30 ×4 · Action 0:30 per hero · Upgrade 2:00",
             true,
+            phases(strategy = 90, turn = 30, action = 30, upgrade = 120),
         ),
         PresetOption(
             "speed-guards",
             "Speed guards",
             "Pre-round strategy 0:30 · Play a card 0:30 ×4 · Action 0:10 per hero · Upgrade 2:00",
             true,
+            phases(strategy = 30, turn = 30, action = 10, upgrade = 120),
         ),
         PresetOption(
             "relaxed",
             "Relaxed",
             "Pre-round strategy 3:00 · Play a card 1:00 ×4 · Action 0:45 per hero · Upgrade 3:00",
             true,
+            phases(strategy = 180, turn = 60, action = 45, upgrade = 180),
         ),
         PresetOption("untimed", "Untimed (counters only)", "Untimed · round and turn counters", false),
     )
@@ -89,7 +101,7 @@ object TimerPreviewData {
                 ),
             ),
             seats = 4,
-            tonight = TonightUi(seconds = 45, presetSeconds = 30),
+            tonight = TonightUi(seconds = 45, presetSeconds = 30, phaseName = "Play a card"),
         ),
     )
 

@@ -62,7 +62,13 @@ interface GameRooms {
 
     /** The games the person is playing now: what the limit on running games counts. */
     suspend fun runningOf(accountId: String): List<String>
+
+    /** Where a game stands for `/v1/me/games`: the seats asked now, or over; null for a game it doesn't have. */
+    suspend fun statusOf(gameId: String): GameNow? = null
 }
+
+/** [asked]: the seats with a question now, as every seat's table shows it; [over]: the game has ended. */
+data class GameNow(val asked: List<String>, val over: Boolean)
 
 /** Builds the log's [Match] for a finished game. In `ratings/`, passed to `RoomCore`. */
 fun interface MatchMapper {
