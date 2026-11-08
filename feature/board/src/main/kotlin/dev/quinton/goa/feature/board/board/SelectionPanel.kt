@@ -511,8 +511,8 @@ private fun CardChip(
             },
     ) {
         Column(Modifier.padding(horizontal = Spacing.sm, vertical = 6.dp)) {
-            // The shared family label (its colour's ribbon and the words). Its own line with large text: "Silver Basic",
-            // which may break between its words, never inside.
+            // The shared family label (its colour's ribbon and the words). Its own line with large text:
+            // "Silver Basic", which may break between its words, never inside.
             val family: @Composable (Modifier) -> Unit = { modifier ->
                 CardFamilyLabel(
                     card.color,
