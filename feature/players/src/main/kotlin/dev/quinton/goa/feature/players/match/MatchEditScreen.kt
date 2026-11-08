@@ -30,24 +30,28 @@ import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.selectableGroup
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.CheckBox
 import androidx.compose.material.icons.filled.EmojiEvents
+import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material.icons.outlined.ArrowDropDown
 import androidx.compose.material.icons.outlined.CalendarMonth
 import androidx.compose.material.icons.outlined.CheckBoxOutlineBlank
 import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.outlined.Delete
+import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material.icons.outlined.EmojiEvents
 import androidx.compose.material.icons.outlined.ErrorOutline
 import androidx.compose.material.icons.outlined.EventBusy
-import androidx.compose.material.icons.outlined.Hexagon
 import androidx.compose.material.icons.outlined.People
 import androidx.compose.material.icons.outlined.Person
 import androidx.compose.material.icons.outlined.Schedule
@@ -57,12 +61,10 @@ import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDefaults
 import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.SelectableDates
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -78,6 +80,8 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.Role
@@ -87,11 +91,11 @@ import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.onClick
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import dev.quinton.goa.core.designsystem.component.ChipIconSize
 import dev.quinton.goa.core.designsystem.component.EmptyState
@@ -105,6 +109,7 @@ import dev.quinton.goa.core.designsystem.component.GoaScreen
 import dev.quinton.goa.core.designsystem.component.GoaSegment
 import dev.quinton.goa.core.designsystem.component.GoaSegmentedRow
 import dev.quinton.goa.core.designsystem.component.HeroPortrait
+import dev.quinton.goa.core.designsystem.component.PlateRowDivider
 import dev.quinton.goa.core.designsystem.component.PlateShape
 import dev.quinton.goa.core.designsystem.component.SelectablePlate
 import dev.quinton.goa.core.designsystem.component.SelectionMark
@@ -113,6 +118,8 @@ import dev.quinton.goa.core.designsystem.component.scaledIconSize
 import dev.quinton.goa.core.designsystem.component.slatePlate
 import dev.quinton.goa.core.designsystem.component.teamColor
 import dev.quinton.goa.core.designsystem.component.teamTextColor
+import dev.quinton.goa.core.designsystem.icon.Destination
+import dev.quinton.goa.core.designsystem.icon.icon
 import dev.quinton.goa.core.designsystem.theme.GoaTheme
 import dev.quinton.goa.core.designsystem.theme.Spacing
 import dev.quinton.goa.core.domain.match.RematchKind
@@ -375,19 +382,13 @@ private fun ColumnScope.MatchFormFields(
         ErrorCard(state.errors.map { it.message })
     }
     if (state.resultFirst) {
-        // "Who won?": the two answers the table has right now, then everything else.
+        // "Who won?": the two answers the table has right now, then both line-ups as short rosters (a seat opens
+        // only to be edited), then the optional rest folded under labelled rows.
         WinnerAndCondition(state, actions, showHeader = false)
-        Text(
-            "Everything below is optional: check the seats, then save.",
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.padding(top = Spacing.md),
-        )
         TeamsSection(state, actions, onPickHero, onPickPilot)
         WhenSection(form, actions)
         DetailsSection(form, actions)
-        SectionHeader("Match status")
-        StatusChoice(form, actions)
+        FoldSection("Match status", form.status.label()) { StatusChoice(form, actions) }
     } else {
         if (state.fromDraft && form.status == MatchStatus.PENDING) {
             Text(
@@ -397,7 +398,6 @@ private fun ColumnScope.MatchFormFields(
                 modifier = Modifier.padding(top = Spacing.md),
             )
         }
-        WhenSection(form, actions)
         TeamsSection(state, actions, onPickHero, onPickPilot)
         SectionHeader("Result")
         StatusChoice(form, actions)
@@ -408,6 +408,7 @@ private fun ColumnScope.MatchFormFields(
         ) {
             WinnerAndCondition(state, actions, showHeader = true)
         }
+        WhenSection(form, actions)
         DetailsSection(form, actions)
     }
     val boardRed = form.seats(Team.RED).mapNotNull { it.heroId }
@@ -417,7 +418,7 @@ private fun ColumnScope.MatchFormFields(
             onClick = { actions.onOpenBoard(boardRed, boardBlue) },
             modifier = Modifier.fillMaxWidth().padding(top = Spacing.lg).heightIn(min = 52.dp),
         ) {
-            Icon(Icons.Outlined.Hexagon, contentDescription = null)
+            Icon(Destination.BOARD.icon, contentDescription = null)
             Spacer(Modifier.width(Spacing.sm))
             Text("Open on the board")
         }
@@ -447,28 +448,79 @@ private fun StatusChoice(form: MatchForm, actions: MatchEditActions) {
     )
 }
 
+/** Date, time, mode and map: optional, folded under one row that says what they are now. */
 @Composable
 private fun WhenSection(form: MatchForm, actions: MatchEditActions) {
-    SectionHeader("When and where")
-    WhenRow(form.playedAt, actions.onPlayedAt)
-    Spacer(Modifier.size(Spacing.md))
-    ChoiceRow(
-        options = GameMode.entries,
-        selected = form.mode,
-        label = { it.label() },
-        onSelect = actions.onMode,
-    )
-    Spacer(Modifier.size(Spacing.md))
-    // Free text: the mode above already says single or double lane.
-    OutlinedTextField(
-        value = form.map,
-        onValueChange = actions.onMap,
-        label = { Text("Map or table (optional)") },
-        singleLine = true,
-        keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Sentences),
-        modifier = Modifier.fillMaxWidth(),
-    )
+    val summary = listOfNotNull(
+        Dates.day(form.playedAt),
+        Dates.time(form.playedAt),
+        form.mode.label(),
+        form.map.takeIf { it.isNotBlank() },
+    ).joinToString(SUMMARY_SEPARATOR)
+    FoldSection("When and where", summary) {
+        WhenRow(form.playedAt, actions.onPlayedAt)
+        Spacer(Modifier.size(Spacing.md))
+        ChoiceRow(
+            options = GameMode.entries,
+            selected = form.mode,
+            label = { it.label() },
+            onSelect = actions.onMode,
+        )
+        Spacer(Modifier.size(Spacing.md))
+        // Free text: the mode above already says single or double lane.
+        OutlinedTextField(
+            value = form.map,
+            onValueChange = actions.onMap,
+            label = { Text("Map or table (optional)") },
+            singleLine = true,
+            keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Sentences),
+            modifier = Modifier.fillMaxWidth(),
+        )
+    }
 }
+
+private const val SUMMARY_SEPARATOR = " · "
+
+/**
+ * An optional part of the form folded under one labelled row: its name, what it holds now ([summary]) and a chevron.
+ * A hairline above it; it opens in place.
+ */
+@Composable
+private fun FoldSection(title: String, summary: String, content: @Composable ColumnScope.() -> Unit) {
+    var open by rememberSaveable(title) { mutableStateOf(false) }
+    Column(Modifier.fillMaxWidth().padding(top = Spacing.md).animateContentSize(Motion.spec())) {
+        PlateRowDivider()
+        Row(
+            Modifier
+                .fillMaxWidth()
+                .clickable(onClickLabel = if (open) "Hide $title" else "Show $title") { open = !open }
+                .semantics(mergeDescendants = true) {
+                    heading()
+                    stateDescription = if (open) "Expanded" else "Collapsed"
+                }
+                .heightIn(min = 56.dp)
+                .padding(vertical = Spacing.sm),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Column(Modifier.weight(1f)) {
+                Text(title, style = MaterialTheme.typography.titleSmall)
+                Text(
+                    summary,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+            Icon(
+                Icons.Filled.KeyboardArrowDown,
+                contentDescription = null,
+                modifier = Modifier.rotate(if (open) HALF_TURN else 0f),
+            )
+        }
+        if (open) Column(Modifier.padding(bottom = Spacing.sm)) { content() }
+    }
+}
+
+private const val HALF_TURN = 180f
 
 @Composable
 private fun TeamsSection(
@@ -527,18 +579,26 @@ private fun WinnerAndCondition(state: MatchEditUiState, actions: MatchEditAction
         // cells, two to a row, so no option sits alone on a line of its own.
         Column(Modifier.selectableGroup(), verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
             WinCondition.entries.chunked(WIN_CONDITION_COLUMNS).forEach { line ->
-                Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+                Row(
+                    Modifier.height(IntrinsicSize.Min),
+                    horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+                ) {
                     line.forEach { condition ->
                         val selected = form.winCondition == condition
-                        GoaFilterChip(
+                        // The winner cards' look and role (radio, selected), so the two questions read alike.
+                        SelectablePlate(
                             selected = selected,
                             onClick = { actions.onWinCondition(if (selected) null else condition) },
-                            // Outer semantics win over the chip's own Checkbox role.
-                            modifier = Modifier
-                                .weight(1f)
-                                .semantics { role = Role.RadioButton },
+                            mark = SelectionMark.None,
+                            contentPadding = PaddingValues(horizontal = Spacing.sm, vertical = Spacing.sm),
+                            modifier = Modifier.weight(1f).fillMaxHeight(),
                         ) {
-                            Text(condition.label(), textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth())
+                            Text(
+                                condition.label(),
+                                style = MaterialTheme.typography.labelLarge,
+                                textAlign = TextAlign.Center,
+                                modifier = Modifier.weight(1f),
+                            )
                         }
                     }
                     repeat(WIN_CONDITION_COLUMNS - line.size) { Spacer(Modifier.weight(1f)) }
@@ -550,25 +610,30 @@ private fun WinnerAndCondition(state: MatchEditUiState, actions: MatchEditAction
 
 @Composable
 private fun DetailsSection(form: MatchForm, actions: MatchEditActions) {
-    Spacer(Modifier.size(Spacing.md))
-    OutlinedTextField(
-        value = form.duration,
-        onValueChange = actions.onDuration,
-        label = { Text("Duration (minutes, optional)") },
-        singleLine = true,
-        leadingIcon = { Icon(Icons.Outlined.Schedule, contentDescription = null) },
-        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-        modifier = Modifier.fillMaxWidth(),
-    )
-    Spacer(Modifier.size(Spacing.md))
-    OutlinedTextField(
-        value = form.notes,
-        onValueChange = actions.onNotes,
-        label = { Text("Notes") },
-        minLines = 2,
-        keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Sentences),
-        modifier = Modifier.fillMaxWidth(),
-    )
+    val summary = listOfNotNull(
+        form.duration.takeIf { it.isNotBlank() }?.let { "$it min" },
+        "Notes".takeIf { form.notes.isNotBlank() },
+    ).joinToString(SUMMARY_SEPARATOR).ifEmpty { "Duration and notes, optional" }
+    FoldSection("Details", summary) {
+        OutlinedTextField(
+            value = form.duration,
+            onValueChange = actions.onDuration,
+            label = { Text("Duration (minutes, optional)") },
+            singleLine = true,
+            leadingIcon = { Icon(Icons.Outlined.Schedule, contentDescription = null) },
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+            modifier = Modifier.fillMaxWidth(),
+        )
+        Spacer(Modifier.size(Spacing.md))
+        OutlinedTextField(
+            value = form.notes,
+            onValueChange = actions.onNotes,
+            label = { Text("Notes") },
+            minLines = 2,
+            keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Sentences),
+            modifier = Modifier.fillMaxWidth(),
+        )
+    }
 }
 
 @Composable
@@ -679,6 +744,8 @@ private fun TeamEditor(
     modifier: Modifier = Modifier,
 ) {
     val seats = state.form.seats(team)
+    // Seats open one at a time, on demand: the roster stays a short list (hero, pilot, Handicap) until edited.
+    var expanded by remember { mutableStateOf(emptySet<Long>()) }
     val doublePilots = state.form.doublePilots(team)
     val duplicates = state.form.heroesInUse().groupingBy { it }.eachCount().filterValues { it > 1 }.keys
     val otherTeam = state.form.seats(team.opponent).mapNotNull { it.playerId }.toSet()
@@ -728,10 +795,14 @@ private fun TeamEditor(
                 )
             }
             seats.forEach { seat ->
-                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+                PlateRowDivider()
                 SeatEditor(
                     seat = seat,
                     state = state,
+                    expanded = seat.key in expanded,
+                    onToggleExpanded = {
+                        expanded = if (seat.key in expanded) expanded - seat.key else expanded + seat.key
+                    },
                     pilotSeats = if (seat.playerId != null && seat.playerId in doublePilots) {
                         seats.count { it.playerId == seat.playerId }
                     } else {
@@ -748,10 +819,17 @@ private fun TeamEditor(
     }
 }
 
+/**
+ * One seat as a short roster line: the hero (a tap changes it), the pilot as a dropdown pill (a tap changes them, "×2"
+ * for a double pilot), a Handicap tag when the seat plays its Handicap card, and an edit button that opens the
+ * rest (the Handicap card, removing the seat) under the line.
+ */
 @Composable
 private fun SeatEditor(
     seat: SeatDraft,
     state: MatchEditUiState,
+    expanded: Boolean,
+    onToggleExpanded: () -> Unit,
     /** How many of this team's seats the seat's pilot has (2 or more: a double pilot). */
     pilotSeats: Int,
     problem: String?,
@@ -763,7 +841,8 @@ private fun SeatEditor(
     val hero = state.heroOption(seat.heroId)
     val heroLabel = if (seat.heroId == null) "Unknown hero" else state.heroName(seat.heroId)
     val pilot = seat.playerId?.let { state.playersById[it] }
-    Column(Modifier.padding(start = Spacing.md, top = Spacing.sm, bottom = Spacing.sm)) {
+    val large = LocalDensity.current.fontScale >= LARGE_FONT_SCALE
+    Column(Modifier.padding(start = Spacing.md, top = Spacing.xs, bottom = Spacing.xs)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Row(
                 Modifier
@@ -777,72 +856,96 @@ private fun SeatEditor(
                     seat.heroId ?: "?",
                     hero?.portrait,
                     contentDescription = null,
-                    modifier = Modifier.size(48.dp),
+                    modifier = Modifier.size(40.dp),
                 )
-                Spacer(Modifier.width(Spacing.md))
+                Spacer(Modifier.width(Spacing.sm))
                 Column {
                     Text(
-                        heroLabel,
-                        style = MaterialTheme.typography.titleMedium,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
+                        if (seat.heroId == null) "Choose hero" else heroLabel,
+                        style = MaterialTheme.typography.titleSmall,
+                        maxLines = 2,
                         color = if (seat.heroId == null) {
                             MaterialTheme.colorScheme.onSurfaceVariant
                         } else {
                             MaterialTheme.colorScheme.onSurface
                         },
                     )
-                    Text(
-                        hero?.title ?: "Tap to choose",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                    )
+                    if (seat.handicap) HandicapTag()
                 }
             }
-            IconButton(onClick = onRemove) {
-                Icon(Icons.Outlined.Close, contentDescription = "Remove seat: $heroLabel")
+            if (!large) {
+                Spacer(Modifier.width(Spacing.xs))
+                PilotPill(pilot, pilotSeats, error = problem == "Choose a pilot", onClick = onPickPilot)
+            }
+            IconButton(onClick = onToggleExpanded) {
+                Icon(
+                    if (expanded) Icons.Filled.KeyboardArrowUp else Icons.Outlined.Edit,
+                    contentDescription = if (expanded) "Done editing $heroLabel" else "Edit seat: $heroLabel",
+                )
             }
         }
-        // The pilot is a field to choose from ("Ann ▾"), the Handicap card a chip with a box beside it, a double
-        // pilot a plain line: three kinds of thing, three looks, in one row so the next seat stays in view.
-        FlowRow(
-            Modifier.padding(top = Spacing.xs, end = Spacing.md),
-            horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
-            verticalArrangement = Arrangement.spacedBy(Spacing.xs),
-            itemVerticalAlignment = Alignment.CenterVertically,
-        ) {
-            PilotField(pilot, error = problem == "Choose a pilot", onClick = onPickPilot)
-            GoaFilterChip(
-                selected = seat.handicap,
-                onClick = onToggleHandicap,
-                modifier = Modifier.heightIn(min = 48.dp).semantics {
-                    contentDescription = "Handicap card for $heroLabel"
-                },
-                leadingIcon = {
-                    Icon(
-                        if (seat.handicap) Icons.Filled.CheckBox else Icons.Outlined.CheckBoxOutlineBlank,
-                        contentDescription = null,
-                        modifier = Modifier.size(scaledIconSize(ChipIconSize)),
-                    )
-                },
-            ) { Text("Handicap") }
+        // Large text: the pilot goes under the hero, so neither name breaks mid-word.
+        if (large) {
+            PilotPill(
+                pilot,
+                pilotSeats,
+                error = problem == "Choose a pilot",
+                onClick = onPickPilot,
+                modifier = Modifier.padding(start = 48.dp, end = Spacing.md, bottom = Spacing.xs),
+            )
         }
-        if (pilotSeats > 1 && pilot != null) {
-            Row(Modifier.padding(top = Spacing.xs), verticalAlignment = Alignment.CenterVertically) {
-                Icon(
-                    Icons.Outlined.People,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.size(scaledIconSize(16.dp)),
-                )
-                Spacer(Modifier.width(Spacing.xs))
-                Text(
-                    "${pilot.name} pilots $pilotSeats heroes",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
+        if (expanded) {
+            FlowRow(
+                Modifier.padding(top = Spacing.xs, end = Spacing.md, bottom = Spacing.xs),
+                horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+                verticalArrangement = Arrangement.spacedBy(Spacing.xs),
+                itemVerticalAlignment = Alignment.CenterVertically,
+            ) {
+                GoaFilterChip(
+                    selected = seat.handicap,
+                    onClick = onToggleHandicap,
+                    modifier = Modifier.heightIn(min = 48.dp).semantics {
+                        contentDescription = "Handicap card for $heroLabel"
+                    },
+                    leadingIcon = {
+                        Icon(
+                            if (seat.handicap) Icons.Filled.CheckBox else Icons.Outlined.CheckBoxOutlineBlank,
+                            contentDescription = null,
+                            modifier = Modifier.size(scaledIconSize(ChipIconSize)),
+                        )
+                    },
+                ) { Text("Handicap card") }
+                TextButton(
+                    onClick = onRemove,
+                    modifier = Modifier.heightIn(min = 48.dp).semantics {
+                        contentDescription = "Remove seat: $heroLabel"
+                    },
+                ) {
+                    Icon(
+                        Icons.Outlined.Close,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.error,
+                        modifier = Modifier.size(18.dp),
+                    )
+                    Spacer(Modifier.width(Spacing.xs))
+                    Text("Remove seat", color = MaterialTheme.colorScheme.error)
+                }
+            }
+            if (pilotSeats > 1 && pilot != null) {
+                Row(Modifier.padding(bottom = Spacing.xs), verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                        Icons.Outlined.People,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.size(scaledIconSize(16.dp)),
+                    )
+                    Spacer(Modifier.width(Spacing.xs))
+                    Text(
+                        "${pilot.name} pilots $pilotSeats heroes",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
             }
         }
         if (problem != null) {
@@ -850,59 +953,93 @@ private fun SeatEditor(
                 problem,
                 style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.error,
-                modifier = Modifier.padding(top = Spacing.xs),
+                modifier = Modifier.padding(bottom = Spacing.xs),
             )
         }
     }
 }
 
+/** "Handicap" under the hero's name: this seat plays its Handicap card. */
+@Composable
+private fun HandicapTag() {
+    Text(
+        "Handicap",
+        style = MaterialTheme.typography.labelMedium,
+        color = MaterialTheme.colorScheme.onSurface,
+        maxLines = 1,
+        softWrap = false,
+        modifier = Modifier
+            .padding(top = 2.dp)
+            .border(1.dp, GoaTheme.colors.selection, RoundedCornerShape(4.dp))
+            .padding(horizontal = Spacing.xs),
+    )
+}
+
 /**
- * The seat's pilot as a dropdown field: "Pilot" on its outline, the player's face and name, a ▾. A tap opens the
- * pilot picker. One TalkBack node ("Pilot: Ann. Change pilot").
+ * The seat's pilot as a dropdown pill ("Ann ▾", "Ann ×2" for a double pilot); a tap opens the pilot picker.
+ * One TalkBack node ("Pilot: Ann. Change pilot").
  */
 @Composable
-private fun PilotField(pilot: Player?, error: Boolean, onClick: () -> Unit) {
-    val name = pilot?.name ?: "Choose pilot"
-    Box(
-        Modifier
-            .width(scaledIconSize(PILOT_FIELD_WIDTH, PILOT_FIELD_SCALE))
+private fun PilotPill(
+    pilot: Player?,
+    seats: Int,
+    error: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val colors = MaterialTheme.colorScheme
+    val shape = RoundedCornerShape(8.dp)
+    Row(
+        modifier
+            .widthIn(max = scaledIconSize(PILOT_PILL_MAX, PILOT_PILL_SCALE))
+            .heightIn(min = 48.dp)
+            .clip(shape)
+            .border(1.dp, if (error) colors.error else colors.outline, shape)
             .clickable(onClickLabel = "Change pilot", role = Role.DropdownList, onClick = onClick)
             .clearAndSetSemantics {
                 contentDescription = "Pilot: ${pilot?.name ?: "none"}. Change pilot"
+                if (seats > 1) stateDescription = "Pilots $seats heroes"
                 role = Role.DropdownList
                 onClick(label = "Change pilot") {
                     onClick()
                     true
                 }
-            },
+            }
+            .padding(start = Spacing.sm, end = Spacing.xs),
+        verticalAlignment = Alignment.CenterVertically,
     ) {
-        val ink = MaterialTheme.colorScheme.onSurface
-        val muted = MaterialTheme.colorScheme.onSurfaceVariant
-        OutlinedTextField(
-            value = name,
-            onValueChange = {},
-            modifier = Modifier.fillMaxWidth(),
-            enabled = false,
-            singleLine = true,
-            label = { Text("Pilot") },
-            // No face here: beside the seat's hero, a player's most-played hero would read as a second hero.
-            leadingIcon = { Icon(Icons.Outlined.Person, contentDescription = null) },
-            trailingIcon = { Icon(Icons.Outlined.ArrowDropDown, contentDescription = null) },
-            // Drawn as an enabled field: it is one, the tap just lands on the box around it.
-            colors = OutlinedTextFieldDefaults.colors(
-                disabledTextColor = if (pilot != null) ink else muted,
-                disabledBorderColor = if (error) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.outline,
-                disabledLabelColor = if (error) MaterialTheme.colorScheme.error else muted,
-                disabledLeadingIconColor = muted,
-                disabledTrailingIconColor = ink,
-            ),
+        Icon(
+            Icons.Outlined.Person,
+            contentDescription = null,
+            tint = colors.onSurfaceVariant,
+            modifier = Modifier.size(scaledIconSize(18.dp)),
         )
+        Spacer(Modifier.width(Spacing.xs))
+        Text(
+            pilot?.name ?: "Choose pilot",
+            style = MaterialTheme.typography.bodyMedium,
+            color = when {
+                error -> colors.error
+                pilot == null -> colors.onSurfaceVariant
+                else -> colors.onSurface
+            },
+            maxLines = 2,
+            modifier = Modifier.weight(1f, fill = false),
+        )
+        if (seats > 1) {
+            Text(
+                " ×$seats",
+                style = MaterialTheme.typography.labelLarge,
+                color = colors.onSurfaceVariant,
+            )
+        }
+        Icon(Icons.Outlined.ArrowDropDown, contentDescription = null, tint = colors.onSurface)
     }
 }
 
-/** Room for a name like "Kit Featherstone" beside the face and the ▾; it grows with the text up to 1.5×. */
-private val PILOT_FIELD_WIDTH = 188.dp
-private const val PILOT_FIELD_SCALE = 1.5f
+/** Room for a name like "Kit Featherstone" beside the glyph and the ▾; it grows with the text up to 1.5×. */
+private val PILOT_PILL_MAX = 150.dp
+private const val PILOT_PILL_SCALE = 1.5f
 
 /** The team's pilots in seat order, each once (a double pilot sits twice). */
 private fun MatchEditUiState.pilotNames(team: Team): List<String> =

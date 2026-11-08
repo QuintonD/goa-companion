@@ -77,8 +77,9 @@ data class MetaActions(
 )
 
 /**
- * Meta dashboard: the last game night, how games end, sides and length, the hero ranking (compact
- * sortable table or cards, Wilson-ranked), rivalries and duos, hero pairs. All from the match log.
+ * Meta dashboard: the hero ranking first (compact sortable table or cards, Wilson-ranked), then the group's
+ * summary (totals, the last game night, how games end, sides and length), rivalries and duos, hero pairs. All from
+ * the match log.
  */
 @Composable
 fun MetaContent(state: MetaUiState, actions: MetaActions, modifier: Modifier = Modifier) {
@@ -97,30 +98,6 @@ fun MetaContent(state: MetaUiState, actions: MetaActions, modifier: Modifier = M
             modifier = modifier.fillMaxSize(),
             contentPadding = PaddingValues(start = Spacing.screen, end = Spacing.screen, bottom = Spacing.xxl),
         ) {
-            item(key = "summary") {
-                StatRow(
-                    listOf(
-                        state.totalMatches.toString() to "Rated matches",
-                        state.draftsWithBans.toString() to "Drafts with bans",
-                        (if (state.largerTeam.games == 0) "—" else formatPercent(state.largerTeam.winRate)) to
-                            (
-                                "Larger team won" + if (state.largerTeam.games >
-                                    0
-                                ) {
-                                    " (${state.largerTeam.games})"
-                                } else {
-                                    ""
-                                }
-                                ),
-                    ),
-                    Modifier.padding(top = Spacing.md),
-                )
-            }
-            state.night?.let { night -> item(key = "night") { GameNightCard(night, state.streaks) } }
-            if (state.winConditions.total > 0) {
-                item(key = "h-games") { SectionHeader("How games end") }
-                item(key = "games") { GamesCard(state) }
-            }
             item(key = "h-heroes") { HeroHeader(state, actions) }
             if (state.view == MetaView.TABLE) {
                 item(key = "table") { HeroCompactTable(state) }
@@ -139,6 +116,30 @@ fun MetaContent(state: MetaUiState, actions: MetaActions, modifier: Modifier = M
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(top = Spacing.md),
                 )
+            }
+            item(key = "h-summary") { SectionHeader("Group summary") }
+            item(key = "summary") {
+                StatRow(
+                    listOf(
+                        state.totalMatches.toString() to "Rated matches",
+                        state.draftsWithBans.toString() to "Drafts with bans",
+                        (if (state.largerTeam.games == 0) "—" else formatPercent(state.largerTeam.winRate)) to
+                            (
+                                "Larger team won" + if (state.largerTeam.games >
+                                    0
+                                ) {
+                                    " (${state.largerTeam.games})"
+                                } else {
+                                    ""
+                                }
+                                ),
+                    ),
+                )
+            }
+            state.night?.let { night -> item(key = "night") { GameNightCard(night, state.streaks) } }
+            if (state.winConditions.total > 0) {
+                item(key = "h-games") { SectionHeader("How games end") }
+                item(key = "games") { GamesCard(state) }
             }
             if (state.rivals.isNotEmpty()) {
                 item(key = "h-rivals") { SectionHeader("Rivalries") }
@@ -319,7 +320,7 @@ fun WinConditionBars(mix: WinConditionMix, modifier: Modifier = Modifier) {
 
 @Composable
 private fun HeroHeader(state: MetaUiState, actions: MetaActions) {
-    Column(Modifier.padding(top = Spacing.lg)) {
+    Column(Modifier.padding(top = Spacing.md)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text(
                 "Hero ranking",
