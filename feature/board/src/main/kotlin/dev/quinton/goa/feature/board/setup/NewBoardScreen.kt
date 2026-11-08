@@ -48,7 +48,6 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SegmentedButton
 import androidx.compose.material3.SegmentedButtonDefaults
@@ -90,6 +89,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.isSpecified
 import androidx.compose.ui.unit.sp
 import dev.quinton.goa.core.designsystem.component.BannerTextButton
+import dev.quinton.goa.core.designsystem.component.BarAction
+import dev.quinton.goa.core.designsystem.component.BarActions
 import dev.quinton.goa.core.designsystem.component.EngravedRule
 import dev.quinton.goa.core.designsystem.component.GoaButton
 import dev.quinton.goa.core.designsystem.component.GoaPlateTheme
@@ -148,8 +149,13 @@ fun NewBoardScreen(
                 if (ready.form.lineup.red.isNotEmpty() || ready.form.lineup.blue.isNotEmpty()) {
                     BannerTextButton("Clear", onClick = { onAction(NewBoardAction.Clear) })
                 }
-                IconButton(onClick = { sources = true }, enabled = ready.sources.isNotEmpty()) {
-                    Icon(Icons.Outlined.History, contentDescription = "Use a draft or match")
+                // A clock alone doesn't say where it leads: the line-ups of past drafts and matches are a named line
+                // in the bar's menu, there only when there is one to use.
+                if (ready.sources.isNotEmpty()) {
+                    BarActions(
+                        listOf(BarAction(RECENT_LINEUPS, Icons.Outlined.History, { sources = true })),
+                        maxIcons = 1,
+                    )
                 }
             }
         },
@@ -897,6 +903,9 @@ private fun SetUpBar(state: NewBoardUiState.Ready, onAction: (NewBoardAction) ->
     }
 }
 
+/** The line-ups of past drafts and matches: the bar menu's line and the sheet's title (New board, New game). */
+internal const val RECENT_LINEUPS = "Use a draft or match"
+
 /** Finished drafts, pending and logged matches, newest first: one tap fills both teams. */
 @Composable
 internal fun SourcesContent(
@@ -906,7 +915,7 @@ internal fun SourcesContent(
     modifier: Modifier = Modifier,
 ) {
     Column(modifier.fillMaxWidth().fillMaxHeight(SHEET_HEIGHT)) {
-        SheetTitle("Use a draft or match", "Fills both teams in pick order.", onDone)
+        SheetTitle(RECENT_LINEUPS, "Fills both teams in pick order.", onDone)
         LazyColumn(Modifier.weight(1f)) {
             items(sources, key = { it.key }) { source -> SourceRow(source, onClick = { onUse(source) }) }
             if (sources.isEmpty()) {
