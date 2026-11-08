@@ -1,6 +1,5 @@
 package dev.quinton.goa.feature.timer.ui.components
 
-import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
@@ -10,7 +9,6 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -25,6 +23,7 @@ import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import dev.quinton.goa.core.designsystem.component.PlateRowDivider
+import dev.quinton.goa.core.designsystem.component.TintTag
 import dev.quinton.goa.core.designsystem.theme.GoaTextStyles
 import dev.quinton.goa.core.designsystem.theme.Spacing
 import dev.quinton.goa.feature.timer.TimerText
@@ -114,18 +113,11 @@ private fun PhaseCell(phase: PhaseDuration, tonight: TonightUi?, dense: Boolean,
 
 private val TITLE_SIZE = 20.sp
 
-/** "Tonight": the start card's mark on the length changed for tonight only (bronze, with its word). */
+/**
+ * "Tonight": the start card's mark on the length changed for tonight only (bronze, with its word); a tint, not an
+ * edge, as it sits inside the start plate (DESIGN.md "Framing levels").
+ */
 @Composable
 private fun TonightTag() {
-    val bronze = MaterialTheme.colorScheme.primary
-    Text(
-        "Tonight",
-        style = MaterialTheme.typography.labelSmall,
-        color = bronze,
-        fontWeight = FontWeight.SemiBold,
-        maxLines = 1,
-        modifier = Modifier
-            .border(1.dp, bronze.copy(alpha = 0.6f), RoundedCornerShape(50))
-            .padding(horizontal = Spacing.sm, vertical = 1.dp),
-    )
+    TintTag("Tonight", style = MaterialTheme.typography.labelSmall)
 }
