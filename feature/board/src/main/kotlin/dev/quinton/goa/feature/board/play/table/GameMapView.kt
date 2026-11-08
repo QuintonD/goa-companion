@@ -23,9 +23,11 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.draw.drawWithCache
@@ -37,6 +39,7 @@ import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.StrokeJoin
 import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.drawscope.scale
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.pointer.AwaitPointerEventScope
@@ -81,7 +84,10 @@ import dev.quinton.goa.feature.board.map.standingFigures
 import dev.quinton.goa.feature.board.ui.ArtBoardPalette
 import dev.quinton.goa.feature.board.ui.BoardPalette
 import dev.quinton.goa.feature.board.ui.CHIP_TEXT
+import dev.quinton.goa.feature.board.ui.ChooserEntry
 import dev.quinton.goa.feature.board.ui.MAP_MARK_MAX_SCALE
+import dev.quinton.goa.feature.board.ui.MapChoices
+import dev.quinton.goa.feature.board.ui.MapChooser
 import dev.quinton.goa.feature.board.ui.MiniatureBadge
 import dev.quinton.goa.feature.board.ui.PieceLook
 import dev.quinton.goa.feature.board.ui.PieceToken
@@ -116,8 +122,8 @@ fun GameMapView(
     lane: Rect? = null,
     onLongPressHero: ((String) -> Unit)? = null,
     buttons: Rect? = null,
-    /** The question's spaces stay crowded: each carries its number from the panel's list ([spaceNumbers]). */
-    crowded: Boolean = false,
+    /** The panel lists the question's options ([MapList]): each carries its letter on the map ([shownTags]). */
+    listed: Boolean = false,
 ) {
     val painting = rememberMapPainting(table.map)
     val palette = if (painting != null) ArtBoardPalette else boardPalette()
@@ -135,6 +141,11 @@ fun GameMapView(
     val touchPx = targetPx / 2f
     val battleZones = table.battleZones
     val spotlight = remember(table.decision, table.asking, table.view) { questionSpotlight(table) }
+    // One tap that hit several options or pieces: the chooser at the finger ([MapChooser]).
+    var choices by remember { mutableStateOf<List<TableTap>?>(null) }
+    var choicesAt by remember { mutableStateOf(Offset.Zero) }
+    val tags = remember(table.decision, table.asking, table.view, listed) { shownTags(table, listed) }
+    val zoom: () -> Float = { viewport.zoom }
     Box(
         modifier
             .clipToBounds()
@@ -213,14 +224,16 @@ fun GameMapView(
                             null
                         }
                         // Every option a 48 dp target (sol #1): a tap near one small option takes it; a tap among
-                        // several smaller than that zooms in on them first (tap to focus), then a tap chooses.
+                        // several smaller than that, or on a figure standing over another option, asks which one at
+                        // the finger (sol #2, sol-b #1) rather than guessing.
                         val near = optionsNear(current, layout, viewport, down.position, touchPx)
-                        val crowded = near.size > 1 && viewport.hexPx < targetPx && viewport.canZoomIn
+                        val ambiguous = ambiguousTaps(current, hex, figure, near, viewport.hexPx < targetPx)
                         val target = resolveAt(current, hex, figure)
                             ?: near.singleOrNull()?.let { resolve(current, it) }
                         val did = when {
-                            crowded -> {
-                                scope.launch { viewport.zoomIn(down.position) }
+                            ambiguous.size > 1 -> {
+                                choicesAt = down.position
+                                choices = ambiguous
                                 true
                             }
 
@@ -268,14 +281,62 @@ fun GameMapView(
                 painted = painting != null,
             )
             Box(transform.semantics { isTraversalGroup = true }) {
-                DecisionOverlay(table, layout, unit, palette, crowded)
-                GamePieces(table, layout, unit, palette, look)
-                MinionNumbers(table, layout, unit)
-                GameSpaceNodes(table, layout, viewport, onTap = { tap(it) }, onHero = longPress, crowded = crowded)
+                DecisionOverlay(table, layout, unit, palette, tags, zoom)
+                GamePieces(table, layout, unit, palette, look, zoom)
+                PieceTags(table, layout, unit, tags, zoom)
+                GameSpaceNodes(table, layout, viewport, onTap = { tap(it) }, onHero = longPress, tags = tags)
             }
             ActingTag(table, layout, viewport, palette)
         }
+        MapChooser(
+            choices?.let { taps ->
+                MapChoices(
+                    choicesAt,
+                    taps.map { t ->
+                        val tag = tagOf(tags, t)
+                        ChooserEntry(
+                            label = tapLabel(table, t),
+                            onClick = { tap(t) },
+                            leading = tag?.let { { OptionTagBadge(it, chosen = false, size = 24.dp) } },
+                        )
+                    },
+                )
+            },
+            onDismiss = { choices = null },
+        )
     }
+}
+
+/**
+ * What a tap at [hex] (with [figure], the space of a miniature whose body rises to the finger) could mean when it is
+ * not one thing: the options within reach while they are framed smaller than a finger ([small], [near]), or two option
+ * pieces under the finger at once (a figure over another's space). Empty or one: no doubt.
+ */
+internal fun ambiguousTaps(table: TableUi, hex: Hex, figure: Hex?, near: List<Hex>, small: Boolean): List<TableTap> {
+    val under = listOfNotNull(resolve(table, hex), figure?.let { resolve(table, it) }).distinct()
+        .filter { isOption(table, it) }
+    val close = if (small && near.size > 1) {
+        near.mapNotNull { resolve(table, it) }.filter { isOption(table, it) }
+    } else {
+        emptyList()
+    }
+    return (under + close).distinct()
+}
+
+private fun isOption(table: TableUi, tap: TableTap): Boolean = when (tap) {
+    is TableTap.Piece -> tap.pieceId in table.pieceOptions
+    is TableTap.Space -> tap.hex in table.spaceOptions
+}
+
+/** A tap's option in words, as its row in the panel says it. */
+private fun tapLabel(table: TableUi, tap: TableTap): String = when (tap) {
+    is TableTap.Piece -> table.pieceOptions[tap.pieceId]?.let(table::label) ?: table.pieceName(tap.pieceId)
+    is TableTap.Space -> table.spaceOptions[tap.hex]?.let(table::label) ?: table.spaceLabel(tap.hex)
+}
+
+private fun tagOf(tags: OptionTags, tap: TableTap): String? = when (tap) {
+    is TableTap.Piece -> tags.pieces[tap.pieceId]
+    is TableTap.Space -> tags.spaces[tap.hex]
 }
 
 /**
@@ -368,15 +429,27 @@ private fun labelBusy(table: TableUi, layout: MapLayout): List<Offset> = remembe
     hexes.distinct().map(layout::center)
 }
 
-/** Options, highlights, the selection and its path, the acting hero, immune minions. */
+/**
+ * Options, highlights, the selection and its path, the acting hero, immune minions. Listed, each option space carries
+ * its letter ([tags]) in place of its step count, at least [MIN_TAG_HALF] on the screen however far the map is out
+ * ([zoom], read while drawing).
+ */
 @Composable
-private fun DecisionOverlay(table: TableUi, layout: MapLayout, unit: Float, palette: BoardPalette, crowded: Boolean) {
+private fun DecisionOverlay(
+    table: TableUi,
+    layout: MapLayout,
+    unit: Float,
+    palette: BoardPalette,
+    tags: OptionTags,
+    zoom: () -> Float,
+) {
     val decision = table.decision
     val selected = table.selected
     val view = table.view
     val hint = table.hintAt
     val measurer = rememberTextMeasurer(cacheSize = 16)
     val grow = minOf(LocalDensity.current.fontScale, MAP_MARK_MAX_SCALE)
+    val minHalf = with(LocalDensity.current) { MIN_TAG_HALF.toPx() }
     val draw = remember(
         decision,
         table.asking,
@@ -388,14 +461,14 @@ private fun DecisionOverlay(table: TableUi, layout: MapLayout, unit: Float, pale
         unit,
         palette,
         grow,
-        crowded,
+        tags,
     ) {
         Modifier.drawWithCache {
             fun cell(hex: Hex) = layout.corners(hex).map { it * unit } to layout.center(hex) * unit
             val highlight = decision?.context?.highlight.orEmpty().map(::cell)
-            // Crowded, each space shows its number in the panel's list (teal, as the Minion Battle's), its steps there.
-            val listed = if (crowded) spaceNumbers(table) else emptyMap()
-            // On a painting a space that a move reaches shows its number in a chip, the rest their dashes.
+            // Listed, each space shows its letter in the panel's list (a teal tag), its steps there.
+            val listed = tags.spaces
+            // On a painting a space that a move reaches shows how many steps as a plain numeral, the rest their dashes.
             val numbered = if (palette.onArt && listed.isEmpty()) spacesOnAPath(table) else emptyMap()
             val options = (table.spaceOptions.keys + table.pieceOptions.keys.mapNotNull(table::at))
                 .filter { it !in numbered }.map(::cell)
@@ -404,9 +477,10 @@ private fun DecisionOverlay(table: TableUi, layout: MapLayout, unit: Float, pale
                 Triple(layout.center(hex) * unit, measurer.measure(steps.toString(), chipStyle), hex)
             }
             val listStyle = TextStyle(fontWeight = FontWeight.Bold, fontSize = (unit * LIST_NUMBER_TEXT * grow).toSp())
-            val listMarks = listed.map { (hex, n) ->
-                Triple(layout.center(hex) * unit, measurer.measure("$n", listStyle), hex)
+            val listMarks = listed.map { (hex, tag) ->
+                Triple(layout.center(hex) * unit, measurer.measure(tag, listStyle), hex)
             }
+            val tagHalf = unit * LIST_NUMBER_RADIUS * grow
             val chosen = when (selected) {
                 is Choice.Space -> selected.hex
                 is Choice.Unit -> table.at(selected.unitId)
@@ -460,8 +534,12 @@ private fun DecisionOverlay(table: TableUi, layout: MapLayout, unit: Float, pale
                 chips.forEach { (at, text, hex) ->
                     drawNumberChip(text, at, unit, chosen = hex == chosen, scale = grow)
                 }
-                listMarks.forEach { (at, text, hex) ->
-                    drawOptionNumber(text, at, unit * LIST_NUMBER_RADIUS * grow, chosen = hex == chosen)
+                if (listMarks.isNotEmpty()) {
+                    // A finger's tag at least, however far out the map is: grown about its centre.
+                    val s = (minHalf / (tagHalf * zoom())).coerceIn(1f, MAX_TAG_GROWTH)
+                    listMarks.forEach { (at, text, hex) ->
+                        scale(s, s, pivot = at) { drawOptionTag(text, at, tagHalf, chosen = hex == chosen) }
+                    }
                 }
                 immune.forEach { m ->
                     if (palette.onArt) {
@@ -481,7 +559,14 @@ private fun DecisionOverlay(table: TableUi, layout: MapLayout, unit: Float, pale
 }
 
 @Composable
-private fun GamePieces(table: TableUi, layout: MapLayout, unit: Float, palette: BoardPalette, look: PieceLook) {
+private fun GamePieces(
+    table: TableUi,
+    layout: MapLayout,
+    unit: Float,
+    palette: BoardPalette,
+    look: PieceLook,
+    zoom: () -> Float,
+) {
     val density = LocalDensity.current
     val sizePx = PIECE * unit
     val sizeDp = with(density) { sizePx.toDp() }
@@ -503,34 +588,42 @@ private fun GamePieces(table: TableUi, layout: MapLayout, unit: Float, palette: 
                 modifier = placed.clearAndSetSemantics {},
             )
             if (look == PieceLook.MINIATURE && piece is MinionPiece) {
-                MiniatureBadge(piece, sizeDp, placed.zIndex(BADGE_LAYER))
+                MiniatureBadge(piece, sizeDp, placed.zIndex(BADGE_LAYER), zoom)
             }
         }
     }
 }
 
 /**
- * Minions that read alike, numbered beside their figures (above the figures and their type badges), the same numbers
- * that lead their rows in the panel ([minionNumbers]); bronze once chosen. They grow with large text, capped.
+ * Option pieces lettered beside their figures (above the figures and their type badges), the same letters that lead
+ * their rows in the panel ([shownTags]: look-alike minions always, every option piece while the list is open); bronze
+ * once chosen. They grow with large text, capped, and stay at least [MIN_TAG_HALF] on the screen ([zoom]).
  */
 @Composable
-private fun MinionNumbers(table: TableUi, layout: MapLayout, unit: Float) {
-    val numbers = remember(table.decision, table.asking, table.view) { minionNumbers(table) }
-    if (numbers.isEmpty()) return
+private fun PieceTags(table: TableUi, layout: MapLayout, unit: Float, tags: OptionTags, zoom: () -> Float) {
+    val pieces = tags.pieces
+    if (pieces.isEmpty()) return
     val measurer = rememberTextMeasurer(cacheSize = 8)
     val grow = minOf(LocalDensity.current.fontScale, MAP_MARK_MAX_SCALE)
-    val chosen = (table.selected as? Choice.Unit)?.unitId
-    val draw = remember(numbers, chosen, layout, unit, grow) {
+    val minHalf = with(LocalDensity.current) { MIN_TAG_HALF.toPx() }
+    val chosen = when (val s = table.selected) {
+        is Choice.Unit -> s.unitId
+        is Choice.Token -> s.tokenId
+        else -> null
+    }
+    val draw = remember(pieces, chosen, layout, unit, grow) {
         Modifier.drawWithCache {
             val style = TextStyle(fontWeight = FontWeight.Bold, fontSize = (unit * NUMBER_TEXT * grow).toSp())
-            val marks = numbers.mapNotNull { (id, n) ->
+            val half = unit * NUMBER_RADIUS * grow
+            val marks = pieces.mapNotNull { (id, tag) ->
                 val at = table.at(id) ?: return@mapNotNull null
                 val center = (layout.center(at) + Offset(-NUMBER_DX, -NUMBER_DY)) * unit
-                Triple(center, measurer.measure("$n", style), id == chosen)
+                Triple(center, measurer.measure(tag, style), id == chosen)
             }
             onDrawBehind {
+                val s = (minHalf / (half * zoom())).coerceIn(1f, MAX_TAG_GROWTH)
                 marks.forEach { (c, text, isChosen) ->
-                    drawOptionNumber(text, c, unit * NUMBER_RADIUS * grow, isChosen)
+                    scale(s, s, pivot = c) { drawOptionTag(text, c, half, isChosen) }
                 }
             }
         }
@@ -550,7 +643,7 @@ private fun GameSpaceNodes(
     viewport: MapViewport,
     onTap: (TableTap) -> Unit,
     onHero: ((String) -> Unit)?,
-    crowded: Boolean = false,
+    tags: OptionTags = OptionTags.None,
 ) {
     val density = LocalDensity.current
     val unit = viewport.unit
@@ -571,10 +664,6 @@ private fun GameSpaceNodes(
         }
     }
     val occupancy = table.occupancy
-    val numbers = remember(table.decision, table.asking, table.view) { minionNumbers(table) }
-    val listed = remember(table.decision, table.asking, table.view, crowded) {
-        if (crowded) spaceNumbers(table) else emptyMap()
-    }
     inView.forEach { space ->
         key(space.hex) {
             val occupant = occupancy[space.hex]
@@ -591,7 +680,7 @@ private fun GameSpaceNodes(
                 else -> false
             }
             val description = buildList {
-                (numbers[occupant] ?: listed[space.hex])?.let { add("Number $it") }
+                ((occupant?.let(tags.pieces::get)) ?: tags.spaces[space.hex])?.let { add("Option $it") }
                 add(occupant?.let(table::pieceName) ?: "Empty space")
                 // An option says how far it is from the hero asked ("Lane Zone 3 · 3 spaces from Wasp").
                 add(if (option) table.spaceLabel(space.hex) else BoardText.zone(table.map, space.zone))
@@ -678,15 +767,19 @@ private val TabShape = RoundedCornerShape(topStart = 6.dp, topEnd = 6.dp, bottom
 private val NowInk = androidx.compose.ui.graphics.Color(0xFF0B1622)
 private const val NOW_TAG_DP = 10f
 
-/** A minion's number: where it sits from its space's centre (up and left, clear of the type badge), map units. */
+/** A piece's tag: where it sits from its space's centre (up and left, clear of the type badge), map units. */
 private const val NUMBER_DX = 0.62f
 private const val NUMBER_DY = 0.5f
 private const val NUMBER_RADIUS = 0.3f
 private const val NUMBER_TEXT = 0.4f
 
-/** A listed space's number, in the space's centre (map units): as large as the step chips it stands for. */
+/** A listed space's tag, in the space's centre (map units): its half-height, and its letter's size. */
 private const val LIST_NUMBER_RADIUS = 0.42f
 private const val LIST_NUMBER_TEXT = 0.52f
+
+/** A tag's half-height on the screen at least, however far out the map is, and how far it may grow for it. */
+private val MIN_TAG_HALF = 10.dp
+private const val MAX_TAG_GROWTH = 1.8f
 
 /** Side of a space's TalkBack node in map units: neighbours never overlap (see BoardMapView). */
 private const val SPACE_NODE = 1.46f

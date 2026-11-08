@@ -466,9 +466,10 @@ private fun CardStrip(cards: List<Card>, selectedId: String?, onSelect: (String?
 }
 
 /**
- * A card to measure with: its colour as a dot, tier, initiative and name. Chosen, it takes the one selection look
- * (bronze edge and tint, a tick), never the card's own colour: colour is the card's, bronze is "chosen". [wide]: a
- * share of a row (large text) rather than its own width.
+ * A card to measure with: its family in words beside its colour's dot ("Red · II", "Gold · Basic": never the colour
+ * alone, sol #12), initiative and name. Chosen, it takes the one selection look (bronze edge and tint, a tick), never
+ * the card's own colour: colour is the card's, bronze is "chosen". [wide]: a share of a row (large text) rather than
+ * its own width.
  */
 @Composable
 private fun CardChip(
@@ -514,10 +515,11 @@ private fun CardChip(
                 CardColorDot(card.color, size = 10.dp)
                 Spacer(Modifier.width(6.dp))
                 Text(
-                    tierLabel(card),
+                    familyLabel(card),
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 1,
+                    // Large text in a half-width chip: "Silver ·" over "Basic" rather than cut.
+                    maxLines = 2,
                     modifier = Modifier.weight(1f, fill = false),
                 )
                 card.initiative?.let {
@@ -556,6 +558,13 @@ private fun CardChip(
         }
     }
 }
+
+/**
+ * A card's family as its chip heads it: the deck colour in a word and the tier ("Red · II", "Gold · Basic",
+ * "Purple · Ultimate"); a spell page by its level as printed.
+ */
+internal fun familyLabel(card: Card): String =
+    if (card.isSpell) tierLabel(card) else "${cardColorName(card.color)} · ${tierLabel(card).removePrefix("Tier ")}"
 
 /** How much wider a card chip may grow with the font scale. */
 private const val CHIP_GROWTH = 1.5f

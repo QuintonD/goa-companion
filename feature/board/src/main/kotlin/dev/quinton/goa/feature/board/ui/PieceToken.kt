@@ -347,12 +347,12 @@ private fun DrawScope.drawFigure(piece: MinionPiece, image: ImageBitmap, c: Offs
 
 /**
  * The round badge of a miniature's type at its lower right: dark team tone, white hairline, the glyph in white; on its
- * upper right the team's official gear or star on a small dark badge ([team]), as every hero carries it: a minion's
- * team is never told by its colour alone.
+ * upper right the team's official gear or star on a dark badge ([team]) nearly as large, as every hero carries it: a
+ * minion's team is never told by its colour alone (sol-b #3). [grow] enlarges both about the badge's place.
  */
-private fun DrawScope.drawTypeBadge(piece: MinionPiece, c: Offset, u: Float, team: ImageBitmap?) {
+private fun DrawScope.drawTypeBadge(piece: MinionPiece, c: Offset, u: Float, team: ImageBitmap?, grow: Float = 1f) {
     val badgeAt = c + Offset(u * BADGE_X, u * BADGE_Y)
-    val r = u * BADGE_RADIUS
+    val r = u * BADGE_RADIUS * grow
     drawCircle(Color.Black.copy(alpha = 0.55f), radius = r * 1.12f, center = badgeAt + Offset(0f, u * 0.04f))
     drawCircle(if (piece.team == Team.RED) BADGE_RED else BADGE_BLUE, radius = r, center = badgeAt)
     drawCircle(Color.White, radius = r, center = badgeAt, style = Stroke(width = u * 0.05f))
@@ -362,18 +362,21 @@ private fun DrawScope.drawTypeBadge(piece: MinionPiece, c: Offset, u: Float, tea
 
 /**
  * A miniature's type badge on the board, as a layer of its own: figures overlap their neighbours, and a
- * badge is how a player reads a figure, so the boards draw every badge above every figure.
+ * badge is how a player reads a figure, so the boards draw every badge above every figure. It grows with large text
+ * (capped) and never shows smaller on the screen than [MIN_BADGE_RADIUS] however far out the map is ([zoom], the
+ * map's scale, read while drawing), so the team's gear or star stays legible at the whole-board view (sol-b #3).
  */
 @Composable
-fun MiniatureBadge(piece: MinionPiece, size: Dp, modifier: Modifier = Modifier) {
+fun MiniatureBadge(piece: MinionPiece, size: Dp, modifier: Modifier = Modifier, zoom: () -> Float = { 1f }) {
     val team = rememberOfficialBitmap(OfficialArt.heroSpawn(piece.team))
+    val density = LocalDensity.current
+    val fontGrow = minOf(density.fontScale, MAP_MARK_MAX_SCALE).coerceAtLeast(1f)
+    val minRadius = with(density) { MIN_BADGE_RADIUS.toPx() }
     Canvas(modifier.size(size).clearAndSetSemantics {}) {
-        drawTypeBadge(
-            piece,
-            Offset(this.size.width / 2f, this.size.height / 2f),
-            this.size.minDimension / PIECE_UNITS,
-            team,
-        )
+        val u = this.size.minDimension / PIECE_UNITS
+        val onScreen = u * BADGE_RADIUS * zoom()
+        val grow = maxOf(fontGrow, minRadius / onScreen).coerceAtMost(MAX_BADGE_GROWTH)
+        drawTypeBadge(piece, Offset(this.size.width / 2f, this.size.height / 2f), u, team, grow)
     }
 }
 
@@ -441,11 +444,15 @@ private const val BASE_WIDTH = 1.5f
 private const val BASE_HEIGHT = 0.65f
 private const val BADGE_X = 0.68f
 private const val BADGE_Y = 0.53f
-private const val BADGE_RADIUS = 0.37f
+private const val BADGE_RADIUS = 0.4f
+
+/** A type badge's radius on the screen at least (with its team mark about 0.8 of that), and its growth's cap. */
+private val MIN_BADGE_RADIUS = 9.dp
+private const val MAX_BADGE_GROWTH = 2.2f
 
 /** The team's gear or star on a type badge: its radius and how far up and right of the badge's centre (badge radii). */
-private const val TEAM_BADGE = 0.58f
-private const val TEAM_BADGE_AT = 0.82f
+private const val TEAM_BADGE = 0.78f
+private const val TEAM_BADGE_AT = 0.9f
 
 /** Hex radii in the box of a figure off the board, and how far down it shifts so a Heavy's head stays inside. */
 private const val FIGURE_OFF_BOARD_UNITS = 2.75f

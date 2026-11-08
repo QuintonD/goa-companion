@@ -95,16 +95,16 @@ against the art itself: the slate at its lightest 1 %, the parchment at its dark
 when a map has `art` (all four do); the drawn map stays as the fallback while loading.
 - The painting sits under the hexes; its own edge is `art.sea`, one dark sea on all four maps (dimmed, it is the canvas), so it has no visible edge in any rotation. The Battle Zone is full colour, the rest dimmed (brightness about .58, saturation
   .5), with a thick white edge on a dark halo; rocks enclosed by it are lit and not outlined. Zone labels are bevelled words on a slate pill (80 %), set clear of every piece (a miniature stands a space tall above its own). A Battle Zone's label is never hidden: with no free place outside the Zone it takes the free spot nearest the Zone along its edges or the view's top and bottom edge (over a little empty map, never a piece).
-- **Spaces a question offers take the light** (`MapLighting`): lit, white-edged, numbered in small dark chips, the chosen one bronze; the Battle Zone keeps a thin line
+- **Spaces a question offers take the light** (`MapLighting`): lit, white-edged, a move's step count as a plain white numeral with a dark halo (no chip: a chip is a list letter), the chosen one bronze; the Battle Zone keeps a thin line
   meanwhile. Occupied spaces you can't end on stay dark. Range and Radius stay patterns. Overlays use `ArtBoardPalette`, the same in both themes, each with a dark halo.
 - **Board style** (Settings → Appearance; `LocalBoardStyle`): Miniatures, or Grid and discs (hex hairlines, discs with the type's glyph). Miniatures stand on a team-coloured base
-  with a small round type badge drawn above every figure, and on the badge's upper right the team's official gear or star on a small dark badge, as every hero carries it; a Heavy is larger. A disc (Grid and discs) carries the same gear or star. Team on a minion is never colour alone; TalkBack names it.
+  with a round type badge drawn above every figure, and on the badge's upper right the team's official gear or star on a dark badge nearly as large, as every hero carries it; the badge grows with large text and never shows under 9 dp radius on screen however far out the map is (`MiniatureBadge`); a Heavy is larger. A disc (Grid and discs) carries the same gear or star. Team on a minion is never colour alone; TalkBack names it.
 - **Hero tokens:** portrait in a team ring with the mark on a dark badge. Max zoom on art maps: 88 dp a hex.
 - Spaces in `art.uncovered` have copied ground (ADR-053); only their Spawn symbols and Zone edges are drawn.
 
 **Screens:**
 - **Table:** HUD on a plate with official counters and bronze diamond pips (done: solid, dimmer; current: solid, bright, ringed; later: hollow), each group named over it (LIVES, WAVES, TURN, TIE BREAKER), numbers 20 sp; hero chips on plates; panel on rounded slate with the mark and name on its top strip; the hand in a gentle fan
-  (3.2° a card, the outer ones lower), each still one target and one TalkBack node; the turn track one row of equal cells on the HUD's own plate under a hairline (the **score bar**, about 140 dp with the HUD), never over a piece (portrait and initiative, every hero's name and card, a thin state band); sideways a column beside the map's start edge. The panel ends just past the question, what follows it scrolls; the hand is a tab pinned at its foot ("Your hand · 5"). Minions to choose are full-width rows: team mark, type badge, what tells them apart first; minions that read alike are numbered 1, 2, 3 (nearest first) on the map and at the head of their rows.
+  (3.2° a card, the outer ones lower), each still one target and one TalkBack node; the turn track one row of equal cells on the HUD's own plate under a hairline (the **score bar**, about 140 dp with the HUD), never over a piece (portrait and initiative, every hero's name and card, a thin state band); sideways a column beside the map's start edge. The panel ends just past the question, what follows it scrolls; the hand is a tab pinned at its foot ("Your hand · 5"). Minions to choose are full-width rows: team mark, type badge, what tells them apart first; minions that read alike are lettered A, B, C (nearest first) on the map and at the head of their rows.
 - **Puzzle:** the goal and the puzzle's name on small lines at the panel's head, off the map; the title plate is the question's; "What you know" starts folded to two lines.
 - **Hero sheet:** the dashboard (p.16) redrawn at the phone's density (ADR-058: the upscaled print, `official/ui/dashboard-frame`, was soft at this size; the web still uses it): a steel band with a bronze hairline and the plate's teal brackets, "Hero the Title" on the cards' title plate, a parchment **TURN n** tab over each of four slots, the played cards in them. Tigerclaw's art is the rulebook's; other heroes' portraits sit under the frame, cropped around the
   head and darkened toward the edges; either way the painting is a backdrop under a slate veil (60 %). An empty slot is a dark well (62 %) with a dashed steel edge and its turn's number in Cinzel, 18 dp at the 411 dp reference width. The dashboard's dials are chips in the header (**LEVEL 2**, coin **COINS 2**), never bars. Items as icons with "+n", the Ultimate, the hand or card backs.
@@ -432,7 +432,7 @@ colour alone. **Overlays** each have a pattern as well as a colour, and the swit
 shows its swatch (the legend): "Movement", "Fast Travel", "Card range", "Radius". A chosen card shows **one overlay**
 (its Movement, else its Range, else its Radius), so the marks never overlap; the switches add the others. While a layer
 is on, the **map key** (`MapKey`, as the game's) is **docked to the map's top edge**: one full-width strip under the
-bar, never a plate floating over pieces, its swatch and value each ("Movement 4: spaces to get there", "Card range 2",
+bar, never a plate floating over pieces, its swatch and value each ("Movement 4: steps to each space", "Card range 2",
 "Fast Travel", "Radius 1", "Where it goes", "Measure: 3 spaces"; short words by default, "Movement 4", "Card range 2",
 its words capped at 1.3×), and the map is framed under it. Before anything is selected a dismissible tip over the
 tools says "Tap a hero to see movement and range" (gone once a piece is selected). Markings: Movement = green fill and outline with the number of spaces (its
@@ -449,16 +449,15 @@ view, hexes about 38 dp across (down to 32 dp to fit the Lane's length; the map'
 gets cropped; a double-lane map on its whole region); the view zooms and pans so the selected piece
 and what its overlays reach stay in sight and tappable, clear of the panel, the tools and the
 Unverified badge; when the panel closes the map fills its place again (no band of empty water); a
-push brings the new Battle Zone into view. **Map controls** (`MapToolbar`, the sandbox's and the table's): one compact
-steel column docked at the map's end edge, under the key or the HUD: "Fit board" (it turns into "Lane view") and "Flip
-view", each its glyph over its word as the game's top bar (`BarLabelButton`), the full words in a long-press tooltip and
-for TalkBack. A flip says "View flipped · Blue at the bottom" beside the column for a moment (TalkBack hears it). Every
+push brings the new Battle Zone into view. **Map controls** (`MapToolbar`, the sandbox's and the table's): one slim
+steel pill docked at the map's end edge, under the key or the HUD: "Fit board" (it turns into "Lane view") and "Flip
+view" as glyphs alone, 48 dp each, the words in a long-press tooltip and for TalkBack, so they read as map furniture
+rather than a floating panel (round 5: the labelled column cost the map its room). A flip says "View flipped · Blue at the bottom" beside the column for a moment (TalkBack hears it). Every
 framing (the opening, Fit, a reveal) moves aside, to the start or down, so **no piece stands under the column**
 (`MapViewport.updateAvoid`), only where there is slack: never cutting a piece in view at an edge nor cropping what a
-question is about (its options, the actor, a hint's target), zooming out a little rather than cropping. On a short
-screen sideways (under 480 dp) the column is the glyphs alone, 48 dp each, the words in the tooltip. Each space's TalkBack node is a square inside its hex (1.46 map units, so neighbours never
+question is about (its options, the actor, a hint's target), zooming out a little rather than cropping. Each space's TalkBack node is a square inside its hex (1.46 map units, so neighbours never
 overlap and Android keeps each node whole). The card strip starts one card before the chosen card
-and fades at an edge with more cards beyond; from font scale 1.3 its chips wrap two to a row, each half the width, every name whole. The chosen card takes the one selection look (bronze edge and tint, a tick), never its own colour. **New board** fits a 384 dp phone without scrolling:
+and fades at an edge with more cards beyond; from font scale 1.3 its chips wrap two to a row, each half the width, every name whole. Each chip heads with its family in words beside its colour's dot ("Red · II", "Gold · Basic"), never the colour alone. The chosen card takes the one selection look (bronze edge and tint, a tick), never its own colour. **New board** fits a 384 dp phone without scrolling:
 one slot on top holds the latest draft's or match's line-up (a card with Set up) until the first
 pick, then the teams (pick chips sharing the row, "Next pick" spelled out on an empty team, the
 border and the switch otherwise); search with a segmented Red | Blue switch beside it (under it at
@@ -482,21 +481,26 @@ dots at each step; a decision's other highlights (a card's range) use the violet
 acting hero's space is outlined in bronze with a bronze **"NOW"** tag over its piece (dark letters; the turn's state is bronze on the map as on the track, the ring keeps the team's colour; growing with large text up to 1.5×,
 outside the zoom; TalkBack hears "acting now" on the space); an immune minion is ringed with a dashed
 teal circle (TalkBack: "immune"). Map taps select; a **Confirm** button of one line at 56 dp says what it does ("Move
-here · 3", the engine's path's steps; "Respawn here", "Choose · Tigerclaw", "Remove · number 2") and the instruction
+here · 3", the engine's path's steps; "Respawn here", "Choose · Tigerclaw", "Remove · B") and the instruction
 plate says which one it is in full ("Chosen: Lane Zone 3 · 3 spaces from Wasp"). The sandbox's key is one compact row
 of short words ("Movement 4", "Card range 2") with an info mark; a tap opens the full words ("Card range 2: in reach
 from here") and closes them again. Every option is a **48 dp target**: a question answered on the map frames its spaces
 with hexes 48 dp across when they fit (the Battle Zone around them only when it fits at that size too). Spaces the
 framing still leaves under about 40 dp (2 to 12 of them; once for a question it stays, as the list only makes the panel
-taller) are **numbered** on the map, teal discs in the spaces in place of the step chips, and **listed** in
-the panel, two 48 dp rows to a line ("3 spaces from Wasp" over its Zone), as the Minion Battle's minions; the key says
-"Numbered as in the list". A tap within 24 dp of a lone option's centre takes it, and a tap among several options while
-a space is narrower than 48 dp on screen zooms in a step around the finger first (**tap to focus**); the next tap
-chooses. While the person's question lights the map a **map key**
+taller) are **listed** at once. Any question answered on the map can be listed: a **List** chip (`MapListToggle`, 48 dp,
+bronze with a tick while on) ends the hint row ("12 spaces · tap a lit one", the peek's too) or sits under a card's
+question; on, every option is a 48 dp row in the panel led by its **letter** (A nearest the hero asked, then by
+distance; spaces two to a line, "3 spaces from Wasp" over its Zone; heroes and tokens by name; minions with their
+marks), and the map tags each option with the same letter in a **teal rounded square** (bronze once chosen; never a
+round chip, so it can't be read as a step count), at least 20 dp tall on screen however far out the map is; the key
+says "Letter = list row". Opened from the peek it shows the whole panel. A tap within 24 dp of a lone option's centre
+takes it; a tap that could mean several options (closer together than a finger, or a figure standing over another
+option) opens **Which one?** at the finger (`MapChooser`), a 48 dp row each with its letter while listed; the sandbox
+asks the same between close pieces. While the person's question lights the map a **map key**
 (`MapKey`, a small plate under the round at a glance and the turn track, inside what the map frames below, so it
 covers no piece) names
-each mark with its own swatch: "You can choose" (a lit, white-edged hex), "Spaces to get there" (the dark number
-chip), "In range" (the violet outline), "Your path" (the bronze line); only what the map shows now. TalkBack: one line.
+each mark with its own swatch: "Lit: pick one" (a lit, white-edged hex), "Steps away" (the plain numeral), "Letter =
+list row" (the teal tag), "Card range" (the violet outline), "Route" (the bronze line); only what the map shows now. TalkBack: one line.
 **Title:** "Round 2 · Turn 3" where the bar has the room (600 dp and wider); on a phone upright "Round 2", the turn
 named over the HUD's pips ("TURN 3"), so the labelled State control is in the bar in both orientations. **Top-bar controls** (the game, a puzzle; `BarLabelButton`): each glyph with its word under it in
 12 sp Inter ("Undo", "State", "Log", "More"; large text grows it no more than 1.15×), TalkBack and the long-press
@@ -528,10 +532,11 @@ chip; a tap opens the hero); the side panel takes 42 % of the width (at most 400
 cells on the score bar's plate under the HUD and a hairline (the map is framed below it), one cell per hero in acting
 order (the heroes done, in the order they acted, the acting hero, the next, the later ones, then passes), read at arm's
 length. Each cell is stacked: the hero's portrait in its team ring (22 dp; the mark at its foot, the action chosen as
-the game's icon at its head, crossed out while off the board) beside the initiative as it counts in 16 sp figures ("=11"
+the game's icon at its head, crossed out while off the board) beside the initiative as it counts in 18 sp figures ("=11"
 in teal while tied with another hero still to act); the name under them (13 sp bold, a step down to 78 % rather than
-cut); the card played under that (12 sp medium at 82 %, one size for the strip, on up to two lines broken at a space or
-after a hyphen, a step smaller only so that no word is broken; "Facedown" for a card resolved facedown). Across the
+cut); the card played under that on **one line** (12 sp medium at 82 %, one size for the strip, a step down to 10.5 sp,
+then an ellipsis past about 16 letters; the whole name in TalkBack's words and on the card a tap opens; "Facedown" for a
+card resolved facedown; the side column sideways keeps two lines). Across the
 foot a thin band with the state in a word, 12 sp bold: **DONE** with a tick (the cell stepped back to 72 %), **NOW**
 (bronze band, bronze 2 dp border), **NEXT** (teal band and border), **PASS**, **OUT**; a hero still to act has no band.
 Bands are dark steel on the dark theme and light steel with ink on the light theme's paper. **Who acts vs who
@@ -569,7 +574,7 @@ While a **space** is chosen on the map the panel opens at its **peek** (portrait
 whole prompt as its instruction, one line with the count ("12 spaces · tap a lit one"), and only the commit (Confirm
 naming the choice once one is tapped; answers not on the map such as "Don't respawn"); a tap on the strip, a drag up
 or its ⌃ shows the whole panel (the asking card beside the question), a drag down or ⌄ goes down a detent (whole →
-peek → hidden). Each new space question starts at the peek; a question about pieces (the Minion Battle's numbered
+peek → hidden). Each new space question starts at the peek; a question about pieces (the Minion Battle's lettered
 minions) shows its list at once. The map frames the question again whenever the panel changes size. Then the prompt in titleMedium (a live region). Choosing the action
 for the card beside the chips has no prompt plate: the card and its chips are the question (TalkBack still hears the
 prompt). A question's title already on the strip is not repeated: "Minion Battle: remove a minion" puts "Remove a

@@ -141,7 +141,7 @@ fun TableHud(
     val fontScale = LocalDensity.current.fontScale
     val cap = minOf(fontScale, HUD_MAX_SCALE) / fontScale
     val big = (if (compact) 17.sp else 20.sp) * cap
-    val icon = if (compact) 22.dp else 24.dp
+    val icon = 22.dp
     PlateSurface(
         shape = RoundedCornerShape(7.dp),
         brackets = true,
@@ -175,7 +175,7 @@ private fun HudCounters(
     FlowRow(
         Modifier
             .clearAndSetSemantics { contentDescription = spoken }
-            .padding(horizontal = 10.dp, vertical = 3.dp),
+            .padding(horizontal = 10.dp, vertical = 2.dp),
         // Compact (landscape, beside the heroes' portraits), or two Lanes' counters: closer together.
         horizontalArrangement = Arrangement.spacedBy(
             if (compact || waves.size > 1 || fontScale > 1.3f) Spacing.md else Spacing.lg,
@@ -251,7 +251,7 @@ private fun HudGroup(name: String?, cap: Float, end: Boolean = false, content: @
                 it.uppercase(),
                 style = GoaTextStyles.overline.copy(
                     fontSize = 11.sp * cap,
-                    lineHeight = 13.sp * cap,
+                    lineHeight = 12.sp * cap,
                     letterSpacing = 0.6.sp,
                 ),
                 color = MaterialTheme.colorScheme.onSurfaceVariant,

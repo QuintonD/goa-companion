@@ -322,7 +322,7 @@ private fun TrackStrip(
         LaunchedEffect(now, slots.size) {
             if (now > 1) scroll.scrollTo(with(density) { ((SCROLL_CELL + CELL_GAP) * (now - 1)).roundToPx() })
         }
-        val fit = cardNameFit(names, SCROLL_CELL - STACK_INSET, lines = 2)
+        val fit = cardNameFit(names, SCROLL_CELL - STACK_INSET, lines = 1)
         Row(
             Modifier.horizontalEdgeFade(scroll).horizontalScroll(scroll).height(IntrinsicSize.Min),
             horizontalArrangement = Arrangement.spacedBy(CELL_GAP),
@@ -349,7 +349,7 @@ private fun TrackStrip(
                 val n = slots.size.coerceAtLeast(1)
                 val each = (maxWidth - CELL_GAP * (n - 1)) / n
                 if (each >= MIN_CELL) {
-                    val fit = cardNameFit(names, each - STACK_INSET, lines = 2)
+                    val fit = cardNameFit(names, each - STACK_INSET, lines = 1)
                     Row(
                         Modifier.fillMaxWidth().height(IntrinsicSize.Min),
                         horizontalArrangement = Arrangement.spacedBy(CELL_GAP),
@@ -386,8 +386,10 @@ private data class CardNameFit(val size: TextUnit, val lines: Int)
 /**
  * The size of the card names on a strip, one for every cell, [width] the room for the words: 12 sp (with large text
  * up to 1.3×), a step smaller only when that is what it takes for every name to sit on [lines] lines without a word
- * broken ("Light-Fingered" breaks after its hyphen, never inside "Fingered"), down to [CARD_NAME_MIN_SHARE]; past
- * that, as many lines as a name needs at the smallest size. Never cut.
+ * broken ("Light-Fingered" breaks after its hyphen, never inside "Fingered"), down to [CARD_NAME_MIN_SHARE]. Past that,
+ * on one line (a row of cells: the strip scans at a glance, sol #3) the longest names end in an ellipsis (about 16
+ * letters show; the whole name is in TalkBack's words and the card opens on a tap); on two (the side column) as many
+ * lines as a name needs.
  */
 @Composable
 private fun cardNameFit(names: List<String>, width: Dp, lines: Int): CardNameFit {
@@ -406,7 +408,7 @@ private fun cardNameFit(names: List<String>, width: Dp, lines: Int): CardNameFit
         }
         var size = base.value
         while (size > base.value * CARD_NAME_MIN_SHARE && !fits(size)) size -= SIZE_STEP
-        CardNameFit(size.sp, if (fits(size)) lines else Int.MAX_VALUE)
+        CardNameFit(size.sp, if (fits(size) || lines == 1) lines else Int.MAX_VALUE)
     }
 }
 
@@ -467,6 +469,8 @@ private fun TrackCell(
                 color = LocalContentColor.current.copy(alpha = CARD_NAME_ALPHA),
                 textAlign = align,
                 maxLines = cardFit.lines,
+                overflow = TextOverflow.Ellipsis,
+                softWrap = cardFit.lines > 1,
                 modifier = Modifier.fillMaxWidth(),
             )
         }
@@ -498,7 +502,7 @@ private fun TrackCell(
     ) {
         val content = Modifier
             .fillMaxWidth()
-            .padding(start = 4.dp, end = 4.dp, top = 3.dp, bottom = 2.dp)
+            .padding(start = 4.dp, end = 4.dp, top = 2.dp, bottom = 1.dp)
             .alpha(if (stepped) STEPPED_ALPHA else 1f)
         if (side) {
             Row(content, verticalAlignment = Alignment.CenterVertically) {
@@ -520,7 +524,7 @@ private fun TrackCell(
                     Spacer(Modifier.width(5.dp))
                     Initiative(slot.initiative, slot.tied)
                 }
-                HeroName(info.name, Modifier.fillMaxWidth().padding(top = 1.dp), TextAlign.Center)
+                HeroName(info.name, Modifier.fillMaxWidth(), TextAlign.Center)
                 cardName(TextAlign.Center)
             }
         }
@@ -1131,12 +1135,12 @@ private val COMPACT_PORTRAIT_BELOW = 34.dp
 private const val STEPPED_ALPHA = 0.72f
 private const val CARD_NAME_SP = 12f
 private const val NAME_SP = 13f
-private const val INITIATIVE_SP = 16f
+private const val INITIATIVE_SP = 18f
 private const val BAND_SP = 12f
 
 /** The card name's line height, and how far its size may step down to stay on one line. */
 private const val CARD_LINE = 1.23f
-private const val CARD_NAME_MIN_SHARE = 0.75f
+private const val CARD_NAME_MIN_SHARE = 0.875f
 private const val SIZE_STEP = 0.5f
 private val WORD_BREAK = Regex("(?<=[ -])")
 

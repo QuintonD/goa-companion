@@ -42,7 +42,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
-import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -52,12 +51,10 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.boundsInParent
@@ -105,7 +102,6 @@ import dev.quinton.goa.feature.board.ui.PieceToken
 import dev.quinton.goa.feature.board.ui.PlateSurface
 import dev.quinton.goa.feature.board.ui.PlateWell
 import dev.quinton.goa.feature.board.ui.boardPalette
-import kotlinx.coroutines.launch
 
 /** Sheets and dialogs of the board, hoisted so screenshots can open one. */
 enum class BoardOverlay { ADD, PIECES, PUSH, RESET }
@@ -129,7 +125,6 @@ fun BoardScreen(
     val ready = state as? BoardUiState.Ready
     var overlay by rememberSaveable { mutableStateOf(initialOverlay) }
     val snackbar = remember { SnackbarHostState() }
-    val scope = rememberCoroutineScope()
     val viewport = remember { MapViewport() }
     // Back leaves a tool, then the selection, then the board.
     BackHandler(enabled = ready != null && (ready.tool != BoardTool.Move || ready.selectedId != null)) {
@@ -192,17 +187,6 @@ fun BoardScreen(
                     onAction = onAction,
                     onTap = onTap,
                     onOpen = { overlay = it },
-                    onAmbiguous = { at ->
-                        scope.launch {
-                            val result = snackbar.showSnackbar(
-                                "Two pieces are close together. Zoom in, or pick one from Pieces.",
-                                actionLabel = "Zoom in",
-                                withDismissAction = true,
-                                duration = SnackbarDuration.Short,
-                            )
-                            if (result == SnackbarResult.ActionPerformed) viewport.zoomStep(at)
-                        }
-                    },
                 )
             }
         }
@@ -270,14 +254,11 @@ private fun BoardContent(
     onAction: (BoardAction) -> Unit,
     onTap: (MapTap) -> Boolean,
     onOpen: (BoardOverlay) -> Unit,
-    onAmbiguous: (Offset) -> Unit,
 ) {
     // Hidden or shown is kept for the board (and survives rotation); it applies to every selection.
     var hidden by rememberSaveable { mutableStateOf(initialPanelHidden) }
     BoxWithConstraints(Modifier.fillMaxSize()) {
         val landscape = maxWidth > maxHeight
-        // A short screen sideways: the map controls are glyphs only.
-        val shortSideways = landscape && maxHeight < 480.dp
         val orientation = if (landscape) MapOrientation.LANDSCAPE else MapOrientation.PORTRAIT
         val layout =
             remember(state.map, orientation, state.bottomTeam) { MapLayout(state.map, orientation, state.bottomTeam) }
@@ -366,7 +347,6 @@ private fun BoardContent(
             viewport = viewport,
             onTap = onTap,
             onDrop = { id, hex -> onAction(BoardAction.Drop(id, hex)) },
-            onAmbiguous = onAmbiguous,
             lane = lane,
             modifier = Modifier.fillMaxSize().onGloballyPositioned { boardTop = it.boundsInRoot().top.toInt() },
         )
@@ -414,7 +394,7 @@ private fun BoardContent(
                     viewport,
                     state.bottomTeam,
                     onFlip = { onAction(BoardAction.Flip) },
-                    compact = shortSideways,
+                    compact = true,
                     modifier = Modifier.onGloballyPositioned {
                         toolbar = it.boundsInRoot().translate(0f, -boardTop.toFloat())
                     },
@@ -728,7 +708,7 @@ private fun boardKey(state: BoardUiState.Ready, short: Boolean): Map<MapKeyItem,
             if (overlay.movement.isNotEmpty()) {
                 val value = overlay.movementValue?.let { " $it" }.orEmpty()
                 // Large text: the value only, so the key stays a line over the map.
-                put(MapKeyItem.MOVEMENT, if (short) "Movement$value" else "Movement$value: spaces to get there")
+                put(MapKeyItem.MOVEMENT, if (short) "Movement$value" else "Movement$value: steps to each space")
             }
             if (overlay.fastTravel.isNotEmpty()) put(MapKeyItem.FAST_TRAVEL, "Fast Travel")
             if (overlay.range.isNotEmpty()) {

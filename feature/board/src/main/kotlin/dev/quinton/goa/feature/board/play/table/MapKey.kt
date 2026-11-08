@@ -33,7 +33,6 @@ import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.onClick
 import androidx.compose.ui.text.TextStyle
-import androidx.compose.ui.text.drawText
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.unit.dp
@@ -54,19 +53,19 @@ import kotlin.math.sin
 /** What the map shows for the question, each with its own shape and line as well as its colour. */
 enum class MapKeyItem(val words: String) {
     /** A space or piece that answers: lit, white-edged. */
-    CHOOSE("You can choose"),
+    CHOOSE("Lit: pick one"),
 
-    /** The number in a dark chip on a space a move reaches. */
-    STEPS("Spaces to get there"),
+    /** A plain numeral on a space a move reaches: how many steps away. */
+    STEPS("Steps away"),
 
-    /** Crowded spaces: a teal number, the same as the option's row in the panel. */
-    LISTED("Numbered as in the list"),
+    /** The list is open: a teal letter tag on each option, the same as its row in the panel. */
+    LISTED("Letter = list row"),
 
     /** A card's reach (violet inner outline). */
     RANGE("Card range"),
 
     /** The chosen space's path (a bronze line with a dot at each step). */
-    PATH("Your path"),
+    PATH("Route"),
 
     /** The sandbox's Movement: a lit space with the fewest spaces it needs in a chip. */
     MOVEMENT("Movement"),
@@ -85,7 +84,7 @@ enum class MapKeyItem(val words: String) {
 }
 
 /** The key's items for the question on the table: only what the map shows now. */
-internal fun mapKeyItems(table: TableUi, crowded: Boolean = false): List<MapKeyItem> {
+internal fun mapKeyItems(table: TableUi, listed: Boolean = false): List<MapKeyItem> {
     val decision = table.decision ?: return emptyList()
     if (!table.asking) return emptyList()
     val options = table.spaceOptions.isNotEmpty() || table.pieceOptions.isNotEmpty()
@@ -94,9 +93,8 @@ internal fun mapKeyItems(table: TableUi, crowded: Boolean = false): List<MapKeyI
     val path = (table.selected as? Choice.Space)?.let { table.pathTo(it.hex).any { hex -> hex != from } } == true
     return buildList {
         if (options) add(MapKeyItem.CHOOSE)
-        // Crowded spaces carry their list numbers instead of their steps (the rows say how far).
-        val listed = crowded && spaceNumbers(table).isNotEmpty()
-        if (listed) {
+        // Listed, the options carry their letters instead of their steps (the rows say how far).
+        if (!shownTags(table, listed).isEmpty) {
             add(MapKeyItem.LISTED)
         } else if (steps) {
             add(MapKeyItem.STEPS)
@@ -107,10 +105,11 @@ internal fun mapKeyItems(table: TableUi, crowded: Boolean = false): List<MapKeyI
 }
 
 /**
- * The map's key while a question lights it (the board's own marks, a swatch each): "You can choose", "Spaces to get
- * there", "In range", "Your path". A small plate under the round at a glance and the turn track, where the map is
- * framed below it, so it never covers a piece. TalkBack hears it as one line. With [onToggle] it is a compact row of
- * short words that a tap opens to [full] words (an info mark says so); TalkBack always hears the full words.
+ * The map's key while a question lights it (the board's own marks, a swatch each): "Lit: pick one", "Steps away" (a
+ * plain numeral), "Letter = list row" (a teal tag, while the list is open), "Card range", "Route". A small plate under
+ * the round at a glance and the turn track, where the map is framed below it, so it never covers a piece. TalkBack
+ * hears it as one line. With [onToggle] it is a compact row of short words that a tap opens to [full] words (an info
+ * mark says so); TalkBack always hears the full words.
  */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
@@ -207,18 +206,14 @@ private fun KeySwatch(item: MapKeyItem) {
             }
 
             MapKeyItem.LISTED -> {
-                val text = measurer.measure("1", TextStyle(fontSize = 11.sp, fontWeight = FontWeight.Bold))
-                drawOptionNumber(text, c, r * 0.78f, chosen = false)
+                val text = measurer.measure("A", TextStyle(fontSize = 11.sp, fontWeight = FontWeight.Bold))
+                drawOptionTag(text, c, r * 0.72f, chosen = false)
             }
 
+            // The map's own step count: a plain numeral with its dark halo, no chip.
             MapKeyItem.STEPS -> {
-                drawCircle(ChipGround, radius = r * 0.92f, center = c)
-                drawCircle(ChipEdge, radius = r * 0.92f, center = c, style = Stroke(width = r * 0.1f))
-                val text = measurer.measure(
-                    "2",
-                    TextStyle(color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.Bold),
-                )
-                drawText(text, topLeft = c - Offset(text.size.width / 2f, text.size.height / 2f))
+                val text = measurer.measure("2", TextStyle(fontSize = 15.sp, fontWeight = FontWeight.Bold))
+                drawNumberChip(text, c, r)
             }
 
             // The map's own strokes at the swatch's size: a space's faint edge with the violet inner outline (what a
@@ -230,16 +225,13 @@ private fun KeySwatch(item: MapKeyItem) {
 
             MapKeyItem.PATH, MapKeyItem.MEASURE -> drawPathSwatch(r, palette.halo, palette.measure)
 
-            // A lit space with the region's white edge and the map's own number chip (dark, cream rim).
+            // A lit space with the region's white edge and the map's own step count (a plain numeral, dark halo).
             MapKeyItem.MOVEMENT -> {
                 val hex = hexagon(c, r * 0.95f)
                 drawPath(hex, LitFill)
                 drawPath(hex, Color.White, style = Stroke(width = r * 0.14f, join = StrokeJoin.Round))
-                val text = measurer.measure(
-                    "2",
-                    TextStyle(color = Color.White, fontSize = 9.sp, fontWeight = FontWeight.Bold),
-                )
-                drawNumberChip(text, c, r * 1.2f)
+                val text = measurer.measure("2", TextStyle(fontSize = 12.sp, fontWeight = FontWeight.Bold))
+                drawNumberChip(text, c, r * 0.8f)
             }
 
             MapKeyItem.FAST_TRAVEL -> drawFastTravelCell(corners(c, r * 0.95f), c, r * 0.95f, palette)
@@ -283,6 +275,4 @@ private fun hexagon(c: Offset, r: Float) = Path().apply {
 private const val KEY_MAX_SCALE = 1.3f
 private val DockedShape = RoundedCornerShape(bottomStart = 8.dp, bottomEnd = 8.dp)
 private val LitFill = Color(0xFFD9C9A3)
-private val ChipGround = Color(0xFF0B1622)
-private val ChipEdge = Color(0xFFF3EBD6)
 private val CellEdge = Color(0x80F3EBD6)

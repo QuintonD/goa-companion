@@ -431,6 +431,15 @@ class PlayScreenshotTest {
         Game(remember { at(DecisionKind.CHOOSE_SPACE) { s -> s.pending!!.options.last() } })
     }
 
+    /** The same move with "List" tapped: every space a lettered row in the panel, the same letter on the map. */
+    @Test
+    fun tableChooseSpaceListDark() = capture(
+        ThemeMode.DARK,
+        before = { compose.onNodeWithContentDescription("List the options").performClick() },
+    ) {
+        Game(remember { at(DecisionKind.CHOOSE_SPACE) { s -> s.pending!!.options.last() } })
+    }
+
     /**
      * A move on a short phone held sideways: its spaces are still framed as finger targets beside the turn order and
      * the panel (sol #1); spaces that can't be are numbered on the map and listed in the panel.
