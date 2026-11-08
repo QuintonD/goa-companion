@@ -562,6 +562,7 @@ private fun StepChipView(step: DraftStep, state: StepState, named: Boolean, modi
         )
     }
 }
+
 /** Section card on the dark plate, used across draft screens. [titleTeam] heads it with a team's mark. */
 @Composable
 internal fun SectionCard(

@@ -16,6 +16,8 @@ import dev.quinton.goa.feature.draft.data.DraftEnvironment
 import dev.quinton.goa.feature.draft.data.DraftRepository
 import dev.quinton.goa.feature.draft.data.DraftSetupPrefills
 import dev.quinton.goa.feature.draft.ui.teamName
+import javax.inject.Inject
+import kotlin.random.Random
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -30,8 +32,6 @@ import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import javax.inject.Inject
-import kotlin.random.Random
 
 sealed interface SetupEvent {
     data object OpenBoard : SetupEvent

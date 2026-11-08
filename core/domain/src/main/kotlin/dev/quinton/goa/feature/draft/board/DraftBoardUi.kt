@@ -208,8 +208,11 @@ object DraftBoardText {
         val pilot = step.seatId?.let { session.seat(it) }?.pilotId?.let(playerName)
         val line = when {
             pilot != null && run != null -> "$pilot: ${verb.lowercase()} ${run.position} of ${run.length}"
+
             pilot != null -> "$pilot's ${verb.lowercase()}"
+
             run != null -> "$verb ${run.position} of ${run.length}"
+
             else -> {
                 val steps = steps(session)
                 "Step ${steps.firstOrNull { index in it }?.number ?: (index + 1)} of ${steps.size}"
