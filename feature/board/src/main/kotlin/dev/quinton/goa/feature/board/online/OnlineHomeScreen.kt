@@ -193,10 +193,6 @@ private fun PickName(state: OnlineHomeUi, actions: OnlineHomeActions) {
     OnlineSection("Play online")
     GoaPlate(Modifier.fillMaxWidth()) {
         Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-            Text(
-                "Pick the name the others will see. There's no email and nothing else to fill in.",
-                style = MaterialTheme.typography.bodyMedium,
-            )
             OutlinedTextField(
                 value = state.name,
                 onValueChange = actions.onName,
@@ -287,7 +283,7 @@ private fun Ready(
     // and one compact line, so Create room stays in view.
     IdentitySelector(
         title = "Playing as ${state.name}",
-        scope = "Online",
+        scope = null,
         avatar = { size -> AccountAvatar(state.you ?: state.name, state.name, size = size) },
         compact = true,
     )
@@ -559,14 +555,7 @@ private fun NewRoom(state: OnlineHomeUi, mapNames: Map<String, String>, actions:
             Segments(form.option.teamSizes, form.teamSize, { "${it}v$it" }, actions.onTeamSize)
             Segments(form.option.lengths, form.length, PlayText::length, actions.onLength)
             Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.heightIn(min = 48.dp)) {
-                Column(Modifier.weight(1f)) {
-                    Text("Ranked", style = MaterialTheme.typography.titleSmall)
-                    Text(
-                        "Counts on the public leaderboard.",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
+                Text("Ranked", style = MaterialTheme.typography.titleSmall, modifier = Modifier.weight(1f))
                 Spacer(Modifier.width(Spacing.sm))
                 GoaSwitch(checked = form.ranked, onCheckedChange = actions.onRanked)
             }
@@ -607,8 +596,7 @@ private fun Account(state: OnlineHomeUi, actions: OnlineHomeActions) {
     GoaPlate(Modifier.fillMaxWidth()) {
         Column(verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
             Text(
-                "To play on another device, enter your recovery code there. It works once, and that device gets a " +
-                    "new one to save.",
+                "Your recovery code moves the account to another device.",
                 style = MaterialTheme.typography.bodySmall,
             )
             Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {

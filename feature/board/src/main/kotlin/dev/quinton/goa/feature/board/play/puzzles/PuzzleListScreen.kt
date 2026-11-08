@@ -179,7 +179,6 @@ private fun PuzzleList(state: PuzzleListUiState.Ready, onAction: (PuzzleListActi
                 state.positionsSolved,
                 state.positionsTotal,
                 false,
-                "One position and a goal: find the line that makes it against the best replies.",
                 Modifier.padding(top = Spacing.sm),
             )
         }
@@ -209,7 +208,6 @@ private fun PuzzleList(state: PuzzleListUiState.Ready, onAction: (PuzzleListActi
                     state.roundsSolved,
                     state.roundsTotal,
                     true,
-                    "Four turns planned from turn 1, through the Minion Battle. You know what they will play.",
                     Modifier.padding(top = Spacing.md),
                 )
             }
@@ -257,11 +255,6 @@ private fun ContinueCard(state: PuzzleListUiState.Ready, onOpen: (String) -> Uni
                         color = MaterialTheme.colorScheme.primary,
                     )
                     Text("Every puzzle solved", style = MaterialTheme.typography.titleMedium, color = content)
-                    Text(
-                        "Replay any of them below; more arrive as heroes become playable.",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = content,
-                    )
                 }
             }
             if (next != null) {
@@ -290,7 +283,6 @@ private fun PartHeading(
     solved: Int,
     total: Int,
     rounds: Boolean,
-    note: String,
     modifier: Modifier = Modifier,
 ) {
     Column(modifier.fillMaxWidth().semantics(mergeDescendants = true) { heading() }) {
@@ -306,7 +298,6 @@ private fun PartHeading(
             )
             SolvedCount(solved, total, rounds)
         }
-        Text(note, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
     }
 }
 
@@ -433,12 +424,17 @@ private fun PuzzleRow(row: PuzzleRowUi, onClick: () -> Unit) {
                         )
                         Spacer(Modifier.width(4.dp))
                     }
-                    Text(
-                        status,
-                        style = MaterialTheme.typography.labelLarge,
-                        fontWeight = if (progress.solved) FontWeight.SemiBold else FontWeight.Normal,
-                        color = MaterialTheme.colorScheme.run { if (progress.solved) onSurface else onSurfaceVariant },
-                    )
+                    // An untried puzzle shows nothing here (TalkBack still hears "Not tried yet").
+                    if (progress.solved || progress.attempts > 0) {
+                        Text(
+                            status,
+                            style = MaterialTheme.typography.labelLarge,
+                            fontWeight = if (progress.solved) FontWeight.SemiBold else FontWeight.Normal,
+                            color = MaterialTheme.colorScheme.run {
+                                if (progress.solved) onSurface else onSurfaceVariant
+                            },
+                        )
+                    }
                     if (extras.isNotEmpty()) {
                         Spacer(Modifier.width(Spacing.sm))
                         if (progress.nudgesUsed > 0) {

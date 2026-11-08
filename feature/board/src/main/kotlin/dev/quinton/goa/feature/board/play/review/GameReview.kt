@@ -287,12 +287,10 @@ private fun TurnOrder(table: TableUi) {
                 }
             }
 
-            GamePhase.END_OF_ROUND -> Text(
-                "Every card has resolved. The end of round steps run (p.8).",
-                style = MaterialTheme.typography.bodyMedium,
-            )
+            GamePhase.END_OF_ROUND -> Text("End of round (p.8)", style = MaterialTheme.typography.bodyMedium)
 
-            GamePhase.GAME_OVER -> Text("The game is over.", style = MaterialTheme.typography.bodyMedium)
+            // The title already says the game is over.
+            GamePhase.GAME_OVER -> Unit
         }
     }
 }
@@ -507,12 +505,6 @@ private fun TurnsTab(
             vertical = Spacing.md,
         ),
     ) {
-        item(key = "intro") {
-            Quiet(
-                "Each hero's card at the reveal, in the order they acted, and what happened. " +
-                    "Cards that were facedown stay hidden (p.4).",
-            )
-        }
         rounds.forEach { (round, turns) ->
             roundItems(table, round, turns.sortedByDescending { it.turn }, onCard, onAction)
         }
@@ -579,11 +571,7 @@ private fun TurnCard(table: TableUi, turn: TurnUi, onCard: OpenCard, onAction: (
             }
             if (turn.plays.isEmpty()) {
                 Quiet(
-                    if (current) {
-                        "Cards are played facedown and revealed together (p.7)."
-                    } else {
-                        "No cards were revealed."
-                    },
+                    if (current) "Not revealed yet (p.7)" else "No cards were revealed.",
                 )
             } else {
                 Row(

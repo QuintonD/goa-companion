@@ -90,7 +90,6 @@ import dev.quinton.goa.feature.board.board.SearchField
 import dev.quinton.goa.feature.board.list.LineupHeroes
 import dev.quinton.goa.feature.board.map.PreloadMapPainting
 import dev.quinton.goa.feature.board.play.PlayText
-import dev.quinton.goa.feature.board.play.puzzles.PuzzleText
 import dev.quinton.goa.feature.board.play.table.SpellbookChip
 import dev.quinton.goa.feature.board.play.table.SpellbookSheet
 import dev.quinton.goa.feature.board.play.table.TieBreakerMark
@@ -286,8 +285,7 @@ private fun PlayableNote(state: NewGameUiState.Ready) {
         )
         Spacer(Modifier.width(Spacing.xs))
         Text(
-            "${BoardText.count(state.playable, "hero", "heroes")} can play so far; " +
-                "$later more join as their cards are tested.",
+            "${state.playable} of ${state.playable + later} playable",
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
@@ -386,15 +384,10 @@ private fun OptionsStep(
                 StrengthSlider(state.form.strength, "Computer strength", showValue = false) {
                     onAction(NewGameAction.SetStrength(it))
                 }
-                Text(
-                    PlayText.strengthNote(state.form.strength),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
                 if (state.aiSeats.size > 1) Advanced(state, onAction)
             }
 
-            Section("Length", note = lengthNote(state)) {
+            Section("Length") {
                 // Each length with the counters it starts with, as the engine sets them up (p.5): the choice reads
                 // without the rulebook (sol #17).
                 val lanes = state.map?.lanes ?: 1
@@ -437,11 +430,6 @@ private fun OptionsStep(
                         style = GoaTextStyles.overline,
                         color = MaterialTheme.colorScheme.primary,
                         modifier = Modifier.semantics { heading() },
-                    )
-                    Text(
-                        "A nudge before a clearly worse choice, the turning points after. It never chooses for you.",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
                 Spacer(Modifier.width(Spacing.sm))
@@ -535,11 +523,6 @@ private fun YouPlay(state: NewGameUiState.Ready, onAction: (NewGameAction) -> Un
             ControlChip(state, option, selected = option == control) { onAction(NewGameAction.SetControl(option)) }
         }
     }
-    Text(
-        controlNote(state, control),
-        style = MaterialTheme.typography.bodySmall,
-        color = MaterialTheme.colorScheme.onSurfaceVariant,
-    )
     // Choosing to play Gydion: his spell cards one tap away (ADR-040).
     controlled(state, control).map(state::hero).filter { it.spells.isNotEmpty() }.forEach { hero ->
         SpellbookChip(hero, onClick = { onSpellbook(hero.id) })
@@ -554,13 +537,6 @@ private fun teamOf(state: NewGameUiState.Ready, control: Control): Team = when (
 private fun controlled(state: NewGameUiState.Ready, control: Control): List<String> = when (control) {
     is Control.WholeTeam -> state.form.lineup.team(control.team)
     is Control.Hero -> listOf(control.heroId)
-}
-
-/** "The computer plays Brogan, Wasp and Tigerclaw." */
-private fun controlNote(state: NewGameUiState.Ready, control: Control): String {
-    val yours = controlled(state, control)
-    val computer = (state.red + state.blue).filterNot { it in yours }.map { state.hero(it).name }
-    return "The computer plays ${PuzzleText.names(computer)}."
 }
 
 /** One choice of who you play: the portraits in their team's rings, the mark, the name; the chosen one bronze. */
@@ -828,9 +804,3 @@ internal fun startingCounters(lanes: Int, length: GameLength, heroes: Int): Stri
     return "$wavesText · $life Lives"
 }
 
-/** What the length's counts are, and where the rulebook sets them. */
-private fun lengthNote(state: NewGameUiState.Ready): String {
-    val heroes = state.red.size + state.blue.size
-    val page = if (state.form.length == GameLength.LONG) "p.23" else "p.5"
-    return "With $heroes heroes; Lives are per team ($page)."
-}

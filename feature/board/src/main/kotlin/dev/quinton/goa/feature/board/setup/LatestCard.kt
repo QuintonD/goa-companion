@@ -85,12 +85,6 @@ internal fun LatestCard(
                     }
                     LineupHeroes(Team.BLUE, source.blue, size = 26.dp)
                 }
-                Text(
-                    names,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(top = 2.dp),
-                )
             }
             Spacer(Modifier.width(Spacing.sm))
             Column(horizontalAlignment = Alignment.CenterHorizontally) {

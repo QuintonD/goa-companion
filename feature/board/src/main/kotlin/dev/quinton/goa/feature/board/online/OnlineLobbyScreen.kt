@@ -65,7 +65,6 @@ import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -557,11 +556,6 @@ private fun Actions(state: LobbyUi, actions: OnlineLobbyActions, onPick: () -> U
                 enabled = state.canStart,
                 modifier = Modifier.fillMaxWidth().heightIn(min = 52.dp),
             ) { Text("Start the game") }
-            Text(
-                "You start the game; the server flips the Tie Breaker coin.",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
         }
         if (ready) {
             GoaOutlinedButton(
@@ -594,7 +588,7 @@ private fun HeroPicker(
 ) {
     BoardSheet(onDismiss = onDismiss) {
         Column(Modifier.fillMaxWidth().fillMaxHeight(SHEET_HEIGHT)) {
-            SheetTitle("Pick your hero", "Heroes someone else has picked aren't here.", onDone = onDismiss)
+            SheetTitle("Pick your hero", null, onDone = onDismiss)
             FlowRow(
                 Modifier
                     .fillMaxWidth()
@@ -676,14 +670,9 @@ private fun QrDialog(state: LobbyUi, onDismiss: () -> Unit) {
                         modifier = Modifier.fillMaxWidth().aspectRatio(1f),
                     )
                 }
+                // The title carries the code; one line on how to scan it.
                 Text(
-                    state.code,
-                    style = MaterialTheme.typography.titleLarge,
-                    fontFamily = FontFamily.Monospace,
-                    fontWeight = FontWeight.SemiBold,
-                )
-                Text(
-                    "In the app: Play → Online → Scan QR. On an iPhone, point the Camera at it: it opens the web app.",
+                    "Scan in the app, or with an iPhone's Camera.",
                     style = MaterialTheme.typography.bodyMedium,
                 )
             }

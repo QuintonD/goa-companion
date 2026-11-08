@@ -59,7 +59,6 @@ import dev.quinton.goa.core.designsystem.component.scaledIconSize
 import dev.quinton.goa.core.designsystem.theme.GoaTextStyles
 import dev.quinton.goa.core.designsystem.theme.GoaTheme
 import dev.quinton.goa.core.designsystem.theme.Spacing
-import dev.quinton.goa.feature.board.play.online.leaderboard.LeaderboardPresenter
 import dev.quinton.goa.feature.board.play.online.leaderboard.LeaderboardRowUi
 import dev.quinton.goa.feature.board.play.online.leaderboard.LeaderboardTab
 import dev.quinton.goa.feature.board.play.online.leaderboard.LeaderboardUi
@@ -106,13 +105,6 @@ fun OnlineLeaderboardScreen(
                         ) { Text(tab.label) }
                     }
                 }
-                Text(
-                    "Public Elo ratings from ranked online games. A " +
-                        (if (state.tab == LeaderboardTab.HEROES) "hero" else "player") +
-                        " appears after ${LeaderboardPresenter.GAMES_TO_APPEAR} rated games.",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
                 state.status?.let { Status(it, state.stale) }
                 when {
                     state.rows.isNotEmpty() -> {

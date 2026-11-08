@@ -125,11 +125,7 @@ fun BoardsScreen(
                         EmptyState(
                             icon = Icons.Outlined.Hexagon,
                             title = "No boards yet",
-                            message = if (ready.unreadable) {
-                                "The saved boards couldn't be read."
-                            } else {
-                                "Set up any line-up on the real map and see who can reach whom."
-                            },
+                            message = "The saved boards couldn't be read.".takeIf { ready.unreadable },
                             modifier = Modifier.align(Alignment.Center),
                             action = {
                                 GoaButton(onClick = onNew, modifier = Modifier.heightIn(min = 52.dp)) {
