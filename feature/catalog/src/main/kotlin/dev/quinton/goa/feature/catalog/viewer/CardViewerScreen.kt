@@ -422,7 +422,7 @@ private fun NotOnTheCard(card: Card, isHandicap: Boolean, onShowText: () -> Unit
                         OfficialIcon(OfficialArt.itemIcon(stat), Modifier.size(width = 40.dp, height = 30.dp))
                         Spacer(Modifier.width(Spacing.sm))
                         Text(
-                            "As an item: +1 ${stat.label} (the icon at the foot of the card, p.16)",
+                            "Item: +1 ${stat.label} (p.16)",
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )

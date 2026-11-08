@@ -80,7 +80,6 @@ import dev.quinton.goa.core.designsystem.theme.Spacing
 import dev.quinton.goa.core.domain.catalog.DeckGroup
 import dev.quinton.goa.core.domain.catalog.DeckGroupKind
 import dev.quinton.goa.core.domain.catalog.DeckLayout
-import dev.quinton.goa.core.domain.catalog.SPELLBOOK_NOTE
 import dev.quinton.goa.core.domain.catalog.StartZone
 import dev.quinton.goa.core.domain.catalog.StartingCards
 import dev.quinton.goa.core.domain.catalog.TierRow
@@ -90,7 +89,6 @@ import dev.quinton.goa.core.domain.catalog.extraRowTitle
 import dev.quinton.goa.core.domain.catalog.handicapBasis
 import dev.quinton.goa.core.domain.catalog.kindLabel
 import dev.quinton.goa.core.domain.catalog.label
-import dev.quinton.goa.core.domain.catalog.multipleGoldNote
 import dev.quinton.goa.core.domain.catalog.profileBars
 import dev.quinton.goa.core.domain.catalog.spokenHandicapBasis
 import dev.quinton.goa.core.domain.catalog.spokenSummary
@@ -142,27 +140,10 @@ internal fun DeckGroupSection(group: DeckGroup, onCardClick: (Card) -> Unit, mod
                 )
             },
         )
-        if (group.kind == DeckGroupKind.BASIC) MultipleGoldNote(group.cards)
         // The cards themselves, in tier order (I, II A, II B, III A, III B): each scan prints its
         // tier numeral, so the grid doesn't repeat it.
         DeckCardGrid(group.cards, onCardClick)
     }
-}
-
-/**
- * Takahide has three gold cards. Their own text says where each starts and how they swap
- * ("Swap this card with a different gold card in your deck."), so the note points there and
- * the tiles carry "Starts in hand" / "Starts in deck" from each card's reminder text.
- */
-@Composable
-private fun MultipleGoldNote(cards: List<Card>) {
-    val note = multipleGoldNote(cards) ?: return
-    Text(
-        note,
-        style = MaterialTheme.typography.bodyMedium,
-        color = MaterialTheme.colorScheme.onSurfaceVariant,
-        modifier = Modifier.padding(bottom = Spacing.sm),
-    )
 }
 
 /** The hero's extra cards by tier; titled "Spellbook" for Gydion's spell cards. */
@@ -176,19 +157,12 @@ internal fun ExtrasSection(layout: DeckLayout, onCardClick: (Card) -> Unit, modi
             modifier = Modifier.semantics(mergeDescendants = true) { heading() },
             trailing = {
                 Text(
-                    "${layout.extras.size} cards",
+                    "${layout.extras.size}",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             },
         )
-        if (spellbook) {
-            Text(
-                SPELLBOOK_NOTE,
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-        }
         layout.extraRows.forEach { row ->
             Text(
                 extraRowTitle(row),
