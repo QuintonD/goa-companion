@@ -52,11 +52,9 @@ import androidx.compose.ui.semantics.onClick
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import dev.quinton.goa.core.designsystem.cardtext.CardTextView
@@ -65,6 +63,8 @@ import dev.quinton.goa.core.designsystem.cardtext.GameIcons
 import dev.quinton.goa.core.designsystem.cardtext.cardTextAnnotated
 import dev.quinton.goa.core.designsystem.component.CARD_ASPECT
 import dev.quinton.goa.core.designsystem.component.CardScan
+import dev.quinton.goa.core.designsystem.component.CardTitle
+import dev.quinton.goa.core.designsystem.component.CardTitleSize
 import dev.quinton.goa.core.designsystem.component.GoaPlate
 import dev.quinton.goa.core.designsystem.component.GoaPlateTheme
 import dev.quinton.goa.core.designsystem.component.HERO_RATINGS_TITLE
@@ -297,8 +297,6 @@ private val PEEK_VEIL = Color(0xE6070A0D)
 
 private const val MAX_COLUMNS = 6
 
-/** A card's name under its scan: 14 sp, wrapping to two lines rather than shrinking. */
-private val CAPTION @Composable get() = MaterialTheme.typography.labelLarge.copy(letterSpacing = 0.sp)
 private const val MAX_WIDTH_SCALE = 1.6f
 
 /** Only a card this wide prints a name you can read from the scan: under it, the name is repeated as a caption. */
@@ -334,13 +332,12 @@ private fun DeckCard(
         // card doesn't print (where a basic card starts, what a Handicap card stands in for) follows.
         val note = (if (isHandicap) card.handicapBasis() else null) ?: card.startsIn()
         if (showName) {
-            Text(
+            CardTitle(
                 card.name,
-                style = CAPTION,
+                size = CardTitleSize.Caption,
                 color = MaterialTheme.colorScheme.onSurface,
                 textAlign = TextAlign.Center,
                 maxLines = 2,
-                overflow = TextOverflow.Ellipsis,
                 modifier = Modifier.padding(top = Spacing.xs).clearAndSetSemantics {},
             )
         }
@@ -448,13 +445,7 @@ private fun PlateCardTile(card: Card, onClick: () -> Unit, modifier: Modifier, i
         Box(Modifier.width(4.dp).fillMaxHeight().background(accent))
         Column(Modifier.padding(start = 10.dp, end = Spacing.sm, top = Spacing.sm, bottom = Spacing.sm).weight(1f)) {
             Row(verticalAlignment = Alignment.Top) {
-                Text(
-                    card.name,
-                    style = MaterialTheme.typography.titleSmall,
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.weight(1f).padding(end = Spacing.xs),
-                )
+                CardTitle(card.name, maxLines = 2, modifier = Modifier.weight(1f).padding(end = Spacing.xs))
                 InitiativeBadge(card.initiative, accent = accent, size = 28.dp)
             }
             card.primary?.let { primary ->
