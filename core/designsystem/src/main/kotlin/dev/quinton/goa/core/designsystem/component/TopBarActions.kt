@@ -82,7 +82,7 @@ fun BarIconButton(action: BarAction, modifier: Modifier = Modifier) {
 /**
  * A top-bar icon button whose [label] shows as a tooltip on long press. [icon] carries the content description
  * (normally [label]). Disabled (undo with nothing to undo), the glyph stays in sight on the steel banner: white at
- * 40 % over a 1 dp dark halo, not Material's grey that the banner swallows.
+ * 50 % over a 1 dp dark halo, not Material's grey that the banner swallows (3.6:1 to 4.7:1 on the steel).
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -120,7 +120,7 @@ fun BarIconButton(
 }
 
 /** A disabled glyph on the steel banner, and the dark halo under it. */
-private val BannerDisabledIcon = Color.White.copy(alpha = 0.4f)
+private val BannerDisabledIcon = Color.White.copy(alpha = 0.5f)
 private val BannerDisabledHalo = Color.Black.copy(alpha = 0.7f)
 
 /** The overflow button ("More options") and its menu: each action as an icon and its label. */

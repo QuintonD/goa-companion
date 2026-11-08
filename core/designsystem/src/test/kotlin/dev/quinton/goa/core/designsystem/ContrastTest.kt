@@ -176,6 +176,34 @@ class ContrastTest {
         }
     }
 
+    /**
+     * Muted states (a done turn, a past step, an empty slot) step back by losing decoration, not legibility: their
+     * words ≥ 4.5:1 (5:1 on the plate and well, where they mostly sit) and their edges ≥ 3:1 on every ground of the
+     * theme, a picked tint and, in the dark theme, a steel chip included.
+     */
+    @Test fun mutedStates() {
+        themes().forEach { (theme, scheme, x) ->
+            listOf(
+                "background" to scheme.background,
+                "surface" to scheme.surface,
+                "surfaceVariant" to scheme.surfaceVariant,
+                "plate" to x.plate,
+                "well" to x.plateWell,
+                "picked" to x.selectionFill.compositeOver(x.plate),
+            ).forEach { (name, bg) ->
+                check("$theme textMuted on $name", x.textMuted, bg, TEXT)
+                check("$theme outlineMuted on $name", x.outlineMuted, bg, GRAPHIC)
+            }
+            check("$theme textMuted on plate", x.textMuted, x.plate, MUTED_ON_PLATE)
+            check("$theme textMuted on well", x.textMuted, x.plateWell, MUTED_ON_PLATE)
+            // The table's well is the plate darkened (dark) or the paper a shade deeper (light).
+            val tableWell = if (theme == "dark") Color.Black.copy(alpha = 0.26f) else Color(0x1F6A5634)
+            check("$theme textMuted on the table's well", x.textMuted, tableWell.compositeOver(x.plate), TEXT)
+            check("$theme outlineMuted on the table's well", x.outlineMuted, tableWell.compositeOver(x.plate), GRAPHIC)
+        }
+        check("dark textMuted on a steel chip", DarkExtended.textMuted, ControlSteel.Dark.face, TEXT)
+    }
+
     @Test fun everyOfficialGraphicTheAppNamesIsBundled() {
         OfficialArt.all.forEach { path -> assertWithMessage(path).that(bundledAsset(path).isFile).isTrue() }
     }
@@ -186,5 +214,6 @@ class ContrastTest {
         const val AAA = 7.0
         const val GRAPHIC = 3.0
         const val DISABLED_EDGE = 1.6
+        const val MUTED_ON_PLATE = 5.0
     }
 }
