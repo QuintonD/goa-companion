@@ -49,7 +49,7 @@ class PlayFlowTest {
 
         // Turn 1: Wasp's hand as cards; a tap chooses one (it answers nothing), then the bronze
         // "Play … facedown" button under the hand plays it.
-        rule.waitFor(hasText("Play a card facedown"), timeout = GAME_TIMEOUT)
+        rule.waitFor(hasContentDescription("Play a card facedown", substring = true), timeout = GAME_TIMEOUT)
         rule.tap(hasClickLabel("Choose"))
         rule.tap(
             hasText("facedown", substring = true) and hasText("Play ", substring = true) and

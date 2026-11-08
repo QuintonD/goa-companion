@@ -200,18 +200,11 @@ internal fun UpgradePicker(
         }
     }
     if (rows.isNotEmpty()) {
-        TapHint("Tap a card on the left to choose it; tap it again, or a card beside it, to read it large.")
-        CommitRow(table, chosen, "Choose a card to upgrade", busy, onAnswer) {
+        CommitRow(table, chosen, "Upgrade", busy, onAnswer) {
             val key = rows.firstOrNull { it.choice == chosen }?.card?.id ?: rows.first().card.id
             read(key, true)
         }
     }
-    RuleRow(
-        "The card on the left is the choice: it goes back to your deck, and you keep one of the two beside it; " +
-            "the other is tucked under your hero as an item.",
-        page = "p.15",
-        live = false,
-    )
 }
 
 @Composable

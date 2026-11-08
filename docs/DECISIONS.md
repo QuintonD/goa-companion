@@ -2970,3 +2970,25 @@ pushes Fit and Flip down into the panel).
 **Consequences:** At 384 dp the overlay under the top bar drops from about 180 dp to about 90 dp. A player reads who
 acts from the ring and glow, not a word; hero and card names need a tap. The game review keeps the labelled
 `TableHud` and turn track cells. Refines ADR-041's turn track and the hill climb's score bar (UI hill climb, round 4).
+
+## ADR-084 — Show, don't tell on the play table's decision panel (2026-11-08)
+**Context:** The owner, on an S25 Ultra: the play-against-the-computer panel was "way too bloated". A tied initiative
+stacked three headers ("You choose · Ursafar", a TIED INITIATIVE plate, a "Who acts first?" box), an echo line
+("Chosen: Ursafar"), a List button, a "Choose · Ursafar" button, chips saying the same, and a rules paragraph with
+p.7. Every action chip carried a rule line and a page pill; board questions a "12 spaces · tap a lit one" hint.
+
+**Decision:** The question is said once, in a one-line head (portrait + the shortest form of the engine's prompt;
+someone else's question as "Computer · choosing an action"); no title plate or prompt box under it. No echo lines and
+no tap hints: the map's lit spaces and selection outline show them, Confirm says what it does. Rules no card prints
+are on demand: an info mark at the head's end opens them with their pages (`decisionRules`); the rule data and
+TalkBack's full words stay. Action chips are glyph + value; the actions a card prints but can't take now are dimmed
+chips whose reason is a tap away (replacing the Note box). A board question's commit is one row: the asking card as a
+thumbnail, List, Confirm. One step where the confirm added nothing: who acts first is a portrait button per tied hero,
+and a hero or token named on a chip answers in one tap; spaces, map taps, cards and defences keep choose-then-commit
+(a space's route, a card's text, a defence's outcome must be seen first). Smaller: Read card is the book alone, the
+Defend attack is a row not a box, the Coach drops its "Coach:" prefix and "Your choice" echo, Waiting its rule line.
+
+**Consequences:** The panel is shorter in every state and the map gets the room. Discoverability of rules moves to one
+icon; anything needed to decide stays visible (Defense totals and outcomes, what not defending costs, what the card
+action casts). Refines ADR-041 (only what no card says), ADR-072 and ADR-081 (List per map choice, Defend list).
+The web app's DecisionPanel (ADR-043) is unchanged and now differs; port it when the Android form settles.

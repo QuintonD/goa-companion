@@ -30,8 +30,6 @@ import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import dev.quinton.goa.core.designsystem.component.CardTextBox
-import dev.quinton.goa.core.designsystem.component.PlateColor
 import dev.quinton.goa.core.designsystem.component.cardColor
 import dev.quinton.goa.core.designsystem.component.scaledIconSize
 import dev.quinton.goa.core.designsystem.theme.Spacing
@@ -58,7 +56,7 @@ internal fun TableUi.primaryPreview(): PrimaryPreview? =
     decision?.takeIf { it.kind == DecisionKind.CHOOSE_ACTION }?.context?.primaryPreview
 
 /** True when the question offers the Primary action. */
-private fun TableUi.offersPrimary(): Boolean =
+internal fun TableUi.offersPrimary(): Boolean =
     decision?.options?.any { it is Choice.Action && it.action == ActionType.PRIMARY } == true
 
 /** "Casts Expeditious Retreat" / "Casts one of these: you choose which next"; null for a card's own text. */
@@ -126,28 +124,17 @@ internal fun CastPreview(table: TableUi, focus: CardFocusState) {
             Text(target, style = MaterialTheme.typography.bodySmall)
         }
         noEffectLine(preview)?.let { NoEffect(it) }
-        SpellReasons(table, preview, primaryOffered = true)
+        // The card's other spells and why they can't be cast are in the head's rules (decisionRules).
     }
 }
 
-/** The card's spells that can't be cast, when the Primary isn't offered (after the action's own line). */
-@Composable
-internal fun SpellReasonsIfNoPrimary(table: TableUi) {
-    val preview = table.primaryPreview() ?: return
-    if (table.offersPrimary()) return
-    SpellReasons(table, preview, primaryOffered = false)
-}
-
-@Composable
-private fun SpellReasons(table: TableUi, preview: PrimaryPreview, primaryOffered: Boolean) {
-    spellReasonLines(table, preview, primaryOffered).forEach { r ->
-        Text(
-            r.text,
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.padding(start = Spacing.lg),
-        )
-    }
+/**
+ * The card's spells that can't be cast and why, for the head's rules ([decisionRules]): the Primary's other spells, or
+ * every one when it isn't offered.
+ */
+internal fun spellRuleLines(table: TableUi): List<SpellReason> {
+    val preview = table.primaryPreview() ?: return emptyList()
+    return spellReasonLines(table, preview, table.offersPrimary())
 }
 
 /** The spell the Primary casts, as its official card: tap to read it large among the others. */
@@ -173,19 +160,21 @@ private fun SpellThumb(table: TableUi, spell: Card, spells: List<Card>, index: I
     ) { TableCard(spell, width = SPELL_THUMB) }
 }
 
-/** "Will do nothing": said plainly, in the error colours, never by colour alone (the icon and words). */
+/** "Will do nothing": said plainly in one row, the warning mark and words in the error colour (never colour alone). */
 @Composable
 private fun NoEffect(text: String) {
-    CardTextBox(PlateColor.RED, Modifier.fillMaxWidth().semantics(mergeDescendants = true) {}, cap = "Note") {
-        Row(verticalAlignment = Alignment.Top) {
-            Icon(
-                Icons.Outlined.WarningAmber,
-                contentDescription = "Warning",
-                modifier = Modifier.padding(top = 2.dp).size(scaledIconSize(16.dp, 1.3f)),
-            )
-            Spacer(Modifier.width(Spacing.xs))
-            Text(text, style = MaterialTheme.typography.bodySmall)
-        }
+    Row(
+        Modifier.fillMaxWidth().semantics(mergeDescendants = true) {},
+        verticalAlignment = Alignment.Top,
+    ) {
+        Icon(
+            Icons.Outlined.WarningAmber,
+            contentDescription = "Warning",
+            tint = MaterialTheme.colorScheme.error,
+            modifier = Modifier.padding(top = 2.dp).size(scaledIconSize(16.dp, 1.3f)),
+        )
+        Spacer(Modifier.width(Spacing.xs))
+        Text(text, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error)
     }
 }
 

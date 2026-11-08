@@ -45,9 +45,9 @@ internal fun decisionOwner(table: TableUi): String? {
 }
 
 /**
- * What the decision asks, the header's second line, short and imperative for the person ("Choose a space", "Defend
- * against Arien", "Answer Tigerclaw"), or null; never what the panel's title plate already says. While someone else
- * decides, what they are doing ("Choosing an action").
+ * What the decision asks, short and imperative for the person ("Choose an action", "Who acts first?", "Defend against
+ * Arien", "Answer Tigerclaw · Discard a card"), or, while someone else decides, what they are doing ("Choosing an
+ * action"). The panel says it once, in its head ([decisionHead]); nothing under the head repeats it (show, don't tell).
  */
 internal fun decisionDirective(table: TableUi): String? {
     val decision = table.decision ?: return null
@@ -58,18 +58,41 @@ internal fun decisionDirective(table: TableUi): String? {
         val verb = if (asking) "Defend" else "Defending"
         return attacker?.let { "$verb against $it" } ?: verb
     }
-    // A question the panel titles on a parchment plate ("DISCARD A CARD") is said there, once, in the game's style: the
-    // header then only says whom it answers (the Minion Battle keeps its name over "Remove a minion").
-    val plated = asking && decision.kind != DecisionKind.REMOVE_MINION &&
-        panelLayout(decision.kind, table.sourceCard != null) != PanelLayout.CARD_BESIDE &&
-        promptParts(decision.prompt).title != null
-    val own = when {
-        !asking -> doingWords(decision.kind)
-        plated -> null
-        else -> askWords(decision.kind)
-    }
+    val own = if (asking) askPrompt(decision.kind, decision.prompt) else doingWords(decision.kind)
     val acting = responderId(table)?.let { table.track?.acting?.heroId } ?: return own
     return listOfNotNull("${if (asking) "Answer" else "Answering"} ${table.hero(acting).name}", own).joinToString(" · ")
+}
+
+/**
+ * The person's question in the fewest words that still say it: the engine's prompt without a title the panel needs
+ * no more ("Tied initiative: who acts first?" is "Who acts first?": the track shows the tie), an action question as
+ * "Choose an action" (the card is beside its chips).
+ */
+internal fun askPrompt(kind: DecisionKind, prompt: String): String {
+    if (kind == DecisionKind.CHOOSE_ACTION) return askWords(kind)
+    // "Take one card into your hand (the other becomes an item)": the aside is the rule, in the head's rules (p.15).
+    if (kind == DecisionKind.KEEP_UPGRADE) return prompt.substringBefore(" (").trim()
+    val parts = promptParts(prompt)
+    // "Choose one —" introduces the card's options: the dash points at the buttons under it.
+    return (parts.text?.takeIf { parts.title != null } ?: prompt).trimEnd(' ', '—')
+}
+
+/**
+ * The panel's one head line (2026-11-08, show, don't tell): the person's question ([decisionDirective]); while the
+ * computer, another player or the other side decides, who and what ("Computer · choosing an action"). The portrait
+ * beside it says which hero; the name is on the turn track. TalkBack hears [decisionHeaderSpoken].
+ */
+internal fun decisionHead(table: TableUi): String? {
+    val decision = table.decision ?: return null
+    val directive = decisionDirective(table)
+    if (table.asking) return directive
+    val hero = table.decider ?: return "${BoardText.team(decision.team)} is choosing"
+    val who = when {
+        hero.heroId in table.players -> table.players.getValue(hero.heroId)
+        hero.controller is Controller.Ai -> "Computer"
+        else -> table.controllerLabel(hero)
+    }
+    return listOfNotNull(who, directive?.replaceFirstChar { it.lowercase() }).joinToString(" · ")
 }
 
 private fun askWords(kind: DecisionKind): String = when (kind) {

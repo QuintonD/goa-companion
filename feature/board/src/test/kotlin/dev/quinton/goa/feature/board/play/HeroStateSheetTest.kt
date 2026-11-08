@@ -191,10 +191,6 @@ class HeroStateSheetTest {
             }
         }
         compose.waitForIdle()
-        // The panel says how to reach the hero.
-        compose.onAllNodes(
-            hasText("Long-press a hero for their game state.", substring = true),
-        ).onFirst().assertExists()
         val wasp = compose.onAllNodes(
             hasContentDescription("Wasp, ", substring = true) and hasContentDescription("option", substring = true),
         )

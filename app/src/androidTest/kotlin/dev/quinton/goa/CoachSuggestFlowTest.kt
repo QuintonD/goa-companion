@@ -45,14 +45,14 @@ class CoachSuggestFlowTest {
         rule.waitForText("shows", substring = true)
         rule.tapText("Start the game")
 
-        rule.waitFor(hasText("Play a card facedown"), timeout = GAME_TIMEOUT)
+        rule.waitFor(hasContentDescription("Play a card facedown", substring = true), timeout = GAME_TIMEOUT)
         rule.tap(hasText("Suggest") and hasClickAction() and isEnabled())
         rule.waitFor(hasContentDescription("to win", substring = true), timeout = GAME_TIMEOUT)
         rule.waitFor(hasText("TIPS FOR WASP"), timeout = GAME_TIMEOUT)
         rule.tapText("Done")
 
         // Nothing was answered: the question is still there, and the card can be played.
-        rule.waitFor(hasText("Play a card facedown"), timeout = GAME_TIMEOUT)
+        rule.waitFor(hasContentDescription("Play a card facedown", substring = true), timeout = GAME_TIMEOUT)
         rule.tap(hasClickLabel("Choose"))
         rule.tap(
             hasText("facedown", substring = true) and hasText("Play ", substring = true) and

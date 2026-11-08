@@ -1,6 +1,7 @@
 package dev.quinton.goa.feature.board.play.table
 
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
@@ -18,7 +19,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.FormatListBulleted
 import androidx.compose.material.icons.outlined.CheckCircle
-import androidx.compose.material.icons.outlined.TouchApp
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -32,7 +32,6 @@ import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
-import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -50,21 +49,13 @@ import dev.quinton.goa.feature.board.ui.PlateWell
 
 /*
  * How a question is answered on the board (DecisionPanel): spaces, units or tokens are tapped on the map, then
- * confirmed. Every such question can also be answered from a list (sol #2, sol-b #1): the "List" chip beside the hint
+ * confirmed. Every such question can also be answered from a list (sol #2, sol-b #1): the "List" chip beside Confirm
  * opens it ([MapList]), each option a 48 dp row led by the letter its space or figure carries on the map ([shownTags]).
  * Look-alike minions (the Minion Battle) are always listed.
  */
 
-/**
- * How a board question is answered: spaces, units or tokens are tapped on the board. Once one is tapped, what it is in
- * full ("Chosen: Lane Zone 3 · 3 spaces from Wasp"): the Confirm button says only what it does (opus #21).
- */
-internal fun boardHint(table: TableUi): String =
-    boardChoice(table)?.let { "Chosen: ${table.label(it)}" }
-        ?: (boardHint(table.spaceOptions.size, table.pieceOptions.size) + longPressHint(table))
-
 /** The space, unit or token tapped on the board and not confirmed yet. */
-private fun boardChoice(table: TableUi): Choice? =
+internal fun boardChoice(table: TableUi): Choice? =
     table.selected?.takeIf { it is Choice.Space || it is Choice.Unit || it is Choice.Token }
 
 /**
@@ -94,33 +85,6 @@ internal fun confirmLabel(table: TableUi, selected: Choice): String {
     }
 }
 
-/** [boardHint] for a question no card asks, on the plate itself, with the "List" chip at its end. */
-@Composable
-internal fun BoardHint(table: TableUi) {
-    HintRow(boardHint(table), table, MaterialTheme.typography.bodyMedium, dim = true)
-}
-
-/** The hint's words after the tap glyph, and the "List" chip at the row's end ([MapListToggle]). */
-@Composable
-private fun HintRow(text: String, table: TableUi, style: TextStyle, dim: Boolean) {
-    Row(verticalAlignment = Alignment.CenterVertically) {
-        Icon(
-            Icons.Outlined.TouchApp,
-            null,
-            tint = MaterialTheme.colorScheme.secondary,
-            modifier = Modifier.size(scaledIconSize(18.dp, 1.3f)),
-        )
-        Spacer(Modifier.width(Spacing.xs))
-        Text(
-            text,
-            style = style,
-            color = if (dim) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onSurface,
-            modifier = Modifier.weight(1f),
-        )
-        MapListToggle(table, Modifier.padding(start = Spacing.sm))
-    }
-}
-
 /**
  * "List": the question's map options as rows in the panel and lettered on the map, or back to the map alone. Offered
  * for every question answered on the map, except look-alike minions, which are always listed. A chip at 48 dp, bronze
@@ -128,7 +92,7 @@ private fun HintRow(text: String, table: TableUi, style: TextStyle, dim: Boolean
  */
 @Composable
 internal fun MapListToggle(table: TableUi, modifier: Modifier = Modifier) {
-    if (!table.asking || !hasMapOptions(table) || lookAlikeMinions(table)) return
+    if (!listOffered(table)) return
     val list = LocalMapList.current
     GoaFilterChip(
         selected = list.open,
@@ -147,69 +111,47 @@ internal fun MapListToggle(table: TableUi, modifier: Modifier = Modifier) {
     ) { Text("List", maxLines = 1) }
 }
 
+/** Whether the question offers "List" ([MapListToggle]). */
+internal fun listOffered(table: TableUi): Boolean = table.asking && hasMapOptions(table) && !lookAlikeMinions(table)
+
 private fun hasMapOptions(table: TableUi) = table.spaceOptions.isNotEmpty() || table.pieceOptions.isNotEmpty()
 
 /**
- * Confirm, once a space or piece is tapped on the board: one line at 56 dp saying what it does ([confirmLabel]); the
- * plate above says which one it is. TalkBack hears both.
+ * Confirm, once a space or piece is tapped on the board: one line saying what it does ([confirmLabel]: "Move here · 3",
+ * "Choose · Tigerclaw"); the map shows which one. TalkBack hears the choice in full too.
  */
 @Composable
-internal fun BoardConfirm(table: TableUi, onAnswer: (Choice) -> Unit, busy: Boolean) {
-    val selected = boardChoice(table)
-    if (selected != null) {
-        val label = confirmLabel(table, selected)
-        PlateButton(
-            onClick = { onAnswer(selected) },
-            enabled = !busy,
-            modifier = Modifier
-                .fillMaxWidth()
-                .heightIn(min = 56.dp)
-                .semantics { contentDescription = "$label, ${table.label(selected)}" },
-            contentPadding = PaddingValues(horizontal = Spacing.lg, vertical = Spacing.sm),
-        ) {
-            Text(label, textAlign = TextAlign.Center, maxLines = 2)
-        }
+internal fun BoardConfirm(table: TableUi, onAnswer: (Choice) -> Unit, busy: Boolean, modifier: Modifier = Modifier) {
+    val selected = boardChoice(table) ?: return
+    val label = confirmLabel(table, selected)
+    PlateButton(
+        onClick = { onAnswer(selected) },
+        enabled = !busy,
+        modifier = modifier
+            .fillMaxWidth()
+            .heightIn(min = 48.dp)
+            .semantics { contentDescription = "$label, ${table.label(selected)}" },
+        contentPadding = PaddingValues(horizontal = Spacing.md, vertical = Spacing.xs),
+    ) {
+        Text(label, textAlign = TextAlign.Center, maxLines = 2)
     }
 }
 
 /**
- * The panel at its peek while a space is chosen on the map ([GameTable]): under the header (who decides, the whole
- * instruction), how many spaces it offers in one line ("12 spaces · tap a lit one") with the "List" chip, then only
- * the commit: Confirm naming the choice once one is tapped, and any answer that isn't on the map ("Don't respawn"). The
- * asking card is one drag or tap up; so is the list, which opens the whole panel.
+ * The panel at its peek while a space is chosen on the map ([GameTable]): under the head (the question), one row with
+ * "List" and, once a space is tapped, Confirm saying what it does; then any answer that isn't on the map ("Don't
+ * respawn"). The lit spaces say where to tap. The asking card is one drag or tap up; so is the list, which opens the
+ * whole panel.
  */
 @Composable
 fun BoardPeek(table: TableUi, onAnswer: (Choice) -> Unit, busy: Boolean) {
     Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-        val count = table.spaceOptions.size
-        HintRow(
-            if (count == 1) "1 space · tap the lit one" else "$count spaces · tap a lit one",
-            table,
-            MaterialTheme.typography.bodyLarge,
-            dim = false,
-        )
-        // Once one is tapped, which one in full: the Confirm under it says only what it does (opus #21).
-        boardChoice(table)?.let {
-            Text(
-                "Chosen: ${table.label(it)}",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+            MapListToggle(table)
+            BoardConfirm(table, onAnswer, busy, Modifier.weight(1f))
         }
-        if (boardChoice(table) != null) BoardConfirm(table, onAnswer, busy)
         Choices(table, table.buttonOptions, onAnswer, busy, brief = true)
     }
-}
-
-/**
- * When a hero's piece is an option (a tap there answers), how to read about that hero instead
- * (ADR-044): a long press always opens the hero's game state.
- */
-internal fun longPressHint(table: TableUi): String {
-    val heroOption = table.pieceOptions.keys.any { id ->
-        table.heroView(id) != null || table.view.pieces.firstOrNull { it.id == id }?.let(::figureOf) != null
-    }
-    return if (heroOption) " Long-press a hero for their game state." else ""
 }
 
 /**
@@ -218,7 +160,7 @@ internal fun longPressHint(table: TableUi): String {
  */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-internal fun BoardChips(table: TableUi, onSelect: (Choice) -> Unit) {
+internal fun BoardChips(table: TableUi, onSelect: (Choice) -> Unit, onAnswer: (Choice) -> Unit = onSelect) {
     val selected = boardChoice(table)
     val tags = shownTags(table, LocalMapList.current.open)
     if (!tags.isEmpty) {
@@ -247,7 +189,14 @@ internal fun BoardChips(table: TableUi, onSelect: (Choice) -> Unit) {
         horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
         verticalArrangement = Arrangement.spacedBy(Spacing.xs),
     ) {
-        chips.forEach { choice -> OptionChip(table.label(choice), choice == selected) { onSelect(choice) } }
+        // A hero or token named on its chip answers in one tap (the map's tap selects, then Confirm); a space is
+        // chosen first, so its route shows on the map before the move.
+        chips.forEach { choice ->
+            val now = choice !is Choice.Space
+            // Tapped on the map, it is Confirm's to answer ("Choose · Tigerclaw"): not said twice.
+            if (now && choice == selected) return@forEach
+            OptionChip(table.label(choice), choice == selected, now) { if (now) onAnswer(choice) else onSelect(choice) }
+        }
     }
 }
 
@@ -357,7 +306,9 @@ private fun MinionRow(
     modifier: Modifier = Modifier,
     onClick: () -> Unit,
 ) {
-    val (first, second) = minionRowLines(label)
+    val (first, rest) = minionRowLines(label)
+    // "Blue Melee minion" is what the marks before it show: the words keep only where it is (TalkBack hears all).
+    val second = rest?.split(" · ")?.filterNot { it.endsWith(" minion") }?.joinToString(" · ")?.ifEmpty { null }
     Surface(
         shape = RoundedCornerShape(7.dp),
         color = if (selected) MaterialTheme.colorScheme.primaryContainer else PlateWell,
@@ -408,7 +359,7 @@ private fun MinionRow(
 }
 
 @Composable
-private fun OptionChip(label: String, selected: Boolean, onClick: () -> Unit) {
+private fun OptionChip(label: String, selected: Boolean, answers: Boolean, onClick: () -> Unit) {
     Surface(
         shape = RoundedCornerShape(7.dp),
         color = if (selected) MaterialTheme.colorScheme.primaryContainer else PlateWell,
@@ -418,7 +369,13 @@ private fun OptionChip(label: String, selected: Boolean, onClick: () -> Unit) {
         ),
         modifier = Modifier
             .heightIn(min = 48.dp)
-            .selectable(selected = selected, role = Role.RadioButton, onClick = onClick),
+            .then(
+                if (answers) {
+                    Modifier.clickable(role = Role.Button, onClick = onClick)
+                } else {
+                    Modifier.selectable(selected = selected, role = Role.RadioButton, onClick = onClick)
+                },
+            ),
     ) {
         Row(
             Modifier.padding(horizontal = Spacing.md, vertical = Spacing.sm),

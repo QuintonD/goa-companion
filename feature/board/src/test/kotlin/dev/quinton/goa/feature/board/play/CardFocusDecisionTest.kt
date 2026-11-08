@@ -210,7 +210,7 @@ class CardFocusDecisionTest {
         tapInPanel(p, 0)
         panelButton("Discard ${name(p, 0)}").performClick()
         compose.waitForIdle()
-        compose.onNodeWithText("Coach: Keep it").assertExists()
+        compose.onNodeWithText("Keep it").assertExists()
         compose.onNodeWithText("Choose anyway").performClick()
         assertThat(actions).containsExactly(
             GameAction.Select(option(p, 0)),
