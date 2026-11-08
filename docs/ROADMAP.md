@@ -565,7 +565,7 @@ passes (including an in-place upgrade from the morning build with real data). Ev
 ## M32 — v0.15: the UI/UX hill climb (ADR-066 to ADR-081)
 - [x] Harness: two blind judges (gpt-6.1-sol, Claude Opus 5.5) score ~71 screenshots on 12 aspects; packages in parallel
   worktrees kept only when both prefer them side by side (`tools/ui-hillclimb/`, ADR-066) — 2026-11-06
-- [x] Five rounds, 31 packages gated and merged: sol 7.4 → 7.8 → 7.6 → 7.8 → 7.8 → 7.9–8.0, Opus 7.0 → 7.8 → 7.9 → 8.1 → 8.2 → 8.1
+- [x] Five rounds, 28 packages gated and merged: sol 7.4 → 7.8 → 7.6 → 7.8 → 7.8 → 7.9–8.0, Opus 7.0 → 7.8 → 7.9 → 8.1 → 8.2 → 8.1
   (rounds 0–5); history in `~/goa-hillclimb/history.md` on oldboi
 - [ ] The goal (9 on every aspect from both judges) is not reached; sol's medium issues are the limit
 - [ ] Web (`web/`) follows the new look and flows
