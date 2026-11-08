@@ -17,6 +17,7 @@ import dev.quinton.goa.core.domain.catalog.CatalogFilter
 import dev.quinton.goa.core.domain.catalog.CatalogSearchIndex
 import dev.quinton.goa.core.domain.catalog.CatalogSort
 import dev.quinton.goa.core.domain.catalog.FilterOptions
+import dev.quinton.goa.core.model.settings.CatalogLayout
 import dev.quinton.goa.feature.catalog.Fixtures
 import org.junit.Rule
 import org.junit.Test

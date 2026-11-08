@@ -2,6 +2,7 @@ package dev.quinton.goa.web.settings
 
 import dev.quinton.goa.core.model.settings.AppSettings
 import dev.quinton.goa.core.model.settings.BoardStyle
+import dev.quinton.goa.core.model.settings.CatalogLayout
 import dev.quinton.goa.core.model.settings.TimerLayout
 import dev.quinton.goa.web.storage.MemoryKeyValueStore
 import kotlin.test.Test
@@ -18,14 +19,14 @@ class WebSettingsRepositoryTest {
     @Test
     fun aBoardStyleFromALaterBuildKeepsEveryOtherSetting() = runTest {
         val store = MemoryKeyValueStore()
-        WebSettingsRepository(store).update { it.copy(catalogListView = true, computerStrength = 8) }
+        WebSettingsRepository(store).update { it.copy(catalogLayout = CatalogLayout.LIST, computerStrength = 8) }
         val key = store.keys().single()
         store.put(key, store.get(key)!!.replace("\"MINIATURES\"", "\"HOLOGRAMS\""))
 
         val reloaded = WebSettingsRepository(store).settings.first()
 
         assertEquals(BoardStyle.MINIATURES, reloaded.boardStyle)
-        assertEquals(true, reloaded.catalogListView)
+        assertEquals(CatalogLayout.LIST, reloaded.catalogLayout)
         assertEquals(8, reloaded.computerStrength)
     }
 
@@ -33,13 +34,13 @@ class WebSettingsRepositoryTest {
     fun anUpdateSurvivesAReload() = runTest {
         val store = MemoryKeyValueStore()
         WebSettingsRepository(store).update {
-            it.copy(ownedProducts = setOf("base"), catalogListView = true, timerLayout = TimerLayout.ROUND)
+            it.copy(ownedProducts = setOf("base"), catalogLayout = CatalogLayout.LIST, timerLayout = TimerLayout.ROUND)
         }
 
         val reloaded = WebSettingsRepository(store).settings.first()
 
         assertEquals(setOf("base"), reloaded.ownedProducts)
-        assertEquals(true, reloaded.catalogListView)
+        assertEquals(CatalogLayout.LIST, reloaded.catalogLayout)
         assertEquals(TimerLayout.ROUND, reloaded.timerLayout)
     }
 
@@ -54,6 +55,17 @@ class WebSettingsRepositoryTest {
 
         store.put("settings/app", """{"soundsEnabled":false}""")
         assertEquals(BoardStyle.MINIATURES, WebSettingsRepository(store).settings.first().boardStyle)
+    }
+
+    @Test
+    fun anOlderBuildsListSwitchReadsAsTheList() = runTest {
+        val store = MemoryKeyValueStore()
+        store.put("settings/app", """{"catalogListView":true,"computerStrength":8}""")
+
+        val settings = WebSettingsRepository(store).settings.first()
+
+        assertEquals(CatalogLayout.LIST, settings.catalogLayout)
+        assertEquals(8, settings.computerStrength)
     }
 
     @Test

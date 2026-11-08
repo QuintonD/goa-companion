@@ -10,6 +10,7 @@ import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.core.stringSetPreferencesKey
 import dev.quinton.goa.core.model.settings.AppSettings
 import dev.quinton.goa.core.model.settings.BoardStyle
+import dev.quinton.goa.core.model.settings.CatalogLayout
 import dev.quinton.goa.core.model.settings.ThemeMode
 import dev.quinton.goa.core.model.settings.TimerLayout
 import java.io.IOException
@@ -39,7 +40,8 @@ class SettingsDataSource @Inject constructor(@param:SettingsStore private val st
             prefs[Keys.OWNED_PRODUCTS] = next.ownedProducts
             prefs[Keys.HAPTICS] = next.hapticsEnabled
             prefs[Keys.SOUNDS] = next.soundsEnabled
-            prefs[Keys.CATALOG_LIST] = next.catalogListView
+            prefs[Keys.CATALOG_LAYOUT] = next.catalogLayout.name
+            prefs.remove(Keys.LEGACY_CATALOG_LIST)
             prefs[Keys.TIMER_LAYOUT] = next.timerLayout.name
             prefs[Keys.PUZZLE_NUDGES] = next.puzzleNudges
             prefs[Keys.COMPUTER_STRENGTH] = next.computerStrength
@@ -52,7 +54,10 @@ class SettingsDataSource @Inject constructor(@param:SettingsStore private val st
         val OWNED_PRODUCTS = stringSetPreferencesKey("owned_products")
         val HAPTICS = booleanPreferencesKey("haptics_enabled")
         val SOUNDS = booleanPreferencesKey("sounds_enabled")
-        val CATALOG_LIST = booleanPreferencesKey("catalog_list_view")
+        val CATALOG_LAYOUT = stringPreferencesKey("catalog_layout")
+
+        /** The grid/list switch before the small grid: `true` reads as the list until the next write drops it. */
+        val LEGACY_CATALOG_LIST = booleanPreferencesKey("catalog_list_view")
         val TIMER_LAYOUT = stringPreferencesKey("timer_layout")
         val PUZZLE_NUDGES = booleanPreferencesKey("puzzle_nudges")
         val COMPUTER_STRENGTH = intPreferencesKey("computer_strength")
@@ -68,7 +73,10 @@ class SettingsDataSource @Inject constructor(@param:SettingsStore private val st
             ownedProducts = prefs[Keys.OWNED_PRODUCTS] ?: Defaults.ownedProducts,
             hapticsEnabled = prefs[Keys.HAPTICS] ?: Defaults.hapticsEnabled,
             soundsEnabled = prefs[Keys.SOUNDS] ?: Defaults.soundsEnabled,
-            catalogListView = prefs[Keys.CATALOG_LIST] ?: Defaults.catalogListView,
+            catalogLayout = prefs[Keys.CATALOG_LAYOUT]
+                ?.let { name -> CatalogLayout.entries.firstOrNull { it.name == name } }
+                ?: CatalogLayout.LIST.takeIf { prefs[Keys.LEGACY_CATALOG_LIST] == true }
+                ?: Defaults.catalogLayout,
             timerLayout = prefs[Keys.TIMER_LAYOUT]?.let { name -> TimerLayout.entries.firstOrNull { it.name == name } }
                 ?: Defaults.timerLayout,
             puzzleNudges = prefs[Keys.PUZZLE_NUDGES] ?: Defaults.puzzleNudges,

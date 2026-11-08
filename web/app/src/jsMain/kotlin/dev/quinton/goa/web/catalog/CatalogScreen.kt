@@ -26,6 +26,7 @@ import dev.quinton.goa.core.domain.catalog.resultSummary
 import dev.quinton.goa.core.domain.catalog.spokenLabel
 import dev.quinton.goa.core.domain.catalog.traitsLine
 import dev.quinton.goa.core.model.settings.AppSettings
+import dev.quinton.goa.core.model.settings.CatalogLayout
 import dev.quinton.goa.web.LocalServices
 import dev.quinton.goa.web.nav.Route
 import dev.quinton.goa.web.ui.BottomSheet
@@ -88,9 +89,11 @@ fun CatalogScreen() {
         .collectAsState(emptyMap())
     var sheet by remember { mutableStateOf<CatalogSheet?>(null) }
     val scope = rememberGuardedScope()
-    val listView = settings?.catalogListView == true
+    // The web shows the grid or the list; the phone's small grid reads as the grid here.
+    val listView = settings?.catalogLayout == CatalogLayout.LIST
     fun setListView(list: Boolean) {
-        scope.launch { content.settings.update { it.copy(catalogListView = list) } }
+        val layout = if (list) CatalogLayout.LIST else CatalogLayout.LARGE_GRID
+        scope.launch { content.settings.update { it.copy(catalogLayout = layout) } }
     }
 
     Screen(

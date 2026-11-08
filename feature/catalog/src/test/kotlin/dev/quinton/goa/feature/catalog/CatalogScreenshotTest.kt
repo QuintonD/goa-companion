@@ -44,6 +44,7 @@ import dev.quinton.goa.core.model.catalog.Stat
 import dev.quinton.goa.core.model.player.Player
 import dev.quinton.goa.core.model.rating.HeroUsage
 import dev.quinton.goa.core.model.rating.Rating
+import dev.quinton.goa.core.model.settings.CatalogLayout
 import dev.quinton.goa.core.model.settings.ThemeMode
 import dev.quinton.goa.core.navigation.HeroDetailRoute
 import dev.quinton.goa.core.testing.BundledAssetImages
@@ -57,7 +58,6 @@ import dev.quinton.goa.feature.catalog.detail.HeroDetailUiState
 import dev.quinton.goa.feature.catalog.detail.HeroPersonalStats
 import dev.quinton.goa.feature.catalog.list.CatalogControls
 import dev.quinton.goa.feature.catalog.list.CatalogFilterContent
-import dev.quinton.goa.feature.catalog.list.CatalogLayout
 import dev.quinton.goa.feature.catalog.list.CatalogScreen
 import dev.quinton.goa.feature.catalog.list.CatalogUiState
 import dev.quinton.goa.feature.catalog.viewer.CardViewerScreen
@@ -151,7 +151,7 @@ private object ShotData {
         query: String = "",
         filter: CatalogFilter = CatalogFilter(),
         sort: CatalogSort = CatalogSort.NAME,
-        layout: CatalogLayout = CatalogLayout.GRID,
+        layout: CatalogLayout = CatalogLayout.LARGE_GRID,
     ): CatalogUiState.Ready {
         val index = CatalogSearchIndex(catalog.heroes)
         val heroes = CatalogBrowser.browse(catalog, index, query, filter, sort, emptySet(), ratings, usage)
@@ -275,7 +275,7 @@ private object RealData {
     fun ready(query: String): CatalogUiState.Ready {
         val heroes = CatalogBrowser.browse(catalog, index, query, CatalogFilter(), CatalogSort.NAME, emptySet())
         return CatalogUiState.Ready(
-            controls = CatalogControls(CatalogLayout.GRID, CatalogFilter(), CatalogSort.NAME),
+            controls = CatalogControls(CatalogLayout.LARGE_GRID, CatalogFilter(), CatalogSort.NAME),
             heroes = heroes,
             totalInScope = catalog.heroes.size,
             options = options,
@@ -334,6 +334,17 @@ class CatalogScreenshotTest {
 
     /** A word in four real cards' names: the cards under their colour, then their heroes. */
     @Test fun searchByCardNameDark() = shot { Catalog(RealData.ready(query = "dagger"), query = "dagger") }
+
+    /** The small grid while searching: why each hero matched, in one line under its portrait. */
+    @Test fun searchByCardNameSmallGridDark() = shot {
+        val ready = RealData.ready(query = "dagger")
+        Catalog(ready.copy(controls = ready.controls.copy(layout = CatalogLayout.SMALL_GRID)), query = "dagger")
+    }
+
+    /** The small grid sorted by Elo: each tile keeps the metric under its portrait. */
+    @Test fun smallGridByEloDark() = shot {
+        Catalog(ShotData.ready(sort = CatalogSort.ELO, layout = CatalogLayout.SMALL_GRID))
+    }
 
     @Test fun filteredWithChipsDark() = shot {
         Catalog(ShotData.ready(filter = CatalogFilter(complexities = setOf(2, 3), attackStyle = AttackStyle.MELEE)))
