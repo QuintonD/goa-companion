@@ -28,7 +28,6 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import dev.quinton.goa.core.designsystem.component.scaledIconSize
 import dev.quinton.goa.core.designsystem.theme.Spacing
-import dev.quinton.goa.core.game.ActionType
 import dev.quinton.goa.core.game.Choice
 import dev.quinton.goa.core.game.DecisionKind
 
@@ -49,13 +48,7 @@ internal fun decisionRules(table: TableUi): List<DecisionRule> {
     return when (decision.kind) {
         DecisionKind.CHOOSE_ACTION -> buildList {
             val actions = table.buttonOptions.filterIsInstance<Choice.Action>().map { it.action }
-            add(
-                if (ActionType.PRIMARY in actions) {
-                    DecisionRule("Card action: only it applies the card's text.", "p.7")
-                } else {
-                    DecisionRule("Only the card action applies the card's text.", "p.7")
-                },
-            )
+            add(DecisionRule("Only the card action applies the card's text.", "p.7"))
             actions.forEach { action ->
                 actionRule(action)?.let { rule ->
                     val page = RULE_PAGE.find(rule)?.value?.trim('(', ')')
