@@ -38,12 +38,10 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.geometry.center
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawOutline
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
-import androidx.compose.ui.graphics.drawscope.translate
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.Role
@@ -60,12 +58,14 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
+import dev.quinton.goa.core.designsystem.component.GoaDarkTheme
 import dev.quinton.goa.core.designsystem.component.LookArt
 import dev.quinton.goa.core.designsystem.component.OfficialArt
 import dev.quinton.goa.core.designsystem.component.OfficialIcon
 import dev.quinton.goa.core.designsystem.component.PlateGround
 import dev.quinton.goa.core.designsystem.component.TitlePlate
 import dev.quinton.goa.core.designsystem.component.assetUrl
+import dev.quinton.goa.core.designsystem.component.emptySlotOutline
 import dev.quinton.goa.core.designsystem.component.scaledIconSize
 import dev.quinton.goa.core.designsystem.theme.GoaTextStyles
 import dev.quinton.goa.core.designsystem.theme.GoaTheme
@@ -361,40 +361,32 @@ private fun SlotOnFrame(
     }
 }
 
-/** An empty Turn slot: dark, a dashed steel edge, the turn's number large in its middle. */
+/**
+ * An empty Turn slot: the slate a little deeper than the frame (not a black hole), a dashed muted edge and the turn's
+ * number in the muted token (DESIGN.md "Muted states"), so it reads as a place to fill and stays legible in dim light.
+ */
 @Composable
 private fun EmptySlot(turn: Int, scale: Float, shape: RoundedCornerShape) {
     val number = dpToSp(EMPTY_NUMBER_SP * scale)
-    Box(
-        Modifier
-            .fillMaxSize()
-            .background(Color.Black.copy(alpha = EMPTY_SCRIM))
-            .drawWithCache {
-                val stroke = Stroke(
-                    width = 1.5.dp.toPx(),
-                    pathEffect = PathEffect.dashPathEffect(floatArrayOf(5.dp.toPx(), 4.dp.toPx())),
-                )
-                val inset = 3.dp.toPx()
-                val outline = shape.createOutline(
-                    Size(size.width - inset * 2, size.height - inset * 2),
-                    layoutDirection,
-                    this,
-                )
-                onDrawBehind {
-                    translate(inset, inset) { drawOutline(outline, SlotSteel, style = stroke) }
-                }
-            },
-        contentAlignment = Alignment.Center,
-    ) {
-        Text(
-            "$turn",
-            style = GoaTextStyles.plateTitle.copy(
-                fontSize = number,
-                lineHeight = number * 1.1f,
-                fontWeight = FontWeight.Bold,
-            ),
-            color = SlotSteel,
-        )
+    // The dashboard is the dark slate in both themes: its muted tokens are the dark theme's.
+    GoaDarkTheme {
+        Box(
+            Modifier
+                .fillMaxSize()
+                .background(PlateGround.copy(alpha = EMPTY_FILL))
+                .emptySlotOutline(shape, inset = 3.dp),
+            contentAlignment = Alignment.Center,
+        ) {
+            Text(
+                "$turn",
+                style = GoaTextStyles.plateTitle.copy(
+                    fontSize = number,
+                    lineHeight = number * 1.1f,
+                    fontWeight = FontWeight.Bold,
+                ),
+                color = GoaTheme.colors.textMuted,
+            )
+        }
     }
 }
 
@@ -642,10 +634,9 @@ private val TabEdge = Color(0xFF9A7440)
 private const val SECOND_CARD = 0.17f
 private const val SECOND_ALPHA = 0.9f
 private const val STEPPED_SCRIM = 0.38f
-private const val EMPTY_SCRIM = 0.62f
+private const val EMPTY_FILL = 0.55f
 private const val EMPTY_NUMBER_SP = 18f
 private const val ART_VEIL = 0.6f
-private val SlotSteel = Color(0xFFB4BEC8)
 
 /** A portrait's face sits above its middle. */
 private const val PORTRAIT_BIAS = -0.45f

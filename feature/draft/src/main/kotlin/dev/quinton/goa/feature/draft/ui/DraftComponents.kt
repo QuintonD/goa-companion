@@ -82,6 +82,8 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import dev.quinton.goa.core.designsystem.component.DoneMark
+import dev.quinton.goa.core.designsystem.component.DoneTick
 import dev.quinton.goa.core.designsystem.component.GoaPlate
 import dev.quinton.goa.core.designsystem.component.GoaPlateTheme
 import dev.quinton.goa.core.designsystem.component.HeroPortrait
@@ -89,8 +91,10 @@ import dev.quinton.goa.core.designsystem.component.HeroSymbol
 import dev.quinton.goa.core.designsystem.component.LARGE_FONT_SCALE
 import dev.quinton.goa.core.designsystem.component.PlateShape
 import dev.quinton.goa.core.designsystem.component.TeamMark
+import dev.quinton.goa.core.designsystem.component.TintTag
 import dev.quinton.goa.core.designsystem.component.bleedHorizontally
 import dev.quinton.goa.core.designsystem.component.fadingHorizontalScroll
+import dev.quinton.goa.core.designsystem.component.mutedOutline
 import dev.quinton.goa.core.designsystem.component.selectableChipColors
 import dev.quinton.goa.core.designsystem.component.selectableSegmentColors
 import dev.quinton.goa.core.designsystem.component.slatePlate
@@ -431,9 +435,9 @@ internal fun ConcealedTile(team: Team, modifier: Modifier = Modifier) {
 /**
  * A sequence as numbered steps, each a run of one side's bans or picks with its count ("4 · ◆ Red picks 2"; the
  * shared [DraftStep] numbering). Bans are outlined, picks filled. On the board ([current], a plan index) the step
- * in play is bold with a heavier edge, finished steps carry a check and a lighter edge but keep their text at full
- * contrast, and a sideways strip keeps the step in play and the next one in view. [named] false shows a side by its
- * mark only (the method list, under a legend that names the marks).
+ * in play is bold with a heavier edge; finished steps step back by losing their fill and team edge (a tick, a muted
+ * edge, the words in the readable muted token, never faded: DESIGN.md "Muted states"); a sideways strip keeps the
+ * step before, the step in play and the next in view. [named] false shows a side by its mark only.
  */
 @Composable
 internal fun SequenceStrip(
@@ -525,38 +529,34 @@ private fun StepChipView(step: DraftStep, state: StepState, named: Boolean, modi
         modifier
             .background(
                 when {
+                    state == StepState.DONE -> Color.Transparent
                     state == StepState.ACTIVE -> accent.copy(alpha = 0.28f)
-                    isBan || state == StepState.DONE -> Color.Transparent
+                    isBan -> Color.Transparent
                     else -> accent.copy(alpha = 0.12f)
                 },
                 shape,
             )
-            .border(
-                width = if (state == StepState.ACTIVE) 2.dp else 1.dp,
-                color = accent.copy(alpha = if (state == StepState.DONE) 0.45f else 0.85f),
-                shape = shape,
+            .then(
+                if (state == StepState.DONE) {
+                    Modifier.mutedOutline(shape)
+                } else {
+                    Modifier.border(if (state == StepState.ACTIVE) 2.dp else 1.dp, accent.copy(alpha = 0.85f), shape)
+                },
             )
             .padding(horizontal = Spacing.sm, vertical = Spacing.xs),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         if (state == StepState.DONE) {
-            // Finished: a check and a lighter edge; the words keep their contrast (they still say what happened).
-            Icon(
-                Icons.Filled.Check,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.size(14.dp),
-            )
-            Spacer(Modifier.width(Spacing.xs))
+            DoneMark(size = DoneTick)
+            Spacer(Modifier.width(2.dp))
         }
         TeamText(
             text = (if (step.hidden) "🔒 " else "") + step.label(named),
             style = MaterialTheme.typography.labelMedium,
             fontWeight = if (state == StepState.ACTIVE) FontWeight.Bold else FontWeight.Medium,
-            color = if (state == StepState.DONE) {
-                MaterialTheme.colorScheme.onSurfaceVariant
-            } else {
-                MaterialTheme.colorScheme.onSurface
+            color = when (state) {
+                StepState.DONE -> GoaTheme.colors.textMuted
+                else -> MaterialTheme.colorScheme.onSurface
             },
         )
     }
@@ -646,19 +646,9 @@ private fun RowScope.ChoiceCardBody(
                 modifier = Modifier.weight(1f),
                 color = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
             )
+            // A tint, not an outline: the choice is a row of its section's plate (DESIGN.md "Framing levels").
             if (badge != null) {
-                Text(
-                    badge,
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.secondary,
-                    modifier = Modifier
-                        .border(
-                            1.dp,
-                            MaterialTheme.colorScheme.secondary.copy(alpha = 0.6f),
-                            RoundedCornerShape(50),
-                        )
-                        .padding(horizontal = Spacing.sm, vertical = 2.dp),
-                )
+                TintTag(badge, color = MaterialTheme.colorScheme.secondary, style = MaterialTheme.typography.labelSmall)
             }
         }
         if (body.isNotEmpty()) {
