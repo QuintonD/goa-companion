@@ -99,10 +99,12 @@ import dev.quinton.goa.core.domain.catalog.DeckGroupKind
 import dev.quinton.goa.core.domain.catalog.DeckLayout
 import dev.quinton.goa.core.domain.catalog.HANDICAP_EXPLANATION
 import dev.quinton.goa.core.domain.catalog.HeroPilotStat
+import dev.quinton.goa.core.domain.catalog.StartingCards
 import dev.quinton.goa.core.domain.catalog.attackProfile
 import dev.quinton.goa.core.domain.catalog.complexityName
 import dev.quinton.goa.core.domain.catalog.elo
 import dev.quinton.goa.core.domain.catalog.handicapConflict
+import dev.quinton.goa.core.domain.catalog.kindLabel
 import dev.quinton.goa.core.domain.catalog.label
 import dev.quinton.goa.core.domain.catalog.percent
 import dev.quinton.goa.core.domain.catalog.plural
@@ -112,6 +114,7 @@ import dev.quinton.goa.core.model.catalog.CardColor
 import dev.quinton.goa.core.model.catalog.Hero
 import dev.quinton.goa.core.model.catalog.Ruling
 import dev.quinton.goa.core.navigation.HeroDetailRoute
+import dev.quinton.goa.feature.catalog.list.CardPlateRow
 import dev.quinton.goa.feature.catalog.ui.LargePlate
 import dev.quinton.goa.feature.catalog.ui.MetaPill
 import dev.quinton.goa.feature.catalog.ui.SharedTitlePlate
@@ -244,7 +247,11 @@ private fun HeroPage(
             }
         }
         when (section) {
-            HeroSection.OVERVIEW -> overviewContent(state, onLogMatch?.let { log -> { log(state.hero.id) } })
+            HeroSection.OVERVIEW -> overviewContent(
+                state,
+                onCardClick = { onCardClick(state.hero.id, it.id) },
+                onLogMatch = onLogMatch?.let { log -> { log(state.hero.id) } },
+            )
 
             HeroSection.DECK -> deckContent(
                 shown,
@@ -280,14 +287,37 @@ internal const val FAQ_KEY = "faq-title"
 
 private val padded = Modifier.padding(horizontal = Spacing.screen)
 
-/** The Overview: the Hero Profile, your table's record with the hero, the lore and where the data comes from. */
-private fun LazyListScope.overviewContent(state: HeroDetailUiState.Ready, onLogMatch: (() -> Unit)?) {
+/**
+ * The Overview, what the hero does first: the ratings, then the five starting cards with their text (the hero's
+ * abilities at level 1, each opening its card); then your table's record with the hero (one line while there is
+ * none), the lore and where the data comes from.
+ */
+private fun LazyListScope.overviewContent(
+    state: HeroDetailUiState.Ready,
+    onCardClick: (Card) -> Unit,
+    onLogMatch: (() -> Unit)?,
+) {
     val hero = state.hero
     item(key = "profile") { StatPlate(hero.stats, padded.padding(top = Spacing.md)) }
+    val starting = StartingCards.of(hero)
+    if (starting.isNotEmpty()) {
+        item(key = "starting") {
+            Column(padded, verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+                SectionHeader("Starting cards")
+                starting.forEach { card ->
+                    CardPlateRow(card, kind = card.kindLabel(), text = card.text, onClick = { onCardClick(card) })
+                }
+            }
+        }
+    }
     item(key = "stats") {
         Column(padded) {
             SectionHeader("Your table")
-            PersonalStatsCard(state.stats, hero.name, onLogMatch)
+            if (state.stats.hasGames) {
+                PersonalStatsCard(state.stats)
+            } else {
+                NoGamesRow(hero.name, onLogMatch)
+            }
         }
     }
     hero.lore?.takeIf { it.isNotBlank() }?.let { lore ->
@@ -589,31 +619,33 @@ private fun VerifiedPill() {
     }
 }
 
+/** No match logged with the hero yet: one line, and "Log a match" (with the hero in a seat) beside it. */
+@Composable
+private fun NoGamesRow(heroName: String, onLogMatch: (() -> Unit)?) {
+    Row(Modifier.fillMaxWidth().heightIn(min = 48.dp), verticalAlignment = Alignment.CenterVertically) {
+        Text(
+            "No games logged with $heroName yet",
+            style = MaterialTheme.typography.bodyLarge,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.weight(1f),
+        )
+        if (onLogMatch != null) {
+            GoaOutlinedButton(
+                onClick = onLogMatch,
+                modifier = Modifier.padding(start = Spacing.md).heightIn(min = 48.dp),
+            ) {
+                Icon(Icons.Outlined.Add, contentDescription = null, modifier = Modifier.size(scaledIconSize(18.dp)))
+                Spacer(Modifier.width(Spacing.sm))
+                Text("Log a match")
+            }
+        }
+    }
+}
+
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-private fun PersonalStatsCard(stats: HeroPersonalStats, heroName: String, onLogMatch: (() -> Unit)?) {
+private fun PersonalStatsCard(stats: HeroPersonalStats) {
     GoaPlate(Modifier.fillMaxWidth(), contentPadding = PaddingValues(Spacing.lg)) {
-        if (!stats.hasGames) {
-            Text("No games logged with this hero yet", style = MaterialTheme.typography.titleSmall)
-            Text(
-                "A logged match shows Elo, win rate and who plays this hero best.",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(top = Spacing.xs),
-            )
-            if (onLogMatch != null) {
-                // The step where the need is: a new match with this hero already in a seat.
-                GoaOutlinedButton(
-                    onClick = onLogMatch,
-                    modifier = Modifier.fillMaxWidth().padding(top = Spacing.md).heightIn(min = 48.dp),
-                ) {
-                    Icon(Icons.Outlined.Add, contentDescription = null, modifier = Modifier.size(scaledIconSize(18.dp)))
-                    Spacer(Modifier.width(Spacing.sm))
-                    Text("Log a match with $heroName")
-                }
-            }
-            return@GoaPlate
-        }
         val rating = stats.rating
         val usage = stats.usage
         val games = usage?.matches ?: rating?.games ?: stats.log.games

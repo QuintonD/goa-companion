@@ -14,12 +14,7 @@ import androidx.compose.material.icons.outlined.AccountCircle
 import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material.icons.outlined.SettingsBackupRestore
 import androidx.compose.material.icons.outlined.Share
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.PrimaryScrollableTabRow
-import androidx.compose.material3.PrimaryTabRow
 import androidx.compose.material3.SnackbarHostState
-import androidx.compose.material3.Tab
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalDensity
@@ -30,9 +25,9 @@ import dev.quinton.goa.core.designsystem.component.BarAction
 import dev.quinton.goa.core.designsystem.component.BarActions
 import dev.quinton.goa.core.designsystem.component.BarOverflowMenu
 import dev.quinton.goa.core.designsystem.component.GoaScreen
+import dev.quinton.goa.core.designsystem.component.GoaTabRow
 import dev.quinton.goa.core.designsystem.icon.Destination
 import dev.quinton.goa.core.designsystem.icon.icon
-import dev.quinton.goa.core.designsystem.theme.Spacing
 import dev.quinton.goa.feature.players.common.LARGE_FONT_SCALE
 import dev.quinton.goa.feature.players.common.LogMatchBar
 import dev.quinton.goa.feature.players.common.Motion
@@ -161,33 +156,9 @@ fun PlayersHomeScreen(
     }
 }
 
-/** Fixed tabs; scrollable at large font scales so labels never break mid-word. */
+/** Players · Matches · Meta. */
 @Composable
 private fun TabBar(tab: PlayersTab, onSelect: (PlayersTab) -> Unit) {
-    val tabs: @Composable () -> Unit = {
-        PlayersTab.entries.forEach { t ->
-            Tab(
-                selected = t == tab,
-                onClick = { onSelect(t) },
-                text = { Text(t.label, style = MaterialTheme.typography.titleSmall, maxLines = 1) },
-                unselectedContentColor = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-        }
-    }
-    if (LocalDensity.current.fontScale >= LARGE_FONT_SCALE) {
-        PrimaryScrollableTabRow(
-            selectedTabIndex = tab.ordinal,
-            containerColor = MaterialTheme.colorScheme.background,
-            contentColor = MaterialTheme.colorScheme.primary,
-            edgePadding = Spacing.screen,
-            tabs = tabs,
-        )
-    } else {
-        PrimaryTabRow(
-            selectedTabIndex = tab.ordinal,
-            containerColor = MaterialTheme.colorScheme.background,
-            contentColor = MaterialTheme.colorScheme.primary,
-            tabs = tabs,
-        )
-    }
+    // The app's one page-tab bar, as on a hero page and the trivia leaderboard.
+    GoaTabRow(PlayersTab.entries.map { it.label }, tab.ordinal, onSelect = { onSelect(PlayersTab.entries[it]) })
 }

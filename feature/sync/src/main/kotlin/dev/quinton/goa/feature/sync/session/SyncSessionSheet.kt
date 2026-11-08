@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -52,6 +53,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
@@ -65,7 +67,7 @@ import dev.quinton.goa.core.designsystem.component.GoaCard
 import dev.quinton.goa.core.designsystem.component.GoaOutlinedButton
 import dev.quinton.goa.core.designsystem.component.GoaPlate
 import dev.quinton.goa.core.designsystem.component.GoaProgressBar
-import dev.quinton.goa.core.designsystem.component.PlateStyle
+import dev.quinton.goa.core.designsystem.component.GoaSwitch
 import dev.quinton.goa.core.designsystem.component.scaledIconSize
 import dev.quinton.goa.core.designsystem.theme.GoaTheme
 import dev.quinton.goa.core.designsystem.theme.Spacing
@@ -99,6 +101,8 @@ class SyncSessionActions(
     val onAllow: () -> Unit = {},
     val onOpenSettings: () -> Unit = {},
     val onSyncNow: () -> Unit = {},
+    /** Host: arms or disarms "Start automatically when ready". */
+    val onAutoStart: (Boolean) -> Unit = {},
     val onChooseHost: (SyncPeer) -> Unit = {},
     val onCancel: () -> Unit = {},
     val onRetry: () -> Unit = {},
@@ -163,6 +167,7 @@ fun SyncSessionEntry(state: SyncSessionUiState, viewModel: SyncSessionViewModel,
             onAllow = { launcher.launch(NearbyPermissions.required().toTypedArray()) },
             onOpenSettings = { context.startActivity(NearbyPermissions.settingsIntent(context)) },
             onSyncNow = viewModel::syncNow,
+            onAutoStart = viewModel::setAutoStart,
             onChooseHost = viewModel::chooseHost,
             onCancel = {
                 if (permission != null) {
@@ -370,21 +375,20 @@ private fun PermissionContent(permission: PermissionUi, actions: SyncSessionActi
 }
 
 /**
- * Hosting, as an explicit state machine under a row of steps (Collect, Merge, Send back, Done). Collecting: each
- * phone's own state on its row (sending its data, ready, receiving the result, synced; one that needs the invite
- * again offers it), the phones left out in a callout of their own, and one command with its count. Off while no
- * phone's data is in, saying what it waits for; "Sync 2 phones now" when every phone is in; "Sync 2 phones when
- * ready" while some are still sending, which arms the sync. Armed: no button, a status ("Waiting for Cid · sync
- * starts automatically") and Cancel. Then "Merging…", sending back, and a final summary of who is up to date. Every
- * change of state is announced politely to TalkBack.
+ * Hosting, as an explicit state machine under a row of steps (Collect, Merge, Send back, Done). Collecting: the
+ * count ("2 phones included · 1 excluded"), each phone's own state on its row (sending its data with its percent,
+ * ready, receiving the result, synced; one left out says why on its row and offers the invite again), and one
+ * command. While an included phone is still sending it is off and says whom it waits for ("Waiting for Cid · 60%");
+ * once every included phone's data is in it is on: "Merge data from 2 phones". Starting by itself when ready is a
+ * switch of its own under it, its armed state spelled out. Then "Merging…", sending back, and a final summary of
+ * who is up to date. Every change of state is announced politely to TalkBack.
  */
 @Composable
 private fun Hosting(host: HostState, state: SyncSessionUiState, actions: SyncSessionActions) {
     val waiting = host.phase == HostPhase.WAITING
-    val armed = SyncText.armed(host.phase, host.peers)
-    val working = !armed && (host.phase == HostPhase.MERGING || host.phase == HostPhase.SENDING)
+    val working = host.phase == HostPhase.MERGING || host.phase == HostPhase.SENDING
     var showInvite by rememberSaveable { mutableStateOf(false) }
-    if (host.phase != HostPhase.FAILED) SyncSteps(SyncText.hostStep(host.phase, host.peers), SyncText.hostSteps)
+    if (host.phase != HostPhase.FAILED) SyncSteps(SyncText.hostStep(host.phase), SyncText.hostSteps)
     when (host.phase) {
         HostPhase.DONE -> HostDone(host)
 
@@ -393,7 +397,7 @@ private fun Hosting(host: HostState, state: SyncSessionUiState, actions: SyncSes
                 waiting && host.peers.isEmpty() ->
                     "Hosting. On each other phone: Group sync → Sync with nearby phones → Join."
 
-                waiting || armed -> SyncText.hostWaiting(host.peers)
+                waiting -> SyncText.hostIncluded(host.peers)
 
                 host.phase == HostPhase.MERGING -> SyncText.hostMerging(host.peers)
 
@@ -404,7 +408,7 @@ private fun Hosting(host: HostState, state: SyncSessionUiState, actions: SyncSes
             working = working,
             error = host.phase == HostPhase.FAILED,
             // Waiting on people, not on work: a phone, not a spinner (a frozen spinner read as a stray mark).
-            waitingIcon = Icons.Outlined.PhonelinkRing.takeIf { waiting || armed },
+            waitingIcon = Icons.Outlined.PhonelinkRing.takeIf { waiting },
         )
     }
     host.peers.forEach { peer ->
@@ -416,23 +420,25 @@ private fun Hosting(host: HostState, state: SyncSessionUiState, actions: SyncSes
     }
     state.duplicateHint?.let { Hint(it) }
     state.versionHint?.let { Hint(it) }
-    if (waiting || armed) SyncText.hostLeftOut(host.peers)?.let { LeftOut(it) }
     when {
         waiting -> {
+            val ready = SyncText.readyToMerge(host)
             GoaButton(
                 onClick = actions.onSyncNow,
-                enabled = host.canSync,
-                modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp),
-            ) { Text(SyncText.syncLabel(host.peers), textAlign = TextAlign.Center) }
+                enabled = ready,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .heightIn(min = 56.dp)
+                    .semantics { liveRegion = LiveRegionMode.Polite },
+            ) { Text(SyncText.hostAction(host.peers), textAlign = TextAlign.Center) }
+            // Only while there is something to wait for: a phone still sending.
+            if (!ready && SyncText.included(host.peers).isNotEmpty()) {
+                AutoStartRow(state.autoStart, host.peers, actions.onAutoStart)
+            }
             SheetCancel("Cancel", actions.onCancel)
         }
 
-        armed -> {
-            ArmedStatus(SyncText.hostArmed(host.peers))
-            SheetCancel("Cancel", actions.onCancel)
-        }
-
-        host.phase == HostPhase.MERGING || host.phase == HostPhase.SENDING -> SheetCancel("Stop", actions.onCancel)
+        working -> SheetCancel("Stop", actions.onCancel)
 
         host.phase == HostPhase.DONE -> Finish(state, actions)
 
@@ -449,48 +455,40 @@ private fun Hosting(host: HostState, state: SyncSessionUiState, actions: SyncSes
 }
 
 /**
- * Who this sync leaves out and why, in a callout of its own just above the command, so nobody counts Eve among the
- * phones it names ("Eve isn't included: old invite").
+ * "Start automatically when ready": a switch of its own, never the command's label. Armed, it says so under its
+ * label in the accent colour and with the hourglass ("On · merges once Cid's data is in"); one TalkBack switch.
  */
 @Composable
-private fun LeftOut(text: String) {
-    GoaPlate(Modifier.fillMaxWidth(), brackets = false, style = PlateStyle.Well) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Icon(
-                Icons.Outlined.ErrorOutline,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.error,
-                modifier = Modifier.size(scaledIconSize(20.dp)),
-            )
-            Spacer(Modifier.width(Spacing.md))
-            Text(text, style = MaterialTheme.typography.bodyMedium)
-        }
-    }
-}
-
-/**
- * The armed sync where its button was: a status, not a control (a well with no edge to press, a waiting phone, the
- * words), so nobody taps it again. Announced politely as it appears.
- */
-@Composable
-private fun ArmedStatus(text: String) {
-    GoaPlate(
+private fun AutoStartRow(armed: Boolean, peers: List<PeerProgress>, onAutoStart: (Boolean) -> Unit) {
+    Row(
         Modifier
             .fillMaxWidth()
+            .heightIn(min = 56.dp)
+            .toggleable(value = armed, role = Role.Switch, onValueChange = onAutoStart)
             .semantics(mergeDescendants = true) { liveRegion = LiveRegionMode.Polite },
-        brackets = false,
-        style = PlateStyle.Well,
+        verticalAlignment = Alignment.CenterVertically,
     ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Icon(
-                Icons.Outlined.HourglassTop,
-                null,
-                tint = MaterialTheme.colorScheme.secondary,
-                modifier = Modifier.size(scaledIconSize(22.dp)),
-            )
-            Spacer(Modifier.width(Spacing.md))
-            Text(text, style = MaterialTheme.typography.bodyLarge)
+        Column(Modifier.weight(1f)) {
+            Text(SyncText.AUTO_START, style = MaterialTheme.typography.bodyLarge)
+            if (armed) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                        Icons.Outlined.HourglassTop,
+                        null,
+                        tint = MaterialTheme.colorScheme.secondary,
+                        modifier = Modifier.size(scaledIconSize(16.dp)),
+                    )
+                    Spacer(Modifier.width(Spacing.xs))
+                    Text(
+                        SyncText.autoStartArmed(peers),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.secondary,
+                    )
+                }
+            }
         }
+        Spacer(Modifier.width(Spacing.md))
+        GoaSwitch(checked = armed, onCheckedChange = null)
     }
 }
 
