@@ -294,12 +294,7 @@ private fun TonightTurn(tonight: TonightUi, actions: TimerActions) {
         }
         if (tonight.adjusted) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(
-                    "Just for tonight.",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = colors.onSurfaceVariant,
-                    modifier = Modifier.weight(1f),
-                )
+                Spacer(Modifier.weight(1f))
                 TextButton(
                     onClick = { actions.onTonightTurn(tonight.presetSeconds) },
                     modifier = Modifier.heightIn(min = 48.dp),
@@ -315,14 +310,7 @@ private fun TonightTurn(tonight: TonightUi, actions: TimerActions) {
 @Composable
 private fun SeatsStepper(seats: Int, onChange: (Int) -> Unit) {
     Row(verticalAlignment = Alignment.CenterVertically) {
-        Column(Modifier.weight(1f)) {
-            Text("Heroes at the table", style = MaterialTheme.typography.titleSmall)
-            Text(
-                "The Action timer runs once per hero each turn.",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-        }
+        Text("Heroes at the table", style = MaterialTheme.typography.titleSmall, modifier = Modifier.weight(1f))
         Stepper(
             value = seats,
             range = TimerViewModel.MIN_SEATS..TimerViewModel.MAX_SEATS,

@@ -341,7 +341,6 @@ private fun LandscapeStepColumn(state: ActiveUiState, actions: TimerActions, mod
     }
 }
 
-private val ROOMY_DIAL = 260.dp
 private const val SHORT_SCREEN_HEIGHT = 640
 private val SCROLL_FADE = 44.dp
 private val SCROLL_FADE_COLOR = Color(0xE6071019)
@@ -739,18 +738,18 @@ private fun TimerDial(state: ActiveUiState, size: Dp, onToggle: () -> Unit) {
     // Paused, overtime and elapsed say so in words; otherwise the digits alone, as the mock-up. Hurry up
     // names its urgency in words too, not by colour alone: left, the last seconds, time.
     val status = when {
-        state.paused -> "Tap to resume"
+        state.paused -> "Paused"
 
         shot != null && shot.over -> "Time!"
 
         shot != null && shot.warning -> "Last seconds!"
 
-        shot != null -> "Left · tap to pause"
+        shot != null -> "Left"
 
         state.overtime -> "Overtime"
 
-        // A small dial (a phone held sideways) has no room for the hint inside the ring: the word alone.
-        !state.timed -> if (size >= ROOMY_DIAL) "Elapsed · tap to pause" else "Elapsed"
+        // The dial is the pause button (TalkBack hears its click label); the word alone says what the digits are.
+        !state.timed -> "Elapsed"
 
         else -> null
     }
@@ -921,7 +920,7 @@ private fun ChecklistStepCard(state: ActiveUiState, onNext: () -> Unit) {
             Spacer(Modifier.height(Spacing.sm))
         }
         Text(
-            "${state.clock} at this step · tap when done",
+            state.clock,
             style = MaterialTheme.typography.titleSmall.copy(fontFeatureSettings = "tnum"),
             color = colors.onSurfaceVariant,
             textAlign = TextAlign.Center,

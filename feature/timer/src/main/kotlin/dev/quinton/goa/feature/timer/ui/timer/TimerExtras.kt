@@ -240,7 +240,6 @@ internal fun CoinSideDialog(current: Team?, onPick: (Team?) -> Unit, onDismiss: 
         title = { Text("Tie Breaker coin") },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-                Text("Which team's symbol is showing on the coin?")
                 Team.entries.forEach { team ->
                     val color = teamColor(team)
                     OutlinedButton(
@@ -485,12 +484,6 @@ private fun seatColumns(count: Int): Int = when {
 internal fun ResolvingHeroes(seats: List<SeatUi>, onResolve: (Int) -> Unit) {
     val columns = seatColumns(seats.size)
     Column(Modifier.fillMaxWidth()) {
-        Text(
-            "Tap the hero who resolves now to start their time.",
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.padding(bottom = Spacing.sm),
-        )
         FlowRow(
             horizontalArrangement = Arrangement.spacedBy(Spacing.xs),
             verticalArrangement = Arrangement.spacedBy(Spacing.xs),

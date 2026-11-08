@@ -434,10 +434,10 @@ private fun RoundClock(state: ActiveUiState, row: RoundRowUi, onToggle: () -> Un
         else -> colors.onSurface
     }
     val status = when {
-        state.paused -> "Paused · tap to resume"
+        state.paused -> "Paused"
         state.overtime -> "Overtime"
-        !state.timed -> "Elapsed · tap to pause"
-        else -> "Tap to pause"
+        !state.timed -> "Elapsed"
+        else -> null
     }
     val size = with(LocalDensity.current) { digits.toSp() }
     Column(
@@ -459,15 +459,17 @@ private fun RoundClock(state: ActiveUiState, row: RoundRowUi, onToggle: () -> Un
                 modifier = Modifier.alpha(blink),
             )
             Column(Modifier.weight(1f)) {
-                Text(
-                    status.uppercase(),
-                    style = MaterialTheme.typography.labelLarge,
-                    color = when {
-                        state.paused -> colors.primary
-                        state.overtime -> colors.error
-                        else -> colors.onSurfaceVariant
-                    },
-                )
+                status?.let {
+                    Text(
+                        it.uppercase(),
+                        style = MaterialTheme.typography.labelLarge,
+                        color = when {
+                            state.paused -> colors.primary
+                            state.overtime -> colors.error
+                            else -> colors.onSurfaceVariant
+                        },
+                    )
+                }
                 if (state.timed) {
                     Text(
                         "of ${row.length}",
