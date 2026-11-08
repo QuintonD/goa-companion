@@ -400,7 +400,7 @@ fun SettingsActionButton(onClick: () -> Unit) {
 fun EmptyState(
     icon: ImageVector,
     title: String,
-    message: String,
+    message: String? = null,
     modifier: Modifier = Modifier,
     action: (@Composable () -> Unit)? = null,
 ) {
@@ -428,13 +428,15 @@ fun EmptyState(
             textAlign = TextAlign.Center,
             color = MaterialTheme.colorScheme.onSurface,
         )
-        Spacer(Modifier.height(Spacing.sm))
-        Text(
-            message,
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            textAlign = TextAlign.Center,
-        )
+        if (message != null) {
+            Spacer(Modifier.height(Spacing.sm))
+            Text(
+                message,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                textAlign = TextAlign.Center,
+            )
+        }
         if (action != null) {
             Spacer(Modifier.height(Spacing.lg))
             action()
