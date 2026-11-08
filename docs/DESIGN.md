@@ -696,7 +696,7 @@ and the button reads "Accept defeat · keep cards". Read card and the one-line b
 a card, or Don't defend" until something is chosen) close it. A hand of four and not defending fit a 411 × 891 phone
 with the commit in view. The list takes what the panel's room leaves (`LocalQuestionRoom`: the question's share of the
 screen, 0.56, measured from where the question starts) and scrolls inside it; when cards are below, a bronze pill at
-its foot says how many ("+1 more card", a tap scrolls to them), not a fade alone. It never
+its foot, a line of the plate under the rows, says how many ("+1 more card", a tap scrolls to them), not a fade alone; with large text a row puts the name over its outcome. It never
 gets less than two rows, so with large text the panel itself scrolls. A losing choice stays possible, never a
 surprise. Declines and Pass are outlined. With large
 text the asking card goes above the answers. The computer's move shows its portrait, band and strength

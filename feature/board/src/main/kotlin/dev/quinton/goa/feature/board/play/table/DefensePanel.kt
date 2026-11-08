@@ -211,12 +211,14 @@ private fun PinnedFoot(
             { Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm), content = head) },
             {
                 GoaPlate(contentPadding = PaddingValues(0.dp), brackets = false) {
-                    Box {
-                        Column(Modifier.bottomEdgeFade(scroll).verticalScroll(scroll), content = list)
-                        if (scroll.canScrollForward) {
-                            MoreBelow(scroll, count, Modifier.align(Alignment.BottomCenter))
-                        }
-                    }
+                    Column(
+                        Modifier.weight(1f, fill = false).bottomEdgeFade(scroll).verticalScroll(scroll),
+                        content = list,
+                    )
+                    // Only when a card is below, not for a few pixels of the last row's edge: a line of the plate's
+                    // own under the rows, so it covers none of them.
+                    val hidden = with(LocalDensity.current) { (scroll.maxValue - scroll.value).toDp() }
+                    if (hidden > OPTION_ROW / 2) MoreBelow(scroll, count)
                 }
             },
             { Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm), content = foot) },
@@ -226,7 +228,7 @@ private fun PinnedFoot(
         val loose = constraints.copy(minHeight = 0, maxHeight = Constraints.Infinity)
         val h = heads.first().measure(loose)
         val f = feet.first().measure(loose)
-        val gap = Spacing.sm.roundToPx()
+        val gap = LIST_GAP.roundToPx()
         val at = top
         val limit = if (room != null && at != null) {
             room.height.roundToPx() - (at - room.contentTop.value).roundToInt()
@@ -246,29 +248,34 @@ private fun PinnedFoot(
 }
 
 /**
- * Over the foot of a list that goes on: how many cards are below ("+1 more card"), a tap scrolls to them. TalkBack
- * reaches every row by scrolling already, so it is for the eye.
+ * Under a list that goes on, a line of its plate: how many cards are below ("+1 more card"), a tap scrolls to them.
+ * TalkBack reaches every row by scrolling already, so it is for the eye.
  */
 @Composable
 private fun MoreBelow(scroll: ScrollState, count: Int, modifier: Modifier = Modifier) {
     val scope = rememberCoroutineScope()
     val row = with(LocalDensity.current) { OPTION_ROW.toPx() }
-    val below = (((scroll.maxValue - scroll.value) / row).toInt() + 1).coerceIn(1, count)
+    val below = (((scroll.maxValue - scroll.value) / row).toInt() + 1).coerceIn(1, maxOf(1, count - 1))
     Surface(
         onClick = { scope.launch { scroll.animateScrollTo(scroll.maxValue) } },
-        shape = RoundedCornerShape(50),
-        color = MaterialTheme.colorScheme.surface,
+        color = Color.Transparent,
         contentColor = MaterialTheme.colorScheme.primary,
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.6f)),
-        modifier = modifier.padding(bottom = 4.dp).clearAndSetSemantics {},
+        modifier = modifier.fillMaxWidth().clearAndSetSemantics {},
     ) {
-        Row(Modifier.padding(horizontal = Spacing.sm, vertical = 2.dp), verticalAlignment = Alignment.CenterVertically) {
-            Text(
-                "+$below more ${if (below == 1) "card" else "cards"}",
-                style = MaterialTheme.typography.labelMedium,
-                fontWeight = FontWeight.SemiBold,
-            )
-            Icon(Icons.Outlined.ExpandMore, null, Modifier.size(16.dp))
+        Column {
+            PlateRowDivider()
+            Row(
+                Modifier.fillMaxWidth().padding(horizontal = Spacing.sm, vertical = 4.dp),
+                horizontalArrangement = Arrangement.Center,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(
+                    "+$below more ${if (below == 1) "card" else "cards"}",
+                    style = MaterialTheme.typography.labelMedium,
+                    fontWeight = FontWeight.SemiBold,
+                )
+                Icon(Icons.Outlined.ExpandMore, null, Modifier.size(16.dp))
+            }
         }
     }
 }
@@ -323,16 +330,22 @@ private fun DefenseOption(
         ) { TableCard(card, width = OPTION_CARD) }
         Spacer(Modifier.width(Spacing.sm))
         Column(Modifier.weight(1f).padding(vertical = 2.dp).clearAndSetSemantics {}) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                // The name beside a thumbnail, at its caption size: two lines still fit the 48 dp row.
-                CardTitle(
-                    card.name,
-                    Modifier.weight(1f),
-                    size = CardTitleSize.Caption,
-                    color = MaterialTheme.colorScheme.onSurface,
-                )
-                Spacer(Modifier.width(Spacing.sm))
+            if (LocalDensity.current.fontScale > STACK_SCALE) {
+                // Large text: the name over its outcome, each with the row's width, never squeezed beside it.
+                CardTitle(card.name, size = CardTitleSize.Caption, color = MaterialTheme.colorScheme.onSurface)
                 OutcomeLine(shortVs(line, attack), outcome, line.verdict.holds)
+            } else {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    // The name beside a thumbnail, at its caption size: two lines still fit the 48 dp row.
+                    CardTitle(
+                        card.name,
+                        Modifier.weight(1f),
+                        size = CardTitleSize.Caption,
+                        color = MaterialTheme.colorScheme.onSurface,
+                    )
+                    Spacer(Modifier.width(Spacing.sm))
+                    OutcomeLine(shortVs(line, attack), outcome, line.verdict.holds)
+                }
             }
             if (decides) {
                 Text(
@@ -647,6 +660,12 @@ private fun AttackBox(
 
 /** A card in the list of options: small, its colour and art enough to know it (Read card or a tap shows it large). */
 private val OPTION_CARD = 26.dp
+
+/** Past this font scale a row puts the name over its outcome. */
+private const val STACK_SCALE = 1.3f
+
+/** Between the list and what is over and under it. */
+private val LIST_GAP = 6.dp
 
 /** A row of the list: its 48 dp target (the cue counts the cards below by it). */
 private val OPTION_ROW = 48.dp
