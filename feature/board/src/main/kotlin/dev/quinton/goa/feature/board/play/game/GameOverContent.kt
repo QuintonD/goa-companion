@@ -81,8 +81,8 @@ import dev.quinton.goa.feature.board.ui.badgeOverhang
 import dev.quinton.goa.feature.board.ui.cards.CardFocusState
 
 /**
- * Game over: who won and how, in the rulebook's words; how each hero did as a grid (Level, heroes and minions
- * defeated, times defeated, coins) with an icon over each column; take backs and nudges; the coach's turning points
+ * Game over: who won and how, in the rulebook's words; how each hero did as a grid (Level, Hero KOs, Minion KOs,
+ * Deaths, Coins) with an icon over each column; take backs and nudges; the coach's turning points
  * (when Coach is on), each with its round and turn; the report; New game. Rematch (same setup, a new coin flip) and
  * Done are pinned under it, in reach without scrolling. Online (ADR-056): whose team won and whether it counted, with
  * no report, rematch or new game: those need a whole game, which a phone doesn't hold.
@@ -336,9 +336,9 @@ private fun TurningPoint(note: CoachNote) {
 /** The grid's columns, in order: what each counts, its icon and its head. */
 private enum class ResultColumn(val head: String, val spoken: String, val width: Dp) {
     LEVEL("Level", "Level", 42.dp),
-    HEROES("Heroes", "heroes defeated", 54.dp),
-    MINIONS("Minions", "minions defeated", 60.dp),
-    FALLEN("KO'd", "times defeated", 42.dp),
+    HEROES("Hero\nKOs", "heroes defeated", 50.dp),
+    MINIONS("Minion\nKOs", "minions defeated", 56.dp),
+    FALLEN("Deaths", "times defeated", 50.dp),
     COINS("Coins", "coins gained", 46.dp),
 }
 
@@ -414,7 +414,10 @@ private fun HeadRow(modifier: Modifier, fixed: Boolean) {
                     column.head,
                     style = style,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 1,
+                    textAlign = TextAlign.Center,
+                    // "Hero KOs" on two lines over its column; a line never breaks mid-word.
+                    maxLines = 2,
+                    softWrap = false,
                     // Heads never touch: a word wider than its column steps down a little.
                     autoSize = TextAutoSize.StepBased(minFontSize = 11.sp, maxFontSize = style.fontSize),
                     modifier = Modifier.padding(horizontal = HEAD_GAP),

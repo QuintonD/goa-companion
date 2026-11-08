@@ -467,7 +467,14 @@ private fun OptionsStep(
                     onClick = { onAction(NewGameAction.FlipCoin) },
                     enabled = state.canStart && !starting,
                     modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp),
-                ) { Text("Flip the Tie Breaker coin", style = MaterialTheme.typography.titleMedium) }
+                ) {
+                    // It starts the game, and says so: the coin flip is how (opus, round 4).
+                    Text(
+                        "Start game · flip the coin",
+                        style = MaterialTheme.typography.titleMedium,
+                        textAlign = TextAlign.Center,
+                    )
+                }
             }
         }
     }
@@ -829,5 +836,5 @@ internal fun startingCounters(lanes: Int, length: GameLength, heroes: Int): Stri
 private fun lengthNote(state: NewGameUiState.Ready): String {
     val heroes = state.red.size + state.blue.size
     val page = if (state.form.length == GameLength.LONG) "p.23" else "p.5"
-    return "Counters at the start with $heroes heroes, Lives per team ($page)."
+    return "With $heroes heroes; Lives are per team ($page)."
 }

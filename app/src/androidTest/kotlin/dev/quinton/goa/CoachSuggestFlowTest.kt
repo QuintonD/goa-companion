@@ -41,7 +41,7 @@ class CoachSuggestFlowTest {
             .performSemanticsAction(SemanticsActions.SetProgress) { setProgress -> setProgress(2f) }
         rule.waitForText("2 · Easy")
         rule.reveal(hasText("Forgotten Island"))
-        rule.tapText("Flip the Tie Breaker coin")
+        rule.tapText("Start game · flip the coin")
         rule.waitForText("shows", substring = true)
         rule.tapText("Start the game")
 
