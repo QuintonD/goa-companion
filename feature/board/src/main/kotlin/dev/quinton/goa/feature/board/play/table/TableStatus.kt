@@ -803,8 +803,9 @@ fun HandTab(table: TableUi, focus: CardFocusState, open: Boolean, onOpenChange: 
             ) {
                 TableCard(null, width = 14.dp, backOf = heroId)
                 Spacer(Modifier.width(Spacing.sm))
+                // The card back is the hero's deck symbol, so the words need not name whose (TalkBack does).
                 Text(
-                    "$title · ${hand.size}",
+                    "Your hand · ${hand.size}",
                     style = GoaTextStyles.sectionHead,
                     color = GoaTheme.colors.heading,
                     modifier = Modifier.weight(1f),

@@ -59,6 +59,7 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -570,7 +571,7 @@ fun PeekConfirm(table: TableUi, busy: Boolean, onAnswer: (Choice) -> Unit) {
         modifier = Modifier
             .heightIn(min = 40.dp)
             .semantics { contentDescription = "Confirm · $label" },
-    ) { Text("Confirm", maxLines = 1) }
+    ) { Text(confirmLabel(table, selected), maxLines = 1, overflow = TextOverflow.Ellipsis) }
 }
 
 /**
