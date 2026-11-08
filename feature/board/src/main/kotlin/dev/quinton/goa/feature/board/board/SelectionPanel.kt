@@ -511,17 +511,20 @@ private fun CardChip(
             },
     ) {
         Column(Modifier.padding(horizontal = Spacing.sm, vertical = 6.dp)) {
+            val family: @Composable (Modifier) -> Unit = { modifier ->
+                Text(
+                    // Its own line with large text: "Silver Basic", which may break between its words, never inside.
+                    if (wide) familyLabel(card).replace("\u00A0·\u00A0", " ") else familyLabel(card),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = modifier,
+                )
+            }
             Row(verticalAlignment = Alignment.CenterVertically) {
                 CardColorDot(card.color, size = 10.dp)
                 Spacer(Modifier.width(6.dp))
-                Text(
-                    familyLabel(card),
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    // Large text in a half-width chip: "Silver ·" over "Basic" rather than cut.
-                    maxLines = 2,
-                    modifier = Modifier.weight(1f, fill = false),
-                )
+                // Large text in a half-width chip: the family on a line of its own under the name, never broken.
+                if (!wide) family(Modifier.weight(1f, fill = false))
                 card.initiative?.let {
                     Spacer(Modifier.width(6.dp))
                     Icon(
@@ -555,16 +558,20 @@ private fun CardChip(
                     )
                 }
             }
+            if (wide) family(Modifier)
         }
     }
 }
 
 /**
  * A card's family as its chip heads it: the deck colour in a word and the tier ("Red · II", "Gold · Basic",
- * "Purple · Ultimate"); a spell page by its level as printed.
+ * "Purple · Ultimate"), held together by non-breaking spaces; a spell page by its level as printed.
  */
-internal fun familyLabel(card: Card): String =
-    if (card.isSpell) tierLabel(card) else "${cardColorName(card.color)} · ${tierLabel(card).removePrefix("Tier ")}"
+internal fun familyLabel(card: Card): String = if (card.isSpell) {
+    tierLabel(card)
+} else {
+    "${cardColorName(card.color)}\u00A0·\u00A0${tierLabel(card).removePrefix("Tier ")}"
+}
 
 /** How much wider a card chip may grow with the font scale. */
 private const val CHIP_GROWTH = 1.5f

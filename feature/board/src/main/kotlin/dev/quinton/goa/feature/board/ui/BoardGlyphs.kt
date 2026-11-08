@@ -256,8 +256,8 @@ private fun DrawScope.drawHalo(path: Path, u: Float, stroke: Float, palette: Boa
 
 /**
  * Movement: a green fill and outline, the fewest spaces needed as a number. On a painting the map shows
- * movement with light and plain numerals, so this is only its legend swatch: a lit space with an outline (the
- * caller draws the numeral).
+ * movement with light and numbers in dark disks, so this is only its legend swatch: a lit space with an outline and
+ * a disk (the caller draws the numeral).
  */
 fun DrawScope.drawMovementCell(corners: List<Offset>, center: Offset, palette: BoardPalette) {
     val u = (corners[0] - center).getDistance()
@@ -265,6 +265,7 @@ fun DrawScope.drawMovementCell(corners: List<Offset>, center: Offset, palette: B
     if (palette.onArt) {
         drawHalo(path, u, u * 0.1f, palette)
         drawPath(path, Color.White, style = Stroke(width = u * 0.1f, join = StrokeJoin.Round))
+        drawCircle(ChipGround, radius = u * CHIP_RADIUS, center = center)
         return
     }
     drawPath(path, palette.movement.copy(alpha = 0.34f))
@@ -272,10 +273,10 @@ fun DrawScope.drawMovementCell(corners: List<Offset>, center: Offset, palette: B
 }
 
 /**
- * A number on a painting, how many steps a space is away: a plain white numeral with a dark halo; dark on a bronze
- * halo for the [chosen] space. Never in a chip: a chip (a teal tag with a letter) means "this option in the list",
- * and one map shouldn't use one shape for two things (sol-b #16). [scale] grows it with large text (capped by the
- * caller, so it stays inside its space); measure [text] at [CHIP_TEXT] times the same scale.
+ * A number on a painting, how many steps a space is away: a white numeral in a plain dark disk (it holds its contrast
+ * on any map art), dark on a bronze disk for the [chosen] space. Round and dark, never the teal rounded square of a
+ * list letter, so one map doesn't use one shape for two things (sol-b #16). [scale] grows it with large text (capped by
+ * the caller, so it stays inside its space); measure [text] at [CHIP_TEXT] times the same scale.
  */
 fun DrawScope.drawNumberChip(
     text: TextLayoutResult,
@@ -284,14 +285,10 @@ fun DrawScope.drawNumberChip(
     chosen: Boolean = false,
     scale: Float = 1f,
 ) {
+    val r = u * CHIP_RADIUS * scale
+    drawCircle(if (chosen) ChipChosen else ChipGround.copy(alpha = 0.9f), radius = r, center = center)
+    drawCircle(ChipEdge, radius = r, center = center, style = Stroke(width = u * 0.04f))
     val topLeft = center - Offset(text.size.width / 2f, text.size.height / 2f)
-    drawText(
-        text,
-        color = if (chosen) ChipChosen else ChipGround.copy(alpha = 0.92f),
-        topLeft = topLeft,
-        drawStyle = Stroke(width = u * NUMERAL_HALO * scale, join = StrokeJoin.Round),
-    )
-    // Fill named: the text paint keeps the last style it was given.
     drawText(text, color = if (chosen) ChipGround else Color.White, topLeft = topLeft, drawStyle = Fill)
 }
 
@@ -301,8 +298,9 @@ const val CHIP_TEXT = 0.52f
 /** How far the map's numbers and tags grow with the font scale: past it they would spill out of their space. */
 const val MAP_MARK_MAX_SCALE = 1.5f
 
-/** The dark halo round a step count's numeral, map units. */
-private const val NUMERAL_HALO = 0.16f
+/** A step count's disk, map units, and its faint light edge. */
+private const val CHIP_RADIUS = 0.4f
+private val ChipEdge = Color(0x66F3EBD6)
 private val ChipGround = Color(0xFF0B1622)
 private val ChipChosen = Color(0xFFC9A35B)
 

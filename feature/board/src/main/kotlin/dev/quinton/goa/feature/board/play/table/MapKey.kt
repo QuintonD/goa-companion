@@ -106,10 +106,10 @@ internal fun mapKeyItems(table: TableUi, listed: Boolean = false): List<MapKeyIt
 
 /**
  * The map's key while a question lights it (the board's own marks, a swatch each): "Lit: pick one", "Steps away" (a
- * plain numeral), "Letter = list row" (a teal tag, while the list is open), "Card range", "Route". A small plate under
- * the round at a glance and the turn track, where the map is framed below it, so it never covers a piece. TalkBack
- * hears it as one line. With [onToggle] it is a compact row of short words that a tap opens to [full] words (an info
- * mark says so); TalkBack always hears the full words.
+ * numeral in a dark disk), "Letter = list row" (a teal tag, while the list is open), "Card range", "Route". A small
+ * plate under the round at a glance and the turn track, where the map is framed below it, so it never covers a
+ * piece. TalkBack hears it as one line. With [onToggle] it is a compact row of short words that a tap opens to [full]
+ * words (an info mark says so); TalkBack always hears the full words.
  */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
@@ -210,10 +210,10 @@ private fun KeySwatch(item: MapKeyItem) {
                 drawOptionTag(text, c, r * 0.72f, chosen = false)
             }
 
-            // The map's own step count: a plain numeral with its dark halo, no chip.
+            // The map's own step count: a white numeral in a plain dark disk (round, never the letters' square).
             MapKeyItem.STEPS -> {
-                val text = measurer.measure("2", TextStyle(fontSize = 15.sp, fontWeight = FontWeight.Bold))
-                drawNumberChip(text, c, r)
+                val text = measurer.measure("2", TextStyle(fontSize = 11.sp, fontWeight = FontWeight.Bold))
+                drawNumberChip(text, c, r * 2.2f)
             }
 
             // The map's own strokes at the swatch's size: a space's faint edge with the violet inner outline (what a
@@ -225,13 +225,13 @@ private fun KeySwatch(item: MapKeyItem) {
 
             MapKeyItem.PATH, MapKeyItem.MEASURE -> drawPathSwatch(r, palette.halo, palette.measure)
 
-            // A lit space with the region's white edge and the map's own step count (a plain numeral, dark halo).
+            // A lit space with the region's white edge and the map's own step count (a numeral in a dark disk).
             MapKeyItem.MOVEMENT -> {
                 val hex = hexagon(c, r * 0.95f)
                 drawPath(hex, LitFill)
                 drawPath(hex, Color.White, style = Stroke(width = r * 0.14f, join = StrokeJoin.Round))
-                val text = measurer.measure("2", TextStyle(fontSize = 12.sp, fontWeight = FontWeight.Bold))
-                drawNumberChip(text, c, r * 0.8f)
+                val text = measurer.measure("2", TextStyle(fontSize = 9.sp, fontWeight = FontWeight.Bold))
+                drawNumberChip(text, c, r * 1.2f)
             }
 
             MapKeyItem.FAST_TRAVEL -> drawFastTravelCell(corners(c, r * 0.95f), c, r * 0.95f, palette)

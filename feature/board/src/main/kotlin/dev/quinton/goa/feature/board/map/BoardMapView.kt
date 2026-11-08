@@ -92,6 +92,7 @@ import dev.quinton.goa.feature.board.ui.BoardPalette
 import dev.quinton.goa.feature.board.ui.CHIP_TEXT
 import dev.quinton.goa.feature.board.ui.ChooserEntry
 import dev.quinton.goa.feature.board.ui.MAP_MARK_MAX_SCALE
+import dev.quinton.goa.feature.board.ui.MINION_BADGE_AT
 import dev.quinton.goa.feature.board.ui.MapChoices
 import dev.quinton.goa.feature.board.ui.MapChooser
 import dev.quinton.goa.feature.board.ui.MiniatureBadge
@@ -646,7 +647,10 @@ private fun labelBusy(state: BoardUiState.Ready, layout: MapLayout): List<Offset
         } else {
             emptyList()
         }
-        hexes.distinct().map(layout::center) + line
+        // A minion's type badge and team mark stand out beside its figure: obstacles too.
+        val badges = state.pieces.filterIsInstance<MinionPiece>().mapNotNull { it.at }
+            .map { layout.center(it) + MINION_BADGE_AT }
+        hexes.distinct().map(layout::center) + line + badges
     }
 }
 

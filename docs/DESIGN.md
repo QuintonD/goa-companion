@@ -95,10 +95,10 @@ against the art itself: the slate at its lightest 1 %, the parchment at its dark
 when a map has `art` (all four do); the drawn map stays as the fallback while loading.
 - The painting sits under the hexes; its own edge is `art.sea`, one dark sea on all four maps (dimmed, it is the canvas), so it has no visible edge in any rotation. The Battle Zone is full colour, the rest dimmed (brightness about .58, saturation
   .5), with a thick white edge on a dark halo; rocks enclosed by it are lit and not outlined. Zone labels are bevelled words on a slate pill (80 %), set clear of every piece (a miniature stands a space tall above its own). A Battle Zone's label is never hidden: with no free place outside the Zone it takes the free spot nearest the Zone along its edges or the view's top and bottom edge (over a little empty map, never a piece).
-- **Spaces a question offers take the light** (`MapLighting`): lit, white-edged, a move's step count as a plain white numeral with a dark halo (no chip: a chip is a list letter), the chosen one bronze; the Battle Zone keeps a thin line
+- **Spaces a question offers take the light** (`MapLighting`): lit, white-edged, a move's step count as a white numeral in a plain dark disk (round; a list letter is a teal rounded square), the chosen one bronze; the Battle Zone keeps a thin line
   meanwhile. Occupied spaces you can't end on stay dark. Range and Radius stay patterns. Overlays use `ArtBoardPalette`, the same in both themes, each with a dark halo.
 - **Board style** (Settings → Appearance; `LocalBoardStyle`): Miniatures, or Grid and discs (hex hairlines, discs with the type's glyph). Miniatures stand on a team-coloured base
-  with a round type badge drawn above every figure, and on the badge's upper right the team's official gear or star on a dark badge nearly as large, as every hero carries it; the badge grows with large text and never shows under 9 dp radius on screen however far out the map is (`MiniatureBadge`); a Heavy is larger. A disc (Grid and discs) carries the same gear or star. Team on a minion is never colour alone; TalkBack names it.
+  with a round type badge drawn above every figure, and on the badge's upper right the team's official gear or star on a dark badge nearly as large, as every hero carries it; the badge grows a little with large text (1.15× at most, so it never runs into a Zone label, which treats it as an obstacle) and never shows under 9 dp radius on screen however far out the map is (`MiniatureBadge`); a Heavy is larger. A disc (Grid and discs) carries the same gear or star. Team on a minion is never colour alone; TalkBack names it.
 - **Hero tokens:** portrait in a team ring with the mark on a dark badge. Max zoom on art maps: 88 dp a hex.
 - Spaces in `art.uncovered` have copied ground (ADR-053); only their Spawn symbols and Zone edges are drawn.
 
@@ -457,7 +457,7 @@ framing (the opening, Fit, a reveal) moves aside, to the start or down, so **no 
 (`MapViewport.updateAvoid`), only where there is slack: never cutting a piece in view at an edge nor cropping what a
 question is about (its options, the actor, a hint's target), zooming out a little rather than cropping. Each space's TalkBack node is a square inside its hex (1.46 map units, so neighbours never
 overlap and Android keeps each node whole). The card strip starts one card before the chosen card
-and fades at an edge with more cards beyond; from font scale 1.3 its chips wrap two to a row, each half the width, every name whole. Each chip heads with its family in words beside its colour's dot ("Red · II", "Gold · Basic"), never the colour alone. The chosen card takes the one selection look (bronze edge and tint, a tick), never its own colour. **New board** fits a 384 dp phone without scrolling:
+and fades at an edge with more cards beyond; from font scale 1.3 its chips wrap two to a row, each half the width, every name whole. Each chip heads with its family in words beside its colour's dot ("Red · II", "Gold · Basic", held together), never the colour alone; from font scale 1.3 the family is a line of its own under the name. The chosen card takes the one selection look (bronze edge and tint, a tick), never its own colour. **New board** fits a 384 dp phone without scrolling:
 one slot on top holds the latest draft's or match's line-up (a card with Set up) until the first
 pick, then the teams (pick chips sharing the row, "Next pick" spelled out on an empty team, the
 border and the switch otherwise); search with a segmented Red | Blue switch beside it (under it at
@@ -499,7 +499,7 @@ option) opens **Which one?** at the finger (`MapChooser`), a 48 dp row each with
 asks the same between close pieces. While the person's question lights the map a **map key**
 (`MapKey`, a small plate under the round at a glance and the turn track, inside what the map frames below, so it
 covers no piece) names
-each mark with its own swatch: "Lit: pick one" (a lit, white-edged hex), "Steps away" (the plain numeral), "Letter =
+each mark with its own swatch: "Lit: pick one" (a lit, white-edged hex), "Steps away" (the dark disk), "Letter =
 list row" (the teal tag), "Card range" (the violet outline), "Route" (the bronze line); only what the map shows now. TalkBack: one line.
 **Title:** "Round 2 · Turn 3" where the bar has the room (600 dp and wider); on a phone upright "Round 2", the turn
 named over the HUD's pips ("TURN 3"), so the labelled State control is in the bar in both orientations. **Top-bar controls** (the game, a puzzle; `BarLabelButton`): each glyph with its word under it in
@@ -534,9 +534,9 @@ order (the heroes done, in the order they acted, the acting hero, the next, the 
 length. Each cell is stacked: the hero's portrait in its team ring (22 dp; the mark at its foot, the action chosen as
 the game's icon at its head, crossed out while off the board) beside the initiative as it counts in 18 sp figures ("=11"
 in teal while tied with another hero still to act); the name under them (13 sp bold, a step down to 78 % rather than
-cut); the card played under that on **one line** (12 sp medium at 82 %, one size for the strip, a step down to 10.5 sp,
-then an ellipsis past about 16 letters; the whole name in TalkBack's words and on the card a tap opens; "Facedown" for a
-card resolved facedown; the side column sideways keeps two lines). Across the
+cut); the card played under that (12 sp medium at 82 %, one size for the strip, on up to two lines broken at a space or
+after a hyphen, a step smaller only so that no word is broken; never an ellipsis; "Facedown" for a card resolved
+facedown). Across the
 foot a thin band with the state in a word, 12 sp bold: **DONE** with a tick (the cell stepped back to 72 %), **NOW**
 (bronze band, bronze 2 dp border), **NEXT** (teal band and border), **PASS**, **OUT**; a hero still to act has no band.
 Bands are dark steel on the dark theme and light steel with ink on the light theme's paper. **Who acts vs who

@@ -86,6 +86,7 @@ import dev.quinton.goa.feature.board.ui.BoardPalette
 import dev.quinton.goa.feature.board.ui.CHIP_TEXT
 import dev.quinton.goa.feature.board.ui.ChooserEntry
 import dev.quinton.goa.feature.board.ui.MAP_MARK_MAX_SCALE
+import dev.quinton.goa.feature.board.ui.MINION_BADGE_AT
 import dev.quinton.goa.feature.board.ui.MapChoices
 import dev.quinton.goa.feature.board.ui.MapChooser
 import dev.quinton.goa.feature.board.ui.MiniatureBadge
@@ -426,7 +427,8 @@ internal fun resolveAt(table: TableUi, hex: Hex, figure: Hex?): TableTap? =
 @Composable
 private fun labelBusy(table: TableUi, layout: MapLayout): List<Offset> = remember(table.view, table.decision, layout) {
     val hexes = table.occupancy.keys + table.spaceOptions.keys + table.decision?.context?.highlight.orEmpty()
-    hexes.distinct().map(layout::center)
+    // A minion's type badge and team mark stand out beside its figure: obstacles too.
+    hexes.distinct().map(layout::center) + table.view.minions.map { layout.center(it.at) + MINION_BADGE_AT }
 }
 
 /**
@@ -468,7 +470,7 @@ private fun DecisionOverlay(
             val highlight = decision?.context?.highlight.orEmpty().map(::cell)
             // Listed, each space shows its letter in the panel's list (a teal tag), its steps there.
             val listed = tags.spaces
-            // On a painting a space that a move reaches shows how many steps as a plain numeral, the rest their dashes.
+            // On a painting a space that a move reaches shows how many steps in a dark disk, the rest their dashes.
             val numbered = if (palette.onArt && listed.isEmpty()) spacesOnAPath(table) else emptyMap()
             val options = (table.spaceOptions.keys + table.pieceOptions.keys.mapNotNull(table::at))
                 .filter { it !in numbered }.map(::cell)

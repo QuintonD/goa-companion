@@ -370,7 +370,8 @@ private fun DrawScope.drawTypeBadge(piece: MinionPiece, c: Offset, u: Float, tea
 fun MiniatureBadge(piece: MinionPiece, size: Dp, modifier: Modifier = Modifier, zoom: () -> Float = { 1f }) {
     val team = rememberOfficialBitmap(OfficialArt.heroSpawn(piece.team))
     val density = LocalDensity.current
-    val fontGrow = minOf(density.fontScale, MAP_MARK_MAX_SCALE).coerceAtLeast(1f)
+    // Large text grows it a little only: a badge that grows with the words collides with the Zone labels (a11y).
+    val fontGrow = minOf(density.fontScale, BADGE_FONT_MAX).coerceAtLeast(1f)
     val minRadius = with(density) { MIN_BADGE_RADIUS.toPx() }
     Canvas(modifier.size(size).clearAndSetSemantics {}) {
         val u = this.size.minDimension / PIECE_UNITS
@@ -445,6 +446,15 @@ private const val BASE_HEIGHT = 0.65f
 private const val BADGE_X = 0.68f
 private const val BADGE_Y = 0.53f
 private const val BADGE_RADIUS = 0.4f
+
+/**
+ * Where a minion's type badge stands from its space's centre, in hex radii (the map's units): the Zone labels keep
+ * clear of it as of the figure ([MapLayers]' busy points).
+ */
+val MINION_BADGE_AT = Offset(BADGE_X, BADGE_Y)
+
+/** How far a type badge grows with large text: little, so it never runs into a Zone label. */
+private const val BADGE_FONT_MAX = 1.15f
 
 /** A type badge's radius on the screen at least (with its team mark about 0.8 of that), and its growth's cap. */
 private val MIN_BADGE_RADIUS = 9.dp
