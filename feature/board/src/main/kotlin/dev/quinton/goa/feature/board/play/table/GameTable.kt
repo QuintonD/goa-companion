@@ -21,8 +21,11 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.Stable
+import androidx.compose.runtime.State
 import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -68,6 +71,16 @@ import dev.quinton.goa.feature.board.ui.cards.CardFocusState
  * stops a little past it, so what follows (what happened, the hands) doesn't take the map's room: it scrolls.
  */
 internal val LocalPanelQuestionEnd = staticCompositionLocalOf<((Int?) -> Unit)?> { null }
+
+/**
+ * The room a question has in the panel, for a question that scrolls a part of itself so its commit stays in view
+ * (Defend's list of cards): [height] is the most it may take from the top of the panel's content, [contentTop] where
+ * that content is in the root, px (it moves as the panel scrolls, as the question does).
+ */
+@Stable
+internal class QuestionRoom(val height: Dp, val contentTop: State<Float>)
+
+internal val LocalQuestionRoom = compositionLocalOf<QuestionRoom?> { null }
 
 /** The question's spaces stay crowded on the map (framed under 40 dp): the panel lists them by number too. */
 internal val LocalOptionsCrowded = compositionLocalOf { false }
@@ -169,6 +182,16 @@ fun GameTable(
                 (height / maxHeight).coerceAtMost(QUESTION_SHARE)
             } ?: PANEL_SHARE
             )
+
+        // What a question may take of the panel: upright, up to [QUESTION_SHARE] with the strip and the room past it;
+        // sideways, the side panel's height under its strip, above the hand's tab.
+        val stripDp = maxOf(PanelStripHeight, with(density) { stripHeight.toDp() })
+        val questionRoom = if (landscape) {
+            maxHeight - stripDp - with(density) { footerHeight.toDp() } - Spacing.sm
+        } else {
+            maxHeight * QUESTION_SHARE - stripDp - PANEL_PAST_QUESTION
+        }
+        val contentTop = remember { mutableFloatStateOf(0f) }
 
         LaunchedEffect(cover, topHeight) {
             viewport.updateInsets(bottom = cover.bottom.toFloat(), end = cover.end.toFloat(), top = topHeight.toFloat())
@@ -357,11 +380,14 @@ fun GameTable(
                 CompositionLocalProvider(
                     LocalPanelQuestionEnd provides { questionEnd = it },
                     LocalOptionsCrowded provides crowded,
+                    LocalQuestionRoom provides QuestionRoom(questionRoom, contentTop),
                 ) {
                     Column(
                         Modifier
                             .weight(1f, fill = false)
                             .verticalScroll(panelScroll)
+                            // Where the content is as it scrolls: a question measures its own place in it.
+                            .onGloballyPositioned { contentTop.floatValue = it.positionInRoot().y }
                             .padding(
                                 start = PANEL_INSET,
                                 end = PANEL_INSET,

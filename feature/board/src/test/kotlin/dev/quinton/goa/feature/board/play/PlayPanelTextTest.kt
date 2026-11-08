@@ -84,10 +84,16 @@ class PlayPanelTextTest {
 
     @Test
     fun eachDefenceOptionSaysItsTotalAgainstTheAttack() {
-        // Under each card: its total against the Attack, a Block's verdict, nothing for a card whose text decides.
-        assertEquals("Def 2 vs 6", defenseVs(defenseLine(total = 2, blocks = null, attack = 6), attack = 6))
-        assertEquals("Block fails", defenseVs(defenseLine(total = null, blocks = false, attack = 6), attack = 6))
-        assertEquals("Blocks it", defenseVs(defenseLine(total = null, blocks = true, attack = 6), attack = 6))
+        // In each row: its total against the Attack, a Block's verdict, nothing for a card whose text decides.
+        assertEquals("Defense 2 vs Attack 6", defenseVs(defenseLine(total = 2, blocks = null, attack = 6), attack = 6))
+        assertEquals(
+            "Block: not against this attack",
+            defenseVs(defenseLine(total = null, blocks = false, attack = 6), attack = 6),
+        )
+        assertEquals(
+            "Block: stops this attack whatever its value",
+            defenseVs(defenseLine(total = null, blocks = true, attack = 6), attack = 6),
+        )
         assertNull(defenseVs(defenseLine(total = null, blocks = null, attack = 6), attack = 6))
     }
 

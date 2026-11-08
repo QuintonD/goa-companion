@@ -178,7 +178,8 @@ class CardFocusDecisionTest {
         compose.onNodeWithTag(CARD_TAG).assertDoesNotExist()
         assertThat(actions.filterIsInstance<GameAction.Answer>()).isEmpty()
         tapInPanel(p, 1)
-        compose.onAllNodes(hasText("against Attack", substring = true)).onFirst().assertExists()
+        // The chosen row says how its total is counted ("Defense 3 = card 2 + minion 1 vs Attack 6").
+        compose.onAllNodes(hasContentDescription(" = card ", substring = true)).onFirst().assertExists()
         panelButton("Defend · ${name(p, 1)}").performClick()
         compose.waitForIdle()
         assertThat(actions.last()).isEqualTo(GameAction.Answer(option(p, 1)))
