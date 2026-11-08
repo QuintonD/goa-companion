@@ -14,14 +14,21 @@ import androidx.compose.material.icons.outlined.AccountCircle
 import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material.icons.outlined.SettingsBackupRestore
 import androidx.compose.material.icons.outlined.Share
-import androidx.compose.material.icons.outlined.Sync
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
+import dev.quinton.goa.core.designsystem.component.BannerTextButton
 import dev.quinton.goa.core.designsystem.component.BarAction
 import dev.quinton.goa.core.designsystem.component.BarActions
+import dev.quinton.goa.core.designsystem.component.BarOverflowMenu
 import dev.quinton.goa.core.designsystem.component.GoaScreen
 import dev.quinton.goa.core.designsystem.component.GoaTabRow
+import dev.quinton.goa.core.designsystem.icon.Destination
+import dev.quinton.goa.core.designsystem.icon.icon
+import dev.quinton.goa.feature.players.common.LARGE_FONT_SCALE
 import dev.quinton.goa.feature.players.common.LogMatchBar
 import dev.quinton.goa.feature.players.common.Motion
 import dev.quinton.goa.feature.players.match.MatchFollowUps
@@ -71,31 +78,42 @@ fun PlayersHomeScreen(
         title = "Players",
         modifier = modifier,
         actions = {
-            // Sync stays in sight (a quiet dot when the server sync needs a person: wrong key, versions,
-            // refused data); the rest are labelled lines in the overflow menu.
+            // Group sync stays in sight and says so in words (its glyph alone reads as "refresh"), with a quiet dot
+            // when the server sync needs a person (wrong key, versions, refused data); the rest are labelled lines
+            // in the overflow menu. At large text the word gives way to the glyph, labelled for TalkBack and on a
+            // long press.
             val sync = BarAction(
                 label = when {
                     players.serverNeedsAttention -> "Group sync: the sync server needs attention"
-                    players.serverSyncOn -> "Sync with the sync server"
-                    players.inGroup -> "Sync with the group"
+                    players.serverSyncOn -> "Group sync with the sync server"
+                    players.inGroup -> "Group sync with the group"
                     else -> "Group sync"
                 },
-                icon = Icons.Outlined.Sync,
+                icon = Destination.GROUP_SYNC.icon,
                 onClick = actions.onOpenSync,
                 badge = players.serverNeedsAttention,
             )
-            BarActions(
-                listOfNotNull(
-                    sync,
-                    players.meId?.let { me ->
-                        BarAction("Your player page", Icons.Outlined.AccountCircle, { actions.onOpenPlayer(me) })
-                    },
-                    BarAction("Share stats page", Icons.Outlined.Share, actions.onShareStats)
-                        .takeIf { tab == PlayersTab.META },
-                    BarAction("Backup and restore", Icons.Outlined.SettingsBackupRestore, actions.onOpenBackup),
-                    BarAction("Settings", Icons.Outlined.Settings, actions.onOpenSettings),
-                ),
+            val rest = listOfNotNull(
+                players.meId?.let { me ->
+                    BarAction("Your player page", Icons.Outlined.AccountCircle, { actions.onOpenPlayer(me) })
+                },
+                BarAction("Share stats page", Icons.Outlined.Share, actions.onShareStats)
+                    .takeIf { tab == PlayersTab.META },
+                BarAction("Backup and restore", Icons.Outlined.SettingsBackupRestore, actions.onOpenBackup),
+                BarAction("Settings", Icons.Outlined.Settings, actions.onOpenSettings),
             )
+            if (LocalDensity.current.fontScale < LARGE_FONT_SCALE) {
+                BannerTextButton(
+                    Destination.GROUP_SYNC.label,
+                    onClick = sync.onClick,
+                    icon = sync.icon,
+                    badge = sync.badge,
+                    modifier = Modifier.semantics { contentDescription = sync.label },
+                )
+                BarOverflowMenu(rest)
+            } else {
+                BarActions(listOf(sync) + rest)
+            }
         },
     ) { padding ->
         Column(Modifier.fillMaxSize().padding(padding)) {

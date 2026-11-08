@@ -13,11 +13,9 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.KeyboardArrowRight
-import androidx.compose.material.icons.automirrored.outlined.MenuBook
 import androidx.compose.material.icons.outlined.Backup
 import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material.icons.outlined.Settings
-import androidx.compose.material.icons.outlined.Sync
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -29,13 +27,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.graphics.vector.rememberVectorPainter
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import dev.quinton.goa.core.designsystem.component.GoaCard
 import dev.quinton.goa.core.designsystem.component.GoaScreen
 import dev.quinton.goa.core.designsystem.component.SectionHeader
 import dev.quinton.goa.core.designsystem.component.scaledIconSize
-import dev.quinton.goa.core.designsystem.icon.GoaIcons
+import dev.quinton.goa.core.designsystem.icon.Destination
+import dev.quinton.goa.core.designsystem.icon.icon
 import dev.quinton.goa.core.designsystem.theme.GoaTheme
 import dev.quinton.goa.core.designsystem.theme.Spacing
 
@@ -62,8 +60,8 @@ fun MoreScreen(onOpen: (MoreLink) -> Unit, modifier: Modifier = Modifier) {
             item {
                 MoreCard {
                     MoreRow(
-                        painterResource(GoaIcons.NavDraft),
-                        "Draft",
+                        rememberVectorPainter(Destination.DRAFT.icon),
+                        Destination.DRAFT.label,
                         "Pick and ban heroes for tonight's teams, then set up the match",
                     ) { onOpen(MoreLink.DRAFT) }
                 }
@@ -72,8 +70,8 @@ fun MoreScreen(onOpen: (MoreLink) -> Unit, modifier: Modifier = Modifier) {
             item {
                 MoreCard {
                     MoreRow(
-                        rememberVectorPainter(Icons.AutoMirrored.Outlined.MenuBook),
-                        "Rules",
+                        rememberVectorPainter(Destination.RULES.icon),
+                        Destination.RULES.label,
                         "The level and defeat ladder and the rulebook's quick reference, with page numbers",
                     ) { onOpen(MoreLink.RULES) }
                 }
@@ -82,8 +80,8 @@ fun MoreScreen(onOpen: (MoreLink) -> Unit, modifier: Modifier = Modifier) {
             item {
                 MoreCard {
                     MoreRow(
-                        rememberVectorPainter(Icons.Outlined.Sync),
-                        "Group sync",
+                        rememberVectorPainter(Destination.GROUP_SYNC.icon),
+                        Destination.GROUP_SYNC.label,
                         "Share matches and players with your friends' phones",
                     ) { onOpen(MoreLink.GROUP_SYNC) }
                     MoreDivider()

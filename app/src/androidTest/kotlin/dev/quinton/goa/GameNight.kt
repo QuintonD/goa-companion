@@ -51,20 +51,24 @@ class GameNight(private val rule: AppRule, private val checkpoint: (String) -> U
         val teamB = teamA.other
         rule.tap(hasText("Start draft", substring = true) and hasClickAction())
 
-        // ---- Draft board: House draft 2v2 = Ban A · Pick A · Ban B · Pick B · Pick B · Pick A, said in colours.
+        // ---- Draft board: House draft 2v2 = Ban A · Pick A · Ban B · Pick B ×2 · Pick A (five steps), said in
+        // colours. The line under the step says whose turn it is ("Ada: pick 1 of 2", "Ada's pick"), or the step's
+        // number when a single ban has nothing more to say.
         val expected = listOf(
-            Step(teamA, "bans", "Step 1 of 6"),
-            Step(teamA, "picks", "Step 2 of 6"),
-            Step(teamB, "bans", "Step 3 of 6"),
-            Step(teamB, "picks 2", "Step 4 of 6 · 1 of 2"),
-            Step(teamB, "picks 2", "Step 5 of 6 · 2 of 2"),
-            Step(teamA, "picks", "Step 6 of 6"),
+            Step(teamA, "bans", "Step 1 of 5"),
+            Step(teamA, "picks", "'s pick", "Step 2 of 5"),
+            Step(teamB, "bans", "Step 3 of 5"),
+            Step(teamB, "picks 2", "ick 1 of 2"),
+            Step(teamB, "picks 2", "ick 2 of 2"),
+            Step(teamA, "picks", "'s pick", "Step 5 of 5"),
         )
         val picked = mutableListOf<String>()
         val pickedBy = linkedMapOf<String, Side>()
         expected.forEachIndexed { i, step ->
             rule.waitForText("${step.team.label} ${step.verb}")
-            rule.waitForText(step.subtitle, substring = true)
+            rule.waitUntilOrDump("turn line: ${step.subtitles.joinToString(" or ")}") {
+                step.subtitles.any { rule.exists(hasText(it, substring = true)) }
+            }
             if (i == 0) checkpoint("Draft board")
             val tile = hasClickLabelStartingWith("Choose ")
             rule.reveal(tile)
@@ -202,9 +206,11 @@ class GameNight(private val rule: AppRule, private val checkpoint: (String) -> U
         rule.tapText("Log result")
 
         // ---- Match editor: drafted seats and duration pre-filled.
-        rule.waitForText("Duration (minutes, optional)")
+        rule.waitForDescription("Add seat to Red")
         picked.forEach { hero -> rule.waitForDescription("Hero: $hero. Change hero") }
         players.forEach { name -> rule.waitForDescription("Pilot: $name. Change pilot") }
+        // Duration and notes are folded under "Details".
+        rule.tap(hasText("Details") and hasClickAction())
         val duration = rule.onNode(hasSetTextAction() and hasText("Duration (minutes, optional)"))
             .fetchSemanticsNode().config.getOrNull(SemanticsProperties.EditableText)?.text.orEmpty()
         assertTrue("Duration pre-filled from the timer, was '$duration'", duration.toIntOrNull() != null)
@@ -336,5 +342,5 @@ class GameNight(private val rule: AppRule, private val checkpoint: (String) -> U
         val other get() = if (this == RED) BLUE else RED
     }
 
-    private data class Step(val team: Side, val verb: String, val subtitle: String)
+    private class Step(val team: Side, val verb: String, vararg val subtitles: String)
 }

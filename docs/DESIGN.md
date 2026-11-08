@@ -342,20 +342,27 @@ keep their contrast; the current row an expanded teal-bordered card whose border
 bronze in the final seconds and red in overtime; digits sized in dp so font scale 2 doesn't blow
 them up; landscape = list left, clock and controls right) · Players list → Player profile (rating chart) · Match log/editor ·
 Meta dashboard · Draft setup (the bar's back arrow leaves the draft: choices are saved as they are made; the in-flow
-Back steps back) → Draft board (a sticky step banner: team-edged plate, the step on its title plate with its clock
-beside it, then "Step 4 of 8 · 1 of 2 · for Ada"; the step chips; one team bar, per team its mark, name, a portrait or
+Back steps back; teams balanced by Elo say what the padlocks do in one line always in view, "🔒 Keeps a player on their
+team when you re-balance", each padlock a 48 dp toggle "Keep Ada on Red" confirmed in a snackbar, and Re-balance is the
+shared steel secondary button) → Draft board (a sticky step banner: team-edged plate, the step on its title plate with its clock
+beside it, then whose turn inside the step on a line of its own ("Ada: pick 1 of 2", "Ada's pick"; "Step 3 of 5" for a
+lone ban); the step chips, numbered steps with their counts by the team's mark ("4 · ◆ picks 2", `DraftStep`: one numbering
+for the board, the method list and the banner), finished ones with a check and a lighter edge but words at full
+contrast, the strip running to the screen's edges from the gutter with the edge fade, scrolled so the step before,
+the step in play and the next stay in view; one team bar, per team its mark, name, a portrait or
 empty ring per seat and its bans counted, which a tap opens into both rosters, equal-height columns with "Roles covered"
 and ban chips, capped at 45 % of the height; then search with Hide taken and the role chips, pinned; the pool grid
 follows, at least two rows in view at 411 dp. Large text or a phone under 640 dp tall pins only the banner. Taken
 heroes shrink to chips; landscape moves the banner and teams to a side column so the pool keeps the full height; four tiles across on a phone (three at 360 dp), names up to 15 sp,
 stepping down only for the longest; a pool tile's tap opens the hero peek sheet (one tap, one meaning: no inspect
 button on the art; Open hero page sits under the hero, above the stats, so the footer never hides it), whose
-commitment is pinned under its scrolling content: whom it is for, wrapping ("◆ Red · for Ada ·
-Pick 1 of 2"), then the bronze primary with a short label that never truncates ("Pick Arien"), which commits; before the
+commitment is pinned under its scrolling content: whom it is for, wrapping ("◆ Red · Ada: pick 1 of 2"),
+beside the step's clock when the draft is timed (it keeps running while the hero is read), then the bronze primary with a short label that never truncates ("Pick Arien"), which commits; before the
 first choice "Swap out of the pool instead" under it. Draft complete: a plate per team, rows divided by hairlines,
 each row with a quiet Swap; after one tap swapping is a named mode: the bar says "Swap Arien with another ◆ Blue hero"
-with Cancel, teammates offer a bronze Swap here and the other team steps back. One bronze Open match setup is pinned with a
-⋮ menu: Log result later, Try on the board, Handicap cards… and Deal again) · Draft methods (a radio plate per method,
+with Cancel, teammates offer a bronze Swap here and the other team steps back. One bronze Open match setup (with the Match setup flag) is pinned
+with a ⋮ menu: Log result later, Try on the board, Handicap cards… and Deal again) · Draft methods (a radio plate per method: name, pool line, the numbered steps
+by mark only under the layout chips' mark legend ("4 · ⚙ picks 2"), the method's prose folded under "Method details";
 its name in the list-title style (Inter), the chosen one bronze, its sequence in team colours; "Continue with …"
 pinned below; Sources, Duplicate, Edit and Delete in each plate's menu; New method at the list's end; the methods'
 Team A and B are said as "coin team" and "other team" everywhere, with a mark legend under the layout chips).
@@ -366,7 +373,11 @@ Reset are inside Adjust), one folded "Adjust for tonight" row ("Play a card leng
 ±15 s and Heroes at the table, and one bronze Start timer, the plate's only button. Under the plate a quiet row of two
 text buttons, "Draft first" and "Match setup" (draft → setup → timer → log is the game-night flow), then pending
 matches, each with two 48 dp text buttons with their icons, Discard and "Open match setup"; the presets are listed once, on Timer presets, each preset's phases in the same grid.
-Who won? / match editor: the winners are radio cards (an empty trophy outline, a bronze trophy and the bronze selection
+Who won? / match editor: Who won? asks the winner and the win condition first, then both teams as short rosters;
+the editor shows the teams first, then the result. A seat is one line (portrait and hero, a tap changes the hero; the
+pilot as a dropdown pill, "Ann ×2" for a double pilot; a "Handicap" tag), and its pencil opens the rest under it (the
+Handicap card, Remove seat, "Ann pilots 2 heroes"). When and where, Details (duration, notes) and Who won?'s Match
+status fold under labelled rows that say their current values. The winners are radio cards (an empty trophy outline, a bronze trophy and the bronze selection
 frame once chosen) under "Which team won? · Required"; the win condition says "· Optional" and is a 2 × 2 grid of equal chips; the bronze Save ("Save
 result", "Save match", "Save changes") is pinned under the form, off until the form can be saved, with the reason under it
 (no Save in the banner). Each seat: the hero row, then the pilot as a dropdown field ("Pilot" on its outline, the name, ▾; it opens the pilot picker; no face, which would read as a second hero) with the Handicap card as a chip beside it ("Handicap" with a box, checked when on; TalkBack "Handicap card for Arien"), so a seat stays one row of controls, and a double pilot as a plain caption ("Ann pilots 2 heroes"), not a control.
@@ -378,7 +389,8 @@ stack of its own without an item (a draft in progress survives switching tabs; M
 on its root returns to where it was opened: More or the match log). **Top bars** show at most two glyphs, each
 labelled (TalkBack and a long-press tooltip, `BarIconButton`); with more actions the first stays and the rest go
 in a labelled overflow menu, "More options" (`BarActions`): Heroes shows the layout switch, then Rules and
-Settings in the menu; Players shows Group sync (its attention dot also on the menu button), then your player
+Settings in the menu; Players shows Group sync as words with its glyph, "⟳ Group sync" (the glyph alone reads as refresh; at large
+text the glyph, labelled; its attention dot also on the menu button), then your player
 page, Share stats, Backup and Settings; Play keeps Settings (the board style is set there). The **Play tab** opens on the game in progress (Resume), then plates
 with painted scenes (the app's own art in the official portraits' flat, bright brushwork, `third_party/ASSETS.md`), the
 name engraved over the scene and the state in bronze: Play vs computer across the width, then Game night (Draft, then
@@ -392,7 +404,8 @@ Board sandbox is the saved-board list only. The bottom nav is hidden on the
 running timer (no tab to mis-tap beside Next; back leaves to Heroes), on the draft board and on a board;
 while a session runs, every other screen shows the **timer running bar** above the nav (timer
 icon, phase, "Round · Turn" context, tabular clock in tide teal; dim when paused, error red in
-overtime; tap returns to the timer). The Meta tab defaults to a compact sortable hero table
+overtime; tap returns to the timer). The Meta tab opens on the hero ranking, then the group summary (totals, last game night, how games end); the ranking
+defaults to a compact sortable hero table
 (48 dp rows, sort chips; Pick/Ban columns drop at large font) with a Table/Cards switch.
 
 ### Board screens' frame (sandbox, game, puzzle)
@@ -937,3 +950,12 @@ lavender. Contrast (on-colour vs container): dark primaryContainer `#3D3018`/`#F
 secondaryContainer `#123F3B`/`#BDEFE7` 9.3:1, errorContainer `#4D1C1C`/`#FFD9D6` 10.8:1; light
 primaryContainer `#F1E2C0`/`#3A2A08` 10.8:1, secondaryContainer `#CDEDE7`/`#0B3B34` 10.0:1,
 errorContainer `#F9DEDC`/`#410E0B` 12.8:1. Tertiary mirrors secondary.
+
+### Destinations (`core:designsystem/icon/Destinations.kt`)
+A destination keeps one glyph and one name on every screen that links to it (`Destination`): a flag is Match setup
+(Timer start, a pending match in the log, a finished draft), the hourglass the Timer, the fanned cards the Draft, the open
+book the Rules, the two arrows Group sync, the hexagon the board. A bar glyph that would not say where it leads is named:
+Players' "Group sync", the draft setup's "Methods" and New board's and New game's "History" (the line-ups of past
+drafts and matches, there only when there is one) are words on the bar. Match setup's odd or
+large player count is one line, "Advanced player count", with "Read the rule" opening the rulebook's words.
+

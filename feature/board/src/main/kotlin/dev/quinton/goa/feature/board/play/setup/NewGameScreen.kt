@@ -31,15 +31,12 @@ import androidx.compose.material.icons.outlined.Check
 import androidx.compose.material.icons.outlined.ExpandLess
 import androidx.compose.material.icons.outlined.ExpandMore
 import androidx.compose.material.icons.outlined.Hexagon
-import androidx.compose.material.icons.outlined.History
 import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -60,7 +57,6 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import dev.quinton.goa.core.designsystem.component.BannerTextButton
 import dev.quinton.goa.core.designsystem.component.EmptyState
@@ -100,6 +96,7 @@ import dev.quinton.goa.feature.board.play.table.SpellbookSheet
 import dev.quinton.goa.feature.board.play.table.TieBreakerMark
 import dev.quinton.goa.feature.board.play.table.catalogSpellbook
 import dev.quinton.goa.feature.board.setup.HeroGrid
+import dev.quinton.goa.feature.board.setup.HistoryButton
 import dev.quinton.goa.feature.board.setup.NewBoardAction
 import dev.quinton.goa.feature.board.setup.SourcesContent
 import dev.quinton.goa.feature.board.setup.TeamSwitch
@@ -140,9 +137,8 @@ fun NewGameScreen(
                 if (ready.red.isNotEmpty() || ready.blue.isNotEmpty()) {
                     BannerTextButton("Clear", onClick = { onAction(NewGameAction.Lineup(NewBoardAction.Clear)) })
                 }
-                IconButton(onClick = { sources = true }, enabled = ready.sources.isNotEmpty()) {
-                    Icon(Icons.Outlined.History, contentDescription = "Use a draft or match")
-                }
+                // Past line-ups in words on the bar ("History"), there only when there is one to use.
+                if (ready.sources.isNotEmpty()) HistoryButton(onClick = { sources = true })
             }
         },
     ) { padding ->
