@@ -176,8 +176,6 @@ internal fun HeroDashboard(table: TableUi, hero: HeroView, focus: CardFocusState
                 style = GoaTextStyles.plateTitle.copy(fontSize = nameSize, lineHeight = nameSize * 1.2f),
                 heading = false,
                 maxLines = 1,
-                // A name, not a phase or an outcome: the plate without the gear (DESIGN.md "Framing levels").
-                gear = false,
                 modifier = Modifier.widthIn(max = w * NAME_PLATE_SHARE).clearAndSetSemantics {},
             )
             Spacer(Modifier.height(TITLE_GAP * scale))
