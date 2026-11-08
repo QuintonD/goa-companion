@@ -222,7 +222,7 @@ private fun CompletionActions(
             }
             DropdownMenu(expanded = menu, onDismissRequest = { menu = false }) {
                 DropdownMenuItem(
-                    text = { MenuText("Log result later", "Saves a pending match with these seats") },
+                    text = { Text("Log result later") },
                     leadingIcon = { Icon(Icons.AutoMirrored.Outlined.EventNote, contentDescription = null) },
                     enabled = !state.local.saving,
                     onClick = {
@@ -231,7 +231,7 @@ private fun CompletionActions(
                     },
                 )
                 DropdownMenuItem(
-                    text = { MenuText("Try on the board", "This line-up on the map") },
+                    text = { Text("Try on the board") },
                     leadingIcon = { Icon(Destination.BOARD.icon, contentDescription = null) },
                     onClick = {
                         menu = false
@@ -262,14 +262,6 @@ private fun CompletionActions(
                 }
             }
         }
-    }
-}
-
-@Composable
-private fun MenuText(title: String, detail: String) {
-    Column {
-        Text(title)
-        Text(detail, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
     }
 }
 

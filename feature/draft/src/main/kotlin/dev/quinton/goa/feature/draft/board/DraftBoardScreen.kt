@@ -327,7 +327,6 @@ fun DraftBoardScreen(state: BoardUiState, actions: BoardActions) {
                 else -> EmptyState(
                     icon = Icons.Outlined.SwapHoriz,
                     title = "No draft in progress",
-                    message = "Set up players, teams and a method to start one.",
                     modifier = Modifier.align(Alignment.Center),
                     action = { GoaButton(onClick = actions::back) { Text("Set up a draft") } },
                 )
@@ -886,14 +885,11 @@ private fun StepBanner(
 private fun PoolEditBanner(session: DraftSession, actions: BoardActions) {
     GoaPlate(Modifier.fillMaxWidth(), contentPadding = PaddingValues(0.dp)) {
         Row(Modifier.fillMaxWidth().padding(Spacing.md), verticalAlignment = Alignment.CenterVertically) {
-            Column(Modifier.weight(1f)) {
-                Text("Pool of ${session.pool.size} dealt", style = MaterialTheme.typography.titleSmall)
-                Text(
-                    "Before the first step you can re-roll it, or swap a hero out from its sheet.",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
+            Text(
+                "Pool of ${session.pool.size} dealt",
+                style = MaterialTheme.typography.titleSmall,
+                modifier = Modifier.weight(1f),
+            )
             GoaOutlinedButton(onClick = actions::reroll, modifier = Modifier.heightIn(min = 48.dp)) {
                 Icon(Icons.Outlined.Casino, contentDescription = null, modifier = Modifier.size(18.dp))
                 Spacer(Modifier.width(Spacing.xs))

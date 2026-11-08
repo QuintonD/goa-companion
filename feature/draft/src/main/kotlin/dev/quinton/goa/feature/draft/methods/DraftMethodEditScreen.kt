@@ -359,7 +359,7 @@ private fun TimerCard(state: MethodEditUiState, actions: MethodEditActions) {
 @Composable
 private fun PreviewCard(state: MethodEditUiState, actions: MethodEditActions) {
     val preview = state.preview
-    SectionCard(title = "Preview", subtitle = "The exact order for a seat layout") {
+    SectionCard(title = "Preview") {
         FlowRow(
             horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
             verticalArrangement = Arrangement.spacedBy(Spacing.sm),

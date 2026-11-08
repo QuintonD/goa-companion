@@ -430,7 +430,7 @@ private fun androidx.compose.foundation.lazy.LazyListScope.playersStage(state: S
             EmptyState(
                 icon = Icons.Outlined.Groups,
                 title = "Who's playing?",
-                message = "Add the people at the table above, or create full profiles in Players.",
+                message = "Add players above.",
                 modifier = Modifier.fillMaxWidth(),
                 action = {
                     GoaOutlinedButton(onClick = actions::openPlayerEditor) {
@@ -633,7 +633,6 @@ private fun TeamColumns(state: SetupUiState, actions: SetupActions) {
             null
         },
     ) {
-        if (balanced) LockCaption()
         Row(horizontalArrangement = Arrangement.spacedBy(Spacing.md)) {
             for (team in Team.entries) {
                 val ids = if (team == Team.RED) form.red else form.blue
@@ -659,25 +658,6 @@ private fun TeamColumns(state: SetupUiState, actions: SetupActions) {
                 }
             }
         }
-    }
-}
-
-/** What the padlocks do, said once and always in view, under the section's head. */
-@Composable
-private fun LockCaption() {
-    Row(Modifier.padding(bottom = Spacing.sm), verticalAlignment = Alignment.CenterVertically) {
-        Icon(
-            Icons.Filled.Lock,
-            contentDescription = null,
-            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.size(16.dp),
-        )
-        Spacer(Modifier.width(Spacing.xs))
-        Text(
-            LOCK_TIP,
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
     }
 }
 
@@ -863,7 +843,6 @@ private fun HeroesStage(state: SetupUiState, actions: SetupActions) {
     Column(verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
         SectionCard(
             title = "Method",
-            subtitle = "How heroes are chosen",
             trailing = { TextButton(onClick = actions::manageMethods) { Text("Compare all") } },
         ) {
             Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
@@ -872,7 +851,8 @@ private fun HeroesStage(state: SetupUiState, actions: SetupActions) {
                     ChoiceCard(
                         title = option.method.name,
                         badge = DraftSetupPresenter.originLabel(option.method),
-                        body = option.unavailable ?: coinTeamWords(option.method.summary),
+                        // What a method does is said for the picked one only; the others are their names.
+                        body = option.unavailable ?: if (selected) coinTeamWords(option.method.summary) else "",
                         selected = selected,
                         onClick = { actions.selectMethod(option.method.id) },
                         extra = if (selected && option.preview.isNotEmpty()) {
@@ -915,11 +895,9 @@ private fun HeroesStage(state: SetupUiState, actions: SetupActions) {
             }
             Spacer(Modifier.height(Spacing.sm))
             when (form.poolSource) {
-                PoolSource.ALL -> Hint("Every hero in the catalog.")
+                PoolSource.ALL -> Unit
 
-                PoolSource.OWNED -> Hint(
-                    "Heroes from the products you own (${state.ownedProductsLabel}, set in Settings).",
-                )
+                PoolSource.OWNED -> Hint(state.ownedProductsLabel)
 
                 PoolSource.CUSTOM -> GoaOutlinedButton(onClick = {
                     choosing = true
@@ -931,7 +909,6 @@ private fun HeroesStage(state: SetupUiState, actions: SetupActions) {
             HorizontalDivider(color = GoaTheme.colors.engravedBorder)
             Spacer(Modifier.height(Spacing.md))
             Text("Least experienced player", style = MaterialTheme.typography.labelLarge)
-            Hint("Removes heroes above their complexity (rulebook).")
             Spacer(Modifier.height(Spacing.sm))
             FlowRow(
                 horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
@@ -953,7 +930,7 @@ private fun HeroesStage(state: SetupUiState, actions: SetupActions) {
                 }
             }
         }
-        SectionCard(title = "Step timer", subtitle = "Optional countdown on every ban and pick", trailing = {
+        SectionCard(title = "Step timer", trailing = {
             GoaSwitch(
                 checked = form.stepTimer,
                 onCheckedChange = actions::setStepTimer,
@@ -973,8 +950,6 @@ private fun HeroesStage(state: SetupUiState, actions: SetupActions) {
                         ) { Text("${s}s") }
                     }
                 }
-            } else {
-                Hint("Off — no countdown. Overtime is never enforced.")
             }
         }
     }
@@ -1085,10 +1060,8 @@ private fun CoinStage(state: SetupUiState, actions: SetupActions) {
 private fun SummaryCard(state: SetupUiState) {
     val form = state.form
     val method = state.selectedMethod ?: return
-    SectionCard(title = method.method.name, subtitle = coinTeamWords(method.method.summary)) {
-        if (form.teamMode == TeamMode.PLAYER_DRAFT) {
-            Hint("Heroes first, then captains draft players.")
-        } else {
+    SectionCard(title = method.method.name) {
+        if (form.teamMode != TeamMode.PLAYER_DRAFT) {
             if (method.preview.isNotEmpty()) SequenceStrip(method.preview)
             Spacer(Modifier.height(Spacing.md))
             Row(horizontalArrangement = Arrangement.spacedBy(Spacing.md)) {
