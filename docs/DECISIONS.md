@@ -2947,3 +2947,26 @@ harness uses the same client.
 **Consequences:** A screenshot regression is caught on the machine that recorded the baselines, not across machines;
 a fresh checkout (Megalithic after pulling this) records first. Pulling this commit deletes the tracked PNGs from other
 checkouts' working trees. Old screenshots remain in history (0.15.0 and earlier).
+
+## ADR-083 — The play table's top as small widgets, not one box (2026-11-08)
+**Context:** The owner's S25 Ultra screenshot of Play against the computer: the top bar's labelled controls, the score
+bar (LIVES / WAVES / TURN / TIE BREAKER over their counters) with the turn track's cells (portrait, initiative, hero
+name, card name, DONE / NOW / NEXT bands) and the "Lit: pick one" key took ~45 % of the screen before the map, the
+panel most of the rest. "Show, don't tell": no sub-text for every item.
+
+**Decision:** What floats over the map is a few small plates, icons and numbers only, TalkBack hearing each in full.
+The score is one 32 dp pill (Life counters with the team's mark, Wave counters, turn pips, the Tie Breaker coin);
+the heroes are one plate of portrait chips with the initiative (before the reveal the level, coins and hand), the
+turn's state shown by size, a bronze ring and glow (acts or answers now), a teal ring (next), dimming and a tick
+(done); names and cards are a tap away (the card focus viewer), the hero a long press away. They sit at the top start,
+side by side when they fit, the map's controls (40 dp glyphs, 48 dp touch) at the top end; the map key is behind an
+info glyph on those controls; the top bar's controls are glyphs alone with tooltips. Sideways with the panel shown the
+chips are an 88 dp column at the map's edge (was 148 dp) and the score floats over the map instead of heading the panel.
+Three arrangements were recorded at 384 dp (dark, light, font scale 2): the two plates stacked at the top start
+(kept); one full-width strip with both (as tall, wider, nothing gained); the score alone at the top with the chips as
+a column at the end edge over the controls (the most map height, but it covers the board's end side and at large text
+pushes Fit and Flip down into the panel).
+
+**Consequences:** At 384 dp the overlay under the top bar drops from about 180 dp to about 90 dp. A player reads who
+acts from the ring and glow, not a word; hero and card names need a tap. The game review keeps the labelled
+`TableHud` and turn track cells. Refines ADR-041's turn track and the hill climb's score bar (UI hill climb, round 4).

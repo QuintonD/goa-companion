@@ -127,7 +127,7 @@ when a map has `art` (all four do); the drawn map stays as the fallback while lo
 
 **Screens:**
 - **Table:** HUD on a plate with official counters and bronze diamond pips (done: solid, dimmer; current: solid, bright, ringed; later: hollow), each group named over it (LIVES, WAVES, TURN, TIE BREAKER), numbers 20 sp; hero chips on plates; panel on rounded slate with the mark and name on its top strip; the hand in a gentle fan
-  (3.2° a card, the outer ones lower), each still one target and one TalkBack node; the turn track one row of equal cells on the HUD's own plate under a hairline (the **score bar**, about 140 dp with the HUD), never over a piece (portrait and initiative, every hero's name and card, a thin state band); sideways a column beside the map's start edge. The panel ends just past the question, what follows it scrolls; the hand is a tab pinned at its foot ("Your hand · 5"). Minions to choose are full-width rows: team mark, type badge, what tells them apart first; minions that read alike are lettered A, B, C (nearest first) on the map and at the head of their rows.
+  (3.2° a card, the outer ones lower), each still one target and one TalkBack node; the score and the turn's heroes as small widgets over the map (ADR-083: a 32 dp score pill and one plate of portrait chips with the initiative, the state as ring, size and dimming, about 80 dp together), never over a piece; sideways a column of chips beside the map's start edge. The panel ends just past the question, what follows it scrolls; the hand is a tab pinned at its foot ("Your hand · 5"). Minions to choose are full-width rows: team mark, type badge, what tells them apart first; minions that read alike are lettered A, B, C (nearest first) on the map and at the head of their rows.
 - **Puzzle:** the goal and the puzzle's name on small lines at the panel's head, off the map; the title plate is the question's; "What you know" starts folded to two lines.
 - **Hero sheet:** the dashboard (p.16) redrawn at the phone's density (ADR-058: the upscaled print, `official/ui/dashboard-frame`, was soft at this size; the web still uses it): a steel band with a bronze hairline and the plate's teal brackets, "Hero the Title" on the cards' title plate, a parchment **TURN n** tab over each of four slots, the played cards in them. Tigerclaw's art is the rulebook's; other heroes' portraits sit under the frame, cropped around the
   head and darkened toward the edges; either way the painting is a backdrop under a slate veil (60 %). An empty slot is the slate (55 %) with a dashed muted edge and its turn's number in Cinzel in `textMuted` (Muted states), 18 dp at the 411 dp reference width. The dashboard's dials are in the header (**LEVEL 2**, coin **COINS 2**) on wells without an edge (the sheet is the frame), never bars; the frame's name plate keeps the gear, as the table's other plates do. Items as icons with "+n", the Ultimate, the hand or card backs.
@@ -534,16 +534,18 @@ round chip, so it can't be read as a step count), at least 20 dp tall on screen 
 says "Letter = list row". Opened from the peek it shows the whole panel. A tap within 24 dp of a lone option's centre
 takes it; a tap that could mean several options (closer together than a finger, or a figure standing over another
 option) opens **Which one?** at the finger (`MapChooser`), a 48 dp row each with its letter while listed; the sandbox
-asks the same between close pieces. While the person's question lights the map a **map key**
-(`MapKey`, a small plate under the round at a glance and the turn track, inside what the map frames below, so it
-covers no piece) names
-each mark with its own swatch: "Lit: pick one" (a lit, white-edged hex), "Steps away" (the dark disk), "Letter =
-list row" (the teal tag), "Card range" (the violet outline), "Route" (the bronze line); only what the map shows now. TalkBack: one line.
+asks the same between close pieces. While the person's question lights the map its **map key** (`MapKey`) is
+one tap away, never on screen by itself (ADR-083: lit spaces speak for themselves): an info glyph on the map's
+controls (`MapKeyToggle`, bronze while shown; TalkBack "Map key") shows a small plate under the widgets naming each
+mark with its own swatch: "Lit: pick one" (a lit, white-edged hex), "Steps away" (the dark disk), "Letter = list row"
+(the teal tag), "Card range" (the violet outline), "Route" (the bronze line); only what the map shows now; a new
+question hides it again. TalkBack: one line.
 **Title:** "Round 2 · Turn 3" where the bar has the room (600 dp and wider); on a phone upright "Round 2", the turn
-named over the HUD's pips ("TURN 3"), so the labelled State control is in the bar in both orientations. **Top-bar controls** (the game, a puzzle; `BarLabelButton`): each glyph with its word under it in
-12 sp Inter ("Undo", "State", "Log", "More"; large text grows it no more than 1.15×), TalkBack and the long-press
+shown by the score's pips. **Top-bar controls** (the game, a puzzle; `BarLabelButton`): the glyph alone, 24 dp in a
+48 dp target (ADR-083: "Undo", "State", "Log", "More" are no longer written under them), TalkBack and the long-press
 tooltip saying it in full ("Take back", "Game state: cards played, turns, the board", "Game log", "More options");
-one glyph per destination in both orientations (State is the dashboard glyph in the bar and in More).
+one glyph per destination in both orientations (State is the dashboard glyph in the bar and in More). The sandbox's
+labelled map tools keep their words (`labelled`).
 **Framing a question** (extended after the v0.8 hands-on pass): when a question arrives the map brings
 its options (with the unit they are about and the asking hero) into the part of the map nothing floats
 over: under the HUD and the hero strip or turn track, clear of the map buttons' column (Fit, Flip, the
@@ -554,43 +556,41 @@ track); with still more, the middle of the options. It frames again as what floa
 (the turn track appears at the reveal, the panel grows) — but never once the person has dragged, pinched
 or double-tapped since the question came: their view wins. The attacker and the acting hero are framed too, and
 the whole Battle Zone with them when it fits the free area.
-**Top, floating (upright; sideways the HUD heads the side panel and the turn's order is a column beside the map):**
-the **score bar**, one plate: the HUD, each group named in small caps over it (LIVES: each team's Life counters as
-heart + number by its shape; WAVES: Wave counters per Lane; TURN 3: four pips, done solid and dimmer, current solid
-and ringed, later hollow, the round being in the title; the group names 11 sp; TIE BREAKER: the coin as printed, the showing face (Red's gear, Blue's star, `OfficialArt.tieBreaker`) with the
-team's shape on a small surface badge at its foot; the same coin, 64 dp, heads New game's "Blue
-shows" dialog), then, under a hairline, the **hero strip**, one form in every state (UI hill climb, round 4): the
-turn track's cells (below), in the same places. When no turn resolves (before the reveal, the end of a round, a
-puzzle solved) only each cell's second line differs: "Lv2 · coins · cards in hand" instead of the card played, and its
-band says NOW on the acting hero or CARD DOWN once its card is down (p.7: which card stays hidden). A tap on a cell
-opens the hero's state (TalkBack: "Open Arien's state"). In the side panel the
-strip is portraits only, 48 dp discs (team ring and shape; TalkBack hears the full
-chip; a tap opens the hero); the side panel takes 42 % of the width (at most 400 dp).
-**Turn track** (after the reveal, `play/table/TurnTrack*.kt`): the strip becomes the turn's order, one row of equal
-cells on the score bar's plate under the HUD and a hairline (the map is framed below it), one cell per hero in acting
-order (the heroes done, in the order they acted, the acting hero, the next, the later ones, then passes), read at arm's
-length. Each cell is stacked: the hero's portrait in its team ring (22 dp; the mark at its foot, the action chosen as
-the game's icon at its head, crossed out while off the board) beside the initiative as it counts in 18 sp figures ("=11"
-in teal while tied with another hero still to act); the name under them (13 sp bold, a step down to 78 % rather than
-cut); the card played under that (12 sp medium in `onSurfaceVariant`, one size for the strip, on up to two lines broken at a space or
-after a hyphen, a step smaller only so that no word is broken; never an ellipsis; "Facedown" for a card resolved
-facedown). Across the
-foot a thin band with the state in a word, 12 sp bold: **DONE** with a tick, no band (a muted hairline and the word in
-`textMuted`; the cell loses its well for a 1 dp muted edge and its words go to `textMuted`, never faded: Muted states), **NOW**
-(bronze band, bronze 2 dp border), **NEXT** (teal band and border), **PASS**, **OUT**; a hero still to act has no band.
-Bands are dark steel on the dark theme and light steel with ink on the light theme's paper. **Who acts vs who
-answers:** while another hero answers the card being resolved (defends against its attack, discards for it), the acting
-hero's band says **RESOLVING** (steel, bronze words, a bronze edge) and the one asked **DEFENDS** or **ANSWERS** (bronze
-band and border), and the panel's header names both ("Defend against Arien", "Answer Tigerclaw · Discard a card");
-never colour alone. Four cells fit a 384 dp phone; past 76 dp a cell the strip scrolls at 88 dp cells, the
-acting hero scrolled into view. **Sideways** with the panel shown the cells stand in a 148 dp column at the map's
-start edge, beside the map (which is laid out to its right, never under it), each portrait beside the initiative, name
-and card; the side panel then holds the round at a glance, the question and the hand's tab, and on a short screen
-(under 480 dp tall) the actions go two to a row so all four and the tab are in view. A tap opens the card focus viewer
-on the hero's card, swiping through the turn's cards, each captioned "Wasp · Done · Movement · Initiative 10"; a long
-press (TalkBack: "Open Wasp's state") opens the hero. The track stays in view with the panel hidden (sideways, a
-row of 88 dp cells under the HUD). The turn-over moment still shows the turn's cards themselves (48 dp, a card
-resolved facedown a back).
+**Top, floating: widgets, not a box** (ADR-083, after the owner's S25 Ultra screenshot showed the HUD, the turn
+track and the key taking ~45 % of the screen before the map): what floats over the map is a few small slate plates,
+icons and numbers with no words of their own (TalkBack hears every one in full), so the map keeps most of the screen.
+At the top start the **score** (`ScoreWidget`), one 32 dp pill: each team's Life counter with its number (the team's
+mark on the counter's corner, never colour alone), the Wave counters left (two Lanes "L1 3 · L2 3"), the turn's four
+pips (done solid and dimmer, current solid and ringed, later hollow) and the Tie Breaker coin's showing face (Red's
+gear, Blue's star, `OfficialArt.tieBreaker`, the team's shape on a badge at its foot; the same coin, 64 dp, heads New
+game's "Blue shows" dialog); no LIVES / WAVES / TURN / TIE BREAKER words. Beside it when both fit, else under it, the
+**heroes** (`TurnChips`), one plate of portrait chips, each the hero's portrait in its team ring (28 dp; the team's
+mark at its foot, the action chosen as the game's icon at its head, the active rune at its start, crossed out off the
+board) with the initiative as it counts beside it in 16 sp figures ("=10" in teal while tied). After the reveal they
+are the **turn track**, in acting order (done in the order they acted, the acting hero, the next, the later ones, then
+passes); the state is shown, not written: the hero who acts now (or answers the card being resolved: defends,
+discards) is the largest portrait (34 dp) in a bronze ring with a soft bronze glow; the hero whose card is resolving
+while another answers keeps a thin bronze ring; the next a teal ring (and it is the chip after); done heroes step back
+to 42 % with a tick on a dark disc at the portrait's foot; passes and cards out of the turn are dimmed. No names and no
+card names on the chips: a tap opens the hero's card in the card focus viewer, swiping through the turn's cards, each
+captioned "Wasp · Done · Movement · Initiative 10"; a long press (TalkBack: "Open Wasp's state") opens the hero.
+Before the reveal (and when no turn resolves) the same chips show the level over the coins and the cards in hand
+("Lv2", coin 3, card back 5) instead of the initiative, a card back at the portrait's head once the hero's card is
+down (p.7: which card stays hidden), the acting hero in the bronze ring; a tap opens the hero's state. The chips
+scroll inside their plate when they don't fit, the acting hero kept in view; the widgets grow with large text to
+1.3× only. At the top end the **map's controls** (`MapToolbar`, 40 dp glyphs on one slim pill, the touch area still
+48 dp: Fit or Lane view, Flip, the key's info glyph while a question lights the map), the Spellbook under them; the
+feed of what just happened floats under the widgets. The map is framed under the widgets (their height is the
+viewport's top inset) and clear of the controls. With the panel hidden the heroes stay only after the reveal.
+**Sideways** with the panel shown the heroes are a column of the same chips (88 dp wide) at the map's start edge,
+beside the map (laid out to its right, never under it), and the score floats at the map's top start; the side panel
+holds only the question and the hand's tab, and on a short screen (under 480 dp tall) the actions go two to a row so
+all four and the tab are in view. Sideways with the panel hidden, the score and the chips float at the top as upright.
+The game review keeps the older labelled score bar and turn track cells (`TableHud`, `TurnTrackRow`), and the
+turn-over moment still shows the turn's cards themselves (48 dp, a card resolved facedown a back).
+**Who acts vs who answers:** while another hero answers the card being resolved, the chip of the one asked is the
+large bronze one and the resolving hero's keeps a thin bronze ring, and the panel's header names both ("Defend against
+Arien", "Answer Tigerclaw · Discard a card"); TalkBack hears "resolving its card" and "defends now".
 **Moments:** a surfaceVariant card with a bronze border at the top of the panel (a polite live region)
 states the transition the table is at: "ALL CARDS REVEALED · Wasp acts first with initiative 10."
 (ties: "Arien and Brogan tie on initiative 11: their team chooses who acts first (p.7)." or the

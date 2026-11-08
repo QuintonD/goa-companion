@@ -31,10 +31,10 @@ import dev.quinton.goa.feature.board.play.HeroStateGame.play
 import dev.quinton.goa.feature.board.play.HeroStateGame.session
 import dev.quinton.goa.feature.board.play.table.DecisionPanel
 import dev.quinton.goa.feature.board.play.table.HeroDashboard
-import dev.quinton.goa.feature.board.play.table.HeroStrip
+import dev.quinton.goa.feature.board.play.table.ScoreWidget
 import dev.quinton.goa.feature.board.play.table.SlotMarkersSection
-import dev.quinton.goa.feature.board.play.table.TableHud
 import dev.quinton.goa.feature.board.play.table.TableUi
+import dev.quinton.goa.feature.board.play.table.TurnChips
 import dev.quinton.goa.feature.board.play.table.dashboardSlots
 import dev.quinton.goa.feature.board.ui.cards.rememberCardFocusState
 import org.junit.Before
@@ -48,7 +48,7 @@ import org.robolectric.annotation.GraphicsMode
 /**
  * The look round's table parts in the cases its full screens don't reach: the hero dashboard with
  * Emmitt's second card in a slot and with a hero that only has a portrait, and the round at a glance with
- * two Lanes' Wave counters on small phones and with large text.
+ * two Lanes' Wave counters on small phones and with large text (the score widget, ADR-083).
  */
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
@@ -166,7 +166,7 @@ class TableLookScreenshotTest {
     }
 
     @Test
-    fun heroStripRunes() = capture { HeroStrip(runes(), onHero = {}, Modifier.fillMaxWidth().padding(8.dp)) }
+    fun heroChipsRunes() = capture { TurnChips(runes(), onHero = {}, focus = null, modifier = Modifier.padding(8.dp)) }
 
     @Test
     fun `a second card shares its slot and is not lost`() {
@@ -176,23 +176,23 @@ class TableLookScreenshotTest {
         assertThat(slots[2].cards.map { it.cardId }).containsExactly("wasp-silver", "wasp-gold")
     }
 
-    @Test fun hudTwoLanes() = capture { TableHud(twoLanes(), Modifier.fillMaxWidth().padding(8.dp), spread = true) }
+    @Test fun scoreTwoLanes() = capture { ScoreWidget(twoLanes(), Modifier.padding(8.dp)) }
 
     @Config(qualifiers = "w360dp-h640dp-xxhdpi")
     @Test
-    fun hudTwoLanesSmallPhone() = capture { TableHud(twoLanes(), Modifier.fillMaxWidth().padding(8.dp), spread = true) }
+    fun scoreTwoLanesSmallPhone() = capture { ScoreWidget(twoLanes(), Modifier.padding(8.dp)) }
 
     @Config(qualifiers = "w384dp-h854dp-xxhdpi")
     @Test
-    fun hudTwoLanesFontScale2() = capture(2f) {
-        TableHud(twoLanes(), Modifier.fillMaxWidth().padding(8.dp), spread = true)
+    fun scoreTwoLanesFontScale2() = capture(2f) {
+        ScoreWidget(twoLanes(), Modifier.padding(8.dp))
     }
 
     @Config(qualifiers = "w360dp-h640dp-xxhdpi")
     @Test
-    fun heroStripSmallPhone() = capture {
+    fun heroChipsSmallPhone() = capture {
         val table = play(session()).table
-        HeroStrip(table, onHero = {}, Modifier.fillMaxWidth().padding(8.dp))
+        TurnChips(table, onHero = {}, focus = null, modifier = Modifier.padding(8.dp))
     }
 
     private companion object {

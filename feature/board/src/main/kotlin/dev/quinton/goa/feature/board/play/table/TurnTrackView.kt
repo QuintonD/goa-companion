@@ -139,18 +139,7 @@ fun TurnTrackRow(
     framed: Boolean = true,
     vertical: Boolean = false,
 ) {
-    val viewable = trackFocusCards(table, track)
-    val open: (TrackSlot) -> () -> Unit = { slot ->
-        {
-            val first = slot.cards.firstOrNull()?.takeIf { !it.facedown }?.cardId?.let(table::card)
-            val index = viewable.indexOfFirst { it.key == trackKey(slot.heroId, first?.id) }
-            if (focus != null && index >= 0) {
-                focus.open(viewable, index, title = "Round ${track.round} · Turn ${track.turn}")
-            } else {
-                onHero?.invoke(slot.heroId)
-            }
-        }
-    }
+    val open = trackOpener(table, track, focus, onHero)
     if (!asCards) {
         val responder = responderId(table)
         TrackStrip(table, track.slots, stretch, framed, vertical, modifier) { slot, cellModifier, fit ->
@@ -184,6 +173,30 @@ fun TurnTrackRow(
                 onOpen = open(slot),
                 onHero = onHero?.let { o -> { o(slot.heroId) } },
             )
+        }
+    }
+}
+
+/**
+ * What a tap on a hero of the turn opens: its card large in the card focus viewer, swiping through the turn's cards;
+ * the hero's state when there is no card to show (or no viewer).
+ */
+internal fun trackOpener(
+    table: TableUi,
+    track: TurnTrack,
+    focus: CardFocusState?,
+    onHero: ((String) -> Unit)?,
+): (TrackSlot) -> () -> Unit {
+    val viewable = trackFocusCards(table, track)
+    return { slot ->
+        {
+            val first = slot.cards.firstOrNull()?.takeIf { !it.facedown }?.cardId?.let(table::card)
+            val index = viewable.indexOfFirst { it.key == trackKey(slot.heroId, first?.id) }
+            if (focus != null && index >= 0) {
+                focus.open(viewable, index, title = "Round ${track.round} · Turn ${track.turn}")
+            } else {
+                onHero?.invoke(slot.heroId)
+            }
         }
     }
 }
@@ -278,9 +291,9 @@ private fun TrackSlotView(
  * A hero's part in the turn as its cell on the strip shows it: the state, or, while another hero answers the card
  * being resolved ([responderId]), RESOLVING on that card's hero and ANSWERS (DEFENDS) on the one asked.
  */
-private enum class CellRole { ACTS, RESOLVING, ANSWERS, NEXT, DONE, LATER, PASSED, SKIPPED }
+internal enum class CellRole { ACTS, RESOLVING, ANSWERS, NEXT, DONE, LATER, PASSED, SKIPPED }
 
-private fun cellRole(slot: TrackSlot, responder: String?): CellRole = when {
+internal fun cellRole(slot: TrackSlot, responder: String?): CellRole = when {
     slot.heroId == responder -> CellRole.ANSWERS
     slot.state == SlotState.NOW -> if (responder != null) CellRole.RESOLVING else CellRole.ACTS
     slot.state == SlotState.NEXT -> CellRole.NEXT
@@ -291,7 +304,7 @@ private fun cellRole(slot: TrackSlot, responder: String?): CellRole = when {
 }
 
 /** The word on a cell's band for [role]. */
-private fun cellWord(role: CellRole, slot: TrackSlot, table: TableUi): String = when (role) {
+internal fun cellWord(role: CellRole, slot: TrackSlot, table: TableUi): String = when (role) {
     CellRole.RESOLVING -> "RESOLVING"
     CellRole.ANSWERS -> responderBand(table)
     else -> slotBand(slot.state).orEmpty()
@@ -759,7 +772,7 @@ private fun InitiativeBadge(initiative: Int, tied: Boolean, compact: Boolean, mo
 
 /** The action the hero chose, as the game's icon. */
 @Composable
-private fun ActionBadge(icon: GameIcon, compact: Boolean, modifier: Modifier) {
+internal fun ActionBadge(icon: GameIcon, compact: Boolean, modifier: Modifier) {
     Surface(shape = CircleShape, color = MaterialTheme.colorScheme.background, modifier = modifier.padding(1.dp)) {
         Icon(
             icon.vector,

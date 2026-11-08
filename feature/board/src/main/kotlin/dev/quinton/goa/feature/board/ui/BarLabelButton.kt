@@ -36,8 +36,8 @@ import androidx.compose.ui.unit.sp
 import dev.quinton.goa.core.designsystem.theme.GoaFonts
 
 /**
- * A game screen's top-bar control (the game, a puzzle): its glyph over its name in small words ("Undo", "State",
- * "Log", "More"), so no icon has to be learned and each destination has one glyph in both orientations. [description]
+ * A game screen's top-bar control (the game, a puzzle): its glyph alone (ADR-083; [labelled]: over its name in small
+ * words, "Undo", "State", "Log", "More"), each destination with one glyph in both orientations. [description]
  * is what TalkBack hears and the long-press tooltip says ("Game log"). Disabled (nothing to take back), glyph and
  * word at 40 % on the steel banner. At least 48 dp wide and tall; the word grows with large text no more than 1.15×,
  * so it keeps to the bar.
@@ -51,6 +51,8 @@ internal fun BarLabelButton(
     modifier: Modifier = Modifier,
     description: String = label,
     enabled: Boolean = true,
+    /** The word under the glyph; the game bars show the glyph alone (ADR-083), the tooltip and TalkBack keep it. */
+    labelled: Boolean = false,
 ) {
     val density = LocalDensity.current
     val cap = minOf(density.fontScale, LABEL_MAX_SCALE) / density.fontScale
@@ -80,19 +82,21 @@ internal fun BarLabelButton(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center,
         ) {
-            Icon(icon, contentDescription = null, tint = color, modifier = Modifier.size(20.dp))
-            Text(
-                label,
-                color = color,
-                fontFamily = GoaFonts.body,
-                fontWeight = FontWeight.Medium,
-                fontSize = 12.sp * cap,
-                lineHeight = 14.sp * cap,
-                letterSpacing = 0.2.sp,
-                textAlign = TextAlign.Center,
-                maxLines = 1,
-                softWrap = false,
-            )
+            Icon(icon, null, tint = color, modifier = Modifier.size(if (labelled) 20.dp else 24.dp))
+            if (labelled) {
+                Text(
+                    label,
+                    color = color,
+                    fontFamily = GoaFonts.body,
+                    fontWeight = FontWeight.Medium,
+                    fontSize = 12.sp * cap,
+                    lineHeight = 14.sp * cap,
+                    letterSpacing = 0.2.sp,
+                    textAlign = TextAlign.Center,
+                    maxLines = 1,
+                    softWrap = false,
+                )
+            }
         }
     }
 }
