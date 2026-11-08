@@ -247,7 +247,8 @@ filtered by the same hero filters and owned products. (2) Attack style is derive
 the hero's deck Attack cards (DOMAIN.md), never from one card. (3) The importer keeps printed
 frame colours for Handicap cards and spells, and joins goa2-faq line wraps with a punctuation
 heuristic instead of per-card overrides. (4) The grid/list choice is an `AppSettings` field
-(`catalogListView`) so it survives restarts and backups of settings.
+(`catalogListView`) so it survives restarts and backups of settings. *(2026-11-08: now `catalogLayout`, large
+grid, small grid or list; an older `catalogListView: true`, in DataStore or in JSON, reads as the list.)*
 **Consequences:** `dataVersion` 3. Card text overrides are only for real wording fixes. Code
 that needs to know a card is a Handicap card or spell uses its slot/ID, not `CardColor.OTHER`.
 

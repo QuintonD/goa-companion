@@ -5,6 +5,7 @@ import androidx.datastore.preferences.core.edit
 import app.cash.turbine.test
 import com.google.common.truth.Truth.assertThat
 import dev.quinton.goa.core.model.settings.AppSettings
+import dev.quinton.goa.core.model.settings.CatalogLayout
 import dev.quinton.goa.core.model.settings.ThemeMode
 import dev.quinton.goa.core.model.settings.TimerLayout
 import java.io.File
@@ -46,8 +47,8 @@ class SettingsDataSourceTest {
             assertThat(last.hapticsEnabled).isFalse()
             assertThat(last.soundsEnabled).isFalse()
             assertThat(last.theme).isEqualTo(ThemeMode.LIGHT)
-            ds.update { it.copy(catalogListView = true) }
-            assertThat(awaitItem().catalogListView).isTrue()
+            ds.update { it.copy(catalogLayout = CatalogLayout.SMALL_GRID) }
+            assertThat(awaitItem().catalogLayout).isEqualTo(CatalogLayout.SMALL_GRID)
             ds.update { it.copy(timerLayout = TimerLayout.ROUND) }
             assertThat(awaitItem().timerLayout).isEqualTo(TimerLayout.ROUND)
             assertThat(last.puzzleNudges).isTrue()
@@ -56,6 +57,16 @@ class SettingsDataSourceTest {
             ds.update { it.copy(computerStrength = 8) }
             assertThat(awaitItem().computerStrength).isEqualTo(8)
         }
+    }
+
+    @Test fun olderListSwitchReadsAsListUntilTheNextWrite() = runTest {
+        val store = source()
+        store.edit { it[SettingsDataSource.Keys.LEGACY_CATALOG_LIST] = true }
+        val ds = SettingsDataSource(store)
+        assertThat(ds.settings.first().catalogLayout).isEqualTo(CatalogLayout.LIST)
+        ds.update { it.copy(catalogLayout = CatalogLayout.LARGE_GRID) }
+        assertThat(ds.settings.first().catalogLayout).isEqualTo(CatalogLayout.LARGE_GRID)
+        assertThat(store.data.first()[SettingsDataSource.Keys.LEGACY_CATALOG_LIST]).isNull()
     }
 
     @Test fun outOfRangeComputerStrengthFallsBackToDefault() = runTest {

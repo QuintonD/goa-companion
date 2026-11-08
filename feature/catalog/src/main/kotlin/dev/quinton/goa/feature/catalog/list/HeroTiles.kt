@@ -5,8 +5,8 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
@@ -55,7 +55,6 @@ import dev.quinton.goa.core.designsystem.component.GoaPlateTheme
 import dev.quinton.goa.core.designsystem.component.HeroPortrait
 import dev.quinton.goa.core.designsystem.component.HeroSymbol
 import dev.quinton.goa.core.designsystem.component.LookAction
-import dev.quinton.goa.core.designsystem.component.complexityName
 import dev.quinton.goa.core.designsystem.theme.GoaTextStyles
 import dev.quinton.goa.core.designsystem.theme.GoaTheme
 import dev.quinton.goa.core.designsystem.theme.Spacing
@@ -67,8 +66,6 @@ import dev.quinton.goa.core.domain.catalog.matchHint
 import dev.quinton.goa.core.domain.catalog.metricLine
 import dev.quinton.goa.core.domain.catalog.rangedLabel
 import dev.quinton.goa.core.domain.catalog.spokenLabel
-import dev.quinton.goa.core.domain.catalog.traitsLine
-import dev.quinton.goa.feature.catalog.ui.MetaPill
 import dev.quinton.goa.feature.catalog.ui.PlateArt
 import dev.quinton.goa.feature.catalog.ui.SharedTitlePlate
 import dev.quinton.goa.feature.catalog.ui.SmallPlate
@@ -129,15 +126,67 @@ internal fun HeroGridTile(
     }
 }
 
+/**
+ * Small grid tile (three per row on a phone, four or more on a wider screen): the art and the name only, in the
+ * large tile's plate look. The name steps down to fit a narrow plate and ellipsizes past its floor; the title, stars
+ * and roles are on the large tile, the hero page and in the tile's TalkBack label.
+ */
 @Composable
-private fun TileArtwork(item: HeroListItem) {
+internal fun HeroSmallTile(
+    item: HeroListItem,
+    sort: CatalogSort,
+    art: PlateArt,
+    footnotes: TileFootnoteRoom,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    GoaPlateTheme {
+        Column(
+            modifier
+                .fillMaxWidth()
+                .semantics { contentDescription = item.spokenLabel(sort) }
+                .tilePlate(art)
+                .clip(TileShape)
+                .clickable(onClick = onClick)
+                .padding(3.dp),
+        ) {
+            SharedTitlePlate(art.titlePlate, SmallPlate, Modifier.fillMaxWidth().zIndex(1f)) {
+                Text("H", style = SMALL_NAME, maxLines = 1, modifier = Modifier.alpha(0f).clearAndSetSemantics {})
+                Text(
+                    item.hero.name,
+                    style = SMALL_NAME,
+                    color = GoaTheme.colors.onParchment,
+                    textAlign = TextAlign.Center,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    autoSize = TextAutoSize.StepBased(
+                        minFontSize = SMALL_NAME_FLOOR,
+                        maxFontSize = SMALL_NAME.fontSize,
+                        stepSize = TILE_NAME_STEP,
+                    ),
+                )
+            }
+            TileArtwork(item, ratio = SMALL_PORTRAIT_RATIO, symbolSize = SMALL_SYMBOL)
+            if (footnotes.match || footnotes.metric) {
+                Column(Modifier.padding(start = 4.dp, end = 2.dp, top = 3.dp, bottom = 5.dp)) {
+                    if (footnotes.match) MatchLine(item, lines = MATCH_LINES)
+                    // Two lines on every tile, so a row's tiles are one height (TalkBack has the whole line).
+                    TileFootnotes(item, sort, footnotes, lines = SMALL_METRIC_LINES)
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun TileArtwork(item: HeroListItem, ratio: Float = PORTRAIT_RATIO, symbolSize: Dp = GRID_SYMBOL) {
     val hero = item.hero
     Box(
         Modifier
             .overlapUp(PLATE_OVERLAP)
             .padding(horizontal = 1.dp)
             .fillMaxWidth()
-            .aspectRatio(PORTRAIT_RATIO),
+            .aspectRatio(ratio),
     ) {
         // Unframed art, its edge and the shade under the symbol drawn over it in the same node: the
         // fewest layers per tile while the grid scrolls.
@@ -167,7 +216,7 @@ private fun TileArtwork(item: HeroListItem) {
             HeroSymbol(
                 hero.id,
                 hero.symbol,
-                Modifier.align(Alignment.TopStart).padding(start = 3.dp, top = PLATE_OVERLAP + 2.dp).size(GRID_SYMBOL),
+                Modifier.align(Alignment.TopStart).padding(start = 3.dp, top = PLATE_OVERLAP + 2.dp).size(symbolSize),
             )
         }
         if (!hero.verified) {
@@ -261,7 +310,12 @@ internal class TileFootnoteRoom(val metric: Boolean, val match: Boolean = false)
 }
 
 @Composable
-private fun TileFootnotes(item: HeroListItem, sort: CatalogSort, room: TileFootnoteRoom = NO_ROOM) {
+private fun TileFootnotes(
+    item: HeroListItem,
+    sort: CatalogSort,
+    room: TileFootnoteRoom = NO_ROOM,
+    lines: Int = Int.MAX_VALUE,
+) {
     val metric = item.metricLine(sort)
     if (metric != null || room.metric) {
         Text(
@@ -269,12 +323,19 @@ private fun TileFootnotes(item: HeroListItem, sort: CatalogSort, room: TileFootn
             style = MaterialTheme.typography.labelMedium,
             fontWeight = FontWeight.SemiBold,
             color = MaterialTheme.colorScheme.primary,
+            minLines = if (lines == Int.MAX_VALUE) 1 else lines,
+            maxLines = lines,
+            overflow = TextOverflow.Ellipsis,
             modifier = Modifier.padding(top = Spacing.xs),
         )
     }
 }
 
-/** Compact list row (six or more per screen), a plate like the tile: portrait, name, title, stars, pills, roles. */
+/**
+ * List row: the portrait fills the row's left side and fades into the plate, then the name, the title, the stars
+ * (with the game's Range icon for a ranged hero) and two roles on one quiet line, as on the large tile. The product,
+ * the complexity in words and every role are on the hero page and in the row's TalkBack label.
+ */
 @Composable
 internal fun HeroListRow(
     item: HeroListItem,
@@ -285,81 +346,105 @@ internal fun HeroListRow(
 ) {
     val hero = item.hero
     GoaPlateTheme {
-        Row(
+        Box(
             modifier
                 .fillMaxWidth()
                 .semantics { contentDescription = item.spokenLabel(sort) }
                 .tilePlate(art)
                 .clip(TileShape)
                 .clickable(onClick = onClick)
-                .heightIn(min = 64.dp)
-                .padding(horizontal = Spacing.sm, vertical = 6.dp),
-            verticalAlignment = Alignment.CenterVertically,
+                .heightIn(min = LIST_ROW_MIN),
         ) {
-            Box {
-                HeroPortrait(
-                    heroId = hero.id,
-                    portrait = hero.portrait,
-                    contentDescription = null,
-                    shape = RoundedCornerShape(4.dp),
-                    framed = false,
-                    modifier = Modifier.padding(end = 6.dp, bottom = 6.dp).size(48.dp),
-                )
-                if (hero.symbol != null) {
-                    HeroSymbol(hero.id, hero.symbol, Modifier.align(Alignment.BottomEnd).size(LIST_SYMBOL))
-                }
-            }
-            Spacer(Modifier.width(Spacing.md))
-            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(1.dp)) {
-                Row(verticalAlignment = Alignment.Bottom) {
+            // As tall as the row's text, whatever the font scale: the art follows, cropped.
+            Box(Modifier.matchParentSize()) { ListArt(item, Modifier.width(LIST_ART).fillMaxHeight().padding(3.dp)) }
+            Row(
+                Modifier.padding(start = LIST_ART + Spacing.sm, top = Spacing.sm, bottom = Spacing.sm),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Column(Modifier.weight(1f)) {
                     Text(
                         hero.name,
                         style = GoaTextStyles.sectionHead,
                         color = MaterialTheme.colorScheme.onSurface,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
-                        modifier = Modifier.weight(1f, fill = false),
                     )
-                    Spacer(Modifier.width(6.dp))
                     Text(
                         hero.title,
                         style = TILE_TITLE,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
-                        modifier = Modifier.weight(1f, fill = false),
                     )
+                    Row(
+                        Modifier.heightIn(min = STARS_LINE).padding(vertical = 2.dp),
+                        horizontalArrangement = Arrangement.spacedBy(Spacing.xs),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        ComplexityStars(hero.complexity, starSize = TILE_STAR)
+                        if (item.rangedLabel != null) ActionIcon(LookAction.RANGE, size = RANGED_ICON)
+                        if (!hero.verified) UnverifiedBadge(compact = true)
+                    }
+                    if (hero.roles.isNotEmpty()) {
+                        Text(
+                            hero.roles.take(TILE_ROLES).joinToString(" · ") { it.label },
+                            style = TILE_ROLE,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            // One line at 100 %; large text wraps the second role rather than cutting it.
+                            maxLines = 2,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                    }
+                    TileFootnotes(item, sort)
+                    if (item.matchHint() != null) MatchLine(item, Modifier.padding(top = 2.dp))
                 }
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
-                ) {
-                    ComplexityStars(hero.complexity, starSize = 12.dp)
-                    MetaPill(item.productName, modifier = Modifier.weight(1f, fill = false))
-                    item.rangedLabel?.let { MetaPill(it, color = MaterialTheme.colorScheme.primary) }
-                    if (!hero.verified) UnverifiedBadge(compact = true)
-                }
-                // The complexity in words before the roles: the stars above carry it, the word says it.
-                val traits = (listOfNotNull(hero.complexity?.let(::complexityName)) + item.traitsLine())
-                    .filter { it.isNotEmpty() }
-                    .joinToString(" · ")
-                if (traits.isNotEmpty()) {
-                    Text(
-                        traits,
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        maxLines = 2,
-                        overflow = TextOverflow.Ellipsis,
-                    )
-                }
-                TileFootnotes(item, sort)
-                MatchLine(item, Modifier.padding(top = Spacing.xs))
+                Icon(
+                    Icons.AutoMirrored.Outlined.KeyboardArrowRight,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(horizontal = 4.dp),
+                )
             }
-            Icon(
-                Icons.AutoMirrored.Outlined.KeyboardArrowRight,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
+        }
+    }
+}
+
+/** The list row's portrait: cropped to the row, the deck symbol at its corner, its right edge fading into the plate. */
+@Composable
+private fun ListArt(item: HeroListItem, modifier: Modifier) {
+    val hero = item.hero
+    val plate = GoaTheme.colors.plate
+    Box(modifier) {
+        HeroPortrait(
+            heroId = hero.id,
+            portrait = hero.portrait,
+            contentDescription = null,
+            shape = LIST_ART_SHAPE,
+            framed = false,
+            modifier = Modifier
+                .fillMaxSize()
+                .drawWithCache {
+                    val fade = Brush.horizontalGradient(
+                        0f to Color.Transparent,
+                        1f to plate,
+                        startX = size.width - LIST_ART_FADE.toPx(),
+                        endX = size.width,
+                    )
+                    val center = Offset(SYMBOL_CENTER_X.toPx() - 2.dp.toPx(), SYMBOL_CENTER_Y.toPx() - 6.dp.toPx())
+                    val shade = Brush.radialGradient(
+                        listOf(SYMBOL_SHADE, Color.Transparent),
+                        center = center,
+                        radius = SYMBOL_SHADE_RADIUS.toPx(),
+                    )
+                    onDrawWithContent {
+                        drawContent()
+                        drawRect(fade)
+                        if (hero.symbol != null) drawCircle(shade, SYMBOL_SHADE_RADIUS.toPx(), center)
+                    }
+                },
+        )
+        if (hero.symbol != null) {
+            HeroSymbol(hero.id, hero.symbol, Modifier.align(Alignment.TopStart).padding(3.dp).size(LIST_SYMBOL))
         }
     }
 }
@@ -385,6 +470,17 @@ private val PORTRAIT_SHAPE = RoundedCornerShape(2.dp)
 private val PLATE_OVERLAP = 5.dp
 private val GRID_SYMBOL = 27.dp
 private val LIST_SYMBOL = 24.dp
+private val SMALL_SYMBOL = 22.dp
+private const val SMALL_METRIC_LINES = 2
+
+/** The small tile's portrait: near the art's own 1.09, so a narrow tile still shows the figure whole. */
+private const val SMALL_PORTRAIT_RATIO = 1.05f
+private val LIST_ROW_MIN = 96.dp
+private val LIST_ART = 108.dp
+
+/** How far into the list row's portrait its right edge fades into the plate. */
+private val LIST_ART_FADE = 28.dp
+private val LIST_ART_SHAPE = RoundedCornerShape(topStart = 5.dp, bottomStart = 5.dp)
 private val SYMBOL_CENTER_X = 16.dp
 private val SYMBOL_CENTER_Y = 20.dp
 private val SYMBOL_SHADE_RADIUS = 24.dp
@@ -395,6 +491,10 @@ private val MATCH_LINE @Composable get() =
     MaterialTheme.typography.bodyMedium.copy(fontSize = 14.sp, lineHeight = 19.sp, letterSpacing = 0.sp)
 private val MATCH_NAME_SIZE = 15.sp
 private val TILE_NAME = GoaTextStyles.plateTitle.copy(fontSize = 15.sp, lineHeight = 18.sp, letterSpacing = 0.sp)
+
+/** The small tile's name: a size under the large tile's, stepping down to [SMALL_NAME_FLOOR] for a long one. */
+private val SMALL_NAME = TILE_NAME.copy(fontSize = 14.sp, lineHeight = 17.sp)
+private val SMALL_NAME_FLOOR = 10.sp
 
 /** The least a tile's name is set at: a long one ("Silverarrow") steps down to it, never further. */
 private val TILE_NAME_FLOOR = 14.sp

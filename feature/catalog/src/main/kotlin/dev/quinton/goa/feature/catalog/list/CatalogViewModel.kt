@@ -19,6 +19,7 @@ import dev.quinton.goa.core.domain.catalog.cleared
 import dev.quinton.goa.core.model.catalog.Catalog
 import dev.quinton.goa.core.model.rating.HeroUsage
 import dev.quinton.goa.core.model.rating.Rating
+import dev.quinton.goa.core.model.settings.CatalogLayout
 import javax.inject.Inject
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
@@ -36,14 +37,12 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
-enum class CatalogLayout { GRID, LIST }
-
 /**
  * User-controlled view settings. Filter and sort survive while the Heroes tab is on the back
- * stack; [layout] is saved in the app settings so the grid/list choice persists.
+ * stack; [layout] is saved in the app settings so the large grid, small grid or list choice persists.
  */
 data class CatalogControls(
-    val layout: CatalogLayout = CatalogLayout.GRID,
+    val layout: CatalogLayout = CatalogLayout.LARGE_GRID,
     val filter: CatalogFilter = CatalogFilter(),
     val sort: CatalogSort = CatalogSort.NAME,
 )
@@ -134,7 +133,7 @@ class CatalogViewModel internal constructor(
         .catch { emit(Stats(emptyMap(), emptyMap())) }
 
     private val prefs = settingsRepository.settings
-        .map { Prefs(it.ownedProducts, if (it.catalogListView) CatalogLayout.LIST else CatalogLayout.GRID) }
+        .map { Prefs(it.ownedProducts, it.catalogLayout) }
         .distinctUntilChanged()
 
     val uiState: StateFlow<CatalogUiState> =
@@ -150,7 +149,7 @@ class CatalogViewModel internal constructor(
             is CatalogAction.Search -> queryState.value = action.query
 
             is CatalogAction.SetLayout -> viewModelScope.launch {
-                settingsRepository.update { it.copy(catalogListView = action.layout == CatalogLayout.LIST) }
+                settingsRepository.update { it.copy(catalogLayout = action.layout) }
             }
 
             is CatalogAction.SetSort -> controls.update { it.copy(sort = action.sort) }

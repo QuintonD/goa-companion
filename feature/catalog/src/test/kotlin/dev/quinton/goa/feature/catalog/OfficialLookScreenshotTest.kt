@@ -24,6 +24,7 @@ import dev.quinton.goa.core.domain.catalog.HeroLogSummary
 import dev.quinton.goa.core.model.catalog.Catalog
 import dev.quinton.goa.core.model.catalog.Product
 import dev.quinton.goa.core.model.catalog.ProductKind
+import dev.quinton.goa.core.model.settings.CatalogLayout
 import dev.quinton.goa.core.model.settings.ThemeMode
 import dev.quinton.goa.core.testing.BundledAssetImages
 import dev.quinton.goa.core.testing.bundledAsset
@@ -32,7 +33,6 @@ import dev.quinton.goa.feature.catalog.detail.HeroDetailScreen
 import dev.quinton.goa.feature.catalog.detail.HeroDetailUiState
 import dev.quinton.goa.feature.catalog.detail.HeroPersonalStats
 import dev.quinton.goa.feature.catalog.list.CatalogControls
-import dev.quinton.goa.feature.catalog.list.CatalogLayout
 import dev.quinton.goa.feature.catalog.list.CatalogScreen
 import dev.quinton.goa.feature.catalog.list.CatalogUiState
 import org.junit.Before
@@ -70,7 +70,7 @@ class OfficialLookScreenshotTest {
     }
 
     private fun ready(
-        layout: CatalogLayout = CatalogLayout.GRID,
+        layout: CatalogLayout = CatalogLayout.LARGE_GRID,
         query: String = "",
         catalog: Catalog = this.catalog,
     ): CatalogUiState.Ready {
@@ -110,7 +110,7 @@ class OfficialLookScreenshotTest {
     }
 
     @Composable
-    private fun Grid(layout: CatalogLayout = CatalogLayout.GRID) =
+    private fun Grid(layout: CatalogLayout = CatalogLayout.LARGE_GRID) =
         CatalogScreen(state = ready(layout), query = "", onAction = {}, onHeroClick = {}, onSettingsClick = {})
 
     @Composable
@@ -167,6 +167,45 @@ class OfficialLookScreenshotTest {
     fun gridLandscape() = shot { Grid() }
 
     @Test fun listDark() = shot { Grid(CatalogLayout.LIST) }
+
+    @Test fun listLight() = shot(ThemeMode.LIGHT) { Grid(CatalogLayout.LIST) }
+
+    /** S25 Ultra width: the portrait has the row's height, the title and the roles stay whole or ellipsize. */
+    @Test
+    @Config(qualifiers = "w384dp-h832dp-xxhdpi")
+    fun listW384() = shot { Grid(CatalogLayout.LIST) }
+
+    @Test
+    @Config(qualifiers = "w384dp-h832dp-xxhdpi")
+    fun listW384FontScale2() = shot(fontScale = 2f) { Grid(CatalogLayout.LIST) }
+
+    @Test fun smallGridDark() = shot { Grid(CatalogLayout.SMALL_GRID) }
+
+    @Test fun smallGridLight() = shot(ThemeMode.LIGHT) { Grid(CatalogLayout.SMALL_GRID) }
+
+    /** S25 Ultra width: three columns, "Silverarrow" a size smaller on its plate. */
+    @Test
+    @Config(qualifiers = "w384dp-h832dp-xxhdpi")
+    fun smallGridW384() {
+        shot { Grid(CatalogLayout.SMALL_GRID) }
+        val tops = listOf("Arien,", "Bain,", "Brogan,", "Brynn,").map {
+            compose.onNodeWithContentDescription(it, substring = true).fetchSemanticsNode().boundsInRoot.top
+        }
+        assertThat(tops.take(3).toSet()).hasSize(1)
+        assertThat(tops[3]).isGreaterThan(tops[0])
+    }
+
+    @Test
+    @Config(qualifiers = "w360dp-h640dp-xxhdpi")
+    fun smallGridW360() = shot { Grid(CatalogLayout.SMALL_GRID) }
+
+    @Test
+    @Config(qualifiers = "w384dp-h832dp-xxhdpi")
+    fun smallGridW384FontScale13() = shot(fontScale = 1.3f) { Grid(CatalogLayout.SMALL_GRID) }
+
+    @Test
+    @Config(qualifiers = "w384dp-h832dp-xxhdpi")
+    fun smallGridW384FontScale2() = shot(fontScale = 2f) { Grid(CatalogLayout.SMALL_GRID) }
 
     /** Cards under their colour's ribbon, then the heroes they belong to. */
     @Test fun searchCardsDark() = shot {

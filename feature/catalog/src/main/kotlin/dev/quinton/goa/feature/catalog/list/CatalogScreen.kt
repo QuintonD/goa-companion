@@ -44,6 +44,7 @@ import androidx.compose.material.icons.automirrored.filled.Sort
 import androidx.compose.material.icons.automirrored.outlined.MenuBook
 import androidx.compose.material.icons.automirrored.outlined.ViewList
 import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.outlined.Apps
 import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.outlined.CloudOff
 import androidx.compose.material.icons.outlined.GridView
@@ -121,6 +122,7 @@ import dev.quinton.goa.core.domain.catalog.complexityLabel
 import dev.quinton.goa.core.domain.catalog.label
 import dev.quinton.goa.core.domain.catalog.plural
 import dev.quinton.goa.core.domain.catalog.resultSummary
+import dev.quinton.goa.core.model.settings.CatalogLayout
 import dev.quinton.goa.feature.catalog.ui.goaInputChipBorder
 import dev.quinton.goa.feature.catalog.ui.goaInputChipColors
 import dev.quinton.goa.feature.catalog.ui.rememberPlateArt
@@ -466,8 +468,8 @@ private fun ResultSummary(state: CatalogUiState.Ready, query: String, modifier: 
 }
 
 /**
- * Grid or list, as two segments that show both choices, the current one in the selected bronze: no glyph to decode.
- * Each is a 48 dp target that TalkBack names ("Show as list", selected or not).
+ * Large grid, small grid or list, as three segments that show every choice, the current one in the selected bronze:
+ * no glyph to decode. Each is a 48 dp target that TalkBack names ("Show as small grid", selected or not).
  */
 @Composable
 private fun LayoutToggle(layout: CatalogLayout, onSelect: (CatalogLayout) -> Unit) {
@@ -478,8 +480,9 @@ private fun LayoutToggle(layout: CatalogLayout, onSelect: (CatalogLayout) -> Uni
                 .padding(end = Spacing.screen - Spacing.xs)
                 .selectableGroup(),
         ) {
-            LayoutOption(CatalogLayout.GRID, "Grid", Icons.Outlined.GridView, layout, shape, onSelect)
-            LayoutOption(CatalogLayout.LIST, "List", Icons.AutoMirrored.Outlined.ViewList, layout, shape, onSelect)
+            LayoutOption(CatalogLayout.LARGE_GRID, "large grid", Icons.Outlined.GridView, layout, shape, onSelect)
+            LayoutOption(CatalogLayout.SMALL_GRID, "small grid", Icons.Outlined.Apps, layout, shape, onSelect)
+            LayoutOption(CatalogLayout.LIST, "list", Icons.AutoMirrored.Outlined.ViewList, layout, shape, onSelect)
         }
     }
 }
@@ -498,7 +501,7 @@ private fun LayoutOption(
         Modifier
             .size(48.dp)
             .selectable(selected = selected, role = Role.RadioButton, onClick = { onSelect(option) })
-            .semantics { contentDescription = "Show as ${name.lowercase()}" },
+            .semantics { contentDescription = "Show as $name" },
         contentAlignment = Alignment.Center,
     ) {
         Box(
@@ -516,10 +519,10 @@ private fun LayoutOption(
 }
 
 /**
- * Heroes (grid or compact list) and, while searching, the matching cards. Cards come first when
+ * Heroes (large grid, small grid or list) and, while searching, the matching cards. Cards come first when
  * they answer the query better than any hero (a card phrase beats a hero matched only through
- * its title and another card). The grid keeps three columns on a phone up to font scale 1.15 and
- * drops to two above that, so a hero's name never has to break inside a word.
+ * its title and another card). The large grid's columns are as wide as its longest name needs; the small
+ * grid keeps three columns on a phone (its names step down to fit) and two with large text.
  *
  * The list has its own scroll state and returns to the top whenever the query, filters or sort
  * change: a lazy grid otherwise keeps the first visible item's key in place, which leaves the
@@ -537,8 +540,11 @@ private fun Results(
     onCardClick: (heroId: String, cardId: String) -> Unit,
     onAllCards: () -> Unit,
 ) {
-    val grid = layout == CatalogLayout.GRID
-    val gap = if (grid) Spacing.sm else Spacing.xs
+    val gap = when (layout) {
+        CatalogLayout.LARGE_GRID -> Spacing.sm
+        CatalogLayout.SMALL_GRID -> SMALL_GRID_GAP
+        CatalogLayout.LIST -> Spacing.xs
+    }
     val showCards = state.cards.isNotEmpty() && tab != SearchTab.HEROES
     val showHeroes = tab != SearchTab.CARDS
     // On All, a few cards then the heroes: the rest of the cards are a tap away (the Cards tab).
@@ -551,14 +557,23 @@ private fun Results(
         // Applied at the next measure, before key-based position keeping can scroll the top away.
         gridState.requestScrollToItem(0)
     }
+    val fontScale = LocalDensity.current.fontScale
     // As many columns as keep every name at 14 sp or more on its plate (and the tile's text whole) at this font scale.
-    val baseCell = if (LocalDensity.current.fontScale > LARGE_FONT_SCALE) GRID_MIN_CELL_LARGE_FONT else GRID_MIN_CELL
-    val minCell = maxOf(baseCell, rememberTileNameWidth(state.heroes))
+    val baseCell = if (fontScale > LARGE_FONT_SCALE) GRID_MIN_CELL_LARGE_FONT else GRID_MIN_CELL
+    val largeCell = maxOf(baseCell, rememberTileNameWidth(state.heroes))
+    val columns = when (layout) {
+        CatalogLayout.LARGE_GRID -> GridCells.Adaptive(largeCell)
+
+        CatalogLayout.SMALL_GRID ->
+            GridCells.Adaptive(if (fontScale > SMALL_GRID_LARGE_FONT) SMALL_MIN_CELL_LARGE_FONT else SMALL_MIN_CELL)
+
+        CatalogLayout.LIST -> GridCells.Fixed(1)
+    }
     val plateArt = rememberPlateArt()
     val footnotes =
         remember(state.heroes, state.controls.sort) { TileFootnoteRoom.of(state.heroes, state.controls.sort) }
     LazyVerticalGrid(
-        columns = if (grid) GridCells.Adaptive(minCell) else GridCells.Fixed(1),
+        columns = columns,
         state = gridState,
         contentPadding = PaddingValues(start = Spacing.screen, end = Spacing.screen, bottom = Spacing.xl),
         horizontalArrangement = Arrangement.spacedBy(gap),
@@ -594,10 +609,14 @@ private fun Results(
         // Content types let a tile scrolled out be reused for the next tile, not rebuilt.
         items(if (showHeroes) state.heroes else emptyList(), key = { it.hero.id }, contentType = { HERO }) { item ->
             val onClick = { onHeroClick(item.hero.id) }
-            if (grid) {
-                HeroGridTile(item, state.controls.sort, plateArt, footnotes, onClick, Modifier.animateItem())
-            } else {
-                HeroListRow(item, state.controls.sort, plateArt, onClick, Modifier.animateItem())
+            when (layout) {
+                CatalogLayout.LARGE_GRID ->
+                    HeroGridTile(item, state.controls.sort, plateArt, footnotes, onClick, Modifier.animateItem())
+
+                CatalogLayout.SMALL_GRID ->
+                    HeroSmallTile(item, state.controls.sort, plateArt, footnotes, onClick, Modifier.animateItem())
+
+                CatalogLayout.LIST -> HeroListRow(item, state.controls.sort, plateArt, onClick, Modifier.animateItem())
             }
         }
         if (showCards && showHeroes && !state.cardsFirst) cardSection()
@@ -669,6 +688,14 @@ private val GRID_MIN_CELL = 110.dp
 
 /** 2 columns on the same phone at large font scales: (411 - 32 + 8) / (150 + 8) = 2. */
 private val GRID_MIN_CELL_LARGE_FONT = 150.dp
+
+/** Small grid: 3 columns on a 360 to 411 dp phone ((384 - 32 + 6) / (100 + 6) = 3), 4 from about 460 dp. */
+private val SMALL_MIN_CELL = 100.dp
+private val SMALL_GRID_GAP = 6.dp
+
+/** Small grid with large text (above 150 %): two columns on a phone, so a name keeps a readable size. */
+private val SMALL_MIN_CELL_LARGE_FONT = 150.dp
+private const val SMALL_GRID_LARGE_FONT = 1.5f
 
 /** Font scales from Android's 1.3 step up: a tile's plate and texts no longer fit a third of a phone. */
 private const val LARGE_FONT_SCALE = 1.2f

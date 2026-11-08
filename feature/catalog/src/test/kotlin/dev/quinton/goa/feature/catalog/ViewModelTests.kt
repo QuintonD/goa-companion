@@ -17,6 +17,7 @@ import dev.quinton.goa.core.model.player.Player
 import dev.quinton.goa.core.model.rating.HeroUsage
 import dev.quinton.goa.core.model.rating.Rating
 import dev.quinton.goa.core.model.settings.AppSettings
+import dev.quinton.goa.core.model.settings.CatalogLayout
 import dev.quinton.goa.core.navigation.CardViewerRoute
 import dev.quinton.goa.core.navigation.HeroDetailRoute
 import dev.quinton.goa.core.testing.FakeCatalogRepository
@@ -28,7 +29,6 @@ import dev.quinton.goa.core.testing.TestCatalog
 import dev.quinton.goa.feature.catalog.detail.HeroDetailUiState
 import dev.quinton.goa.feature.catalog.detail.HeroDetailViewModel
 import dev.quinton.goa.feature.catalog.list.CatalogAction
-import dev.quinton.goa.feature.catalog.list.CatalogLayout
 import dev.quinton.goa.feature.catalog.list.CatalogUiState
 import dev.quinton.goa.feature.catalog.list.CatalogViewModel
 import dev.quinton.goa.feature.catalog.viewer.CardViewerUiState
@@ -138,14 +138,15 @@ class CatalogViewModelTest {
     @Test
     fun layoutChoiceIsSavedInSettings() = runTest {
         catalogRepo.state.value = TestCatalog.catalog
-        settings.state.value = AppSettings(catalogListView = true)
+        settings.state.value = AppSettings(catalogLayout = CatalogLayout.LIST)
         val vm = viewModel()
         vm.uiState.test {
             assertThat(awaitReady().controls.layout).isEqualTo(CatalogLayout.LIST)
-            vm.onAction(CatalogAction.SetLayout(CatalogLayout.GRID))
-            assertThat((expectMostRecentItem() as CatalogUiState.Ready).controls.layout).isEqualTo(CatalogLayout.GRID)
+            vm.onAction(CatalogAction.SetLayout(CatalogLayout.SMALL_GRID))
+            assertThat((expectMostRecentItem() as CatalogUiState.Ready).controls.layout)
+                .isEqualTo(CatalogLayout.SMALL_GRID)
         }
-        assertThat(settings.state.value.catalogListView).isFalse()
+        assertThat(settings.state.value.catalogLayout).isEqualTo(CatalogLayout.SMALL_GRID)
     }
 
     @Test

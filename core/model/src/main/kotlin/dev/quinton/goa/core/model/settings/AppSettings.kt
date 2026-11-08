@@ -1,6 +1,13 @@
 package dev.quinton.goa.core.model.settings
 
+import kotlinx.serialization.ExperimentalSerializationApi
+import kotlinx.serialization.KeepGeneratedSerializer
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.JsonElement
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.JsonTransformingSerializer
+import kotlinx.serialization.json.booleanOrNull
 
 @Serializable
 enum class ThemeMode { DARK, LIGHT, SYSTEM }
@@ -25,15 +32,29 @@ enum class BoardStyle {
     GRID_AND_DISCS,
 }
 
+/** How the Heroes tab shows the heroes (a device preference, switchable above the results). */
 @Serializable
+enum class CatalogLayout {
+    /** Art-led tiles with the title, stars and roles: two or three columns on a phone. */
+    LARGE_GRID,
+
+    /** The portrait and name only: three columns on a phone, more on a wider screen. */
+    SMALL_GRID,
+
+    /** One hero a row, the portrait at the row's side. */
+    LIST,
+}
+
+@OptIn(ExperimentalSerializationApi::class)
+@KeepGeneratedSerializer
+@Serializable(with = AppSettingsSerializer::class)
 data class AppSettings(
     val theme: ThemeMode = ThemeMode.DARK,
     /** Product IDs the group owns; empty = all products. */
     val ownedProducts: Set<String> = emptySet(),
     val hapticsEnabled: Boolean = true,
     val soundsEnabled: Boolean = true,
-    /** Heroes tab shows the compact list instead of the portrait grid. */
-    val catalogListView: Boolean = false,
+    val catalogLayout: CatalogLayout = CatalogLayout.LARGE_GRID,
     val timerLayout: TimerLayout = TimerLayout.STEPS,
     /** Puzzles nudge when the player is stuck (after a miss, or a while without progress); off = only when asked. */
     val puzzleNudges: Boolean = true,
@@ -41,3 +62,24 @@ data class AppSettings(
     val computerStrength: Int = 5,
     val boardStyle: BoardStyle = BoardStyle.MINIATURES,
 )
+
+/**
+ * [AppSettings] as JSON (the web's store, backups), reading an older build's values: its `catalogListView: true`
+ * (the grid/list switch before the small grid) is the list.
+ */
+@OptIn(ExperimentalSerializationApi::class)
+internal object AppSettingsSerializer : JsonTransformingSerializer<AppSettings>(AppSettings.generatedSerializer()) {
+    private const val LEGACY_LIST = "catalogListView"
+    private const val LAYOUT = "catalogLayout"
+
+    override fun transformDeserialize(element: JsonElement): JsonElement {
+        if (element !is JsonObject || LEGACY_LIST !in element) return element
+        val list = (element[LEGACY_LIST] as? JsonPrimitive)?.booleanOrNull == true
+        val migrated = element - LEGACY_LIST
+        return if (LAYOUT in element || !list) {
+            JsonObject(migrated)
+        } else {
+            JsonObject(migrated + (LAYOUT to JsonPrimitive(CatalogLayout.LIST.name)))
+        }
+    }
+}

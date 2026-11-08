@@ -18,10 +18,11 @@ timers, stats). Study it for ideas and pitfalls; don't copy code or assets from 
 ### 1. Hero catalog
 - All 32 heroes from **every product** (Core, Devoted, Defiant, Renowned, Arcane, Wayward),
   2nd printing; ready for the 3rd-printing heroes when they appear.
-- Grid/list with official artwork (sigil fallback), name, title, complexity ★–★★★★, roles,
-  product. The grid shows three heroes across a phone up to font scale 1.3 and two above it,
-  so names never break inside a word; the list is compact (six or more rows per screen); the
-  grid/list choice is saved.
+- Three layouts with official artwork (sigil fallback), the choice saved: the **large grid** (the default: name,
+  title, complexity ★–★★★★, two roles; columns as wide as the longest name needs, so two or three across a phone),
+  the **small grid** (portrait and name only, three across a phone, two with large text) and the **list** (a tall
+  portrait at the row's side, name, title, stars, two roles). The product, every role and the complexity in words
+  are on the hero page and in each hero's TalkBack label.
 - Filter by complexity, role, product, attack style (Ranged / Mixed / Non-ranged attack cards, see
   DOMAIN.md); full-text search over names, aliases, card names and card text. Search lists
   every matching **card** (whole phrase > all words), ranked above heroes matched only
