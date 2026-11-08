@@ -31,6 +31,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableIntStateOf
@@ -41,9 +42,17 @@ import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.CornerRadius
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.geometry.RoundRect
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.FilterQuality
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.drawscope.clipPath
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.clearAndSetSemantics
@@ -55,7 +64,6 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntSize
@@ -66,6 +74,8 @@ import dev.quinton.goa.core.data.trivia.QuizQuestionUi
 import dev.quinton.goa.core.data.trivia.TriviaCardUi
 import dev.quinton.goa.core.data.trivia.TriviaQuizUiState
 import dev.quinton.goa.core.data.trivia.TriviaText
+import dev.quinton.goa.core.designsystem.component.CardTitle
+import dev.quinton.goa.core.designsystem.component.CardTitleSize
 import dev.quinton.goa.core.designsystem.component.ColourRibbon
 import dev.quinton.goa.core.designsystem.component.GoaPlate
 import dev.quinton.goa.core.designsystem.component.GoaPlateTheme
@@ -95,10 +105,16 @@ internal enum class Mark { OPEN, RIGHT, WRONG, OTHER }
 /**
  * The question. For a card number it leads with the card (its name large beside its colour's ribbon, its kind, whose
  * it is) and asks on the title plate ("What is its Defense?"); with [artHeight] the card's painting sits between the
- * two, cropped clear of every printed number. For a duel, the question on its plate.
+ * two, cropped clear of every printed number, at most that tall ([onArtHeight] hears how tall it is, in pixels). For a
+ * duel, the question on its plate.
  */
 @Composable
-internal fun QuestionPanel(question: QuizQuestionUi, modifier: Modifier = Modifier, artHeight: Dp = 0.dp) {
+internal fun QuestionPanel(
+    question: QuizQuestionUi,
+    modifier: Modifier = Modifier,
+    artHeight: Dp = 0.dp,
+    onArtHeight: (Int) -> Unit = {},
+) {
     when (question) {
         is QuizQuestionUi.Number -> GoaPlate(modifier.fillMaxWidth()) {
             Column(Modifier.fillMaxWidth().semantics(mergeDescendants = true) {}) {
@@ -109,9 +125,9 @@ internal fun QuestionPanel(question: QuizQuestionUi, modifier: Modifier = Modifi
                     )
                     Spacer(Modifier.width(Spacing.md))
                     Column(Modifier.weight(1f)) {
-                        Text(
+                        CardTitle(
                             question.card.name,
-                            style = MaterialTheme.typography.headlineMedium,
+                            size = CardTitleSize.Title,
                             color = MaterialTheme.colorScheme.onSurface,
                         )
                         CardKindLine(question.card)
@@ -122,7 +138,12 @@ internal fun QuestionPanel(question: QuizQuestionUi, modifier: Modifier = Modifi
             }
             if (artHeight > 0.dp) {
                 Spacer(Modifier.height(Spacing.md))
-                CardArt(question.card, Modifier.fillMaxWidth().height(artHeight))
+                CardArt(
+                    question.card,
+                    Modifier.fillMaxWidth().heightIn(max = artHeight).onSizeChanged { onArtHeight(it.height) },
+                )
+            } else {
+                SideEffect { onArtHeight(0) }
             }
             Spacer(Modifier.height(Spacing.md))
             val asked = "What is its ${TriviaText.stat(question.stat)}?"
@@ -155,8 +176,10 @@ internal fun QuestionPanel(question: QuizQuestionUi, modifier: Modifier = Modifi
 /**
  * The card's own painting, cropped from its scan to the window that holds no printed number (the Initiative, the
  * left-hand ribbon's values, the tier and the text box's values all lie outside it; checked on every deck card's
- * scan), filling [modifier]'s box. A card without a portrait scan (none, or a landscape spellbook page) shows its
- * hero's art instead. Decorative for TalkBack: the panel names the card.
+ * scan), as wide as [modifier] lets it and as tall as the window's pixels allow at [MAX_ART_SCALE] (never taller than
+ * [modifier]'s most), so it is never enlarged past sharp nor framed in empty band. A card without a portrait scan
+ * (none, or a landscape spellbook page) shows its hero's art instead, filling the band. Decorative for TalkBack: the
+ * panel names the card.
  */
 @Composable
 internal fun CardArt(card: TriviaCardUi, modifier: Modifier = Modifier) {
@@ -168,27 +191,46 @@ internal fun CardArt(card: TriviaCardUi, modifier: Modifier = Modifier) {
             heroId = card.heroId,
             portrait = card.portrait,
             contentDescription = null,
-            modifier = modifier.clip(shape),
+            modifier = modifier.fillMaxHeight().clip(shape),
         )
 
-        bitmap == null -> Box(modifier.clip(shape).background(MaterialTheme.colorScheme.surface))
+        bitmap == null -> Box(modifier.fillMaxHeight().clip(shape).background(MaterialTheme.colorScheme.surface))
 
-        else -> Canvas(modifier.clip(shape).clearAndSetSemantics {}) {
+        else -> Canvas(
+            modifier
+                .height(
+                    with(LocalDensity.current) {
+                        (bitmap.height * (ART_WINDOW_BOTTOM - ART_WINDOW_TOP) * MAX_ART_SCALE).toDp()
+                    },
+                )
+                .clearAndSetSemantics {},
+        ) {
             val left = bitmap.width * ART_WINDOW_LEFT
             val top = bitmap.height * ART_WINDOW_TOP
             val windowWidth = bitmap.width * (ART_WINDOW_RIGHT - ART_WINDOW_LEFT)
             val windowHeight = bitmap.height * (ART_WINDOW_BOTTOM - ART_WINDOW_TOP)
+            // Filling the box would enlarge the scan's few pixels past sharp: never more than MAX_ART_SCALE of them.
+            // The painting is then smaller than its band, centred in it.
+            val scale = minOf(maxOf(size.width / windowWidth, size.height / windowHeight), MAX_ART_SCALE)
             // Cropped to the box's shape inside the window, centred: never past the window's edges.
-            val scale = maxOf(size.width / windowWidth, size.height / windowHeight)
             val w = (size.width / scale).coerceAtMost(windowWidth)
             val h = (size.height / scale).coerceAtMost(windowHeight)
-            drawImage(
-                bitmap,
-                srcOffset = IntOffset((left + (windowWidth - w) / 2).toInt(), (top + (windowHeight - h) / 2).toInt()),
-                srcSize = IntSize(w.toInt(), h.toInt()),
-                dstSize = IntSize(size.width.toInt(), size.height.toInt()),
-                filterQuality = FilterQuality.High,
-            )
+            val dst = Size(w * scale, h * scale)
+            val at = Offset((size.width - dst.width) / 2, (size.height - dst.height) / 2)
+            val corner = ART_CORNER.toPx()
+            clipPath(Path().apply { addRoundRect(RoundRect(Rect(at, dst), CornerRadius(corner))) }) {
+                drawImage(
+                    bitmap,
+                    srcOffset = IntOffset(
+                        (left + (windowWidth - w) / 2).toInt(),
+                        (top + (windowHeight - h) / 2).toInt(),
+                    ),
+                    srcSize = IntSize(w.toInt(), h.toInt()),
+                    dstOffset = IntOffset(at.x.toInt(), at.y.toInt()),
+                    dstSize = IntSize(dst.width.toInt(), dst.height.toInt()),
+                    filterQuality = FilterQuality.High,
+                )
+            }
         }
     }
 }
@@ -198,6 +240,10 @@ private const val ART_WINDOW_LEFT = 0.25f
 private const val ART_WINDOW_TOP = 0.12f
 private const val ART_WINDOW_RIGHT = 0.96f
 private const val ART_WINDOW_BOTTOM = 0.50f
+
+/** The most a card painting is enlarged, in screen pixels per scan pixel: beyond it the print turns soft. */
+private const val MAX_ART_SCALE = 1.6f
+private val ART_CORNER = 10.dp
 
 // ---- Answers --------------------------------------------------------------------------------
 
@@ -405,12 +451,11 @@ private fun DuelTile(
             Column(Modifier.padding(Spacing.md).clearAndSetSemantics {}) {
                 HeroLine(card, portraitSize = 28.dp)
                 Spacer(Modifier.height(Spacing.sm))
-                Text(
+                CardTitle(
                     card.name,
-                    style = MaterialTheme.typography.titleLarge,
+                    size = CardTitleSize.Large,
                     color = MaterialTheme.colorScheme.onSurface,
                     maxLines = 3,
-                    overflow = TextOverflow.Ellipsis,
                 )
                 Spacer(Modifier.height(Spacing.xs))
                 CardKindLine(card, showPrimary = false)
