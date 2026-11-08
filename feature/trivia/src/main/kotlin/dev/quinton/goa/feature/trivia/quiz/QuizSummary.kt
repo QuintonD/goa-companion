@@ -36,6 +36,7 @@ import dev.quinton.goa.core.data.trivia.MissUi
 import dev.quinton.goa.core.data.trivia.TriviaCardUi
 import dev.quinton.goa.core.data.trivia.TriviaQuizUiState
 import dev.quinton.goa.core.data.trivia.TriviaText
+import dev.quinton.goa.core.designsystem.component.CardTitle
 import dev.quinton.goa.core.designsystem.component.GoaButton
 import dev.quinton.goa.core.designsystem.component.GoaCard
 import dev.quinton.goa.core.designsystem.component.GoaOutlinedButton
@@ -289,6 +290,6 @@ private fun MissRow(miss: MissUi) {
 private fun MissCard(card: TriviaCardUi, showKind: Boolean) {
     HeroLine(card, portraitSize = 24.dp)
     Spacer(Modifier.height(Spacing.xs))
-    Text(card.name, style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurface)
+    CardTitle(card.name, color = MaterialTheme.colorScheme.onSurface)
     if (showKind) CardKindLine(card, showPrimary = false)
 }

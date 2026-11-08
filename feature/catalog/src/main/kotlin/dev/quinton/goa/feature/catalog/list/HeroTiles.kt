@@ -1,7 +1,5 @@
 package dev.quinton.goa.feature.catalog.list
 
-import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -19,8 +17,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.TextAutoSize
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.KeyboardArrowRight
-import androidx.compose.material.icons.automirrored.outlined.Notes
-import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -39,24 +35,27 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.zIndex
 import dev.quinton.goa.core.designsystem.component.ActionIcon
+import dev.quinton.goa.core.designsystem.component.CardTitleSpan
 import dev.quinton.goa.core.designsystem.component.ComplexityStars
 import dev.quinton.goa.core.designsystem.component.GoaPlateTheme
 import dev.quinton.goa.core.designsystem.component.HeroPortrait
 import dev.quinton.goa.core.designsystem.component.HeroSymbol
 import dev.quinton.goa.core.designsystem.component.LookAction
 import dev.quinton.goa.core.designsystem.component.complexityName
-import dev.quinton.goa.core.designsystem.component.scaledIconSize
 import dev.quinton.goa.core.designsystem.theme.GoaTextStyles
 import dev.quinton.goa.core.designsystem.theme.GoaTheme
 import dev.quinton.goa.core.designsystem.theme.Spacing
@@ -174,44 +173,37 @@ private fun TileArtwork(item: HeroListItem) {
         if (!hero.verified) {
             UnverifiedBadge(compact = true, modifier = Modifier.align(Alignment.BottomEnd).padding(2.dp))
         }
-        // Why a search found this hero: the matched card on a parchment chip at the art's foot, whole (two lines).
-        MatchChip(item, Modifier.align(Alignment.BottomStart).padding(3.dp))
     }
 }
 
 /**
- * The card (or alias) a search matched this hero through, as a small parchment chip: the card's name only, whole,
- * wrapping to a second line rather than cut ("Card: …" is what TalkBack hears, in the tile's label). Nothing when the
- * hero matched by name, title or role, or nothing is searched.
+ * Why a search found this hero, as one compact line under the portrait (never over the art): "Matches: Runic Dagger",
+ * the card's name set as every card name is ([CardTitleSpan]); "Card text: …" when its text matched, "Matches an
+ * alias" for a nickname. Wraps rather than cuts. TalkBack hears it in the tile's label. Nothing when the hero matched
+ * by name, title or role, or nothing is searched; [lines] keeps the room a row's other tiles use.
  */
 @Composable
-internal fun MatchChip(item: HeroListItem, modifier: Modifier = Modifier) {
-    val hint = item.matchHint() ?: return
-    val label = item.hit?.card?.name ?: hint
-    val shape = RoundedCornerShape(6.dp)
-    Row(
-        modifier
-            .clip(shape)
-            .background(GoaTheme.colors.parchment)
-            .border(1.dp, GoaTheme.colors.onParchment.copy(alpha = 0.35f), shape)
-            .padding(horizontal = 6.dp, vertical = 2.dp)
-            .clearAndSetSemantics {},
-        verticalAlignment = Alignment.Top,
-    ) {
-        Icon(
-            if (item.hit?.field == MatchField.CARD_TEXT) Icons.AutoMirrored.Outlined.Notes else Icons.Outlined.Search,
-            contentDescription = null,
-            modifier = Modifier.padding(top = 3.dp, end = 4.dp).size(scaledIconSize(14.dp, 1.4f)),
-            tint = GoaTheme.colors.onParchment,
-        )
-        Text(
-            label,
-            style = MATCH_CHIP,
-            color = GoaTheme.colors.onParchment,
-            maxLines = HINT_MAX_LINES,
-            overflow = TextOverflow.Ellipsis,
-        )
+internal fun MatchLine(item: HeroListItem, modifier: Modifier = Modifier, lines: Int = 1) {
+    val card = item.hit?.card?.name
+    val text = when {
+        item.matchHint() == null -> null
+
+        card == null -> AnnotatedString("Matches an alias")
+
+        else -> buildAnnotatedString {
+            append(if (item.hit?.field == MatchField.CARD_TEXT) "Card text: " else "Matches: ")
+            withStyle(CardTitleSpan.copy(color = MaterialTheme.colorScheme.onSurface, fontSize = MATCH_NAME_SIZE)) {
+                append(card)
+            }
+        }
     }
+    Text(
+        text ?: AnnotatedString(""),
+        style = MATCH_LINE,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        minLines = lines,
+        modifier = modifier.clearAndSetSemantics {},
+    )
 }
 
 @Composable
@@ -220,6 +212,7 @@ private fun TileText(item: HeroListItem, sort: CatalogSort, footnotes: TileFootn
     // Larger text wraps: every tile keeps the extra lines, so the plates of a row match.
     val lines = tileLines(LocalDensity.current.fontScale)
     Column(Modifier.padding(start = 6.dp, end = 4.dp, top = 3.dp)) {
+        if (footnotes.match) MatchLine(item, Modifier.padding(bottom = 2.dp), lines = MATCH_LINES)
         Text(
             hero.title,
             style = TILE_TITLE,
@@ -258,10 +251,11 @@ private fun TileText(item: HeroListItem, sort: CatalogSort, footnotes: TileFootn
  * Which footnote rows the grid's tiles keep. A lazy grid doesn't stretch the tiles of a line, so when any tile
  * of the results has a sort metric or a search hint, every tile keeps the room for it.
  */
-internal class TileFootnoteRoom(val metric: Boolean) {
+internal class TileFootnoteRoom(val metric: Boolean, val match: Boolean = false) {
     companion object {
         fun of(heroes: List<HeroListItem>, sort: CatalogSort) = TileFootnoteRoom(
             metric = heroes.any { it.metricLine(sort) != null },
+            match = heroes.any { it.matchHint() != null },
         )
     }
 }
@@ -359,7 +353,7 @@ internal fun HeroListRow(
                     )
                 }
                 TileFootnotes(item, sort)
-                MatchChip(item, Modifier.padding(top = Spacing.xs))
+                MatchLine(item, Modifier.padding(top = Spacing.xs))
             }
             Icon(
                 Icons.AutoMirrored.Outlined.KeyboardArrowRight,
@@ -377,7 +371,9 @@ private const val PORTRAIT_RATIO = 1.14f
 private fun tileLines(fontScale: Float): Int = if (fontScale in 1.1f..1.2f || fontScale > 1.6f) 2 else 1
 
 private const val TILE_ROLES = 2
-private const val HINT_MAX_LINES = 3
+
+/** Lines every grid tile keeps for a search's match line when any tile has one: a long card name wraps once. */
+private const val MATCH_LINES = 2
 private val NO_ROOM = TileFootnoteRoom(metric = false)
 private val STARS_LINE = 20.dp
 private val TILE_STAR = 14.dp
@@ -395,8 +391,9 @@ private val SYMBOL_SHADE_RADIUS = 24.dp
 private val SYMBOL_SHADE = Color(0x8C000000)
 private val TILE_ROLE @Composable get() =
     MaterialTheme.typography.bodyMedium.copy(fontSize = 15.sp, lineHeight = 19.sp, letterSpacing = 0.sp)
-private val MATCH_CHIP @Composable get() =
-    MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold, lineHeight = 18.sp, letterSpacing = 0.sp)
+private val MATCH_LINE @Composable get() =
+    MaterialTheme.typography.bodyMedium.copy(fontSize = 14.sp, lineHeight = 19.sp, letterSpacing = 0.sp)
+private val MATCH_NAME_SIZE = 15.sp
 private val TILE_NAME = GoaTextStyles.plateTitle.copy(fontSize = 15.sp, lineHeight = 18.sp, letterSpacing = 0.sp)
 
 /** The least a tile's name is set at: a long one ("Silverarrow") steps down to it, never further. */

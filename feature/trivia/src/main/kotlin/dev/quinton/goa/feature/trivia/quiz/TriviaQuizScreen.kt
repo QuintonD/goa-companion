@@ -221,8 +221,10 @@ private fun NumberQuestion(
     BoxWithConstraints(modifier.fillMaxWidth()) {
         val density = LocalDensity.current
         // The panel without its painting, and the answers, as measured; the painting fills what they leave.
-        var rest by remember(state.number) { mutableIntStateOf(0) }
         var foot by remember(state.number) { mutableIntStateOf(0) }
+        var panel by remember(state.number) { mutableIntStateOf(0) }
+        var artPx by remember(state.number) { mutableIntStateOf(0) }
+        val rest = panel - if (artPx > 0) artPx + with(density) { Spacing.md.roundToPx() } else 0
         var kept by remember(state.number) { mutableStateOf<Dp?>(null) }
         // The list's padding and gap, and a margin over Next.
         val room = with(density) { maxHeight - Spacing.md * 4 - rest.toDp() - foot.toDp() }
@@ -239,9 +241,10 @@ private fun NumberQuestion(
             QuestionPanel(
                 question,
                 artHeight = art,
-                modifier = Modifier.onSizeChanged {
-                    rest = it.height - with(density) { (if (art > 0.dp) art + Spacing.md else 0.dp).roundToPx() }
-                },
+                // The painting is often shorter than its band (never enlarged past sharp): the rest is the panel
+                // without the painting as drawn.
+                onArtHeight = { artPx = it },
+                modifier = Modifier.onSizeChanged { panel = it.height },
             )
             Spacer(Modifier.height(Spacing.md))
             Box(Modifier.onSizeChanged { foot = it.height }) { AnswerArea(state, onAnswer) }

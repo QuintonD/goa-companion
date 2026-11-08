@@ -3,6 +3,7 @@ package dev.quinton.goa.feature.sync
 import dev.quinton.goa.core.domain.sync.SyncChanges
 import dev.quinton.goa.core.domain.sync.protocol.ClientPhase
 import dev.quinton.goa.core.domain.sync.protocol.HostPhase
+import dev.quinton.goa.core.domain.sync.protocol.HostState
 import dev.quinton.goa.core.domain.sync.protocol.PeerProgress
 import dev.quinton.goa.core.domain.sync.protocol.PeerStage
 import dev.quinton.goa.core.domain.sync.protocol.SyncDevice
@@ -17,7 +18,7 @@ object SyncText {
     fun peerStage(peer: PeerProgress): String = when (peer.stage) {
         PeerStage.VERIFYING -> "Checking the group key…"
 
-        PeerStage.RECEIVING -> peer.progress?.let { "Sending its data… ${(it * PERCENT).toInt()} %" }
+        PeerStage.RECEIVING -> peer.progress?.let { "Sending its data… ${(it * PERCENT).toInt()}%" }
             ?: "Sending its data…"
 
         PeerStage.READY -> "Ready"
@@ -31,85 +32,59 @@ object SyncText {
         PeerStage.FAILED -> peerFailure(peer)
     }
 
-    /**
-     * The phones that Sync takes, while the host waits: those ready and those still sending their data
-     * (Sync waits for their uploads). Failed phones are left out.
-     */
-    fun syncing(peers: List<PeerProgress>): List<PeerProgress> =
-        peers.filter {
-            it.stage == PeerStage.READY || it.stage == PeerStage.VERIFYING || it.stage == PeerStage.RECEIVING
-        }
+    /** The phones the merge takes: every phone that joined and hasn't failed (ready, or still sending its data). */
+    fun included(peers: List<PeerProgress>): List<PeerProgress> = peers.filter { it.stage != PeerStage.FAILED }
 
-    /** "1 ready · 1 sending its data · 1 needs a new invite": every waiting phone counted by state. */
-    fun hostWaiting(peers: List<PeerProgress>): String {
-        val ready = peers.count { it.stage == PeerStage.READY }
-        val sending = peers.count { it.stage == PeerStage.VERIFYING || it.stage == PeerStage.RECEIVING }
-        val failed = peers.filter { it.stage == PeerStage.FAILED }
-        val invite = failed.count { it.failure == SyncFailure.WRONG_KEY }
-        val dropped = failed.size - invite
+    /** "2 phones included · 1 excluded": the count only; each phone's own row says where it stands and why. */
+    fun hostIncluded(peers: List<PeerProgress>): String {
+        val included = included(peers).size
+        val excluded = peers.size - included
         return listOfNotNull(
-            "$ready ready".takeIf { ready > 0 || peers.isEmpty() },
-            "$sending sending ${if (sending == 1) "its" else "their"} data".takeIf { sending > 0 },
-            "$invite ${if (invite == 1) "needs" else "need"} a new invite".takeIf { invite > 0 },
-            "$dropped dropped out".takeIf { dropped > 0 },
+            "$included ${if (included == 1) "phone" else "phones"} included",
+            "$excluded excluded".takeIf { excluded > 0 },
         ).joinToString(" · ")
     }
 
+    /** Collecting, and every included phone's data is in (none still sending): Merge runs now; auto-start fires. */
+    fun readyToMerge(state: HostState): Boolean = state.phase == HostPhase.WAITING &&
+        included(state.peers).let { it.isNotEmpty() && it.all { peer -> peer.stage == PeerStage.READY } }
+
     /**
-     * The host's button, a command with its count (phones left out are not counted; [hostLeftOut] names them). Every
-     * phone's data in: "Sync 2 phones now". Some still sending: the tap arms the sync, which starts on its own once
-     * their data is in ("Sync 2 phones when ready"; then [hostArmed]). No phone's data in yet: the button is off and
-     * says what it waits for ([hostWaitingLabel]).
+     * The host's one command. Every included phone's data in: "Merge data from 2 phones", enabled. A phone still
+     * sending: off, naming whom it waits for with the upload's live percent ("Waiting for Cid · 60%"). No phone yet:
+     * "Waiting for a phone to join…".
      */
-    fun syncLabel(peers: List<PeerProgress>): String {
-        val taken = syncing(peers)
+    fun hostAction(peers: List<PeerProgress>): String {
+        val included = included(peers)
         val sending = sending(peers)
-        val phones = if (taken.size == 1) "1 phone" else "${taken.size} phones"
         return when {
-            taken.isEmpty() || taken.size == sending.size -> hostWaitingLabel(peers)
-            sending.isNotEmpty() -> "Sync $phones when ready"
-            else -> "Sync $phones now"
+            included.isEmpty() -> "Waiting for a phone to join…"
+            sending.isNotEmpty() -> waitingFor(sending)
+            else -> "Merge data from ${included.size} ${if (included.size == 1) "phone" else "phones"}"
         }
     }
 
-    /**
-     * Who the sync leaves out, and why, beside its button: "Eve isn't included: old invite", "Dee and Fay aren't
-     * included: dropped out". Null when every phone is in.
-     */
-    fun hostLeftOut(peers: List<PeerProgress>): String? = peers.filter { it.stage == PeerStage.FAILED }
-        .groupBy { if (it.failure == SyncFailure.WRONG_KEY) "old invite" else "dropped out" }
-        .map { (why, out) -> "${names(out)} ${if (out.size == 1) "isn't" else "aren't"} included: $why" }
-        .joinToString(". ")
-        .ifEmpty { null }
-
-    /** The sync was tapped while phones were still sending: it waits for them and starts by itself. */
-    fun armed(phase: HostPhase, peers: List<PeerProgress>): Boolean =
-        phase == HostPhase.MERGING && sending(peers).isNotEmpty()
-
-    /** Armed, as a status in place of the button: "Waiting for Cid · sync starts automatically". */
-    fun hostArmed(peers: List<PeerProgress>): String {
-        val sending = sending(peers)
-        val who = if (sending.size <= NAMED_PHONES) names(sending) else "${sending.size} phones"
-        return "Waiting for $who · sync starts automatically"
+    /** "Waiting for Cid · 60%", "Waiting for Cid and Dee · 45%", "Waiting for 3 phones · 20%", "Waiting for Cid…". */
+    private fun waitingFor(sending: List<PeerProgress>): String {
+        val who = who(sending)
+        if (sending.none { it.progress != null }) return "Waiting for $who…"
+        val percent = (sending.sumOf { (it.progress ?: 0f).toDouble() } / sending.size * PERCENT).toInt()
+        return "Waiting for $who · $percent%"
     }
 
-    /** What the host's switched-off button waits for: "Waiting for a phone to join…", "Waiting for Cid's data…". */
-    fun hostWaitingLabel(peers: List<PeerProgress>): String {
+    /** The auto-start switch beside the command, a control of its own: off until the player arms it. */
+    const val AUTO_START = "Start automatically when ready"
+
+    /** The armed switch's state, under its label: "On · merges once Cid's data is in". */
+    fun autoStartArmed(peers: List<PeerProgress>): String {
         val sending = sending(peers)
-        return when {
-            peers.none { it.stage != PeerStage.FAILED } -> "Waiting for a phone to join…"
-            sending.size in 1..NAMED_PHONES -> "Waiting for ${names(sending)}'s data…"
-            else -> "Waiting for the phones' data…"
-        }
+        return if (sending.isEmpty()) "On · merges now" else "On · merges once ${who(sending)}'s data is in"
     }
 
-    /**
-     * Where a host's sync stands, as the step it is on (0 collect, 1 merge, 2 send back, 3 done). Armed and still
-     * waiting for a phone's data is still collecting.
-     */
-    fun hostStep(phase: HostPhase, peers: List<PeerProgress> = emptyList()): Int = when (phase) {
+    /** Where a host's sync stands, as the step it is on (0 collect, 1 merge, 2 send back, 3 done). */
+    fun hostStep(phase: HostPhase): Int = when (phase) {
         HostPhase.WAITING -> 0
-        HostPhase.MERGING -> if (armed(phase, peers)) 0 else 1
+        HostPhase.MERGING -> 1
         HostPhase.SENDING -> 2
         HostPhase.DONE -> 3
         HostPhase.FAILED -> 0
@@ -118,9 +93,12 @@ object SyncText {
     /** The steps a host's sync goes through, named for the stepper. */
     val hostSteps: List<String> = listOf("Collect", "Merge", "Send back", "Done")
 
-    /** The host after Sync was tapped: armed while an upload is still under way ([hostArmed]), then merging. */
+    /** The host merging; a phone that joined at the last moment is still awaited ("Waiting for Cid's data…"). */
     fun hostMerging(peers: List<PeerProgress>): String =
-        if (sending(peers).isNotEmpty()) hostArmed(peers) else "Merging…"
+        sending(peers).takeIf { it.isNotEmpty() }?.let { "Waiting for ${who(it)}'s data…" } ?: "Merging…"
+
+    private fun who(peers: List<PeerProgress>) =
+        if (peers.size <= NAMED_PHONES) names(peers) else "${peers.size} phones"
 
     /**
      * The final word on a finished sync: "Every phone is up to date: Bob and Cid", or who made it and who didn't
@@ -158,7 +136,7 @@ object SyncText {
 
     private const val PERCENT = 100
 
-    /** Up to this many phones, the Sync button names them. */
+    /** Up to this many phones, the host's command names them. */
     private const val NAMED_PHONES = 2
 
     /** A joined phone's failure, as the host should read it (its data may or may not be in). */

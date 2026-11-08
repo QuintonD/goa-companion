@@ -121,8 +121,8 @@ server" below). No accounts.
 5. **Which player are you?** Pick yourself from the list, or type your name to add yourself.
 
 **At game night:** one phone taps Sync with nearby phones → Host, everyone else the same → Join.
-The host shows each phone; tap **Sync** when they're all in (or **Sync automatically when ready**
-while some are still sending: it starts by itself once their data is in). Every phone ends with the same matches, players,
+The host shows each phone; **Merge data from 2 phones** turns on once every phone's data is in (or switch on
+**Start automatically when ready** while some are still sending: it starts by itself once their data is in). Every phone ends with the same matches, players,
 deletions and rating constants. The later edit of a match or player wins; a deleted match is
 deleted everywhere.
 
