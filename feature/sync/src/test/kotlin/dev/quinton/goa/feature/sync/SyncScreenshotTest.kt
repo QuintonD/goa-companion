@@ -191,10 +191,15 @@ class SyncScreenshotTest {
         Sheet(session.copy(stage = SessionStage.Hosting(HostState(peers = peers.subList(1, 2)))))
     }
 
-    /** Sync tapped while Cid's upload is still under way: armed, a status where the button was, and Cancel. */
-    @Test fun sessionHostMergingDark() = shot {
-        val merging = HostState(phase = HostPhase.MERGING, peers = peers.take(2))
-        Sheet(session.copy(stage = SessionStage.Hosting(merging)))
+    /** "Start automatically when ready" armed while Cid's upload is still under way: the command stays off. */
+    @Test fun sessionHostAutoStartDark() = shot {
+        Sheet(session.copy(stage = SessionStage.Hosting(HostState(peers = peers.take(2))), autoStart = true))
+    }
+
+    /** Every included phone's data in: "Merge data from 2 phones", on; Eve is still left out. */
+    @Test fun sessionHostReadyLight() = shot(ThemeMode.LIGHT) {
+        val ready = peers.mapIndexed { i, p -> if (i == 1) p.copy(stage = PeerStage.READY, progress = null) else p }
+        Sheet(session.copy(stage = SessionStage.Hosting(HostState(peers = ready))))
     }
 
     /** Every upload in: merging. */

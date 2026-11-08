@@ -19,6 +19,9 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.text.input.TextFieldLineLimits
+import androidx.compose.foundation.text.input.rememberTextFieldState
+import androidx.compose.foundation.text.input.setTextAndPlaceCursorAtEnd
 import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -41,11 +44,16 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.TextFieldLabelPosition
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
@@ -58,6 +66,7 @@ import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
@@ -97,6 +106,7 @@ import dev.quinton.goa.feature.board.play.online.MyGameStatuses
 import dev.quinton.goa.feature.board.play.online.OnlineHomeUi
 import dev.quinton.goa.feature.board.play.online.OnlineRooms
 import dev.quinton.goa.feature.board.play.online.OnlineWords
+import dev.quinton.goa.feature.board.play.online.parseInvite
 
 /** What the online home can do; a class rather than two dozen parameters. */
 class OnlineHomeActions(
@@ -472,17 +482,51 @@ private const val PORTRAIT_OVERLAP = 0.62f
 /** A finished game's portraits step back. */
 private const val DIM_FINISHED = 0.6f
 
+/**
+ * Join by code or link. The field's label sits above it for good ("Room code or invite link"), and Join stays off
+ * until the field holds a plausible code or link; the keyboard's Go with anything else says what a code is, under the
+ * field, until the text changes.
+ */
 @Composable
 private fun JoinRoom(state: OnlineHomeUi, actions: OnlineHomeActions) {
     OnlineSection("Join a room")
+    val field = rememberTextFieldState(state.joinText)
+    var invalid by rememberSaveable { mutableStateOf(false) }
+    // The field's text goes to the presenter; the presenter's (cleared after a join) comes back.
+    val joinText by rememberUpdatedState(state.joinText)
+    val onJoinText by rememberUpdatedState(actions.onJoinText)
+    LaunchedEffect(field) {
+        snapshotFlow { field.text.toString() }.collect {
+            if (it != joinText) {
+                invalid = false
+                onJoinText(it)
+            }
+        }
+    }
+    LaunchedEffect(state.joinText) {
+        if (field.text.toString() != state.joinText) field.setTextAndPlaceCursorAtEnd(state.joinText)
+    }
+    val plausible = parseInvite(inviteText(state.joinText)) != null
     GoaPlate(Modifier.fillMaxWidth()) {
         Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
             OutlinedTextField(
-                value = state.joinText,
-                onValueChange = actions.onJoinText,
+                state = field,
+                labelPosition = TextFieldLabelPosition.Above(),
                 label = { Text("Room code or invite link") },
-                singleLine = true,
-                keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Characters),
+                isError = invalid,
+                supportingText = if (invalid) {
+                    { Text(OnlineWords.NOT_A_CODE) }
+                } else {
+                    null
+                },
+                lineLimits = TextFieldLineLimits.SingleLine,
+                keyboardOptions = KeyboardOptions(
+                    capitalization = KeyboardCapitalization.Characters,
+                    imeAction = ImeAction.Go,
+                ),
+                onKeyboardAction = {
+                    if (plausible) actions.onJoin() else invalid = state.joinText.isNotBlank()
+                },
                 modifier = Modifier.fillMaxWidth(),
             )
             Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
@@ -497,7 +541,7 @@ private fun JoinRoom(state: OnlineHomeUi, actions: OnlineHomeActions) {
                 }
                 GoaButton(
                     onClick = actions.onJoin,
-                    enabled = !state.working,
+                    enabled = !state.working && plausible,
                     modifier = Modifier.weight(1f).heightIn(min = 48.dp),
                 ) { Text("Join") }
             }

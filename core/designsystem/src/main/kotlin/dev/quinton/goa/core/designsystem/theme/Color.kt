@@ -83,6 +83,14 @@ internal object Tokens {
 
     // Bronze strokes and words that must hold on cream (symbols, a selection's edge and check, unfilled stars).
     val LightBronzeInk = Color(0xFF6A4A12)
+
+    // De-emphasised but readable (round 5): what is done, past, empty or off yet still informative. The words stay
+    // ≥ 5:1 on every ground of their theme (the steel chip included in the dark theme), the edges ≥ 3:1, so a muted
+    // state steps back by losing decoration (fill, weight, a thick edge), never by fading its text.
+    val DarkTextMuted = Color(0xFFA3ADB6)
+    val DarkOutlineMuted = Color(0xFF7C8994)
+    val LightTextMuted = Color(0xFF665B4C)
+    val LightOutlineMuted = Color(0xFF857A68)
 }
 
 internal val DarkColors = darkColorScheme(
@@ -216,6 +224,17 @@ data class GoaExtendedColors(
      */
     val teamRedText: Color = Tokens.DarkTeamRedText,
     val teamBlueText: Color = Tokens.DarkTeamBlueText,
+    /**
+     * Words of a de-emphasised state (a done turn, a past draft step, an empty slot's number, a card name under a
+     * done hero): ≥ 4.5:1 on every ground of its theme, so it steps back from the body text without fading. Never
+     * draw muted text with alpha (DESIGN.md "Muted states").
+     */
+    val textMuted: Color = Tokens.DarkTextMuted,
+    /**
+     * The edge of a de-emphasised thing that still has to be seen (an empty slot's dashed outline, a past step's
+     * hairline, a done cell's frame): ≥ 3:1 on every ground of its theme.
+     */
+    val outlineMuted: Color = Tokens.DarkOutlineMuted,
 )
 
 internal val DarkExtended = GoaExtendedColors(
@@ -273,6 +292,8 @@ internal val LightExtended = GoaExtendedColors(
     pageEdge = Tokens.LightParchmentEdge,
     teamRedText = Tokens.LightTeamRedText,
     teamBlueText = Tokens.LightTeamBlueText,
+    textMuted = Tokens.LightTextMuted,
+    outlineMuted = Tokens.LightOutlineMuted,
 )
 
 val LocalGoaColors = staticCompositionLocalOf { DarkExtended }

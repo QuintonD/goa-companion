@@ -9,13 +9,10 @@ import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.widthIn
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -28,10 +25,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.drawBehind
-import androidx.compose.ui.geometry.CornerRadius
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.clearAndSetSemantics
@@ -41,12 +34,12 @@ import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import dev.quinton.goa.core.designsystem.component.ColourRibbon
+import dev.quinton.goa.core.designsystem.component.GoaTabRow
+import dev.quinton.goa.core.designsystem.component.GoaTabRowHeight
 import dev.quinton.goa.core.designsystem.component.LARGE_FONT_SCALE
 import dev.quinton.goa.core.designsystem.component.PlateColor
-import dev.quinton.goa.core.designsystem.component.fadingHorizontalScroll
 import dev.quinton.goa.core.designsystem.component.scaledIconSize
 import dev.quinton.goa.core.designsystem.component.selectionFrame
 import dev.quinton.goa.core.designsystem.theme.GoaTheme
@@ -75,78 +68,23 @@ internal enum class HeroSection(val label: String) {
 }
 
 /** The sticky bar's height: the deck's filters sit just under it. */
-internal val SectionBarHeight = 48.dp
+internal val SectionBarHeight = GoaTabRowHeight
 
 /**
- * Overview · Deck · FAQ, true tabs held under the banner once the head scrolls away: a tap shows that part, and the
- * tab you are on is selected in bronze (the app's selected wash, a bronze word and a rule under it). TalkBack hears
- * each as a tab, selected or not.
+ * Overview · Deck · FAQ, true tabs held under the banner once the head scrolls away: the app's one tab bar
+ * ([GoaTabRow]), as on Players and the trivia leaderboard. With large text the FAQ count gives its room to the words.
  */
 @Composable
 internal fun HeroSectionBar(active: HeroSection, faqCount: Int, onSelect: (HeroSection) -> Unit) {
-    val colors = MaterialTheme.colorScheme
-    // With large text the count gives its room to the words: "Overview" stays whole.
     val counts = LocalDensity.current.fontScale <= LARGE_FONT_SCALE
-    Column(Modifier.fillMaxWidth().background(colors.background)) {
-        Row(
-            Modifier
-                .fillMaxWidth()
-                .heightIn(min = SectionBarHeight)
-                .padding(horizontal = Spacing.sm)
-                .selectableGroup(),
-            horizontalArrangement = Arrangement.SpaceEvenly,
-        ) {
-            HeroSection.entries.forEach { section ->
-                val selected = section == active
-                val label = if (section == HeroSection.FAQ && faqCount > 0 && counts) {
-                    "${section.label} · $faqCount"
-                } else {
-                    section.label
-                }
-                val rule = GoaTheme.colors.selection
-                val wash = GoaTheme.colors.selectionFill
-                Box(
-                    Modifier
-                        .widthIn(min = TAB_MIN_WIDTH)
-                        .heightIn(min = SectionBarHeight)
-                        .selectable(selected = selected, role = Role.Tab, onClick = { onSelect(section) })
-                        .drawBehind {
-                            if (selected) {
-                                // The app's selected look: a bronze tint (as the segmented choices) and a bronze rule.
-                                val h = UNDERLINE.toPx()
-                                val inset = TAB_TINT_INSET.toPx()
-                                drawRoundRect(
-                                    wash,
-                                    topLeft = Offset(0f, inset),
-                                    size = Size(size.width, size.height - inset - h),
-                                    cornerRadius = CornerRadius(TAB_TINT_CORNER.toPx()),
-                                )
-                                drawRect(rule, topLeft = Offset(0f, size.height - h), size = Size(size.width, h))
-                            }
-                        }
-                        .padding(horizontal = Spacing.md),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Text(
-                        label,
-                        style = MaterialTheme.typography.titleSmall,
-                        fontWeight = if (selected) FontWeight.Bold else FontWeight.SemiBold,
-                        color = if (selected) colors.primary else colors.onSurfaceVariant,
-                        textAlign = TextAlign.Center,
-                        maxLines = 1,
-                        modifier = Modifier.padding(vertical = Spacing.sm),
-                    )
-                }
-            }
-        }
-        Box(Modifier.fillMaxWidth().height(1.dp).background(GoaTheme.colors.engravedBorder))
-    }
+    GoaTabRow(
+        labels = HeroSection.entries.map { section ->
+            if (section == HeroSection.FAQ && faqCount > 0 && counts) "${section.label} · $faqCount" else section.label
+        },
+        selectedIndex = active.ordinal,
+        onSelect = { onSelect(HeroSection.entries[it]) },
+    )
 }
-
-private val UNDERLINE = 3.dp
-private val TAB_MIN_WIDTH = 72.dp
-private val TAB_TINT_INSET = 6.dp
-private val TAB_TINT_CORNER = 8.dp
 
 /** One part of the deck for the colour filter: a colour (or Basic, the Ultimate, the Handicap card, a spellbook). */
 internal class DeckPart(val label: String, val key: String, val ribbon: PlateColor?, val count: Int)
@@ -200,9 +138,9 @@ private val COLOUR_KINDS = setOf(DeckGroupKind.RED, DeckGroupKind.GREEN, DeckGro
 /**
  * The deck's filters, held under the tabs while the deck scrolls; each is one choice with its "All" stated and
  * selected when nothing is narrowed, so no row reads as "nothing chosen". Colours: **All colours** then each part
- * with the cards' own ribbon and count, on one line that scrolls sideways (the edge that hides more fades out).
- * Tiers: **All tiers · Tier I · Tier II · Tier III** in the same chips, wrapping. The count over the cards says
- * what is shown.
+ * with the cards' own ribbon and count, wrapping onto a second line rather than running off the edge (a deck has a
+ * handful of parts, so every one stays in sight). Tiers: **All tiers · Tier I · Tier II · Tier III** in the same
+ * chips, wrapping. The count over the cards says what is shown.
  */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
@@ -215,17 +153,16 @@ internal fun DeckFilterBar(
     onTier: (Int?) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val row = rememberScrollState()
     Column(modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
         if (parts.size >= 2) {
-            Row(
+            FlowRow(
                 Modifier
                     .fillMaxWidth()
-                    .fadingHorizontalScroll(row)
+                    .padding(horizontal = Spacing.screen)
                     .selectableGroup()
                     .semantics { contentDescription = "Colours" },
                 horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
-                verticalAlignment = Alignment.CenterVertically,
+                itemVerticalAlignment = Alignment.CenterVertically,
             ) {
                 PartChip("All colours", null, parts.sumOf { it.count }, selected = part == null) { onPart(null) }
                 parts.forEach { p -> PartChip(p.label, p.ribbon, p.count, selected = part == p.key) { onPart(p.key) } }

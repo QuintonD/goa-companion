@@ -31,10 +31,8 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.PrimaryTabRow
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
-import androidx.compose.material3.Tab
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberModalBottomSheetState
@@ -78,6 +76,7 @@ import dev.quinton.goa.core.designsystem.component.GoaFilterChip
 import dev.quinton.goa.core.designsystem.component.GoaPlate
 import dev.quinton.goa.core.designsystem.component.GoaScreen
 import dev.quinton.goa.core.designsystem.component.GoaSheet
+import dev.quinton.goa.core.designsystem.component.GoaTabRow
 import dev.quinton.goa.core.designsystem.component.PODIUM_PLACES
 import dev.quinton.goa.core.designsystem.component.PlateShape
 import dev.quinton.goa.core.designsystem.component.PlayerAvatar
@@ -176,20 +175,12 @@ fun TriviaLeaderboardScreen(
 @Composable
 private fun BoardContent(state: TriviaLeaderboardUiState.Ready, actions: LeaderboardActions) {
     Column(Modifier.fillMaxSize()) {
-        PrimaryTabRow(
-            selectedTabIndex = state.tab.ordinal,
-            containerColor = MaterialTheme.colorScheme.background,
-            contentColor = MaterialTheme.colorScheme.primary,
-        ) {
-            LeaderboardTab.entries.forEach { tab ->
-                Tab(
-                    selected = tab == state.tab,
-                    onClick = { actions.onTab(tab) },
-                    text = { Text(tabLabel(tab), style = MaterialTheme.typography.titleSmall, maxLines = 1) },
-                    unselectedContentColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-        }
+        // The app's one page-tab bar, as on a hero page and Players.
+        GoaTabRow(
+            LeaderboardTab.entries.map(::tabLabel),
+            state.tab.ordinal,
+            onSelect = { actions.onTab(LeaderboardTab.entries[it]) },
+        )
         // A short board ends in the rulebook's battlefield, not in empty navy.
         Box(Modifier.fillMaxSize()) {
             ScreenFoot(FootArt.HALL)

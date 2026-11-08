@@ -73,7 +73,9 @@ internal fun ArtPlate(
     PlateSurface(
         onClick = onClick,
         enabled = enabled,
-        brackets = true,
+        // One choice of several side by side: the steel edge without the section's brackets, so the scene is the
+        // ornament and six tiles do not repeat four corner fittings each (DESIGN.md "Framing levels").
+        brackets = false,
         modifier = modifier.semantics { if (!enabled) stateDescription = "Not available" },
     ) {
         Column(Modifier.padding(ART_INSET)) {

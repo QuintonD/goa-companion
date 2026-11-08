@@ -22,9 +22,11 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shadow
+import androidx.compose.ui.graphics.drawscope.clipRect
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
@@ -74,14 +76,35 @@ internal fun MasteryBar(summary: MasterySummary, modifier: Modifier = Modifier, 
         }
         if (summary.learning > 0) {
             if (summary.mastered > 0) Spacer(Modifier.width(2.dp))
-            Box(Modifier.weight(summary.learning / total).height(height).background(learningColor()))
+            Box(Modifier.weight(summary.learning / total).height(height).background(learningColor()).hatched())
         }
         val rest = summary.unseen / total
         if (rest > 0f) Spacer(Modifier.weight(rest))
     }
 }
 
-/** "● Learned 41  ● Learning 12  ● New 271" — the bar's colours in words. */
+/**
+ * Learning, apart from learned by more than its colour: diagonal dark stripes over the bronze, on the bar and on the
+ * legend's mark alike.
+ */
+internal fun Modifier.hatched(): Modifier = drawWithContent {
+    drawContent()
+    val gap = HATCH_GAP.toPx()
+    val stroke = HATCH_STROKE.toPx()
+    clipRect {
+        var x = -size.height
+        while (x < size.width) {
+            drawLine(HATCH, Offset(x, size.height), Offset(x + size.height, 0f), strokeWidth = stroke)
+            x += gap
+        }
+    }
+}
+
+private val HATCH = Color(0x8C000000)
+private val HATCH_GAP = 5.dp
+private val HATCH_STROKE = 1.5.dp
+
+/** "● Learned 41  ▨ Learning 12  ● New 271" — the bar's colours in words, learning's mark hatched as on the bar. */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 internal fun MasteryLegend(summary: MasterySummary, modifier: Modifier = Modifier) {
@@ -91,18 +114,19 @@ internal fun MasteryLegend(summary: MasterySummary, modifier: Modifier = Modifie
         verticalArrangement = Arrangement.spacedBy(Spacing.xs),
     ) {
         LegendItem(learnedColor(), "Learned", summary.mastered)
-        LegendItem(learningColor(), "Learning", summary.learning)
+        LegendItem(learningColor(), "Learning", summary.learning, hatched = true)
         LegendItem(MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.45f), "New", summary.unseen)
     }
 }
 
 @Composable
-private fun LegendItem(color: Color, label: String, count: Int) {
+private fun LegendItem(color: Color, label: String, count: Int, hatched: Boolean = false) {
     Row(
         Modifier.semantics(mergeDescendants = true) { contentDescription = "$label: $count" },
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Box(Modifier.size(scaledIconSize(10.dp)).clip(CircleShape).background(color))
+        val mark = Modifier.size(scaledIconSize(if (hatched) 12.dp else 10.dp)).clip(CircleShape).background(color)
+        Box(if (hatched) mark.hatched() else mark)
         Spacer(Modifier.width(Spacing.xs + 2.dp))
         Text(
             "$label ${TriviaText.number(count)}",

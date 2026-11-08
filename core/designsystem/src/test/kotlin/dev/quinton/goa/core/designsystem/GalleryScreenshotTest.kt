@@ -1,6 +1,7 @@
 package dev.quinton.goa.core.designsystem
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
@@ -13,6 +14,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Groups
@@ -33,8 +35,10 @@ import androidx.compose.ui.unit.dp
 import androidx.test.core.app.ApplicationProvider
 import com.github.takahirom.roborazzi.captureRoboImage
 import dev.quinton.goa.core.designsystem.component.CardColorDot
+import dev.quinton.goa.core.designsystem.component.CardFamilyLabel
 import dev.quinton.goa.core.designsystem.component.CardScan
 import dev.quinton.goa.core.designsystem.component.ComplexityStars
+import dev.quinton.goa.core.designsystem.component.DoneLabel
 import dev.quinton.goa.core.designsystem.component.DurationText
 import dev.quinton.goa.core.designsystem.component.EmptyState
 import dev.quinton.goa.core.designsystem.component.GoaButton
@@ -60,9 +64,12 @@ import dev.quinton.goa.core.designsystem.component.StatBar
 import dev.quinton.goa.core.designsystem.component.SteelBanner
 import dev.quinton.goa.core.designsystem.component.SubHeader
 import dev.quinton.goa.core.designsystem.component.TeamBadge
+import dev.quinton.goa.core.designsystem.component.TintTag
 import dev.quinton.goa.core.designsystem.component.TitlePlate
 import dev.quinton.goa.core.designsystem.component.UnverifiedBadge
 import dev.quinton.goa.core.designsystem.component.VerifiedBadge
+import dev.quinton.goa.core.designsystem.component.emptySlotOutline
+import dev.quinton.goa.core.designsystem.component.mutedOutline
 import dev.quinton.goa.core.designsystem.icon.HeroSigils
 import dev.quinton.goa.core.designsystem.icon.PlayerCrests
 import dev.quinton.goa.core.designsystem.theme.GoaTextStyles
@@ -178,6 +185,29 @@ private fun Patterns() {
             MetalButton(onClick = {}, bronze = false, enabled = false) { Text("Start") }
         }
         TitlePlate("Which hero has the highest Initiative card?", Modifier.fillMaxWidth())
+        // Muted states (round 5): done, past and empty step back by losing decoration, not legibility.
+        GoaPlate(Modifier.fillMaxWidth()) {
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                val shape = RoundedCornerShape(6.dp)
+                Column(Modifier.mutedOutline(shape).padding(Spacing.xs)) {
+                    Text("Wasp", color = GoaTheme.colors.textMuted)
+                    DoneLabel("DONE")
+                }
+                Box(Modifier.size(48.dp, 64.dp).emptySlotOutline(shape), contentAlignment = Alignment.Center) {
+                    Text("3", color = GoaTheme.colors.textMuted)
+                }
+                Column {
+                    TintTag("p.14")
+                    TintTag("Rulebook", color = MaterialTheme.colorScheme.secondary)
+                }
+            }
+            CardFamilyLabel(CardColor.RED, 2)
+            CardFamilyLabel(CardColor.GOLD, null)
+            CardFamilyLabel(CardColor.PURPLE, 4)
+        }
     }
 }
 

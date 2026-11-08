@@ -109,7 +109,7 @@ class RulesScreenshotTest {
 
     @Test fun ladderCompareDarkFontScale2() = capture(ThemeMode.DARK, 2f) { Ladder(compare = true) }
 
-    /** A topic's Contents sheet: every section, the one being read selected. */
+    /** A topic's Sections sheet: every section by its whole name, the one being read selected. */
     @Test fun topicContentsDark() = capture(ThemeMode.DARK) {
         val topic = bundledReference.topics.first { it.id == "turn-sequence" }
         val sections = topicSections(topic)

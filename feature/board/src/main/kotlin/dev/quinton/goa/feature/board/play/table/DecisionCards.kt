@@ -74,6 +74,7 @@ import dev.quinton.goa.core.designsystem.component.CardTextBox
 import dev.quinton.goa.core.designsystem.component.CoinIcon
 import dev.quinton.goa.core.designsystem.component.LifeCounterIcon
 import dev.quinton.goa.core.designsystem.component.PlateColor
+import dev.quinton.goa.core.designsystem.component.TintTag
 import dev.quinton.goa.core.designsystem.component.scaledIconSize
 import dev.quinton.goa.core.designsystem.theme.GoaTextStyles
 import dev.quinton.goa.core.designsystem.theme.GoaTheme
@@ -628,20 +629,13 @@ internal fun RuleRow(
     }
 }
 
-/** "p.14" as a small bronze-edged pill: where a rule is in the rulebook, out of the way of the words. */
+/**
+ * "p.14" as a small tinted pill: where a rule is in the rulebook, out of the way of the words. A tint, not an edge: it
+ * often sits on a button or a plate that is the frame already (DESIGN.md "Framing levels").
+ */
 @Composable
 internal fun PagePill(page: String, modifier: Modifier = Modifier, color: Color = MaterialTheme.colorScheme.primary) {
-    Text(
-        page,
-        style = MaterialTheme.typography.labelMedium,
-        fontWeight = FontWeight.SemiBold,
-        color = color,
-        maxLines = 1,
-        softWrap = false,
-        modifier = modifier
-            .border(1.dp, color.copy(alpha = 0.6f), RoundedCornerShape(50))
-            .padding(horizontal = 6.dp, vertical = 1.dp),
-    )
+    TintTag(page, modifier, color)
 }
 
 @Composable

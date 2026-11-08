@@ -6,7 +6,6 @@ import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.togetherWith
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -665,8 +664,9 @@ private fun TeamMemberChip(
         onClick = onMove,
         enabled = !locked,
         shape = RoundedCornerShape(6.dp),
+        // A row of the teams' plate: the team's faint tint, no edge of its own (DESIGN.md "Framing levels"); the
+        // column's head names the team with its mark.
         color = color.copy(alpha = 0.10f),
-        border = BorderStroke(1.dp, color.copy(alpha = 0.6f)),
         modifier = Modifier
             .fillMaxWidth()
             .heightIn(min = 48.dp)
