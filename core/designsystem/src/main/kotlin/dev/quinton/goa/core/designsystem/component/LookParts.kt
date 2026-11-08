@@ -425,7 +425,8 @@ fun GoaPlate(
 
 /**
  * A bottom sheet on the plate: the slate, or paper in the light theme. Use this rather than `ModalBottomSheet`, so a
- * sheet looks the same everywhere and its contents are themed as a plate.
+ * sheet looks the same everywhere and its contents are themed as a plate. [scrimColor] dims what is behind it: a sheet
+ * over a busy screen (the game table) dims it more, so what shows above the sheet reads as behind it.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -433,6 +434,7 @@ fun GoaSheet(
     onDismissRequest: () -> Unit,
     modifier: Modifier = Modifier,
     sheetState: SheetState = rememberModalBottomSheetState(),
+    scrimColor: Color = BottomSheetDefaults.ScrimColor,
     content: @Composable ColumnScope.() -> Unit,
 ) {
     GoaPlateTheme {
@@ -440,6 +442,7 @@ fun GoaSheet(
             onDismissRequest = onDismissRequest,
             modifier = modifier,
             sheetState = sheetState,
+            scrimColor = scrimColor,
             shape = SheetShape,
             containerColor = GoaTheme.colors.plate,
             contentColor = MaterialTheme.colorScheme.onSurface,

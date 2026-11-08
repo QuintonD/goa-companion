@@ -25,6 +25,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.TextAutoSize
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.CheckCircle
 import androidx.compose.material.icons.outlined.Info
@@ -1030,12 +1031,15 @@ private fun Choices(
         Column(verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
             choices.filterIsInstance<Choice.Action>().chunked(2).forEach { pair ->
                 Row(Modifier.height(IntrinsicSize.Min), horizontalArrangement = Arrangement.spacedBy(Spacing.xs)) {
+                    // Fast Travel beside Hold takes the width Hold doesn't need: its condition reads on two lines.
+                    val roomy = pair.size == 2 && pair.any { it.action == ActionType.HOLD }
                     pair.forEach { choice ->
+                        val share = if (roomy && pairedRule(choice.action) != null) ROOMY_SHARE else 1f
                         ActionChip(
                             table,
                             choice.action,
                             busy,
-                            modifier = Modifier.weight(1f).fillMaxHeight(),
+                            modifier = Modifier.weight(share).fillMaxHeight(),
                             brief = true,
                             paired = true,
                         ) { onAnswer(choice) }
@@ -1137,7 +1141,7 @@ private fun ActionChip(
             },
     ) {
         if (paired) {
-            PairedChipContent(action, card, primary, page, content)
+            PairedChipContent(action, card, primary, page, content, pairedRule(action))
             return@PlateToneSurface
         }
         Row(
@@ -1181,7 +1185,45 @@ private fun ActionChip(
  * chip's whole width ("Card action" over the card's value for the primary), so no word is broken.
  */
 @Composable
-private fun PairedChipContent(action: ActionType, card: Card?, primary: Boolean, page: String?, content: Color) {
+private fun PairedChipContent(
+    action: ActionType,
+    card: Card?,
+    primary: Boolean,
+    page: String?,
+    content: Color,
+    rule: String?,
+) {
+    if (rule != null) {
+        // A condition the card doesn't print (Fast Travel's), kept in view sideways too (sol-b #15): the glyph, the
+        // words and the page on one line, the condition under them.
+        Column(Modifier.fillMaxWidth().padding(horizontal = Spacing.sm, vertical = 4.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(
+                    actionIcon(action, card).vector,
+                    null,
+                    tint = if (GoaTheme.isDark) SteelIconBronze else MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(scaledIconSize(20.dp, 1.3f)),
+                )
+                Spacer(Modifier.width(4.dp))
+                Text(
+                    actionLabel(action, card),
+                    style = MaterialTheme.typography.titleSmall,
+                    color = content,
+                    fontWeight = FontWeight.SemiBold,
+                    // On one line: a little smaller rather than broken, never cut.
+                    maxLines = 1,
+                    autoSize = TextAutoSize.StepBased(minFontSize = 11.sp, maxFontSize = 14.sp),
+                    modifier = Modifier.weight(1f),
+                )
+                page?.let {
+                    Spacer(Modifier.width(Spacing.xs))
+                    PagePill(it, color = content)
+                }
+            }
+            Text(rule, style = MaterialTheme.typography.bodySmall, color = content)
+        }
+        return
+    }
     Column(Modifier.fillMaxWidth().padding(horizontal = Spacing.sm, vertical = 6.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Icon(
@@ -1206,6 +1248,18 @@ private fun PairedChipContent(action: ActionType, card: Card?, primary: Boolean,
         )
     }
 }
+
+/**
+ * The condition an action chip two to a row keeps in view, in fewer words than [actionRule] (whose whole sentence
+ * TalkBack still hears): Fast Travel's, p.11. Null for the others (Hold's "Do nothing" is its name).
+ */
+private fun pairedRule(action: ActionType): String? = when (action) {
+    ActionType.FAST_TRAVEL -> "Your/adjacent Zone · no enemies"
+    else -> null
+}
+
+/** Fast Travel's share of its row beside Hold. */
+private const val ROOMY_SHARE = 2f
 
 // ---- Cards ------------------------------------------------------------------------------
 

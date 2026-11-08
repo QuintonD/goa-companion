@@ -728,7 +728,11 @@ private fun Unavailable(
     )
 }
 
-private const val SHEET_HEIGHT = 0.9f
+/**
+ * The log's and a hero's sheet: tall enough that its top meets the top bar, so the table's status panel is wholly
+ * behind it (and the scrim), never half of it showing over the sheet's corners (opus, round 4).
+ */
+private const val SHEET_HEIGHT = 0.95f
 
 /** From this width the top bar keeps the game-state review beside the log; narrower, it is in More. */
 private const val WIDE_BAR_DP = 600

@@ -85,8 +85,13 @@ internal fun BoardSheet(onDismiss: () -> Unit, content: @Composable () -> Unit) 
     GoaSheet(
         onDismissRequest = onDismiss,
         sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
+        // The table's status and map above the sheet dimmed well back: behind it, never half of a panel (opus #4).
+        scrimColor = BoardSheetScrim,
     ) { content() }
 }
+
+/** What dims the board behind its sheets. */
+internal val BoardSheetScrim = Color.Black.copy(alpha = 0.6f)
 
 // ---- Add ---------------------------------------------------------------------------------
 

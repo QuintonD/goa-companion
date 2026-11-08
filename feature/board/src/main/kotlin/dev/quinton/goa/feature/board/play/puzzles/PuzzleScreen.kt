@@ -52,6 +52,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.contentDescription
@@ -616,26 +617,29 @@ private fun SolvedPanel(
             }
         }
     }
-    // The line on the board first, then why it works: the replay is the "show me on the map".
-    PlateButton(
-        onClick = { onAction(PuzzleAction.ShowSolution) },
-        enabled = !puzzle.busy,
-        modifier = Modifier.fillMaxWidth().heightIn(min = 52.dp),
-    ) {
-        Icon(Icons.Outlined.Replay, contentDescription = null, modifier = Modifier.size(18.dp))
-        Spacer(Modifier.width(Spacing.sm))
-        Text("Replay the solution on the board", textAlign = TextAlign.Center)
+    // Onward first (sol-b #12): Next puzzle the bronze button, the replay on the board beside it, both over the
+    // explanation so going on never waits on reading it. The last puzzle: the replay alone, bronze.
+    val next = puzzle.next
+    val replay: @Composable (Modifier, PlateTone) -> Unit = { modifier, tone ->
+        PlateButton(
+            onClick = { onAction(PuzzleAction.ShowSolution) },
+            enabled = !puzzle.busy,
+            tone = tone,
+            modifier = modifier.heightIn(min = 52.dp),
+        ) {
+            Icon(Icons.Outlined.Replay, contentDescription = null, modifier = Modifier.size(18.dp))
+            Spacer(Modifier.width(Spacing.sm))
+            Text(
+                if (next != null) "Replay solution" else "Replay the solution on the board",
+                textAlign = TextAlign.Center,
+            )
+        }
     }
-    Explanation(puzzle.info)
-    FlowRow(
-        horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
-        verticalArrangement = Arrangement.spacedBy(Spacing.xs),
-    ) {
-        val next = puzzle.next
-        if (next != null) {
-            GoaOutlinedButton(onClick = { onNext(next) }, modifier = Modifier.heightIn(min = 48.dp)) {
-                Text("Next puzzle")
-                Spacer(Modifier.width(Spacing.xs))
+    if (next != null) {
+        val nextButton: @Composable (Modifier) -> Unit = { modifier ->
+            PlateButton(onClick = { onNext(next) }, modifier = modifier.heightIn(min = 52.dp)) {
+                Text("Next puzzle", textAlign = TextAlign.Center)
+                Spacer(Modifier.width(Spacing.sm))
                 Icon(
                     Icons.AutoMirrored.Outlined.ArrowForward,
                     contentDescription = null,
@@ -643,6 +647,27 @@ private fun SolvedPanel(
                 )
             }
         }
+        // Side by side; with large text, one over the other, each whole.
+        if (LocalDensity.current.fontScale > STACK_BUTTONS_SCALE) {
+            nextButton(Modifier.fillMaxWidth())
+            replay(Modifier.fillMaxWidth(), PlateTone.STEEL)
+        } else {
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                nextButton(Modifier.weight(1f))
+                replay(Modifier.weight(1f), PlateTone.STEEL)
+            }
+        }
+    } else {
+        replay(Modifier.fillMaxWidth(), PlateTone.GOLD)
+    }
+    Explanation(puzzle.info)
+    FlowRow(
+        horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+        verticalArrangement = Arrangement.spacedBy(Spacing.xs),
+    ) {
         TextButton(onClick = onList, modifier = Modifier.heightIn(min = 48.dp)) { Text("All puzzles") }
         TextButton(onClick = { onAction(PuzzleAction.Restart) }, modifier = Modifier.heightIn(min = 48.dp)) {
             Text("Play it again")
@@ -786,5 +811,8 @@ private fun ReplayPanel(puzzle: PuzzleUi, replay: ReplayUi, onAction: (PuzzleAct
 }
 
 private const val SHEET_HEIGHT = 0.9f
+
+/** Past this font scale the solved panel's two buttons stack, each whole. */
+private const val STACK_BUTTONS_SCALE = 1.3f
 private const val SETUP_HEIGHT = 0.75f
 private val STEP_MARK = 22.dp
