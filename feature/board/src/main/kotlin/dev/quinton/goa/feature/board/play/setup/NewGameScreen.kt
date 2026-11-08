@@ -803,4 +803,3 @@ internal fun startingCounters(lanes: Int, length: GameLength, heroes: Int): Stri
     val wavesText = if (lanes > 1) "$lanes × $waves Waves" else "$waves Waves"
     return "$wavesText · $life Lives"
 }
-

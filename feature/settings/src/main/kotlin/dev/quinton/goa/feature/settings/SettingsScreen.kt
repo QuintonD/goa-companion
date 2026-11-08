@@ -473,6 +473,5 @@ private fun SettingsScreenLightPreview() {
     GoaTheme(ThemeMode.LIGHT) { SettingsScreen(PreviewSettings, onAction = {}, onBack = {}, onOpen = {}) }
 }
 
-
 /** Material's disabled content alpha. */
 private const val DISABLED_ALPHA = 0.38f

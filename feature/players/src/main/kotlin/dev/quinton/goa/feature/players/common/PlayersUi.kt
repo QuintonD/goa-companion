@@ -110,7 +110,6 @@ fun ProvisionalMark(modifier: Modifier = Modifier, label: Boolean = false) {
     }
 }
 
-
 @Composable
 fun ProvisionalPill(modifier: Modifier = Modifier) {
     Pill(
