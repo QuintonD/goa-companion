@@ -5,6 +5,7 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
@@ -40,6 +41,7 @@ import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import dev.quinton.goa.core.designsystem.component.GoaDarkTheme
 import dev.quinton.goa.core.designsystem.component.slatePlate
@@ -67,6 +69,13 @@ internal fun MapToolbar(
     modifier: Modifier = Modifier,
     /** The glyphs alone, 48 dp each; the words stay in the tooltip and for TalkBack. */
     compact: Boolean = true,
+    /**
+     * A compact button's size: the game table's are 40 dp (ADR-083), drawn smaller over the map while a touch still
+     * finds them within 48 dp (Compose widens a small target's touch area).
+     */
+    buttonSize: Dp = 48.dp,
+    /** More of the map's controls under these, on the same pill (the game table's key, ADR-083). */
+    extra: @Composable ColumnScope.() -> Unit = {},
 ) {
     val scope = rememberCoroutineScope()
     var flips by remember { mutableIntStateOf(0) }
@@ -83,16 +92,22 @@ internal fun MapToolbar(
                 content = {
                     Column(
                         Modifier
-                            .slatePlate(RoundedCornerShape(if (compact) 24.dp else 12.dp), brackets = false)
+                            .slatePlate(RoundedCornerShape(if (compact) buttonSize / 2 else 12.dp), brackets = false)
                             .padding(vertical = if (compact) 0.dp else 4.dp, horizontal = if (compact) 0.dp else 2.dp),
                         verticalArrangement = Arrangement.spacedBy(if (compact) 0.dp else 2.dp),
                     ) {
                         if (viewport.isFit) {
-                            MapTool("Lane view", Icons.Outlined.ZoomIn, "Zoom to the lane", compact) {
+                            MapTool("Lane view", Icons.Outlined.ZoomIn, "Zoom to the lane", compact, buttonSize) {
                                 scope.launch { viewport.animateLane() }
                             }
                         } else {
-                            MapTool("Fit board", Icons.Outlined.CenterFocusStrong, "Fit the whole board", compact) {
+                            MapTool(
+                                "Fit board",
+                                Icons.Outlined.CenterFocusStrong,
+                                "Fit the whole board",
+                                compact,
+                                buttonSize,
+                            ) {
                                 scope.launch { viewport.animateFit() }
                             }
                         }
@@ -101,10 +116,12 @@ internal fun MapToolbar(
                             Icons.Outlined.SwapVert,
                             "Flip the view: ${BoardText.team(bottomTeam.opponent)} at the bottom",
                             compact,
+                            buttonSize,
                         ) {
                             onFlip()
                             flips++
                         }
+                        extra()
                     }
                     AnimatedVisibility(notice, enter = fadeIn(), exit = fadeOut()) {
                         Text(
@@ -137,7 +154,14 @@ internal fun MapToolbar(
 /** One control: its glyph over its word, or (compact) the glyph alone with the word in its tooltip. */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun MapTool(label: String, icon: ImageVector, description: String, compact: Boolean, onClick: () -> Unit) {
+private fun MapTool(
+    label: String,
+    icon: ImageVector,
+    description: String,
+    compact: Boolean,
+    size: Dp,
+    onClick: () -> Unit,
+) {
     if (!compact) {
         BarLabelButton(
             label,
@@ -145,6 +169,7 @@ private fun MapTool(label: String, icon: ImageVector, description: String, compa
             onClick = onClick,
             description = description,
             modifier = Modifier.widthIn(min = TOOL_WIDTH),
+            labelled = true,
         )
         return
     }
@@ -153,7 +178,9 @@ private fun MapTool(label: String, icon: ImageVector, description: String, compa
         tooltip = { PlainTooltip { Text(description) } },
         state = rememberTooltipState(),
     ) {
-        IconButton(onClick = onClick, modifier = Modifier.size(48.dp)) { Icon(icon, contentDescription = description) }
+        IconButton(onClick = onClick, modifier = Modifier.size(size)) {
+            Icon(icon, contentDescription = description, modifier = Modifier.size(minOf(24.dp, size / 2)))
+        }
     }
 }
 
