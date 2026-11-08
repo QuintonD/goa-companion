@@ -83,12 +83,6 @@ fun SyncFileImportScreen(state: SyncFileImportUiState, actions: SyncFileImportAc
                             style = MaterialTheme.typography.titleMedium,
                         )
                     }
-                    Text(
-                        "Merging works like a sync: anything new is added, and where both have the same match or " +
-                            "player, the later edit wins. Matches deleted on the other phone are deleted here.",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
                     GoaButton(
                         onClick = actions.onConfirm,
                         enabled = !stage.changes.isEmpty,

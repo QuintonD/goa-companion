@@ -58,13 +58,6 @@ fun WhoAreYouScreen(state: WhoAreYouUiState, actions: WhoAreYouActions) {
             ),
             verticalArrangement = Arrangement.spacedBy(Spacing.xs),
         ) {
-            item {
-                Text(
-                    "This phone opens your player page first and marks you as “You”. Only this phone knows.",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
             if (state.players.isNotEmpty()) item { SectionHeader("Pick yourself") }
             items(state.players, key = { it.id }) { player ->
                 Row(

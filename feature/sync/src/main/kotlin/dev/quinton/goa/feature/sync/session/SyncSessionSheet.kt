@@ -235,7 +235,7 @@ fun SyncSessionSheet(
         }
         state.groupName?.let {
             Text(
-                "Group “$it” · this phone shows as ${state.deviceName}",
+                "Shows as ${state.deviceName}",
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
@@ -284,21 +284,17 @@ private fun StageContent(state: SyncSessionUiState, actions: SyncSessionActions)
 
 @Composable
 private fun ChooseRole(actions: SyncSessionActions) {
-    Text(
-        "Keep the phones close together, with Bluetooth and Wi-Fi on. No internet is needed. " +
-            "One phone hosts; everyone else joins.",
-        style = MaterialTheme.typography.bodyMedium,
-    )
+    Text("Phones close together, Bluetooth and Wi-Fi on.", style = MaterialTheme.typography.bodyMedium)
     RoleCard(
         icon = Icons.Outlined.WifiTethering,
         title = "Host",
-        body = "This phone collects every phone's data, merges it and sends the result back to all of them.",
+        body = "Collects and merges everyone's data.",
         onClick = { actions.onChoose(SessionRole.HOST) },
     )
     RoleCard(
         icon = Icons.Outlined.PhoneAndroid,
         title = "Join",
-        body = "Another phone hosts. This one sends its data and gets everything back.",
+        body = "Another phone hosts.",
         onClick = { actions.onChoose(SessionRole.JOIN) },
     )
     SheetCancel("Cancel", actions.onCancel)
