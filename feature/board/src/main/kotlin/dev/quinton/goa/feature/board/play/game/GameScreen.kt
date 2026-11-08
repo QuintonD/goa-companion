@@ -522,30 +522,31 @@ private fun ColumnScope.Panel(play: PlayUi, onAction: (GameAction) -> Unit, focu
     // The hand is the panel's pinned tab (HandTab), never a heading cut at the screen's edge.
 }
 
-/** A gentle nudge before a clearly worse choice: never blocks, never chooses for you. */
+/**
+ * A gentle nudge before a clearly worse choice: never blocks, never chooses for you. The Coach's tab names it; the
+ * note, its reason in a smaller line, then Choose anyway and Rethink (TalkBack also hears the choice it is about).
+ */
 @Composable
 private fun CoachNudge(nudge: PendingNudge, onAction: (GameAction) -> Unit) {
     Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
         CardTextBox(PlateColor.GREEN, Modifier.fillMaxWidth(), cap = "Coach") {
-            Column(verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.semantics(mergeDescendants = true) {
-                    },
-                ) {
-                    Icon(Icons.Outlined.Lightbulb, null)
+            Column(
+                Modifier.semantics(mergeDescendants = true) {
+                    contentDescription = listOf("Coach: ${nudge.note.text}", nudge.note.detail, "Your choice: ${nudge.choiceLabel}")
+                        .filter { it.isNotBlank() }
+                        .joinToString(". ")
+                    liveRegion = LiveRegionMode.Polite
+                },
+                verticalArrangement = Arrangement.spacedBy(2.dp),
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(Icons.Outlined.Lightbulb, null, Modifier.size(20.dp))
                     Spacer(Modifier.width(Spacing.sm))
-                    Text(
-                        "Coach: ${nudge.note.text}",
-                        style = MaterialTheme.typography.titleSmall,
-                        fontWeight = FontWeight.SemiBold,
-                        modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite },
-                    )
+                    Text(nudge.note.text, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
                 }
                 if (nudge.note.detail.isNotBlank()) {
-                    Text(nudge.note.detail, style = MaterialTheme.typography.bodyMedium)
+                    Text(nudge.note.detail, style = MaterialTheme.typography.bodySmall)
                 }
-                Text("Your choice: ${nudge.choiceLabel}", style = MaterialTheme.typography.labelLarge)
             }
         }
         Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
@@ -613,10 +614,11 @@ private fun ComputerMove(table: TableUi, status: TurnStatus.Computer, focus: Car
         }
         Column(Modifier.weight(1f).semantics(mergeDescendants = true) { liveRegion = LiveRegionMode.Polite }) {
             if (header) {
+                // The head says who and what ("Computer · choosing an action"): here only its strength and pace.
                 Text(
                     listOfNotNull(
-                        computer?.let { "Computer ${PlayText.strength(it)}" },
-                        if (status.thinking) "thinking…" else "choosing",
+                        computer?.let { PlayText.strength(it) },
+                        "thinking…".takeIf { status.thinking },
                     ).joinToString(" · "),
                     style = MaterialTheme.typography.labelLarge,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -632,9 +634,6 @@ private fun ComputerMove(table: TableUi, status: TurnStatus.Computer, focus: Car
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.SemiBold,
                 )
-            }
-            table.decision?.prompt?.let {
-                Text(it, style = MaterialTheme.typography.bodyMedium)
             }
         }
         if (card != null && table.decision?.kind != DecisionKind.PLAY_CARD) {
@@ -669,13 +668,17 @@ private fun Waiting(table: TableUi, status: TurnStatus.Waiting) {
             Spacer(Modifier.width(Spacing.xs))
         }
         Spacer(Modifier.width(Spacing.sm))
-        Column(Modifier.weight(1f).semantics(mergeDescendants = true) { liveRegion = LiveRegionMode.Polite }) {
+        val others = status.heroIds.joinToString(" and ") { table.hero(it).name }.ifEmpty { "the others" }
+        Column(
+            Modifier.weight(1f).semantics(mergeDescendants = true) {
+                liveRegion = LiveRegionMode.Polite
+                contentDescription =
+                    "Your card is down. Waiting for $others to play facedown. Cards are revealed together (p.7)."
+            },
+        ) {
             Text("Your card is down", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
             Text(
-                "Waiting for ${status.heroIds.joinToString(" and ") {
-                    table.hero(it).name
-                }.ifEmpty { "the others" }} " +
-                    "to play facedown. Cards are revealed together (p.7).",
+                "Waiting for $others",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
