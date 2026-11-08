@@ -1,6 +1,9 @@
 package dev.quinton.goa.feature.board.play.table
 
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
@@ -30,6 +33,7 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -59,10 +63,15 @@ import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import dev.quinton.goa.core.designsystem.component.CardTextBox
+import dev.quinton.goa.core.designsystem.component.CardTitle
+import dev.quinton.goa.core.designsystem.component.CardTitleSize
 import dev.quinton.goa.core.designsystem.component.CoinIcon
+import dev.quinton.goa.core.designsystem.component.GoaPlate
 import dev.quinton.goa.core.designsystem.component.LifeCounterIcon
 import dev.quinton.goa.core.designsystem.component.PlateColor
+import dev.quinton.goa.core.designsystem.component.PlateRowDivider
 import dev.quinton.goa.core.designsystem.component.SelectablePlate
+import dev.quinton.goa.core.designsystem.component.SelectionMark
 import dev.quinton.goa.core.designsystem.component.bottomEdgeFade
 import dev.quinton.goa.core.designsystem.component.scaledIconSize
 import dev.quinton.goa.core.designsystem.theme.GoaTextStyles
@@ -77,6 +86,7 @@ import dev.quinton.goa.feature.board.ui.cards.CardFocusState
 import dev.quinton.goa.feature.board.ui.cards.FocusCard
 import dev.quinton.goa.feature.board.ui.cards.cardFocusOrigin
 import kotlin.math.roundToInt
+import kotlinx.coroutines.launch
 
 // ---- Defense (p.14) ---------------------------------------------------------------------
 
@@ -125,18 +135,21 @@ internal fun DefensePanel(
     val picked = chosen?.let { c -> offered.indexOfFirst { it.choice == c }.takeIf { it >= 0 } }
     val hero = table.decider?.let { table.hero(it.heroId).name }
     val items = table.decider?.itemStats?.count { it == Stat.DEFENSE } ?: 0
+    // Said once, in the attack's box: the rows then need no mark of their own.
+    val noneSaves = if (hopeless) "No card saves ${hero ?: "you"}" else null
     val open = { i: Int, asText: Boolean ->
         openOffered(focus, table, offered, i, onAnswer, context = summary, cards = focusCards, asText = asText)
     }
     PinnedFoot(
         head = {
-            AttackHeader(heading, attack, context.minionModifier, table.sourceCard, decision.prompt, focus)
-            if (hopeless) NoneSaves(hero)
+            AttackHeader(heading, attack, context.minionModifier, table.sourceCard, decision.prompt, focus, noneSaves)
         },
+        count = offered.size,
         list = {
             offered.forEachIndexed { i, item ->
                 val isChosen = item.choice == chosen
                 val line = rows[i]
+                if (i > 0) PlateRowDivider()
                 DefenseOption(
                     item.card,
                     line,
@@ -178,13 +191,15 @@ internal fun DefensePanel(
 }
 
 /**
- * A question in three parts, the middle one scrolling: [head] and [foot] at their own height, [list] given what is
- * left of the panel's room ([LocalQuestionRoom]) and scrolling inside it, never less than [LIST_MIN] (with large
- * text the panel itself then scrolls). Without a room (a preview), all three at their own height.
+ * A question in three parts, the middle one scrolling: [head] and [foot] at their own height, [list] (the [count]
+ * cards, as rows of one plate) given what is left of the panel's room ([LocalQuestionRoom]) and scrolling inside it,
+ * never less than [LIST_MIN] (with large text the panel itself then scrolls). When cards are below, a cue says how
+ * many ("+1 more card"), not a fade alone. Without a room (a preview), all three at their own height.
  */
 @Composable
 private fun PinnedFoot(
     head: @Composable ColumnScope.() -> Unit,
+    count: Int,
     list: @Composable ColumnScope.() -> Unit,
     foot: @Composable ColumnScope.() -> Unit,
 ) {
@@ -195,11 +210,14 @@ private fun PinnedFoot(
         contents = listOf(
             { Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm), content = head) },
             {
-                Column(
-                    Modifier.bottomEdgeFade(scroll).verticalScroll(scroll),
-                    verticalArrangement = Arrangement.spacedBy(Spacing.xs),
-                    content = list,
-                )
+                GoaPlate(contentPadding = PaddingValues(0.dp), brackets = false) {
+                    Box {
+                        Column(Modifier.bottomEdgeFade(scroll).verticalScroll(scroll), content = list)
+                        if (scroll.canScrollForward) {
+                            MoreBelow(scroll, count, Modifier.align(Alignment.BottomCenter))
+                        }
+                    }
+                }
             },
             { Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm), content = foot) },
         ),
@@ -227,41 +245,39 @@ private fun PinnedFoot(
     }
 }
 
-/** "No card saves Tigerclaw", once, over the options: the rows then need no mark of their own. */
+/**
+ * Over the foot of a list that goes on: how many cards are below ("+1 more card"), a tap scrolls to them. TalkBack
+ * reaches every row by scrolling already, so it is for the eye.
+ */
 @Composable
-private fun NoneSaves(hero: String?) {
-    val text = "No card saves ${hero ?: "you"}"
-    Row(
-        Modifier.fillMaxWidth().semantics(mergeDescendants = true) {
-            liveRegion = LiveRegionMode.Polite
-            contentDescription = "$text. Rulebook page 14"
-        },
-        verticalAlignment = Alignment.CenterVertically,
+private fun MoreBelow(scroll: ScrollState, count: Int, modifier: Modifier = Modifier) {
+    val scope = rememberCoroutineScope()
+    val row = with(LocalDensity.current) { OPTION_ROW.toPx() }
+    val below = (((scroll.maxValue - scroll.value) / row).toInt() + 1).coerceIn(1, count)
+    Surface(
+        onClick = { scope.launch { scroll.animateScrollTo(scroll.maxValue) } },
+        shape = RoundedCornerShape(50),
+        color = MaterialTheme.colorScheme.surface,
+        contentColor = MaterialTheme.colorScheme.primary,
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.6f)),
+        modifier = modifier.padding(bottom = 4.dp).clearAndSetSemantics {},
     ) {
-        Icon(
-            Icons.Outlined.ErrorOutline,
-            null,
-            tint = verdictColor(false),
-            modifier = Modifier.size(scaledIconSize(20.dp, 1.3f)),
-        )
-        Spacer(Modifier.width(Spacing.sm))
-        Text(
-            text,
-            style = MaterialTheme.typography.titleMedium,
-            fontWeight = FontWeight.SemiBold,
-            color = MaterialTheme.colorScheme.onSurface,
-            modifier = Modifier.weight(1f),
-        )
-        Spacer(Modifier.width(Spacing.xs))
-        PagePill("p.14")
+        Row(Modifier.padding(horizontal = Spacing.sm, vertical = 2.dp), verticalAlignment = Alignment.CenterVertically) {
+            Text(
+                "+$below more ${if (below == 1) "card" else "cards"}",
+                style = MaterialTheme.typography.labelMedium,
+                fontWeight = FontWeight.SemiBold,
+            )
+            Icon(Icons.Outlined.ExpandMore, null, Modifier.size(16.dp))
+        }
     }
 }
 
 /**
- * One hand card to defend with, as a row of the list: the official card small, its name, what it comes to against
- * this attack and the outcome in a word ("Defense 2 vs Attack 6 · Defeated"; only a saving card has a mark), and,
- * one tap away, the card's own text. A card whose text decides shows that text verbatim. A tap chooses it, again
- * reads it large; chosen, it adds how its total is counted ([counted]).
+ * One hand card to defend with, as a row of the list, on one line: the official card small, its name, what it comes
+ * to against this attack and the outcome in a word ("Def 2 vs 6 · Defeated"; only a saving card has a mark), and, one
+ * tap away, the card's own text. A card whose text decides shows that text verbatim under it. A tap chooses it, again
+ * reads it large; TalkBack hears it all in words, chosen with how its total is counted ([counted]).
  */
 @Composable
 private fun DefenseOption(
@@ -275,20 +291,18 @@ private fun DefenseOption(
     onOpen: () -> Unit,
 ) {
     var expanded by rememberSaveable(card.id) { mutableStateOf(false) }
-    // Chosen, a total says how it is made in its own line ("Defense 2 = card 1 + minion 1 vs Attack 6").
-    val sum = counted?.takeIf { line.total != null }
-    val vs = sum ?: defenseVs(line, attack)
-    val note = counted?.takeIf { sum == null }
     val outcome = optionOutcome(line.verdict.holds, line.verdict.label)
     val text = CardText.plain(card.text).trim()
     // The card's own condition decides (p.14): its words, verbatim, where the others have their totals.
     val decides = line.verdict.holds == null && text.isNotEmpty()
-    val spoken = listOfNotNull(card.name, vs, outcome, text.takeIf { decides }, note).joinToString(", ")
+    val spoken = listOfNotNull(card.name, counted ?: defenseVs(line, attack), outcome, text.takeIf { decides })
+        .joinToString(", ")
     val tap = onChoose ?: onOpen
     SelectablePlate(
         selected = chosen,
         onClick = tap,
-        // The row is as tall as its 48 dp target: four cards and not defending fit the panel.
+        mark = SelectionMark.None,
+        // As tall as its 48 dp target: four cards and not defending fit the panel.
         contentPadding = PaddingValues(start = Spacing.md),
         modifier = Modifier.fillMaxWidth().semantics {
             contentDescription = spoken
@@ -303,14 +317,23 @@ private fun DefenseOption(
         },
     ) {
         Surface(
-            shape = RoundedCornerShape(4.dp),
+            shape = RoundedCornerShape(3.dp),
             color = Color.Transparent,
             modifier = Modifier.cardFocusOrigin(focus, card.id),
         ) { TableCard(card, width = OPTION_CARD) }
         Spacer(Modifier.width(Spacing.sm))
         Column(Modifier.weight(1f).padding(vertical = 2.dp).clearAndSetSemantics {}) {
-            Text(card.name, style = OptionNameStyle, color = MaterialTheme.colorScheme.onSurface)
-            OutcomeLine(vs, outcome, line.verdict.holds)
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                // The name beside a thumbnail, at its caption size: two lines still fit the 48 dp row.
+                CardTitle(
+                    card.name,
+                    Modifier.weight(1f),
+                    size = CardTitleSize.Caption,
+                    color = MaterialTheme.colorScheme.onSurface,
+                )
+                Spacer(Modifier.width(Spacing.sm))
+                OutcomeLine(shortVs(line, attack), outcome, line.verdict.holds)
+            }
             if (decides) {
                 Text(
                     "“$text”",
@@ -318,16 +341,20 @@ private fun DefenseOption(
                     fontStyle = FontStyle.Italic,
                     color = MaterialTheme.colorScheme.onSurface,
                 )
-            }
-            note?.let {
-                Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                counted?.let {
+                    Text(
+                        it,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
             }
             if (expanded && !decides) {
                 Text(
                     text,
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(top = 2.dp),
+                    modifier = Modifier.padding(bottom = 4.dp),
                 )
             }
         }
@@ -343,6 +370,13 @@ private fun DefenseOption(
             Spacer(Modifier.width(Spacing.md))
         }
     }
+}
+
+/** A row's numbers, short: "Def 2 vs 6" for a total, "Block fails" for a Block that doesn't stop it, else null. */
+private fun shortVs(line: DefenseLine, attack: Int?): String? = when {
+    line.total != null -> "Def ${line.total}" + attack?.let { " vs $it" }.orEmpty()
+    line.verdict.holds == false -> "Block fails"
+    else -> null
 }
 
 /** "Defense 2 vs Attack 6 · Defeated" in neutral text, the outcome word in weight; a saving card's with its tick. */
@@ -391,7 +425,7 @@ private fun DeclineOption(
     SelectablePlate(
         selected = selected,
         onClick = onClick,
-        contentPadding = PaddingValues(horizontal = Spacing.md, vertical = 6.dp),
+        contentPadding = PaddingValues(horizontal = Spacing.md, vertical = 4.dp),
         modifier = Modifier.fillMaxWidth().semantics {
             contentDescription = spoken.joinToString(". ") + ". Rulebook page ${if (defeat != null) 13 else 14}"
         },
@@ -538,11 +572,12 @@ private fun AttackHeader(
     card: Card?,
     prompt: String,
     focus: CardFocusState,
+    noneSaves: String?,
 ) {
     val density = LocalDensity.current
     val capped = Density(density.density, minOf(density.fontScale, ATTACK_MAX_SCALE))
     CompositionLocalProvider(LocalDensity provides capped) {
-        AttackBox(heading, attack, minionModifier, card, prompt, focus)
+        AttackBox(heading, attack, minionModifier, card, prompt, focus, noneSaves)
     }
 }
 
@@ -554,6 +589,7 @@ private fun AttackBox(
     card: Card?,
     prompt: String,
     focus: CardFocusState,
+    noneSaves: String?,
 ) {
     val color = card?.let { PlateColor.of(it.color) } ?: PlateColor.RED
     // Who attacks and how on the box's own tab, as the cards print ATTACK there: a line less over the options.
@@ -580,10 +616,11 @@ private fun AttackBox(
             Column(
                 Modifier.weight(1f).semantics(mergeDescendants = true) {
                     liveRegion = LiveRegionMode.Polite
-                    contentDescription = prompt
+                    contentDescription = listOfNotNull(prompt, noneSaves).joinToString(". ")
                 },
             ) {
-                // The Attack and the minion modifier on one line: the cards to defend with keep their place in view.
+                // The Attack, beside it the outcome when no card saves (said once, here) and the minion modifier: the
+                // cards to defend with keep their place in view.
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(
                         attack?.let { "Attack $it" } ?: "Attack decided by the card",
@@ -591,12 +628,16 @@ private fun AttackBox(
                         fontWeight = FontWeight.Bold,
                         modifier = Modifier.padding(end = Spacing.sm),
                     )
-                    minionModifier?.takeIf { it != 0 }?.let { m ->
-                        Text(
-                            "Minion defense ${if (m > 0) "+$m" else "$m"} counted in each total",
-                            style = MaterialTheme.typography.bodySmall,
-                            modifier = Modifier.weight(1f),
-                        )
+                    Column(Modifier.weight(1f)) {
+                        noneSaves?.let {
+                            Text(it, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
+                        }
+                        minionModifier?.takeIf { it != 0 }?.let { m ->
+                            Text(
+                                "Minion defense ${if (m > 0) "+$m" else "$m"} each",
+                                style = MaterialTheme.typography.bodySmall,
+                            )
+                        }
                     }
                 }
             }
@@ -604,19 +645,15 @@ private fun AttackBox(
     }
 }
 
-/** A card's name in the list: Crimson, as the game prints it. */
-private val OptionNameStyle = GoaTextStyles.printed.copy(
-    fontSize = 17.sp,
-    lineHeight = 20.sp,
-    fontWeight = FontWeight.SemiBold,
-)
-
 /** A card in the list of options: small, its colour and art enough to know it (Read card or a tap shows it large). */
-private val OPTION_CARD = 32.dp
+private val OPTION_CARD = 26.dp
+
+/** A row of the list: its 48 dp target (the cue counts the cards below by it). */
+private val OPTION_ROW = 48.dp
 
 /** The list keeps at least this much (about two rows), even when large text leaves the panel no room for it. */
 private val LIST_MIN = 112.dp
-private val ATTACK_CARD = 28.dp
+private val ATTACK_CARD = 26.dp
 
 /** The list's bound, px, where the panel gives it no room (a preview): taller than any hand. */
 private const val UNBOUNDED_LIST = 20_000

@@ -657,27 +657,28 @@ landscape, as wide as the card, tap to read); "The card on the left is the choic
 Keep's two cards have their spells under them the same way. Whenever the question is the person's
 own (any kind, game and puzzles) the resolution flow and then the moment (reveal, turn over, the end of
 round summary) come after it, and a new question opens the panel at its top. **Defend** (`DefensePanel.kt`, UI hill
-climb round 5) is the attacking card's text box, "Arien attacks · melee" on its tab, the attacker's card (28 dp, tap to
-read) and the Attack total with the minion modifier counted beside it, carrying "Discard a card to defend" for TalkBack;
-when no card saves the hero, that is said **once** under it ("No card saves Tigerclaw", one warning mark, p.14). Then the
-options as a **list**, one `SelectablePlate` row per hand card: the card small (32 dp), its name in Crimson 17 sp, and
-under it, in neutral text, its Defense total as the engine counts it against the Attack and the outcome in a word in
-weight ("Defense 2 vs Attack 6 · **Defeated**"; p.14: "If you cannot defend successfully, or choose not to defend, you
-are defeated"); only a saving card carries a mark (a teal tick, "· **Defends**"), a failing one is never styled as an
-error. A Block settled up front shows the engine's words ("Block: not against this attack · Defeated"); a card whose
-text decides shows that text verbatim in italic Crimson. A chevron (48 dp) opens a card's own text in its row. Not
-defending is a **full-width row of its own** under the list: "Don't defend · keep your cards" and under it **what it
+climb round 5) is the attacking card's text box, "Arien attacks · melee" on its tab, the attacker's card (26 dp, tap to
+read) and the Attack total; beside it, when no card saves the hero, that is said **once** ("No card saves Tigerclaw",
+in bold), then the minion modifier ("Minion defense +1 each": counted in every total below); it carries "Discard a card to defend"
+for TalkBack. Then the options as a **list** in one plate, a one-line `SelectablePlate` row per hand card (48 dp, its
+hairline between): the card small (26 dp), its name as `CardTitle` (caption size), and at its end, in neutral text, its Defense total as
+the engine counts it against the Attack and the outcome in a word in weight ("Def 2 vs 6 · **Defeated**"; p.14: "If you
+cannot defend successfully, or choose not to defend, you are defeated"); only a saving card carries a mark (a teal tick,
+"· **Defends**"), a failing one is never styled as an error. A Block settled up front says "Block fails · Defeated" or
+"Blocks it"; a card whose text decides shows that text verbatim in italic Crimson under its name. A chevron (48 dp)
+opens a card's own text in its row. TalkBack hears each row in words ("Defense 2 vs Attack 6"; chosen, how its total
+is counted from the engine's numbers only, "Defense 2 = card 1 + minion 1 vs Attack 6"). Not defending is a
+**full-width row of its own** under the list: "Don't defend · keep your cards" (p.13 at its end) and under it **what it
 comes to**, played out by the engine on a fork of the game (`defeatPreview`: its own events, never the app's
 reckoning): "Defeated", the Life counters the team spends with the counter's mark at 20 dp ("Blue −1 (1 left)", or the
-last one and who wins), the coins each hero collects ("Arien +2"), p.13; TalkBack hears it in words with "Tigerclaw may
+last one and who wins), the coins each hero collects ("Arien +2"); TalkBack hears it in words with "Tigerclaw may
 respawn before acting next turn". Where the engine can't be asked (online, a puzzle) the row says "Defeated", p.14.
 **Nothing is chosen for the player**, except that when no card saves the hero, not defending is chosen from the start
-and the button reads "Accept defeat · keep cards". A chosen card says in its row how its total is counted, from the
-engine's numbers only ("Defense 2 = card 1 + minion 1 vs Attack 6 · Defeated"; items, the minion modifier, and whatever else
-the engine counted as "effects"; a card whose text decides: the attack it meets, "This is a melee attack, Attack 6.").
-Read card and the one-line button ("Defend · Blink Strike"; "Choose a card, or Don't defend" until something is chosen)
-close it. The list takes what the panel's room leaves (`LocalQuestionRoom`: the question's share of the screen, measured
-from where the question starts) and scrolls inside it with a fade at its foot, so the commit stays in view; it never
+and the button reads "Accept defeat · keep cards". Read card and the one-line button ("Defend · Blink Strike"; "Choose
+a card, or Don't defend" until something is chosen) close it. A hand of four and not defending fit a 411 × 891 phone
+with the commit in view. The list takes what the panel's room leaves (`LocalQuestionRoom`: the question's share of the
+screen, 0.56, measured from where the question starts) and scrolls inside it; when cards are below, a bronze pill at
+its foot says how many ("+1 more card", a tap scrolls to them), not a fade alone. It never
 gets less than two rows, so with large text the panel itself scrolls. A losing choice stays possible, never a
 surprise. Declines and Pass are outlined. With large
 text the asking card goes above the answers. The computer's move shows its portrait, band and strength
