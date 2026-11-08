@@ -413,7 +413,7 @@ internal fun playingAsNote(playing: PlayingAsState): String? = TriviaText.playin
 
 /**
  * Mastery as one header, not a panel: the learned figure large (Inter, as every score), what it counts in the
- * section's Cinzel, the bar and its legend under it, and what "learned" means in one caption.
+ * section's Cinzel, the bar and its legend under it.
  */
 @Composable
 private fun MasteryHeader(state: TriviaHomeUiState.Ready, modifier: Modifier) {
@@ -787,10 +787,6 @@ private val TOP_BAR_ICON = 48.dp
 /** Back and the title's inset (56 dp), the bar's end padding (4 dp), the menu icon and a margin. */
 private val TOP_BAR_FIXED = 56.dp + 4.dp + TOP_BAR_ICON + 8.dp
 
-/** "6 learned · 3 learning" (learning left out at none): a hero's row in words. */
-internal fun masteryCounts(learned: Int, learning: Int): String =
-    "${TriviaText.number(learned)} learned" + if (learning > 0) " · ${TriviaText.number(learning)} learning" else ""
-
 @Composable
 private fun HeroProgressRow(hero: HeroProgressUi, onClick: () -> Unit) {
     val p = hero.progress
@@ -847,10 +843,10 @@ private fun HeroProgressRow(hero: HeroProgressUi, onClick: () -> Unit) {
                 }
                 Spacer(Modifier.height(Spacing.xs + 2.dp))
                 MasteryBar(p, height = 6.dp)
-                // Both counts in words, under the bar: learned and learning apart by more than colour.
-                if (p.mastered + p.learning > 0) {
+                // The learned count is the figure over the bar; only the learning count (striped) needs words.
+                if (p.learning > 0) {
                     Text(
-                        masteryCounts(p.mastered, p.learning),
+                        "${TriviaText.number(p.learning)} learning",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.padding(top = Spacing.xs),
