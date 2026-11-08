@@ -471,8 +471,10 @@ private fun HeroBoard(state: BoardUiState, session: DraftSession, actions: Board
     }
     val searchable = session.pool.size > PoolView.SEARCH_FROM
     val concealed = remember(session) { session.concealedIds() }
-    val chrome: @Composable () -> Unit = {
-        SequenceStrip(tokens, current = session.currentStepIndex, wrap = false)
+    // The steps by mark only ("4 · ◆ picks 2"): the banner above names the team, and short chips keep the step
+    // before, the step in play and the next in view.
+    val chrome: @Composable (Dp) -> Unit = { gutter ->
+        SequenceStrip(tokens, current = session.currentStepIndex, wrap = false, named = false, gutter = gutter)
     }
     val full: LazyGridItemSpanScope.() -> GridItemSpan = { GridItemSpan(maxLineSpan) }
     BoxWithConstraints(Modifier.fillMaxSize()) {
@@ -490,7 +492,7 @@ private fun HeroBoard(state: BoardUiState, session: DraftSession, actions: Board
                     verticalArrangement = Arrangement.spacedBy(Spacing.sm),
                 ) {
                     StepBanner(session, state.local.remainingSeconds, state::playerName, compact = true)
-                    chrome()
+                    chrome(Spacing.sm)
                     if (session.poolEditable()) PoolEditBanner(session, actions)
                     TeamsPanel(state, session, concealed, stacked = true)
                 }
@@ -526,7 +528,7 @@ private fun HeroBoard(state: BoardUiState, session: DraftSession, actions: Board
                         compact = LocalDensity.current.fontScale > LARGE_FONT_SCALE,
                     )
                     if (!large) {
-                        chrome()
+                        chrome(Spacing.screen)
                         TeamsBar(state, session, concealed, teamsOpen, toggleTeams, scrollCap = detailsCap)
                         if (searchable) PoolSearch(filters, poolRoles)
                     }
@@ -543,7 +545,7 @@ private fun HeroBoard(state: BoardUiState, session: DraftSession, actions: Board
                     filtersInGrid = large || !searchable,
                 ) {
                     if (large) {
-                        item(span = full) { chrome() }
+                        item(span = full) { chrome(Spacing.screen) }
                         item(span = full) { TeamsBar(state, session, concealed, teamsOpen, toggleTeams, null) }
                     }
                     if (session.poolEditable()) {

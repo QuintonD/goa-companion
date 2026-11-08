@@ -8,7 +8,6 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
-import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -90,7 +89,8 @@ import dev.quinton.goa.core.designsystem.component.HeroSymbol
 import dev.quinton.goa.core.designsystem.component.LARGE_FONT_SCALE
 import dev.quinton.goa.core.designsystem.component.PlateShape
 import dev.quinton.goa.core.designsystem.component.TeamMark
-import dev.quinton.goa.core.designsystem.component.horizontalEdgeFade
+import dev.quinton.goa.core.designsystem.component.bleedHorizontally
+import dev.quinton.goa.core.designsystem.component.fadingHorizontalScroll
 import dev.quinton.goa.core.designsystem.component.selectableChipColors
 import dev.quinton.goa.core.designsystem.component.selectableSegmentColors
 import dev.quinton.goa.core.designsystem.component.slatePlate
@@ -442,6 +442,8 @@ internal fun SequenceStrip(
     current: Int? = null,
     wrap: Boolean = true,
     named: Boolean = true,
+    /** The parent column's side padding, which a sideways strip ([wrap] false) runs out to. */
+    gutter: Dp = Spacing.screen,
 ) {
     val steps = remember(tokens) { tokens.steps() }
     val active = current?.let { slot -> steps.indexOfFirst { slot in it } }?.takeIf { it >= 0 }
@@ -465,16 +467,16 @@ internal fun SequenceStrip(
     } else {
         val strip = rememberScrollState()
         val starts = remember(steps) { IntArray(steps.size) }
-        val lead = with(LocalDensity.current) { STRIP_LEAD.roundToPx() }
-        // Keep the step in play near the start, a sliver of the one before it, so it and the next stay in view.
+        // The step before the one in play starts on the gutter, so it, the step in play and the next stay in view.
         LaunchedEffect(active, steps) {
             if (active == null) return@LaunchedEffect
             withFrameNanos { } // the chips' places are known once they are laid out
-            val target = (starts[active] - lead).coerceAtLeast(0)
-            strip.animateScrollTo(target)
+            strip.animateScrollTo(starts[(active - 1).coerceAtLeast(0)])
         }
+        // The rail runs to the screen's edges and its chips start on the gutter: a cut chip is cut at the edge,
+        // under the fade and its chevron, never mid-column.
         Row(
-            modifier.then(semantics).horizontalEdgeFade(strip).horizontalScroll(strip),
+            modifier.then(semantics).bleedHorizontally(gutter).fadingHorizontalScroll(strip, gutter),
             horizontalArrangement = Arrangement.spacedBy(Spacing.xs),
         ) {
             steps.forEachIndexed { i, step ->
@@ -513,9 +515,6 @@ internal fun StepClock(remaining: Int, modifier: Modifier = Modifier) {
 }
 
 private val CLOCK_FACE = Color(0xFF060C12)
-
-/** How far before the step in play the board's strip stops: a sliver of the finished step before it. */
-private val STRIP_LEAD = 28.dp
 
 @Composable
 private fun StepChipView(step: DraftStep, state: StepState, named: Boolean, modifier: Modifier = Modifier) {

@@ -666,7 +666,7 @@ private fun TeamColumns(state: SetupUiState, actions: SetupActions) {
 /** What the padlocks do, said once and always in view, under the section's head. */
 @Composable
 private fun LockCaption() {
-    Row(Modifier.padding(bottom = Spacing.md), verticalAlignment = Alignment.CenterVertically) {
+    Row(Modifier.padding(bottom = Spacing.sm), verticalAlignment = Alignment.CenterVertically) {
         Icon(
             Icons.Filled.Lock,
             contentDescription = null,
@@ -1172,4 +1172,4 @@ private fun activeColor(active: Boolean) =
     if (active) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
 
 /** A padlock's tooltip: what locking does. */
-private const val LOCK_TIP = "Keeps a player on their team when you re-balance"
+private const val LOCK_TIP = "Locked players stay put when you re-balance"

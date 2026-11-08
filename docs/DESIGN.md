@@ -324,9 +324,10 @@ Back steps back; teams balanced by Elo say what the padlocks do in one line alwa
 team when you re-balance", each padlock a 48 dp toggle "Keep Ada on Red" confirmed in a snackbar, and Re-balance is the
 shared steel secondary button) → Draft board (a sticky step banner: team-edged plate, the step on its title plate with its clock
 beside it, then whose turn inside the step on a line of its own ("Ada: pick 1 of 2", "Ada's pick"; "Step 3 of 5" for a
-lone ban); the step chips, numbered steps with their counts ("4 · ◆ Red picks 2", `DraftStep`: one numbering for the
-board, the method list and the banner), finished ones with a check and a lighter edge but words at full contrast, the
-strip scrolled so the step in play and the next stay in view; one team bar, per team its mark, name, a portrait or
+lone ban); the step chips, numbered steps with their counts by the team's mark ("4 · ◆ picks 2", `DraftStep`: one numbering
+for the board, the method list and the banner), finished ones with a check and a lighter edge but words at full
+contrast, the strip running to the screen's edges from the gutter with the edge fade, scrolled so the step before,
+the step in play and the next stay in view; one team bar, per team its mark, name, a portrait or
 empty ring per seat and its bans counted, which a tap opens into both rosters, equal-height columns with "Roles covered"
 and ban chips, capped at 45 % of the height; then search with Hide taken and the role chips, pinned; the pool grid
 follows, at least two rows in view at 411 dp. Large text or a phone under 640 dp tall pins only the banner. Taken
@@ -925,7 +926,7 @@ errorContainer `#F9DEDC`/`#410E0B` 12.8:1. Tertiary mirrors secondary.
 A destination keeps one glyph and one name on every screen that links to it (`Destination`): a flag is Match setup
 (Timer start, a pending match in the log, a finished draft), the hourglass the Timer, the fanned cards the Draft, the open
 book the Rules, the two arrows Group sync, the hexagon the board. A bar glyph that would not say where it leads is named:
-Players' "Group sync" and the draft setup's "Methods" are words on the bar; New board's and New game's line-ups of past
-drafts and matches are "Use a draft or match" in the bar's menu, there only when there is one. Match setup's odd or
+Players' "Group sync", the draft setup's "Methods" and New board's and New game's "History" (the line-ups of past
+drafts and matches, there only when there is one) are words on the bar. Match setup's odd or
 large player count is one line, "Advanced player count", with "Read the rule" opening the rulebook's words.
 

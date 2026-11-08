@@ -257,7 +257,8 @@ private fun MethodCard(row: MethodRow, selected: Boolean, actions: MethodsAction
         contentPadding = PaddingValues(0.dp),
         selected = selected,
     ) {
-        Row(Modifier.fillMaxWidth().padding(start = Spacing.sm, top = Spacing.sm, bottom = Spacing.lg)) {
+        // "Method details" (a 48 dp row) ends the plate: it brings its own room below, so the plate adds little.
+        Row(Modifier.fillMaxWidth().padding(start = Spacing.sm, top = Spacing.sm, bottom = Spacing.xs)) {
             SelectionRadio(selected, Modifier.padding(top = Spacing.md, end = Spacing.xs))
             Column(Modifier.weight(1f).padding(top = Spacing.sm)) {
                 MethodTitle(row)

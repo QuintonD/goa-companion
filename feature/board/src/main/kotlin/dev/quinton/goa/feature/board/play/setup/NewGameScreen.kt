@@ -31,7 +31,6 @@ import androidx.compose.material.icons.outlined.Check
 import androidx.compose.material.icons.outlined.ExpandLess
 import androidx.compose.material.icons.outlined.ExpandMore
 import androidx.compose.material.icons.outlined.Hexagon
-import androidx.compose.material.icons.outlined.History
 import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
@@ -60,8 +59,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import dev.quinton.goa.core.designsystem.component.BannerTextButton
-import dev.quinton.goa.core.designsystem.component.BarAction
-import dev.quinton.goa.core.designsystem.component.BarActions
 import dev.quinton.goa.core.designsystem.component.EmptyState
 import dev.quinton.goa.core.designsystem.component.EngravedRule
 import dev.quinton.goa.core.designsystem.component.GoaButton
@@ -99,8 +96,8 @@ import dev.quinton.goa.feature.board.play.table.SpellbookSheet
 import dev.quinton.goa.feature.board.play.table.TieBreakerMark
 import dev.quinton.goa.feature.board.play.table.catalogSpellbook
 import dev.quinton.goa.feature.board.setup.HeroGrid
+import dev.quinton.goa.feature.board.setup.HistoryButton
 import dev.quinton.goa.feature.board.setup.NewBoardAction
-import dev.quinton.goa.feature.board.setup.RECENT_LINEUPS
 import dev.quinton.goa.feature.board.setup.SourcesContent
 import dev.quinton.goa.feature.board.setup.TeamSwitch
 import dev.quinton.goa.feature.board.setup.Teams
@@ -140,13 +137,8 @@ fun NewGameScreen(
                 if (ready.red.isNotEmpty() || ready.blue.isNotEmpty()) {
                     BannerTextButton("Clear", onClick = { onAction(NewGameAction.Lineup(NewBoardAction.Clear)) })
                 }
-                // As on New board: past line-ups are a named line in the bar's menu, there only when there is one.
-                if (ready.sources.isNotEmpty()) {
-                    BarActions(
-                        listOf(BarAction(RECENT_LINEUPS, Icons.Outlined.History, { sources = true })),
-                        maxIcons = 1,
-                    )
-                }
+                // Past line-ups in words on the bar ("History"), there only when there is one to use.
+                if (ready.sources.isNotEmpty()) HistoryButton(onClick = { sources = true })
             }
         },
     ) { padding ->

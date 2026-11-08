@@ -42,7 +42,6 @@ import androidx.compose.material.icons.automirrored.outlined.ArrowForward
 import androidx.compose.material.icons.outlined.ArrowDropDown
 import androidx.compose.material.icons.outlined.Check
 import androidx.compose.material.icons.outlined.DeleteOutline
-import androidx.compose.material.icons.outlined.History
 import androidx.compose.material.icons.outlined.SwapHoriz
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
@@ -89,8 +88,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.isSpecified
 import androidx.compose.ui.unit.sp
 import dev.quinton.goa.core.designsystem.component.BannerTextButton
-import dev.quinton.goa.core.designsystem.component.BarAction
-import dev.quinton.goa.core.designsystem.component.BarActions
 import dev.quinton.goa.core.designsystem.component.EngravedRule
 import dev.quinton.goa.core.designsystem.component.GoaButton
 import dev.quinton.goa.core.designsystem.component.GoaPlateTheme
@@ -149,14 +146,8 @@ fun NewBoardScreen(
                 if (ready.form.lineup.red.isNotEmpty() || ready.form.lineup.blue.isNotEmpty()) {
                     BannerTextButton("Clear", onClick = { onAction(NewBoardAction.Clear) })
                 }
-                // A clock alone doesn't say where it leads: the line-ups of past drafts and matches are a named line
-                // in the bar's menu, there only when there is one to use.
-                if (ready.sources.isNotEmpty()) {
-                    BarActions(
-                        listOf(BarAction(RECENT_LINEUPS, Icons.Outlined.History, { sources = true })),
-                        maxIcons = 1,
-                    )
-                }
+                // Past line-ups in words on the bar ("History"), there only when there is one to use.
+                if (ready.sources.isNotEmpty()) HistoryButton(onClick = { sources = true })
             }
         },
     ) { padding ->
@@ -905,6 +896,16 @@ private fun SetUpBar(state: NewBoardUiState.Ready, onAction: (NewBoardAction) ->
 
 /** The line-ups of past drafts and matches: the bar menu's line and the sheet's title (New board, New game). */
 internal const val RECENT_LINEUPS = "Use a draft or match"
+
+/** "History" on the bar of New board and New game: opens the line-ups of past drafts and matches. */
+@Composable
+internal fun HistoryButton(onClick: () -> Unit) {
+    BannerTextButton(
+        "History",
+        onClick = onClick,
+        modifier = Modifier.semantics { contentDescription = "History: $RECENT_LINEUPS" },
+    )
+}
 
 /** Finished drafts, pending and logged matches, newest first: one tap fills both teams. */
 @Composable
