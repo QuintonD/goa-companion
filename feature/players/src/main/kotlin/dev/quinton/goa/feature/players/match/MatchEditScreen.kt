@@ -52,7 +52,6 @@ import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material.icons.outlined.EmojiEvents
 import androidx.compose.material.icons.outlined.ErrorOutline
 import androidx.compose.material.icons.outlined.EventBusy
-import androidx.compose.material.icons.outlined.People
 import androidx.compose.material.icons.outlined.Person
 import androidx.compose.material.icons.outlined.Schedule
 import androidx.compose.material.icons.outlined.SwapVert
@@ -390,14 +389,6 @@ private fun ColumnScope.MatchFormFields(
         DetailsSection(form, actions)
         FoldSection("Match status", form.status.label()) { StatusChoice(form, actions) }
     } else {
-        if (state.fromDraft && form.status == MatchStatus.PENDING) {
-            Text(
-                "Created from a draft. Fill in the result when the game ends.",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(top = Spacing.md),
-            )
-        }
         TeamsSection(state, actions, onPickHero, onPickPilot)
         SectionHeader("Result")
         StatusChoice(form, actions)
@@ -430,12 +421,6 @@ private fun ColumnScope.MatchFormFields(
             Text("Delete match", color = MaterialTheme.colorScheme.error)
         }
     }
-    Text(
-        "Ratings recompute from the whole match log whenever a match is saved, edited or deleted.",
-        style = MaterialTheme.typography.bodySmall,
-        color = MaterialTheme.colorScheme.onSurfaceVariant,
-        modifier = Modifier.padding(top = Spacing.md),
-    )
 }
 
 @Composable
@@ -471,7 +456,7 @@ private fun WhenSection(form: MatchForm, actions: MatchEditActions) {
         OutlinedTextField(
             value = form.map,
             onValueChange = actions.onMap,
-            label = { Text("Map or table (optional)") },
+            label = { Text("Map or table") },
             singleLine = true,
             keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Sentences),
             modifier = Modifier.fillMaxWidth(),
@@ -504,11 +489,13 @@ private fun FoldSection(title: String, summary: String, content: @Composable Col
         ) {
             Column(Modifier.weight(1f)) {
                 Text(title, style = MaterialTheme.typography.titleSmall)
-                Text(
-                    summary,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
+                if (summary.isNotEmpty()) {
+                    Text(
+                        summary,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
             }
             Icon(
                 Icons.Filled.KeyboardArrowDown,
@@ -559,7 +546,7 @@ private fun TeamsSection(
 private fun WinnerAndCondition(state: MatchEditUiState, actions: MatchEditActions, showHeader: Boolean) {
     val form = state.form
     Column {
-        QuestionLabel(if (showHeader) "Winner" else "Which team won?", "Required", showHeader)
+        QuestionLabel(if (showHeader) "Winner" else "Which team won?", REQUIRED, showHeader)
         Row(
             Modifier.selectableGroup().height(IntrinsicSize.Min),
             horizontalArrangement = Arrangement.spacedBy(Spacing.md),
@@ -574,7 +561,7 @@ private fun WinnerAndCondition(state: MatchEditUiState, actions: MatchEditAction
                 )
             }
         }
-        QuestionLabel(if (showHeader) "Win condition" else "How did they win?", "Optional", showHeader)
+        QuestionLabel(if (showHeader) "Win condition" else "How did they win?", null, showHeader)
         // One choice (tap again to clear): radio semantics, so TalkBack reads "selected" per chip. A grid of equal
         // cells, two to a row, so no option sits alone on a line of its own.
         Column(Modifier.selectableGroup(), verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
@@ -613,12 +600,12 @@ private fun DetailsSection(form: MatchForm, actions: MatchEditActions) {
     val summary = listOfNotNull(
         form.duration.takeIf { it.isNotBlank() }?.let { "$it min" },
         "Notes".takeIf { form.notes.isNotBlank() },
-    ).joinToString(SUMMARY_SEPARATOR).ifEmpty { "Duration and notes, optional" }
+    ).joinToString(SUMMARY_SEPARATOR)
     FoldSection("Details", summary) {
         OutlinedTextField(
             value = form.duration,
             onValueChange = actions.onDuration,
-            label = { Text("Duration (minutes, optional)") },
+            label = { Text("Duration (min)") },
             singleLine = true,
             leadingIcon = { Icon(Icons.Outlined.Schedule, contentDescription = null) },
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
@@ -770,11 +757,6 @@ private fun TeamEditor(
                 // The count goes under the team as a whole when large text leaves no room beside it.
                 FlowRow(Modifier.weight(1f), itemVerticalAlignment = Alignment.CenterVertically) {
                     TeamBadge(team)
-                    Text(
-                        "  ·  ${seats.size} ${if (seats.size == 1) "seat" else "seats"}".replace(' ', ' '),
-                        style = MaterialTheme.typography.labelLarge,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
                 }
                 TextButton(
                     onClick = { actions.onAddSeat(team) },
@@ -931,22 +913,6 @@ private fun SeatEditor(
                     Text("Remove seat", color = MaterialTheme.colorScheme.error)
                 }
             }
-            if (pilotSeats > 1 && pilot != null) {
-                Row(Modifier.padding(bottom = Spacing.xs), verticalAlignment = Alignment.CenterVertically) {
-                    Icon(
-                        Icons.Outlined.People,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.size(scaledIconSize(16.dp)),
-                    )
-                    Spacer(Modifier.width(Spacing.xs))
-                    Text(
-                        "${pilot.name} pilots $pilotSeats heroes",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
-            }
         }
         if (problem != null) {
             Text(
@@ -1098,9 +1064,9 @@ private fun WinnerOption(
     }
 }
 
-/** A question on the form with whether it must be answered ("Required") or may be left ("Optional"). */
+/** A question on the form, tagged "Required" when it must be answered; an optional one goes untagged. */
 @Composable
-private fun QuestionLabel(text: String, need: String, small: Boolean) {
+private fun QuestionLabel(text: String, need: String?, small: Boolean) {
     Row(
         Modifier.fillMaxWidth().padding(top = Spacing.lg, bottom = Spacing.sm),
         verticalAlignment = Alignment.Bottom,
@@ -1110,12 +1076,10 @@ private fun QuestionLabel(text: String, need: String, small: Boolean) {
             style = if (small) MaterialTheme.typography.titleSmall else MaterialTheme.typography.titleMedium,
             modifier = Modifier.weight(1f, fill = false).semantics { heading() },
         )
-        Spacer(Modifier.width(Spacing.sm))
-        Text(
-            "· $need",
-            style = MaterialTheme.typography.labelMedium,
-            color = if (need == REQUIRED) GoaTheme.colors.selection else MaterialTheme.colorScheme.onSurfaceVariant,
-        )
+        if (need != null) {
+            Spacer(Modifier.width(Spacing.sm))
+            Text("· $need", style = MaterialTheme.typography.labelMedium, color = GoaTheme.colors.selection)
+        }
     }
 }
 

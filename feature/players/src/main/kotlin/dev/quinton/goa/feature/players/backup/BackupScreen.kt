@@ -17,10 +17,8 @@ import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.CloudDone
 import androidx.compose.material.icons.outlined.FileDownload
 import androidx.compose.material.icons.outlined.FileUpload
-import androidx.compose.material.icons.outlined.Lock
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -87,10 +85,7 @@ fun BackupScreen(state: BackupUiState, actions: BackupActions, modifier: Modifie
                 BackupCard(
                     icon = Icons.Outlined.FileUpload,
                     title = "Export",
-                    body =
-                        "Save every player, match and draft, the card trivia leaderboard, your boards, your " +
-                            "settings, timer presets and custom draft methods to one JSON file. " +
-                            "Keep it somewhere safe, or open it on a new phone.",
+                    body = "Players, matches, drafts, boards and settings, in one file.",
                     detail = "${plural(state.players, "player")} · ${plural(state.matches, "match", "matches")}",
                 ) {
                     GoaButton(
@@ -104,9 +99,7 @@ fun BackupScreen(state: BackupUiState, actions: BackupActions, modifier: Modifie
                 BackupCard(
                     icon = Icons.Outlined.FileDownload,
                     title = "Import",
-                    body =
-                        "Load a backup file. You'll see what's inside and choose to merge it with this phone's data " +
-                            "or replace everything.",
+                    body = null,
                     detail = null,
                 ) {
                     GoaOutlinedButton(
@@ -117,20 +110,6 @@ fun BackupScreen(state: BackupUiState, actions: BackupActions, modifier: Modifie
                         Text("Choose backup file")
                     }
                 }
-                Note(
-                    Icons.Outlined.Lock,
-                    "No storage permission is needed: you pick the file, and nothing leaves the phone " +
-                        "unless you share it.",
-                )
-                Note(
-                    Icons.Outlined.CloudDone,
-                    "Android's own device backup also keeps a copy of your data if it's turned on.",
-                )
-                Text(
-                    "Ratings aren't stored in the file; they're rebuilt from the match log after an import.",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
             }
             SnackbarHost(snackbar, Modifier.align(Alignment.BottomCenter).padding(Spacing.lg))
         }
@@ -149,7 +128,7 @@ fun BackupScreen(state: BackupUiState, actions: BackupActions, modifier: Modifie
 private fun BackupCard(
     icon: ImageVector,
     title: String,
-    body: String,
+    body: String?,
     detail: String?,
     action: @Composable () -> Unit,
 ) {
@@ -160,7 +139,7 @@ private fun BackupCard(
                 Spacer(Modifier.width(Spacing.md))
                 Text(title, style = MaterialTheme.typography.titleLarge)
             }
-            Text(body, style = MaterialTheme.typography.bodyMedium)
+            body?.let { Text(it, style = MaterialTheme.typography.bodyMedium) }
             detail?.let {
                 Text(
                     it,
@@ -171,20 +150,6 @@ private fun BackupCard(
             Spacer(Modifier.size(Spacing.xs))
             action()
         }
-    }
-}
-
-@Composable
-private fun Note(icon: ImageVector, text: String) {
-    Row(verticalAlignment = Alignment.Top) {
-        Icon(
-            icon,
-            contentDescription = null,
-            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.size(20.dp),
-        )
-        Spacer(Modifier.width(Spacing.md))
-        Text(text, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
     }
 }
 

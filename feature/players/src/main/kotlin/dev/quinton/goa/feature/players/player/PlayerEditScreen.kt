@@ -19,7 +19,6 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.PersonOff
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -31,7 +30,6 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardCapitalization
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import dev.quinton.goa.core.designsystem.component.BannerTextButton
 import dev.quinton.goa.core.designsystem.component.EmptyState
@@ -71,7 +69,7 @@ fun PlayerEditScreen(state: PlayerEditUiState, actions: PlayerEditActions, modif
             state.loading -> LoadingState(Modifier.padding(padding))
 
             state.notFound -> Box(Modifier.fillMaxSize().padding(padding), contentAlignment = Alignment.Center) {
-                EmptyState(Icons.Outlined.PersonOff, "Player not found", "This player no longer exists.")
+                EmptyState(Icons.Outlined.PersonOff, "Player not found")
             }
 
             else -> Column(
@@ -125,14 +123,7 @@ fun PlayerEditScreen(state: PlayerEditUiState, actions: PlayerEditActions, modif
                         }
                     }
                 }
-                Text(
-                    "The crest marks the player on the leaderboard and in match records. Team colours stay " +
-                        "with the teams.",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    textAlign = TextAlign.Center,
-                    modifier = Modifier.padding(vertical = Spacing.xl),
-                )
+                Spacer(Modifier.height(Spacing.xl))
             }
         }
     }

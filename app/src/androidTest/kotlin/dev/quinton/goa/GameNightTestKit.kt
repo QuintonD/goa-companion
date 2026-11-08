@@ -136,12 +136,12 @@ fun AppRule.openTab(tab: String) {
 fun AppRule.openFromMore(label: String) {
     openTab("more")
     // More keeps its stack: a second tap on its item returns to its list.
-    if (!exists(hasText(MORE_LIST_ROW, substring = true))) openTab("more")
+    if (!exists(hasText(MORE_LIST_ROW, ignoreCase = true))) openTab("more")
     tapText(label)
 }
 
-/** Words only More's own list shows (the Draft row). */
-private const val MORE_LIST_ROW = "Pick and ban heroes"
+/** Words only More's own list shows (its Reference section's head). */
+private const val MORE_LIST_ROW = "Reference"
 
 /** Settings, from More. */
 fun AppRule.openSettings() {

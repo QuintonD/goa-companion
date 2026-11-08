@@ -90,7 +90,7 @@ fun MetaContent(state: MetaUiState, actions: MetaActions, modifier: Modifier = M
             EmptyState(
                 icon = Icons.Outlined.Insights,
                 title = "The meta is still forming",
-                message = "Win, pick and ban rates appear once completed matches and drafts are logged.",
+                message = "Log matches to see the meta.",
             )
         }
 
@@ -110,8 +110,8 @@ fun MetaContent(state: MetaUiState, actions: MetaActions, modifier: Modifier = M
             }
             item(key = "explain") {
                 Text(
-                    "Heroes and pairs are ranked by the 95 % Wilson lower bound of their win rate, so small " +
-                        "samples don't top the table. Ranking needs ${plural(state.minSample, "game")}.",
+                    // The one key to the "≥" figures: the order they set and the games it needs.
+                    "Ranked by ≥, the 95 % lower bound · from ${plural(state.minSample, "game")}",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(top = Spacing.md),
@@ -565,7 +565,7 @@ private fun HeroMetaItem(row: HeroMetaRow, rank: Int?) {
                     overflow = TextOverflow.Ellipsis,
                 )
                 Text(
-                    "${winLoss(meta.record.wins, meta.record.games)} · ${plural(meta.record.games, "game")}",
+                    winLoss(meta.record.wins, meta.record.games),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )

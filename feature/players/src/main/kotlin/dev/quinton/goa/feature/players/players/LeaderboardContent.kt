@@ -60,7 +60,6 @@ import dev.quinton.goa.feature.players.common.LoadingState
 import dev.quinton.goa.feature.players.common.ProvisionalMark
 import dev.quinton.goa.feature.players.common.RowFigure
 import dev.quinton.goa.feature.players.common.SectionHeader
-import dev.quinton.goa.feature.players.common.allProvisionalCaption
 import dev.quinton.goa.feature.players.common.figureStyle
 import dev.quinton.goa.feature.players.common.formatDelta
 import dev.quinton.goa.feature.players.common.formatRating
@@ -85,7 +84,7 @@ fun LeaderboardContent(
             EmptyState(
                 icon = Icons.Outlined.Groups,
                 title = "Gather your guards",
-                message = "Add everyone in your play group. Ratings appear after the first logged match.",
+                message = "Add your play group.",
                 action = {
                     GoaButton(onClick = onAddPlayer) {
                         Icon(Icons.Outlined.PersonAdd, contentDescription = null)
@@ -113,25 +112,13 @@ private fun Board(
 ) {
     // Three on a podium while the columns have room for the names; large text keeps the rows.
     val podium = state.ranked.size >= PODIUM_PLACES && LocalDensity.current.fontScale < LARGE_FONT_SCALE
-    val allProvisional = state.allProvisional
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
         contentPadding = PaddingValues(start = Spacing.screen, end = Spacing.screen, bottom = LIST_END_PADDING),
     ) {
         if (state.ranked.isNotEmpty()) {
             item(key = "h-ranked") {
-                Column(Modifier.padding(bottom = Spacing.sm)) {
-                    SectionHeader("Group ratings")
-                    // One scope line: what the number is, what it's built from, and whose it is.
-                    Text(
-                        "Elo from ${plural(state.ratedMatches, "rated match", "rated matches")} · " +
-                            (if (state.inGroup) "shared by your group's phones" else "logged on this phone") +
-                            // Said once here rather than as a pill on every row.
-                            (if (allProvisional) ". " + allProvisionalCaption(state.provisionalGames) else ""),
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
+                SectionHeader("Group ratings", Modifier.padding(bottom = Spacing.sm))
             }
             item(key = "ranked") {
                 EngravedCard(Modifier.fillMaxWidth()) {
@@ -145,7 +132,7 @@ private fun Board(
                                         description = row.spoken(archived = false),
                                         onClick = { onOpenPlayer(row.player.id) },
                                         onClickLabel = "View player",
-                                    ) { PodiumStanding(row, showProvisional = !allProvisional) }
+                                    ) { PodiumStanding(row) }
                                 },
                                 Modifier.padding(start = Spacing.sm, end = Spacing.sm, top = Spacing.md),
                             )
@@ -158,7 +145,6 @@ private fun Board(
                             LeaderboardRowItem(
                                 row,
                                 onClick = { onOpenPlayer(row.player.id) },
-                                showProvisional = !allProvisional,
                             )
                         }
                     }
@@ -228,7 +214,7 @@ private fun LeaderboardRow.spoken(archived: Boolean): String {
  * chevron, the rating, the record and trend.
  */
 @Composable
-private fun PodiumStanding(row: LeaderboardRow, showProvisional: Boolean) {
+private fun PodiumStanding(row: LeaderboardRow) {
     val rating = row.rating
     PlayerAvatar(row.player, size = if (row.rank == 1) 60.dp else 50.dp, showFace = true)
     Spacer(Modifier.height(Spacing.xs))
@@ -251,7 +237,7 @@ private fun PodiumStanding(row: LeaderboardRow, showProvisional: Boolean) {
             style = figureStyle(RowFigure),
             color = if (row.rank == 1) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
         )
-        if (showProvisional && rating.provisional) {
+        if (rating.provisional) {
             Spacer(Modifier.width(2.dp))
             ProvisionalMark()
         }
@@ -269,7 +255,6 @@ private fun LeaderboardRowItem(
     row: LeaderboardRow,
     onClick: () -> Unit,
     archived: Boolean = false,
-    showProvisional: Boolean = true,
 ) {
     val rating = row.rating
     val description = row.spoken(archived)
@@ -296,7 +281,7 @@ private fun LeaderboardRowItem(
                     color = if (archived) MaterialTheme.colorScheme.onSurfaceVariant else Color.Unspecified,
                     modifier = Modifier.weight(1f, fill = false),
                 )
-                if (showProvisional && rating.provisional) {
+                if (rating.provisional) {
                     Spacer(Modifier.width(Spacing.xs))
                     ProvisionalMark()
                 }
@@ -320,7 +305,7 @@ private fun LeaderboardRowItem(
                     DeltaIndicator(row.trend, caption = "last ${row.trendGames}")
                 } else {
                     Text(
-                        if (archived) "Archived" else "Log a match to get rated",
+                        if (archived) "Archived" else "No games yet",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
@@ -331,25 +316,13 @@ private fun LeaderboardRowItem(
         // the row, clickable and labelled "View player", still says it to TalkBack.
         val chevron = LocalDensity.current.fontScale < LARGE_FONT_SCALE
         if (rating.games > 0) {
-            Column(
-                horizontalAlignment = Alignment.End,
+            // The rating alone: the section head names it.
+            Text(
+                formatRating(rating.value),
+                style = figureStyle(RowFigure),
+                color = if (row.rank == 1) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
                 modifier = Modifier.padding(start = Spacing.sm, end = if (chevron) Spacing.sm else 0.dp),
-            ) {
-                Text(
-                    formatRating(rating.value),
-                    style = figureStyle(RowFigure),
-                    color = if (row.rank == 1) {
-                        MaterialTheme.colorScheme.primary
-                    } else {
-                        MaterialTheme.colorScheme.onSurface
-                    },
-                )
-                Text(
-                    "Elo",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
+            )
         }
         if (chevron) OpenChevron()
     }

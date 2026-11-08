@@ -83,8 +83,7 @@ fun Pill(
 }
 
 /**
- * A provisional rating where some are settled: a small hourglass beside the name, not a pill on every row (when
- * every rating is provisional the list says it once). Its own words for TalkBack.
+ * A provisional rating: a small hourglass beside the name, not a pill on every row. Its own words for TalkBack.
  */
 @Composable
 fun ProvisionalMark(modifier: Modifier = Modifier, label: Boolean = false) {
@@ -111,8 +110,6 @@ fun ProvisionalMark(modifier: Modifier = Modifier, label: Boolean = false) {
     }
 }
 
-/** "All ratings are provisional until 10 games each." */
-fun allProvisionalCaption(games: Int): String = "All ratings are provisional until $games games each."
 
 @Composable
 fun ProvisionalPill(modifier: Modifier = Modifier) {
