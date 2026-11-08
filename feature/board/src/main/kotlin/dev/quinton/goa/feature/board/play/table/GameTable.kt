@@ -13,11 +13,23 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.Info
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.PlainTooltip
 import androidx.compose.material3.Text
+import androidx.compose.material3.TooltipAnchorPosition
+import androidx.compose.material3.TooltipBox
+import androidx.compose.material3.TooltipDefaults
+import androidx.compose.material3.rememberTooltipState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.Immutable
@@ -37,7 +49,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
-import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.layout.Layout
 import androidx.compose.ui.layout.boundsInRoot
 import androidx.compose.ui.layout.onGloballyPositioned
@@ -46,6 +57,7 @@ import androidx.compose.ui.layout.positionInRoot
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.Dp
@@ -95,20 +107,19 @@ internal val LocalQuestionRoom = compositionLocalOf<QuestionRoom?> { null }
 
 /**
  * The game table: the map full screen (the Lane up the screen in portrait, left to right in
- * landscape), the round at a glance and every hero's status floating at the top, Fit and Flip at
- * the right, and [panel] (the question, the computer's move, the coach…) at the bottom in portrait
- * or on the right in landscape. The map frames the Lane between them and brings the spaces asked
- * for into view. Upright, the round at a glance and the turn's order are one score bar ([ScoreBar]) over the map;
- * sideways, with the panel shown, the round at a glance heads the panel and the turn's order is a column beside the
- * map's start edge ([SIDE_COLUMN]), so nothing covers the map.
+ * landscape), small widgets floating over it (ADR-083: the score and the heroes at the top start, the map's
+ * controls and its key on demand at the top end), and [panel] (the question, the computer's move, the coach…) at the
+ * bottom in portrait or on the right in landscape. The map frames the Lane between them and brings the spaces asked
+ * for into view. Sideways with the panel shown, the heroes are a narrow column at the map's start edge
+ * ([SIDE_CHIPS]), beside the map rather than over it.
  *
  * The panel hides ([HideablePanel]) to show the whole board: then it is [peek]'s one line (with
- * [peekTrailing], e.g. Confirm), only the round at a glance stays at the top, and the map fits the
- * whole board unless the person has moved it. Taps on the map keep selecting while it is hidden.
+ * [peekTrailing], e.g. Confirm), only the score (and the turn's heroes after the reveal) stays at the top, and the
+ * map fits the whole board unless the person has moved it. Taps on the map keep selecting while it is hidden.
  * Hidden or shown is kept for the screen (and survives rotation); [initialPanelHidden] for previews.
  * [onSpellbook] adds a Spellbook control per hero the person controls that has one (Gydion, ADR-040).
  * [panelTitle] goes on the panel's top strip, pinned as it scrolls ([DecisionWho]: who is asked).
- * [feed] floats under the top of the table, beside the map buttons ([EventFeed]: what just happened).
+ * [feed] floats under the widgets, beside the map buttons ([EventFeed]: what just happened).
  */
 @Composable
 fun GameTable(
@@ -161,10 +172,10 @@ fun GameTable(
         }
         // The floating overlays keep clear of the side panel only while it is shown.
         val overlayEnd = if (landscape && !hidden) sideWidth else 0.dp
-        // Sideways with the panel shown, after the reveal: the turn's order in a column at the map's start edge, beside
-        // the map rather than over it, so the panel keeps its height for the question.
-        val column = landscape && !hidden && table.track != null
-        val mapStart = if (column) SIDE_COLUMN else 0.dp
+        // Sideways with the panel shown: the heroes (the turn's order after the reveal) in a narrow column at the map's
+        // start edge, beside the map rather than over it, so the panel keeps its height for the question (ADR-083).
+        val column = landscape && !hidden
+        val mapStart = if (column) SIDE_CHIPS else 0.dp
         // A space chosen on the map: the panel starts at its peek (who, what, the commit), so the map has the room; the
         // whole panel is one drag or tap up, and each new question starts at the peek again. Pieces keep the whole
         // panel: their numbered list (distance, lane) is part of the decision.
@@ -312,72 +323,76 @@ fun GameTable(
             buttons = buttons?.translate(-mapOrigin),
             listed = listed,
         )
-        val turnOrder = table.track
-        if (column && turnOrder != null) {
-            PlateSurface(Modifier.fillMaxHeight().width(SIDE_COLUMN), shape = RectangleShape) {
-                TurnTrackRow(table, turnOrder, onHero, focus = focus, framed = false, vertical = true)
+        if (column) {
+            Box(Modifier.fillMaxHeight().width(SIDE_CHIPS).padding(Spacing.xs)) {
+                TurnChips(table, onHero, focus, vertical = true)
             }
         }
 
-        Column(
+        // The map's key, on demand (ADR-083): lit spaces speak for themselves; the key is a tap on the map's controls.
+        val keyItems = mapKeyItems(table, listed)
+        var keyOpen by rememberSaveable(decision?.id) { mutableStateOf(false) }
+        val mapControls: @Composable () -> Unit = {
+            Column(
+                Modifier
+                    .onSizeChanged { buttonsWidth = it.width + with(density) { Spacing.sm.roundToPx() } }
+                    .onGloballyPositioned { buttons = it.boundsInRoot() },
+                verticalArrangement = Arrangement.spacedBy(Spacing.sm),
+                horizontalAlignment = Alignment.End,
+            ) {
+                MapToolbar(
+                    viewport,
+                    table.bottomTeam,
+                    onFlip,
+                    Modifier.onGloballyPositioned { toolbar = it.boundsInRoot() },
+                    // Glyphs only, a small dock rather than a floating panel (opus #1, sol-b #2): the long press's
+                    // tooltip and TalkBack keep the words.
+                    compact = true,
+                    buttonSize = MAP_BUTTON,
+                    extra = {
+                        if (keyItems.isNotEmpty()) MapKeyToggle(keyOpen, MAP_BUTTON) { keyOpen = !keyOpen }
+                    },
+                )
+                // Gydion's spellbook, one tap at any point of the game (ADR-040): under the map buttons,
+                // so it never covers the round at a glance or the turn's heroes.
+                if (onSpellbook != null) {
+                    table.spellbookSeats.forEach { id ->
+                        SpellbookButton(table, id, onClick = { onSpellbook(id) })
+                    }
+                }
+            }
+        }
+        // What floats under the widgets: the key when asked for, then the feed of what just happened.
+        val under: @Composable () -> Unit = {
+            Column(verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
+                if (keyOpen && keyItems.isNotEmpty()) MapKey(keyItems)
+                feed?.invoke()
+            }
+        }
+        // The heroes at the top: after the reveal always (ADR-041); before it, with the panel shown.
+        val chips = table.track != null || !hidden
+        val measureTop = Modifier.onSizeChanged { topHeight = it.height + with(density) { Spacing.sm.roundToPx() } }
+        // Upright (and sideways with the panel hidden) the score and the heroes are two small plates at the top start,
+        // side by side when they fit; the map's controls at the top end (ADR-083). Sideways with the panel shown, the
+        // heroes are the column at the map's edge and the score floats alone.
+        Row(
             Modifier
                 .fillMaxWidth()
                 .padding(start = mapStart, end = overlayEnd)
                 .padding(Spacing.sm),
-            verticalArrangement = Arrangement.spacedBy(Spacing.xs),
+            horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
         ) {
-            Column(
-                Modifier
-                    .fillMaxWidth()
-                    .onSizeChanged { topHeight = it.height + with(density) { Spacing.sm.roundToPx() } },
-                verticalArrangement = Arrangement.spacedBy(Spacing.xs),
-            ) {
-                topStrip?.invoke()
-                // After the reveal the turn's order stays in view, the panel shown or hidden (ADR-041); before it,
-                // the hero strip comes back with the panel (one tap). Sideways with the panel shown, both are at the
-                // head of the panel and the map has the whole height.
-                val track = table.track
-                when {
-                    landscape && !hidden -> Unit
-
-                    landscape -> {
-                        TableHud(table)
-                        if (track != null) TurnTrackRow(table, track, onHero, focus = focus, stretch = false)
-                    }
-
-                    else -> ScoreBar(table, onHero, focus, heroes = !hidden)
-                }
-                // The map's key while a question lights it, under the round at a glance and the track: the options
-                // are framed below it, so it never covers a piece.
-                MapKey(mapKeyItems(table, listed))
-            }
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-                Box(Modifier.weight(1f)) { feed?.invoke() }
-                Column(
-                    Modifier
-                        .onSizeChanged { buttonsWidth = it.width + with(density) { Spacing.sm.roundToPx() } }
-                        .onGloballyPositioned { buttons = it.boundsInRoot() },
-                    verticalArrangement = Arrangement.spacedBy(Spacing.sm),
-                    horizontalAlignment = Alignment.End,
-                ) {
-                    MapToolbar(
-                        viewport,
-                        table.bottomTeam,
-                        onFlip,
-                        Modifier.onGloballyPositioned { toolbar = it.boundsInRoot() },
-                        // Glyphs only, a small dock rather than a floating panel (opus #1, sol-b #2): the long press's
-                        // tooltip and TalkBack keep the words.
-                        compact = true,
-                    )
-                    // Gydion's spellbook, one tap at any point of the game (ADR-040): under the map buttons,
-                    // so it never covers the round at a glance, the turn track or the hero strip.
-                    if (onSpellbook != null) {
-                        table.spellbookSeats.forEach { id ->
-                            SpellbookButton(table, id, onClick = { onSpellbook(id) })
-                        }
+            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
+                Column(measureTop, verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
+                    topStrip?.invoke()
+                    BesideOrBelow(gap = Spacing.xs) {
+                        ScoreWidget(table)
+                        if (chips && !column) TurnChips(table, onHero, focus)
                     }
                 }
+                under()
             }
+            mapControls()
         }
 
         CompositionLocalProvider(LocalPanelPeeking provides peeking, LocalMapList provides mapList) {
@@ -413,9 +428,6 @@ fun GameTable(
                             ),
                         verticalArrangement = Arrangement.spacedBy(Spacing.sm),
                     ) {
-                        // Sideways the round at a glance heads the panel (the turn's order is the column at the map's
-                        // edge): nothing over the map.
-                        if (landscape) ScoreBar(table, onHero, focus, heroes = true, compact = true, track = false)
                         panel()
                     }
                 }
@@ -426,39 +438,71 @@ fun GameTable(
 }
 
 /**
- * The score bar: the round at a glance with the turn's order on the same plate under it (one 48 dp row of cells,
- * [TurnTrackRow]); when no turn resolves, the heroes on the same cells there ([HeroCells], [heroes]), so the strip
- * keeps one form; [compact] (the side panel): the heroes as portraits under it.
+ * Two widgets side by side when both fit the width, else the second under the first (and as wide as the width allows,
+ * scrolling inside itself).
  */
 @Composable
-internal fun ScoreBar(
-    table: TableUi,
-    onHero: (String) -> Unit,
-    focus: CardFocusState?,
-    heroes: Boolean,
-    compact: Boolean = false,
-    /** The turn's order under the round at a glance; false where it has a column of its own. */
-    track: Boolean = true,
-) {
-    val turn = table.track
-    TableHud(
-        table,
-        Modifier.fillMaxWidth(),
-        compact = compact,
-        spread = true,
-        below = when {
-            track && turn != null -> {
-                { TurnTrackRow(table, turn, onHero, focus = focus, framed = false) }
+internal fun BesideOrBelow(modifier: Modifier = Modifier, gap: Dp, content: @Composable () -> Unit) {
+    Layout(content, modifier) { items, constraints ->
+        val gapPx = gap.roundToPx()
+        val loose = constraints.copy(minWidth = 0, minHeight = 0)
+        val first = items.getOrNull(0)?.measure(loose)
+        val second = items.getOrNull(1)
+        val firstWidth = first?.width ?: 0
+        val beside = second != null &&
+            firstWidth + gapPx + second.maxIntrinsicWidth(Constraints.Infinity) <= constraints.maxWidth
+        val placed = second?.measure(
+            if (beside) loose.copy(maxWidth = constraints.maxWidth - firstWidth - gapPx) else loose,
+        )
+        val width = when {
+            placed == null -> firstWidth
+            beside -> firstWidth + gapPx + placed.width
+            else -> maxOf(firstWidth, placed.width)
+        }
+        val height = when {
+            placed == null -> first?.height ?: 0
+            beside -> maxOf(first?.height ?: 0, placed.height)
+            else -> (first?.height ?: 0) + gapPx + placed.height
+        }
+        layout(width, height) {
+            first?.place(0, if (beside) (height - first.height) / 2 else 0)
+            if (placed != null) {
+                if (beside) {
+                    placed.place(firstWidth + gapPx, (height - placed.height) / 2)
+                } else {
+                    placed.place(0, (first?.height ?: 0) + gapPx)
+                }
             }
+        }
+    }
+}
 
-            turn == null && heroes && !compact -> {
-                { HeroCells(table, onHero, framed = false) }
-            }
-
-            else -> null
-        },
-    )
-    if (turn == null && heroes && compact) HeroStrip(table, onHero, compact = true)
+/**
+ * The map key's control on the map's own controls (ADR-083): an info glyph that shows the key under the widgets and
+ * hides it again (bronze while shown). Only while a question lights the map.
+ */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun MapKeyToggle(open: Boolean, size: Dp, onToggle: () -> Unit) {
+    TooltipBox(
+        positionProvider = TooltipDefaults.rememberTooltipPositionProvider(TooltipAnchorPosition.Start),
+        tooltip = { PlainTooltip { Text("Map key") } },
+        state = rememberTooltipState(),
+    ) {
+        IconButton(
+            onClick = onToggle,
+            modifier = Modifier
+                .size(size)
+                .semantics { stateDescription = if (open) "Shown" else "Hidden" },
+        ) {
+            Icon(
+                Icons.Outlined.Info,
+                contentDescription = "Map key",
+                tint = if (open) MaterialTheme.colorScheme.primary else LocalContentColor.current,
+                modifier = Modifier.size(minOf(24.dp, size / 2)),
+            )
+        }
+    }
 }
 
 /**
@@ -556,6 +600,12 @@ fun RecentEvents(lines: List<String>, modifier: Modifier = Modifier, strong: Set
 }
 
 private const val RECENT = 4
+
+/** The column of hero chips at the map's start edge sideways (ADR-083). */
+private val SIDE_CHIPS = 88.dp
+
+/** The map's own controls on the game table, drawn smaller than a finger; Compose widens their touch area. */
+private val MAP_BUTTON = 40.dp
 
 /**
  * How much smaller than comfortable (38 dp) a hex may get so that every option of a question is in

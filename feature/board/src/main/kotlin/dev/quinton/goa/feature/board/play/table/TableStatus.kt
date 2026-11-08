@@ -105,9 +105,6 @@ import dev.quinton.goa.feature.board.ui.cards.FocusCard
 import dev.quinton.goa.feature.board.ui.cards.cardFocusOrigin
 import dev.quinton.goa.feature.board.ui.cards.isSpell
 
-/** Turns in a round (p.7). */
-private const val TURNS = 4
-
 /**
  * The round at a glance, a slate plate as in mock-up 01, each group named in small caps over it so nothing has to
  * be remembered: LIVES (each team's mark and official Life counter with the number), WAVES (the Wave counters
@@ -126,17 +123,8 @@ fun TableHud(
     below: (@Composable () -> Unit)? = null,
 ) {
     val view = table.view
-    val waves = table.map.lanes.map { lane -> BoardText.lane(table.map, lane.id) to (view.wavesLeft[lane.id] ?: 0) }
-    val spoken = buildList {
-        Team.entries.forEach { team ->
-            add("${BoardText.team(team)} ${BoardText.count(view.lifeCounters[team] ?: 0, "Life counter")}")
-        }
-        waves.forEach { (lane, left) ->
-            add(listOfNotNull(lane, "${BoardText.count(left, "Wave counter")} left").joinToString(" "))
-        }
-        add("Round ${view.round}, turn ${view.turn} of $TURNS")
-        add("Tie Breaker coin shows ${BoardText.team(view.tieBreaker)}")
-    }.joinToString(". ")
+    val waves = laneWaves(table)
+    val spoken = hudSpoken(table)
     // The plate is read at a glance: past 1.6× the numbers are large enough, and the coin keeps its row.
     val fontScale = LocalDensity.current.fontScale
     val cap = minOf(fontScale, HUD_MAX_SCALE) / fontScale
@@ -267,15 +255,15 @@ private fun HudGroup(name: String?, cap: Float, end: Boolean = false, content: @
  * larger, later ones hollow.
  */
 @Composable
-private fun TurnPips(turn: Int) {
+internal fun TurnPips(turn: Int, scale: Float = 1f) {
     // On the light theme's paper the pale bronze washed out (round 3): bronze ink there (ADR-077).
     val dark = GoaTheme.isDark
     val bronze = if (dark) MaterialTheme.colorScheme.primary else GoaTheme.colors.bronzeInk
     val bright = if (dark) PipBright else GoaTheme.colors.bronzeInk
-    Row(horizontalArrangement = Arrangement.spacedBy(2.dp), verticalAlignment = Alignment.CenterVertically) {
-        for (t in 1..TURNS) {
+    Row(horizontalArrangement = Arrangement.spacedBy(2.dp * scale), verticalAlignment = Alignment.CenterVertically) {
+        for (t in 1..TURNS_IN_ROUND) {
             val current = t == turn
-            Canvas(Modifier.size(if (current) 19.dp else 14.dp)) {
+            Canvas(Modifier.size((if (current) 19.dp else 14.dp) * scale)) {
                 val c = size.minDimension / 2f
                 when {
                     t < turn -> drawPath(diamond(c, c * 0.92f), bronze.copy(alpha = PIP_DONE_ALPHA))
