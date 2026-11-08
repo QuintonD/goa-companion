@@ -3,6 +3,7 @@ package dev.quinton.goa.feature.board.play.table
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -43,12 +44,15 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.CustomAccessibilityAction
 import androidx.compose.ui.semantics.LiveRegionMode
@@ -446,31 +450,36 @@ private fun OfferedThumb(
     val card = item.card
     val offered = item.choice != null
     val tap = onChoose ?: onOpen
+    val latest by rememberUpdatedState(tap)
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(4.dp),
-        modifier = Modifier.width(cardWidth(card, width)).clearAndSetSemantics {
-            contentDescription = listOfNotNull(spokenCard(card), spokenNamed(named)).joinToString(", ")
-            stateDescription = listOfNotNull(
-                "Chosen".takeIf { chosen },
-                if (keep) card.item?.let { "As an item: +1 ${PlayText.stat(it)}" } else null,
-                if (!offered) reason else null,
-            ).joinToString(", ")
-            role = Role.Button
-            selected = chosen
-            onClick(label = if (onChoose != null) "Choose" else "Look at the card") {
-                tap()
-                true
-            }
-            if (onChoose != null) {
-                customActions = listOf(
-                    CustomAccessibilityAction("Look at the card") {
-                        onOpen()
-                        true
-                    },
-                )
-            }
-        },
+        modifier = Modifier
+            .width(cardWidth(card, width))
+            // The name and numbers under the card answer a tap as the card does (its Surface takes its own taps).
+            .pointerInput(Unit) { detectTapGestures { latest() } }
+            .clearAndSetSemantics {
+                contentDescription = listOfNotNull(spokenCard(card), spokenNamed(named)).joinToString(", ")
+                stateDescription = listOfNotNull(
+                    "Chosen".takeIf { chosen },
+                    if (keep) card.item?.let { "As an item: +1 ${PlayText.stat(it)}" } else null,
+                    if (!offered) reason else null,
+                ).joinToString(", ")
+                role = Role.Button
+                selected = chosen
+                onClick(label = if (onChoose != null) "Choose" else "Look at the card") {
+                    tap()
+                    true
+                }
+                if (onChoose != null) {
+                    customActions = listOf(
+                        CustomAccessibilityAction("Look at the card") {
+                            onOpen()
+                            true
+                        },
+                    )
+                }
+            },
     ) {
         ChoosableCard(card, width, chosen, offered, focus, tap)
         CardCaption(card, cardWidth(card, width))

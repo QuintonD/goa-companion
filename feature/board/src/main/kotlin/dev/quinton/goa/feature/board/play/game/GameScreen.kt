@@ -532,9 +532,10 @@ private fun CoachNudge(nudge: PendingNudge, onAction: (GameAction) -> Unit) {
         CardTextBox(PlateColor.GREEN, Modifier.fillMaxWidth(), cap = "Coach") {
             Column(
                 Modifier.semantics(mergeDescendants = true) {
-                    contentDescription = listOf("Coach: ${nudge.note.text}", nudge.note.detail, "Your choice: ${nudge.choiceLabel}")
-                        .filter { it.isNotBlank() }
-                        .joinToString(". ")
+                    contentDescription =
+                        listOf("Coach: ${nudge.note.text}", nudge.note.detail, "Your choice: ${nudge.choiceLabel}")
+                            .filter { it.isNotBlank() }
+                            .joinToString(". ")
                     liveRegion = LiveRegionMode.Polite
                 },
                 verticalArrangement = Arrangement.spacedBy(2.dp),

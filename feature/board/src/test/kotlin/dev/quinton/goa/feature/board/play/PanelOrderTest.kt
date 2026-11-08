@@ -68,9 +68,6 @@ class PanelOrderTest {
         compose.waitForIdle()
     }
 
-    private fun top(text: String): Float =
-        compose.onAllNodes(hasText(text, substring = true)).onFirst().fetchSemanticsNode().positionInRoot.y
-
     private fun panel() = compose
         .onAllNodes(hasScrollAction() and hasAnyDescendant(hasContentDescription("End of round", substring = true)))
         .onFirst()
@@ -89,7 +86,9 @@ class PanelOrderTest {
         val moment = play.table.moment!!
         compose.onNodeWithContentDescription(moment.title).assertExists()
         compose.onAllNodes(hasText(moment.text, substring = true)).assertCountEquals(0)
-        assertThat(top(promptParts(s.pending!!.prompt).text!!)).isLessThan(screen.toFloat())
+        // The question is said once, in the panel's head (one TalkBack node).
+        val head = compose.onAllNodes(hasContentDescription(promptParts(s.pending!!.prompt).text!!, substring = true))
+        assertThat(head.onFirst().fetchSemanticsNode().positionInRoot.y).isLessThan(screen.toFloat())
         val row = compose.onAllNodes(hasContentDescription("spaces from", substring = true)).onFirst()
         assertThat(row.fetchSemanticsNode().positionInRoot.y).isLessThan(screen.toFloat())
         // A tap opens the steps.

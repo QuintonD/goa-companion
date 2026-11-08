@@ -1,18 +1,6 @@
 package dev.quinton.goa.feature.board.play.table
 
 import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.text.TextAutoSize
-import dev.quinton.goa.core.game.UnavailableAction
-import androidx.compose.ui.text.style.TextDecoration
-import androidx.compose.ui.draw.alpha
-import androidx.compose.runtime.setValue
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.getValue
-import androidx.compose.material3.TextButton
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material.icons.outlined.Block
-import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -34,21 +22,31 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.TextAutoSize
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.Block
 import androidx.compose.material.icons.outlined.CheckCircle
 import androidx.compose.material.icons.outlined.TouchApp
+import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.onPlaced
 import androidx.compose.ui.layout.positionInParent
@@ -65,6 +63,7 @@ import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import dev.quinton.goa.core.designsystem.component.HeroPortrait
@@ -81,6 +80,7 @@ import dev.quinton.goa.core.game.ActionType
 import dev.quinton.goa.core.game.Choice
 import dev.quinton.goa.core.game.Decision
 import dev.quinton.goa.core.game.DecisionKind
+import dev.quinton.goa.core.game.UnavailableAction
 import dev.quinton.goa.core.model.board.Hex
 import dev.quinton.goa.core.model.board.MinionPiece
 import dev.quinton.goa.core.model.catalog.Card
@@ -163,7 +163,7 @@ fun DecisionPanel(
 
             layout == PanelLayout.CARDS -> CardPicker(table, onSelect, onAnswer, focus, busy)
 
-            // Who acts first: the tied heroes as buttons, one tap answers (the map's pieces still select, then Confirm).
+            // Who acts first: the tied heroes as buttons, one tap answers (a tap on the map selects, then Confirm).
             decision.kind == DecisionKind.ACT_FIRST -> {
                 if (table.selected != null) BoardAnswer(table, null, focus, onAnswer, busy)
                 ActFirstButtons(table, onAnswer, busy)
@@ -272,14 +272,14 @@ private fun ActFirstButtons(table: TableUi, onAnswer: (Choice) -> Unit, busy: Bo
                     Modifier.padding(start = Spacing.sm, end = Spacing.md, top = 4.dp, bottom = 4.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    if (hero != null && view != null) {
+                    if (hero != null) {
                         HeroPortrait(
                             hero.id,
                             hero.portrait,
                             null,
                             Modifier
                                 .size(scaledIconSize(32.dp, 1.2f))
-                                .border(2.dp, teamColor(view.team), CircleShape),
+                                .border(2.dp, teamColor(view!!.team), CircleShape),
                             shape = CircleShape,
                             framed = false,
                         )
@@ -388,7 +388,11 @@ fun DecisionWho(table: TableUi, modifier: Modifier = Modifier) {
                         shape = CircleShape,
                         framed = false,
                     )
-                    TeamBadge(decision.team, Modifier.align(Alignment.BottomEnd).badgeOverhang(WHO_BADGE), size = WHO_BADGE)
+                    TeamBadge(
+                        decision.team,
+                        Modifier.align(Alignment.BottomEnd).badgeOverhang(WHO_BADGE),
+                        size = WHO_BADGE,
+                    )
                 }
             } else {
                 TeamMark(decision.team, markSize = scaledIconSize(16.dp, 1.3f))
@@ -468,9 +472,11 @@ private fun CardBeside(
         val spell = card.isSpell
         val width = when {
             spell -> SPELL_BESIDE
+
             // Beside yes / no, numbers or "choose one" the card is a reminder, and with large text the answers need
             // the width: small, a tap reads it large.
             !numbers || big -> if (big) 56.dp else 72.dp
+
             else -> (maxWidth * BESIDE_SHARE).coerceIn(84.dp, 108.dp)
         }
         val read = { focus.show(listOf(card), title = "Asked by") }
@@ -577,7 +583,9 @@ internal fun Choices(
             // A short side panel: every action two to a row, the card action first, so all are in view.
             if (!brief) {
                 primary?.let {
-                    ActionChip(table, it.action, busy, named = named, modifier = Modifier.fillMaxWidth()) { onAnswer(it) }
+                    ActionChip(table, it.action, busy, named = named, modifier = Modifier.fillMaxWidth()) {
+                        onAnswer(it)
+                    }
                     afterPrimary()
                 }
             }
@@ -694,7 +702,10 @@ private fun ActionChip(
                 null,
                 tint = when {
                     primary -> content
-                    GoaTheme.isDark -> SteelIconBronze // Bright bronze on the dark steel.
+
+                    GoaTheme.isDark -> SteelIconBronze
+
+                    // Bright bronze on the dark steel.
                     else -> MaterialTheme.colorScheme.primary // Dark bronze on the light steel.
                 },
                 modifier = Modifier.size(scaledIconSize(20.dp, 1.3f)),
@@ -707,10 +718,19 @@ private fun ActionChip(
                     color = content,
                     fontWeight = FontWeight.SemiBold,
                     maxLines = 1,
-                    autoSize = TextAutoSize.StepBased(minFontSize = 10.sp, maxFontSize = 14.sp * LocalDensity.current.fontScale),
+                    autoSize = TextAutoSize.StepBased(
+                        minFontSize = 10.sp,
+                        maxFontSize =
+                            14.sp * LocalDensity.current.fontScale,
+                    ),
                 )
             } else {
-                Text(shown, style = MaterialTheme.typography.titleSmall, color = content, fontWeight = FontWeight.SemiBold)
+                Text(
+                    shown,
+                    style = MaterialTheme.typography.titleSmall,
+                    color = content,
+                    fontWeight = FontWeight.SemiBold,
+                )
             }
         }
     }

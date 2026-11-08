@@ -59,7 +59,12 @@ internal fun decisionRules(table: TableUi): List<DecisionRule> {
             actions.forEach { action ->
                 actionRule(action)?.let { rule ->
                     val page = RULE_PAGE.find(rule)?.value?.trim('(', ')')
-                    add(DecisionRule("${actionLabel(action, table.sourceCard)}: ${rule.replace(RULE_PAGE, "").trim()}", page))
+                    add(
+                        DecisionRule(
+                            "${actionLabel(action, table.sourceCard)}: ${rule.replace(RULE_PAGE, "").trim()}",
+                            page,
+                        ),
+                    )
                 }
             }
             // The actions the card prints that can't be taken now, with the engine's reason (ADR-041).
@@ -145,11 +150,16 @@ internal fun RuleList(rules: List<DecisionRule>, modifier: Modifier = Modifier) 
             Row(
                 verticalAlignment = Alignment.Top,
                 modifier = Modifier.semantics(mergeDescendants = true) {
-                    contentDescription = listOfNotNull(rule.text, rule.page?.let { "Rulebook ${it.replace("p.", "page ")}" })
-                        .joinToString(". ")
+                    contentDescription =
+                        listOfNotNull(rule.text, rule.page?.let { "Rulebook ${it.replace("p.", "page ")}" })
+                            .joinToString(". ")
                 },
             ) {
-                Text(rule.text, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f, fill = false))
+                Text(
+                    rule.text,
+                    style = MaterialTheme.typography.bodyMedium,
+                    modifier = Modifier.weight(1f, fill = false),
+                )
                 rule.page?.let {
                     Spacer(Modifier.width(Spacing.sm))
                     PagePill(it)
