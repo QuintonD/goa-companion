@@ -18,6 +18,12 @@ symbols and icons, a painted map. Bronze = selected / primary, teal = "next / co
 Text the game prints is set in a serif (Crimson); the app's own words in Inter; heads in Cinzel caps.
 Dark is the default theme; light is supported. Team is never shown by colour alone (gear/star marks).
 
+**Show, don't tell (owner, 2026-11-08).** Text is a cost, not a virtue: every subtitle, caption, helper
+line, inline rule paragraph or line that echoes a selection or a button makes the screen harder to read.
+A title, an icon, a number, art or the layout should carry the meaning; rules belong one tap away, not
+inline. The game table's map should get most of the screen. Never ask for more explanatory text; flag
+redundant or explanatory text as an `information` issue.
+
 ## What you get
 Screens in the order a player meets them, each with an id and a caption saying where it sits in a
 flow. They are rendered by Robolectric at a phone size (about 411 dp wide), without a status bar.
@@ -33,7 +39,7 @@ captions show: what a player must understand and do on each screen, and how scre
 | `art_assets` | Art and asset quality: sharpness, resolution, style consistency of images, frames, textures, icons, illustrations, empty states |
 | `typography` | Typography and readability: type scale, weights, line length, legibility at size, font roles used well |
 | `color_contrast` | Colour, contrast and theming: palette discipline, contrast, dark and light themes both good |
-| `information` | Information design and clarity: right content, right density, clear labels and wording, no clutter or redundancy |
+| `information` | Information design and clarity: right content, right density, clear labels and wording, no clutter or redundancy, as few words as the meaning needs |
 | `affordance` | Affordances and interaction clarity: what is tappable, the primary action is obvious, sensible touch targets and controls |
 | `navigation` | Navigation, wayfinding and flow efficiency: where am I, how do I get back, few steps to common goals |
 | `feedback` | Feedback and states: empty, error, progress, selection, success and turn states communicated well |
