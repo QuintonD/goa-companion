@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
@@ -18,6 +19,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
@@ -62,15 +64,16 @@ import androidx.compose.ui.layout.positionInParent
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.onClick
+import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import dev.quinton.goa.core.designsystem.component.BarAction
-import dev.quinton.goa.core.designsystem.component.BarIconButton
 import dev.quinton.goa.core.designsystem.component.EmptyState
 import dev.quinton.goa.core.designsystem.component.GoaPlate
 import dev.quinton.goa.core.designsystem.component.GoaScreen
@@ -103,19 +106,9 @@ fun RulesTopicScreen(state: RulesTopicUiState, onBack: () -> Unit) {
     val title = (state as? RulesTopicUiState.Ready)?.topic?.title ?: "Rules"
     // A long title would shrink to fit the banner: its head there, the whole title at the top of the page.
     val large = LocalDensity.current.fontScale > LARGE_FONT_SCALE
-    val topic = (state as? RulesTopicUiState.Ready)?.topic
-    val hasSections = remember(topic) { topic != null && topicSections(topic).isNotEmpty() }
     var contentsOpen by rememberSaveable { mutableStateOf(false) }
-    GoaScreen(
-        title = bannerTitle(title, large),
-        onBack = onBack,
-        // Contents lives in the banner, so the navigator's chips keep the whole row (each section one tap away).
-        actions = {
-            if (hasSections) {
-                BarIconButton(BarAction("Contents", Icons.AutoMirrored.Outlined.List, { contentsOpen = true }))
-            }
-        },
-    ) { padding ->
+    // The sections are listed from the navigator's own labelled "Sections" button, so the banner keeps only Back.
+    GoaScreen(title = bannerTitle(title, large), onBack = onBack) { padding ->
         Box(Modifier.fillMaxSize().padding(padding)) {
             when (state) {
                 RulesTopicUiState.Loading -> CircularProgressIndicator(Modifier.align(Alignment.Center))
@@ -186,7 +179,7 @@ internal fun TopicContent(
             if (showTitle) item(key = "title") { TopicTitle(topic.title, margin) }
             if (sections.isNotEmpty()) {
                 stickyHeader(key = NAV_KEY) {
-                    TopicNavigator(sections, active, onSelect = open)
+                    TopicNavigator(sections, active, onSelect = open, onSections = { onContentsOpen(true) })
                 }
             }
             topic.summary?.let { summary -> item(key = "summary") { SummaryNote(summary, margin) } }
@@ -241,16 +234,18 @@ private fun TopicTitle(title: String, modifier: Modifier = Modifier) {
 }
 
 /**
- * The topic's parts, held at the top of the page as you read: the rulebook's own heads (and "Diagrams"), a tap
- * opens that passage. The one you are reading is bronze, as everything selected is (and filled, not only
- * coloured), and stays in view as you read. Scrolls sideways when the heads don't fit, the edge that hides more
- * fading out (the design system's edge fade); "Contents" in the banner lists every part at once.
+ * The topic's parts, held at the top of the page as you read. First a labelled **Sections** button that opens a sheet
+ * of every part by its whole name (so a later part is never found by scrolling sideways through cut labels), then the
+ * rulebook's own heads (and "Diagrams") as shortcuts, a tap opening that passage. The one you are reading is bronze,
+ * as everything selected is (and filled, not only coloured), and stays in view as you read. The shortcuts scroll
+ * sideways when they don't fit, the edge that hides more fading out (the design system's edge fade).
  */
 @Composable
 private fun TopicNavigator(
     sections: List<TopicSection>,
     active: TopicSection?,
     onSelect: (TopicSection) -> Unit,
+    onSections: () -> Unit,
 ) {
     val colors = GoaTheme.colors
     val row = rememberScrollState()
@@ -259,18 +254,26 @@ private fun TopicNavigator(
     // The chip being read stays in view: scrolled to just past the gutter whenever the reader moves on.
     LaunchedEffect(active, row.maxValue) {
         val x = active?.let { starts[it.excerpt] } ?: return@LaunchedEffect
-        val lead = with(density) { (PAGE_MARGIN + Spacing.lg).roundToPx() }
+        val lead = with(density) { (Spacing.xs + Spacing.lg).roundToPx() }
         val target = (x - lead).coerceIn(0, row.maxValue)
         if (row.value != target) row.animateScrollTo(target)
     }
     Column(Modifier.fillMaxWidth().background(colors.page)) {
-        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+        Row(Modifier.fillMaxWidth().height(IntrinsicSize.Min), verticalAlignment = Alignment.CenterVertically) {
+            SectionsButton(sections.size, Modifier.padding(start = PAGE_MARGIN - Spacing.xs), onSections)
+            Box(
+                Modifier
+                    .padding(start = Spacing.xs, top = Spacing.sm, bottom = Spacing.sm)
+                    .fillMaxHeight()
+                    .width(1.dp)
+                    .background(colors.pageEdge),
+            )
             Row(
                 Modifier
-                    .fillMaxWidth()
+                    .weight(1f)
                     .heightIn(min = NAV_HEIGHT)
-                    .fadingHorizontalScroll(row, gutter = PAGE_MARGIN - Spacing.xs)
-                    .semantics { contentDescription = "Sections" },
+                    .fadingHorizontalScroll(row, gutter = Spacing.xs)
+                    .semantics { contentDescription = "Section shortcuts" },
                 horizontalArrangement = Arrangement.spacedBy(Spacing.xs),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
@@ -287,6 +290,52 @@ private fun TopicNavigator(
     }
 }
 
+/**
+ * "Sections" in words with the list glyph: opens the sheet of every part by its whole name. 48 dp tall, the page's
+ * ink on the page, the same edge as an unselected shortcut; TalkBack hears "Sections, 5 parts, button".
+ */
+@Composable
+private fun SectionsButton(count: Int, modifier: Modifier = Modifier, onClick: () -> Unit) {
+    val colors = GoaTheme.colors
+    val shape = RoundedCornerShape(16.dp)
+    Box(
+        modifier
+            .heightIn(min = NAV_HEIGHT)
+            .clickable(role = Role.Button, onClick = onClick)
+            .clearAndSetSemantics {
+                contentDescription = "$SECTIONS, $count parts"
+                role = Role.Button
+                onClick(label = "List all sections") {
+                    onClick()
+                    true
+                }
+            },
+        contentAlignment = Alignment.Center,
+    ) {
+        Row(
+            Modifier
+                .clip(shape)
+                .border(1.dp, colors.pageEdge, shape)
+                .padding(start = 10.dp, end = 12.dp, top = 6.dp, bottom = 6.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Icon(
+                Icons.AutoMirrored.Outlined.List,
+                contentDescription = null,
+                tint = colors.onPage,
+                modifier = Modifier.size(scaledIconSize(18.dp, 1.4f)),
+            )
+            Spacer(Modifier.width(6.dp))
+            Text(
+                SECTIONS,
+                style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold),
+                color = colors.onPage,
+                maxLines = 1,
+            )
+        }
+    }
+}
+
 /** Every part of a topic, the one being read marked as selected; a tap closes the list and opens that part. */
 @Composable
 internal fun TopicContents(sections: List<TopicSection>, active: TopicSection?, onSelect: (TopicSection) -> Unit) {
@@ -295,7 +344,7 @@ internal fun TopicContents(sections: List<TopicSection>, active: TopicSection?, 
         verticalArrangement = Arrangement.spacedBy(Spacing.sm),
     ) {
         Text(
-            "Contents",
+            SECTIONS,
             style = GoaTextStyles.sectionHead.copy(fontSize = 22.sp, lineHeight = 28.sp),
             color = GoaTheme.colors.heading,
             modifier = Modifier.semantics { heading() },
@@ -489,6 +538,9 @@ internal fun bannerTitle(title: String, large: Boolean): String {
 private const val BANNER_WHOLE = 18
 private const val BANNER_HEAD = 16
 private const val NAV_KEY = "sections"
+
+/** The navigator's button and the sheet it opens: every part of the topic by its whole name. */
+internal const val SECTIONS = "Sections"
 private val NAV_HEIGHT = 48.dp
 
 /** Bronze on the page, the same in both themes: the dark ink on it is about 7:1, and it stands out on either page. */

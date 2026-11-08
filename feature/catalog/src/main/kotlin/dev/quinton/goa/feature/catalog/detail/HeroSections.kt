@@ -15,7 +15,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -46,7 +45,6 @@ import androidx.compose.ui.unit.dp
 import dev.quinton.goa.core.designsystem.component.ColourRibbon
 import dev.quinton.goa.core.designsystem.component.LARGE_FONT_SCALE
 import dev.quinton.goa.core.designsystem.component.PlateColor
-import dev.quinton.goa.core.designsystem.component.fadingHorizontalScroll
 import dev.quinton.goa.core.designsystem.component.scaledIconSize
 import dev.quinton.goa.core.designsystem.component.selectionFrame
 import dev.quinton.goa.core.designsystem.theme.GoaTheme
@@ -200,9 +198,9 @@ private val COLOUR_KINDS = setOf(DeckGroupKind.RED, DeckGroupKind.GREEN, DeckGro
 /**
  * The deck's filters, held under the tabs while the deck scrolls; each is one choice with its "All" stated and
  * selected when nothing is narrowed, so no row reads as "nothing chosen". Colours: **All colours** then each part
- * with the cards' own ribbon and count, on one line that scrolls sideways (the edge that hides more fades out).
- * Tiers: **All tiers · Tier I · Tier II · Tier III** in the same chips, wrapping. The count over the cards says
- * what is shown.
+ * with the cards' own ribbon and count, wrapping onto a second line rather than running off the edge (a deck has a
+ * handful of parts, so every one stays in sight). Tiers: **All tiers · Tier I · Tier II · Tier III** in the same
+ * chips, wrapping. The count over the cards says what is shown.
  */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
@@ -215,17 +213,16 @@ internal fun DeckFilterBar(
     onTier: (Int?) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val row = rememberScrollState()
     Column(modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
         if (parts.size >= 2) {
-            Row(
+            FlowRow(
                 Modifier
                     .fillMaxWidth()
-                    .fadingHorizontalScroll(row)
+                    .padding(horizontal = Spacing.screen)
                     .selectableGroup()
                     .semantics { contentDescription = "Colours" },
                 horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
-                verticalAlignment = Alignment.CenterVertically,
+                itemVerticalAlignment = Alignment.CenterVertically,
             ) {
                 PartChip("All colours", null, parts.sumOf { it.count }, selected = part == null) { onPart(null) }
                 parts.forEach { p -> PartChip(p.label, p.ribbon, p.count, selected = part == p.key) { onPart(p.key) } }
