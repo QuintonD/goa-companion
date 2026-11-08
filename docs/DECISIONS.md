@@ -2914,3 +2914,16 @@ hero stats are "Hero ratings · 1–8", not card values. The timer's sea and bat
 paintings are repainted at full resolution (the silhouette replaces its Real-ESRGAN upscale).
 
 **Consequences:** On a 384 dp phone (the S25 Ultra) the Heroes grid shows two columns at the 14 sp name floor.
+
+## ADR-081 — Round 5: one command per state, lists for every map choice, rosters first (2026-11-08)
+**Context:** Round 5 of the UI hill climb (ADR-066). sol, the stricter judge, kept flagging issues that earlier rounds had
+only half fixed (the sync host's button four rounds running), so its own suggested fixes were implemented as described.
+
+**Decision:** The sync host's button only shows a state the player can act on: disabled "Waiting for Cid · 60%", then
+"Merge data from 2 phones"; auto-start is a separate switch. Every map choice can be answered from a list: a List chip,
+lettered rows and the same letter on the map; an ambiguous tap asks "Which one?"; step counts are numerals on dark disks,
+never confused with letters. Defend is a list of one-line rows with the summary said once and "Don't defend" as its own
+row. The draft numbers its steps with counts ("4 · ◆ Red picks 2") and says whose turn it is; recording a result asks the
+winner first, then shows one-line rosters. Done, past and empty states lose decoration, never legibility (muted text ≥4.5:1,
+muted outline ≥3:1); a tag inside a frame is a tint, not an outline. One tab bar (`GoaTabRow`), one card-title face
+(`CardTitle`), one icon per destination (`Destination`). Online Join is disabled until a valid code. Refines ADR-072 to ADR-080.
