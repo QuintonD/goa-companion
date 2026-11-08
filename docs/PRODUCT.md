@@ -540,10 +540,10 @@ opponents (and teammates) at a strength from 1 to 10. One phone, one human team.
   local only, not synced, not in the backup file. One game at a time: starting another replaces it
   (New game says so). A save that can't be read, or that the engine can no longer rebuild, is
   offered for deletion, never a crash. "End this game" deletes it.
-- **While no game can be set up** (the engine can't be built) the Play tab's entry says "Not
-  available in this build"; heroes not yet playable show in New game's grid, veiled as "Later". The
-  Puzzles entry says "N of M solved" over the puzzles whose heroes are all playable, and "Not
-  available in this build" while there are none.
+- **While no game can be set up** (the engine can't be built) the Play tab's entry is a greyed scene
+  badged "Unavailable"; heroes not yet playable show in New game's grid, veiled as "Later". The
+  Puzzles entry carries a "✓ N/M" badge over the puzzles whose heroes are all playable, and is
+  greyed and badged "Unavailable" while there are none.
 - **Done when:** the Game state sheet shows nothing the person's live view did not (engine tests:
   facedown and unrevealed cards, enemy hands and tucked items never appear), with screenshots (light/
   dark, 384 dp at font scale 2, landscape, the rewound board); every rule above has a page-referenced
@@ -566,7 +566,7 @@ turn", "Push the lane before the round ends", "Survive this turn"), one way (or 
   of the book under its heading with its own count ("Positions · 50", "1 of 50 solved"); difficulty filter
   chips, and theme chips for themes two or more puzzles share; then every puzzle by number with
   title, theme, difficulty (three hexes and the word: hard / harder / hardest), heroes, and Solved /
-  Tried N times / Not tried yet, nudges used, "Solution seen". Reset progress in the menu, confirmed.
+  Tried N times (an untried puzzle shows no status; TalkBack says "Not tried yet"), nudges used, "Solution seen". Reset progress in the menu, confirmed.
 - **Solving:** the game table; in the panel the goal ("Win the game this
   turn." · "You play Wasp and Xargatha"), the number, title and difficulty on a small line, "What
   you know" (the theme and the intro: what the board doesn't show; folded to its first two lines, a tap opens it, and

@@ -235,14 +235,7 @@ private fun SetupCard(
 private fun LinkedMatchBanner(match: LinkedMatchUi) {
     SetupCard(Modifier.padding(top = Spacing.md)) {
         Row(Modifier.padding(Spacing.lg), verticalAlignment = Alignment.CenterVertically) {
-            Column(Modifier.weight(1f)) {
-                Text(match.title, style = MaterialTheme.typography.titleSmall)
-                Text(
-                    "Mode, Tie Breaker coin and duration are saved to this match.",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
+            Text(match.title, style = MaterialTheme.typography.titleSmall, modifier = Modifier.weight(1f))
             if (match.redSeats + match.blueSeats > 0) {
                 Column(horizontalAlignment = Alignment.End) {
                     TeamCount(Team.RED, match.redSeats)
@@ -596,14 +589,6 @@ private fun TieBreakerCard(state: MatchSetupUiState, actions: SetupActions) {
                 textAlign = TextAlign.Center,
                 modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite },
             )
-            if (coin != null) {
-                Text(
-                    "Team ${teamName(coin)} acts first on the next cross-team initiative tie.",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    textAlign = TextAlign.Center,
-                )
-            }
             Spacer(Modifier.height(Spacing.md))
             when {
                 // The coin was flipped once already (rulebook p.5): correct a mistake, don't flip again.

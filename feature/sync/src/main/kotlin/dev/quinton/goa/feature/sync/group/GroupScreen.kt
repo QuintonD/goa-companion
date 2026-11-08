@@ -167,14 +167,9 @@ private fun NoGroup(state: GroupUiState, actions: GroupActions, padding: Padding
             .padding(horizontal = Spacing.screen, vertical = Spacing.lg),
         verticalArrangement = Arrangement.spacedBy(Spacing.lg),
     ) {
-        Text(
-            "Keep the same matches, players and ratings on every friend's phone.",
-            style = MaterialTheme.typography.bodyLarge,
-        )
         WayIn(
             icon = Icons.Outlined.QrCodeScanner,
             title = "Scan an invite",
-            body = "Join a friend's group: their phone shows the invite under Group sync → Invite a friend.",
         ) {
             GoaButton(onClick = actions.onScan, modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp)) {
                 Icon(Icons.Outlined.QrCodeScanner, null)
@@ -190,7 +185,7 @@ private fun NoGroup(state: GroupUiState, actions: GroupActions, padding: Padding
                         inviteMissing = false
                         actions.onClearJoinError()
                     },
-                    error = state.joinError ?: "Paste the invite your friend shared first.".takeIf { inviteMissing },
+                    error = state.joinError ?: "Paste an invite first.".takeIf { inviteMissing },
                     onJoin = { if (invite.isBlank()) inviteMissing = true else actions.onPaste(invite) },
                 )
             } else {
@@ -204,7 +199,6 @@ private fun NoGroup(state: GroupUiState, actions: GroupActions, padding: Padding
         WayIn(
             icon = Icons.Outlined.GroupAdd,
             title = "Start a group",
-            body = "Start one on this phone, then invite the others to join it.",
         ) {
             if (!starting) {
                 // The second way in: outlined, so Scan invite stays the one bronze action.
@@ -250,9 +244,9 @@ private fun NoGroup(state: GroupUiState, actions: GroupActions, padding: Padding
     }
 }
 
-/** One way into a group: icon and title, one sentence, then its button (and the form it opens). */
+/** One way into a group: icon and title, then its button (and the form it opens). */
 @Composable
-private fun WayIn(icon: ImageVector, title: String, body: String, content: @Composable () -> Unit) {
+private fun WayIn(icon: ImageVector, title: String, content: @Composable () -> Unit) {
     GoaPlate(Modifier.fillMaxWidth()) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Icon(icon, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(scaledIconSize(28.dp)))
@@ -263,12 +257,6 @@ private fun WayIn(icon: ImageVector, title: String, body: String, content: @Comp
                 modifier = Modifier.semantics { heading() },
             )
         }
-        Spacer(Modifier.size(Spacing.xs))
-        Text(
-            body,
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
         Spacer(Modifier.size(Spacing.md))
         content()
     }
@@ -336,11 +324,8 @@ private fun InGroup(state: GroupUiState, actions: GroupActions, padding: Padding
             val me = state.me
             IdentitySelector(
                 title = me?.let { "Playing as ${it.name}" } ?: "Which player are you?",
-                scope = if (me != null) {
-                    "Group · ${state.groupName.orEmpty()}"
-                } else {
-                    "Choose yourself so the app can show your page first"
-                },
+                // The group's card above names the group; the title asks or answers the rest.
+                scope = null,
                 avatar = { size ->
                     if (me != null) {
                         PlayerAvatar(me, size = size, showFace = true)
@@ -367,14 +352,12 @@ private fun InGroup(state: GroupUiState, actions: GroupActions, padding: Padding
                 LinkRow(
                     Icons.Outlined.IosShare,
                     "Share sync file",
-                    "Send this phone's data, locked with the group key, by Quick Share, a message or Drive",
                     enabled = !state.busy,
                     onClick = actions.onShareFile,
                 )
                 LinkRow(
                     Icons.Outlined.FileDownload,
                     "Import sync file",
-                    "Merge a sync file from another phone in the group",
                     onClick = actions.onImportFile,
                 )
             }
@@ -404,8 +387,7 @@ private fun InGroup(state: GroupUiState, actions: GroupActions, padding: Padding
     if (confirmLeave) {
         ConfirmDialog(
             title = "Leave “${state.groupName}”?",
-            message = "This phone stops syncing with the group and forgets its key. All matches and players stay " +
-                "on this phone. To come back, scan an invite again.",
+            message = "Matches and players stay on this phone. To come back, scan an invite again.",
             confirmLabel = "Leave",
             destructive = true,
             onConfirm = {
@@ -475,36 +457,21 @@ private fun GroupCard(state: GroupUiState, actions: GroupActions, onInvite: () -
 }
 
 /**
- * Phone-to-phone sync, the group's normal way: how it goes in one line, then each phone this one has synced with
- * and when (one plate, dividers inside).
+ * Phone-to-phone sync, the group's normal way: each phone this one has synced with and when (one plate, dividers
+ * inside).
  */
 @Composable
 private fun PhoneToPhone(state: GroupUiState) {
     GoaPlate(Modifier.fillMaxWidth()) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Icon(
-                Icons.Outlined.PhonelinkRing,
-                null,
-                tint = MaterialTheme.colorScheme.secondary,
-                modifier = Modifier.size(scaledIconSize(24.dp)),
-            )
-            Spacer(Modifier.width(Spacing.md))
-            Text(
-                "Phones side by side at the table, over Bluetooth and Wi-Fi. No internet needed.",
-                style = MaterialTheme.typography.bodyMedium,
-                modifier = Modifier.weight(1f),
-            )
-        }
         if (state.phones.isEmpty()) {
-            PlateRowDivider(Modifier.padding(vertical = Spacing.sm))
             Text(
-                "No phone synced yet: tap Sync with nearby phones with a friend's phone beside this one.",
+                "No phones synced yet.",
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         } else {
-            state.phones.forEach { phone ->
-                PlateRowDivider()
+            state.phones.forEachIndexed { i, phone ->
+                if (i > 0) PlateRowDivider()
                 Row(
                     Modifier.fillMaxWidth().heightIn(min = 48.dp).semantics(mergeDescendants = true) {},
                     verticalAlignment = Alignment.CenterVertically,
@@ -541,7 +508,7 @@ private fun Foldout(label: String, icon: ImageVector, expanded: Boolean, onToggl
 }
 
 @Composable
-private fun LinkRow(icon: ImageVector, title: String, subtitle: String, enabled: Boolean = true, onClick: () -> Unit) {
+private fun LinkRow(icon: ImageVector, title: String, enabled: Boolean = true, onClick: () -> Unit) {
     TextButton(
         onClick = onClick,
         enabled = enabled,
@@ -551,14 +518,12 @@ private fun LinkRow(icon: ImageVector, title: String, subtitle: String, enabled:
     ) {
         Icon(icon, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(scaledIconSize(24.dp)))
         Spacer(Modifier.width(Spacing.lg))
-        Column(Modifier.weight(1f)) {
-            Text(title, style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurface)
-            Text(
-                subtitle,
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-        }
+        Text(
+            title,
+            style = MaterialTheme.typography.titleMedium,
+            color = MaterialTheme.colorScheme.onSurface,
+            modifier = Modifier.weight(1f),
+        )
     }
 }
 
@@ -624,10 +589,7 @@ fun InviteDialog(groupName: String, invite: String?, onShare: () -> Unit, onDism
                     )
                 }
                 Text(
-                    "On your friend's phone: install the app, open More → Group sync → Scan invite QR code. " +
-                        "On an iPhone, point the Camera at it: it opens the web app, ready to join. Or share it " +
-                        "as text and paste it on the other phone. Anyone with this code can join, so only show " +
-                        "it at the table or send it to the group.",
+                    "Scan it in the app, or with an iPhone's Camera. Anyone with this code can join.",
                     style = MaterialTheme.typography.bodyMedium,
                     textAlign = TextAlign.Start,
                 )

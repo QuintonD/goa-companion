@@ -109,7 +109,7 @@ private fun RulesList(
                     EmptyState(
                         icon = Icons.Outlined.SearchOff,
                         title = "No rules match",
-                        message = "Try another word, such as “respawn”, “tie” or “push”.",
+                        message = "Try “respawn” or “push”.",
                         modifier = Modifier.fillMaxWidth(),
                     )
                 }
@@ -127,8 +127,7 @@ private fun RulesList(
         }
         item(key = "source") {
             Text(
-                "Quoted word for word from the official Guards of Atlantis II rulebook (2nd printing). " +
-                    "Page numbers are the rulebook's printed pages.",
+                "Rulebook, 2nd printing · word for word · its printed pages",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(vertical = Spacing.lg),
@@ -181,11 +180,6 @@ private fun LadderCard(onClick: () -> Unit) {
                     "Levels & defeats",
                     style = MaterialTheme.typography.titleLarge,
                     color = MaterialTheme.colorScheme.onSurface,
-                )
-                Text(
-                    "Life counters, coins and assist coins per level, level costs and card Tiers",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
                 PageTag(RulesText.LADDER_PAGES, Modifier.padding(top = Spacing.sm))
             }

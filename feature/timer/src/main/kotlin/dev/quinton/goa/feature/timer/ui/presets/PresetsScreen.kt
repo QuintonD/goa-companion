@@ -106,15 +106,6 @@ fun PresetsScreen(state: PresetsUiState, actions: PresetsActions) {
             ),
             verticalArrangement = Arrangement.spacedBy(Spacing.sm),
         ) {
-            item {
-                Text(
-                    "The selected preset is used when you start the timer. " +
-                        "Timers are table rules; the rulebook sets none.",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(bottom = Spacing.sm),
-                )
-            }
             // One section plate; each preset is a row of it (DESIGN.md "Framing levels").
             item(key = "presets") {
                 GoaPlate(Modifier.fillMaxWidth(), contentPadding = PaddingValues(vertical = Spacing.xs)) {

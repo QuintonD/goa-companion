@@ -3,12 +3,9 @@ package dev.quinton.goa.feature.board.list
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -22,7 +19,7 @@ import dev.quinton.goa.core.designsystem.component.GoaScreen
 import dev.quinton.goa.core.designsystem.component.SettingsActionButton
 import dev.quinton.goa.core.designsystem.theme.Spacing
 import dev.quinton.goa.feature.board.R
-import dev.quinton.goa.feature.board.play.puzzles.SolvedCount
+import dev.quinton.goa.feature.board.play.puzzles.PuzzleText
 
 /** The Play tab's entries, as the screen opens them. */
 data class PlayHomeActions(
@@ -41,8 +38,8 @@ data class PlayHomeActions(
 /**
  * The Play tab's first screen (ADR-055): the game in progress to resume, then the headline entry, Play vs computer
  * (ADR-035), and Game night (the table's own path: Draft, Match setup, Timer), Puzzles, the Board sandbox (ADR-033),
- * Online (ADR-056) and Card trivia (ADR-028), each a plate with a painted scene and one line of words. The plates
- * share the screen's height, so the tab opens on a full page with all six entries in view (411 × 891), not a list.
+ * Online (ADR-056) and Card trivia (ADR-028), each a painted scene with its name and nothing more (show, don't tell).
+ * The scenes share the screen's height, so the tab opens on a full page with all six entries in view (411 × 891).
  */
 @Composable
 fun PlayHomeScreen(state: PlayHomeUiState, actions: PlayHomeActions, modifier: Modifier = Modifier) {
@@ -74,8 +71,6 @@ fun PlayHomeScreen(state: PlayHomeUiState, actions: PlayHomeActions, modifier: M
                 ArtPlate(
                     art = R.drawable.play_art_computer,
                     title = "Play vs computer",
-                    text = "Every rule run for you · strength 1 to 10 · a coach",
-                    status = if (play.available) null else "Not available in this build",
                     enabled = play.available,
                     onClick = actions.onPlay,
                     artHeight = leadArt,
@@ -85,60 +80,32 @@ fun PlayHomeScreen(state: PlayHomeUiState, actions: PlayHomeActions, modifier: M
                 val puzzles = play.puzzles
                 val tiles = listOf(
                     // The real game at the table, the way most evenings start: draft, set up, time it.
-                    Tile(
-                        R.drawable.play_art_gamenight,
-                        "Game night",
-                        "Draft and time it",
-                        onClick = actions.onGameNight,
-                    ),
+                    Tile(R.drawable.play_art_gamenight, "Game night", onClick = actions.onGameNight),
                     Tile(
                         R.drawable.play_art_puzzles,
                         "Puzzles",
-                        "Hard, with nudges",
-                        if (puzzles == null) "Not available in this build" else null,
                         enabled = puzzles != null,
                         onClick = actions.onPuzzles,
-                        // The same lines as over the parts of the puzzle list, part by part.
-                        progress = puzzles?.let { p ->
-                            {
-                                SolvedCount(p.positionsSolved, p.positionsTotal, rounds = false)
-                                if (p.roundsTotal > 0) SolvedCount(p.roundsSolved, p.roundsTotal, rounds = true)
-                            }
-                        },
+                        // Both parts of the puzzle list in one count; TalkBack hears them part by part.
+                        state = puzzles?.let(::puzzlesSolved),
+                        badge = puzzles?.let { p -> { SolvedBadge(p.solved, p.total) } },
                     ),
-                    Tile(
-                        R.drawable.play_art_sandbox,
-                        "Board sandbox",
-                        "Who reaches whom",
-                        onClick = actions.onBoards,
-                    ),
-                    Tile(
-                        R.drawable.play_art_online,
-                        "Online",
-                        "On friends' phones",
-                        onClick = actions.onOnline,
-                    ),
-                    Tile(
-                        R.drawable.play_art_trivia,
-                        "Card trivia",
-                        "The cards' numbers, with a leaderboard",
-                        onClick = actions.onTrivia,
-                    ),
+                    Tile(R.drawable.play_art_sandbox, "Board sandbox", onClick = actions.onBoards),
+                    Tile(R.drawable.play_art_online, "Online", onClick = actions.onOnline),
+                    Tile(R.drawable.play_art_trivia, "Card trivia", onClick = actions.onTrivia),
                 )
                 tiles.chunked(columns).forEach { row ->
-                    // One height per row: the plates line up whatever their words.
-                    Row(Modifier.height(IntrinsicSize.Min), horizontalArrangement = Arrangement.spacedBy(Spacing.md)) {
+                    Row(horizontalArrangement = Arrangement.spacedBy(Spacing.md)) {
                         row.forEach { tile ->
                             ArtPlate(
                                 art = tile.art,
                                 title = tile.title,
-                                text = tile.text,
-                                status = tile.status,
                                 enabled = tile.enabled,
                                 onClick = tile.onClick,
-                                progress = tile.progress,
+                                state = tile.state,
+                                badge = tile.badge,
                                 artHeight = tileArt,
-                                modifier = Modifier.weight(1f).fillMaxHeight(),
+                                modifier = Modifier.weight(1f),
                             )
                         }
                     }
@@ -148,22 +115,27 @@ fun PlayHomeScreen(state: PlayHomeUiState, actions: PlayHomeActions, modifier: M
     }
 }
 
+/** "1 of 50 positions, 1 of 22 rounds solved": the badge's count, part by part, for TalkBack. */
+private fun puzzlesSolved(p: PuzzleHubUi): String = listOfNotNull(
+    PuzzleText.partCount(p.positionsSolved, p.positionsTotal, rounds = false),
+    PuzzleText.partCount(p.roundsSolved, p.roundsTotal, rounds = true).takeIf { p.roundsTotal > 0 },
+).joinToString(", ") + " solved"
+
 private class Tile(
     val art: Int,
     val title: String,
-    val text: String,
-    val status: String? = null,
     val enabled: Boolean = true,
     val onClick: () -> Unit,
-    val progress: (@Composable () -> Unit)? = null,
+    val state: String? = null,
+    val badge: (@Composable () -> Unit)? = null,
 )
 
 private val WIDE: Dp = 720.dp
 private val NARROW: Dp = 340.dp
 private const val LARGE_TEXT = 1.5f
-private const val LEAD_SHARE = 0.18f
-private val LEAD_MIN: Dp = 132.dp
-private val LEAD_MAX: Dp = 220.dp
-private const val TILE_SHARE = 0.13f
-private val TILE_MIN: Dp = 92.dp
-private val TILE_MAX: Dp = 150.dp
+private const val LEAD_SHARE = 0.26f
+private val LEAD_MIN: Dp = 150.dp
+private val LEAD_MAX: Dp = 280.dp
+private const val TILE_SHARE = 0.2f
+private val TILE_MIN: Dp = 112.dp
+private val TILE_MAX: Dp = 220.dp

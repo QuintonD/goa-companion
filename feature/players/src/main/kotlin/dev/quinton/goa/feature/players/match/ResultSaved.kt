@@ -130,12 +130,6 @@ fun ResultSavedContent(
                         modifier = Modifier.size(18.dp).semantics { contentDescription = "Updating ratings" },
                         strokeWidth = 2.dp,
                     )
-                } else {
-                    Text(
-                        "Group Elo",
-                        style = MaterialTheme.typography.labelMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
                 }
             },
         )
@@ -147,16 +141,7 @@ fun ResultSavedContent(
                 }
             }
         }
-        // The trend lines are left out at large text (PlayerChangeRow), and so is their key.
-        val lines = LocalDensity.current.fontScale < LARGE_FONT_SCALE
-        if (lines && state.ratingsReady && state.players.any { it.trend.size > 2 }) {
-            Text(
-                "Each line: the player's rating over their last few matches, this one last.",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(top = Spacing.sm),
-            )
-        }
+
         val leaderRating = state.leaderRating
         if (state.ratingsReady && state.leaderName != null && leaderRating != null) {
             LeaderLine(state, formatRating(leaderRating.value))
@@ -389,12 +374,7 @@ fun RematchSheet(options: List<RematchOption>, onPick: (RematchKind?) -> Unit, o
                 style = MaterialTheme.typography.titleLarge,
                 modifier = Modifier.padding(horizontal = Spacing.screen).semantics { heading() },
             )
-            Text(
-                "Same group again. Match setup opens with these seats; flip the Tie Breaker coin there.",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(horizontal = Spacing.screen, vertical = Spacing.sm),
-            )
+
             options.forEach { option ->
                 val enabled = option.unavailable == null
                 Row(

@@ -180,10 +180,10 @@ private fun ResultPlate(play: PlayUi, over: GameOverUi) {
                 if (play.online != null) {
                     BoardText.count(over.rounds, "round")
                 } else {
-                    listOf(
+                    listOfNotNull(
                         BoardText.count(over.rounds, "round"),
                         BoardText.count(over.takeBacks, "take back"),
-                        if (over.coach) BoardText.count(over.nudges, "coach nudge") else "Coach off",
+                        if (over.coach) BoardText.count(over.nudges, "coach nudge") else null,
                     ).joinToString(" · ")
                 },
                 style = MaterialTheme.typography.labelLarge,

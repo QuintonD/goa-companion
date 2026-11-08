@@ -61,11 +61,6 @@ internal fun GameReportSection(
                     onClick = { onAction(GameAction.StartReport) },
                     modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp),
                 ) { Text(stringResource(R.string.report_start)) }
-                Text(
-                    stringResource(R.string.report_start_hint),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
             }
 
             ui.running -> Running(ui, onAction)

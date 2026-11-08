@@ -157,7 +157,6 @@ fun PresetEditScreen(state: PresetEditUiState, actions: PresetEditActions) {
                     value = preset.name,
                     onValueChange = actions.onRename,
                     label = { Text("Preset name") },
-                    placeholder = { Text("e.g. Fast game") },
                     singleLine = true,
                     isError = nameError,
                     supportingText = if (nameError) ({ Text("Give the preset a name") }) else null,
@@ -166,7 +165,8 @@ fun PresetEditScreen(state: PresetEditUiState, actions: PresetEditActions) {
                 Spacer(Modifier.height(Spacing.sm))
                 ToggleRow(
                     title = "Auto-advance",
-                    subtitle = "Move on when a timed phase hits zero. Off: overtime counts up until you tap Next.",
+                    // Ambiguous alone: what off does.
+                    subtitle = "Off: overtime counts up until Next.",
                     checked = preset.autoAdvance,
                     onChange = actions.onAutoAdvance,
                 )
@@ -181,7 +181,7 @@ fun PresetEditScreen(state: PresetEditUiState, actions: PresetEditActions) {
             }
             ScopeSection(
                 title = "Round start",
-                hint = "Once per round, before turn 1.",
+                hint = null,
                 scope = PhaseScope.ROUND_START,
                 state = state,
                 actions = actions,
@@ -189,8 +189,7 @@ fun PresetEditScreen(state: PresetEditUiState, actions: PresetEditActions) {
             )
             ScopeSection(
                 title = "Every turn",
-                hint = "Each of the ${preset.turnsPerRound} turns: play a card, then resolve after the reveal. " +
-                    "The Action timer repeats for every hero and replaces Resolve when on.",
+                hint = "× ${preset.turnsPerRound} turns",
                 scope = PhaseScope.TURN,
                 state = state,
                 actions = actions,
@@ -198,7 +197,7 @@ fun PresetEditScreen(state: PresetEditUiState, actions: PresetEditActions) {
             )
             ScopeSection(
                 title = "End of round",
-                hint = "Runs on a checklist step (the Upgrade timer on Level Up) or after the checklist.",
+                hint = null,
                 scope = PhaseScope.ROUND_END,
                 state = state,
                 actions = actions,
@@ -245,27 +244,19 @@ private fun TableRulesSection(
     val preset = state.preset ?: return
     val colors = MaterialTheme.colorScheme
     SectionHeader("Table rules")
-    Text(
-        "House rules, not in the rulebook.",
-        style = MaterialTheme.typography.bodySmall,
-        color = colors.onSurfaceVariant,
-    )
     GoaPlate(Modifier.fillMaxWidth(), contentPadding = PaddingValues(horizontal = Spacing.md, vertical = Spacing.sm)) {
         RuleRow(
             title = "Hurry up",
-            subtitle = "On-demand countdown for a slow decision, in any phase or in overtime.",
+            subtitle = null,
             value = preset.shotClockSeconds?.let { TimerText.durationLabel(it) } ?: "Off",
             onClick = { onEditDuration(RuleDuration.SHOT_CLOCK) },
         )
         Row(Modifier.fillMaxWidth().heightIn(min = 56.dp), verticalAlignment = Alignment.CenterVertically) {
-            Column(Modifier.weight(1f).padding(end = Spacing.md)) {
-                Text("Time-outs per team per round", style = MaterialTheme.typography.titleSmall)
-                Text(
-                    "Each adds time to the current phase. 0 = off.",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
+            Text(
+                "Time-outs per team per round",
+                style = MaterialTheme.typography.titleSmall,
+                modifier = Modifier.weight(1f).padding(end = Spacing.md),
+            )
             Stepper(
                 value = preset.timeOutsPerRound,
                 range = TimerPresetValidator.TIME_OUTS_RANGE,
@@ -276,15 +267,14 @@ private fun TableRulesSection(
         if (preset.timeOutsPerRound > 0) {
             RuleRow(
                 title = "Time-out length",
-                subtitle = "Added to the current phase.",
+                subtitle = null,
                 value = "+" + TimerText.durationLabel(preset.timeOutSeconds),
                 onClick = { onEditDuration(RuleDuration.TIME_OUT) },
             )
         }
         ToggleRow(
             title = "Volume keys control the timer",
-            subtitle = "While the timer shows: volume up = Next, volume down = Pause/Resume. Works with most " +
-                "Bluetooth camera shutters. The keys won't change the volume then.",
+            subtitle = "Up = Next · Down = Pause",
             checked = preset.volumeKeys,
             onChange = actions.onVolumeKeys,
         )
@@ -305,15 +295,17 @@ private fun TableRulesSection(
 }
 
 @Composable
-private fun RuleRow(title: String, subtitle: String, value: String, onClick: () -> Unit) {
+private fun RuleRow(title: String, subtitle: String?, value: String, onClick: () -> Unit) {
     Row(Modifier.fillMaxWidth().heightIn(min = 56.dp), verticalAlignment = Alignment.CenterVertically) {
         Column(Modifier.weight(1f).padding(end = Spacing.md)) {
             Text(title, style = MaterialTheme.typography.titleSmall)
-            Text(
-                subtitle,
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
+            if (subtitle != null) {
+                Text(
+                    subtitle,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
         }
         AssistChip(
             onClick = onClick,
@@ -349,7 +341,7 @@ private fun ToggleRow(title: String, subtitle: String, checked: Boolean, onChang
 @Composable
 private fun ScopeSection(
     title: String,
-    hint: String,
+    hint: String?,
     scope: PhaseScope,
     state: PresetEditUiState,
     actions: PresetEditActions,
@@ -357,7 +349,9 @@ private fun ScopeSection(
 ) {
     val phases = state.preset?.phases.orEmpty().filter { it.scope == scope }
     SectionHeader(title)
-    Text(hint, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+    if (hint != null) {
+        Text(hint, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+    }
     if (phases.isNotEmpty()) {
         val hasError = phases.any { state.issuesFor(it.id).isNotEmpty() }
         GoaPlate(

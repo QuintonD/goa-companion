@@ -34,7 +34,7 @@ class TriviaFlowTest {
         rule.openFromPlay("Card trivia")
 
         // Home: overall progress, and the setup folded into Quiz options.
-        rule.waitForText("numbers learned", substring = true)
+        rule.waitForDescription("numbers learned", substring = true)
         rule.tapText("Quiz options")
 
         // Heroes → only Arien.

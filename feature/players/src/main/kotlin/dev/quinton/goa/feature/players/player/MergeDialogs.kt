@@ -53,13 +53,7 @@ internal fun MergeSection(state: PlayerDetailUiState, actions: PlayerDetailActio
         Spacer(Modifier.width(Spacing.sm))
         Text("Merge into…")
     }
-    Text(
-        "Added twice (e.g. on two phones)? Merge this player into the other one: their matches and ratings " +
-            "become one, on every phone after the next sync.",
-        style = MaterialTheme.typography.bodySmall,
-        color = MaterialTheme.colorScheme.onSurfaceVariant,
-        modifier = Modifier.padding(top = Spacing.sm),
-    )
+
     if (picking) {
         GoaDialog(
             onDismissRequest = { picking = false },

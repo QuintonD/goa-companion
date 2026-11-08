@@ -107,7 +107,7 @@ internal fun AddContent(
     var tab by rememberSaveable { mutableIntStateOf(0) }
     var team by rememberSaveable { mutableStateOf(Team.RED) }
     Column(modifier.fillMaxWidth().fillMaxHeight(SHEET_HEIGHT)) {
-        SheetTitle("Add a piece", "Then tap an empty space to put it there.", onDone)
+        SheetTitle("Add a piece", null, onDone)
         PrimaryTabRow(selectedTabIndex = tab, containerColor = Color.Transparent) {
             listOf("Hero", "Minion", "Token").forEachIndexed { i, label ->
                 Tab(selected = tab == i, onClick = { tab = i }, text = { Text(label, maxLines = 1) })
@@ -118,7 +118,6 @@ internal fun AddContent(
             horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Text("Team", style = MaterialTheme.typography.labelLarge)
             Team.entries.forEach { option ->
                 GoaFilterChip(selected = team == option, onClick = { team = option }, label = BoardText.team(option))
             }
@@ -234,7 +233,6 @@ private fun TokenChoices(onPick: (String, Boolean) -> Unit) {
             value = label,
             onValueChange = { label = it.take(TOKEN_LABEL) },
             label = { Text("Label") },
-            supportingText = { Text("A token is an obstacle (p.18). Name it after the card that places it.") },
             singleLine = true,
             keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
             keyboardActions = KeyboardActions(onDone = { if (trimmed.isNotEmpty()) onPick(trimmed, withTeam) }),
@@ -355,9 +353,7 @@ internal fun PushDialog(
             // GoaDialog scrolls its text: a second scroll here would be measured without a limit and crash.
             Column(verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
                 Text(
-                    "Which team won the push? The next Zone toward the losing team's Throne becomes the Battle " +
-                        "Zone. The minions of the previous Battle Zone are removed, and one minion spawns on each " +
-                        "Spawn point of the new one (p.8). Flip the Wave counter at the table.",
+                    "Which team won the push? Flip the Wave counter at the table (p.8).",
                     style = MaterialTheme.typography.bodyMedium,
                 )
                 lanes.forEach { lane ->

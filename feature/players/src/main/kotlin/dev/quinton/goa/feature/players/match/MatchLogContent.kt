@@ -53,6 +53,7 @@ import dev.quinton.goa.core.designsystem.component.GoaButton
 import dev.quinton.goa.core.designsystem.component.GoaOutlinedButton
 import dev.quinton.goa.core.designsystem.component.HeroPortrait
 import dev.quinton.goa.core.designsystem.component.TeamBadge
+import dev.quinton.goa.core.designsystem.component.scaledIconSize
 import dev.quinton.goa.core.designsystem.icon.Destination
 import dev.quinton.goa.core.designsystem.icon.icon
 import dev.quinton.goa.core.designsystem.theme.Spacing
@@ -129,7 +130,7 @@ fun MatchLogContent(
             EmptyState(
                 icon = Icons.Outlined.History,
                 title = "No matches yet",
-                message = "Log your games to build ratings, records and the meta. Drafts add pending matches here too.",
+                message = "Log a game to start.",
                 action = {
                     GoaButton(onClick = onLogMatch) {
                         Icon(Icons.Outlined.Add, contentDescription = null)
@@ -380,10 +381,11 @@ private fun TeamColumn(team: Team, seats: List<SeatUi>, winner: Team?, modifier:
             TeamBadge(team)
             if (winner == team) {
                 Spacer(Modifier.width(Spacing.xs))
-                Text(
-                    "· Winner",
-                    style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                Icon(
+                    Icons.Filled.EmojiEvents,
+                    contentDescription = "Winner",
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(scaledIconSize(18.dp)),
                 )
             }
         }

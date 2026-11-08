@@ -297,13 +297,6 @@ private fun HomeContent(
                             SectionHeader(
                                 "By hero",
                                 padded,
-                                trailing = {
-                                    Text(
-                                        "Tap one to quiz it",
-                                        style = MaterialTheme.typography.labelMedium,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    )
-                                },
                             )
                         }
                         items(state.heroes, key = { "hero-${it.heroId}" }) { hero ->
@@ -373,13 +366,6 @@ private fun ChallengeCard(modifier: Modifier) {
             style = MaterialTheme.typography.headlineSmall,
             color = MaterialTheme.colorScheme.onSurface,
         )
-        Spacer(Modifier.height(Spacing.xs))
-        Text(
-            "The same quiz for everyone: every number on every card, four choices, initiative duels. Each " +
-                "player's best is ranked on the group's leaderboard.",
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
     }
 }
 
@@ -427,18 +413,17 @@ internal fun playingAsNote(playing: PlayingAsState): String? = TriviaText.playin
 
 /**
  * Mastery as one header, not a panel: the learned figure large (Inter, as every score), what it counts in the
- * section's Cinzel, the bar and its legend under it, and what "learned" means in one caption.
+ * section's Cinzel, the bar and its legend under it.
  */
 @Composable
 private fun MasteryHeader(state: TriviaHomeUiState.Ready, modifier: Modifier) {
     val overall = state.overall
-    val scope = if (state.ownedOnly) "numbers learned on your heroes" else "numbers learned"
     Column(modifier.fillMaxWidth()) {
         Row(
             Modifier.semantics(mergeDescendants = true) {
                 heading()
                 contentDescription = "${TriviaText.number(overall.mastered)} of " +
-                    "${TriviaText.number(overall.total)} $scope"
+                    "${TriviaText.number(overall.total)} numbers learned"
             },
             verticalAlignment = Alignment.Bottom,
         ) {
@@ -450,7 +435,7 @@ private fun MasteryHeader(state: TriviaHomeUiState.Ready, modifier: Modifier) {
             )
             Spacer(Modifier.width(Spacing.sm))
             Text(
-                "of ${TriviaText.number(overall.total)} $scope",
+                "of ${TriviaText.number(overall.total)} learned",
                 style = GoaTextStyles.sectionHead,
                 color = GoaTheme.colors.heading,
                 modifier = Modifier.alignByBaseline(),
@@ -460,12 +445,6 @@ private fun MasteryHeader(state: TriviaHomeUiState.Ready, modifier: Modifier) {
         MasteryBar(overall, height = 8.dp)
         Spacer(Modifier.height(Spacing.sm))
         MasteryLegend(overall)
-        Text(
-            "A number is learned after three right answers in a row.",
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.padding(top = Spacing.xs),
-        )
     }
 }
 
@@ -607,15 +586,6 @@ private fun SetupBlock(
                     label = "Recall",
                 )
             }
-            Text(
-                if (setup.answerStyle == AnswerStyle.CHOICES) {
-                    "Pick the number from four close ones."
-                } else {
-                    "Pick from every number the stat has on any card: no hints."
-                },
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
         }
         Column {
             SetupLabel("Questions")
@@ -705,15 +675,14 @@ private fun DuelsRow(state: TriviaHomeUiState.Ready, onAction: (TriviaHomeAction
                 style = MaterialTheme.typography.titleSmall,
                 color = MaterialTheme.colorScheme.run { if (enabled) onSurface else onSurfaceVariant },
             )
-            Text(
-                if (enabled) {
-                    "Now and then: which of two cards has the higher initiative?"
-                } else {
-                    "Needs Initiative under Numbers."
-                },
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
+            // Only why it's off: on, the name says it.
+            if (!enabled) {
+                Text(
+                    "Needs Initiative under Numbers.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
         }
         Spacer(Modifier.width(Spacing.md))
         GoaSwitch(checked = checked, onCheckedChange = null, enabled = enabled)
@@ -818,10 +787,6 @@ private val TOP_BAR_ICON = 48.dp
 /** Back and the title's inset (56 dp), the bar's end padding (4 dp), the menu icon and a margin. */
 private val TOP_BAR_FIXED = 56.dp + 4.dp + TOP_BAR_ICON + 8.dp
 
-/** "6 learned · 3 learning" (learning left out at none): a hero's row in words. */
-internal fun masteryCounts(learned: Int, learning: Int): String =
-    "${TriviaText.number(learned)} learned" + if (learning > 0) " · ${TriviaText.number(learning)} learning" else ""
-
 @Composable
 private fun HeroProgressRow(hero: HeroProgressUi, onClick: () -> Unit) {
     val p = hero.progress
@@ -878,10 +843,10 @@ private fun HeroProgressRow(hero: HeroProgressUi, onClick: () -> Unit) {
                 }
                 Spacer(Modifier.height(Spacing.xs + 2.dp))
                 MasteryBar(p, height = 6.dp)
-                // Both counts in words, under the bar: learned and learning apart by more than colour.
-                if (p.mastered + p.learning > 0) {
+                // The learned count is the figure over the bar; only the learning count (striped) needs words.
+                if (p.learning > 0) {
                     Text(
-                        masteryCounts(p.mastered, p.learning),
+                        "${TriviaText.number(p.learning)} learning",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.padding(top = Spacing.xs),

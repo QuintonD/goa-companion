@@ -122,17 +122,6 @@ private fun SummaryCard(state: SummaryUiState, actions: TimerActions, onDiscard:
                     bronze = true,
                     modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp),
                 ) { Text("Log result", style = MaterialTheme.typography.titleMedium) }
-                Spacer(Modifier.height(Spacing.sm))
-                Text(
-                    if (state.hasMatch) {
-                        "The duration is saved to the match. Log the winner and win condition next."
-                    } else {
-                        "Log result opens a new match with this duration filled in."
-                    },
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    textAlign = TextAlign.Center,
-                )
                 Spacer(Modifier.height(Spacing.lg))
                 // A linked match already has its duration, so closing loses nothing. Without a
                 // match, closing throws the duration away: ask first.

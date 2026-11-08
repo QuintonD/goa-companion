@@ -144,8 +144,7 @@ fun DraftMethodsScreen(state: MethodsUiState, actions: MethodsActions) {
                 if (state.custom.isEmpty()) {
                     item {
                         Text(
-                            "Duplicate a method to tweak it, or create one from scratch. Pool size, bans and the " +
-                                "pick pattern are all editable.",
+                            "No custom methods yet.",
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )

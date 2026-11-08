@@ -83,7 +83,7 @@ fun PlayerDetailScreen(state: PlayerDetailUiState, actions: PlayerDetailActions,
             state.loading -> LoadingState(Modifier.padding(padding))
 
             player == null -> Box(Modifier.fillMaxSize().padding(padding), contentAlignment = Alignment.Center) {
-                EmptyState(Icons.Outlined.PersonOff, "Player not found", "This player no longer exists.")
+                EmptyState(Icons.Outlined.PersonOff, "Player not found")
             }
 
             else -> LazyColumn(
@@ -96,11 +96,7 @@ fun PlayerDetailScreen(state: PlayerDetailUiState, actions: PlayerDetailActions,
                 item(key = "chart") {
                     EngravedCard(Modifier.fillMaxWidth()) {
                         if (state.history.isEmpty()) {
-                            EmptyState(
-                                icon = Icons.AutoMirrored.Outlined.ShowChart,
-                                title = "No rated matches yet",
-                                message = "The chart starts with ${player.name}'s first completed match.",
-                            )
+                            EmptyState(icon = Icons.AutoMirrored.Outlined.ShowChart, title = "No rated matches yet")
                         } else {
                             Column(Modifier.padding(Spacing.md)) {
                                 RatingChart(state.history, state.initialRating, dates = state.historyDates)
@@ -158,7 +154,7 @@ fun PlayerDetailScreen(state: PlayerDetailUiState, actions: PlayerDetailActions,
                 if (state.recentMatches.isEmpty()) {
                     item(key = "no-recent") {
                         Text(
-                            "No matches logged with ${player.name} yet.",
+                            "No matches yet.",
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
@@ -182,13 +178,7 @@ fun PlayerDetailScreen(state: PlayerDetailUiState, actions: PlayerDetailActions,
                             Spacer(Modifier.width(Spacing.sm))
                             Text(if (player.archived) "Restore player" else "Archive player")
                         }
-                        Text(
-                            "Archived players are hidden from the leaderboard and pickers. " +
-                                "Their matches and ratings stay in the log.",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.padding(top = Spacing.sm),
-                        )
+
                         if (state.mergeCandidates.isNotEmpty()) MergeSection(state, actions)
                     }
                 }

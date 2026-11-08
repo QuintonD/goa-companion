@@ -1,6 +1,5 @@
 package dev.quinton.goa.feature.settings
 
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -62,7 +61,6 @@ fun MoreScreen(onOpen: (MoreLink) -> Unit, modifier: Modifier = Modifier) {
                     MoreRow(
                         rememberVectorPainter(Destination.DRAFT.icon),
                         Destination.DRAFT.label,
-                        "Pick and ban heroes for tonight's teams, then set up the match",
                     ) { onOpen(MoreLink.DRAFT) }
                 }
             }
@@ -72,7 +70,6 @@ fun MoreScreen(onOpen: (MoreLink) -> Unit, modifier: Modifier = Modifier) {
                     MoreRow(
                         rememberVectorPainter(Destination.RULES.icon),
                         Destination.RULES.label,
-                        "The level and defeat ladder and the rulebook's quick reference, with page numbers",
                     ) { onOpen(MoreLink.RULES) }
                 }
             }
@@ -82,13 +79,11 @@ fun MoreScreen(onOpen: (MoreLink) -> Unit, modifier: Modifier = Modifier) {
                     MoreRow(
                         rememberVectorPainter(Destination.GROUP_SYNC.icon),
                         Destination.GROUP_SYNC.label,
-                        "Share matches and players with your friends' phones",
                     ) { onOpen(MoreLink.GROUP_SYNC) }
                     MoreDivider()
                     MoreRow(
                         rememberVectorPainter(Icons.Outlined.Backup),
                         "Backup and restore",
-                        "Export or import all your data and settings",
                     ) { onOpen(MoreLink.BACKUP) }
                 }
             }
@@ -98,13 +93,11 @@ fun MoreScreen(onOpen: (MoreLink) -> Unit, modifier: Modifier = Modifier) {
                     MoreRow(
                         rememberVectorPainter(Icons.Outlined.Settings),
                         "Settings",
-                        "Theme, board style, your collection, sounds, presets and ratings",
                     ) { onOpen(MoreLink.SETTINGS) }
                     MoreDivider()
                     MoreRow(
                         rememberVectorPainter(Icons.Outlined.Info),
                         "About",
-                        "The app, its sources and licences",
                     ) { onOpen(MoreLink.ABOUT) }
                 }
             }
@@ -125,14 +118,14 @@ private fun MoreDivider() {
     HorizontalDivider(Modifier.padding(horizontal = Spacing.lg), color = GoaTheme.colors.engravedBorder)
 }
 
-/** One destination: the whole row is the button, read as its title and what it is for. */
+/** One destination: the whole row is the button, its glyph and title all it needs to say. */
 @Composable
-private fun MoreRow(icon: Painter, title: String, subtitle: String, onClick: () -> Unit) {
+private fun MoreRow(icon: Painter, title: String, onClick: () -> Unit) {
     Surface(onClick = onClick, color = Color.Transparent) {
         Row(
             Modifier
                 .fillMaxWidth()
-                .heightIn(min = 72.dp)
+                .heightIn(min = 56.dp)
                 .padding(horizontal = Spacing.lg, vertical = Spacing.md),
             verticalAlignment = Alignment.CenterVertically,
         ) {
@@ -143,14 +136,7 @@ private fun MoreRow(icon: Painter, title: String, subtitle: String, onClick: () 
                 modifier = Modifier.size(scaledIconSize(26.dp, 1.4f)),
             )
             Spacer(Modifier.width(Spacing.lg))
-            Column(Modifier.weight(1f)) {
-                Text(title, style = MaterialTheme.typography.titleMedium)
-                Text(
-                    subtitle,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
+            Text(title, style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f))
             Icon(
                 Icons.AutoMirrored.Outlined.KeyboardArrowRight,
                 contentDescription = null,

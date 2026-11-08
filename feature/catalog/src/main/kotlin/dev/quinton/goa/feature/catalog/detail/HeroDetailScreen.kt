@@ -69,12 +69,9 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
-import androidx.compose.ui.text.SpanStyle
-import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil3.compose.AsyncImage
@@ -101,7 +98,6 @@ import dev.quinton.goa.core.domain.catalog.HANDICAP_EXPLANATION
 import dev.quinton.goa.core.domain.catalog.HeroPilotStat
 import dev.quinton.goa.core.domain.catalog.StartingCards
 import dev.quinton.goa.core.domain.catalog.attackProfile
-import dev.quinton.goa.core.domain.catalog.complexityName
 import dev.quinton.goa.core.domain.catalog.elo
 import dev.quinton.goa.core.domain.catalog.handicapConflict
 import dev.quinton.goa.core.domain.catalog.kindLabel
@@ -316,7 +312,7 @@ private fun LazyListScope.overviewContent(
             if (state.stats.hasGames) {
                 PersonalStatsCard(state.stats)
             } else {
-                NoGamesRow(hero.name, onLogMatch)
+                NoGamesRow(onLogMatch)
             }
         }
     }
@@ -447,11 +443,13 @@ private fun LearnNumbersButton(heroName: String, onClick: () -> Unit, modifier: 
         modifier = modifier
             .fillMaxWidth()
             .padding(top = Spacing.sm)
-            .heightIn(min = 48.dp),
+            .heightIn(min = 48.dp)
+            // The page names the hero; TalkBack still hears whose numbers.
+            .semantics { contentDescription = "Learn $heroName's card numbers" },
     ) {
         Icon(Icons.Outlined.Quiz, contentDescription = null, modifier = Modifier.size(scaledIconSize(18.dp)))
         Spacer(Modifier.width(Spacing.sm))
-        Text("Learn $heroName's card numbers")
+        Text("Learn the card numbers")
     }
 }
 
@@ -561,20 +559,17 @@ private fun HeroHeader(hero: Hero, productName: String) {
 }
 
 /**
- * Stars, the complexity's name and the official roles, flowing line to line. [stacked], for large text: the
- * stars and the name, then the roles as one sentence, so a separator doesn't dangle at each line's end.
+ * Stars and the official roles, flowing line to line; the stars say the complexity (its name is TalkBack's, on the
+ * stars). [stacked], for large text: the stars, then the roles as one sentence, so a separator doesn't dangle.
  */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun HeroIdentityLine(hero: Hero, modifier: Modifier = Modifier, stacked: Boolean = false) {
-    val words = listOfNotNull(hero.complexity?.let(::complexityName)) + hero.roles.map { it.label }
+    val words = hero.roles.map { it.label }
     if (stacked) {
         Column(modifier, verticalArrangement = Arrangement.spacedBy(2.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                hero.complexity?.let {
-                    ComplexityStars(it, starSize = 14.dp, modifier = Modifier.padding(end = Spacing.sm))
-                    Text(complexityName(it).orEmpty(), style = MaterialTheme.typography.bodyMedium)
-                }
+                hero.complexity?.let { ComplexityStars(it, starSize = 14.dp) }
             }
             Text(hero.roles.joinToString(" · ") { it.label }, style = MaterialTheme.typography.bodyMedium)
         }
@@ -621,10 +616,10 @@ private fun VerifiedPill() {
 
 /** No match logged with the hero yet: one line, and "Log a match" (with the hero in a seat) beside it. */
 @Composable
-private fun NoGamesRow(heroName: String, onLogMatch: (() -> Unit)?) {
+private fun NoGamesRow(onLogMatch: (() -> Unit)?) {
     Row(Modifier.fillMaxWidth().heightIn(min = 48.dp), verticalAlignment = Alignment.CenterVertically) {
         Text(
-            "No games logged with $heroName yet",
+            "No games yet",
             style = MaterialTheme.typography.bodyLarge,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.weight(1f),
@@ -696,7 +691,7 @@ private fun PilotsBlock(stats: HeroPersonalStats) {
     )
     if (best.isEmpty()) {
         Text(
-            "Rankings start at ${stats.log.minGames} games per player.",
+            "Ranked from ${stats.log.minGames} games",
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
@@ -823,12 +818,9 @@ private fun DataSourceLine(hero: Hero, modifier: Modifier = Modifier) {
         1 -> names.first()
         else -> "${names.first()} + ${names.size - 1} more"
     }
-    val tone = if (hero.verified) GoaTheme.colors.verified else GoaTheme.colors.unverified
+    // Verified or not is the header's pill; the foot names only the source.
+    val line = "Data: $source"
     val status = if (hero.verified) "Verified" else "Unverified"
-    val line = buildAnnotatedString {
-        append("Data: $source · ")
-        withStyle(SpanStyle(color = tone, fontWeight = FontWeight.SemiBold)) { append(status) }
-    }
     Text(
         line,
         style = MaterialTheme.typography.bodyMedium,

@@ -37,16 +37,17 @@ import dev.quinton.goa.core.designsystem.theme.Spacing
  * "Guest practice"), and a chevron when a tap changes it. Read only, with no chevron, where it can't be changed here
  * (no [onClick]). One quiet plate and one TalkBack node ("Playing as Ann, you. Group · Friday nights").
  * [compact] sets it as one 48 dp line ("Playing as Ann · Online"), for a screen whose own action must stay in view.
+ * A null [scope] leaves the title alone, where the screen around it already names the scope.
  */
 @Composable
 fun IdentitySelector(
     title: String,
-    scope: String,
+    scope: String?,
     avatar: @Composable (Dp) -> Unit,
     modifier: Modifier = Modifier,
     onClick: (() -> Unit)? = null,
     onClickLabel: String = "Change player",
-    spoken: String = "$title. $scope",
+    spoken: String = if (scope != null) "$title. $scope" else title,
     tag: (@Composable () -> Unit)? = null,
     compact: Boolean = false,
 ) {
@@ -83,7 +84,9 @@ fun IdentitySelector(
                     buildAnnotatedString {
                         append(title)
                         // A no-break space: the dot stays with the scope's first word, never alone at a line's end.
-                        withStyle(SpanStyle(color = muted, fontSize = small)) { append("\u00A0· $scope") }
+                        if (scope != null) {
+                            withStyle(SpanStyle(color = muted, fontSize = small)) { append("\u00A0· $scope") }
+                        }
                     },
                     style = MaterialTheme.typography.titleMedium,
                     color = MaterialTheme.colorScheme.onSurface,
@@ -103,11 +106,13 @@ fun IdentitySelector(
                             tag()
                         }
                     }
-                    Text(
-                        scope,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
+                    if (scope != null) {
+                        Text(
+                            scope,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
                 }
             }
             if (onClick != null) {

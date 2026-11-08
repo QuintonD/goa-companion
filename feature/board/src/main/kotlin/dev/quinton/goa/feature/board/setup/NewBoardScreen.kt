@@ -98,7 +98,6 @@ import dev.quinton.goa.core.designsystem.component.TeamMark
 import dev.quinton.goa.core.designsystem.component.UnverifiedBadge
 import dev.quinton.goa.core.designsystem.component.scaledIconSize
 import dev.quinton.goa.core.designsystem.component.teamColor
-import dev.quinton.goa.core.designsystem.theme.GoaTextStyles
 import dev.quinton.goa.core.designsystem.theme.GoaTheme
 import dev.quinton.goa.core.designsystem.theme.Spacing
 import dev.quinton.goa.core.model.match.Team
@@ -829,7 +828,6 @@ private fun SetUpBar(state: NewBoardUiState.Ready, onAction: (NewBoardAction) ->
                     },
                 ) {
                     Column(horizontalAlignment = Alignment.Start) {
-                        Text("MAP", style = GoaTextStyles.overline, color = MaterialTheme.colorScheme.primary)
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Text(
                                 map?.name ?: "No map in this build",
@@ -916,11 +914,11 @@ internal fun SourcesContent(
     modifier: Modifier = Modifier,
 ) {
     Column(modifier.fillMaxWidth().fillMaxHeight(SHEET_HEIGHT)) {
-        SheetTitle(RECENT_LINEUPS, "Fills both teams in pick order.", onDone)
+        SheetTitle(RECENT_LINEUPS, null, onDone)
         LazyColumn(Modifier.weight(1f)) {
             items(sources, key = { it.key }) { source -> SourceRow(source, onClick = { onUse(source) }) }
             if (sources.isEmpty()) {
-                item { Text("Finished drafts and logged matches appear here.", Modifier.padding(Spacing.screen)) }
+                item { Text("No drafts or matches yet.", Modifier.padding(Spacing.screen)) }
             }
         }
     }
@@ -952,14 +950,6 @@ private fun SourceRow(source: LineupSource, onClick: () -> Unit) {
                 LineupHeroes(Team.RED, source.red)
                 LineupHeroes(Team.BLUE, source.blue)
             }
-            Text(
-                listOf(source.red, source.blue).filter {
-                    it.isNotEmpty()
-                }.joinToString(" vs ") { team -> team.joinToString(", ") { it.name } },
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(top = Spacing.xs),
-            )
         }
     }
 }

@@ -206,11 +206,9 @@ private fun BoardContent(state: TriviaLeaderboardUiState.Ready, actions: Leaderb
                         Spacer(Modifier.height(Spacing.xs))
                         Text(
                             if (state.tab == LeaderboardTab.CHALLENGE) {
-                                "Your group only · each player's best Challenge: most right answers, then the " +
-                                    "quicker time."
+                                "Best Challenge · most right, then fastest"
                             } else {
-                                "Your group only · every round played as a player, Challenges included: most right " +
-                                    "answers, then accuracy."
+                                "Every round · most right, then accuracy"
                             },
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -295,23 +293,19 @@ private fun EmptyBoard(state: TriviaLeaderboardUiState.Ready, modifier: Modifier
         state.olderScores -> EmptyState(
             icon = Icons.Outlined.EventBusy,
             title = if (challenge) "No Challenges in the last 30 days" else "No rounds in the last 30 days",
-            message = "Older scores are under All time. Play a round to get back on the board.",
+            message = "Older scores are under All time.",
             modifier = modifier,
         )
 
         challenge -> EmptyState(
             icon = Icons.Outlined.EmojiEvents,
             title = "Play a Challenge to get on the board",
-            message = "20 questions on every hero, the same quiz for everyone. On Card trivia, pick who's " +
-                "playing and tap Challenge.",
             modifier = modifier,
         )
 
         else -> EmptyState(
             icon = Icons.Outlined.EmojiEvents,
             title = "Play a round as a player to get on the board",
-            message = "Pick who's playing on Card trivia: every round they finish counts here. Guest rounds " +
-                "aren't recorded.",
             modifier = modifier,
         )
     }
