@@ -85,7 +85,7 @@ ADR-038) and run one build at a time.
 .\gradlew.bat assembleDebug            # build
 .\gradlew.bat testDebugUnitTest        # JVM unit tests of the Android modules (data, VM, screens)
 .\gradlew.bat :core:model:allTests :core:domain:allTests :core:game:allTests :tools:catalog-import:test  # shared core, JVM + JS (Node); `test` = JVM only
-.\gradlew.bat verifyRoborazziDebug     # screenshot regression
+.\gradlew.bat verifyRoborazziDebug     # screenshot regression against this machine's baselines (recordRoborazziDebug first on a fresh checkout)
 .\gradlew.bat lintDebug detekt ktlintCheck
 .\gradlew.bat connectedDebugAndroidTest  # end-to-end UI tests (orchestrator, clean data per test)
 .\gradlew.bat :app:assembleRelease        # signed release APK (needs keystore.properties, see README)
@@ -103,10 +103,26 @@ ADR-038) and run one build at a time.
 A change is done when build, unit tests, lint and screenshot checks pass. Run the
 `ship-check` skill before declaring a milestone complete.
 
+## AI services (ADR-082)
+
+Two Azure AI Foundry deployments are available to agents through `tools/ai/azure_ai.py` (any harness; Claude Code wraps
+them in the `sol-review` and `imagegen` skills):
+
+- **gpt-6.1-sol** for independent review: `python3 -I tools/ai/azure_ai.py ask --effort high --prompt-file F [--image F]`.
+- **gpt-image-2.5** for raster assets: `python3 -I tools/ai/azure_ai.py image OUT.png "prompt" [--ref official.png]`;
+  decoration only, never game data (docs/DESIGN.md "Asset policy").
+- **Credentials** live in the secrets folder `~/.config/goa-companion/secrets/azure-ai.env` (mode 600; template
+  `tools/ai/azure-ai.env.example`; `$GOA_SECRETS_DIR` overrides). Never put a key in the repo, a prompt, a commit or a PR.
+- **Rate limits:** gpt-6.1-sol 333,000 tokens per minute and gpt-image 4 images per minute, shared by every process on
+  the machine. The client waits when a minute's budget is used and, on HTTP 429, waits a minute and retries. Don't add
+  your own retry loops or fan out parallel calls.
+
 ## Working agreements
 
 - Physical test device: Samsung S25 Ultra (ARM64). Emulator-only proof is not device proof.
 - Distinguish "builds" from "verified on device" in every status report.
 - Small, reviewable commits on a branch; one feature module per branch where
   practical.
+- Test screenshots are not committed (ADR-082): Roborazzi baselines live in each checkout. Record them on a fresh
+  checkout before changing UI, then verify; Playwright results and judge corpora stay local too.
 - Project path contains spaces (`guards of Atlantis`) — quote paths in scripts.

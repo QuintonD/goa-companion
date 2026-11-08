@@ -2927,3 +2927,22 @@ row. The draft numbers its steps with counts ("4 · ◆ Red picks 2") and says w
 winner first, then shows one-line rosters. Done, past and empty states lose decoration, never legibility (muted text ≥4.5:1,
 muted outline ≥3:1); a tag inside a frame is a tint, not an outline. One tab bar (`GoaTabRow`), one card-title face
 (`CardTitle`), one icon per destination (`Destination`). Online Join is disabled until a valid code. Refines ADR-072 to ADR-080.
+
+## ADR-082 — Test screenshots stay local; AI services through one client and a secrets folder (2026-11-08)
+**Context:** The UI hill climb (ADR-066) re-recorded hundreds of Roborazzi PNGs every round; the history grew to ~21 GB
+and GitHub refused the push, so 0.15.0 had to be squashed. The climb's Azure key sat in a one-off path, and each script
+did its own HTTP and retries.
+
+**Decision:** Test screenshots are git-ignored and untracked: Roborazzi baselines (`**/src/test/screenshots/`), its
+outputs and compare images, Playwright results. Each checkout records its own baselines (`recordRoborazziDebug`,
+from the last release on a fresh checkout) and verifies against them; the ship-check says so. Secrets live outside the
+repo in `~/.config/goa-companion/secrets/` (`azure-ai.env`, template `tools/ai/azure-ai.env.example`), and `.gitignore`
+refuses `secrets/`, `.secrets/` and `*.env`. All agent calls to Azure AI Foundry go through `tools/ai/azure_ai.py`: it
+reads the secrets file, keeps a machine-wide rolling budget (gpt-6.1-sol 333,000 tokens per minute, gpt-image 4 images
+per minute) in `~/.cache/goa-companion`, and on HTTP 429 waits a minute and retries. Claude Code wraps it in two
+skills: `sol-review` (adapted from Theo Browne's tstack `council`/`sol-loop`, MIT) and `imagegen`. The hill-climb
+harness uses the same client.
+
+**Consequences:** A screenshot regression is caught on the machine that recorded the baselines, not across machines;
+a fresh checkout (Megalithic after pulling this) records first. Pulling this commit deletes the tracked PNGs from other
+checkouts' working trees. Old screenshots remain in history (0.15.0 and earlier).

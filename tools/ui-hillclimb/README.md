@@ -18,7 +18,9 @@ more on every aspect**.
   art, never for anything that carries game data (cards, portraits, symbols, boards). Record every generated
   file with its prompt in `third_party/ASSETS.md`.
 
-The API key lives in `~/.config/goa-hillclimb/azure_key` (or `$GOA_HC_KEY_FILE`); never commit it. Run state (corpora,
+API calls go through `tools/ai/azure_ai.py` (credentials in `~/.config/goa-companion/secrets/azure-ai.env`, shared rate
+limits: gpt-6.1-sol 333k tokens/min, gpt-image 4 images/min; a 429 waits a minute). The `sol-review` and `imagegen` skills
+use the same client. Run state (corpora,
 verdicts, gate pairs, `history.md`) lives on disk in `~/goa-hillclimb/`: not in a session scratchpad, whose `/tmp` is a
 tmpfs a host restart wipes.
 
@@ -28,7 +30,7 @@ python3 -I tools/ui-hillclimb/hc.py judge <dir>/corpus <dir>/score-sol.json
 python3 -I tools/ui-hillclimb/hc.py blind <before>/corpus <after>/corpus <cmp> --only id,id   # hidden X|Y order
 python3 -I tools/ui-hillclimb/hc.py compare <cmp> <cmp>/sol.json --note "..."
 python3 -I tools/ui-hillclimb/hc.py unblind <cmp> <cmp>/opus-raw.json <cmp>/opus.json claude-opus-5-5  # after the Opus agent
-python3 -I tools/ui-hillclimb/hc.py imagegen out.png "prompt" --size 1536x1024 [--ref style.png]
+python3 -I tools/ai/azure_ai.py image out.png "prompt" --size 1536x1024 [--ref style.png]   # or the imagegen skill
 python3 -I tools/ui-hillclimb/hc.py board <runs_dir>
 tools/ui-hillclimb/build.sh :feature:timer:recordRoborazziDebug
 tools/ui-hillclimb/build.sh --max-workers=1 recordRoborazziDebug --continue   # whole app: one worker, or it OOMs at the 5 GB cap

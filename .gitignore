@@ -28,3 +28,17 @@ tools/catalog-import/cache/
 
 # Kotlin 2 project-local caches
 .kotlin/
+
+# Test screenshots stay local (ADR-082): Roborazzi baselines and outputs, Playwright results, judge corpora.
+# Record baselines once on a fresh checkout (`recordRoborazziDebug`) before changing UI, then verify against them.
+**/src/test/screenshots/
+**/build/outputs/roborazzi/
+*_compare.png
+*_actual.png
+web/e2e/test-results/
+web/e2e/playwright-report/
+
+# Secrets never live in the repo (ADR-082): ~/.config/goa-companion/secrets/ (see tools/ai/azure-ai.env.example).
+secrets/
+.secrets/
+*.env

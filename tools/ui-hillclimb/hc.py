@@ -10,43 +10,19 @@ generate art. The second judge (Claude Opus) runs as a Claude Code agent on the 
   python3 -I hc.py imagegen <out.png> "<prompt>" [--size 1024x1536] [--ref img.png ...] [--quality high]
   python3 -I hc.py board <runs_dir>                               # score history table (markdown)
 
-The Azure key is read from $GOA_HC_KEY_FILE or ~/.config/goa-hillclimb/azure_key; never commit it.
-Rate limits (429) and transient errors are retried after a minute.
+API calls go through tools/ai/azure_ai.py: credentials from the secrets folder (~/.config/goa-companion/secrets/
+azure-ai.env), machine-wide rate limits (gpt-6.1-sol 333k tokens/min, gpt-image 4 images/min), HTTP 429 waits a minute.
 """
-import base64, glob, io, json, os, random, sys, time, urllib.error, urllib.request
+import base64, glob, io, json, os, random, sys, time
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-BASE = "https://onyx-ai-swe.services.ai.azure.com/openai/v1"
-CHAT_MODEL = "gpt-6.1-sol"
-IMAGE_MODEL = "gpt-image-2.5-sunburst-Global"
+sys.path.insert(0, os.path.join(HERE, "..", "ai"))  # run with -I: the script dir is not on sys.path
+import azure_ai  # noqa: E402
+
+CHAT_MODEL = azure_ai.config()["AZURE_SOL_MODEL"]
 ASPECTS = ["hierarchy", "aesthetic", "art_assets", "typography", "color_contrast", "information",
            "affordance", "navigation", "feedback", "accessibility", "table_fitness", "consistency"]
 WIDTH = 600  # px per portrait screen sent to judges (about 1.46 px per dp: body text stays legible)
-
-
-def key():
-    path = os.environ.get("GOA_HC_KEY_FILE", os.path.expanduser("~/.config/goa-hillclimb/azure_key"))
-    return open(path).read().strip()
-
-
-def post(path, body, timeout=900):
-    data = json.dumps(body).encode()
-    for attempt in range(30):
-        req = urllib.request.Request(BASE + path, data=data,
-                                     headers={"api-key": key(), "Content-Type": "application/json"})
-        try:
-            return json.load(urllib.request.urlopen(req, timeout=timeout))
-        except urllib.error.HTTPError as e:
-            msg = e.read().decode(errors="replace")[:500]
-            if e.code in (429, 500, 502, 503, 504):
-                print(f"[hc] HTTP {e.code}, waiting 60 s ({attempt + 1}): {msg[:160]}", file=sys.stderr)
-                time.sleep(60)
-                continue
-            raise SystemExit(f"HTTP {e.code}: {msg}")
-        except (urllib.error.URLError, TimeoutError, ConnectionError) as e:
-            print(f"[hc] {e}, waiting 60 s", file=sys.stderr)
-            time.sleep(60)
-    raise SystemExit("gave up after 30 attempts")
 
 
 def corpus():
@@ -142,14 +118,7 @@ def b64(path):
 
 
 def ask(content, effort="high"):
-    t = time.time()
-    d = post("/responses", {"model": CHAT_MODEL, "reasoning": {"effort": effort},
-                            "input": [{"role": "user", "content": content}]})
-    text = "".join(c.get("text", "") for o in d.get("output", []) if o.get("type") == "message"
-                   for c in o.get("content", []))
-    print(f"[hc] {CHAT_MODEL} {time.time() - t:.0f} s, usage {d.get('usage', {}).get('total_tokens')}",
-          file=sys.stderr)
-    return text
+    return azure_ai.respond(content, effort)[0]
 
 
 def parse_json(text):
@@ -246,36 +215,7 @@ def compare(cmp_dir, out, note):
 
 
 def imagegen(out, prompt, size, refs, quality):
-    if refs:
-        # Edits endpoint with reference images (multipart).
-        boundary = "----hc" + str(random.randint(0, 1 << 30))
-        parts = []
-        def field(name, value):
-            parts.append(f"--{boundary}\r\nContent-Disposition: form-data; name=\"{name}\"\r\n\r\n{value}\r\n".encode())
-        field("model", IMAGE_MODEL); field("prompt", prompt); field("size", size); field("quality", quality)
-        for r in refs:
-            parts.append((f"--{boundary}\r\nContent-Disposition: form-data; name=\"image[]\"; "
-                          f"filename=\"{os.path.basename(r)}\"\r\nContent-Type: image/png\r\n\r\n").encode()
-                         + open(r, "rb").read() + b"\r\n")
-        parts.append(f"--{boundary}--\r\n".encode())
-        body = b"".join(parts)
-        for attempt in range(30):
-            req = urllib.request.Request(BASE + "/images/edits", data=body, headers={
-                "api-key": key(), "Content-Type": f"multipart/form-data; boundary={boundary}"})
-            try:
-                d = json.load(urllib.request.urlopen(req, timeout=900)); break
-            except urllib.error.HTTPError as e:
-                msg = e.read().decode(errors="replace")[:300]
-                if e.code in (429, 500, 502, 503, 504):
-                    print(f"[hc] HTTP {e.code}, waiting 60 s: {msg}", file=sys.stderr); time.sleep(60); continue
-                raise SystemExit(f"HTTP {e.code}: {msg}")
-        else:
-            raise SystemExit("gave up")
-    else:
-        d = post("/images/generations", {"model": IMAGE_MODEL, "prompt": prompt, "size": size, "n": 1,
-                                          "quality": quality})
-    open(out, "wb").write(base64.b64decode(d["data"][0]["b64_json"]))
-    print(f"[hc] wrote {out}")
+    azure_ai.image(out, prompt, size, quality, refs)
 
 
 def summary(r):

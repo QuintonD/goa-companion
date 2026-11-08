@@ -15,7 +15,8 @@ On oldboi use `goa-gradle <tasks>` in place of `.\gradlew.bat` (memory cap, ADR-
    reachable as `test`) and the shared tests on Node (`jsNodeTest`), which hold the web app to the
    phone's answers.
 3. `.\gradlew.bat lintDebug detekt ktlintCheck`
-4. `.\gradlew.bat verifyRoborazziDebug` — if baselines changed intentionally, re-record with
+4. `.\gradlew.bat verifyRoborazziDebug` — against this checkout's local baselines (they are not committed, ADR-082;
+   on a fresh checkout record them from the last release first). If screens changed intentionally, re-record with
    `recordRoborazziDebug` and say which screens changed.
 5. If a device or emulator is attached: `.\gradlew.bat connectedDebugAndroidTest`, then install
    and smoke-test the touched feature. State whether it was the S25 Ultra or an emulator.
