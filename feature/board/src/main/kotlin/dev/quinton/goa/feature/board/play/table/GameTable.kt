@@ -20,6 +20,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.Stable
 import androidx.compose.runtime.State
@@ -73,6 +74,16 @@ import dev.quinton.goa.feature.board.ui.cards.CardFocusState
 internal val LocalPanelQuestionEnd = staticCompositionLocalOf<((Int?) -> Unit)?> { null }
 
 /**
+ * The question's map options as a lettered list (sol #2, sol-b #1): [open] when the panel lists every option by its
+ * letter and the map tags each with it; [toggle] opens or closes it (the panel's "List" chip). Always offered while a
+ * question is answered on the map; opened by itself when the framing leaves its spaces smaller than a finger.
+ */
+@Immutable
+internal class MapList(val open: Boolean, val toggle: () -> Unit)
+
+internal val LocalMapList = compositionLocalOf { MapList(false) {} }
+
+/**
  * The room a question has in the panel, for a question that scrolls a part of itself so its commit stays in view
  * (Defend's list of cards): [height] is the most it may take from the top of the panel's content, [contentTop] where
  * that content is in the root, px (it moves as the panel scrolls, as the question does).
@@ -81,9 +92,6 @@ internal val LocalPanelQuestionEnd = staticCompositionLocalOf<((Int?) -> Unit)?>
 internal class QuestionRoom(val height: Dp, val contentTop: State<Float>)
 
 internal val LocalQuestionRoom = compositionLocalOf<QuestionRoom?> { null }
-
-/** The question's spaces stay crowded on the map (framed under 40 dp): the panel lists them by number too. */
-internal val LocalOptionsCrowded = compositionLocalOf { false }
 
 /**
  * The game table: the map full screen (the Lane up the screen in portrait, left to right in
@@ -136,8 +144,6 @@ fun GameTable(
     var toolbar by remember { mutableStateOf<Rect?>(null) }
     BoxWithConstraints(modifier.fillMaxSize().onGloballyPositioned { origin = it.positionInRoot() }) {
         val landscape = maxWidth > maxHeight
-        // A short screen sideways: the map controls are glyphs only.
-        val shortSideways = landscape && maxHeight < SHORT_HEIGHT
         val orientation = if (landscape) MapOrientation.LANDSCAPE else MapOrientation.PORTRAIT
         val layout =
             remember(table.map, orientation, table.bottomTeam) { MapLayout(table.map, orientation, table.bottomTeam) }
@@ -165,6 +171,8 @@ fun GameTable(
         val boardChoice = table.asking && !table.handDecision &&
             table.spaceOptions.isNotEmpty() && table.pieceOptions.isEmpty()
         var expanded by rememberSaveable(table.decision?.id) { mutableStateOf(false) }
+        // The list, opened or closed by the person for this question; null: as the framing left it (crowded or not).
+        var listChoice by rememberSaveable(table.decision?.id) { mutableStateOf<Boolean?>(null) }
         val peeking = peekBody != null && boardChoice && !landscape && !expanded
         // Where the question ends in the panel: the panel needn't be taller than that and a look at what follows.
         var questionEnd by remember { mutableStateOf<Int?>(null) }
@@ -260,14 +268,24 @@ fun GameTable(
                 clearEnd = buttonsWidth.toFloat(),
                 hexPx = target,
             )
-            if (target != null && viewport.hexPx < target * CROWDED_BELOW && spaceNumbers(table).isNotEmpty()) {
+            if (target != null && viewport.hexPx < target * CROWDED_BELOW &&
+                table.spaceOptions.size in 2..MAX_AUTO_LISTED
+            ) {
                 crowdedFor = decision.id
             }
         }
 
-        // Spaces the framing couldn't make finger targets are numbered on the map and listed in the panel (sol #1,
+        // Spaces the framing couldn't make finger targets are lettered on the map and listed in the panel (sol #1,
         // sol-b #2). Once for a question it stays (the list makes the panel taller, which only shrinks them further).
         val crowded = table.asking && crowdedFor != null && crowdedFor == decision?.id
+        // Any question answered on the map can be listed (sol #2, sol-b #1): the panel's "List" chip.
+        val onMap = table.asking && (table.spaceOptions.isNotEmpty() || table.pieceOptions.isNotEmpty())
+        val listed = onMap && (listChoice ?: crowded)
+        val mapList = MapList(listed) {
+            listChoice = !listed
+            // Opened from the peek: the whole panel, so its rows are in view.
+            if (!listed) expanded = true
+        }
 
         // A new question (another decision) starts at the top of the panel, its header in view; the
         // same question composed again (a selection, a rotation) keeps where the person scrolled to.
@@ -292,7 +310,7 @@ fun GameTable(
             lane = lane,
             onLongPressHero = onHero,
             buttons = buttons?.translate(-mapOrigin),
-            crowded = crowded,
+            listed = listed,
         )
         val turnOrder = table.track
         if (column && turnOrder != null) {
@@ -331,7 +349,7 @@ fun GameTable(
                 }
                 // The map's key while a question lights it, under the round at a glance and the track: the options
                 // are framed below it, so it never covers a piece.
-                MapKey(mapKeyItems(table, crowded))
+                MapKey(mapKeyItems(table, listed))
             }
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
                 Box(Modifier.weight(1f)) { feed?.invoke() }
@@ -347,8 +365,9 @@ fun GameTable(
                         table.bottomTeam,
                         onFlip,
                         Modifier.onGloballyPositioned { toolbar = it.boundsInRoot() },
-                        // A short screen sideways: glyphs only (tooltips and TalkBack keep the words).
-                        compact = shortSideways,
+                        // Glyphs only, a small dock rather than a floating panel (opus #1, sol-b #2): the long press's
+                        // tooltip and TalkBack keep the words.
+                        compact = true,
                     )
                     // Gydion's spellbook, one tap at any point of the game (ADR-040): under the map buttons,
                     // so it never covers the round at a glance, the turn track or the hero strip.
@@ -361,7 +380,7 @@ fun GameTable(
             }
         }
 
-        CompositionLocalProvider(LocalPanelPeeking provides peeking) {
+        CompositionLocalProvider(LocalPanelPeeking provides peeking, LocalMapList provides mapList) {
             HideablePanel(
                 landscape = landscape,
                 hidden = hidden,
@@ -379,7 +398,6 @@ fun GameTable(
             ) {
                 CompositionLocalProvider(
                     LocalPanelQuestionEnd provides { questionEnd = it },
-                    LocalOptionsCrowded provides crowded,
                     LocalQuestionRoom provides QuestionRoom(questionRoom, contentTop),
                 ) {
                     Column(
@@ -553,11 +571,11 @@ private val HAND_SIDE_PANEL = 480.dp
 private const val HAND_SIDE_SHARE = 0.5f
 private val ZONE_HEX_TAP = 38.dp
 
-/** Spaces framed smaller than this share of [TOUCH_HEX] (about 40 dp) are numbered and listed as well. */
+/** Spaces framed smaller than this share of [TOUCH_HEX] (about 40 dp) are lettered and listed as well. */
 private const val CROWDED_BELOW = 0.83f
 
-/** Sideways, a table shorter than this has the map controls as glyphs only. */
-private val SHORT_HEIGHT = 480.dp
+/** The list opens by itself for at most this many crowded spaces; more stay on the map until "List" is tapped. */
+private const val MAX_AUTO_LISTED = 12
 
 /** A space answered on the map is framed at least this wide when the options fit: a finger's target (sol #1). */
 internal val TOUCH_HEX = 48.dp

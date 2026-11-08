@@ -52,9 +52,10 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 /**
- * The map's own controls, docked as one compact steel column at the map's end edge (opus #8, sol #8, sol-b #21): "Fit
- * board" (or "Lane view" once the whole board is shown) and "Flip view", each its glyph over its name, as the game's
- * top bar, with the full words in a long-press tooltip and for TalkBack. The board and the table frame the map so no
+ * The map's own controls, docked as one slim steel pill at the map's end edge (opus #1, sol-b #2): "Fit board" (or
+ * "Lane view" once the whole board is shown) and "Flip view", glyphs only at 48 dp each, with the words in a
+ * long-press tooltip and for TalkBack, so they read as map furniture rather than a floating panel ([compact] false:
+ * each glyph over its name). The board and the table frame the map so no
  * piece stands under it ([MapViewport.updateAvoid]). A flip says what it did for a moment beside the column ("Blue at
  * the bottom"), and TalkBack hears it; the note never changes the column's size, so the map isn't re-framed for it.
  */
@@ -64,8 +65,8 @@ internal fun MapToolbar(
     bottomTeam: Team,
     onFlip: () -> Unit,
     modifier: Modifier = Modifier,
-    /** A short screen sideways: the glyphs alone, 48 dp each; the words stay in the tooltip and for TalkBack. */
-    compact: Boolean = false,
+    /** The glyphs alone, 48 dp each; the words stay in the tooltip and for TalkBack. */
+    compact: Boolean = true,
 ) {
     val scope = rememberCoroutineScope()
     var flips by remember { mutableIntStateOf(0) }
@@ -82,9 +83,9 @@ internal fun MapToolbar(
                 content = {
                     Column(
                         Modifier
-                            .slatePlate(RoundedCornerShape(12.dp), brackets = false)
-                            .padding(vertical = 4.dp, horizontal = 2.dp),
-                        verticalArrangement = Arrangement.spacedBy(2.dp),
+                            .slatePlate(RoundedCornerShape(if (compact) 24.dp else 12.dp), brackets = false)
+                            .padding(vertical = if (compact) 0.dp else 4.dp, horizontal = if (compact) 0.dp else 2.dp),
+                        verticalArrangement = Arrangement.spacedBy(if (compact) 0.dp else 2.dp),
                     ) {
                         if (viewport.isFit) {
                             MapTool("Lane view", Icons.Outlined.ZoomIn, "Zoom to the lane", compact) {

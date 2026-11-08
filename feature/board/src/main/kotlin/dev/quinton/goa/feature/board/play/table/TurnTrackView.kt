@@ -389,7 +389,7 @@ private data class CardNameFit(val size: TextUnit, val lines: Int)
  * The size of the card names on a strip, one for every cell, [width] the room for the words: 12 sp (with large text
  * up to 1.3×), a step smaller only when that is what it takes for every name to sit on [lines] lines without a word
  * broken ("Light-Fingered" breaks after its hyphen, never inside "Fingered"), down to [CARD_NAME_MIN_SHARE]; past
- * that, as many lines as a name needs at the smallest size. Never cut.
+ * that, as many lines as a name needs at the smallest size. Never cut: an ellipsized card name lost three screens.
  */
 @Composable
 private fun cardNameFit(names: List<String>, width: Dp, lines: Int): CardNameFit {
@@ -502,7 +502,7 @@ private fun TrackCell(
     ) {
         val content = Modifier
             .fillMaxWidth()
-            .padding(start = 4.dp, end = 4.dp, top = 3.dp, bottom = 2.dp)
+            .padding(start = 4.dp, end = 4.dp, top = 2.dp, bottom = 1.dp)
         if (side) {
             Row(content, verticalAlignment = Alignment.CenterVertically) {
                 ChipPortrait(table, slot, firstCard, SIDE_PORTRAIT)
@@ -523,7 +523,7 @@ private fun TrackCell(
                     Spacer(Modifier.width(5.dp))
                     Initiative(slot.initiative, slot.tied, muted = stepped)
                 }
-                HeroName(info.name, Modifier.fillMaxWidth().padding(top = 1.dp), TextAlign.Center, muted = stepped)
+                HeroName(info.name, Modifier.fillMaxWidth(), TextAlign.Center, muted = stepped)
                 cardName(TextAlign.Center)
             }
         }
@@ -1157,7 +1157,7 @@ private val SMALL_PORTRAIT = 30.dp
 private val COMPACT_PORTRAIT_BELOW = 34.dp
 private const val CARD_NAME_SP = 12f
 private const val NAME_SP = 13f
-private const val INITIATIVE_SP = 16f
+private const val INITIATIVE_SP = 18f
 private const val BAND_SP = 12f
 
 /** The card name's line height, and how far its size may step down to stay on one line. */

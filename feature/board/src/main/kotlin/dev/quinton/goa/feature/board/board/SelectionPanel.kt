@@ -55,7 +55,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import dev.quinton.goa.core.designsystem.cardtext.CardTextView
 import dev.quinton.goa.core.designsystem.cardtext.GameIcons
-import dev.quinton.goa.core.designsystem.component.CardColorDot
+import dev.quinton.goa.core.designsystem.component.CardFamilyLabel
 import dev.quinton.goa.core.designsystem.component.GoaFilterChip
 import dev.quinton.goa.core.designsystem.component.GoaSegment
 import dev.quinton.goa.core.designsystem.component.GoaSegmentedRow
@@ -466,9 +466,10 @@ private fun CardStrip(cards: List<Card>, selectedId: String?, onSelect: (String?
 }
 
 /**
- * A card to measure with: its colour as a dot, tier, initiative and name. Chosen, it takes the one selection look
- * (bronze edge and tint, a tick), never the card's own colour: colour is the card's, bronze is "chosen". [wide]: a
- * share of a row (large text) rather than its own width.
+ * A card to measure with: its family in words beside its colour's dot ("Red · II", "Gold · Basic": never the colour
+ * alone, sol #12), initiative and name. Chosen, it takes the one selection look (bronze edge and tint, a tick), never
+ * the card's own colour: colour is the card's, bronze is "chosen". [wide]: a share of a row (large text) rather than
+ * its own width.
  */
 @Composable
 private fun CardChip(
@@ -510,18 +511,22 @@ private fun CardChip(
             },
     ) {
         Column(Modifier.padding(horizontal = Spacing.sm, vertical = 6.dp)) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                CardColorDot(card.color, size = 10.dp)
-                Spacer(Modifier.width(6.dp))
-                Text(
-                    tierLabel(card),
+            // The shared family label (its colour's ribbon and the words). Its own line with large text:
+            // "Silver Basic", which may break between its words, never inside.
+            val family: @Composable (Modifier) -> Unit = { modifier ->
+                CardFamilyLabel(
+                    card.color,
+                    card.tier,
+                    modifier,
+                    text = if (wide) familyLabel(card).replace("\u00A0·\u00A0", " ") else familyLabel(card),
                     style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 1,
-                    modifier = Modifier.weight(1f, fill = false),
                 )
+            }
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                // Large text in a half-width chip: the family on a line of its own under the name, never broken.
+                if (!wide) family(Modifier.weight(1f, fill = false))
                 card.initiative?.let {
-                    Spacer(Modifier.width(6.dp))
+                    if (!wide) Spacer(Modifier.width(6.dp))
                     Icon(
                         GameIcons.initiative.vector,
                         null,
@@ -553,8 +558,19 @@ private fun CardChip(
                     )
                 }
             }
+            if (wide) family(Modifier)
         }
     }
+}
+
+/**
+ * A card's family as its chip heads it: the deck colour in a word and the tier ("Red · II", "Gold · Basic",
+ * "Purple · Ultimate"), held together by non-breaking spaces; a spell page by its level as printed.
+ */
+internal fun familyLabel(card: Card): String = if (card.isSpell) {
+    tierLabel(card)
+} else {
+    "${cardColorName(card.color)}\u00A0·\u00A0${tierLabel(card).removePrefix("Tier ")}"
 }
 
 /** How much wider a card chip may grow with the font scale. */
