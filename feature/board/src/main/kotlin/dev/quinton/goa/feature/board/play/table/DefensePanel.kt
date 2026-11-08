@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -174,7 +175,7 @@ internal fun DefensePanel(
             CommitRow(
                 table,
                 answer,
-                "Choose a card, or Don't defend",
+                "Defend",
                 busy,
                 onAnswer,
                 // The defeat is certain (the engine played it out): the button says so, not only what is kept.
@@ -433,29 +434,23 @@ private fun DeclineOption(
     defeat: DefeatPreview?,
     onClick: () -> Unit,
 ) {
-    val label = "${table.label(choice)} · keep your cards"
+    val label = table.label(choice)
     val spoken = listOf(label) + (defeat?.let { defeatSpoken(table, it) } ?: listOf("Defeated"))
     SelectablePlate(
         selected = selected,
         onClick = onClick,
         contentPadding = PaddingValues(horizontal = Spacing.md, vertical = 4.dp),
         modifier = Modifier.fillMaxWidth().semantics {
-            contentDescription = spoken.joinToString(". ") + ". Rulebook page ${if (defeat != null) 13 else 14}"
+            contentDescription = (listOf("$label · keep your cards") + spoken.drop(1)).joinToString(". ")
         },
     ) {
         Column(Modifier.weight(1f).clearAndSetSemantics {}, verticalArrangement = Arrangement.spacedBy(2.dp)) {
-            // The page on the title's line: the consequence has the row's whole width, on one line.
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(
-                    label,
-                    style = MaterialTheme.typography.titleSmall,
-                    fontWeight = FontWeight.SemiBold,
-                    color = MaterialTheme.colorScheme.onSurface,
-                    modifier = Modifier.weight(1f),
-                )
-                Spacer(Modifier.width(Spacing.xs))
-                PagePill(if (defeat != null) "p.13" else "p.14")
-            }
+            Text(
+                label,
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.SemiBold,
+                color = MaterialTheme.colorScheme.onSurface,
+            )
             val icon = scaledIconSize(20.dp, 1.3f)
             FlowRow(
                 horizontalArrangement = Arrangement.spacedBy(Spacing.md),
@@ -594,6 +589,11 @@ private fun AttackHeader(
     }
 }
 
+/**
+ * The attack in one row, no box (2026-11-08: the head already says "Defend against Arien"): the attacking card small
+ * (tap to read it), the Attack total, how it attacks ("melee") and the minion modifier counted in every total below.
+ * TalkBack hears the prompt and, when no card saves the hero, that too.
+ */
 @Composable
 private fun AttackBox(
     heading: String,
@@ -604,55 +604,53 @@ private fun AttackBox(
     focus: CardFocusState,
     noneSaves: String?,
 ) {
-    val color = card?.let { PlateColor.of(it.color) } ?: PlateColor.RED
-    // Who attacks and how on the box's own tab, as the cards print ATTACK there: a line less over the options.
-    CardTextBox(color, Modifier.fillMaxWidth(), cap = heading) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            if (card != null) {
-                Surface(
-                    onClick = { focus.show(listOf(card), title = "Attacking card") },
-                    shape = RoundedCornerShape(6.dp),
-                    color = Color.Transparent,
-                    modifier = Modifier
-                        .cardFocusOrigin(focus, card.id)
-                        .clearAndSetSemantics {
-                            contentDescription = "Attacking card: ${spokenCard(card)}"
-                            role = Role.Button
-                            onClick(label = "Read the card") {
-                                focus.show(listOf(card), title = "Attacking card")
-                                true
-                            }
-                        },
-                ) { TableCard(card, width = ATTACK_CARD) }
-                Spacer(Modifier.width(Spacing.md))
+    val muted = MaterialTheme.colorScheme.onSurfaceVariant
+    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+        if (card != null) {
+            Surface(
+                onClick = { focus.show(listOf(card), title = "Attacking card") },
+                shape = RoundedCornerShape(3.dp),
+                color = Color.Transparent,
+                modifier = Modifier
+                    .heightIn(min = 48.dp)
+                    .cardFocusOrigin(focus, card.id)
+                    .clearAndSetSemantics {
+                        contentDescription = "Attacking card: ${spokenCard(card)}"
+                        role = Role.Button
+                        onClick(label = "Read the card") {
+                            focus.show(listOf(card), title = "Attacking card")
+                            true
+                        }
+                    },
+            ) { TableCard(card, width = ATTACK_CARD) }
+            Spacer(Modifier.width(Spacing.sm))
+        }
+        Row(
+            Modifier.weight(1f).semantics(mergeDescendants = true) {
+                liveRegion = LiveRegionMode.Polite
+                contentDescription = listOfNotNull(heading, prompt, noneSaves).joinToString(". ")
+            },
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(
+                attack?.let { "Attack $it" } ?: "Attack decided by the card",
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Bold,
+            )
+            heading.substringAfter(" · ", "").takeIf { it.isNotEmpty() }?.let {
+                Text(
+                    " · $it",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = muted,
+                )
             }
-            Column(
-                Modifier.weight(1f).semantics(mergeDescendants = true) {
-                    liveRegion = LiveRegionMode.Polite
-                    contentDescription = listOfNotNull(prompt, noneSaves).joinToString(". ")
-                },
-            ) {
-                // The Attack, beside it the outcome when no card saves (said once, here) and the minion modifier: the
-                // cards to defend with keep their place in view.
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(
-                        attack?.let { "Attack $it" } ?: "Attack decided by the card",
-                        style = MaterialTheme.typography.headlineSmall,
-                        fontWeight = FontWeight.Bold,
-                        modifier = Modifier.padding(end = Spacing.sm),
-                    )
-                    Column(Modifier.weight(1f)) {
-                        noneSaves?.let {
-                            Text(it, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
-                        }
-                        minionModifier?.takeIf { it != 0 }?.let { m ->
-                            Text(
-                                "Minion defense ${if (m > 0) "+$m" else "$m"} each",
-                                style = MaterialTheme.typography.bodySmall,
-                            )
-                        }
-                    }
-                }
+            Spacer(Modifier.weight(1f))
+            minionModifier?.takeIf { it != 0 }?.let { m ->
+                Text(
+                    "Minion ${if (m > 0) "+$m" else "$m"}",
+                    style = MaterialTheme.typography.labelLarge,
+                    color = muted,
+                )
             }
         }
     }

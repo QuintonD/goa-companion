@@ -173,14 +173,6 @@ internal fun HandPicker(
 ) {
     val decision = table.decision ?: return
     FocusLifecycle(focus, decision, busy)
-    table.decider?.takeIf { it.at == null }?.let { hero ->
-        RuleRow(
-            "${table.hero(hero.heroId).name} is off the board. When this card resolves you may respawn in " +
-                "your Throne Zone, then act with it.",
-            page = "p.7",
-            live = false,
-        )
-    }
     table.decider?.let { HandRuneLine(table, it) }
     val offered = offeredCards(table)
     val chosen = chosenCard(table)
@@ -188,7 +180,7 @@ internal fun HandPicker(
         openOffered(focus, table, offered, offered.indexOfKey(key), onAnswer)
     }
     if (offered.any { it.choice != null }) {
-        CommitRow(table, chosen, "Tap a card to play facedown", busy, onAnswer) {
+        CommitRow(table, chosen, "Play facedown", busy, onAnswer) {
             openOffered(focus, table, offered, readIndex(offered, chosen), onAnswer, asText = true)
         }
     }
@@ -248,33 +240,15 @@ internal fun CardPicker(
     }
     if (offered.any { it.choice != null }) {
         val verb = when (decision.kind) {
-            DecisionKind.KEEP_UPGRADE -> "keep"
-            else -> cardVerb(decision.prompt).lowercase()
+            DecisionKind.KEEP_UPGRADE -> "Keep"
+            else -> cardVerb(decision.prompt)
         }
-        CommitRow(table, chosen, "Tap a card to $verb", busy, onAnswer) {
+        CommitRow(table, chosen, verb, busy, onAnswer) {
             offered.getOrNull(readIndex(offered, chosen))?.let { read(it.card.id, true) }
         }
     }
-    // The asking card's spells that can't be cast now, one line each with the engine's reason (ADR-040).
-    decision.context.unavailableCards.forEach { u ->
-        val name = table.card(u.cardId)?.name ?: return@forEach
-        Text(
-            "$name: ${unavailableCardLine(table, u.cardId)}",
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
-    }
-    if (decision.kind == DecisionKind.KEEP_UPGRADE) {
-        RuleRow(
-            "One goes to your hand; the other is tucked under your hero as an item.",
-            page = "p.15",
-            live = false,
-        )
-    }
+    // The asking card's spells that can't be cast now are dimmed with a block mark; the viewer says why (ADR-040).
 }
-
-/** The hint under every row of cards to choose from. */
-internal const val CHOOSE_HINT = "Tap a card to choose it; tap it again to read it large."
 
 /** The card the person has chosen in the panel and not yet committed ([TableUi.selected]), if it is an option. */
 internal fun chosenCard(table: TableUi): Choice.Card? =
@@ -309,7 +283,7 @@ internal fun CommitButton(
         onClick = { if (chosen != null) onAnswer(chosen) },
         enabled = chosen != null && !busy,
         contentPadding = PaddingValues(horizontal = Spacing.lg, vertical = Spacing.sm),
-        modifier = modifier.fillMaxWidth().heightIn(min = 52.dp).bringIntoViewRequester(requester),
+        modifier = modifier.fillMaxWidth().heightIn(min = 48.dp).bringIntoViewRequester(requester),
     ) {
         Text(words ?: waiting, textAlign = TextAlign.Center)
     }
@@ -336,18 +310,21 @@ internal fun CommitRow(
     }
 }
 
-/** "Read card": the card viewer with the card's words as text, for what a thumbnail prints too small to read. */
+/**
+ * Read card, as the book alone (a 48 dp steel square): the card viewer with the card's words as text, for what a
+ * thumbnail prints too small to read. TalkBack and the long-press tooltip say it in words.
+ */
 @Composable
 internal fun ReadCardButton(onRead: () -> Unit) {
     PlateButton(
         onClick = onRead,
         tone = PlateTone.STEEL,
-        contentPadding = PaddingValues(horizontal = Spacing.md),
-        modifier = Modifier.heightIn(min = 52.dp).semantics { contentDescription = "Read card as text" },
+        contentPadding = PaddingValues(0.dp),
+        modifier = Modifier
+            .size(scaledIconSize(48.dp, 1.2f))
+            .semantics { contentDescription = "Read card as text" },
     ) {
-        Icon(Icons.AutoMirrored.Outlined.MenuBook, null, Modifier.size(scaledIconSize(18.dp, 1.3f)))
-        Spacer(Modifier.width(6.dp))
-        Text("Read card", maxLines = 1, softWrap = false)
+        Icon(Icons.AutoMirrored.Outlined.MenuBook, null, Modifier.size(scaledIconSize(22.dp, 1.3f)))
     }
 }
 
@@ -376,24 +353,6 @@ private val CardNameStyle = GoaTextStyles.printed.copy(
     // A word wider than a narrow card at large text breaks with a hyphen, not bare ("Aspirin / g").
     hyphens = Hyphens.Auto,
 )
-
-@Composable
-internal fun TapHint(text: String) {
-    Row(verticalAlignment = Alignment.CenterVertically) {
-        Icon(
-            Icons.Outlined.TouchApp,
-            null,
-            tint = MaterialTheme.colorScheme.secondary,
-            modifier = Modifier.size(scaledIconSize(18.dp, 1.3f)),
-        )
-        Spacer(Modifier.width(Spacing.xs))
-        Text(
-            text,
-            style = MaterialTheme.typography.bodyMedium.copy(fontSize = 13.sp, letterSpacing = 0.sp),
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
-    }
-}
 
 private fun List<OfferedCard>.indexOfKey(key: String): Int = indexOfFirst { it.card.id == key }.coerceAtLeast(0)
 
