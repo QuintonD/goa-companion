@@ -572,6 +572,16 @@ passes (including an in-place upgrade from the morning build with real data). Ev
 - [ ] The game server's `MyGame.asked`/`over` (round 1) deployed, so "Your turn" shows on online game rows
 - [ ] Device check on the S25 Ultra (two Heroes columns at 384 dp, ADR-080)
 
+## M33 — Show, don't tell (owner feedback 2026-11-08, ADR-083, ADR-084)
+- [x] Heroes: large grid (default), small grid (three columns at 384 dp), list with the art filling the row's start;
+  `AppSettings.catalogLayout` replaces `catalogListView` (an old "list" reads as the list) — 2026-11-08
+- [x] Play table: the score, the turn's heroes and the map's controls as small widgets over the map (ADR-083); the
+  decision panel's one-line head, no echo lines, rules behind one info mark (ADR-084) — 2026-11-08
+- [x] App-wide text pass: Play tab art and titles only, no subtitles under headings, helper lines removed on every
+  screen (DESIGN.md "Show, don't tell"); the hill-climb judge brief scores text economy — 2026-11-08
+- [ ] Device check on the S25 Ultra; owner's verdict on the play table, iterate
+- [ ] Web (`web/`) follows: its DecisionPanel, table HUD, Play tab and catalog layouts still have the old form
+
 ## M5 — Polish & release readiness
 - [x] Accessibility pass: ATF checks on 25 screens (no errors), contrast fixes, TalkBack labels, font scale 2.0 screenshots — 2026-10-17 (emulator/JVM)
 - [ ] Tablet sanity check
