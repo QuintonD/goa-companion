@@ -98,4 +98,4 @@ internal fun BarLabelButton(
 }
 
 private const val LABEL_MAX_SCALE = 1.15f
-private const val DISABLED_ALPHA = 0.4f
+private const val DISABLED_ALPHA = 0.5f
