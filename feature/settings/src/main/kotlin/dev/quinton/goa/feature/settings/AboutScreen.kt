@@ -132,11 +132,8 @@ fun AboutScreen(info: AppInfo, onBack: () -> Unit, modifier: Modifier = Modifier
             // Prose reads as prose, on the page; only the rows you can tap sit on a (flat) group.
             item {
                 Prose(
-                    "Made by a player for their play group and shared free of charge: not sold, no " +
-                        "ads. Your matches and players stay " +
-                        "on this phone unless you join a group: then they sync phone to phone at the " +
-                        "table, or through the group's sync server, which only ever holds them sealed " +
-                        "and can't read them.",
+                    "Made by a player for their play group: free, no ads. Your data stays on this phone " +
+                        "unless you join a group, and a sync server only ever holds it sealed.",
                     Modifier.padding(horizontal = Spacing.xs),
                 )
             }
@@ -159,11 +156,8 @@ fun AboutScreen(info: AppInfo, onBack: () -> Unit, modifier: Modifier = Modifier
             item { SectionHeader("Data sources") }
             item {
                 Column(Modifier.padding(horizontal = Spacing.xs)) {
-                    Prose(
-                        "Thanks to these community projects, whose published data helped build and check the catalog:",
-                    )
-                    DataSourceCredits.forEach { credit ->
-                        Spacer(Modifier.size(Spacing.md))
+                    DataSourceCredits.forEachIndexed { i, credit ->
+                        if (i > 0) Spacer(Modifier.size(Spacing.md))
                         Text(credit.name, style = MaterialTheme.typography.titleMedium)
                         Prose(credit.what)
                         Text(
@@ -173,7 +167,7 @@ fun AboutScreen(info: AppInfo, onBack: () -> Unit, modifier: Modifier = Modifier
                         )
                     }
                     Spacer(Modifier.size(Spacing.md))
-                    Prose("Each hero page names its sources; Verified means its data was checked against two of them.")
+                    Prose("Verified: a hero's data checked against two of them.")
                 }
             }
             item { SectionHeader("Original artwork") }
@@ -285,7 +279,7 @@ internal fun DonateRow() {
             Icon(Icons.Outlined.FavoriteBorder, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
             Column(Modifier.weight(1f)) {
                 Text("Support the app", style = MaterialTheme.typography.titleMedium)
-                Body("Buy the maker a coffee on Ko-fi, if you like")
+                Body("Ko-fi")
             }
             Icon(
                 Icons.AutoMirrored.Outlined.OpenInNew,

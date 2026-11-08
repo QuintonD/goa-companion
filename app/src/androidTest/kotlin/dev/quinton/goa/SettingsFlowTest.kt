@@ -64,7 +64,8 @@ class SettingsFlowTest {
         // Restore: owning everything brings all 32 back.
         rule.openSettings()
         rule.tap(hasText("I own every product") and hasClickAction())
-        rule.waitForText("All heroes are available in drafts and filters")
+        // Owning everything leaves the switch alone: no count under it.
+        rule.waitGone(hasText("of 6 products owned", substring = true))
         rule.openTab("catalog")
         rule.waitForText("32 heroes")
     }

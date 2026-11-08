@@ -122,14 +122,12 @@ private fun SettingsList(
         item { SectionHeader("Appearance") }
         item {
             SettingsGroup {
-                ChoiceBlock(
-                    "Theme",
-                    "Dark is easiest on the eyes at the table. The timer and the map stay dark in both.",
-                ) {
+                // The one thing the choice can't show: what stays dark whatever is picked.
+                ChoiceBlock("Theme", "The timer and the map stay dark.") {
                     ThemeSelector(state.theme) { onAction(SettingsAction.SetTheme(it)) }
                 }
                 GroupDivider()
-                ChoiceBlock("Board style", "How pieces and spaces look on the painted maps.") {
+                ChoiceBlock("Board style") {
                     BoardStyleSelector(state.boardStyle) { onAction(SettingsAction.SetBoardStyle(it)) }
                 }
             }
@@ -141,10 +139,8 @@ private fun SettingsList(
                 SwitchRow(
                     icon = Icons.Outlined.Inventory2,
                     title = "I own every product",
-                    subtitle = if (state.ownsEverything) {
-                        "All heroes are available in drafts and filters"
-                    } else {
-                        "${state.ownedCount} of ${state.products.size} products owned"
+                    subtitle = "${state.ownedCount} of ${state.products.size} products owned".takeUnless {
+                        state.ownsEverything
                     },
                     checked = state.ownsEverything,
                     onCheckedChange = { onAction(SettingsAction.SetOwnsEverything(it)) },
@@ -164,7 +160,7 @@ private fun SettingsList(
                 SwitchRow(
                     icon = Icons.Outlined.Vibration,
                     title = "Haptics",
-                    subtitle = "Vibrate on timer cues and draft turns",
+                    subtitle = null,
                     checked = state.hapticsEnabled,
                     onCheckedChange = { onAction(SettingsAction.SetHaptics(it)) },
                 )
@@ -172,16 +168,12 @@ private fun SettingsList(
                 SwitchRow(
                     icon = Icons.AutoMirrored.Outlined.VolumeUp,
                     title = "Sounds",
-                    subtitle = "Play timer cues and phase alerts",
+                    subtitle = null,
                     checked = state.soundsEnabled,
                     onCheckedChange = { onAction(SettingsAction.SetSounds(it)) },
                 )
                 GroupDivider()
-                ChoiceBlock(
-                    "Running timer",
-                    "Step by step shows one big dial per phase; Whole round lists every phase of the round " +
-                        "on one screen. Also switchable from the timer's top bar.",
-                ) {
+                ChoiceBlock("Running timer") {
                     ChoiceSelector(TimerLayoutOptions, state.timerLayout) {
                         onAction(SettingsAction.SetTimerLayout(it))
                     }
@@ -195,11 +187,8 @@ private fun SettingsList(
                 SwitchRow(
                     icon = Icons.Outlined.Lightbulb,
                     title = "Puzzle nudges",
-                    subtitle = if (state.puzzleNudges) {
-                        "A gentle nudge when you're stuck on a puzzle"
-                    } else {
-                        "Only when you ask for one from the puzzle's menu"
-                    },
+                    // Ambiguous alone: off still leaves nudges a tap away.
+                    subtitle = if (state.puzzleNudges) "When you're stuck" else "Only from the puzzle's menu",
                     checked = state.puzzleNudges,
                     onCheckedChange = { onAction(SettingsAction.SetPuzzleNudges(it)) },
                 )
@@ -209,15 +198,15 @@ private fun SettingsList(
         item { SectionHeader("Game setup") }
         item {
             SettingsGroup {
-                LinkRow(Icons.Outlined.Timer, "Timer presets", "Phase lengths, cues and auto-advance") {
+                LinkRow(Icons.Outlined.Timer, "Timer presets") {
                     onOpen(SettingsLink.TIMER_PRESETS)
                 }
                 GroupDivider()
-                LinkRow(Icons.Outlined.SwapHoriz, "Draft methods", "House draft, official methods, your own") {
+                LinkRow(Icons.Outlined.SwapHoriz, "Draft methods") {
                     onOpen(SettingsLink.DRAFT_METHODS)
                 }
                 GroupDivider()
-                LinkRow(Icons.Outlined.Leaderboard, "Ratings", "Elo constants and double-pilot weighting") {
+                LinkRow(Icons.Outlined.Leaderboard, "Ratings") {
                     onOpen(SettingsLink.RATINGS)
                 }
             }
@@ -226,11 +215,11 @@ private fun SettingsList(
         item { SectionHeader("Your data") }
         item {
             SettingsGroup {
-                LinkRow(Icons.Outlined.Sync, "Group sync", "Share matches and players with your friends' phones") {
+                LinkRow(Icons.Outlined.Sync, "Group sync") {
                     onOpen(SettingsLink.GROUP_SYNC)
                 }
                 GroupDivider()
-                LinkRow(Icons.Outlined.Backup, "Backup and restore", "Export or import all your data and settings") {
+                LinkRow(Icons.Outlined.Backup, "Backup and restore") {
                     onOpen(SettingsLink.BACKUP)
                 }
             }
@@ -239,7 +228,7 @@ private fun SettingsList(
         item { SectionHeader("This app") }
         item {
             SettingsGroup {
-                LinkRow(Icons.Outlined.Info, "About", "Version, credits and licences") { onOpen(SettingsLink.ABOUT) }
+                LinkRow(Icons.Outlined.Info, "About") { onOpen(SettingsLink.ABOUT) }
                 GroupDivider()
                 DonateRow()
                 GroupDivider()
@@ -249,16 +238,18 @@ private fun SettingsList(
     }
 }
 
-/** A setting chosen from a few options: its name, what it does, then the choices under them. */
+/** A setting chosen from a few options: its name, a [note] only where the choices can't say it, the choices. */
 @Composable
-private fun ChoiceBlock(title: String, subtitle: String, choices: @Composable () -> Unit) {
+private fun ChoiceBlock(title: String, note: String? = null, choices: @Composable () -> Unit) {
     Column(Modifier.fillMaxWidth().padding(horizontal = Spacing.lg, vertical = Spacing.md)) {
         Text(title, style = MaterialTheme.typography.titleMedium)
-        Text(
-            subtitle,
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
+        if (note != null) {
+            Text(
+                note,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
         Spacer(Modifier.size(Spacing.md))
         choices()
     }
@@ -390,18 +381,18 @@ private fun ProductRow(product: ProductOption, enabled: Boolean, onToggle: () ->
 }
 
 @Composable
-private fun LinkRow(icon: ImageVector, title: String, subtitle: String, onClick: () -> Unit) {
+private fun LinkRow(icon: ImageVector, title: String, onClick: () -> Unit) {
     Surface(onClick = onClick, color = Color.Transparent) {
         Row(
             Modifier
                 .fillMaxWidth()
-                .heightIn(min = 64.dp)
+                .heightIn(min = 56.dp)
                 .padding(horizontal = Spacing.lg, vertical = Spacing.sm),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.Start,
         ) {
             RowIcon(icon)
-            RowText(title, subtitle, Modifier.weight(1f))
+            RowText(title, null, Modifier.weight(1f))
             Icon(
                 Icons.AutoMirrored.Outlined.KeyboardArrowRight,
                 contentDescription = null,
@@ -426,13 +417,14 @@ internal fun SpeedRow(test: SpeedTest, onToggle: () -> Unit) {
                 RowText(
                     "Measure the computer's speed",
                     when (test) {
-                        SpeedTest.Idle -> "About 30 s at strength 10 on this phone"
+                        SpeedTest.Idle -> "About 30 s"
 
-                        is SpeedTest.Running -> "Measuring, ${(test.progress * PERCENT).toInt()}%. Tap to stop"
+                        // The bar under it shows how far; the row stops it.
+                        is SpeedTest.Running -> "Tap to stop"
 
                         is SpeedTest.Done ->
-                            "${test.speed.answersPerSecond} answers per second. A card play takes " +
-                                "${test.speed.medianMs} ms, 1 in 20 over ${test.speed.p95Ms} ms. Tap to measure again"
+                            "${test.speed.answersPerSecond} answers/s · ${test.speed.medianMs} ms · " +
+                                "1 in 20 over ${test.speed.p95Ms} ms"
                     },
                     Modifier.weight(1f),
                 )
@@ -453,7 +445,7 @@ private fun CopyLine(line: String) {
     TextButton(
         onClick = { scope.launch { clipboard.setClipEntry(ClipEntry(ClipData.newPlainText("Speed", line))) } },
         modifier = Modifier.padding(start = 24.dp + Spacing.lg - Spacing.md),
-    ) { Text("Copy the line to send") }
+    ) { Text("Copy") }
 }
 
 internal val PreviewSettings = SettingsUiState.Ready(
@@ -481,7 +473,6 @@ private fun SettingsScreenLightPreview() {
     GoaTheme(ThemeMode.LIGHT) { SettingsScreen(PreviewSettings, onAction = {}, onBack = {}, onOpen = {}) }
 }
 
-private const val PERCENT = 100
 
 /** Material's disabled content alpha. */
 private const val DISABLED_ALPHA = 0.38f
