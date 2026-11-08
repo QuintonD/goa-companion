@@ -138,7 +138,7 @@ internal fun TopicContent(
     onContentsOpen: (Boolean) -> Unit = {},
 ) {
     val colors = GoaTheme.colors
-    val pages = "Rulebook ${RulesText.pages(topic.pages)} · quoted word for word"
+    val pages = "Rulebook, 2nd printing · ${RulesText.pages(topic.pages)} · word for word"
     val large = LocalDensity.current.fontScale > LARGE_FONT_SCALE
     // Sideways or with large text, height is scarce and the band would wrap: its words end the page instead.
     val plainFoot = large || LocalConfiguration.current.screenHeightDp < BANNER_FOOT_MIN_HEIGHT
@@ -191,18 +191,14 @@ internal fun TopicContent(
                     if (diagram != null) DiagramWithCaption(diagram, excerpt) else ExcerptBlock(excerpt)
                 }
             }
-            item(key = "source") {
-                Column(
-                    margin.padding(top = Spacing.sm),
-                    verticalArrangement = Arrangement.spacedBy(Spacing.xs),
-                ) {
-                    if (plainFoot) {
-                        Text(pages, style = MaterialTheme.typography.labelLarge, color = colors.onPageVariant)
-                    }
+            // The foot names the source once: the band, or this line where the band won't fit.
+            if (plainFoot) {
+                item(key = "source") {
                     Text(
-                        "Source: the official Guards of Atlantis II rulebook, 2nd printing (printed page numbers).",
-                        style = MaterialTheme.typography.bodyMedium,
+                        pages,
+                        style = MaterialTheme.typography.labelLarge,
                         color = colors.onPageVariant,
+                        modifier = margin.padding(top = Spacing.sm),
                     )
                 }
             }
