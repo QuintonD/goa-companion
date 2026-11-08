@@ -74,6 +74,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
@@ -88,8 +89,10 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import dev.quinton.goa.core.designsystem.component.BannerTextButton
 import dev.quinton.goa.core.designsystem.component.BarAction
 import dev.quinton.goa.core.designsystem.component.BarActions
+import dev.quinton.goa.core.designsystem.component.BarIconButton
 import dev.quinton.goa.core.designsystem.component.ConfirmDialog
 import dev.quinton.goa.core.designsystem.component.EmptyState
 import dev.quinton.goa.core.designsystem.component.GoaButton
@@ -101,6 +104,7 @@ import dev.quinton.goa.core.designsystem.component.GoaSegment
 import dev.quinton.goa.core.designsystem.component.GoaSegmentedRow
 import dev.quinton.goa.core.designsystem.component.GoaSheet
 import dev.quinton.goa.core.designsystem.component.GoaSwitch
+import dev.quinton.goa.core.designsystem.component.LARGE_FONT_SCALE
 import dev.quinton.goa.core.designsystem.component.PlateShape
 import dev.quinton.goa.core.designsystem.component.PlayerAvatar
 import dev.quinton.goa.core.designsystem.component.TeamBadge
@@ -272,12 +276,20 @@ fun DraftSetupScreen(state: SetupUiState, actions: SetupActions) {
         // The bar's arrow leaves the draft, as on every sub-screen; Back in the bottom bar steps back a stage.
         onBack = actions::exit,
         actions = {
-            BarActions(
-                listOf(
-                    BarAction("Draft methods", Icons.AutoMirrored.Outlined.ListAlt, actions::manageMethods),
-                    BarAction("Settings", Icons.Outlined.Settings, actions::openSettings),
-                ),
-            )
+            // The list glyph alone doesn't say "methods": it is named on the bar, the gear beside it. At large text
+            // the word gives way to the glyph (labelled for TalkBack and on a long press).
+            val methods = BarAction("Draft methods", Icons.AutoMirrored.Outlined.ListAlt, actions::manageMethods)
+            if (LocalDensity.current.fontScale < LARGE_FONT_SCALE) {
+                BannerTextButton(
+                    "Methods",
+                    onClick = methods.onClick,
+                    icon = methods.icon,
+                    modifier = Modifier.semantics { contentDescription = methods.label },
+                )
+                BarIconButton(BarAction("Settings", Icons.Outlined.Settings, actions::openSettings))
+            } else {
+                BarActions(listOf(methods, BarAction("Settings", Icons.Outlined.Settings, actions::openSettings)))
+            }
         },
     ) { padding ->
         Box(Modifier.fillMaxSize().padding(padding)) {
@@ -611,7 +623,8 @@ private fun TeamColumns(state: SetupUiState, actions: SetupActions) {
         subtitle = form.balanceDifference?.let { "Average Elo differs by ${it.roundToInt()}" },
         trailing = if (balanced) {
             {
-                FilledTonalButton(colors = goaTonalButtonColors(), onClick = actions::rebalance) {
+                // The shared secondary button: steel with light words, readable at the table.
+                GoaOutlinedButton(onClick = actions::rebalance, modifier = Modifier.heightIn(min = 48.dp)) {
                     Icon(Icons.Outlined.Shuffle, contentDescription = null, modifier = Modifier.size(18.dp))
                     Spacer(Modifier.width(Spacing.xs))
                     Text("Re-balance")
@@ -621,6 +634,7 @@ private fun TeamColumns(state: SetupUiState, actions: SetupActions) {
             null
         },
     ) {
+        if (balanced) LockCaption()
         Row(horizontalArrangement = Arrangement.spacedBy(Spacing.md)) {
             for (team in Team.entries) {
                 val ids = if (team == Team.RED) form.red else form.blue
@@ -646,6 +660,25 @@ private fun TeamColumns(state: SetupUiState, actions: SetupActions) {
                 }
             }
         }
+    }
+}
+
+/** What the padlocks do, said once and always in view, under the section's head. */
+@Composable
+private fun LockCaption() {
+    Row(Modifier.padding(bottom = Spacing.md), verticalAlignment = Alignment.CenterVertically) {
+        Icon(
+            Icons.Filled.Lock,
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.size(16.dp),
+        )
+        Spacer(Modifier.width(Spacing.xs))
+        Text(
+            LOCK_TIP,
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
     }
 }
 
@@ -691,7 +724,7 @@ private fun TeamMemberChip(
                         checked = locked,
                         onCheckedChange = { onLock() },
                         modifier = Modifier.size(48.dp).semantics {
-                            contentDescription = "Keep $name on ${teamName(team)} when re-balancing"
+                            contentDescription = "Keep $name on ${teamName(team)}"
                             stateDescription = if (locked) "Locked" else "Not locked"
                         },
                     ) {
@@ -1139,4 +1172,4 @@ private fun activeColor(active: Boolean) =
     if (active) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
 
 /** A padlock's tooltip: what locking does. */
-private const val LOCK_TIP = "Locked players stay on their team when re-balanced"
+private const val LOCK_TIP = "Keeps a player on their team when you re-balance"

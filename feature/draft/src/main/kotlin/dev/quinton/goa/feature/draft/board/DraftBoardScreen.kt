@@ -134,6 +134,7 @@ import dev.quinton.goa.feature.draft.ui.HeroTile
 import dev.quinton.goa.feature.draft.ui.PeekCommit
 import dev.quinton.goa.feature.draft.ui.RoleChips
 import dev.quinton.goa.feature.draft.ui.SequenceStrip
+import dev.quinton.goa.feature.draft.ui.StepClock
 import dev.quinton.goa.feature.draft.ui.StepToken
 import dev.quinton.goa.feature.draft.ui.TileState
 import dev.quinton.goa.feature.draft.ui.actionName
@@ -400,13 +401,10 @@ private fun peekCommit(
     if (!free) return null
     val hero = state.heroes.info(heroId)
     val verb = actionName(step.action)
-    val run = session.currentRun()?.takeIf { it.length > 1 }
-    val pilot = step.seatId?.let { session.seat(it) }?.pilotId?.let { state.playerName(it) }
+    // The banner's own words: "◆ Red · Ada: pick 1 of 2".
     val recipient = listOfNotNull(
         teamLabel(step.team),
-        pilot?.let { "for $it" },
-        run?.let { "$verb ${it.position} of ${it.length}" },
-        "hidden".takeIf { step.hidden },
+        DraftBoardText.turnLine(session, state::playerName),
     ).joinToString(" · ")
     return PeekCommit(
         team = step.team,
@@ -414,6 +412,8 @@ private fun peekCommit(
         recipient = recipient,
         onCommit = onCommit,
         onSwapOut = onSwapOut.takeIf { session.poolEditable() },
+        // The step's clock keeps running while the hero is read: its badge comes along into the sheet.
+        remainingSeconds = state.local.remainingSeconds,
     )
 }
 
@@ -870,38 +870,13 @@ private fun StepBanner(
                 }
             }
             Spacer(Modifier.height(Spacing.xs))
+            // Whose turn inside the step, on its own line ("Ada: pick 1 of 2"); the step's number is on its chip.
             Text(
-                DraftBoardText.bannerDetail(session, playerName).orEmpty(),
+                DraftBoardText.turnLine(session, playerName).orEmpty(),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurface,
             )
         }
-    }
-}
-
-@Composable
-private fun StepClock(remaining: Int) {
-    val over = remaining < 0
-    val text = DraftBoardText.stepClock(remaining)
-    Box(
-        Modifier
-            .clip(RoundedCornerShape(7.dp))
-            .background(CLOCK_FACE)
-            .border(
-                1.dp,
-                if (over) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.secondary,
-                RoundedCornerShape(7.dp),
-            )
-            .padding(horizontal = Spacing.md, vertical = Spacing.xs)
-            .semantics {
-                contentDescription = DraftBoardText.spokenStepClock(remaining)
-            },
-    ) {
-        Text(
-            text,
-            style = GoaTextStyles.timerDigitsSmall.copy(fontSize = 22.sp, lineHeight = 28.sp),
-            color = if (over) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.secondary,
-        )
     }
 }
 
@@ -1312,7 +1287,6 @@ private fun PrivacyGate(session: DraftSession, actions: BoardActions) {
 }
 
 private val STEP_STYLE = GoaTextStyles.plateTitle.copy(fontSize = 19.sp, lineHeight = 24.sp)
-private val CLOCK_FACE = Color(0xFF060C12)
 private val SEARCH_EDGE = Color(0xFF5D6B70)
 
 private const val LARGE_FONT = 1.5f

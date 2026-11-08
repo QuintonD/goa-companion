@@ -56,7 +56,6 @@ import dev.quinton.goa.core.designsystem.component.scaledIconSize
 import dev.quinton.goa.core.designsystem.theme.GoaTextStyles
 import dev.quinton.goa.core.designsystem.theme.GoaTheme
 import dev.quinton.goa.core.designsystem.theme.Spacing
-import dev.quinton.goa.core.model.catalog.CardColor
 import dev.quinton.goa.core.model.catalog.Role
 import dev.quinton.goa.core.model.match.Team
 
@@ -70,6 +69,8 @@ internal class PeekCommit(
     val recipient: String,
     val onCommit: () -> Unit,
     val onSwapOut: (() -> Unit)? = null,
+    /** The step's clock, still running while the hero is read; null when the draft has no step timer. */
+    val remainingSeconds: Int? = null,
 )
 
 /**
@@ -188,13 +189,28 @@ private fun PeekCommitBar(commit: PeekCommit) {
             .padding(top = Spacing.md, bottom = Spacing.lg),
         verticalArrangement = Arrangement.spacedBy(Spacing.sm),
     ) {
-        TeamText(
-            commit.recipient,
-            style = MaterialTheme.typography.titleSmall,
-            color = MaterialTheme.colorScheme.onSurface,
-            textAlign = TextAlign.Center,
-            modifier = Modifier.fillMaxWidth(),
-        )
+        val remaining = commit.remainingSeconds
+        if (remaining == null) {
+            TeamText(
+                commit.recipient,
+                style = MaterialTheme.typography.titleSmall,
+                color = MaterialTheme.colorScheme.onSurface,
+                textAlign = TextAlign.Center,
+                modifier = Modifier.fillMaxWidth(),
+            )
+        } else {
+            // Whom it is for beside the step's clock, which keeps running while the hero is read.
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                TeamText(
+                    commit.recipient,
+                    style = MaterialTheme.typography.titleSmall,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    modifier = Modifier.weight(1f),
+                )
+                Spacer(Modifier.width(Spacing.sm))
+                StepClock(remaining)
+            }
+        }
         GoaButton(
             onClick = commit.onCommit,
             modifier = Modifier

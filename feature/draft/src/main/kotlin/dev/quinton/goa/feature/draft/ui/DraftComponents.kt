@@ -50,20 +50,22 @@ import androidx.compose.material3.SegmentedButtonColors
 import androidx.compose.material3.SelectableChipColors
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.drawWithCache
 import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.StrokeCap
-import androidx.compose.ui.graphics.drawOutline
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.layout.positionInParent
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalInspectionMode
@@ -87,7 +89,6 @@ import dev.quinton.goa.core.designsystem.component.HeroPortrait
 import dev.quinton.goa.core.designsystem.component.HeroSymbol
 import dev.quinton.goa.core.designsystem.component.LARGE_FONT_SCALE
 import dev.quinton.goa.core.designsystem.component.PlateShape
-import dev.quinton.goa.core.designsystem.component.SelectionMarkIcon
 import dev.quinton.goa.core.designsystem.component.TeamMark
 import dev.quinton.goa.core.designsystem.component.horizontalEdgeFade
 import dev.quinton.goa.core.designsystem.component.selectableChipColors
@@ -99,6 +100,8 @@ import dev.quinton.goa.core.designsystem.theme.GoaTheme
 import dev.quinton.goa.core.designsystem.theme.Spacing
 import dev.quinton.goa.core.model.draft.DraftAction
 import dev.quinton.goa.core.model.match.Team
+import dev.quinton.goa.feature.draft.board.DraftBoardText
+import kotlin.math.roundToInt
 
 /** Motion tokens (docs/DESIGN.md: 200–300 ms emphasised). */
 internal object DraftMotion {
@@ -426,8 +429,11 @@ internal fun ConcealedTile(team: Team, modifier: Modifier = Modifier) {
 }
 
 /**
- * Compact sequence preview: "Ban A · Pick A · …" chips. Bans are outlined, picks filled; the
- * [current] step is highlighted and finished steps fade.
+ * A sequence as numbered steps, each a run of one side's bans or picks with its count ("4 · ◆ Red picks 2"; the
+ * shared [DraftStep] numbering). Bans are outlined, picks filled. On the board ([current], a plan index) the step
+ * in play is bold with a heavier edge, finished steps carry a check and a lighter edge but keep their text at full
+ * contrast, and a sideways strip keeps the step in play and the next one in view. [named] false shows a side by its
+ * mark only (the method list, under a legend that names the marks).
  */
 @Composable
 internal fun SequenceStrip(
@@ -435,60 +441,127 @@ internal fun SequenceStrip(
     modifier: Modifier = Modifier,
     current: Int? = null,
     wrap: Boolean = true,
+    named: Boolean = true,
 ) {
-    val description = tokens.spoken()
-    val content: @Composable () -> Unit = {
-        tokens.forEachIndexed { i, token -> StepChipView(token, index = i, current = current) }
+    val steps = remember(tokens) { tokens.steps() }
+    val active = current?.let { slot -> steps.indexOfFirst { slot in it } }?.takeIf { it >= 0 }
+    val description = remember(steps, active) {
+        val now = active?.let { "Now ${steps[it].spoken}. " }.orEmpty()
+        now + "Sequence of ${steps.size} steps: " + steps.joinToString("; ") { it.spoken }
     }
-    val semantics = Modifier.semantics(mergeDescendants = true) { contentDescription = description }
+    val semantics = Modifier.clearAndSetSemantics { contentDescription = description }
+    fun state(i: Int) = when {
+        active == null -> StepState.UPCOMING
+        i < active -> StepState.DONE
+        i == active -> StepState.ACTIVE
+        else -> StepState.UPCOMING
+    }
     if (wrap) {
         FlowRow(
             modifier.then(semantics),
             horizontalArrangement = Arrangement.spacedBy(Spacing.xs),
             verticalArrangement = Arrangement.spacedBy(Spacing.xs),
-        ) { content() }
+        ) { steps.forEachIndexed { i, step -> StepChipView(step, state(i), named) } }
     } else {
         val strip = rememberScrollState()
+        val starts = remember(steps) { IntArray(steps.size) }
+        val lead = with(LocalDensity.current) { STRIP_LEAD.roundToPx() }
+        // Keep the step in play near the start, a sliver of the one before it, so it and the next stay in view.
+        LaunchedEffect(active, steps) {
+            if (active == null) return@LaunchedEffect
+            withFrameNanos { } // the chips' places are known once they are laid out
+            val target = (starts[active] - lead).coerceAtLeast(0)
+            strip.animateScrollTo(target)
+        }
         Row(
             modifier.then(semantics).horizontalEdgeFade(strip).horizontalScroll(strip),
             horizontalArrangement = Arrangement.spacedBy(Spacing.xs),
-        ) { content() }
+        ) {
+            steps.forEachIndexed { i, step ->
+                StepChipView(
+                    step,
+                    state(i),
+                    named,
+                    Modifier.onGloballyPositioned { starts[i] = it.positionInParent().x.roundToInt() },
+                )
+            }
+        }
     }
 }
 
+private enum class StepState { DONE, ACTIVE, UPCOMING }
+
+/** The step's countdown: teal digits on a dark face, red in overtime ("+0:05"). The banner's and the peek's. */
 @Composable
-private fun StepChipView(token: StepToken, index: Int, current: Int?) {
-    val accent = token.team?.let { teamColor(it) } ?: MaterialTheme.colorScheme.primary
-    val done = current != null && index < current
-    val active = current == index
-    val isBan = token.action == DraftAction.BAN
+internal fun StepClock(remaining: Int, modifier: Modifier = Modifier) {
+    val over = remaining < 0
+    val ink = if (over) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.secondary
+    Box(
+        modifier
+            .clip(RoundedCornerShape(7.dp))
+            .background(CLOCK_FACE)
+            .border(1.dp, ink, RoundedCornerShape(7.dp))
+            .padding(horizontal = Spacing.md, vertical = Spacing.xs)
+            .clearAndSetSemantics { contentDescription = DraftBoardText.spokenStepClock(remaining) },
+    ) {
+        Text(
+            DraftBoardText.stepClock(remaining),
+            style = GoaTextStyles.timerDigitsSmall.copy(fontSize = 22.sp, lineHeight = 28.sp),
+            color = ink,
+        )
+    }
+}
+
+private val CLOCK_FACE = Color(0xFF060C12)
+
+/** How far before the step in play the board's strip stops: a sliver of the finished step before it. */
+private val STRIP_LEAD = 28.dp
+
+@Composable
+private fun StepChipView(step: DraftStep, state: StepState, named: Boolean, modifier: Modifier = Modifier) {
+    val accent = step.team?.let { teamColor(it) } ?: MaterialTheme.colorScheme.primary
+    val isBan = step.action == DraftAction.BAN
     val shape = RoundedCornerShape(6.dp)
-    TeamText(
-        text = (if (token.hidden) "🔒 " else "") + token.label,
-        style = MaterialTheme.typography.labelMedium,
-        fontWeight = if (active) FontWeight.Bold else FontWeight.Medium,
-        color = if (isBan &&
-            !active
-        ) {
-            MaterialTheme.colorScheme.onSurfaceVariant
-        } else {
-            MaterialTheme.colorScheme.onSurface
-        },
-        modifier = Modifier
-            .alpha(if (done) 0.5f else 1f)
+    Row(
+        modifier
             .background(
                 when {
-                    active -> accent.copy(alpha = 0.28f)
-                    isBan -> Color.Transparent
+                    state == StepState.ACTIVE -> accent.copy(alpha = 0.28f)
+                    isBan || state == StepState.DONE -> Color.Transparent
                     else -> accent.copy(alpha = 0.12f)
                 },
                 shape,
             )
-            .border(if (active) 2.dp else 1.dp, accent.copy(alpha = if (done) 0.3f else 0.8f), shape)
+            .border(
+                width = if (state == StepState.ACTIVE) 2.dp else 1.dp,
+                color = accent.copy(alpha = if (state == StepState.DONE) 0.45f else 0.85f),
+                shape = shape,
+            )
             .padding(horizontal = Spacing.sm, vertical = Spacing.xs),
-    )
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        if (state == StepState.DONE) {
+            // Finished: a check and a lighter edge; the words keep their contrast (they still say what happened).
+            Icon(
+                Icons.Filled.Check,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.size(14.dp),
+            )
+            Spacer(Modifier.width(Spacing.xs))
+        }
+        TeamText(
+            text = (if (step.hidden) "🔒 " else "") + step.label(named),
+            style = MaterialTheme.typography.labelMedium,
+            fontWeight = if (state == StepState.ACTIVE) FontWeight.Bold else FontWeight.Medium,
+            color = if (state == StepState.DONE) {
+                MaterialTheme.colorScheme.onSurfaceVariant
+            } else {
+                MaterialTheme.colorScheme.onSurface
+            },
+        )
+    }
 }
-
 /** Section card on the dark plate, used across draft screens. [titleTeam] heads it with a team's mark. */
 @Composable
 internal fun SectionCard(

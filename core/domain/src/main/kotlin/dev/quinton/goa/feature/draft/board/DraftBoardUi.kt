@@ -9,10 +9,14 @@ import dev.quinton.goa.core.model.draft.DraftAction
 import dev.quinton.goa.core.model.match.Team
 import dev.quinton.goa.core.model.player.Player
 import dev.quinton.goa.feature.draft.data.DraftProgress
+import dev.quinton.goa.feature.draft.ui.DraftStep
 import dev.quinton.goa.feature.draft.ui.HeroInfo
+import dev.quinton.goa.feature.draft.ui.StepToken
 import dev.quinton.goa.feature.draft.ui.TileState
 import dev.quinton.goa.feature.draft.ui.actionName
 import dev.quinton.goa.feature.draft.ui.info
+import dev.quinton.goa.feature.draft.ui.steps
+import dev.quinton.goa.feature.draft.ui.teamGlyph
 import dev.quinton.goa.feature.draft.ui.teamLabel
 import dev.quinton.goa.feature.draft.ui.teamName
 
@@ -185,6 +189,33 @@ object DraftBoardText {
         val pilot = seat?.pilotId?.let { " · for ${playerName(it)}" } ?: ""
         return "Step ${(session.currentStepIndex ?: 0) + 1} of ${session.plan.size}$runText$pilot" +
             if (step.hidden) " · hidden" else ""
+    }
+
+    /** The session's plan as numbered steps ("4 · ◆ Red picks 2"), the board's chips and its banner's count. */
+    fun steps(session: DraftSession): List<DraftStep> =
+        session.plan.map { StepToken("${actionName(it.action)} ${teamGlyph(it.team)}", it.action, it.team, it.hidden) }
+            .steps()
+
+    /**
+     * Whose turn within the current step, on a line of its own under the step: "Ada: pick 1 of 2", "Ada's pick",
+     * "Ban 2 of 2", with "· hidden" for a hidden step. "Step 3 of 6" when a single ban has nothing more to say.
+     */
+    fun turnLine(session: DraftSession, playerName: (String?) -> String): String? {
+        val step = session.currentStep ?: return null
+        val index = session.currentStepIndex ?: return null
+        val run = session.currentRun()?.takeIf { it.length > 1 }
+        val verb = actionName(step.action)
+        val pilot = step.seatId?.let { session.seat(it) }?.pilotId?.let(playerName)
+        val line = when {
+            pilot != null && run != null -> "$pilot: ${verb.lowercase()} ${run.position} of ${run.length}"
+            pilot != null -> "$pilot's ${verb.lowercase()}"
+            run != null -> "$verb ${run.position} of ${run.length}"
+            else -> {
+                val steps = steps(session)
+                "Step ${steps.firstOrNull { index in it }?.number ?: (index + 1)} of ${steps.size}"
+            }
+        }
+        return line + if (step.hidden) " · hidden" else ""
     }
 
     /** The step clock: "0:27", or "+0:05" in overtime. */

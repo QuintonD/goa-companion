@@ -13,11 +13,9 @@ import dev.quinton.goa.core.domain.draft.TieBreakerCoin
 import dev.quinton.goa.core.domain.teams.OddSeatMode
 import dev.quinton.goa.core.model.match.Team
 import dev.quinton.goa.feature.draft.data.DraftEnvironment
-import dev.quinton.goa.feature.draft.data.DraftProgress
 import dev.quinton.goa.feature.draft.data.DraftRepository
 import dev.quinton.goa.feature.draft.data.DraftSetupPrefills
-import javax.inject.Inject
-import kotlin.random.Random
+import dev.quinton.goa.feature.draft.ui.teamName
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -32,6 +30,8 @@ import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import javax.inject.Inject
+import kotlin.random.Random
 
 sealed interface SetupEvent {
     data object OpenBoard : SetupEvent
@@ -130,7 +130,14 @@ class DraftSetupViewModel @Inject constructor(
     /** Moves a player to the other team (tap to move). */
     fun movePlayer(id: String) = edit { it.movePlayer(id) }
 
-    fun toggleLock(id: String) = edit { it.toggleLock(id) }
+    /** Locks or frees a player for re-balancing, and says so in a short confirmation. */
+    fun toggleLock(id: String) {
+        val next = form.value?.toggleLock(id) ?: return
+        edit { it.toggleLock(id) }
+        val name = uiState.value.player(id)?.player?.name ?: "This player"
+        message.value = next.locked[id]?.let { "$name stays on ${teamName(it)} when you re-balance" }
+            ?: "$name can move when you re-balance"
+    }
 
     fun balance() {
         viewModelScope.launch {

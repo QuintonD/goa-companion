@@ -95,8 +95,10 @@ class DraftScreenshotTest {
         val commit = PeekCommit(
             Team.RED,
             label = "Pick ${hero.name}",
-            recipient = "${teamLabel(Team.RED)} · for Ada · Pick 1 of 2",
+            recipient = "${teamLabel(Team.RED)} · Ada: pick 1 of 2",
             onCommit = {},
+            // The board's timed draft (boardMid shows 0:24): the clock comes along into the peek.
+            remainingSeconds = 24,
         )
         compose.setContent {
             GoaTheme(themeMode = theme) {
