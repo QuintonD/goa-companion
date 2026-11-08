@@ -84,6 +84,9 @@ class OnlineHomePresenter(
     /** A new account, kept from the store until its code is saved: see [recoveryCodeSaved]. */
     private var unsaved: OnlineIdentity? = null
 
+    /** What the last failed games load said, so a later load clears only that, never another action's message. */
+    private var gamesMessage: String? = null
+
     fun start() {
         scope.launch {
             val identity = identities.load()
@@ -255,8 +258,16 @@ class OnlineHomePresenter(
         when (val result = gateway.myGames()) {
             is OnlineResult.Ok -> {
                 val you = identities.load()?.accountId
+                // The games load runs beside an invite's join: clearing every message here wiped "no room with
+                // that code" when the list came back second (seen as a flaky web e2e test, 2026-11-08).
+                val stale = gamesMessage
+                gamesMessage = null
                 mutableState.update {
-                    it.copy(games = MyGameStatuses.sorted(result.value.games, you), you = you, message = null)
+                    it.copy(
+                        games = MyGameStatuses.sorted(result.value.games, you),
+                        you = you,
+                        message = it.message.takeUnless { message -> message == stale },
+                    )
                 }
             }
 
@@ -265,11 +276,15 @@ class OnlineHomePresenter(
                 if (result.reason == Refusal.BAD_TOKEN) {
                     mutableState.update { it.copy(stage = AccountStage.PICK_NAME, name = "") }
                 }
-                say(result.words())
+                gamesMessage = result.words()
+                say(gamesMessage)
             }
 
             // The games already listed stay on screen: they wait for the server.
-            is OnlineResult.Failed -> say(result.words())
+            is OnlineResult.Failed -> {
+                gamesMessage = result.words()
+                say(gamesMessage)
+            }
         }
     }
 

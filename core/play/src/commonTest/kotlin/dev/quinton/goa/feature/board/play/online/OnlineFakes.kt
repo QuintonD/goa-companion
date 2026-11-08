@@ -27,6 +27,7 @@ import dev.quinton.goa.feature.board.play.game.GameUiState
 import dev.quinton.goa.feature.board.play.game.PlayUi
 import kotlin.random.Random
 import kotlin.test.assertIs
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.Flow
@@ -216,7 +217,13 @@ internal class FakeGateway : OnlineGateway {
 
     override suspend fun leave(code: String): OnlineResult<RoomView> = left ?: OnlineResult.Failed()
 
-    override suspend fun myGames() = games
+    /** When set, [myGames] answers only once it completes: a slow games list beside another call. */
+    var gamesGate: CompletableDeferred<Unit>? = null
+
+    override suspend fun myGames(): OnlineResult<MyGames> {
+        gamesGate?.await()
+        return games
+    }
 }
 
 /** One person's driver on a [FakeServer]: with a [seat], the server greets every new socket as it would. */

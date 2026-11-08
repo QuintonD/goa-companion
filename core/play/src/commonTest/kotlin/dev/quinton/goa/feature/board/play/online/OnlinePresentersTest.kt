@@ -20,6 +20,7 @@ import kotlin.test.assertFalse
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.advanceTimeBy
@@ -372,6 +373,37 @@ class OnlinePresentersTest {
         rig.home.join(inviteLink("ABCD1234"))
         runCurrent()
         assertEquals(room, rig.home.state.value.openRoom)
+    }
+
+    @Test
+    fun anInvitesRefusalStaysWhenTheGamesListComesBackAfterIt() = runTest {
+        val rig = HomeRig(this, account)
+        val gate = CompletableDeferred<Unit>()
+        rig.gateway.gamesGate = gate
+        rig.gateway.joined = OnlineResult.Refused(Refusal.NO_SUCH_ROOM)
+        rig.home.start()
+        runCurrent()
+        rig.home.join("ABCD2345")
+        runCurrent()
+        assertEquals(OnlineWords.refusal(Refusal.NO_SUCH_ROOM), rig.home.state.value.message)
+
+        gate.complete(Unit)
+        runCurrent()
+        assertEquals(OnlineWords.refusal(Refusal.NO_SUCH_ROOM), rig.home.state.value.message)
+    }
+
+    @Test
+    fun aGamesListThatLoadsClearsOnlyItsOwnEarlierFailure() = runTest {
+        val rig = HomeRig(this, account)
+        rig.gateway.games = OnlineResult.Failed()
+        rig.home.start()
+        runCurrent()
+        assertNotNull(rig.home.state.value.message)
+
+        rig.gateway.games = OnlineResult.Ok(MyGames(emptyList()))
+        rig.home.refreshGames()
+        runCurrent()
+        assertNull(rig.home.state.value.message)
     }
 
     // ---- The lobby -----------------------------------------------------------------------------------
