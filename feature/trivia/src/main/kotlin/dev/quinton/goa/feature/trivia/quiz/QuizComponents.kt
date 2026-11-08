@@ -163,12 +163,6 @@ internal fun QuestionPanel(
 
         is QuizQuestionUi.Duel -> Column(modifier.fillMaxWidth()) {
             TitlePlate("Which has the higher initiative?", Modifier.fillMaxWidth(), maxLines = 3)
-            Spacer(Modifier.height(Spacing.xs))
-            Text(
-                "Tap a card, or Same initiative if they match.",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
         }
     }
 }

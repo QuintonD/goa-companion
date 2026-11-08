@@ -126,18 +126,7 @@ internal fun PlayingAsContent(
                 Text(
                     if (challenge) "Who's taking the Challenge?" else "Who's playing?",
                     style = MaterialTheme.typography.titleLarge,
-                    modifier = Modifier.semantics { heading() },
-                )
-                Text(
-                    if (challenge) {
-                        "A Challenge is ranked under a player's name on the group's trivia leaderboard."
-                    } else {
-                        "Rounds played as a player count on the group's trivia leaderboard. " +
-                            "Guest practice is unranked."
-                    },
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(top = Spacing.xs, bottom = Spacing.sm),
+                    modifier = Modifier.semantics { heading() }.padding(bottom = Spacing.sm),
                 )
             }
         }

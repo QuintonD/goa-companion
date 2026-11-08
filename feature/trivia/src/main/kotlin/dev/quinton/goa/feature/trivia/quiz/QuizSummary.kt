@@ -179,16 +179,14 @@ private fun ScoreCard(state: TriviaQuizUiState.Summary) {
             )
             Spacer(Modifier.height(Spacing.xs))
         }
-        Text(
-            when {
-                state.asked == 0 -> "End a round after answering to see how it went."
-                state.misses.isEmpty() -> "Every answer right."
-                state.progressSaved -> "Missed numbers come back sooner next time."
-                else -> "This phone's learning progress stays as it was."
-            },
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
+        // Only what the score can't show: nothing answered, or progress left as it was.
+        when {
+            state.asked == 0 -> "No answers to score."
+            !state.progressSaved -> "Progress not saved."
+            else -> null
+        }?.let {
+            Text(it, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
         if (state.saveFailed) {
             Spacer(Modifier.height(Spacing.xs))
             Text(
