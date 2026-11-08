@@ -15,6 +15,8 @@ area, `goa-look-*.css`). Every part falls back to a flat colour while its image 
   small teal corner brackets. In the light theme the plate is the rulebook's white page: paper (`#FEFCF8` → `#F8F4EB`) with a steel edge
   (`#6F7C89` over a `#B4BEC8` rim), ink text, bronze accents, the same brackets. What sits on a plate is themed as the plate (`GoaPlateTheme`).
   Bottom nav, sheets (`GoaSheet`, never a bare `ModalBottomSheet`), search fields (`GoaTheme.colors.plate`) and the table's panels follow it.
+  The board's sheets (the game's log and hero sheet, the sandbox's) dim what is behind them to 60 % black, and the
+  game's open to 95 % of the height, their top at the top bar: the table's status panel is wholly behind them.
   **Dark in both themes by design** (`GoaDarkTheme`): the running timer, what floats over the painted map (`MapButton`, `SlateButton`),
   a card's own frame (`DesignedCard`), the hero dashboard. `PlateGround` is that slate's flat tone; a themed plate's is `GoaTheme.colors.plate`.
 - **Plate styles** (`PlateStyle`): `Primary` (steel edge, brackets) for every grouped section; `Secondary` (flat, a quiet hairline, no
@@ -582,7 +584,9 @@ instruction and the legal choices, the card a reminder beside them. A question a
 shows **the card beside its answers**: 28 % of the panel wide (84–108 dp; a landscape spell goes above them) for
 buttons, 72 dp beside a board question's tap hint and Confirm; tap it to read it. Sideways under 480 dp tall the
 actions must all be in view: the card is 64 dp (its printed numbers read; tap it to read it large), beside it the
-question and the action chips, each a label only (TalkBack hears its rule whole).
+question and the action chips two to a row, each a label and its page, except Fast Travel's condition, kept in view in
+fewer words ("Your/adjacent Zone · no enemies"; Fast Travel takes the width Hold doesn't need); TalkBack hears each rule
+whole.
 **Actions** are compact chips beside the card: the game's icon and the value the card prints
 ("Movement 4"; the primary filled bronze and named "Card action · Attack 6"), only the rules
 no card prints in a few words (Fast Travel "To your Zone or an adjacent one, no enemy
@@ -609,7 +613,7 @@ cast); the Note box holds only the actions the card can't offer. Card questions 
 keep) show "Asked by <card>" (28 dp thumbnail) when another card asks, and the cards as official
 images: the hand as 84 dp cards shrinking to 60 dp to fit five, two or three cards larger (112 / 92
 dp, so Keep's two next-Tier cards sit side by side with their item stats), a card the question
-doesn't offer dimmed with a block icon. Under every card to choose (hand, discard, defend, upgrade, keep) its
+doesn't offer dimmed with a block icon. Under every card to choose (hand, discard, upgrade, keep; Defend is a list, below) its
 **name** in Crimson 14 sp semibold (wraps, after a hyphen if need be, never cut). **Card numbers** (`CardNumbers`) follow
 in a strip of their own under the name, so they hide none of the card's title or text: the Initiative, then the
 primary action's value, then Range, then Movement, each with the game's own item icon and the figure in 16 sp bold
@@ -628,26 +632,29 @@ Initiative"), three cards across the panel (60–100 dp); under each card the sp
 landscape, as wide as the card, tap to read); "The card on the left is the choice…" as the rule row (p.15) under the rows.
 Keep's two cards have their spells under them the same way. Whenever the question is the person's
 own (any kind, game and puzzles) the resolution flow and then the moment (reveal, turn over, the end of
-round summary) come after it, and a new question opens the panel at its top. **Defend** is the attacking card's
-text box, "Arien attacks · melee" on its tab, the attacker's card (40 dp, tap to read) and the Attack total with
-the minion modifier counted beside it, carrying "Discard a card to defend" for TalkBack; then the options as
-**comparable outcomes**: each hand card, its name, and under it its Defense total as the engine counts it against the
-Attack, "Def 2 vs 6", with the verdict's mark (warning or tick) in its colour (p.14: "If you cannot defend
-successfully, or choose not to defend, you are defeated"); a Block settled up front "Blocks it" or "Block fails"; a
-card whose text decides shows that condition verbatim in italic Crimson (“Block a ranged attack.”). "Don't defend" is a
-card-sized tile at the row's end (a block icon, "Keep your cards"). **Nothing is chosen for the player**, except that
-when no card saves the hero, not defending is the bronze button from the start (its tile lit). Not defending shows
-**what it comes to**, played out by the engine on a fork of the game (`defeatPreview`: its own events, never the app's
-reckoning): a rule row "No card saves Tigerclaw: defeated by Arien." p.13 and under it, each with the game's mark, the
-Life counters the team spends ("Blue spends 1 Life counter (1 left)", or the last one and who wins), the coins each hero
-collects and "Tigerclaw may respawn before acting next turn"; the button then reads "Accept defeat · keep cards". Where
-the engine can't be asked (online, a puzzle) the row is the short "No card saves Tigerclaw." p.14 and the button
-"Don't defend · keep your cards". The whole decision
-is in view at 100 % on a 411 dp phone: the row, then the rule row of how the chosen one is counted, from the engine's
-numbers only ("Defense 2 = card 1 + minion 1 against Attack 6", p.14; items, the minion modifier, and whatever else the
-engine counted as "effects"; a card whose text decides: its words verbatim and the attack it meets, "This is a melee
-attack, Attack 6."), then Read card and the one-line button ("Defend · Blink Strike", "Don't defend · keep your cards";
-"Tap a card to defend with, or Don't defend" until something is chosen): a losing choice stays possible, never a
+round summary) come after it, and a new question opens the panel at its top. **Defend** (`DefensePanel.kt`, UI hill
+climb round 5) is the attacking card's text box, "Arien attacks · melee" on its tab, the attacker's card (28 dp, tap to
+read) and the Attack total with the minion modifier counted beside it, carrying "Discard a card to defend" for TalkBack;
+when no card saves the hero, that is said **once** under it ("No card saves Tigerclaw", one warning mark, p.14). Then the
+options as a **list**, one `SelectablePlate` row per hand card: the card small (32 dp), its name in Crimson 17 sp, and
+under it, in neutral text, its Defense total as the engine counts it against the Attack and the outcome in a word in
+weight ("Defense 2 vs Attack 6 · **Defeated**"; p.14: "If you cannot defend successfully, or choose not to defend, you
+are defeated"); only a saving card carries a mark (a teal tick, "· **Defends**"), a failing one is never styled as an
+error. A Block settled up front shows the engine's words ("Block: not against this attack · Defeated"); a card whose
+text decides shows that text verbatim in italic Crimson. A chevron (48 dp) opens a card's own text in its row. Not
+defending is a **full-width row of its own** under the list: "Don't defend · keep your cards" and under it **what it
+comes to**, played out by the engine on a fork of the game (`defeatPreview`: its own events, never the app's
+reckoning): "Defeated", the Life counters the team spends with the counter's mark at 20 dp ("Blue −1 (1 left)", or the
+last one and who wins), the coins each hero collects ("Arien +2"), p.13; TalkBack hears it in words with "Tigerclaw may
+respawn before acting next turn". Where the engine can't be asked (online, a puzzle) the row says "Defeated", p.14.
+**Nothing is chosen for the player**, except that when no card saves the hero, not defending is chosen from the start
+and the button reads "Accept defeat · keep cards". A chosen card says in its row how its total is counted, from the
+engine's numbers only ("Defense 2 = card 1 + minion 1 vs Attack 6 · Defeated"; items, the minion modifier, and whatever else
+the engine counted as "effects"; a card whose text decides: the attack it meets, "This is a melee attack, Attack 6.").
+Read card and the one-line button ("Defend · Blink Strike"; "Choose a card, or Don't defend" until something is chosen)
+close it. The list takes what the panel's room leaves (`LocalQuestionRoom`: the question's share of the screen, measured
+from where the question starts) and scrolls inside it with a fade at its foot, so the commit stays in view; it never
+gets less than two rows, so with large text the panel itself scrolls. A losing choice stays possible, never a
 surprise. Declines and Pass are outlined. With large
 text the asking card goes above the answers. The computer's move shows its portrait, band and strength
 ("COMPUTER · HARD 7") and prompt
@@ -679,17 +686,20 @@ appears only where the log names it. The hidden panel's peek and the log sheet a
 keeps every line). The coach's nudge is a secondary-container card with "Choose anyway"
 (outlined) and "Rethink" (filled). Game over leads with "You won" / "The computer won" in a card
 bordered in the winner's colour, the rulebook reason (no page), then **How each hero did** as a grid under one
-`SectionHeader`: a head row of icons over 13 sp words (Level, Heroes, Minions, KO'd, Coins; the game's crossed blades
-and coin) in fixed columns as wide as their word plus air, a row per hero (portrait in its team ring with the mark on
+`SectionHeader`: a head row of icons over 13 sp words (Level, Hero KOs, Minion KOs, Deaths, Coins; "Hero / KOs" on
+two lines; the game's crossed blades and coin) in fixed columns as wide as their longest word plus air, a row per hero (portrait in its team ring with the mark on
 its foot, name, who played it, wrapping) with its figures in those columns (20 sp, a zero muted); with large text the
-figures go under the name. Then the report ("Review your decisions", in view over the bar), the coach's turning points
+figures go under the name. Then the report ("Review your decisions", in view over the bar, with what it is under it:
+"A replay of your decisions: the coach marks each choice you made against its best play. The result stands."), the coach's turning points
 by round and turn, and an outlined New game; **Rematch** (bronze, with its icon) and **Done** (outlined) are pinned under
 the page on the slate, as every flow's commit is (online: Done alone). New game reuses New board's picker; heroes not
 yet playable are veiled and marked "Later". Options: the line-up plate, then
 **You play** as "One hero | Whole team" (2 v 2 and up) and portrait chips for the heroes or the teams (the
 chosen one bordered in its team's colour with a check), "The computer plays …" under them; strength, length
 (each segment with the counters it starts with, as the engine sets them up: "Quick / 3 Waves · 4 Lives", "Long / 5
-Waves · 6 Lives"; the note under them, "Counters at the start with 4 heroes, Lives per team (p.5)"), map and a Coach switch row, all above the fixed coin button. **Computer strength** (ADR-039) is a Material 3 slider, 1 to 10 with a tick per step
+Waves · 6 Lives"; the note under them, "With 4 heroes; Lives are per team (p.5)"), map and a Coach switch row, all above the fixed
+button "Start game · flip the coin" (it starts the game; the coin flip is how). The page fits a 411 × 891 phone whole:
+the Coach row ends clear of the button. **Computer strength** (ADR-039) is a Material 3 slider, 1 to 10 with a tick per step
 (default 5), the value and its band above it in the primary colour ("7 · Hard"; bands 1–3 Easy, 4–6
 Normal, 7–8 Hard, 9–10 Expert), "Gentler" and "Stronger" under the ends, and the band's one-line note
 under that (1 and 10 have their own); TalkBack reads "Computer strength, Strength 7 of 10, Hard".
@@ -805,8 +815,9 @@ under a miss. A **miss** is
 a quiet surfaceVariant card ("Not quite" in Cinzel, the reason, filled "Try again from before that
 move", outlined Restart, text Show solution); never error red. **Solved** is a primary-container card
 with a 2 dp bronze border and the original **seal** (a bronze hex with a tide-teal tick and six
-points, drawn in code, opening out once with emphasised deceleration), then "Replay the solution on the board"
-and WHY IT WORKS as numbered lines (the explanation split sentence by sentence, a full round's by turn with a
+points, drawn in code, opening out once with emphasised deceleration), then, before the explanation, **Next puzzle**
+(bronze, with its arrow) beside "Replay solution" (steel; stacked with large text; the last puzzle: "Replay the
+solution on the board" alone, bronze), then WHY IT WORKS as numbered lines (the explanation split sentence by sentence, a full round's by turn with a
 "Turn 2" mark; never reworded), then RULES. The list has two parts, POSITIONS · 50 and FULL ROUNDS · 22, each with
 "n of m solved"; the Continue card says "Up next · Puzzle 2 of 50", the count the puzzle's own screen uses. The
 difficulty filter is one checked segmented bar, **"All" checked** by default, then Hard, Harder, Hardest, each with its
