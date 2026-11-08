@@ -818,6 +818,10 @@ private val TOP_BAR_ICON = 48.dp
 /** Back and the title's inset (56 dp), the bar's end padding (4 dp), the menu icon and a margin. */
 private val TOP_BAR_FIXED = 56.dp + 4.dp + TOP_BAR_ICON + 8.dp
 
+/** "6 learned · 3 learning" (learning left out at none): a hero's row in words. */
+internal fun masteryCounts(learned: Int, learning: Int): String =
+    "${TriviaText.number(learned)} learned" + if (learning > 0) " · ${TriviaText.number(learning)} learning" else ""
+
 @Composable
 private fun HeroProgressRow(hero: HeroProgressUi, onClick: () -> Unit) {
     val p = hero.progress
@@ -873,7 +877,16 @@ private fun HeroProgressRow(hero: HeroProgressUi, onClick: () -> Unit) {
                     )
                 }
                 Spacer(Modifier.height(Spacing.xs + 2.dp))
-                MasteryBar(p, height = 4.dp)
+                MasteryBar(p, height = 6.dp)
+                // Both counts in words, under the bar: learned and learning apart by more than colour.
+                if (p.mastered + p.learning > 0) {
+                    Text(
+                        masteryCounts(p.mastered, p.learning),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(top = Spacing.xs),
+                    )
+                }
                 if (!canQuiz) {
                     Spacer(Modifier.height(Spacing.xs))
                     Text(

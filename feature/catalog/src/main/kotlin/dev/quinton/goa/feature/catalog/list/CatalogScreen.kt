@@ -449,7 +449,12 @@ private fun SortChip(sort: CatalogSort, onSort: (CatalogSort) -> Unit) {
 
 @Composable
 private fun ResultSummary(state: CatalogUiState.Ready, query: String, modifier: Modifier = Modifier) {
-    val text = resultSummary(state.heroes.size, state.totalInScope, query)
+    // A search that found cards too: one summary of both ("6 cards · 4 heroes"); the tabs carry each count.
+    val text = if (state.cards.isNotEmpty()) {
+        plural(state.cards.size, "card") + " · " + plural(state.heroes.size, "hero", "heroes")
+    } else {
+        resultSummary(state.heroes.size, state.totalInScope, query)
+    }
     Text(
         text,
         style = MaterialTheme.typography.bodyMedium,
@@ -562,7 +567,7 @@ private fun Results(
     ) {
         fun cardSection() {
             item(key = "cards-header", span = { GridItemSpan(maxLineSpan) }, contentType = HEADER) {
-                ResultsHeader("Cards", state.cards.size)
+                ResultsHeader("Cards")
             }
             items(
                 cards,
@@ -583,7 +588,7 @@ private fun Results(
         if (showCards && (state.cardsFirst || !showHeroes)) cardSection()
         if (showCards && showHeroes) {
             item(key = "heroes-header", span = { GridItemSpan(maxLineSpan) }, contentType = HEADER) {
-                ResultsHeader("Heroes", state.heroes.size)
+                ResultsHeader("Heroes")
             }
         }
         // Content types let a tile scrolled out be reused for the next tile, not rebuilt.
@@ -607,19 +612,13 @@ internal fun resultsKey(query: String, controls: CatalogControls): String =
     catalogResultsKey(query, controls.filter, controls.sort)
 
 @Composable
-private fun ResultsHeader(title: String, count: Int) {
-    Row(
-        Modifier.padding(top = Spacing.sm, bottom = 2.dp).semantics(mergeDescendants = true) { heading() },
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Text(title, style = GoaTextStyles.sectionHead, color = GoaTheme.colors.heading)
-        Spacer(Modifier.size(Spacing.sm))
-        Text(
-            count.toString(),
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
-    }
+private fun ResultsHeader(title: String) {
+    Text(
+        title,
+        style = GoaTextStyles.sectionHead,
+        color = GoaTheme.colors.heading,
+        modifier = Modifier.padding(top = Spacing.sm, bottom = 2.dp).semantics { heading() },
+    )
 }
 
 /** Skeleton tiles while the catalog loads (usually a few frames). */

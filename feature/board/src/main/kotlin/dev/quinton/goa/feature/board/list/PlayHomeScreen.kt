@@ -41,8 +41,8 @@ data class PlayHomeActions(
 /**
  * The Play tab's first screen (ADR-055): the game in progress to resume, then the headline entry, Play vs computer
  * (ADR-035), and Game night (the table's own path: Draft, Match setup, Timer), Puzzles, the Board sandbox (ADR-033),
- * Online (ADR-056) and Card trivia (ADR-028), each a plate with a painted scene. The plates share the screen's
- * height, so the tab opens on a full page, not a short list.
+ * Online (ADR-056) and Card trivia (ADR-028), each a plate with a painted scene and one line of words. The plates
+ * share the screen's height, so the tab opens on a full page with all six entries in view (411 × 891), not a list.
  */
 @Composable
 fun PlayHomeScreen(state: PlayHomeUiState, actions: PlayHomeActions, modifier: Modifier = Modifier) {
@@ -74,8 +74,7 @@ fun PlayHomeScreen(state: PlayHomeUiState, actions: PlayHomeActions, modifier: M
                 ArtPlate(
                     art = R.drawable.play_art_computer,
                     title = "Play vs computer",
-                    text = "The real game on the map: the app runs every rule, the computer plays at a strength " +
-                        "from 1 to 10, and a coach can nudge.",
+                    text = "Every rule run for you · strength 1 to 10 · a coach",
                     status = if (play.available) null else "Not available in this build",
                     enabled = play.available,
                     onClick = actions.onPlay,
@@ -89,13 +88,13 @@ fun PlayHomeScreen(state: PlayHomeUiState, actions: PlayHomeActions, modifier: M
                     Tile(
                         R.drawable.play_art_gamenight,
                         "Game night",
-                        "Draft heroes, set up the match, run the phase timer.",
+                        "Draft and time it",
                         onClick = actions.onGameNight,
                     ),
                     Tile(
                         R.drawable.play_art_puzzles,
                         "Puzzles",
-                        "Hard positions, gentle nudges, the rule behind each answer.",
+                        "Hard, with nudges",
                         if (puzzles == null) "Not available in this build" else null,
                         enabled = puzzles != null,
                         onClick = actions.onPuzzles,
@@ -110,19 +109,19 @@ fun PlayHomeScreen(state: PlayHomeUiState, actions: PlayHomeActions, modifier: M
                     Tile(
                         R.drawable.play_art_sandbox,
                         "Board sandbox",
-                        "Any line-up on the real map: who can reach whom.",
+                        "Who reaches whom",
                         onClick = actions.onBoards,
                     ),
                     Tile(
                         R.drawable.play_art_online,
                         "Online",
-                        "Play people on their own phones. Needs a connection.",
+                        "On friends' phones",
                         onClick = actions.onOnline,
                     ),
                     Tile(
                         R.drawable.play_art_trivia,
                         "Card trivia",
-                        "A quiz on the cards' numbers, with your group's leaderboard.",
+                        "The cards' numbers, with a leaderboard",
                         onClick = actions.onTrivia,
                     ),
                 )
@@ -162,9 +161,9 @@ private class Tile(
 private val WIDE: Dp = 720.dp
 private val NARROW: Dp = 340.dp
 private const val LARGE_TEXT = 1.5f
-private const val LEAD_SHARE = 0.25f
+private const val LEAD_SHARE = 0.18f
 private val LEAD_MIN: Dp = 132.dp
 private val LEAD_MAX: Dp = 220.dp
-private const val TILE_SHARE = 0.17f
+private const val TILE_SHARE = 0.13f
 private val TILE_MIN: Dp = 92.dp
 private val TILE_MAX: Dp = 150.dp

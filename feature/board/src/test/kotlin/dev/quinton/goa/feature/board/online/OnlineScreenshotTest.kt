@@ -6,11 +6,14 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.hasContentDescription
+import androidx.compose.ui.test.hasSetTextAction
+import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performImeAction
 import androidx.compose.ui.unit.Density
 import androidx.test.core.app.ApplicationProvider
 import com.github.takahirom.roborazzi.captureRoboImage
@@ -153,6 +156,17 @@ class OnlineScreenshotTest {
 
     @Test
     fun onlineHomeServerAwayDark() = capture(ThemeMode.DARK) { Home(ready.copy(message = OnlineWords.UNREACHABLE)) }
+
+    /** Too short a code sent with the keyboard's Go: Join stays off, and the field says what a code is. */
+    @Test
+    fun onlineHomeJoinInvalidDark() {
+        compose.setContent { GoaTheme(themeMode = ThemeMode.DARK) { Home(ready.copy(joinText = "7KQ2")) } }
+        compose.onNode(hasSetTextAction() and hasText("7KQ2")).performImeAction()
+        compose.waitForIdle()
+        compose.onNodeWithText(OnlineWords.NOT_A_CODE).assertIsDisplayed()
+        compose.waitUntil(IMAGE_TIMEOUT_MS) { BundledImages.idle }
+        compose.onRoot().captureRoboImage()
+    }
 
     @Test fun onlineCodeGateDark() = capture(ThemeMode.DARK) { Home(gate) }
 
