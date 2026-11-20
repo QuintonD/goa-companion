@@ -71,6 +71,12 @@ Scoring: every option of a decision gets `general score + hero adjust`, both in 
 minion of lane advantage at an even lane ≈ 15, one coin = 1, a card in hand ≈ 2.5 — keep the units of
 STRATEGY.md §2.2 so numbers mean the same everywhere). The player picks the max, or with the profile's noise.
 
+Card numbers a playbook reads are `HCard` (attack, defense, initiative, reach, and the rest of
+`CardProfile`). `CardProfile` stays module-internal. An enemy hand is not the one sampled hand:
+`HContext.possibleCards` is the public pool, and `HContext.hand` is null until strength 10
+(`knowHands`). `HeuristicProfile.lookahead` is how far the one ply goes: off, opaque choices only,
+then actions and targets, then a close movement.
+
 ### The per-hero interface (`HeroHeuristics.kt`)
 
 ```kotlin
