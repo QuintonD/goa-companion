@@ -66,7 +66,7 @@ class FullRoundGateTest {
         session.haltWhen = GoalTracker.haltAt(Deadline.END_OF_ROUND, session.state.round, 1, beforeRetrieve = true)
         val static = StaticPolicy(Evaluator(TestData.engine.data, Features.KNOBS))
         var n = solver.root(session)
-        val ai = AiPlayers.deterministic(strength, AI_SEED + strength)
+        val ai = AiPlayers.searchDeterministic(strength, AI_SEED + strength)
         var guard = 0
         while (n.progress.state == GoalState.OPEN && n.decision != null && guard++ < MAX_DECISIONS) {
             val d = n.decision!!

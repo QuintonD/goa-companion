@@ -132,7 +132,8 @@ class GameParityTest {
             }
             appendLine("round ${s.state.round} winner ${s.state.winner}")
         }
-        assertTranscript("2532ce3cb51470cbda68ebe4f44cf2c1df8385afa0db9428c271b12f8c6b093f", transcript, "AI game")
+        // Re-pinned for ADR-085: the seated player is the heuristic book, the same on the JVM and in JS.
+        assertTranscript("a0d65ab51068b546ab2cd7319c8014082e21bc85e1ea369e5ccdd0daf9636fbd", transcript, "AI game")
     }
 
     /**
@@ -157,8 +158,8 @@ class GameParityTest {
             tieBreaker = Team.BLUE,
         )
         val players = mapOf(
-            Team.RED to AiPlayers.deterministic(AiLevel.HARD, 3),
-            Team.BLUE to AiPlayers.deterministic(AiLevel.EXPERT, 5),
+            Team.RED to AiPlayers.searchDeterministic(AiLevel.HARD.strength, 3),
+            Team.BLUE to AiPlayers.searchDeterministic(AiLevel.EXPERT.strength, 5),
         )
         val s = engine.newGame(setup) as EngineSession
         val transcript = buildString {
