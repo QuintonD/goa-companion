@@ -230,27 +230,7 @@ class HContext(
         if (!profile.threatMap) return 0.0
         val h = state.hero(heroId) ?: return 0.0
         val mod = minionModifier(at, h.team)
-        var noKill = 1.0
-        var noHit = 1.0
-        val threats = threatsFromEnemies(h)
-        for (enemy in threats) {
-            val from = state.hero(enemy.first)?.at ?: continue
-            val d = distance(from, at)
-            var killW = 0.0
-            var hitW = 0.0
-            for (t in enemy.second) {
-                if (t.thisTurn && alreadyActed(enemy.first)) continue
-                if (d > t.reach) continue
-                val w = t.weight.coerceIn(0.0, 0.9)
-                if (kills(h, t, mod)) killW += w else hitW += w
-            }
-            // One card this turn: the chances of one enemy's cards add up to at most one.
-            val cap = enemy.second.maxOfOrNull { if (it.thisTurn) 0.75 else 0.35 } ?: 0.0
-            noKill *= 1.0 - min(cap, killW)
-            noHit *= 1.0 - min(cap, hitW)
-        }
-        val pKill = min(0.92, 1.0 - noKill)
-        val pHit = (1.0 - pKill) * (1.0 - noHit)
+        val (pKill, pHit) = threatChances(h, at, mod)
         var v = pKill * killWorth(heroId) + pHit * discardWorth(h)
         if (profile.heroPlaybooks) {
             for (e in state.heroes) {
@@ -268,7 +248,16 @@ class HContext(
         v += formation(heroId, at, style)
         if (profile.threatMap) v -= exposurePenalty(heroId, at)
         if (profile.turnPlans && heroId == seat) v += planPull(at)
+        // G51: once the push is decided, stand in the zone it is moving into.
+        if (profile.laneTiming) v += zonePull(heroId, at)
         return v
+    }
+
+    /** How much [at] agrees with [goalZone]. */
+    private fun zonePull(heroId: String, at: Hex): Double {
+        val goal = goalZone(heroId) ?: return 0.0
+        val d = distanceToZone(at, goal)
+        return if (d == 0) 2.5 else -0.7 * d
     }
 
     /** Lane presence: inside the Battle Zone is the fight; each space outside costs a fraction of an action. */
@@ -306,14 +295,13 @@ class HContext(
         val m = state.minion(minionId) ?: return 0.0
         if (m.team == team) return -6.0
         if (heavyImmune(minionId)) return -3.0
-        val alive = state.minions.count { it.team == m.team && it.lane == m.lane && it.at != null }
-        var v = if (m.type == MinionType.HEAVY) 6.0 else 4.4
-        if (m.type == MinionType.RANGED && rangedCovers(m, team)) v += 3.6
-        if (m.type != MinionType.RANGED && adjacentTo(m, team)) v += 2.0
-        if (alive == 1) v += 16.0
-        if (alive == 1 && matchPoint(m.lane)) v += if (profile.laneTiming) 14.0 else 6.0
-        // An opening (margin of 3) can wait. A margin of 2 still wants the minion: the projection is rough.
-        if (profile.strength >= 7 && laneMargin(m.lane) >= 3) v -= 2.0
+        // G58: the coins, plus the change in the lane. The last minion is the push, not a flat bonus.
+        var v = if (m.type == MinionType.HEAVY) 4.0 else 2.0
+        v += laneKillValue(m.lane)
+        if (m.type == MinionType.RANGED && rangedCovers(m, team)) v += 4.0 // G62
+        if (m.type != MinionType.RANGED && adjacentTo(m, team)) v += 2.0 // G63
+        val theirs = minionCount(m.team, m.lane)
+        if (profile.strength >= 7 && theirs > 1 && laneMargin(m.lane) >= 2 && !matchPoint(m.lane)) v -= 4.0
         return v
     }
 
@@ -326,15 +314,17 @@ class HContext(
         val h = state.hero(targetId) ?: return 0.4
         if (h.team == team) return -8.0
         val at = h.at ?: return 0.0
-        if (h.hand.isEmpty()) return killWorth(targetId)
+        // G11: an empty hand, or the last card about to be played, is a defeat.
+        if (h.hand.isEmpty() || defenseless(targetId)) return killWorth(targetId)
         val mod = minionModifier(at, h.team)
         val chance = killChance(h, attackTotal, ranged, mod)
         val kill = killWorth(targetId)
         val strip = discardWorth(h)
         // A poke that only spends a card loses the minion we could have farmed. A real kill does not.
         var v = chance * kill + (1.0 - chance) * strip * (if (chance < 0.4) 0.65 else 1.0)
-        if (profile.focusFire && chance < 0.5 && allyCanReach(h)) v += 3.5
-        if (profile.twoTurnPlans && chance < 0.5 && h.hand.size <= 2) v += 2.0
+        // G60: a teammate still to act turns a failed poke into the card they will not have.
+        if (profile.focusFire && allyCanReach(h)) v += if (h.hand.size <= 2) 6.0 else 3.5
+        if (profile.twoTurnPlans && chance < 0.55 && h.hand.size <= 3 && turn in 2..3) v += 2.0
         return v
     }
 
@@ -503,12 +493,14 @@ class HContext(
                 addThreat(out, enemyId, p.card, attackItems, 0.18 * p.weight, thisTurn = false, approach = approach)
             }
         } else {
+            // One card this turn. Each colour is equally likely; [PossibleCard.weight] is its share of that colour.
             val colours = pool.map { it.card.color }.distinct().size.coerceAtLeast(1)
             for (p in pool) {
-                val now = 0.55 * p.weight / colours
+                val now = 0.65 * p.weight / colours
                 addThreat(out, enemyId, p.card, attackItems, now, thisTurn = true)
                 if (state.turn < 4) {
-                    addThreat(out, enemyId, p.card, attackItems, 0.16 * p.weight, thisTurn = false, approach = 1)
+                    val later = 0.22 * p.weight / colours
+                addThreat(out, enemyId, p.card, attackItems, later, thisTurn = false, approach = 1)
                 }
             }
         }
@@ -532,6 +524,42 @@ class HContext(
 
     private fun threatsFromEnemies(victim: HeroState): List<Pair<String, List<Threat>>> =
         state.heroes.filter { it.team != victim.team && it.at != null }.map { it.id to threatsFrom(it.id) }
+
+    /**
+     * P(defeat) and P(a card thrown | not defeated) from the possible pool.
+     * An empty defense pool is counted in full: any attack that reaches is the kill (GENERAL §2).
+     */
+    private fun threatChances(h: HeroState, at: Hex, mod: Int): Pair<Double, Double> {
+        var noKill = 1.0
+        var noHit = 1.0
+        var attackReaches = false
+        for ((enemyId, list) in threatsFromEnemies(h)) {
+            val from = state.hero(enemyId)?.at ?: continue
+            val d = distance(from, at)
+            var killNow = 0.0
+            var hitNow = 0.0
+            var killNext = 0.0
+            var hitNext = 0.0
+            for (t in list) {
+                if (t.thisTurn && alreadyActed(enemyId)) continue
+                if (d > t.reach) continue
+                val w = t.weight.coerceIn(0.0, 0.9)
+                if (t.thisTurn && t.card.threatens) attackReaches = true
+                when {
+                    t.thisTurn && kills(h, t, mod) -> killNow += w
+                    t.thisTurn -> hitNow += w
+                    kills(h, t, mod) -> killNext += w
+                    else -> hitNext += w
+                }
+            }
+            noKill *= (1.0 - min(0.70, killNow)) * (1.0 - min(0.28, killNext))
+            noHit *= (1.0 - min(0.70, hitNow)) * (1.0 - min(0.28, hitNext))
+        }
+        var pKill = min(0.92, 1.0 - noKill)
+        if (attackReaches && defenseless(h.id)) pKill = max(pKill, 0.85)
+        val pHit = (1.0 - pKill) * min(0.9, 1.0 - noHit)
+        return pKill to pHit
+    }
 
     /** Resolved already this turn. The hero whose question is pending has not acted yet. */
     private fun alreadyActed(heroId: String): Boolean = heroId in state.turnRecord.resolved
@@ -625,11 +653,34 @@ class HContext(
     private fun planPull(at: Hex): Double {
         val target = plan.targetId?.let { state.hero(it)?.at ?: state.minion(it)?.at } ?: return 0.0
         return when (plan.intent) {
-            Intent.KILL, Intent.FARM, Intent.PUSH, Intent.CLEAR_MINION -> -0.35 * distance(at, target)
-            Intent.RETREAT -> 0.25 * distance(at, target)
+            Intent.KILL, Intent.FARM, Intent.PUSH, Intent.CLEAR_MINION, Intent.WIN, Intent.SETUP ->
+                -0.35 * distance(at, target)
+
+            Intent.RETREAT, Intent.SURVIVE, Intent.LET_PUSH, Intent.ROTATE -> 0.25 * distance(at, target)
             else -> 0.0
         }
     }
+
+    /** Insurance value of a spare card on this turn (3 / 2 / 1.5 / 0.8). */
+    fun spareWeight(): Double = spareWeightOf(turn)
+
+    /** No defense left, or the last card is about to be played and will not be in hand (G11). */
+    fun defenseless(heroId: String): Boolean = heroIsDefenseless(this, heroId)
+
+    /** This hero has not resolved a card yet and still will this turn. */
+    fun stillToAct(heroId: String): Boolean = heroStillToAct(this, heroId)
+
+    /**
+     * The zone [heroId] should be standing in. Null until lane timing is on.
+     * At match point it is the current Battle Zone; once a push is decided, the next one (G51).
+     */
+    fun goalZone(heroId: String): String? = goalZoneOf(this, heroId)
+
+    /** The zone a push by [pushing] moves [lane] into, or null when that zone is a Throne or absent. */
+    fun nextBattleZone(lane: String, pushing: Team): String? = nextZoneOf(this, lane, pushing)
+
+    /** Coin change in `60 × W` from defeating one enemy minion on [lane] (G58). */
+    fun laneKillValue(lane: String): Double = laneKillDelta(this, lane)
 
     /** Mild danger is a tax. A likely death this turn is not a place to stand. */
     private fun exposurePenalty(heroId: String, at: Hex): Double {

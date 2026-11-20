@@ -14,13 +14,15 @@ import org.junit.Test
  * Opt-in. `AI_H_TOURNAMENT=h10:s8,h10:h5` plays mirrored games of the heuristic book (`hN`)
  * against the old search (`sN`) or another book. `AI_H_GAMES` is the number of line-ups
  * (each is mirrored, so games are twice that; default 24). `AI_FORMAT` and `AI_THREADS` as elsewhere.
- * Prints the win rate, the Wilson interval and the mean time to answer.
+ * Prints the win rate, the Wilson interval and the mean and p95 time to answer.
+ * `AI_H_FIRST` is the first mixed line-up index, so a final table can use a held-out seed.
  */
 class HeuristicTournamentTest {
     @Test
     fun `mirrored games`() {
         val spec = System.getenv("AI_H_TOURNAMENT") ?: return
         val lineups = System.getenv("AI_H_GAMES")?.toIntOrNull() ?: 24
+        val first = System.getenv("AI_H_FIRST")?.toIntOrNull() ?: 0
         val threads = System.getenv("AI_THREADS")?.toIntOrNull() ?: 2
         val format = AiHarness.Format.parse(System.getenv("AI_FORMAT"))
         for (pair in spec.split(",").map { it.trim() }.filter { it.isNotEmpty() }) {
@@ -30,7 +32,7 @@ class HeuristicTournamentTest {
             val a = side(aName, aTimes)
             val b = side(bName, bTimes)
             val t0 = System.nanoTime()
-            val score = Tournament.runMixed(a, b, lineups, threads, format = format)
+            val score = Tournament.runMixed(a, b, lineups, threads, firstLineup = first, format = format)
             val secs = (System.nanoTime() - t0) / 1e9
             val (lo, hi) = score.interval
             println(
@@ -38,12 +40,18 @@ class HeuristicTournamentTest {
                     "in ${"%.0f".format(secs)} s",
             )
             println("H_TOURNAMENT   ${score.details()}")
-            println("H_TOURNAMENT   answer ${a.label} ${ms(aTimes)} ms, ${b.label} ${ms(bTimes)} ms (mean)")
+            println(
+                "H_TOURNAMENT   answer ${a.label} ${ms(aTimes)} ms, ${b.label} ${ms(bTimes)} ms (mean / p95)",
+            )
         }
     }
 
-    private fun ms(times: List<Long>): String =
-        if (times.isEmpty()) "n/a" else "%.2f".format(times.average() / 1_000_000.0)
+    private fun ms(times: List<Long>): String {
+        if (times.isEmpty()) return "n/a"
+        val sorted = times.sorted()
+        val p95 = sorted[((sorted.size - 1) * 95) / 100]
+        return "%.2f / %.2f".format(times.average() / 1_000_000.0, p95 / 1_000_000.0)
+    }
 
     private fun side(spec: String, times: MutableList<Long>): Tournament.Side =
         Tournament.Side(spec) { seed -> timed(player(spec, seed), times) }

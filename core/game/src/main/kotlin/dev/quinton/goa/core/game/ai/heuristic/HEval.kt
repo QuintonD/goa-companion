@@ -6,7 +6,9 @@ import dev.quinton.goa.core.game.engine.GameState
 import dev.quinton.goa.core.game.engine.HeroState
 import dev.quinton.goa.core.game.engine.PieceState
 import dev.quinton.goa.core.game.engine.Zone
+import dev.quinton.goa.core.model.board.Hex
 import dev.quinton.goa.core.model.match.Team
+import kotlin.math.abs
 import kotlin.math.max
 import kotlin.math.min
 
@@ -57,8 +59,16 @@ object HEval {
         val bodies = listOf(at) + ctx.state.pieces.filter { it.heroBody == h.id && it.at != null }.map { it.at!! }
         v += bodies.maxOf { ctx.presence(it) }
         v += bodies.maxOf { ctx.opportunity(h.id, it) } * 2.0
+        if (ctx.profile.laneTiming) v += bodies.maxOf { zonePull(ctx, h.id, it) }
         if (ctx.profile.threatMap) v -= bodies.maxOf { ctx.exposure(h.id, it) }
         return v
+    }
+
+    /** G51: the same pull [HContext.placement] uses, so a one-ply look sees the next zone. */
+    private fun zonePull(ctx: HContext, heroId: String, at: Hex): Double {
+        val goal = ctx.goalZone(heroId) ?: return 0.0
+        val d = ctx.distanceToZone(at, goal)
+        return if (d == 0) 2.5 else -0.7 * d
     }
 
     private fun hand(ctx: HContext, h: HeroState): Double {
@@ -101,8 +111,18 @@ object HEval {
             val laneWeight = if (match) 100.0 else 60.0
             val margin = if (match) 3.0 else 1.5
             v += laneWeight * (2 * w - 1) + margin * (red - blue)
+            // G13: the side with fewer spawns in this zone is the one a push stranded.
+            if (ctx.profile.laneTiming && !match) v += spawnSide(ctx, bz, red, blue)
         }
         return v
+    }
+
+    /** Red's score for who the zone's spawns favour. Negative when Red is the side with fewer. */
+    private fun spawnSide(ctx: HContext, bz: String, red: Int, blue: Int): Double {
+        val edge = spawnCount(ctx, bz, Team.BLUE) - spawnCount(ctx, bz, Team.RED)
+        if (edge == 0) return 0.0
+        val scale = if (abs(red - blue) >= 3) 4.0 else 14.0
+        return -scale * edge.coerceIn(-2, 2)
     }
 
     /** Enemy minions this team can still take (the designer's Push Potential). Public cards only. */

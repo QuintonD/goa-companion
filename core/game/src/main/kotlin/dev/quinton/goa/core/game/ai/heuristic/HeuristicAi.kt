@@ -68,7 +68,7 @@ class HeuristicAi(
             General.score(ctx, pending, pending.options[i]) + adjust(book, ctx, pending, pending.options[i])
         }
         val looked = look(ctx, pending, static, rng, cancelled)
-        val choice = looked ?: pick(pending, pending.options.indices.toList(), static, rng)
+        val choice = looked ?: pick(pending, pending.options.indices.toList(), static, rng, fromLook = false)
         return decision.options.firstOrNull { it == choice } ?: choice
     }
 
@@ -91,10 +91,13 @@ class HeuristicAi(
         for (i in idxs) {
             if (cancelled()) break
             got += i
-            values += Lookahead.value(ctx, d, d.options[i]) + adjust(book, ctx, d, d.options[i])
+            // The look is the position. [General.commitment] is what that position does not contain.
+            values += Lookahead.value(ctx, d, d.options[i]) +
+                General.commitment(ctx, d, d.options[i]) +
+                adjust(book, ctx, d, d.options[i])
         }
         if (got.isEmpty() || values.none { it > Lookahead.WORSE / 2 }) return null
-        return pick(d, got, values.toDoubleArray(), rng)
+        return pick(d, got, values.toDoubleArray(), rng, fromLook = true)
     }
 
     private fun lookAt(ctx: HContext, d: Decision, static: DoubleArray): List<Int> {
@@ -114,6 +117,13 @@ class HeuristicAi(
         return when (d.kind) {
             DecisionKind.CHOOSE_ACTION -> d.options.size
 
+            // The card is the plan. Static scores order the options; the engine resolves the text.
+            DecisionKind.PLAY_CARD -> when (look) {
+                HeuristicProfile.Look.ACTIONS -> CARD_CAP
+                HeuristicProfile.Look.MOVES -> d.options.size
+                else -> 0
+            }
+
             DecisionKind.CHOOSE_UNIT -> UNIT_CAP
 
             DecisionKind.DEFEND -> if (nullDefense) d.options.size else 0
@@ -125,10 +135,12 @@ class HeuristicAi(
         }
     }
 
-    private fun pick(d: Decision, idxs: List<Int>, values: DoubleArray, rng: Random): Choice {
+    private fun pick(d: Decision, idxs: List<Int>, values: DoubleArray, rng: Random, fromLook: Boolean): Choice {
         val choices = idxs.map { d.options[it] }
-        val critical = d.kind == DecisionKind.DEFEND || d.kind == DecisionKind.REMOVE_MINION ||
-            (values.isNotEmpty() && values.max() >= CRITICAL)
+        // A look returns a position value, often far above [CRITICAL]. Only a won game is critical there.
+        val lane = !fromLook && values.isNotEmpty() && values.max() >= CRITICAL
+        val won = fromLook && values.isNotEmpty() && values.max() >= 500.0
+        val critical = d.kind == DecisionKind.DEFEND || d.kind == DecisionKind.REMOVE_MINION || lane || won
         val temp = if (critical) 0.0 else profile.temperature
         val slip = if (critical) 0.0 else profile.slipRate
         return Picker.pick(choices, values, temp, profile.maxGap, slip, rng)
@@ -176,7 +188,8 @@ class HeuristicAi(
         private const val CRITICAL = 12.0
         private const val OPAQUE_CAP = 8
         private const val UNIT_CAP = 8
-        private const val SPACE_CAP = 4
+        private const val SPACE_CAP = 6
+        private const val CARD_CAP = 3
 
         /** The same mix as the old search, so a seed names one stream of answers. */
         fun mix(a: Long, b: Long): Long {

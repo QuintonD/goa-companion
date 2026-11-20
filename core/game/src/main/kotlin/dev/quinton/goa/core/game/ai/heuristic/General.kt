@@ -4,7 +4,6 @@ import dev.quinton.goa.core.game.ActionType
 import dev.quinton.goa.core.game.Choice
 import dev.quinton.goa.core.game.Decision
 import dev.quinton.goa.core.game.DecisionKind
-import dev.quinton.goa.core.game.engine.HeroState
 import dev.quinton.goa.core.game.engine.MinionState
 import dev.quinton.goa.core.game.engine.Zone
 import dev.quinton.goa.core.game.engine.upgradesOf
@@ -32,7 +31,7 @@ object General {
     }
 
     fun score(ctx: HContext, d: Decision, choice: Choice): Double = when (d.kind) {
-        DecisionKind.PLAY_CARD -> playCard(ctx, choice)
+        DecisionKind.PLAY_CARD -> PlayRules.score(ctx, choice)
         DecisionKind.CHOOSE_ACTION -> action(ctx, d, choice)
         DecisionKind.CHOOSE_SPACE, DecisionKind.MINION_RETURN -> space(ctx, d, choice)
         DecisionKind.RESPAWN -> respawn(ctx, d, choice)
@@ -44,65 +43,65 @@ object General {
         DecisionKind.KEEP_UPGRADE -> keep(ctx, d, choice)
         DecisionKind.CHOOSE_TOKEN -> token(ctx, choice)
         DecisionKind.ACT_FIRST -> actFirst(ctx, choice)
+        // G89: optional steps are taken when they are not free damage. G90 is the commitment below.
         DecisionKind.CONFIRM -> if (choice is Choice.Yes) 0.35 else 0.0
         DecisionKind.CHOOSE_NUMBER -> if (choice is Choice.Number) choice.value * 0.2 else 0.0
         DecisionKind.CHOOSE_OPTION -> 0.0
     }
 
-    // ---- card ---------------------------------------------------------------------------
-
-    /** Gold, green and silver first; red attacks late; blue is the spare (STRATEGY §1.5, §3.1). */
-    private fun playCard(ctx: HContext, o: Choice): Double {
-        if (o is Choice.Pass) return 0.0
-        if (o !is Choice.Card) return 0.0
-        val h = ctx.own() ?: return 0.0
-        val card = ctx.card(o.cardId)
-        val at = h.at ?: return -card.rating
-        var v = colourTempo(card, ctx.turn)
-        val outlook = outlook(ctx, h, at, card)
-        v += outlook
-        v += safety(ctx, h, at, card)
-        v += winNow(ctx, h, at, card)
-        v += tieBreaker(ctx, h, card)
-        // Keep the big attack for a kill or a push. Spending it on turn 1 for an ordinary minion loses the lane later.
-        if (ctx.turn <= 2 && card.color == CardColor.RED && card.attackCard && outlook < 12.0) v -= 3.5
-        return v
-    }
-
-    private fun colourTempo(card: HCard, turn: Int): Double = when (card.color) {
-        CardColor.BLUE -> when {
-            turn >= 4 -> 0.8
-            turn == 3 -> -0.15
-            else -> -1.35
-        }
-
-        CardColor.RED -> when {
-            turn <= 1 -> -0.95
-            turn == 2 -> -0.1
-            else -> 0.5
-        }
-
-        CardColor.GOLD -> if (turn <= 2) 0.4 else 0.15
-
-        CardColor.GREEN, CardColor.SILVER -> if (turn <= 2) 0.55 else 0.15
-
+    /**
+     * What a one-ply look must still add. The look scores the position after this action;
+     * it does not see the enemy who acts next, or a kill that lands next turn.
+     */
+    fun commitment(ctx: HContext, d: Decision, choice: Choice): Double = when (d.kind) {
+        DecisionKind.PLAY_CARD -> PlayRules.add(ctx, choice)
+        DecisionKind.CHOOSE_SPACE, DecisionKind.RESPAWN -> spaceCommitment(ctx, d, choice)
+        DecisionKind.CHOOSE_UNIT -> unitCommitment(ctx, choice)
+        DecisionKind.CHOOSE_ACTION -> actionCommitment(ctx, d, choice)
+        DecisionKind.CONFIRM -> if (choice is Choice.Yes && spendsLastDefense(ctx)) -ctx.killWorth(ctx.seat) else 0.0
         else -> 0.0
     }
 
-    private fun outlook(ctx: HContext, h: HeroState, at: Hex, card: HCard): Double {
-        val strike = if (card.attackCard || card.forcesDiscard) ctx.strikeFrom(h.id, at, card) else 0.0
-        val move = if (card.hasMovement) moveOutlook(ctx, at, card) else 0.0
-        val skill = if (card.skillCard && !card.attackCard) skillOutlook(ctx, at, card) else 0.0
-        var v = max(strike, max(move, skill))
-        if (strike > 0.5 && move > 0.3) v += 0.35
-        return v
+    /** G2, on the square we would end on. */
+    private fun spaceCommitment(ctx: HContext, d: Decision, o: Choice): Double {
+        if (o !is Choice.Space || !ctx.profile.threatMap) return 0.0
+        val subject = d.context.subjectId ?: d.seat
+        val body = ctx.heroBody(subject) ?: return 0.0
+        if (ctx.state.hero(body)?.team != ctx.team) return 0.0
+        return if (unansweredKill(ctx, body, o.hex)) -0.65 * ctx.killWorth(body) else 0.0
     }
 
-    private fun moveOutlook(ctx: HContext, at: Hex, card: HCard): Double {
-        val far = ctx.distanceToBattleZone(at)
-        if (far <= 0) return 0.15
-        return min(far * 0.4, card.movement * 0.55)
+    /** G13 on the minion itself, and G59 when the hero still has an answer. */
+    private fun unitCommitment(ctx: HContext, o: Choice): Double {
+        if (o !is Choice.Unit) return 0.0
+        val m = ctx.state.minion(o.unitId)
+        if (m != null && m.team != ctx.team && badPush(ctx, m.lane)) {
+            return if (ctx.profile.laneTiming) -15.0 else -6.0
+        }
+        return 0.0
     }
+
+    /** G35: Fast Travel is not what Red or Gold are for, once a real action is on the card. */
+    private fun actionCommitment(ctx: HContext, d: Decision, o: Choice): Double {
+        if (o !is Choice.Action || o.action != ActionType.FAST_TRAVEL) return 0.0
+        val card = d.sourceCardId?.let { ctx.card(it) } ?: return 0.0
+        return when (card.color) {
+            CardColor.RED -> -8.0
+            CardColor.GOLD -> -4.0
+            else -> 0.0
+        }
+    }
+
+    /** G90: Yes that spends the last card that answers a threat still coming. */
+    private fun spendsLastDefense(ctx: HContext): Boolean {
+        val h = ctx.own() ?: return false
+        val at = h.at ?: return false
+        if (!ctx.profile.threatMap) return false
+        val defenders = ctx.ownHand().count { it.canDefend || it.block }
+        return defenders <= 1 && unansweredKill(ctx, h.id, at)
+    }
+
+    // ---- action, space, unit -------------------------------------------------------------
 
     private fun skillOutlook(ctx: HContext, at: Hex, card: HCard): Double {
         val r = max(card.range, card.radius) + 1
@@ -113,51 +112,6 @@ object General {
         return if (nearHero || nearMinion) 1.4 else 0.3
     }
 
-    private fun safety(ctx: HContext, h: HeroState, at: Hex, card: HCard): Double {
-        var v = 0.0
-        val exposure = ctx.exposure(h.id, at)
-        val bestDef = ctx.ownHand().filter { it.canDefend }.maxOfOrNull { it.defense ?: 0 } ?: 0
-        if (card.canDefend && (card.defense ?: 0) >= bestDef && ctx.spare(h.id) <= 1 && ctx.turn < 4) {
-            val hold = if (ctx.style(h.id).keepDefender) 1.4 else 0.55
-            v -= hold + min(5.0, exposure * 0.22)
-        }
-        if (exposure > 6.0 && card.hasMovement) v += escape(ctx, h, at, card, exposure)
-        return v
-    }
-
-    private fun escape(ctx: HContext, h: HeroState, at: Hex, card: HCard, exposure: Double): Double {
-        if (!ctx.profile.initiativeReading) return card.initiative * 0.06
-        val incoming = ctx.incomingInitiative(at) ?: return min(2.0, exposure * 0.08)
-        val ours = card.initiative + ctx.itemBonus(h.id, Stat.INITIATIVE)
-        return when {
-            ours > incoming -> 4.8
-            ours == incoming && ctx.state.tieBreaker == ctx.team -> 2.2
-            else -> -0.3
-        }
-    }
-
-    /** A card that takes the last minion at match point, or a hero with nothing to defend with. */
-    private fun winNow(ctx: HContext, h: HeroState, at: Hex, card: HCard): Double {
-        if (!card.attackCard && !card.forcesDiscard) return 0.0
-        val reach = ctx.attackReach(h.id, card)
-        var v = 0.0
-        for (m in ctx.state.minions) {
-            val pos = m.at ?: continue
-            if (m.team == ctx.team || ctx.heavyImmune(m.id) || ctx.distance(at, pos) > reach) continue
-            if (ctx.minionCount(m.team, m.lane) == 1 && ctx.matchPoint(m.lane)) v = max(v, 6.0)
-        }
-        return v
-    }
-
-    private fun tieBreaker(ctx: HContext, h: HeroState, card: HCard): Double {
-        if (!ctx.profile.initiativeReading) return 0.0
-        val at = h.at ?: return 0.0
-        val incoming = ctx.incomingInitiative(at) ?: return 0.0
-        val ours = card.initiative + ctx.itemBonus(h.id, Stat.INITIATIVE)
-        return if (ours == incoming && ctx.state.tieBreaker != ctx.team) -0.9 else 0.0
-    }
-
-    // ---- action, space, unit -------------------------------------------------------------
 
     private fun action(ctx: HContext, d: Decision, o: Choice): Double {
         if (o !is Choice.Action) return 0.0
@@ -166,12 +120,16 @@ object General {
         val cardId = d.sourceCardId ?: h.unresolved.firstOrNull()?.id ?: return 0.0
         val card = ctx.card(cardId)
         val here = ctx.placement(h.id, at)
+        val strike = ctx.strikeFrom(h.id, at, card)
         val base = when (o.action) {
-            ActionType.HOLD -> 0.0
+            // G39: Hold with a minion in reach is a wasted action. G40 leaves Hold at 0 when nothing else is safe.
+            ActionType.HOLD -> if (strike >= 4.0 && ctx.exposure(h.id, at) < ctx.killWorth(h.id) * 0.5) -8.0 else 0.0
             ActionType.MOVEMENT -> bestMove(ctx, h.id, at, cardId) - here
             ActionType.FAST_TRAVEL -> bestTravel(ctx, h.id, here, card)
-            ActionType.PRIMARY -> primary(ctx, h.id, at, card, here)
-            ActionType.ATTACK -> ctx.strikeFrom(h.id, at, card)
+            // G33: a primary the engine already knows does nothing.
+            ActionType.PRIMARY ->
+                if (d.context.primaryPreview?.noEffect != null) -8.0 else primary(ctx, h.id, at, card, here)
+            ActionType.ATTACK -> strike
             ActionType.CLEAR -> clearValue(ctx, at)
         }
         return base + planBonus(ctx, o.action)
@@ -210,19 +168,23 @@ object General {
     private fun planBonus(ctx: HContext, action: ActionType): Double {
         if (!ctx.profile.turnPlans) return 0.0
         val serves = when (ctx.plan.intent) {
-            Intent.KILL, Intent.FARM, Intent.PUSH, Intent.CLEAR_MINION ->
+            Intent.WIN, Intent.KILL, Intent.FARM, Intent.PUSH, Intent.CLEAR_MINION, Intent.SETUP ->
                 action == ActionType.PRIMARY || action == ActionType.ATTACK
 
-            Intent.FAST_TRAVEL -> action == ActionType.FAST_TRAVEL
+            Intent.FAST_TRAVEL, Intent.LET_PUSH, Intent.ROTATE ->
+                action == ActionType.FAST_TRAVEL || action == ActionType.MOVEMENT
 
-            Intent.RETREAT, Intent.RESPAWN ->
+            Intent.RETREAT, Intent.RESPAWN, Intent.SURVIVE ->
                 action == ActionType.MOVEMENT || action == ActionType.FAST_TRAVEL
 
-            Intent.SET_UP -> action == ActionType.PRIMARY
+            Intent.SET_UP, Intent.BLOCK -> action == ActionType.PRIMARY || action == ActionType.MOVEMENT
 
-            Intent.DEFEND_LANE -> action == ActionType.MOVEMENT || action == ActionType.HOLD
+            Intent.DEFEND_LANE, Intent.HOLD_LINE ->
+                action == ActionType.MOVEMENT || action == ActionType.HOLD || action == ActionType.PRIMARY
+
+            Intent.SPAWN_CAMP -> action == ActionType.MOVEMENT || action == ActionType.FAST_TRAVEL
         }
-        return if (serves) 2.2 else 0.0
+        return if (serves) 4.5 else 0.0
     }
 
     private fun space(ctx: HContext, d: Decision, o: Choice): Double {
@@ -296,9 +258,9 @@ object General {
         val card = ctx.card(o.cardId)
         return when {
             o.cardId in sure && sacrifice(ctx, sure) && card.color == CardColor.RED -> -1.0
-            o.cardId in sure -> 24.0 - keep
-            preview == null && !card.blocksRanged && !card.blocksMelee -> 2.5 - keep * 0.15
-            else -> -18.0 - keep
+            o.cardId in sure -> 24.0 - keep // G78 G83: the cheapest card that holds
+            preview == null && !card.blocksRanged && !card.blocksMelee -> 2.5 - keep * 0.15 // G84
+            else -> -1000.0 // G77: a short defense still loses the hero
         }
     }
 
@@ -308,7 +270,7 @@ object General {
         else -> -30.0
     }
 
-    /** A level 1–3 hero at match-point timing may keep the Red and take the defeat (STRATEGY §1.10). */
+    /** G81: a level 1–3 hero may keep the Red and take the defeat when Life is not the game. */
     private fun sacrifice(ctx: HContext, sure: Set<String>): Boolean {
         if (!ctx.profile.twoTurnPlans || sure.size != 1) return false
         val h = ctx.own() ?: return false

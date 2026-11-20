@@ -19,9 +19,17 @@ data class TurnPlan(
             val at = h.at
             if (at == null) return TurnPlan(Intent.RESPAWN, null, played?.id)
             if (played == null) return TurnPlan(Intent.FARM, null, null)
+            if (unansweredKill(ctx, h.id, at, played.id) && played.hasMovement) {
+                return TurnPlan(Intent.SURVIVE, null, played.id)
+            }
             val exposure = ctx.exposure(h.id, at)
             if (exposure > 10.0 && played.hasMovement && !played.attackCard) {
                 return TurnPlan(Intent.RETREAT, null, played.id)
+            }
+            if (ctx.profile.laneTiming && ctx.lanes().any { ctx.laneMargin(it) >= 2 && !ctx.matchPoint(it) } &&
+                played.hasMovement && !played.attackCard
+            ) {
+                return TurnPlan(Intent.LET_PUSH, null, played.id)
             }
             if (ctx.distanceToBattleZone(at) >= 4 && ctx.canFastTravel(h.id)) {
                 return TurnPlan(Intent.FAST_TRAVEL, null, played.id)
@@ -51,6 +59,15 @@ data class TurnPlan(
             }
             val minionWorth = bestMinion?.second ?: 0.0
             val heroWorth = bestHero?.second ?: 0.0
+            val picked = bestHero
+            val killNow = picked?.first?.let { ctx.defenseless(it) } == true
+            if (killNow && heroWorth >= minionWorth) {
+                return TurnPlan(Intent.KILL, picked.first, card.id)
+            }
+            if (ctx.profile.twoTurnPlans && picked != null && !killNow && heroWorth + 6.0 >= minionWorth) {
+                val enemy = ctx.state.hero(picked.first)
+                if (enemy != null && stripSetsUp(ctx, enemy)) return TurnPlan(Intent.SETUP, picked.first, card.id)
+            }
             if (minionWorth >= 14.0 && minionWorth >= heroWorth) {
                 return TurnPlan(Intent.PUSH, bestMinion?.first, card.id)
             }
@@ -74,4 +91,28 @@ enum class Intent {
     FAST_TRAVEL,
     SET_UP,
     RESPAWN,
+
+    /** P0: this action ends the game. */
+    WIN,
+
+    /** P1: leave a square an enemy who can still act would defeat us on. */
+    SURVIVE,
+
+    /** Strength 9+: a discard now, so turn 4 finds an empty hand. */
+    SETUP,
+
+    /** The push is already won. Move to the next zone and do not spend the attack. */
+    LET_PUSH,
+
+    /** Our throne is close. Stay and take the minions here. */
+    HOLD_LINE,
+
+    /** Double lane: the other lane wants this hero more. */
+    ROTATE,
+
+    /** Stand in the Fast Travel corridor, or on a line, when it is safe. */
+    BLOCK,
+
+    /** Strength 9+: a throne spawn an off-board enemy would use, when we survive it. */
+    SPAWN_CAMP,
 }
