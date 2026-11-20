@@ -1,0 +1,189 @@
+package dev.quinton.goa.core.game.ai.heuristic
+
+import dev.quinton.goa.core.game.AiStrength
+
+/**
+ * What a strength notices (ADR-085, DESIGN.md). The same playbook runs at every strength;
+ * the profile turns layers off so a low strength makes the mistakes a new player makes.
+ * Defences and lane-deciding moves never use [slipRate] (those feel broken, not human).
+ */
+data class HeuristicProfile(
+    val strength: Int,
+    /** Exposure, minion defense modifiers, and who can reach a space. Off at 1–2. */
+    val threatMap: Boolean,
+    /** How far one-ply lookahead goes. [Look.OFF] answers from the static scores only. */
+    val lookahead: Look,
+    /** Per-hero [HeroHeuristics]. Off at 1–4: everyone plays the general book. */
+    val heroPlaybooks: Boolean,
+    /** [TurnPlan] formed from the played card and followed for the rest of the turn. */
+    val turnPlans: Boolean,
+    /** Read enemy possible cards for initiative: escape before they act, strike before they leave. */
+    val initiativeReading: Boolean,
+    /** A strip this turn is worth more when a teammate can reach the same hero. */
+    val focusFire: Boolean,
+    /** Cards seen since an enemy's last level-up narrow the possible pool. */
+    val cardCounting: Boolean,
+    /** Hold a defender, or strip now so the kill lands next turn. */
+    val twoTurnPlans: Boolean,
+    /** Match point and the opening (a push already won): lane timing beats a greedy farm. */
+    val laneTiming: Boolean,
+    /** Strength 10 only (ADR-062): the enemies' hand pool is known; the facedown card is not. */
+    val knowHands: Boolean,
+    /** Softmax temperature in coin-equivalents. 0 is argmax. */
+    val temperature: Double,
+    /** Options more than this far behind the best are never picked, temperature aside. */
+    val maxGap: Double,
+    /** Chance to pick among the top few instead of the best. 0 never slips. */
+    val slipRate: Double,
+    /** Chance a move ignores minion defense modifiers (strengths 1–3). */
+    val blindRate: Double,
+) {
+    /** What one-ply lookahead is allowed to re-score. */
+    enum class Look {
+        /** Static scores only. */
+        OFF,
+
+        /** Choices whose text the static rules cannot read (a bullet, a token, a confirm). */
+        OPAQUE,
+
+        /** Opaque, plus the action and the attack target: the engine resolves the text. */
+        ACTIONS,
+
+        /** Actions, and a close movement when the static scores disagree by little. */
+        MOVES,
+    }
+
+    companion object {
+        /** The strength the apps seat, coerced into 1..10. */
+        fun of(strength: Int): HeuristicProfile = table(AiStrength.coerce(strength))
+
+        @Suppress("LongMethod")
+        private fun table(s: Int): HeuristicProfile = when (s) {
+            1 -> row(s, threat = false, look = Look.OFF, temp = 2.4, gap = 8.0, slip = 0.25, blind = 0.55)
+
+            2 -> row(s, threat = false, look = Look.OFF, temp = 1.6, gap = 5.0, slip = 0.16, blind = 0.35)
+
+            3 -> row(s, threat = true, look = Look.OPAQUE, temp = 1.1, gap = 4.0, slip = 0.12, blind = 0.10)
+
+            4 -> row(s, threat = true, look = Look.OPAQUE, temp = 0.7, gap = 2.5, slip = 0.08, blind = 0.0)
+
+            5 -> row(
+                s,
+                threat = true,
+                look = Look.ACTIONS,
+                heroes = true,
+                plans = true,
+                temp = 0.45,
+                gap = 2.0,
+                slip = 0.05,
+            )
+
+            6 -> row(
+                s,
+                threat = true,
+                look = Look.ACTIONS,
+                heroes = true,
+                plans = true,
+                temp = 0.28,
+                gap = 1.4,
+                slip = 0.03,
+            )
+
+            7 -> row(
+                s,
+                threat = true,
+                look = Look.MOVES,
+                heroes = true,
+                plans = true,
+                initiative = true,
+                focus = true,
+                counting = true,
+                temp = 0.12,
+                gap = 0.7,
+                slip = 0.0,
+            )
+
+            8 -> row(
+                s,
+                threat = true,
+                look = Look.MOVES,
+                heroes = true,
+                plans = true,
+                initiative = true,
+                focus = true,
+                counting = true,
+                temp = 0.05,
+                gap = 0.4,
+                slip = 0.0,
+            )
+
+            9 -> row(
+                s,
+                threat = true,
+                look = Look.MOVES,
+                heroes = true,
+                plans = true,
+                initiative = true,
+                focus = true,
+                counting = true,
+                twoTurn = true,
+                lane = true,
+                temp = 0.10,
+                gap = 0.6,
+                slip = 0.0,
+            )
+
+            else -> row(
+                s,
+                threat = true,
+                look = Look.MOVES,
+                heroes = true,
+                plans = true,
+                initiative = true,
+                focus = true,
+                counting = true,
+                twoTurn = true,
+                lane = true,
+                hands = true,
+                temp = 0.0,
+                gap = 0.0,
+                slip = 0.0,
+            )
+        }
+
+        @Suppress("LongParameterList")
+        private fun row(
+            strength: Int,
+            threat: Boolean,
+            look: Look,
+            heroes: Boolean = false,
+            plans: Boolean = false,
+            initiative: Boolean = false,
+            focus: Boolean = false,
+            counting: Boolean = false,
+            twoTurn: Boolean = false,
+            lane: Boolean = false,
+            hands: Boolean = false,
+            temp: Double,
+            gap: Double,
+            slip: Double,
+            blind: Double = 0.0,
+        ) = HeuristicProfile(
+            strength = strength,
+            threatMap = threat,
+            lookahead = look,
+            heroPlaybooks = heroes,
+            turnPlans = plans,
+            initiativeReading = initiative,
+            focusFire = focus,
+            cardCounting = counting,
+            twoTurnPlans = twoTurn,
+            laneTiming = lane,
+            knowHands = hands,
+            temperature = temp,
+            maxGap = gap,
+            slipRate = slip,
+            blindRate = blind,
+        )
+    }
+}

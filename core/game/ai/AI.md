@@ -3,6 +3,16 @@
 ADR-035 point 3, ADR-039, PRODUCT §9. The strategy knowledge behind it is [STRATEGY.md](STRATEGY.md);
 this file is how the code uses it, what each strength does, what it costs and how strong it is.
 
+## The computer player is the heuristic book (ADR-085)
+
+The player a game seats (`AiPlayers.forApp`, `forStrength`, `deterministic`, `forLevel`) is the
+heuristic book: a general playbook plus one file per hero, in
+[`ai/heuristic/`](heuristic/README.md). The contract is [`heuristic/DESIGN.md`](heuristic/DESIGN.md).
+Strength 1–10 still means the same bands (Easy 2, Normal 6, Hard 8, Expert 10). The search described
+below — determinized playouts, the learned net — is no longer that player. It remains the coach, the
+puzzle solver, and `AiPlayers.searchDeterministic` / `searchForStrength`, so a tournament can still
+measure the book against it. Do not delete it.
+
 ## Architecture
 
 The app binds these in `core/data/.../game/PlayEngineModule.kt`:

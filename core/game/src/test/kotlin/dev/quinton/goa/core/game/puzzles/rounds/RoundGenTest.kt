@@ -297,7 +297,7 @@ class RoundGenTest {
         fun play(sp: RoundSpec, base: PuzzleSolver, strength: Int): Play {
             val solver = PuzzleSolver(tracker, known = base.known)
             var n = solver.root(session(sp))
-            val ai: AiPlayer = AiPlayers.deterministic(strength, SEED + strength)
+            val ai: AiPlayer = AiPlayers.searchDeterministic(strength, SEED + strength)
             val moves = ArrayList<String>()
             var guard = 0
             while (n.progress.state == GoalState.OPEN && n.decision != null && guard++ < MAX_DECISIONS) {

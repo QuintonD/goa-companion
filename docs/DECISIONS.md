@@ -2992,3 +2992,27 @@ Defend attack is a row not a box, the Coach drops its "Coach:" prefix and "Your 
 icon; anything needed to decide stays visible (Defense totals and outcomes, what not defending costs, what the card
 action casts). Refines ADR-041 (only what no card says), ADR-072 and ADR-081 (List per map choice, Defend list).
 The web app's DecisionPanel (ADR-043) is unchanged and now differs; port it when the Android form settles.
+
+## ADR-085 — A heuristic computer opponent: a general playbook and one per hero (2026-11-20)
+**Context:** The owner asked to abandon the search-and-learned-net computer player for a traditional,
+explainable one. "Improve the AI. Abandon the current approach in favour of more traditional approaches.
+Start with a robust series of heuristics: first a general set, then character-specific sets." The search
+(determinized playouts, a tuned evaluation, a learned net) is strong and slow, and a hero's plan is not
+something a person can read or a later agent can edit one file at a time.
+
+**Decision:** The computer player is `HeuristicAi`. `AiPlayers.forApp`, `forStrength`, `deterministic`
+and `forLevel` return it; their signatures stay, so the app, the web worker and the server's takeover
+do not change. A general playbook scores every `DecisionKind` in coin-equivalents. Each hero has its
+own file (`HeroHeuristics`: a style, an optional hard choice, a score adjustment, its own evaluation
+terms, a threat adjustment) registered once. Strength 1–10 turns layers on: slips and no threat map at
+the bottom, then exposure, hero notes and a turn plan, then initiative and focus fire, then two-turn
+and lane timing, and at 10 the enemies' hands (ADR-062). One ply through the engine is allowed for a
+choice whose text the scores cannot read. No playouts. Answers stay deterministic and read only a
+determinized view; enemy threats use the public possible cards, not the one sampled hand. The coach
+and the puzzle solver keep the search. The old player stays as `AiPlayers.searchDeterministic` and
+`searchForStrength` so a tournament can still measure the book against it.
+
+**Consequences:** A hero agent edits one file and does not touch the general book or another hero.
+The search code stays in the tree until the coach and the puzzles move. Saves and the strength slider
+mean the same bands (Easy 2, Normal 6, Hard 8, Expert 10). The book has to be measured against the old
+player; it does not inherit that player's ladder. `core/game/ai/heuristic/DESIGN.md` is the contract.

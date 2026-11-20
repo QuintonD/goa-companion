@@ -8,6 +8,7 @@ import dev.quinton.goa.core.game.Choice
 import dev.quinton.goa.core.game.Decision
 import dev.quinton.goa.core.game.DecisionKind
 import dev.quinton.goa.core.game.GameSession
+import dev.quinton.goa.core.game.ai.heuristic.HeuristicAi
 import dev.quinton.goa.core.game.engine.EngineData
 import dev.quinton.goa.core.game.engine.EngineSession
 import dev.quinton.goa.core.model.match.Team
@@ -15,43 +16,57 @@ import kotlin.coroutines.cancellation.CancellationException
 import kotlin.random.Random
 
 /**
- * The computer opponents (ADR-035, ADR-039, PRODUCT §9, core/game/ai/AI.md). One engine with
- * switches per strength, 1 to 10 (STRATEGY.md §4): 1–4 play from static heuristics with
- * human-looking slips (fewer as the strength grows); from 5 each option is played out against the
- * enemies' likely plays, with longer playouts, more samples, less noise and smarter playouts at
- * every step up; 9 and 10 remember every card shown since an enemy's last level up, and 10 plays
- * every hero's later choices in a playout by one-ply search. The four named levels are the bands of
+ * The computer opponents (ADR-035, ADR-039, ADR-085, PRODUCT §9). The player the apps, the web
+ * worker and the online server's takeover seat is [dev.quinton.goa.core.game.ai.heuristic.HeuristicAi]:
+ * a general playbook plus one per hero, strength 1 to 10. The four named levels are the bands of
  * [AiLevel]; a level alone (a save from before the slider) plays as its [AiLevel.strength].
  *
- * Deterministic for a seed (answers depend on the seed, the decision id and the seat), except that a
- * wall-clock cap (the phone budget) may end a search early on a slow device; [deterministic] removes it.
+ * The search player (playouts, the learned net) stays for the coach, the puzzles and for measuring
+ * the new player against the old one: [searchDeterministic] and [searchForStrength]. Do not seat
+ * those in a game the person plays.
+ *
+ * Deterministic for a seed (answers depend on the seed, the decision id and the seat). The heuristic
+ * player has no wall-clock cap; the search player's [searchForStrength] still has one.
  */
 object AiPlayers {
     /** The seed the apps give the computer players: the phone's (core/data) and the web worker's (ADR-043). */
     const val APP_SEED: Long = 0x60A_2026L
 
     /**
-     * The computer player the apps seat at [strength] (ADR-039): [forStrength] seeded per strength, so
-     * a strength is the same player on the phone and in the browser (a slower browser may only end a
-     * search sooner, at the strength's own time budget). [runner] may run the samples of one answer on
-     * several threads (the Android app passes one; the browser's worker has none). The answers combine
-     * in sample order, so they don't depend on the runner.
+     * The computer player the apps seat at [strength] (ADR-039, ADR-085): [forStrength] seeded per
+     * strength, so a strength is the same player on the phone and in the browser. [runner] is unused
+     * by the heuristic player (it does not sample); the parameter stays so the app's call compiles.
+     * The search player's samples still take a runner: [searchForStrength].
      */
     fun forApp(strength: Int, runner: SampleRunner = SampleRunner.SEQUENTIAL): AiPlayer =
         forStrength(strength, APP_SEED + strength, runner)
 
-    /** The production player: wall-clock capped at the strength's device budget. */
+    /** The production player. The heuristic player has no wall clock; [runner] is accepted and unused. */
     fun forStrength(strength: Int, seed: Long, runner: SampleRunner = SampleRunner.SEQUENTIAL): AiPlayer =
-        player(strength, seed, timeCap = true, runner)
+        heuristic(strength, seed, runner)
 
-    /** Same, without the wall-clock cap: fully reproducible (tests, tournaments). */
-    fun deterministic(strength: Int, seed: Long): AiPlayer = player(strength, seed, timeCap = false)
+    /** Fully reproducible (tests, tournaments): the same player as [forStrength], with no clock to cut. */
+    fun deterministic(strength: Int, seed: Long): AiPlayer = heuristic(strength, seed, SampleRunner.SEQUENTIAL)
 
     fun forLevel(level: AiLevel, seed: Long): AiPlayer = forStrength(level.strength, seed)
 
     fun deterministic(level: AiLevel, seed: Long): AiPlayer = deterministic(level.strength, seed)
 
-    private fun player(
+    /**
+     * The old search player, uncapped (coach comparisons, the ladder, fingerprints). Not the player
+     * a game seats.
+     */
+    fun searchDeterministic(strength: Int, seed: Long): AiPlayer = searchPlayer(strength, seed, timeCap = false)
+
+    /** The old search player with its wall-clock cap. [runner] runs one answer's samples. */
+    fun searchForStrength(strength: Int, seed: Long, runner: SampleRunner = SampleRunner.SEQUENTIAL): AiPlayer =
+        searchPlayer(strength, seed, timeCap = true, runner)
+
+    @Suppress("UnusedParameter") // [runner] stays on [forStrength] for the app; the heuristic player does not sample.
+    private fun heuristic(strength: Int, seed: Long, runner: SampleRunner): AiPlayer =
+        HeuristicAi(AiStrength.coerce(strength), seed)
+
+    private fun searchPlayer(
         strength: Int,
         seed: Long,
         timeCap: Boolean,

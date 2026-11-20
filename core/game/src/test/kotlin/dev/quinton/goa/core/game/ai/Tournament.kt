@@ -19,7 +19,11 @@ object Tournament {
         override fun toString(): String = label
     }
 
-    fun strength(s: Int): Side = Side("S$s") { seed -> AiPlayers.deterministic(s, seed) }
+    /** The computer player (the heuristic book, ADR-085). */
+    fun strength(s: Int): Side = Side("H$s") { seed -> AiPlayers.deterministic(s, seed) }
+
+    /** The old search player, for a ladder or a comparison that must not move when the book changes. */
+    fun search(s: Int): Side = Side("S$s") { seed -> AiPlayers.searchDeterministic(s, seed) }
 
     fun level(l: AiLevel): Side = Side(l.name) { seed -> AiPlayers.deterministic(l, seed) }
 
