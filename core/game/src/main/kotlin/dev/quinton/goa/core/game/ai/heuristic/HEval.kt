@@ -29,6 +29,13 @@ object HEval {
      */
     private const val PP_SCALE = 0.4
 
+    /**
+     * Scale on the lane's worth (60 per lane, 100 at match point). Measured with the 32 playbooks
+     * (integration, line-ups 1000–1383, 768 games each): 1.4 beat 1.0 head to head 54.9% and took h10
+     * against the old s8 from 49.7% to 54.3%; 0.7 lost 43.4%; 1.8 and 2.5 tied 1.4.
+     */
+    private const val LANE = 1.4
+
     /** Share of a kill's lane value that a minion in reach of a card still to play is worth. */
     internal const val LANE_THREAT = 0.3
 
@@ -127,7 +134,7 @@ object HEval {
             val waves = state.wavesLeft[lane] ?: 1
             val w = laneWin(zones.lastIndex - i, i, waves, p)
             val match = ctx.profile.laneTiming && ctx.matchPoint(lane)
-            val laneWeight = (if (match) 100.0 else 60.0) * ctx.profile.knob("lane", 1.0)
+            val laneWeight = (if (match) 100.0 else 60.0) * ctx.profile.knob("lane", LANE)
             val margin = if (match) 3.0 else 1.5
             v += laneWeight * (2 * w - 1) + margin * (red - blue)
         }

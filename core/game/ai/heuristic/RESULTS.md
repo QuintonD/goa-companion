@@ -75,3 +75,25 @@ order kept). Re-measured on 192 fresh games (`AI_H_SKIP=96`): Hanu 47.9% (41.0�
 (44.0–58.0), Whisper 54.7% (47.6–61.6; unchanged code, so its 44% was noise), Widget 51.6% (44.5–58.5).
 At 96–192 games a hero's interval is ±7–10 points: the table finds a broken book, not a 3-point one.
 
+
+## 4. Structural strength (toward h10 ≥ 55% against s8 held out)
+
+Development line-ups 1000–1383 (768 games a pair; 300–395 and 600–695 stay held out). Head-to-head pairs
+mostly split (the same seat wins both mirrored games); "pairs a/split/b" counts the ones that do not.
+
+Diagnostics (`AI_H_DIAG=h10:s8`, 48 games from 1000): s8 holds far more (10 a game against h10's 2) and
+moves less; in the games h10 lost it took fewer minions (6.3 against 7.7); a typical last push is lost at the
+round's end minion battle after neither hero took a minion on turn 3; the old s8 dies less with an empty hand.
+
+| Change | Pair | Win | Wilson | Pairs | Kept |
+|--------|------|-----|--------|-------|------|
+| teammate first: a computer teammate's known faster card resolves before our card's look (G14) | h10 : h10+allyFirst=0 | 51.6% | 48.0–55.1 | 28/340/16 | yes |
+| (same, against the old player) | h10 : s8 / h10+allyFirst=0 : s8 | 49.6% / 49.9% | 46.1–53.1 / 46.3–53.4 | | |
+| lane worth ×1.4 | h10+lane=1.4 : h10 | 54.9% | 51.4–58.4 | 91/240/53 | yes |
+| lane worth ×0.7 | h10+lane=0.7 : h10 | 43.4% | 39.9–46.9 | 49/235/100 | |
+| lane ×1.8, ×2.5 against ×1.4 | | 49.5%, 50.1% | | | 1.4 |
+| exposure ×1.4, ×0.7 (`fear`) | | 49.6%, 49.6% | | | |
+| lethal 0.8, lethalNext 0.4, lastMult 1.5 | | 48.8%, 50.4%, 50.0% | | | |
+| CardSim two branched choices (`branch=2`), width 6 | | 49.3%, 51.0% | | | |
+| no G17 mixing (`mix=0`) | h10+mix=0 : h10; with lane 1.4 | 52.2%; 50.9% | | 90/221/73; 84/223/77 | no (mixing is for people) |
+| **lane ×1.4 against the old player** | h10+lane=1.4 : s8 | **54.3%** | 50.8–57.8 | 99/219/66 | |
