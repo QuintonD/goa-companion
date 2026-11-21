@@ -9,13 +9,14 @@ import dev.quinton.goa.core.game.ai.heuristic.HeroHeuristics
 import dev.quinton.goa.core.game.ai.heuristic.HeroRole
 import dev.quinton.goa.core.game.ai.heuristic.HeroStyle
 import dev.quinton.goa.core.game.engine.GameState
-import dev.quinton.goa.core.game.engine.Timing
+import dev.quinton.goa.core.game.engine.isEmpty
 import dev.quinton.goa.core.model.board.Hex
 import dev.quinton.goa.core.model.match.Team
 
 /**
- * Wasp on the melee Red: one adjacent hit, a splash or a shove, then leave. The boomerang
- * and Telekinesis cannot target a straight line, and adjacent is a straight line.
+ * Wasp (`heroes/wasp.md`): a cage and a shove, then the splash or the boomerang. Charged Boomerang
+ * and Telekinesis cannot target a straight line from her, and adjacent is a straight line. Shock hits
+ * a neighbour and discards a different hero in radius who is not adjacent.
  */
 object WaspHeuristics : HeroHeuristics {
     override val heroId: String = "wasp"
@@ -24,89 +25,151 @@ object WaspHeuristics : HeroHeuristics {
         role = HeroRole.SUPPORT,
         idealDistance = 1,
         aggression = 0.45,
-        laneWeight = 0.55,
-        upgradeOrder = listOf(
-            "wasp-red-2a",
-            "wasp-green-2b",
-            "wasp-blue-2b",
-            "red",
-            "blue",
-            "green",
-        ),
+        laneWeight = 0.6,
+        upgradeOrder = listOf("red", "blue", "green"),
         keepDefender = true,
     )
 
     override fun adjust(ctx: HContext, d: Decision, choice: Choice): Double = when (d.kind) {
         DecisionKind.PLAY_CARD -> play(ctx, choice)
+        DecisionKind.CHOOSE_NUMBER -> number(ctx, d, choice)
         else -> 0.0
     }
 
     override fun evalTerms(state: GameState, team: Team, heroId: String): Double {
         if (heroId != this.heroId) return 0.0
-        val self = state.hero(heroId) ?: return 0.0
-        val sign = if (self.team == team) 1.0 else -1.0
-        val dome = state.effects.any { it.owner == heroId && it.cardId == "wasp-silver" && !it.spent }
-        val lock = state.effects.any {
-            it.owner == heroId && (it.cardId == "wasp-gold" || it.cardId == "wasp-handicap") &&
-                it.timing == Timing.THIS_TURN && !it.spent
-        }
         var v = 0.0
-        if (dome) v += 3.0
-        if (lock) v += 2.0
-        return sign * v
+        // The dome and the dagger's lock are this turn only, and both are public.
+        if (BatchD.effect(state, heroId, setOf(SILVER))) v += 2.0
+        if (BatchD.effect(state, heroId, setOf(GOLD, HANDICAP))) v += 1.0
+        return BatchD.sign(state, heroId, team) * v
     }
 
     override fun threatAdjust(ctx: HContext, enemyHeroId: String, target: Hex): Double {
         if (enemyHeroId != heroId) return 0.0
         val from = ctx.hero(heroId)?.at ?: return 0.0
-        val curved = curve.any { BatchD.mayHold(ctx, heroId, it) }
-        if (!curved) return 0.0
+        if (BOOMERANG.none { BatchD.mayHold(ctx, heroId, it) }) return 0.0
         val d = ctx.distance(from, target)
-        if (d !in 2..3) return 0.0
-        // The curve hits off the line. A straight neighbour is the melee Red, already in printed reach.
-        return if (!HexGrid.inStraightLine(from, target)) 1.5 else 0.0
+        // H18: the boomerang lands off her lines at 2–3. A straight neighbour is the melee Red's, already in reach.
+        return if (d in 2..3 && !HexGrid.inStraightLine(from, target)) 1.0 else 0.0
     }
 
     private fun play(ctx: HContext, choice: Choice): Double {
         if (choice !is Choice.Card) return 0.0
         val at = ctx.own()?.at ?: return 0.0
         val id = choice.cardId
-        if (id in curve) {
-            val range = ctx.attackReach(ctx.seat, ctx.card(id)).coerceAtLeast(ctx.card(id).range)
-            val open = BatchD.offLine(ctx, at, range.coerceAtLeast(2))
-            // Boomerang and Telekinesis have no target when every unit is on a line from her.
-            return if (open) 5.0 else BatchD.FIZZLE
-        }
-        if (id in shock) {
-            val adjacent = BatchD.adjacentEnemies(ctx.state, at, ctx.team) > 0
-            val splash = BatchD.enemyWithin(ctx, at, 2, ctx.card(id).radius.coerceAtLeast(2), heroesOnly = true)
-            // The primary is the neighbour. The discard is a hero who is in radius and not adjacent.
-            return when {
-                adjacent && splash -> 5.0
-                adjacent -> 2.0
-                else -> -4.0
+        val card = ctx.card(id)
+        return when (id) {
+            // H4: the boomerang targets units in range that are not on one of her six lines.
+            in BOOMERANG -> {
+                val reach = ctx.attackReach(ctx.seat, card)
+                val valid = { _: String, pos: Hex ->
+                    ctx.distance(at, pos) in 2..reach && !HexGrid.inStraightLine(at, pos)
+                }
+                val hits = BatchD.strikeList(ctx, card, valid)
+                var real = hits.firstOrNull()?.second ?: -0.5
+                // Thunder Boomerang repeats on a different target after a hero.
+                if (id == "wasp-red-3b" && hits.size >= 2) real += 0.6 * maxOf(0.0, hits[1].second)
+                BatchD.strikeFix(ctx, card, real)
             }
-        }
-        if (id == "wasp-silver") {
-            val inside = BatchD.enemyWithin(ctx, at, 1, ctx.card(id).radius.coerceAtLeast(2), heroesOnly = true)
-            val outside = ctx.enemies().any { e ->
-                e.at != null && ctx.distance(at, e.at!!) > ctx.card(id).radius.coerceAtLeast(2)
+
+            // H3: Shock hits a neighbour, then a hero in radius who is not adjacent discards.
+            in SHOCK -> shock(ctx, at, id)
+
+            // H5: Magnetic Dagger is an adjacent attack; the lock rides on it.
+            GOLD, HANDICAP -> {
+                val real = BatchD.strikeOn(ctx, card, { uid, pos ->
+                    ctx.distance(at, pos) == 1 && (id == GOLD || ctx.heroBody(uid) != null)
+                })
+                BatchD.strikeFix(ctx, card, real)
             }
-            // The dome matters when one enemy is inside it and another is not.
-            return if (inside && outside) 4.0 else 0.0
+
+            // H1/H2: the dome splits the map; it matters when an enemy hero is inside and another outside.
+            SILVER -> silver(ctx, at, card.radius.coerceAtLeast(2))
+
+            // H8: Telekinesis pulls a unit off her lines to her side. Worth it on a minion she can then hit.
+            in TELEKINESIS -> {
+                val range = card.range.coerceAtLeast(1)
+                val pull = ctx.state.minions.any { m ->
+                    m.team != ctx.team && m.at != null && ctx.distance(at, m.at!!) in 2..range &&
+                        !HexGrid.inStraightLine(at, m.at!!)
+                }
+                val attack = ctx.ownHand().any { it.attackCard }
+                if (pull && attack) 1.0 else -1.0
+            }
+
+            // H6: Kinetic Repulse pushes adjacent enemies; a hero stopped by an obstacle discards.
+            in REPULSE -> BatchD.outlookFix(ctx, card, repulse(ctx, at, id))
+
+            else -> 0.0
         }
-        if (id == "wasp-gold" || id == "wasp-handicap") {
-            // The lock is attached to an attack. No neighbour, and there is no attack.
-            return if (BatchD.adjacentEnemies(ctx.state, at, ctx.team) > 0) 3.0 else -4.0
-        }
-        if (id == "wasp-blue-2b" || id == "wasp-blue-3b") {
-            // The push wants two neighbours, or one hero who will hit a wall. Neighbours are the part we can see.
-            val n = BatchD.adjacentEnemies(ctx.state, at, ctx.team)
-            return if (n >= 2) 4.0 else if (n == 1) 1.5 else -3.0
-        }
-        return 0.0
     }
 
-    private val curve = setOf("wasp-red-2b", "wasp-red-3b", "wasp-green-2b", "wasp-green-3b")
-    private val shock = setOf("wasp-red-1", "wasp-red-2a", "wasp-red-3a")
+    private fun shock(ctx: HContext, at: Hex, id: String): Double {
+        val card = ctx.card(id)
+        val real = BatchD.strikeOn(ctx, card, { _, pos -> ctx.distance(at, pos) == 1 })
+        var v = BatchD.strikeFix(ctx, card, real)
+        if (real <= 0.0) return v
+        val radius = card.radius.coerceAtLeast(2)
+        val splash = BatchD.enemyHeroesWithin(ctx, at, 2, radius).maxOfOrNull { e ->
+            if (id == "wasp-red-3a" && e.hand.isEmpty()) ctx.killWorth(e.id) else ctx.discardWorth(e)
+        }
+        if (splash != null) v += splash
+        return v
+    }
+
+    private fun silver(ctx: HContext, at: Hex, radius: Int): Double {
+        val enemies = ctx.enemies().mapNotNull { it.at }
+        val inside = enemies.count { ctx.distance(at, it) <= radius }
+        val outside = enemies.size - inside
+        // H2: with nobody to split, the dome is a wasted card.
+        return if (inside > 0 && outside > 0) 1.5 else -1.0
+    }
+
+    private fun repulse(ctx: HContext, at: Hex, id: String): Double {
+        val far = if (id == "wasp-blue-3b") 4 else 3
+        var v = 0.0
+        var any = false
+        for (e in ctx.enemies()) {
+            val pos = e.at ?: continue
+            if (ctx.distance(at, pos) != 1) continue
+            any = true
+            if (stopped(ctx, at, pos, far)) v += ctx.discardWorth(e)
+        }
+        if (!any && BatchD.adjacentMinions(ctx.state, at, ctx.team) == 0) return -1.5
+        return v
+    }
+
+    /** The push line from [from] through [pos] meets an obstacle within [n] spaces. */
+    private fun stopped(ctx: HContext, from: Hex, pos: Hex, n: Int): Boolean {
+        val dq = pos.q - from.q
+        val dr = pos.r - from.r
+        for (k in 1..n) {
+            val h = Hex(pos.q + dq * k, pos.r + dr * k)
+            if (!ctx.game.isEmpty(h)) return true
+        }
+        return false
+    }
+
+    /** H13: Thunderous Repulse picks the distance that stops a hero on an obstacle, else the shorter. */
+    private fun number(ctx: HContext, d: Decision, choice: Choice): Double {
+        if (d.sourceCardId != "wasp-blue-3b" || choice !is Choice.Number) return 0.0
+        val at = ctx.own()?.at ?: return 0.0
+        fun stops(n: Int) = ctx.enemies().any { e ->
+            e.at?.let { ctx.distance(at, it) == 1 && stopped(ctx, at, it, n) } == true
+        }
+        return when {
+            choice.value == 3 -> if (stops(3)) 1.0 else 0.3
+            stops(choice.value) && !stops(3) -> 1.0
+            else -> 0.0
+        }
+    }
+
+    private const val GOLD = "wasp-gold"
+    private const val HANDICAP = "wasp-handicap"
+    private const val SILVER = "wasp-silver"
+    private val BOOMERANG = setOf("wasp-red-2b", "wasp-red-3b")
+    private val TELEKINESIS = setOf("wasp-green-2b", "wasp-green-3b")
+    private val SHOCK = setOf("wasp-red-1", "wasp-red-2a", "wasp-red-3a")
+    private val REPULSE = setOf("wasp-blue-2b", "wasp-blue-3b")
 }
