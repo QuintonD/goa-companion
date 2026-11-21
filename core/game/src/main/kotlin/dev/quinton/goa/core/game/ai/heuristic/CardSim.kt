@@ -47,7 +47,7 @@ internal object CardSim {
             val f = sim.forkSession()
             if (f.answer(first.id, o) !is AnswerResult.Accepted) continue
             val v = run(ctx, f, branchesOf(ctx), look) + General.commitment(actionCtx, first, o) +
-                book.adjust(actionCtx, first, o)
+                actionCtx.inLook { book.adjust(actionCtx, first, o) }
             if (best == null || v > best) best = v
         }
         return best

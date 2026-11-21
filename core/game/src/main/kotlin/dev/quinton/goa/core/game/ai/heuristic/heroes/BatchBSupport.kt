@@ -91,6 +91,7 @@ internal object BatchBSupport {
      * general book reads printed reach; a card such as Hanu's red reaches far only beside an ally.
      */
     fun deadStrike(ctx: HContext, at: Hex, card: HCard): Double {
+        if (!ctx.patches) return 0.0
         val strike = ctx.strikeFrom(ctx.seat, at, card).coerceAtLeast(0.0)
         // The general outlook is max(strike, move) (+0.35 for both): keep the move, drop the strike.
         val move = if (card.hasMovement) moveOutlook(ctx, at, card) else 0.0

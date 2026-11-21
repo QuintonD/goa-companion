@@ -40,6 +40,9 @@ data class HCard(
     /** An attack, a forced discard, or any primary that reaches a unit. */
     val threatens: Boolean get() = attackCard || forcesDiscard || reach > 0
 
+    /** Only an attack defeats a minion; a "discards a card" card takes a card from a hero, never a minion. */
+    val hitsMinions: Boolean get() = attackCard
+
     companion object {
         internal fun from(p: CardProfile): HCard = HCard(
             id = p.id,

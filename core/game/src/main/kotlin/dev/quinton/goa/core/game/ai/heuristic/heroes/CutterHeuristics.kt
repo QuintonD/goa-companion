@@ -64,10 +64,10 @@ object CutterHeuristics : HeroHeuristics {
         val me = ctx.own() ?: return 0.0
         val at = me.at ?: return 0.0
         return when (choice.cardId) {
-            in PLANK -> plank(ctx, at, choice.cardId)
+            in PLANK -> if (ctx.patches) plank(ctx, at, choice.cardId) else 0.0
             in LUNGE -> lunge(ctx, me, at, choice.cardId)
-            in DASH -> dash(ctx, choice.cardId)
-            in BARRAGE -> barrage(ctx, at, choice.cardId)
+            in DASH -> if (ctx.patches) dash(ctx, choice.cardId) else 0.0
+            in BARRAGE -> if (ctx.patches) barrage(ctx, at, choice.cardId) else 0.0
             "cutter-silver" -> silver(ctx)
             else -> 0.0
         }

@@ -40,7 +40,7 @@ object DodgerHeuristics : HeroHeuristics {
         val me = ctx.own() ?: return 0.0
         val at = me.at ?: return 0.0
         return when (choice.cardId) {
-            "dodger-silver" -> silver(ctx, at)
+            "dodger-silver" -> if (ctx.patches) silver(ctx, at) else 0.0
 
             in GOLD -> {
                 val b = razor(ctx, me, at, choice.cardId)

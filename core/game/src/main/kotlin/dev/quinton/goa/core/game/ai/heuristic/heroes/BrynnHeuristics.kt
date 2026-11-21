@@ -60,7 +60,7 @@ object BrynnHeuristics : HeroHeuristics {
         return when (choice.cardId) {
             in MELEE -> melee(ctx, me, at, choice.cardId)
             in GOLD -> gold(ctx, me, at, choice.cardId)
-            in TRAP -> trap(ctx, at, choice.cardId)
+            in TRAP -> if (ctx.patches) trap(ctx, at, choice.cardId) else 0.0
             "brynn-silver" -> silver(ctx)
             else -> 0.0
         }

@@ -44,7 +44,7 @@ internal object BatchASupport {
 
     /** Replace the general strike estimate by [accurate]. */
     fun correction(ctx: HContext, heroId: String, at: Hex, card: HCard, accurate: Double): Double =
-        max(0.0, accurate) - generalStrike(ctx, heroId, at, card)
+        if (!ctx.patches) 0.0 else max(0.0, accurate) - generalStrike(ctx, heroId, at, card)
 
     /** An enemy hero hit with [total], as the general book values it for [heroId]. */
     fun heroHit(ctx: HContext, heroId: String, targetId: String, total: Int, ranged: Boolean): Double =

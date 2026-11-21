@@ -310,7 +310,7 @@ object Tournament {
         return play(a, b, specs, threads, format)
     }
 
-    private fun play(
+    fun play(
         a: Side,
         b: Side,
         specs: List<Spec>,

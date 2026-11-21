@@ -28,8 +28,12 @@ class HeuristicAi(
     private val seed: Long,
     /** Measurement knobs ([HeuristicProfile.tune]); empty in play. */
     tune: Map<String, Double> = emptyMap(),
-    private val playbooks: (String) -> HeroHeuristics = HeroPlaybooks::forHero,
+    playbooks: (String) -> HeroHeuristics = HeroPlaybooks::forHero,
 ) : AiPlayer {
+    /** Measurement only: `h10+heroes=0` seats every hero with the general book alone. */
+    private val playbooks: (String) -> HeroHeuristics =
+        if ((tune["heroes"] ?: 1.0) <= 0.0) { _ -> DefaultHeroHeuristics } else playbooks
+
     val profile: HeuristicProfile = HeuristicProfile.of(strength).copy(tune = tune).let { p ->
         // Measurement only: a layer switched by name (h10+laneTiming=0).
         p.copy(
@@ -118,7 +122,7 @@ class HeuristicAi(
             val turn = if (ownTurn) CardSim.after(ctx, d, o) else null
             values += (turn ?: Lookahead.value(ctx, d, o)) +
                 General.commitment(ctx, d, d.options[i]) +
-                adjust(book, ctx, d, d.options[i])
+                ctx.inLook { adjust(book, ctx, d, d.options[i]) }
         }
         trace?.invoke(
             "${d.seat} ${d.kind} " + got.indices.joinToString(" ") { "${d.options[got[it]]}=${round1(values[it])}" },
@@ -140,7 +144,7 @@ class HeuristicAi(
         for ((i, o) in d.options.withIndex()) {
             if (cancelled()) return null
             val sim = CardSim.value(ctx, (o as Choice.Card).cardId) ?: return null
-            values[i] = sim + General.commitment(ctx, d, o) + adjust(book, ctx, d, o)
+            values[i] = sim + General.commitment(ctx, d, o) + ctx.inLook { adjust(book, ctx, d, o) }
         }
         trace?.invoke(
             "${d.seat} cards " + d.options.indices.joinToString(" ") { i ->

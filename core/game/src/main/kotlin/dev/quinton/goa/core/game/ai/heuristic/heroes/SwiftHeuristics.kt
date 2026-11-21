@@ -72,9 +72,9 @@ object SwiftHeuristics : HeroHeuristics {
     private fun play(ctx: HContext, choice: Choice): Double {
         val id = BatchC.cardId(choice) ?: return 0.0
         return when (id) {
-            in golds -> reload(ctx, id == "swift-gold")
+            in golds -> if (ctx.patches) reload(ctx, id == "swift-gold") else 0.0
             in shotguns -> if (shotgunPair(ctx) == null) -2.5 else 1.0
-            in suppress -> suppressed(ctx, id)
+            in suppress -> if (ctx.patches) suppressed(ctx, id) else 0.0
             else -> 0.0
         }
     }

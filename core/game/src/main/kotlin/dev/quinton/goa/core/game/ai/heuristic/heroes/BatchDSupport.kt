@@ -195,6 +195,7 @@ internal object BatchDSupport {
      * cannot hit is still worth its move.
      */
     fun strikeFix(ctx: HContext, card: HCard, real: Double): Double {
+        if (!ctx.patches) return 0.0
         val at = ctx.own()?.at ?: return 0.0
         val guess = ctx.strikeFrom(ctx.seat, at, card)
         val move = if (card.hasMovement) moveOutlook(ctx, at, card) else 0.0
@@ -220,6 +221,8 @@ internal object BatchDSupport {
      * hero stood there; [unplace] is the amount to take back so the playbook's own site value counts.
      */
     fun unplace(ctx: HContext, d: Decision, hex: Hex): Double {
+        // The general book scores a piece's space as no hero's (HContext.placedHero): nothing to take back.
+        if (ctx.profile.on("placeProbe", true)) return 0.0
         if (d.kind != DecisionKind.CHOOSE_SPACE || d.context.subjectId != null) return 0.0
         return -ctx.placement(d.seat, hex)
     }

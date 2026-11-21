@@ -62,7 +62,7 @@ data class TurnPlan(
             var best: Pair<String, Double>? = null
             for (m in ctx.state.minions) {
                 val pos = m.at ?: continue
-                if (m.team == ctx.team || ctx.heavyImmune(m.id)) continue
+                if (m.team == ctx.team || ctx.heavyImmune(m.id) || !card.hitsMinions) continue
                 if (ctx.distance(at, pos) > ctx.attackReach(heroId, card) + 1) continue
                 val worth = ctx.minionWorth(m.id)
                 if (best == null || worth > best.second) best = m.id to worth

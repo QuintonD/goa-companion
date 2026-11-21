@@ -18,23 +18,28 @@ import dev.quinton.goa.core.model.board.MinionType
 internal object SpaceRules {
     fun score(ctx: HContext, d: Decision, o: Choice): Double {
         if (o !is Choice.Space) return if (o is Choice.Decline) -0.45 else 0.0
-        val subject = d.context.subjectId ?: d.seat
-        val body = ctx.heroBody(subject)
+        val subject = d.context.subjectId
+        // A card's own space with no unit named: a token or piece is not the hero standing there.
+        val body = if (subject == null) placed(ctx, d) else ctx.heroBody(subject)
         if (body != null) {
             val owner = ctx.state.hero(body)?.team ?: return 0.0
             // G54: an enemy we place stands where it is worst for them.
             if (owner != ctx.team) return -ctx.placement(body, o.hex)
             return ctx.placement(body, o.hex) + fork(ctx, body, o.hex, d.sourceCardId)
         }
-        val minion = ctx.state.minion(subject) ?: return 0.0
+        val minion = subject?.let { ctx.state.minion(it) } ?: return 0.0
         return minionSpace(ctx, minion, o.hex)
     }
+
+    /** Who a subject-less space places: probed on this decision's own view, else the asking hero. */
+    private fun placed(ctx: HContext, d: Decision): String? =
+        if (ctx.decision?.id == d.id && ctx.profile.on("placeProbe", true)) ctx.placedHero else ctx.heroBody(d.seat)
 
     /** G2 on the square we would end on: an enemy still to act defeats us there. */
     fun commitment(ctx: HContext, d: Decision, o: Choice): Double {
         if (o !is Choice.Space || !ctx.profile.threatMap) return 0.0
-        val subject = d.context.subjectId ?: d.seat
-        val body = ctx.heroBody(subject) ?: return 0.0
+        val subject = d.context.subjectId
+        val body = (if (subject == null) placed(ctx, d) else ctx.heroBody(subject)) ?: return 0.0
         if (ctx.state.hero(body)?.team != ctx.team) return 0.0
         if (!unansweredKill(ctx, body, o.hex)) return 0.0
         return -TRAP_SHARE * ctx.killWorth(body) * ctx.profile.knob("spaceFear", 1.0)
@@ -66,7 +71,7 @@ internal object SpaceRules {
             if (c.id == playing || !(c.attackCard || c.forcesDiscard)) continue
             val reach = ctx.attackReach(heroId, c).coerceAtLeast(1)
             val hero = ctx.enemies().any { e -> e.at?.let { ctx.distance(at, it) <= reach } == true }
-            val minion = ctx.state.minions.any { m ->
+            val minion = c.hitsMinions && ctx.state.minions.any { m ->
                 m.team != ctx.team && !ctx.heavyImmune(m.id) && m.at?.let { ctx.distance(at, it) <= reach } == true
             }
             if (hero && minion) return FORK

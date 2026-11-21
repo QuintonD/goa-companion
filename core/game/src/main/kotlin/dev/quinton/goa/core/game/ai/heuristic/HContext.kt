@@ -1,6 +1,9 @@
 package dev.quinton.goa.core.game.ai.heuristic
 
 import dev.quinton.goa.core.domain.board.HexGrid
+import dev.quinton.goa.core.game.AnswerResult
+import dev.quinton.goa.core.game.Choice
+import dev.quinton.goa.core.game.DecisionKind
 import dev.quinton.goa.core.game.ai.CardProfile
 import dev.quinton.goa.core.game.engine.CardInst
 import dev.quinton.goa.core.game.engine.EngineSession
@@ -58,6 +61,29 @@ class HContext(
     stateOverride: GameState? = null,
 ) {
     val state: GameState = stateOverride ?: session.state
+    private val overridden: Boolean = stateOverride != null
+
+    /**
+     * True while a hero's `adjust` is added to a looked value (the engine resolved the option) rather
+     * than to the general book's static score. A note that corrects the static strike or placement
+     * estimate has nothing to correct then: [patches] is false and it returns 0.
+     */
+    var looking: Boolean = false
+        internal set
+
+    /** A correction of the static estimate applies: not inside a look (knob `patchLook` measures it anyway). */
+    val patches: Boolean get() = !looking || profile.on("patchLook", false)
+
+    /** [block] with [looking] set: the value it adds to is an engine look, not a static score. */
+    internal inline fun <T> inLook(block: () -> T): T {
+        val was = looking
+        looking = true
+        try {
+            return block()
+        } finally {
+            looking = was
+        }
+    }
     val seat: String = decision?.seat.orEmpty()
 
     val game: Game by lazy { Game(session.engineData, state, emptyList(), RunMode.PROBE) }
@@ -73,6 +99,7 @@ class HContext(
     private val poolCache = HashMap<String, List<PossibleCard>>()
     private val threatCache = HashMap<String, List<ThreatInfo>>()
     private val modCache = HashMap<Long, Int>()
+    private val styleCache = HashMap<String, HeroStyle>()
 
     /** The intent for this turn, derived from the state. Stable for the whole decision. */
     val plan: TurnPlan by lazy { TurnPlan.derive(this) }
@@ -82,8 +109,12 @@ class HContext(
     fun own(): HeroState? = state.hero(seat)
 
     /** This hero's style, or [HeroStyle.DEFAULT] when playbooks are off. */
-    fun style(heroId: String): HeroStyle =
-        if (profile.heroPlaybooks) playbooks(heroId).style else HeroStyle.DEFAULT
+    fun style(heroId: String): HeroStyle = styleCache.getOrPut(heroId) {
+        if (!profile.heroPlaybooks) return@getOrPut HeroStyle.DEFAULT
+        val s = playbooks(heroId).style
+        val floor = profile.knob("laneFloor", LANE_FLOOR)
+        if (s.laneWeight < floor) s.copy(laneWeight = floor) else s
+    }
 
     fun card(id: String): HCard = cardCache.getOrPut(id) {
         HCard.from(CardProfile.of(session.engineData.card(id)))
@@ -361,7 +392,7 @@ class HContext(
         var best = -0.5
         for (m in state.minions) {
             val pos = m.at ?: continue
-            if (m.team == owner) continue
+            if (m.team == owner || !card.hitsMinions) continue
             val d = distance(at, pos)
             // [minionWorth] is from this context's team, which is the answerer's team.
             val worth = minionWorth(m.id)
@@ -440,6 +471,31 @@ class HContext(
 
     /** The body a unit id acts as: the hero, or a piece that is that hero (Razzle). */
     fun heroBody(id: String): String? = state.hero(id)?.id ?: state.piece(id)?.heroBody
+
+    /**
+     * The hero a CHOOSE_SPACE of this decision puts on the chosen space. The question names its unit
+     * when it moves one ([dev.quinton.goa.core.game.DecisionContext.subjectId]); a card's own "choose a
+     * space" does not, and may place the hero, another hero, or a token (a Turret, a Barrier, a grenade).
+     * Probed once through the engine: answer the first space and see who stands there. Null for a piece.
+     */
+    val placedHero: String? by lazy { probePlaced() }
+
+    private fun probePlaced(): String? {
+        val d = decision ?: return null
+        d.context.subjectId?.let { return heroBody(it) }
+        if (d.kind != DecisionKind.CHOOSE_SPACE || overridden) return seat
+        val o = d.options.firstOrNull { o -> o is Choice.Space && state.heroes.none { it.at == o.hex } } as? Choice.Space
+            ?: return seat
+        return try {
+            val f = session.forkForAnswer()
+            if (f.answer(d.id, o) !is AnswerResult.Accepted) return seat
+            f.state.heroes.firstOrNull { it.at == o.hex }?.id
+        } catch (e: kotlin.coroutines.cancellation.CancellationException) {
+            throw e
+        } catch (_: Exception) {
+            seat
+        }
+    }
 
     /** Highest initiative among enemy attacks that reach [at] with a real chance. Null when none do. */
     fun incomingInitiative(at: Hex): Int? {
@@ -829,6 +885,9 @@ class HContext(
 
     companion object {
         private const val KILL_TEMPO = 5.0
+
+        /** The least [HeroStyle.laneWeight] the book plays (a measurement knob, `laneFloor`). */
+        private const val LANE_FLOOR = 0.0
 
         /** Chance an enemy plays the card that defeats us, when it holds it: this turn, next turn. */
         private const val LETHAL_NOW = 0.55

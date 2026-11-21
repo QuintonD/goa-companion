@@ -148,7 +148,7 @@ internal object PlayRules {
         var v = 0.0
         for (m in ctx.state.minions) {
             val pos = m.at ?: continue
-            if (m.team == ctx.team || ctx.heavyImmune(m.id) || ctx.distance(at, pos) > reach) continue
+            if (!card.hitsMinions || m.team == ctx.team || ctx.heavyImmune(m.id) || ctx.distance(at, pos) > reach) continue
             if (ctx.minionCount(m.team, m.lane) == 1 && ctx.matchPoint(m.lane)) v = max(v, 28.0)
         }
         for (e in ctx.enemies()) {
@@ -261,7 +261,7 @@ internal object PlayRules {
 
     /** G13: do not be the attack that pushes into a zone they respawn heavier in. */
     private fun avoidPush(ctx: HContext, h: HeroState, at: Hex, card: HCard): Double {
-        if (!card.attackCard && !card.forcesDiscard) return 0.0
+        if (!card.hitsMinions) return 0.0
         val reach = ctx.attackReach(h.id, card).coerceAtLeast(1)
         val hitsTrap = ctx.state.minions.any { m ->
             val pos = m.at ?: return@any false

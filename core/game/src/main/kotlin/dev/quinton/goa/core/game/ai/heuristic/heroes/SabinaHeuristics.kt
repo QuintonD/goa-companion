@@ -112,7 +112,8 @@ object SabinaHeuristics : HeroHeuristics {
 
     private fun unit(ctx: HContext, d: Decision, choice: Choice): Double {
         val bonus = bonusReds[d.sourceCardId] ?: return 0.0
-        if (!d.prompt.startsWith("Target")) return 0.0
+        // A look prices the strike from the engine's own total, the +3/+4 included.
+        if (!d.prompt.startsWith("Target") || !ctx.patches) return 0.0
         val id = BatchC.unitId(choice) ?: return 0.0
         val body = ctx.heroBody(id) ?: return 0.0
         // H1: the +3/+4 applies to a hero who played an attack card this turn (public after the reveal).

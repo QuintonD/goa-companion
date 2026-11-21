@@ -86,7 +86,8 @@ object NebkherHeuristics : HeroHeuristics {
     // H1: from turn 2, copy a faceup previous-slot card of an enemy in range 5; else defeat an adjacent minion.
     // On turn 1 there is no previous slot, so only the minion bullet exists.
     private fun gold(ctx: HContext, id: String): Double {
-        if (id != "nebkher-gold") return 0.0
+        // The card look resolves the copy and the minion bullet itself.
+        if (id != "nebkher-gold" || !ctx.patches) return 0.0
         val at = ctx.own()?.at ?: return 0.0
         val range = ctx.card(id).range + ctx.itemBonus(ctx.seat, Stat.RANGE)
         val copy = ctx.enemies().maxOfOrNull { enemy ->

@@ -118,6 +118,8 @@ internal object BatchC {
     fun radiusOf(ctx: HContext, cardId: String): Int = ctx.card(cardId).radius + ctx.itemBonus(ctx.seat, Stat.RADIUS)
 
     fun heroOnlyDiscard(ctx: HContext, cardId: String, reach: Int): Double {
+        // The general book no longer counts minions for a discard-only card (HCard.hitsMinions).
+        if (!ctx.patches || !ctx.profile.on("discardPatch", false)) return 0.0
         val me = ctx.own() ?: return 0.0
         val at = me.at ?: return 0.0
         if (enemiesWithin(ctx, at, reach).isNotEmpty()) return 0.0

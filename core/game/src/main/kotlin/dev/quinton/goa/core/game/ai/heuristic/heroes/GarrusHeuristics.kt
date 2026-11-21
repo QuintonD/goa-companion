@@ -79,7 +79,7 @@ object GarrusHeuristics : HeroHeuristics {
 
             "garrus-silver" -> howl(ctx, me, at)
 
-            in PILUM -> pilum(ctx, at, choice.cardId)
+            in PILUM -> if (ctx.patches) pilum(ctx, at, choice.cardId) else 0.0
 
             in STAND -> stand(ctx, me, at, choice.cardId)
 
