@@ -9,9 +9,15 @@ import kotlin.math.max
 import kotlin.math.min
 
 /**
- * Which card to play (GENERAL.md §5 and G1–G22). [score] is the static total.
- * [add] is the part a one-ply lookahead does not already contain: the enemies who act
- * after this action, and a plan that pays off next turn.
+ * Which card to play (GENERAL.md §5 and G1–G22). [score] is the static total, below strength 5.
+ * [add] is the part a [CardSim] look does not already contain: the round's shape and plans that pay
+ * off on a later turn.
+ *
+ * Inside the look: G1 (a win is a won position), G2 and G7–G9 (the threat split by initiative), G5 and
+ * G6 (Gold before Red to farm; a Blue or Green Fast Travel before Red or Gold: colour tempo, the hand's
+ * worth and G35 inside the look), G11 (a hand that will be empty is a kill), G12 (a card with nothing to
+ * do scores its Hold), G13 (the push is in the lane value), G20 (the respawn is played out).
+ * Not implemented: G21 (rotating to the other lane of a double-lane map).
  */
 internal object PlayRules {
     fun score(ctx: HContext, choice: Choice): Double = eval(ctx, choice) + add(ctx, choice, simulated = false)
@@ -54,10 +60,29 @@ internal object PlayRules {
         v += earlyRed(ctx, h, at, card) * ctx.profile.knob("earlyRed", 1.0) // G4
         v += strip(ctx, h, at, card) // G10
         v += teamKill(ctx, h, card) // G14 G15
+        v += pressLead(ctx, h, at, card) // G19
         return v
     }
 
-    /** G3 for a simulated card: the best defense in hand is the spare, kept until turn 4. */
+    /**
+     * G19 (from 9): we can afford deaths and they cannot; a card that reaches their empty-handed hero
+     * is worth more than the kill alone, because the threat keeps them off the minions.
+     */
+    private fun pressLead(ctx: HContext, h: HeroState, at: Hex, card: HCard): Double {
+        if (!ctx.profile.twoTurnPlans || !(card.attackCard || card.forcesDiscard)) return 0.0
+        if (ctx.deathsToLose(h.team) < 3) return 0.0
+        val reach = ctx.attackReach(h.id, card).coerceAtLeast(1)
+        val target = ctx.enemies().any { e ->
+            val pos = e.at ?: return@any false
+            ctx.deathsToLose(e.team) <= 1 && ctx.defenseless(e.id) && ctx.distance(at, pos) <= reach
+        }
+        return if (target) PRESS else 0.0
+    }
+
+    /**
+     * G3 for a simulated card: the best defense in hand is the spare, kept until turn 4. G16: once no
+     * enemy can still attack this round, the spare may be spent.
+     */
     private fun keepSpare(ctx: HContext, h: HeroState, card: HCard): Double {
         if (ctx.turn >= 4 || ctx.spare(h.id) - 1 >= 1 || !enemiesHaveAttacks(ctx)) return 0.0
         return if (bestDefense(ctx, h, card)) -spareWeightOf(ctx.turn) * ctx.profile.knob("spare", 1.0) else 0.0
@@ -255,4 +280,6 @@ internal object PlayRules {
         }
         return if (trade) -10.0 else 0.0
     }
+
+    private const val PRESS = 6.0
 }

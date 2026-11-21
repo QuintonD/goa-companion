@@ -88,7 +88,8 @@ class HeuristicDiagTest {
                 is GameEvent.ActionChosen -> "  A ${e.heroId} ${e.cardId} ${e.action}"
                 is GameEvent.Attacked -> "  ! ${e.attackerId} -> ${e.targetId} total ${e.total}"
                 is GameEvent.Defended -> "  D ${e.heroId} ${e.cardId} ${e.total} ok=${e.success}"
-                is GameEvent.Defeated -> if (s.state.hero(e.unitId) != null) "  X ${e.unitId} by ${e.byHeroId}" else null
+                is GameEvent.Defeated ->
+                    if (s.state.hero(e.unitId) != null) "  X ${e.unitId} by ${e.byHeroId}" else null
                 is GameEvent.LanePushed -> "  P ${e.lane} by ${e.winner} -> ${e.newBattleZone}"
                 is GameEvent.GameOver -> "  G ${e.winner} ${e.reason}"
                 is GameEvent.CardsChanged -> if (e.discarded.isNotEmpty()) "  C ${e.text}" else null
@@ -112,7 +113,10 @@ class HeuristicDiagTest {
         val actions = sortedMapOf<String, Int>()
         for (e in s.events) {
             if (e is GameEvent.Defeated && e.byHeroId != null && teamOf[e.byHeroId] == team) {
-                if (teamOf.containsKey(e.unitId)) heroes++ else if (s.state.minion(e.unitId) != null || e.unitId.startsWith("m")) minions++
+                when {
+                    teamOf.containsKey(e.unitId) -> heroes++
+                    e.unitId.startsWith("m") -> minions++
+                }
             }
             if (e is GameEvent.ActionChosen && teamOf[e.heroId] == team) {
                 actions[e.action.name] = (actions[e.action.name] ?: 0) + 1

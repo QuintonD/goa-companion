@@ -74,7 +74,9 @@ internal object UnitRules {
         val m = ctx.state.minion(minionId) ?: return false
         val pos = m.at ?: return false
         if (ctx.minionCount(m.team, m.lane) <= 1) return false
-        val others = d.options.any { it is Choice.Unit && it.unitId != minionId && ctx.state.minion(it.unitId)?.team == m.team }
+        val others = d.options.any { o ->
+            o is Choice.Unit && o.unitId != minionId && ctx.state.minion(o.unitId)?.team == m.team
+        }
         if (!others) return false
         return ctx.allies().any { ally ->
             val at = ally.at ?: return@any false

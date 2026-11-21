@@ -30,7 +30,18 @@ class HeuristicAi(
     tune: Map<String, Double> = emptyMap(),
     private val playbooks: (String) -> HeroHeuristics = HeroPlaybooks::forHero,
 ) : AiPlayer {
-    val profile: HeuristicProfile = HeuristicProfile.of(strength).copy(tune = tune)
+    val profile: HeuristicProfile = HeuristicProfile.of(strength).copy(tune = tune).let { p ->
+        // Measurement only: a layer switched by name (h10+laneTiming=0).
+        p.copy(
+            laneTiming = p.on("laneTiming", p.laneTiming),
+            twoTurnPlans = p.on("twoTurn", p.twoTurnPlans),
+            knowHands = p.on("knowHands", p.knowHands),
+            focusFire = p.on("focus", p.focusFire),
+            initiativeReading = p.on("initiative", p.initiativeReading),
+            cardCounting = p.on("counting", p.cardCounting),
+            temperature = p.knob("temp", p.temperature),
+        )
+    }
 
     /** Diagnostics only: receives a line per looked-at decision with each option's value. */
     internal var trace: ((String) -> Unit)? = null
@@ -103,12 +114,15 @@ class HeuristicAi(
             got += i
             // The look is the position. [General.commitment] is what that position does not contain.
             val o = d.options[i]
-            val turn = if (ctx.profile.on("turnLook", true) && ctx.state.acting == d.seat) CardSim.after(ctx, d, o) else null
+            val ownTurn = ctx.profile.on("turnLook", true) && ctx.state.acting == d.seat
+            val turn = if (ownTurn) CardSim.after(ctx, d, o) else null
             values += (turn ?: Lookahead.value(ctx, d, o)) +
                 General.commitment(ctx, d, d.options[i]) +
                 adjust(book, ctx, d, d.options[i])
         }
-        trace?.invoke("${d.seat} ${d.kind} " + got.indices.joinToString(" ") { "${d.options[got[it]]}=${round1(values[it])}" })
+        trace?.invoke(
+            "${d.seat} ${d.kind} " + got.indices.joinToString(" ") { "${d.options[got[it]]}=${round1(values[it])}" },
+        )
         if (got.isEmpty() || values.none { it > Lookahead.WORSE / 2 }) return null
         return pick(d, got, values.toDoubleArray(), rng, fromLook = true)
     }

@@ -60,11 +60,12 @@ internal object CardSim {
         // Not revealed: a card someone played facedown before us stays hidden in every score below.
         st.revealed = false
         Game(data, st, emptyList(), RunMode.PROBE).moveCard(ctx.seat, cardId, Zone.PLAYED)
+        val rng = Random(HeuristicAi.mix(d.id, cardId.hashCode().toLong()))
         st.step = Step.RESOLVE
         st.acting = null
         st.vars[NEXT_ACTOR] = ctx.seat
         val seat = ctx.seat
-        val sim = EngineSession(data, ctx.session.setup, st, Random(HeuristicAi.mix(d.id, cardId.hashCode().toLong())))
+        val sim = EngineSession(data, ctx.session.setup, st, rng)
         sim.quiet = true
         sim.haltWhen = { s -> seat in s.turnRecord.resolved || s.step != Step.RESOLVE }
         sim.start()
@@ -157,7 +158,10 @@ internal object CardSim {
         }
     }
 
-    private fun branchesOf(ctx: HContext): Int = ctx.profile.knob("branch", if (ctx.profile.lookahead >= HeuristicProfile.Look.MOVES) 1.0 else 0.0).toInt()
+    private fun branchesOf(ctx: HContext): Int {
+        val default = if (ctx.profile.lookahead >= HeuristicProfile.Look.MOVES) 1.0 else 0.0
+        return ctx.profile.knob("branch", default).toInt()
+    }
 
     /** Our attack on a hidden hand: the pool says what it is worth, not the sampled cards (G57). */
     private fun strikeOf(ctx: HContext, f: EngineSession, d: Decision, init: Int): Double {
