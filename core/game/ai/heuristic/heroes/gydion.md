@@ -233,3 +233,15 @@ When `enemyHeroId` is `gydion`, extra danger beyond printed reach:
 - [BGG 3459990] is the designer's complexity remark about Nebkher, not Gydion. No Gydion spotlight exists in the strategy forum (83 threads listed 2026-11-20).
 - Gamefound Arcane pack update (https://gamefound.com/en/projects/wolffdesigna/guardsofatlantis2new/updates/10), designer overview: separate spellbook, cast spells leave it, branches are schools of three. The "21 spells plus Wish" count matches the 22 extras. No per-spell numbers were taken from it.
 - No Reddit thread, no 2nd-printing spotlight, no build guide. Gaps are the whole opening book and which school wins; those rules are [REASONED] from the cards.
+
+## Implementation notes
+
+`GydionHeuristics.kt`, checked against `GydionHero.kt`, `gydion/Spellbook.kt` and `gydion/GydionSpells.kt` (2026-11-21).
+
+- **Rule 3 is reversed in code.** The engine casts Wish through the Archwizard confirm on Prepare Spells, and every cast counts toward the three. Choosing "Add the spells" whenever `wishCasts` < 2 would never reach 2, so the alternate win could not happen. The playbook casts Wish while the book still holds 4 or more spells and refills a thinner book. Rules 2 and 4 (the third Wish) are an `override`.
+- Rule 21 is not encoded. Shield and Invulnerability make him immune (`AttackImmunity`), so the engine never lets that attack target him and no Defense decision is asked.
+- Rule 6: the engine asks the spell as `CHOOSE_CARD` ("Choose and cast one spell in the spellbook"), not `CHOOSE_OPTION`, and offers only spells that can start. Plain attack spells (Magic Missile, Shocking Grasp, Vampiric Touch) are scored by the general strike estimate of the spell card.
+- `threatAdjust` counts Sunburst only while `gydion-red-3a` may be in his hand and Power Word Kill only while `gydion-blue-3a` may be: those are the only cards that list them. Sunburst's attack equals its exact range, so its threat grows with that number.
+- The book's contents are public after Prepare (every spell not removed faceup), so `inBook` for an enemy Gydion reads only counters and faceup spells.
+- Prepare is discouraged while Shield or Invulnerability is in force: `Spellbook.setTag` cancels a spell's effect when it returns to the book.
+- Skipped (lookahead or general book already answers them, or the card choice is engine-opaque): 13 (Burning Hands discard pick), 15 (Find Familiar removals), 17 (Suggestion line), 18, 20, 22 beyond `upgradeOrder`.
