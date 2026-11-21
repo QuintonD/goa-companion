@@ -122,7 +122,7 @@ object HEval {
             val waves = state.wavesLeft[lane] ?: 1
             val w = laneWin(zones.lastIndex - i, i, waves, p)
             val match = ctx.profile.laneTiming && ctx.matchPoint(lane)
-            val laneWeight = if (match) 100.0 else 60.0
+            val laneWeight = (if (match) 100.0 else 60.0) * ctx.profile.knob("lane", 1.0)
             val margin = if (match) 3.0 else 1.5
             v += laneWeight * (2 * w - 1) + margin * (red - blue)
         }

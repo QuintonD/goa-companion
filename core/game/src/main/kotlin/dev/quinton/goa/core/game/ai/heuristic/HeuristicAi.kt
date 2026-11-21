@@ -71,7 +71,11 @@ class HeuristicAi(
         }
         val looked = look(ctx, pending, static, rng, cancelled)
         val choice = looked ?: pick(pending, pending.options.indices.toList(), static, rng, fromLook = false)
-        return decision.options.firstOrNull { it == choice } ?: choice
+        if (choice in decision.options) return choice
+        // The sampled view offered something the real question does not (a space that depends on a
+        // hidden card): the best static option the real question has, else the fallback.
+        val legal = pending.options.indices.filter { pending.options[it] in decision.options }
+        return legal.maxByOrNull { static[it] }?.let { pending.options[it] } ?: Fallback.choose(decision)
     }
 
     private fun adjust(book: HeroHeuristics, ctx: HContext, d: Decision, choice: Choice): Double =

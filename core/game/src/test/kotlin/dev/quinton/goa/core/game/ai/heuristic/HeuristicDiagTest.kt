@@ -57,7 +57,10 @@ class HeuristicDiagTest {
                 )
                 drain(r.session, seenEvents, Int.MAX_VALUE, lines)
                 val aWon = r.winner == aTeam
-                println("DIAG game ${red + blue} a=$aName ${if (aRed) "Red" else "Blue"} won=$aWon rounds=${r.rounds}")
+                println(
+                    "DIAG game ${red + blue} a=$aName ${if (aRed) "Red" else "Blue"} won=$aWon rounds=${r.rounds} " +
+                        "a ${tally(r.session, aTeam)} | b ${tally(r.session, aTeam.opponent)}",
+                )
                 val heroesA = (if (aRed) red else blue).toSet()
                 val keys = lines.filter { (_, l) ->
                     l.startsWith("  X ") && heroesA.any { h -> l.startsWith("  X $h ") }
@@ -96,6 +99,23 @@ class HeuristicDiagTest {
             if (line != null) lines += key to line
         }
         return ev.size
+    }
+
+    /** Minions and heroes a team's heroes defeated, and how its actions were spent. */
+    private fun tally(s: EngineSession, team: Team): String {
+        val teamOf = s.setup.seats.associate { it.heroId to it.team }
+        var minions = 0
+        var heroes = 0
+        val actions = sortedMapOf<String, Int>()
+        for (e in s.events) {
+            if (e is GameEvent.Defeated && e.byHeroId != null && teamOf[e.byHeroId] == team) {
+                if (teamOf.containsKey(e.unitId)) heroes++ else if (s.state.minion(e.unitId) != null || e.unitId.startsWith("m")) minions++
+            }
+            if (e is GameEvent.ActionChosen && teamOf[e.heroId] == team) {
+                actions[e.action.name] = (actions[e.action.name] ?: 0) + 1
+            }
+        }
+        return "minions $minions heroes $heroes actions $actions"
     }
 
     private fun status(s: EngineSession): String {
