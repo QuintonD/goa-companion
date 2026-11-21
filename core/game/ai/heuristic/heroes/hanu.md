@@ -156,3 +156,13 @@ When the enemy is Hanu:
 - [BGG 2431430] Kickstarter spotlight index, 2020, designer campaign text. Roles only (controller, support). The card list there is pre-revision.
 - Gamefound Renowned update 8 (https://gamefound.com/en/projects/wolffdesigna/guardsofatlantis2new/updates/8): "strongest supports and initiators", high initiative, high mobility, usefulness drops when pressured. The sentence "some abilities stop working if he has any cards in the discard" matches the 1st printing and is rejected for 2nd.
 - No 2nd-printing Hanu spotlight. No Reddit thread found.
+
+## Implementation notes
+
+`HanuHeuristics.kt`, checked against `HanuHero.kt` (2026-11-21).
+
+- Rule 3/4/5: Hurry up! is a `CHOOSE_UNIT` on the hero first ("Set the Initiative of a hero's unresolved card to 11"), then a `CHOOSE_CARD` only when that hero has two unresolved cards. The rules are scored on the unit choice, reading that hero's faceup unresolved card.
+- Rule 6/7: the red's far bullet is legal only on a hero (red 1/2a/3a) or minion (red 2b/3b) beside a friendly hero, and red 3a's also not adjacent to Hanu. The general book reads printed range, so when neither bullet has a target the playbook cancels that strike estimate instead of a flat −14 (the red is still movement 5 and defense 4–6).
+- Rule 1: gold's leave needs three empty spaces in a straight line (`MoveSpec(straightLine = true)`), and only fires when the target survives, so it is scored on a hero with a card in hand.
+- Rules 9–11 (This Way direction, green swaps) are opaque choices for the general book; the one-ply lookahead plays them. Rule 12, 13 and 15 are left to the general defense and upgrade scoring.
+- `evalTerms`: none. Journey's immunity cuts both ways and the lookahead already sees it.

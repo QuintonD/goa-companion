@@ -85,4 +85,30 @@ internal object BatchB {
 
     fun basicAttack(card: HCard): Boolean =
         card.attackCard && (card.color == CardColor.GOLD || card.color == CardColor.SILVER)
+
+    /**
+     * Cancel the general book's strike estimate for [card] when its text has no legal target. The
+     * general book reads printed reach; a card such as Hanu's red reaches far only beside an ally.
+     */
+    fun deadStrike(ctx: HContext, at: Hex, card: HCard): Double =
+        -0.8 * ctx.strikeFrom(ctx.seat, at, card).coerceAtLeast(0.0)
+
+    /** Enemy units (heroes and minions) by id and space. */
+    fun enemyUnits(ctx: HContext): List<Pair<String, Hex>> {
+        val out = ArrayList<Pair<String, Hex>>()
+        for (e in ctx.enemies()) e.at?.let { out += e.id to it }
+        for (m in ctx.state.minions) if (m.team != ctx.team) m.at?.let { out += m.id to it }
+        return out
+    }
+
+    /** The best minion worth among enemy minions at [at]'s distance [range] or less (0 when none). */
+    fun bestMinion(ctx: HContext, at: Hex, range: Int): Double {
+        var best = 0.0
+        for (m in ctx.state.minions) {
+            val pos = m.at ?: continue
+            if (m.team == ctx.team || ctx.distance(at, pos) > range || ctx.heavyImmune(m.id)) continue
+            best = maxOf(best, ctx.minionWorth(m.id))
+        }
+        return best
+    }
 }

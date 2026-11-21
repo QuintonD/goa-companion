@@ -14,15 +14,14 @@ class HanuHeuristicsTest {
     }
 
     @Test
-    fun `red is not played when no ally is standing on the target`() {
+    fun `red with no target beside an ally is a walk, not the attack the printed range suggests`() {
         val session = BatchBFixture.session {
-            turn = 2
-            hero("hanu", Team.RED, Hex(-5, -6))
+            turn = 3
+            hero("hanu", Team.RED, Hex(-5, -6)) { hand("hanu-red-1", "hanu-green-1") }
             hero("arien", Team.BLUE, Hex(-2, -6))
         }
-        val plain = BatchBFixture.pick(session, HanuHeuristics, adjust = false)
-        val noted = BatchBFixture.pick(session, HanuHeuristics, adjust = true)
-        assertWithMessage("plain=$plain noted=$noted").that(plain).isEqualTo(Choice.Card("hanu-red-1"))
-        assertThat(noted).isNotEqualTo(plain)
+        val (plain, noted, table) = BatchBFixture.picks(session, HanuHeuristics)
+        assertWithMessage(table).that(plain).isEqualTo(Choice.Card("hanu-red-1"))
+        assertWithMessage(table).that(noted).isEqualTo(Choice.Card("hanu-green-1"))
     }
 }

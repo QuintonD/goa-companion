@@ -41,6 +41,25 @@ internal object BatchBFixture {
         }
     }
 
+    /** Every option with its general score and this hero's adjust, for a failure message. */
+    fun table(session: EngineSession, book: HeroHeuristics): String {
+        val decision = checkNotNull(session.pending) { "position has no decision" }
+        val ctx = HContext(
+            session = session,
+            decision = decision,
+            team = decision.team,
+            profile = HeuristicProfile.of(8),
+            playbooks = { id -> if (id == book.heroId) book else HeroPlaybooks.forHero(id) },
+        )
+        return decision.options.joinToString("; ") { o ->
+            "$o general=${"%.2f".format(General.score(ctx, decision, o))} adjust=${"%.2f".format(book.adjust(ctx, decision, o))}"
+        }
+    }
+
+    /** The plain pick, the noted pick, and the table, for one assertion. */
+    fun picks(session: EngineSession, book: HeroHeuristics): Triple<Choice, Choice, String> =
+        Triple(pick(session, book, adjust = false), pick(session, book, adjust = true), table(session, book))
+
     fun finishes(hero: String) {
         val mates = listOf("arien", "brogan", "wasp")
         val foes = listOf("xargatha", "silverarrow", "cutter")
