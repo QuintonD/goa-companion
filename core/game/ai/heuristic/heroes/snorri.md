@@ -148,3 +148,14 @@ Keep the boon when an ally is the one who discards (Tali, Takahide's partner, a 
 - Designer Arty, Discord 2025-02-09 (item swap), 2025-08-28 (ignore obstacles), 2025-09-28 (horn repeat at range), 2025-11-11 (oath is not a proactive skill), 2026-02-26 (both lines unless the card says choose), 2026-03-16 (only the active rune blocks). https://www.cockeyedandcurious.com/goa2/faq
 - Wolff Designa, Arcane overview. https://gamefound.com/en/projects/wolffdesigna/guardsofatlantis2new/updates/10
 - **No community strategy thread, Reddit post, or YouTube guide found.** BGG 3592811 is a rules question, not a build.
+
+## 8. Implementation notes
+
+`SnorriHeuristics.kt` (ADR-085). Checked against `SnorriHero.kt`:
+
+- Runes are markers from Snorri with a `slot` (`SnorriHero.placedRunes`). The rune under the current turn is active, and they are public, so both his notes and an enemy's threat read them.
+- **H2:** inscription is four `CHOOSE_OPTION` questions "Which rune goes below turn slot N?" (labels Axe, Bird, Anvil, Horn). The question is opaque, so the look-ahead scores it too. The note leans axe, then horn, onto future slots, and the leftover onto the slot he is spending.
+- **H10:** the engine works out the oath against the active rune and shows the result in `blockPreview`. If the preview is false, the oath does not block and he is defeated (−10).
+- **H6:** the draft gave anvil's +3 coins to *minion* targets too (a null hero compared with a team). Fixed: heroes only, as the card says.
+- **H5:** the horn repeat is the engine's optional repeat (a confirm question, already opaque). There is no note.
+- **Not implemented:** H7, H8, H12–H16 (rune-specific choices the one-ply look already resolves through the engine).

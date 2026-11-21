@@ -8,13 +8,13 @@ import dev.quinton.goa.core.game.ai.heuristic.HeroHeuristics
 import dev.quinton.goa.core.game.ai.heuristic.HeroRole
 import dev.quinton.goa.core.game.ai.heuristic.HeroStyle
 import dev.quinton.goa.core.game.engine.GameState
-import dev.quinton.goa.core.game.heroes.SnorriHero
+import dev.quinton.goa.core.game.heroes.SnorriHero.Rune
 import dev.quinton.goa.core.model.board.Hex
 import dev.quinton.goa.core.model.match.Team
 
 /**
- * Snorri is blank until the runes are on the dashboard. The active rune is the marker under
- * this turn's slot (rulings/snorri.md 1). The oath has no primary; a failed block defeats him.
+ * Snorri (heroes/snorri.md): Inscribe the Runes once, early, and play each card on the turn whose rune
+ * powers it. The markers are public (`SnorriHero.placedRunes`), so both sides may read them.
  */
 object SnorriHeuristics : HeroHeuristics {
     override val heroId: String = "snorri"
@@ -23,148 +23,119 @@ object SnorriHeuristics : HeroHeuristics {
         role = HeroRole.FIGHTER,
         idealDistance = 1,
         aggression = 0.55,
-        laneWeight = 0.45,
-        upgradeOrder = listOf(
-            "snorri-red-2a",
-            "snorri-red-3a",
-            "snorri-green-2a",
-            "snorri-green-3a",
-            "snorri-blue-2a",
-            "snorri-blue-3a",
-            "red",
-            "green",
-            "blue",
-        ),
+        laneWeight = 1.0,
+        upgradeOrder = listOf("snorri-red-2a", "snorri-red-3a", "snorri-green-2a", "snorri-green-3a", "red", "green", "blue"),
         keepDefender = true,
     )
+
+    private val golds = setOf("snorri-gold", "snorri-handicap")
+    private val oaths = setOf("snorri-green-1", "snorri-green-2a", "snorri-green-3a")
+    private val casters = setOf("snorri-red-2b", "snorri-red-3b")
 
     override fun adjust(ctx: HContext, d: Decision, choice: Choice): Double = when (d.kind) {
         DecisionKind.PLAY_CARD -> play(ctx, choice)
         DecisionKind.CHOOSE_OPTION -> inscribe(ctx, d, choice)
         DecisionKind.CHOOSE_UNIT -> target(ctx, d, choice)
-        DecisionKind.CONFIRM -> confirm(ctx, d, choice)
         DecisionKind.DEFEND -> defend(d, choice)
         else -> 0.0
     }
 
+    /** §6: no runes past turn 1 is a blank kit. A rune on the board is not a token bonus. */
     override fun evalTerms(state: GameState, team: Team, heroId: String): Double {
         if (heroId != this.heroId) return 0.0
-        val hero = state.hero(heroId) ?: return 0.0
-        val sign = BatchC.sign(state, heroId, team)
-        val runes = BatchC.runeCount(hero)
-        // A wrong rune is not a token bonus. No runes past turn 1 is a blank kit.
-        val v = when {
-            runes == 0 && state.turn > 1 -> -4.0
-            BatchC.activeRune(hero, state.turn) != null -> 2.0
-            else -> 0.0
-        }
-        return sign * v
+        val me = state.hero(heroId) ?: return 0.0
+        if (BatchC.runeCount(me) > 0 || (state.round <= 1 && state.turn <= 1)) return 0.0
+        return BatchC.sign(state, heroId, team) * -3.0
     }
 
+    /** His gold under axe is Attack 5 adjacent; under horn it repeats on a second hero in range 2. */
     override fun threatAdjust(ctx: HContext, enemyHeroId: String, target: Hex): Double {
         if (enemyHeroId != heroId) return 0.0
-        val hero = ctx.state.hero(heroId) ?: return 0.0
-        val at = hero.at ?: return 0.0
-        val rune = BatchC.activeRune(hero, ctx.state.turn) ?: return 0.0
-        val distance = ctx.distance(at, target)
-        // Axe gold is Attack 5 adjacent. Horn threatens a second hero at range 2.
-        return when (rune) {
-            SnorriHero.Rune.AXE -> if (distance == 1) 3.0 else 0.0
-            SnorriHero.Rune.HORN -> if (distance == 2) 3.0 else 0.0
-            SnorriHero.Rune.BIRD -> if (distance == 2) 1.5 else 0.0
-            SnorriHero.Rune.ANVIL -> 0.0
+        val me = ctx.hero(heroId) ?: return 0.0
+        val at = me.at ?: return 0.0
+        if (!BatchC.mayHold(ctx, heroId, golds)) return 0.0
+        val d = ctx.distance(at, target)
+        return when (BatchC.activeRune(me, ctx.state.turn)) {
+            Rune.AXE -> if (d == 1) 2.5 else 0.0
+            Rune.HORN -> if (d == 2) 2.0 else 0.0
+            else -> 0.0
         }
     }
 
     private fun play(ctx: HContext, choice: Choice): Double {
         val id = BatchC.cardId(choice) ?: return 0.0
-        val hero = ctx.own() ?: return 0.0
-        val runes = BatchC.runeCount(hero)
-        if (id == "snorri-silver") {
-            // H1 / H3: place the runes once. Re-inscribing spends the action the attack needed.
-            return if (runes == 0) 8.0 else -3.5
-        }
-        if (id == "snorri-gold" && BatchC.activeRune(hero, ctx.turn) == null) {
-            // Gold without a rune is Attack 2 adjacent. Do not lead with it.
-            return -3.0
-        }
-        return oathWalk(id, runes) + goldRune(ctx, id)
-    }
-
-    private fun oathWalk(id: String, runes: Int): Double {
-        if (id != "snorri-green-1" && id != "snorri-green-2a" && id != "snorri-green-3a") return 0.0
-        // H11: the oath is a block, not a skill. Walking with it spends the only answer.
-        return if (runes > 0) -3.0 else 0.0
-    }
-
-    private fun goldRune(ctx: HContext, id: String): Double {
-        if (id != "snorri-gold" && id != "snorri-handicap") return 0.0
-        val hero = ctx.own() ?: return 0.0
-        val at = hero.at ?: return 0.0
-        // H4 / H6: the rune changes what gold is for.
-        return when (BatchC.activeRune(hero, ctx.turn)) {
-            SnorriHero.Rune.AXE -> if (BatchC.minionsWithin(ctx, at, 1, friendly = false).isNotEmpty()) 3.0 else 2.0
-            SnorriHero.Rune.HORN -> if (BatchC.enemiesWithin(ctx, at, 2).size >= 2) 4.0 else 1.0
-            SnorriHero.Rune.BIRD -> if (BatchC.minionsWithin(ctx, at, 2, friendly = false).isNotEmpty()) 3.0 else 0.0
-            SnorriHero.Rune.ANVIL -> if (BatchC.enemiesWithin(ctx, at, 1).isNotEmpty()) 3.0 else 0.0
-            null -> 0.0
+        val me = ctx.own() ?: return 0.0
+        val runes = BatchC.runeCount(me)
+        val rune = BatchC.activeRune(me, ctx.turn)
+        return when (id) {
+            // H1 / H3: inscribe once, early. Re-inscribing spends a turn the attack needed.
+            "snorri-silver" -> if (runes == 0) (if (ctx.turn <= 3) 6.0 else 2.0) else -2.5
+            in golds -> goldRune(ctx, rune)
+            // H11: the oath has no primary; walking with it spends the block.
+            in oaths -> if (runes > 0) -2.0 else 0.0
+            // H12: the trap makes an enemy hero in radius discard; it never takes a minion.
+            "snorri-green-2b", "snorri-green-3b" -> BatchC.heroOnlyDiscard(ctx, id, BatchC.radiusOf(ctx, id))
+            else -> 0.0
         }
     }
 
+    /** H4 / H6: the rune decides what gold is for; without one it is Attack 2 adjacent. */
+    private fun goldRune(ctx: HContext, rune: Rune?): Double {
+        val at = ctx.own()?.at ?: return 0.0
+        val adjacentHero = BatchC.enemiesWithin(ctx, at, 1).isNotEmpty()
+        val adjacentMinion = BatchC.minionsWithin(ctx, at, 1, friendly = false).any { BatchC.takeable(ctx, it) }
+        return when (rune) {
+            null -> -1.5
+            Rune.AXE -> if (adjacentHero || adjacentMinion) 2.5 else 0.0
+            Rune.HORN -> if (BatchC.enemiesWithin(ctx, at, 2).size >= 2) 3.0 else 0.0
+            Rune.BIRD -> if (BatchC.minionsWithin(ctx, at, 2, friendly = false).any { BatchC.takeable(ctx, it) }) 2.0 else 0.0
+            Rune.ANVIL -> if (adjacentHero) 3.0 else 0.0
+        }
+    }
+
+    /**
+     * H2: inscription. Gold and the melee red want axe (+3) on the turns he attacks; the slot he spends on
+     * silver itself takes the leftover. The one-ply look scores the rest.
+     */
     private fun inscribe(ctx: HContext, d: Decision, choice: Choice): Double {
         if (d.sourceCardId != "snorri-silver" || choice !is Choice.Option) return 0.0
         val slot = BatchC.slotNumber(d.prompt) ?: return 0.0
-        val axe = choice.label.equals("Axe", ignoreCase = true)
-        // H2: the slot he is spending can take the leftover. Later slots want the attack rune.
-        return when {
-            slot == ctx.turn && choice.label.equals("Anvil", ignoreCase = true) -> 1.0
-            slot != ctx.turn && axe -> 4.0
-            slot != ctx.turn && choice.label.equals("Horn", ignoreCase = true) -> 2.0
+        val label = choice.label
+        if (slot == ctx.turn) return if (label == Rune.ANVIL.label) 1.0 else 0.0
+        return when (label) {
+            Rune.AXE.label -> 2.5
+            Rune.HORN.label -> 1.5
             else -> 0.0
         }
     }
 
     private fun target(ctx: HContext, d: Decision, choice: Choice): Double {
-        val src = d.sourceCardId ?: return 0.0
         val id = BatchC.unitId(choice) ?: return 0.0
-        val hero = ctx.own() ?: return 0.0
-        val rune = BatchC.activeRune(hero, ctx.turn)
-        if (src == "snorri-gold" && rune == SnorriHero.Rune.ANVIL && ctx.state.hero(id)?.team != ctx.team) {
-            // Anvil pays the coins when a hero is targeted, even if they block.
-            return 3.0
+        val me = ctx.own() ?: return 0.0
+        val rune = BatchC.activeRune(me, ctx.turn)
+        val src = d.sourceCardId
+        // H6: anvil pays 3 coins for targeting a hero, even when they block.
+        if (src == "snorri-gold" && rune == Rune.ANVIL && d.prompt.startsWith("Target")) {
+            val hero = ctx.state.hero(id)
+            return if (hero != null && hero.team != ctx.team) 3.0 else 0.0
         }
-        if ((src == "snorri-red-2b" || src == "snorri-red-3b") && rune == SnorriHero.Rune.AXE) {
-            return splash(ctx, id)
+        // H9: axe on the ranged red: an enemy hero next to the target discards, or is defeated.
+        if (src in casters && rune == Rune.AXE && d.prompt.startsWith("Target")) {
+            val at = BatchC.posOf(ctx, id) ?: return 0.0
+            val splash = ctx.enemies().any { e -> e.id != id && e.at?.let { ctx.distance(it, at) == 1 } == true }
+            return if (splash) 3.0 else 0.0
         }
         return 0.0
     }
 
-    private fun splash(ctx: HContext, targetId: String): Double {
-        val at = ctx.state.hero(targetId)?.at ?: ctx.state.minion(targetId)?.at ?: return 0.0
-        val hero = ctx.enemies().any { enemy ->
-            enemy.id != targetId && enemy.at?.let { ctx.distance(it, at) == 1 } == true
-        }
-        // Axe on the ranged red: a hero standing on the target discards, or is defeated.
-        return if (hero) 4.0 else 0.0
-    }
-
-    private fun confirm(ctx: HContext, d: Decision, choice: Choice): Double {
-        if (d.sourceCardId != "snorri-gold" || choice !is Choice.Yes) return 0.0
-        val hero = ctx.own() ?: return 0.0
-        if (BatchC.activeRune(hero, ctx.turn) != SnorriHero.Rune.HORN) return 0.0
-        val at = hero.at ?: return 0.0
-        // H5: horn repeats on a different hero in range 2.
-        return if (BatchC.enemiesWithin(ctx, at, 2).size >= 2) 3.0 else -2.0
-    }
-
+    /** H10: the engine previews whether the oath's rune blocks this attack. A failed oath is a defeat. */
     private fun defend(d: Decision, choice: Choice): Double {
         val id = BatchC.cardId(choice) ?: return 0.0
-        if (id != "snorri-green-1" && id != "snorri-green-2a" && id != "snorri-green-3a") return 0.0
-        // H10: the engine's block preview is the rune match. A failed oath is a defeat.
+        if (id !in oaths) return 0.0
         return when (d.context.blockPreview[id]) {
-            true -> 4.0
-            false -> -12.0
-            null -> -2.0
+            true -> 3.0
+            false -> -10.0
+            null -> 0.0
         }
     }
 }
