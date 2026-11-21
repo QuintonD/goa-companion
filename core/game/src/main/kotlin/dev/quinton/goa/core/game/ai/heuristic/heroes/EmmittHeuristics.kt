@@ -42,8 +42,12 @@ object EmmittHeuristics : HeroHeuristics {
         val at = me.at ?: return 0.0
         return when (choice.cardId) {
             in PUNCH -> punch(ctx, me, at, choice.cardId)
+
             in SNARE -> snare(ctx, me, at, choice.cardId)
-            in GOLD -> if (ctx.turn == 1) -2.0 else 0.0 // H2: no flip on turn 1
+
+            in GOLD -> if (ctx.turn == 1) -2.0 else 0.0
+
+            // H2: no flip on turn 1
             else -> 0.0
         }
     }
@@ -56,11 +60,11 @@ object EmmittHeuristics : HeroHeuristics {
     private fun punch(ctx: HContext, me: HeroState, at: Hex, cardId: String): Double {
         val card = ctx.card(cardId)
         val total = card.attack + ctx.itemBonus(me.id, Stat.ATTACK)
-        var best = BatchA.bestMinionOn(ctx, HexGrid.neighbors(at).toSet())
-        for (e in BatchA.enemiesWithin(ctx, at, 1)) {
-            best = max(best, punchWorth(ctx, e, total) * BatchA.aggression(ctx, me.id))
+        var best = BatchASupport.bestMinionOn(ctx, HexGrid.neighbors(at).toSet())
+        for (e in BatchASupport.enemiesWithin(ctx, at, 1)) {
+            best = max(best, punchWorth(ctx, e, total) * BatchASupport.aggression(ctx, me.id))
         }
-        return BatchA.correction(ctx, me.id, at, card, best)
+        return BatchASupport.correction(ctx, me.id, at, card, best)
     }
 
     /** The punch on [e]: a kill unless they hold a defense card whose Initiative total reaches [total]. */
@@ -68,7 +72,7 @@ object EmmittHeuristics : HeroHeuristics {
         if (e.hand.isEmpty()) return ctx.killWorth(e.id)
         val pos = e.at ?: return 0.0
         val bonus = ctx.itemBonus(e.id, Stat.INITIATIVE) + ctx.minionModifier(pos, e.team)
-        val hold = BatchA.chanceHolds(ctx, e) { c ->
+        val hold = BatchASupport.chanceHolds(ctx, e) { c ->
             (c.block && c.blocksMelee) || (c.canDefend && !c.block && c.initiative + bonus >= total)
         }
         val chance = 1.0 - hold
@@ -83,20 +87,20 @@ object EmmittHeuristics : HeroHeuristics {
     private fun snare(ctx: HContext, me: HeroState, at: Hex, cardId: String): Double {
         val card = ctx.card(cardId)
         val ours = card.initiative + ctx.itemBonus(me.id, Stat.INITIATIVE)
-        val reverse = BatchA.effectLive(ctx, heroId, GOLD)
+        val reverse = BatchASupport.effectLive(ctx, heroId, GOLD)
         val orDefeat = cardId == "emmitt-blue-3a"
         val reach = card.range + ctx.itemBonus(me.id, Stat.RANGE)
         var best = 0.0
-        for (e in BatchA.enemiesWithin(ctx, at, reach)) {
+        for (e in BatchASupport.enemiesWithin(ctx, at, reach)) {
             val theirs = ctx.itemBonus(e.id, Stat.INITIATIVE)
             val p = if (e.id in ctx.state.turnRecord.resolved) {
                 1.0
             } else {
-                BatchA.chancePlays(ctx, e.id) { c ->
+                BatchASupport.chancePlays(ctx, e.id) { c ->
                     if (reverse) c.initiative + theirs < ours else c.initiative + theirs > ours
                 }
             }
-            best = max(best, p * BatchA.discardValue(ctx, e, orDefeat))
+            best = max(best, p * BatchASupport.discardValue(ctx, e, orDefeat))
         }
         return if (best <= 0.0) -2.0 else best - 1.4
     }

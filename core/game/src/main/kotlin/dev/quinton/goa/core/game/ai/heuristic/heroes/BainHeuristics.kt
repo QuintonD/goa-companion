@@ -46,9 +46,9 @@ object BainHeuristics : HeroHeuristics {
     override fun evalTerms(state: GameState, team: Team, heroId: String): Double {
         if (heroId != this.heroId) return 0.0
         val bainTeam = state.hero(heroId)?.team ?: return 0.0
-        val holder = BatchA.markerHolder(state, BainHero.BOUNTY)?.let { state.hero(it) } ?: return 0.0
+        val holder = BatchASupport.markerHolder(state, BainHero.BOUNTY)?.let { state.hero(it) } ?: return 0.0
         val v = if (holder.team != bainTeam) 4.0 else -4.0
-        return BatchA.sign(state, team, heroId) * v
+        return BatchASupport.sign(state, team, heroId) * v
     }
 
     private fun play(ctx: HContext, choice: Choice): Double {
@@ -71,22 +71,22 @@ object BainHeuristics : HeroHeuristics {
      * worth most when an ally can reach that hero this round. Not when an enemy already wears it.
      */
     private fun gold(ctx: HContext, at: Hex): Double {
-        if (!BatchA.besideEnemyUnit(ctx, at)) return 0.0
-        val holder = BatchA.markerHolder(ctx.state, BainHero.BOUNTY)?.let { ctx.hero(it) }
+        if (!BatchASupport.besideEnemyUnit(ctx, at)) return 0.0
+        val holder = BatchASupport.markerHolder(ctx.state, BainHero.BOUNTY)?.let { ctx.hero(it) }
         if (holder != null && holder.team != ctx.team) return 0.0
         val best = markTargets(ctx, at).maxOfOrNull { markValue(ctx, it) } ?: return 0.0
         return if (ctx.turn >= 4) best * 0.4 else best
     }
 
     private fun markTargets(ctx: HContext, at: Hex): List<HeroState> =
-        BatchA.enemiesWithin(ctx, at, 4).filter { e -> e.markers.none { it.kind == BainHero.BOUNTY } }
+        BatchASupport.enemiesWithin(ctx, at, 4).filter { e -> e.markers.none { it.kind == BainHero.BOUNTY } }
 
     /** H2: the hero an ally can still reach, and the ultimate's discard on top. */
     private fun markValue(ctx: HContext, e: HeroState): Double {
         val pos = e.at ?: return 0.0
         var v = 3.0
         if (ctx.allies().any { a -> a.at?.let { ctx.distance(it, pos) <= 2 } == true }) v += 3.0
-        if (BatchA.ultimateUnlocked(ctx.state, heroId)) v += BatchA.discardValue(ctx, e, orDefeat = false)
+        if (BatchASupport.ultimateUnlocked(ctx.state, heroId)) v += BatchASupport.discardValue(ctx, e, orDefeat = false)
         return v
     }
 
@@ -99,12 +99,12 @@ object BainHeuristics : HeroHeuristics {
         var minion = false
         for (e in ctx.enemies()) {
             val pos = e.at ?: continue
-            if (ctx.distance(at, pos) in 2..4 && BatchA.clearOfObstacles(ctx, at, pos, heroId)) hero = true
+            if (ctx.distance(at, pos) in 2..4 && BatchASupport.clearOfObstacles(ctx, at, pos, heroId)) hero = true
         }
         for (m in ctx.state.minions) {
             val pos = m.at ?: continue
             if (m.team == ctx.team) continue
-            if (ctx.distance(at, pos) in 2..4 && BatchA.clearOfObstacles(ctx, at, pos, heroId)) minion = true
+            if (ctx.distance(at, pos) in 2..4 && BatchASupport.clearOfObstacles(ctx, at, pos, heroId)) minion = true
         }
         val allyClose = ctx.allies().any { a -> a.at?.let { ctx.distance(it, at) <= 2 } == true }
         return when {
@@ -127,17 +127,17 @@ object BainHeuristics : HeroHeuristics {
         for (m in ctx.state.minions) {
             val pos = m.at ?: continue
             if (m.team == ctx.team || ctx.heavyImmune(m.id)) continue
-            if (ctx.distance(at, pos) in 1..reach && BatchA.clearOfUnits(ctx, at, pos)) {
+            if (ctx.distance(at, pos) in 1..reach && BatchASupport.clearOfUnits(ctx, at, pos)) {
                 best = max(best, ctx.minionWorth(m.id))
             }
         }
         for (e in ctx.enemies()) {
             val pos = e.at ?: continue
-            if (ctx.distance(at, pos) in 1..reach && BatchA.clearOfUnits(ctx, at, pos)) {
-                best = max(best, BatchA.heroHit(ctx, me.id, e.id, total, true))
+            if (ctx.distance(at, pos) in 1..reach && BatchASupport.clearOfUnits(ctx, at, pos)) {
+                best = max(best, BatchASupport.heroHit(ctx, me.id, e.id, total, true))
             }
         }
-        return BatchA.correction(ctx, me.id, at, card, best)
+        return BatchASupport.correction(ctx, me.id, at, card, best)
     }
 
     /** H8: Hand Crossbow / Hunter-Seeker hit the marked hero in range, or an adjacent unit (both on 3b). */
@@ -145,12 +145,12 @@ object BainHeuristics : HeroHeuristics {
         val card = ctx.card(cardId)
         val total = card.attack + ctx.itemBonus(me.id, Stat.ATTACK)
         val reach = ctx.attackReach(me.id, card)
-        val adjacent = BatchA.bestAdjacent(ctx, me.id, at, total)
+        val adjacent = BatchASupport.bestAdjacent(ctx, me.id, at, total)
         val marked = ctx.enemies().firstOrNull { e -> e.markers.any { it.kind == BainHero.BOUNTY } }
         val bounty = marked?.at?.takeIf { ctx.distance(at, it) in 1..reach }
-            ?.let { BatchA.heroHit(ctx, me.id, marked.id, total, true) } ?: 0.0
+            ?.let { BatchASupport.heroHit(ctx, me.id, marked.id, total, true) } ?: 0.0
         val accurate = if (cardId == "bain-red-3b") adjacent + bounty else max(adjacent, bounty)
-        return BatchA.correction(ctx, me.id, at, card, accurate)
+        return BatchASupport.correction(ctx, me.id, at, card, accurate)
     }
 
     /**
@@ -158,8 +158,8 @@ object BainHeuristics : HeroHeuristics {
      * or more cards in radius can be asked; with none it fizzles.
      */
     private fun chance(ctx: HContext, at: Hex, cardId: String): Double {
-        val radius = BatchA.radiusOf(ctx, heroId, ctx.card(cardId).radius)
-        val victims = BatchA.enemiesWithin(ctx, at, radius).filter { it.hand.size >= 2 }
+        val radius = BatchASupport.radiusOf(ctx, heroId, ctx.card(cardId).radius)
+        val victims = BatchASupport.enemiesWithin(ctx, at, radius).filter { it.hand.size >= 2 }
         if (victims.isEmpty()) return -4.0
         val coins = if (cardId == "bain-blue-1") 1.0 else 2.0
         val best = victims.maxOf { v ->
@@ -172,7 +172,7 @@ object BainHeuristics : HeroHeuristics {
 
     /** H4: the green block is the card that saves him while someone else wears the marker. */
     private fun greenBlock(ctx: HContext, at: Hex): Double {
-        val holder = BatchA.markerHolder(ctx.state, BainHero.BOUNTY) ?: return 0.0
+        val holder = BatchASupport.markerHolder(ctx.state, BainHero.BOUNTY) ?: return 0.0
         if (holder == heroId) return 0.0
         return if (ctx.enemiesWhoCanAttack(at, ctx.team, thisTurnOnly = true).isNotEmpty()) -3.0 else -1.0
     }
@@ -203,7 +203,7 @@ object BainHeuristics : HeroHeuristics {
         val colour = CardColor.entries.firstOrNull { it.name.equals(choice.label, ignoreCase = true) } ?: return 0.0
         val at = ctx.own()?.at ?: return 0.0
         var count = 0.0
-        for (e in BatchA.enemiesWithin(ctx, at, 4)) {
+        for (e in BatchASupport.enemiesWithin(ctx, at, 4)) {
             if (e.hand.size < 2) continue
             ctx.hand(e.id)?.let { hand -> count += hand.count { it.color == colour } }
         }

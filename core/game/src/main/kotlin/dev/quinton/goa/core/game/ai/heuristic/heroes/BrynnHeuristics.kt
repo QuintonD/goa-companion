@@ -49,8 +49,8 @@ object BrynnHeuristics : HeroHeuristics {
         val crowd = HexGrid.neighbors(target).count { n ->
             n != vacated && (ctx.game.isObstacle(n) || ctx.game.isObstacle(n, heroId))
         }
-        if (crowd < 3 && !BatchA.ultimateUnlocked(ctx.state, heroId)) return 0.0
-        return 2.0 * BatchA.chancePlays(ctx, heroId) { it.id in MELEE }
+        if (crowd < 3 && !BatchASupport.ultimateUnlocked(ctx.state, heroId)) return 0.0
+        return 2.0 * BatchASupport.chancePlays(ctx, heroId) { it.id in MELEE }
     }
 
     private fun play(ctx: HContext, choice: Choice): Double {
@@ -70,12 +70,12 @@ object BrynnHeuristics : HeroHeuristics {
     private fun melee(ctx: HContext, me: HeroState, at: Hex, cardId: String): Double {
         val card = ctx.card(cardId)
         val total = card.attack + ctx.itemBonus(me.id, Stat.ATTACK)
-        var best = BatchA.bestMinionOn(ctx, HexGrid.neighbors(at).toSet())
-        for (e in BatchA.enemiesWithin(ctx, at, 1)) {
+        var best = BatchASupport.bestMinionOn(ctx, HexGrid.neighbors(at).toSet())
+        for (e in BatchASupport.enemiesWithin(ctx, at, 1)) {
             val bonus = if (bound(ctx, e)) 2 else 0
-            best = max(best, BatchA.heroHit(ctx, me.id, e.id, total + bonus, false))
+            best = max(best, BatchASupport.heroHit(ctx, me.id, e.id, total + bonus, false))
         }
-        return BatchA.correction(ctx, me.id, at, card, best)
+        return BatchASupport.correction(ctx, me.id, at, card, best)
     }
 
     /**
@@ -85,7 +85,7 @@ object BrynnHeuristics : HeroHeuristics {
     private fun gold(ctx: HContext, me: HeroState, at: Hex, cardId: String): Double {
         val card = ctx.card(cardId)
         val v = goldBullets(ctx, me, at, cardId)
-        return BatchA.correction(ctx, me.id, at, card, max(v.first, v.second))
+        return BatchASupport.correction(ctx, me.id, at, card, max(v.first, v.second))
     }
 
     /** The two bullets of Familiar Ground: (adjacent unit, bound hero in range). */
@@ -93,10 +93,10 @@ object BrynnHeuristics : HeroHeuristics {
         val card = ctx.card(cardId)
         val total = card.attack + ctx.itemBonus(me.id, Stat.ATTACK)
         val reach = ctx.attackReach(me.id, card)
-        val adjacent = BatchA.bestAdjacent(ctx, me.id, at, total, heroesOnly = cardId == "brynn-handicap")
+        val adjacent = BatchASupport.bestAdjacent(ctx, me.id, at, total, heroesOnly = cardId == "brynn-handicap")
         var range = 0.0
-        for (e in BatchA.enemiesWithin(ctx, at, reach)) {
-            if (bound(ctx, e)) range = max(range, BatchA.heroHit(ctx, me.id, e.id, total, true))
+        for (e in BatchASupport.enemiesWithin(ctx, at, reach)) {
+            if (bound(ctx, e)) range = max(range, BatchASupport.heroHit(ctx, me.id, e.id, total, true))
         }
         return adjacent to range
     }
@@ -110,11 +110,11 @@ object BrynnHeuristics : HeroHeuristics {
 
     private fun trapBullets(ctx: HContext, at: Hex, cardId: String): Pair<Double, Double> {
         val orDefeat = cardId == "brynn-green-3a"
-        val radius = BatchA.radiusOf(ctx, heroId, ctx.card(cardId).radius)
+        val radius = BatchASupport.radiusOf(ctx, heroId, ctx.card(cardId).radius)
         var adjacent = 0.0
         var range = 0.0
-        for (e in BatchA.enemiesWithin(ctx, at, radius)) {
-            val v = BatchA.discardValue(ctx, e, orDefeat)
+        for (e in BatchASupport.enemiesWithin(ctx, at, radius)) {
+            val v = BatchASupport.discardValue(ctx, e, orDefeat)
             if (ctx.distance(at, e.at!!) == 1) adjacent = max(adjacent, v)
             if (bound(ctx, e)) range = max(range, v)
         }
@@ -150,7 +150,7 @@ object BrynnHeuristics : HeroHeuristics {
 
     /** The engine's own test: 3 or more obstacles around, Brynn's included; Over the Top makes every enemy bound. */
     private fun bound(ctx: HContext, e: HeroState): Boolean {
-        if (BatchA.ultimateUnlocked(ctx.state, heroId)) return true
+        if (BatchASupport.ultimateUnlocked(ctx.state, heroId)) return true
         return with(BrynnHero) { ctx.game.obstaclesAround(e.id, heroId) } >= 3
     }
 }

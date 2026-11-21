@@ -50,14 +50,14 @@ object ArienHeuristics : HeroHeuristics {
         }
         var v = 0.0
         // H2 (eval): Spell Break in force blanks the non-gold skills of whoever has still to act inside it.
-        if (BatchA.effectLive(state, heroId, SILVER)) {
+        if (BatchASupport.effectLive(state, heroId, SILVER)) {
             v += unresolved.count { e -> e.at?.let { HexGrid.distance(at, it) <= 3 } == true } * 1.5
         }
         // H6 (eval): Slippery Ground / Deluge cap the movement of an adjacent enemy who has still to act.
-        if (BatchA.effectLive(state, heroId, SLIPPERY)) {
+        if (BatchASupport.effectLive(state, heroId, SLIPPERY)) {
             v += unresolved.count { e -> e.at?.let { HexGrid.distance(at, it) == 1 } == true } * 1.5
         }
-        return BatchA.sign(state, team, heroId) * v
+        return BatchASupport.sign(state, team, heroId) * v
     }
 
     /** H1 (threat): the hex behind a unit he can hit is a discard his printed reach does not show. */
@@ -65,11 +65,11 @@ object ArienHeuristics : HeroHeuristics {
         if (enemyHeroId != heroId) return 0.0
         val from = ctx.hero(heroId)?.at ?: return 0.0
         if (ctx.distance(from, target) < 2) return 0.0
-        val known = BatchA.played(ctx, heroId)
+        val known = BatchASupport.played(ctx, heroId)
         val chance = if (known != null) {
             if (known.id in CURRENT) 1.0 else 0.0
         } else {
-            BatchA.chancePlays(ctx, heroId) { it.id in CURRENT }
+            BatchASupport.chancePlays(ctx, heroId) { it.id in CURRENT }
         }
         if (chance <= 0.0) return 0.0
         val n = ctx.possibleCards(heroId).filter { it.card.id in CURRENT }.maxOfOrNull { BEHIND.getValue(it.card.id) }
@@ -108,12 +108,12 @@ object ArienHeuristics : HeroHeuristics {
             val unit = targetValue(ctx, me.id, hex, total) ?: continue
             best = max(best, unit + lineValue(ctx, at, hex, n, stayFactor = true))
         }
-        return BatchA.correction(ctx, me.id, at, card, best)
+        return BatchASupport.correction(ctx, me.id, at, card, best)
     }
 
     /** What attacking the enemy unit on [hex] is worth, or null when no enemy unit stands there. */
     private fun targetValue(ctx: HContext, me: String, hex: Hex, total: Int): Double? {
-        ctx.enemies().firstOrNull { it.at == hex }?.let { return BatchA.heroHit(ctx, me, it.id, total, false) }
+        ctx.enemies().firstOrNull { it.at == hex }?.let { return BatchASupport.heroHit(ctx, me, it.id, total, false) }
         val m = ctx.state.minions.firstOrNull { it.at == hex && it.team != ctx.team } ?: return null
         return if (ctx.heavyImmune(m.id)) null else ctx.minionWorth(m.id)
     }
@@ -124,7 +124,7 @@ object ArienHeuristics : HeroHeuristics {
         for (e in ctx.enemies()) {
             val pos = e.at ?: continue
             if (!behind(at, target, pos, n)) continue
-            val v = BatchA.discardValue(ctx, e, orDefeat = true)
+            val v = BatchASupport.discardValue(ctx, e, orDefeat = true)
             val stays = if (!stayFactor || e.hand.isEmpty() || e.id in ctx.state.turnRecord.resolved) 1.0 else 0.5
             best = max(best, v * stays)
         }
@@ -136,10 +136,10 @@ object ArienHeuristics : HeroHeuristics {
      * this turn. Initiative 13 is not a reason; holding it is the default.
      */
     private fun silver(ctx: HContext, at: Hex): Double {
-        val radius = BatchA.radiusOf(ctx, heroId, 3)
-        val near = BatchA.enemiesWithin(ctx, at, radius)
+        val radius = BatchASupport.radiusOf(ctx, heroId, 3)
+        val near = BatchASupport.enemiesWithin(ctx, at, radius)
         if (near.isEmpty()) return -6.0
-        val p = near.maxOf { e -> BatchA.chancePlays(ctx, e.id) { BatchA.nonGoldSkill(it) } }
+        val p = near.maxOf { e -> BatchASupport.chancePlays(ctx, e.id) { BatchASupport.nonGoldSkill(it) } }
         return 12.0 * p - 4.0
     }
 
@@ -151,10 +151,10 @@ object ArienHeuristics : HeroHeuristics {
 
     /** H6: the cap catches an enemy in it who has still to move this turn. */
     private fun slippery(ctx: HContext, at: Hex, cardId: String): Double {
-        val radius = if (cardId == "arien-blue-3b") BatchA.radiusOf(ctx, heroId, 1) else 1
+        val radius = if (cardId == "arien-blue-3b") BatchASupport.radiusOf(ctx, heroId, 1) else 1
         var v = 0.0
-        for (e in BatchA.enemiesWithin(ctx, at, radius)) {
-            val p = BatchA.chancePlays(ctx, e.id) { it.hasMovement && it.movement >= 2 && !it.attackCard }
+        for (e in BatchASupport.enemiesWithin(ctx, at, radius)) {
+            val p = BatchASupport.chancePlays(ctx, e.id) { it.hasMovement && it.movement >= 2 && !it.attackCard }
             v += 4.0 * p
         }
         return v
@@ -169,7 +169,7 @@ object ArienHeuristics : HeroHeuristics {
         val at = ctx.own()?.at ?: return 0.0
         if ("behind the target" in d.prompt) {
             val e = ctx.hero(choice.unitId) ?: return 0.0
-            return 2.0 + BatchA.discardValue(ctx, e, orDefeat = true)
+            return 2.0 + BatchASupport.discardValue(ctx, e, orDefeat = true)
         }
         val pos = ctx.hero(choice.unitId)?.at ?: ctx.state.minion(choice.unitId)?.at ?: return 0.0
         if (ctx.distance(at, pos) != 1) return 0.0
@@ -227,7 +227,7 @@ object ArienHeuristics : HeroHeuristics {
     /** [target] lies 1..[n] spaces straight on from [from] through [through]. */
     private fun behind(from: Hex, through: Hex, target: Hex, n: Int): Boolean {
         val dir = HexGrid.straightLineDirection(from, through) ?: return false
-        for (k in 1..n) if (BatchA.step(through, dir, k) == target) return true
+        for (k in 1..n) if (BatchASupport.step(through, dir, k) == target) return true
         return false
     }
 

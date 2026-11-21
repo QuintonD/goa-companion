@@ -45,14 +45,14 @@ object GarrusHeuristics : HeroHeuristics {
     override fun evalTerms(state: GameState, team: Team, heroId: String): Double {
         if (heroId != this.heroId) return 0.0
         val me = state.hero(heroId) ?: return 0.0
-        var v = min(BatchA.discardCount(state, heroId), 3) * 0.8
+        var v = min(BatchASupport.discardCount(state, heroId), 3) * 0.8
         val at = me.at
-        if (at != null && BatchA.effectLive(state, heroId, HOWL)) {
+        if (at != null && BatchASupport.effectLive(state, heroId, HOWL)) {
             v += state.heroes.count { e ->
                 e.team != me.team && e.unresolved.isNotEmpty() && e.at?.let { HexGrid.distance(at, it) <= 3 } == true
             } * 1.5
         }
-        return BatchA.sign(state, team, heroId) * v
+        return BatchASupport.sign(state, team, heroId) * v
     }
 
     /** H4 (threat): next to him, gold hits for 4 plus his discard pile, not the printed 4. */
@@ -60,9 +60,9 @@ object GarrusHeuristics : HeroHeuristics {
         if (enemyHeroId != heroId) return 0.0
         val from = ctx.hero(heroId)?.at ?: return 0.0
         if (ctx.distance(from, target) != 1) return 0.0
-        val discards = BatchA.discardCount(ctx.state, heroId)
+        val discards = BatchASupport.discardCount(ctx.state, heroId)
         if (discards < 2) return 0.0
-        return min(discards, 4) * 0.5 * BatchA.chancePlays(ctx, heroId) { it.id in GOLD }
+        return min(discards, 4) * 0.5 * BatchASupport.chancePlays(ctx, heroId) { it.id in GOLD }
     }
 
     private fun play(ctx: HContext, choice: Choice): Double {
@@ -71,14 +71,18 @@ object GarrusHeuristics : HeroHeuristics {
         val at = me.at ?: return 0.0
         return when (choice.cardId) {
             in GOLD -> gold(ctx, me, at, choice.cardId)
+
             in HUNT -> {
                 val b = hunt(ctx, me, at, choice.cardId)
-                BatchA.correction(ctx, me.id, at, ctx.card(choice.cardId), max(b.first, b.second))
+                BatchASupport.correction(ctx, me.id, at, ctx.card(choice.cardId), max(b.first, b.second))
             }
 
             "garrus-silver" -> howl(ctx, me, at)
+
             in PILUM -> pilum(ctx, at, choice.cardId)
+
             in STAND -> stand(ctx, me, at, choice.cardId)
+
             else -> 0.0
         }
     }
@@ -86,10 +90,23 @@ object GarrusHeuristics : HeroHeuristics {
     /** H4: gold's Attack is 4 plus the cards in his discard; the general book read the printed 4. */
     private fun gold(ctx: HContext, me: HeroState, at: Hex, cardId: String): Double {
         val card = ctx.card(cardId)
-        val total = card.attack + ctx.itemBonus(me.id, Stat.ATTACK) + BatchA.discardCount(ctx.state, me.id)
-        val v = BatchA.correction(ctx, me.id, at, card, BatchA.bestAdjacent(ctx, me.id, at, total, heroesOnly = cardId == "garrus-handicap"))
+        val total = card.attack + ctx.itemBonus(me.id, Stat.ATTACK) + BatchASupport.discardCount(ctx.state, me.id)
+        val v = BatchASupport.correction(
+            ctx,
+            me.id,
+            at,
+            card,
+            BatchASupport.bestAdjacent(
+                ctx,
+                me.id,
+                at,
+                total,
+                heroesOnly =
+                    cardId == "garrus-handicap",
+            ),
+        )
         // An empty pile on turn 1 makes it a plain Attack 4: hold it for the second swing.
-        return if (ctx.turn == 1 && BatchA.discardCount(ctx.state, me.id) == 0) v - 1.5 else v
+        return if (ctx.turn == 1 && BatchASupport.discardCount(ctx.state, me.id) == 0) v - 1.5 else v
     }
 
     /**
@@ -99,10 +116,13 @@ object GarrusHeuristics : HeroHeuristics {
     private fun hunt(ctx: HContext, me: HeroState, at: Hex, cardId: String): Pair<Double, Double> {
         val card = ctx.card(cardId)
         val total = card.attack + ctx.itemBonus(me.id, Stat.ATTACK)
-        val reach = if (BatchA.discardCount(ctx.state, me.id) > 0) 1 + HUNT_STEP.getValue(cardId) else 1
+        val reach = if (BatchASupport.discardCount(ctx.state, me.id) > 0) 1 + HUNT_STEP.getValue(cardId) else 1
         var hero = 0.0
-        for (e in BatchA.enemiesWithin(ctx, at, reach)) hero = max(hero, BatchA.heroHit(ctx, me.id, e.id, total, false))
-        return hero to BatchA.bestAdjacent(ctx, me.id, at, total)
+        for (e in BatchASupport.enemiesWithin(ctx, at, reach)) {
+            hero =
+                max(hero, BatchASupport.heroHit(ctx, me.id, e.id, total, false))
+        }
+        return hero to BatchASupport.bestAdjacent(ctx, me.id, at, total)
     }
 
     /**
@@ -110,12 +130,12 @@ object GarrusHeuristics : HeroHeuristics {
      * for gold and the hunt). Nobody in radius, or turn 4, it is a Defense 3 spent for nothing.
      */
     private fun howl(ctx: HContext, me: HeroState, at: Hex): Double {
-        val radius = BatchA.radiusOf(ctx, heroId, 3)
-        val near = BatchA.enemiesWithin(ctx, at, radius)
+        val radius = BatchASupport.radiusOf(ctx, heroId, 3)
+        val near = BatchASupport.enemiesWithin(ctx, at, radius)
         if (near.isEmpty()) return -3.0
         if (ctx.turn >= 4) return -2.0
         var v = if (ctx.turn <= 2) 1.5 else 0.5
-        val fuel = BatchA.discardCount(ctx.state, me.id) == 0 && me.cards.any { it.zone == Zone.RESOLVED }
+        val fuel = BatchASupport.discardCount(ctx.state, me.id) == 0 && me.cards.any { it.zone == Zone.RESOLVED }
         if (fuel && ctx.ownHand().any { it.id in GOLD || it.id in HUNT }) v += 1.0
         return v
     }
@@ -124,14 +144,17 @@ object GarrusHeuristics : HeroHeuristics {
     private fun pilum(ctx: HContext, at: Hex, cardId: String): Double {
         val orDefeat = cardId == "garrus-green-3b"
         val reach = 2 + ctx.itemBonus(heroId, Stat.RANGE)
-        val best = BatchA.enemiesWithin(ctx, at, reach).maxOfOrNull { BatchA.discardValue(ctx, it, orDefeat) }
+        val best = BatchASupport.enemiesWithin(ctx, at, reach).maxOfOrNull {
+            BatchASupport.discardValue(ctx, it, orDefeat)
+        }
         return if (best == null || best <= 0.0) -3.0 else best - 1.4
     }
 
     /** H11: Hold Ground retrieves a discard only with two enemy heroes in radius. */
     private fun stand(ctx: HContext, me: HeroState, at: Hex, cardId: String): Double {
-        val radius = BatchA.radiusOf(ctx, heroId, ctx.card(cardId).radius)
-        val ready = BatchA.enemiesWithin(ctx, at, radius).size >= 2 && BatchA.discardCount(ctx.state, me.id) > 0
+        val radius = BatchASupport.radiusOf(ctx, heroId, ctx.card(cardId).radius)
+        val ready =
+            BatchASupport.enemiesWithin(ctx, at, radius).size >= 2 && BatchASupport.discardCount(ctx.state, me.id) > 0
         return if (ready) 1.0 else -1.0
     }
 

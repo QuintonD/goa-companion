@@ -56,7 +56,7 @@ object CutterHeuristics : HeroHeuristics {
         if (!fistful) return 0.0
         val extra = me.coins - 9
         if (extra <= 0) return 0.0
-        return BatchA.sign(state, team, heroId) * extra * 2.0
+        return BatchASupport.sign(state, team, heroId) * extra * 2.0
     }
 
     private fun play(ctx: HContext, choice: Choice): Double {
@@ -87,10 +87,20 @@ object CutterHeuristics : HeroHeuristics {
     private fun plankBullets(ctx: HContext, at: Hex, cardId: String): Pair<Double, Double> {
         val max = if (cardId == "cutter-handicap") 3 else 4
         var push = 0.0
-        for (e in BatchA.enemiesWithin(ctx, at, 1)) {
-            if (zonePush(ctx, at, e.at!!, max) > 0) push = max(push, BatchA.discardValue(ctx, e, orDefeat = true))
+        for (e in BatchASupport.enemiesWithin(ctx, at, 1)) {
+            if (zonePush(ctx, at, e.at!!, max) >
+                0
+            ) {
+                push = max(push, BatchASupport.discardValue(ctx, e, orDefeat = true))
+            }
         }
-        val minion = if (cardId == "cutter-handicap") 0.0 else BatchA.bestMinionOn(ctx, HexGrid.neighbors(at).toSet())
+        val minion = if (cardId ==
+            "cutter-handicap"
+        ) {
+            0.0
+        } else {
+            BatchASupport.bestMinionOn(ctx, HexGrid.neighbors(at).toSet())
+        }
         return push to minion
     }
 
@@ -102,7 +112,7 @@ object CutterHeuristics : HeroHeuristics {
         val card = ctx.card(cardId)
         val total = card.attack + ctx.itemBonus(me.id, Stat.ATTACK)
         val (step, adjacent) = lungeBullets(ctx, me, at, cardId, total)
-        return BatchA.correction(ctx, me.id, at, card, max(step, adjacent))
+        return BatchASupport.correction(ctx, me.id, at, card, max(step, adjacent))
     }
 
     private fun lungeBullets(ctx: HContext, me: HeroState, at: Hex, cardId: String, total: Int): Pair<Double, Double> {
@@ -110,11 +120,11 @@ object CutterHeuristics : HeroHeuristics {
         var step = 0.0
         for (land in ctx.game.reach(MoveSpec(heroId, 1, n, straightLine = true)).keys) {
             val dir = HexGrid.straightLineDirection(at, land) ?: continue
-            val front = BatchA.step(land, dir, 1)
+            val front = BatchASupport.step(land, dir, 1)
             val e = ctx.enemies().firstOrNull { it.at == front } ?: continue
-            step = max(step, BatchA.heroHit(ctx, me.id, e.id, total + 2, false))
+            step = max(step, BatchASupport.heroHit(ctx, me.id, e.id, total + 2, false))
         }
-        return step to BatchA.bestAdjacent(ctx, me.id, at, total)
+        return step to BatchASupport.bestAdjacent(ctx, me.id, at, total)
     }
 
     /** H6: the dash lands beside an enemy hero, who discards. No landing, the card is Movement 2 at best. */
@@ -127,25 +137,28 @@ object CutterHeuristics : HeroHeuristics {
                 DASH_MAX.getValue(cardId),
                 straightLine = true,
                 ignoreObstacles = true,
-                endFilter = { BatchA.besideEnemyHero(ctx, it) },
+                endFilter = { BatchASupport.besideEnemyHero(ctx, it) },
             ),
         ).keys
         for (land in lands) {
-            for (e in BatchA.enemiesWithin(ctx, land, 1)) best = max(best, BatchA.discardValue(ctx, e, orDefeat = false))
+            for (e in BatchASupport.enemiesWithin(ctx, land, 1)) {
+                best =
+                    max(best, BatchASupport.discardValue(ctx, e, orDefeat = false))
+            }
         }
         return if (best < 0.0) -2.0 else best - 1.4
     }
 
     /** H8: Bombardment family: an enemy hero in radius, beside another enemy unit, not beside her, discards. */
     private fun barrage(ctx: HContext, at: Hex, cardId: String): Double {
-        val radius = BatchA.radiusOf(ctx, heroId, ctx.card(cardId).radius)
-        val values = BatchA.enemiesWithin(ctx, at, radius).filter { e ->
+        val radius = BatchASupport.radiusOf(ctx, heroId, ctx.card(cardId).radius)
+        val values = BatchASupport.enemiesWithin(ctx, at, radius).filter { e ->
             val pos = e.at!!
             ctx.distance(at, pos) > 1 && (
                 ctx.enemies().any { o -> o.id != e.id && o.at?.let { ctx.distance(it, pos) == 1 } == true } ||
                     ctx.state.minions.any { m -> m.team == e.team && m.at?.let { ctx.distance(it, pos) == 1 } == true }
                 )
-        }.map { BatchA.discardValue(ctx, it, orDefeat = false) }.sortedDescending()
+        }.map { BatchASupport.discardValue(ctx, it, orDefeat = false) }.sortedDescending()
         if (values.isEmpty()) return -3.0
         val repeat = if (cardId == "cutter-blue-3a" && values.size > 1) values[1] else 0.0
         return values[0] + repeat - 1.4
@@ -166,10 +179,12 @@ object CutterHeuristics : HeroHeuristics {
         val src = d.sourceCardId ?: return 0.0
         val bullets = when (src) {
             in PLANK -> plankBullets(ctx, at, src)
+
             in LUNGE -> {
                 val card = ctx.card(src)
                 lungeBullets(ctx, me, at, src, card.attack + ctx.itemBonus(me.id, Stat.ATTACK))
             }
+
             else -> return 0.0
         }
         return if (choice.index == 0) bullets.first else bullets.second
@@ -180,7 +195,22 @@ object CutterHeuristics : HeroHeuristics {
         if (d.sourceCardId !in PLANK || choice !is Choice.Number) return 0.0
         val at = ctx.own()?.at ?: return 0.0
         // The pushed hero is adjacent; the decision does not name it, so take the nearest border.
-        val cross = BatchA.enemiesWithin(ctx, at, 1).map { zonePush(ctx, at, it.at!!, if (d.sourceCardId == "cutter-handicap") 3 else 4) }.filter { it > 0 }.minOrNull() ?: 0
+        val cross =
+            BatchASupport.enemiesWithin(ctx, at, 1).map {
+                zonePush(
+                    ctx,
+                    at,
+                    it.at!!,
+                    if (d.sourceCardId ==
+                        "cutter-handicap"
+                    ) {
+                        3
+                    } else {
+                        4
+                    },
+                )
+            }.filter { it > 0 }.minOrNull()
+                ?: 0
         return when {
             choice.value == 0 -> -3.0
             cross > 0 && choice.value >= cross -> 6.0
@@ -192,7 +222,7 @@ object CutterHeuristics : HeroHeuristics {
     private fun confirm(ctx: HContext, d: Decision, choice: Choice): Double {
         if (d.sourceCardId != "cutter-blue-3a" || choice !is Choice.Yes) return 0.0
         val at = ctx.own()?.at ?: return 0.0
-        return if (BatchA.enemiesWithin(ctx, at, 4).any { it.hand.isNotEmpty() }) 2.0 else -1.0
+        return if (BatchASupport.enemiesWithin(ctx, at, 4).any { it.hand.isNotEmpty() }) 2.0 else -1.0
     }
 
     /**
@@ -203,7 +233,7 @@ object CutterHeuristics : HeroHeuristics {
         val dir = HexGrid.straightLineDirection(from, heroAt) ?: return 0
         val start = ctx.zoneOf(heroAt)
         for (i in 1..max) {
-            val hex = BatchA.step(heroAt, dir, i)
+            val hex = BatchASupport.step(heroAt, dir, i)
             if (!ctx.game.isEmpty(hex)) return 0
             if (ctx.zoneOf(hex) != start) return i
         }

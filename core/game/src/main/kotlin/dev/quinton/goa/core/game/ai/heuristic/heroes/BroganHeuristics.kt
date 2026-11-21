@@ -63,12 +63,12 @@ object BroganHeuristics : HeroHeuristics {
         var best = 0.0
         val directions = HashSet<Int>()
         for (land in landings(ctx, cardId)) {
-            val v = BatchA.bestAdjacent(ctx, me.id, land, total)
+            val v = BatchASupport.bestAdjacent(ctx, me.id, land, total)
             if (v > 0.5) HexGrid.straightLineDirection(at, land)?.let { directions += it }
             best = max(best, v)
         }
         val fork = if (directions.size >= 2) 1.5 else 0.0
-        return BatchA.correction(ctx, me.id, at, card, best) + fork
+        return BatchASupport.correction(ctx, me.id, at, card, best) + fork
     }
 
     private fun landings(ctx: HContext, cardId: String): Set<Hex> =
@@ -78,7 +78,7 @@ object BroganHeuristics : HeroHeuristics {
                 2,
                 CHARGE_MAX.getValue(cardId),
                 straightLine = true,
-                endFilter = { BatchA.besideEnemyUnit(ctx, it) },
+                endFilter = { BatchASupport.besideEnemyUnit(ctx, it) },
             ),
         ).keys
 
@@ -88,12 +88,15 @@ object BroganHeuristics : HeroHeuristics {
         if (d.context.subjectId != null && d.context.subjectId != heroId) return 0.0
         val card = ctx.card(d.sourceCardId!!)
         val total = card.attack + ctx.itemBonus(heroId, Stat.ATTACK)
-        return BatchA.bestAdjacent(ctx, heroId, choice.hex, total)
+        return BatchASupport.bestAdjacent(ctx, heroId, choice.hex, total)
     }
 
     /** H7: Bulwark's retrieve is the heal: a discarded red or blue back in hand. Nothing to take back, hold it. */
     private fun silver(me: HeroState): Double {
-        val back = me.cards.any { it.zone == Zone.DISCARD && (it.id.startsWith("brogan-red") || it.id.startsWith("brogan-blue")) }
+        val back = me.cards.any {
+            it.zone == Zone.DISCARD &&
+                (it.id.startsWith("brogan-red") || it.id.startsWith("brogan-blue"))
+        }
         return if (back) 2.5 else -2.5
     }
 
@@ -102,12 +105,18 @@ object BroganHeuristics : HeroHeuristics {
      * (Counterattack: or be defeated). No adjacent enemy, or none likely to attack: it fizzles.
      */
     private fun bash(ctx: HContext, at: Hex, cardId: String): Double {
-        val near = BatchA.enemiesWithin(ctx, at, 1)
+        val near = BatchASupport.enemiesWithin(ctx, at, 1)
         if (near.isEmpty()) return -3.0
         val orDefeat = cardId == "brogan-blue-3b"
         val best = near.maxOf { e ->
-            val p = if (e.id in ctx.state.turnRecord.playedAttack) 1.0 else BatchA.chancePlays(ctx, e.id) { it.attackCard }
-            p * BatchA.discardValue(ctx, e, orDefeat)
+            val p = if (e.id in
+                ctx.state.turnRecord.playedAttack
+            ) {
+                1.0
+            } else {
+                BatchASupport.chancePlays(ctx, e.id) { it.attackCard }
+            }
+            p * BatchASupport.discardValue(ctx, e, orDefeat)
         }
         return best - 1.4
     }

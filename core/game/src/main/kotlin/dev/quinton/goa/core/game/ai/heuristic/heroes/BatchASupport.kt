@@ -28,7 +28,7 @@ import kotlin.math.pow
  * a charge landing, a discard pile, a crowd). [correction] swaps the general estimate for the
  * one the card text allows, so a note does not count the same minion twice.
  */
-internal object BatchA {
+internal object BatchASupport {
     /** The hex [k] steps from [from] in direction [dir] (an index into [HexGrid.DIRECTIONS]). */
     fun step(from: Hex, dir: Int, k: Int): Hex {
         val d = HexGrid.DIRECTIONS[dir]
