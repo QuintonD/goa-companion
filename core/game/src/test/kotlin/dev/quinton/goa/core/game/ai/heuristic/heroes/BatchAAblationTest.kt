@@ -5,7 +5,9 @@ import dev.quinton.goa.core.game.AiLevel
 import dev.quinton.goa.core.game.ai.AiHarness
 import dev.quinton.goa.core.game.ai.Tournament
 import dev.quinton.goa.core.game.ai.heuristic.DefaultHeroHeuristics
+import dev.quinton.goa.core.game.ai.heuristic.HeroHeuristics
 import dev.quinton.goa.core.game.ai.heuristic.HeroPlaybooks
+import dev.quinton.goa.core.game.ai.heuristic.HeroStyle
 import dev.quinton.goa.core.game.ai.heuristic.HeuristicAi
 import dev.quinton.goa.core.model.match.Team
 import org.junit.Test
@@ -13,7 +15,7 @@ import org.junit.Test
 /**
  * Opt-in. `AI_H_ABLATION_BATCH=arien,bain,…` runs [dev.quinton.goa.core.game.ai.heuristic.HeroAblationTest]'s
  * measurement for several heroes in one build (one Gradle start on a shared machine). Same seeds, same
- * line-ups, same report line (`H_ABLATION <hero> …`).
+ * line-ups. `AI_H_ABLATION_MODE=full,rules,style` (comma list): `rules` seats the notes with the default style, `style` the style alone.
  */
 class BatchAAblationTest {
     @Test
@@ -23,12 +25,16 @@ class BatchAAblationTest {
         val strength = System.getenv("AI_H_STRENGTH")?.toIntOrNull() ?: 8
         val lineups = System.getenv("AI_H_GAMES")?.toIntOrNull() ?: 24
         val format = AiHarness.Format.parse(System.getenv("AI_FORMAT"))
-        for (hero in heroes) {
+        val modes = System.getenv("AI_H_ABLATION_MODE")?.split(',')?.map { it.trim() } ?: listOf("full")
+        for (mode in modes) for (hero in heroes) {
             val all = AiHarness.mixedLineups(lineups * 4, size = format.size)
                 .filter { hero in it.first || hero in it.second }
                 .take(lineups)
             assertThat(all).isNotEmpty()
-            val withBook = Tournament.Side("with") { seed -> HeuristicAi(strength, seed) }
+            val book = variant(HeroPlaybooks.forHero(hero), mode)
+            val withBook = Tournament.Side("with") { seed ->
+                HeuristicAi(strength, seed) { id -> if (id == hero) book else HeroPlaybooks.forHero(id) }
+            }
             val without = Tournament.Side("without") { seed ->
                 HeuristicAi(strength, seed) { id ->
                     if (id == hero) DefaultHeroHeuristics else HeroPlaybooks.forHero(id)
@@ -52,8 +58,22 @@ class BatchAAblationTest {
                 }
             }
             val (lo, hi) = score.interval
-            println("H_ABLATION $hero strength $strength: $score Wilson ${"%.1f".format(lo * 100)}-${"%.1f".format(hi * 100)}%")
+            println("H_ABLATION $mode $hero strength $strength: $score Wilson ${"%.1f".format(lo * 100)}-${"%.1f".format(hi * 100)}%")
             assertThat(score.games).isGreaterThan(0)
         }
+    }
+
+    /** `rules`: the playbook's notes with the default style; `style`: its style with no notes; else the whole book. */
+    private fun variant(book: HeroHeuristics, mode: String?): HeroHeuristics = when (mode) {
+        "rules" -> object : HeroHeuristics by book {
+            override val style: HeroStyle = HeroStyle.DEFAULT
+        }
+
+        "style" -> object : HeroHeuristics {
+            override val heroId: String = book.heroId
+            override val style: HeroStyle = book.style
+        }
+
+        else -> book
     }
 }

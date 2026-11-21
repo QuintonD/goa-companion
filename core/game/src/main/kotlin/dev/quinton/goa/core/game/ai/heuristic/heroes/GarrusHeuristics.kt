@@ -29,7 +29,8 @@ object GarrusHeuristics : HeroHeuristics {
         role = HeroRole.FIGHTER,
         idealDistance = 1,
         aggression = 0.62,
-        laneWeight = 0.42,
+        // The research proposes 0.42 (king of the hill); the ablation measured it worse than 1.0 (2026-11-21).
+        laneWeight = 1.0,
         upgradeOrder = listOf("red", "blue", "green"),
         keepDefender = true,
     )
