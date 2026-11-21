@@ -119,3 +119,14 @@ Keep `takahide-blue-2b` / `3b` only with an ally whose attack is the game (Broga
 - Designer Arty, Discord 2025-03-06 (Shameful Display), 2025-09-04 (he does not choose the starting gold), 2025-10-04 (facedown stays hidden), 2026-04-14, 2026-06-16 (cannot swap with itself; Brynn counts the ring), 2026-07-10 (swap-in acts next), 2026-10-20 (cannot end on the ring). https://www.cockeyedandcurious.com/goa2/faq
 - Wolff Designa, Wayward overview. https://gamefound.com/en/projects/wolffdesigna/guardsofatlantis2new/updates/9 — three golds, swap after use, secret swap, allies must discard. Matches.
 - No Reddit or YouTube guide found.
+
+## 8. Implementation notes
+
+`TakahideHeuristics.kt` (ADR-085). Checked against `TakahideHero.kt`:
+
+- **H1:** defending with the handicap card is the defeat (−40).
+- **H4/H5:** after Sting, Strike or Float's own swap, the engine asks "Swap this card with a gold card in your deck" (`CHOOSE_CARD`, deck golds only). The note prefers bringing Float back. Bushido's first question ("Choose your gold card") is a different prompt and has no note. The draft's "do not choose the gold he holds" never fired, because the engine offers only deck golds.
+- **H6:** Bushido scores well only when the held gold has nothing to do this round (Sting with no unit on the ring, Strike with nothing adjacent) and Float is in the deck.
+- **H15:** greens and blues act on a friendly hero in range or radius. With none in reach the card is −2.5.
+- **threatAdjust:** Sting's ring is smaller than the general disk only when Sting is the only gold left in his possible pool.
+- **Not implemented:** H7 (the swap is the ally's choice), H8–H12, H14, H16.

@@ -15,7 +15,7 @@ class TakahideHeuristicsTest {
     @Test
     fun `finishes 2v2 and 3v3 at strengths 5 and 10`() {
         for (size in listOf(2, 3)) {
-            for (strength in listOf(5, 10)) HeroBookTest.finish("takahide", size, strength)
+            for (strength in listOf(5, 10)) BatchCBook.finish("takahide", size, strength)
         }
     }
 
@@ -47,8 +47,8 @@ class TakahideHeuristicsTest {
                 blockPreview = mapOf("takahide-handicap" to true),
             ),
         )
-        val withBook = HeroBookTest.chosen(session, decision, TakahideHeuristics)
-        val general = HeroBookTest.chosen(session, decision, null)
+        val withBook = BatchCBook.chosen(session, decision, TakahideHeuristics)
+        val general = BatchCBook.chosen(session, decision, null)
         assertThat(general).isEqualTo(Choice.Card("takahide-handicap"))
         assertThat(withBook).isEqualTo(Choice.Card("takahide-gold"))
     }

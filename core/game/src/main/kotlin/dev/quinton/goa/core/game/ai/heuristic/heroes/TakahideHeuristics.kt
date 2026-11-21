@@ -8,166 +8,148 @@ import dev.quinton.goa.core.game.ai.heuristic.HeroHeuristics
 import dev.quinton.goa.core.game.ai.heuristic.HeroRole
 import dev.quinton.goa.core.game.ai.heuristic.HeroStyle
 import dev.quinton.goa.core.game.engine.GameState
+import dev.quinton.goa.core.game.engine.HeroState
 import dev.quinton.goa.core.game.engine.Zone
 import dev.quinton.goa.core.model.board.Hex
 import dev.quinton.goa.core.model.catalog.Stat
 import dev.quinton.goa.core.model.match.Team
 
 /**
- * Takahide's defender is Float (Defense 8), not a red. Shameful Display is a defeat
- * (designer, Discord 2025-03-06). A gold's primary swaps it away; walking or blocking does not.
+ * Takahide (heroes/takahide.md): a support whose three golds cycle. Float (Defense 8, Move 5) is the
+ * block; Sting shoots the exact range-3 ring; Strike is Attack 7 adjacent. His greens and blues act on a
+ * friendly hero, so he plays them only with an ally in reach (CCplusplus, BGG 3451226).
  */
 object TakahideHeuristics : HeroHeuristics {
     override val heroId: String = "takahide"
 
     override val style: HeroStyle = HeroStyle(
         role = HeroRole.SUPPORT,
-        idealDistance = 3,
+        idealDistance = 2,
         aggression = 0.45,
-        laneWeight = 0.35,
-        upgradeOrder = listOf(
-            "takahide-red-2a",
-            "takahide-red-3a",
-            "takahide-green-2a",
-            "takahide-green-3a",
-            "takahide-blue-2a",
-            "takahide-blue-3a",
-            "red",
-            "green",
-            "blue",
-        ),
+        laneWeight = 0.9,
+        upgradeOrder = listOf("red", "green", "blue"),
         keepDefender = true,
     )
+
+    private const val FLOAT = "takahide-gold"
+    private const val STING = "takahide-gold-extra-1"
+    private const val STRIKE = "takahide-gold-extra-2"
+    private const val HANDICAP = "takahide-handicap"
+
+    private val allyCards = setOf(
+        "takahide-green-1",
+        "takahide-green-2a",
+        "takahide-green-2b",
+        "takahide-green-3a",
+        "takahide-green-3b",
+        "takahide-blue-1",
+        "takahide-blue-2a",
+        "takahide-blue-2b",
+        "takahide-blue-3a",
+        "takahide-blue-3b",
+    )
+
+    private val stripBlues = setOf("takahide-blue-1", "takahide-blue-2a", "takahide-blue-3a")
 
     override fun adjust(ctx: HContext, d: Decision, choice: Choice): Double = when (d.kind) {
         DecisionKind.DEFEND -> defend(d, choice)
         DecisionKind.PLAY_CARD -> play(ctx, choice)
-        DecisionKind.CHOOSE_CARD -> swap(ctx, d, choice)
-        DecisionKind.CHOOSE_UNIT -> sting(ctx, d, choice)
-        DecisionKind.CHOOSE_SPACE -> space(ctx, choice)
+        DecisionKind.CHOOSE_CARD -> incoming(ctx, d, choice)
+        DecisionKind.CHOOSE_SPACE -> space(ctx, d, choice)
         else -> 0.0
     }
 
+    /** §6: Float faceup on the dashboard is the Defense 8 already spent. Which gold is in hand stays hidden. */
     override fun evalTerms(state: GameState, team: Team, heroId: String): Double {
         if (heroId != this.heroId) return 0.0
-        val hero = state.hero(heroId) ?: return 0.0
-        val float = hero.card(floatCard)
-        val spent = float?.zone == Zone.RESOLVED || float?.zone == Zone.DISCARD
-        // Float on the dashboard is the Defense 8 already spent. Which gold is in hand stays hidden.
-        return if (spent) BatchC.sign(state, heroId, team) * -3.0 else 0.0
+        val me = state.hero(heroId) ?: return 0.0
+        return if (BatchC.spent(me, FLOAT)) BatchC.sign(state, heroId, team) * -2.0 else 0.0
     }
 
+    /** Sting hits only the exact ring; inside it his gold threat is smaller than the general disk says. */
     override fun threatAdjust(ctx: HContext, enemyHeroId: String, target: Hex): Double {
         if (enemyHeroId != heroId) return 0.0
         val at = ctx.hero(heroId)?.at ?: return 0.0
-        val distance = ctx.distance(at, target)
-        val sting = ctx.possibleCards(heroId).any { it.card.id == stingCard }
-        // Sting is the exact ring, not the disk inside range 3.
-        return if (sting && distance in 1..2) -3.0 else 0.0
+        val ring = ctx.card(STING).range + ctx.itemBonus(heroId, Stat.RANGE)
+        val pool = ctx.possibleCards(heroId)
+        val stingOnly = pool.any { it.card.id == STING } && pool.none { it.card.id == STRIKE || it.card.id == FLOAT }
+        return if (stingOnly && ctx.distance(at, target) in 2 until ring) -1.5 else 0.0
     }
 
     private fun defend(d: Decision, choice: Choice): Double {
         val id = BatchC.cardId(choice) ?: return 0.0
-        if (id == handicapCard) {
-            // H1: choosing Shameful Display is the defeat. Decline, or spend a real card.
-            return -40.0
-        }
-        if (id != floatCard || !BatchC.meets(d, id)) return 0.0
-        val cheaper = d.options.filterIsInstance<Choice.Card>().any { card ->
-            card.cardId != id && card.cardId != handicapCard && BatchC.meets(d, card.cardId)
-        }
-        // H2: Float meets almost everything. Keep it when a cheaper card also meets.
-        return if (cheaper) -4.0 else 2.0
+        // H1: the handicap card's defense is his defeat.
+        if (id == HANDICAP) return -40.0
+        if (id != FLOAT || !BatchC.meets(d, id)) return 0.0
+        // H2: Float meets almost everything; keep it when a cheaper card also holds.
+        return if (BatchC.otherMeets(d, id, setOf(HANDICAP))) -3.0 else 1.0
     }
 
     private fun play(ctx: HContext, choice: Choice): Double {
         val id = BatchC.cardId(choice) ?: return 0.0
-        return floatMove(ctx, id) + allyCards(ctx, id) + wrongGold(ctx, id)
-    }
-
-    private fun floatMove(ctx: HContext, id: String): Double {
-        if (id != floatCard) return 0.0
-        val at = ctx.own()?.at ?: return 0.0
-        val far = ctx.distanceToBattleZone(at) >= 3
-        val deckGold = ctx.own()?.cards?.any { card ->
-            card.id != floatCard && card.id.startsWith("takahide-gold") && card.zone == Zone.DECK
-        } == true
-        // H3: primary Float swaps, then moves 5. Do that to cross the map, not to spend the block.
-        return when {
-            far && deckGold -> 4.0
-            !far -> -3.0
+        val me = ctx.own() ?: return 0.0
+        val at = me.at ?: return 0.0
+        return when (id) {
+            FLOAT -> float(ctx, me, at)
+            STING -> if (onRing(ctx, at)) 1.0 else -2.5
+            "takahide-silver" -> bushido(ctx, me, at)
+            in allyCards -> allyInReach(ctx, at, id) + enemyInReach(ctx, id)
             else -> 0.0
         }
     }
 
-    private fun allyCards(ctx: HContext, id: String): Double {
-        if (id !in allyCards) return 0.0
-        val at = ctx.own()?.at ?: return 0.0
-        val radius = if (id == "takahide-green-1" || id == "takahide-blue-1") 3 else 4
-        // H15: greens and blues do not start with no ally in range.
-        return if (BatchC.alliesWithin(ctx, at, radius).isEmpty()) -4.0 else 1.5
-    }
-
-    private fun wrongGold(ctx: HContext, id: String): Double {
-        if (id != "takahide-silver") return 0.0
-        val hero = ctx.own() ?: return 0.0
-        val holdingSting = BatchC.inHand(hero, stingCard)
-        val holdingStrike = BatchC.inHand(hero, strikeCard)
-        val deckHasFloat = hero.cards.any { it.id == floatCard && it.zone == Zone.DECK }
-        // H6: Bushido fixes a gold that is not the one this round can use.
-        return if ((holdingSting || holdingStrike) && deckHasFloat) 4.0 else -2.0
-    }
-
-    private fun swap(ctx: HContext, d: Decision, choice: Choice): Double {
-        if (d.sourceCardId != floatCard && d.sourceCardId != "takahide-silver") return 0.0
-        val id = BatchC.cardId(choice) ?: return 0.0
-        val held = ctx.own()?.hand?.any { it.id == id } == true
-        // He cannot swap a gold with itself (designer, Discord 2026-06-16).
-        if (held) return -8.0
-        // Arriving with Float next round is the block. Sting is the ring.
-        return if (id == floatCard) 5.0 else 1.0
-    }
-
-    private fun sting(ctx: HContext, d: Decision, choice: Choice): Double {
-        val src = d.sourceCardId
-        if (src != stingCard && src != strikeCard) return 0.0
-        val id = BatchC.unitId(choice) ?: return 0.0
-        val at = ctx.own()?.at ?: return 0.0
-        val pos = ctx.state.hero(id)?.at ?: ctx.state.minion(id)?.at
-        val distance = pos?.let { ctx.distance(at, it) } ?: -1
-        val ring = 3 + ctx.itemBonus(heroId, Stat.RANGE)
-        // H4 / H5: Sting is the exact ring. Strike is adjacent, then he swaps back to Float.
+    /** H3: Float moves 5 and cycles; spend it to cross the map, not as the block in the fight. */
+    private fun float(ctx: HContext, me: HeroState, at: Hex): Double {
+        val far = ctx.distanceToBattleZone(at) >= 3
+        val deckGold = me.cards.any { it.id != FLOAT && it.id.startsWith("takahide-gold") && it.zone == Zone.DECK }
         return when {
-            src == stingCard && distance == ring -> 4.0
-            src == stingCard -> -6.0
-            distance == 1 -> 3.0
-            else -> -4.0
+            far && deckGold -> 3.0
+            !far && ctx.turn < 4 -> -2.0
+            else -> 0.0
         }
     }
 
-    private fun space(ctx: HContext, choice: Choice): Double {
-        if (ctx.turn != 4) return 0.0
-        val hex = BatchC.hexOf(choice) ?: return 0.0
-        val floatInHand = ctx.own()?.let { BatchC.inHand(it, floatCard) } == true
-        val beside = ctx.enemies().any { enemy -> enemy.at?.let { ctx.distance(hex, it) == 1 } == true }
-        // H13: turn 4 he does not leave. Do not end adjacent unless Float can still block.
-        return if (beside && !floatInHand) -8.0 else 0.0
+    /** H6: Bushido fixes a gold that has nothing to do this round, when Float is in the deck. */
+    private fun bushido(ctx: HContext, me: HeroState, at: Hex): Double {
+        val floatInDeck = me.card(FLOAT)?.zone == Zone.DECK
+        val idleSting = BatchC.inHand(me, STING) && !onRing(ctx, at)
+        val idleStrike = BatchC.inHand(me, STRIKE) && BatchC.enemiesWithin(ctx, at, 1).isEmpty() &&
+            BatchC.minionsWithin(ctx, at, 1, friendly = false).none { BatchC.takeable(ctx, it) }
+        return if (floatInDeck && (idleSting || idleStrike)) 2.5 else -1.0
     }
 
-    private val floatCard = "takahide-gold"
-    private val stingCard = "takahide-gold-extra-1"
-    private val strikeCard = "takahide-gold-extra-2"
-    private val handicapCard = "takahide-handicap"
-    private val allyCards: Set<String> = setOf(
-            "takahide-green-1",
-            "takahide-green-2a",
-            "takahide-green-2b",
-            "takahide-green-3a",
-            "takahide-green-3b",
-            "takahide-blue-1",
-            "takahide-blue-2a",
-            "takahide-blue-2b",
-            "takahide-blue-3a",
-            "takahide-blue-3b",
-        )
+    /** H15: the greens and blues act on a friendly hero in range or radius; with none in reach the primary is dead. */
+    private fun allyInReach(ctx: HContext, at: Hex, id: String): Double {
+        val card = ctx.card(id)
+        val reach = maxOf(card.range, card.radius)
+        return if (BatchC.alliesWithin(ctx, at, reach).isEmpty()) -2.5 else 0.0
+    }
+
+    /** H11: the blues that strip a colour hit an enemy hero in radius only, never a minion. */
+    private fun enemyInReach(ctx: HContext, id: String): Double =
+        if (id in stripBlues) BatchC.heroOnlyDiscard(ctx, id, BatchC.radiusOf(ctx, id)) else 0.0
+
+    private fun onRing(ctx: HContext, at: Hex): Boolean {
+        val ring = ctx.card(STING).range + ctx.itemBonus(heroId, Stat.RANGE)
+        return ctx.state.minions.any { m -> BatchC.takeable(ctx, m) && ctx.distance(at, m.at!!) == ring } ||
+            ctx.enemies().any { e -> e.at?.let { ctx.distance(at, it) == ring } == true }
+    }
+
+    /** H4 / H5: after Sting or Strike (or Float's own swap), bring Float back for next round's block. */
+    private fun incoming(ctx: HContext, d: Decision, choice: Choice): Double {
+        if (!d.prompt.contains("gold card in your deck")) return 0.0
+        val id = BatchC.cardId(choice) ?: return 0.0
+        if (ctx.own()?.card(id)?.zone != Zone.DECK) return 0.0
+        return if (id == FLOAT) 2.0 else 0.0
+    }
+
+    /** H13: on turn 4, without Float, do not end his own move next to an enemy hero. */
+    private fun space(ctx: HContext, d: Decision, choice: Choice): Double {
+        if (ctx.turn != 4 || !BatchC.movesSelf(ctx, d)) return 0.0
+        val hex = BatchC.hexOf(choice) ?: return 0.0
+        val me = ctx.own() ?: return 0.0
+        if (BatchC.inHand(me, FLOAT)) return 0.0
+        val beside = ctx.enemies().count { e -> e.at?.let { ctx.distance(hex, it) == 1 } == true }
+        return -3.0 * beside
+    }
 }
