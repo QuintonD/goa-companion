@@ -163,3 +163,4 @@ When the enemy is Misa:
 - Rule 3: Focus, Discipline and Mastery are `misa-green-1`, `-2a`, `-3a` (the draft missed `-1`).
 - `threatAdjust`: none. The md's "+6 on the empty space at exact range 4" names a space nobody stands on; the sword and bow are printed reach the general threat map already reads.
 - Skipped: 4, 7, 9–12 (spaces and units the lookahead plays), 14, 15 beyond `upgradeOrder`.
+- Measured (ablation, strength 8, 96 games): §1's `idealDistance` 4 / `laneWeight` 0.55 (draft used 2 and 0.55) scored 47.9%; `idealDistance` 1 (the sword is melee) and `laneWeight` 0.85 scored 50.0%.

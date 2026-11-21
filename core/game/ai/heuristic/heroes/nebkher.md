@@ -176,3 +176,4 @@ When the enemy is Nebkher:
 - Rule 2: the copied action's `CHOOSE_ACTION` carries the copied card's id as its source, not `nebkher-gold`; the general book and lookahead score it. The draft's rule keyed on `nebkher-gold` never fired and was removed.
 - Rule 9: the colour is scored by the chance each enemy who can be in radius next turn still holds that colour after playing one card, using the public pool (`possibleCards`), plus a little for its defense icon.
 - Skipped: 3–8 beyond the card-play nudges (Illusion spaces, swaps, the Laughter bullets: the lookahead plays them), 10 (Crack line), 12–15 beyond `upgradeOrder`.
+- Measured (ablation, strength 8, 96 games): 46.9% with §1's `laneWeight` 0.45, 49.0% with 0.85.

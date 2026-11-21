@@ -15,7 +15,7 @@ import dev.quinton.goa.core.model.match.Team
 /**
  * Lookups for this batch only. Hands stay behind [HContext.hand]: null means the pool, not the sample.
  */
-internal object BatchB {
+internal object BatchBSupport {
     fun cardId(choice: Choice): String? = (choice as? Choice.Card)?.cardId
 
     fun counter(state: GameState, heroId: String, name: String): Int =
@@ -90,8 +90,20 @@ internal object BatchB {
      * Cancel the general book's strike estimate for [card] when its text has no legal target. The
      * general book reads printed reach; a card such as Hanu's red reaches far only beside an ally.
      */
-    fun deadStrike(ctx: HContext, at: Hex, card: HCard): Double =
-        -0.8 * ctx.strikeFrom(ctx.seat, at, card).coerceAtLeast(0.0)
+    fun deadStrike(ctx: HContext, at: Hex, card: HCard): Double {
+        val strike = ctx.strikeFrom(ctx.seat, at, card).coerceAtLeast(0.0)
+        // The general outlook is max(strike, move) (+0.35 for both): keep the move, drop the strike.
+        val move = if (card.hasMovement) moveOutlook(ctx, at, card) else 0.0
+        val both = if (strike > 0.5 && move > 0.3) 0.35 else 0.0
+        return -(maxOf(strike, move) - move) - both
+    }
+
+    /** The general book's movement outlook (General.moveOutlook), which a hero file cannot call. */
+    private fun moveOutlook(ctx: HContext, at: Hex, card: HCard): Double {
+        val far = ctx.distanceToBattleZone(at)
+        if (far <= 0) return 0.15
+        return minOf(far * 0.4, card.movement * 0.55)
+    }
 
     /** Enemy units (heroes and minions) by id and space. */
     fun enemyUnits(ctx: HContext): List<Pair<String, Hex>> {

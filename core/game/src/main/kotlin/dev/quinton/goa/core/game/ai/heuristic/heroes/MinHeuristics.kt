@@ -44,7 +44,7 @@ object MinHeuristics : HeroHeuristics {
         val minAt = min.at ?: return 0.0
         var value = 0.0
         // evalTerms: the smoke bomb on a straight line between an enemy hero and Min stops that shot.
-        val bomb = BatchB.tokens(state, heroId, MinHero.SMOKE).firstOrNull()?.at
+        val bomb = BatchBSupport.tokens(state, heroId, MinHero.SMOKE).firstOrNull()?.at
         if (bomb != null) {
             val shielded = state.heroes.any { e ->
                 e.team != min.team && e.at?.let { strictlyBetween(bomb, it, minAt) } == true
@@ -52,21 +52,25 @@ object MinHeuristics : HeroHeuristics {
             if (shielded) value += 2.5
         }
         // evalTerms: a grenade with enemy heroes beside it discards or defeats them at end of turn.
-        for (g in BatchB.tokens(state, heroId, MinHero.GRENADE)) {
+        for (g in BatchBSupport.tokens(state, heroId, MinHero.GRENADE)) {
             val at = g.at ?: continue
-            value += 2.0 * state.heroes.count { e -> e.team != min.team && e.at?.let { HexGrid.distance(it, at) == 1 } == true }
+            value +=
+                2.0 *
+                state.heroes.count { e ->
+                    e.team != min.team && e.at?.let { HexGrid.distance(it, at) == 1 } == true
+                }
         }
-        return BatchB.sign(state, team, heroId) * value
+        return BatchBSupport.sign(state, team, heroId) * value
     }
 
     override fun threatAdjust(ctx: HContext, enemyHeroId: String, target: Hex): Double {
         if (enemyHeroId != heroId) return 0.0
         // threatAdjust: the space beside his grenade is a discard (or a defeat) at end of turn.
-        return if (BatchB.besideToken(ctx.state, target, MinHero.GRENADE)) 3.0 else 0.0
+        return if (BatchBSupport.besideToken(ctx.state, target, MinHero.GRENADE)) 3.0 else 0.0
     }
 
     private fun play(ctx: HContext, choice: Choice): Double {
-        val id = BatchB.cardId(choice) ?: return 0.0
+        val id = BatchBSupport.cardId(choice) ?: return 0.0
         val at = ctx.own()?.at ?: return 0.0
         return when {
             id == "min-silver" -> smoke(ctx, at)
@@ -79,8 +83,8 @@ object MinHeuristics : HeroHeuristics {
 
     // H1: put the bomb out when it is not already on a line between Min and an enemy hero.
     private fun smoke(ctx: HContext, at: Hex): Double {
-        if (!BatchB.enemyHeroWithin(ctx, at, SMOKE_WATCH)) return 0.0
-        val bomb = BatchB.tokens(ctx.state, heroId, MinHero.SMOKE).firstOrNull()?.at
+        if (!BatchBSupport.enemyHeroWithin(ctx, at, SMOKE_WATCH)) return 0.0
+        val bomb = BatchBSupport.tokens(ctx.state, heroId, MinHero.SMOKE).firstOrNull()?.at
             ?: return 2.5
         val covering = ctx.enemies().any { enemy -> enemy.at?.let { strictlyBetween(bomb, it, at) } == true }
         return if (covering) -2.0 else 1.0
@@ -89,7 +93,7 @@ object MinHeuristics : HeroHeuristics {
     // H6: gold is attack 2 until a red is faceup; then it carries that red's push or swap.
     private fun gold(ctx: HContext, at: Hex): Double {
         if (!redFaceup(ctx)) return -1.5
-        val target = BatchB.enemyUnits(ctx).any { (_, pos) -> ctx.distance(at, pos) == 1 }
+        val target = BatchBSupport.enemyUnits(ctx).any { (_, pos) -> ctx.distance(at, pos) == 1 }
         return if (target) 3.0 else 0.0
     }
 
@@ -124,7 +128,7 @@ object MinHeuristics : HeroHeuristics {
 
     // H7: the green blocks only by swapping with the bomb in range. The engine's preview says whether it can.
     private fun defend(d: Decision, choice: Choice): Double {
-        val id = BatchB.cardId(choice) ?: return 0.0
+        val id = BatchBSupport.cardId(choice) ?: return 0.0
         if (id !in POOF) return 0.0
         return if (d.context.blockPreview[id] == false) -20.0 else 0.0
     }

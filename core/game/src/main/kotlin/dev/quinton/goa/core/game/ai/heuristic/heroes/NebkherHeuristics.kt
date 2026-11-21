@@ -27,7 +27,7 @@ object NebkherHeuristics : HeroHeuristics {
         role = HeroRole.SETUP,
         idealDistance = 4,
         aggression = 0.35,
-        laneWeight = 0.45,
+        laneWeight = 0.85,
         upgradeOrder = listOf("nebkher-green-2a", "nebkher-red-2b", "nebkher-blue-2b", "green", "red", "blue"),
         keepDefender = true,
     )
@@ -40,8 +40,8 @@ object NebkherHeuristics : HeroHeuristics {
 
     override fun evalTerms(state: GameState, team: Team, heroId: String): Double {
         if (heroId != this.heroId) return 0.0
-        val sign = BatchB.sign(state, team, heroId)
-        val illusions = BatchB.tokens(state, heroId, NebkherHero.ILLUSION)
+        val sign = BatchBSupport.sign(state, team, heroId)
+        val illusions = BatchBSupport.tokens(state, heroId, NebkherHero.ILLUSION)
         val hero = state.hero(heroId)?.at
         var value = 0.0
         if (hero != null) {
@@ -62,20 +62,22 @@ object NebkherHeuristics : HeroHeuristics {
         val from = ctx.hero(heroId)?.at ?: return 0.0
         var threat = 0.0
         if (ctx.distance(from, target) <= 5 && ctx.turn >= 2 &&
-            BatchB.hold(ctx, heroId) { it.id == "nebkher-gold" } > 0.2
+            BatchBSupport.hold(ctx, heroId) { it.id == "nebkher-gold" } > 0.2
         ) {
             // threatAdjust: copy range, not an attack of 5. A small extra so the halo is not ignored.
             threat += 1.0
         }
-        if (BatchB.besideToken(ctx.state, target, NebkherHero.ILLUSION) && ctx.distance(from, target) <= RED_A_RANGE) {
+        if (BatchBSupport.besideToken(ctx.state, target, NebkherHero.ILLUSION) &&
+            ctx.distance(from, target) <= RED_A_RANGE
+        ) {
             // threatAdjust: red A walks an Illusion next to a hero in range 5 and hits them.
-            threat += 2.0 * BatchB.hold(ctx, heroId) { it.id == "nebkher-red-2a" || it.id == "nebkher-red-3a" }
+            threat += 2.0 * BatchBSupport.hold(ctx, heroId) { it.id == "nebkher-red-2a" || it.id == "nebkher-red-3a" }
         }
         return threat
     }
 
     private fun play(ctx: HContext, choice: Choice): Double {
-        val id = BatchB.cardId(choice) ?: return 0.0
+        val id = BatchBSupport.cardId(choice) ?: return 0.0
         // H9: the named colour is discarded next turn, which never crosses into the next round.
         val lateName = if (id in NAMING && ctx.turn >= LAST_TURN) -2.0 else 0.0
         return gold(ctx, id) + green(ctx, id) + laugh(ctx, id) + lateName
@@ -91,7 +93,7 @@ object NebkherHeuristics : HeroHeuristics {
             val pos = enemy.at ?: return@maxOfOrNull 0.0
             if (ctx.distance(at, pos) > range) 0.0 else copyWorth(ctx, enemy.id)
         } ?: 0.0
-        val minion = BatchB.bestMinion(ctx, at, 1) * 0.7
+        val minion = BatchBSupport.bestMinion(ctx, at, 1) * 0.7
         val best = maxOf(copy, minion)
         return if (best > 0.0) best else -2.0
     }
@@ -129,7 +131,7 @@ object NebkherHeuristics : HeroHeuristics {
             val n = ctx.handCount(enemy.id)
             if (n <= 1) continue
             val keep = (n - 1).toDouble() / n
-            value += keep * BatchB.hold(ctx, enemy.id) { it.color == named } *
+            value += keep * BatchBSupport.hold(ctx, enemy.id) { it.color == named } *
                 (2.5 + 0.2 * (ctx.possibleCards(enemy.id).firstOrNull { it.card.color == named }?.card?.defense ?: 0))
         }
         return value
@@ -137,7 +139,7 @@ object NebkherHeuristics : HeroHeuristics {
 
     /** What copying [enemyId]'s faceup previous-slot card is worth from here (attacks and discards). */
     private fun copyWorth(ctx: HContext, enemyId: String): Double {
-        val card = BatchB.previous(ctx, enemyId) ?: return 0.0
+        val card = BatchBSupport.previous(ctx, enemyId) ?: return 0.0
         val at = ctx.own()?.at ?: return 0.0
         return when {
             card.attackCard || card.forcesDiscard -> ctx.strikeFrom(ctx.seat, at, card).coerceIn(0.0, 10.0) * 0.6

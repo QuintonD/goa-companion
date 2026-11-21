@@ -4,8 +4,8 @@ import com.google.common.truth.Truth.assertThat
 import com.google.common.truth.Truth.assertWithMessage
 import dev.quinton.goa.core.game.Choice
 import dev.quinton.goa.core.model.board.Hex
-import dev.quinton.goa.core.model.match.Team
 import dev.quinton.goa.core.model.board.MinionType
+import dev.quinton.goa.core.model.match.Team
 import org.junit.Test
 
 class NebkherHeuristicsTest {

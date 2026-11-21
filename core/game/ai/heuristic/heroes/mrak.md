@@ -166,3 +166,4 @@ When the enemy is Mrak:
 - Rule 3 at `CHOOSE_ACTION`: the skill when it defeats; the attack only as a small nudge when an adjacent hero has cards (the lookahead weighs both).
 - Weights were cut from the draft (−16 / −10 / +8) to small corrections: they had made his reds and silver nearly unplayable.
 - Skipped: 1, 4, 9–11 (movement, pushes and swaps the lookahead plays), 12, 13 beyond `upgradeOrder`.
+- Measured (ablation, strength 8, 96 games): 45.8% with §1's `laneWeight` 0.40; 46.9% with 0.80, the adjacent-attack fix, and again 46.9% with `aggression` 0.50 instead of 0.35 (kept: closer to the default, no measurable cost).

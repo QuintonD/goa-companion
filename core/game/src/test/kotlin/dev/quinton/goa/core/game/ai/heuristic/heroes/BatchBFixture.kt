@@ -52,7 +52,9 @@ internal object BatchBFixture {
             playbooks = { id -> if (id == book.heroId) book else HeroPlaybooks.forHero(id) },
         )
         return decision.options.joinToString("; ") { o ->
-            "$o general=${"%.2f".format(General.score(ctx, decision, o))} adjust=${"%.2f".format(book.adjust(ctx, decision, o))}"
+            "$o general=${"%.2f".format(
+                General.score(ctx, decision, o),
+            )} adjust=${"%.2f".format(book.adjust(ctx, decision, o))}"
         }
     }
 

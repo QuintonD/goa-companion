@@ -176,3 +176,4 @@ When the enemy is Ignatia:
 - Gold's faces: blue is an adjacent minion, orange a hero in range. Primary red: blue is a unit not in a straight line, orange a unit in a straight line. Alt red: blue adjacent, orange exactly at maximum range. Blue A: blue is a hero beside a token or any minion (discard), orange removes an enemy minion beside an enemy hero.
 - `evalTerms` counts only magma beside enemy heroes; `HEval` already prices each token.
 - Skipped: rules 5, 6, 9–11, 14 (target and space choices the lookahead plays), 16 beyond `upgradeOrder`.
+- Measured (ablation, strength 8): 61.5% of 96 with the first dead-face correction; 55.7% of 192 (Wilson 48.7–62.6%) after it kept the card's movement value.

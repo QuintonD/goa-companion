@@ -42,14 +42,14 @@ object IgnatiaHeuristics : HeroHeuristics {
         if (heroId != this.heroId) return 0.0
         val me = state.hero(heroId) ?: return 0.0
         // evalTerms: magma beside an enemy hero turns her blue discard on. HEval already counts the token itself.
-        val magma = BatchB.tokens(state, heroId, IgnatiaHero.MAGMA)
+        val magma = BatchBSupport.tokens(state, heroId, IgnatiaHero.MAGMA)
         val primed = state.heroes.count { e ->
             e.team != me.team && e.at?.let { at -> magma.any { HexGrid.distance(it.at!!, at) == 1 } } == true
         }
         var value = primed * 1.5
         // evalTerms: Equilibrium in force (public: silver resolved faceup this round).
-        if (BatchB.effect(state, heroId, EQUILIBRIUM)) value += 3.0
-        return BatchB.sign(state, team, heroId) * value
+        if (BatchBSupport.effect(state, heroId, EQUILIBRIUM)) value += 3.0
+        return BatchBSupport.sign(state, team, heroId) * value
     }
 
     override fun threatAdjust(ctx: HContext, enemyHeroId: String, target: Hex): Double {
@@ -62,27 +62,29 @@ object IgnatiaHeuristics : HeroHeuristics {
             ctx.state.minions.any { it.at == hex } || ctx.state.pieces.any { it.token && it.at == hex }
         }
         if (!beside) return 0.0
-        return 2.0 * BatchB.hold(ctx, heroId) { it.id in BLUE_DISCARD }
+        return 2.0 * BatchBSupport.hold(ctx, heroId) { it.id in BLUE_DISCARD }
     }
 
     private fun play(ctx: HContext, choice: Choice): Double {
-        val id = BatchB.cardId(choice) ?: return 0.0
+        val id = BatchBSupport.cardId(choice) ?: return 0.0
         val at = ctx.own()?.at ?: return 0.0
         if (id == EQUILIBRIUM) return equilibrium(ctx, at)
         val card = ctx.card(id)
         val faces = faces(ctx, at, card) ?: return 0.0
         val (blue, orange) = faces
         // H1: with Equilibrium she picks the live face; without it, the coin does.
-        if (BatchB.effect(ctx.state, heroId, EQUILIBRIUM)) return if (blue || orange) 1.0 else 0.0
+        if (BatchBSupport.effect(ctx.state, heroId, EQUILIBRIUM)) return if (blue || orange) 1.0 else 0.0
         val coinBlue = ctx.state.tieBreaker == Team.BLUE
         val live = if (coinBlue) blue else orange
         val other = if (coinBlue) orange else blue
         return when {
             // H1: both faces have a target, so a flipped coin still plays.
             live && other -> 1.5
+
             live -> 0.0
+
             // H1/H12: the face the coin shows has no target. The general book counted the other face's.
-            else -> BatchB.deadStrike(ctx, at, card) - DEAD_FACE
+            else -> BatchBSupport.deadStrike(ctx, at, card) - DEAD_FACE
         }
     }
 
@@ -92,7 +94,7 @@ object IgnatiaHeuristics : HeroHeuristics {
      */
     private fun faces(ctx: HContext, at: Hex, card: HCard): Pair<Boolean, Boolean>? {
         val id = card.id
-        val units = BatchB.enemyUnits(ctx)
+        val units = BatchBSupport.enemyUnits(ctx)
         return when {
             id == "ignatia-gold" -> {
                 val reach = ctx.attackReach(ctx.seat, card)
@@ -138,7 +140,7 @@ object IgnatiaHeuristics : HeroHeuristics {
 
     // H15: silver is defense 7 and Equilibrium; a hit another card also stops should take that card.
     private fun defend(ctx: HContext, d: Decision, choice: Choice): Double {
-        if (BatchB.cardId(choice) != EQUILIBRIUM) return 0.0
+        if (BatchBSupport.cardId(choice) != EQUILIBRIUM) return 0.0
         val total = d.context.attackTotal ?: return 0.0
         val others = d.options.filterIsInstance<Choice.Card>().any { o ->
             o.cardId != EQUILIBRIUM && (d.context.defensePreview[o.cardId] ?: 0) >= total

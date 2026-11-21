@@ -59,15 +59,15 @@ object GydionHeuristics : HeroHeuristics {
 
     override fun evalTerms(state: GameState, team: Team, heroId: String): Double {
         if (heroId != this.heroId) return 0.0
-        val sign = BatchB.sign(state, team, heroId)
-        val book = BatchB.counter(state, heroId, Spellbook.COUNT_IN_BOOK)
-        val wish = BatchB.counter(state, heroId, Spellbook.COUNT_WISH)
+        val sign = BatchBSupport.sign(state, team, heroId)
+        val book = BatchBSupport.counter(state, heroId, Spellbook.COUNT_IN_BOOK)
+        val wish = BatchBSupport.counter(state, heroId, Spellbook.COUNT_WISH)
         // evalTerms: an empty book makes every cast card dead (HEval prices a full book through the counter).
         var value = if (book == 0) -6.0 else 0.0
         // HEval already prices wishCasts at 10 each. This is the "one cast from winning" spike.
         if (wish >= 2 && book >= 2) value += 20.0
-        val shield = BatchB.effect(state, heroId, Spellbook.SHIELD)
-        val immune = BatchB.effect(state, heroId, Spellbook.INVULNERABILITY)
+        val shield = BatchBSupport.effect(state, heroId, Spellbook.SHIELD)
+        val immune = BatchBSupport.effect(state, heroId, Spellbook.INVULNERABILITY)
         value += when {
             shield && immune -> 12.0
             shield || immune -> 8.0
@@ -80,30 +80,30 @@ object GydionHeuristics : HeroHeuristics {
         if (enemyHeroId != heroId) return 0.0
         val from = ctx.hero(heroId)?.at ?: return 0.0
         val distance = ctx.distance(from, target)
-        val removed = BatchB.counter(ctx.state, heroId, Spellbook.COUNT_REMOVED)
+        val removed = BatchBSupport.counter(ctx.state, heroId, Spellbook.COUNT_REMOVED)
         val exact = removed + ctx.itemBonus(heroId, Stat.RANGE)
         var threat = 0.0
         // Sunburst hits one exact distance, at attack equal to that distance. Every other distance is safe from it.
         if (exact >= 2 && distance == exact && inBook(ctx, Spellbook.SUNBURST)) {
-            threat += min(8.0, exact * 1.5) * BatchB.hold(ctx, heroId) { it.id == "gydion-red-3a" }
+            threat += min(8.0, exact * 1.5) * BatchBSupport.hold(ctx, heroId) { it.id == "gydion-red-3a" }
         }
         val radius = 3 + ctx.itemBonus(heroId, Stat.RADIUS)
         val standing = ctx.state.heroes.firstOrNull { it.at == target }
         val empty = standing != null && standing.team != ctx.hero(heroId)?.team && ctx.handCount(standing.id) == 0
         if (empty && distance <= radius && inBook(ctx, Spellbook.POWER_WORD_KILL)) {
-            threat += 15.0 * BatchB.hold(ctx, heroId) { it.id == "gydion-blue-3a" }
+            threat += 15.0 * BatchBSupport.hold(ctx, heroId) { it.id == "gydion-blue-3a" }
         }
         return threat
     }
 
     private fun play(ctx: HContext, choice: Choice): Double {
-        val id = BatchB.cardId(choice) ?: return 0.0
+        val id = BatchBSupport.cardId(choice) ?: return 0.0
         return deadCast(ctx, id) + prepare(ctx, id) + powerWordCard(ctx, id)
     }
 
     // H5: a cast whose spell is not in the book cannot start. Silver is the refill, not a cast.
     private fun deadCast(ctx: HContext, id: String): Double {
-        val book = BatchB.counter(ctx.state, heroId, Spellbook.COUNT_IN_BOOK)
+        val book = BatchBSupport.counter(ctx.state, heroId, Spellbook.COUNT_IN_BOOK)
         val cast = id != SILVER && id.startsWith("gydion-") && id != "gydion-purple-4"
         return if (book == 0 && cast) -20.0 else 0.0
     }
@@ -111,13 +111,13 @@ object GydionHeuristics : HeroHeuristics {
     // H1: turn 1 or 2 with an empty book, Prepare, unless a faster attack already reaches him.
     private fun prepare(ctx: HContext, id: String): Double {
         if (id != SILVER) return 0.0
-        val book = BatchB.counter(ctx.state, heroId, Spellbook.COUNT_IN_BOOK)
+        val book = BatchBSupport.counter(ctx.state, heroId, Spellbook.COUNT_IN_BOOK)
         if (book == 0) return if (ctx.turn <= 2 && !rushed(ctx)) 25.0 else 12.0
         // Common mistakes: a refill returns Shield and Invulnerability to the book and cancels them.
-        val shielded = BatchB.effect(ctx.state, heroId, Spellbook.SHIELD) ||
-            BatchB.effect(ctx.state, heroId, Spellbook.INVULNERABILITY)
+        val shielded = BatchBSupport.effect(ctx.state, heroId, Spellbook.SHIELD) ||
+            BatchBSupport.effect(ctx.state, heroId, Spellbook.INVULNERABILITY)
         if (shielded) return -4.0
-        val removed = BatchB.counter(ctx.state, heroId, Spellbook.COUNT_REMOVED)
+        val removed = BatchBSupport.counter(ctx.state, heroId, Spellbook.COUNT_REMOVED)
         // Refill once the book is thin; holding silver all game "to be safe" wastes it.
         return if (removed >= REFILL_AT) 6.0 else -2.0
     }
@@ -128,25 +128,37 @@ object GydionHeuristics : HeroHeuristics {
 
     // The engine asks CHOOSE_CARD ("Choose and cast one spell"), not CHOOSE_OPTION.
     private fun spell(ctx: HContext, choice: Choice): Double {
-        val id = BatchB.cardId(choice) ?: return 0.0
+        val id = BatchBSupport.cardId(choice) ?: return 0.0
         if (!id.startsWith("gydion-spell-")) return 0.0
         return spellValue(ctx, id)
     }
 
     private fun spellValue(ctx: HContext, id: String): Double = when (id) {
         Spellbook.POWER_WORD_KILL -> if (emptyHandInRadius(ctx)) 18.0 else -4.0
+
         Spellbook.SHIELD -> if (basicIncoming(ctx)) 12.0 else 1.0
+
         Spellbook.INVULNERABILITY -> if (colouredIncoming(ctx)) 12.0 else 1.0
+
         Spellbook.ENERGY_DRAIN -> drain(ctx)
+
         Spellbook.SUNBURST -> sunburst(ctx)
+
         Spellbook.FIREBALL -> if (fireballTarget(ctx)) 8.0 else -3.0
+
         Spellbook.BURNING_HANDS -> if (meleeTarget(ctx)) 7.0 else 1.0
+
         Spellbook.EXPEDITIOUS_RETREAT, Spellbook.DIMENSION_DOOR -> if (outside(ctx)) 10.0 else 1.0
+
         Spellbook.MIDAS_TOUCH -> midas(ctx)
+
         Spellbook.FIND_FAMILIAR -> if (needsFuel(ctx)) 4.0 else 0.0
+
         Spellbook.CREATE_UNDEAD -> if (outside(ctx)) 0.0 else 4.0
+
         // H6: a plain attack spell is worth its best target, read like any attack card.
         Spellbook.MAGIC_MISSILE, Spellbook.SHOCKING_GRASP, Spellbook.VAMPIRIC_TOUCH -> attackSpell(ctx, id)
+
         else -> 0.0
     }
 
@@ -178,7 +190,7 @@ object GydionHeuristics : HeroHeuristics {
     // whenever the book still holds enough to cast from; refill only a thin book.
     private fun confirm(ctx: HContext, d: Decision, choice: Choice): Double {
         if (d.sourceCardId != SILVER) return 0.0
-        val book = BatchB.counter(ctx.state, heroId, Spellbook.COUNT_IN_BOOK)
+        val book = BatchBSupport.counter(ctx.state, heroId, Spellbook.COUNT_IN_BOOK)
         val wishNow = book >= THIN_BOOK
         return when (choice) {
             is Choice.Yes -> if (wishNow) 8.0 else -4.0
@@ -208,8 +220,8 @@ object GydionHeuristics : HeroHeuristics {
         val removed = hero.card(spell)?.tag == Spellbook.REMOVED
         if (ctx.seat == heroId) return hero.card(spell)?.tag == Spellbook.SPELLBOOK
         if (removed) return false
-        val book = BatchB.counter(ctx.state, heroId, Spellbook.COUNT_IN_BOOK)
-        val gone = BatchB.counter(ctx.state, heroId, Spellbook.COUNT_REMOVED)
+        val book = BatchBSupport.counter(ctx.state, heroId, Spellbook.COUNT_IN_BOOK)
+        val gone = BatchBSupport.counter(ctx.state, heroId, Spellbook.COUNT_REMOVED)
         return book > 0 && book + gone >= Spellbook.ALL.size
     }
 
@@ -223,7 +235,7 @@ object GydionHeuristics : HeroHeuristics {
 
     private fun basicIncoming(ctx: HContext): Boolean {
         val at = ctx.own()?.at ?: return false
-        return ctx.threatsOn(at, ctx.team).any { BatchB.basicAttack(it.card) }
+        return ctx.threatsOn(at, ctx.team).any { BatchBSupport.basicAttack(it.card) }
     }
 
     private fun colouredIncoming(ctx: HContext): Boolean {
@@ -235,7 +247,7 @@ object GydionHeuristics : HeroHeuristics {
     }
 
     private fun drain(ctx: HContext): Double = when {
-        !BatchB.lifeSpent(ctx) -> -3.0
+        !BatchBSupport.lifeSpent(ctx) -> -3.0
         !enemyInRange(ctx, 3) -> -3.0
         ctx.deathsToLose(ctx.team) <= 2 -> 15.0
         else -> 6.0
@@ -243,7 +255,7 @@ object GydionHeuristics : HeroHeuristics {
 
     private fun sunburst(ctx: HContext): Double {
         val at = ctx.own()?.at ?: return 0.0
-        val removed = BatchB.counter(ctx.state, heroId, Spellbook.COUNT_REMOVED)
+        val removed = BatchBSupport.counter(ctx.state, heroId, Spellbook.COUNT_REMOVED)
         val exact = removed + ctx.itemBonus(heroId, Stat.RANGE)
         if (exact < 1) return -6.0
         val hit = ctx.enemies().any { enemy -> enemy.at?.let { ctx.distance(at, it) == exact } == true } ||
@@ -271,7 +283,7 @@ object GydionHeuristics : HeroHeuristics {
 
     private fun meleeTarget(ctx: HContext): Boolean {
         val at = ctx.own()?.at ?: return false
-        return BatchB.enemyMinionWithin(ctx, at, 1) || BatchB.enemyHeroWithin(ctx, at, 1)
+        return BatchBSupport.enemyMinionWithin(ctx, at, 1) || BatchBSupport.enemyHeroWithin(ctx, at, 1)
     }
 
     private fun outside(ctx: HContext): Boolean {
@@ -280,17 +292,17 @@ object GydionHeuristics : HeroHeuristics {
     }
 
     private fun midas(ctx: HContext): Double {
-        val coins = BatchB.counter(ctx.state, heroId, Spellbook.COUNT_REMOVED) / 2
+        val coins = BatchBSupport.counter(ctx.state, heroId, Spellbook.COUNT_REMOVED) / 2
         return if (coins >= 2) coins.toDouble() else -2.0
     }
 
     private fun needsFuel(ctx: HContext): Boolean {
-        val removed = BatchB.counter(ctx.state, heroId, Spellbook.COUNT_REMOVED)
+        val removed = BatchBSupport.counter(ctx.state, heroId, Spellbook.COUNT_REMOVED)
         return removed < 2 && (inBook(ctx, Spellbook.SUNBURST) || inBook(ctx, Spellbook.DIMENSION_DOOR))
     }
 
     private fun enemyInRange(ctx: HContext, range: Int): Boolean {
         val at = ctx.own()?.at ?: return false
-        return BatchB.enemyHeroWithin(ctx, at, range)
+        return BatchBSupport.enemyHeroWithin(ctx, at, range)
     }
 }

@@ -26,8 +26,8 @@ object MrakHeuristics : HeroHeuristics {
     override val style: HeroStyle = HeroStyle(
         role = HeroRole.TANK,
         idealDistance = 1,
-        aggression = 0.35,
-        laneWeight = 0.40,
+        aggression = 0.50,
+        laneWeight = 0.80,
         upgradeOrder = listOf("mrak-red-2a", "mrak-green-2b", "mrak-blue-2a", "red", "green", "blue"),
         keepDefender = true,
     )
@@ -40,8 +40,8 @@ object MrakHeuristics : HeroHeuristics {
 
     override fun evalTerms(state: GameState, team: Team, heroId: String): Double {
         if (heroId != this.heroId) return 0.0
-        val sign = BatchB.sign(state, team, heroId)
-        val rocks = BatchB.tokens(state, heroId, MrakHero.ROCK)
+        val sign = BatchBSupport.sign(state, team, heroId)
+        val rocks = BatchBSupport.tokens(state, heroId, MrakHero.ROCK)
         var value = 0.0
         for (rock in rocks) {
             val beside = state.heroes.any { enemy ->
@@ -64,8 +64,9 @@ object MrakHeuristics : HeroHeuristics {
         if (enemyHeroId != heroId) return 0.0
         val from = ctx.hero(heroId)?.at ?: return 0.0
         val distance = ctx.distance(from, target)
-        val ground = BatchB.touchesTerrain(ctx, target) || BatchB.besideToken(ctx.state, target, MrakHero.ROCK)
-        val red = BatchB.hold(ctx, heroId) { card ->
+        val ground =
+            BatchBSupport.touchesTerrain(ctx, target) || BatchBSupport.besideToken(ctx.state, target, MrakHero.ROCK)
+        val red = BatchBSupport.hold(ctx, heroId) { card ->
             card.id == "mrak-red-1" || card.id == "mrak-red-2a" || card.id == "mrak-red-3a"
         }
         if (distance > SEISMIC_REACH || !ground || red < 0.15) return 0.0
@@ -75,7 +76,7 @@ object MrakHeuristics : HeroHeuristics {
     }
 
     private fun play(ctx: HContext, choice: Choice): Double {
-        val id = BatchB.cardId(choice) ?: return 0.0
+        val id = BatchBSupport.cardId(choice) ?: return 0.0
         return seismic(ctx, id) + grip(ctx, id) + fissure(ctx, id) + carapace(ctx, id)
     }
 
@@ -86,7 +87,11 @@ object MrakHeuristics : HeroHeuristics {
         val at = ctx.own()?.at ?: return 0.0
         val card = ctx.card(id)
         val victims = grounded(ctx, card.radius + ctx.itemBonus(ctx.seat, Stat.RADIUS))
-        if (victims.isEmpty()) return BatchB.deadStrike(ctx, at, card)
+        if (victims.isEmpty()) {
+            // The secondary attack on an adjacent unit is real; only the far part of the estimate is not.
+            val adjacent = BatchBSupport.enemyUnits(ctx).any { (_, pos) -> ctx.distance(at, pos) == 1 }
+            return if (adjacent) 0.0 else BatchBSupport.deadStrike(ctx, at, card)
+        }
         return if (victims.any { ctx.handCount(it) == 0 }) 8.0 else 1.0
     }
 
@@ -99,7 +104,7 @@ object MrakHeuristics : HeroHeuristics {
     // H14: gold picks rocks back up. A wall that is already sealing someone is worth more than attack 4.
     private fun fissure(ctx: HContext, id: String): Double {
         if (id != "mrak-gold") return 0.0
-        val rocks = BatchB.tokens(ctx.state, heroId, MrakHero.ROCK).size
+        val rocks = BatchBSupport.tokens(ctx.state, heroId, MrakHero.ROCK).size
         val sealing = rocks >= 3 && grounded(ctx, SEISMIC_REACH).isNotEmpty()
         return if (sealing) -4.0 else 0.0
     }
@@ -137,7 +142,7 @@ object MrakHeuristics : HeroHeuristics {
         return ctx.enemies().filter { enemy ->
             val pos = enemy.at ?: return@filter false
             ctx.distance(at, pos) in 1..radius &&
-                (BatchB.touchesTerrain(ctx, pos) || BatchB.besideToken(ctx.state, pos, MrakHero.ROCK))
+                (BatchBSupport.touchesTerrain(ctx, pos) || BatchBSupport.besideToken(ctx.state, pos, MrakHero.ROCK))
         }.map { it.id }
     }
 

@@ -25,7 +25,7 @@ object HanuHeuristics : HeroHeuristics {
         role = HeroRole.SUPPORT,
         idealDistance = 2,
         aggression = 0.45,
-        laneWeight = 0.50,
+        laneWeight = 0.85,
         upgradeOrder = listOf("hanu-red-2a", "hanu-green-2b", "hanu-blue-2a", "red", "green", "blue"),
         keepDefender = true,
     )
@@ -47,11 +47,11 @@ object HanuHeuristics : HeroHeuristics {
             ally.team == hanu.team && ally.id != heroId && ally.at?.let { HexGrid.distance(it, target) == 1 } == true
         }
         if (!covered) return 0.0
-        return 3.0 * BatchB.hold(ctx, heroId) { it.id.startsWith("hanu-red") }
+        return 3.0 * BatchBSupport.hold(ctx, heroId) { it.id.startsWith("hanu-red") }
     }
 
     private fun play(ctx: HContext, choice: Choice): Double {
-        val id = BatchB.cardId(choice) ?: return 0.0
+        val id = BatchBSupport.cardId(choice) ?: return 0.0
         val at = ctx.own()?.at ?: return 0.0
         return when {
             id == "hanu-gold" -> gold(ctx, at)
@@ -71,9 +71,9 @@ object HanuHeuristics : HeroHeuristics {
     // H6/H7: the red's far bullet needs a friendly hero beside the target. With no legal target it is a walk.
     private fun red(ctx: HContext, at: Hex, card: HCard): Double {
         val reach = ctx.attackReach(ctx.seat, card)
-        val adjacent = BatchB.enemyUnits(ctx).any { (_, pos) -> ctx.distance(at, pos) == 1 }
+        val adjacent = BatchBSupport.enemyUnits(ctx).any { (_, pos) -> ctx.distance(at, pos) == 1 }
         val far = farTargets(ctx, at, card.id, reach)
-        if (!adjacent && far.isEmpty()) return BatchB.deadStrike(ctx, at, card)
+        if (!adjacent && far.isEmpty()) return BatchBSupport.deadStrike(ctx, at, card)
         // H6: a hero beside his ally is the team shot the card exists for.
         val teamShot = far.any { ctx.hero(it) != null }
         return if (teamShot) 2.5 else 0.0
@@ -82,10 +82,10 @@ object HanuHeuristics : HeroHeuristics {
     private fun farTargets(ctx: HContext, at: Hex, cardId: String, reach: Int): List<String> {
         val minionsOnly = cardId == "hanu-red-2b" || cardId == "hanu-red-3b"
         val notAdjacent = cardId == "hanu-red-3a"
-        return BatchB.enemyUnits(ctx).filter { (id, pos) ->
+        return BatchBSupport.enemyUnits(ctx).filter { (id, pos) ->
             val d = ctx.distance(at, pos)
             val kindOk = if (minionsOnly) ctx.state.minion(id) != null else ctx.hero(id) != null
-            kindOk && d in 1..reach && (!notAdjacent || d > 1) && BatchB.allyBeside(ctx, pos)
+            kindOk && d in 1..reach && (!notAdjacent || d > 1) && BatchBSupport.allyBeside(ctx, pos)
         }.map { it.first }
     }
 
@@ -117,12 +117,17 @@ object HanuHeuristics : HeroHeuristics {
         return when {
             // H4: the Ultimate Trick makes the enemy's next action his.
             !ally && ultimate -> 12.0
+
             // H3: an ally's attack at 10 or less now acts before the enemy can walk out of it.
             ally && (card.attackCard || card.forcesDiscard) && card.initiative <= HURRY - 1 -> 6.0
+
             ally && card.initiative >= HURRY -> -4.0
+
             // H5: a fast enemy card now waits for initiative 11.
             !ally && card.initiative > HURRY -> 4.0
+
             !ally -> -2.0
+
             else -> 0.0
         }
     }
@@ -138,7 +143,7 @@ object HanuHeuristics : HeroHeuristics {
                     break
                 }
             }
-            if (open && !BatchB.enemyHeroWithin(ctx, cursor, 1)) return true
+            if (open && !BatchBSupport.enemyHeroWithin(ctx, cursor, 1)) return true
         }
         return false
     }

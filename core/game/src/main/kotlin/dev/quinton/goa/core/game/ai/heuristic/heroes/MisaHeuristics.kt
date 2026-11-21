@@ -1,5 +1,6 @@
 package dev.quinton.goa.core.game.ai.heuristic.heroes
 
+import dev.quinton.goa.core.domain.board.HexGrid
 import dev.quinton.goa.core.game.Choice
 import dev.quinton.goa.core.game.Decision
 import dev.quinton.goa.core.game.DecisionKind
@@ -7,7 +8,6 @@ import dev.quinton.goa.core.game.ai.heuristic.HContext
 import dev.quinton.goa.core.game.ai.heuristic.HeroHeuristics
 import dev.quinton.goa.core.game.ai.heuristic.HeroRole
 import dev.quinton.goa.core.game.ai.heuristic.HeroStyle
-import dev.quinton.goa.core.domain.board.HexGrid
 import dev.quinton.goa.core.game.engine.GameState
 import dev.quinton.goa.core.game.engine.Timing
 import dev.quinton.goa.core.game.engine.Zone
@@ -24,9 +24,9 @@ object MisaHeuristics : HeroHeuristics {
 
     override val style: HeroStyle = HeroStyle(
         role = HeroRole.FIGHTER,
-        idealDistance = 2,
+        idealDistance = 1,
         aggression = 0.55,
-        laneWeight = 0.55,
+        laneWeight = 0.85,
         upgradeOrder = listOf("misa-red-2a", "misa-blue-2a", "misa-green-2a", "red", "blue", "green"),
         keepDefender = true,
     )
@@ -43,11 +43,11 @@ object MisaHeuristics : HeroHeuristics {
         val step = state.effects.any { effect ->
             effect.owner == heroId && effect.cardId in FOCUS && effect.timing == Timing.NEXT_TURN && !effect.spent
         }
-        return if (step) BatchB.sign(state, team, heroId) * 2.0 else 0.0
+        return if (step) BatchBSupport.sign(state, team, heroId) * 2.0 else 0.0
     }
 
     private fun play(ctx: HContext, choice: Choice): Double {
-        val id = BatchB.cardId(choice) ?: return 0.0
+        val id = BatchBSupport.cardId(choice) ?: return 0.0
         val at = ctx.own()?.at ?: return 0.0
         return when {
             id == "misa-gold" -> gold(ctx, at)
@@ -60,21 +60,21 @@ object MisaHeuristics : HeroHeuristics {
 
     // H5: gold defeats an adjacent enemy minion outright (no attack), or places her at exact range 4.
     private fun gold(ctx: HContext, at: Hex): Double {
-        val minion = BatchB.bestMinion(ctx, at, 1)
+        val minion = BatchBSupport.bestMinion(ctx, at, 1)
         if (minion > 0.0) return minion * 0.7
         return if (!ctx.inBattleZone(at)) 3.0 else 0.0
     }
 
     // H1/H2: the sword is her one attack. With nothing adjacent it is a walk and a defense 6-7 kept for later.
     private fun sword(ctx: HContext, at: Hex): Double {
-        val adjacent = BatchB.enemyUnits(ctx).any { (_, pos) -> ctx.distance(at, pos) == 1 }
+        val adjacent = BatchBSupport.enemyUnits(ctx).any { (_, pos) -> ctx.distance(at, pos) == 1 }
         return if (adjacent) 0.0 else -1.5
     }
 
     // H3: Focus on turn 4 has no next turn. On turns 1-3 it is the step the sword does not have.
     private fun focus(ctx: HContext, at: Hex): Double {
         if (ctx.turn >= LAST_TURN) return -6.0
-        val adjacent = BatchB.enemyUnits(ctx).any { (_, pos) -> ctx.distance(at, pos) == 1 }
+        val adjacent = BatchBSupport.enemyUnits(ctx).any { (_, pos) -> ctx.distance(at, pos) == 1 }
         val sword = ctx.ownHand().any { it.id in SWORD }
         return if (!adjacent && sword) 2.0 else 0.0
     }
@@ -88,7 +88,7 @@ object MisaHeuristics : HeroHeuristics {
 
     // H13: the unplayed sword is the attack she still needs. A hit another card also stops takes that card.
     private fun defend(ctx: HContext, d: Decision, choice: Choice): Double {
-        val id = BatchB.cardId(choice) ?: return 0.0
+        val id = BatchBSupport.cardId(choice) ?: return 0.0
         if (id !in SWORD || ctx.turn >= LAST_TURN) return 0.0
         val total = d.context.attackTotal ?: return 0.0
         val other = d.options.filterIsInstance<Choice.Card>().any { o ->
@@ -98,7 +98,9 @@ object MisaHeuristics : HeroHeuristics {
     }
 
     private fun swoopSpace(ctx: HContext, at: Hex): Boolean {
-        val enemies = BatchB.enemyUnits(ctx).map { it.second }.filter { ctx.distance(at, it) <= SWOOP_RADIUS + 1 }
+        val enemies = BatchBSupport.enemyUnits(ctx).map {
+            it.second
+        }.filter { ctx.distance(at, it) <= SWOOP_RADIUS + 1 }
         if (enemies.size < 2) return false
         val candidates = enemies.flatMap { HexGrid.neighbors(it) }.toSet()
         return candidates.any { h ->

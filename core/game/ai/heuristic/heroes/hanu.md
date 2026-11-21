@@ -166,3 +166,4 @@ When the enemy is Hanu:
 - Rule 1: gold's leave needs three empty spaces in a straight line (`MoveSpec(straightLine = true)`), and only fires when the target survives, so it is scored on a hero with a card in hand.
 - Rules 9–11 (This Way direction, green swaps) are opaque choices for the general book; the one-ply lookahead plays them. Rule 12, 13 and 15 are left to the general defense and upgrade scoring.
 - `evalTerms`: none. Journey's immunity cuts both ways and the lookahead already sees it.
+- Measured (ablation, strength 8, 96 games): `laneWeight` 0.50 from §1 scored 45.8%; 0.85 scored 46.9%, and 49.0% once the dead-strike correction kept the red's movement value. `laneWeight` scales the general book's pull into the Battle Zone, so the research value halved it.
