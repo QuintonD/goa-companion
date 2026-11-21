@@ -4,16 +4,18 @@ import dev.quinton.goa.core.model.board.Hex
 import org.junit.Test
 
 class XargathaHeuristicsTest {
-    @Test fun finishes() = HeroBookSupport.finishes("xargatha")
+    @Test
+    fun `finishes 2v2 and 3v3 at strengths 5 and 10`() = BatchDTestSupport.finishes("xargatha")
 
-    @Test fun signature() {
-        val session = HeroBookSupport.playing(
+    @Test
+    fun `Siren's Call is not played with nobody to pull`() {
+        // H2: the only enemy is already adjacent; the pull targets units that are not.
+        val session = BatchDTestSupport.playing(
             hero = "xargatha",
-            at = Hex(-1, -2),
-            hand = listOf("xargatha-silver", "xargatha-blue-1", "xargatha-red-1"),
-            enemyAt = Hex(3, -3),
+            at = Hex(1, -5),
+            hand = listOf("xargatha-silver", "xargatha-blue-1", "xargatha-green-1"),
+            enemyAt = Hex(2, -6),
         )
-        // H2: Siren's Call has no unit in range that is not already adjacent.
-        HeroBookSupport.assertFlips(session, XargathaHeuristics, "xargatha-silver")
+        BatchDTestSupport.assertFlips(session, XargathaHeuristics, from = "xargatha-silver", to = null)
     }
 }
