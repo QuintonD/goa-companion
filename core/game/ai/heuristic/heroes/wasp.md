@@ -209,3 +209,12 @@ After she performs a basic skill, she may defeat an enemy minion in radius 3; an
 - [BGG 3502652](https://boardgamegeek.com/thread/3502652) is a 1st-edition play report (Wasp + Xargatha). Not used for card plans.
 - 1st-printing spotlight [BGG 2900487](https://boardgamegeek.com/thread/2900487) was not used.
 - No Wasp thread after 2026-10-24.
+
+## Implementation notes
+
+`WaspHeuristics.kt` (ADR-085). The general book scores an attack card from its printed reach (`HContext.strikeFrom`). Where this hero's text narrows the targets, the playbook re-scores the card's PLAY_CARD outlook on the units the engine would really offer (`BatchD.strikeOn` + `strikeFix`): the card keeps its movement value and loses the hit it cannot make. That replaces the draft's flat −28 "fizzle" penalty, which also threw away the card's secondary Movement.
+
+- **Implemented:** H1/H2 (the dome only with one enemy inside its radius and another outside), H3 (Shock: the adjacent hit plus the discard, or Electroblast's kill, of a hero in radius who is not adjacent), H4 (the boomerang only at units 2+ away and off her six lines; Thunder Boomerang's repeat), H5 (Magnetic Dagger is an adjacent attack), H6/H13 (Kinetic Repulse: an adjacent hero whose push line meets an obstacle discards; Thunderous Repulse picks the distance that stops them), H8 (Telekinesis only with an enemy minion off her lines and an attack in hand), H18 (threat of the boomerang off her lines). `evalTerms`: dome in force +2, dagger lock +1.
+- **Engine vs research:** Telekinesis needs an empty space adjacent to her and a target not on her lines (any unit or token, friendly included); Repulse picks the units first, then one distance for all of them. No disagreement with the research.
+- **Skipped:** H7 (Lift's orbit is a CHOOSE_UNIT/space sequence left to lookahead), H9/H10/H17/H20 (Defend and holding the ranged Block: the general book reads the engine's block preview), H11/H12 (branch choice: the default upgrade order), H14 (High Voltage's CHOOSE_UNIT is the general minion worth), H15/H16 (movement rewriting by the dome is engine-side; the threat map does not model it), H19 (CHOOSE_ACTION lookahead).
+- **Ablation (strength 8):** 52–44 of 96 = 54.2% (Wilson 44.2–63.8%), with the playbook against without it, 2026-11-21 (`AI_H_ABLATION=wasp AI_H_STRENGTH=8 AI_H_GAMES=96`: 48 line-ups, both sides).
