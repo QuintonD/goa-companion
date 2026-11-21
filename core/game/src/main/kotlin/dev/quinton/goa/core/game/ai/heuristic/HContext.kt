@@ -54,8 +54,10 @@ class HContext(
     val seen: Map<String, Set<String>> = emptyMap(),
     /** Inside a one-ply finish: the caller must not look ahead again. */
     val finishing: Boolean = false,
+    /** A state to read instead of [session]'s (a card simulation's result). Same engine data. */
+    stateOverride: GameState? = null,
 ) {
-    val state: GameState = session.state
+    val state: GameState = stateOverride ?: session.state
     val seat: String = decision?.seat.orEmpty()
 
     val game: Game by lazy { Game(session.engineData, state, emptyList(), RunMode.PROBE) }
@@ -69,7 +71,7 @@ class HContext(
 
     private val cardCache = HashMap<String, HCard>()
     private val poolCache = HashMap<String, List<PossibleCard>>()
-    private val threatCache = HashMap<String, List<Threat>>()
+    private val threatCache = HashMap<String, List<ThreatInfo>>()
     private val modCache = HashMap<Long, Int>()
 
     /** The intent for this turn, derived from the state. Stable for the whole decision. */
@@ -171,15 +173,22 @@ class HContext(
 
     fun handCount(heroId: String): Int = state.hero(heroId)?.hand?.size ?: 0
 
-    /** Cards this hero still has to play this round, from the public turn. */
+    /**
+     * Cards this hero still has to play this round, from the public turn: the turns after this one,
+     * plus this turn's card while the hero has neither played nor resolved one.
+     */
     fun playsLeft(heroId: String): Int {
         val h = state.hero(heroId) ?: return 0
         if (roundOver) return 0
-        return when (state.step) {
-            Step.TURN_START -> 5 - state.turn
-            Step.PLAY -> (4 - state.turn) + if (h.seat >= state.stepSeat) 1 else 0
-            else -> (4 - state.turn).coerceAtLeast(0)
+        val later = (4 - state.turn).coerceAtLeast(0)
+        val thisTurn = when (state.step) {
+            Step.TURN_START -> true
+            Step.PLAY, Step.REVEAL, Step.RESOLVE ->
+                h.unresolved.isEmpty() && h.hand.isNotEmpty() && heroId !in state.turnRecord.resolved &&
+                    (state.step != Step.PLAY || h.seat >= state.stepSeat)
+            else -> false
         }
+        return later + if (thisTurn) 1 else 0
     }
 
     /** Hand cards beyond the ones still needed as actions. Negative means a turn will be passed. */
@@ -229,8 +238,7 @@ class HContext(
     fun exposure(heroId: String, at: Hex): Double {
         if (!profile.threatMap) return 0.0
         val h = state.hero(heroId) ?: return 0.0
-        val mod = minionModifier(at, h.team)
-        val (pKill, pHit) = threatChances(h, at, mod)
+        val (pKill, pHit) = threatChances(h) { at }
         var v = pKill * killWorth(heroId) + pHit * discardWorth(h)
         if (profile.heroPlaybooks) {
             for (e in state.heroes) {
@@ -295,13 +303,26 @@ class HContext(
         val m = state.minion(minionId) ?: return 0.0
         if (m.team == team) return -6.0
         if (heavyImmune(minionId)) return -3.0
+        if (!profile.on("laneMinion", true)) return oldMinionWorth(m)
         // G58: the coins, plus the change in the lane. The last minion is the push, not a flat bonus.
         var v = if (m.type == MinionType.HEAVY) 4.0 else 2.0
-        v += laneKillValue(m.lane)
+        v += laneKillValue(m.lane) * profile.knob("laneShare", 1.0)
         if (m.type == MinionType.RANGED && rangedCovers(m, team)) v += 4.0 // G62
         if (m.type != MinionType.RANGED && adjacentTo(m, team)) v += 2.0 // G63
         val theirs = minionCount(m.team, m.lane)
         if (profile.strength >= 7 && theirs > 1 && laneMargin(m.lane) >= 2 && !matchPoint(m.lane)) v -= 4.0
+        return v
+    }
+
+    /** The foundation's flat minion price (measured against [minionWorth]'s lane price). */
+    private fun oldMinionWorth(m: MinionState): Double {
+        val alive = state.minions.count { it.team == m.team && it.lane == m.lane && it.at != null }
+        var v = if (m.type == MinionType.HEAVY) 6.0 else 4.4
+        if (m.type == MinionType.RANGED && rangedCovers(m, team)) v += 3.6
+        if (m.type != MinionType.RANGED && adjacentTo(m, team)) v += 2.0
+        if (alive == 1) v += 16.0
+        if (alive == 1 && matchPoint(m.lane)) v += if (profile.laneTiming) 14.0 else 6.0
+        if (profile.strength >= 7 && laneMargin(m.lane) >= 3) v -= 2.0
         return v
     }
 
@@ -479,76 +500,104 @@ class HContext(
         else -> false
     }
 
-    private fun threatsFrom(enemyId: String): List<Threat> = threatCache.getOrPut(enemyId) {
-        val h = state.hero(enemyId) ?: return@getOrPut emptyList()
+    private fun threatsFrom(enemyId: String): List<Threat> = threatInfo(enemyId).map { it.threat }
+
+    /**
+     * An enemy's threats with what [threatChances] needs beyond [Threat]: the card's share of its
+     * colour in the possible pool, and whether the card is already revealed.
+     */
+    private fun threatInfo(enemyId: String): List<ThreatInfo> = threatCache.getOrPut(enemyId) {
+        state.hero(enemyId) ?: return@getOrPut emptyList()
         val pool = possibleCards(enemyId)
         val attackItems = itemBonus(enemyId, Stat.ATTACK)
-        val out = ArrayList<Threat>()
+        val initItems = itemBonus(enemyId, Stat.INITIATIVE)
+        val out = ArrayList<ThreatInfo>()
+        fun add(p: PossibleCard, weight: Double, thisTurn: Boolean, approach: Int) {
+            if (weight <= 0.0 || !p.card.threatens) return
+            val reach = attackReach(enemyId, p.card) + approach
+            if (reach <= 0) return
+            val t = Threat(enemyId, p.card, p.card.attack + attackItems, reach, weight, thisTurn)
+            out += ThreatInfo(t, p.weight, p.playingNow, p.card.initiative + initItems)
+        }
         val playing = pool.filter { it.playingNow }
         if (playing.isNotEmpty()) {
-            for (p in playing) addThreat(out, enemyId, p.card, attackItems, 0.72, thisTurn = true)
+            for (p in playing) add(p, 0.72, thisTurn = true, approach = 0)
             val approach = playing.maxOf { if (it.card.hasMovement) it.card.movement else 0 }
-            for (p in pool) {
-                if (p.playingNow) continue
-                addThreat(out, enemyId, p.card, attackItems, 0.18 * p.weight, thisTurn = false, approach = approach)
-            }
+            for (p in pool) if (!p.playingNow) add(p, 0.18 * p.weight, thisTurn = false, approach = approach)
         } else {
             // One card this turn. Each colour is equally likely; [PossibleCard.weight] is its share of that colour.
             val colours = pool.map { it.card.color }.distinct().size.coerceAtLeast(1)
             for (p in pool) {
-                val now = 0.65 * p.weight / colours
-                addThreat(out, enemyId, p.card, attackItems, now, thisTurn = true)
-                if (state.turn < 4) {
-                    val later = 0.22 * p.weight / colours
-                addThreat(out, enemyId, p.card, attackItems, later, thisTurn = false, approach = 1)
-                }
+                add(p, 0.65 * p.weight / colours, thisTurn = true, approach = 0)
+                if (state.turn < 4) add(p, 0.22 * p.weight / colours, thisTurn = false, approach = 1)
             }
         }
         out
     }
 
-    private fun addThreat(
-        out: MutableList<Threat>,
-        enemyId: String,
-        card: HCard,
-        attackItems: Int,
-        weight: Double,
-        thisTurn: Boolean,
-        approach: Int = 0,
-    ) {
-        if (weight <= 0.0 || !card.threatens) return
-        val reach = attackReach(enemyId, card) + approach
-        if (reach <= 0) return
-        out += Threat(enemyId, card, card.attack + attackItems, reach, weight, thisTurn)
-    }
-
-    private fun threatsFromEnemies(victim: HeroState): List<Pair<String, List<Threat>>> =
-        state.heroes.filter { it.team != victim.team && it.at != null }.map { it.id to threatsFrom(it.id) }
+    private fun threatsFromEnemies(victim: HeroState): List<Pair<String, List<ThreatInfo>>> =
+        state.heroes.filter { it.team != victim.team && it.at != null }.map { it.id to threatInfo(it.id) }
 
     /**
-     * P(defeat) and P(a card thrown | not defeated) from the possible pool.
-     * An empty defense pool is counted in full: any attack that reaches is the kill (GENERAL §2).
+     * Expected loss of [heroId] when an enemy acting before [initiative] meets it at [before] and one
+     * acting after meets it at [after] (GENERAL §2 and §5, G7–G9): the card play's view of the turn,
+     * before anyone's card is revealed. Ties go to the side the coin shows. Next turn's threats meet
+     * it at [after]. [before] null is off the board (a respawn). 0 without a threat map.
      */
-    private fun threatChances(h: HeroState, at: Hex, mod: Int): Pair<Double, Double> {
+    fun exposureSplit(heroId: String, before: Hex?, after: Hex, initiative: Int): Double {
+        if (!profile.threatMap) return 0.0
+        val h = state.hero(heroId) ?: return 0.0
+        val ours = state.tieBreaker == h.team
+        val (pKill, pHit) = threatChances(h) { t ->
+            if (!t.threat.thisTurn) {
+                after
+            } else {
+                val first = t.initiative > initiative || (t.initiative == initiative && !ours)
+                if (first) before else after
+            }
+        }
+        var v = pKill * killWorth(heroId) + pHit * discardWorth(h)
+        if (profile.heroPlaybooks) {
+            for (e in state.heroes) {
+                if (e.team != h.team) v += playbooks(e.id).threatAdjust(this, e.id, after)
+            }
+        }
+        return v
+    }
+
+    /**
+     * P(defeat) and P(a card thrown | not defeated) from the possible pool, each threat met at the
+     * space [where] names. An empty defense pool is counted in full: any attack that reaches is the
+     * kill (GENERAL §2). A hidden card that would defeat us is the card they play when they hold it
+     * (G2): its chance is its share of the colour, not a fifth of that.
+     */
+    private fun threatChances(h: HeroState, where: (ThreatInfo) -> Hex?): Pair<Double, Double> {
         var noKill = 1.0
         var noHit = 1.0
         var attackReaches = false
         for ((enemyId, list) in threatsFromEnemies(h)) {
             val from = state.hero(enemyId)?.at ?: continue
-            val d = distance(from, at)
+            val acted = alreadyActed(enemyId)
             var killNow = 0.0
             var hitNow = 0.0
             var killNext = 0.0
             var hitNext = 0.0
-            for (t in list) {
-                if (t.thisTurn && alreadyActed(enemyId)) continue
-                if (d > t.reach) continue
-                val w = t.weight.coerceIn(0.0, 0.9)
-                if (t.thisTurn && t.card.threatens) attackReaches = true
+            for (info in list) {
+                val t = info.threat
+                if (t.thisTurn && acted) continue
+                val at = where(info) ?: continue
+                if (distance(from, at) > t.reach) continue
+                var w = t.weight.coerceIn(0.0, 0.9)
+                val lethal = kills(h, t, minionModifier(at, h.team))
+                if (t.thisTurn && (t.card.attackCard || t.card.discardOrDefeat)) attackReaches = true
+                if (lethal && !info.known) {
+                    val pull = if (t.thisTurn) profile.knob("lethal", LETHAL_NOW) else profile.knob("lethalNext", LETHAL_NEXT)
+                    w = max(w, pull * info.poolWeight)
+                }
                 when {
-                    t.thisTurn && kills(h, t, mod) -> killNow += w
+                    t.thisTurn && lethal -> killNow += w
                     t.thisTurn -> hitNow += w
-                    kills(h, t, mod) -> killNext += w
+                    lethal -> killNext += w
                     else -> hitNext += w
                 }
             }
@@ -688,8 +737,15 @@ class HContext(
         return if (loss > killWorth(heroId) * 0.45) loss else loss * 0.35
     }
 
+    /** A threat, the card's share of its colour, whether it is revealed, and its initiative with items. */
+    private class ThreatInfo(val threat: Threat, val poolWeight: Double, val known: Boolean, val initiative: Int)
+
     companion object {
         private const val KILL_TEMPO = 5.0
+
+        /** Chance an enemy plays the card that defeats us, when it holds it: this turn, next turn. */
+        private const val LETHAL_NOW = 0.55
+        private const val LETHAL_NEXT = 0.2
 
         fun deathTier(level: Int): Int = when {
             level >= 7 -> 3

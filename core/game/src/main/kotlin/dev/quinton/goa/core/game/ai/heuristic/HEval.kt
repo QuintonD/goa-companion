@@ -8,7 +8,6 @@ import dev.quinton.goa.core.game.engine.PieceState
 import dev.quinton.goa.core.game.engine.Zone
 import dev.quinton.goa.core.model.board.Hex
 import dev.quinton.goa.core.model.match.Team
-import kotlin.math.abs
 import kotlin.math.max
 import kotlin.math.min
 
@@ -23,19 +22,25 @@ import kotlin.math.min
 object HEval {
     const val WIN: Double = 1000.0
 
-    fun evaluate(ctx: HContext, team: Team): Double {
-        val red = scoreRed(ctx)
+    fun evaluate(ctx: HContext, team: Team): Double = evaluate(ctx, team, null)
+
+    /**
+     * [evaluate], with [exposure] in place of the exposure of one hero ([CardSim]: the card play
+     * splits it by who acts first).
+     */
+    internal fun evaluate(ctx: HContext, team: Team, exposure: Pair<String, Double>?): Double {
+        val red = scoreRed(ctx, exposure)
         return if (team == Team.RED) red else -red
     }
 
-    private fun scoreRed(ctx: HContext): Double {
+    private fun scoreRed(ctx: HContext, exposure: Pair<String, Double>?): Double {
         val state = ctx.state
         state.winner?.let { return if (it == Team.RED) WIN - state.round else -WIN + state.round }
         var v = lane(ctx) + life(state) + pieces(ctx)
         val early = state.round <= 2 && state.heroes.all { it.level <= 3 }
         for (h in state.heroes) {
             val sign = if (h.team == Team.RED) 1.0 else -1.0
-            v += sign * hero(ctx, h, early)
+            v += sign * hero(ctx, h, early, exposure?.takeIf { it.first == h.id }?.second)
         }
         if (ctx.profile.heroPlaybooks) {
             for (h in state.heroes) v += ctx.playbooks(h.id).evalTerms(state, Team.RED, h.id)
@@ -43,7 +48,7 @@ object HEval {
         return v
     }
 
-    private fun hero(ctx: HContext, h: HeroState, early: Boolean): Double {
+    private fun hero(ctx: HContext, h: HeroState, early: Boolean, exposure: Double?): Double {
         var v = h.coins * (if (early) 1.3 else 1.0)
         var levels = h.level * (h.level - 1) / 2.0 + 3.0 * (h.level - 1)
         if (h.coins >= h.level && h.level < 8) levels += 1.5
@@ -60,7 +65,7 @@ object HEval {
         v += bodies.maxOf { ctx.presence(it) }
         v += bodies.maxOf { ctx.opportunity(h.id, it) } * 2.0
         if (ctx.profile.laneTiming) v += bodies.maxOf { zonePull(ctx, h.id, it) }
-        if (ctx.profile.threatMap) v -= bodies.maxOf { ctx.exposure(h.id, it) }
+        if (ctx.profile.threatMap) v -= exposure ?: bodies.maxOf { ctx.exposure(h.id, it) }
         return v
     }
 
@@ -111,18 +116,8 @@ object HEval {
             val laneWeight = if (match) 100.0 else 60.0
             val margin = if (match) 3.0 else 1.5
             v += laneWeight * (2 * w - 1) + margin * (red - blue)
-            // G13: the side with fewer spawns in this zone is the one a push stranded.
-            if (ctx.profile.laneTiming && !match) v += spawnSide(ctx, bz, red, blue)
         }
         return v
-    }
-
-    /** Red's score for who the zone's spawns favour. Negative when Red is the side with fewer. */
-    private fun spawnSide(ctx: HContext, bz: String, red: Int, blue: Int): Double {
-        val edge = spawnCount(ctx, bz, Team.BLUE) - spawnCount(ctx, bz, Team.RED)
-        if (edge == 0) return 0.0
-        val scale = if (abs(red - blue) >= 3) 4.0 else 14.0
-        return -scale * edge.coerceIn(-2, 2)
     }
 
     /** Enemy minions this team can still take (the designer's Push Potential). Public cards only. */

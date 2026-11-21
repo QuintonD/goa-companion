@@ -14,7 +14,7 @@ import kotlin.math.min
  * after this action, and a plan that pays off next turn.
  */
 internal object PlayRules {
-    fun score(ctx: HContext, choice: Choice): Double = eval(ctx, choice) + add(ctx, choice)
+    fun score(ctx: HContext, choice: Choice): Double = eval(ctx, choice) + add(ctx, choice, simulated = false)
 
     fun eval(ctx: HContext, choice: Choice): Double {
         if (choice is Choice.Pass) return 0.0 // G22
@@ -31,20 +31,36 @@ internal object PlayRules {
         return v
     }
 
-    /** Commitments lookahead must not drop (G2, G4, G10, G13, G14, G18). */
-    fun add(ctx: HContext, choice: Choice): Double {
+    /**
+     * Commitments a look must not drop (G4, G10, G14, G15), plus, when [simulated] is false, the
+     * rules a [CardSim] look already contains (G2 the trap, G13 the bad push, G18 the even trade).
+     * A simulated card also keeps the round's shape here (colour tempo, the spare): the engine
+     * sees one action, not the turns after it.
+     */
+    fun add(ctx: HContext, choice: Choice, simulated: Boolean): Double {
         if (choice !is Choice.Card) return 0.0
         val h = ctx.own() ?: return 0.0
         val card = ctx.card(choice.cardId)
         val at = h.at ?: return 0.0
         var v = 0.0
-        if (trappedBy(ctx, at, card)) v -= fear(ctx) * ctx.killWorth(h.id) // G2
-        v += earlyRed(ctx, h, at, card) // G4
+        if (simulated) {
+            v += colourTempo(card, ctx.turn) * ctx.profile.knob("tempo", 1.0)
+            v += keepSpare(ctx, h, card) // G3
+        } else {
+            if (trappedBy(ctx, at, card)) v -= fear(ctx) * ctx.killWorth(h.id) // G2
+            v += avoidPush(ctx, h, at, card) // G13
+            v += avoidTrade(ctx, h, at, card) // G18
+        }
+        v += earlyRed(ctx, h, at, card) * ctx.profile.knob("earlyRed", 1.0) // G4
         v += strip(ctx, h, at, card) // G10
-        v += teamKill(ctx, h, card) // G14
-        v += avoidPush(ctx, h, at, card) // G13
-        v += avoidTrade(ctx, h, at, card) // G18
+        v += teamKill(ctx, h, card) // G14 G15
         return v
+    }
+
+    /** G3 for a simulated card: the best defense in hand is the spare, kept until turn 4. */
+    private fun keepSpare(ctx: HContext, h: HeroState, card: HCard): Double {
+        if (ctx.turn >= 4 || ctx.spare(h.id) - 1 >= 1 || !enemiesHaveAttacks(ctx)) return 0.0
+        return if (bestDefense(ctx, h, card)) -spareWeightOf(ctx.turn) * ctx.profile.knob("spare", 1.0) else 0.0
     }
 
     private fun offBoard(ctx: HContext, card: HCard): Double {
@@ -194,7 +210,12 @@ internal object PlayRules {
         for (e in ctx.enemies()) {
             val pos = e.at ?: continue
             if (!inAttackReach(ctx, h.id, pos, card) || !allyHunting(ctx, e)) continue
-            val bonus = if (small) ctx.killWorth(e.id) * 0.35 else crowd(ctx, pos)
+            val thin = ctx.spare(e.id) <= 0 || ctx.defenseless(e.id)
+            val bonus = when {
+                !small -> crowd(ctx, pos)
+                thin -> ctx.killWorth(e.id) * 0.35
+                else -> 2.0
+            }
             saw = true
             if (bonus > best) best = bonus
         }

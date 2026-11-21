@@ -57,9 +57,12 @@ class HeuristicTournamentTest {
         Tournament.Side(spec) { seed -> timed(player(spec, seed), times) }
 
     private fun player(spec: String, seed: Long): AiPlayer {
-        val n = spec.drop(1).toInt()
+        // h10+sim=0+spare=2: a strength and measurement knobs (HeuristicProfile.tune).
+        val parts = spec.split("+")
+        val n = parts[0].drop(1).toInt()
+        val tune = parts.drop(1).associate { kv -> kv.substringBefore("=") to kv.substringAfter("=").toDouble() }
         return when (spec[0]) {
-            'h', 'H' -> HeuristicAi(n, seed)
+            'h', 'H' -> HeuristicAi(n, seed, tune = tune)
             's', 'S' -> AiPlayers.searchDeterministic(n, seed)
             else -> error("AI_H_TOURNAMENT wants h6 or s6, not $spec")
         }

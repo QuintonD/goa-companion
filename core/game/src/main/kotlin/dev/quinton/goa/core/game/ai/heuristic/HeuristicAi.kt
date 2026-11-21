@@ -26,9 +26,11 @@ import kotlin.random.Random
 class HeuristicAi(
     strength: Int,
     private val seed: Long,
+    /** Measurement knobs ([HeuristicProfile.tune]); empty in play. */
+    tune: Map<String, Double> = emptyMap(),
     private val playbooks: (String) -> HeroHeuristics = HeroPlaybooks::forHero,
 ) : AiPlayer {
-    val profile: HeuristicProfile = HeuristicProfile.of(strength)
+    val profile: HeuristicProfile = HeuristicProfile.of(strength).copy(tune = tune)
 
     override fun choose(session: GameSession, decision: Decision, cancelled: () -> Boolean): Choice {
         if (decision.options.isEmpty()) return Fallback.choose(decision)
@@ -83,6 +85,7 @@ class HeuristicAi(
         rng: Random,
         cancelled: () -> Boolean,
     ): Choice? {
+        if (d.kind == DecisionKind.PLAY_CARD) return cardLook(ctx, d, rng, cancelled)
         val idxs = lookAt(ctx, d, static)
         if (idxs.isEmpty()) return null
         val got = ArrayList<Int>()
@@ -98,6 +101,24 @@ class HeuristicAi(
         }
         if (got.isEmpty() || values.none { it > Lookahead.WORSE / 2 }) return null
         return pick(d, got, values.toDoubleArray(), rng, fromLook = true)
+    }
+
+    /**
+     * The card play from strength 5 ([HeuristicProfile.Look.ACTIONS]): each card's own action through
+     * the engine ([CardSim]), plus what that action cannot see. Null (static scores) when a card
+     * cannot be simulated, so the values never mix two scales.
+     */
+    private fun cardLook(ctx: HContext, d: Decision, rng: Random, cancelled: () -> Boolean): Choice? {
+        if (ctx.profile.lookahead < HeuristicProfile.Look.ACTIONS || !ctx.profile.on("sim", true)) return null
+        if (d.options.any { it !is Choice.Card }) return null
+        val book = if (profile.heroPlaybooks) playbooks(d.seat) else DefaultHeroHeuristics
+        val values = DoubleArray(d.options.size)
+        for ((i, o) in d.options.withIndex()) {
+            if (cancelled()) return null
+            val sim = CardSim.value(ctx, (o as Choice.Card).cardId) ?: return null
+            values[i] = sim + General.commitment(ctx, d, o) + adjust(book, ctx, d, o)
+        }
+        return pick(d, d.options.indices.toList(), values, rng, fromLook = true)
     }
 
     private fun lookAt(ctx: HContext, d: Decision, static: DoubleArray): List<Int> {
@@ -116,13 +137,6 @@ class HeuristicAi(
         val nullDefense = d.kind == DecisionKind.DEFEND && d.context.defensePreview.values.any { it == null }
         return when (d.kind) {
             DecisionKind.CHOOSE_ACTION -> d.options.size
-
-            // The card is the plan. Static scores order the options; the engine resolves the text.
-            DecisionKind.PLAY_CARD -> when (look) {
-                HeuristicProfile.Look.ACTIONS -> CARD_CAP
-                HeuristicProfile.Look.MOVES -> d.options.size
-                else -> 0
-            }
 
             DecisionKind.CHOOSE_UNIT -> UNIT_CAP
 
@@ -189,7 +203,6 @@ class HeuristicAi(
         private const val OPAQUE_CAP = 8
         private const val UNIT_CAP = 8
         private const val SPACE_CAP = 6
-        private const val CARD_CAP = 3
 
         /** The same mix as the old search, so a seed names one stream of answers. */
         fun mix(a: Long, b: Long): Long {

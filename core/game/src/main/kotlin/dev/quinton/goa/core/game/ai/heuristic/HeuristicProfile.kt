@@ -37,7 +37,18 @@ data class HeuristicProfile(
     val slipRate: Double,
     /** Chance a move ignores minion defense modifiers (strengths 1–3). */
     val blindRate: Double,
+    /**
+     * Named weights a measurement may change (`HeuristicTournamentTest`: `h10+sim=0`). Empty in play:
+     * every rule reads its default through [knob].
+     */
+    val tune: Map<String, Double> = emptyMap(),
 ) {
+    /** [tune]'s value for [name], or [default]. */
+    fun knob(name: String, default: Double): Double = tune[name] ?: default
+
+    /** [knob] read as a switch: on when the value is positive. */
+    fun on(name: String, default: Boolean): Boolean = tune[name]?.let { it > 0.0 } ?: default
+
     /** What one-ply lookahead is allowed to re-score. */
     enum class Look {
         /** Static scores only. */

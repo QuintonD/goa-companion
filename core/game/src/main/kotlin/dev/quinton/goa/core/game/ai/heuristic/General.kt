@@ -54,7 +54,7 @@ object General {
      * it does not see the enemy who acts next, or a kill that lands next turn.
      */
     fun commitment(ctx: HContext, d: Decision, choice: Choice): Double = when (d.kind) {
-        DecisionKind.PLAY_CARD -> PlayRules.add(ctx, choice)
+        DecisionKind.PLAY_CARD -> PlayRules.add(ctx, choice, simulated = true)
         DecisionKind.CHOOSE_SPACE, DecisionKind.RESPAWN -> spaceCommitment(ctx, d, choice)
         DecisionKind.CHOOSE_UNIT -> unitCommitment(ctx, choice)
         DecisionKind.CHOOSE_ACTION -> actionCommitment(ctx, d, choice)

@@ -233,15 +233,31 @@ internal fun laneKillDelta(ctx: HContext, lane: String): Double {
     if (i < 0) return 0.0
     val red = ctx.minionCount(Team.RED, lane).toDouble()
     val blue = ctx.minionCount(Team.BLUE, lane).toDouble()
-    val before = pushProb(red, blue)
-    val after = if (ctx.team == Team.RED) pushProb(red, blue - 1.0) else pushProb(red - 1.0, blue)
     val waves = ctx.state.wavesLeft[lane] ?: 1
-    val w0 = laneWinOf(zones.lastIndex - i, i, waves, before)
-    val w1 = laneWinOf(zones.lastIndex - i, i, waves, after)
+    val k = zones.lastIndex - i
+    val w0 = laneWinOf(k, i, waves, pushProb(red, blue))
+    val theirs = if (ctx.team == Team.RED) blue else red
+    val w1 = if (theirs <= 1.0) {
+        // The last one pushes now (p.8): one zone on, a fresh wave, the throne when it was next.
+        if (ctx.team == Team.RED) pushedWin(k - 1, i + 1, waves, true) else pushedWin(k + 1, i - 1, waves, false)
+    } else {
+        laneWinOf(k, i, waves, if (ctx.team == Team.RED) pushProb(red, blue - 1.0) else pushProb(red - 1.0, blue))
+    }
     val dRed = w1 - w0
     val d = if (ctx.team == Team.RED) dRed else -dRed
     val weight = if (ctx.profile.laneTiming && ctx.matchPoint(lane)) 100.0 else 60.0
     return weight * 2.0 * d
+}
+
+/**
+ * P(Red wins the lane) just after a push leaves [k] zones to Blue's throne and [m] to Red's. On the
+ * last wave that push is the game (p.8).
+ */
+private fun pushedWin(k: Int, m: Int, waves: Int, redPushed: Boolean): Double = when {
+    k <= 0 -> 1.0
+    m <= 0 -> 0.0
+    waves <= 1 -> if (redPushed) 1.0 else 0.0
+    else -> laneWinOf(k, m, waves - 1, 0.5)
 }
 
 /** This kill pushes the lane this round into a zone that spawns more defenders (G13). */
