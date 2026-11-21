@@ -45,14 +45,14 @@ object TigerclawHeuristics : HeroHeuristics {
         val self = state.hero(heroId) ?: return 0.0
         var v = 0.0
         for (hero in state.heroes) {
-            val strength = BatchD.poisonStrength(hero)
+            val strength = BatchDSupport.poisonStrength(hero)
             if (strength == 0) continue
             // Poison on an enemy taxes the card they answer with. On a friend it is a mistake.
             v += if (hero.team != self.team) 3.0 * strength else -6.0
         }
         // Blend Into Shadows: next turn he is immune to attack actions, which is the free action.
-        if (BatchD.effect(state, heroId, setOf(SILVER), pending = true)) v += 3.0
-        return BatchD.sign(state, heroId, team) * v
+        if (BatchDSupport.effect(state, heroId, setOf(SILVER), pending = true)) v += 3.0
+        return BatchDSupport.sign(state, heroId, team) * v
     }
 
     override fun threatAdjust(ctx: HContext, enemyHeroId: String, target: Hex): Double {
@@ -60,7 +60,7 @@ object TigerclawHeuristics : HeroHeuristics {
         val from = ctx.hero(heroId)?.at ?: return 0.0
         // H18: Blink Strike threatens a unit beside him with an empty hex straight behind it.
         if (ctx.distance(from, target) != 1) return 0.0
-        if (!BatchD.mayHold(ctx, heroId, GOLD) && !BatchD.mayHold(ctx, heroId, HANDICAP)) return 0.0
+        if (!BatchDSupport.mayHold(ctx, heroId, GOLD) && !BatchDSupport.mayHold(ctx, heroId, HANDICAP)) return 0.0
         val landing = Hex(2 * target.q - from.q, 2 * target.r - from.r)
         return if (ctx.game.isEmpty(landing, heroId)) 1.5 else 0.0
     }
@@ -73,8 +73,10 @@ object TigerclawHeuristics : HeroHeuristics {
         return when (id) {
             // H1/H2: Blink hits only a unit with an empty hex straight behind it; no landing, no attack.
             GOLD, HANDICAP -> {
-                val real = BatchD.strikeOn(ctx, card, { uid, pos -> blinkable(ctx, at, uid, pos, id == HANDICAP) })
-                BatchD.strikeFix(ctx, card, real)
+                val real = BatchDSupport.strikeOn(ctx, card, { uid, pos ->
+                    blinkable(ctx, at, uid, pos, id == HANDICAP)
+                })
+                BatchDSupport.strikeFix(ctx, card, real)
             }
 
             // H6/H7: Blend needs terrain beside him, and the immunity pays only with a card left to use it.
@@ -89,7 +91,7 @@ object TigerclawHeuristics : HeroHeuristics {
     }
 
     private fun silver(ctx: HContext, at: Hex): Double {
-        if (!BatchD.besideTerrain(ctx, at)) return -1.5
+        if (!BatchDSupport.besideTerrain(ctx, at)) return -1.5
         val follow = ctx.ownHand().any { it.id != SILVER && (it.attackCard || it.id in STEAL) }
         if (!follow) return -2.0
         // H6: worth more when he is standing where an enemy can hit him now.
@@ -102,7 +104,7 @@ object TigerclawHeuristics : HeroHeuristics {
         val take = if (id == "tigerclaw-green-3a") 2 else 1
         val self = ctx.own() ?: return 0.0
         var best = -1.5
-        for (e in BatchD.enemyHeroesWithin(ctx, at, 1, reach)) {
+        for (e in BatchDSupport.enemyHeroesWithin(ctx, at, 1, reach)) {
             if (e.coins <= 0) continue
             val n = minOf(take, e.coins)
             var v = 1.0 * n
@@ -117,7 +119,7 @@ object TigerclawHeuristics : HeroHeuristics {
     /** H12: the marker is worth it on an enemy that someone will still attack. Never a friend. */
     private fun poison(ctx: HContext, at: Hex, id: String): Double {
         val range = ctx.card(id).range.coerceAtLeast(1)
-        val enemies = BatchD.enemyHeroesWithin(ctx, at, 1, range)
+        val enemies = BatchDSupport.enemyHeroesWithin(ctx, at, 1, range)
         if (enemies.isEmpty()) {
             // Only a friend in range is still a legal target, and that is the mistake.
             val friend = ctx.allies().any { a -> a.at?.let { ctx.distance(at, it) in 1..range } == true }
@@ -164,10 +166,10 @@ object TigerclawHeuristics : HeroHeuristics {
         if (choice !is Choice.Card) return 0.0
         val id = choice.cardId
         var v = 0.0
-        val raced = BatchD.enemyGoldInit(ctx) >= 13
+        val raced = BatchDSupport.enemyGoldInit(ctx) >= 13
         if (raced && id in INITIATIVE_ITEM) v += 2.0
         if (!raced && id == "tigerclaw-green-2a") v += 1.5
-        val ranged = BatchD.mostlyRanged(ctx)
+        val ranged = BatchDSupport.mostlyRanged(ctx)
         if (ranged && id in RANGED_BLOCK) v += 4.0
         if (!ranged && id in MELEE_BLOCK) v += 4.0
         return v
@@ -176,7 +178,7 @@ object TigerclawHeuristics : HeroHeuristics {
     private fun respawn(ctx: HContext, choice: Choice): Double {
         if (choice !is Choice.Space) return 0.0
         // H21: come back beside terrain so Silver can be played.
-        return if (BatchD.besideTerrain(ctx, choice.hex)) 1.0 else 0.0
+        return if (BatchDSupport.besideTerrain(ctx, choice.hex)) 1.0 else 0.0
     }
 
     /** Blink Strike's line: the unit is adjacent and the hex straight behind it is empty. */

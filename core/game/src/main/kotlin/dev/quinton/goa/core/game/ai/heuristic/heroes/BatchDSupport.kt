@@ -36,7 +36,7 @@ import kotlin.math.min
  * [strikeFix] re-scores the card's outlook on the units the text can really target, so a playbook
  * corrects the general score instead of piling a flat penalty on top of it.
  */
-internal object BatchD {
+internal object BatchDSupport {
     fun pieces(state: GameState, kind: String): List<PieceState> =
         state.pieces.filter { it.kind == kind && it.at != null }
 

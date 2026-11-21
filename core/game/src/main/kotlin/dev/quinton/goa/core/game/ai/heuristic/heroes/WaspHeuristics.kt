@@ -40,15 +40,15 @@ object WaspHeuristics : HeroHeuristics {
         if (heroId != this.heroId) return 0.0
         var v = 0.0
         // The dome and the dagger's lock are this turn only, and both are public.
-        if (BatchD.effect(state, heroId, setOf(SILVER))) v += 2.0
-        if (BatchD.effect(state, heroId, setOf(GOLD, HANDICAP))) v += 1.0
-        return BatchD.sign(state, heroId, team) * v
+        if (BatchDSupport.effect(state, heroId, setOf(SILVER))) v += 2.0
+        if (BatchDSupport.effect(state, heroId, setOf(GOLD, HANDICAP))) v += 1.0
+        return BatchDSupport.sign(state, heroId, team) * v
     }
 
     override fun threatAdjust(ctx: HContext, enemyHeroId: String, target: Hex): Double {
         if (enemyHeroId != heroId) return 0.0
         val from = ctx.hero(heroId)?.at ?: return 0.0
-        if (BOOMERANG.none { BatchD.mayHold(ctx, heroId, it) }) return 0.0
+        if (BOOMERANG.none { BatchDSupport.mayHold(ctx, heroId, it) }) return 0.0
         val d = ctx.distance(from, target)
         // H18: the boomerang lands off her lines at 2–3. A straight neighbour is the melee Red's, already in reach.
         return if (d in 2..3 && !HexGrid.inStraightLine(from, target)) 1.0 else 0.0
@@ -66,11 +66,11 @@ object WaspHeuristics : HeroHeuristics {
                 val valid = { _: String, pos: Hex ->
                     ctx.distance(at, pos) in 2..reach && !HexGrid.inStraightLine(at, pos)
                 }
-                val hits = BatchD.strikeList(ctx, card, valid)
+                val hits = BatchDSupport.strikeList(ctx, card, valid)
                 var real = hits.firstOrNull()?.second ?: -0.5
                 // Thunder Boomerang repeats on a different target after a hero.
                 if (id == "wasp-red-3b" && hits.size >= 2) real += 0.6 * maxOf(0.0, hits[1].second)
-                BatchD.strikeFix(ctx, card, real)
+                BatchDSupport.strikeFix(ctx, card, real)
             }
 
             // H3: Shock hits a neighbour, then a hero in radius who is not adjacent discards.
@@ -78,10 +78,10 @@ object WaspHeuristics : HeroHeuristics {
 
             // H5: Magnetic Dagger is an adjacent attack; the lock rides on it.
             GOLD, HANDICAP -> {
-                val real = BatchD.strikeOn(ctx, card, { uid, pos ->
+                val real = BatchDSupport.strikeOn(ctx, card, { uid, pos ->
                     ctx.distance(at, pos) == 1 && (id == GOLD || ctx.heroBody(uid) != null)
                 })
-                BatchD.strikeFix(ctx, card, real)
+                BatchDSupport.strikeFix(ctx, card, real)
             }
 
             // H1/H2: the dome splits the map; it matters when an enemy hero is inside and another outside.
@@ -99,7 +99,7 @@ object WaspHeuristics : HeroHeuristics {
             }
 
             // H6: Kinetic Repulse pushes adjacent enemies; a hero stopped by an obstacle discards.
-            in REPULSE -> BatchD.outlookFix(ctx, card, repulse(ctx, at, id))
+            in REPULSE -> BatchDSupport.outlookFix(ctx, card, repulse(ctx, at, id))
 
             else -> 0.0
         }
@@ -107,11 +107,11 @@ object WaspHeuristics : HeroHeuristics {
 
     private fun shock(ctx: HContext, at: Hex, id: String): Double {
         val card = ctx.card(id)
-        val real = BatchD.strikeOn(ctx, card, { _, pos -> ctx.distance(at, pos) == 1 })
-        var v = BatchD.strikeFix(ctx, card, real)
+        val real = BatchDSupport.strikeOn(ctx, card, { _, pos -> ctx.distance(at, pos) == 1 })
+        var v = BatchDSupport.strikeFix(ctx, card, real)
         if (real <= 0.0) return v
         val radius = card.radius.coerceAtLeast(2)
-        val splash = BatchD.enemyHeroesWithin(ctx, at, 2, radius).maxOfOrNull { e ->
+        val splash = BatchDSupport.enemyHeroesWithin(ctx, at, 2, radius).maxOfOrNull { e ->
             if (id == "wasp-red-3a" && e.hand.isEmpty()) ctx.killWorth(e.id) else ctx.discardWorth(e)
         }
         if (splash != null) v += splash
@@ -136,7 +136,7 @@ object WaspHeuristics : HeroHeuristics {
             any = true
             if (stopped(ctx, at, pos, far)) v += ctx.discardWorth(e)
         }
-        if (!any && BatchD.adjacentMinions(ctx.state, at, ctx.team) == 0) return -1.5
+        if (!any && BatchDSupport.adjacentMinions(ctx.state, at, ctx.team) == 0) return -1.5
         return v
     }
 

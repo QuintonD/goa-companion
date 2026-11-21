@@ -40,20 +40,20 @@ object WidgetHeuristics : HeroHeuristics {
     override fun evalTerms(state: GameState, team: Team, heroId: String): Double {
         if (heroId != this.heroId) return 0.0
         val self = state.hero(heroId) ?: return 0.0
-        val pyro = BatchD.pyro(state) ?: return 0.0
+        val pyro = BatchDSupport.pyro(state) ?: return 0.0
         // Pyro on the board is half the kit; beside an enemy minion it is a Nibble or a Gnaw.
         var v = 3.0
         val besideMinion = state.minions.any { m ->
             m.team != self.team && m.at != null && HexGrid.distance(pyro, m.at!!) == 1
         }
         if (besideMinion) v += 1.5
-        return BatchD.sign(state, heroId, team) * v
+        return BatchDSupport.sign(state, heroId, team) * v
     }
 
     override fun threatAdjust(ctx: HContext, enemyHeroId: String, target: Hex): Double {
         if (enemyHeroId != heroId) return 0.0
-        val pyro = BatchD.pyro(ctx.state) ?: return 0.0
-        if (BREATH.none { BatchD.mayHold(ctx, heroId, it) }) return 0.0
+        val pyro = BatchDSupport.pyro(ctx.state) ?: return 0.0
+        if (BREATH.none { BatchDSupport.mayHold(ctx, heroId, it) }) return 0.0
         val d = ctx.distance(pyro, target)
         // H16: Breath is measured from Pyro, which printed reach from Widget does not cover.
         return if (d in 1..3 && HexGrid.inStraightLine(pyro, target)) 1.5 else 0.0
@@ -65,27 +65,27 @@ object WidgetHeuristics : HeroHeuristics {
         val self = ctx.own() ?: return 0.0
         val id = choice.cardId
         val card = ctx.card(id)
-        val pyro = BatchD.pyro(ctx.state)
+        val pyro = BatchDSupport.pyro(ctx.state)
         return when (id) {
             // H1/H20: Silver brings Pyro back. With Pyro out and well placed it is a Defense 6 to keep.
             SILVER -> when {
                 pyro == null -> 4.0
-                BatchD.minionSpawn(ctx, pyro) || ctx.distance(at, pyro) > 3 -> 1.5
+                BatchDSupport.minionSpawn(ctx, pyro) || ctx.distance(at, pyro) > 3 -> 1.5
                 else -> -0.5
             }
 
             // H2: Gold hits a neighbour, then copies a resolved skill on a different unit.
             GOLD, HANDICAP -> {
-                val real = BatchD.strikeOn(ctx, card, { uid, pos ->
+                val real = BatchDSupport.strikeOn(ctx, card, { uid, pos ->
                     ctx.distance(at, pos) == 1 && (id == GOLD || ctx.heroBody(uid) != null)
                 })
-                var v = BatchD.strikeFix(ctx, card, real)
-                if (real > 0.0 && BatchD.resolvedSkill(ctx, self)) v += 2.0
+                var v = BatchDSupport.strikeFix(ctx, card, real)
+                if (real > 0.0 && BatchDSupport.resolvedSkill(ctx, self)) v += 2.0
                 v
             }
 
             // H4: Breath discards a hero in range of Pyro and in a straight line from it.
-            in BREATH -> BatchD.outlookFix(ctx, card, breath(ctx, id, pyro))
+            in BREATH -> BatchDSupport.outlookFix(ctx, card, breath(ctx, id, pyro))
 
             // H5: Nibble/Gnaw take a minion in her range beside Pyro, and Pyro leaves.
             in EAT -> eat(ctx, at, id, pyro)
@@ -95,7 +95,7 @@ object WidgetHeuristics : HeroHeuristics {
 
             // H9: Drag Off needs an enemy unit beside Pyro.
             in DRAG -> {
-                val beside = pyro != null && BatchD.adjacentEnemies(ctx.state, pyro, ctx.team) > 0
+                val beside = pyro != null && BatchDSupport.adjacentEnemies(ctx.state, pyro, ctx.team) > 0
                 if (beside) 0.5 else -1.5
             }
 
@@ -148,7 +148,7 @@ object WidgetHeuristics : HeroHeuristics {
         val pyroMove = subject != null && ctx.state.piece(subject)?.kind == WidgetHero.PYRO
         val pyroPlace = subject == null && d.prompt.startsWith("Place Pyro")
         if (!pyroMove && !pyroPlace) return 0.0
-        return BatchD.unplace(ctx, d, choice.hex) + site(ctx, choice.hex)
+        return BatchDSupport.unplace(ctx, d, choice.hex) + site(ctx, choice.hex)
     }
 
     /** A Pyro hex: a straight line onto an enemy hero (Breath), beside an enemy minion (Gnaw), not a spawn. */
@@ -158,8 +158,8 @@ object WidgetHeuristics : HeroHeuristics {
             e.at?.let { ctx.distance(hex, it) in 1..3 && HexGrid.inStraightLine(hex, it) } == true
         }
         if (lined) v += 2.0
-        if (BatchD.adjacentMinions(ctx.state, hex, ctx.team) > 0) v += 1.5
-        if (BatchD.minionSpawn(ctx, hex)) v -= 4.0
+        if (BatchDSupport.adjacentMinions(ctx.state, hex, ctx.team) > 0) v += 1.5
+        if (BatchDSupport.minionSpawn(ctx, hex)) v -= 4.0
         return v
     }
 

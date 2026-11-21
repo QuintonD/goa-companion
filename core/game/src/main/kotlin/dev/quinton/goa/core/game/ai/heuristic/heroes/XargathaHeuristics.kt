@@ -48,17 +48,17 @@ object XargathaHeuristics : HeroHeuristics {
         if (hug) {
             val embrace = state.effects.any { it.owner == heroId && !it.spent && it.cardId == "xargatha-green-3b" }
             val types = if (embrace) BOTH else MELEE
-            if (types.any { BatchD.adjacentMinions(state, at, self.team, it) > 0 }) v += 5.0
+            if (types.any { BatchDSupport.adjacentMinions(state, at, self.team, it) > 0 }) v += 5.0
         }
         // Stone Gaze pending: enemies in radius lose their move next turn (H9).
-        if (BatchD.effect(state, heroId, GAZE, pending = true)) v += 1.5
-        return BatchD.sign(state, heroId, team) * v
+        if (BatchDSupport.effect(state, heroId, GAZE, pending = true)) v += 1.5
+        return BatchDSupport.sign(state, heroId, team) * v
     }
 
     override fun threatAdjust(ctx: HContext, enemyHeroId: String, target: Hex): Double {
         if (enemyHeroId != heroId) return 0.0
         val from = ctx.hero(heroId)?.at ?: return 0.0
-        if (!BatchD.mayHold(ctx, heroId, SILVER)) return 0.0
+        if (!BatchDSupport.mayHold(ctx, heroId, SILVER)) return 0.0
         // H17: Siren's Call pulls a unit two or three away onto a hex beside her, at init 3.
         return if (ctx.distance(from, target) in 2..3) 1.0 else 0.0
     }
@@ -68,42 +68,46 @@ object XargathaHeuristics : HeroHeuristics {
         val at = ctx.own()?.at ?: return 0.0
         val id = choice.cardId
         val card = ctx.card(id)
-        val around = BatchD.adjacentEnemies(ctx.state, at, ctx.team)
+        val around = BatchDSupport.adjacentEnemies(ctx.state, at, ctx.team)
         return when (id) {
             // H1/H2: the pull needs an enemy unit in range that is not adjacent, and a card to use it after.
             SILVER -> silver(ctx, at, card.range.coerceAtLeast(1))
 
             // H3/H4: Cleave hits a neighbour, then repeats on a different enemy hero.
             GOLD, HANDICAP -> {
-                val hits = BatchD.strikeList(ctx, card, { uid, pos ->
+                val hits = BatchDSupport.strikeList(ctx, card, { uid, pos ->
                     ctx.distance(at, pos) == 1 && (id == GOLD || ctx.heroBody(uid) != null)
                 })
                 var real = hits.firstOrNull()?.second ?: -0.5
                 val second = hits.drop(1).firstOrNull { ctx.heroBody(it.first) != null }
                 if (second != null) real += 0.7 * max(0.0, second.second)
-                BatchD.strikeFix(ctx, card, real)
+                BatchDSupport.strikeFix(ctx, card, real)
             }
 
             // H5: the Slash gains the crowd: +1/+2/+3 Attack per other enemy unit beside her.
             in SLASH -> {
-                val per = if (id == "xargatha-red-1") 1 else if (id == "xargatha-red-2a") 2 else 3
-                val real = BatchD.strikeOn(
+                val per = when (id) {
+                    "xargatha-red-1" -> 1
+                    "xargatha-red-2a" -> 2
+                    else -> 3
+                }
+                val real = BatchDSupport.strikeOn(
                     ctx,
                     card,
                     { _, pos -> ctx.distance(at, pos) == 1 },
                     bonus = { per * (around - 1).coerceAtLeast(0) },
                 )
-                BatchD.strikeFix(ctx, card, real)
+                BatchDSupport.strikeFix(ctx, card, real)
             }
 
             // H6: Long Thrust's range is 1 plus the enemies beside her (plus a Range item).
             in THRUST -> {
                 val range = ctx.attackReach(ctx.seat, card) + around
-                val hits = BatchD.strikeList(ctx, card, { _, pos -> ctx.distance(at, pos) in 1..range })
+                val hits = BatchDSupport.strikeList(ctx, card, { _, pos -> ctx.distance(at, pos) in 1..range })
                 var real = hits.firstOrNull()?.second ?: -0.5
                 val second = hits.drop(1).firstOrNull { ctx.heroBody(it.first) != null }
                 if (id == "xargatha-red-3b" && second != null) real += 0.6 * max(0.0, second.second)
-                BatchD.strikeFix(ctx, card, real)
+                BatchDSupport.strikeFix(ctx, card, real)
             }
 
             // H8: Constrict defeats a minion beside her at end of round, if she is still there.
@@ -117,7 +121,7 @@ object XargathaHeuristics : HeroHeuristics {
 
             // H9: Stone Gaze takes the next turn's move from enemy heroes in radius.
             in GAZE -> {
-                val n = BatchD.enemyHeroesWithin(ctx, at, 1, card.radius.coerceAtLeast(1)).size
+                val n = BatchDSupport.enemyHeroesWithin(ctx, at, 1, card.radius.coerceAtLeast(1)).size
                 if (n == 0) -1.0 else 1.5 * minOf(n, 2)
             }
 
@@ -126,7 +130,7 @@ object XargathaHeuristics : HeroHeuristics {
                 val beside = if (id == "xargatha-blue-3b") {
                     around > 0
                 } else {
-                    BatchD.adjacentMinions(ctx.state, at, ctx.team) > 0
+                    BatchDSupport.adjacentMinions(ctx.state, at, ctx.team) > 0
                 }
                 val discard = ctx.own()?.cards?.any { it.zone == Zone.DISCARD } == true
                 if (beside && discard) 2.0 else -1.5
@@ -141,7 +145,7 @@ object XargathaHeuristics : HeroHeuristics {
         val minion = ctx.state.minions.any { m ->
             m.team != ctx.team && m.at != null && ctx.distance(at, m.at!!) in 2..range && !ctx.heavyImmune(m.id)
         }
-        val hero = BatchD.enemyHeroesWithin(ctx, at, 2, range).isNotEmpty()
+        val hero = BatchDSupport.enemyHeroesWithin(ctx, at, 2, range).isNotEmpty()
         return when {
             !minion && !hero -> -2.0
             attack && minion -> 2.0

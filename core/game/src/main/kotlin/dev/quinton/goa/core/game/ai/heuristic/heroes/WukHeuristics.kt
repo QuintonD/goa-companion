@@ -44,22 +44,22 @@ object WukHeuristics : HeroHeuristics {
     override fun evalTerms(state: GameState, team: Team, heroId: String): Double {
         if (heroId != this.heroId) return 0.0
         val self = state.hero(heroId) ?: return 0.0
-        val trees = BatchD.trees(state)
+        val trees = BatchDSupport.trees(state)
         // A tree beside an enemy minion is a Red shot; the general book already counts the token itself.
         val useful = trees.count { tree ->
             state.minions.any { m ->
                 m.team != self.team && m.at != null && HexGrid.distance(tree, m.at!!) == 1
             }
         }
-        return BatchD.sign(state, heroId, team) * minOf(useful, 3) * 2.0
+        return BatchDSupport.sign(state, heroId, team) * minOf(useful, 3) * 2.0
     }
 
     override fun threatAdjust(ctx: HContext, enemyHeroId: String, target: Hex): Double {
         if (enemyHeroId != heroId) return 0.0
         val from = ctx.hero(heroId)?.at ?: return 0.0
-        if (TREE_RED.none { BatchD.mayHold(ctx, heroId, it) }) return 0.0
+        if (TREE_RED.none { BatchDSupport.mayHold(ctx, heroId, it) }) return 0.0
         // H17: a hex beside his tree and in his range is the shot, whatever printed reach says.
-        val nearTree = BatchD.trees(ctx.state).any { HexGrid.distance(it, target) == 1 }
+        val nearTree = BatchDSupport.trees(ctx.state).any { HexGrid.distance(it, target) == 1 }
         return if (nearTree && ctx.distance(from, target) in 2..3) 1.0 else 0.0
     }
 
@@ -68,7 +68,7 @@ object WukHeuristics : HeroHeuristics {
         val at = ctx.own()?.at ?: return 0.0
         val id = choice.cardId
         val card = ctx.card(id)
-        val trees = BatchD.trees(ctx.state)
+        val trees = BatchDSupport.trees(ctx.state)
         return when (id) {
             // H1/H2: plant until two trees stand near the fight; after that, attack.
             SILVER -> if (trees.count { ctx.distanceToBattleZone(it) <= 2 } < 2) 2.5 else -2.0
@@ -78,34 +78,34 @@ object WukHeuristics : HeroHeuristics {
                 val tree = trees.any { ctx.distance(at, it) == 1 }
                 val range = ctx.attackReach(ctx.seat, card)
                 val heroOnly = id == HANDICAP
-                val real = BatchD.strikeOn(ctx, card, { uid, pos ->
+                val real = BatchDSupport.strikeOn(ctx, card, { uid, pos ->
                     val hero = ctx.heroBody(uid) != null
                     val d = ctx.distance(at, pos)
                     val adjacent = d == 1 && (if (heroOnly) hero else !hero)
                     adjacent || (tree && d in 1..range && (!heroOnly || hero))
                 })
-                BatchD.strikeFix(ctx, card, real)
+                BatchDSupport.strikeFix(ctx, card, real)
             }
 
             // H4: the tree-Red: a hero adjacent, or a unit in range adjacent to a tree.
             in TREE_RED -> {
                 val range = ctx.attackReach(ctx.seat, card)
-                val hits = BatchD.strikeList(ctx, card, { uid, pos ->
+                val hits = BatchDSupport.strikeList(ctx, card, { uid, pos ->
                     val d = ctx.distance(at, pos)
                     (d == 1 && ctx.heroBody(uid) != null) ||
                         (d in 1..range && trees.any { ctx.distance(it, pos) == 1 })
                 })
                 var real = hits.firstOrNull()?.second ?: -0.5
                 if (id == "wuk-red-3a" && hits.size >= 2) real += 0.6 * max(0.0, hits[1].second)
-                BatchD.strikeFix(ctx, card, real)
+                BatchDSupport.strikeFix(ctx, card, real)
             }
 
             // H5: Trample runs a straight line through enemy heroes (discard) and minions (defeat).
-            in TRAMPLE -> BatchD.outlookFix(ctx, card, trample(ctx, at, id))
+            in TRAMPLE -> BatchDSupport.outlookFix(ctx, card, trample(ctx, at, id))
 
             // H9: Dominance drops the enemy minions beside him from the round's minion battle.
             in DOMINANCE -> {
-                val n = BatchD.adjacentMinions(ctx.state, at, ctx.team)
+                val n = BatchDSupport.adjacentMinions(ctx.state, at, ctx.team)
                 val count = if (id == "wuk-blue-3b") 2 else 1
                 if (n == 0) -1.5 else 2.5 * minOf(n, count)
             }
@@ -115,7 +115,11 @@ object WukHeuristics : HeroHeuristics {
                 val radius = card.radius.coerceAtLeast(1)
                 val tree = trees.any { ctx.distance(at, it) <= radius }
                 val discard = ctx.own()?.cards?.any { it.zone == Zone.DISCARD } == true
-                if (!tree) -1.5 else if (discard) 0.5 else -1.0
+                when {
+                    !tree -> -1.5
+                    discard -> 0.5
+                    else -> -1.0
+                }
             }
 
             else -> 0.0
@@ -162,10 +166,10 @@ object WukHeuristics : HeroHeuristics {
         val hex = choice.hex
         if (d.context.subjectId == null && d.prompt.contains("Tree token")) {
             // H1/H11: a tree beside an enemy minion, inside the fight, never on a minion spawn.
-            var v = if (BatchD.adjacentMinions(ctx.state, hex, ctx.team) > 0) 2.0 else 0.0
+            var v = if (BatchDSupport.adjacentMinions(ctx.state, hex, ctx.team) > 0) 2.0 else 0.0
             v += if (ctx.inBattleZone(hex)) 1.0 else -0.5
-            if (BatchD.minionSpawn(ctx, hex)) v -= 3.0
-            return BatchD.unplace(ctx, d, hex) + v
+            if (BatchDSupport.minionSpawn(ctx, hex)) v -= 3.0
+            return BatchDSupport.unplace(ctx, d, hex) + v
         }
         val src = d.sourceCardId ?: return 0.0
         if (src !in TRAMPLE || d.context.subjectId != ctx.seat) return 0.0
@@ -193,7 +197,7 @@ object WukHeuristics : HeroHeuristics {
 
     private fun respawn(ctx: HContext, choice: Choice): Double {
         if (choice !is Choice.Space) return 0.0
-        val trees = BatchD.trees(ctx.state)
+        val trees = BatchDSupport.trees(ctx.state)
         if (trees.isEmpty()) return 0.0
         // H20: the trees are still there. Respawn toward them.
         return (3 - trees.minOf { ctx.distance(choice.hex, it) }).coerceAtLeast(0) * 0.5

@@ -43,23 +43,23 @@ object UrsafarHeuristics : HeroHeuristics {
         val at = self.at ?: return 0.0
         val fury = self.cards.any { it.id == FURY && it.zone == Zone.ULTIMATE }
         val angry = fury || state.effects.any { e ->
-            e.owner == heroId && e.key == UrsafarHero.ENRAGED && BatchD.inForce(state, e)
+            e.owner == heroId && e.key == UrsafarHero.ENRAGED && BatchDSupport.inForce(state, e)
         }
-        val beside = BatchD.adjacentMinions(state, at, self.team)
+        val beside = BatchDSupport.adjacentMinions(state, at, self.team)
         // Enraged is the round's engine; calm beside a minion, the enrage is free next swing.
         val v = when {
             angry -> 4.0
             beside > 0 -> 1.5
             else -> 0.0
         }
-        return BatchD.sign(state, heroId, team) * v
+        return BatchDSupport.sign(state, heroId, team) * v
     }
 
     override fun threatAdjust(ctx: HContext, enemyHeroId: String, target: Hex): Double {
         if (enemyHeroId != heroId) return 0.0
         // H18: once enraged, Gold's step reaches a hero two away. Calm, that step is not offered.
         if (!UrsafarHero.isEnraged(ctx.game, heroId)) return 0.0
-        if (!BatchD.mayHold(ctx, heroId, GOLD)) return 0.0
+        if (!BatchDSupport.mayHold(ctx, heroId, GOLD)) return 0.0
         val from = ctx.hero(heroId)?.at ?: return 0.0
         return if (ctx.distance(from, target) == 2) 1.5 else 0.0
     }
@@ -69,10 +69,10 @@ object UrsafarHeuristics : HeroHeuristics {
         val at = ctx.own()?.at ?: return 0.0
         val id = choice.cardId
         val angry = UrsafarHero.isEnraged(ctx.game, ctx.seat)
-        val besideMinion = BatchD.adjacentMinions(ctx.state, at, ctx.team) > 0
+        val besideMinion = BatchDSupport.adjacentMinions(ctx.state, at, ctx.team) > 0
         return when (id) {
             // H7: Sniff Out / Eyes / Apex discard a hero in range, and only while enraged.
-            in SNIFF -> BatchD.outlookFix(ctx, ctx.card(id), if (!angry) -1.5 else sniff(ctx, at, id))
+            in SNIFF -> BatchDSupport.outlookFix(ctx, ctx.card(id), if (!angry) -1.5 else sniff(ctx, at, id))
 
             // H8: Instinct does nothing calm; enraged it retrieves (or performs) a discarded card.
             in INSTINCT -> when {
@@ -82,12 +82,16 @@ object UrsafarHeuristics : HeroHeuristics {
             }
 
             // H3: calm, the roar is the enrage; enraged it copies an active card's primary.
-            SILVER -> if (angry) 1.0 else if (besideMinion) 0.5 else 1.5
+            SILVER -> when {
+                angry -> 1.0
+                besideMinion -> 0.5
+                else -> 1.5
+            }
 
             // H2/H10: the one-space Blue is how a calm bear reaches a minion and gets angry.
             in BLUE -> when {
                 angry || besideMinion -> 0.0
-                BatchD.adjacentEnemies(ctx.state, at, ctx.team) == 0 && near(ctx, at) -> 3.0
+                BatchDSupport.adjacentEnemies(ctx.state, at, ctx.team) == 0 && near(ctx, at) -> 3.0
                 else -> 1.0
             }
 
@@ -102,12 +106,12 @@ object UrsafarHeuristics : HeroHeuristics {
         val card = ctx.card(id)
         val lunge = angry && (id == GOLD || id == HANDICAP)
         val heroOnly = id == HANDICAP
-        val real = BatchD.strikeOn(ctx, card, { uid, pos ->
+        val real = BatchDSupport.strikeOn(ctx, card, { uid, pos ->
             val d = ctx.distance(at, pos)
             val hero = ctx.heroBody(uid) != null
             (!heroOnly || hero) && (d == 1 || (lunge && hero && d == 2))
         })
-        var v = BatchD.strikeFix(ctx, card, real)
+        var v = BatchDSupport.strikeFix(ctx, card, real)
         // H1: calm and beside a minion, the swing also makes him angry for the rest of the round.
         if (!angry && besideMinion) v += 2.5
         return v
@@ -120,7 +124,7 @@ object UrsafarHeuristics : HeroHeuristics {
 
     private fun sniff(ctx: HContext, at: Hex, id: String): Double {
         val range = ctx.card(id).range.coerceAtLeast(1)
-        val heroes = BatchD.enemyHeroesWithin(ctx, at, 1, range)
+        val heroes = BatchDSupport.enemyHeroesWithin(ctx, at, 1, range)
         if (heroes.isEmpty()) return -1.5
         return heroes.maxOf { e ->
             if (id == "ursafar-green-3a" && e.hand.isEmpty()) ctx.killWorth(e.id) else ctx.discardWorth(e)
