@@ -157,3 +157,12 @@ When the enemy is Mrak:
 - [BGG 3487749] 2025-03-30, community: Mrak and Mortimer as a token pair.
 - Gamefound Arcane update 10: control, rocks, low mobility, no self-healing, alt red against discards, alt green for mobility. The "rocks crumble at end of next turn" line does **not** match the card or the engine (rocks leave at end of round, p.19). Rejected. No numbers taken from the update.
 - No Reddit thread found.
+
+## Implementation notes
+
+`MrakHeuristics.kt`, checked against `MrakHero.kt` (2026-11-21).
+
+- Rule 2/3: seismic's skill cannot start without an enemy hero in radius next to terrain or any Rock token (`nextToTerrainOrRock`). The card profile reads its radius as a reach, so the general book over-counts it; with no such hero the playbook cancels that estimate (the card remains movement 3, defense 7–8 and an adjacent secondary attack). An empty hand on that ground is a defeat.
+- Rule 3 at `CHOOSE_ACTION`: the skill when it defeats; the attack only as a small nudge when an adjacent hero has cards (the lookahead weighs both).
+- Weights were cut from the draft (−16 / −10 / +8) to small corrections: they had made his reds and silver nearly unplayable.
+- Skipped: 1, 4, 9–11 (movement, pushes and swaps the lookahead plays), 12, 13 beyond `upgradeOrder`.

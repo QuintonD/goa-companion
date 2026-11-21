@@ -13,6 +13,7 @@ import dev.quinton.goa.core.game.engine.GameState
 import dev.quinton.goa.core.game.engine.Zone
 import dev.quinton.goa.core.game.heroes.MrakHero
 import dev.quinton.goa.core.model.board.Hex
+import dev.quinton.goa.core.model.catalog.Stat
 import dev.quinton.goa.core.model.match.Team
 
 /**
@@ -47,13 +48,15 @@ object MrakHeuristics : HeroHeuristics {
                 enemy.team != state.hero(heroId)?.team &&
                     enemy.at?.let { HexGrid.distance(it, rock.at!!) == 1 } == true
             }
-            if (beside) value += 3.0
+            // evalTerms: a rock beside an enemy hero turns seismic on against them.
+            if (beside) value += 2.0
         }
         val carapace = state.hero(heroId)?.cards?.any { card ->
             (card.id == "mrak-red-2b" || card.id == "mrak-red-3b") &&
                 card.zone == Zone.RESOLVED && !card.faceDown
         } == true
-        if (carapace) value += 6.0
+        // evalTerms: carapace on its slot covers one discard or one defense.
+        if (carapace) value += 4.0
         return sign * value
     }
 
@@ -65,9 +68,10 @@ object MrakHeuristics : HeroHeuristics {
         val red = BatchB.hold(ctx, heroId) { card ->
             card.id == "mrak-red-1" || card.id == "mrak-red-2a" || card.id == "mrak-red-3a"
         }
-        if (distance > 4 || !ground || red < 0.15) return 0.0
+        if (distance > SEISMIC_REACH || !ground || red < 0.15) return 0.0
+        // threatAdjust: seismic is a discard on ground next to terrain or a rock, a defeat on an empty hand.
         val empty = ctx.state.heroes.any { hero -> hero.at == target && ctx.handCount(hero.id) == 0 }
-        return if (empty) 12.0 else 6.0
+        return red * (if (empty) 8.0 else 2.5)
     }
 
     private fun play(ctx: HContext, choice: Choice): Double {
@@ -75,25 +79,29 @@ object MrakHeuristics : HeroHeuristics {
         return seismic(ctx, id) + grip(ctx, id) + fissure(ctx, id) + carapace(ctx, id)
     }
 
-    // H2: the skill defeats an empty-handed hero who is already on terrain or a rock. Otherwise it does not start.
+    // H2: the skill defeats an empty-handed hero who is already on terrain or a rock. With no such hero
+    // the skill cannot start, and the general book's printed-radius strike is not there.
     private fun seismic(ctx: HContext, id: String): Double {
         if (id != "mrak-red-1" && id != "mrak-red-2a" && id != "mrak-red-3a") return 0.0
-        val victim = grounded(ctx) ?: return -16.0
-        return if (ctx.handCount(victim) == 0) 16.0 else 6.0
+        val at = ctx.own()?.at ?: return 0.0
+        val card = ctx.card(id)
+        val victims = grounded(ctx, card.radius + ctx.itemBonus(ctx.seat, Stat.RADIUS))
+        if (victims.isEmpty()) return BatchB.deadStrike(ctx, at, card)
+        return if (victims.any { ctx.handCount(it) == 0 }) 8.0 else 1.0
     }
 
     // H6: Stone Grip needs a hero in range with three empty adjacent spaces.
     private fun grip(ctx: HContext, id: String): Double {
         if (id != "mrak-silver") return 0.0
-        return if (openHero(ctx)) 8.0 else -10.0
+        return if (openHero(ctx)) 3.0 else -4.0
     }
 
     // H14: gold picks rocks back up. A wall that is already sealing someone is worth more than attack 4.
     private fun fissure(ctx: HContext, id: String): Double {
         if (id != "mrak-gold") return 0.0
         val rocks = BatchB.tokens(ctx.state, heroId, MrakHero.ROCK).size
-        val sealing = rocks >= 3 && grounded(ctx) != null
-        return if (sealing) -8.0 else 0.0
+        val sealing = rocks >= 3 && grounded(ctx, SEISMIC_REACH).isNotEmpty()
+        return if (sealing) -4.0 else 0.0
     }
 
     // H7: the carapace is the walk on turn 1 or 2, then a defense that sits on the slot.
@@ -101,7 +109,7 @@ object MrakHeuristics : HeroHeuristics {
         if (id != "mrak-red-2b" && id != "mrak-red-3b") return 0.0
         val at = ctx.own()?.at ?: return 0.0
         val far = !ctx.inBattleZone(at)
-        return if (far && ctx.turn <= 2) 8.0 else 0.0
+        return if (far && ctx.turn <= 2) 3.0 else 0.0
     }
 
     // H3: adjacent, and they still have a card, the attack kills and the skill only discards.
@@ -111,28 +119,29 @@ object MrakHeuristics : HeroHeuristics {
         val act = (choice as? Choice.Action)?.action
         val at = ctx.own()?.at
         if (!seismic || act == null || at == null) return 0.0
+        val radius = ctx.card(source).radius + ctx.itemBonus(ctx.seat, Stat.RADIUS)
+        val defeat = grounded(ctx, radius).any { ctx.handCount(it) == 0 }
         val adjacent = ctx.enemies().any { enemy ->
             enemy.at?.let { ctx.distance(at, it) == 1 } == true && ctx.handCount(enemy.id) > 0
         }
         return when {
-            act == ActionType.ATTACK && adjacent -> 8.0
-            act == ActionType.PRIMARY && !adjacent && grounded(ctx) != null -> 6.0
-            act == ActionType.PRIMARY && adjacent -> -4.0
+            act == ActionType.PRIMARY && defeat -> 8.0
+            act == ActionType.ATTACK && adjacent && !defeat -> 2.0
             else -> 0.0
         }
     }
 
-    private fun grounded(ctx: HContext): String? {
-        val at = ctx.own()?.at ?: return null
-        val radius = ctx.own()?.let { hero ->
-            hero.unresolved.firstOrNull()?.let { ctx.card(it.id).radius } ?: 3
-        } ?: 3
-        return ctx.enemies().firstOrNull { enemy ->
-            val pos = enemy.at ?: return@firstOrNull false
-            ctx.distance(at, pos) <= radius.coerceAtLeast(3) &&
+    /** Enemy heroes in [radius] standing next to terrain or one of his rocks (the seismic condition). */
+    private fun grounded(ctx: HContext, radius: Int): List<String> {
+        val at = ctx.own()?.at ?: return emptyList()
+        return ctx.enemies().filter { enemy ->
+            val pos = enemy.at ?: return@filter false
+            ctx.distance(at, pos) in 1..radius &&
                 (BatchB.touchesTerrain(ctx, pos) || BatchB.besideToken(ctx.state, pos, MrakHero.ROCK))
-        }?.id
+        }.map { it.id }
     }
+
+    private const val SEISMIC_REACH = 4
 
     private fun openHero(ctx: HContext): Boolean {
         val at = ctx.own()?.at ?: return false
