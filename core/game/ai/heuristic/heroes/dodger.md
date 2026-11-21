@@ -275,3 +275,12 @@ When Dodger is the enemy:
 - [BGG 2433317] 2020-05-22, Blazing Skull +4 Attack from a spawn. 1st printing. Not used.
 - Optimal Play, "Dodger the Warlock" (YouTube, the boardgamevideo mirror of `3HRuTZZcopM`): no transcript retrieved, so no rule is taken from it.
 - No Dodger-specific Reddit thread was found.
+
+## Implementation notes
+
+What `heroes/DodgerHeuristics.kt` encodes, checked against the engine (2026-11-21).
+
+- Implemented: H1/H2 (Death Trap: an enemy hero in radius 4 beside an empty Battle Zone spawn discards; nothing on an empty hand), H3/H4 (Dread Razor: an adjacent unit, or any unit in range while she herself is beside an empty spawn; replaces the general strike estimate; its `CHOOSE_OPTION` scores each bullet), H5 (Finger of Death: an adjacent unit, or a hero in range with a card in the discard; Middlefinger's "Both" options score the sum), H8 (the ritual pays only with 2 empty spawns in radius 3). Tide of Darkness makes every empty space a spawn point for her actions.
+- Engine: Death Trap is "discards a card, if able", not "or is defeated"; the draft valued an empty hand.
+- Engine: H7 needs no rule. The shield's +2/+4 is already in `DEFEND`'s `defensePreview`.
+- Skipped: Burning/Blazing Skull minion moves, Necromancy, Weakness/Enfeeblement, evalTerms (the draft's constant for the ultimate is the same on both sides of every comparison), threatAdjust (the general reach already counts radius 4 for Death Trap).

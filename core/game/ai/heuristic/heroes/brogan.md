@@ -273,3 +273,11 @@ When Brogan is the enemy:
 - Optimal Play, "Brogan the Barbarian" (YouTube, 2023-09-01): description only ("charging and smashing, or hanging back to toss spears and perform songs"). No transcript retrieved. The date sits on the 1st printing, so no rule is taken from it.
 
 No 2nd-printing Brogan thread newer than the 2026-08-05 coin clarification was found. The forum scan on 2026-11-20 did not turn up a later spotlight.
+
+## Implementation notes
+
+What `heroes/BroganHeuristics.kt` encodes, checked against the engine (2026-11-21).
+
+- Implemented: H1 (the charge replaces the general strike estimate with the best unit beside a real landing: a straight move of exactly 2 / 2–3 / 2–4 through empty spaces, `MoveSpec(straightLine, endFilter = beside an enemy unit)` as the engine moves him; +1.5 when landings fork in two directions), H2 (the landing beside the best target), H5 (Shield Bash / Counterattack by the chance an adjacent enemy plays an attack; `playedAttack` once known), H7 (Bulwark only with a red or blue to retrieve), H12 (keep the push blue), H15 (block with red or blue, not Bulwark).
+- Engine: `CardProfile` reads "Before the attack: Move 2 spaces …" as a 2-space pre-move, so the general book gives the charge reach 3 (4, 5) and counts units he already stands next to. The charge cannot hit those (FAQ, `BroganHero`), which is why the correction often makes the card worse, not better.
+- Skipped: H3/H4 (push setups), H6 (gold step), H8/H9 (Shield/Bolster/Fortify), H10 (War Drummer), H11 (axe bullets), H13, H14, H16 (One Man Army), evalTerms, threatAdjust (the general reach already includes the pre-move).

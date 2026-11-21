@@ -270,3 +270,12 @@ When Cutter is the enemy:
 - AI.md "Known weaknesses": her ultimate is one of the per-turn plans the search player does not keep. Rule 13 is the correction.
 
 No Cutter-specific Reddit strategy thread was found. The 2022 session report (r/boardgames `v5yeu2`) only places her in a lane.
+
+## Implementation notes
+
+What `heroes/CutterHeuristics.kt` encodes, checked against the engine (2026-11-21).
+
+- Implemented: H1/H2 (plank: the best push across a zone border, a discard-or-defeat, or the adjacent minion it defeats; held when it has neither; its `CHOOSE_OPTION` scores each bullet and the push distance reaches the border), H4 (grapple early, not on turn 4), H5 (lunge: a straight step of 1..N then the hero in front at +2, else the plain adjacent hit; replaces the general strike estimate), H6 (dash: a straight 3..N ignoring obstacles to beside a hero, who discards), H8/H9 (Bombardment family: a hero in radius, beside another enemy unit and not beside her; Broadside's repeat). evalTerms: coins above 9 while A Fistful of Coins is in her round (which tier-III blue she kept is public; no hand is read).
+- Engine: the lunge's adjacent bullet is always offered when a unit is adjacent; the draft's penalty for "no lunge line" punished a legal minion hit and was dropped.
+- Engine: the push stops at the first obstacle (`pushAway`) and the discard needs `zoneOf` to change, so a border behind a unit does not count. The handicap pushes up to 3 and has no minion bullet.
+- Skipped: H3 (grapple landing), H7 (swap), H10/H11/H16 (X Marks the Spot placement), H12 (backstep), H13 (Legend of the Skies), H14/H15 (branch choice), threatAdjust.

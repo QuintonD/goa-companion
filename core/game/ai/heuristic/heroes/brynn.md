@@ -264,3 +264,12 @@ When Brynn is the enemy:
 - Gamefound, Wolff Designa, "Wayward" hero pack overview, 2023-05-18: https://gamefound.com/en/projects/wolffdesigna/guardsofatlantis2new/updates/9 — not used. The publisher marks the cards as unfinished, and the abilities described (climb, potions) are not on these cards.
 
 No 2nd-printing Brynn build thread beyond the spotlight was found, and no transcribed video. The forum scan on 2026-11-20 found no later Brynn strategy thread.
+
+## Implementation notes
+
+What `heroes/BrynnHeuristics.kt` encodes, checked against the engine (2026-11-21).
+
+- Implemented: H1 (primary red: +2 Attack on a bound adjacent hero, replacing the general strike estimate), H2 (gold: an adjacent unit, or a bound hero in range; its `CHOOSE_OPTION` scores each bullet), H4 (traps: an adjacent enemy hero, or a bound one in radius; or-defeated on Deadfall; the same bullet scoring), H8 (Peak Precision takes itself back), H12 (keep primary red), H14 (no turn-4 Decoy while other cards remain). threatAdjust: next to her with three obstacles around is her red at +2.
+- Engine: "bound" is `BrynnHero.obstaclesAround(hero, forHero = brynn) >= 3`, Brynn and spaces that count as obstacles for her included; with Over the Top every enemy hero counts as bound while she performs actions, so her own decisions treat all enemies as bound once it is unlocked.
+- Engine: "Choose one —" asks only when both bullets have a target (RULINGS 38); index 0 is the adjacent bullet, 1 the bound one.
+- Skipped: H3 (Decoy), H5 (True Grit), H6/H7 (swaps, Mountain Guide), H9/H10 (Split), H11, H13, H15, evalTerms (the crowd changes with every move; scored at the decision instead).

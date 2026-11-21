@@ -253,3 +253,13 @@ When Arien is the enemy:
 - Gamefound / 1st-printing promo text: not used.
 
 No Arien-specific Reddit thread or transcribed video was found.
+
+## Implementation notes
+
+What `heroes/ArienHeuristics.kt` encodes, checked against the engine (2026-11-21).
+
+- Implemented: H1 (the red's value is the adjacent unit plus the discard-or-defeat of a hero 1–N spaces straight behind it; it *replaces* the general strike estimate, since `CardProfile` gives this red reach 1 and cannot see the line; a hero with cards counts half at Initiative 8, a hero with none stays), H1 at resolution (the attack target carries its line; the optional "behind the target" pick is always taken), H2/H3 (Spell Break by the chance an enemy in radius plays a non-gold skill: the real hand at strength 10, the public pool otherwise), H4 (Expert/Master Duelist valued at `DEFEND` by the other enemies who can still attack him), H6 (Slippery Ground/Deluge by the chance a capped enemy still moves), H7 (the leap lands where the red's line is ready), H11 (Violent Torrent repeats while another enemy unit is adjacent), H13 (keep the a-branch), H15 (no turn-1 gold while a Movement 4 card can farm). evalTerms: Spell Break and the cap, per enemy who has still to act. threatAdjust: the hex behind a unit adjacent to him, by the chance his red is the card.
+- Engine: the red asks for its attack target first and the hero behind second (`CHOOSE_UNIT`, prompt "Up to 1 enemy hero behind the target …", optional); the playbook tells them apart by the prompt.
+- Engine: H5 needs no rule. `DEFEND`'s `defensePreview` already applies Duelist's "ignore all minion defense modifiers", so the general book already picks it when it is the card that holds.
+- §3 mixes up the items: keeping `arien-red-2a` tucks `arien-red-2b` (a Defense item); the Initiative item comes from tucking an a-card. The playbook follows the default path table (keep the a-branch).
+- Skipped: H8 (whirlpool swap), H9 (gold's may-move), H10 (wave push distance), H12 (Living Tsunami pre-step), H14 (branch flag); the silver's "skill tax" threat (exposure is a loss in coins at a hex; a skill being stopped is not one).

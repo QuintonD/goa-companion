@@ -294,3 +294,12 @@ When Emmitt is the enemy:
 - Designer rulings at https://www.cockeyedandcurious.com/goa2/faq (Arty, Discord): the punch replaces the Defense of the card and of Defense items and nothing else (2025-07-09); "remained" means they stayed this turn (2025-02-15); Time Capsule sees only discards already made (2026-06-05); a swap into the discard is not a discard (2026-01-18); on Flashback he picks the hero and they pick the token at any range (2026-07-19).
 - [BGG 3481942] tier-list thread, 2025-03-20: Emmitt appears in personal lists only. No rule taken from it.
 - No Emmitt-specific Reddit thread or transcribed video was found. 1st-printing card text was not found in the spotlights; the 2022 wiki pages are other heroes. Nothing older was needed, and nothing older was used for numbers.
+
+## Implementation notes
+
+What `heroes/EmmittHeuristics.kt` encodes, checked against the engine (2026-11-21).
+
+- Implemented: H2 (no Reverse Time on turn 1), H3 (the punch: the defender answers with the Initiative of a defense card plus Initiative items and minion modifiers, so it is scored by the chance their hand holds a card that fast; replaces the general strike estimate and the target's value), H6 (the Glitch is picked by an enemy who has acted), H10 (the traps by the chance an enemy in range resolves before him: a faster card forward, a slower one in Reverse Time; or-defeated on Time Bomb).
+- Engine: the punch calls `attack(defenseFromInitiative = true)`; a Block card still blocks. Reverse Time is an active effect of `Timing.NEXT_TURN`.
+- Draft fix: the draft read `turnRecord.resolved` at card play, which is always empty then, so the traps were always discouraged.
+- Skipped: H1 (the flip's worth), H4, H5 (Glitch placement), H7–H9 (glitch swaps, shoves), H11–H19, evalTerms, threatAdjust (the general threat map already scores the punch's printed Attack).

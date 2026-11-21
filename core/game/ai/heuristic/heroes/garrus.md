@@ -281,3 +281,11 @@ When Garrus is the enemy:
 - [BGG 2884801] Eric_McClain, 2022-06-16, 1st-printing spotlight. Not used for numbers. The anti-range blue and the gold that discards on the attack are gone.
 - BGG wiki "Garrus the Gladiator" (1st edition card table): not used.
 - No Garrus-specific Reddit thread or transcribed video was found.
+
+## Implementation notes
+
+What `heroes/GarrusHeuristics.kt` encodes, checked against the engine (2026-11-21).
+
+- Implemented: H2 (Howl not with nobody in radius, nor on turn 4), H1 (Howl early with an enemy in the cage; more when it can put the first card into the discard for gold or the hunt), H4 (gold's Attack is 4 plus the discard pile; replaces the general strike estimate; the handicap targets heroes only), H5 (the hunt: the hero bullet steps only with a card in the discard; its `CHOOSE_OPTION` scores each bullet), H10 (pilum: a hero in range 2 discards, or-defeated on Heavy Pilum), H11 (Hold Ground only with two enemies in radius and a discard to take back). evalTerms: the first three discards, and Howl in force on enemies who have still to act. threatAdjust: next to him, gold with two or more discards.
+- Engine: `CardProfile` reads the hunt's "If you have one or more cards in the discard, you may move 1 space" as a pre-move whatever the pile; the engine allows the step only with a discard.
+- Skipped: H3 (the general book already discards a resolved card), H6/H7/H17 (Blunt Force / Send Flying push), H8/H9 (blue shoves and pulls), H12 (Battle Fury), H13–H16, H18.

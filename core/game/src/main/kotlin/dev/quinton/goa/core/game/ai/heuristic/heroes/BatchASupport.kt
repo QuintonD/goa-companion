@@ -146,20 +146,16 @@ internal object BatchA {
         ctx.possibleCards(heroId).any { it.card.id in ids }
 
     /**
-     * The chance [heroId]'s card this turn satisfies [test]. The played card once revealed (or a
-     * teammate's), else the hand when we may see it, else the public pool: each colour's weights
-     * sum to about one, and one colour is played.
+     * The chance [heroId]'s card this turn satisfies [test]: the played card once we may read it,
+     * else the public pool (`HContext.possibleCards`; at strength 10 the real hand plus the facedown
+     * played card, each weight 1). Not the bare hand: a card played facedown has left it.
      */
     fun chancePlays(ctx: HContext, heroId: String, test: (HCard) -> Boolean): Double {
         played(ctx, heroId)?.let { return if (test(it)) 1.0 else 0.0 }
-        ctx.hand(heroId)?.let { hand ->
-            if (hand.isEmpty()) return 0.0
-            return hand.count(test).toDouble() / hand.size
-        }
         val pool = ctx.possibleCards(heroId)
-        if (pool.isEmpty()) return 0.0
-        val colours = pool.map { it.card.color }.distinct().size.coerceAtLeast(1)
-        return (pool.filter { test(it.card) }.sumOf { it.weight } / colours).coerceIn(0.0, 1.0)
+        val total = pool.sumOf { it.weight }
+        if (total <= 0.0) return 0.0
+        return (pool.filter { test(it.card) }.sumOf { it.weight } / total).coerceIn(0.0, 1.0)
     }
 
     /**

@@ -260,3 +260,12 @@ When Bain is the enemy:
 - Optimal Play, "Bain the Bounty Hunter" (YouTube, 2025-06-12): description only ("never underestimate the psychological effect of the bounty token"), which restates [ADVICE]. No transcript retrieved, so no rule is taken from it. A 2024 playthrough (Bain & Min vs Whisper & Arien) has no strategy text in the description.
 
 No Bain-specific Reddit strategy thread was found. A 2022 4v4 session report (r/boardgames `v5yeu2`) names him in a lane and is not used.
+
+## Implementation notes
+
+What `heroes/BainHeuristics.kt` encodes, checked against the engine (2026-11-21).
+
+- Implemented: H1/H18 (gold: the marker on an enemy in radius 4 who does not wear it, more when an ally can reach them, plus the ultimate's discard; Side Quest the same), H2 (marker recipient, told apart from the attack target by its prompt; never an ally), H3 (the green blocks are a last resort: Close Call hands Bain the marker, Narrow Escape takes it back; whether the block holds is the engine's `blockPreview`), H4 (keep the green block while someone else wears the marker and an enemy can still attack), H5 (Get over here! only for an enemy hero on a clear line, best with an ally close), H7 (the crossbow replaces the general strike with the clear-line targets only: no unit and no terrain between, tokens allowed), H8 (Hand Crossbow / Hunter-Seeker: the marked hero in range or an adjacent unit, both on 3b), H9/H10 (A Game of Chance by 1/colours; guess the colour the visible hand holds most, ties red, blue, gold, green, silver), H12 (Drinking Buddies helps an ally, not an enemy), H15 (keep `bain-red-2a`, tucking `bain-red-2b` for Initiative). evalTerms: the marker on an enemy +4, on Bain or an ally −4.
+- Engine: Dead or Alive offers only enemy heroes in radius (`heroesInRadius(enemyOnly = true)`); only Side Quest can mark an ally.
+- Engine: the guess options are already only the colours that could be in the victim's hand (`Chance.guessable`), and the victim picks the card, so a strength-10 hand count is a likelihood, not a certainty.
+- Skipped: H6 (pull order), H11, H13, H14, H16, H17 (gold as turn-4 finisher is the general book's), threatAdjust (the general threat map already counts every hex in his range; a clear-line test would only lower it).
