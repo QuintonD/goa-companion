@@ -226,7 +226,7 @@ internal fun spawnEdge(ctx: HContext, zone: String, attacker: Team): Int =
  * Killing one enemy minion on [lane] changes `60 × W` (G58), from [HContext.team]'s side.
  * Raw counts, not push potential: the minion we take now is the one the projection was hoping for.
  */
-internal fun laneKillDelta(ctx: HContext, lane: String): Double {
+internal fun laneKillDelta(ctx: HContext, lane: String, side: Team = ctx.team): Double {
     val zones = ctx.game.geo.lanes[lane]?.zones ?: return 0.0
     val bz = ctx.state.battleZones[lane] ?: return 0.0
     val i = zones.indexOf(bz)
@@ -236,15 +236,15 @@ internal fun laneKillDelta(ctx: HContext, lane: String): Double {
     val waves = ctx.state.wavesLeft[lane] ?: 1
     val k = zones.lastIndex - i
     val w0 = laneWinOf(k, i, waves, pushProb(red, blue))
-    val theirs = if (ctx.team == Team.RED) blue else red
+    val theirs = if (side == Team.RED) blue else red
     val w1 = if (theirs <= 1.0) {
         // The last one pushes now (p.8): one zone on, a fresh wave, the throne when it was next.
-        if (ctx.team == Team.RED) pushedWin(k - 1, i + 1, waves, true) else pushedWin(k + 1, i - 1, waves, false)
+        if (side == Team.RED) pushedWin(k - 1, i + 1, waves, true) else pushedWin(k + 1, i - 1, waves, false)
     } else {
-        laneWinOf(k, i, waves, if (ctx.team == Team.RED) pushProb(red, blue - 1.0) else pushProb(red - 1.0, blue))
+        laneWinOf(k, i, waves, if (side == Team.RED) pushProb(red, blue - 1.0) else pushProb(red - 1.0, blue))
     }
     val dRed = w1 - w0
-    val d = if (ctx.team == Team.RED) dRed else -dRed
+    val d = if (side == Team.RED) dRed else -dRed
     val weight = if (ctx.profile.laneTiming && ctx.matchPoint(lane)) 100.0 else 60.0
     return weight * 2.0 * d
 }
@@ -287,4 +287,34 @@ private fun laneWinOf(k: Int, m: Int, w: Int, p: Double): Double {
     val win = if (k == 1 || w <= 1) 1.0 else laneWinOf(k - 1, m + 1, w - 1, 0.5)
     val lose = if (m == 1 || w <= 1) 0.0 else laneWinOf(k + 1, m - 1, w - 1, 0.5)
     return p * win + (1 - p) * lose
+}
+
+/**
+ * GENERAL §2 "minion opportunity", priced by the lane: an attack card still to play that reaches an
+ * enemy minion from [at] is a share of what that kill does to the lane (the last wave makes it large),
+ * a minion two spaces further a smaller share. Expected cards for a hidden hand (the pool's weights),
+ * at most two. From [h]'s side; zero once the hero has nothing left to play this round.
+ */
+internal fun laneThreat(ctx: HContext, h: HeroState, at: Hex, share: Double): Double {
+    if (share <= 0.0 || ctx.roundOver || ctx.playsLeft(h.id) <= 0) return 0.0
+    val cards: List<Pair<HCard, Double>> = if (h.team == ctx.team || ctx.profile.knowHands) {
+        (h.hand + h.unresolved).map { ctx.card(it.id) to 1.0 }
+    } else {
+        ctx.possibleCards(h.id).map { it.card to it.weight }
+    }
+    val targets = ctx.state.minions.filter { it.team != h.team && it.at != null && !ctx.heavyImmune(it.id) }
+    if (targets.isEmpty()) return 0.0
+    var near = 0.0
+    var far = 0.0
+    var lane: String? = null
+    for ((c, w) in cards) {
+        if (!c.attackCard) continue
+        val reach = ctx.attackReach(h.id, c).coerceAtLeast(1)
+        val d = targets.minOf { ctx.distance(at, it.at!!) }
+        if (d <= reach) near += w else if (d <= reach + 2) far += w
+        if (lane == null) lane = targets.minByOrNull { ctx.distance(at, it.at!!) }?.lane
+    }
+    val l = lane ?: return 0.0
+    val value = laneKillDelta(ctx, l, h.team).coerceAtLeast(0.0)
+    return share * value * (minOf(near, 2.0) + 0.35 * minOf(far, 2.0 - minOf(near, 2.0)))
 }

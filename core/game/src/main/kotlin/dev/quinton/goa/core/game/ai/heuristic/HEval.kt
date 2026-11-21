@@ -29,6 +29,9 @@ object HEval {
      */
     private const val PP_SCALE = 0.4
 
+    /** Share of a kill's lane value that a minion in reach of a card still to play is worth. */
+    internal const val LANE_THREAT = 0.3
+
     fun evaluate(ctx: HContext, team: Team): Double = evaluate(ctx, team, null)
 
     /**
@@ -71,6 +74,8 @@ object HEval {
         val bodies = listOf(at) + ctx.state.pieces.filter { it.heroBody == h.id && it.at != null }.map { it.at!! }
         v += bodies.maxOf { ctx.presence(it) }
         v += bodies.maxOf { ctx.opportunity(h.id, it) } * 2.0 * ctx.profile.knob("opp", 1.0)
+        val share = ctx.profile.knob("oppLane", LANE_THREAT)
+        if (share > 0.0) v += bodies.maxOf { laneThreat(ctx, h, it, share) }
         if (ctx.profile.laneTiming) v += bodies.maxOf { zonePull(ctx, h.id, it) }
         if (ctx.profile.threatMap) v -= exposure ?: bodies.maxOf { ctx.exposure(h.id, it) }
         return v

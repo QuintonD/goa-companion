@@ -32,6 +32,9 @@ class HeuristicAi(
 ) : AiPlayer {
     val profile: HeuristicProfile = HeuristicProfile.of(strength).copy(tune = tune)
 
+    /** Diagnostics only: receives a line per looked-at decision with each option's value. */
+    internal var trace: ((String) -> Unit)? = null
+
     override fun choose(session: GameSession, decision: Decision, cancelled: () -> Boolean): Choice {
         if (decision.options.isEmpty()) return Fallback.choose(decision)
         if (decision.options.size == 1) return decision.options.single()
@@ -105,6 +108,7 @@ class HeuristicAi(
                 General.commitment(ctx, d, d.options[i]) +
                 adjust(book, ctx, d, d.options[i])
         }
+        trace?.invoke("${d.seat} ${d.kind} " + got.indices.joinToString(" ") { "${d.options[got[it]]}=${round1(values[it])}" })
         if (got.isEmpty() || values.none { it > Lookahead.WORSE / 2 }) return null
         return pick(d, got, values.toDoubleArray(), rng, fromLook = true)
     }
@@ -124,6 +128,11 @@ class HeuristicAi(
             val sim = CardSim.value(ctx, (o as Choice.Card).cardId) ?: return null
             values[i] = sim + General.commitment(ctx, d, o) + adjust(book, ctx, d, o)
         }
+        trace?.invoke(
+            "${d.seat} cards " + d.options.indices.joinToString(" ") { i ->
+                "${(d.options[i] as Choice.Card).cardId}=${round1(values[i])}"
+            },
+        )
         return pick(d, d.options.indices.toList(), values, rng, fromLook = true)
     }
 
@@ -203,6 +212,8 @@ class HeuristicAi(
         }
         return seen
     }
+
+    private fun round1(v: Double): Double = kotlin.math.round(v * 10.0) / 10.0
 
     companion object {
         private const val CRITICAL = 12.0

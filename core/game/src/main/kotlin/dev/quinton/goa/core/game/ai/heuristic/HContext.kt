@@ -253,6 +253,7 @@ class HContext(
         val style = style(heroId)
         var v = presence(at) * style.laneWeight
         v += opportunity(heroId, at) * 2.0 * profile.knob("opp", 1.0)
+        state.hero(heroId)?.let { v += laneThreat(this, it, at, profile.knob("oppLane", HEval.LANE_THREAT)) }
         v += formation(heroId, at, style)
         if (profile.threatMap) v -= exposurePenalty(heroId, at) * profile.knob("fear", 1.0)
         if (profile.turnPlans && heroId == seat) v += planPull(at)

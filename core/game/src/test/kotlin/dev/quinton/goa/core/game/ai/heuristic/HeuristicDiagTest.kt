@@ -34,11 +34,14 @@ class HeuristicDiagTest {
                 val lines = ArrayList<Pair<Int, String>>()
                 var seenEvents = 0
                 var lastKey = -1
+                val pa = player(aName, if (aRed) seed else seed + 1)
+                (pa as? HeuristicAi)?.trace = { line -> lines += lastKey to "    > $line" }
+                val pb = player(bName, if (aRed) seed + 1 else seed)
                 val r = AiHarness.play(
                     AiHarness.setup(red, blue, AiLevel.NORMAL, AiLevel.NORMAL, coin),
                     mapOf(
-                        Team.RED to player(if (aRed) aName else bName, seed),
-                        Team.BLUE to player(if (aRed) bName else aName, seed + 1),
+                        Team.RED to if (aRed) pa else pb,
+                        Team.BLUE to if (aRed) pb else pa,
                     ),
                     observe = { s, d ->
                         val st = s.state
@@ -129,8 +132,11 @@ class HeuristicDiagTest {
             val blue = st.minions.count { it.team == Team.BLUE && it.lane == lane && it.at != null }
             "$bz R$red B$blue waves ${st.wavesLeft[lane]}"
         }
+        val minions = st.minions.filter { it.at != null }.joinToString(" ") { m ->
+            "${m.team.name[0]}${m.type.name[0]}${m.at!!.q},${m.at!!.r}"
+        }
         return "R${st.round}T${st.turn} life R${st.lifeCounters[Team.RED]} B${st.lifeCounters[Team.BLUE]} " +
-            "coin ${st.tieBreaker} $lanes :: $heroes"
+            "coin ${st.tieBreaker} $lanes :: $heroes :: $minions"
     }
 
     private fun player(spec: String, seed: Long): AiPlayer {
