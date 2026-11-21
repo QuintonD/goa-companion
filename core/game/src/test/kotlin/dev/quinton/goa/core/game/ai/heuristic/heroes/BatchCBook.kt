@@ -13,7 +13,7 @@ import dev.quinton.goa.core.game.engine.EngineSession
 import dev.quinton.goa.core.model.match.Team
 
 /** Shared checks for this batch. A playbook's note has to change the card the general book would play. */
-internal object HeroBookTest {
+internal object BatchCBook {
     fun finish(hero: String, size: Int, strength: Int) {
         val pool = listOf("arien", "brogan", "wasp", "min", "xargatha").filter { it != hero }
         val red = listOf(hero) + pool.take(size - 1)
