@@ -101,6 +101,9 @@ class HContext(
     private val modCache = HashMap<Long, Int>()
     private val styleCache = HashMap<String, HeroStyle>()
 
+    /** Per-decision results a look computes once for every option ([CardSim]'s teammate prelude). */
+    internal val memo = HashMap<String, Any?>()
+
     /** The intent for this turn, derived from the state. Stable for the whole decision. */
     val plan: TurnPlan by lazy { TurnPlan.derive(this) }
 

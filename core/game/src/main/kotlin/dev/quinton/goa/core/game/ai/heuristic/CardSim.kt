@@ -2,6 +2,7 @@ package dev.quinton.goa.core.game.ai.heuristic
 
 import dev.quinton.goa.core.game.AnswerResult
 import dev.quinton.goa.core.game.Choice
+import dev.quinton.goa.core.game.Controller
 import dev.quinton.goa.core.game.Decision
 import dev.quinton.goa.core.game.DecisionKind
 import dev.quinton.goa.core.game.engine.EngineSession
@@ -55,7 +56,7 @@ internal object CardSim {
 
     private fun start(ctx: HContext, d: Decision, cardId: String): EngineSession? {
         val data = ctx.session.engineData
-        val st = ctx.state.copy()
+        val st = (prelude(ctx, d) ?: ctx.state).copy()
         // Not revealed: a card someone played facedown before us stays hidden in every score below.
         st.revealed = false
         Game(data, st, emptyList(), RunMode.PROBE).moveCard(ctx.seat, cardId, Zone.PLAYED)
@@ -69,6 +70,59 @@ internal object CardSim {
         sim.haltWhen = { s -> seat in s.turnRecord.resolved || s.step != Step.RESOLVE }
         sim.start()
         return sim
+    }
+
+    /**
+     * Team play at the card play (G14): a computer teammate whose facedown card (known to its team; a
+     * human teammate's stays hidden) acts before ours resolves first, with its own book, once per
+     * decision. Our card is then looked at on the position that teammate leaves: the minion it takes,
+     * the hero it strips, where it stands. Null when no such teammate, or its action cannot be finished.
+     */
+    private fun prelude(ctx: HContext, d: Decision): dev.quinton.goa.core.game.engine.GameState? {
+        if (!ctx.profile.focusFire || !ctx.profile.on("allyFirst", true)) return null
+        if (ctx.memo.containsKey(PRELUDE)) return ctx.memo[PRELUDE] as dev.quinton.goa.core.game.engine.GameState?
+        val v = try {
+            allyAction(ctx, d)
+        } catch (e: CancellationException) {
+            throw e
+        } catch (_: Exception) {
+            null
+        }
+        ctx.memo[PRELUDE] = v
+        return v
+    }
+
+    private fun allyAction(ctx: HContext, d: Decision): dev.quinton.goa.core.game.engine.GameState? {
+        val own = ctx.own() ?: return null
+        val ours = own.hand.maxOfOrNull { ctx.card(it.id).initiative + ctx.itemBonus(ctx.seat, Stat.INITIATIVE) }
+            ?: return null
+        val computer = ctx.session.setup.seats.filter { it.controller != Controller.Human }.map { it.heroId }.toSet()
+        // Only a teammate who surely acts before any card of ours: the order does not depend on our choice.
+        val ally = ctx.allies().filter { a -> a.id in computer && a.id !in ctx.state.turnRecord.resolved }
+            .mapNotNull { a ->
+                val played = a.cards.singleOrNull { it.zone == Zone.PLAYED } ?: return@mapNotNull null
+                (a.id to ctx.card(played.id).initiative + ctx.itemBonus(a.id, Stat.INITIATIVE)).takeIf { it.second > ours }
+            }.maxByOrNull { it.second }?.first ?: return null
+        val st = ctx.state.copy()
+        st.revealed = false
+        st.step = Step.RESOLVE
+        st.acting = null
+        st.vars[NEXT_ACTOR] = ally
+        val sim = EngineSession(ctx.session.engineData, ctx.session.setup, st, Random(HeuristicAi.mix(d.id, ally.hashCode().toLong())))
+        sim.quiet = true
+        sim.haltWhen = { s -> ally in s.turnRecord.resolved || s.step != Step.RESOLVE }
+        sim.start()
+        var n = 0
+        while (n < PRELUDE_CAP) {
+            val q = sim.pending ?: break
+            val c = HContext(sim, q, q.team, ctx.profile, ctx.playbooks, seen = ctx.seen, finishing = true)
+            val choice = policy(c, q, ally) ?: return null
+            if (sim.answer(q.id, choice) !is AnswerResult.Accepted) return null
+            n++
+        }
+        val end = sim.state
+        if (sim.pending != null || end.winner != null || ally !in end.turnRecord.resolved) return null
+        return end
     }
 
     /**
@@ -232,6 +286,8 @@ internal object CardSim {
     }
 
     private const val CAP = 16
+    private const val PRELUDE_CAP = 24
+    private const val PRELUDE = "cardSim.prelude"
 
     /** Answers tried at a branched choice. */
     private const val WIDTH = 4
