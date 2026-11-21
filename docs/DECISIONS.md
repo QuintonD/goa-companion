@@ -3032,3 +3032,24 @@ game). `HeuristicProfile.tune` holds measurement knobs; play leaves it empty. Me
 line-ups (300–395, 192 mirrored 2v2 games each): h10 against the old search s5 80.7%, s8 46.9%
 (54.7% on the tuning line-ups; the foundation made 14.6%), s10 17.2% (s10 answers in 386 ms); the ladder h10 > h8 56.3%, h8 > h5 56.3%,
 h5 > h3 91.1%, h3 > h1 68.8%. Answers average about 5 ms (p95 20 ms) on oldboi.
+
+Integration with the 32 hero playbooks (2026-11-21, `core/game/ai/heuristic/RESULTS.md`): merged as built,
+h10 made 47.9% against s8 on the held-out line-ups and the playbooks beat the bare general book by a
+non-significant 52.1%. Four shared flaws were fixed in the general book: a card that only makes a hero
+discard no longer counts minions as targets (`HCard.hitsMinions`); a card's own space with no unit named
+is probed once through the engine, so a Turret, Barrier or grenade space is no hero's placement
+(`HContext.placedHero`); the answer always comes from the real question (it already did;
+`HeuristicLegalityTest` holds it); a floor under the research lane weights measured worse and was not
+kept. Hero notes that corrected the old static strike estimate now return 0 when they are added to an
+engine look (`HContext.patches`): the card play's value is the engine's, and a correction there counted the
+hit twice (measured even, kept for correctness). A computer teammate's known card that acts first is
+resolved before our card's look (G14, from strength 7). The lane is worth 1.4 times more in `HEval`, the one
+change that moved the needle (49.7% to 54.3% against s8 on development line-ups). Per-hero ablation at
+strength 8: mean 50.6%, every hero at or above 47% after re-measuring the low ones on fresh line-ups
+(Widget's and Misa's minion bullets, Hanu's style fixed). Final, held out: h10 against s8 55.2% (300–395)
+and 53.1% (600–695), 54.2% (49.2–59.1) over both; against s5 81.8%; against s10 15.6% (s10 wins most by the Throne); in 3v3 against s8
+49.0% (96 games). The ladder: h8 > h5 60.4%, h5 > h3 93.2%, h3 > h1 59.9%, but h10 and h8 are even (50.5%):
+the layers from 9 up add nothing measurable. Answers average 5–7 ms (p95 20–25 ms); the longest single
+answer was 540–580 ms with six games running at once (a cold JVM and shared cores; warm and alone, the longest 3v3 answer was 46 ms). The old search stays the coach, the puzzle
+solver and the yardstick. Still weak: empty-hand defeats (h10 loses about 1.5 times as many heroes with no
+card to defend as s8), and 3v3.

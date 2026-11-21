@@ -109,3 +109,33 @@ more often than s8's (about 340 against 250 in 768 games). The cases are tactica
 enemy on turn 3 that leaves the hero empty-handed and in reach for turn 4, the last card spent on turn 3,
 a declined defense on turn 4. The book's caps on that risk barely change a choice; a fix needs a turn-4
 plan for the empty hand, not a weight.
+
+## 5. Final table (held out)
+
+The book as committed: general v2, the 32 playbooks, flaws a–c fixed, corrections silenced inside a look,
+teammate first, lane ×1.4. Mirrored 2v2 games on line-ups 300–395 (and 600–695 for s8), `AI_THREADS=6`.
+"Empty" is defeats of a hero with no card left to defend with. Answer times are per question with more than
+one option, on oldboi with six games at once (the maximum includes the cold start of the JVM).
+
+| Pair | Line-ups | Games | Win | Wilson | Defeats/game (empty) | How games ended (push / Life / Throne) | Answer ms h-side mean / p95 / max |
+|------|----------|-------|-----|--------|------|------|------|
+| h10 : s8 | 300–395 | 192 | **55.2%** | 48.1–62.1 | 0.87 (76) / 1.10 (53) | 108 / 40 / 44; h10 won 50 / 23 / 33 | 5.87 / 21.0 / 545 |
+| h10 : s8 | 600–695 | 192 | **53.1%** | 46.1–60.1 | 1.01 (80) / 0.93 (52) | 117 / 44 / 31; h10 won 64 / 15 / 23 | 5.53 / 19.3 / 578 |
+| h10 : s5 | 300–395 | 192 | 81.8% | 75.7–86.6 | 0.53 (40) / 1.32 (67) | 81 / 39 / 72 | 4.77 / 16.3 / 110 |
+| h10 : h8 | 300–395 | 192 | 50.5% | 43.5–57.5 | 0.95 (94) / 0.88 (81) | 117 / 42 / 33 | 4.61 / 16.1 / 126 |
+| h8 : h5 | 300–395 | 192 | 60.4% | 53.4–67.1 | 0.59 (57) / 1.23 (119) | 103 / 45 / 44 | 4.66 / 16.1 / 87 |
+| h5 : h3 | 300–395 | 192 | 93.2% | 88.8–96.0 | 0.32 (19) / 1.53 (102) | 86 / 52 / 54 | 1.68 / 5.2 / 29 |
+| h3 : h1 | 300–395 | 192 | 59.9% | 52.8–66.6 | 0.66 (40) / 1.61 (75) | 101 / 74 / 17 | 0.42 / 1.1 / 29 |
+| h10 : s10 | 300–395 | 192 | 15.6% | 11.2–21.4 | 1.20 (97) / 0.95 (56) | 94 / 48 / 50; s10 won 76 / 38 / 48 | 4.94 / 17.5 / 424 |
+| 3v3 h10 : s8 | 300–347 | 96 | 49.0% | 39.2–58.8 | 1.89 (88) / 1.65 (50) | 50 / 28 / 18 | 7.09 / 25.4 / 540 |
+
+Both held-out sets together: h10 against s8 208–176 of 384 = 54.2% (Wilson 49.2–59.1). Against the merged branch as it came
+(47.9% on 300–395) that is +7 points; against general v2 with stubs (46.9%) +8.
+
+The longest answers above are a cold JVM and six games sharing the cores: a 3v3 h10 mirror on one thread
+(`AI_FORMAT=3v3`, 48 games, run twice in one JVM) answered in at most 276 ms on its first pass and 46 ms
+on the second (mean 3.3 ms, p95 11 ms). General v2 with stubs made 17.2% against s10; the old 10 still wins
+most by the Throne, the gap the brief names, and it knows the enemies' hands as h10 does.
+
+What is left (step 4 found no weight that moves it): the empty-hand defeats; 3v3, where h10 is even with s8;
+strengths 9 and 10 add nothing over 8 (h10 : h8 50.5%); and s10.

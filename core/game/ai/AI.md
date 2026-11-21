@@ -13,6 +13,12 @@ below — determinized playouts, the learned net — is no longer that player. I
 puzzle solver, and `AiPlayers.searchDeterministic` / `searchForStrength`, so a tournament can still
 measure the book against it. Do not delete it.
 
+Measured strength of the book (2026-11-21, held-out line-ups, [`heuristic/RESULTS.md`](heuristic/RESULTS.md)):
+strength 10 wins 54.2% of 2v2 games against the old search at 8 (55.2% and 53.1% on two held-out sets),
+81.8% against the old 5, 15.6% against the old 10, and 49.0% of 3v3 games against the old 8. The ladder
+below it is real from 1 to 8 (h3 > h1 59.9%, h5 > h3 93.2%, h8 > h5 60.4%); 10 and 8 are even. It answers
+in 5–7 ms on average (p95 20–25 ms) on oldboi; the search's numbers below are the old player's.
+
 ## Architecture
 
 The app binds these in `core/data/.../game/PlayEngineModule.kt`:

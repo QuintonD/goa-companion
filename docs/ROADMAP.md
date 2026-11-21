@@ -582,6 +582,16 @@ passes (including an in-place upgrade from the morning build with real data). Ev
 - [ ] Device check on the S25 Ultra; owner's verdict on the play table, iterate
 - [ ] Web (`web/`) follows: its DecisionPanel, table HUD, Play tab and catalog layouts still have the old form
 
+## M34 — The heuristic computer opponent (ADR-085) — built, JVM-tested; not verified on device
+- [x] Research: GENERAL.md and one `heroes/<id>.md` per hero, sourced — 2026-11-20
+- [x] Foundation, general playbook v2 (CardSim) and 32 hero playbooks; `AiPlayers.forApp`/`forStrength`/`deterministic`/`forLevel`
+  return `HeuristicAi`; the old search stays as coach, puzzle solver and `searchDeterministic` — 2026-11-21
+- [x] Integration: the hero notes reconciled with CardSim, four shared flaws fixed, teammate first, lane ×1.4; held out
+  h10 against the old s8 54.2% (384 games), s5 81.8%, ladder 1→8 real (`core/game/ai/heuristic/RESULTS.md`) — 2026-11-21, JVM tournaments only
+- [ ] Owner's targets: h10 ≥ 55% against s8 on both held-out sets (55.2% and 53.1% now), closing on s10 (15.6%); 3v3 49.0%
+- [ ] Strengths 9–10 above 8 (even now); fewer empty-hand defeats
+- [ ] Device check on the S25 Ultra (answer times on the phone; desktop: mean 5–7 ms, longest warm 3v3 answer 46 ms)
+
 ## M5 — Polish & release readiness
 - [x] Accessibility pass: ATF checks on 25 screens (no errors), contrast fixes, TalkBack labels, font scale 2.0 screenshots — 2026-10-17 (emulator/JVM)
 - [ ] Tablet sanity check
