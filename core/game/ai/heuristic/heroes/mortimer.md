@@ -171,3 +171,12 @@ When the enemy is Mortimer:
 - [BGG 3556825] Mortimer Build & Go, 2025-08-10, same author. Vengeful Dead, Money Maker, Standard and Resurrection openings.
 - [BGG 3487749] 2025-03-30, community: Mrak + Mortimer as a durable token pair.
 - No 1st-printing conflict in the sources used. No Reddit thread found. The guides are one author's; branch order inside a tier is described as flexible, and the rules keep that.
+
+## Implementation notes
+
+`MortimerHeuristics.kt`, checked against `MortimerHero.kt` and `engine/Board.kt` (2026-11-21).
+
+- Rule 1/2 checked: a token on a spawn point is removed when a unit spawns there (`spawnPiece`, p.19), so a zombie placed on a spawn is a short-lived one; the placement score avoids spawns.
+- The "choose up to N times" bullets are `CHOOSE_OPTION`s; the lookahead plays them (rules 7, 8, 9's bullet).
+- `evalTerms` does not add a flat value per zombie: `HEval` already counts every lasting token.
+- Skipped: 4, 5, 10, 11, 13 beyond `upgradeOrder`.

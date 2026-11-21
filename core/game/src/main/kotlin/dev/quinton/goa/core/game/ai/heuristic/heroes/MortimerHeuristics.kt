@@ -39,7 +39,8 @@ object MortimerHeuristics : HeroHeuristics {
         if (heroId != this.heroId) return 0.0
         val sign = BatchB.sign(state, team, heroId)
         val zombies = BatchB.tokens(state, heroId, MortimerHero.ZOMBIE)
-        var value = zombies.size * 1.0
+        // evalTerms: HEval already counts each zombie as a lasting token; these are the herd's jobs.
+        var value = 0.0
         val hero = state.hero(heroId)?.at
         if (hero != null) {
             val packed = zombies.count { zombie ->
@@ -49,7 +50,7 @@ object MortimerHeuristics : HeroHeuristics {
                         HexGrid.distance(hero, enemy.at!!) <= 4
                 }
             }
-            value += packed * 2.0
+            value += packed * 1.5
         }
         return sign * value
     }
@@ -61,8 +62,8 @@ object MortimerHeuristics : HeroHeuristics {
         val beside = BatchB.tokens(ctx.state, heroId, MortimerHero.ZOMBIE).any { zombie ->
             HexGrid.distance(zombie.at!!, target) == 1
         }
-        // The discard and the retrieve reach a hero who is next to a zombie, not next to him.
-        return if (beside && BatchB.hold(ctx, heroId) { it.id.startsWith("mortimer-red") } > 0.2) 6.0 else 0.0
+        // threatAdjust: the red's discard reaches a hero next to a zombie in radius 4, not next to him.
+        return if (beside) 2.5 * BatchB.hold(ctx, heroId) { it.id in DISCARD_REDS } else 0.0
     }
 
     private fun play(ctx: HContext, choice: Choice): Double {
@@ -76,8 +77,8 @@ object MortimerHeuristics : HeroHeuristics {
         val at = ctx.own()?.at ?: return 0.0
         val herd = BatchB.tokens(ctx.state, heroId, MortimerHero.ZOMBIE).size
         if (herd >= 2) return 0.0
-        if (BatchB.enemyMinionWithin(ctx, at, 1)) return -4.0
-        return if (herd == 0) 8.0 else 4.0
+        if (BatchB.enemyMinionWithin(ctx, at, 1)) return -2.0
+        return if (herd == 0) 5.0 else 2.5
     }
 
     // H3: gold is attack 4 until a zombie is already on the target. Do not spend the herd on a whiff.
@@ -91,13 +92,13 @@ object MortimerHeuristics : HeroHeuristics {
             val pos = enemy.at ?: return@any false
             ctx.distance(at, pos) == 1 && zombiesBeside(ctx, pos) > 0
         }
-        return if (ready) 10.0 else -4.0
+        return if (ready) 3.0 else 0.0
     }
 
     // H6: two zombies on a minion in range is the replace. It pushes without paying coins.
     private fun replace(ctx: HContext, id: String): Double {
         if (id != "mortimer-green-2b" && id != "mortimer-green-3b") return 0.0
-        return if (packedMinion(ctx)) 10.0 else -4.0
+        return if (packedMinion(ctx)) 10.0 else -1.0
     }
 
     // H12: an attack whose only target can still walk is a wasted red.
@@ -105,7 +106,7 @@ object MortimerHeuristics : HeroHeuristics {
         if (!id.startsWith("mortimer-red") && id != "mortimer-gold") return 0.0
         val at = ctx.own()?.at ?: return 0.0
         val adjacent = BatchB.enemyMinionWithin(ctx, at, 1) || BatchB.enemyHeroWithin(ctx, at, 1)
-        return if (adjacent) 0.0 else -6.0
+        return if (adjacent) 0.0 else -2.0
     }
 
     // H1 placement: a spawn the wave will use deletes the zombie. Prefer any other empty space.
@@ -113,8 +114,10 @@ object MortimerHeuristics : HeroHeuristics {
         if (d.sourceCardId != "mortimer-silver") return 0.0
         val hex = (choice as? Choice.Space)?.hex ?: return 0.0
         val spawn = ctx.game.geo.spaces[hex]?.spawn != null
-        return if (spawn) -4.0 else 1.0
+        return if (spawn) -2.0 else 0.0
     }
+
+    private val DISCARD_REDS = setOf("mortimer-red-1", "mortimer-red-2a", "mortimer-red-3a")
 
     private fun zombiesBeside(ctx: HContext, at: Hex): Int =
         BatchB.tokens(ctx.state, heroId, MortimerHero.ZOMBIE).count { zombie ->
