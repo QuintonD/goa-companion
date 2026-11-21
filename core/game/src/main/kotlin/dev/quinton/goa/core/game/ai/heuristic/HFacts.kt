@@ -27,7 +27,8 @@ internal fun heroIsDefenseless(ctx: HContext, heroId: String): Boolean {
     val h = ctx.state.hero(heroId) ?: return false
     if (h.hand.isEmpty()) return true
     if (ctx.state.revealed || ctx.roundOver) return false
-    return h.hand.size <= 1 && ctx.playsLeft(heroId) > 0
+    // Only this turn's card empties the hand now; a hero that already played facedown still defends.
+    return h.hand.size <= 1 && ctx.playsThisTurn(h)
 }
 
 /** Has not resolved a card yet, and still will this turn. */
@@ -53,7 +54,7 @@ internal fun defensePool(ctx: HContext, h: HeroState, without: String?): List<HC
     val cards = if (h.team == ctx.team || ctx.profile.knowHands) {
         h.hand.map { ctx.card(it.id) }
     } else {
-        ctx.possibleCards(h.id).map { it.card }
+        ctx.possibleCards(h.id).filter { !it.playingNow }.map { it.card }
     }
     return cards.filter { it.id != without && (it.canDefend || it.block) }
 }
@@ -199,7 +200,8 @@ internal fun goalZoneOf(ctx: HContext, heroId: String): String? {
     var best: String? = null
     var bestScore = Double.NEGATIVE_INFINITY
     for ((lane, bz) in ctx.state.battleZones) {
-        val margin = ctx.laneMargin(lane)
+        // [HContext.laneMargin] is from ctx.team; the push direction below is from h.team.
+        val margin = if (h.team == ctx.team) ctx.laneMargin(lane) else -ctx.laneMargin(lane)
         val dest = when {
             ctx.matchPoint(lane) || stepsToEnemyThrone(ctx, lane, h.team) <= 1 -> bz
             margin <= -2 -> nextZoneOf(ctx, lane, h.team.opponent) ?: bz

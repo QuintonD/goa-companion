@@ -162,7 +162,8 @@ object HEval {
             return (h.hand + h.unresolved).count { ctx.card(it.id).attackCard }.toDouble()
         }
         val spent = h.cards.count { inst ->
-            val face = inst.zone == Zone.RESOLVED || (inst.zone == Zone.DISCARD && !inst.faceDown)
+            // A facedown card (p.10) is hidden: its identity here is the sample's, not public.
+            val face = (inst.zone == Zone.RESOLVED || inst.zone == Zone.DISCARD) && !inst.faceDown
             face && ctx.card(inst.id).attackCard
         }
         return (2.0 - spent).coerceAtLeast(0.0)
