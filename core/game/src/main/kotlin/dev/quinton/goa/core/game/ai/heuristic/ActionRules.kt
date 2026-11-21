@@ -24,14 +24,19 @@ internal object ActionRules {
         val base = when (o.action) {
             // G39: Hold with a minion in reach is a wasted action. G40: otherwise Hold is the floor, 0.
             ActionType.HOLD -> if (strike >= 4.0 && ctx.exposure(h.id, at) < ctx.killWorth(h.id) * 0.5) -8.0 else 0.0
+
             ActionType.MOVEMENT -> bestMove(ctx, h.id, at, cardId) - here
+
             // G34: Fast Travel reaches a zone a walk cannot.
             ActionType.FAST_TRAVEL -> bestTravel(ctx, h.id, here, card)
+
             // G33: a primary the engine already knows does nothing. G32: one that does is the plan.
             ActionType.PRIMARY ->
                 if (d.context.primaryPreview?.noEffect != null) -8.0 else primary(ctx, h.id, at, card, here)
+
             // G37: the secondary attack, when the primary cannot reach.
             ActionType.ATTACK -> strike
+
             // G38: Clear when the piece is worth more than the attack it costs.
             ActionType.CLEAR -> clearValue(ctx, at) - max(0.0, strike) * 0.5
         }

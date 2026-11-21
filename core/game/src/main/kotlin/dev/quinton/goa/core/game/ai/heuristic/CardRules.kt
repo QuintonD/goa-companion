@@ -68,14 +68,20 @@ internal object CardRules {
         return when (stat) {
             // G109: an attack point counts on every attack card (less from 7, past the threshold that matters).
             Stat.ATTACK -> cards.count { it.attackCard } * if (ctx.profile.initiativeReading) 0.8 else 1.0
+
             // G108: a defense point on every card that defends.
             Stat.DEFENSE -> cards.count { it.canDefend && it.defense != null } * 0.7
+
             // G110: initiative, a little on every card.
             Stat.INITIATIVE -> cards.size * 0.35
+
             // G111: movement, range and radius on the cards that use them.
             Stat.MOVEMENT -> cards.count { it.hasMovement } * 0.35
+
             Stat.RANGE -> cards.count { it.ranged } * 0.75
+
             Stat.RADIUS -> cards.count { it.radius > 0 } * 0.4
+
             null -> 0.0
         }
     }

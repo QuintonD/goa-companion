@@ -58,7 +58,7 @@ internal object MiscRules {
     }
 
     /** G89: an optional step is taken when it is not free damage; the look measures it from strength 3. */
-    fun confirm(ctx: HContext, o: Choice): Double = if (o is Choice.Yes) 0.35 else 0.0
+    fun confirm(o: Choice): Double = if (o is Choice.Yes) 0.35 else 0.0
 
     /** G90: Yes that spends the last card that answers a threat still coming. */
     fun confirmCommitment(ctx: HContext, o: Choice): Double {
@@ -70,12 +70,7 @@ internal object MiscRules {
     }
 
     /** G92: more is usually more; the look picks the distance that lands best (G93 may be 0). */
-    fun number(ctx: HContext, d: Decision, o: Choice): Double = if (o is Choice.Number) o.value * 0.2 else 0.0
-
-    /** G85: every bullet goes through the look; none is preferred blind. */
-    fun option(ctx: HContext, d: Decision, o: Choice): Double = 0.0
-
-    fun optionCommitment(ctx: HContext, d: Decision, o: Choice): Double = 0.0
+    fun number(o: Choice): Double = if (o is Choice.Number) o.value * 0.2 else 0.0
 
     /**
      * REMOVE_MINION, the Minion Battle loser (RB p.8): G95 the heavy goes last (the engine withholds it);

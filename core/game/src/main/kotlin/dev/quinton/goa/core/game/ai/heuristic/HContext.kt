@@ -183,9 +183,11 @@ class HContext(
         val later = (4 - state.turn).coerceAtLeast(0)
         val thisTurn = when (state.step) {
             Step.TURN_START -> true
+
             Step.PLAY, Step.REVEAL, Step.RESOLVE ->
                 h.unresolved.isEmpty() && h.hand.isNotEmpty() && heroId !in state.turnRecord.resolved &&
                     (state.step != Step.PLAY || h.seat >= state.stepSeat)
+
             else -> false
         }
         return later + if (thisTurn) 1 else 0
@@ -581,58 +583,79 @@ class HContext(
         var noHit = 1.0
         var attackReaches = false
         // Cards in hand while this turn resolves, and while the next one does (one more is played).
-        val pending = playsThisTurn(h)
-        val nowCards = h.hand.size - if (pending) 1 else 0
+        val nowCards = h.hand.size - if (playsThisTurn(h)) 1 else 0
         val emptyNext = state.turn < 4 && nowCards - 1 <= 0
         val attackers = ArrayList<Double>()
         for ((enemyId, list) in threatsFromEnemies(h)) {
             val from = state.hero(enemyId)?.at ?: continue
-            val acted = alreadyActed(enemyId)
-            var killNow = 0.0
-            var hitNow = 0.0
-            var killNext = 0.0
-            var hitNext = 0.0
-            for (info in list) {
-                val t = info.threat
-                if (t.thisTurn && acted) continue
-                val at = where(info) ?: continue
-                if (distance(from, at) > t.reach) continue
-                var w = t.weight.coerceIn(0.0, 0.9)
-                val attack = t.card.attackCard || t.card.discardOrDefeat
-                // G11 and section 2: no card left after the one still to play is a defeat by any attack.
-                val lethal = kills(h, t, minionModifier(at, h.team)) || (!t.thisTurn && emptyNext && attack)
-                if (t.thisTurn && attack) attackReaches = true
-                if (lethal && !info.known) {
-                    val pull = when {
-                        t.thisTurn -> profile.knob("lethal", LETHAL_NOW)
-                        emptyNext -> profile.knob("lethalEmpty", LETHAL_EMPTY)
-                        else -> profile.knob("lethalNext", LETHAL_NEXT)
-                    }
-                    w = max(w, pull * info.poolWeight)
-                }
-                when {
-                    t.thisTurn && lethal -> killNow += w
-                    t.thisTurn -> hitNow += if (attack) w else w * 0.5
-                    lethal -> killNext += w
-                    else -> hitNext += w
-                }
-            }
+            val c = enemyChances(h, from, alreadyActed(enemyId), list, emptyNext, where)
+            if (c.attackReaches) attackReaches = true
             val nextCap = if (emptyNext) profile.knob("emptyCap", 0.6) else 0.28
-            noKill *= (1.0 - min(0.70, killNow)) * (1.0 - min(nextCap, killNext))
-            noHit *= (1.0 - min(0.70, hitNow)) * (1.0 - min(0.28, hitNext))
-            if (hitNow > 0.0) attackers += min(0.70, hitNow)
+            noKill *= (1.0 - min(0.70, c.killNow)) * (1.0 - min(nextCap, c.killNext))
+            noHit *= (1.0 - min(0.70, c.hitNow)) * (1.0 - min(0.28, c.hitNext))
+            if (c.hitNow > 0.0) attackers += min(0.70, c.hitNow)
         }
         var pKill = min(0.92, 1.0 - noKill)
         if (attackReaches && defenseless(h.id)) pKill = max(pKill, 0.85)
         // One card to defend with and two enemies who can hit: the second hit is the defeat.
         if (nowCards == 1 && attackers.size >= 2 && profile.on("twoHits", true)) {
-            val none = attackers.fold(1.0) { a, p -> a * (1.0 - p) }
+            val none = attackers.fold(1.0) { acc, p -> acc * (1.0 - p) }
             val one = attackers.sumOf { p -> p * none / (1.0 - p).coerceAtLeast(0.05) }
             val two = (1.0 - none - one).coerceIn(0.0, 1.0)
             pKill = 1.0 - (1.0 - pKill) * (1.0 - two)
         }
         val pHit = (1.0 - pKill) * min(0.9, 1.0 - noHit)
         return pKill to pHit
+    }
+
+    /** One enemy's chances to defeat or hit [h], this turn and the next, each threat met where [where] says. */
+    private fun enemyChances(
+        h: HeroState,
+        from: Hex,
+        acted: Boolean,
+        list: List<ThreatInfo>,
+        emptyNext: Boolean,
+        where: (ThreatInfo) -> Hex?,
+    ): EnemyChances {
+        val c = EnemyChances()
+        for (info in list) {
+            val t = info.threat
+            if (t.thisTurn && acted) continue
+            val at = where(info) ?: continue
+            if (distance(from, at) > t.reach) continue
+            val attack = t.card.attackCard || t.card.discardOrDefeat
+            // G11 and section 2: no card left after the one still to play is a defeat by any attack.
+            val lethal = kills(h, t, minionModifier(at, h.team)) || (!t.thisTurn && emptyNext && attack)
+            if (t.thisTurn && attack) c.attackReaches = true
+            val w = weightOf(info, lethal, emptyNext)
+            when {
+                t.thisTurn && lethal -> c.killNow += w
+                t.thisTurn -> c.hitNow += if (attack) w else w * 0.5
+                lethal -> c.killNext += w
+                else -> c.hitNext += w
+            }
+        }
+        return c
+    }
+
+    /** A hidden card that would defeat us is the card they play when they hold it (G2): its colour share. */
+    private fun weightOf(info: ThreatInfo, lethal: Boolean, emptyNext: Boolean): Double {
+        val w = info.threat.weight.coerceIn(0.0, 0.9)
+        if (!lethal || info.known) return w
+        val pull = when {
+            info.threat.thisTurn -> profile.knob("lethal", LETHAL_NOW)
+            emptyNext -> profile.knob("lethalEmpty", LETHAL_EMPTY)
+            else -> profile.knob("lethalNext", LETHAL_NEXT)
+        }
+        return max(w, pull * info.poolWeight)
+    }
+
+    private class EnemyChances {
+        var killNow = 0.0
+        var hitNow = 0.0
+        var killNext = 0.0
+        var hitNext = 0.0
+        var attackReaches = false
     }
 
     /** This hero still has this turn's card to play (it is in hand, not yet facedown or resolved). */
@@ -769,6 +792,7 @@ class HContext(
                 -0.35 * distance(at, target)
 
             Intent.RETREAT, Intent.SURVIVE, Intent.LET_PUSH, Intent.ROTATE -> 0.25 * distance(at, target)
+
             else -> 0.0
         }
     }

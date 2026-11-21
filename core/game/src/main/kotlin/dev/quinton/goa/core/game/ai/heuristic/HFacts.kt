@@ -311,7 +311,11 @@ internal fun laneThreat(ctx: HContext, h: HeroState, at: Hex, share: Double): Do
         if (!c.attackCard) continue
         val reach = ctx.attackReach(h.id, c).coerceAtLeast(1)
         val d = targets.minOf { ctx.distance(at, it.at!!) }
-        if (d <= reach) near += w else if (d <= reach + 2) far += w
+        if (d <= reach) {
+            near += w
+        } else if (d <= reach + 2) {
+            far += w
+        }
         if (lane == null) lane = targets.minByOrNull { ctx.distance(at, it.at!!) }?.lane
     }
     val l = lane ?: return 0.0

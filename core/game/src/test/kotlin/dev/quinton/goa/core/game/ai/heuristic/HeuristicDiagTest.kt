@@ -86,18 +86,26 @@ class HeuristicDiagTest {
                 }
 
                 is GameEvent.ActionChosen -> "  A ${e.heroId} ${e.cardId} ${e.action}"
+
                 is GameEvent.Attacked -> "  ! ${e.attackerId} -> ${e.targetId} total ${e.total}"
+
                 is GameEvent.Defended -> "  D ${e.heroId} ${e.cardId} ${e.total} ok=${e.success}"
+
                 is GameEvent.Defeated ->
                     if (s.state.hero(e.unitId) != null) "  X ${e.unitId} by ${e.byHeroId}" else null
+
                 is GameEvent.LanePushed -> "  P ${e.lane} by ${e.winner} -> ${e.newBattleZone}"
+
                 is GameEvent.GameOver -> "  G ${e.winner} ${e.reason}"
+
                 is GameEvent.CardsChanged -> if (e.discarded.isNotEmpty()) "  C ${e.text}" else null
+
                 is GameEvent.Note -> when {
                     e.text.endsWith(" has no card to defend with.") -> "  E ${e.text}"
                     "battle" in e.text.lowercase() -> "  N ${e.text}"
                     else -> null
                 }
+
                 else -> null
             }
             if (line != null) lines += key to line

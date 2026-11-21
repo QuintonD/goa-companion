@@ -27,7 +27,7 @@ internal object PlayRules {
         if (choice !is Choice.Card) return 0.0
         val h = ctx.own() ?: return 0.0
         val card = ctx.card(choice.cardId)
-        val at = h.at ?: return offBoard(ctx, card) // G20
+        val at = h.at ?: return offBoard(card) // G20
         val outlook = outlook(ctx, h, at, card)
         var v = colourTempo(card, ctx.turn) + outlook
         v += winNow(ctx, h, at, card) // G1
@@ -85,10 +85,10 @@ internal object PlayRules {
      */
     private fun keepSpare(ctx: HContext, h: HeroState, card: HCard): Double {
         if (ctx.turn >= 4 || ctx.spare(h.id) - 1 >= 1 || !enemiesHaveAttacks(ctx)) return 0.0
-        return if (bestDefense(ctx, h, card)) -spareWeightOf(ctx.turn) * ctx.profile.knob("spare", 1.0) else 0.0
+        return if (bestDefense(ctx, card)) -spareWeightOf(ctx.turn) * ctx.profile.knob("spare", 1.0) else 0.0
     }
 
-    private fun offBoard(ctx: HContext, card: HCard): Double {
+    private fun offBoard(card: HCard): Double {
         // G20: the cheapest card that still gets us back. Red and Gold stay in hand.
         var v = if (card.hasMovement) 4.0 else -card.rating
         if (card.color == CardColor.RED) v -= 4.0
@@ -110,7 +110,9 @@ internal object PlayRules {
         }
 
         CardColor.GOLD -> if (turn <= 2) 0.45 else 0.2
+
         CardColor.GREEN, CardColor.SILVER -> if (turn <= 2) 0.65 else 0.15
+
         else -> 0.0
     }
 
@@ -165,13 +167,13 @@ internal object PlayRules {
         if (ctx.turn >= 4) return 0.0
         if (ctx.spare(h.id) - 1 >= 1) return 0.0
         if (!enemiesHaveAttacks(ctx)) return 0.0
-        if (outlook >= 14.0 || card.color == CardColor.RED && ctx.turn >= 3 && outlook >= 8.0) return 0.0
+        if (outlook >= 14.0 || (card.color == CardColor.RED && ctx.turn >= 3 && outlook >= 8.0)) return 0.0
         var cost = spareWeightOf(ctx.turn)
-        if (card.canDefend && bestDefense(ctx, h, card)) cost += 2.5
+        if (card.canDefend && bestDefense(ctx, card)) cost += 2.5
         return -cost
     }
 
-    private fun bestDefense(ctx: HContext, h: HeroState, card: HCard): Boolean {
+    private fun bestDefense(ctx: HContext, card: HCard): Boolean {
         val best = ctx.ownHand().filter { it.canDefend }.maxOfOrNull { it.defense ?: 0 } ?: return false
         return card.canDefend && (card.defense ?: 0) >= best
     }

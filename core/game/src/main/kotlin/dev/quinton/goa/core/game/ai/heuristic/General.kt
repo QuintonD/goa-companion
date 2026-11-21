@@ -33,20 +33,35 @@ object General {
 
     fun score(ctx: HContext, d: Decision, choice: Choice): Double = when (d.kind) {
         DecisionKind.PLAY_CARD -> PlayRules.score(ctx, choice)
+
         DecisionKind.CHOOSE_ACTION -> ActionRules.score(ctx, d, choice)
+
         DecisionKind.CHOOSE_SPACE, DecisionKind.MINION_RETURN -> SpaceRules.score(ctx, d, choice)
+
         DecisionKind.RESPAWN -> SpaceRules.respawn(ctx, d, choice)
+
         DecisionKind.CHOOSE_UNIT -> UnitRules.score(ctx, d, choice)
+
         DecisionKind.DEFEND -> DefendRules.score(ctx, d, choice)
+
         DecisionKind.CHOOSE_CARD -> CardRules.choose(ctx, d, choice)
+
         DecisionKind.UPGRADE_CARD -> CardRules.upgrade(ctx, d, choice)
+
         DecisionKind.KEEP_UPGRADE -> CardRules.keep(ctx, d, choice)
+
         DecisionKind.REMOVE_MINION -> MiscRules.remove(ctx, choice)
+
         DecisionKind.CHOOSE_TOKEN -> MiscRules.token(ctx, d, choice)
+
         DecisionKind.ACT_FIRST -> MiscRules.actFirst(ctx, choice)
-        DecisionKind.CONFIRM -> MiscRules.confirm(ctx, choice)
-        DecisionKind.CHOOSE_NUMBER -> MiscRules.number(ctx, d, choice)
-        DecisionKind.CHOOSE_OPTION -> MiscRules.option(ctx, d, choice)
+
+        DecisionKind.CONFIRM -> MiscRules.confirm(choice)
+
+        DecisionKind.CHOOSE_NUMBER -> MiscRules.number(choice)
+
+        // G85: every bullet goes through the look; none is preferred blind.
+        DecisionKind.CHOOSE_OPTION -> 0.0
     }
 
     /**
@@ -59,7 +74,6 @@ object General {
         DecisionKind.CHOOSE_UNIT -> UnitRules.commitment(ctx, d, choice)
         DecisionKind.CHOOSE_ACTION -> ActionRules.commitment(ctx, d, choice)
         DecisionKind.CONFIRM -> MiscRules.confirmCommitment(ctx, choice)
-        DecisionKind.CHOOSE_OPTION -> MiscRules.optionCommitment(ctx, d, choice)
         else -> 0.0
     }
 }

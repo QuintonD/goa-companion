@@ -24,11 +24,14 @@ internal object DefendRules {
         val keep = keepCost(ctx, d.seat, o.cardId)
         return when {
             o.cardId in sure && sacrifice(ctx, sure) && card.color == CardColor.RED -> -1.0
+
             // G78, G83: the cheapest card that holds. G82: a Block that holds before a numbered attack card.
             o.cardId in sure ->
                 HOLDS - keep + if (d.context.blockPreview[o.cardId] == true && card.block) BLOCK else 0.0
+
             // G84: no preview; the text decides, so the look (or a small hope) does.
             preview == null && !card.blocksRanged && !card.blocksMelee -> 2.5 - keep * 0.15
+
             // G77: a short defense discards the card and the hero is still defeated.
             else -> -1000.0
         }

@@ -14,7 +14,6 @@ import dev.quinton.goa.core.game.engine.moveCard
 import dev.quinton.goa.core.model.board.Hex
 import dev.quinton.goa.core.model.catalog.Stat
 import kotlin.coroutines.cancellation.CancellationException
-import kotlin.math.max
 import kotlin.random.Random
 
 /**
@@ -80,28 +79,32 @@ internal object CardSim {
      */
     private fun run(ctx: HContext, f: EngineSession, branches: Int, look: Look): Double {
         var n = 0
-        while (n < CAP) {
-            val d = f.pending ?: break
-            if (look.stop(f, d)) break
+        var d = f.pending
+        while (n < CAP && d != null && !look.stop(f, d)) {
             if (d.kind == DecisionKind.DEFEND && d.team != ctx.team) return look.score(f, look.strike(f, d))
             val c = HContext(f, d, d.team, ctx.profile, ctx.playbooks, seen = ctx.seen, finishing = true)
             if (branches > 0 && d.seat == ctx.seat && d.options.size > 1 && d.kind in BRANCHED) {
-                val ranked = ranked(c, d, ctx.seat)
-                if (ranked != null) {
-                    var best = Double.NEGATIVE_INFINITY
-                    for (o in ranked.take(ctx.profile.knob("width", WIDTH.toDouble()).toInt())) {
-                        val g = f.forkSession()
-                        if (g.answer(d.id, o) !is AnswerResult.Accepted) continue
-                        best = max(best, run(ctx, g, branches - 1, look))
-                    }
-                    if (best > Double.NEGATIVE_INFINITY) return best
-                }
+                branch(ctx, c, f, d, branches, look)?.let { return it }
             }
-            val choice = policy(c, d, ctx.seat) ?: break
-            if (f.answer(d.id, choice) !is AnswerResult.Accepted) break
+            val choice = policy(c, d, ctx.seat)
+            d = if (choice != null && f.answer(d.id, choice) is AnswerResult.Accepted) f.pending else null
             n++
         }
         return look.score(f, 0.0)
+    }
+
+    /** The best of the book's first [WIDTH] answers to [d], each finished; null when none was accepted. */
+    private fun branch(ctx: HContext, c: HContext, f: EngineSession, d: Decision, branches: Int, look: Look): Double? {
+        val ranked = ranked(c, d, ctx.seat) ?: return null
+        var best: Double? = null
+        for (o in ranked.take(ctx.profile.knob("width", WIDTH.toDouble()).toInt())) {
+            val g = f.forkSession()
+            if (g.answer(d.id, o) is AnswerResult.Accepted) {
+                val v = run(ctx, g, branches - 1, look)
+                if (best == null || v > best) best = v
+            }
+        }
+        return best
     }
 
     /** How a look ends and is scored: the card play's own action, or a choice inside the real turn. */
