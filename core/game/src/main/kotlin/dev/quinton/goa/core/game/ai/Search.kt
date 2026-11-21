@@ -128,6 +128,16 @@ internal data class LevelProfile(
     val predictPlays: ((EngineSession, Decision) -> Map<String, String>)? = null,
     /** Tests only: what scores the one-ply looks inside a playout instead of [learned]'s choice (ADR-060). */
     val innerEvaluator: ((EngineData) -> PositionEvaluator)? = null,
+    /**
+     * Prototype only (`ai/hybrid`, REVIEW-2-search.md): answers every playout decision with more than one
+     * option in place of the static policy and the one-ply looks (the heuristic book). Null = as above.
+     */
+    val playoutPolicy: ((EngineSession, Decision, Team) -> Choice)? = null,
+    /** Prototype only: the opponent model's weights for an unrevealed card in place of [playWeights]; null falls back. */
+    val playModelOn: ((EngineData, dev.quinton.goa.core.game.GameSetup, GameState, String, List<String>) -> List<Double>?)? =
+        null,
+    /** Prototype only: scores a playout's end in place of [learned]'s evaluator. */
+    val leafOn: ((EngineSession, Team) -> Double)? = null,
 )
 
 /**
@@ -275,6 +285,10 @@ internal class Searcher(
                 preds.isNotEmpty() -> { st, hero, pool ->
                     preds[hero]?.let { p -> pool.map { if (it == p) 1.0 else 0.0 } }?.takeIf { it.sum() > 0 }
                         ?: playWeights(st, hero, pool)
+                }
+
+                profile.playModelOn != null -> { st, hero, pool ->
+                    profile.playModelOn.invoke(es.engineData, es.setup, st, hero, pool) ?: playWeights(st, hero, pool)
                 }
 
                 profile.modelPlays -> ::playWeights
@@ -629,7 +643,7 @@ internal class Searcher(
             answered.incrementAndFetch()
             val extend = extendKills(d) && horizon == Horizon.TURN
             playout(f, d.seat, d.team, horizon, mates = p.mates + enemies, killExtension = extend)
-            val v = leaf.evaluate(f.state, d.team)
+            val v = profile.leafOn?.invoke(f, d.team) ?: leaf.evaluate(f.state, d.team)
             table.getValue(p)[k] = v
             if (keepLeaves) leaves += Leaf(o, k, f, before, v)
         }
@@ -738,7 +752,10 @@ internal class Searcher(
                 // A facedown play has no immediate effect to look at: the plan's card for a teammate
                 // (this turn only), else the static round plan picks it.
                 d.kind == DecisionKind.PLAY_CARD ->
-                    planned(d, if (turnIndex(s) == startTurn) mates else kills) ?: static.best(s, d)
+                    planned(d, if (turnIndex(s) == startTurn) mates else kills)
+                        ?: profile.playoutPolicy?.invoke(f, d, rootTeam) ?: static.best(s, d)
+
+                profile.playoutPolicy != null -> profile.playoutPolicy.invoke(f, d, rootTeam)
 
                 searchIt -> greedy(f, d)
 

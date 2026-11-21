@@ -28,6 +28,8 @@ class HeuristicAi(
     private val seed: Long,
     /** Measurement knobs ([HeuristicProfile.tune]); empty in play. */
     tune: Map<String, Double> = emptyMap(),
+    /** Measurement only (the hybrid search's cheaper playout policies): a change to the strength's profile. */
+    profileEdit: (HeuristicProfile) -> HeuristicProfile = { it },
     playbooks: (String) -> HeroHeuristics = HeroPlaybooks::forHero,
 ) : AiPlayer {
     /** Measurement only: `h10+heroes=0` seats every hero with the general book alone. */
@@ -44,7 +46,7 @@ class HeuristicAi(
             initiativeReading = p.on("initiative", p.initiativeReading),
             cardCounting = p.on("counting", p.cardCounting),
             temperature = p.knob("temp", p.temperature),
-        )
+        ).let(profileEdit)
     }
 
     /** Diagnostics only: receives a line per looked-at decision with each option's value. */
@@ -67,12 +69,26 @@ class HeuristicAi(
     private fun answer(es: EngineSession, decision: Decision, cancelled: () -> Boolean): Choice {
         val rng = Random(mix(seed, decision.id * 1_000_003L + decision.seat.hashCode()))
         val det = determinize(es, decision, rng.nextLong())
+        val seen = if (profile.cardCounting) seenCards(es, decision.team) else emptyMap()
+        return answerOn(det, decision, rng, seen, cancelled)
+    }
+
+    /**
+     * The book's answer on [det], a copy already determinized for [decision]'s team (the hybrid search's
+     * playouts, `ai/hybrid`): no second determinization. [seen] is the public card memory of that team.
+     */
+    internal fun answerOn(
+        det: EngineSession,
+        decision: Decision,
+        rng: Random,
+        seen: Map<String, Set<String>>,
+        cancelled: () -> Boolean = { false },
+    ): Choice {
         val pending = det.pending
         if (pending == null || pending.seat != decision.seat || pending.kind != decision.kind) {
             return Fallback.choose(decision)
         }
         val blind = decision.kind == DecisionKind.CHOOSE_SPACE && rng.nextDouble() < profile.blindRate
-        val seen = if (profile.cardCounting) seenCards(es, decision.team) else emptyMap()
         val ctx = HContext(
             session = det,
             decision = pending,
