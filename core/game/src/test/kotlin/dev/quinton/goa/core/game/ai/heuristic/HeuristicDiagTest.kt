@@ -64,7 +64,9 @@ class HeuristicDiagTest {
                 }.map { it.first }.toSortedSet()
                 if (!aWon) lines.lastOrNull()?.let { keys += it.first }
                 val show = keys.flatMap { listOf(it - 1, it) }.toSet()
-                for ((k, l) in lines) if (k in show || (k == Int.MAX_VALUE && !aWon)) println("DIAG $l")
+                // AI_H_DIAG_ALL: every line of the games side a lost.
+                val all = System.getenv("AI_H_DIAG_ALL") != null && !aWon
+                for ((k, l) in lines) if (all || k in show || (k == Int.MAX_VALUE && !aWon)) println("DIAG $l")
             }
         }
     }

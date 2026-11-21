@@ -252,9 +252,9 @@ class HContext(
     fun placement(heroId: String, at: Hex): Double {
         val style = style(heroId)
         var v = presence(at) * style.laneWeight
-        v += opportunity(heroId, at) * 2.0
+        v += opportunity(heroId, at) * 2.0 * profile.knob("opp", 1.0)
         v += formation(heroId, at, style)
-        if (profile.threatMap) v -= exposurePenalty(heroId, at)
+        if (profile.threatMap) v -= exposurePenalty(heroId, at) * profile.knob("fear", 1.0)
         if (profile.turnPlans && heroId == seat) v += planPull(at)
         // G51: once the push is decided, stand in the zone it is moving into.
         if (profile.laneTiming) v += zonePull(heroId, at)
@@ -387,12 +387,16 @@ class HContext(
         val h = state.hero(heroId) ?: return 8.0
         val tier = deathTier(h.level)
         val life = life(h.team)
-        val loss = lifeValue(life) - lifeValue((life - tier).coerceAtLeast(0))
+        val last = lastLifeWorth()
+        val loss = lifeLadder(life, last) - lifeLadder((life - tier).coerceAtLeast(0), last)
         val enemies = state.heroes.count { it.team != h.team }
         var v = loss + h.level + tier * (enemies - 1).coerceAtLeast(0) + KILL_TEMPO
-        if (deathsToLose(h.team) <= 1) v *= if (profile.laneTiming) 1.8 else 1.35
+        if (deathsToLose(h.team) <= 1) v *= profile.knob("lastMult", 1.15)
         return v
     }
+
+    /** The last Life counter: its loss is the game (GENERAL §2), priced so a sure death outweighs any farm. */
+    fun lastLifeWorth(): Double = profile.knob("lastLife", LAST_LIFE)
 
     /** What throwing one card costs that hero, from the spare they have left. */
     fun discardWorth(h: HeroState): Double {
@@ -575,6 +579,11 @@ class HContext(
         var noKill = 1.0
         var noHit = 1.0
         var attackReaches = false
+        // Cards in hand while this turn resolves, and while the next one does (one more is played).
+        val pending = playsThisTurn(h)
+        val nowCards = h.hand.size - if (pending) 1 else 0
+        val emptyNext = state.turn < 4 && nowCards - 1 <= 0
+        val attackers = ArrayList<Double>()
         for ((enemyId, list) in threatsFromEnemies(h)) {
             val from = state.hero(enemyId)?.at ?: continue
             val acted = alreadyActed(enemyId)
@@ -588,26 +597,79 @@ class HContext(
                 val at = where(info) ?: continue
                 if (distance(from, at) > t.reach) continue
                 var w = t.weight.coerceIn(0.0, 0.9)
-                val lethal = kills(h, t, minionModifier(at, h.team))
-                if (t.thisTurn && (t.card.attackCard || t.card.discardOrDefeat)) attackReaches = true
+                val attack = t.card.attackCard || t.card.discardOrDefeat
+                // G11 and section 2: no card left after the one still to play is a defeat by any attack.
+                val lethal = kills(h, t, minionModifier(at, h.team)) || (!t.thisTurn && emptyNext && attack)
+                if (t.thisTurn && attack) attackReaches = true
                 if (lethal && !info.known) {
-                    val pull = if (t.thisTurn) profile.knob("lethal", LETHAL_NOW) else profile.knob("lethalNext", LETHAL_NEXT)
+                    val pull = when {
+                        t.thisTurn -> profile.knob("lethal", LETHAL_NOW)
+                        emptyNext -> profile.knob("lethalEmpty", LETHAL_EMPTY)
+                        else -> profile.knob("lethalNext", LETHAL_NEXT)
+                    }
                     w = max(w, pull * info.poolWeight)
                 }
                 when {
                     t.thisTurn && lethal -> killNow += w
-                    t.thisTurn -> hitNow += w
+                    t.thisTurn -> hitNow += if (attack) w else w * 0.5
                     lethal -> killNext += w
                     else -> hitNext += w
                 }
             }
-            noKill *= (1.0 - min(0.70, killNow)) * (1.0 - min(0.28, killNext))
+            val nextCap = if (emptyNext) profile.knob("emptyCap", 0.6) else 0.28
+            noKill *= (1.0 - min(0.70, killNow)) * (1.0 - min(nextCap, killNext))
             noHit *= (1.0 - min(0.70, hitNow)) * (1.0 - min(0.28, hitNext))
+            if (hitNow > 0.0) attackers += min(0.70, hitNow)
         }
         var pKill = min(0.92, 1.0 - noKill)
         if (attackReaches && defenseless(h.id)) pKill = max(pKill, 0.85)
+        // One card to defend with and two enemies who can hit: the second hit is the defeat.
+        if (nowCards == 1 && attackers.size >= 2 && profile.on("twoHits", true)) {
+            val none = attackers.fold(1.0) { a, p -> a * (1.0 - p) }
+            val one = attackers.sumOf { p -> p * none / (1.0 - p).coerceAtLeast(0.05) }
+            val two = (1.0 - none - one).coerceIn(0.0, 1.0)
+            pKill = 1.0 - (1.0 - pKill) * (1.0 - two)
+        }
         val pHit = (1.0 - pKill) * min(0.9, 1.0 - noHit)
         return pKill to pHit
+    }
+
+    /** This hero still has this turn's card to play (it is in hand, not yet facedown or resolved). */
+    private fun playsThisTurn(h: HeroState): Boolean =
+        playsLeft(h.id) > (4 - state.turn).coerceAtLeast(0)
+
+    /**
+     * Chance [heroId] is defeated where it stands before it acts on [initiative]: an enemy whose card
+     * may act first, at [before] (G7, G8). [CardSim] scales what the action gains by the rest.
+     */
+    fun defeatBefore(heroId: String, before: Hex, initiative: Int): Double {
+        if (!profile.threatMap) return 0.0
+        val h = state.hero(heroId) ?: return 0.0
+        val ours = state.tieBreaker == h.team
+        return threatChances(h) { t ->
+            val first = t.threat.thisTurn && (t.initiative > initiative || (t.initiative == initiative && !ours))
+            if (first) before else null
+        }.first
+    }
+
+    /**
+     * Chance [heroId] acts before [initiative] this turn: the share of its possible cards that are
+     * faster (ties by the coin). 1 or 0 once its card is revealed (G7).
+     */
+    fun actsBefore(heroId: String, initiative: Int): Double {
+        val h = state.hero(heroId) ?: return 0.0
+        if (alreadyActed(heroId)) return 1.0
+        val ours = state.tieBreaker != h.team
+        val items = itemBonus(heroId, Stat.INITIATIVE)
+        val pool = possibleCards(heroId)
+        val playing = pool.filter { it.playingNow }
+        val cards = playing.ifEmpty { pool }
+        val total = cards.sumOf { it.weight }
+        if (total <= 0.0) return 0.0
+        return cards.filter { p ->
+            val i = p.card.initiative + items
+            i > initiative || (i == initiative && !ours)
+        }.sumOf { it.weight } / total
     }
 
     /** Resolved already this turn. The hero whose question is pending has not acted yet. */
@@ -747,6 +809,9 @@ class HContext(
         private const val LETHAL_NOW = 0.55
         private const val LETHAL_NEXT = 0.2
 
+        /** Next turn, when the card still to play leaves the hand empty. */
+        private const val LETHAL_EMPTY = 0.5
+
         fun deathTier(level: Int): Int = when {
             level >= 7 -> 3
             level >= 4 -> 2
@@ -767,5 +832,27 @@ class HContext(
         }
 
         fun other(team: Team): Team = if (team == Team.RED) Team.BLUE else Team.RED
+
+        /** Worth of the last Life counter in [lifeLadder] (the doc's "terminal" in exposure units). */
+        const val LAST_LIFE: Double = 60.0
+
+        /**
+         * Worth of holding [counters] Life counters (GENERAL §2): the counter that would leave 0 is
+         * [last], then 22, 14, 9, 6 and 4 for each one above.
+         */
+        fun lifeLadder(counters: Int, last: Double = LAST_LIFE): Double {
+            var v = 0.0
+            for (i in 1..counters) {
+                v += when (i) {
+                    1 -> last
+                    2 -> 22.0
+                    3 -> 14.0
+                    4 -> 9.0
+                    5 -> 6.0
+                    else -> 4.0
+                }
+            }
+            return v
+        }
     }
 }

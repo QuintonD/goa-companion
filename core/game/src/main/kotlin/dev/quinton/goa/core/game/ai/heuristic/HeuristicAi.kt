@@ -95,7 +95,9 @@ class HeuristicAi(
             if (cancelled()) break
             got += i
             // The look is the position. [General.commitment] is what that position does not contain.
-            values += Lookahead.value(ctx, d, d.options[i]) +
+            val o = d.options[i]
+            val turn = if (ctx.profile.on("turnLook", true) && ctx.state.acting == d.seat) CardSim.after(ctx, d, o) else null
+            values += (turn ?: Lookahead.value(ctx, d, o)) +
                 General.commitment(ctx, d, d.options[i]) +
                 adjust(book, ctx, d, d.options[i])
         }

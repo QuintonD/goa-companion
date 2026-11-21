@@ -68,7 +68,7 @@ object General {
         val subject = d.context.subjectId ?: d.seat
         val body = ctx.heroBody(subject) ?: return 0.0
         if (ctx.state.hero(body)?.team != ctx.team) return 0.0
-        return if (unansweredKill(ctx, body, o.hex)) -0.65 * ctx.killWorth(body) else 0.0
+        return if (unansweredKill(ctx, body, o.hex)) -0.65 * ctx.killWorth(body) * ctx.profile.knob("spaceFear", 1.0) else 0.0
     }
 
     /** G13 on the minion itself, and G59 when the hero still has an answer. */
@@ -217,15 +217,20 @@ object General {
         return v
     }
 
+    /**
+     * G27, G29, G31: the spawn nearest the fight we are going to (placement already reads the projected
+     * zone and the exposure). G28: Decline only when every spawn is a likely defeat by an enemy still to
+     * act; it saves the defeat and costs the turn, and the hero is still off the board next turn. A
+     * spawn far from the fight is not a reason to stay off: every spawn is that far.
+     */
     private fun respawn(ctx: HContext, d: Decision, o: Choice): Double {
-        if (o !is Choice.Space) {
-            val spaces = d.options.filterIsInstance<Choice.Space>()
-            val camped = spaces.isNotEmpty() && ctx.profile.threatMap && spaces.all {
-                ctx.exposure(ctx.seat, it.hex) > ctx.killWorth(ctx.seat) * 0.75
-            }
-            return if (camped) 4.0 else -8.0
-        }
-        return ctx.placement(ctx.seat, o.hex)
+        if (o is Choice.Space) return ctx.placement(ctx.seat, o.hex)
+        val spaces = d.options.filterIsInstance<Choice.Space>()
+        if (spaces.isEmpty()) return 0.0
+        val kill = ctx.killWorth(ctx.seat)
+        val camped = ctx.profile.threatMap && spaces.all { ctx.exposure(ctx.seat, it.hex) > kill * 0.5 }
+        if (!camped) return -1000.0
+        return spaces.maxOf { ctx.placement(ctx.seat, it.hex) + ctx.exposure(ctx.seat, it.hex) } - DECLINE_TEMPO
     }
 
     private fun unit(ctx: HContext, d: Decision, o: Choice): Double {
@@ -385,6 +390,9 @@ object General {
         if (rank < 0) return if (card.color == CardColor.RED) 0.35 else 0.0
         return 1.3 - rank * 0.4
     }
+
+    /** A declined respawn: the action is lost (GENERAL §2, tempo of an action). */
+    private const val DECLINE_TEMPO = 8.0
 
     private val ROUND_ZONES = setOf(Zone.HAND, Zone.PLAYED, Zone.RESOLVED, Zone.DISCARD)
 }

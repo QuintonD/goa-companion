@@ -22,6 +22,13 @@ import kotlin.math.min
 object HEval {
     const val WIN: Double = 1000.0
 
+    /**
+     * Share of the designer's push potential (0.5 a reaching attack card, 0.35 in 3v3) the projection
+     * counts. Measured: the full share made a minion we can take worth half a minion, and the player
+     * stopped taking them (h10 vs s8 35% at 1.0, 41% at 0.4, 256 games each).
+     */
+    private const val PP_SCALE = 0.4
+
     fun evaluate(ctx: HContext, team: Team): Double = evaluate(ctx, team, null)
 
     /**
@@ -36,7 +43,7 @@ object HEval {
     private fun scoreRed(ctx: HContext, exposure: Pair<String, Double>?): Double {
         val state = ctx.state
         state.winner?.let { return if (it == Team.RED) WIN - state.round else -WIN + state.round }
-        var v = lane(ctx) + life(state) + pieces(ctx)
+        var v = lane(ctx) + life(ctx, state) + pieces(ctx)
         val early = state.round <= 2 && state.heroes.all { it.level <= 3 }
         for (h in state.heroes) {
             val sign = if (h.team == Team.RED) 1.0 else -1.0
@@ -63,7 +70,7 @@ object HEval {
         }
         val bodies = listOf(at) + ctx.state.pieces.filter { it.heroBody == h.id && it.at != null }.map { it.at!! }
         v += bodies.maxOf { ctx.presence(it) }
-        v += bodies.maxOf { ctx.opportunity(h.id, it) } * 2.0
+        v += bodies.maxOf { ctx.opportunity(h.id, it) } * 2.0 * ctx.profile.knob("opp", 1.0)
         if (ctx.profile.laneTiming) v += bodies.maxOf { zonePull(ctx, h.id, it) }
         if (ctx.profile.threatMap) v -= exposure ?: bodies.maxOf { ctx.exposure(h.id, it) }
         return v
@@ -90,9 +97,11 @@ object HEval {
         return v
     }
 
-    private fun life(state: GameState): Double =
-        HContext.lifeValue(state.lifeCounters[Team.RED] ?: 0) -
-            HContext.lifeValue(state.lifeCounters[Team.BLUE] ?: 0)
+    private fun life(ctx: HContext, state: GameState): Double {
+        val last = ctx.lastLifeWorth()
+        return HContext.lifeLadder(state.lifeCounters[Team.RED] ?: 0, last) -
+            HContext.lifeLadder(state.lifeCounters[Team.BLUE] ?: 0, last)
+    }
 
     private fun lane(ctx: HContext): Double {
         var v = 0.0
@@ -124,7 +133,7 @@ object HEval {
     private fun push(ctx: HContext, team: Team, bz: String): Double {
         if (ctx.roundOver) return 0.0
         val size = ctx.state.heroes.count { it.team == team }
-        val per = if (size >= 3) 0.35 else 0.5
+        val per = (if (size >= 3) 0.35 else 0.5) * ctx.profile.knob("pp", PP_SCALE)
         var pp = 0.0
         for (h in ctx.state.heroes) {
             val at = h.at
