@@ -26,9 +26,25 @@ import kotlin.random.Random
 class HeuristicAi(
     strength: Int,
     private val seed: Long,
+    /** Measurement knobs ([HeuristicProfile.tune]); empty in play. */
+    tune: Map<String, Double> = emptyMap(),
     private val playbooks: (String) -> HeroHeuristics = HeroPlaybooks::forHero,
 ) : AiPlayer {
-    val profile: HeuristicProfile = HeuristicProfile.of(strength)
+    val profile: HeuristicProfile = HeuristicProfile.of(strength).copy(tune = tune).let { p ->
+        // Measurement only: a layer switched by name (h10+laneTiming=0).
+        p.copy(
+            laneTiming = p.on("laneTiming", p.laneTiming),
+            twoTurnPlans = p.on("twoTurn", p.twoTurnPlans),
+            knowHands = p.on("knowHands", p.knowHands),
+            focusFire = p.on("focus", p.focusFire),
+            initiativeReading = p.on("initiative", p.initiativeReading),
+            cardCounting = p.on("counting", p.cardCounting),
+            temperature = p.knob("temp", p.temperature),
+        )
+    }
+
+    /** Diagnostics only: receives a line per looked-at decision with each option's value. */
+    internal var trace: ((String) -> Unit)? = null
 
     override fun choose(session: GameSession, decision: Decision, cancelled: () -> Boolean): Choice {
         if (decision.options.isEmpty()) return Fallback.choose(decision)
@@ -68,8 +84,12 @@ class HeuristicAi(
             General.score(ctx, pending, pending.options[i]) + adjust(book, ctx, pending, pending.options[i])
         }
         val looked = look(ctx, pending, static, rng, cancelled)
-        val choice = looked ?: pick(pending, pending.options.indices.toList(), static, rng)
-        return decision.options.firstOrNull { it == choice } ?: choice
+        val choice = looked ?: pick(pending, pending.options.indices.toList(), static, rng, fromLook = false)
+        if (choice in decision.options) return choice
+        // The sampled view offered something the real question does not (a space that depends on a
+        // hidden card): the best static option the real question has, else the fallback.
+        val legal = pending.options.indices.filter { pending.options[it] in decision.options }
+        return legal.maxByOrNull { static[it] }?.let { pending.options[it] } ?: Fallback.choose(decision)
     }
 
     private fun adjust(book: HeroHeuristics, ctx: HContext, d: Decision, choice: Choice): Double =
@@ -83,6 +103,7 @@ class HeuristicAi(
         rng: Random,
         cancelled: () -> Boolean,
     ): Choice? {
+        if (d.kind == DecisionKind.PLAY_CARD) return cardLook(ctx, d, rng, cancelled)
         val idxs = lookAt(ctx, d, static)
         if (idxs.isEmpty()) return null
         val got = ArrayList<Int>()
@@ -91,10 +112,58 @@ class HeuristicAi(
         for (i in idxs) {
             if (cancelled()) break
             got += i
-            values += Lookahead.value(ctx, d, d.options[i]) + adjust(book, ctx, d, d.options[i])
+            // The look is the position. [General.commitment] is what that position does not contain.
+            val o = d.options[i]
+            val ownTurn = ctx.profile.on("turnLook", true) && ctx.state.acting == d.seat
+            val turn = if (ownTurn) CardSim.after(ctx, d, o) else null
+            values += (turn ?: Lookahead.value(ctx, d, o)) +
+                General.commitment(ctx, d, d.options[i]) +
+                adjust(book, ctx, d, d.options[i])
         }
+        trace?.invoke(
+            "${d.seat} ${d.kind} " + got.indices.joinToString(" ") { "${d.options[got[it]]}=${round1(values[it])}" },
+        )
         if (got.isEmpty() || values.none { it > Lookahead.WORSE / 2 }) return null
-        return pick(d, got, values.toDoubleArray(), rng)
+        return pick(d, got, values.toDoubleArray(), rng, fromLook = true)
+    }
+
+    /**
+     * The card play from strength 5 ([HeuristicProfile.Look.ACTIONS]): each card's own action through
+     * the engine ([CardSim]), plus what that action cannot see. Null (static scores) when a card
+     * cannot be simulated, so the values never mix two scales.
+     */
+    private fun cardLook(ctx: HContext, d: Decision, rng: Random, cancelled: () -> Boolean): Choice? {
+        if (ctx.profile.lookahead < HeuristicProfile.Look.ACTIONS || !ctx.profile.on("sim", true)) return null
+        if (d.options.any { it !is Choice.Card }) return null
+        val book = if (profile.heroPlaybooks) playbooks(d.seat) else DefaultHeroHeuristics
+        val values = DoubleArray(d.options.size)
+        for ((i, o) in d.options.withIndex()) {
+            if (cancelled()) return null
+            val sim = CardSim.value(ctx, (o as Choice.Card).cardId) ?: return null
+            values[i] = sim + General.commitment(ctx, d, o) + adjust(book, ctx, d, o)
+        }
+        trace?.invoke(
+            "${d.seat} cards " + d.options.indices.joinToString(" ") { i ->
+                "${(d.options[i] as Choice.Card).cardId}=${round1(values[i])}"
+            },
+        )
+        mixed(ctx, d, values, rng)?.let { return it }
+        return pick(d, d.options.indices.toList(), values, rng, fromLook = true)
+    }
+
+    /**
+     * G17 (from strength 7): when the two best cards are within [MIX_GAP], the seed picks between them,
+     * so the round's shape is not a script a person can learn. Never when the best card wins the game.
+     * Two cards within the gap are, by the book's own numbers, the same play; a lethal threat or a push
+     * that one card answers puts it far ahead, outside the gap.
+     */
+    private fun mixed(ctx: HContext, d: Decision, values: DoubleArray, rng: Random): Choice? {
+        if (!ctx.profile.initiativeReading || !ctx.profile.on("mix", true) || values.size < 2) return null
+        val order = values.indices.sortedByDescending { values[it] }
+        val a = order[0]
+        val b = order[1]
+        if (values[a] - values[b] > MIX_GAP || values[a] >= WON / 2) return null
+        return d.options[if (rng.nextBoolean()) a else b]
     }
 
     private fun lookAt(ctx: HContext, d: Decision, static: DoubleArray): List<Int> {
@@ -116,7 +185,8 @@ class HeuristicAi(
 
             DecisionKind.CHOOSE_UNIT -> UNIT_CAP
 
-            DecisionKind.DEFEND -> if (nullDefense) d.options.size else 0
+            // G78, G81, G84: the hand that is left, or the priced death, is a position the look can score.
+            DecisionKind.DEFEND -> if (nullDefense || ctx.profile.on("defLook", true)) d.options.size else 0
 
             // A move is where a static score walks into a death. Strength 7+ checks its best few.
             DecisionKind.CHOOSE_SPACE -> if (look == HeuristicProfile.Look.MOVES) SPACE_CAP else 0
@@ -125,10 +195,12 @@ class HeuristicAi(
         }
     }
 
-    private fun pick(d: Decision, idxs: List<Int>, values: DoubleArray, rng: Random): Choice {
+    private fun pick(d: Decision, idxs: List<Int>, values: DoubleArray, rng: Random, fromLook: Boolean): Choice {
         val choices = idxs.map { d.options[it] }
-        val critical = d.kind == DecisionKind.DEFEND || d.kind == DecisionKind.REMOVE_MINION ||
-            (values.isNotEmpty() && values.max() >= CRITICAL)
+        // A look returns a position value, often far above [CRITICAL]. Only a won game is critical there.
+        val lane = !fromLook && values.isNotEmpty() && values.max() >= CRITICAL
+        val won = fromLook && values.isNotEmpty() && values.max() >= 500.0
+        val critical = d.kind == DecisionKind.DEFEND || d.kind == DecisionKind.REMOVE_MINION || lane || won
         val temp = if (critical) 0.0 else profile.temperature
         val slip = if (critical) 0.0 else profile.slipRate
         return Picker.pick(choices, values, temp, profile.maxGap, slip, rng)
@@ -172,11 +244,15 @@ class HeuristicAi(
         return seen
     }
 
+    private fun round1(v: Double): Double = kotlin.math.round(v * 10.0) / 10.0
+
     companion object {
         private const val CRITICAL = 12.0
+        private const val MIX_GAP = 2.0
+        private const val WON = 1000.0
         private const val OPAQUE_CAP = 8
         private const val UNIT_CAP = 8
-        private const val SPACE_CAP = 4
+        private const val SPACE_CAP = 6
 
         /** The same mix as the old search, so a seed names one stream of answers. */
         fun mix(a: Long, b: Long): Long {

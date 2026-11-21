@@ -3016,3 +3016,19 @@ and the puzzle solver keep the search. The old player stays as `AiPlayers.search
 The search code stays in the tree until the coach and the puzzles move. Saves and the strength slider
 mean the same bands (Easy 2, Normal 6, Hard 8, Expert 10). The book has to be measured against the old
 player; it does not inherit that player's ladder. `core/game/ai/heuristic/DESIGN.md` is the contract.
+
+General playbook v2 (2026-11-21): GENERAL.md's rules are implemented one file per `DecisionKind`
+(`PlayRules`, `ActionRules`, `SpaceRules`, `UnitRules`, `DefendRules`, `CardRules`, `MiscRules`; each
+rule tagged `G<n>`, the ones left out say why). Three measured changes carry most of the strength:
+the card play looks at its own action through the engine (`CardSim`: the card resolved alone, once
+per action, scored by `HEval` with the enemies' threat split by who may act first; no other card is
+played, an attack on a hidden hand is priced from the pool), a minion in reach is priced by what its
+kill does to the lane, and defenses look ahead. Strength 9 plays without temperature (a look often
+ties, and a temperature turns a tie into a coin). `HContext` grew only additively (`exposureSplit`,
+`defeatBefore`, `actsBefore`, `defenseless`, `stillToAct`, `goalZone`, `nextBattleZone`,
+`laneKillValue`, `lastLifeWorth`, `spareWeight`, a `stateOverride` constructor argument), and
+`playsLeft` now also counts this turn's card for a hero who has not played (same values in a real
+game). `HeuristicProfile.tune` holds measurement knobs; play leaves it empty. Measured on held-out
+line-ups (300–395, 192 mirrored 2v2 games each): h10 against the old search s5 80.7%, s8 46.9%
+(54.7% on the tuning line-ups; the foundation made 14.6%), s10 17.2% (s10 answers in 386 ms); the ladder h10 > h8 56.3%, h8 > h5 56.3%,
+h5 > h3 91.1%, h3 > h1 68.8%. Answers average about 5 ms (p95 20 ms) on oldboi.

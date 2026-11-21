@@ -62,7 +62,18 @@ ai/heuristic/
   TurnPlan.kt           at PLAY_CARD the hero forms an intent (kill X, clear minion, push, defend lane,
                         retreat, farm, fast travel, set up); later decisions of the same turn re-derive the
                         same intent from the state (deterministic, no memory) and follow it
-  General.kt            the general playbook: a scorer per DecisionKind (GENERAL.md)
+  CardSim.kt            the card play's look (strength 5+): each card's own action resolved alone through the
+                        engine, once per action it offers (and, from 7, four tries at its next choice), scored by
+                        HEval with the enemies' threat split by who may act first; nobody else's card is played,
+                        and an attack on a hidden hand is priced from the pool when the defender would answer.
+                        The same look (TurnLook) scores actions, targets, spaces and defenses after the reveal
+  General.kt            the general playbook: dispatches each DecisionKind to its rules (GENERAL.md):
+  PlayRules.kt            PLAY_CARD (G1–G22)        ActionRules.kt  CHOOSE_ACTION (G32–G42)
+  SpaceRules.kt           spaces, respawn, minion return  UnitRules.kt  CHOOSE_UNIT (G57–G68)
+  DefendRules.kt          DEFEND (G77–G84)          CardRules.kt    discards, retrieves, level-ups
+  MiscRules.kt            act first, tokens, options, confirms, numbers, minion removal
+  HFacts.kt             facts the general book derives (defenselessness, who still acts, lane deltas, the
+                        lane-priced minion threat, push direction)
   HeroHeuristics.kt     the per-hero interface + registry (below)
   heroes/<Name>Heuristics.kt   one object per hero, registered in HeroPlaybooks
 ```
@@ -122,6 +133,10 @@ map levels to strengths as now (Easy 2, Normal 6, Hard 8, Expert 10).
 - `HeuristicTournamentTest` (opt-in, env `AI_H_TOURNAMENT`): mirrored mixed line-ups (`AiHarness.mixedLineups`),
   heuristic strength vs heuristic strength, and heuristic vs old search (`Tournament.Side`). Report win
   rate, Wilson interval, per-hero rates, how games ended, mean answer time.
+  `AI_H_FIRST` is the first line-up (a held-out set for a final table); a side may carry measurement knobs,
+  `h10+sim=0+laneTiming=0` (`HeuristicProfile.tune`: a named weight, or a layer switched off).
+- `HeuristicDiagTest` (opt-in, `AI_H_DIAG=h10:s8`): how side a loses heroes and games, turn by turn, with
+  minion and hero kills per side and, for the heuristic side, each looked-at option's value.
 - `HeroAblationTest` (opt-in, `AI_H_ABLATION=<heroId>`): the same strength with and without one hero's
   playbook, the hero seated on both sides equally; a playbook must not lose (aim: > 55%).
 - Always-on (cheap): all 32 heroes play 2v2 and 3v3 to the end at strengths 1, 5, 10; every `DecisionKind`

@@ -35,6 +35,13 @@ and nothing from an enemy's `hand` unless it is non-null.
 | `ctx.life`, `ctx.coins`, `ctx.level`, `ctx.matchPoint`, `ctx.opening` | The race, and whether the push is already decided. |
 | `ctx.plan` | The intent derived from the card already played (`Intent.KILL`, `FARM`, `RETREAT`, …). |
 | `ctx.style(id)` | The `HeroStyle` the general book is already using. |
+| `ctx.defenseless(id)`, `ctx.spareWeight()` | No card left to defend with this turn (an empty hand, or the last card is about to be played), and what a spare is worth on this turn. |
+| `ctx.stillToAct(id)` | That hero has a card still to resolve this turn. |
+| `ctx.actsBefore(id, init)` | The share of that hero's possible cards that act before the initiative `init` (1 once it has acted). |
+| `ctx.exposureSplit(id, before, after, init)` | Exposure as the card play sees it: an enemy acting before `init` meets the hero at `before`, one acting after at `after`. |
+| `ctx.defeatBefore(id, at, init)` | The chance an enemy acting before `init` defeats the hero standing at `at`. |
+| `ctx.goalZone(id)`, `ctx.nextBattleZone(lane, team)` | Where the hero should stand once the push is decided (lane timing), and where a push moves a lane. |
+| `ctx.laneKillValue(lane)`, `ctx.lastLifeWorth()` | One enemy minion fewer on that lane, in lane value; and the last Life counter's worth. |
 
 `evalTerms` does not get an `HContext`. It gets the `GameState` and a team. Count only things
 that are on the board or on the public dashboard (your tokens, your counters). Do not read a
