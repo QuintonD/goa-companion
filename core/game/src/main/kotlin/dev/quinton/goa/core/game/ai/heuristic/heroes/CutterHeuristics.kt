@@ -46,13 +46,22 @@ object CutterHeuristics : HeroHeuristics {
     }
 
     /**
-     * H16 (eval): A Fistful of Coins wins outright at 13 coins. Which tier-III blue she kept is
-     * public, so the coins above 9 count while it is in her round.
+     * H16 (eval): A Fistful of Coins wins outright at 13 coins, so the coins above 9 count while it
+     * is in her round. Which tier-III blue she kept is hidden from the other team (the determinizer
+     * samples it): they count it only once it is faceup; her own team knows her hand.
      */
     override fun evalTerms(state: GameState, team: Team, heroId: String): Double {
         if (heroId != this.heroId) return 0.0
         val me = state.hero(heroId) ?: return 0.0
-        val fistful = me.cards.any { it.id == "cutter-blue-3b" && it.zone != Zone.DECK && it.zone != Zone.ITEM }
+        val own = me.team == team
+        val fistful = me.cards.any { c ->
+            c.id == FISTFUL && when (c.zone) {
+                Zone.RESOLVED, Zone.DISCARD -> own || !c.faceDown
+                Zone.PLAYED -> own || state.revealed
+                Zone.HAND -> own
+                else -> false
+            }
+        }
         if (!fistful) return 0.0
         val extra = me.coins - 9
         if (extra <= 0) return 0.0
@@ -194,23 +203,10 @@ object CutterHeuristics : HeroHeuristics {
     private fun number(ctx: HContext, d: Decision, choice: Choice): Double {
         if (d.sourceCardId !in PLANK || choice !is Choice.Number) return 0.0
         val at = ctx.own()?.at ?: return 0.0
-        // The pushed hero is adjacent; the decision does not name it, so take the nearest border.
-        val cross =
-            BatchASupport.enemiesWithin(ctx, at, 1).map {
-                zonePush(
-                    ctx,
-                    at,
-                    it.at!!,
-                    if (d.sourceCardId ==
-                        "cutter-handicap"
-                    ) {
-                        3
-                    } else {
-                        4
-                    },
-                )
-            }.filter { it > 0 }.minOrNull()
-                ?: 0
+        // The pushed hero is the one the prompt names ("Push <hero> how many spaces?"); none named, no border.
+        val pushed = BatchASupport.enemiesWithin(ctx, at, 1)
+            .singleOrNull { d.prompt == "Push ${ctx.game.name(it.id)} how many spaces?" }
+        val cross = pushed?.let { zonePush(ctx, at, it.at!!, if (d.sourceCardId == "cutter-handicap") 3 else 4) } ?: 0
         return when {
             choice.value == 0 -> -3.0
             cross > 0 && choice.value >= cross -> 6.0
@@ -241,6 +237,7 @@ object CutterHeuristics : HeroHeuristics {
     }
 }
 
+private const val FISTFUL = "cutter-blue-3b"
 private val PLANK = setOf("cutter-gold", "cutter-handicap")
 private val DASH = setOf("cutter-green-1", "cutter-green-2a", "cutter-green-3a")
 private val LUNGE = setOf("cutter-red-1", "cutter-red-2a", "cutter-red-3a")

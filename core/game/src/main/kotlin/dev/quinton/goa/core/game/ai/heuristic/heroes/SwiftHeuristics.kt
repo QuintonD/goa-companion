@@ -52,7 +52,13 @@ object SwiftHeuristics : HeroHeuristics {
         val me = state.hero(heroId) ?: return 0.0
         val right = BatchC.rightmost(me) ?: return 0.0
         val gold = me.card("swift-gold") ?: return 0.0
-        if (gold.zone == Zone.RESOLVED || gold.zone == Zone.DISCARD) return 0.0
+        // Spent gold: faceup for the other team (a facedown slot may hold any card); her own team knows.
+        val spent = if (me.team == team) {
+            gold.zone == Zone.RESOLVED || gold.zone == Zone.DISCARD
+        } else {
+            BatchC.spent(me, gold.id)
+        }
+        if (spent) return 0.0
         return if (right.startsWith("swift-red-")) BatchC.sign(state, heroId, team) * 2.0 else 0.0
     }
 

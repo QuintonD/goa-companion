@@ -1,5 +1,6 @@
 package dev.quinton.goa.core.game.ai.heuristic.heroes
 
+import com.google.common.truth.Truth.assertThat
 import dev.quinton.goa.core.game.TestData
 import dev.quinton.goa.core.game.position.PositionPhase
 import dev.quinton.goa.core.game.position.position
@@ -29,5 +30,22 @@ class CutterHeuristicsTest {
             phase = PositionPhase.PlayCards(0)
         }
         HeroBookCases.flips("cutter", CutterHeuristics, session)
+    }
+
+    @Test
+    fun `a Fistful of Coins in hand counts for her own team only`() {
+        // H16 / review H1: which tier-III blue she kept is hidden from the other team (sampled below 10).
+        val session = position(TestData.engine, TestData.FOREST) {
+            clearMinions()
+            hero("cutter", Team.BLUE, Hex(1, -2)) {
+                coins = 11
+                hand("cutter-blue-3b", "cutter-gold")
+            }
+            hero("arien", Team.RED, Hex(-3, -2))
+            phase = PositionPhase.PlayCards(0)
+        }
+        val state = session.state
+        assertThat(CutterHeuristics.evalTerms(state, Team.BLUE, "cutter")).isGreaterThan(0.0)
+        assertThat(CutterHeuristics.evalTerms(state, Team.RED, "cutter")).isEqualTo(0.0)
     }
 }
