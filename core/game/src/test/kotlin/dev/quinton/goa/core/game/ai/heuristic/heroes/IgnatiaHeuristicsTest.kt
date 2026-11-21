@@ -14,15 +14,16 @@ class IgnatiaHeuristicsTest {
     }
 
     @Test
-    fun `gold is held when only one coin face has a target`() {
+    fun `gold is held when the face the coin shows has no target`() {
         val session = BatchBFixture.session {
-            turn = 1
-            hero("ignatia", Team.RED, Hex(-5, -6))
+            turn = 2
+            // The Blue team's side: gold's blue text needs an adjacent minion, and there is none.
+            tieBreaker = Team.BLUE
+            hero("ignatia", Team.RED, Hex(-5, -6)) { hand("ignatia-gold", "ignatia-green-1") }
             hero("arien", Team.BLUE, Hex(-2, -6))
         }
-        val plain = BatchBFixture.pick(session, IgnatiaHeuristics, adjust = false)
-        val noted = BatchBFixture.pick(session, IgnatiaHeuristics, adjust = true)
-        assertWithMessage("plain=$plain noted=$noted").that(plain).isEqualTo(Choice.Card("ignatia-gold"))
-        assertThat(noted).isNotEqualTo(plain)
+        val (plain, noted, table) = BatchBFixture.picks(session, IgnatiaHeuristics)
+        assertWithMessage(table).that(plain).isEqualTo(Choice.Card("ignatia-gold"))
+        assertWithMessage(table).that(noted).isEqualTo(Choice.Card("ignatia-green-1"))
     }
 }
