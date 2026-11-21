@@ -15,17 +15,17 @@ class CutterHeuristicsTest {
     }
 
     @Test
-    fun `the plank is not the turn-1 card`() {
-        // Two minions, so the adjacent one is not the last in the lane. H2 holds the plank; H4 plays the grapple.
+    fun `the dash is played when a straight 3 lands beside a hero`() {
+        // H6: (-2,-2) is 3 straight from (1,-2) and beside Arien at (-3,-2). Bombardment has no target (H8).
         val session = position(TestData.engine, TestData.FOREST) {
-            turn = 1
+            turn = 4
             clearMinions()
             hero("cutter", Team.BLUE, Hex(1, -2)) {
-                hand("cutter-gold", "cutter-silver")
+                hand("cutter-green-1", "cutter-blue-1")
             }
-            hero("arien", Team.RED, Hex(4, -2))
-            minion(Team.RED, MinionType.MELEE, Hex(2, -2))
-            minion(Team.RED, MinionType.MELEE, Hex(3, -2))
+            hero("arien", Team.RED, Hex(-3, -2)) {
+                hand("arien-gold", "arien-red-1")
+            }
             phase = PositionPhase.PlayCards(0)
         }
         HeroBookCases.flips("cutter", CutterHeuristics, session)
