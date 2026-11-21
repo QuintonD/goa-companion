@@ -119,3 +119,16 @@ Keep `takahide-blue-2b` / `3b` only with an ally whose attack is the game (Broga
 - Designer Arty, Discord 2025-03-06 (Shameful Display), 2025-09-04 (he does not choose the starting gold), 2025-10-04 (facedown stays hidden), 2026-04-14, 2026-06-16 (cannot swap with itself; Brynn counts the ring), 2026-07-10 (swap-in acts next), 2026-10-20 (cannot end on the ring). https://www.cockeyedandcurious.com/goa2/faq
 - Wolff Designa, Wayward overview. https://gamefound.com/en/projects/wolffdesigna/guardsofatlantis2new/updates/9 — three golds, swap after use, secret swap, allies must discard. Matches.
 - No Reddit or YouTube guide found.
+
+## 8. Implementation notes
+
+`TakahideHeuristics.kt` (ADR-085). Checked against `TakahideHero.kt`:
+
+- **H1:** defending with the handicap card is the defeat (−40).
+- **H4/H5:** after Sting, Strike or Float's own swap, the engine asks "Swap this card with a gold card in your deck" (`CHOOSE_CARD`, deck golds only). The note prefers bringing Float back. Bushido's first question ("Choose your gold card") is a different prompt and has no note. The draft's "do not choose the gold he holds" never fired, because the engine offers only deck golds.
+- **H6:** Bushido scores well only when the held gold has nothing to do this round (Sting with no unit on the ring, Strike with nothing adjacent) and Float is in the deck.
+- **H15:** greens and blues act on a friendly hero in range or radius. With none in reach the card is −1.5, but only once he already stands in the Battle Zone, because these cards are also his Movement 2 for getting there. A flat −2.5, plus a −2 for spending Float as movement (the general book already holds the best defender), measured no better.
+- **threatAdjust:** Sting's ring is smaller than the general disk only when Sting is the only gold left in his possible pool.
+- **Not implemented:** H7 (the swap is the ally's choice), H8–H12, H14, H16.
+- **Ablation** (strength 8, `BatchCAblationTest`, the same line-ups and seeds as `HeroAblationTest`): 96 games 42.7% (41–55), Wilson 33.3–52.7%; 384 games 49.2% (188–194 of 382), Wilson 44.2–54.2%; after the H3/H15 trim 48.7% (186–196 of 382), Wilson 43.7–53.7%.
+- **Engine/AI bug, not in this file:** one 2v2 crashed when `HeuristicAi` answered Tigerclaw's "Discard a card" with `takahide-gold-extra-1`, a card that was not in Takahide's real hand (the options were green-1, blue-1, red-2a). The determinized copy had given Takahide a gold he does not hold, and `HeuristicAi.answer` returns the copy's choice even when it is not among the real options. Reported to the owner of `HeuristicAi`/`Determinizer`; the ablation drops that mirrored pair.

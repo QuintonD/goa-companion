@@ -105,3 +105,15 @@ Weights as in the other playbooks: coin = 1, card ≈ 2.5, one minion of an even
 - Designer Arty, Discord 2026-07-03, on Paragon of Grace (cockeyed FAQ). https://www.cockeyedandcurious.com/goa2/faq
 - Wolff Designa, Arcane pack overview (front-line support, self-heal). The line "she will not attack an unarmed opponent" matches gold and **contradicts** `rowenna-blue-2b` / `rowenna-blue-3b`. Card text wins: empty hands are the execute. https://gamefound.com/en/projects/wolffdesigna/guardsofatlantis2new/updates/10
 - No 2nd-printing Reddit or YouTube guide found. The 1st-printing spotlights were not used; this hero's 2nd-printing thread is the strategy source.
+
+## 8. Implementation notes
+
+`RowennaHeuristics.kt` (ADR-085). Checked against `RowennaHero.kt`:
+
+- **H11** is the only `override`: at `PLAY_CARD`, if she holds Accept Surrender / Glorious Triumph and an adjacent enemy hero has no cards in hand (hand size is public), she plays it. Before turn 4 she does not spend it as movement otherwise (H12).
+- **H3/H4 (silver):** you cannot know an enemy's revealed card when you choose yours, because cards are played at the same time. So "their card can leave range 4" cannot be known without peeking, and only "no enemy hero in range 4" is scored.
+- **H7/H8:** the draft required the victim to have an *empty hand*, which inverts the card ("discards a card, if able"). Fixed: the victim needs an empty discard and a card in hand.
+- **threatAdjust:** the draft added silver's threat to any space next to *any* hero, Rowenna's own allies included. It is now "within 3–4 of her while silver may still be in her hand" (`possibleCards`).
+- **H1** reads the target's faceup discard against gold's printed Attack 4 plus items and the minion modifier.
+- **Not implemented:** H2, H5/H6 (the coin and retrieve are mandatory or the ally's own choice), H9, H10, H14, H15.
+- **Ablation** (strength 8, `BatchCAblationTest`, the same line-ups and seeds as `HeroAblationTest`): 96 games 56.3% (54–42), Wilson 46.3–65.7%; 384 games 54.4% (209–175), Wilson 49.4–59.3%.
