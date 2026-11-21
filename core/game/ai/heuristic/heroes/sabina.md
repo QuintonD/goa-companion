@@ -110,3 +110,12 @@ Opening sketch from BGG 3497427, as preferences rather than a script: turn-1 sil
 - Designer Arty, Discord 2025-04-19, 2025-06-10, 2025-08-14, 2025-08-15, 2026-04-05, via https://www.cockeyedandcurious.com/goa2/faq
 - BGG 3481942 is not re-quoted beyond STRATEGY.md's line, which loses to the printed remove counts.
 - No Reddit or YouTube guide found.
+
+## 8. Implementation notes
+
+`SabinaHeuristics.kt` (ADR-085). Checked against `SabinaHero.kt`:
+
+- **H1:** the engine gives the +3/+4 when the target's body is in `turnRecord.playedAttack`, which is filled only after the reveal and so is public. The note adds the engine-priced difference `heroStrikeWorth(total + bonus) − heroStrikeWorth(total)`, so the bonus counts only where it changes a kill or a strip.
+- **H15:** blue-1/2a/3a "Swap two minions" does not need a *friendly* minion, so only silver and the greens get the "no friendly minion near" penalty.
+- **threatAdjust:** the draft fired only when a hero was already standing on the space. Exposure is asked for spaces a hero might move to, so it now fires for any space next to her minion, within radius 3, while a Close Support or Covering Fire card is still in her possible pool.
+- **Not implemented:** H2, H3, H5, H6, H8–H11, H13 (minion moves, swaps, removals). These are opaque or per-target choices the look-ahead answers.

@@ -13,7 +13,7 @@ class SabinaHeuristicsTest {
     @Test
     fun `finishes 2v2 and 3v3 at strengths 5 and 10`() {
         for (size in listOf(2, 3)) {
-            for (strength in listOf(5, 10)) HeroBookTest.finish("sabina", size, strength)
+            for (strength in listOf(5, 10)) BatchCBook.finish("sabina", size, strength)
         }
     }
 
@@ -26,8 +26,8 @@ class SabinaHeuristicsTest {
             phase = PositionPhase.PlayCards()
         }
         val decision = session.pending!!
-        val withBook = HeroBookTest.chosen(session, decision, SabinaHeuristics)
-        val general = HeroBookTest.chosen(session, decision, null)
+        val withBook = BatchCBook.chosen(session, decision, SabinaHeuristics)
+        val general = BatchCBook.chosen(session, decision, null)
         assertThat(general).isEqualTo(Choice.Card("sabina-silver"))
         assertThat(withBook).isNotEqualTo(Choice.Card("sabina-silver"))
     }
