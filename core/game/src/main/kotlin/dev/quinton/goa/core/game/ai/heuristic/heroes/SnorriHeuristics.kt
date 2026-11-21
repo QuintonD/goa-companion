@@ -64,9 +64,9 @@ object SnorriHeuristics : HeroHeuristics {
         val at = me.at ?: return 0.0
         if (!BatchC.mayHold(ctx, heroId, golds)) return 0.0
         val d = ctx.distance(at, target)
+        // The horn's repeat reaches range 2 only after a first hit on a unit beside him.
         return when (BatchC.activeRune(me, ctx.state.turn)) {
             Rune.AXE -> if (d == 1) 2.5 else 0.0
-            // The horn's repeat reaches range 2 only after a first hit on a unit beside him.
             Rune.HORN -> if (d == 2 && besideFoe(ctx, me)) 2.0 else 0.0
             else -> 0.0
         }
@@ -129,10 +129,12 @@ object SnorriHeuristics : HeroHeuristics {
     private fun hornPair(ctx: HContext, at: Hex, id: String): Boolean {
         val reach = ctx.attackReach(ctx.seat, ctx.card(id))
         val heroOnly = id == "snorri-handicap"
-        val first = BatchC.enemiesWithin(ctx, at, 1).map { it.id } +
-            if (heroOnly) emptyList() else BatchC.minionsWithin(ctx, at, 1, friendly = false).filter {
-                BatchC.takeable(ctx, it)
-            }.map { it.id }
+        val minions = if (heroOnly) {
+            emptyList()
+        } else {
+            BatchC.minionsWithin(ctx, at, 1, friendly = false).filter { BatchC.takeable(ctx, it) }.map { it.id }
+        }
+        val first = BatchC.enemiesWithin(ctx, at, 1).map { it.id } + minions
         val second = BatchC.enemiesWithin(ctx, at, reach).map { it.id }
         return first.any { a -> second.any { it != a } }
     }
