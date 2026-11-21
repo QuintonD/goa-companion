@@ -14,15 +14,14 @@ class MinHeuristicsTest {
     }
 
     @Test
-    fun `the smoke bomb comes out before a walk with nothing adjacent`() {
+    fun `with the red still in hand, gold is a bare attack 2 and the smoke bomb comes first`() {
         val session = BatchBFixture.session {
-            turn = 3
-            hero("min", Team.RED, Hex(-5, -6))
-            hero("arien", Team.BLUE, Hex(11, -7))
+            turn = 2
+            hero("min", Team.RED, Hex(-5, -6)) { hand("min-silver", "min-gold", "min-red-1") }
+            hero("arien", Team.BLUE, Hex(-4, -6))
         }
-        val plain = BatchBFixture.pick(session, MinHeuristics, adjust = false)
-        val noted = BatchBFixture.pick(session, MinHeuristics, adjust = true)
-        assertWithMessage("plain=$plain noted=$noted").that(noted).isEqualTo(Choice.Card("min-silver"))
-        assertThat(plain).isNotEqualTo(noted)
+        val (plain, noted, table) = BatchBFixture.picks(session, MinHeuristics)
+        assertWithMessage(table).that(plain).isEqualTo(Choice.Card("min-gold"))
+        assertWithMessage(table).that(noted).isEqualTo(Choice.Card("min-silver"))
     }
 }

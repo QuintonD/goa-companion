@@ -15,8 +15,9 @@ import dev.quinton.goa.core.model.board.Hex
 import dev.quinton.goa.core.model.match.Team
 
 /**
- * Min hits in melee, then is gone. Gold copies a red only after that red is faceup
- * (resolved or discarded). The smoke bomb is the line that makes the green block real.
+ * Min hits in melee, then is gone. Gold copies a red's After-the-attack text only once that red is
+ * faceup (resolved or discarded). The green blocks only by swapping with the smoke bomb in range
+ * (rulings/min.md 5), and the grenade lands at end of turn on whoever is still beside it.
  */
 object MinHeuristics : HeroHeuristics {
     override val heroId: String = "min"
@@ -32,90 +33,100 @@ object MinHeuristics : HeroHeuristics {
 
     override fun adjust(ctx: HContext, d: Decision, choice: Choice): Double = when (d.kind) {
         DecisionKind.PLAY_CARD -> play(ctx, choice)
-        DecisionKind.DEFEND -> defend(ctx, d, choice)
+        DecisionKind.DEFEND -> defend(d, choice)
+        DecisionKind.CHOOSE_SPACE -> if (d.sourceCardId in GRENADES) grenadeSpace(ctx, choice) else 0.0
         else -> 0.0
     }
 
     override fun evalTerms(state: GameState, team: Team, heroId: String): Double {
         if (heroId != this.heroId) return 0.0
-        val sign = BatchB.sign(state, team, heroId)
-        val smoke = BatchB.tokens(state, heroId, MinHero.SMOKE)
-        val grenades = BatchB.tokens(state, heroId, MinHero.GRENADE)
+        val min = state.hero(heroId) ?: return 0.0
+        val minAt = min.at ?: return 0.0
         var value = 0.0
-        val minAt = state.hero(heroId)?.at
-        val teamOf = state.hero(heroId)?.team
-        if (minAt != null && teamOf != null && smoke.any { bomb ->
-                state.heroes.any { enemy ->
-                    enemy.team != teamOf && enemy.at != null && strictlyBetween(bomb.at!!, enemy.at!!, minAt)
-                }
+        // evalTerms: the smoke bomb on a straight line between an enemy hero and Min stops that shot.
+        val bomb = BatchB.tokens(state, heroId, MinHero.SMOKE).firstOrNull()?.at
+        if (bomb != null) {
+            val shielded = state.heroes.any { e ->
+                e.team != min.team && e.at?.let { strictlyBetween(bomb, it, minAt) } == true
             }
-        ) {
-            value += 6.0
+            if (shielded) value += 2.5
         }
-        value += grenades.size * 4.0
-        return sign * value
+        // evalTerms: a grenade with enemy heroes beside it discards or defeats them at end of turn.
+        for (g in BatchB.tokens(state, heroId, MinHero.GRENADE)) {
+            val at = g.at ?: continue
+            value += 2.0 * state.heroes.count { e -> e.team != min.team && e.at?.let { HexGrid.distance(it, at) == 1 } == true }
+        }
+        return BatchB.sign(state, team, heroId) * value
     }
 
     override fun threatAdjust(ctx: HContext, enemyHeroId: String, target: Hex): Double {
         if (enemyHeroId != heroId) return 0.0
-        var threat = 0.0
-        if (BatchB.besideToken(ctx.state, target, MinHero.GRENADE)) threat += 6.0
-        val from = ctx.hero(heroId)?.at
-        val smoke = BatchB.tokens(ctx.state, heroId, MinHero.SMOKE).firstOrNull()?.at
-        if (from != null && smoke != null && strictlyBetween(smoke, from, target)) {
-            // A shot through the bomb is not a shot. Cancel the printed threat with a negative.
-            threat -= 8.0
-        }
-        return threat
+        // threatAdjust: the space beside his grenade is a discard (or a defeat) at end of turn.
+        return if (BatchB.besideToken(ctx.state, target, MinHero.GRENADE)) 3.0 else 0.0
     }
 
     private fun play(ctx: HContext, choice: Choice): Double {
         val id = BatchB.cardId(choice) ?: return 0.0
-        return smoke(ctx, id) + gold(ctx, id) + grenade(ctx, id) + red(ctx, id)
-    }
-
-    // H1: place the bomb when it is not already on a line he cares about.
-    private fun smoke(ctx: HContext, id: String): Double {
-        if (id != "min-silver") return 0.0
         val at = ctx.own()?.at ?: return 0.0
-        val placed = BatchB.tokens(ctx.state, heroId, MinHero.SMOKE)
-        if (placed.isEmpty()) return 8.0
-        val covering = placed.any { bomb ->
-            ctx.enemies().any { enemy -> enemy.at?.let { strictlyBetween(bomb.at!!, it, at) } == true }
+        return when {
+            id == "min-silver" -> smoke(ctx, at)
+            id == "min-gold" -> gold(ctx, at)
+            id in GRENADES -> grenade(ctx, at, id)
+            id == "min-green-2b" || id == "min-green-3b" -> doubled(ctx)
+            else -> 0.0
         }
-        return if (covering) -2.0 else 6.0
     }
 
-    // H6: gold is attack 2 until the red is faceup. Do not lead with it.
-    private fun gold(ctx: HContext, id: String): Double {
-        if (id != "min-gold") return 0.0
-        return if (redFaceup(ctx)) 8.0 else -10.0
-    }
-
-    // H8: the grenade is a turn-1-to-3 tag, and a turn-4 defeat when the hero is empty.
-    private fun grenade(ctx: HContext, id: String): Double {
-        if (id != "min-blue-2b" && id != "min-blue-3b") return 0.0
-        if (ctx.turn == 4) return 8.0
-        return if (ctx.turn <= 3) 5.0 else -4.0
-    }
-
-    // H3: the slow red is the card that still threatens after a faster hero has walked.
-    private fun red(ctx: HContext, id: String): Double {
-        if (!id.startsWith("min-red")) return 0.0
-        val at = ctx.own()?.at ?: return 0.0
-        return if (BatchB.enemyHeroWithin(ctx, at, 1) || BatchB.enemyMinionWithin(ctx, at, 1)) 6.0 else 0.0
-    }
-
-    // H7: the green blocks only when the bomb is in that card's range. Otherwise it is not a defense.
-    private fun defend(ctx: HContext, d: Decision, choice: Choice): Double {
-        val id = BatchB.cardId(choice) ?: return 0.0
-        if (id != "min-green-1" && id != "min-green-2a" && id != "min-green-3a") return 0.0
-        val at = ctx.own()?.at ?: return 0.0
-        val range = ctx.card(id).range.coerceAtLeast(3)
+    // H1: put the bomb out when it is not already on a line between Min and an enemy hero.
+    private fun smoke(ctx: HContext, at: Hex): Double {
+        if (!BatchB.enemyHeroWithin(ctx, at, SMOKE_WATCH)) return 0.0
         val bomb = BatchB.tokens(ctx.state, heroId, MinHero.SMOKE).firstOrNull()?.at
-        val inRange = bomb != null && ctx.distance(at, bomb) <= range
-        val blocks = d.context.blockPreview[id] == true || inRange
-        return if (blocks) 6.0 else -12.0
+            ?: return 2.5
+        val covering = ctx.enemies().any { enemy -> enemy.at?.let { strictlyBetween(bomb, it, at) } == true }
+        return if (covering) -2.0 else 1.0
+    }
+
+    // H6: gold is attack 2 until a red is faceup; then it carries that red's push or swap.
+    private fun gold(ctx: HContext, at: Hex): Double {
+        if (!redFaceup(ctx)) return -1.5
+        val target = BatchB.enemyUnits(ctx).any { (_, pos) -> ctx.distance(at, pos) == 1 }
+        return if (target) 3.0 else 0.0
+    }
+
+    // H8: the grenade needs an enemy hero next to a space in its radius; an empty hand there is a defeat.
+    private fun grenade(ctx: HContext, at: Hex, id: String): Double {
+        val reach = ctx.card(id).radius + 1
+        val near = ctx.enemies().filter { e -> e.at?.let { ctx.distance(at, it) <= reach } == true }
+        if (near.isEmpty()) return -2.0
+        val empty = near.any { ctx.handCount(it.id) <= 1 && ctx.turn >= 3 }
+        return if (empty) 5.0 else 2.0
+    }
+
+    // H8: place it beside heroes who have already acted (they stay), or beside one whose hand is empty.
+    private fun grenadeSpace(ctx: HContext, choice: Choice): Double {
+        val hex = (choice as? Choice.Space)?.hex ?: return 0.0
+        var value = 0.0
+        for (e in ctx.enemies()) {
+            val pos = e.at ?: continue
+            if (HexGrid.distance(pos, hex) != 1) continue
+            val stays = e.id in ctx.state.turnRecord.resolved
+            value += if (stays) 6.0 else 2.5
+            if (ctx.handCount(e.id) == 0) value += ctx.killWorth(e.id) * (if (stays) 0.8 else 0.3)
+        }
+        return value
+    }
+
+    // H10: double the items only when there are items to double.
+    private fun doubled(ctx: HContext): Double {
+        val items = ctx.own()?.cards?.count { it.zone == Zone.ITEM } ?: 0
+        return if (items >= 2) items * 1.0 else -2.0
+    }
+
+    // H7: the green blocks only by swapping with the bomb in range. The engine's preview says whether it can.
+    private fun defend(d: Decision, choice: Choice): Double {
+        val id = BatchB.cardId(choice) ?: return 0.0
+        if (id !in POOF) return 0.0
+        return if (d.context.blockPreview[id] == false) -20.0 else 0.0
     }
 
     private fun redFaceup(ctx: HContext): Boolean {
@@ -129,6 +140,10 @@ object MinHeuristics : HeroHeuristics {
     private fun strictlyBetween(mid: Hex, from: Hex, to: Hex): Boolean {
         if (mid == from || mid == to) return false
         val line = HexGrid.straightLine(from, to) ?: return false
-        return mid in line && mid != to
+        return mid in line
     }
+
+    private const val SMOKE_WATCH = 6
+    private val GRENADES = setOf("min-blue-2b", "min-blue-3b")
+    private val POOF = setOf("min-green-1", "min-green-2a", "min-green-3a")
 }
