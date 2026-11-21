@@ -167,3 +167,12 @@ When the enemy is Nebkher:
 - [BGG 2896563] Nebkher spotlight, 2022-07-08, community. 1st printing. Kept: he is slow and disruptive, better with more enemies in gold range, and a copied action resolves from his space (designer reply in the thread). Rejected: the printed silver, both greens, both blues, the minion-walking red, the death ultimate, and every number that is not on the current card.
 - The BGG wiki `guards-atlantis-ii-tabletop-moba-nebkher` is the same old list. Not used for any number.
 - No 2nd-printing spotlight and no build guide in the strategy forum (83 threads, listed 2026-11-20). No Reddit thread found. Branch order is [REASONED] from the current text plus the three official advice sentences.
+
+## Implementation notes
+
+`NebkherHeuristics.kt`, checked against `NebkherHero.kt` (2026-11-21).
+
+- Rule 1: Mind Grip's two bullets are copy (from turn 2, a faceup previous-slot card of an enemy in range) and defeat an adjacent **enemy** minion. On turn 1 the minion bullet still works, so gold is not dead then.
+- Rule 2: the copied action's `CHOOSE_ACTION` carries the copied card's id as its source, not `nebkher-gold`; the general book and lookahead score it. The draft's rule keyed on `nebkher-gold` never fired and was removed.
+- Rule 9: the colour is scored by the chance each enemy who can be in radius next turn still holds that colour after playing one card, using the public pool (`possibleCards`), plus a little for its defense icon.
+- Skipped: 3–8 beyond the card-play nudges (Illusion spaces, swaps, the Laughter bullets: the lookahead plays them), 10 (Crack line), 12–15 beyond `upgradeOrder`.
