@@ -9,6 +9,8 @@ import dev.quinton.goa.core.game.ai.AiPlayers
 import dev.quinton.goa.core.game.engine.EngineSession
 import dev.quinton.goa.core.game.engine.Zone
 import dev.quinton.goa.core.model.match.Team
+import java.util.concurrent.Callable
+import java.util.concurrent.Executors
 import org.junit.Test
 
 /**
@@ -16,20 +18,32 @@ import org.junit.Test
  * prints, for every defeat of side a's heroes and for every game a loses, the turn it happened on
  * and the turn before: who held how many cards, the cards revealed, attacks, defenses and pushes.
  * Read it to see how the heuristic player loses, not how often (that is [HeuristicTournamentTest]).
- * `AI_FORMAT` (`3v3`…) as in the tournament.
+ * `AI_FORMAT` (`3v3`…) as in the tournament; `AI_H_DIAG=h10:s10,h10:s8@3v3` runs several, each with
+ * its own format after `@`. `AI_THREADS` plays games at once.
  */
 class HeuristicDiagTest {
     @Test
     fun `how side a loses`() {
-        val spec = System.getenv("AI_H_DIAG") ?: return
+        val specs = System.getenv("AI_H_DIAG") ?: return
+        // A comma list; each `a:b` may name its format, `h10:s8@3v3` (else AI_FORMAT).
+        for (spec in specs.split(",").map { it.trim() }.filter { it.isNotEmpty() }) {
+            val format = AiHarness.Format.parse(spec.substringAfter("@", System.getenv("AI_FORMAT") ?: ""))
+            println("DIAG ==== $spec ${format.label}")
+            diagnose(spec.substringBefore("@"), format)
+        }
+    }
+
+    private fun diagnose(spec: String, format: AiHarness.Format) {
         val lineups = System.getenv("AI_H_GAMES")?.toIntOrNull() ?: 6
         val first = System.getenv("AI_H_FIRST")?.toIntOrNull() ?: 0
         val (aName, bName) = spec.split(":")
-        val format = AiHarness.Format.parse(System.getenv("AI_FORMAT"))
         val all = AiHarness.mixedLineups(first + lineups, size = format.size)
+        val threads = System.getenv("AI_THREADS")?.toIntOrNull() ?: 1
+        val jobs = ArrayList<Callable<List<String>>>()
         for (i in first until first + lineups) {
             val (red, blue) = all[i]
-            for (aRed in listOf(true, false)) {
+            for (aRed in listOf(true, false)) jobs += Callable {
+                val out = ArrayList<String>()
                 val coin = if (i % 2 == 0) Team.RED else Team.BLUE
                 val seed = (50_000L + i) * 2
                 val aTeam = if (aRed) Team.RED else Team.BLUE
@@ -62,10 +76,8 @@ class HeuristicDiagTest {
                 )
                 drain(r.session, seenEvents, Int.MAX_VALUE, lines)
                 val aWon = r.winner == aTeam
-                println(
-                    "DIAG game ${red + blue} a=$aName ${if (aRed) "Red" else "Blue"} won=$aWon rounds=${r.rounds} " +
-                        "a ${tally(r.session, aTeam)} | b ${tally(r.session, aTeam.opponent)}",
-                )
+                out += "DIAG game ${red + blue} a=$aName ${if (aRed) "Red" else "Blue"} won=$aWon rounds=${r.rounds} " +
+                    "reason ${r.session.state.winReason} a ${tally(r.session, aTeam)} | b ${tally(r.session, aTeam.opponent)}"
                 val heroesA = (if (aRed) red else blue).toSet()
                 val keys = lines.filter { (_, l) ->
                     l.startsWith("  X ") && heroesA.any { h -> l.startsWith("  X $h ") }
@@ -74,8 +86,16 @@ class HeuristicDiagTest {
                 val show = keys.flatMap { listOf(it - 1, it) }.toSet()
                 // AI_H_DIAG_ALL: every line of the games side a lost.
                 val all = System.getenv("AI_H_DIAG_ALL") != null && !aWon
-                for ((k, l) in lines) if (all || k in show || (k == Int.MAX_VALUE && !aWon)) println("DIAG $l")
+                for ((k, l) in lines) if (all || k in show || (k == Int.MAX_VALUE && !aWon)) out += "DIAG $l"
+                out
             }
+        }
+        // AI_THREADS: games at once; each game's lines are printed together, in line-up order.
+        val pool = Executors.newFixedThreadPool(threads)
+        try {
+            for (f in pool.invokeAll(jobs)) f.get().forEach { println(it) }
+        } finally {
+            pool.shutdown()
         }
     }
 
