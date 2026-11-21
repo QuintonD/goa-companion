@@ -7,8 +7,11 @@ import dev.quinton.goa.core.game.ai.heuristic.HContext
 import dev.quinton.goa.core.game.ai.heuristic.HeroHeuristics
 import dev.quinton.goa.core.game.ai.heuristic.HeroRole
 import dev.quinton.goa.core.game.ai.heuristic.HeroStyle
+import dev.quinton.goa.core.domain.board.HexGrid
 import dev.quinton.goa.core.game.engine.GameState
 import dev.quinton.goa.core.game.engine.Timing
+import dev.quinton.goa.core.game.engine.Zone
+import dev.quinton.goa.core.game.engine.isEmpty
 import dev.quinton.goa.core.model.board.Hex
 import dev.quinton.goa.core.model.match.Team
 
@@ -21,7 +24,7 @@ object MisaHeuristics : HeroHeuristics {
 
     override val style: HeroStyle = HeroStyle(
         role = HeroRole.FIGHTER,
-        idealDistance = 4,
+        idealDistance = 2,
         aggression = 0.55,
         laneWeight = 0.55,
         upgradeOrder = listOf("misa-red-2a", "misa-blue-2a", "misa-green-2a", "red", "blue", "green"),
@@ -30,93 +33,82 @@ object MisaHeuristics : HeroHeuristics {
 
     override fun adjust(ctx: HContext, d: Decision, choice: Choice): Double = when (d.kind) {
         DecisionKind.PLAY_CARD -> play(ctx, choice)
-        DecisionKind.DEFEND -> defend(choice)
+        DecisionKind.DEFEND -> defend(ctx, d, choice)
         else -> 0.0
     }
 
     override fun evalTerms(state: GameState, team: Team, heroId: String): Double {
         if (heroId != this.heroId) return 0.0
-        val sign = BatchB.sign(state, team, heroId)
+        // evalTerms: a Focus / Discipline / Mastery step pending for the coming turn.
         val step = state.effects.any { effect ->
-            effect.owner == heroId && effect.cardId.startsWith("misa-green-") &&
-                effect.cardId.endsWith("a") && effect.timing == Timing.NEXT_TURN && !effect.spent
+            effect.owner == heroId && effect.cardId in FOCUS && effect.timing == Timing.NEXT_TURN && !effect.spent
         }
-        return if (step) sign * 4.0 else 0.0
-    }
-
-    override fun threatAdjust(ctx: HContext, enemyHeroId: String, target: Hex): Double {
-        if (enemyHeroId != heroId) return 0.0
-        val from = ctx.hero(heroId)?.at ?: return 0.0
-        val distance = ctx.distance(from, target)
-        val range = 4 + ctx.itemBonus(heroId, dev.quinton.goa.core.model.catalog.Stat.RANGE)
-        // Gold places her on the empty space at exact range. The spaces in between are not the threat.
-        return if (distance == range && BatchB.hold(ctx, heroId) { it.id == "misa-gold" } > 0.2) 6.0 else 0.0
+        return if (step) BatchB.sign(state, team, heroId) * 2.0 else 0.0
     }
 
     private fun play(ctx: HContext, choice: Choice): Double {
         val id = BatchB.cardId(choice) ?: return 0.0
-        return gold(ctx, id) + sword(ctx, id) + focus(ctx, id) + swoop(ctx, id)
-    }
-
-    // H5: outside the zone, gold is how she enters. Exact range 4, or the adjacent minion once she is there.
-    private fun gold(ctx: HContext, id: String): Double {
-        if (id != "misa-gold") return 0.0
         val at = ctx.own()?.at ?: return 0.0
-        val outside = !ctx.inBattleZone(at)
-        val minion = BatchB.enemyMinionWithin(ctx, at, 1)
         return when {
-            minion && !outside -> 8.0
-            outside -> 8.0
+            id == "misa-gold" -> gold(ctx, at)
+            id == "misa-silver" -> swoop(ctx, at)
+            id in SWORD -> sword(ctx, at)
+            id in FOCUS -> focus(ctx, at)
             else -> 0.0
         }
     }
 
-    // H1: the sword is the one attack. Play it when a body is already adjacent.
-    private fun sword(ctx: HContext, id: String): Double {
-        if (id != "misa-red-1" && id != "misa-red-2a" && id != "misa-red-3a") return 0.0
-        val at = ctx.own()?.at ?: return 0.0
-        val hero = ctx.enemies().any { enemy ->
-            enemy.at?.let { ctx.distance(at, it) == 1 } == true && ctx.handCount(enemy.id) == 0
-        }
-        val minion = BatchB.enemyMinionWithin(ctx, at, 1)
-        return when {
-            hero -> 14.0
-            minion -> 8.0
-            else -> -4.0
-        }
+    // H5: gold defeats an adjacent enemy minion outright (no attack), or places her at exact range 4.
+    private fun gold(ctx: HContext, at: Hex): Double {
+        val minion = BatchB.bestMinion(ctx, at, 1)
+        if (minion > 0.0) return minion * 0.7
+        return if (!ctx.inBattleZone(at)) 3.0 else 0.0
     }
 
-    // H3: Focus on turn 4 has no next turn. On turns 1–3 it is the step the sword does not have.
-    private fun focus(ctx: HContext, id: String): Double {
-        if (id != "misa-green-1" && id != "misa-green-2a" && id != "misa-green-3a") return 0.0
-        if (ctx.turn >= 4) return -8.0
-        val at = ctx.own()?.at ?: return 0.0
-        val adjacent = BatchB.enemyHeroWithin(ctx, at, 1) || BatchB.enemyMinionWithin(ctx, at, 1)
-        return if (adjacent) -2.0 else 5.0
+    // H1/H2: the sword is her one attack. With nothing adjacent it is a walk and a defense 6-7 kept for later.
+    private fun sword(ctx: HContext, at: Hex): Double {
+        val adjacent = BatchB.enemyUnits(ctx).any { (_, pos) -> ctx.distance(at, pos) == 1 }
+        return if (adjacent) 0.0 else -1.5
     }
 
-    // H6: Swoop needs a space touching two enemy units. Without one the primary does not start.
-    private fun swoop(ctx: HContext, id: String): Double {
-        if (id != "misa-silver") return 0.0
-        val at = ctx.own()?.at ?: return 0.0
-        return if (twoEnemies(ctx, at)) 6.0 else -8.0
+    // H3: Focus on turn 4 has no next turn. On turns 1-3 it is the step the sword does not have.
+    private fun focus(ctx: HContext, at: Hex): Double {
+        if (ctx.turn >= LAST_TURN) return -6.0
+        val adjacent = BatchB.enemyUnits(ctx).any { (_, pos) -> ctx.distance(at, pos) == 1 }
+        val sword = ctx.ownHand().any { it.id in SWORD }
+        return if (!adjacent && sword) 2.0 else 0.0
     }
 
-    // H13: the unplayed sword is the attack she still needs. A small defense should take something else.
-    private fun defend(choice: Choice): Double {
+    // H6: Swoop needs a space in radius 3 next to two enemy units, or the primary does not start.
+    private fun swoop(ctx: HContext, at: Hex): Double {
+        if (!swoopSpace(ctx, at)) return -3.0
+        val discard = ctx.own()?.cards?.any { it.zone == Zone.DISCARD } == true
+        return if (discard) 4.0 else 1.5
+    }
+
+    // H13: the unplayed sword is the attack she still needs. A hit another card also stops takes that card.
+    private fun defend(ctx: HContext, d: Decision, choice: Choice): Double {
         val id = BatchB.cardId(choice) ?: return 0.0
-        val sword = id == "misa-red-1" || id == "misa-red-2a" || id == "misa-red-3a"
-        return if (sword) -6.0 else 0.0
+        if (id !in SWORD || ctx.turn >= LAST_TURN) return 0.0
+        val total = d.context.attackTotal ?: return 0.0
+        val other = d.options.filterIsInstance<Choice.Card>().any { o ->
+            o.cardId !in SWORD && (d.context.defensePreview[o.cardId] ?: 0) >= total
+        }
+        return if (other) -4.0 else 0.0
     }
 
-    private fun twoEnemies(ctx: HContext, at: Hex): Boolean {
-        var count = 0
-        for (enemy in ctx.enemies()) {
-            if (enemy.at?.let { ctx.distance(at, it) <= 3 } == true) count++
+    private fun swoopSpace(ctx: HContext, at: Hex): Boolean {
+        val enemies = BatchB.enemyUnits(ctx).map { it.second }.filter { ctx.distance(at, it) <= SWOOP_RADIUS + 1 }
+        if (enemies.size < 2) return false
+        val candidates = enemies.flatMap { HexGrid.neighbors(it) }.toSet()
+        return candidates.any { h ->
+            ctx.distance(at, h) <= SWOOP_RADIUS && ctx.game.isEmpty(h) &&
+                enemies.count { HexGrid.distance(it, h) == 1 } >= 2
         }
-        for (minion in ctx.state.minions) {
-            if (minion.team != ctx.team && minion.at?.let { ctx.distance(at, it) <= 3 } == true) count++
-        }
-        return count >= 2
     }
+
+    private const val LAST_TURN = 4
+    private const val SWOOP_RADIUS = 3
+    private val SWORD = setOf("misa-red-1", "misa-red-2a", "misa-red-3a")
+    private val FOCUS = setOf("misa-green-1", "misa-green-2a", "misa-green-3a")
 }
