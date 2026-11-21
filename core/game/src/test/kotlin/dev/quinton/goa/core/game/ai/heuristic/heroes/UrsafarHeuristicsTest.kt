@@ -4,16 +4,18 @@ import dev.quinton.goa.core.model.board.Hex
 import org.junit.Test
 
 class UrsafarHeuristicsTest {
-    @Test fun finishes() = HeroBookSupport.finishes("ursafar")
+    @Test
+    fun `finishes 2v2 and 3v3 at strengths 5 and 10`() = BatchDTestSupport.finishes("ursafar")
 
-    @Test fun signature() {
-        val session = HeroBookSupport.playing(
+    @Test
+    fun `a calm bear does not lunge, and steps with Blue to get angry`() {
+        // H4/H2: Gold's step toward a hero exists only once he is enraged; calm, Blue is the enrage.
+        val session = BatchDTestSupport.playing(
             hero = "ursafar",
-            at = Hex(-1, -2),
-            hand = listOf("ursafar-green-1", "ursafar-blue-1", "ursafar-red-1"),
-            enemyAt = Hex(3, -3),
+            at = Hex(1, -5),
+            hand = listOf("ursafar-gold", "ursafar-green-1", "ursafar-blue-1"),
+            enemyAt = Hex(3, -6),
         )
-        // Green does nothing until he is enraged, and it does not enrage him.
-        HeroBookSupport.assertFlips(session, UrsafarHeuristics, "ursafar-green-1")
+        BatchDTestSupport.assertFlips(session, UrsafarHeuristics, from = "ursafar-gold", to = "ursafar-blue-1")
     }
 }
