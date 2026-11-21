@@ -166,3 +166,14 @@ When the enemy is Ignatia:
 - [BGG 3487749] 2025-04-05, community: Min's grenade plus her discard blue, near-certain on turn 4; she is a strong pusher on tier-3 red.
 - Gamefound Renowned update 8: polarizing, 4-star, two texts on the coin, "either side works". No numbers taken from it. The campaign silver description is the old card.
 - No 2nd-printing spotlight. No Reddit thread found.
+
+## Implementation notes
+
+`IgnatiaHeuristics.kt`, checked against `IgnatiaHero.kt` (2026-11-21).
+
+- **The coin is the prediction.** `IgnatiaHero.coinSide`: the Blue team's side shows the blue text, the Red team's side the orange text. The coin is public, so the face it shows when she plays is the expected face. Rule 1's "require both faces before the reveal" made almost every coin card dead in the draft; the code instead cancels the general strike estimate only when the face the coin shows has no target, and adds a little when both faces do (a tie can still flip it).
+- Rule 4: Equilibrium's face choice is a `CHOOSE_OPTION` the engine offers only when both faces can start; it is left to the lookahead. Rule 13 (Chaos Incarnate confirm) likewise.
+- Gold's faces: blue is an adjacent minion, orange a hero in range. Primary red: blue is a unit not in a straight line, orange a unit in a straight line. Alt red: blue adjacent, orange exactly at maximum range. Blue A: blue is a hero beside a token or any minion (discard), orange removes an enemy minion beside an enemy hero.
+- `evalTerms` counts only magma beside enemy heroes; `HEval` already prices each token.
+- Skipped: rules 5, 6, 9–11, 14 (target and space choices the lookahead plays), 16 beyond `upgradeOrder`.
+- Measured (ablation, strength 8): 61.5% of 96 with the first dead-face correction; 55.7% of 192 (Wilson 48.7–62.6%) after it kept the card's movement value.

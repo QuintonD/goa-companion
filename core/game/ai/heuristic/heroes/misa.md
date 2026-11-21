@@ -153,3 +153,14 @@ When the enemy is Misa:
 - Gamefound Devoted update 6 (https://gamefound.com/en/projects/wolffdesigna/guardsofatlantis2new/updates/6): one attack, gold as mobility. The claims that gold cannot defeat a minion and that one green repeats the action are the old kit and are rejected.
 - [BGG 2431430] campaign index: "mobility disabler", one attack. Roles only.
 - No 2nd-printing spotlight. No Reddit thread found.
+
+## Implementation notes
+
+`MisaHeuristics.kt`, checked against `MisaHero.kt` (2026-11-21).
+
+- Rule 5: gold's minion bullet is an enemy minion only (the engine filters `isEnemy`; p.13 never a friendly unit) and defeats it without an attack, which the general book does not see (gold is a skill card). The playbook adds most of that minion's worth.
+- Rule 6: Swoop In is legal only with an empty space in radius 3 next to two or more enemy units; the playbook checks that space, not a count of units in range.
+- Rule 3: Focus, Discipline and Mastery are `misa-green-1`, `-2a`, `-3a` (the draft missed `-1`).
+- `threatAdjust`: none. The md's "+6 on the empty space at exact range 4" names a space nobody stands on; the sword and bow are printed reach the general threat map already reads.
+- Skipped: 4, 7, 9–12 (spaces and units the lookahead plays), 14, 15 beyond `upgradeOrder`.
+- Measured (ablation, strength 8, 96 games): `idealDistance` 2 (§1 says 4 for gold, then 1–2) with §1's `laneWeight` 0.55 scored 47.9%; `idealDistance` 1 (the sword is melee) and `laneWeight` 0.85 scored 50.0%.

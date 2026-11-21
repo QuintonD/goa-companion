@@ -157,3 +157,13 @@ When the enemy is Min:
 - BGG video 563611, Optimal Play, "Min the Dragonmonk", community comment: Perfect Self doubling items is strong when the numbers are known, and weak if he cannot reach after spending green. Matches `min-green-2b` / `min-green-3b`. The video itself was not transcribed.
 - Gamefound Renowned update 8: initiator, mines, smoke, escape, reactive. No numbers taken. "High initiative" matches the dashboard.
 - No 2nd-printing spotlight. No Reddit thread found.
+
+## Implementation notes
+
+`MinHeuristics.kt`, checked against `MinHero.kt` (2026-11-21).
+
+- Rule 7: the engine's defense preview (`blockPreview`) already says whether the green's swap with the bomb can happen. The playbook only refuses a green the preview says cannot block.
+- Rule 8: the grenade's space is a `CHOOSE_SPACE` with no subject, so the general book would score it as if Min stood there. The playbook scores the space by the enemy heroes beside it: one who has already acted stays until end of turn; an empty hand there is a defeat.
+- Rule 6: gold reads only whether a red is faceup (resolved or discarded) and a unit is adjacent (range 1).
+- `threatAdjust` adds the grenade's end-of-turn discard only. The smoke bomb's blocked lines would need a negative threat, which the exposure sum does not take; left out.
+- Skipped: 2, 4, 5, 9, 11 (spaces and pushes the lookahead plays), 12 (initiative walk-ups: general escape logic), 14 beyond `upgradeOrder`.
