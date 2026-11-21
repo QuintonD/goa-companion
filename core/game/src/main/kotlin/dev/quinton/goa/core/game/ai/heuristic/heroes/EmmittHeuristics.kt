@@ -71,8 +71,11 @@ object EmmittHeuristics : HeroHeuristics {
     private fun punchWorth(ctx: HContext, e: HeroState, total: Int): Double {
         if (e.hand.isEmpty()) return ctx.killWorth(e.id)
         val pos = e.at ?: return 0.0
-        val bonus = ctx.itemBonus(e.id, Stat.INITIATIVE) + ctx.minionModifier(pos, e.team)
+        val items = ctx.itemBonus(e.id, Stat.INITIATIVE)
+        val modifier = ctx.minionModifier(pos, e.team)
+        // A defense that ignores minion modifiers (Arien's Duelists) ignores them here too.
         val hold = BatchASupport.chanceHolds(ctx, e) { c ->
+            val bonus = items + if (c.ignoresMinionModifiers) 0 else modifier
             (c.block && c.blocksMelee) || (c.canDefend && !c.block && c.initiative + bonus >= total)
         }
         val chance = 1.0 - hold
@@ -93,11 +96,14 @@ object EmmittHeuristics : HeroHeuristics {
         var best = 0.0
         for (e in BatchASupport.enemiesWithin(ctx, at, reach)) {
             val theirs = ctx.itemBonus(e.id, Stat.INITIATIVE)
+            // A tie across teams goes to the team on the Tie Breaker coin, in Reverse Time as well (p.7).
+            val winsTie = ctx.state.tieBreaker == e.team
             val p = if (e.id in ctx.state.turnRecord.resolved) {
                 1.0
             } else {
                 BatchASupport.chancePlays(ctx, e.id) { c ->
-                    if (reverse) c.initiative + theirs < ours else c.initiative + theirs > ours
+                    val init = c.initiative + theirs
+                    (if (reverse) init < ours else init > ours) || (init == ours && winsTie)
                 }
             }
             best = max(best, p * BatchASupport.discardValue(ctx, e, orDefeat))

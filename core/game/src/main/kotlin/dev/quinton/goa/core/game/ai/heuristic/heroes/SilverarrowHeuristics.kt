@@ -72,7 +72,7 @@ object SilverarrowHeuristics : HeroHeuristics {
             // H9: the warning shot makes an enemy hero in radius discard at end of turn; no hero, no value.
             in warnings -> BatchC.heroOnlyDiscard(ctx, id, BatchC.radiusOf(ctx, id))
 
-            in heals -> if (healable(ctx, at, ctx.card(id).radius)) 1.5 else -1.0
+            in heals -> if (healable(ctx, at, BatchC.radiusOf(ctx, id))) 1.5 else -1.0
 
             else -> 0.0
         }

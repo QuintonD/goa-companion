@@ -11,6 +11,7 @@ import dev.quinton.goa.core.game.ai.heuristic.HeroStyle
 import dev.quinton.goa.core.game.engine.GameState
 import dev.quinton.goa.core.game.heroes.TrinketsHero
 import dev.quinton.goa.core.model.board.Hex
+import dev.quinton.goa.core.model.catalog.Stat
 import dev.quinton.goa.core.model.match.Team
 
 /**
@@ -90,7 +91,8 @@ object TrinketsHeuristics : HeroHeuristics {
                 val real = if (turret == null) {
                     -0.5
                 } else {
-                    val turretReach = if (id in DISCHARGE) 1 else card.range
+                    // The Turret measures the action's Range (items included); Steam Discharge wants it adjacent.
+                    val turretReach = if (id in DISCHARGE) 1 else card.range + ctx.itemBonus(ctx.seat, Stat.RANGE)
                     val reach = ctx.attackReach(ctx.seat, card)
                     val valid = { _: String, pos: Hex ->
                         ctx.distance(at, pos) in 1..reach && ctx.distance(turret, pos) in 1..turretReach

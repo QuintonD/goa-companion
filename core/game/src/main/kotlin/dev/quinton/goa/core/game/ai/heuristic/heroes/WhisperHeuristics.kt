@@ -4,6 +4,7 @@ import dev.quinton.goa.core.domain.board.HexGrid
 import dev.quinton.goa.core.game.Choice
 import dev.quinton.goa.core.game.Decision
 import dev.quinton.goa.core.game.DecisionKind
+import dev.quinton.goa.core.game.ai.heuristic.HCard
 import dev.quinton.goa.core.game.ai.heuristic.HContext
 import dev.quinton.goa.core.game.ai.heuristic.HeroHeuristics
 import dev.quinton.goa.core.game.ai.heuristic.HeroRole
@@ -11,6 +12,7 @@ import dev.quinton.goa.core.game.ai.heuristic.HeroStyle
 import dev.quinton.goa.core.game.engine.GameState
 import dev.quinton.goa.core.game.engine.Zone
 import dev.quinton.goa.core.model.board.Hex
+import dev.quinton.goa.core.model.catalog.Stat
 import dev.quinton.goa.core.model.match.Team
 
 /**
@@ -91,11 +93,15 @@ object WhisperHeuristics : HeroHeuristics {
                 BatchDSupport.strikeFix(ctx, card, real)
             }
 
-            // H6: Blood Fury hits a neighbour; once the hit hero has discarded, it repeats on a second one.
+            // H6: Blood Fury hits a neighbour; with an enemy hero in radius holding a discard after the
+            // attack, it repeats on a different neighbour (Blood Frenzy: up to five times).
             in FURY -> {
                 val hits = BatchDSupport.strikeList(ctx, card, { _, pos -> ctx.distance(at, pos) == 1 })
                 var real = hits.firstOrNull()?.second ?: -0.5
-                if (hits.size >= 2) real += 0.6 * maxOf(0.0, hits[1].second)
+                if (hits.size >= 2 && furyPrimed(ctx, at, card, hits[0].first)) {
+                    val repeats = if (id == "whisper-red-3b") FRENZY_REPEATS else 1
+                    real += 0.6 * hits.drop(1).take(repeats).sumOf { maxOf(0.0, it.second) }
+                }
                 BatchDSupport.strikeFix(ctx, card, real)
             }
 
@@ -107,6 +113,16 @@ object WhisperHeuristics : HeroHeuristics {
 
             else -> 0.0
         }
+    }
+
+    /**
+     * After the attack an enemy hero in radius has a discard: one already has, or the first target is a
+     * hero with a card to lose (a defense goes to the discard; so does a hit's card).
+     */
+    private fun furyPrimed(ctx: HContext, at: Hex, card: HCard, first: String): Boolean {
+        val radius = card.radius + ctx.itemBonus(ctx.seat, Stat.RADIUS)
+        if (BatchDSupport.enemyHeroesWithin(ctx, at, 1, radius).any { !BatchDSupport.discardEmpty(it) }) return true
+        return ctx.heroBody(first)?.let { ctx.handCount(it) > 0 } == true
     }
 
     private fun silver(ctx: HContext, at: Hex, radius: Int): Double {
@@ -158,6 +174,7 @@ object WhisperHeuristics : HeroHeuristics {
     private const val SILVER = "whisper-silver"
     private val TRAIL = setOf("whisper-red-1", "whisper-red-2a", "whisper-red-3a")
     private val FURY = setOf("whisper-red-2b", "whisper-red-3b")
+    private const val FRENZY_REPEATS = 5
     private val SHADOW = setOf("whisper-green-1", "whisper-green-2a", "whisper-green-3a")
     private val EVIL = setOf("whisper-blue-2b", "whisper-blue-3b")
 }

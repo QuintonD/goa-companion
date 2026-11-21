@@ -5,6 +5,9 @@ import dev.quinton.goa.core.game.Choice
 import dev.quinton.goa.core.game.DecisionContext
 import dev.quinton.goa.core.game.DecisionKind
 import dev.quinton.goa.core.game.TestData
+import dev.quinton.goa.core.game.ai.heuristic.HContext
+import dev.quinton.goa.core.game.ai.heuristic.HeroPlaybooks
+import dev.quinton.goa.core.game.ai.heuristic.HeuristicProfile
 import dev.quinton.goa.core.game.position.PositionPhase
 import dev.quinton.goa.core.game.position.position
 import dev.quinton.goa.core.model.board.Hex
@@ -41,5 +44,27 @@ class TaliHeuristicsTest {
         val general = BatchCBook.chosen(session, decision, null)
         assertThat(general).isEqualTo(Choice.Space(empty))
         assertThat(withBook).isEqualTo(Choice.Space(beside))
+    }
+
+    @Test
+    fun `ice blast splashes only after a target with a card to defend`() {
+        // Review H2-10: the splash follows a defense discard. A target with an empty hand is defeated instead.
+        fun splash(targetHand: Array<String>): Double {
+            val session = position(TestData.engine, TestData.FOREST) {
+                turn = 2
+                clearMinions()
+                hero("tali", Team.RED, Hex(1, -2)) { hand("tali-gold", "tali-green-1") }
+                hero("arien", Team.BLUE, Hex(2, -2)) { hand(*targetHand) }
+                hero("brogan", Team.BLUE, Hex(3, -4)) { hand("brogan-gold") }
+                phase = PositionPhase.PlayCards(0)
+            }
+            val d = session.pending!!
+            assertThat(d.seat).isEqualTo("tali")
+            val ctx = HContext(session, d, d.team, HeuristicProfile.of(8), playbooks = HeroPlaybooks::forHero)
+            val gold = d.options.filterIsInstance<Choice.Card>().first { it.cardId == "tali-gold" }
+            return TaliHeuristics.adjust(ctx, d, gold)
+        }
+        assertThat(splash(arrayOf("arien-gold"))).isEqualTo(3.0)
+        assertThat(splash(emptyArray())).isEqualTo(0.0)
     }
 }

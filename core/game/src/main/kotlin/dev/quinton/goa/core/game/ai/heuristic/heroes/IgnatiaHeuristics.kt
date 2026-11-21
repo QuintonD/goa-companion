@@ -117,8 +117,12 @@ object IgnatiaHeuristics : HeroHeuristics {
 
             id in BLUE_DISCARD -> {
                 val radius = card.radius + ctx.itemBonus(ctx.seat, Stat.RADIUS)
-                val heroes = ctx.enemies().mapNotNull { it.at }.filter { ctx.distance(at, it) in 1..radius }
-                val discard = heroes.any { pos -> HexGrid.neighbors(pos).any { occupiedByTokenOrMinion(ctx, it) } }
+                val heroes = ctx.enemies().mapNotNull { it.at }
+                val discard = heroes.any { pos ->
+                    ctx.distance(at, pos) in 1..radius &&
+                        HexGrid.neighbors(pos).any { occupiedByTokenOrMinion(ctx, it) }
+                }
+                // Orange: only the minion must be in radius; the enemy hero beside it may stand anywhere.
                 val remove = ctx.state.minions.any { m ->
                     m.team != ctx.team && m.at?.let { p ->
                         ctx.distance(at, p) in 1..radius && heroes.any { ctx.distance(it, p) == 1 }

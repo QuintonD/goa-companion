@@ -11,6 +11,7 @@ import dev.quinton.goa.core.game.ai.heuristic.HeroRole
 import dev.quinton.goa.core.game.ai.heuristic.HeroStyle
 import dev.quinton.goa.core.game.engine.GameState
 import dev.quinton.goa.core.game.engine.Zone
+import dev.quinton.goa.core.game.engine.isEmpty
 import dev.quinton.goa.core.game.heroes.MrakHero
 import dev.quinton.goa.core.model.board.Hex
 import dev.quinton.goa.core.model.catalog.Stat
@@ -156,13 +157,6 @@ object MrakHeuristics : HeroHeuristics {
         }
     }
 
-    private fun emptyAround(ctx: HContext, at: Hex): Int =
-        HexGrid.neighbors(at).count { hex -> ctx.game.geo.isSpace(hex) && occupant(ctx, hex) == null }
-
-    private fun occupant(ctx: HContext, hex: Hex): String? {
-        ctx.state.heroes.firstOrNull { it.at == hex }?.let { return it.id }
-        ctx.state.minions.firstOrNull { it.at == hex }?.let { return it.id }
-        ctx.state.pieces.firstOrNull { it.at == hex && !it.passable }?.let { return it.id }
-        return null
-    }
+    /** Stone Grip's own test: the engine's empty spaces beside [at]. */
+    private fun emptyAround(ctx: HContext, at: Hex): Int = HexGrid.neighbors(at).count { ctx.game.isEmpty(it) }
 }

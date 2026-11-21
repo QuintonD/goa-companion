@@ -24,8 +24,9 @@ internal object BatchBSupport {
     fun tokens(state: GameState, owner: String, kind: String): List<PieceState> =
         state.pieces.filter { it.owner == owner && it.kind == kind && it.at != null }
 
+    /** An effect of [cardId] owned by [owner] in force now (its timing, round and turn: `Game.inForce`). */
     fun effect(state: GameState, owner: String, cardId: String): Boolean =
-        state.effects.any { it.owner == owner && it.cardId == cardId && !it.spent }
+        state.effects.any { it.owner == owner && it.cardId == cardId && BatchASupport.live(state, it) }
 
     /** Faceup resolved or discarded card. That pile is public. */
     fun shown(state: GameState, heroId: String, predicate: (String) -> Boolean): Boolean {

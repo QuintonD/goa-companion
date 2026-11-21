@@ -106,9 +106,12 @@ internal object BatchDSupport {
 
     // ---- knowledge -----------------------------------------------------------------------------
 
-    /** Public knowledge allows [heroId] to still hold [cardId] (the real hand for us and at strength 10). */
+    /**
+     * Public knowledge allows [heroId] to still hold [cardId] (the real hand for us and at strength 10),
+     * or it is the card they revealed this turn and have still to resolve: a threat either way.
+     */
     fun mayHold(ctx: HContext, heroId: String, cardId: String): Boolean =
-        ctx.possibleCards(heroId).any { it.card.id == cardId && !it.playingNow }
+        ctx.possibleCards(heroId).any { it.card.id == cardId }
 
     fun holds(ctx: HContext, cardIds: Set<String>): Boolean = ctx.ownHand().any { it.id in cardIds }
 

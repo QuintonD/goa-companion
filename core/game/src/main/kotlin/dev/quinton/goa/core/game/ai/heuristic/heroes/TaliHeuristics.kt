@@ -75,7 +75,10 @@ object TaliHeuristics : HeroHeuristics {
         if (enemyHeroId != heroId) return 0.0
         val at = ctx.hero(heroId)?.at ?: return 0.0
         if (ctx.distance(at, target) !in 2..4 || !BatchC.mayHold(ctx, heroId, golds)) return 0.0
-        val foesNear = BatchC.foesOf(ctx.state, heroId).any { h -> h.at?.let { ctx.distance(at, it) == 1 } == true }
+        // The splash follows a defense discard: the hero beside Tali needs a card in hand (public count).
+        val foesNear = BatchC.foesOf(ctx.state, heroId).any { h ->
+            h.at?.let { ctx.distance(at, it) == 1 } == true && ctx.handCount(h.id) > 0
+        }
         return if (foesNear) 1.5 else 0.0
     }
 
@@ -83,17 +86,24 @@ object TaliHeuristics : HeroHeuristics {
         val id = BatchC.cardId(choice) ?: return 0.0
         val at = ctx.own()?.at ?: return 0.0
         return when (id) {
-            in golds -> splash(ctx, at)
+            in golds -> splash(ctx, at, id)
             in totemCards -> if (totemTargets(ctx, at, 2 + 1).isEmpty()) -1.0 else 1.0
             else -> 0.0
         }
     }
 
-    /** H4 / H5: gold on an adjacent hero with a second enemy hero in radius 4 is the card; a lone poke is not. */
-    private fun splash(ctx: HContext, at: Hex): Double {
+    /**
+     * H4 / H5: gold on an adjacent hero with a second enemy hero in radius is the card; a lone poke is not.
+     * The splash needs the target to discard to defend: a target with no card in hand (public count) is
+     * defeated instead, and the general book already prices that.
+     */
+    private fun splash(ctx: HContext, at: Hex, id: String): Double {
         val adjacent = BatchC.enemiesWithin(ctx, at, 1)
         if (adjacent.isEmpty()) return 0.0
-        val second = BatchC.enemiesWithin(ctx, at, 4).size >= 2
+        val defenders = adjacent.filter { ctx.handCount(it.id) > 0 }
+        if (defenders.isEmpty()) return 0.0
+        val near = BatchC.enemiesWithin(ctx, at, BatchC.radiusOf(ctx, id))
+        val second = defenders.any { t -> near.any { it.id != t.id } }
         return if (second) 3.0 else -1.0
     }
 

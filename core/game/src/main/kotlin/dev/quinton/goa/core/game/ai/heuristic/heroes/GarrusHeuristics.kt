@@ -10,7 +10,9 @@ import dev.quinton.goa.core.game.ai.heuristic.HeroRole
 import dev.quinton.goa.core.game.ai.heuristic.HeroStyle
 import dev.quinton.goa.core.game.engine.GameState
 import dev.quinton.goa.core.game.engine.HeroState
+import dev.quinton.goa.core.game.engine.MoveSpec
 import dev.quinton.goa.core.game.engine.Zone
+import dev.quinton.goa.core.game.engine.reach
 import dev.quinton.goa.core.model.board.Hex
 import dev.quinton.goa.core.model.catalog.Stat
 import dev.quinton.goa.core.model.match.Team
@@ -111,16 +113,23 @@ object GarrusHeuristics : HeroHeuristics {
 
     /**
      * H5: the hunt's hero bullet steps (1, up to 2, up to 3) only with a card in the discard;
-     * without one it reaches only an adjacent hero. The other bullet is any adjacent unit.
+     * without one it reaches only an adjacent hero. The landings are the engine's legal moves (as
+     * the card's own check reads them), staying put included. The other bullet is any adjacent unit.
      */
     private fun hunt(ctx: HContext, me: HeroState, at: Hex, cardId: String): Pair<Double, Double> {
         val card = ctx.card(cardId)
         val total = card.attack + ctx.itemBonus(me.id, Stat.ATTACK)
-        val reach = if (BatchASupport.discardCount(ctx.state, me.id) > 0) 1 + HUNT_STEP.getValue(cardId) else 1
+        val lands = if (BatchASupport.discardCount(ctx.state, me.id) > 0) {
+            ctx.game.reach(MoveSpec(me.id, 0, HUNT_STEP.getValue(cardId))).keys + at
+        } else {
+            setOf(at)
+        }
         var hero = 0.0
-        for (e in BatchASupport.enemiesWithin(ctx, at, reach)) {
-            hero =
-                max(hero, BatchASupport.heroHit(ctx, me.id, e.id, total, false))
+        for (e in ctx.enemies()) {
+            val pos = e.at ?: continue
+            if (lands.any { ctx.distance(it, pos) == 1 }) {
+                hero = max(hero, BatchASupport.heroHit(ctx, me.id, e.id, total, false))
+            }
         }
         return hero to BatchASupport.bestAdjacent(ctx, me.id, at, total)
     }

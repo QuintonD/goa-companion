@@ -8,6 +8,7 @@ import dev.quinton.goa.core.game.ai.heuristic.HeroHeuristics
 import dev.quinton.goa.core.game.ai.heuristic.HeroRole
 import dev.quinton.goa.core.game.ai.heuristic.HeroStyle
 import dev.quinton.goa.core.game.engine.GameState
+import dev.quinton.goa.core.game.engine.HeroState
 import dev.quinton.goa.core.game.heroes.SnorriHero.Rune
 import dev.quinton.goa.core.model.board.Hex
 import dev.quinton.goa.core.model.match.Team
@@ -65,9 +66,16 @@ object SnorriHeuristics : HeroHeuristics {
         val d = ctx.distance(at, target)
         return when (BatchC.activeRune(me, ctx.state.turn)) {
             Rune.AXE -> if (d == 1) 2.5 else 0.0
-            Rune.HORN -> if (d == 2) 2.0 else 0.0
+            // The horn's repeat reaches range 2 only after a first hit on a unit beside him.
+            Rune.HORN -> if (d == 2 && besideFoe(ctx, me)) 2.0 else 0.0
             else -> 0.0
         }
+    }
+
+    private fun besideFoe(ctx: HContext, me: HeroState): Boolean {
+        val at = me.at ?: return false
+        return BatchC.foesOf(ctx.state, me.id).any { h -> h.at?.let { ctx.distance(at, it) == 1 } == true } ||
+            ctx.state.minions.any { m -> m.team != me.team && m.at?.let { ctx.distance(at, it) == 1 } == true }
     }
 
     private fun play(ctx: HContext, choice: Choice): Double {
@@ -79,7 +87,7 @@ object SnorriHeuristics : HeroHeuristics {
             // H1 / H3: inscribe once, early. Re-inscribing spends a turn the attack needed.
             "snorri-silver" -> if (runes == 0) (if (ctx.turn <= 3) 6.0 else 2.0) else -2.5
 
-            in golds -> goldRune(ctx, rune)
+            in golds -> goldRune(ctx, rune, id)
 
             // H11: the oath has no primary; walking with it spends the block.
             in oaths -> if (runes > 0) -2.0 else 0.0
@@ -92,7 +100,7 @@ object SnorriHeuristics : HeroHeuristics {
     }
 
     /** H4 / H6: the rune decides what gold is for; without one it is Attack 2 adjacent. */
-    private fun goldRune(ctx: HContext, rune: Rune?): Double {
+    private fun goldRune(ctx: HContext, rune: Rune?, id: String): Double {
         val at = ctx.own()?.at ?: return 0.0
         val adjacentHero = BatchC.enemiesWithin(ctx, at, 1).isNotEmpty()
         val adjacentMinion = BatchC.minionsWithin(ctx, at, 1, friendly = false).any { BatchC.takeable(ctx, it) }
@@ -101,7 +109,8 @@ object SnorriHeuristics : HeroHeuristics {
 
             Rune.AXE -> if (adjacentHero || adjacentMinion) 2.5 else 0.0
 
-            Rune.HORN -> if (BatchC.enemiesWithin(ctx, at, 2).size >= 2) 3.0 else 0.0
+            // The repeat needs a first target adjacent, then a different hero in range.
+            Rune.HORN -> if (hornPair(ctx, at, id)) 3.0 else 0.0
 
             Rune.BIRD -> if (BatchC.minionsWithin(ctx, at, 2, friendly = false).any {
                     BatchC.takeable(ctx, it)
@@ -114,6 +123,18 @@ object SnorriHeuristics : HeroHeuristics {
 
             Rune.ANVIL -> if (adjacentHero) 3.0 else 0.0
         }
+    }
+
+    /** Rune Sigils under horn: an adjacent target, then a different enemy hero in range (handicap: heroes only). */
+    private fun hornPair(ctx: HContext, at: Hex, id: String): Boolean {
+        val reach = ctx.attackReach(ctx.seat, ctx.card(id))
+        val heroOnly = id == "snorri-handicap"
+        val first = BatchC.enemiesWithin(ctx, at, 1).map { it.id } +
+            if (heroOnly) emptyList() else BatchC.minionsWithin(ctx, at, 1, friendly = false).filter {
+                BatchC.takeable(ctx, it)
+            }.map { it.id }
+        val second = BatchC.enemiesWithin(ctx, at, reach).map { it.id }
+        return first.any { a -> second.any { it != a } }
     }
 
     /**

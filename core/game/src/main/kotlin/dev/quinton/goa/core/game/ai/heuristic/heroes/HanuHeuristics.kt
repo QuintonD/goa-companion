@@ -46,7 +46,9 @@ object HanuHeuristics : HeroHeuristics {
             ally.team == hanu.team && ally.id != heroId && ally.at?.let { HexGrid.distance(it, target) == 1 } == true
         }
         if (!covered) return 0.0
-        return 3.0 * BatchBSupport.hold(ctx, heroId) { it.id.startsWith("hanu-red") }
+        // Only the hero-targeting reds shoot a hero beside his ally (Outnumber and Pile On take a minion),
+        // each at its own reach.
+        return 3.0 * BatchBSupport.hold(ctx, heroId) { it.id in HERO_SHOT && ctx.attackReach(heroId, it) >= distance }
     }
 
     private fun play(ctx: HContext, choice: Choice): Double {
@@ -151,4 +153,5 @@ object HanuHeuristics : HeroHeuristics {
     private const val HURRY = 11
     private const val FAR_RANGE = 4
     private val JOURNEY = setOf("hanu-blue-1", "hanu-blue-2a", "hanu-blue-3a")
+    private val HERO_SHOT = setOf("hanu-red-1", "hanu-red-2a", "hanu-red-3a")
 }
