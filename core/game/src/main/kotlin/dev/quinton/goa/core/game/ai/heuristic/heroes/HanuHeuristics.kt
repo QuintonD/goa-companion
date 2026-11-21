@@ -23,9 +23,8 @@ object HanuHeuristics : HeroHeuristics {
 
     override val style: HeroStyle = HeroStyle(
         role = HeroRole.SUPPORT,
-        idealDistance = 2,
-        aggression = 0.45,
-        laneWeight = 0.85,
+        // Measured (integration, h8 ablation, 192 games): 2 / 0.45 / 0.85 made 43.8%; the default distance,
+        // aggression and lane weight with his notes and upgrade order are kept instead.
         upgradeOrder = listOf("hanu-red-2a", "hanu-green-2b", "hanu-blue-2a", "red", "green", "blue"),
         keepDefender = true,
     )

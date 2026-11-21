@@ -25,12 +25,19 @@ class HeroAblationTest {
         val tune = System.getenv("AI_H_TUNE")?.split("+")?.filter { it.contains("=") }
             ?.associate { kv -> kv.substringBefore("=") to kv.substringAfter("=").toDouble() }.orEmpty()
         val heroes = if (spec == "all") HeroPlaybooks.ids().sorted() else spec.split(",").map { it.trim() }
+        // AI_H_ABLATION_MODE=full,rules,style: the whole book, its notes with the default style, its style alone.
+        val modes = System.getenv("AI_H_ABLATION_MODE")?.split(",")?.map { it.trim() } ?: listOf("full")
         // Each shuffle of the roster seats a hero once in (roster / table) line-ups.
-        val pool = AiHarness.mixedLineups(lineups * 32 / (2 * format.size) + 32, size = format.size)
-        for (hero in heroes) {
-            val all = pool.filter { hero in it.first || hero in it.second }.take(lineups)
+        val pool = AiHarness.mixedLineups((lineups + 96) * 32 / (2 * format.size) + 32, size = format.size)
+        for (mode in modes) for (hero in heroes) {
+            // AI_H_SKIP: leave out the first line-ups that seat the hero (a fresh set for a re-measure).
+            val skip = System.getenv("AI_H_SKIP")?.toIntOrNull() ?: 0
+            val all = pool.filter { hero in it.first || hero in it.second }.drop(skip).take(lineups)
             assertThat(all).isNotEmpty()
-            val withBook = Tournament.Side("with") { seed -> HeuristicAi(strength, seed, tune) }
+            val book = variant(HeroPlaybooks.forHero(hero), mode)
+            val withBook = Tournament.Side("with") { seed ->
+                HeuristicAi(strength, seed, tune) { id -> if (id == hero) book else HeroPlaybooks.forHero(id) }
+            }
             val without = Tournament.Side("without") { seed ->
                 HeuristicAi(strength, seed, tune) { id ->
                     if (id == hero) DefaultHeroHeuristics else HeroPlaybooks.forHero(id)
@@ -42,10 +49,24 @@ class HeroAblationTest {
             val score = Tournament.play(withBook, without, specs, threads, format)
             val (lo, hi) = score.interval
             println(
-                "H_ABLATION $hero strength $strength: $score Wilson ${"%.1f".format(lo * 100)}-" +
+                "H_ABLATION $mode $hero strength $strength: $score Wilson ${"%.1f".format(lo * 100)}-" +
                     "${"%.1f".format(hi * 100)}%",
             )
             assertThat(score.games).isGreaterThan(0)
         }
+    }
+
+    /** `rules`: the playbook's notes with the default style; `style`: its style with no notes; else the whole book. */
+    private fun variant(book: HeroHeuristics, mode: String): HeroHeuristics = when (mode) {
+        "rules" -> object : HeroHeuristics by book {
+            override val style: HeroStyle = HeroStyle.DEFAULT
+        }
+
+        "style" -> object : HeroHeuristics {
+            override val heroId: String = book.heroId
+            override val style: HeroStyle = book.style
+        }
+
+        else -> book
     }
 }

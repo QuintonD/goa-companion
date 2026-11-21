@@ -88,7 +88,8 @@ object WidgetHeuristics : HeroHeuristics {
             in BREATH -> BatchDSupport.outlookFix(ctx, card, breath(ctx, id, pyro))
 
             // H5: Nibble/Gnaw take a minion in her range beside Pyro, and Pyro leaves.
-            in EAT -> eat(ctx, at, id, pyro)
+            // The card look resolves the meal and Pyro's leaving (evalTerms) itself.
+            in EAT -> if (ctx.patches) eat(ctx, at, id, pyro) else 0.0
 
             // H8: the swaps need Pyro in range.
             in ABOARD -> if (pyro == null || ctx.distance(at, pyro) > card.range.coerceAtLeast(1)) -1.5 else 0.0

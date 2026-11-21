@@ -61,7 +61,8 @@ object MisaHeuristics : HeroHeuristics {
     // H5: gold defeats an adjacent enemy minion outright (no attack), or places her at exact range 4.
     private fun gold(ctx: HContext, at: Hex): Double {
         val minion = BatchBSupport.bestMinion(ctx, at, 1)
-        if (minion > 0.0) return minion * 0.7
+        // The card look resolves the minion bullet itself.
+        if (minion > 0.0) return if (ctx.patches) minion * 0.7 else 0.0
         return if (!ctx.inBattleZone(at)) 3.0 else 0.0
     }
 
