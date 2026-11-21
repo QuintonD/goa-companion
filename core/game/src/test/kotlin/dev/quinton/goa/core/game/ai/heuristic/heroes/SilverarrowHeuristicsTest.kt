@@ -14,7 +14,7 @@ class SilverarrowHeuristicsTest {
     @Test
     fun `finishes 2v2 and 3v3 at strengths 5 and 10`() {
         for (size in listOf(2, 3)) {
-            for (strength in listOf(5, 10)) HeroBookTest.finish("silverarrow", size, strength)
+            for (strength in listOf(5, 10)) BatchCBook.finish("silverarrow", size, strength)
         }
     }
 
@@ -28,8 +28,8 @@ class SilverarrowHeuristicsTest {
             phase = PositionPhase.PlayCards()
         }
         val decision = session.pending!!
-        val withBook = HeroBookTest.chosen(session, decision, SilverarrowHeuristics)
-        val general = HeroBookTest.chosen(session, decision, null)
+        val withBook = BatchCBook.chosen(session, decision, SilverarrowHeuristics)
+        val general = BatchCBook.chosen(session, decision, null)
         assertThat(general).isEqualTo(Choice.Card("silverarrow-gold"))
         assertThat(withBook).isNotEqualTo(Choice.Card("silverarrow-gold"))
     }

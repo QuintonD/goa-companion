@@ -114,3 +114,13 @@ Keep `silverarrow-blue-2b` / `3b` when enemies end their turns inside radius 3 a
 - Wolff Designa, Devoted overview, https://gamefound.com/en/projects/wolffdesigna/guardsofatlantis2new/updates/6 — the "stays one step ahead" identity matches; the "abilities stop when enemies are adjacent" and "gold cannot be used if any enemy is adjacent" lines do not.
 - BGG 2891788 is 1st printing and was not used for card timing.
 - No 2nd-printing strategy spotlight, and no Reddit or YouTube guide, turned up. The rules threads above plus the card text are the source.
+
+## 8. Implementation notes
+
+`SilverarrowHeuristics.kt` (ADR-085). Checked against `SilverarrowHero.kt`:
+
+- **H1/H13:** the general reach treats gold and the b-reds as a disk. The engine allows only a unit at exact range (printed range + Range items). At `PLAY_CARD` the note adds +1 when a unit is on the ring and −3 when units are only inside it.
+- **H4:** the engine offers a "Choose one" bullet only when it can start (RULINGS 38), and `CHOOSE_OPTION` is opaque, so the one-ply look picks the bullet. The draft's fixed preference for the first bullet was removed.
+- **H8 (Roots):** the draft read the enemy's *unresolved* card at `PLAY_CARD`, before the reveal, which is peeking. Removed. Roots has no note.
+- **H11:** the draft gave −8 to *every* space question next to an enemy, including ones that move enemy units. Now it applies only to her own moves (`subjectId` is her) and only when she holds no red.
+- **Not implemented:** H2, H3, H5, H6 (the step after the peel), H9, H12, H14, H15.
