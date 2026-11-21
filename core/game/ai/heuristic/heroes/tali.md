@@ -125,3 +125,13 @@ Keep `tali-blue-2b` / `3b` when allies are being stripped and the retrieve is th
 - Wolff Designa, Devoted overview. https://gamefound.com/en/projects/wolffdesigna/guardsofatlantis2new/updates/6 — ally names the colour, communication limits, team hero. The "second-highest complexity" line is not the catalog (complexity 3).
 - BGG 2893302 is 1st printing. Used only as a negative source. https://boardgamegeek.com/thread/2893302
 - **No 2nd-printing strategy spotlight, Reddit thread, or YouTube guide found.**
+
+## 8. Implementation notes
+
+`TaliHeuristics.kt` (ADR-085). Checked against `TaliHero.kt`:
+
+- **H8 (silver):** the colour is named by the *chosen friendly hero* (`chooser = namer`), so Tali's own book is asked only when she names it herself. The question is opaque, and the look-ahead scores the replay. The draft's colour scoring and its H15 "never silver while an a-red is in hand" were removed, because both fired without checking what the replay would be.
+- **Spirit Wolf/Bear bullets:** the engine offers only the bullets that can start (out of the discard, only the adjacent-hero bullet), so the draft's target filter was removed.
+- **H1/H3:** Ice and the Totem are placed through `CHOOSE_SPACE` from the green card. Ice goes next to enemy heroes, never into a friendly hero's last exits. The Totem goes next to a friendly minion it can save (melee only for Ancestral Totem) that an enemy can reach.
+- **threatAdjust:** the draft counted Tali's own teammates as "a second enemy" (it used the deciding team's enemies). Fixed with the heroes of the other side from Tali.
+- **Not implemented:** H2, H6, H7, H9–H11, H13–H16.
