@@ -64,8 +64,9 @@ ai/heuristic/
                         same intent from the state (deterministic, no memory) and follow it
   CardSim.kt            the card play's look (strength 5+): each card's own action resolved alone through the
                         engine, once per action it offers (and, from 7, four tries at its next choice), scored by
-                        HEval with the enemies' threat split by who may act first; nobody else's card is played,
-                        and an attack on a hidden hand is priced from the pool when the defender would answer.
+                        HEval with the enemies' threat split by who may act first; no enemy card is played (from
+                        7 a computer teammate's known card that acts first resolves before ours, G14), and an
+                        attack on a hidden hand is priced from the pool when the defender would answer.
                         The same look (TurnLook) scores actions, targets, spaces and defenses after the reveal
   General.kt            the general playbook: dispatches each DecisionKind to its rules (GENERAL.md):
   PlayRules.kt            PLAY_CARD (G1–G22)        ActionRules.kt  CHOOSE_ACTION (G32–G42)
@@ -137,10 +138,17 @@ map levels to strengths as now (Easy 2, Normal 6, Hard 8, Expert 10).
   `h10+sim=0+laneTiming=0` (`HeuristicProfile.tune`: a named weight, or a layer switched off).
 - `HeuristicDiagTest` (opt-in, `AI_H_DIAG=h10:s8`): how side a loses heroes and games, turn by turn, with
   minion and hero kills per side and, for the heuristic side, each looked-at option's value.
-- `HeroAblationTest` (opt-in, `AI_H_ABLATION=<heroId>`): the same strength with and without one hero's
-  playbook, the hero seated on both sides equally; a playbook must not lose (aim: > 55%).
+- `HeroAblationTest` (opt-in, `AI_H_ABLATION=<heroId>`, a comma list or `all`): the same strength with and
+  without one hero's playbook, the hero seated on both sides equally; a playbook must not lose (aim: > 55%).
+  `AI_H_ABLATION_MODE=full,rules,style` splits notes from style, `AI_H_SKIP` takes fresh line-ups,
+  `AI_THREADS` runs games at once, `AI_H_TUNE` gives both sides knobs.
+- Knobs a side may carry (`h10+...`): every `profile.knob` name, plus `heroes=0` (no playbook at all),
+  `patchLook=1` (static corrections inside a look), `placeProbe=0`, `allyFirst=0`, `laneFloor=0.85`.
+  The integration round's log is [RESULTS.md](RESULTS.md).
 - Always-on (cheap): all 32 heroes play 2v2 and 3v3 to the end at strengths 1, 5, 10; every `DecisionKind`
   answered; determinism (same seed → same game); no-peeking pairs as in `NoPeekingTest`.
+  `HeuristicLegalityTest`: the answer comes from the real question's options even when the sampled copy
+  offers one the real question does not.
 
 ## Building on oldboi (7 GB RAM, shared)
 

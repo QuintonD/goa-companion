@@ -97,3 +97,15 @@ round's end minion battle after neither hero took a minion on turn 3; the old s8
 | CardSim two branched choices (`branch=2`), width 6 | | 49.3%, 51.0% | | | |
 | no G17 mixing (`mix=0`) | h10+mix=0 : h10; with lane 1.4 | 52.2%; 50.9% | | 90/221/73; 84/223/77 | no (mixing is for people) |
 | **lane ×1.4 against the old player** | h10+lane=1.4 : s8 | **54.3%** | 50.8–57.8 | 99/219/66 | |
+| empty-hand caps (`emptyCap=0.9`, `lethalEmpty=0.8`) with lane 1.4 | : s8 | 54.3%, 54.2% | | 100/217/67, 99/218/67 | no (choices barely change) |
+| spare ×2 with lane 1.4 | : s8 | 51.8% | 48.3–55.3 | 86/226/72 | no |
+| lane threat share 0.5, 0.15 (`oppLane`) | : h10 | 46.0%, 49.1% | | 61/231/92, 66/245/73 | 0.3 |
+| lane kill share ×1.4 (`laneShare`) | : h10 | 50.1% | | 6/373/5 | 1.0 |
+| push potential 0.6, 0.25 (`pp`) | : h10 | 46.4%, 51.7% | | 56/244/84, 60/277/47 | |
+| push potential 0.25 | : s8 | 53.9% | 50.4–57.4 | 102/210/72 | 0.4 (no gain on s8) |
+
+What the diagnostics still show (48 games against s8 at lane 1.4): h10 heroes die with no card to defend
+more often than s8's (about 340 against 250 in 768 games). The cases are tactical: a strike from beside an
+enemy on turn 3 that leaves the hero empty-handed and in reach for turn 4, the last card spent on turn 3,
+a declined defense on turn 4. The book's caps on that risk barely change a choice; a fix needs a turn-4
+plan for the empty hand, not a weight.

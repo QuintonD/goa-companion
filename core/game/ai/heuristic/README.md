@@ -42,6 +42,8 @@ and nothing from an enemy's `hand` unless it is non-null.
 | `ctx.defeatBefore(id, at, init)` | The chance an enemy acting before `init` defeats the hero standing at `at`. |
 | `ctx.goalZone(id)`, `ctx.nextBattleZone(lane, team)` | Where the hero should stand once the push is decided (lane timing), and where a push moves a lane. |
 | `ctx.laneKillValue(lane)`, `ctx.lastLifeWorth()` | One enemy minion fewer on that lane, in lane value; and the last Life counter's worth. |
+| `ctx.patches` | False while your `adjust` is added to an engine look (the card play from strength 5, a looked action, target or space): the engine already resolved the card. A note that corrects the general book's static strike or placement estimate returns 0 then. |
+| `ctx.placedHero` | Who a card's own "choose a space" (no unit named) puts there: a hero id, or null for a token or piece (a Turret, a Barrier, a grenade). The general book scores a piece's space as nobody's. |
 
 `evalTerms` does not get an `HContext`. It gets the `GameState` and a team. Count only things
 that are on the board or on the public dashboard (your tokens, your counters). Do not read a
@@ -83,6 +85,14 @@ override fun adjust(ctx: HContext, d: Decision, choice: Choice): Double {
     return if (minion.type == MinionType.RANGED && covered) 3.0 else 0.0
 }
 ```
+
+## Look, then correct only what the look cannot see
+
+From strength 5 the card play's value is the engine's: each card's action is resolved alone and the
+position scored (`CardSim`). Do not re-price a hit, a discard or a minion the card's text already takes;
+that is counted twice. Add what the engine cannot see from one action: a hidden hand, who has already
+played an attack this turn, an initiative not yet revealed, a set-up that pays next turn, a card to keep.
+A correction of the static estimate (`strikeFrom`, a dead strike) belongs behind `if (ctx.patches)`.
 
 ## Your own pieces
 

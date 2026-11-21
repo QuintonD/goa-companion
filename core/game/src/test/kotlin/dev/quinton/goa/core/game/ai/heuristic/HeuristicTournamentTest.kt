@@ -14,7 +14,7 @@ import org.junit.Test
  * Opt-in. `AI_H_TOURNAMENT=h10:s8,h10:h5` plays mirrored games of the heuristic book (`hN`)
  * against the old search (`sN`) or another book. `AI_H_GAMES` is the number of line-ups
  * (each is mirrored, so games are twice that; default 24). `AI_FORMAT` and `AI_THREADS` as elsewhere.
- * Prints the win rate, the Wilson interval and the mean and p95 time to answer.
+ * Prints the win rate, the Wilson interval and the mean, p95 and longest time to answer.
  * `AI_H_FIRST` is the first mixed line-up index, so a final table can use a held-out seed.
  */
 class HeuristicTournamentTest {
@@ -41,7 +41,7 @@ class HeuristicTournamentTest {
             )
             println("H_TOURNAMENT   ${score.details()}")
             println(
-                "H_TOURNAMENT   answer ${a.label} ${ms(aTimes)} ms, ${b.label} ${ms(bTimes)} ms (mean / p95)",
+                "H_TOURNAMENT   answer ${a.label} ${ms(aTimes)} ms, ${b.label} ${ms(bTimes)} ms (mean / p95 / max)",
             )
         }
     }
@@ -50,7 +50,8 @@ class HeuristicTournamentTest {
         if (times.isEmpty()) return "n/a"
         val sorted = times.sorted()
         val p95 = sorted[((sorted.size - 1) * 95) / 100]
-        return "%.2f / %.2f".format(times.average() / 1_000_000.0, p95 / 1_000_000.0)
+        val max = sorted.last() / 1_000_000.0
+        return "%.2f / %.2f / %.1f".format(times.average() / 1_000_000.0, p95 / 1_000_000.0, max)
     }
 
     private fun side(spec: String, times: MutableList<Long>): Tournament.Side =
