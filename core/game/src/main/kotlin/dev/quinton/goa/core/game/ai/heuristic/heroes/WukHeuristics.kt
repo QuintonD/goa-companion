@@ -9,12 +9,17 @@ import dev.quinton.goa.core.game.ai.heuristic.HeroHeuristics
 import dev.quinton.goa.core.game.ai.heuristic.HeroRole
 import dev.quinton.goa.core.game.ai.heuristic.HeroStyle
 import dev.quinton.goa.core.game.engine.GameState
+import dev.quinton.goa.core.game.engine.Zone
+import dev.quinton.goa.core.game.engine.isEmpty
 import dev.quinton.goa.core.model.board.Hex
+import dev.quinton.goa.core.model.catalog.Stat
 import dev.quinton.goa.core.model.match.Team
+import kotlin.math.max
 
 /**
- * Wuk plants trees and acts after the table. Gold takes an adjacent minion, or spends a tree
- * for a shot. Two trees already in the fight means he should attack, not plant again.
+ * Wuk (`heroes/wuk.md`): the trees are the range, the walls and the teleports. Tree Slam hits an
+ * adjacent minion, or spends an adjacent tree to hit in range; the tree-Red hits an adjacent hero or a
+ * unit in range beside a tree. Trample runs a straight line through enemies. Trees persist.
  */
 object WukHeuristics : HeroHeuristics {
     override val heroId: String = "wuk"
@@ -24,21 +29,14 @@ object WukHeuristics : HeroHeuristics {
         idealDistance = 2,
         aggression = 0.3,
         laneWeight = 0.7,
-        upgradeOrder = listOf(
-            "wuk-red-2a",
-            "wuk-green-2a",
-            "wuk-blue-2a",
-            "red",
-            "green",
-            "blue",
-        ),
+        upgradeOrder = listOf("red", "blue", "green"),
         keepDefender = true,
     )
 
     override fun adjust(ctx: HContext, d: Decision, choice: Choice): Double = when (d.kind) {
         DecisionKind.PLAY_CARD -> play(ctx, choice)
-        DecisionKind.CHOOSE_OPTION -> option(ctx, d, choice)
-        DecisionKind.CONFIRM -> confirm(d, choice)
+        DecisionKind.CHOOSE_SPACE -> space(ctx, d, choice)
+        DecisionKind.CONFIRM -> confirm(ctx, d, choice)
         DecisionKind.RESPAWN -> respawn(ctx, choice)
         else -> 0.0
     }
@@ -46,95 +44,166 @@ object WukHeuristics : HeroHeuristics {
     override fun evalTerms(state: GameState, team: Team, heroId: String): Double {
         if (heroId != this.heroId) return 0.0
         val self = state.hero(heroId) ?: return 0.0
-        val sign = if (self.team == team) 1.0 else -1.0
         val trees = BatchD.trees(state)
-        var v = trees.size.coerceAtMost(3) * 2.5
+        // A tree beside an enemy minion is a Red shot; the general book already counts the token itself.
         val useful = trees.count { tree ->
             state.minions.any { m ->
                 m.team != self.team && m.at != null && HexGrid.distance(tree, m.at!!) == 1
             }
         }
-        v += useful * 1.5
-        return sign * v
+        return BatchD.sign(state, heroId, team) * minOf(useful, 3) * 2.0
     }
 
     override fun threatAdjust(ctx: HContext, enemyHeroId: String, target: Hex): Double {
         if (enemyHeroId != heroId) return 0.0
         val from = ctx.hero(heroId)?.at ?: return 0.0
-        val shoots = treeRed.any { BatchD.mayHold(ctx, heroId, it) }
-        if (!shoots) return 0.0
+        if (TREE_RED.none { BatchD.mayHold(ctx, heroId, it) }) return 0.0
+        // H17: a hex beside his tree and in his range is the shot, whatever printed reach says.
         val nearTree = BatchD.trees(ctx.state).any { HexGrid.distance(it, target) == 1 }
-        if (!nearTree || ctx.distance(from, target) !in 1..3) return 0.0
-        // A hex beside his tree is the shot. Printed reach does not know the tree is the condition.
-        return 1.2
+        return if (nearTree && ctx.distance(from, target) in 2..3) 1.0 else 0.0
     }
 
     private fun play(ctx: HContext, choice: Choice): Double {
         if (choice !is Choice.Card) return 0.0
         val at = ctx.own()?.at ?: return 0.0
         val id = choice.cardId
+        val card = ctx.card(id)
         val trees = BatchD.trees(ctx.state)
-        if (id == "wuk-silver") {
-            // H1/H2: plant until two trees are in the fight. After that, attack.
-            return if (trees.size < 2) 6.0 else -4.0
-        }
-        if (id == "wuk-gold" || id == "wuk-handicap") {
-            val minion = if (id == "wuk-handicap") {
-                BatchD.enemyWithin(ctx, at, 1, 1, heroesOnly = true)
-            } else {
-                BatchD.adjacentMinions(ctx.state, at, ctx.team) > 0
+        return when (id) {
+            // H1/H2: plant until two trees stand near the fight; after that, attack.
+            SILVER -> if (trees.count { ctx.distanceToBattleZone(it) <= 2 } < 2) 2.5 else -2.0
+
+            // H3: an adjacent minion (no tree spent), or spend an adjacent tree to hit a unit in range.
+            GOLD, HANDICAP -> {
+                val tree = trees.any { ctx.distance(at, it) == 1 }
+                val range = ctx.attackReach(ctx.seat, card)
+                val heroOnly = id == HANDICAP
+                val real = BatchD.strikeOn(ctx, card, { uid, pos ->
+                    val hero = ctx.heroBody(uid) != null
+                    val d = ctx.distance(at, pos)
+                    val adjacent = d == 1 && (if (heroOnly) hero else !hero)
+                    adjacent || (tree && d in 1..range && (!heroOnly || hero))
+                })
+                BatchD.strikeFix(ctx, card, real)
             }
-            val tree = trees.any { ctx.distance(at, it) == 1 }
-            val shot = tree && BatchD.enemyWithin(ctx, at, 1, 2)
-            // H3: the minion bullet spends no tree. No minion and no tree, and neither bullet starts.
-            return when {
-                minion -> 5.0
-                shot -> 3.0
-                else -> BatchD.FIZZLE
+
+            // H4: the tree-Red: a hero adjacent, or a unit in range adjacent to a tree.
+            in TREE_RED -> {
+                val range = ctx.attackReach(ctx.seat, card)
+                val hits = BatchD.strikeList(ctx, card, { uid, pos ->
+                    val d = ctx.distance(at, pos)
+                    (d == 1 && ctx.heroBody(uid) != null) ||
+                        (d in 1..range && trees.any { ctx.distance(it, pos) == 1 })
+                })
+                var real = hits.firstOrNull()?.second ?: -0.5
+                if (id == "wuk-red-3a" && hits.size >= 2) real += 0.6 * max(0.0, hits[1].second)
+                BatchD.strikeFix(ctx, card, real)
             }
+
+            // H5: Trample runs a straight line through enemy heroes (discard) and minions (defeat).
+            in TRAMPLE -> BatchD.outlookFix(ctx, card, trample(ctx, at, id))
+
+            // H9: Dominance drops the enemy minions beside him from the round's minion battle.
+            in DOMINANCE -> {
+                val n = BatchD.adjacentMinions(ctx.state, at, ctx.team)
+                val count = if (id == "wuk-blue-3b") 2 else 1
+                if (n == 0) -1.5 else 2.5 * minOf(n, count)
+            }
+
+            // H10: Gifts remove a tree to retrieve a card; with no tree in radius it does nothing.
+            in GIFTS -> {
+                val radius = card.radius.coerceAtLeast(1)
+                val tree = trees.any { ctx.distance(at, it) <= radius }
+                val discard = ctx.own()?.cards?.any { it.zone == Zone.DISCARD } == true
+                if (!tree) -1.5 else if (discard) 0.5 else -1.0
+            }
+
+            else -> 0.0
         }
-        if (id in treeRed) {
-            val shot = trees.any { tree ->
-                ctx.distance(at, tree) <= 3 && ctx.state.minions.any { m ->
-                    m.team != ctx.team && m.at != null && ctx.distance(tree, m.at!!) == 1 &&
-                        ctx.distance(at, m.at!!) in 1..3
+    }
+
+    /** The best straight Trample line: discards on heroes passed, defeats on minions passed. */
+    private fun trample(ctx: HContext, at: Hex, id: String): Double {
+        val n = (ctx.cardValue(ctx.seat, id, Stat.MOVEMENT) ?: ctx.card(id).movement).coerceAtLeast(0)
+        val defeats = if (id == "wuk-red-3b") 2 else 1
+        var best = 0.0
+        for (dir in HexGrid.DIRECTIONS) {
+            val passed = ArrayList<String>()
+            for (k in 1..n) {
+                val hex = Hex(at.q + dir.q * k, at.r + dir.r * k)
+                if (k >= 2 && passed.isNotEmpty() && ctx.game.isEmpty(hex, ctx.seat)) {
+                    best = max(best, lineWorth(ctx, passed, defeats))
                 }
+                ctx.game.occupant(hex)?.let { passed += it }
             }
-            // H4: the tree bullet wants a unit beside a tree, inside his range.
-            return if (shot) 4.0 else 0.0
         }
-        if (id == "wuk-blue-2b" || id == "wuk-blue-3b") {
-            val n = BatchD.adjacentMinions(ctx.state, at, ctx.team)
-            // H9: Dominance excludes minions he is standing on. None, and the battle does not change.
-            return if (n >= 2) 5.0 else if (n == 1) 2.0 else -3.0
+        return best
+    }
+
+    private fun lineWorth(ctx: HContext, passed: List<String>, defeats: Int): Double {
+        var v = 0.0
+        val minions = ArrayList<Double>()
+        for (id in passed) {
+            val m = ctx.state.minion(id)
+            if (m != null) {
+                if (m.team != ctx.team && !ctx.heavyImmune(id)) minions += ctx.minionWorth(id)
+                continue
+            }
+            val hero = ctx.heroBody(id)?.let { ctx.state.hero(it) } ?: continue
+            if (hero.team == ctx.team) continue
+            v += if (hero.hand.isEmpty()) ctx.killWorth(hero.id) else ctx.discardWorth(hero)
+        }
+        v += minions.sortedDescending().take(defeats).sumOf { max(0.0, it) }
+        return v
+    }
+
+    private fun space(ctx: HContext, d: Decision, choice: Choice): Double {
+        if (choice !is Choice.Space) return 0.0
+        val hex = choice.hex
+        if (d.context.subjectId == null && d.prompt.contains("Tree token")) {
+            // H1/H11: a tree beside an enemy minion, inside the fight, never on a minion spawn.
+            var v = if (BatchD.adjacentMinions(ctx.state, hex, ctx.team) > 0) 2.0 else 0.0
+            v += if (ctx.inBattleZone(hex)) 1.0 else -0.5
+            if (BatchD.minionSpawn(ctx, hex)) v -= 3.0
+            return BatchD.unplace(ctx, d, hex) + v
+        }
+        val src = d.sourceCardId ?: return 0.0
+        if (src !in TRAMPLE || d.context.subjectId != ctx.seat) return 0.0
+        // H19: on the straight Trample move, the line he passes is the prize.
+        val at = ctx.own()?.at ?: return 0.0
+        val straight = d.options.all { o -> o !is Choice.Space || HexGrid.inStraightLine(at, o.hex) }
+        if (!straight || !HexGrid.inStraightLine(at, hex)) return 0.0
+        val k = ctx.distance(at, hex)
+        val dq = (hex.q - at.q) / k
+        val dr = (hex.r - at.r) / k
+        val passed = (1 until k).mapNotNull { i -> ctx.game.occupant(Hex(at.q + dq * i, at.r + dr * i)) }
+        return lineWorth(ctx, passed, if (src == "wuk-red-3b") 2 else 1)
+    }
+
+    /** H6: take the straight line when it crosses a prize. */
+    private fun confirm(ctx: HContext, d: Decision, choice: Choice): Double {
+        val src = d.sourceCardId ?: return 0.0
+        if (src in TRAMPLE) {
+            val at = ctx.own()?.at ?: return 0.0
+            val line = trample(ctx, at, src)
+            return if (choice is Choice.Yes) (if (line > 0.0) line else -0.5) else 0.0
         }
         return 0.0
-    }
-
-    private fun option(ctx: HContext, d: Decision, choice: Choice): Double {
-        if (choice !is Choice.Option) return 0.0
-        if (d.sourceCardId != "wuk-gold" && d.sourceCardId != "wuk-handicap") return 0.0
-        val at = ctx.own()?.at ?: return 0.0
-        val minionBullet = choice.index == 0
-        val adjacent = BatchD.adjacentMinions(ctx.state, at, ctx.team) > 0
-        // H3: keep the tree when the minion is already adjacent.
-        return if (minionBullet && adjacent) 4.0 else if (!minionBullet && !adjacent) 3.0 else 0.0
-    }
-
-    private fun confirm(d: Decision, choice: Choice): Double {
-        if (d.sourceCardId != "wuk-purple-4") return 0.0
-        // H11: the Ultimate's plant is a tree. Decline is how a spawn hex gets skipped; Yes is the default.
-        return if (choice is Choice.Yes) 1.5 else 0.0
     }
 
     private fun respawn(ctx: HContext, choice: Choice): Double {
         if (choice !is Choice.Space) return 0.0
         val trees = BatchD.trees(ctx.state)
         if (trees.isEmpty()) return 0.0
-        val near = trees.minOf { ctx.distance(choice.hex, it) }
         // H20: the trees are still there. Respawn toward them.
-        return (3 - near).coerceAtLeast(0) * 0.5
+        return (3 - trees.minOf { ctx.distance(choice.hex, it) }).coerceAtLeast(0) * 0.5
     }
 
-    private val treeRed = setOf("wuk-red-1", "wuk-red-2a", "wuk-red-3a")
+    private const val GOLD = "wuk-gold"
+    private const val HANDICAP = "wuk-handicap"
+    private const val SILVER = "wuk-silver"
+    private val TREE_RED = setOf("wuk-red-1", "wuk-red-2a", "wuk-red-3a")
+    private val TRAMPLE = setOf("wuk-red-2b", "wuk-red-3b")
+    private val DOMINANCE = setOf("wuk-blue-2b", "wuk-blue-3b")
+    private val GIFTS = setOf("wuk-blue-1", "wuk-blue-2a", "wuk-blue-3a")
 }
