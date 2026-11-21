@@ -145,11 +145,16 @@ object BainHeuristics : HeroHeuristics {
         val card = ctx.card(cardId)
         val total = card.attack + ctx.itemBonus(me.id, Stat.ATTACK)
         val reach = ctx.attackReach(me.id, card)
-        val adjacent = BatchASupport.bestAdjacent(ctx, me.id, at, total)
+        val adjacent = BatchASupport.adjacentTargets(ctx, me.id, at, total)
         val marked = ctx.enemies().firstOrNull { e -> e.markers.any { it.kind == BainHero.BOUNTY } }
         val bounty = marked?.at?.takeIf { ctx.distance(at, it) in 1..reach }
-            ?.let { BatchASupport.heroHit(ctx, me.id, marked.id, total, true) } ?: 0.0
-        val accurate = if (cardId == "bain-red-3b") adjacent + bounty else max(adjacent, bounty)
+            ?.let { mapOf(marked.id to BatchASupport.heroHit(ctx, me.id, marked.id, total, true)) }.orEmpty()
+        // Hunter-Seeker's "both" needs two different targets: a marked hero beside him is one, not two.
+        val accurate = if (cardId == "bain-red-3b") {
+            BatchASupport.bestDistinctPair(adjacent, bounty)
+        } else {
+            max(adjacent.values.maxOrNull() ?: 0.0, bounty.values.maxOrNull() ?: 0.0)
+        }
         return BatchASupport.correction(ctx, me.id, at, card, accurate)
     }
 
@@ -195,18 +200,18 @@ object BainHeuristics : HeroHeuristics {
 
     /**
      * H10: the options are the colours that could be in the victim's hand. Name the colour most
-     * of the visible hand holds (strength 10 sees it); otherwise the tie order red, blue, gold,
+     * of the victim's visible hand holds (strength 10 sees it); otherwise the tie order red, blue, gold,
      * green, silver. The victim picked the card, so a count is only a likelihood.
      */
     private fun option(ctx: HContext, d: Decision, choice: Choice): Double {
-        if (d.sourceCardId !in CHANCE || choice !is Choice.Option) return 0.0
+        val src = d.sourceCardId?.takeIf { it in CHANCE } ?: return 0.0
+        if (choice !is Choice.Option) return 0.0
         val colour = CardColor.entries.firstOrNull { it.name.equals(choice.label, ignoreCase = true) } ?: return 0.0
         val at = ctx.own()?.at ?: return 0.0
-        var count = 0.0
-        for (e in BatchASupport.enemiesWithin(ctx, at, 4)) {
-            if (e.hand.size < 2) continue
-            ctx.hand(e.id)?.let { hand -> count += hand.count { it.color == colour } }
-        }
+        // The question does not name the victim: read a hand only when one enemy alone could be it.
+        val radius = BatchASupport.radiusOf(ctx, heroId, ctx.card(src).radius)
+        val victim = BatchASupport.enemiesWithin(ctx, at, radius).filter { it.hand.size >= 2 }.singleOrNull()
+        val count = victim?.let { v -> ctx.hand(v.id)?.count { it.color == colour } } ?: 0
         return count - TIE_ORDER.indexOf(colour).coerceAtLeast(0) * 0.1
     }
 

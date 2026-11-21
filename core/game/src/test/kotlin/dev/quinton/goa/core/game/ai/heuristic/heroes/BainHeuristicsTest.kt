@@ -1,5 +1,6 @@
 package dev.quinton.goa.core.game.ai.heuristic.heroes
 
+import com.google.common.truth.Truth.assertThat
 import dev.quinton.goa.core.game.TestData
 import dev.quinton.goa.core.game.position.PositionPhase
 import dev.quinton.goa.core.game.position.position
@@ -29,5 +30,14 @@ class BainHeuristicsTest {
             phase = PositionPhase.PlayCards(0)
         }
         HeroBookCases.flips("bain", BainHeuristics, session)
+    }
+
+    @Test
+    fun `both bullets on different targets never count one hero twice`() {
+        // Review H4: Hunter-Seeker / Middlefinger of Death. A marked hero beside him is one target, not two.
+        assertThat(BatchASupport.bestDistinctPair(mapOf("arien" to 5.0), mapOf("arien" to 4.0))).isEqualTo(5.0)
+        val pair = BatchASupport.bestDistinctPair(mapOf("arien" to 5.0, "m1" to 1.0), mapOf("arien" to 4.0))
+        assertThat(pair).isEqualTo(5.0)
+        assertThat(BatchASupport.bestDistinctPair(mapOf("m1" to 1.0), mapOf("arien" to 4.0))).isEqualTo(5.0)
     }
 }

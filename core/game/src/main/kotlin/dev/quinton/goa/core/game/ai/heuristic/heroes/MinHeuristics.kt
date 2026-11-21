@@ -34,7 +34,7 @@ object MinHeuristics : HeroHeuristics {
     override fun adjust(ctx: HContext, d: Decision, choice: Choice): Double = when (d.kind) {
         DecisionKind.PLAY_CARD -> play(ctx, choice)
         DecisionKind.DEFEND -> defend(d, choice)
-        DecisionKind.CHOOSE_SPACE -> if (d.sourceCardId in GRENADES) grenadeSpace(ctx, choice) else 0.0
+        DecisionKind.CHOOSE_SPACE -> if (d.sourceCardId in GRENADES) grenadeSpace(ctx, d, choice) else 0.0
         else -> 0.0
     }
 
@@ -51,14 +51,15 @@ object MinHeuristics : HeroHeuristics {
             }
             if (shielded) value += 2.5
         }
-        // evalTerms: a grenade with enemy heroes beside it discards or defeats them at end of turn.
+        // evalTerms: a grenade with enemy heroes beside it discards or defeats them at end of turn: up to 1
+        // (Death Grenade) or 2 (Holy Death Grenade), by the faceup card whose effect set it.
+        val victims = if (state.effects.any { it.owner == heroId && it.cardId == HOLY_GRENADE }) 2 else 1
         for (g in BatchBSupport.tokens(state, heroId, MinHero.GRENADE)) {
             val at = g.at ?: continue
-            value +=
-                2.0 *
-                state.heroes.count { e ->
-                    e.team != min.team && e.at?.let { HexGrid.distance(it, at) == 1 } == true
-                }
+            val beside = state.heroes.count { e ->
+                e.team != min.team && e.at?.let { HexGrid.distance(it, at) == 1 } == true
+            }
+            value += 2.0 * minOf(beside, victims)
         }
         return BatchBSupport.sign(state, team, heroId) * value
     }
@@ -107,17 +108,20 @@ object MinHeuristics : HeroHeuristics {
     }
 
     // H8: place it beside heroes who have already acted (they stay), or beside one whose hand is empty.
-    private fun grenadeSpace(ctx: HContext, choice: Choice): Double {
+    // Only the best 1 (Death Grenade) or 2 (Holy Death Grenade) of them count: that is all it takes.
+    private fun grenadeSpace(ctx: HContext, d: Decision, choice: Choice): Double {
         val hex = (choice as? Choice.Space)?.hex ?: return 0.0
-        var value = 0.0
+        val victims = if (d.sourceCardId == HOLY_GRENADE) 2 else 1
+        val values = ArrayList<Double>()
         for (e in ctx.enemies()) {
             val pos = e.at ?: continue
             if (HexGrid.distance(pos, hex) != 1) continue
             val stays = e.id in ctx.state.turnRecord.resolved
-            value += if (stays) 6.0 else 2.5
+            var value = if (stays) 6.0 else 2.5
             if (ctx.handCount(e.id) == 0) value += ctx.killWorth(e.id) * (if (stays) 0.8 else 0.3)
+            values += value
         }
-        return value
+        return values.sortedDescending().take(victims).sum()
     }
 
     // H10: double the items only when there are items to double.
@@ -148,6 +152,7 @@ object MinHeuristics : HeroHeuristics {
     }
 
     private const val SMOKE_WATCH = 6
-    private val GRENADES = setOf("min-blue-2b", "min-blue-3b")
+    private const val HOLY_GRENADE = "min-blue-3b"
+    private val GRENADES = setOf("min-blue-2b", HOLY_GRENADE)
     private val POOF = setOf("min-green-1", "min-green-2a", "min-green-3a")
 }

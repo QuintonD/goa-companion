@@ -62,12 +62,42 @@ internal object BatchASupport {
     }
 
     /** Best adjacent enemy unit for a plain adjacent attack of [total]. */
-    fun bestAdjacent(ctx: HContext, heroId: String, at: Hex, total: Int, heroesOnly: Boolean = false): Double {
-        var best = 0.0
-        if (!heroesOnly) best = bestMinionOn(ctx, HexGrid.neighbors(at).toSet())
+    fun bestAdjacent(ctx: HContext, heroId: String, at: Hex, total: Int, heroesOnly: Boolean = false): Double =
+        adjacentTargets(ctx, heroId, at, total, heroesOnly).values.maxOrNull()?.let { max(0.0, it) } ?: 0.0
+
+    /** Every adjacent enemy unit a plain adjacent attack of [total] may take, by unit id; immune heavies excluded. */
+    fun adjacentTargets(
+        ctx: HContext,
+        heroId: String,
+        at: Hex,
+        total: Int,
+        heroesOnly: Boolean = false,
+    ): Map<String, Double> {
+        val out = LinkedHashMap<String, Double>()
+        if (!heroesOnly) {
+            for (m in ctx.state.minions) {
+                val pos = m.at ?: continue
+                if (m.team == ctx.team || ctx.heavyImmune(m.id) || ctx.distance(at, pos) != 1) continue
+                out[m.id] = ctx.minionWorth(m.id)
+            }
+        }
         for (e in ctx.enemies()) {
             val pos = e.at ?: continue
-            if (ctx.distance(at, pos) == 1) best = max(best, heroHit(ctx, heroId, e.id, total, false))
+            if (ctx.distance(at, pos) == 1) out[e.id] = heroHit(ctx, heroId, e.id, total, false)
+        }
+        return out
+    }
+
+    /**
+     * "Choose one, or both, on different targets": the best single bullet, or one target from [first]
+     * and a different one from [second], [secondShare] of the second counted.
+     */
+    fun bestDistinctPair(first: Map<String, Double>, second: Map<String, Double>, secondShare: Double = 1.0): Double {
+        var best = max(0.0, max(first.values.maxOrNull() ?: 0.0, second.values.maxOrNull() ?: 0.0))
+        for ((a, va) in first) {
+            for ((b, vb) in second) {
+                if (a != b) best = max(best, va + secondShare * max(0.0, vb))
+            }
         }
         return best
     }

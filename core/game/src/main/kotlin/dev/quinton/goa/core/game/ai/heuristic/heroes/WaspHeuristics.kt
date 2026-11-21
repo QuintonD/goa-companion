@@ -68,8 +68,13 @@ object WaspHeuristics : HeroHeuristics {
                 }
                 val hits = BatchDSupport.strikeList(ctx, card, valid)
                 var real = hits.firstOrNull()?.second ?: -0.5
-                // Thunder Boomerang repeats on a different target after a hero.
-                if (id == "wasp-red-3b" && hits.size >= 2) real += 0.6 * maxOf(0.0, hits[1].second)
+                // Thunder Boomerang repeats on a different target only after targeting a hero first.
+                if (id == "wasp-red-3b") {
+                    val heroes = hits.filter { ctx.heroBody(it.first) != null }.toMap()
+                    if (heroes.isNotEmpty()) {
+                        real = maxOf(real, BatchASupport.bestDistinctPair(heroes, hits.toMap(), secondShare = 0.6))
+                    }
+                }
                 BatchDSupport.strikeFix(ctx, card, real)
             }
 

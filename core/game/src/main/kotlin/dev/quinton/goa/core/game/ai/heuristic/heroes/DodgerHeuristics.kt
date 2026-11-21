@@ -49,7 +49,11 @@ object DodgerHeuristics : HeroHeuristics {
 
             in FINGER -> {
                 val b = finger(ctx, me, at, choice.cardId)
-                val both = if (choice.cardId == "dodger-red-3a") b.first + b.second else max(b.first, b.second)
+                val both = if (choice.cardId == "dodger-red-3a") {
+                    BatchASupport.bestDistinctPair(b.first, b.second)
+                } else {
+                    max(best(b.first), best(b.second))
+                }
                 BatchASupport.correction(ctx, me.id, at, ctx.card(choice.cardId), both)
             }
 
@@ -97,22 +101,24 @@ object DodgerHeuristics : HeroHeuristics {
         return adjacent to range
     }
 
-    /** H5: Finger of Death: (adjacent unit, hero in range with a card in the discard). */
-    private fun finger(ctx: HContext, me: HeroState, at: Hex, cardId: String): Pair<Double, Double> {
+    /** H5: Finger of Death: (adjacent units, heroes in range with a card in the discard), by target id. */
+    private fun finger(
+        ctx: HContext,
+        me: HeroState,
+        at: Hex,
+        cardId: String,
+    ): Pair<Map<String, Double>, Map<String, Double>> {
         val card = ctx.card(cardId)
         val total = card.attack + ctx.itemBonus(me.id, Stat.ATTACK)
-        val adjacent = BatchASupport.bestAdjacent(ctx, me.id, at, total)
+        val adjacent = BatchASupport.adjacentTargets(ctx, me.id, at, total)
         val reach = ctx.attackReach(me.id, card)
-        var range = 0.0
-        for (e in BatchASupport.enemiesWithin(ctx, at, reach)) {
-            if (BatchASupport.discardCount(ctx.state, e.id) >
-                0
-            ) {
-                range = max(range, BatchASupport.heroHit(ctx, me.id, e.id, total, true))
-            }
-        }
+        val range = BatchASupport.enemiesWithin(ctx, at, reach)
+            .filter { BatchASupport.discardCount(ctx.state, it.id) > 0 }
+            .associate { it.id to BatchASupport.heroHit(ctx, me.id, it.id, total, true) }
         return adjacent to range
     }
+
+    private fun best(targets: Map<String, Double>): Double = max(0.0, targets.values.maxOrNull() ?: 0.0)
 
     /** H8: the ritual pays coins only with 2 or more empty Battle Zone spawns in radius 3. */
     private fun ritual(ctx: HContext, at: Hex, cardId: String): Double {
@@ -129,7 +135,14 @@ object DodgerHeuristics : HeroHeuristics {
         val src = d.sourceCardId ?: return 0.0
         val b = when (src) {
             in GOLD -> razor(ctx, me, at, src)
-            in FINGER -> finger(ctx, me, at, src)
+
+            in FINGER -> {
+                val f = finger(ctx, me, at, src)
+                // "on different targets": both bullets on one hero is not two hits.
+                if (choice.label.startsWith("Both")) return BatchASupport.bestDistinctPair(f.first, f.second)
+                best(f.first) to best(f.second)
+            }
+
             else -> return 0.0
         }
         return when {

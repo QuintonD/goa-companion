@@ -90,13 +90,26 @@ object WukHeuristics : HeroHeuristics {
             // H4: the tree-Red: a hero adjacent, or a unit in range adjacent to a tree.
             in TREE_RED -> {
                 val range = ctx.attackReach(ctx.seat, card)
-                val hits = BatchDSupport.strikeList(ctx, card, { uid, pos ->
-                    val d = ctx.distance(at, pos)
-                    (d == 1 && ctx.heroBody(uid) != null) ||
-                        (d in 1..range && trees.any { ctx.distance(it, pos) == 1 })
-                })
+                val adjacentHero = { uid: String, pos: Hex ->
+                    ctx.distance(at, pos) == 1 && ctx.heroBody(uid) != null
+                }
+                val besideTree = { _: String, pos: Hex ->
+                    ctx.distance(at, pos) in 1..range && trees.any { ctx.distance(it, pos) == 1 }
+                }
+                val hits = BatchDSupport.strikeList(ctx, card) { uid, pos ->
+                    adjacentHero(uid, pos) || besideTree(uid, pos)
+                }
                 var real = hits.firstOrNull()?.second ?: -0.5
-                if (id == "wuk-red-3a" && hits.size >= 2) real += 0.6 * max(0.0, hits[1].second)
+                // "Choose one, or both, on different targets": both takes one target from each bullet.
+                val first = BatchDSupport.strikeList(ctx, card, adjacentHero).toMap()
+                val second = BatchDSupport.strikeList(ctx, card, besideTree).toMap()
+                if (id == "wuk-red-3a" && first.isNotEmpty() && second.isNotEmpty()) {
+                    real = maxOf(
+                        real,
+                        BatchASupport.bestDistinctPair(first, second, secondShare = 0.6),
+                        BatchASupport.bestDistinctPair(second, first, secondShare = 0.6),
+                    )
+                }
                 BatchDSupport.strikeFix(ctx, card, real)
             }
 
