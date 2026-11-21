@@ -6,18 +6,20 @@ import dev.quinton.goa.core.model.match.Team
 import org.junit.Test
 
 class TigerclawHeuristicsTest {
-    @Test fun finishes() = HeroBookSupport.finishes("tigerclaw")
+    @Test
+    fun `finishes 2v2 and 3v3 at strengths 5 and 10`() = BatchDTestSupport.finishes("tigerclaw")
 
-    @Test fun signature() {
-        val session = HeroBookSupport.playing(
+    @Test
+    fun `Blink Strike is not played at a unit he cannot dash through`() {
+        // H1/H2: the minion is two away, not beside him, so Gold has no line; printed reach says 3.
+        val session = BatchDTestSupport.playing(
             hero = "tigerclaw",
-            at = Hex(-1, -2),
+            at = Hex(1, -5),
             hand = listOf("tigerclaw-gold", "tigerclaw-green-1", "tigerclaw-blue-1"),
-            enemyAt = Hex(3, -3),
+            enemyAt = Hex(4, -6),
         ) {
-            minion(Team.BLUE, MinionType.MELEE, Hex(2, -3))
+            minion(Team.BLUE, MinionType.MELEE, Hex(3, -6))
         }
-        // H2: Gold's printed reach is 3, and the engine only attacks a unit he can dash through.
-        HeroBookSupport.assertFlips(session, TigerclawHeuristics, "tigerclaw-gold")
+        BatchDTestSupport.assertFlips(session, TigerclawHeuristics, from = "tigerclaw-gold", to = null)
     }
 }
