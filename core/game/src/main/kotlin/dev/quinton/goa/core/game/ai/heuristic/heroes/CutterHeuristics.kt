@@ -31,7 +31,8 @@ object CutterHeuristics : HeroHeuristics {
         role = HeroRole.PUSHER,
         idealDistance = 2,
         aggression = 0.65,
-        laneWeight = 0.60,
+        // Research: 0.60. Ablation, strength 8, 96 games: 46.9% with 0.60, 54.2% with 1.0 (2026-11-21).
+        laneWeight = 1.0,
         upgradeOrder = listOf("blue", "red", "green"),
         keepDefender = true,
     )

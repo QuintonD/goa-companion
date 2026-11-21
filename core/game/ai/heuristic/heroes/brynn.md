@@ -273,3 +273,4 @@ What `heroes/BrynnHeuristics.kt` encodes, checked against the engine (2026-11-21
 - Engine: "bound" is `BrynnHero.obstaclesAround(hero, forHero = brynn) >= 3`, Brynn and spaces that count as obstacles for her included; with Over the Top every enemy hero counts as bound while she performs actions, so her own decisions treat all enemies as bound once it is unlocked.
 - Engine: "Choose one —" asks only when both bullets have a target (RULINGS 38); index 0 is the adjacent bullet, 1 the bound one.
 - Skipped: H3 (Decoy), H5 (True Grit), H6/H7 (swaps, Mountain Guide), H9/H10 (Split), H11, H13, H15, evalTerms (the crowd changes with every move; scored at the decision instead).
+- Ablation (strength 8, 96 games, 2026-11-21): 60.4%, Wilson 50.4–69.6%.

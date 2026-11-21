@@ -284,3 +284,4 @@ What `heroes/DodgerHeuristics.kt` encodes, checked against the engine (2026-11-2
 - Engine: Death Trap is "discards a card, if able", not "or is defeated"; the draft valued an empty hand.
 - Engine: H7 needs no rule. The shield's +2/+4 is already in `DEFEND`'s `defensePreview`.
 - Skipped: Burning/Blazing Skull minion moves, Necromancy, Weakness/Enfeeblement, evalTerms (the draft's constant for the ultimate is the same on both sides of every comparison), threatAdjust (the general reach already counts radius 4 for Death Trap).
+- Ablation (strength 8, 96 games, 2026-11-21): 60.4%, Wilson 50.4–69.6%.

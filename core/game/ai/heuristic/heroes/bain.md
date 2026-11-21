@@ -269,3 +269,4 @@ What `heroes/BainHeuristics.kt` encodes, checked against the engine (2026-11-21)
 - Engine: Dead or Alive offers only enemy heroes in radius (`heroesInRadius(enemyOnly = true)`); only Side Quest can mark an ally.
 - Engine: the guess options are already only the colours that could be in the victim's hand (`Chance.guessable`), and the victim picks the card, so a strength-10 hand count is a likelihood, not a certainty.
 - Skipped: H6 (pull order), H11, H13, H14, H16, H17 (gold as turn-4 finisher is the general book's), threatAdjust (the general threat map already counts every hex in his range; a clear-line test would only lower it).
+- Ablation (strength 8, 96 games, 2026-11-21): 58.3%, Wilson 48.3–67.7%.

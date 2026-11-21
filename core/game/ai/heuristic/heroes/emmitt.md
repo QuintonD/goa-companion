@@ -303,3 +303,4 @@ What `heroes/EmmittHeuristics.kt` encodes, checked against the engine (2026-11-2
 - Engine: the punch calls `attack(defenseFromInitiative = true)`; a Block card still blocks. Reverse Time is an active effect of `Timing.NEXT_TURN`.
 - Draft fix: the draft read `turnRecord.resolved` at card play, which is always empty then, so the traps were always discouraged.
 - Skipped: H1 (the flip's worth), H4, H5 (Glitch placement), H7–H9 (glitch swaps, shoves), H11–H19, evalTerms, threatAdjust (the general threat map already scores the punch's printed Attack).
+- Ablation (strength 8, 96 games, 2026-11-21): 56.3%, Wilson 46.3–65.7%.

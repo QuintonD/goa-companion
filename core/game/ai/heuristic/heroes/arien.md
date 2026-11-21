@@ -263,3 +263,4 @@ What `heroes/ArienHeuristics.kt` encodes, checked against the engine (2026-11-21
 - Engine: H5 needs no rule. `DEFEND`'s `defensePreview` already applies Duelist's "ignore all minion defense modifiers", so the general book already picks it when it is the card that holds.
 - §3 mixes up the items: keeping `arien-red-2a` tucks `arien-red-2b` (a Defense item); the Initiative item comes from tucking an a-card. The playbook follows the default path table (keep the a-branch).
 - Skipped: H8 (whirlpool swap), H9 (gold's may-move), H10 (wave push distance), H12 (Living Tsunami pre-step), H14 (branch flag); the silver's "skill tax" threat (exposure is a loss in coins at a hex; a skill being stopped is not one).
+- Ablation (`AI_H_ABLATION`, strength 8, 96 games, 2026-11-21): 58.3% with the playbook, Wilson 48.3–67.7%.

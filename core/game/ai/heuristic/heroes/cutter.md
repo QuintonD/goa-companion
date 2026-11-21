@@ -279,3 +279,4 @@ What `heroes/CutterHeuristics.kt` encodes, checked against the engine (2026-11-2
 - Engine: the lunge's adjacent bullet is always offered when a unit is adjacent; the draft's penalty for "no lunge line" punished a legal minion hit and was dropped.
 - Engine: the push stops at the first obstacle (`pushAway`) and the discard needs `zoneOf` to change, so a border behind a unit does not count. The handicap pushes up to 3 and has no minion bullet.
 - Skipped: H3 (grapple landing), H7 (swap), H10/H11/H16 (X Marks the Spot placement), H12 (backstep), H13 (Legend of the Skies), H14/H15 (branch choice), threatAdjust.
+- Style: laneWeight is 1.0, not the proposed 0.60: 46.9% with 0.60, 54.2% (Wilson 44.2–63.8%) with 1.0 (strength 8, 96 games, 2026-11-21). Notes alone 51.0%, style alone 49.0%.
