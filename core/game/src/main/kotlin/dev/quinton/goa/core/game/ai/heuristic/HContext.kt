@@ -407,9 +407,11 @@ class HContext(
         }
         val total = card.attack + itemBonus(heroId, Stat.ATTACK)
         val agg = 0.65 + 0.7 * style(heroId).aggression
+        // A card that neither attacks nor makes a hero discard strikes no hero (R2-2).
+        val strikesHeroes = card.attackCard || card.forcesDiscard
         for (e in state.heroes) {
             val pos = e.at ?: continue
-            if (e.team == owner) continue
+            if (e.team == owner || !strikesHeroes) continue
             val d = distance(at, pos)
             if (d > r + 2) continue
             val hit = if (!card.attackCard && card.forcesDiscard) {

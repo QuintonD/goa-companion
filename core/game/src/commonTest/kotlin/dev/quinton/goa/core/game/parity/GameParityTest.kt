@@ -133,8 +133,8 @@ class GameParityTest {
             appendLine("round ${s.state.round} winner ${s.state.winner}")
         }
         // Re-pinned for ADR-085: the seated player is the heuristic book, the same on the JVM and in JS (last:
-        // the hero-playbook review fixes, REVIEW-heroes.md).
-        assertTranscript("7e3d95f985acb59c0ada6ce17ec5b0363f9ef846974c52d9a153b7e3c7b438ba", transcript, "AI game")
+        // both review rounds, REVIEW-core.md and REVIEW-heroes.md).
+        assertTranscript("d7017562b5c647433c9f309e2775589d830d5b87b439b853de2f75e2356dcb3b", transcript, "AI game")
     }
 
     /**

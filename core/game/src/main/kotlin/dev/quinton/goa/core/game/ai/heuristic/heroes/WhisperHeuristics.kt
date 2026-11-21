@@ -117,12 +117,15 @@ object WhisperHeuristics : HeroHeuristics {
 
     /**
      * After the attack an enemy hero in radius has a discard: one already has, or the first target is a
-     * hero with a card to lose (a defense goes to the discard; so does a hit's card).
+     * hero with a card to lose (a defense goes to the discard; so does a hit's card). A first target
+     * with no card to defend with is defeated and leaves the board, so its own discard does not count.
      */
     private fun furyPrimed(ctx: HContext, at: Hex, card: HCard, first: String): Boolean {
         val radius = card.radius + ctx.itemBonus(ctx.seat, Stat.RADIUS)
-        if (BatchDSupport.enemyHeroesWithin(ctx, at, 1, radius).any { !BatchDSupport.discardEmpty(it) }) return true
-        return ctx.heroBody(first)?.let { ctx.handCount(it) > 0 } == true
+        val firstHero = ctx.heroBody(first)
+        val firstStays = firstHero != null && ctx.handCount(firstHero) > 0
+        val others = BatchDSupport.enemyHeroesWithin(ctx, at, 1, radius).filter { it.id != firstHero }
+        return firstStays || others.any { !BatchDSupport.discardEmpty(it) }
     }
 
     private fun silver(ctx: HContext, at: Hex, radius: Int): Double {

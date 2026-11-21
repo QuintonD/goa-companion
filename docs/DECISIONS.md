@@ -3053,3 +3053,14 @@ the layers from 9 up add nothing measurable. Answers average 5–7 ms (p95 20–
 answer was 540–580 ms with six games running at once (a cold JVM and shared cores; warm and alone, the longest 3v3 answer was 46 ms). The old search stays the coach, the puzzle
 solver and the yardstick. Still weak: empty-hand defeats (h10 loses about 1.5 times as many heroes with no
 card to defend as s8), and 3v3.
+
+Independent review (gpt-6.1-sol, 2026-11-21, ledgers `core/game/ai/heuristic/REVIEW-core.md` and
+`REVIEW-heroes.md`): round 1 scored 6/10 with 29 findings (reliance on the one sampled copy where public
+knowledge is required, double-counted targets on two-target cards, wrong repeat and splash conditions, a
+reversed next-zone guess for enemies); 27 were fixed and 2 were disproved from the engine. Round 2 scored
+7/10; its last small items were fixed. Left as a follow-up: inside a one-ply look the engine can settle an
+enemy's response by itself (a forced discard of the last card, a colour-matched "discard or be defeated"),
+so that response follows the sampled copy. That is the bias of reasoning on one determinized sample, not a
+leak of the real cards (`NoPeekingTest` holds); removing it needs a "stop before a hidden-dependent
+resolution" hook in `EngineSession`. Strength against s8 was unchanged by the fixes (51.6–55.7% on
+development line-ups, within noise).

@@ -33,3 +33,14 @@ code, the card text and the engine before it was changed. Tests: `HeuristicRevie
 | after (a3bd2215) | 107-85, 55.7% | 48.7-62.6% | 3.27 / 10.76 / 340 ms |
 
 No drop (the difference is inside the noise).
+
+## Round 2 (gpt-6.1-sol, 7/10, CHANGES)
+
+25 of 29 round-1 findings resolved, including both disagreements (H3, H2-03). Open after round 2, and what was done:
+
+| Id | Reviewer | Outcome | Reason |
+|---|---|---|---|
+| H2-04 | still open | fixed | Snorri's horn threat: a minion opens the repeat only when a non-handicap gold may be held and it is not an immune Heavy. |
+| H2-05 | still open | fixed | Whisper's Blood Fury: a first target with no card to defend with is defeated and leaves, so its own discard no longer primes the repeat. |
+| R2-2 | should | fixed | `strikeFrom` gives no hero-strike value to a card that neither attacks nor forces a discard. |
+| C1 (rest), R2-1 | blocker | declined, follow-up | Inside a one-ply look the engine can still settle an enemy's response by itself (a forced discard of the last card, "discard a card of that colour or be defeated" with no match), and other rare enemy questions are answered from that enemy's sampled view. This is not a leak of the real hidden cards (the copy is sampled from public knowledge; `NoPeekingTest` holds): it is the bias of reasoning on one determinized sample. Removing it needs an engine-level "stop before a hidden-dependent resolution" hook in `EngineSession`, shared with the web build — out of this round's scope. Recorded as a follow-up in ADR-085. |

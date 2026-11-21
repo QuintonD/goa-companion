@@ -72,10 +72,17 @@ object SnorriHeuristics : HeroHeuristics {
         }
     }
 
+    /**
+     * A first target for the horn's repeat: an adjacent foe hero, or an adjacent minion that can be
+     * attacked (not an immune Heavy) when a gold other than the hero-only handicap may be held.
+     */
     private fun besideFoe(ctx: HContext, me: HeroState): Boolean {
         val at = me.at ?: return false
-        return BatchC.foesOf(ctx.state, me.id).any { h -> h.at?.let { ctx.distance(at, it) == 1 } == true } ||
-            ctx.state.minions.any { m -> m.team != me.team && m.at?.let { ctx.distance(at, it) == 1 } == true }
+        if (BatchC.foesOf(ctx.state, me.id).any { h -> h.at?.let { ctx.distance(at, it) == 1 } == true }) return true
+        if (!BatchC.mayHold(ctx, me.id, golds - "snorri-handicap")) return false
+        return ctx.state.minions.any { m ->
+            m.team != me.team && !ctx.heavyImmune(m.id) && m.at?.let { ctx.distance(at, it) == 1 } == true
+        }
     }
 
     private fun play(ctx: HContext, choice: Choice): Double {
