@@ -6,18 +6,20 @@ import dev.quinton.goa.core.model.match.Team
 import org.junit.Test
 
 class TrinketsHeuristicsTest {
-    @Test fun finishes() = HeroBookSupport.finishes("trinkets")
+    @Test
+    fun `finishes 2v2 and 3v3 at strengths 5 and 10`() = BatchDTestSupport.finishes("trinkets")
 
-    @Test fun signature() {
-        val session = HeroBookSupport.playing(
+    @Test
+    fun `with no Turret the gun has no target and Gold rebuilds it`() {
+        // H1/H3: Makeshift Minigun targets units in range of him and of the Turret; there is no Turret.
+        val session = BatchDTestSupport.playing(
             hero = "trinkets",
-            at = Hex(-1, -2),
-            hand = listOf("trinkets-red-1", "trinkets-gold", "trinkets-blue-1"),
-            enemyAt = Hex(3, -3),
+            at = Hex(1, -5),
+            hand = listOf("trinkets-red-1", "trinkets-gold", "trinkets-green-1"),
+            enemyAt = Hex(4, -6),
         ) {
-            minion(Team.BLUE, MinionType.MELEE, Hex(-1, -1))
+            minion(Team.BLUE, MinionType.MELEE, Hex(2, -6))
         }
-        // H3: the gun fizzles until the Turret is on the board.
-        HeroBookSupport.assertFlips(session, TrinketsHeuristics, "trinkets-red-1")
+        BatchDTestSupport.assertFlips(session, TrinketsHeuristics, from = "trinkets-red-1", to = "trinkets-gold")
     }
 }
