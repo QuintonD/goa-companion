@@ -139,3 +139,10 @@ most by the Throne, the gap the brief names, and it knows the enemies' hands as 
 
 What is left (step 4 found no weight that moves it): the empty-hand defeats; 3v3, where h10 is even with s8;
 strengths 9 and 10 add nothing over 8 (h10 : h8 50.5%); and s10.
+
+## After both review rounds (2026-11-21, 2ecb4604)
+
+Held out, line-ups 300–395, 192 mirrored 2v2 games: h10 vs s8 106–86 = 55.2% [48.1–62.1], pairs 49.5–60.9%;
+h10 won by last push 54 / Life 23 / Throne 29, s8 by 52 / 24 / 10. Defeats a game h10 0.91, s8 1.13 (with no
+card to defend 77 / 63). Answers h10 3.3 / 11.0 / 311 ms (mean / p95 / max), s8 20.0 / 74.7 / 561 ms.
+Unchanged from before the review (55.2% on the same line-ups).
