@@ -139,8 +139,9 @@ data class HeuristicProfile(
                 counting = true,
                 twoTurn = true,
                 lane = true,
-                temp = 0.10,
-                gap = 0.6,
+                // Measured: 0.10 here cost 11 points against the old s8 (looks tie often; a tie became a coin).
+                temp = 0.0,
+                gap = 0.0,
                 slip = 0.0,
             )
 

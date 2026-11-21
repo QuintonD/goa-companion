@@ -185,7 +185,8 @@ class HeuristicAi(
 
             DecisionKind.CHOOSE_UNIT -> UNIT_CAP
 
-            DecisionKind.DEFEND -> if (nullDefense) d.options.size else 0
+            // G78, G81, G84: the hand that is left, or the priced death, is a position the look can score.
+            DecisionKind.DEFEND -> if (nullDefense || ctx.profile.on("defLook", true)) d.options.size else 0
 
             // A move is where a static score walks into a death. Strength 7+ checks its best few.
             DecisionKind.CHOOSE_SPACE -> if (look == HeuristicProfile.Look.MOVES) SPACE_CAP else 0
