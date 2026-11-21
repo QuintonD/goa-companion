@@ -487,8 +487,8 @@ class HContext(
         val d = decision ?: return null
         d.context.subjectId?.let { return heroBody(it) }
         if (d.kind != DecisionKind.CHOOSE_SPACE || overridden) return seat
-        val o = d.options.firstOrNull { o -> o is Choice.Space && state.heroes.none { it.at == o.hex } } as? Choice.Space
-            ?: return seat
+        val free = d.options.firstOrNull { o -> o is Choice.Space && state.heroes.none { it.at == o.hex } }
+        val o = free as? Choice.Space ?: return seat
         return try {
             val f = session.forkForAnswer()
             if (f.answer(d.id, o) !is AnswerResult.Accepted) return seat

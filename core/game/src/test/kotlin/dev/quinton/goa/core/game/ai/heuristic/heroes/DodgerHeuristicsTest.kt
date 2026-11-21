@@ -28,6 +28,6 @@ class DodgerHeuristicsTest {
             }
             phase = PositionPhase.PlayCards(0)
         }
-        HeroBookCases.flips("dodger", DodgerHeuristics, session)
+        HeroBookCases.noteAvoids(DodgerHeuristics, session, "dodger-silver")
     }
 }

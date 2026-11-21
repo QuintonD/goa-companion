@@ -20,9 +20,6 @@ class MortimerHeuristicsTest {
             hero("mortimer", Team.RED, Hex(-5, -6))
             hero("arien", Team.BLUE, Hex(11, -7))
         }
-        val plain = BatchBFixture.pick(session, MortimerHeuristics, adjust = false)
-        val noted = BatchBFixture.pick(session, MortimerHeuristics, adjust = true)
-        assertWithMessage("plain=$plain noted=$noted").that(noted).isEqualTo(Choice.Card("mortimer-silver"))
-        assertThat(plain).isNotEqualTo(noted)
+        HeroBookCases.noteFavours(MortimerHeuristics, session, "mortimer-silver")
     }
 }

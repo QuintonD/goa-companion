@@ -29,30 +29,32 @@ class HeroAblationTest {
         val modes = System.getenv("AI_H_ABLATION_MODE")?.split(",")?.map { it.trim() } ?: listOf("full")
         // Each shuffle of the roster seats a hero once in (roster / table) line-ups.
         val pool = AiHarness.mixedLineups((lineups + 96) * 32 / (2 * format.size) + 32, size = format.size)
-        for (mode in modes) for (hero in heroes) {
-            // AI_H_SKIP: leave out the first line-ups that seat the hero (a fresh set for a re-measure).
-            val skip = System.getenv("AI_H_SKIP")?.toIntOrNull() ?: 0
-            val all = pool.filter { hero in it.first || hero in it.second }.drop(skip).take(lineups)
-            assertThat(all).isNotEmpty()
-            val book = variant(HeroPlaybooks.forHero(hero), mode)
-            val withBook = Tournament.Side("with") { seed ->
-                HeuristicAi(strength, seed, tune) { id -> if (id == hero) book else HeroPlaybooks.forHero(id) }
-            }
-            val without = Tournament.Side("without") { seed ->
-                HeuristicAi(strength, seed, tune) { id ->
-                    if (id == hero) DefaultHeroHeuristics else HeroPlaybooks.forHero(id)
+        for (mode in modes) {
+            for (hero in heroes) {
+                // AI_H_SKIP: leave out the first line-ups that seat the hero (a fresh set for a re-measure).
+                val skip = System.getenv("AI_H_SKIP")?.toIntOrNull() ?: 0
+                val all = pool.filter { hero in it.first || hero in it.second }.drop(skip).take(lineups)
+                assertThat(all).isNotEmpty()
+                val book = variant(HeroPlaybooks.forHero(hero), mode)
+                val withBook = Tournament.Side("with") { seed ->
+                    HeuristicAi(strength, seed, tune) { id -> if (id == hero) book else HeroPlaybooks.forHero(id) }
                 }
+                val without = Tournament.Side("without") { seed ->
+                    HeuristicAi(strength, seed, tune) { id ->
+                        if (id == hero) DefaultHeroHeuristics else HeroPlaybooks.forHero(id)
+                    }
+                }
+                val specs = all.mapIndexed { i, lineup ->
+                    Tournament.Spec(lineup, if (i % 2 == 0) Team.RED else Team.BLUE, 50_000L + i)
+                }
+                val score = Tournament.play(withBook, without, specs, threads, format)
+                val (lo, hi) = score.interval
+                println(
+                    "H_ABLATION $mode $hero strength $strength: $score Wilson ${"%.1f".format(lo * 100)}-" +
+                        "${"%.1f".format(hi * 100)}%",
+                )
+                assertThat(score.games).isGreaterThan(0)
             }
-            val specs = all.mapIndexed { i, lineup ->
-                Tournament.Spec(lineup, if (i % 2 == 0) Team.RED else Team.BLUE, 50_000L + i)
-            }
-            val score = Tournament.play(withBook, without, specs, threads, format)
-            val (lo, hi) = score.interval
-            println(
-                "H_ABLATION $mode $hero strength $strength: $score Wilson ${"%.1f".format(lo * 100)}-" +
-                    "${"%.1f".format(hi * 100)}%",
-            )
-            assertThat(score.games).isGreaterThan(0)
         }
     }
 

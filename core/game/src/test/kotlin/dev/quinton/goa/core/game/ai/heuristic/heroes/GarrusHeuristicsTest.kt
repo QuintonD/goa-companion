@@ -28,6 +28,6 @@ class GarrusHeuristicsTest {
             }
             phase = PositionPhase.PlayCards(0)
         }
-        HeroBookCases.flips("garrus", GarrusHeuristics, session)
+        HeroBookCases.noteAvoids(GarrusHeuristics, session, "garrus-silver")
     }
 }

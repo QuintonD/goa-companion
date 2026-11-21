@@ -10,6 +10,7 @@ import dev.quinton.goa.core.game.ai.heuristic.DefaultHeroHeuristics
 import dev.quinton.goa.core.game.ai.heuristic.General
 import dev.quinton.goa.core.game.ai.heuristic.HContext
 import dev.quinton.goa.core.game.ai.heuristic.HeroHeuristics
+import dev.quinton.goa.core.game.ai.heuristic.HeroPlaybooks
 import dev.quinton.goa.core.game.ai.heuristic.HeuristicAi
 import dev.quinton.goa.core.game.ai.heuristic.HeuristicProfile
 import dev.quinton.goa.core.game.engine.EngineSession
@@ -54,5 +55,45 @@ internal object HeroBookCases {
         val withBook = d.options.maxBy { total(it) }
         val dump = d.options.joinToString("\n") { "$it plain=${plain(it)} adj=${book.adjust(ctx, d, it)}" }
         assertWithMessage(dump).that(withBook).isNotEqualTo(without)
+    }
+
+    /**
+     * The signature note fires: in this position it scores [favoured] above every card in [over] (all the
+     * other options when empty). Strength 8, a static score, where a correction of the general estimate
+     * applies. Since general v2 the card play from strength 5 is the engine's look plus this note (a
+     * correction is silent there), so a test that the note flips the general book's static pick checks a
+     * path the player no longer takes; the note's direction is what the hero file owns.
+     */
+    fun noteFavours(book: HeroHeuristics, session: EngineSession, favoured: String, vararg over: String) {
+        val d = checkNotNull(session.pending) { "the position asked nothing" }
+        assertThat(d.seat).isEqualTo(book.heroId)
+        val ctx = HContext(
+            session,
+            d,
+            d.team,
+            HeuristicProfile.of(8),
+            playbooks = { id -> if (id == book.heroId) book else HeroPlaybooks.forHero(id) },
+        )
+        val notes = d.options.filterIsInstance<Choice.Card>().associate { it.cardId to book.adjust(ctx, d, it) }
+        val others = if (over.isEmpty()) notes.keys - favoured else over.toSet()
+        val mine = checkNotNull(notes[favoured]) { "$favoured is not an option: ${notes.keys}" }
+        for (o in others) {
+            assertWithMessage("notes $notes").that(mine).isGreaterThan(checkNotNull(notes[o]) { "$o is not an option" })
+        }
+    }
+
+    /** The note scores [avoided] below the best other option: it argues against that card. */
+    fun noteAvoids(book: HeroHeuristics, session: EngineSession, avoided: String) {
+        val d = checkNotNull(session.pending) { "the position asked nothing" }
+        val ctx = HContext(
+            session,
+            d,
+            d.team,
+            HeuristicProfile.of(8),
+            playbooks = { id -> if (id == book.heroId) book else HeroPlaybooks.forHero(id) },
+        )
+        val notes = d.options.filterIsInstance<Choice.Card>().associate { it.cardId to book.adjust(ctx, d, it) }
+        val mine = checkNotNull(notes[avoided]) { "$avoided is not an option: ${notes.keys}" }
+        assertWithMessage("notes $notes").that(mine).isLessThan((notes - avoided).values.max())
     }
 }

@@ -30,6 +30,6 @@ class BrynnHeuristicsTest {
             minion(Team.RED, MinionType.MELEE, Hex(1, -1))
             phase = PositionPhase.PlayCards(0)
         }
-        HeroBookCases.flips("brynn", BrynnHeuristics, session)
+        HeroBookCases.noteFavours(BrynnHeuristics, session, "brynn-red-1", "brynn-gold")
     }
 }

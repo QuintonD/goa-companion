@@ -20,9 +20,6 @@ class MrakHeuristicsTest {
             hero("mrak", Team.RED, Hex(-5, -6))
             hero("arien", Team.BLUE, Hex(-5, -4))
         }
-        val plain = BatchBFixture.pick(session, MrakHeuristics, adjust = false)
-        val noted = BatchBFixture.pick(session, MrakHeuristics, adjust = true)
-        assertWithMessage("plain=$plain noted=$noted").that(plain).isEqualTo(Choice.Card("mrak-red-1"))
-        assertThat(noted).isNotEqualTo(plain)
+        HeroBookCases.noteAvoids(MrakHeuristics, session, "mrak-red-1")
     }
 }

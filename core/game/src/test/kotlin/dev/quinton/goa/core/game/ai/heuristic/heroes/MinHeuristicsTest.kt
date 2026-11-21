@@ -20,8 +20,6 @@ class MinHeuristicsTest {
             hero("min", Team.RED, Hex(-5, -6)) { hand("min-silver", "min-gold", "min-red-1") }
             hero("arien", Team.BLUE, Hex(-4, -6))
         }
-        val (plain, noted, table) = BatchBFixture.picks(session, MinHeuristics)
-        assertWithMessage(table).that(plain).isEqualTo(Choice.Card("min-gold"))
-        assertWithMessage(table).that(noted).isEqualTo(Choice.Card("min-silver"))
+        HeroBookCases.noteFavours(MinHeuristics, session, "min-silver", "min-gold")
     }
 }

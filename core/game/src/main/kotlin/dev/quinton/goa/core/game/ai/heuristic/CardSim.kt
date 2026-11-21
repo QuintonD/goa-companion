@@ -101,14 +101,16 @@ internal object CardSim {
         val ally = ctx.allies().filter { a -> a.id in computer && a.id !in ctx.state.turnRecord.resolved }
             .mapNotNull { a ->
                 val played = a.cards.singleOrNull { it.zone == Zone.PLAYED } ?: return@mapNotNull null
-                (a.id to ctx.card(played.id).initiative + ctx.itemBonus(a.id, Stat.INITIATIVE)).takeIf { it.second > ours }
+                val init = ctx.card(played.id).initiative + ctx.itemBonus(a.id, Stat.INITIATIVE)
+                (a.id to init).takeIf { init > ours }
             }.maxByOrNull { it.second }?.first ?: return null
         val st = ctx.state.copy()
         st.revealed = false
         st.step = Step.RESOLVE
         st.acting = null
         st.vars[NEXT_ACTOR] = ally
-        val sim = EngineSession(ctx.session.engineData, ctx.session.setup, st, Random(HeuristicAi.mix(d.id, ally.hashCode().toLong())))
+        val rng = Random(HeuristicAi.mix(d.id, ally.hashCode().toLong()))
+        val sim = EngineSession(ctx.session.engineData, ctx.session.setup, st, rng)
         sim.quiet = true
         sim.haltWhen = { s -> ally in s.turnRecord.resolved || s.step != Step.RESOLVE }
         sim.start()

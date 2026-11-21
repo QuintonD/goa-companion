@@ -25,10 +25,6 @@ class SabinaHeuristicsTest {
             hero("arien", Team.BLUE, Hex(-5, -4))
             phase = PositionPhase.PlayCards()
         }
-        val decision = session.pending!!
-        val withBook = BatchCBook.chosen(session, decision, SabinaHeuristics)
-        val general = BatchCBook.chosen(session, decision, null)
-        assertThat(general).isEqualTo(Choice.Card("sabina-silver"))
-        assertThat(withBook).isNotEqualTo(Choice.Card("sabina-silver"))
+        HeroBookCases.noteAvoids(SabinaHeuristics, session, "sabina-silver")
     }
 }

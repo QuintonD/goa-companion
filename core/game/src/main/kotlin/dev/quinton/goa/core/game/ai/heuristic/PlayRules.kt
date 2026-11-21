@@ -148,7 +148,8 @@ internal object PlayRules {
         var v = 0.0
         for (m in ctx.state.minions) {
             val pos = m.at ?: continue
-            if (!card.hitsMinions || m.team == ctx.team || ctx.heavyImmune(m.id) || ctx.distance(at, pos) > reach) continue
+            if (!card.hitsMinions || m.team == ctx.team || ctx.heavyImmune(m.id)) continue
+            if (ctx.distance(at, pos) > reach) continue
             if (ctx.minionCount(m.team, m.lane) == 1 && ctx.matchPoint(m.lane)) v = max(v, 28.0)
         }
         for (e in ctx.enemies()) {

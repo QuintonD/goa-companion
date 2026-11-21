@@ -28,10 +28,6 @@ class SnorriHeuristicsTest {
             minion(Team.BLUE, MinionType.MELEE, Hex(-5, -3))
             phase = PositionPhase.PlayCards()
         }
-        val decision = session.pending!!
-        val withBook = BatchCBook.chosen(session, decision, SnorriHeuristics)
-        val general = BatchCBook.chosen(session, decision, null)
-        assertThat(withBook).isEqualTo(Choice.Card("snorri-silver"))
-        assertThat(withBook).isNotEqualTo(general)
+        HeroBookCases.noteFavours(SnorriHeuristics, session, "snorri-silver")
     }
 }

@@ -29,6 +29,6 @@ class EmmittHeuristicsTest {
             }
             phase = PositionPhase.PlayCards(0)
         }
-        HeroBookCases.flips("emmitt", EmmittHeuristics, session)
+        HeroBookCases.noteAvoids(EmmittHeuristics, session, "emmitt-red-1")
     }
 }

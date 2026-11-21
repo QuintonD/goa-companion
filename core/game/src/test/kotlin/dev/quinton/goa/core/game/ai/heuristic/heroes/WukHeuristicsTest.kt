@@ -16,6 +16,6 @@ class WukHeuristicsTest {
             hand = listOf("wuk-gold", "wuk-silver", "wuk-blue-1"),
             enemyAt = Hex(3, -6),
         )
-        BatchDTestSupport.assertFlips(session, WukHeuristics, from = "wuk-gold", to = "wuk-silver")
+        HeroBookCases.noteFavours(WukHeuristics, session, "wuk-silver", "wuk-gold")
     }
 }

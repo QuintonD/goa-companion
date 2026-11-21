@@ -16,6 +16,6 @@ class UrsafarHeuristicsTest {
             hand = listOf("ursafar-gold", "ursafar-green-1", "ursafar-blue-1"),
             enemyAt = Hex(3, -6),
         )
-        BatchDTestSupport.assertFlips(session, UrsafarHeuristics, from = "ursafar-gold", to = "ursafar-blue-1")
+        HeroBookCases.noteFavours(UrsafarHeuristics, session, "ursafar-blue-1", "ursafar-gold")
     }
 }

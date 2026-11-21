@@ -27,10 +27,6 @@ class SilverarrowHeuristicsTest {
             minion(Team.BLUE, MinionType.MELEE, Hex(2, -2))
             phase = PositionPhase.PlayCards()
         }
-        val decision = session.pending!!
-        val withBook = BatchCBook.chosen(session, decision, SilverarrowHeuristics)
-        val general = BatchCBook.chosen(session, decision, null)
-        assertThat(general).isEqualTo(Choice.Card("silverarrow-gold"))
-        assertThat(withBook).isNotEqualTo(Choice.Card("silverarrow-gold"))
+        HeroBookCases.noteAvoids(SilverarrowHeuristics, session, "silverarrow-gold")
     }
 }
