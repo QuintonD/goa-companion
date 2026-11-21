@@ -16,6 +16,7 @@ import org.junit.Test
  * (each is mirrored, so games are twice that; default 24). `AI_FORMAT` and `AI_THREADS` as elsewhere.
  * Prints the win rate, the Wilson interval and the mean, p95 and longest time to answer.
  * `AI_H_FIRST` is the first mixed line-up index, so a final table can use a held-out seed.
+ * `h10/action.move/s10` is h10 with those categories of question answered by s10 ([HybridAi]).
  */
 class HeuristicTournamentTest {
     @Test
@@ -58,6 +59,11 @@ class HeuristicTournamentTest {
         Tournament.Side(spec) { seed -> timed(player(spec, seed), times) }
 
     private fun player(spec: String, seed: Long): AiPlayer {
+        // h10/action.move/s10: h10 with those question categories answered by s10 ([HybridAi], the category swaps).
+        if (spec.count { it == '/' } == 2) {
+            val (base, cats, delegate) = spec.split("/")
+            return HybridAi(player(base, seed), player(delegate, seed), cats.split(".").toSet())
+        }
         // h10+sim=0+spare=2: a strength and measurement knobs (HeuristicProfile.tune).
         val parts = spec.split("+")
         val n = parts[0].drop(1).toInt()
