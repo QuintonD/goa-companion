@@ -8,13 +8,15 @@ import dev.quinton.goa.core.game.ai.heuristic.HContext
 import dev.quinton.goa.core.game.ai.heuristic.HeroHeuristics
 import dev.quinton.goa.core.game.ai.heuristic.HeroRole
 import dev.quinton.goa.core.game.ai.heuristic.HeroStyle
-import dev.quinton.goa.core.game.engine.GameState
+import dev.quinton.goa.core.game.engine.HeroState
 import dev.quinton.goa.core.model.board.Hex
-import dev.quinton.goa.core.model.match.Team
+import dev.quinton.goa.core.model.catalog.Stat
+import kotlin.math.max
 
 /**
- * Emmitt: a support who flips the order. The punch is the threat. Gold on turn 2 or 3
- * is the card, and only when the flip helps.
+ * Emmitt: a support who bends the turn order. His primary red is a big punch the defender
+ * answers with Initiative instead of Defense, so a fast card is the block and a slow one is not.
+ * The blue traps make a hero who has already resolved a card this turn discard.
  */
 object EmmittHeuristics : HeroHeuristics {
     override val heroId: String = "emmitt"
@@ -34,74 +36,86 @@ object EmmittHeuristics : HeroHeuristics {
         else -> 0.0
     }
 
-    override fun evalTerms(state: GameState, team: Team, heroId: String): Double {
-        if (heroId != this.heroId) return 0.0
-        if (!BatchA.effectLive(state, heroId, GOLD)) return 0.0
-        val sign = BatchA.sign(state, team, heroId)
-        // H eval: Reverse Time is in force. The slow cards are the fast ones this turn.
-        return sign * 6.0
-    }
-
-    override fun threatAdjust(ctx: HContext, enemyHeroId: String, target: Hex): Double {
-        if (enemyHeroId != heroId) return 0.0
-        val from = ctx.hero(heroId)?.at ?: return 0.0
-        if (HexGrid.distance(from, target) != 1) return 0.0
-        if (!BatchA.poolHas(ctx, heroId, PUNCH)) return 0.0
-        // H threat: the punch replaces Defense with initiative. A slow block is not a block.
-        return 6.0
-    }
-
     private fun play(ctx: HContext, choice: Choice): Double {
         if (choice !is Choice.Card) return 0.0
+        val me = ctx.own() ?: return 0.0
+        val at = me.at ?: return 0.0
         return when (choice.cardId) {
-            in GOLD -> gold(ctx)
-            in PUNCH -> punch(ctx)
-            in SNARE -> snare(ctx)
-            "emmitt-silver" -> silver(ctx)
+            in PUNCH -> punch(ctx, me, at, choice.cardId)
+            in SNARE -> snare(ctx, me, at, choice.cardId)
+            in GOLD -> if (ctx.turn == 1) -2.0 else 0.0 // H2: no flip on turn 1
             else -> 0.0
         }
     }
 
-    // H1 / H2: gold on turn 2 or 3, into a unit that will not block Attack 4. Turn 1 and turn 4 waste the flip.
-    private fun gold(ctx: HContext): Double {
-        if (ctx.turn == 1 || ctx.turn >= 4) return -8.0
-        val at = ctx.own()?.at ?: return 0.0
-        if (!BatchA.besideEnemyUnit(ctx, at)) return -4.0
-        return 10.0
-    }
-
-    // H3: in reverse time the punch is slow. Forward, it is the threat when he is already adjacent.
-    private fun punch(ctx: HContext): Double {
-        val at = ctx.own()?.at ?: return 0.0
-        val adjacent = ctx.enemies().any { e -> e.at?.let { ctx.distance(at, it) == 1 } == true }
-        if (!adjacent) return 0.0
-        return if (reverse(ctx)) -6.0 else 6.0
-    }
-
-    // H10: the trap wants a hero who has already resolved a card this turn.
-    private fun snare(ctx: HContext): Double {
-        val at = ctx.own()?.at ?: return 0.0
-        val ready = ctx.enemies().any { e ->
-            val pos = e.at ?: return@any false
-            ctx.distance(at, pos) in 1..3 && e.id in ctx.state.turnRecord.resolved && ctx.handCount(e.id) >= 2
+    /**
+     * H3: the punch against a hero is decided by the Initiative of the card they defend with
+     * (plus Initiative items and minion modifiers). The general book read their Defense; this
+     * replaces its estimate for adjacent heroes.
+     */
+    private fun punch(ctx: HContext, me: HeroState, at: Hex, cardId: String): Double {
+        val card = ctx.card(cardId)
+        val total = card.attack + ctx.itemBonus(me.id, Stat.ATTACK)
+        var best = BatchA.bestMinionOn(ctx, HexGrid.neighbors(at).toSet())
+        for (e in BatchA.enemiesWithin(ctx, at, 1)) {
+            best = max(best, punchWorth(ctx, e, total) * BatchA.aggression(ctx, me.id))
         }
-        return if (ready) 10.0 else -4.0
+        return BatchA.correction(ctx, me.id, at, card, best)
     }
 
-    // H18: hold the teleport while time is still forward and he is not the one about to be hit.
-    private fun silver(ctx: HContext): Double = if (reverse(ctx)) 6.0 else -4.0
+    /** The punch on [e]: a kill unless they hold a defense card whose Initiative total reaches [total]. */
+    private fun punchWorth(ctx: HContext, e: HeroState, total: Int): Double {
+        if (e.hand.isEmpty()) return ctx.killWorth(e.id)
+        val pos = e.at ?: return 0.0
+        val bonus = ctx.itemBonus(e.id, Stat.INITIATIVE) + ctx.minionModifier(pos, e.team)
+        val hold = BatchA.chanceHolds(ctx, e) { c ->
+            (c.block && c.blocksMelee) || (c.canDefend && !c.block && c.initiative + bonus >= total)
+        }
+        val chance = 1.0 - hold
+        return chance * ctx.killWorth(e.id) + (1.0 - chance) * ctx.discardWorth(e)
+    }
 
-    // H6: the enemy who picks the Glitch should be the one who has already acted.
+    /**
+     * H10: the trap hits an enemy in range who has already resolved a card this turn: forward,
+     * the one whose card is faster than this one; in Reverse Time, slower. "If able" on an empty
+     * hand does nothing; Time Bomb defeats instead.
+     */
+    private fun snare(ctx: HContext, me: HeroState, at: Hex, cardId: String): Double {
+        val card = ctx.card(cardId)
+        val ours = card.initiative + ctx.itemBonus(me.id, Stat.INITIATIVE)
+        val reverse = BatchA.effectLive(ctx, heroId, GOLD)
+        val orDefeat = cardId == "emmitt-blue-3a"
+        val reach = card.range + ctx.itemBonus(me.id, Stat.RANGE)
+        var best = 0.0
+        for (e in BatchA.enemiesWithin(ctx, at, reach)) {
+            val theirs = ctx.itemBonus(e.id, Stat.INITIATIVE)
+            val p = if (e.id in ctx.state.turnRecord.resolved) {
+                1.0
+            } else {
+                BatchA.chancePlays(ctx, e.id) { c ->
+                    if (reverse) c.initiative + theirs < ours else c.initiative + theirs > ours
+                }
+            }
+            best = max(best, p * BatchA.discardValue(ctx, e, orDefeat))
+        }
+        return if (best <= 0.0) -2.0 else best - 1.4
+    }
+
     private fun unit(ctx: HContext, d: Decision, choice: Choice): Double {
-        if (d.sourceCardId != "emmitt-silver" || choice !is Choice.Unit) return 0.0
-        return if (choice.unitId in ctx.state.turnRecord.resolved) 5.0 else 0.0
-    }
-
-    private fun reverse(ctx: HContext): Boolean =
-        ctx.state.effects.any { e ->
-            e.owner == heroId && e.cardId in GOLD && ctx.game.inForce(e)
+        if (choice !is Choice.Unit) return 0.0
+        val src = d.sourceCardId ?: return 0.0
+        // H3 at resolution: the same Initiative reading on the punch's target.
+        if (src in PUNCH) {
+            val e = ctx.hero(choice.unitId)?.takeIf { it.team != ctx.team } ?: return 0.0
+            val total = ctx.card(src).attack + ctx.itemBonus(d.seat, Stat.ATTACK)
+            return punchWorth(ctx, e, total) - ctx.heroStrikeWorth(e.id, total, false)
         }
-
+        // H6: the Glitch is picked by the enemy who can least punish the landing: one who has acted.
+        if (src == "emmitt-silver") {
+            return if (choice.unitId in ctx.state.turnRecord.resolved) 2.0 else 0.0
+        }
+        return 0.0
+    }
 }
 
 private val GOLD = setOf("emmitt-gold", "emmitt-handicap")

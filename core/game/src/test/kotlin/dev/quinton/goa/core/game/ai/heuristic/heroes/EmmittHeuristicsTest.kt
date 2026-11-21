@@ -15,17 +15,18 @@ class EmmittHeuristicsTest {
     }
 
     @Test
-    fun `reverse time is not the opening card`() {
-        // Turn 1 wastes the flip (H2). Two minions keep the adjacent one from being the whole lane.
+    fun `the punch is not the kill against a hand of fast cards`() {
+        // H3: Arien's cards are Defense 2-5 but Initiative 9-13. The punch (Attack 9) is defended with
+        // Initiative, so it only costs a card; gold is the cheaper hit.
         val session = position(TestData.engine, TestData.FOREST) {
-            turn = 1
+            turn = 2
             clearMinions()
             hero("emmitt", Team.BLUE, Hex(1, -2)) {
-                hand("emmitt-gold", "emmitt-green-1")
+                hand("emmitt-red-1", "emmitt-gold")
             }
-            hero("arien", Team.RED, Hex(4, -2))
-            minion(Team.RED, MinionType.MELEE, Hex(2, -2))
-            minion(Team.RED, MinionType.MELEE, Hex(3, -2))
+            hero("arien", Team.RED, Hex(2, -2)) {
+                hand("arien-silver", "arien-gold", "arien-blue-1")
+            }
             phase = PositionPhase.PlayCards(0)
         }
         HeroBookCases.flips("emmitt", EmmittHeuristics, session)
