@@ -133,7 +133,23 @@ class HeuristicAi(
                 "${(d.options[i] as Choice.Card).cardId}=${round1(values[i])}"
             },
         )
+        mixed(ctx, d, values, rng)?.let { return it }
         return pick(d, d.options.indices.toList(), values, rng, fromLook = true)
+    }
+
+    /**
+     * G17 (from strength 7): when the two best cards are within [MIX_GAP], the seed picks between them,
+     * so the round's shape is not a script a person can learn. Never when the best card wins the game.
+     * Two cards within the gap are, by the book's own numbers, the same play; a lethal threat or a push
+     * that one card answers puts it far ahead, outside the gap.
+     */
+    private fun mixed(ctx: HContext, d: Decision, values: DoubleArray, rng: Random): Choice? {
+        if (!ctx.profile.initiativeReading || !ctx.profile.on("mix", true) || values.size < 2) return null
+        val order = values.indices.sortedByDescending { values[it] }
+        val a = order[0]
+        val b = order[1]
+        if (values[a] - values[b] > MIX_GAP || values[a] >= WON / 2) return null
+        return d.options[if (rng.nextBoolean()) a else b]
     }
 
     private fun lookAt(ctx: HContext, d: Decision, static: DoubleArray): List<Int> {
@@ -217,6 +233,8 @@ class HeuristicAi(
 
     companion object {
         private const val CRITICAL = 12.0
+        private const val MIX_GAP = 2.0
+        private const val WON = 1000.0
         private const val OPAQUE_CAP = 8
         private const val UNIT_CAP = 8
         private const val SPACE_CAP = 6
