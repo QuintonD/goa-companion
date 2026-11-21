@@ -412,11 +412,26 @@ class HContext(
             if (e.team == owner) continue
             val d = distance(at, pos)
             if (d > r + 2) continue
-            var worth = heroStrikeWorth(e.id, total, card.ranged) * agg
+            val hit = if (!card.attackCard && card.forcesDiscard) {
+                discardStrike(e, card)
+            } else {
+                heroStrikeWorth(e.id, total, card.ranged)
+            }
+            var worth = hit * agg
             if (d > r) worth *= 0.25
             best = max(best, worth)
         }
         return best
+    }
+
+    /**
+     * A card that only makes [e] discard: the card thrown. An empty hand is a defeat only for
+     * "discards a card, or is defeated"; "if able" takes nothing from it (Cards.kt forceDiscard).
+     */
+    private fun discardStrike(e: HeroState, card: HCard): Double = when {
+        e.hand.isNotEmpty() -> discardWorth(e)
+        card.discardOrDefeat -> killWorth(e.id)
+        else -> 0.0
     }
 
     /** Coin-equivalents of defeating [heroId], Life included. Public: the level band is the death cost. */
@@ -718,7 +733,7 @@ class HContext(
     }
 
     /** This hero still has this turn's card to play (it is in hand, not yet facedown or resolved). */
-    private fun playsThisTurn(h: HeroState): Boolean =
+    internal fun playsThisTurn(h: HeroState): Boolean =
         playsLeft(h.id) > (4 - state.turn).coerceAtLeast(0)
 
     /**
@@ -759,8 +774,11 @@ class HContext(
     private fun alreadyActed(heroId: String): Boolean = heroId in state.turnRecord.resolved
 
     private fun kills(h: HeroState, t: Threat, mod: Int): Boolean {
-        if (h.hand.isEmpty()) return true
+        // "Discards a card, if able" defeats nobody, not even an empty hand (Cards.kt forceDiscard).
         if (!t.card.attackCard && !t.card.discardOrDefeat) return false
+        if (h.hand.isEmpty()) return true
+        // "Discards a card, or is defeated" with a card in hand is a discard; a defense does not answer it.
+        if (!t.card.attackCard) return false
         val options = defensesOf(h)
         if (options.isEmpty()) return true
         return options.none { holds(h.id, it.first, t.attackTotal, t.card.ranged, mod) }
@@ -782,7 +800,8 @@ class HContext(
         val cards = if (h.team == team || profile.knowHands) {
             h.hand.map { card(it.id) to 1.0 }
         } else {
-            possibleCards(h.id).map { it.card to it.weight }
+            // The card they are playing now has left the hand: it cannot defend.
+            possibleCards(h.id).filter { !it.playingNow }.map { it.card to it.weight }
         }
         return cards.filter { it.first.canDefend || it.first.block }
     }

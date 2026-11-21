@@ -58,15 +58,18 @@ ai/heuristic/
   HEval.kt              hand-written position evaluation in coin-equivalents (lane, life, coins, levels,
                         hand, placement, exposure) + Σ hero playbooks' evalTerms
   Lookahead.kt          one-ply look: fork the det session, answer, finish the action with the general
-                        playbook, HEval; used for opaque choices and to compare candidate actions
+                        playbook, HEval; used for opaque choices and to compare candidate actions. Every look
+                        (this one, CardSim's, a teammate's prelude) stops at an enemy's answer that reads its
+                        hidden cards (a defense, a forced discard): that is priced from the pool, never played
   TurnPlan.kt           at PLAY_CARD the hero forms an intent (kill X, clear minion, push, defend lane,
                         retreat, farm, fast travel, set up); later decisions of the same turn re-derive the
                         same intent from the state (deterministic, no memory) and follow it
   CardSim.kt            the card play's look (strength 5+): each card's own action resolved alone through the
                         engine, once per action it offers (and, from 7, four tries at its next choice), scored by
                         HEval with the enemies' threat split by who may act first; no enemy card is played (from
-                        7 a computer teammate's known card that acts first resolves before ours, G14), and an
-                        attack on a hidden hand is priced from the pool when the defender would answer.
+                        7 a computer teammate's known card that acts first resolves before ours, G14, unless
+                        it makes an enemy defend or discard), and an attack on or a discard from a hidden hand
+                        is priced from the pool when the defender would answer.
                         The same look (TurnLook) scores actions, targets, spaces and defenses after the reveal
   General.kt            the general playbook: dispatches each DecisionKind to its rules (GENERAL.md):
   PlayRules.kt            PLAY_CARD (G1–G22)        ActionRules.kt  CHOOSE_ACTION (G32–G42)

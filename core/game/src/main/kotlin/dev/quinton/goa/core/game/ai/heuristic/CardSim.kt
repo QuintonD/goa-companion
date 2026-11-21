@@ -117,6 +117,8 @@ internal object CardSim {
         var n = 0
         while (n < PRELUDE_CAP) {
             val q = sim.pending ?: break
+            // An enemy's defense or discard would be answered from the sampled hand: no prelude.
+            if (Lookahead.hiddenAnswer(sim.state, q, ctx.team)) return null
             val c = HContext(sim, q, q.team, ctx.profile, ctx.playbooks, seen = ctx.seen, finishing = true)
             val choice = policy(c, q, ally) ?: return null
             if (sim.answer(q.id, choice) !is AnswerResult.Accepted) return null
@@ -137,7 +139,7 @@ internal object CardSim {
         var n = 0
         var d = f.pending
         while (n < CAP && d != null && !look.stop(f, d)) {
-            if (d.kind == DecisionKind.DEFEND && d.team != ctx.team) return look.score(f, look.strike(f, d))
+            if (Lookahead.hiddenAnswer(f.state, d, ctx.team)) return look.score(f, look.strike(f, d))
             val c = HContext(f, d, d.team, ctx.profile, ctx.playbooks, seen = ctx.seen, finishing = true)
             if (branches > 0 && d.seat == ctx.seat && d.options.size > 1 && d.kind in BRANCHED) {
                 branch(ctx, c, f, d, branches, look)?.let { return it }
@@ -222,12 +224,12 @@ internal object CardSim {
         return ctx.profile.knob("branch", default).toInt()
     }
 
-    /** Our attack on a hidden hand: the pool says what it is worth, not the sampled cards (G57). */
+    /** Our attack on, or discard from, a hidden hand: the pool says what it is worth, not the sampled cards (G57). */
     private fun strikeOf(ctx: HContext, f: EngineSession, d: Decision, init: Int): Double {
         val at = HContext(f, d, ctx.team, ctx.profile, ctx.playbooks, seen = ctx.seen, finishing = true)
         // G7: a target whose card acts first may have left.
         val flee = if (init == Int.MAX_VALUE) 0.0 else ctx.profile.knob("flee", FLEE) * ctx.actsBefore(d.seat, init)
-        return at.heroStrikeWorth(d.seat, d.context.attackTotal ?: 0, d.context.rangedAttack == true) * (1.0 - flee)
+        return Lookahead.pooled(at, d) * (1.0 - flee)
     }
 
     /** The position on [f], from the answering team, with our exposure split by initiative. */
