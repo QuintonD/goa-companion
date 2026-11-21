@@ -15,17 +15,16 @@ class BroganHeuristicsTest {
     }
 
     @Test
-    fun `the charge is not played when the only enemy is already adjacent`() {
-        // The minion occupies the only straight step of 2 that would land beside it, so the red fizzles (H1).
+    fun `the charge is not played at a minion he already stands next to`() {
+        // H1: the only enemy unit is adjacent; the one straight 2-step landing beside it runs through it.
         val session = position(TestData.engine, TestData.FOREST) {
-            turn = 2
+            turn = 3
             clearMinions()
             hero("brogan", Team.BLUE, Hex(1, -2)) {
-                hand("brogan-gold", "brogan-red-1")
+                hand("brogan-blue-1", "brogan-red-1")
             }
             hero("arien", Team.RED, Hex(-5, -4))
             minion(Team.RED, MinionType.MELEE, Hex(2, -2))
-            minion(Team.RED, MinionType.MELEE, Hex(4, -4))
             phase = PositionPhase.PlayCards(0)
         }
         HeroBookCases.flips("brogan", BroganHeuristics, session)
