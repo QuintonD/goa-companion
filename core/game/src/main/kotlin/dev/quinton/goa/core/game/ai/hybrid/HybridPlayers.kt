@@ -14,7 +14,8 @@ import dev.quinton.goa.core.game.ai.heuristic.HEval
  *
  * - [hybrid] (`x10+…`): the heuristic-guided determinized search, [HybridAi].
  * - [searchWithBook] (`y10+…`): the old strength 10 ([AiPlayers.searchDeterministic]) with the minimal
- *   change: the heuristic book answers inside its playouts (`pol`: 0 static, 1 full), deals the enemy's
+ *   change: the heuristic book answers inside its playouts (`pol`: 0 static, 1 full, -1 not: the old policy),
+ *   deals the enemy's
  *   unrevealed card (`model`: 0 the old static model, 1 the book's static scores, 2 its card looks), and
  *   `leaf` 0 HEval, 1 the old hand evaluation, 2 the old learned ensemble (as s10). `K`/`Ko` set its samples.
  */
@@ -25,12 +26,14 @@ object HybridPlayers {
     fun searchWithBook(seed: Long, knobs: Map<String, Double>, runner: SampleRunner = SampleRunner.SEQUENTIAL): AiPlayer {
         val bookTune = knobs.filterKeys { it !in HybridConfig.NAMES }
         val policy = BookPolicy(seed, bookTune)
-        val mode = PolicyMode.of((knobs["pol"] ?: 0.0).toInt())
+        // pol=-1 keeps the old playout policy (only the opponent model and the leaf change).
+        val polCode = (knobs["pol"] ?: 0.0).toInt()
+        val mode = PolicyMode.of(polCode)
         val model = (knobs["model"] ?: 1.0).toInt()
         val tau = knobs["tau"] ?: 2.0
         val leaf = (knobs["leaf"] ?: 2.0).toInt()
         var p = AiPlayers.profile(10).copy(
-            playoutPolicy = { f, d, _ -> policy.answer(f, d, mode, emptyMap(), seed) },
+            playoutPolicy = if (polCode < 0) null else { f, d, _ -> policy.answer(f, d, mode, emptyMap(), seed) },
             playModelOn = if (model > 0) {
                 { data, setup, st, hero, pool -> policy.playWeights(data, setup, st, hero, pool, model, tau) { emptyMap() } }
             } else {
