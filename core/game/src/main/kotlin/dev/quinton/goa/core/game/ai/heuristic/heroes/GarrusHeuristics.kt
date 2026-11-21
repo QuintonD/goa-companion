@@ -9,13 +9,18 @@ import dev.quinton.goa.core.game.ai.heuristic.HeroHeuristics
 import dev.quinton.goa.core.game.ai.heuristic.HeroRole
 import dev.quinton.goa.core.game.ai.heuristic.HeroStyle
 import dev.quinton.goa.core.game.engine.GameState
+import dev.quinton.goa.core.game.engine.HeroState
 import dev.quinton.goa.core.game.engine.Zone
 import dev.quinton.goa.core.model.board.Hex
+import dev.quinton.goa.core.model.catalog.Stat
 import dev.quinton.goa.core.model.match.Team
+import kotlin.math.max
+import kotlin.math.min
 
 /**
- * Garrus: a fighter who holds the middle. One card in the discard turns the gold into a
- * second hit and lets the hunt step. Howl is the cage, not a discard bought for its own sake.
+ * Garrus: a fighter who grows with his own discard pile. Gold is +1 Attack per discarded card;
+ * the primary red steps to a hero only once a card is in the discard. Chilling Howl cages the
+ * enemies around him and can put a resolved card into the discard.
  */
 object GarrusHeuristics : HeroHeuristics {
     override val heroId: String = "garrus"
@@ -32,123 +37,117 @@ object GarrusHeuristics : HeroHeuristics {
     override fun adjust(ctx: HContext, d: Decision, choice: Choice): Double = when (d.kind) {
         DecisionKind.PLAY_CARD -> play(ctx, choice)
         DecisionKind.CHOOSE_OPTION -> option(ctx, d, choice)
-        DecisionKind.DEFEND -> defend(choice)
         else -> 0.0
     }
 
+    /** H4 (eval): the first discards are his gold's Attack and his hunt's step. H1: Howl in force cages. */
     override fun evalTerms(state: GameState, team: Team, heroId: String): Double {
         if (heroId != this.heroId) return 0.0
         val me = state.hero(heroId) ?: return 0.0
-        val sign = BatchA.sign(state, team, heroId)
-        var v = 0.0
-        val discards = me.cards.count { it.zone == Zone.DISCARD }
-        // H eval: the first discard is public and unlocks the step. Further cards are only +1 Attack.
-        if (discards > 0) v += 3.0 + (discards - 1)
-        if (BatchA.effectLive(state, heroId, HOWL)) {
-            val at = me.at
-            if (at != null) {
-                val caged = state.heroes.count { e ->
-                    e.team != me.team && e.at?.let { HexGrid.distance(at, it) in 1..3 } == true
-                }
-                v += caged * 4.0
-            }
+        var v = min(BatchA.discardCount(state, heroId), 3) * 0.8
+        val at = me.at
+        if (at != null && BatchA.effectLive(state, heroId, HOWL)) {
+            v += state.heroes.count { e ->
+                e.team != me.team && e.unresolved.isNotEmpty() && e.at?.let { HexGrid.distance(at, it) <= 3 } == true
+            } * 1.5
         }
-        return sign * v
+        return BatchA.sign(state, team, heroId) * v
     }
 
+    /** H4 (threat): next to him, gold hits for 4 plus his discard pile, not the printed 4. */
     override fun threatAdjust(ctx: HContext, enemyHeroId: String, target: Hex): Double {
         if (enemyHeroId != heroId) return 0.0
         val from = ctx.hero(heroId)?.at ?: return 0.0
-        val distance = HexGrid.distance(from, target)
-        var v = 0.0
-        if (distance in 1..3 && BatchA.poolHas(ctx, heroId, HOWL)) {
-            v += if (BatchA.effectLive(ctx, heroId, HOWL)) 6.0 else 3.0
-        }
-        // H threat: with a discard, the hunt reaches 1, then 2, then 3 past the adjacent hex.
-        if (BatchA.discardCount(ctx, heroId) > 0 && BatchA.poolHas(ctx, heroId, HUNT)) {
-            val step = huntStep(ctx)
-            if (distance in 1..step) v += 6.0
-        }
-        return v
+        if (ctx.distance(from, target) != 1) return 0.0
+        val discards = BatchA.discardCount(ctx.state, heroId)
+        if (discards < 2) return 0.0
+        return min(discards, 4) * 0.5 * BatchA.chancePlays(ctx, heroId) { it.id in GOLD }
     }
 
     private fun play(ctx: HContext, choice: Choice): Double {
         if (choice !is Choice.Card) return 0.0
+        val me = ctx.own() ?: return 0.0
+        val at = me.at ?: return 0.0
         return when (choice.cardId) {
-            in HOWL -> howl(ctx)
-            in GOLD -> gold(ctx)
-            in HUNT -> hunt(ctx)
-            in PILUM -> pilum(ctx)
+            in GOLD -> gold(ctx, me, at, choice.cardId)
+            in HUNT -> {
+                val b = hunt(ctx, me, at, choice.cardId)
+                BatchA.correction(ctx, me.id, at, ctx.card(choice.cardId), max(b.first, b.second))
+            }
+
+            "garrus-silver" -> howl(ctx, me, at)
+            in PILUM -> pilum(ctx, at, choice.cardId)
+            in STAND -> stand(ctx, me, at, choice.cardId)
             else -> 0.0
         }
     }
 
-    // H1 / H2: Howl on turn 1 or 2 when an enemy is inside the cage. Nobody in radius: do not buy a discard.
-    private fun howl(ctx: HContext): Double {
-        val at = ctx.own()?.at ?: return 0.0
-        val radius = 3 + ctx.itemBonus(heroId, dev.quinton.goa.core.model.catalog.Stat.RADIUS)
+    /** H4: gold's Attack is 4 plus the cards in his discard; the general book read the printed 4. */
+    private fun gold(ctx: HContext, me: HeroState, at: Hex, cardId: String): Double {
+        val card = ctx.card(cardId)
+        val total = card.attack + ctx.itemBonus(me.id, Stat.ATTACK) + BatchA.discardCount(ctx.state, me.id)
+        val v = BatchA.correction(ctx, me.id, at, card, BatchA.bestAdjacent(ctx, me.id, at, total, heroesOnly = cardId == "garrus-handicap"))
+        // An empty pile on turn 1 makes it a plain Attack 4: hold it for the second swing.
+        return if (ctx.turn == 1 && BatchA.discardCount(ctx.state, me.id) == 0) v - 1.5 else v
+    }
+
+    /**
+     * H5: the hunt's hero bullet steps (1, up to 2, up to 3) only with a card in the discard;
+     * without one it reaches only an adjacent hero. The other bullet is any adjacent unit.
+     */
+    private fun hunt(ctx: HContext, me: HeroState, at: Hex, cardId: String): Pair<Double, Double> {
+        val card = ctx.card(cardId)
+        val total = card.attack + ctx.itemBonus(me.id, Stat.ATTACK)
+        val reach = if (BatchA.discardCount(ctx.state, me.id) > 0) 1 + HUNT_STEP.getValue(cardId) else 1
+        var hero = 0.0
+        for (e in BatchA.enemiesWithin(ctx, at, reach)) hero = max(hero, BatchA.heroHit(ctx, me.id, e.id, total, false))
+        return hero to BatchA.bestAdjacent(ctx, me.id, at, total)
+    }
+
+    /**
+     * H1 / H2: Howl cages enemies in radius 3 for the round and may discard a resolved card (fuel
+     * for gold and the hunt). Nobody in radius, or turn 4, it is a Defense 3 spent for nothing.
+     */
+    private fun howl(ctx: HContext, me: HeroState, at: Hex): Double {
+        val radius = BatchA.radiusOf(ctx, heroId, 3)
         val near = BatchA.enemiesWithin(ctx, at, radius)
-        if (near.isEmpty()) return -8.0
-        if (ctx.turn >= 4) return -6.0
-        return if (ctx.turn <= 2) 10.0 else 4.0
+        if (near.isEmpty()) return -3.0
+        if (ctx.turn >= 4) return -2.0
+        var v = if (ctx.turn <= 2) 1.5 else 0.5
+        val fuel = BatchA.discardCount(ctx.state, me.id) == 0 && me.cards.any { it.zone == Zone.RESOLVED }
+        if (fuel && ctx.ownHand().any { it.id in GOLD || it.id in HUNT }) v += 1.0
+        return v
     }
 
-    // H4: gold is the second swing. At 0 discards it is Attack 4, and turn 1 should not spend it.
-    private fun gold(ctx: HContext): Double {
-        val discards = BatchA.discardCount(ctx, heroId)
-        val at = ctx.own()?.at ?: return 0.0
-        if (discards == 0 && ctx.turn == 1) return -6.0
-        if (discards >= 1 && BatchA.besideEnemyUnit(ctx, at)) return 4.0 + discards
-        return 0.0
+    /** H10: the pilum makes an enemy hero in range 2 discard (Heavy Pilum: or be defeated). Nobody, it fizzles. */
+    private fun pilum(ctx: HContext, at: Hex, cardId: String): Double {
+        val orDefeat = cardId == "garrus-green-3b"
+        val reach = 2 + ctx.itemBonus(heroId, Stat.RANGE)
+        val best = BatchA.enemiesWithin(ctx, at, reach).maxOfOrNull { BatchA.discardValue(ctx, it, orDefeat) }
+        return if (best == null || best <= 0.0) -3.0 else best - 1.4
     }
 
-    // H5: the step bullet exists only with a discard. Without one, the adjacent bullet is the card.
-    private fun hunt(ctx: HContext): Double {
-        if (BatchA.discardCount(ctx, heroId) == 0) return 0.0
-        val at = ctx.own()?.at ?: return 0.0
-        val step = huntStep(ctx)
-        val hero = ctx.enemies().any { e -> e.at?.let { ctx.distance(at, it) in 1..step } == true }
-        return if (hero) 8.0 else 0.0
+    /** H11: Hold Ground retrieves a discard only with two enemy heroes in radius. */
+    private fun stand(ctx: HContext, me: HeroState, at: Hex, cardId: String): Double {
+        val radius = BatchA.radiusOf(ctx, heroId, ctx.card(cardId).radius)
+        val ready = BatchA.enemiesWithin(ctx, at, radius).size >= 2 && BatchA.discardCount(ctx.state, me.id) > 0
+        return if (ready) 1.0 else -1.0
     }
 
-    // H10: the pilum is a discard on a hero in range 2. No hero, the engine does not offer the step.
-    private fun pilum(ctx: HContext): Double {
-        val at = ctx.own()?.at ?: return 0.0
-        val victim = ctx.enemies().filter { e -> e.at?.let { ctx.distance(at, it) in 1..2 } == true }
-        if (victim.isEmpty()) return -6.0
-        val fewest = victim.minOf { ctx.handCount(it.id) }
-        return when (fewest) {
-            0 -> -4.0
-            1 -> 12.0
-            else -> 4.0
-        }
-    }
-
-    // H5: index 0 is the hunt step, offered only when a discard lets him move. Take it toward a hero.
+    /** H5: the hunt's "Choose one —": index 0 the hero (with the step), index 1 the adjacent unit. */
     private fun option(ctx: HContext, d: Decision, choice: Choice): Double {
-        if (d.sourceCardId !in HUNT || choice !is Choice.Option) return 0.0
-        if (BatchA.discardCount(ctx, heroId) == 0) return if (choice.index == 1) 4.0 else -6.0
-        return if (choice.index == 0) 8.0 else 0.0
+        val src = d.sourceCardId ?: return 0.0
+        if (src !in HUNT || choice !is Choice.Option) return 0.0
+        val me = ctx.own() ?: return 0.0
+        val at = me.at ?: return 0.0
+        val b = hunt(ctx, me, at, src)
+        return if (choice.index == 0) b.first else b.second
     }
-
-    // H13: blue and alt red are the blocks. Gold and silver are Defense 3.
-    private fun defend(choice: Choice): Double {
-        if (choice !is Choice.Card) return 0.0
-        return if (choice.cardId in GOLD || choice.cardId in HOWL) -4.0 else 0.0
-    }
-
-    private fun huntStep(ctx: HContext): Int {
-        val id = ctx.possibleCards(heroId).firstOrNull { it.card.id in HUNT }?.card?.id
-        return when (id) {
-            "garrus-red-3a" -> 4
-            "garrus-red-2a" -> 3
-            else -> 2
-        }
-    }
-
 }
 
 private val HOWL = setOf("garrus-silver")
 private val GOLD = setOf("garrus-gold", "garrus-handicap")
 private val HUNT = setOf("garrus-red-1", "garrus-red-2a", "garrus-red-3a")
 private val PILUM = setOf("garrus-green-2b", "garrus-green-3b")
+private val STAND = setOf("garrus-green-1", "garrus-green-2a", "garrus-green-3a")
+private val HUNT_STEP = mapOf("garrus-red-1" to 1, "garrus-red-2a" to 2, "garrus-red-3a" to 3)

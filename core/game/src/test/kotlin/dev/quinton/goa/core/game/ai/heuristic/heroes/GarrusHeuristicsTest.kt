@@ -4,6 +4,7 @@ import dev.quinton.goa.core.game.TestData
 import dev.quinton.goa.core.game.position.PositionPhase
 import dev.quinton.goa.core.game.position.position
 import dev.quinton.goa.core.model.board.Hex
+import dev.quinton.goa.core.model.board.MinionType
 import dev.quinton.goa.core.model.match.Team
 import org.junit.Test
 
@@ -15,9 +16,9 @@ class GarrusHeuristicsTest {
 
     @Test
     fun `howl is not the card when nobody is in the cage`() {
-        // (-5,-4) is outside radius 3. H2 refuses a Howl that only buys a discard.
+        // H2: Arien at (-5,-4) is outside radius 3; a Howl would only buy a discard.
         val session = position(TestData.engine, TestData.FOREST) {
-            turn = 2
+            turn = 3
             clearMinions()
             hero("garrus", Team.BLUE, Hex(1, -2)) {
                 hand("garrus-silver", "garrus-red-1")
