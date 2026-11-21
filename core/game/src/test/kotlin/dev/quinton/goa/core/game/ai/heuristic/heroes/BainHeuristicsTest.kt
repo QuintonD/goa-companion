@@ -4,6 +4,7 @@ import dev.quinton.goa.core.game.TestData
 import dev.quinton.goa.core.game.position.PositionPhase
 import dev.quinton.goa.core.game.position.position
 import dev.quinton.goa.core.model.board.Hex
+import dev.quinton.goa.core.model.board.MinionType
 import dev.quinton.goa.core.model.match.Team
 import org.junit.Test
 
@@ -14,17 +15,17 @@ class BainHeuristicsTest {
     }
 
     @Test
-    fun `get over here is not the card when nobody is on a line`() {
-        // (2,-1) is not in a straight line from (1,-2), so the pull has no target (H5).
+    fun `the crossbow is not played through a unit`() {
+        // H7: the enemy minion at (3,-2) is in range 2, but Bain's own minion at (2,-2) stands on the line.
         val session = position(TestData.engine, TestData.FOREST) {
-            turn = 2
+            turn = 3
             clearMinions()
             hero("bain", Team.BLUE, Hex(1, -2)) {
-                hand("bain-silver", "bain-blue-1")
+                hand("bain-red-1", "bain-green-1")
             }
-            hero("brogan", Team.RED, Hex(2, -1)) {
-                hand("brogan-gold", "brogan-red-1")
-            }
+            hero("brogan", Team.RED, Hex(-5, -4))
+            minion(Team.BLUE, MinionType.MELEE, Hex(2, -2))
+            minion(Team.RED, MinionType.MELEE, Hex(3, -2))
             phase = PositionPhase.PlayCards(0)
         }
         HeroBookCases.flips("bain", BainHeuristics, session)
