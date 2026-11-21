@@ -1,5 +1,6 @@
 package dev.quinton.goa.core.game.ai.heuristic.heroes
 
+import dev.quinton.goa.core.domain.board.HexGrid
 import dev.quinton.goa.core.game.Choice
 import dev.quinton.goa.core.game.Decision
 import dev.quinton.goa.core.game.DecisionKind
@@ -10,154 +11,151 @@ import dev.quinton.goa.core.game.ai.heuristic.HeroStyle
 import dev.quinton.goa.core.game.engine.GameState
 import dev.quinton.goa.core.game.engine.Zone
 import dev.quinton.goa.core.model.board.Hex
-import dev.quinton.goa.core.model.catalog.CardColor
+import dev.quinton.goa.core.model.catalog.Stat
 import dev.quinton.goa.core.model.match.Team
+import kotlin.math.max
+import kotlin.math.min
 
 /**
- * Swift's gold copies the rightmost resolved card, not "the red from earlier"
- * (rulings/swift.md 1). The rifle is a straight line. The shotgun needs a hero on the target.
+ * Swift (heroes/swift.md): the rifle shoots straight lines, the shotgun needs an enemy hero next to its
+ * target, and gold (Reload!) performs the rightmost resolved card's primary again or defeats an adjacent
+ * minion. The general book reads gold as a plain skill; these notes price the copy.
  */
 object SwiftHeuristics : HeroHeuristics {
     override val heroId: String = "swift"
 
     override val style: HeroStyle = HeroStyle(
         role = HeroRole.RANGED,
-        idealDistance = 4,
+        idealDistance = 3,
         aggression = 0.55,
-        laneWeight = 0.45,
-        upgradeOrder = listOf(
-            "swift-red-2a",
-            "swift-red-3a",
-            "swift-blue-2a",
-            "swift-blue-3a",
-            "swift-green-2a",
-            "swift-green-3a",
-            "red",
-            "blue",
-            "green",
-        ),
+        laneWeight = 0.8,
+        upgradeOrder = listOf("red", "blue", "green"),
         keepDefender = true,
     )
 
+    private val golds = setOf("swift-gold", "swift-handicap")
+    private val shotguns = setOf("swift-red-2b", "swift-red-3b")
+    private val rifles = setOf("swift-red-1", "swift-red-2a", "swift-red-3a")
+    private val suppress = setOf("swift-green-1", "swift-green-2a", "swift-green-3a")
+
     override fun adjust(ctx: HContext, d: Decision, choice: Choice): Double = when (d.kind) {
         DecisionKind.PLAY_CARD -> play(ctx, choice)
-        DecisionKind.CHOOSE_UNIT -> unit(ctx, d, choice)
-        DecisionKind.CHOOSE_SPACE -> space(ctx, choice)
+        DecisionKind.CHOOSE_UNIT -> shotgunTarget(ctx, d, choice)
+        DecisionKind.CHOOSE_SPACE -> space(ctx, d, choice)
         DecisionKind.DEFEND -> defend(ctx, d, choice)
-        DecisionKind.CONFIRM -> confirm(choice, d)
         else -> 0.0
     }
 
+    /** §6: the repeat is live while gold is unplayed and the rightmost resolved card is an attack. */
     override fun evalTerms(state: GameState, team: Team, heroId: String): Double {
         if (heroId != this.heroId) return 0.0
-        val hero = state.hero(heroId) ?: return 0.0
-        val right = BatchC.rightmost(hero) ?: return 0.0
-        val gold = hero.card("swift-gold")
-        val live = gold != null && gold.zone != Zone.RESOLVED && gold.zone != Zone.DISCARD
-        if (!live) return 0.0
-        val useful = right.startsWith("swift-red-") || right.startsWith("swift-blue-")
-        // The repeat is live while gold is still unplayed and the previous slot is the payload.
-        return if (useful) BatchC.sign(state, heroId, team) * 3.0 else 0.0
+        val me = state.hero(heroId) ?: return 0.0
+        val right = BatchC.rightmost(me) ?: return 0.0
+        val gold = me.card("swift-gold") ?: return 0.0
+        if (gold.zone == Zone.RESOLVED || gold.zone == Zone.DISCARD) return 0.0
+        return if (right.startsWith("swift-red-")) BatchC.sign(state, heroId, team) * 2.0 else 0.0
     }
 
+    /** The shotgun discards (or defeats) the hero standing next to its target: not printed reach on that hero. */
     override fun threatAdjust(ctx: HContext, enemyHeroId: String, target: Hex): Double {
         if (enemyHeroId != heroId) return 0.0
         val at = ctx.hero(heroId)?.at ?: return 0.0
-        if (ctx.distance(at, target) > 2) return 0.0
-        val shotgun = ctx.possibleCards(heroId).any { it.card.id == "swift-red-2b" || it.card.id == "swift-red-3b" }
-        if (!shotgun) return 0.0
-        val onMinion = ctx.state.minions.any { minion ->
-            minion.at?.let { ctx.distance(it, target) == 1 && ctx.distance(at, it) <= 2 } == true
+        if (ctx.distance(at, target) !in 2..4) return 0.0
+        if (!BatchC.mayHold(ctx, heroId, shotguns)) return 0.0
+        val team = ctx.hero(heroId)?.team
+        val nextToUnit = ctx.state.minions.any { m ->
+            m.team != team && m.at?.let { ctx.distance(it, target) == 1 && ctx.distance(at, it) <= 2 } == true
         }
-        // The shotgun discards the hero standing on the target, not only the target.
-        return if (onMinion) 4.0 else 0.0
+        return if (nextToUnit) 2.5 else 0.0
     }
 
     private fun play(ctx: HContext, choice: Choice): Double {
         val id = BatchC.cardId(choice) ?: return 0.0
-        return reload(ctx, id) + beforeGold(ctx, id)
-    }
-
-    private fun reload(ctx: HContext, id: String): Double {
-        if (id != "swift-gold" && id != "swift-handicap") return 0.0
-        val hero = ctx.own() ?: return 0.0
-        val right = BatchC.rightmost(hero)
-        if (right == null) {
-            val at = hero.at ?: return 0.0
-            val minion = BatchC.minionsWithin(ctx, at, 1, friendly = false).isNotEmpty()
-            // H2: with nothing to copy, gold defeats the adjacent minion. Coins are paid.
-            return if (minion) 4.0 else -2.0
+        return when (id) {
+            in golds -> reload(ctx, id == "swift-gold")
+            in shotguns -> if (shotgunPair(ctx) == null) -2.5 else 1.0
+            in suppress -> suppressed(ctx, id)
+            else -> 0.0
         }
-        val card = ctx.card(right)
-        val payload = card.color == CardColor.RED || card.attackCard || right == "swift-silver" ||
-            right.startsWith("swift-blue-")
-        // H1: copy a card whose primary can still be the point of the turn.
-        return if (payload) 6.0 else -4.0
     }
 
-    private fun beforeGold(ctx: HContext, id: String): Double {
-        if (id == "swift-gold" || id == "swift-handicap") return 0.0
-        val hero = ctx.own() ?: return 0.0
-        val right = BatchC.rightmost(hero)
-        val payload = right != null && BatchC.inHand(hero, "swift-gold") && copies(right)
-        // H3: the card played now becomes the one gold copies. Do not cover a payload.
-        return if (payload) -4.0 else 0.0
+    /**
+     * H1 / H2: gold is worth the better of the copied primary (the rightmost resolved attack, judged from
+     * here) and an adjacent minion it defeats. The general book scored it as a skill.
+     */
+    private fun reload(ctx: HContext, minionBullet: Boolean): Double {
+        val me = ctx.own() ?: return 0.0
+        val at = me.at ?: return 0.0
+        val right = BatchC.rightmost(me)?.let { ctx.card(it) }
+        val copy = when {
+            right == null -> 0.0
+            right.attackCard -> ctx.strikeFrom(me.id, at, right)
+            right.skillCard -> 1.0
+            else -> 0.0
+        }
+        // The handicap card has no minion bullet.
+        val minion = if (!minionBullet) {
+            0.0
+        } else {
+            ctx.state.minions.filter { m -> BatchC.takeable(ctx, m) && ctx.distance(at, m.at!!) == 1 }
+                .maxOfOrNull { ctx.minionWorth(it.id) } ?: 0.0
+        }
+        val best = max(copy, minion)
+        return min(best, 18.0) - 1.4
     }
 
-    private fun copies(cardId: String): Boolean =
-        cardId.startsWith("swift-red-") || cardId == "swift-silver" || cardId.startsWith("swift-blue-")
+    /**
+     * H9: Suppress / Pin Down / Killing Ground make an enemy *hero* in radius discard, and only one not
+     * adjacent to terrain (rulings/swift.md 7). The general book prices them as a strike on minions too;
+     * with no such hero that value is not there.
+     */
+    private fun suppressed(ctx: HContext, id: String): Double {
+        val me = ctx.own() ?: return 0.0
+        val at = me.at ?: return 0.0
+        val card = ctx.card(id)
+        val radius = card.radius + ctx.itemBonus(heroId, Stat.RADIUS)
+        val open = BatchC.enemiesWithin(ctx, at, radius).any { e ->
+            val pos = e.at ?: return@any false
+            HexGrid.neighbors(pos).none { ctx.game.geo.isTerrain(it) }
+        }
+        if (open) return 0.0
+        return -ctx.strikeFrom(me.id, at, card).coerceAtLeast(0.0)
+    }
 
-    private fun unit(ctx: HContext, d: Decision, choice: Choice): Double {
-        val src = d.sourceCardId ?: return 0.0
+    /** The first unit in range 2 with an enemy hero next to it, or null (rulings/swift.md 3). */
+    private fun shotgunPair(ctx: HContext): String? {
+        val at = ctx.own()?.at ?: return null
+        val units = ctx.state.minions.filter { it.team != ctx.team && it.at != null }.map { it.id to it.at!! } +
+            ctx.enemies().filter { it.at != null }.map { it.id to it.at!! }
+        return units.firstOrNull { (id, pos) ->
+            ctx.distance(at, pos) <= 2 && ctx.enemies().any { e -> e.id != id && e.at?.let { ctx.distance(it, pos) == 1 } == true }
+        }?.first
+    }
+
+    /** H5: a shotgun target with no enemy hero next to it fizzles the action (rulings/swift.md 3). */
+    private fun shotgunTarget(ctx: HContext, d: Decision, choice: Choice): Double {
+        if (d.sourceCardId !in shotguns || !d.prompt.startsWith("Target")) return 0.0
         val id = BatchC.unitId(choice) ?: return 0.0
-        if (src != "swift-red-2b" && src != "swift-red-3b") return rifle(ctx, src, id)
-        val at = ctx.state.hero(id)?.at ?: ctx.state.minion(id)?.at ?: return 0.0
-        val heroBeside = ctx.enemies().any { enemy ->
-            enemy.id != id && enemy.at?.let { ctx.distance(it, at) == 1 } == true
-        }
-        // H5: the shotgun does not start unless an enemy hero is adjacent to the target.
-        return if (heroBeside) 4.0 else -6.0
+        val pos = BatchC.posOf(ctx, id) ?: return 0.0
+        val heroBeside = ctx.enemies().any { e -> e.id != id && e.at?.let { ctx.distance(it, pos) == 1 } == true }
+        return if (heroBeside) 3.0 else -12.0
     }
 
-    private fun rifle(ctx: HContext, src: String, id: String): Double {
-        if (src != "swift-red-1" && src != "swift-red-2a" && src != "swift-red-3a") return 0.0
-        val from = ctx.own()?.at ?: return 0.0
-        val at = ctx.state.hero(id)?.at ?: ctx.state.minion(id)?.at ?: return 0.0
-        if (!BatchC.straight(from, at)) return -8.0
-        val distance = ctx.distance(from, at)
-        // Snipe is the ring only. Prepared Shot and Killshot cannot target their own adjacency.
-        val legal = when (src) {
-            "swift-red-1" -> distance == 4
-            "swift-red-2a" -> distance in 2..4
-            else -> distance in 2..5
-        }
-        return if (legal) 2.0 else -6.0
-    }
-
-    private fun space(ctx: HContext, choice: Choice): Double {
+    /** H14: with the rifle in hand, do not end her own move next to an enemy hero (it cannot shoot adjacent). */
+    private fun space(ctx: HContext, d: Decision, choice: Choice): Double {
+        if (!BatchC.movesSelf(ctx, d)) return 0.0
         val hex = BatchC.hexOf(choice) ?: return 0.0
-        val rifle = ctx.ownHand().any { it.id == "swift-red-1" || it.id == "swift-red-2a" || it.id == "swift-red-3a" }
-        val beside = ctx.enemies().any { enemy -> enemy.at?.let { ctx.distance(hex, it) == 1 } == true }
-        // H14: the rifle cannot shoot the hero she is standing next to.
-        return if (rifle && beside) -6.0 else 0.0
+        if (ctx.ownHand().none { it.id in rifles }) return 0.0
+        val beside = ctx.enemies().count { e -> e.at?.let { ctx.distance(hex, it) == 1 } == true }
+        return -2.0 * beside
     }
 
+    /** H13: red is what gold copies. Spend a blue that still holds when red is her only attack in hand. */
     private fun defend(ctx: HContext, d: Decision, choice: Choice): Double {
         val id = BatchC.cardId(choice) ?: return 0.0
         if (!id.startsWith("swift-red-") || !BatchC.meets(d, id)) return 0.0
-        val otherAttack = ctx.ownHand().any { card ->
-            card.id != id && (card.color == CardColor.RED || card.id == "swift-gold")
-        }
-        val blueHolds = d.options.filterIsInstance<Choice.Card>().any { card ->
-            card.cardId.startsWith("swift-blue-") && BatchC.meets(d, card.cardId)
-        }
-        // H13: red is the attack gold copies. Spend a blue that still holds when red is the only shot.
-        return if (!otherAttack && blueHolds) -5.0 else 0.0
-    }
-
-    private fun confirm(choice: Choice, d: Decision): Double {
-        if (d.sourceCardId != "swift-purple-4") return 0.0
-        // H11: the extra primary is legal on a minion. The same enemy hero is not.
-        return if (choice is Choice.Yes) 2.0 else 0.0
+        val otherAttack = ctx.ownHand().any { it.id != id && it.attackCard }
+        val blueHolds = d.options.filterIsInstance<Choice.Card>().any { it.cardId.startsWith("swift-blue-") && BatchC.meets(d, it.cardId) }
+        return if (!otherAttack && blueHolds) -4.0 else 0.0
     }
 }

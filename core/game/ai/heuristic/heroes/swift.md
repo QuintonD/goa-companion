@@ -124,3 +124,13 @@ Keep `swift-green-2b` / `3b` when the map is all edges and the coin for other pe
 - Designer Arty, Discord 2025-03-21 (each minion moves up to 3), 2025-09-05 (Shotgun and two Razzles), 2025-09-26 (Ultimate RAW vs intention), 2026-01-15 (tier-2 green needs a minion; tier 3 does not), 2026-07-05 (Reload may perform a Clear on the resolved card, because it is not a repeat), 2026-09-21 (move then shoot; gold performs the red twice — the engine still blocks the same hero). https://www.cockeyedandcurious.com/goa2/faq
 - Wolff Designa, Renowned overview and the March update on Reload's history. https://gamefound.com/en/projects/wolffdesigna/guardsofatlantis2new/updates/8 and `updates/21`. The "remove" wording loses to the printed "Defeat." The "previous turn slot" and "range 7" lines lose to the printed card.
 - No 2nd-printing strategy spotlight, Reddit thread, or YouTube guide found.
+
+## 8. Implementation notes
+
+`SwiftHeuristics.kt` (ADR-085). Checked against `SwiftHero.kt`:
+
+- **H1/H2:** the general book scores Reload! as a plain skill. The note prices gold as the better of the rightmost resolved card's primary (`strikeFrom` for an attack) and the best adjacent minion (`minionWorth`, the minion bullet only, not on the handicap card). The draft's flat +6 and its "do not cover the payload" −4 on every other card (H3) counted the same thing twice. H3 is left out.
+- **H5:** the engine asks for the shotgun's target first, then stops the action if no enemy hero is next to it (`fizzle`, rulings/swift.md 3). A target without such a hero is −12. At `PLAY_CARD` a shotgun with no such pair in range 2 is −2.5.
+- **H14:** applies only to her own moves (`subjectId`), not to pushes or minion moves.
+- The rifle's straight-line and minimum-distance rules are the engine's target filter, so the draft's re-check of them was removed.
+- **Not implemented:** H4 (the enemy's revealed initiative is not known when cards are chosen), H6–H12, H15.
