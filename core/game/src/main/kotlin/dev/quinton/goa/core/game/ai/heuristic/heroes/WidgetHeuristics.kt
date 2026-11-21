@@ -9,12 +9,14 @@ import dev.quinton.goa.core.game.ai.heuristic.HeroHeuristics
 import dev.quinton.goa.core.game.ai.heuristic.HeroRole
 import dev.quinton.goa.core.game.ai.heuristic.HeroStyle
 import dev.quinton.goa.core.game.engine.GameState
+import dev.quinton.goa.core.game.heroes.WidgetHero
 import dev.quinton.goa.core.model.board.Hex
 import dev.quinton.goa.core.model.match.Team
 
 /**
- * Widget plays the dragon, then copies a skill that has already resolved. Breath, Gnaw and the
- * swaps need Pyro. Gold's own attack does not.
+ * Widget (`heroes/widget.md`): two bodies. Pyro is the origin of Breath (straight lines from Pyro) and
+ * of the swaps; Nibble/Gnaw eat a minion beside Pyro and remove it; Fight as One copies a resolved skill
+ * after the hit. Every Pyro card fizzles while Pyro is off the board.
  */
 object WidgetHeuristics : HeroHeuristics {
     override val heroId: String = "widget"
@@ -24,21 +26,13 @@ object WidgetHeuristics : HeroHeuristics {
         idealDistance = 2,
         aggression = 0.4,
         laneWeight = 0.65,
-        upgradeOrder = listOf(
-            "widget-blue-2a",
-            "widget-green-2a",
-            "widget-red-2a",
-            "blue",
-            "green",
-            "red",
-        ),
+        upgradeOrder = listOf("blue", "green", "red"),
         keepDefender = true,
     )
 
     override fun adjust(ctx: HContext, d: Decision, choice: Choice): Double = when (d.kind) {
         DecisionKind.PLAY_CARD -> play(ctx, choice)
-        DecisionKind.CHOOSE_OPTION -> option(d, choice)
-        DecisionKind.CHOOSE_CARD -> copy(d, choice)
+        DecisionKind.CHOOSE_CARD -> copy(ctx, d, choice)
         DecisionKind.CHOOSE_SPACE -> space(ctx, d, choice)
         else -> 0.0
     }
@@ -46,108 +40,134 @@ object WidgetHeuristics : HeroHeuristics {
     override fun evalTerms(state: GameState, team: Team, heroId: String): Double {
         if (heroId != this.heroId) return 0.0
         val self = state.hero(heroId) ?: return 0.0
-        val sign = if (self.team == team) 1.0 else -1.0
-        val pyro = BatchD.pyro(state) ?: return sign * -2.0
-        var v = 5.0
+        val pyro = BatchD.pyro(state) ?: return 0.0
+        // Pyro on the board is half the kit; beside an enemy minion it is a Nibble or a Gnaw.
+        var v = 3.0
         val besideMinion = state.minions.any { m ->
             m.team != self.team && m.at != null && HexGrid.distance(pyro, m.at!!) == 1
         }
-        if (besideMinion) v += 3.0
-        return sign * v
+        if (besideMinion) v += 1.5
+        return BatchD.sign(state, heroId, team) * v
     }
 
     override fun threatAdjust(ctx: HContext, enemyHeroId: String, target: Hex): Double {
         if (enemyHeroId != heroId) return 0.0
         val pyro = BatchD.pyro(ctx.state) ?: return 0.0
-        val breath = breaths.any { BatchD.mayHold(ctx, heroId, it) }
-        if (!breath) return 0.0
+        if (BREATH.none { BatchD.mayHold(ctx, heroId, it) }) return 0.0
         val d = ctx.distance(pyro, target)
-        if (d !in 1..3 || !HexGrid.inStraightLine(pyro, target)) return 0.0
         // H16: Breath is measured from Pyro, which printed reach from Widget does not cover.
-        return 2.0
+        return if (d in 1..3 && HexGrid.inStraightLine(pyro, target)) 1.5 else 0.0
     }
 
     private fun play(ctx: HContext, choice: Choice): Double {
         if (choice !is Choice.Card) return 0.0
         val at = ctx.own()?.at ?: return 0.0
+        val self = ctx.own() ?: return 0.0
         val id = choice.cardId
+        val card = ctx.card(id)
         val pyro = BatchD.pyro(ctx.state)
-        val self = ctx.own()
-        if (id == "widget-silver") {
-            // H1: Pyro off the board is the reason to play Silver. A placed dragon can wait.
-            return if (pyro == null) 8.0 else 1.0
-        }
-        if (id == "widget-gold" || id == "widget-handicap") {
-            val copied = self != null && BatchD.resolvedSkill(ctx, self)
-            val adjacent = BatchD.adjacentEnemies(ctx.state, at, ctx.team) > 0
-            // H2: turn-1 Gold is only the attack. The copy needs a skill already on a turn slot.
-            return when {
-                copied && adjacent -> 5.0
-                copied -> 2.0
-                adjacent && ctx.turn >= 3 -> 1.0
-                ctx.turn <= 2 && !copied -> -3.0
-                else -> 0.0
+        return when (id) {
+            // H1/H20: Silver brings Pyro back. With Pyro out and well placed it is a Defense 6 to keep.
+            SILVER -> when {
+                pyro == null -> 4.0
+                BatchD.minionSpawn(ctx, pyro) || ctx.distance(at, pyro) > 3 -> 1.5
+                else -> -0.5
             }
-        }
-        if (id in breaths) {
-            if (pyro == null) return BatchD.FIZZLE
-            val range = ctx.card(id).range.coerceAtLeast(1)
-            val lined = ctx.enemies().any { e ->
-                e.at != null && ctx.distance(pyro, e.at!!) in 1..range && HexGrid.inStraightLine(pyro, e.at!!)
-            }
-            // H4: the discard is a hero on a line from Pyro. Widget's own hex does not count.
-            return if (lined) 6.0 else BatchD.FIZZLE
-        }
-        if (id == "widget-green-2b" || id == "widget-green-3b") {
-            if (pyro == null) return BatchD.FIZZLE
-            val range = ctx.card(id).range.coerceAtLeast(1)
-            val meal = ctx.state.minions.any { m ->
-                m.team != ctx.team && m.at != null && ctx.distance(at, m.at!!) in 1..range &&
-                    ctx.distance(pyro, m.at!!) == 1
-            }
-            // H5: eat the minion beside Pyro. Then Pyro leaves, so this is the minion, not a setup.
-            return if (meal) 6.0 else BatchD.FIZZLE
-        }
-        if (id in needsPyro) {
-            // The swap and the drag fizzle while Pyro is off the board.
-            return if (pyro == null) BatchD.FIZZLE else 3.0
-        }
-        return 0.0
-    }
 
-    private fun option(d: Decision, choice: Choice): Double {
-        if (d.sourceCardId != "widget-silver" || choice !is Choice.Option) return 0.0
-        // H10: index 0 is the place. With Pyro already out, moving both is the other bullet.
-        return if (choice.index == 0) 1.0 else 0.5
-    }
+            // H2: Gold hits a neighbour, then copies a resolved skill on a different unit.
+            GOLD, HANDICAP -> {
+                val real = BatchD.strikeOn(ctx, card, { uid, pos ->
+                    ctx.distance(at, pos) == 1 && (id == GOLD || ctx.heroBody(uid) != null)
+                })
+                var v = BatchD.strikeFix(ctx, card, real)
+                if (real > 0.0 && BatchD.resolvedSkill(ctx, self)) v += 2.0
+                v
+            }
 
-    private fun copy(d: Decision, choice: Choice): Double {
-        if (choice !is Choice.Card) return 0.0
-        if (d.sourceCardId != "widget-gold" && d.sourceCardId != "widget-handicap") return 0.0
-        val id = choice.cardId
-        // H3: Breath on a hero, then the minion, then a swap. Never the unit she just attacked — the engine excludes it.
-        return when {
-            id in breaths -> 4.0
-            id == "widget-green-2b" || id == "widget-green-3b" -> 3.0
-            id.startsWith("widget-blue") -> 2.0
+            // H4: Breath discards a hero in range of Pyro and in a straight line from it.
+            in BREATH -> BatchD.outlookFix(ctx, card, breath(ctx, id, pyro))
+
+            // H5: Nibble/Gnaw take a minion in her range beside Pyro, and Pyro leaves.
+            in EAT -> eat(ctx, at, id, pyro)
+
+            // H8: the swaps need Pyro in range.
+            in ABOARD -> if (pyro == null || ctx.distance(at, pyro) > card.range.coerceAtLeast(1)) -1.5 else 0.0
+
+            // H9: Drag Off needs an enemy unit beside Pyro.
+            in DRAG -> {
+                val beside = pyro != null && BatchD.adjacentEnemies(ctx.state, pyro, ctx.team) > 0
+                if (beside) 0.5 else -1.5
+            }
+
             else -> 0.0
         }
     }
 
-    private fun space(ctx: HContext, d: Decision, choice: Choice): Double {
-        if (choice !is Choice.Space || d.sourceCardId != "widget-silver") return 0.0
-        if (!d.prompt.contains("Pyro")) return 0.0
-        val minionSpawn = ctx.game.geo.spaces[choice.hex]?.spawn?.kind?.minion != null
-        // H18: a minion spawn deletes Pyro when the wave arrives.
-        return if (minionSpawn) -6.0 else 0.0
+    private fun breath(ctx: HContext, id: String, pyro: Hex?): Double {
+        if (pyro == null) return -1.5
+        val range = ctx.card(id).range.coerceAtLeast(1)
+        val victims = ctx.enemies().filter { e ->
+            e.at != null && ctx.distance(pyro, e.at!!) in 1..range && HexGrid.inStraightLine(pyro, e.at!!)
+        }
+        if (victims.isEmpty()) return -1.5
+        return victims.maxOf { e ->
+            if (id == "widget-green-3a" && e.hand.isEmpty()) ctx.killWorth(e.id) else ctx.discardWorth(e)
+        }
     }
 
-    private val breaths = setOf("widget-green-1", "widget-green-2a", "widget-green-3a")
-    private val needsPyro = setOf(
-        "widget-blue-1",
-        "widget-blue-2a",
-        "widget-blue-2b",
-        "widget-blue-3a",
-        "widget-blue-3b",
-    )
+    private fun eat(ctx: HContext, at: Hex, id: String, pyro: Hex?): Double {
+        if (pyro == null) return -1.5
+        val range = ctx.card(id).range.coerceAtLeast(1)
+        val best = ctx.state.minions.filter { m ->
+            m.team != ctx.team && m.at != null && ctx.distance(at, m.at!!) in 1..range &&
+                ctx.distance(pyro, m.at!!) == 1 && !ctx.heavyImmune(m.id)
+        }.maxOfOrNull { ctx.minionWorth(it.id) } ?: return -1.5
+        // Nibble removes (no coins); Gnaw defeats. Pyro goes either way; Silver brings it back.
+        val coins = if (id == "widget-green-3b") 0.0 else -2.0
+        val loss = if (ctx.ownHand().any { it.id == SILVER }) 2.0 else 4.0
+        return best + coins - loss
+    }
+
+    /** H3: Fight as One copies Breath on a hero first, then a minion meal, then a swap. */
+    private fun copy(ctx: HContext, d: Decision, choice: Choice): Double {
+        if (choice !is Choice.Card) return 0.0
+        if (d.sourceCardId != GOLD && d.sourceCardId != HANDICAP) return 0.0
+        val id = choice.cardId
+        return when {
+            id in BREATH -> 3.0
+            id in EAT -> 2.0
+            ctx.card(id).skillCard -> 1.0
+            else -> 0.0
+        }
+    }
+
+    /** H18: Pyro's own hex. Placements are scored as if Widget stood there; take that back. */
+    private fun space(ctx: HContext, d: Decision, choice: Choice): Double {
+        if (choice !is Choice.Space) return 0.0
+        val subject = d.context.subjectId
+        val pyroMove = subject != null && ctx.state.piece(subject)?.kind == WidgetHero.PYRO
+        val pyroPlace = subject == null && d.prompt.startsWith("Place Pyro")
+        if (!pyroMove && !pyroPlace) return 0.0
+        return BatchD.unplace(ctx, d, choice.hex) + site(ctx, choice.hex)
+    }
+
+    /** A Pyro hex: a straight line onto an enemy hero (Breath), beside an enemy minion (Gnaw), not a spawn. */
+    private fun site(ctx: HContext, hex: Hex): Double {
+        var v = 0.0
+        val lined = ctx.enemies().any { e ->
+            e.at?.let { ctx.distance(hex, it) in 1..3 && HexGrid.inStraightLine(hex, it) } == true
+        }
+        if (lined) v += 2.0
+        if (BatchD.adjacentMinions(ctx.state, hex, ctx.team) > 0) v += 1.5
+        if (BatchD.minionSpawn(ctx, hex)) v -= 4.0
+        return v
+    }
+
+    private const val GOLD = "widget-gold"
+    private const val HANDICAP = "widget-handicap"
+    private const val SILVER = "widget-silver"
+    private val BREATH = setOf("widget-green-1", "widget-green-2a", "widget-green-3a")
+    private val EAT = setOf("widget-green-2b", "widget-green-3b")
+    private val ABOARD = setOf("widget-blue-1", "widget-blue-2a", "widget-blue-3a")
+    private val DRAG = setOf("widget-blue-2b", "widget-blue-3b")
 }

@@ -4,16 +4,18 @@ import dev.quinton.goa.core.model.board.Hex
 import org.junit.Test
 
 class WidgetHeuristicsTest {
-    @Test fun finishes() = HeroBookSupport.finishes("widget")
+    @Test
+    fun `finishes 2v2 and 3v3 at strengths 5 and 10`() = BatchDTestSupport.finishes("widget")
 
-    @Test fun signature() {
-        val session = HeroBookSupport.playing(
+    @Test
+    fun `with Pyro off the board Silver brings it back before Breath`() {
+        // H1/H4: Breath is measured from Pyro, and Pyro is not on the board.
+        val session = BatchDTestSupport.playing(
             hero = "widget",
-            at = Hex(-1, -2),
-            hand = listOf("widget-green-1", "widget-silver", "widget-blue-1"),
-            enemyAt = Hex(-1, -1),
+            at = Hex(1, -5),
+            hand = listOf("widget-green-1", "widget-silver", "widget-red-1"),
+            enemyAt = Hex(3, -6),
         )
-        // Breath is measured from Pyro. With Pyro off the board the engine fizzles it.
-        HeroBookSupport.assertFlips(session, WidgetHeuristics, "widget-green-1")
+        BatchDTestSupport.assertFlips(session, WidgetHeuristics, from = null, to = "widget-silver")
     }
 }
