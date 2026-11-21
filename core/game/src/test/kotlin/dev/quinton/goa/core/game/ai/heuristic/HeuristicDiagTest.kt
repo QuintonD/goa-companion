@@ -16,6 +16,7 @@ import org.junit.Test
  * prints, for every defeat of side a's heroes and for every game a loses, the turn it happened on
  * and the turn before: who held how many cards, the cards revealed, attacks, defenses and pushes.
  * Read it to see how the heuristic player loses, not how often (that is [HeuristicTournamentTest]).
+ * `AI_FORMAT` (`3v3`…) as in the tournament.
  */
 class HeuristicDiagTest {
     @Test
@@ -24,7 +25,8 @@ class HeuristicDiagTest {
         val lineups = System.getenv("AI_H_GAMES")?.toIntOrNull() ?: 6
         val first = System.getenv("AI_H_FIRST")?.toIntOrNull() ?: 0
         val (aName, bName) = spec.split(":")
-        val all = AiHarness.mixedLineups(first + lineups)
+        val format = AiHarness.Format.parse(System.getenv("AI_FORMAT"))
+        val all = AiHarness.mixedLineups(first + lineups, size = format.size)
         for (i in first until first + lineups) {
             val (red, blue) = all[i]
             for (aRed in listOf(true, false)) {
@@ -38,7 +40,7 @@ class HeuristicDiagTest {
                 (pa as? HeuristicAi)?.trace = { line -> lines += lastKey to "    > $line" }
                 val pb = player(bName, if (aRed) seed + 1 else seed)
                 val r = AiHarness.play(
-                    AiHarness.setup(red, blue, AiLevel.NORMAL, AiLevel.NORMAL, coin),
+                    AiHarness.setup(red, blue, AiLevel.NORMAL, AiLevel.NORMAL, coin, format.length, format.mapId),
                     mapOf(
                         Team.RED to if (aRed) pa else pb,
                         Team.BLUE to if (aRed) pb else pa,

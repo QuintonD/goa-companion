@@ -50,6 +50,12 @@ class HeuristicAi(
     /** Diagnostics only: receives a line per looked-at decision with each option's value. */
     internal var trace: ((String) -> Unit)? = null
 
+    /**
+     * Diagnostics only (the regret probe): the scores behind an answer, per stage ("override", "static",
+     * "look", "cards") with the options scored and their values. Never changes an answer.
+     */
+    internal var scored: ((stage: String, options: List<Choice>, values: DoubleArray) -> Unit)? = null
+
     override fun choose(session: GameSession, decision: Decision, cancelled: () -> Boolean): Choice {
         if (decision.options.isEmpty()) return Fallback.choose(decision)
         if (decision.options.size == 1) return decision.options.single()
@@ -83,10 +89,14 @@ class HeuristicAi(
             seen = seen,
         )
         val book = if (profile.heroPlaybooks) playbooks(pending.seat) else DefaultHeroHeuristics
-        book.override(ctx, pending)?.takeIf { it in decision.options }?.let { return it }
+        book.override(ctx, pending)?.takeIf { it in decision.options }?.let {
+            scored?.invoke("override", listOf(it), DoubleArray(1))
+            return it
+        }
         val static = DoubleArray(pending.options.size) { i ->
             General.score(ctx, pending, pending.options[i]) + adjust(book, ctx, pending, pending.options[i])
         }
+        scored?.invoke("static", pending.options, static)
         val looked = look(ctx, pending, static, rng, cancelled)
         val choice = looked ?: pick(pending, pending.options.indices.toList(), static, rng, fromLook = false)
         if (choice in decision.options) return choice
@@ -124,6 +134,7 @@ class HeuristicAi(
                 General.commitment(ctx, d, d.options[i]) +
                 ctx.inLook { adjust(book, ctx, d, d.options[i]) }
         }
+        scored?.invoke("look", got.map { d.options[it] }, values.toDoubleArray())
         trace?.invoke(
             "${d.seat} ${d.kind} " + got.indices.joinToString(" ") { "${d.options[got[it]]}=${round1(values[it])}" },
         )
@@ -146,6 +157,7 @@ class HeuristicAi(
             val sim = CardSim.value(ctx, (o as Choice.Card).cardId) ?: return null
             values[i] = sim + General.commitment(ctx, d, o) + ctx.inLook { adjust(book, ctx, d, o) }
         }
+        scored?.invoke("cards", d.options, values)
         trace?.invoke(
             "${d.seat} cards " + d.options.indices.joinToString(" ") { i ->
                 "${(d.options[i] as Choice.Card).cardId}=${round1(values[i])}"
