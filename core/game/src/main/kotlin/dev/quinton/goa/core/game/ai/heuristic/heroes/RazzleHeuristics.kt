@@ -9,12 +9,13 @@ import dev.quinton.goa.core.game.ai.heuristic.HeroHeuristics
 import dev.quinton.goa.core.game.ai.heuristic.HeroRole
 import dev.quinton.goa.core.game.ai.heuristic.HeroStyle
 import dev.quinton.goa.core.game.engine.GameState
-import dev.quinton.goa.core.model.board.Hex
 import dev.quinton.goa.core.model.match.Team
 
 /**
- * Razzle spreads figures, vanishes the ones that are caught, and does not stack them on a cleave.
- * Attack 2 is a poke. The bodies are the plan (Cryomancy, BGG 3659764).
+ * Razzle (heroes/razzle.md): Attack 2–5 is a poke; the bodies are the plan. Spawn where the figures are
+ * not all caught, act with the figure the action wants, vanish the caught one after a red.
+ * Which figure acts and which one is removed are opaque questions the one-ply look already answers;
+ * these notes only lean them (Cryomancy, BGG 3659764).
  */
 object RazzleHeuristics : HeroHeuristics {
     override val heroId: String = "razzle"
@@ -23,178 +24,100 @@ object RazzleHeuristics : HeroHeuristics {
         role = HeroRole.SETUP,
         idealDistance = 1,
         aggression = 0.40,
-        laneWeight = 0.55,
-        upgradeOrder = listOf(
-            "razzle-red-2a",
-            "razzle-red-3a",
-            "razzle-green-2a",
-            "razzle-green-3a",
-            "razzle-blue-2a",
-            "razzle-blue-3a",
-            "red",
-            "green",
-            "blue",
-        ),
+        laneWeight = 0.60,
+        // §3: red first, then green (two-body move), then blue.
+        upgradeOrder = listOf("razzle-red-2a", "razzle-red-3a", "razzle-green-2a", "razzle-green-3a", "red", "green", "blue"),
         keepDefender = true,
     )
 
+    private val golds = setOf("razzle-gold", "razzle-handicap")
+    private val removers = setOf("razzle-red-1", "razzle-red-2a", "razzle-red-3a")
+
     override fun adjust(ctx: HContext, d: Decision, choice: Choice): Double = when (d.kind) {
         DecisionKind.PLAY_CARD -> play(ctx, choice)
-        DecisionKind.CHOOSE_SPACE -> space(ctx, d, choice)
+        DecisionKind.CHOOSE_SPACE -> spawn(ctx, d, choice)
         DecisionKind.CHOOSE_UNIT -> unit(ctx, d, choice)
         DecisionKind.DEFEND -> defend(ctx, d, choice)
         DecisionKind.RESPAWN -> respawn(ctx, choice)
         else -> 0.0
     }
 
+    /** Extra figures that keep a partner inside silver's radius 3 (the Defense 1 + 2 per figure). */
     override fun evalTerms(state: GameState, team: Team, heroId: String): Double {
         if (heroId != this.heroId) return 0.0
         val figs = BatchC.bodies(state, heroId)
         if (figs.size < 2) return 0.0
-        val sign = BatchC.sign(state, heroId, team)
-        var v = 0.0
-        val enemies = state.heroes.filter { it.team != state.hero(heroId)?.team && it.at != null }
-        for (hex in figs) {
-            val beside = enemies.any { HexGrid.distance(hex, it.at!!) == 1 }
-            // Spread figures that are not standing on the same enemy.
-            if (!beside) v += 3.0
-        }
-        for (enemy in enemies) {
-            val touching = figs.count { HexGrid.distance(it, enemy.at!!) == 1 }
-            if (touching >= 2) v -= 8.0
-        }
-        return sign * v
-    }
-
-    override fun threatAdjust(ctx: HContext, enemyHeroId: String, target: Hex): Double {
-        if (enemyHeroId != heroId) return 0.0
-        val figs = BatchC.bodies(ctx.state, heroId)
-        if (figs.isEmpty()) return 0.0
-        val touching = figs.count { ctx.distance(it, target) == 1 }
-        // One attack into a shared neighbour threatens the one hand twice.
-        if (touching >= 2) return 4.0
-        val only = figs.singleOrNull() ?: return 0.0
-        val gold = ctx.state.hero(heroId)?.let { !BatchC.onDashboard(it, "razzle-gold") } == true
-        // H threat: a lone figure is Defense 1, and gold spawns in radius 1 of her.
-        return if (gold && ctx.distance(only, target) == 1) 3.0 else 0.0
+        val paired = figs.count { a -> figs.any { b -> b != a && HexGrid.distance(a, b) <= 3 } }
+        return BatchC.sign(state, heroId, team) * 2.5 * (paired - 1).coerceAtLeast(0)
     }
 
     private fun play(ctx: HContext, choice: Choice): Double {
         val id = BatchC.cardId(choice) ?: return 0.0
-        return openGold(ctx, id) + clustered(ctx, id)
-    }
-
-    private fun openGold(ctx: HContext, id: String): Double {
-        if (id != "razzle-gold" && id != "razzle-handicap") return 0.0
+        if (id !in golds) return 0.0
+        val me = ctx.own() ?: return 0.0
+        val at = me.at ?: return 0.0
         if (ctx.turn != 1 || BatchC.bodies(ctx.state, heroId).size != 1) return 0.0
-        val at = ctx.own()?.at ?: return 0.0
-        val holes = HexGrid.neighbors(at).filter { neighbour ->
-            ctx.game.geo.isSpace(neighbour) &&
-                ctx.state.heroes.none { it.at == neighbour } &&
-                ctx.state.minions.none { it.at == neighbour }
+        val holes = HexGrid.neighbors(at).filter { hex ->
+            ctx.game.geo.isSpace(hex) && ctx.state.heroes.none { it.at == hex } && ctx.state.minions.none { it.at == hex }
         }
         if (holes.isEmpty()) return 0.0
-        val covered = holes.all { BatchC.threatened(ctx, it) }
-        // H1: do not spawn on turn 1 into a ring every enemy already reaches.
-        return if (covered) -8.0 else 0.0
+        val danger = ctx.killWorth(me.id) * 0.35
+        // H1: turn 1, one figure, and every spawn space is already a likely hit: do not open with gold.
+        return if (holes.all { ctx.exposure(me.id, it) > danger }) -5.0 else 0.0
     }
 
-    private fun clustered(ctx: HContext, id: String): Double {
-        if (!stackedOn(ctx)) return 0.0
-        // H16: two figures on one cleave. Remove or move; do not attack into the stack.
-        return when (id) {
-            "razzle-silver", "razzle-red-1", "razzle-red-2a", "razzle-red-3a" -> 8.0
-            "razzle-green-1", "razzle-green-2a", "razzle-green-3a" -> 4.0
-            "razzle-gold", "razzle-handicap" -> -5.0
-            else -> 0.0
-        }
-    }
-
-    private fun space(ctx: HContext, d: Decision, choice: Choice): Double {
-        if (d.sourceCardId != "razzle-gold" && d.sourceCardId != "razzle-handicap") return 0.0
-        val hex = BatchC.hexOf(choice) ?: return if (choice is Choice.Decline) 1.0 else 0.0
-        val nearFigure = BatchC.bodies(ctx.state, heroId).any { ctx.distance(it, hex) in 1..3 }
-        val token = ctx.state.pieces.any { it.token && it.at == hex }
-        val bad = stackedLanding(ctx, hex)
-        // H2: spawn inside silver's radius, on an empty space, and not onto a second cleave.
-        var v = 0.0
-        if (nearFigure) v += 4.0
-        if (bad) v -= 6.0
-        if (token) v -= 3.0
-        return v
+    private fun spawn(ctx: HContext, d: Decision, choice: Choice): Double {
+        if (d.sourceCardId !in golds || !d.prompt.startsWith("Spawn")) return 0.0
+        val hex = BatchC.hexOf(choice) ?: return 0.0
+        val beside = ctx.enemies().count { e -> e.at?.let { ctx.distance(it, hex) == 1 } == true }
+        // H2: spawn on empty spaces away from the enemy heroes; a figure in their face is a free target.
+        return -2.5 * beside + if (beside == 0) 1.0 else 0.0
     }
 
     private fun unit(ctx: HContext, d: Decision, choice: Choice): Double {
-        if (!d.prompt.startsWith("Which one of you")) return 0.0
-        val id = BatchC.unitId(choice) ?: return 0.0
-        val at = figureAt(ctx, id) ?: return 0.0
-        val safe = !BatchC.threatened(ctx, at)
-        val otherSafe = BatchC.bodies(ctx.state, heroId).any { hex ->
-            hex != at && !BatchC.threatened(ctx, hex)
-        }
-        // H11: act with a figure that is not the only one left in an enemy's range.
-        return if (safe && otherSafe) 0.0 else if (safe) 8.0 else if (otherSafe) -6.0 else 0.0
+        val id = BatchC.unitId(choice)
+        val src = d.sourceCardId
+        if (d.prompt.startsWith("Which one of you") && id != null) return actor(ctx, src, id)
+        if (src in removers && d.prompt.contains("remove", ignoreCase = true)) return remove(ctx, id)
+        return 0.0
+    }
+
+    /** H11: with an attack, act with the figure that already stands next to something worth hitting. */
+    private fun actor(ctx: HContext, src: String?, id: String): Double {
+        val card = src?.let { ctx.card(it) } ?: return 0.0
+        if (!card.attackCard) return 0.0
+        val at = BatchC.posOf(ctx, id) ?: return 0.0
+        val minion = ctx.state.minions.any { m -> BatchC.takeable(ctx, m) && ctx.distance(m.at!!, at) == 1 }
+        val hero = ctx.enemies().any { e -> e.at?.let { ctx.distance(it, at) == 1 } == true }
+        return if (minion || hero) 1.5 else 0.0
+    }
+
+    /** H5: after a red, take away the figure an enemy hero stands next to; keep the rest. */
+    private fun remove(ctx: HContext, id: String?): Double {
+        if (id == null) return 0.0
+        val at = BatchC.posOf(ctx, id) ?: return 0.0
+        val caught = ctx.enemies().any { e -> e.at?.let { ctx.distance(it, at) == 1 } == true }
+        return if (caught) 3.0 else -1.5
     }
 
     private fun defend(ctx: HContext, d: Decision, choice: Choice): Double {
         val id = BatchC.cardId(choice) ?: return 0.0
         if (id != "razzle-silver") return 0.0
-        val at = d.context.subjectId?.let { figureAt(ctx, it) } ?: ctx.own()?.at ?: return 0.0
-        val others = BatchC.bodies(ctx.state, heroId).count { it != at && ctx.distance(at, it) in 1..3 }
-        val othersMeet = d.options.filterIsInstance<Choice.Card>().any { card ->
-            card.cardId != id && BatchC.meets(d, card.cardId)
-        }
-        // H4: silver's Defense is 1 + 2 per other figure in radius. Alone, it is not the block.
+        // H4: silver's Defense is 1 + 2 per other figure (the engine previews it). When it holds it is the cheap
+        // block; alone it is Defense 1 and the vanish is worth more than a doomed block.
         return when {
-            others == 0 && othersMeet -> -4.0
-            others > 0 && BatchC.meets(d, id) && !othersMeet -> 2.5
+            BatchC.meets(d, id) && BatchC.bodies(ctx.state, heroId).size > 1 -> 2.5
+            !BatchC.meets(d, id) && BatchC.otherMeets(d, id) -> -4.0
             else -> 0.0
         }
     }
 
     private fun respawn(ctx: HContext, choice: Choice): Double {
         val hex = BatchC.hexOf(choice) ?: return 0.0
-        val safeNeighbours = HexGrid.neighbors(hex).count { neighbour ->
-            ctx.enemies().none { enemy -> enemy.at?.let { ctx.distance(it, neighbour) == 1 } == true }
+        val room = HexGrid.neighbors(hex).count { n ->
+            ctx.game.geo.isSpace(n) && ctx.enemies().none { e -> e.at?.let { ctx.distance(it, n) <= 1 } == true }
         }
-        // H15: come back where the next gold has empty spawn spaces, toward the fight.
-        return safeNeighbours * 0.7 - ctx.distanceToBattleZone(hex) * 0.6
+        // H15: come back where the next gold has empty spawn spaces.
+        return 0.4 * room.coerceAtMost(4)
     }
-
-    private fun stackedOn(ctx: HContext): Boolean {
-        val figs = BatchC.bodies(ctx.state, heroId)
-        if (figs.size < 2) return false
-        return ctx.enemies().any { enemy ->
-            val at = enemy.at ?: return@any false
-            figs.count { ctx.distance(it, at) == 1 } >= 2 && cleave(ctx, enemy.id)
-        }
-    }
-
-    private fun stackedLanding(ctx: HContext, hex: Hex): Boolean =
-        ctx.enemies().any { enemy ->
-            val at = enemy.at ?: return@any false
-            if (ctx.distance(hex, at) != 1 || !cleave(ctx, enemy.id)) return@any false
-            BatchC.bodies(ctx.state, heroId).any { ctx.distance(it, at) == 1 }
-        }
-
-    private fun cleave(ctx: HContext, enemyId: String): Boolean =
-        ctx.possibleCards(enemyId).any { it.card.id in multi }
-
-    private fun figureAt(ctx: HContext, id: String): Hex? =
-        ctx.state.hero(id)?.at ?: ctx.state.piece(id)?.at
-
-    private val multi: Set<String> = setOf(
-            "xargatha-gold",
-            "xargatha-handicap",
-            "xargatha-red-1",
-            "xargatha-red-2b",
-            "xargatha-red-3a",
-            "xargatha-red-3b",
-            "wasp-red-3a",
-            "swift-red-2b",
-            "swift-red-3b",
-            "wuk-red-2b",
-            "mortimer-red-1",
-            "min-purple-4",
-        )
 }

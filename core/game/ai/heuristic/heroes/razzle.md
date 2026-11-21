@@ -121,3 +121,12 @@ Weights are coin-equivalents: a coin = 1, a card in hand ≈ 2.5 (more if it is 
 - Designer `nichik`, BGG 3471824, 2025-03-03 (defeated copies are not gone).
 - Wolff Designa, Arcane pack overview, https://gamefound.com/en/projects/wolffdesigna/guardsofatlantis2new/updates/10 — identity only. Its spawn-doubling and "no range or radius item" do not match these cards.
 - No Reddit or YouTube strategy found for 2nd-printing Razzle.
+
+## 8. Implementation notes
+
+`RazzleHeuristics.kt` (ADR-085). Checked against `RazzleHero.kt`:
+
+- **Which figure acts** is the engine's `CHOOSE_UNIT` "Which one of you performs the action?", asked before every action when she has two or more figures. It is an opaque choice, so from strength 3 the one-ply look already plays the action out from each figure. H11 only adds a small lean (+1.5) toward a figure that stands next to something worth hitting when the card is an attack.
+- **Spawning** asks `CHOOSE_SPACE` "Spawn another one of you in radius (up to N more)", which you may decline, and only offers empty spaces (`canSpawnInto`). Every offered space is in radius 1 of the acting figure, so "in silver's radius of an existing figure" (H2) is always true. The note scores only how close the space is to the enemy heroes.
+- **Silver's defense** (H4): the engine measures the +2 per figure from the figure that was attacked and shows the total in `defensePreview`, so the note reads the preview rather than counting figures itself.
+- **Not implemented:** H16 and the "multi-target discard" terms in `evalTerms`/`threatAdjust`. `HCard`/`CardProfile` has no multi-target flag. The draft listed other heroes' card ids from memory, and that list was removed (game data comes from the catalog only). With a single-target attack, two figures next to one enemy are no worse than one. Also left out: H3, H6–H10, H12–H14 (a predictable order, swap and push choices). The look-ahead covers the opaque ones.

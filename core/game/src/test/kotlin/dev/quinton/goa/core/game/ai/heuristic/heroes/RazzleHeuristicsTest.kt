@@ -15,16 +15,16 @@ class RazzleHeuristicsTest {
     @Test
     fun `finishes 2v2 and 3v3 at strengths 5 and 10`() {
         for (size in listOf(2, 3)) {
-            for (strength in listOf(5, 10)) HeroBookTest.finish("razzle", size, strength)
+            for (strength in listOf(5, 10)) BatchCBook.finish("razzle", size, strength)
         }
     }
 
     @Test
-    fun `acts with the figure that is not already in range`() {
+    fun `acts with the figure that stands next to the target`() {
         val session = position(TestData.engine, TestData.FOREST) {
             clearMinions()
             hero("razzle", Team.RED, Hex(1, -2))
-            hero("xargatha", Team.BLUE, Hex(2, -2))
+            hero("xargatha", Team.BLUE, Hex(3, -4))
             piece(
                 PieceState(
                     "razzle-b",
@@ -48,8 +48,8 @@ class RazzleHeuristicsTest {
             sourceCardId = "razzle-gold",
             options = listOf(Choice.Unit("razzle"), Choice.Unit("razzle-b")),
         )
-        val withBook = HeroBookTest.chosen(session, decision, RazzleHeuristics)
-        val general = HeroBookTest.chosen(session, decision, null)
+        val withBook = BatchCBook.chosen(session, decision, RazzleHeuristics)
+        val general = BatchCBook.chosen(session, decision, null)
         assertThat(withBook).isEqualTo(Choice.Unit("razzle-b"))
         assertThat(withBook).isNotEqualTo(general)
     }
