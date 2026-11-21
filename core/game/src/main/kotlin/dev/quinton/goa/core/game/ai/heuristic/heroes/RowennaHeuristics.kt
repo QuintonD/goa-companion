@@ -25,7 +25,15 @@ object RowennaHeuristics : HeroHeuristics {
         idealDistance = 1,
         aggression = 0.60,
         laneWeight = 1.1,
-        upgradeOrder = listOf("rowenna-red-2a", "rowenna-red-3a", "rowenna-green-2a", "rowenna-green-3a", "red", "blue", "green"),
+        upgradeOrder = listOf(
+            "rowenna-red-2a",
+            "rowenna-red-3a",
+            "rowenna-green-2a",
+            "rowenna-green-3a",
+            "red",
+            "blue",
+            "green",
+        ),
         keepDefender = true,
     )
 
@@ -64,9 +72,13 @@ object RowennaHeuristics : HeroHeuristics {
         return when (id) {
             // H12: the execute is also the Defense 6–7 block. Do not walk with it before turn 4.
             in executes -> if (ctx.turn < 4 && emptyAdjacent(ctx, me) == null) -4.0 else 0.0
+
             in shots -> openingShots(ctx, me, at) + BatchC.heroOnlyDiscard(ctx, id, BatchC.radiusOf(ctx, id))
+
             "rowenna-silver" -> if (BatchC.enemiesWithin(ctx, at, 4).isEmpty()) -2.0 else 0.0
+
             in golds -> goldTarget(ctx, at)
+
             else -> 0.0
         }
     }
@@ -74,7 +86,10 @@ object RowennaHeuristics : HeroHeuristics {
     /** H7 / H8: both discards must be empty; then it is a free card off them, best on turn 1. */
     private fun openingShots(ctx: HContext, me: HeroState, at: Hex): Double {
         if (me.cards.any { it.zone == Zone.DISCARD }) return -1.5
-        val victim = BatchC.enemiesWithin(ctx, at, 3).any { e -> e.hand.isNotEmpty() && e.cards.none { it.zone == Zone.DISCARD } }
+        val victim = BatchC.enemiesWithin(ctx, at, 3).any { e ->
+            e.hand.isNotEmpty() &&
+                e.cards.none { it.zone == Zone.DISCARD }
+        }
         return when {
             !victim -> -1.5
             ctx.turn == 1 -> 3.0
@@ -106,7 +121,9 @@ object RowennaHeuristics : HeroHeuristics {
 
     private fun emptyAdjacent(ctx: HContext, me: HeroState): String? {
         val at = me.at ?: return null
-        return ctx.enemies().firstOrNull { e -> e.hand.isEmpty() && e.at?.let { ctx.distance(at, it) == 1 } == true }?.id
+        return ctx.enemies().firstOrNull { e ->
+            e.hand.isEmpty() && e.at?.let { ctx.distance(at, it) == 1 } == true
+        }?.id
     }
 
     /** A faceup card in their discard meets gold's Attack 4 + items (public: discards are faceup). */

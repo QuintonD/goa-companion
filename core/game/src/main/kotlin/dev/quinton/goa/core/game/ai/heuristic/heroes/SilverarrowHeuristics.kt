@@ -23,12 +23,21 @@ object SilverarrowHeuristics : HeroHeuristics {
         idealDistance = 3,
         aggression = 0.40,
         laneWeight = 0.8,
-        upgradeOrder = listOf("silverarrow-red-2a", "silverarrow-red-3a", "silverarrow-blue-2a", "silverarrow-blue-3a", "red", "blue", "green"),
+        upgradeOrder = listOf(
+            "silverarrow-red-2a",
+            "silverarrow-red-3a",
+            "silverarrow-blue-2a",
+            "silverarrow-blue-3a",
+            "red",
+            "blue",
+            "green",
+        ),
         keepDefender = true,
     )
 
     /** "Target a unit at maximum range": printed range, plus Range items (rulings/silverarrow.md). */
-    private val ringCards = setOf("silverarrow-gold", "silverarrow-handicap", "silverarrow-red-2b", "silverarrow-red-3b")
+    private val ringCards =
+        setOf("silverarrow-gold", "silverarrow-handicap", "silverarrow-red-2b", "silverarrow-red-3b")
     private val peels = setOf("silverarrow-green-1", "silverarrow-green-2a", "silverarrow-green-3a")
     private val heals = setOf("silverarrow-green-2b", "silverarrow-green-3b")
     private val warnings = setOf("silverarrow-blue-2b", "silverarrow-blue-3b")
@@ -57,10 +66,14 @@ object SilverarrowHeuristics : HeroHeuristics {
         val at = ctx.own()?.at ?: return 0.0
         return when (id) {
             in ringCards -> ring(ctx, at, id)
+
             in peels -> if (adjacentEnemyUnit(ctx, at)) 2.0 else 0.0
+
             // H9: the warning shot makes an enemy hero in radius discard at end of turn; no hero, no value.
             in warnings -> BatchC.heroOnlyDiscard(ctx, id, BatchC.radiusOf(ctx, id))
+
             in heals -> if (healable(ctx, at, ctx.card(id).radius)) 1.5 else -1.0
+
             else -> 0.0
         }
     }

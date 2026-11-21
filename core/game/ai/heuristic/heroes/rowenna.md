@@ -116,3 +116,4 @@ Weights as in the other playbooks: coin = 1, card ≈ 2.5, one minion of an even
 - **threatAdjust:** the draft added silver's threat to any space next to *any* hero, Rowenna's own allies included. It is now "within 3–4 of her while silver may still be in her hand" (`possibleCards`).
 - **H1** reads the target's faceup discard against gold's printed Attack 4 plus items and the minion modifier.
 - **Not implemented:** H2, H5/H6 (the coin and retrieve are mandatory or the ally's own choice), H9, H10, H14, H15.
+- **Ablation** (strength 8, `BatchCAblationTest`, the same line-ups and seeds as `HeroAblationTest`): 96 games 56.3% (54–42), Wilson 46.3–65.7%; 384 games 54.4% (209–175), Wilson 49.4–59.3%.

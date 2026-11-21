@@ -26,7 +26,15 @@ object RazzleHeuristics : HeroHeuristics {
         aggression = 0.40,
         laneWeight = 0.60,
         // §3: red first, then green (two-body move), then blue.
-        upgradeOrder = listOf("razzle-red-2a", "razzle-red-3a", "razzle-green-2a", "razzle-green-3a", "red", "green", "blue"),
+        upgradeOrder = listOf(
+            "razzle-red-2a",
+            "razzle-red-3a",
+            "razzle-green-2a",
+            "razzle-green-3a",
+            "red",
+            "green",
+            "blue",
+        ),
         keepDefender = true,
     )
 
@@ -58,7 +66,8 @@ object RazzleHeuristics : HeroHeuristics {
         val at = me.at ?: return 0.0
         if (ctx.turn != 1 || BatchC.bodies(ctx.state, heroId).size != 1) return 0.0
         val holes = HexGrid.neighbors(at).filter { hex ->
-            ctx.game.geo.isSpace(hex) && ctx.state.heroes.none { it.at == hex } && ctx.state.minions.none { it.at == hex }
+            ctx.game.geo.isSpace(hex) && ctx.state.heroes.none { it.at == hex } &&
+                ctx.state.minions.none { it.at == hex }
         }
         if (holes.isEmpty()) return 0.0
         val danger = ctx.killWorth(me.id) * 0.35

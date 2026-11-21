@@ -43,7 +43,7 @@ object TaliHeuristics : HeroHeuristics {
         else -> 0.0
     }
 
-    /** §6: Ice next to an enemy hero slows them; a Totem next to a friendly minion it can save is that minion, once. */
+    /** §6: Ice next to an enemy hero slows them; a Totem next to a minion it can save is that minion, once. */
     override fun evalTerms(state: GameState, team: Team, heroId: String): Double {
         if (heroId != this.heroId) return 0.0
         val mine = state.hero(heroId)?.team ?: return 0.0
@@ -53,7 +53,10 @@ object TaliHeuristics : HeroHeuristics {
             val at = piece.at ?: continue
             if (piece.owner != heroId) continue
             if (piece.kind == TaliHero.ICE) {
-                val touching = state.heroes.any { h -> h.team != mine && h.at?.let { HexGrid.distance(at, it) == 1 } == true }
+                val touching = state.heroes.any { h ->
+                    h.team != mine &&
+                        h.at?.let { HexGrid.distance(at, it) == 1 } == true
+                }
                 ice += if (touching) 1.0 else 0.2
             } else if (piece.kind == TaliHero.TOTEM) {
                 val venerated = piece.data["variant"] == "venerated"
@@ -117,10 +120,13 @@ object TaliHeuristics : HeroHeuristics {
     private fun totem(ctx: HContext, hex: Hex): Double {
         val venerated = ctx.decision?.sourceCardId == "tali-green-3b"
         val saved = ctx.state.minions.filter { m ->
-            m.team == ctx.team && m.at?.let { ctx.distance(hex, it) == 1 } == true && (venerated || m.type == MinionType.MELEE)
+            m.team == ctx.team && m.at?.let { ctx.distance(hex, it) == 1 } == true &&
+                (venerated || m.type == MinionType.MELEE)
         }
         if (saved.isEmpty()) return -1.0
-        val threatened = saved.any { m -> ctx.enemies().any { e -> e.at?.let { ctx.distance(it, m.at!!) <= 3 } == true } }
+        val threatened = saved.any { m ->
+            ctx.enemies().any { e -> e.at?.let { ctx.distance(it, m.at!!) <= 3 } == true }
+        }
         return if (threatened) 4.0 else 1.5
     }
 
@@ -129,7 +135,8 @@ object TaliHeuristics : HeroHeuristics {
     }
 
     private fun open(ctx: HContext, hex: Hex): Boolean = ctx.game.geo.isSpace(hex) &&
-        ctx.state.heroes.none { it.at == hex } && ctx.state.minions.none { it.at == hex } && ctx.state.pieces.none { it.at == hex }
+        ctx.state.heroes.none { it.at == hex } && ctx.state.minions.none { it.at == hex } &&
+        ctx.state.pieces.none { it.at == hex }
 
     /** H12: the a-red is the 5–7 hand attack; spend another card that still holds. */
     private fun defend(d: Decision, choice: Choice): Double {

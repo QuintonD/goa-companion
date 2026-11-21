@@ -98,13 +98,12 @@ object TakahideHeuristics : HeroHeuristics {
         }
     }
 
-    /** H3: Float moves 5 and cycles; spend it to cross the map, not as the block in the fight. */
+    /** H3: Float moves 5 and cycles; spend it to cross the map (holding it as the block is the general book's job). */
     private fun float(ctx: HContext, me: HeroState, at: Hex): Double {
         val far = ctx.distanceToBattleZone(at) >= 3
         val deckGold = me.cards.any { it.id != FLOAT && it.id.startsWith("takahide-gold") && it.zone == Zone.DECK }
         return when {
             far && deckGold -> 3.0
-            !far && ctx.turn < 4 -> -2.0
             else -> 0.0
         }
     }
@@ -118,11 +117,14 @@ object TakahideHeuristics : HeroHeuristics {
         return if (floatInDeck && (idleSting || idleStrike)) 2.5 else -1.0
     }
 
-    /** H15: the greens and blues act on a friendly hero in range or radius; with none in reach the primary is dead. */
+    /**
+     * H15: the greens and blues act on a friendly hero in range or radius; with none in reach the primary is
+     * dead. They are also his Movement 2, so the note bites only once he already stands in the fight.
+     */
     private fun allyInReach(ctx: HContext, at: Hex, id: String): Double {
         val card = ctx.card(id)
         val reach = maxOf(card.range, card.radius)
-        return if (BatchC.alliesWithin(ctx, at, reach).isEmpty()) -2.5 else 0.0
+        return if (ctx.inBattleZone(at) && BatchC.alliesWithin(ctx, at, reach).isEmpty()) -1.5 else 0.0
     }
 
     /** H11: the blues that strip a colour hit an enemy hero in radius only, never a minion. */

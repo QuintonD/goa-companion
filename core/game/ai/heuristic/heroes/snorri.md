@@ -159,3 +159,4 @@ Keep the boon when an ally is the one who discards (Tali, Takahide's partner, a 
 - **H6:** the draft gave anvil's +3 coins to *minion* targets too (a null hero compared with a team). Fixed: heroes only, as the card says.
 - **H5:** the horn repeat is the engine's optional repeat (a confirm question, already opaque). There is no note.
 - **Not implemented:** H7, H8, H12–H16 (rune-specific choices the one-ply look already resolves through the engine).
+- **Ablation** (strength 8, `BatchCAblationTest`, the same line-ups and seeds as `HeroAblationTest`): 96 games 49.0% (47–49), Wilson 39.2–58.8%; 384 games 50.8% (195–189), Wilson 45.8–55.7%.

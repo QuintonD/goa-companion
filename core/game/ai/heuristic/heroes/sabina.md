@@ -119,3 +119,4 @@ Opening sketch from BGG 3497427, as preferences rather than a script: turn-1 sil
 - **H15:** blue-1/2a/3a "Swap two minions" does not need a *friendly* minion, so only silver and the greens get the "no friendly minion near" penalty.
 - **threatAdjust:** the draft fired only when a hero was already standing on the space. Exposure is asked for spaces a hero might move to, so it now fires for any space next to her minion, within radius 3, while a Close Support or Covering Fire card is still in her possible pool.
 - **Not implemented:** H2, H3, H5, H6, H8–H11, H13 (minion moves, swaps, removals). These are opaque or per-target choices the look-ahead answers.
+- **Ablation** (strength 8, `BatchCAblationTest`, the same line-ups and seeds as `HeroAblationTest`): 96 games 53.1% (51–45), Wilson 43.2–62.8%; 384 games 49.5% (190–194), Wilson 44.5–54.5%.

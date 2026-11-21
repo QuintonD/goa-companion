@@ -55,7 +55,10 @@ object SabinaHeuristics : HeroHeuristics {
         if (heroId != this.heroId) return 0.0
         val me = state.hero(heroId) ?: return 0.0
         val at = me.at ?: return 0.0
-        val near = state.minions.count { m -> m.team == me.team && m.at?.let { HexGrid.distance(at, it) in 1..2 } == true }
+        val near = state.minions.count { m ->
+            m.team == me.team &&
+                m.at?.let { HexGrid.distance(at, it) in 1..2 } == true
+        }
         return BatchC.sign(state, heroId, team) * 1.5 * near.coerceAtMost(3)
     }
 
@@ -65,7 +68,10 @@ object SabinaHeuristics : HeroHeuristics {
         val me = ctx.hero(heroId) ?: return 0.0
         val at = me.at ?: return 0.0
         if (ctx.distance(at, target) !in 1..3) return 0.0
-        val besideMinion = ctx.state.minions.any { m -> m.team == me.team && m.at?.let { ctx.distance(it, target) == 1 } == true }
+        val besideMinion = ctx.state.minions.any { m ->
+            m.team == me.team &&
+                m.at?.let { ctx.distance(it, target) == 1 } == true
+        }
         if (!besideMinion || !BatchC.mayHold(ctx, heroId, covering)) return 0.0
         return 2.0
     }
@@ -76,8 +82,11 @@ object SabinaHeuristics : HeroHeuristics {
         return when {
             // H15: silver and the greens act through a friendly minion in radius; without one the primary is dead.
             id in needsFriendly && BatchC.minionsWithin(ctx, at, 3, friendly = true).isEmpty() -> -2.5
+
             id in covering -> coveringReady(ctx, at, id) + BatchC.heroOnlyDiscard(ctx, id, BatchC.radiusOf(ctx, id))
+
             id in golds -> goldPush(ctx, at)
+
             else -> 0.0
         }
     }

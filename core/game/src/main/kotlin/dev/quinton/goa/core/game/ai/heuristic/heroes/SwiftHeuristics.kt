@@ -128,7 +128,8 @@ object SwiftHeuristics : HeroHeuristics {
         val units = ctx.state.minions.filter { it.team != ctx.team && it.at != null }.map { it.id to it.at!! } +
             ctx.enemies().filter { it.at != null }.map { it.id to it.at!! }
         return units.firstOrNull { (id, pos) ->
-            ctx.distance(at, pos) <= 2 && ctx.enemies().any { e -> e.id != id && e.at?.let { ctx.distance(it, pos) == 1 } == true }
+            ctx.distance(at, pos) <= 2 &&
+                ctx.enemies().any { e -> e.id != id && e.at?.let { ctx.distance(it, pos) == 1 } == true }
         }?.first
     }
 
@@ -155,7 +156,10 @@ object SwiftHeuristics : HeroHeuristics {
         val id = BatchC.cardId(choice) ?: return 0.0
         if (!id.startsWith("swift-red-") || !BatchC.meets(d, id)) return 0.0
         val otherAttack = ctx.ownHand().any { it.id != id && it.attackCard }
-        val blueHolds = d.options.filterIsInstance<Choice.Card>().any { it.cardId.startsWith("swift-blue-") && BatchC.meets(d, it.cardId) }
+        val blueHolds = d.options.filterIsInstance<Choice.Card>().any {
+            it.cardId.startsWith("swift-blue-") &&
+                BatchC.meets(d, it.cardId)
+        }
         return if (!otherAttack && blueHolds) -4.0 else 0.0
     }
 }

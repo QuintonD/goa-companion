@@ -46,7 +46,8 @@ internal object BatchC {
     }
 
     /** The space of a unit: a hero, a minion or a piece. */
-    fun posOf(ctx: HContext, id: String): Hex? = ctx.state.hero(id)?.at ?: ctx.state.minion(id)?.at ?: ctx.state.piece(id)?.at
+    fun posOf(ctx: HContext, id: String): Hex? =
+        ctx.state.hero(id)?.at ?: ctx.state.minion(id)?.at ?: ctx.state.piece(id)?.at
 
     /** The rightmost faceup resolved card (p.7: turn slots fill left to right). */
     fun rightmost(h: HeroState): String? =
@@ -104,7 +105,10 @@ internal object BatchC {
 
     /** Another defense option that also stops the attack. */
     fun otherMeets(d: Decision, cardId: String, except: Set<String> = emptySet()): Boolean =
-        d.options.filterIsInstance<Choice.Card>().any { it.cardId != cardId && it.cardId !in except && meets(d, it.cardId) }
+        d.options.filterIsInstance<Choice.Card>().any {
+            it.cardId != cardId && it.cardId !in except &&
+                meets(d, it.cardId)
+        }
 
     /**
      * A skill that makes an enemy *hero* discard (no minion target). `CardProfile` marks it `forcesDiscard`,

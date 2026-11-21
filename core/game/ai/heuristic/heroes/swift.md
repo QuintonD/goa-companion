@@ -134,3 +134,4 @@ Keep `swift-green-2b` / `3b` when the map is all edges and the coin for other pe
 - **H14:** applies only to her own moves (`subjectId`), not to pushes or minion moves.
 - The rifle's straight-line and minimum-distance rules are the engine's target filter, so the draft's re-check of them was removed.
 - **Not implemented:** H4 (the enemy's revealed initiative is not known when cards are chosen), H6–H12, H15.
+- **Ablation** (strength 8, `BatchCAblationTest`, the same line-ups and seeds as `HeroAblationTest`): 96 games 61.5% (59–37), Wilson 51.5–70.6%; 384 games 62.5% (240–144), Wilson 57.6–67.2%.

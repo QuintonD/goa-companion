@@ -24,7 +24,15 @@ object SnorriHeuristics : HeroHeuristics {
         idealDistance = 1,
         aggression = 0.55,
         laneWeight = 1.0,
-        upgradeOrder = listOf("snorri-red-2a", "snorri-red-3a", "snorri-green-2a", "snorri-green-3a", "red", "green", "blue"),
+        upgradeOrder = listOf(
+            "snorri-red-2a",
+            "snorri-red-3a",
+            "snorri-green-2a",
+            "snorri-green-3a",
+            "red",
+            "green",
+            "blue",
+        ),
         keepDefender = true,
     )
 
@@ -70,11 +78,15 @@ object SnorriHeuristics : HeroHeuristics {
         return when (id) {
             // H1 / H3: inscribe once, early. Re-inscribing spends a turn the attack needed.
             "snorri-silver" -> if (runes == 0) (if (ctx.turn <= 3) 6.0 else 2.0) else -2.5
+
             in golds -> goldRune(ctx, rune)
+
             // H11: the oath has no primary; walking with it spends the block.
             in oaths -> if (runes > 0) -2.0 else 0.0
+
             // H12: the trap makes an enemy hero in radius discard; it never takes a minion.
             "snorri-green-2b", "snorri-green-3b" -> BatchC.heroOnlyDiscard(ctx, id, BatchC.radiusOf(ctx, id))
+
             else -> 0.0
         }
     }
@@ -86,9 +98,20 @@ object SnorriHeuristics : HeroHeuristics {
         val adjacentMinion = BatchC.minionsWithin(ctx, at, 1, friendly = false).any { BatchC.takeable(ctx, it) }
         return when (rune) {
             null -> -1.5
+
             Rune.AXE -> if (adjacentHero || adjacentMinion) 2.5 else 0.0
+
             Rune.HORN -> if (BatchC.enemiesWithin(ctx, at, 2).size >= 2) 3.0 else 0.0
-            Rune.BIRD -> if (BatchC.minionsWithin(ctx, at, 2, friendly = false).any { BatchC.takeable(ctx, it) }) 2.0 else 0.0
+
+            Rune.BIRD -> if (BatchC.minionsWithin(ctx, at, 2, friendly = false).any {
+                    BatchC.takeable(ctx, it)
+                }
+            ) {
+                2.0
+            } else {
+                0.0
+            }
+
             Rune.ANVIL -> if (adjacentHero) 3.0 else 0.0
         }
     }

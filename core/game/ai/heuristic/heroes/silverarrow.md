@@ -124,3 +124,4 @@ Keep `silverarrow-blue-2b` / `3b` when enemies end their turns inside radius 3 a
 - **H8 (Roots):** the draft read the enemy's *unresolved* card at `PLAY_CARD`, before the reveal, which is peeking. Removed. Roots has no note.
 - **H11:** the draft gave −8 to *every* space question next to an enemy, including ones that move enemy units. Now it applies only to her own moves (`subjectId` is her) and only when she holds no red.
 - **Not implemented:** H2, H3, H5, H6 (the step after the peel), H9, H12, H14, H15.
+- **Ablation** (strength 8, `BatchCAblationTest`, the same line-ups and seeds as `HeroAblationTest`): 96 games 54.2% (52–44), Wilson 44.2–63.8%; 384 games 49.2% (189–195), Wilson 44.3–54.2%.

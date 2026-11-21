@@ -135,3 +135,4 @@ Keep `tali-blue-2b` / `3b` when allies are being stripped and the retrieve is th
 - **H1/H3:** Ice and the Totem are placed through `CHOOSE_SPACE` from the green card. Ice goes next to enemy heroes, never into a friendly hero's last exits. The Totem goes next to a friendly minion it can save (melee only for Ancestral Totem) that an enemy can reach.
 - **threatAdjust:** the draft counted Tali's own teammates as "a second enemy" (it used the deciding team's enemies). Fixed with the heroes of the other side from Tali.
 - **Not implemented:** H2, H6, H7, H9–H11, H13–H16.
+- **Ablation** (strength 8, `BatchCAblationTest`, the same line-ups and seeds as `HeroAblationTest`): 96 games 47.9% (46–50), Wilson 38.2–57.8%; 384 games 49.5% (190–194), Wilson 44.5–54.5%.
