@@ -204,3 +204,13 @@ GoatRogan refuses a single build. The levers:
 - [BGG 3779890](https://boardgamegeek.com/thread/3779890) Pusher / Support, with Cryomancy unsure.
 - GoatRogan's "same distance" on Drag Off is not used; the card says "each" and rulings 7 agrees. His "primary Blue comes with a Radius item" does not match Safe Landing's Defense item.
 - No Widget Build & Go thread exists in the strategy forum. No Widget thread after 2025-06. Reddit did not turn up a Widget guide.
+
+## Implementation notes
+
+`WidgetHeuristics.kt` (ADR-085). The general book scores an attack card from its printed reach (`HContext.strikeFrom`). Where this hero's text narrows the targets, the playbook re-scores the card's PLAY_CARD outlook on the units the engine would really offer (`BatchDSupport.strikeOn` + `strikeFix`): the card keeps its movement value and loses the hit it cannot make. That replaces the draft's flat −28 "fizzle" penalty, which also threw away the card's secondary Movement.
+
+- **Implemented:** H1/H20 (Silver brings a missing Pyro back, or moves one stranded on a spawn or far away), H2 (Gold hits a neighbour; +2 when a resolved skill gives the copy), H3 (the copy: Breath, then a meal, then any skill), H4 (Breath: an enemy hero in range of Pyro and on a straight line from Pyro; Scorching Breath kills an empty hand), H5 (Nibble/Gnaw: a minion in her range beside Pyro, minus the lost Pyro and Nibble's missing coins), H8/H9 (the swaps need Pyro in range; Drag Off needs an enemy beside Pyro), H16 (threat on Pyro's lines), H18 (Pyro's site: a line onto an enemy hero, beside an enemy minion, never a minion spawn). `evalTerms`: Pyro on the board +3, +1.5 beside an enemy minion.
+- **Engine detail the general book misses:** "Place Pyro" has no subject, so the general book scores it as Widget standing there; the playbook takes that back. "Move Pyro" has Pyro as its subject, which the general book scores 0, so the site value is the whole score.
+- **Engine vs research:** Nibble removes (no coins) an enemy minion; Gnaw defeats it (coins). Both remove Pyro. Every Pyro card fizzles while Pyro is out. No disagreement.
+- **Skipped:** H6/H7 (the Pyro move after Red and the Airborne swap are space/confirm questions scored by the Pyro site and lookahead), H10 (Silver's bullet is lookahead), H11 (DEFEND: general), H12 (moving Pyro off an enemy who can Clear it needs their intent), H13/H14 (upgrade colour order), H15 (Dragon Knight CONFIRM: lookahead), H17 (advice for the other side), H19 (CHOOSE_ACTION lookahead).
+- **Ablation (strength 8):** 50–46 of 96 = 52.1% (Wilson 42.2–61.8%), with the playbook against without it, 2026-11-21 (`AI_H_ABLATION=widget AI_H_STRENGTH=8 AI_H_GAMES=96`: 48 line-ups, both sides).
