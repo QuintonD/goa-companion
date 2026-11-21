@@ -4,17 +4,19 @@ import dev.quinton.goa.core.model.board.Hex
 import org.junit.Test
 
 class WhisperHeuristicsTest {
-    @Test fun finishes() = HeroBookSupport.finishes("whisper")
+    @Test
+    fun `finishes 2v2 and 3v3 at strengths 5 and 10`() = BatchDTestSupport.finishes("whisper")
 
-    @Test fun signature() {
-        val session = HeroBookSupport.playing(
+    @Test
+    fun `Swift Justice does not snipe a hero who has already discarded`() {
+        // H1/H3: the snipe needs an empty discard; Arien has thrown a card and is not adjacent.
+        val session = BatchDTestSupport.playing(
             hero = "whisper",
-            at = Hex(-1, -2),
-            hand = listOf("whisper-gold", "whisper-silver", "whisper-blue-1"),
-            enemyAt = Hex(2, -3),
-            thrown = listOf("arien-green-1"),
+            at = Hex(1, -5),
+            hand = listOf("whisper-gold", "whisper-green-1", "whisper-blue-1"),
+            enemyAt = Hex(4, -6),
+            enemy = { discard("arien-red-1") },
         )
-        // H3: the snipe needs an empty discard, and the melee bullet needs a neighbour.
-        HeroBookSupport.assertFlips(session, WhisperHeuristics, "whisper-gold")
+        BatchDTestSupport.assertFlips(session, WhisperHeuristics, from = "whisper-gold", to = null)
     }
 }
