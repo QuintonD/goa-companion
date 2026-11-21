@@ -8,6 +8,15 @@ the device". Three instruments, all on development line-ups 1000+ (held-out 300�
 3. **Category swaps** (`HybridAi`, new, `h10/<categories>/s10` in `HeuristicTournamentTest`): h10 with one category
    of questions answered by the old strength-10 search, against s8. This turns "the oracle disagrees" into games won.
 
+**In short.** h10 loses to s10 on the minion race (1.09 minions a round against 1.36; last push and Throne are 10 of
+its 13 losses) and loses heroes with an empty hand (37 of 78 defeats). Both come from where its look stops: a move is
+scored after our own action, a card play after our card alone, turn 3 without turn 4. Given the search's answers for
+one category at a time, h10 gains most from **own-move squares (+11.7 points against s8)** and **card plays (+8.6)**,
+nothing from the action choice, and **+6.3 from switching off one weight (G4, no early Red)**. The fixes are
+search built on the book: play the turn out after the reveal with the book's policy (F1), sample the reveal at the
+card play (F2), check turn 4's escape (F3). Strengths 9–10 add nothing because their layers are weights inside the
+same one-action look.
+
 ## 1. Method
 
 **The oracle.** `AiPlayers.profile(10)` (determinized search, learned net at the leaves, enemy hands known as h10
@@ -43,7 +52,8 @@ AI_H_REGRET=s10 AI_H_REGRET_ALT=h8 AI_H_GAMES=8 AI_H_FIRST=1000 AI_THREADS=3 AI_
 AI_H_REGRET_ONLY=1005:B:s10:248,1000:R:s10:74 … same command
 ```
 
-The JSON lines are aggregated by hand (the scripts used are short Python; the field names are in the test's KDoc).
+`python3 -I tools/ai/regret_report.py <files>.jsonl --examples 20` prints the tables below from the JSON lines
+(the field names are in the test's KDoc).
 
 ## 2. Noise: what the oracle can and cannot tell
 
@@ -53,7 +63,7 @@ The JSON lines are aggregated by hand (the scripts used are short Python; the fi
 | Hand-evaluation oracle (all 4 863) | same best 62%, correlation 0.55; of 1 066 "significant" net verdicts, 437 confirmed | **Model noise dominates.** Hence the robust measure. |
 | s8's own questions judged by the same oracle | robust 38 pp/game against h10's 81 | Both oracles are the search family s8 belongs to; part of h10's excess is taste, not error (see HOLD below). |
 | Per-game regret against the result | won games 87 pp, lost games 77 pp (robust, 12 / 20 games) | **Summed regret does not separate won from lost games.** The table ranks where the book disagrees with search; win-rate impact comes from §5 (swaps) and §4 (how games are lost), not from adding regrets. |
-| h10's answer = net oracle's best | 54% (hand oracle 60%); actions 72%, card plays 50%, own moves 31% | Spaces are often near-ties for both players. |
+| h10's answer = net oracle's best | 54% (hand oracle 60%); actions 72%, card plays 50%, spaces 31% | Spaces are often near-ties for both players. |
 | Known oracle artifacts | Repeat-choice loops ("choose up to three times", Nebkher's Diabolical Laughter, Wuk's Mystic Saplings): the oracle prices every use at −20 to −40 coins against Skip, both evaluators alike | A playout-policy artifact of the search, not an h10 error. Discounted below. |
 
 The two opponent sets agree on the ranking (s10 / s8 games, robust pp/game): acts-where-Hold-wins 11.1 / 13.1,
@@ -66,17 +76,17 @@ family never makes that choice; similar to h10 means the category is hard for ev
 
 | # | Source (concept) | Questions/game | Regret pp/game | ≈ coins/game | s8 | Proposed fix (section 6) |
 |---|---|---|---|---|---|---|
-| 1 | Action: h10 acts or moves where holding wins | 5.4 | 12.1 | 16.5 | 1.7 | F1 turn playout after the reveal |
-| 2 | Own move on turns 1–2: the end square | 13.7 | 8.4 | 11.4 | 1.5 | F1 |
-| 3 | Card play turn 3 (other than a Red spent) | 9.4 | 7.9 | 10.7 | 9.3 | F2 sampled reveal |
+| 1 | Action: h10 acts or moves where holding wins | 5.4 | 12.1 | 16.5 | 1.7 | none alone (swap −0.8 pts, §5); F1 scores Hold as a square |
+| 2 | Own move on turns 1–2: the end square | 13.7 | 8.4 | 11.4 | 1.5 | F1 (move swap +11.7 pts) |
+| 3 | Card play turn 3 (other than a Red spent) | 9.4 | 7.9 | 10.7 | 9.3 | F2 sampled reveal (card swap +8.6 pts) |
 | 4 | Card play turns 1–2 (other) | 20.7 | 7.5 | 10.2 | 8.2 | F2 |
 | 5 | Card play turn 3: Red spent where both oracles keep it | 1.7 | 7.3 | 9.9 | 4.1 | F3 turn-4 escape, F2 |
 | 6 | Own move on turns 3–4 or with one card: the end square | 9.9 | 7.2 | 9.9 | 1.6 | F1 + F3 |
 | 7 | Action: primary / movement / Fast Travel swapped | 38.9 | 7.1 | 9.7 | 5.5 | F1 |
 | 8 | Opaque choices (bullet, token, number) | 6.7 | 4.9 (≈1.2 after artifacts) | 6.6 | 0.3 | F5 (mostly oracle artifact) |
-| 9 | Card play turns 1–2: Red withheld | 3.1 | 3.9 | 5.3 | 2.1 | F4 colour timing (G4) |
+| 9 | Card play turns 1–2: Red withheld | 3.1 | 3.9 | 5.3 | 2.1 | F4 G4 off (+6.3 pts measured) |
 | 10 | Card play turn 4 (other) | 7.9 | 3.0 | 4.1 | 0.3 | F1 (round-end battle), F2 |
-| 11 | Attack target (hero hit where a minion was the take) | 2.0 | 2.8 | 3.8 | 0.5 | F6 strike worth with known hands |
+| 11 | Attack target (hero hit where a minion was the take) | 2.0 | 2.8 | 3.8 | 0.5 | F6 a poke is not a minion |
 | 12 | Other spaces (tokens, pushes, placements) | 7.4 | 1.9 | 2.6 | 0.4 | F1 |
 | 13 | Defend / decline | 2.1 | 1.6 | 2.2 | 0.2 | F3 |
 | 14 | Own move: moved where staying put wins | 1.1 | 1.35 | 1.8 | 0.0 | F1 |
@@ -180,7 +190,40 @@ reply. The decisive errors above (the turn after the reveal, turn 4's last card)
 
 ## 5. Category swaps: what each fix could be worth in games
 
-TBD: `h10/<cat>/s10` against s8 on line-ups 1000–1063 (128 games each).
+h10 with one category of questions answered by the old strength-10 search (`HybridAi`), against s8, on the same
+128 mirrored games (line-ups 1000–1063, `AI_THREADS=3`, 2 h 20 min in all). The swap is a ceiling for a fix that
+answers that category as well as the search does; it is not additive across categories.
+
+```
+AI_H_TOURNAMENT="h10:s8,h10+earlyRed=0:s8,h10/action/s10:s8,h10/move/s10:s8,
+  h10/opaque.target.defend.discard.space.unit.upgrade.minion.respawn.first/s10:s8,h10/card/s10:s8"
+AI_H_GAMES=64 AI_H_FIRST=1000 AI_THREADS=3
+```
+
+| h10 variant against s8 | Won | Rate | Wilson 95% | Pairs (a both / split / s8 both) | Δ vs h10 | h10-side answer mean / p95 |
+|---|---|---|---|---|---|---|
+| h10 (baseline) | 68–60 | 53.1% | 44.5–61.6 | 16 / 36 / 12 | — | 3.7 / 13 ms |
+| **own moves by s10** (`move`) | 83–45 | **64.8%** | 56.2–72.6 | 22 / 39 / 3 | **+11.7** | 64 / 458 ms |
+| card plays by s10 (`card`) | 79–49 | 61.7% | 53.1–69.7 | 20 / 39 / 5 | +8.6 | 175 / 879 ms |
+| `h10+earlyRed=0` (G4 off, no search) | 76–52 | 59.4% | 50.7–67.5 | 21 / 34 / 9 | +6.3 | 3.1 / 10 ms |
+| the small categories by s10 (targets, defend, opaque, tokens, upgrades, removal, respawn…) | 76–52 | 59.4% | 50.7–67.5 | 18 / 40 / 6 | +6.3 | 40 / 209 ms |
+| actions by s10 (`action`) | 67–61 | 52.3% | 43.7–60.8 | 17 / 33 / 14 | −0.8 | 37 / 168 ms |
+
+(Pairs: mirrored pairs h10 won both / split / s8 won both; the log prints them in the other order, by h10's points.)
+
+What this changes in the ranking of §3:
+
+- **Own moves are worth the most games** (+12), though they rank second and sixth by oracle regret. The search
+  chooses the square after playing out the rest of the turn; h10 scores the square after its own action. This is
+  F1, and the swap says it is where h10 loses to s10's minion economy and to its empty-hand deaths.
+- **Card plays are second** (+9): F2 and F3.
+- **The action choice alone is worth nothing** (−0.8), although it is the oracle's largest disagreement (item 1):
+  holding where the search holds, with h10 still choosing the squares and cards, does not win games. That
+  disagreement is the search family's taste (s8 holds 16% of its actions) or only pays together with the move it
+  enables. Item 1 drops out of the fixes on its own; F1 scores Hold as one of the squares instead.
+- **G4 (no early Red into a hero) costs about 6 points** by itself: the cheapest fix in this review, one weight.
+  It needs a held-out confirmation (128 games: ±8.6 points).
+- The small categories together are worth up to +6 (F5–F7).
 
 ## 6. Proposed fixes
 
@@ -194,15 +237,17 @@ to the end of the turn — every remaining hero acts with its own book (`policy`
 hidden answers still priced from the pool below 10 (`Lookahead.hiddenAnswer`) — and score at the turn's end; on
 turn 4 run through the end-of-round minion battle and push (exact last-push arithmetic instead of HEval's sigmoid).
 Look at every own-move square (`SPACE_CAP` 6 → all), and keep Hold/Don't move as a scored option rather than the
-floor of G39/G40. Cost: tens of engine answers per option, well inside "any device". Expected: most of items 1, 2, 6,
-7, 14 (≈ 35 pp/game of robust regret); win-rate estimate from §5 (action + move swaps).
+floor of G39/G40. Cost: tens of engine answers per option, well inside "any device". Ceiling measured: the move swap,
+**+11.7 points** against s8; a book playout rather than the search's should keep most of it: estimate **+6 to +10**.
+Do moves first; the action swap says the action choice alone gains nothing.
 
 **F2. Sample the reveal at the card play (items 3, 4, 5, 9, 10).** CardSim resolves our card alone against an averaged
 threat map. Instead: K = 16 samples, each enemy's card drawn from its known hand (10) or possible pool (≤ 9) with
 weights from that enemy's book (softmax of `General.score` for PLAY_CARD from the enemy seat; the regret probe shows
 search with `rm` sampling is ~stable), allies' cards as now (G14), then F1's playout to the end of the turn, mean
 HEval (minus a small risk term). This replaces `CardSim.value`'s single action and the 0.65/colours weights.
-Expected: items 3–5, 9 (≈ 27 pp/game); §5 card swap bounds it.
+Ceiling measured: the card swap, **+8.6 points**; estimate **+4 to +7** on top of F1 (they overlap: both are
+"play the turn out"), more against s10, whose sampled card plays are what beats h10 today.
 
 **F3. The turn-4 escape check (items 5, 6, 13 and the empty-hand deaths).** When a card play or a turn-3 move leaves
 one card for turn 4 (`HContext.threatChances`, the `emptyNext` branch, and `PlayRules.keepSpare`): ask whether that
@@ -211,22 +256,28 @@ the attacker's, ties by the coin), and if not price the turn-4 defeat in full (`
 Corollary: do not keep the Silver (no movement) as the last card while an enemy who can reach us still holds an
 attack; spend it on turn 2–3 (G12's −8 for a Silver with no target is what pushes it last). Measured knobs
 `emptyCap`/`lethalEmpty` changed nothing because they scale a probability the look does not compute; this is a
-different test. Expected: a third of the 0.41 empty-hand deaths a game (vs s10) — about +3 points.
+different test. Expected: a third of the 0.41 empty-hand deaths a game (vs s10), about +2 to +3 points; part of it is already
+inside the move and card swaps.
 
 **F4. Colour timing (item 9).** G4 (`PlayRules.earlyRed`: −8 for a Red into a hero on turns 1–2) and `colourTempo`
 (Red −1.2 / −0.4 on turns 1 / 2, Blue +0.8 on turn 4) hold Red back where both oracles play it: h10 plays Red 13 times
-in 384 turn-1 plays, the net oracle's best is Red 37 times; on turn 4 h10 cashes Blue 55 times in 287, the oracle 28. Knob `earlyRed` exists;
-§5 measures `h10+earlyRed=0`. Under F2 these weights should go: the sampled turn sees what a Red does.
+in 384 turn-1 plays, the net oracle's best is Red 37 times; on turn 4 h10 cashes Blue 55 times in 287, the oracle 28. Knob `earlyRed` exists:
+`h10+earlyRed=0` won **59.4% against 53.1%** on the same 128 games (+6.3, §5). Confirm on held-out line-ups, then
+drop G4 (or keep it only below strength 7, where it is a designed beginner habit); under F2 `colourTempo` should go
+too: the sampled turn sees what a Red does.
 
 **F5. Identity Silvers and opaque bullets (items 1, 8).** Mostly the oracle's repeat-choice artifact (Nebkher, Wuk).
 What stays: Silver primaries the look scores level with Hold (Cutter, Snorri, Takahide's Gold swap, Emmitt's Glitch
 swap where the enemy picks the token) — a tie goes to the first option, PRIMARY. Break exact ties toward Hold in
 `HeuristicAi.pick` (look stage), and give Emmitt's `CHOOSE_TOKEN` from the enemy's seat its adversarial answer in his
-playbook. Small: ≈ 1–2 pp/game.
+playbook. Small: ≈ 1–2 pp/game; with F6 and F7 inside the +6.3 ceiling of the small-category swap.
 
-**F6. Strike worth with known hands (item 11).** `HContext.heroStrikeWorth` / `UnitRules` price a hit on a hero by
-kill chance; at 10 the hand is known: an attack the target holds a defense against is a forced discard
-(`discardWorth`), not a kill chance. h10 hits a hero 35% of the time; 10 of its 22 target disagreements are hero-over-minion.
+**F6. A poke is not a minion (item 11).** `HContext.heroStrikeWorth` already reads the known hand at 10 (kill chance
+0 when a defense holds), but a poke that only strips a card then collects G60's +3.5 / +6 (a teammate can reach) and
+the two-turn +2 on top of the discard (2–7): a defended poke reaches 8–15 and beats a minion. Give those bonuses only
+when the teammate's follow-up can actually finish with the cards it holds (its own `strikeFrom` on the stripped hand),
+and compare against the minion's lane share (`minionWorth`) rather than its coins. Small directly (2.8 pp/game), but it
+is one of the minion-race leaks of §4.
 
 **F7. Derive HOLD_LINE and a push-to-win intent (Throne and last push).** `TurnPlan.derive`: when our side of the lane
 is our last zone (`ctx.matchPoint` with the throne ours, or `stepsAgainst ≤ 1`) and the projected battle loses,

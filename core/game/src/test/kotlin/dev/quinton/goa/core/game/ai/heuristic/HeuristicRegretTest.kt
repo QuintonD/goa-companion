@@ -46,8 +46,9 @@ import org.junit.Test
  * measured on the other half: no winner's curse), and a state summary. A game ends with a "game" line.
  * Every question is also answered by a second opinion, the same search scored by the hand evaluation
  * instead of the net ("q" fields: model noise); `AI_H_REGRET_RETEST` (default 0.2) is the share of card plays
- * the oracle answers again with another seed ("r" fields: sampling noise). `AI_H_REGRET_BOTH=1` also probes the search side's own questions (a calibration: the
- * oracle's regret of a player that wins). `AI_FORMAT` and `AI_THREADS` (default 2) as elsewhere.
+ * the oracle answers again with another seed ("r" fields: sampling noise). `AI_H_REGRET_BOTH=1` also probes
+ * the search side's own questions (a calibration: the oracle's regret of a player that wins). `AI_H_REGRET_ALT=h8`
+ * values what another strength would have answered. `AI_FORMAT` and `AI_THREADS` (default 2) as elsewhere.
  *
  * `AI_H_REGRET_ONLY=<lineup>:<R|B>:<sN>:<decision id>[,…]` replays one game (h10 Red or Blue) to that question
  * and prints the position, h10's trace and the oracle's full analysis (examples in the review).
@@ -77,8 +78,9 @@ class HeuristicRegretTest {
     private val retest = System.getenv("AI_H_REGRET_RETEST")?.toDoubleOrNull() ?: 0.2
     private val both = System.getenv("AI_H_REGRET_BOTH") == "1"
 
-    /** `AI_H_REGRET_ALT=h8,h9`: other heuristic strengths asked the same question; the oracle values their answer too. */
-    private val alts = System.getenv("AI_H_REGRET_ALT")?.split(",")?.map { it.trim() }?.filter { it.isNotEmpty() }.orEmpty()
+    /** `AI_H_REGRET_ALT=h8,h9`: other strengths asked the same question; the oracle values their answer too. */
+    private val alts = System.getenv("AI_H_REGRET_ALT")?.split(",")?.map { it.trim() }
+        ?.filter { it.isNotEmpty() }.orEmpty()
 
     @Test
     fun `oracle regret of h10`() {
@@ -98,7 +100,8 @@ class HeuristicRegretTest {
                     val lines = game(all[i], i, hRed, opp, stopAt = null)
                     val secs = (System.nanoTime() - t0) / 1e9
                     synchronized(this) { out.appendText(lines.joinToString("\n", postfix = "\n")) }
-                    println("REGRET game $i ${if (hRed) "R" else "B"} vs $opp: ${lines.size - 1} questions in ${secs.toInt()} s")
+                    val side = if (hRed) "R" else "B"
+                    println("REGRET game $i $side vs $opp: ${lines.size - 1} questions in ${secs.toInt()} s")
                 }
             }
         }
@@ -112,7 +115,13 @@ class HeuristicRegretTest {
 
     /** One game; the JSON lines (questions, then the game line). [stopAt]: replay to that question and print it. */
     @Suppress("LongMethod", "CyclomaticComplexMethod")
-    private fun game(lineup: Pair<List<String>, List<String>>, index: Int, hRed: Boolean, opp: String, stopAt: Long?): List<String> {
+    private fun game(
+        lineup: Pair<List<String>, List<String>>,
+        index: Int,
+        hRed: Boolean,
+        opp: String,
+        stopAt: Long?,
+    ): List<String> {
         val (red, blue) = lineup
         val coin = if (index % 2 == 0) Team.RED else Team.BLUE
         val seed = 50_000L + index
@@ -178,7 +187,11 @@ class HeuristicRegretTest {
         val ms = (System.nanoTime() - t0) / 1_000_000
         // The same oracle again with another seed on a share of the card plays (the only questions it samples).
         val twice = d.kind == DecisionKind.PLAY_CARD && unit(gameId, d.id) < retest
-        val again = if (twice) oracle.analyze(es, d, oseed xor RETEST_SALT, { false }, Long.MAX_VALUE, mustInclude = chosen) else null
+        val again = if (twice) {
+            oracle.analyze(es, d, oseed xor RETEST_SALT, { false }, Long.MAX_VALUE, mustInclude = chosen)
+        } else {
+            null
+        }
         val other = second.analyze(es, d, oseed, { false }, Long.MAX_VALUE, mustInclude = chosen)
         val st = es.state
         val hero = st.hero(d.seat)
@@ -218,7 +231,7 @@ class HeuristicRegretTest {
                     "hScores",
                     buildJsonArray {
                         opts.indices.sortedByDescending { v[it] }.take(TOP).forEach { i ->
-                            add(buildJsonArray { add(JsonPrimitive(label(es, opts[i]))); add(JsonPrimitive(round2(v[i]))) })
+                            add(pair(label(es, opts[i]), v[i]))
                         }
                     },
                 )
@@ -272,7 +285,7 @@ class HeuristicRegretTest {
                 "top",
                 buildJsonArray {
                     opts.indices.sortedByDescending { means[it] }.take(TOP).forEach { i ->
-                        add(buildJsonArray { add(JsonPrimitive(label(es, opts[i].choice))); add(JsonPrimitive(round2(means[i]))) })
+                        add(pair(label(es, opts[i].choice), means[i]))
                     }
                 },
             )
@@ -299,6 +312,11 @@ class HeuristicRegretTest {
             paired(sel, values[mine], f).average().takeIf { !it.isNaN() } ?: 0.0
         }
         return Verdict(bi, diffs.average().takeIf { !it.isNaN() } ?: 0.0, se(diffs), folds.average(), diffs.size)
+    }
+
+    private fun pair(label: String, value: Double): JsonArray = buildJsonArray {
+        add(JsonPrimitive(label))
+        add(JsonPrimitive(round2(value)))
     }
 
     private fun putAll(b: kotlinx.serialization.json.JsonObjectBuilder, prefix: String, o: JsonObject) {
@@ -368,7 +386,11 @@ class HeuristicRegretTest {
     private fun label(es: EngineSession, c: Choice): String = when (c) {
         is Choice.Card -> {
             val card = runCatching { es.engineData.card(c.cardId) }.getOrNull()
-            if (card == null) "card:${c.cardId}" else "card:${c.cardId}:${card.primary?.name ?: "-"}:i${card.initiative ?: 0}"
+            if (card == null) {
+                "card:${c.cardId}"
+            } else {
+                "card:${c.cardId}:${card.primary?.name ?: "-"}:i${card.initiative ?: 0}"
+            }
         }
 
         is Choice.Space -> "space:${c.hex.q},${c.hex.r}"

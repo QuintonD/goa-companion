@@ -42,52 +42,55 @@ class HeuristicDiagTest {
         val jobs = ArrayList<Callable<List<String>>>()
         for (i in first until first + lineups) {
             val (red, blue) = all[i]
-            for (aRed in listOf(true, false)) jobs += Callable {
-                val out = ArrayList<String>()
-                val coin = if (i % 2 == 0) Team.RED else Team.BLUE
-                val seed = (50_000L + i) * 2
-                val aTeam = if (aRed) Team.RED else Team.BLUE
-                val lines = ArrayList<Pair<Int, String>>()
-                var seenEvents = 0
-                var lastKey = -1
-                val pa = player(aName, if (aRed) seed else seed + 1)
-                (pa as? HeuristicAi)?.trace = { line -> lines += lastKey to "    > $line" }
-                val pb = player(bName, if (aRed) seed + 1 else seed)
-                val r = AiHarness.play(
-                    AiHarness.setup(red, blue, AiLevel.NORMAL, AiLevel.NORMAL, coin, format.length, format.mapId),
-                    mapOf(
-                        Team.RED to if (aRed) pa else pb,
-                        Team.BLUE to if (aRed) pb else pa,
-                    ),
-                    observe = { s, d ->
-                        val st = s.state
-                        val key = st.round * 8 + st.turn
-                        seenEvents = drain(s, seenEvents, key, lines)
-                        if (key != lastKey && d.kind == DecisionKind.PLAY_CARD) {
-                            lastKey = key
-                            lines += key to status(s)
-                        }
-                        if (d.team == aTeam && d.options.size > 1 &&
-                            d.kind in setOf(DecisionKind.DEFEND, DecisionKind.PLAY_CARD)
-                        ) {
-                            lines += key to "    ? ${d.seat} ${d.kind} options ${d.options.size}"
-                        }
-                    },
-                )
-                drain(r.session, seenEvents, Int.MAX_VALUE, lines)
-                val aWon = r.winner == aTeam
-                out += "DIAG game ${red + blue} a=$aName ${if (aRed) "Red" else "Blue"} won=$aWon rounds=${r.rounds} " +
-                    "reason ${r.session.state.winReason} a ${tally(r.session, aTeam)} | b ${tally(r.session, aTeam.opponent)}"
-                val heroesA = (if (aRed) red else blue).toSet()
-                val keys = lines.filter { (_, l) ->
-                    l.startsWith("  X ") && heroesA.any { h -> l.startsWith("  X $h ") }
-                }.map { it.first }.toSortedSet()
-                if (!aWon) lines.lastOrNull()?.let { keys += it.first }
-                val show = keys.flatMap { listOf(it - 1, it) }.toSet()
-                // AI_H_DIAG_ALL: every line of the games side a lost.
-                val all = System.getenv("AI_H_DIAG_ALL") != null && !aWon
-                for ((k, l) in lines) if (all || k in show || (k == Int.MAX_VALUE && !aWon)) out += "DIAG $l"
-                out
+            for (aRed in listOf(true, false)) {
+                jobs += Callable {
+                    val out = ArrayList<String>()
+                    val coin = if (i % 2 == 0) Team.RED else Team.BLUE
+                    val seed = (50_000L + i) * 2
+                    val aTeam = if (aRed) Team.RED else Team.BLUE
+                    val lines = ArrayList<Pair<Int, String>>()
+                    var seenEvents = 0
+                    var lastKey = -1
+                    val pa = player(aName, if (aRed) seed else seed + 1)
+                    (pa as? HeuristicAi)?.trace = { line -> lines += lastKey to "    > $line" }
+                    val pb = player(bName, if (aRed) seed + 1 else seed)
+                    val r = AiHarness.play(
+                        AiHarness.setup(red, blue, AiLevel.NORMAL, AiLevel.NORMAL, coin, format.length, format.mapId),
+                        mapOf(
+                            Team.RED to if (aRed) pa else pb,
+                            Team.BLUE to if (aRed) pb else pa,
+                        ),
+                        observe = { s, d ->
+                            val st = s.state
+                            val key = st.round * 8 + st.turn
+                            seenEvents = drain(s, seenEvents, key, lines)
+                            if (key != lastKey && d.kind == DecisionKind.PLAY_CARD) {
+                                lastKey = key
+                                lines += key to status(s)
+                            }
+                            if (d.team == aTeam && d.options.size > 1 &&
+                                d.kind in setOf(DecisionKind.DEFEND, DecisionKind.PLAY_CARD)
+                            ) {
+                                lines += key to "    ? ${d.seat} ${d.kind} options ${d.options.size}"
+                            }
+                        },
+                    )
+                    drain(r.session, seenEvents, Int.MAX_VALUE, lines)
+                    val aWon = r.winner == aTeam
+                    out += "DIAG game ${red + blue} a=$aName ${if (aRed) "Red" else "Blue"} won=$aWon rounds=${r.rounds} " +
+                        "reason ${r.session.state.winReason} a ${tally(r.session, aTeam)} | " +
+                        "b ${tally(r.session, aTeam.opponent)}"
+                    val heroesA = (if (aRed) red else blue).toSet()
+                    val keys = lines.filter { (_, l) ->
+                        l.startsWith("  X ") && heroesA.any { h -> l.startsWith("  X $h ") }
+                    }.map { it.first }.toSortedSet()
+                    if (!aWon) lines.lastOrNull()?.let { keys += it.first }
+                    val show = keys.flatMap { listOf(it - 1, it) }.toSet()
+                    // AI_H_DIAG_ALL: every line of the games side a lost.
+                    val all = System.getenv("AI_H_DIAG_ALL") != null && !aWon
+                    for ((k, l) in lines) if (all || k in show || (k == Int.MAX_VALUE && !aWon)) out += "DIAG $l"
+                    out
+                }
             }
         }
         // AI_THREADS: games at once; each game's lines are printed together, in line-up order.
