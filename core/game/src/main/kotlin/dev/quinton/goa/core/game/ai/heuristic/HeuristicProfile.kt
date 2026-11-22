@@ -50,6 +50,12 @@ data class HeuristicProfile(
      * answered by that enemy's book from the known hand, instead of stopping and pricing it from the pool.
      */
     val knowLook: Boolean = false,
+    /**
+     * Inside a look (strength 7+, [Look.MOVES]): how many of this hero's own choices after the answer are
+     * branched, and how many of the book's answers each branch tries ([CardSim]). Knobs `branch`, `width`.
+     */
+    val lookBranches: Int = 1,
+    val lookWidth: Int = 4,
     /** Softmax temperature in coin-equivalents. 0 is argmax. */
     val temperature: Double,
     /** Options more than this far behind the best are never picked, temperature aside. */

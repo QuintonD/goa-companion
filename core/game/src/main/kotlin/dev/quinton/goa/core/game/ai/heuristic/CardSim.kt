@@ -107,12 +107,20 @@ internal object CardSim {
                 val init = ctx.card(played.id).initiative + ctx.itemBonus(a.id, Stat.INITIATIVE)
                 (a.id to init).takeIf { init > ours }
             }.maxByOrNull { it.second }?.first ?: return null
-        val st = ctx.state.copy()
+        return actAlone(ctx, ctx.state, ally, d.id)
+    }
+
+    /**
+     * [ally]'s action alone on a copy of [from], with its own book; null when it needs a hidden answer,
+     * or cannot be finished. The teammate's card is known to its team (a computer's facedown card).
+     */
+    private fun actAlone(ctx: HContext, from: GameState, ally: String, salt: Long): GameState? {
+        val st = from.copy()
         st.revealed = false
         st.step = Step.RESOLVE
         st.acting = null
         st.vars[NEXT_ACTOR] = ally
-        val rng = Random(HeuristicAi.mix(d.id, ally.hashCode().toLong()))
+        val rng = Random(HeuristicAi.mix(salt, ally.hashCode().toLong()))
         val sim = EngineSession(ctx.session.engineData, ctx.session.setup, st, rng)
         sim.quiet = true
         sim.haltWhen = { s -> ally in s.turnRecord.resolved || s.step != Step.RESOLVE }
@@ -134,7 +142,7 @@ internal object CardSim {
 
     /**
      * Finish the action on [f]. This hero's first [branches] choices after the action (where to stand,
-     * whom to hit, which bullet) try the best [WIDTH] answers of the static book and keep the best
+     * whom to hit, which bullet) try the best [HeuristicProfile.lookWidth] answers of the static book and keep the best
      * position; later choices, and anyone else's, take the book's answer. An enemy's defense ends the
      * look: [score] gets the strike priced from the pool.
      */
@@ -185,11 +193,14 @@ internal object CardSim {
         return best
     }
 
-    /** The best of the book's first [WIDTH] answers to [d], each finished; null when none was accepted. */
+    /**
+     * The best of the book's first [HeuristicProfile.lookWidth] answers to [d], each finished; null when none
+     * was accepted.
+     */
     private fun branch(ctx: HContext, c: HContext, f: EngineSession, d: Decision, branches: Int, look: Look): Double? {
         val ranked = ranked(c, d, ctx.seat) ?: return null
         var best: Double? = null
-        for (o in ranked.take(ctx.profile.knob("width", WIDTH.toDouble()).toInt())) {
+        for (o in ranked.take(ctx.profile.knob("width", ctx.profile.lookWidth.toDouble()).toInt())) {
             val g = f.forkSession()
             if (g.answer(d.id, o) is AnswerResult.Accepted) {
                 val v = run(ctx, g, branches - 1, look)
@@ -345,7 +356,8 @@ internal object CardSim {
                 val sim = EngineSession(data, ctx.session.setup, st, Random(HeuristicAi.mix(d.id, k.toLong())))
                 sim.quiet = true
                 sim.start()
-                sum += run(ctx, sim, ctx.profile.knob("revealBranch", 0.0).toInt(), SampleLook(ctx, turn), actions = true)
+                val branches = ctx.profile.knob("revealBranch", 0.0).toInt()
+                sum += run(ctx, sim, branches, SampleLook(ctx, turn), actions = true)
             }
             out[i] = sum / samples
         }
@@ -490,7 +502,8 @@ internal object CardSim {
     }
 
     private fun branchesOf(ctx: HContext): Int {
-        val default = if (ctx.profile.lookahead >= HeuristicProfile.Look.MOVES) 1.0 else 0.0
+        val moves = ctx.profile.lookahead >= HeuristicProfile.Look.MOVES
+        val default = if (moves) ctx.profile.lookBranches.toDouble() else 0.0
         return ctx.profile.knob("branch", default).toInt()
     }
 
@@ -502,9 +515,34 @@ internal object CardSim {
         return Lookahead.pooled(at, d) * (1.0 - flee)
     }
 
+    /**
+     * REVIEW-2-design #5 (knob `allyAfter`): a computer teammate whose facedown card (known to its team)
+     * acts after ours resolves with its own book once our action is done, so our card is scored with
+     * the minion it takes and the hero it strips. Enemies acting between us stay in the threat map.
+     */
+    private fun postlude(ctx: HContext, f: EngineSession, init: Int): GameState? {
+        if (!ctx.profile.focusFire || !ctx.profile.on("allyAfter", false) || f.pending != null) return null
+        val s = f.state
+        val computer = ctx.session.setup.seats.filter { it.controller != Controller.Human }.map { it.heroId }.toSet()
+        val ally = s.heroes.filter { a ->
+            a.team == ctx.team && a.id != ctx.seat && a.id in computer && a.at != null && a.id !in s.turnRecord.resolved
+        }.mapNotNull { a ->
+            val played = a.cards.singleOrNull { it.zone == Zone.PLAYED } ?: return@mapNotNull null
+            val ini = ctx.card(played.id).initiative + ctx.itemBonus(a.id, Stat.INITIATIVE)
+            (a.id to ini).takeIf { ini < init }
+        }.maxByOrNull { it.second }?.first ?: return null
+        return try {
+            actAlone(ctx, s, ally, ctx.decision?.id ?: 0L)
+        } catch (e: CancellationException) {
+            throw e
+        } catch (_: Exception) {
+            null
+        }
+    }
+
     /** The position on [f], from the answering team, with our exposure split by initiative. */
     private fun scoreCard(ctx: HContext, f: EngineSession, origin: Hex?, init: Int, strike: Double): Double {
-        val end = f.state.copy()
+        val end = (postlude(ctx, f, init) ?: f.state).copy()
         end.revealed = false
         end.acting = null
         val e = HContext(
@@ -598,8 +636,6 @@ internal object CardSim {
     private const val PRELUDE_CAP = 24
     private const val PRELUDE = "cardSim.prelude"
 
-    /** Answers tried at a branched choice. */
-    private const val WIDTH = 4
 
     /** This hero's own choices after the action that are worth a few tries. */
     private val BRANCHED = setOf(
