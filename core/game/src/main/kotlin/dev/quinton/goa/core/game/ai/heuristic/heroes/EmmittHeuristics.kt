@@ -43,11 +43,8 @@ object EmmittHeuristics : HeroHeuristics {
         val at = me.at ?: return 0.0
         return when (choice.cardId) {
             in PUNCH -> punch(ctx, me, at, choice.cardId)
-
             in SNARE -> snare(ctx, me, at, choice.cardId)
-
             in GOLD -> gold(ctx, me, at, choice.cardId)
-
             else -> 0.0
         }
     }
@@ -70,7 +67,8 @@ object EmmittHeuristics : HeroHeuristics {
     private fun connectChance(ctx: HContext, me: HeroState, at: Hex, cardId: String): Double {
         val total = ctx.card(cardId).attack + ctx.itemBonus(me.id, Stat.ATTACK)
         val heroOnly = cardId == "emmitt-handicap"
-        if (!heroOnly && ctx.state.minions.any { BatchC.takeable(ctx, it) && ctx.distance(at, it.at!!) == 1 }) return 1.0
+        val minion = ctx.state.minions.any { BatchC.takeable(ctx, it) && ctx.distance(at, it.at!!) == 1 }
+        if (!heroOnly && minion) return 1.0
         var best = 0.0
         for (e in BatchASupport.enemiesWithin(ctx, at, 1)) {
             if (e.hand.isEmpty()) return 1.0
@@ -108,7 +106,8 @@ object EmmittHeuristics : HeroHeuristics {
                     v += PAIR * ((1.0 - escape) + escape * FORCED)
                 }
                 val hit = BatchASupport.chanceHolds(ctx, e) { c ->
-                    c.attackCard && c.initiative + theirs <= SLOW && ctx.distance(pos, a) <= ctx.attackReach(e.id, c) + 1
+                    c.attackCard && c.initiative + theirs <= SLOW &&
+                        ctx.distance(pos, a) <= ctx.attackReach(e.id, c) + 1
                 }
                 if (hit <= 0.0) continue
                 val out = hand.any { it.initiative + items < SLOW }

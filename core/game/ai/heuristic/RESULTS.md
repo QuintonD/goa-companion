@@ -146,3 +146,158 @@ Held out, line-ups 300–395, 192 mirrored 2v2 games: h10 vs s8 106–86 = 55.2%
 h10 won by last push 54 / Life 23 / Throne 29, s8 by 52 / 24 / 10. Defeats a game h10 0.91, s8 1.13 (with no
 card to defend 77 / 63). Answers h10 3.3 / 11.0 / 311 ms (mean / p95 / max), s8 20.0 / 74.7 / 561 ms.
 Unchanged from before the review (55.2% on the same line-ups).
+
+## Wave 3 — Track D (hero playbooks)
+
+All games are mirrored 2v2 on development line-ups (1000+) unless labelled otherwise. "With : without" seats the
+hero on both sides, with its playbook on one side and the general book on the other. 192 games give an interval of
+about ±7 points, so most single rows below are noise. Under the wave-3 audit's rule, a keep or switch-off decision
+needs an interval clear of 50% (≥ 256 games) or an SPRT verdict.
+
+### What changed (commits c2417904, cf1d9f9a, b2e09ac0 and this one)
+
+- **Five playbooks (REVIEW-2-design §5.3).**
+  - Rowenna: the execute is gated on `ctx.defenseless` and her initiative, upgrades toward it and keeps it.
+  - Emmitt: Reverse Time is priced by the reversed order.
+  - Mortimer: knife Attack is valued against the target's defense pool by `killWorth`; board terms raised to the
+    research values; only the next wave's spawns are avoided.
+  - Hanu: Hurry up! is valued by the pairs whose order it flips; the Ultimate's steal is priced by the stolen card.
+  - Nebkher: Illusion sites and board terms.
+- **Hygiene (§5.4, #19).**
+  - `PlaybookSupport`: `extraReach` / `extraAttack` (a threat beyond printed reach priced from the possible
+    pool, a share not a "may hold" gate), `loss`, `poolShare`, and one `moveOutlook`.
+  - Victim-aware `threatAdjust(ctx, enemy, target, victimId)`: additive in HeroHeuristics.kt and HContext.kt,
+    default = the old overload.
+  - Weighted pool gates for Silverarrow and Takahide; Mrak kills by `killWorth`.
+- **Measurement.**
+  - LegacyPlaybooks (test side) and `AI_H_VS=legacy`.
+  - `AI_H_LEGACY_BOOK`: the whole book against the old one.
+  - `AI_H_FIRST`, `AI_H_SKIP` and `AI_H_OUT`.
+  - Ablation modes `noeval`, `nothreat`, `noplay` and `nochoose` (built but not run: the work was frozen first).
+  - `SearchPlaybookAblationTest` (below).
+- **Switched off at strength 10:** `HeroPlaybooks.offAtTen = {mortimer}` (the table below). `HeroPlaybooks.forStrength(s)`
+  is now the default playbook function of HeuristicAi and HContext (Track A files, one default argument each) and of
+  BookPolicy (Track C). Strengths 1–9 are unchanged. A test that passes its own playbook function is unaffected.
+- **`pbooks=0` (HybridAi / BookPolicy, Track C files, additive)** now strips the playbooks from the whole search:
+  - candidate order and card values;
+  - the opponent model's card weights;
+  - every playout seat;
+  - the HEval leaf's `evalTerms` and `threatAdjust`. The previous version removed them from the playouts only:
+    the leaf's HContext used the registry directly.
+
+  Answers outside the search scope (HybridAi's `book`) keep them.
+
+### The five, measured (with : without at strength 8; current : legacy playbook at strength 10)
+
+| Hero | s8 with : without (192) | s10 current : legacy |
+|---|---|---|
+| rowenna | 53.1% [46.1–60.1] | 50.0% (192); 51.0% (192, after the upgrade fix); 52.0% [45.8–58.0] (256, 1200+) |
+| emmitt | 47.4% [40.5–54.4] | 49.0% [42.0–56.0] |
+| mortimer | 48.4% [41.5–55.5] | 55.2% [48.1–62.1], then 49.0% [42.0–56.0] |
+| hanu | 44.3% [37.4–51.3] | 41.1% [34.4–48.2] with a card-play Hurry estimate (removed); then 49.5% (192) and 48.8% [42.8–54.9] (256, 1200+) |
+| nebkher | 52.6% [45.6–59.5] | 49.5% [42.5–56.5] |
+
+The whole current book against the whole legacy book at strength 10 scored 56.8% [49.7–63.6] (1000+, 192) and
+51.2% [45.1–57.2] (1200+, 256). No row is a gain under the audit's rule: the five rewrites measure neutral. The one
+clear finding is a loss that was removed (Hanu's card-play estimate).
+
+### All 32 at strength 10 (with : without)
+
+The first column is line-ups 1000+, 192 games each. Every hero under 48% was played again on a fresh set
+(`AI_H_SKIP=96`, the next 192 games that seat it): the whole book, then its notes with the default style, then its
+style alone.
+
+| Hero | 1000+ (192) | Wilson | fresh set (192) | full / notes / style | Both (384) | Wilson |
+|---|---|---|---|---|---|---|
+| arien | 45.8% | 38.9–52.9 | 56.8% | 56.8 / 55.2 / 51.6 | 51.3% | 46.3–56.3 |
+| bain | 52.6% | 45.6–59.5 | | | | |
+| brogan | 55.7% | 48.7–62.6 | | | | |
+| brynn | 51.6% | 44.5–58.5 | | | | |
+| cutter | 43.8% | 36.9–50.8 | 50.5% | 50.5 / 47.9 / 51.0 | 47.1% | 42.2–52.1 |
+| dodger | 47.9% | 41.0–55.0 | 50.5% | 50.5 / 47.4 / 50.0 | 49.2% | 44.3–54.2 |
+| emmitt | 52.6% | 45.6–59.5 | | | | |
+| garrus | 56.8% | 49.7–63.6 | | | | |
+| gydion | 50.0% | 43.0–57.0 | | | | |
+| hanu | 51.0% | 44.0–58.0 | | | | |
+| ignatia | 45.3% | 38.4–52.4 | 54.2% | 54.2 / 54.2 / 57.8 | 49.7% | 44.8–54.7 |
+| min | 47.4% | 40.5–54.4 | 47.9% | 47.9 / 47.4 / 48.4 | 47.7% | 42.7–52.7 |
+| misa | 43.2% | 36.4–50.3 | 49.5% | 49.5 / 49.5 / 47.9 | 46.4% | 41.4–51.4 |
+| mortimer | 44.8% | 37.9–51.9 | 44.8% | 44.8 / 45.8 / 49.5 | 44.8% | 39.9–49.8 |
+| mrak | 48.4% | 41.5–55.5 | | | | |
+| nebkher | 56.8% | 49.7–63.6 | | | | |
+| razzle | 56.2% | 49.2–63.1 | | | | |
+| rowenna | 53.6% | 46.6–60.6 | | | | |
+| sabina | 50.0% | 43.0–57.0 | | | | |
+| silverarrow | 55.7% | 48.7–62.6 | | | | |
+| snorri | 45.8% | 38.9–52.9 | 55.2% | 55.2 / 51.0 / 47.4 | 50.5% | 45.5–55.5 |
+| swift | 46.4% | 39.4–53.4 | 46.9% | 46.9 / 48.4 / 53.1 | 46.6% | 41.7–51.6 |
+| takahide | 46.9% | 39.9–53.9 | 49.5% | 49.5 / 52.1 / 49.0 | 48.2% | 43.2–53.2 |
+| tali | 44.8% | 37.9–51.9 | 50.0% | 50.0 / 47.9 / 51.0 | 47.4% | 42.5–52.4 |
+| tigerclaw | 49.5% | 42.5–56.5 | | | | |
+| trinkets | 52.6% | 45.6–59.5 | | | | |
+| ursafar | 46.9% | 39.9–53.9 | 56.2% | 56.2 / 55.2 / 51.0 | 51.6% | 46.6–56.5 |
+| wasp | 51.6% | 44.5–58.5 | | | | |
+| whisper | 50.0% | 43.0–57.0 | | | | |
+| widget | 54.2% | 47.1–61.1 | | | | |
+| wuk | 53.1% | 46.1–60.1 | | | | |
+| xargatha | 50.5% | 43.5–57.5 | | | | |
+
+Over all 32 heroes the first column sums to 3075–3069: **50.0% [48.8–51.3] over 6144 games**. At strength 10 the
+playbooks add nothing to the book on average. That agrees with REVIEW-2-design §5.1: at 5+, the look discards most of
+what they say. The fresh set pulled most of the losers back to ~50% (Arien 45.8 → 56.8, Ignatia 45.3 → 54.2, Snorri
+45.8 → 55.2, Ursafar 46.9 → 56.2). Only **Mortimer** loses with an interval clear of 50%: 44.8% twice, 172–212 of
+384 = 44.8% [39.9–49.8]. His notes lose (45.8%); his style is neutral (49.5%). He is switched off at strength 10.
+Swift (46.6% [41.7–51.6]), Misa (46.4% [41.4–51.4]), Cutter, Tali and Min sit at 46–48% with intervals that
+include 50%. They stay on, unproven either way.
+
+### Inside the search (x10, HEval leaf)
+
+`SearchPlaybookAblationTest` (`AI_PB_SEARCH=x10+pol=1+scope=2`): x10 with the HEval leaf (`leaf=0`, the default) head
+to head against the same search with `pbooks=0`, which removes the playbooks from candidate order, the opponent model,
+the playouts and the leaf. The test runs mirrored 2v2 development line-ups from 2000 in batches of 16 line-ups, with two
+pentanomial SPRTs (α = β = 0.05): 55% against 50%, and 45% against 50%.
+
+| Games | With : without | Win | Wilson | Pairs (paired interval) | SPRT 55% | SPRT 45% |
+|---|---|---|---|---|---|---|
+| 32 | 20–12 | 62.5% | 45.3–77.1 | 0/0/12/0/4 (51.9–73.1) | going on | going on |
+| 64 | 39–25 | 60.9% | 48.7–71.9 | 3/0/19/0/10 (50.6–71.3) | going on | going on |
+| 96 | 55–41 | 57.3% | 47.3–66.7 | 6/0/29/0/13 (48.6–65.9) | going on | going on |
+| **128** | **74–54** | **57.8%** | **49.2–66.0** | 8/0/38/0/18 (50.2–65.4) | going on | **H0: not a loss** |
+
+The run was stopped at 128 games, after the loss test had decided, to free the machine for Tracks A–C (the audit's
+instruction). Over those games:
+
+- Defeats per game: 0.81 with the playbooks, 1.01 without. With no card left to defend: 63 against 71.
+- Wins by last push / Life / Throne: 45 / 20 / 9 with the playbooks, 32 / 13 / 9 without.
+- Wall time: about 150 s a game, x10 against x10, three games at once on the shared machine, so these times are an
+  upper bound.
+
+The SPRT rules out a loss: inside the search no playbook set is switched off beyond Mortimer (switched off on the
+book's evidence above). A gain is likely but not proven. The Wilson interval includes 50%, though the paired interval
+(50.2–65.4) does not, and the 55% test had not decided. Under the audit's rule that is not yet a keep decision.
+
+So the playbooks matter far more inside the search than in the book: 50.0% over 32 heroes as h10, about +8 points
+as x10's policy and leaf terms. This run did not separate the playouts from the leaf. A run that only drops the leaf's
+`evalTerms` would split them (a one-line change in HybridAi.leaf).
+
+### Tests and lint (this branch)
+
+- **Build of d83cb767 (this track's code before the lint fixes).** `jvmTest --rerun` on `*heuristic*`, `*hybrid*`,
+  `*NoPeeking*` and `*Parity*`: 106 tests, 1 failure. The failure is GameParityTest's seeded AI game (the transcript
+  hash), which seats no Mortimer, at strengths below 10. It changed with the playbook threat terms of the first two
+  Track D commits. The hash is re-pinned to the JVM's `b8a8999d…`. `compileKotlinJs` passed.
+- **Lint on Track D files.** detekt and ktlint failures in Emmitt, Hanu, Nebkher, Rowenna and Takahide are fixed
+  without changing behaviour (wrapping, constants, Hanu's flip loop as a function).
+- **Lint outside Track D, left to its owners.** Failures that predate this track: Search.kt, hybrid/BookPolicy.kt
+  lines 40 / 120 / 165, hybrid/HybridAi.kt, hybrid/HybridPlayers.kt, HeuristicTournamentTest, HeuristicRegretTest,
+  HeuristicDiagTest, test/HybridAi.kt and NoPeekingTest's import order.
+- **Not verified.** The re-run after these fixes never ran. It covered the same tests, `jsNodeTest --tests '*Parity*'`
+  (the JS hash against the re-pin), detekt, ktlint and compileKotlinJs. It waited more than 2 hours for the machine's
+  build lock and was stopped at the tool's time limit. The integrator's build must run it.
+
+### What is left
+
+- Finish the in-search SPRT (`AI_H_FIRST=2128`, about 30 min a batch), then split playouts from the leaf.
+- If the net leaf ships (owner update), repeat the ablation with `leaf=2`: only the playouts then carry the playbooks.
+- The 46–48% heroes (Swift, Misa, Cutter, Tali, Min) have no proven loss. They need SPRTs, not more single runs.
+- The REVIEW-2-design §5.3/5.4 gaps not touched: set-up positioning, a `style(ctx)` overload, the core gaps.

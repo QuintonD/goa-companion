@@ -35,6 +35,7 @@ object TakahideHeuristics : HeroHeuristics {
     private const val STING = "takahide-gold-extra-1"
     private const val STRIKE = "takahide-gold-extra-2"
     private const val HANDICAP = "takahide-handicap"
+    private val GOLDS = setOf(STING, STRIKE, FLOAT)
 
     private val allyCards = setOf(
         "takahide-green-1",
@@ -73,7 +74,7 @@ object TakahideHeuristics : HeroHeuristics {
         val ring = ctx.card(STING).range + ctx.itemBonus(heroId, Stat.RANGE)
         if (ctx.distance(at, target) !in 2 until ring) return 0.0
         // #19: the Sting's share of his golds, not "only when Strike and Float are both ruled out".
-        val golds = ctx.possibleCards(heroId).filter { it.card.id == STING || it.card.id == STRIKE || it.card.id == FLOAT }
+        val golds = ctx.possibleCards(heroId).filter { it.card.id in GOLDS }
         val total = golds.sumOf { it.weight }
         if (total <= 0.0) return 0.0
         return -1.5 * golds.filter { it.card.id == STING }.sumOf { it.weight } / total

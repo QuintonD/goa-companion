@@ -138,30 +138,31 @@ object HanuHeuristics : HeroHeuristics {
         val before = card.initiative + items
         val after = HURRY + items
         if (before == after) return NOTHING
-        var v = 0.0
-        for (other in ctx.state.heroes) {
-            if (other.id == hero.id || other.id == ctx.seat || other.team == hero.team) continue
-            if (other.at == null || !ctx.stillToAct(other.id)) continue
-            val oc = other.unresolved.firstOrNull()?.let { ctx.card(it.id) } ?: continue
-            val oi = oc.initiative + ctx.itemBonus(other.id, Stat.INITIATIVE)
-            val was = actsFirst(ctx, hero, before, other, oi)
-            val now = actsFirst(ctx, hero, after, other, oi)
-            if (was == now) continue
-            // The pair's order flips. Ours is the hero on our team; it now goes first or now goes second.
-            val (us, usCard, them, themCard) = if (ally) {
-                Quad(hero, card, other, oc)
-            } else {
-                Quad(other, oc, hero, card)
-            }
-            val oursFirst = if (ally) now else !now
-            val gain = firstWorth(ctx, us, usCard, them, themCard)
-            v += if (oursFirst) gain else -gain
-        }
-        return v
+        return ctx.state.heroes.sumOf { other -> flip(ctx, hero, card, before, after, other) }
     }
 
-    /** [a] acting before [b] at these Initiatives; a tie across teams goes to the Tie Breaker coin's team. */
-    private fun actsFirst(ctx: HContext, a: HeroState, ai: Int, b: HeroState, bi: Int): Boolean =
+    /**
+     * What moving [hero]'s [card] from Initiative [before] to [after] is worth against [other], an enemy of it
+     * still to act: nothing unless the pair's order flips. Ours is the hero on our team; it now goes first or
+     * now goes second.
+     */
+    @Suppress("LongParameterList")
+    private fun flip(ctx: HContext, hero: HeroState, card: HCard, before: Int, after: Int, other: HeroState): Double {
+        if (other.id == hero.id || other.id == ctx.seat || other.team == hero.team) return 0.0
+        if (other.at == null || !ctx.stillToAct(other.id)) return 0.0
+        val oc = other.unresolved.firstOrNull()?.let { ctx.card(it.id) } ?: return 0.0
+        val oi = oc.initiative + ctx.itemBonus(other.id, Stat.INITIATIVE)
+        val now = actsFirst(ctx, hero, after, oi)
+        if (actsFirst(ctx, hero, before, oi) == now) return 0.0
+        val ally = hero.team == ctx.team
+        val q = if (ally) Quad(hero, card, other, oc) else Quad(other, oc, hero, card)
+        val oursFirst = if (ally) now else !now
+        val gain = firstWorth(ctx, q.us, q.usCard, q.them, q.themCard)
+        return if (oursFirst) gain else -gain
+    }
+
+    /** [a] acting before a hero at Initiative [bi]; a tie across teams goes to the Tie Breaker coin's team. */
+    private fun actsFirst(ctx: HContext, a: HeroState, ai: Int, bi: Int): Boolean =
         ai > bi || (ai == bi && ctx.state.tieBreaker == a.team)
 
     /** What our hero [us] gains by acting before their hero [them], each on its revealed card. */

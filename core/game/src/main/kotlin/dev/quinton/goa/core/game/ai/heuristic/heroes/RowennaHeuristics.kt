@@ -105,13 +105,9 @@ object RowennaHeuristics : HeroHeuristics {
         val at = me.at ?: return 0.0
         return when (id) {
             in executes -> execute(ctx, me, id)
-
             in shots -> openingShots(ctx, me, at) + BatchC.heroOnlyDiscard(ctx, id, BatchC.radiusOf(ctx, id))
-
             "rowenna-silver" -> if (BatchC.enemiesWithin(ctx, at, 4).isEmpty()) -2.0 else 0.0
-
             in golds -> goldTarget(ctx, at)
-
             else -> 0.0
         }
     }

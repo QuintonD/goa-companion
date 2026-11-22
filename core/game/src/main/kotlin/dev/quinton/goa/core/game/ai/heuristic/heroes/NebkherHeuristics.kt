@@ -37,7 +37,7 @@ object NebkherHeuristics : HeroHeuristics {
         DecisionKind.PLAY_CARD -> play(ctx, choice)
         DecisionKind.CHOOSE_OPTION -> colour(ctx, d, choice)
         DecisionKind.CHOOSE_SPACE -> if (d.prompt.startsWith("Place an Illusion")) site(ctx, choice) else 0.0
-        DecisionKind.CHOOSE_TOKEN -> if (d.prompt.startsWith("You may swap with an Illusion")) swap(ctx, choice) else 0.0
+        DecisionKind.CHOOSE_TOKEN -> if (d.prompt.startsWith(SWAP_PROMPT)) swap(ctx, choice) else 0.0
         else -> 0.0
     }
 
@@ -52,7 +52,9 @@ object NebkherHeuristics : HeroHeuristics {
             val beside = illusions.count { token ->
                 state.heroes.any { enemy ->
                     enemy.team != me.team &&
-                        enemy.at?.let { HexGrid.distance(it, token.at!!) == 1 && HexGrid.distance(hero, it) <= RED_A_RANGE } == true
+                        enemy.at?.let {
+                            HexGrid.distance(it, token.at!!) == 1 && HexGrid.distance(hero, it) <= RED_A_RANGE
+                        } == true
                 }
             }
             // Research §evalTerms: an Illusion beside an enemy hero in his red range is the red A target, +5
@@ -193,6 +195,7 @@ object NebkherHeuristics : HeroHeuristics {
     }
 
     private const val RED_A_RANGE = 5
+    private const val SWAP_PROMPT = "You may swap with an Illusion"
     private const val GOLD_RANGE = 5
     private val RED_A = setOf("nebkher-red-1", "nebkher-red-2a", "nebkher-red-3a")
 
