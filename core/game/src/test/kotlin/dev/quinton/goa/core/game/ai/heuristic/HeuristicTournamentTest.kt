@@ -53,6 +53,7 @@ class HeuristicTournamentTest {
             println(
                 "H_TOURNAMENT   card play ${a.label} ${ms(aPlays)} ms, ${b.label} ${ms(bPlays)} ms (mean / p95 / max)",
             )
+            hybridStats()?.let { println("H_TOURNAMENT   $it") }
             if (System.getenv("AI_H_LINES") != null) score.lines.forEach { println("H_TOURNAMENT   game $it") }
             System.getenv("AI_H_OUT")?.let { out ->
                 java.io.File(out).appendText(
@@ -63,6 +64,20 @@ class HeuristicTournamentTest {
                 )
             }
         }
+    }
+
+    /** The hybrid players of the last pair: playouts, memo hits, samples drawn and distinct. */
+    private val hybrids = Collections.synchronizedList(ArrayList<dev.quinton.goa.core.game.ai.hybrid.HybridAi>())
+
+    /** Order-free fingerprint of every answer with two or more options (same answers, same hash). */
+    private val answersHash = java.util.concurrent.atomic.AtomicLong()
+
+    private fun hybridStats(): String? {
+        val all = synchronized(hybrids) { hybrids.toList().also { hybrids.clear() } }
+        if (all.isEmpty()) return null
+        val t = LongArray(4)
+        for (h in all) h.stats.forEachIndexed { i, v -> t[i] += v }
+        return "answers hash ${answersHash.getAndSet(0)}; hybrid playouts ${t[0]}, memo hits ${t[1]}, samples ${t[2]} drawn / ${t[3]} distinct"
     }
 
     private fun ms(times: List<Long>): String {
@@ -93,7 +108,9 @@ class HeuristicTournamentTest {
             'h', 'H' -> HeuristicAi(n, seed, tune = tune)
             's', 'S' -> AiPlayers.searchDeterministic(n, seed)
             // The search prototypes of REVIEW-2-search.md (strength 10 only).
-            'x', 'X' -> HybridPlayers.hybrid(seed, tune, runner)
+            'x', 'X' -> HybridPlayers.hybrid(seed, tune, runner).also {
+                (it as? dev.quinton.goa.core.game.ai.hybrid.HybridAi)?.let(hybrids::add)
+            }
             'y', 'Y' -> HybridPlayers.searchWithBook(seed, tune, runner)
             else -> error("AI_H_TOURNAMENT wants h6 or s6, not $spec")
         }
@@ -106,6 +123,9 @@ class HeuristicTournamentTest {
             val dt = System.nanoTime() - t0
             if (decision.options.size > 1) times.add(dt)
             if (decision.options.size > 1 && decision.kind == DecisionKind.PLAY_CARD) plays.add(dt)
+            if (decision.options.size > 1) {
+                answersHash.accumulateAndGet(decision.id * 31 + choice.hashCode()) { x, y -> x + y * 0x9E3779B1L }
+            }
             return choice
         }
     }
