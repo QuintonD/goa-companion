@@ -331,7 +331,11 @@ object HEval {
         for ((c, w) in cards) {
             if (!c.attackCard || !c.hitsMinions) continue
             val reach = ctx.attackReach(h.id, c).coerceAtLeast(1)
-            if (d <= reach) near += w else if (d <= reach + 2) far += w
+            if (d <= reach) {
+                near += w
+            } else if (d <= reach + 2) {
+                far += w
+            }
         }
         val cap = left.toDouble()
         val n = min(near, cap) + 0.35 * min(far, (cap - near).coerceAtLeast(0.0))

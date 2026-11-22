@@ -128,7 +128,7 @@ class HybridAi(
                             answered.incrementAndFetch()
                             playout(f, team, horizon, seenOf, HeuristicAi.mix(base, i.toLong()))
                             values[j][i] = leaf(f, team, seenByUs, leafEval)
-                            leafObserver?.invoke(d, i, j, f, team)
+                            observe(d, i, j, f, team)
                         }
                     }
                 }
@@ -172,6 +172,10 @@ class HybridAi(
      * sample, the candidate's index and the deciding team. Null in play. Runs on the sample's thread.
      */
     var leafObserver: ((Decision, Int, Int, EngineSession, Team) -> Unit)? = null
+
+    private fun observe(d: Decision, sample: Int, candidate: Int, leaf: EngineSession, team: Team) {
+        leafObserver?.invoke(d, sample, candidate, leaf, team)
+    }
 
     /**
      * What is searched: every card for a card play; for another question the book's own answer and its

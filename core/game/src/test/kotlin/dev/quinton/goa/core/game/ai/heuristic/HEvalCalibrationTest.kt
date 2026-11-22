@@ -210,8 +210,10 @@ class HEvalCalibrationTest {
         val lane = st.battleZones.keys.firstOrNull()
         val zones = lane?.let { ctx.game.geo.lanes[it]?.zones }
         val i = zones?.indexOf(st.battleZones[lane]) ?: -1
-        val toWin = if (zones == null || i < 0) -1 else if (team == Team.RED) zones.lastIndex - i else i
-        val toLose = if (zones == null || i < 0) -1 else if (team == Team.RED) i else zones.lastIndex - i
+        val redToWin = if (zones != null && i >= 0) zones.lastIndex - i else -1
+        val blueToWin = if (redToWin >= 0) i else -1
+        val toWin = if (team == Team.RED) redToWin else blueToWin
+        val toLose = if (team == Team.RED) blueToWin else redToWin
         return listOf(
             own.sumOf { it.hand.size }, foe.sumOf { it.hand.size },
             lane?.let { ctx.minionCount(team, it) } ?: 0,
