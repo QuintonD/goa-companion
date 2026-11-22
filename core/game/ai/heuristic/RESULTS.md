@@ -266,6 +266,27 @@ playouts: with the net leaf it solves 9 more puzzles (solver truth), on the orac
 from the net-based oracle, with HEval even; it costs 3.5–4× per answer. Undecided on positions: games are running
 (x10 leaf=2 with and without F1 in the book, 256 games).
 
+### Held-out checkpoints (line-ups 300–395 / 600–695; no longer clean per the audit, so checkpoints, not the final table)
+
+Today's strength 10 (= `h10+branch=2+knowLook=1` in the build these ran on; the same code paths as the committed
+profile), mirrored, `AI_THREADS=3`, shared machine (times are upper bounds). The sealed final range 5000+ was not run.
+
+| Row | Line-ups | Games | Won | Rate | Wilson 95% | Pairs (lost both / split / won both) | Before wave 3 | Answer ms mean / p95 / max |
+|---|---|---|---|---|---|---|---|---|
+| h10 vs s8, 2v2 | 300–395 | 192 | 135–57 | **70.3%** | 63.5–76.3 | 7 / 43 / 46 | 55.2% | 16.4 / 56.3 / 1031 |
+| h10 vs s8, 2v2 | 600–695 | 192 | 116–76 | **60.4%** | 53.4–67.1 | 9 / 58 / 29 | 53.1% | 16.5 / 55.8 / 1073 |
+| h10 vs s8, 3v3 | 300–347 | 96 | 68–28 | **70.8%** | 61.1–79.0 | 2 / 24 / 22 | — | 28.1 / 95.8 / 1998 |
+| h10 vs s10, 2v2 | 300–395 | 192 | 46–146 | 24.0% | 18.5–30.5 | 55 / 36 / 5 | 15.6% | 15.1 / 52.1 / 870 (s10 416 / 1296 / 8195) |
+| h10 vs h9 | 300–395 | 192 | 114–78 | 59.4% | 52.3–66.1 | 9 / 60 / 27 | 50.5% (h10:h8) | 15.6 / 53.8 / 884 |
+| h9 vs h8 | 300–395 | 192 | 101–91 | 52.6% | 45.6–59.5 | 16 / 59 / 21 | — | 13.8 / 46.5 / 871 |
+| h8 vs h5 | 300–395 | 192 | 117–75 | 60.9% | 53.9–67.6 | 12 / 51 / 33 | — | 4.8 / 16.7 / 112 |
+
+Defeats a game, h10 / s8: 0.89 / 1.35 (300–395; with no card to defend 40 / 76), 0.78 / 1.35 (600–695; 38 / 88);
+3v3 1.45 / 2.03. The book against s8 gained 15 points on 300–395 and 7 on 600–695; against s10 it gained 8 and is
+still far behind (s10 wins 146 of 192): the book alone is not strength 10's answer to the old search; the hybrid
+search on top of it is (Track C). The ladder: 10 over 9 holds held-out (59.4%); 9 over 8 is 52.6% here against
+58.6% and 59.4% on the two development sets (over all 640 games 365–275 = 57.0%).
+
 ### The position bench (`AiPositionBenchTest`, for every track)
 
 Decision quality on fixed positions, before games (wave-3 audit). Opt-in:
