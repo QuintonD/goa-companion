@@ -150,7 +150,7 @@ class HEvalCalibrationTest {
     @Test
     fun `fit the terms to outcomes`() {
         val files = System.getenv("AI_HEVAL_FIT")?.split(",") ?: return
-        val l2 = System.getenv("AI_HEVAL_L2")?.toDoubleOrNull() ?: 0.002
+        val l2s = System.getenv("AI_HEVAL_L2")?.split(",")?.map { it.trim().toDouble() } ?: listOf(0.002)
         val chosen = System.getenv("AI_HEVAL_TERMS")?.split(",")?.map { HTerm.byLabel.getValue(it.trim()) } ?: HTerm.entries
         val filter = System.getenv("AI_HEVAL_PLAYERS")?.toRegex()
         val rows = files.flatMap { load(File(it.trim()), filter) }
@@ -172,8 +172,13 @@ class HEvalCalibrationTest {
         val x = { r: Row -> DoubleArray(idx.size) { r.f[idx[it]] } }
         val sd = DoubleArray(idx.size) { j -> sqrt(train.sumOf { it.f[idx[j]] * it.f[idx[j]] } / train.size).coerceAtLeast(1e-6) }
         val prior = DoubleArray(idx.size) { k * hand.w[idx[it]] }
-        val v = fit(train.map(x), train.map { it.won }, prior, sd, l2, train.map(offset))
-        report("fitted terms (l2 $l2)", test.map { r -> offset(r) + x(r).indices.sumOf { v[it] * x(r)[it] } }, test)
+        var best: Pair<Double, DoubleArray>? = null
+        for (l2 in l2s) {
+            val fv = fit(train.map(x), train.map { it.won }, prior, sd, l2, train.map(offset))
+            val loss = report("fitted terms (l2 $l2)", test.map { r -> offset(r) + x(r).indices.sumOf { fv[it] * x(r)[it] } }, test)
+            if (best == null || loss < best.first) best = loss to fv
+        }
+        val v = best!!.second
         println("HEVAL_FIT   term          hand      fit   fit/hand    rms(f)  rms(w·f)")
         for ((j, i) in idx.withIndex()) {
             val t = HTerm.entries[i]
@@ -206,7 +211,7 @@ class HEvalCalibrationTest {
         }
     }
 
-    private fun report(name: String, z: List<Double>, rows: List<Row>) {
+    private fun report(name: String, z: List<Double>, rows: List<Row>): Double {
         val q = z.map { 1 / (1 + exp(-it)) }
         val loss = q.indices.sumOf { val p = q[it].coerceIn(1e-9, 1 - 1e-9); if (rows[it].won) -ln(p) else -ln(1 - p) } / q.size
         val brier = q.indices.sumOf { val e = q[it] - (if (rows[it].won) 1.0 else 0.0); e * e } / q.size
@@ -229,6 +234,7 @@ class HEvalCalibrationTest {
                 "$label ${"%.4f".format(l)} (${ix.size})"
             },
         )
+        return loss
     }
 
     /**

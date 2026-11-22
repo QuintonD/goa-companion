@@ -103,12 +103,51 @@ class HEvalWeights(val name: String, val w: DoubleArray, val laneDelta: Double) 
     fun with(t: HTerm, value: Double): HEvalWeights =
         HEvalWeights(name, w.copyOf().also { it[t.ordinal] = value }, laneDelta)
 
+    /** These weights, renamed [newName], with [edits] in place. */
+    fun edit(newName: String, vararg edits: Pair<HTerm, Double>, delta: Double = laneDelta): HEvalWeights {
+        val c = w.copyOf()
+        for ((t, v) in edits) c[t.ordinal] = v
+        return HEvalWeights(newName, c, delta)
+    }
+
     companion object {
         /** The weights the book was measured with before wave 3 (the default behaviour). */
         val HAND: HEvalWeights = HEvalWeights("hand", DoubleArray(HTerm.entries.size) { HTerm.entries[it].hand }, 1.0)
 
+        /**
+         * Fitted to the outcomes of 1,200 h10 games (h10 self-play and h10 against s8, line-ups 2000–2299),
+         * 4-fold cross-validated log-loss 0.587 against the hand weights' 0.593 (HEVAL.md "Fit 1"). The
+         * minion opportunity is the pool-weighted [HTerm.OPP_POOL]; off the board carries no flat price.
+         */
+        val FIT: HEvalWeights = HAND.edit(
+            "fit",
+            HTerm.LANE to 1.94, HTerm.LANE_MATCH to 1.01, HTerm.MARGIN to -1.83, HTerm.LIFE to 1.16,
+            HTerm.COINS to 1.67, HTerm.LEVELS to 1.0, HTerm.HAND to 1.97, HTerm.HAND_RATING to 2.02,
+            HTerm.LANE_THREAT to 0.298, HTerm.EXPOSURE to -0.44, HTerm.OPP_POOL to 5.05, HTerm.OPPORTUNITY to 0.0,
+            HTerm.OFF_BOARD to 0.0,
+        )
+
+        /** The terms fitted by least squares to the old learned net's logit (R² 0.93; HEVAL.md "Distilled"). */
+        val DISTIL: HEvalWeights = HAND.edit(
+            "distil",
+            HTerm.LANE to 1.576, HTerm.LANE_MATCH to 0.304, HTerm.MARGIN to 0.877, HTerm.LIFE to 1.384,
+            HTerm.PIECES to 0.868, HTerm.COINS to 1.537, HTerm.LEVELS to 1.918, HTerm.COUNTERS to 0.585,
+            HTerm.HAND to 2.208, HTerm.HAND_RATING to 5.137, HTerm.OFF_BOARD to -4.297, HTerm.PRESENCE to 1.144,
+            HTerm.OPPORTUNITY to 1.850, HTerm.LANE_THREAT to 0.116, HTerm.ZONE_PULL to 0.255, HTerm.EXPOSURE to -0.392,
+            HTerm.PLAYBOOK to 0.250, HTerm.OPP_POOL to 0.366, HTerm.ACCESS to 0.432, HTerm.LANE_PROJ to 0.269,
+        )
+
+        /** Every term fitted to outcomes, presence, zone pull, access and off the board included. */
+        val FIT_ALL: HEvalWeights = HAND.edit(
+            "fitAll",
+            HTerm.LANE to 1.969, HTerm.LANE_MATCH to 1.001, HTerm.MARGIN to -1.788, HTerm.LIFE to 1.222,
+            HTerm.COINS to 1.847, HTerm.LEVELS to 1.017, HTerm.HAND to 2.010, HTerm.HAND_RATING to 1.928,
+            HTerm.OFF_BOARD to 6.785, HTerm.PRESENCE to -0.992, HTerm.LANE_THREAT to 0.309, HTerm.ZONE_PULL to -0.812,
+            HTerm.EXPOSURE to -0.428, HTerm.OPP_POOL to 5.857, HTerm.ACCESS to 2.583, HTerm.OPPORTUNITY to 0.0,
+        )
+
         /** Weight sets by number (`hev=1`). 0 is [HAND]. */
-        val SETS: List<HEvalWeights> = listOf(HAND)
+        val SETS: List<HEvalWeights> = listOf(HAND, FIT, DISTIL, FIT_ALL)
 
         /** The set the book uses when no knob says otherwise. */
         const val DEFAULT_SET: Int = 0
