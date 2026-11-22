@@ -133,7 +133,7 @@ signature heuristic must fire (use `position/PositionBuilder` or a seeded game a
 | 5–6 | + hero playbooks, turn plans | low, slips 3–5% |
 | 7–8 | + initiative reading (enemy possible cards), focus fire / team coordination, card counting | very low |
 | 9 | + two-turn plans (strip-then-kill, defender held back for a teammate), lane timing; after the reveal every look plays the rest of the turn (F1, `turnRest`) and every own square is looked at; the last card's escape on turn 4 (F3) | none on critical choices |
-| 10 | 9 + `knowHands` (ADR-062): inside those turns enemy defenses are answered from the known hand | argmax |
+| 10 | 9 + `knowHands` (ADR-062): inside those turns, and in the card play's own-action look (`knowLook`), enemy defenses are answered from the known hand; two of its own choices inside every look are branched (`lookBranches = 2`, 9 and below 1). Measured h10 : h9 56.6% on 256 development games (RESULTS.md, wave 3) | argmax |
 
 Defences and lane-deciding moves never slip (they feel broken, not human). Saves from before the slider
 map levels to strengths as now (Easy 2, Normal 6, Hard 8, Expert 10).
