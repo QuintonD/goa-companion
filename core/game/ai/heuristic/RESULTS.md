@@ -146,3 +146,24 @@ Held out, line-ups 300–395, 192 mirrored 2v2 games: h10 vs s8 106–86 = 55.2%
 h10 won by last push 54 / Life 23 / Throne 29, s8 by 52 / 24 / 10. Defeats a game h10 0.91, s8 1.13 (with no
 card to defend 77 / 63). Answers h10 3.3 / 11.0 / 311 ms (mean / p95 / max), s8 20.0 / 74.7 / 561 ms.
 Unchanged from before the review (55.2% on the same line-ups).
+
+## Wave 3 — Track A (policy: the book's decisions, 2026-11-22)
+
+Mirrored 2v2, development line-ups 1064–1159 (96 line-ups, 192 games a row, the same games in every row unless
+noted), `AI_THREADS=3` on a shared oldboi. Wilson 95% intervals; pairs = h lost both / split / won both.
+
+### What changed
+
+- **F1, the rest of the turn after the reveal** (`CardSim.RestLook`, profile `turnRest`, knob `rest`). Every look
+  at a decision during the resolution (actions, squares, targets, bullets, our defenses) answers the option on a
+  fork and plays the turn to its end: every hero still to act resolves its revealed card with its own static book
+  (its playbook's `adjust`/`override`), our own first choice after the answer tries the book's best 4, and on
+  turn 4 the round ends through the engine (minion battle, push, level-ups) and the look stops at the next card
+  play. `HEval` scores where the turn leaves everyone. Every own square is looked at (64, was 6), and G2's square
+  trap (`SpaceRules.commitment`) is off in these looks: the attack is played, not guessed. An enemy defense or
+  discard: at 10 its book answers from the known hand (ADR-062); at 9 the look stops and prices it from the pool.
+- **F3, the last card's escape** (`HContext.escapeSlack`, knob `escape`, on with `turnRest`). A hero entering
+  a turn with one card has nothing to defend with; a threat acting after that card misses when the card's
+  movement takes it out of reach first. A Silver (no movement) or a slower card cannot escape: the threat map
+  prices the defeat in full.
+- **Strengths.** 9 and 10 have `turnRest` (F1 + F3). 8 and below are unchanged.

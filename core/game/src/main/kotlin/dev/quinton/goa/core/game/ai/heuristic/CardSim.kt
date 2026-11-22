@@ -224,6 +224,14 @@ internal object CardSim {
     private class CardLook(val ctx: HContext, val origin: Hex?, val init: Int) : Look {
         override val viewer get() = ctx.team
 
+        /** Strength 10 (knob `knowLook`): the enemy's hand is known (ADR-062), so its book answers its defense. */
+        private val known = ctx.profile.knowHands && ctx.profile.on("knowLook", ctx.profile.knowLook)
+
+        override val everyBook: Boolean get() = known
+
+        override fun hidden(f: EngineSession, d: Decision): Boolean =
+            !known && Lookahead.hiddenAnswer(f.state, d, ctx.team)
+
         override fun stop(f: EngineSession, d: Decision): Boolean = false
 
         override fun strike(f: EngineSession, d: Decision): Double = strikeOf(ctx, f, d, init)

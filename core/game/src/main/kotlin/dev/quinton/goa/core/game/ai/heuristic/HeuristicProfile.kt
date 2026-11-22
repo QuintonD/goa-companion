@@ -45,6 +45,11 @@ data class HeuristicProfile(
      * known pool, softmax of its card looks) instead of uniformly by colour ([CardSim.cardModel]).
      */
     val predictCards: Boolean = false,
+    /**
+     * Strength 10: the card play's own-action look continues through an enemy's defense or discard,
+     * answered by that enemy's book from the known hand, instead of stopping and pricing it from the pool.
+     */
+    val knowLook: Boolean = false,
     /** Softmax temperature in coin-equivalents. 0 is argmax. */
     val temperature: Double,
     /** Options more than this far behind the best are never picked, temperature aside. */
