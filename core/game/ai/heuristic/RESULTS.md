@@ -184,10 +184,57 @@ played. A round-end horizon on turn 4 is what the turn horizon already does (a t
 round's end: minion battle, push, level-ups). Regret matching at card plays (ADR-061) measured nothing against
 s10 and every opponent here is deterministic; not retried. Card pruning (`prune`) is built and off.
 
-### Shipped: strength 10 = W2
+Note (audit, 2026-11-22): W1 and W2 were kept on 128-game results whose intervals include 50%; they are the base of
+what follows but not proven gains on their own. Later keep decisions use the pentanomial SPRT (`AI_SPRT=0.55`, p0
+0.5, α β 0.05, batches of 16 line-ups, `HeuristicTournamentTest`) or 256 mirrored games.
 
-`x10+pol=1+scope=3+leaf=2+tt=1+K=24+topS=8+topU=6+rep=4` is `AiPlayers.forStrength(10, …)` (`SEARCH_10`, leaf
-`SEARCH_10_LEAF = HybridLeaf.NET`). Strengths 1–9 are the book (`HeuristicAi`). No wall clock: the same answers on
-every device; `cancelled()` stops it and the book answers.
+### W2 against the old search, held out (net leaf)
 
-FINAL_TABLE
+Line-ups 300–395 (held-out checkpoint; no longer clean, see the audit), 2v2, `AI_THREADS=3`:
+
+| Pair | Line-ups | Games | Win | Wilson | Pairs | Defeats / game (variant / s10) | Answer ms mean / p95 / max | Card play ms | s10 answer ms |
+|---|---|---:|---:|---|---|---|---|---|---|
+| W2 : s10 | 300–347 | 96 | 54.2% | 44.2–63.8 | 8/0/28/0/12 | 0.92 / 1.34 | 244 / 1115 / 8730 | 666 / 2142 / 8730 | 424 / 1351 / 6892 |
+| W2 : s10 | 348–395 | 96 | 54.2% | 44.2–63.8 | 11/0/22/0/15 | 0.78 / 1.29 | 241 / 1112 / 7487 | 650 / 2132 / 7487 | 417 / 1317 / 9590 |
+| W2 : s10 | 300–395 | 192 | **54.2%** | 47.1–61.1 | 19/0/50/0/27 | | | | |
+
+Times are upper bounds: oldboi is shared by four agents and three games run at once.
+
+### The owner's ruling and the HEval leaf
+
+The learned net is the old search's ensemble. Strength 10's leaf is one switch (`AiPlayers.SEARCH_10_LEAF`); it
+ships whichever leaf measures strongest (Track B's HEval, or a new net added as another `HybridLeaf`). Development
+here uses the net leaf (`leaf=2`, the strongest today) and each kept change is re-checked with `leaf=0`.
+
+| Variant (leaf 0) | Spec | Opponent | Line-ups | Win | Wilson | Pairs | Card play ms | Kept |
+|---|---|---|---|---:|---|---|---|---|
+| round horizon at card plays | W2(leaf 0) `+hz=3` | W2(leaf 0) | 1000–1031 | 32.8% | 22.6–45.0 | 13/0/17/0/2 | 2 501 / 8 739 / 25 519 vs 634 | no (worse, and 25 s max) |
+
+A whole round of book play before the leaf is worse than the turn horizon with HEval: the book's own errors over
+four turns outweigh what the leaf no longer has to judge.
+
+### The tree after the reveal (`td`, `tw`, `te`, `tk`, `tc`)
+
+After the reveal strength 10 knows every hand, so a question's samples merge into one position and each candidate
+had one deterministic book playout. The tree spends that budget on a minimax over the rest of the turn: after a
+candidate, the next `td` questions with more than one option branch — ours to the best for us, the enemy's to the
+worst for us (`te` 1; `te` 0 lets the book answer for the enemy) — over the book's own answer plus its best by
+static score (`tw` options in all, the book's first so alpha-beta cuts early); forced answers are free; at depth 0
+the book plays out to the turn's end (the memo's playout, so the memo is shared) and the leaf scores it. The tree
+never branches on a card play (simultaneous and hidden). `tk` limits the kinds that branch; `tc` puts the same tree
+under a card play's candidates (after our card and the column's enemy replies). Answers are the same on any runner
+and with the memo off (`HybridSearchTest`).
+
+| Variant | Spec | Opponent | Line-ups | Games | Win | Wilson | Pairs | Answer ms (variant / opponent) | Card play ms | Kept |
+|---|---|---|---|---:|---:|---|---|---|---|---|
+| tree depth 2, width 3 (**W2T**) | W2 `+td=2+tw=3` | W2 | 1100–1227 | 256 | **56.6%** | 50.5–62.6 | 20/0/71/0/37 | 282 / 232 mean, 1 144 / 1 049 p95 | 627 / 630 mean, max 8 291 | yes (256 games, interval above 50%; SPRT still open) |
+
+PENDING: the card-play tree (`tc`), the leaf-0 check of W2T, and W2T against s10.
+
+### Strength 10 in AiPlayers
+
+`AiPlayers.forStrength(10, …)` is the hybrid search with `AiPlayers.SEARCH_10` and the leaf
+`AiPlayers.SEARCH_10_LEAF`; strengths 1–9 are the book (`HeuristicAi`). No wall clock: the same answers on every
+device; `cancelled()` stops it and the book answers. The server's takeover plays strength 4 (the book) and stays
+bounded. A lighter search at 9 was not wired: the search reads enemy hands as strength 10 does (ADR-062), so a
+strength-9 search needs a book without hand knowledge and its own measurements.

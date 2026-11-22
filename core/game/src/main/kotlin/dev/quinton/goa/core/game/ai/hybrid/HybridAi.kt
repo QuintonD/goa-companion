@@ -157,7 +157,8 @@ class HybridAi(
         val usePrior = isPlay && config.prior != 0.0
         val found = Array(candidates.size) { arrayOfNulls<List<MemoKey>>(g) }
         // The tree after the reveal ([HybridConfig.treeDepth]): its frontier playouts' paths and values, per task.
-        val useTree = !isPlay && config.treeDepth > 0 && horizon == HybridHorizon.TURN
+        val treeDepth = if (isPlay) config.treeCard else config.treeDepth
+        val useTree = treeDepth > 0 && horizon == HybridHorizon.TURN
         val treeFound = Array(candidates.size) { arrayOfNulls<List<Pair<List<MemoKey>, Double>>>(g) }
         val rootTurn = turnIndex(es.state)
         val tasks = ArrayList<() -> Unit>()
@@ -187,9 +188,9 @@ class HybridAi(
                                 val out = if (memoHere) ArrayList<Pair<List<MemoKey>, Double>>() else null
                                 val t = TreeRun(
                                     team, seenOf, s.salt, if (memoHere) snapshot else null, view, out,
-                                    leafEval, seenByUs, rootTurn, cancelled,
+                                    leafEval, seenByUs, rootTurn, cancelled, col.reply,
                                 )
-                                values[j][i] = tree(f, config.treeDepth, Double.NEGATIVE_INFINITY, Double.POSITIVE_INFINITY, t)
+                                values[j][i] = tree(f, treeDepth, Double.NEGATIVE_INFINITY, Double.POSITIVE_INFINITY, t)
                                 treeFound[j][i] = out
                             } else {
                                 val path = if (memoHere) ArrayList<MemoKey>() else null
@@ -315,7 +316,11 @@ class HybridAi(
         /** The real question's turn: the tree ends with it (the turn horizon). */
         val turn: Int,
         val cancelled: () -> Boolean,
-    )
+        /** The column's enemy replies at a card play (0: the book's), drawn as [playout] draws them. */
+        val reply: Int = 0,
+    ) {
+        val replyRng: Random? = if (reply > 0) Random(HeuristicAi.mix(salt, REPLY_SALT + reply)) else null
+    }
 
     /**
      * Minimax with alpha-beta over the rest of the turn from [f] ([HybridConfig.treeDepth]): [depth] more
@@ -335,16 +340,25 @@ class HybridAi(
             if (d.options.size > 1) {
                 if (depth <= 0 || t.cancelled()) {
                     val path = if (t.out != null) ArrayList<MemoKey>() else null
-                    val v = playout(f, t.team, HybridHorizon.TURN, t.seenOf, t.salt, t.memo, t.view, path, t.leafEval, t.seen)
+                    val v = playout(
+                        f, t.team, HybridHorizon.TURN, t.seenOf, t.salt, t.memo, t.view, path, t.leafEval, t.seen, t.reply,
+                    )
                     if (path != null) t.out?.add(path to v)
                     return v
                 }
                 val ours = d.team == t.team
-                val branches = (config.treeKinds.isEmpty() || d.kind in config.treeKinds) && (ours || config.treeEnemy == 1)
+                // Card plays are simultaneous and hidden: the tree branches only after the reveal.
+                val branches = d.kind != DecisionKind.PLAY_CARD &&
+                    (config.treeKinds.isEmpty() || d.kind in config.treeKinds) && (ours || config.treeEnemy == 1)
                 if (branches) break
             }
             val mode = if (d.team == t.team) config.ownPolicy else config.enemyPolicy
-            val c = if (d.options.size == 1) d.options[0] else policy.answer(f, d, mode, t.seenOf(d.team), t.salt)
+            val drawn = if (t.replyRng != null && d.team != t.team && d.kind == DecisionKind.PLAY_CARD && d.options.size > 1) {
+                drawReply(f, d, t.seenOf, t.replyRng)
+            } else {
+                null
+            }
+            val c = drawn ?: if (d.options.size == 1) d.options[0] else policy.answer(f, d, mode, t.seenOf(d.team), t.salt)
             if (!BookPolicy.play(f, d, c)) return leaf(f, t.team, t.seen, t.leafEval)
             answered.incrementAndFetch()
         }

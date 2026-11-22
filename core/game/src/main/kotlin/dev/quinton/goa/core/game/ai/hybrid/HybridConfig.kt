@@ -139,6 +139,11 @@ data class HybridConfig(
      * covers, the book plays out to the horizon and the leaf scores it.
      */
     val treeDepth: Int = 0,
+    /**
+     * The tree under a card play's candidates: after our card (and the column's enemy replies), a minimax
+     * this many choices deep over the rest of the turn once the cards are revealed (0 = off: one playout).
+     */
+    val treeCard: Int = 0,
     /** Options per tree node: the book's own answer plus its best by static score, this many in all. */
     val treeWidth: Int = 3,
     /** Enemy nodes in the tree: 1 the enemy takes its worst-for-us option (minimax), 0 the book answers. */
@@ -175,7 +180,7 @@ data class HybridConfig(
             "K", "Ko", "top", "hz", "hzo", "leaf", "pol", "polE", "scope", "model", "tau", "prior", "risk",
             "dd", "tt", "kill", "prune", "hz1", "hz2", "hz3", "hz4", "hzo1", "hzo2", "hzo3", "hzo4", "topS", "topU",
             "rep", "repM", "repT", "lavg", "mm",
-            "td", "tw", "te", "tk",
+            "td", "tw", "te", "tk", "tc",
         )
 
         fun fromKnobs(k: Map<String, Double>): HybridConfig {
@@ -210,6 +215,7 @@ data class HybridConfig(
                 worstReply = k["mm"] ?: d.worstReply,
                 treeDepth = k["td"]?.toInt() ?: d.treeDepth,
                 treeWidth = k["tw"]?.toInt() ?: d.treeWidth,
+                treeCard = k["tc"]?.toInt() ?: d.treeCard,
                 treeEnemy = k["te"]?.toInt() ?: d.treeEnemy,
                 treeKinds = k["tk"]?.let { treeKindsOf(it.toInt()) } ?: d.treeKinds,
             )
