@@ -3,15 +3,22 @@
 ADR-035 point 3, ADR-039, PRODUCT §9. The strategy knowledge behind it is [STRATEGY.md](STRATEGY.md);
 this file is how the code uses it, what each strength does, what it costs and how strong it is.
 
-## The computer player is the heuristic book (ADR-085)
+## The computer player is the heuristic book, and at 10 a search over it (ADR-085)
 
-The player a game seats (`AiPlayers.forApp`, `forStrength`, `deterministic`, `forLevel`) is the
-heuristic book: a general playbook plus one file per hero, in
+The player a game seats (`AiPlayers.forApp`, `forStrength`, `deterministic`, `forLevel`) is, at
+strengths 1–9, the heuristic book: a general playbook plus one file per hero, in
 [`ai/heuristic/`](heuristic/README.md). The contract is [`heuristic/DESIGN.md`](heuristic/DESIGN.md).
-Strength 1–10 still means the same bands (Easy 2, Normal 6, Hard 8, Expert 10). The search described
-below — determinized playouts, the learned net — is no longer that player. It remains the coach, the
-puzzle solver, and `AiPlayers.searchDeterministic` / `searchForStrength`, so a tournament can still
-measure the book against it. Do not delete it.
+At strength 10 it is the hybrid search over that book (`ai/hybrid/HybridAi`, ADR-085 addendum "Wave 3"):
+every question with a choice is tried on determinized copies, each candidate played out to the end of
+the turn by the book for every seat and scored by the leaf `AiPlayers.SEARCH_10_LEAF` (the old learned
+ensemble today; `HybridLeaf.HEVAL` is the book's own value, one switch). Its knobs are
+`AiPlayers.SEARCH_10`; the measurements are in [`heuristic/RESULTS.md`](heuristic/RESULTS.md) "Wave 3 —
+Track C". No wall clock (the same answers on every device); cancelling stops it and the book answers.
+Strength 1–10 still means the same bands (Easy 2, Normal 6, Hard 8, Expert 10). The old search described
+below — determinized playouts with the search's own policy, the learned net — is no longer a seated
+player. It remains the coach, the puzzle solver, and `AiPlayers.searchDeterministic` /
+`searchForStrength`, so a tournament can still measure against it; its learned ensemble is strength 10's
+leaf. Do not delete it.
 
 Measured strength of the book (2026-11-21, held-out line-ups, [`heuristic/RESULTS.md`](heuristic/RESULTS.md)):
 strength 10 wins 54.2% of 2v2 games against the old search at 8 (55.2% and 53.1% on two held-out sets),
