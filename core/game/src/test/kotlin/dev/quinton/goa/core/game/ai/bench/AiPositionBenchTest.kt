@@ -16,6 +16,7 @@ import dev.quinton.goa.core.game.ai.WinChance
 import dev.quinton.goa.core.game.ai.heuristic.HeuristicAi
 import dev.quinton.goa.core.game.ai.hybrid.HybridPlayers
 import dev.quinton.goa.core.game.engine.EngineSession
+import dev.quinton.goa.core.game.engine.GameEngine
 import dev.quinton.goa.core.game.puzzles.AnswerKey
 import dev.quinton.goa.core.game.puzzles.Node
 import dev.quinton.goa.core.game.puzzles.PreparedPuzzle
@@ -25,6 +26,7 @@ import dev.quinton.goa.core.game.puzzles.book.Puzzles
 import dev.quinton.goa.core.model.match.Team
 import java.io.File
 import java.util.concurrent.Callable
+import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.Executors
 import java.util.zip.GZIPInputStream
 import java.util.zip.GZIPOutputStream
@@ -72,6 +74,7 @@ class AiPositionBenchTest {
         System.getenv("AI_BENCH_MAKE")?.toIntOrNull()?.let { return make(it) }
         val specs = System.getenv("AI_BENCH")?.split(",")?.map { it.trim() }?.filter { it.isNotEmpty() } ?: return
         val sets = (System.getenv("AI_BENCH_SETS") ?: "puzzles,rounds,probe").split(",").map { it.trim() }.toSet()
+        loadVerdicts()
         for (spec in specs) {
             val t0 = System.nanoTime()
             val rows = ArrayList<Row>()
@@ -79,7 +82,29 @@ class AiPositionBenchTest {
             if ("rounds" in sets) rows += puzzleRows(spec, Puzzles.fullRounds, "rounds")
             if ("probe" in sets) rows += probeRows(spec)
             report(spec, rows, (System.nanoTime() - t0) / 1e9)
+            saveVerdicts()
         }
+    }
+
+    /**
+     * The solver's verdicts on full-round answers off the key, by `puzzle:path:option` (WIN, LOSS or UNKNOWN at
+     * [ROUND_BUDGET]). Committed beside the probe files: every spec, run and track reuses them. A verdict depends
+     * only on the engine and the position, so the file is cleared when [VERSION] or the engine version changes.
+     */
+    private val verdicts = ConcurrentHashMap<String, String>()
+    private val verdictFile = File(PROBE_DIR, "rounds-verdicts-v$VERSION-e${GameEngine.ENGINE_VERSION}.txt")
+
+    private fun loadVerdicts() {
+        if (!verdictFile.exists() || budget != ROUND_BUDGET) return
+        verdictFile.readLines().filter { it.isNotBlank() }.forEach { line ->
+            verdicts[line.substringBefore(' ')] = line.substringAfter(' ')
+        }
+    }
+
+    private fun saveVerdicts() {
+        if (budget != ROUND_BUDGET) return
+        verdictFile.parentFile.mkdirs()
+        verdictFile.writeText(verdicts.entries.sortedBy { it.key }.joinToString("") { "${it.key} ${it.value}\n" })
     }
 
     /** One answered question: right or not, its regret (puzzles 0/1; probe coins and win chance). */
@@ -167,14 +192,12 @@ class AiPositionBenchTest {
         val right: Boolean? = when {
             i < 0 -> false
             i in wins -> true
-            // A full round's key holds the solution only: another answer is proved or refuted.
-            pp.fullRound -> pp.solver.child(n, c)?.let { child ->
-                when (pp.solver.solve(child, budget = minOf(budget, pp.puzzle.nodeBudget)).value) {
-                    Value.WIN -> true
-                    Value.LOSS -> false
-                    Value.UNKNOWN -> null
-                }
-            } ?: false
+            // A full round's key holds the solution only: another answer is proved or refuted (cached).
+            pp.fullRound -> verdicts.getOrPut("$id:$i") {
+                pp.solver.child(n, c)?.let { child ->
+                    pp.solver.solve(child, budget = minOf(budget, pp.puzzle.nodeBudget)).value.name
+                } ?: Value.LOSS.name
+            }.let { if (it == Value.UNKNOWN.name) null else it == Value.WIN.name }
 
             else -> false
         }

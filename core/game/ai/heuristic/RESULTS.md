@@ -167,3 +167,66 @@ noted), `AI_THREADS=3` on a shared oldboi. Wilson 95% intervals; pairs = h lost 
   movement takes it out of reach first. A Silver (no movement) or a slower card cannot escape: the threat map
   prices the defeat in full.
 - **Strengths.** 9 and 10 have `turnRest` (F1 + F3). 8 and below are unchanged.
+
+### Measured so far (games, development line-ups 1064–1159, 192 games a row)
+
+The previous agent's runs (logs kept in its scratchpad). Under the wave-3 audit (2026-11-22) a row whose interval
+includes 50% decides nothing; rows marked "indicative" need an SPRT or ≥ 256 games before a keep decision.
+
+| Row | Won | Rate | Wilson 95% | Note |
+|---|---|---|---|---|
+| h10 vs s8 (before F1) | 105–87 | 54.7% | 47.6–61.6 | baseline on these games |
+| h10+earlyRed=0 vs s8 (before F1) | 101–91 | 52.6% | 45.6–59.5 | F4 (G4 off): no gain here; the +6.3 of REVIEW-2-losses was on 1000–1063 |
+| h10+rest=1 vs s8 (F1) | 135–57 | 70.3% | 63.5–76.3 | **F1: +15.6 points**, interval clear of the baseline's |
+| h10+rest=1+escape=1 vs s8 (F1+F3) | 136–56 | 70.8% | 64.0–76.8 | F3 adds nothing measurable |
+| h10+rest=1+restBook=1 vs s8 | 135–57 | 70.3% | 63.5–76.3 | other heroes by their 1-ply book inside the rest look: same, 5× slower |
+| h10+rest=1+reveal=4 vs s8 (F2) | 125–67 | 65.1% | 58.1–71.5 | F2 (4 sampled turns at the card play): −5, rejected for now |
+| h10+rest=1+reveal=4+revealBranch=1 vs s8 | 124–68 | 64.6% | 57.6–71.0 | |
+| h10(rest)+predict=1 vs s8 | 135–57 | 70.3% | 63.5–76.3 | opponent card model in the threat map: same |
+| h9 vs h8 (9 with F1) | 114–78 | 59.4% | 52.3–66.1 | the 8 → 9 step |
+| h10 vs h9 | 98–94 | 51.0% | 44.0–58.0 | the 9 → 10 step: none (also 98–94 for `knowLook`, a no-op in that build) |
+| h10+branch=2 vs h9 | 106–86 | 55.2% | 48.1–62.1 | indicative: two own choices branched inside every look |
+| h10+width=8 vs h9 | 104–88 | 54.2% | 47.1–61.1 | indicative: 8 answers per branch instead of 4 |
+
+Answer times (shared machine, upper bounds): h10 with F1 13.4 / 44.7 / 908 ms an answer (mean / p95 / max), card
+play 11.3 / 35 / 374 ms; before F1 4.0 / 14.3 / 771 ms.
+
+### The position bench (`AiPositionBenchTest`, for every track)
+
+Decision quality on fixed positions, before games (wave-3 audit). Opt-in:
+
+```
+AI_BENCH=h10,h10+rest=0,x10+pol=1+scope=3+leaf=0 AI_THREADS=3 goa-run AiPositionBenchTest
+AI_BENCH_SETS=puzzles,rounds,probe   # default all three
+```
+
+It prints per spec, per set and per decision kind: questions answered, the share answered right, the mean regret
+and the mean answer time (shared machine: an upper bound). Specs are `HeuristicTournamentTest`'s (h, s, x, y with
+`+knob=value`), so a search spec with book knobs (`x10+pol=1+scope=3+leaf=0+rest=0`) is benched the same way.
+Version 1 of the sets:
+
+- **puzzles** (ground truth: the puzzle solver, exact). Every player question with a real choice on every winning
+  line of the turn puzzles' answer keys, where not every option wins: 271 questions. Right = the goal stays forced.
+- **rounds** (ground truth: the puzzle solver). The player questions on the solution lines of the 22 full-round
+  puzzles (enemy plays known, ADR-052): 499 questions. The key holds the solution's answer; another answer is
+  proved or refuted by the solver at 200,000 expansions. Those verdicts are cached in
+  `src/test/resources/bench/rounds-verdicts-v1-e1.txt` (committed, shared by every spec and track; an answer the
+  budget cannot settle is counted apart as "unknown", never as right).
+- **probe** (ground truth: an ORACLE, a strong opinion, not the truth). 233 positions from h10's games against s8 on
+  line-ups 1000–1011 (24 games, each h10 question with a choice kept with chance 0.06), stored as replayable
+  answers in `src/test/resources/bench/probe-v1-2v2-1000-1011.jsonl.gz` (18 KB). Every option is valued by the
+  regret probe's oracle (REVIEW-2-losses.md: the old strength-10 search with the learned net, 3× card samples, no
+  clock, opponent card model, kill extension). Right = the oracle's best option; regret in its coin scale (a few
+  won/lost lines make the coin mean noisy) and in win chance (`wpRegret`, the better summary).
+  `AI_BENCH_MAKE=<line-ups> AI_H_FIRST=… AI_FORMAT=…` writes another probe file (never line-ups 5000+).
+
+h10 (the book with F1, commit 2f1781d4), the first bench row:
+
+| Set | n | Right | Regret | ms |
+|---|---|---|---|---|
+| puzzles | 271 | 78.6% | 0.214 | 41 |
+| rounds | 499 | 76.0% | 0.240 | 14 |
+| probe | 233 | 54.5% | wp 0.0164 (coins 12.6) | 25 |
+
+By kind, the weak spots: puzzles `play_card` 52.9% (17), `choose_space` 68.6% (35), `choose_unit` 70.8% (65);
+rounds `play_card` 64.5% (172); probe `choose_space` 38.1% (63, wp regret 0.020), `play_card` 43.9% (57, 0.017).
