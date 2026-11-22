@@ -111,6 +111,16 @@ data class HybridConfig(
     val topSpace: Int? = null,
     /** Candidates for a unit (attack target and other units), else [top]. */
     val topUnit: Int? = null,
+    /**
+     * Enemy replies at a card play: each sample is played this many times while an enemy still has to
+     * choose its card, once with the book's own reply and the rest with the enemy's card drawn from the
+     * opponent model ([replyModel], [replyTau]), so the search is not tuned to one deterministic reply.
+     */
+    val replies: Int = 1,
+    /** The drawn replies' model: 1 the book's static card scores, 2 its card looks. */
+    val replyModel: Int = 1,
+    /** Softmax temperature of the drawn replies, coin-equivalents. */
+    val replyTau: Double = 2.0,
 ) {
     /** How many of the book's best by static score are searched at [kind] (beside its own answer). */
     fun topFor(kind: DecisionKind): Int = when (kind) {
@@ -124,6 +134,7 @@ data class HybridConfig(
         val NAMES: Set<String> = setOf(
             "K", "Ko", "top", "hz", "hzo", "leaf", "pol", "polE", "scope", "model", "tau", "prior", "risk",
             "dd", "tt", "kill", "prune", "hz1", "hz2", "hz3", "hz4", "hzo1", "hzo2", "hzo3", "hzo4", "topS", "topU",
+            "rep", "repM", "repT",
         )
 
         fun fromKnobs(k: Map<String, Double>): HybridConfig {
@@ -151,6 +162,9 @@ data class HybridConfig(
                 otherHorizonByTurn = (1..4).mapNotNull { t -> k["hzo$t"]?.let { t to HybridHorizon.of(it.toInt()) } }.toMap(),
                 topSpace = k["topS"]?.toInt(),
                 topUnit = k["topU"]?.toInt(),
+                replies = k["rep"]?.toInt() ?: d.replies,
+                replyModel = k["repM"]?.toInt() ?: d.replyModel,
+                replyTau = k["repT"] ?: d.replyTau,
             )
         }
     }

@@ -9,6 +9,8 @@ import dev.quinton.goa.core.game.Decision
 import dev.quinton.goa.core.game.DecisionKind
 import dev.quinton.goa.core.game.GameSession
 import dev.quinton.goa.core.game.ai.heuristic.HeuristicAi
+import dev.quinton.goa.core.game.ai.hybrid.HybridAi
+import dev.quinton.goa.core.game.ai.hybrid.HybridLeaf
 import dev.quinton.goa.core.game.engine.EngineData
 import dev.quinton.goa.core.game.engine.EngineSession
 import dev.quinton.goa.core.model.match.Team
@@ -18,15 +20,18 @@ import kotlin.random.Random
 /**
  * The computer opponents (ADR-035, ADR-039, ADR-085, PRODUCT §9). The player the apps, the web
  * worker and the online server's takeover seat is [dev.quinton.goa.core.game.ai.heuristic.HeuristicAi]:
- * a general playbook plus one per hero, strength 1 to 10. The four named levels are the bands of
+ * a general playbook plus one per hero, strength 1 to 9; strength 10 is a search over that book
+ * ([HybridAi], ADR-085 addendum): every question with a choice played out by the book to the end of the
+ * turn, scored by [SEARCH_10_LEAF]. The four named levels are the bands of
  * [AiLevel]; a level alone (a save from before the slider) plays as its [AiLevel.strength].
  *
  * The search player (playouts, the learned net) stays for the coach, the puzzles and for measuring
  * the new player against the old one: [searchDeterministic] and [searchForStrength]. Do not seat
  * those in a game the person plays.
  *
- * Deterministic for a seed (answers depend on the seed, the decision id and the seat). The heuristic
- * player has no wall-clock cap; the search player's [searchForStrength] still has one.
+ * Deterministic for a seed (answers depend on the seed, the decision id and the seat). Neither the book
+ * nor the strength-10 search has a wall-clock cap (the same strength on every device); the search stops
+ * when its answer is cancelled. The old search player's [searchForStrength] still has one.
  */
 object AiPlayers {
     /** The seed the apps give the computer players: the phone's (core/data) and the web worker's (ADR-043). */
@@ -34,14 +39,13 @@ object AiPlayers {
 
     /**
      * The computer player the apps seat at [strength] (ADR-039, ADR-085): [forStrength] seeded per
-     * strength, so a strength is the same player on the phone and in the browser. [runner] is unused
-     * by the heuristic player (it does not sample); the parameter stays so the app's call compiles.
-     * The search player's samples still take a runner: [searchForStrength].
+     * strength, so a strength is the same player on the phone and in the browser. [runner] runs the
+     * strength-10 search's playouts (the same answers on any runner); the book below it does not sample.
      */
     fun forApp(strength: Int, runner: SampleRunner = SampleRunner.SEQUENTIAL): AiPlayer =
         forStrength(strength, APP_SEED + strength, runner)
 
-    /** The production player. The heuristic player has no wall clock; [runner] is accepted and unused. */
+    /** The production player. No wall clock; [runner] runs strength 10's playouts. */
     fun forStrength(strength: Int, seed: Long, runner: SampleRunner = SampleRunner.SEQUENTIAL): AiPlayer =
         heuristic(strength, seed, runner)
 
@@ -62,9 +66,32 @@ object AiPlayers {
     fun searchForStrength(strength: Int, seed: Long, runner: SampleRunner = SampleRunner.SEQUENTIAL): AiPlayer =
         searchPlayer(strength, seed, timeCap = true, runner)
 
-    @Suppress("UnusedParameter") // [runner] stays on [forStrength] for the app; the heuristic player does not sample.
-    private fun heuristic(strength: Int, seed: Long, runner: SampleRunner): AiPlayer =
-        HeuristicAi(AiStrength.coerce(strength), seed)
+    /**
+     * The leaf of the strength-10 search's playouts: the one switch between the old learned ensemble
+     * ([HybridLeaf.NET], measured strongest, ADR-085 addendum "Wave 3") and the book's own position value
+     * ([HybridLeaf.HEVAL]). Every other knob is [SEARCH_10].
+     */
+    val SEARCH_10_LEAF: HybridLeaf = HybridLeaf.NET
+
+    /**
+     * Strength 10's search over the heuristic book ([HybridAi], ADR-085 addendum): the knobs of
+     * [dev.quinton.goa.core.game.ai.hybrid.HybridConfig.fromKnobs] (the leaf is [SEARCH_10_LEAF]).
+     */
+    val SEARCH_10: Map<String, Double> = mapOf(
+        "pol" to 1.0,
+        "scope" to 3.0,
+        "tt" to 1.0,
+    )
+
+    /** The strengths the search plays ([HybridAi]); below them the heuristic book alone ([HeuristicAi]). */
+    const val SEARCH_FROM: Int = 10
+
+    /** Strength [SEARCH_FROM] and up: the search over the book, its samples on [runner]; below, the book. */
+    private fun heuristic(strength: Int, seed: Long, runner: SampleRunner): AiPlayer {
+        val s = AiStrength.coerce(strength)
+        if (s < SEARCH_FROM) return HeuristicAi(s, seed)
+        return HybridAi(seed, SEARCH_10 + ("leaf" to SEARCH_10_LEAF.ordinal.toDouble()), runner)
+    }
 
     private fun searchPlayer(
         strength: Int,

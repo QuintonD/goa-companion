@@ -5,6 +5,7 @@ import dev.quinton.goa.core.game.AiLevel
 import dev.quinton.goa.core.game.AnswerResult
 import dev.quinton.goa.core.game.TestData
 import dev.quinton.goa.core.game.ai.AiHarness
+import dev.quinton.goa.core.game.ai.AiPlayers
 import dev.quinton.goa.core.game.ai.ThreadRunner
 import dev.quinton.goa.core.game.engine.EngineSession
 import dev.quinton.goa.core.model.match.Team
@@ -40,7 +41,41 @@ class HybridSearchTest {
         }
     }
 
+    /**
+     * The shipped strength 10 (AiPlayers.SEARCH_10, the memo and merged samples on): three threads give the
+     * sequential answers, every answer is a real option, and the memo changes no answer (it only saves work).
+     */
+    @Test
+    fun `strength 10 answers alike on any runner and with or without its memo`() {
+        ThreadRunner(3).use { threads ->
+            val (red, blue) = AiHarness.mixedLineups(2, seed = 4242L)[1]
+            val s = TestData.engine.newGame(AiHarness.setup(red, blue, AiLevel.EXPERT, AiLevel.EXPERT, Team.BLUE))
+                as EngineSession
+            val noMemo = AiPlayers.SEARCH_10 + ("tt" to 0.0) + ("leaf" to AiPlayers.SEARCH_10_LEAF.ordinal.toDouble())
+            val one = mapOf(Team.RED to AiPlayers.deterministic(10, 7L), Team.BLUE to AiPlayers.deterministic(10, 8L))
+            val many = mapOf(
+                Team.RED to AiPlayers.forStrength(10, 7L, threads),
+                Team.BLUE to AiPlayers.forStrength(10, 8L, threads),
+            )
+            val plain = mapOf(Team.RED to HybridAi(7L, noMemo), Team.BLUE to HybridAi(8L, noMemo))
+            var compared = 0
+            while (compared < SHIPPED_DECISIONS) {
+                val d = s.pending ?: break
+                val a = one.getValue(d.team).choose(s, d)
+                assertThat(d.options).contains(a)
+                if (d.options.size > 1) {
+                    assertThat(many.getValue(d.team).choose(s, d)).isEqualTo(a)
+                    assertThat(plain.getValue(d.team).choose(s, d)).isEqualTo(a)
+                    compared++
+                }
+                assertThat(s.answer(d.id, a)).isInstanceOf(AnswerResult.Accepted::class.java)
+            }
+            assertThat(compared).isEqualTo(SHIPPED_DECISIONS)
+        }
+    }
+
     private companion object {
         const val DECISIONS = 30
+        const val SHIPPED_DECISIONS = 40
     }
 }

@@ -111,6 +111,13 @@ class HybridAi(
     /** One distinct determinized position and how many of the samples dealt it. */
     private class Sample(val det: EngineSession, val dp: Decision, val salt: Long, var weight: Int)
 
+    /** A sample played with the book's enemy replies ([reply] 0) or with enemy card plays drawn ([reply] ≥ 1). */
+    private class Column(val sample: Sample, val reply: Int, val weight: Double)
+
+    /** An enemy of [team] has not played its card this turn yet (its choice is still the playout's). */
+    private fun enemiesToPlay(s: GameState, team: Team): Boolean =
+        !s.revealed && s.heroes.any { it.team != team && it.unresolved.isEmpty() && it.hand.size > 1 }
+
     @Suppress("CyclomaticComplexMethod", "LongMethod")
     private fun search(es: EngineSession, d: Decision, cancelled: () -> Boolean): Choice? {
         val rng = Random(HeuristicAi.mix(seed, d.id * 1_000_003L + d.seat.hashCode()))
@@ -137,13 +144,21 @@ class HybridAi(
         val first = samples[0]
         val candidates = candidates(es, d, first.dp, first.det, seenByUs, cancelled)
         if (candidates.size <= 1) return candidates.firstOrNull()
-        val g = samples.size
+        // Columns: each distinct sample, and at a card play with enemies still to choose, [HybridConfig.replies]
+        // versions of it: the book's reply (0) and enemy card plays drawn from the opponent model.
+        val columns = ArrayList<Column>()
+        for (s in samples) {
+            val r = if (isPlay && config.replies > 1 && enemiesToPlay(s.det.state, team)) config.replies else 1
+            for (k in 0 until r) columns += Column(s, k, s.weight.toDouble() / r)
+        }
+        val g = columns.size
         val values = Array(candidates.size) { DoubleArray(g) { Double.NaN } }
         val priors = Array(candidates.size) { DoubleArray(g) { Double.NaN } }
         val usePrior = isPlay && config.prior != 0.0
         val found = Array(candidates.size) { arrayOfNulls<List<MemoKey>>(g) }
         val tasks = ArrayList<() -> Unit>()
-        for ((i, s) in samples.withIndex()) {
+        for ((i, col) in columns.withIndex()) {
+            val s = col.sample
             if (usePrior) {
                 tasks += {
                     if (!cancelled()) {
@@ -156,6 +171,7 @@ class HybridAi(
                     }
                 }
             }
+            val memoHere = memoOn && col.reply == 0
             for ((j, c) in candidates.withIndex()) {
                 if (c !in s.dp.options) continue
                 tasks += {
@@ -163,8 +179,11 @@ class HybridAi(
                         val f = s.det.forkForAnswer()
                         if (BookPolicy.play(f, s.dp, c)) {
                             answered.incrementAndFetch()
-                            val path = if (memoOn) ArrayList<MemoKey>() else null
-                            val v = playout(f, team, horizon, seenOf, s.salt, snapshot, view, path, leafEval, seenByUs)
+                            val path = if (memoHere) ArrayList<MemoKey>() else null
+                            val v = playout(
+                                f, team, horizon, seenOf, s.salt, if (memoHere) snapshot else null, view, path,
+                                leafEval, seenByUs, col.reply,
+                            )
                             values[j][i] = v
                             found[j][i] = path
                         }
@@ -194,15 +213,15 @@ class HybridAi(
             for (i in 0 until g) {
                 val v = values[j][i]
                 if (v.isNaN()) continue
-                wSum += samples[i].weight
-                sum += samples[i].weight * v
+                wSum += columns[i].weight
+                sum += columns[i].weight * v
             }
             if (wSum == 0.0) continue
             val m = sum / wSum
             var sq = 0.0
             for (i in 0 until g) {
                 val v = values[j][i]
-                if (!v.isNaN()) sq += samples[i].weight * (v - m) * (v - m)
+                if (!v.isNaN()) sq += columns[i].weight * (v - m) * (v - m)
             }
             val sd = if (wSum < 2) 0.0 else sqrt(sq / (wSum - 1))
             var score = m - config.risk * sd
@@ -212,8 +231,8 @@ class HybridAi(
                 for (i in 0 until g) {
                     val p = priors[j][i]
                     if (p.isNaN()) continue
-                    pw += samples[i].weight
-                    ps += samples[i].weight * p
+                    pw += columns[i].weight
+                    ps += columns[i].weight * p
                 }
                 if (pw > 0) score = (1 - config.prior) * score + config.prior * ps / pw
             }
@@ -360,8 +379,10 @@ class HybridAi(
         path: MutableList<MemoKey>?,
         leafEval: PositionEvaluator?,
         seen: Map<String, Set<String>>,
+        reply: Int = 0,
     ): Double {
         playouts.incrementAndFetch()
+        val replyRng = if (reply > 0) Random(HeuristicAi.mix(salt, REPLY_SALT + reply)) else null
         val start = f.state
         val startTurn = turnIndex(start)
         val startStep = start.step
@@ -417,7 +438,12 @@ class HybridAi(
             } else {
                 null
             }
-            val c = planned ?: run {
+            val drawn = if (replyRng != null && turnsEnded == 0 && d.team != rootTeam && d.kind == DecisionKind.PLAY_CARD) {
+                drawReply(f, d, seenOf, replyRng)
+            } else {
+                null
+            }
+            val c = planned ?: drawn ?: run {
                 val mode = if (d.team == rootTeam) config.ownPolicy else config.enemyPolicy
                 policy.answer(f, d, mode, seenOf(d.team), salt)
             }
@@ -426,6 +452,20 @@ class HybridAi(
             n++
         }
         return leaf(f, rootTeam, seen, leafEval)
+    }
+
+    /** An enemy's card play drawn from the opponent model (softmax of the book's card scores, 15% uniform). */
+    private fun drawReply(f: EngineSession, d: Decision, seenOf: (Team) -> Map<String, Set<String>>, rng: Random): Choice? {
+        val pool = d.options.map { (it as? Choice.Card)?.cardId ?: return null }
+        val w = policy.playWeights(
+            f.engineData, f.setup, f.state, d.seat, pool, maxOf(1, config.replyModel), config.replyTau, seenOf,
+        ) ?: return null
+        var r = rng.nextDouble() * w.sum()
+        for ((i, x) in w.withIndex()) {
+            r -= x
+            if (r < 0) return d.options[i]
+        }
+        return d.options.last()
     }
 
     /**
@@ -506,6 +546,7 @@ class HybridAi(
         private const val PRUNE_KEEP = 3
 
         private const val MEMO_CAP = 400_000
+        private const val REPLY_SALT = 0x2E9_1E5L
 
         fun turnIndex(s: GameState): Int = s.round * 8 + s.turn
     }
