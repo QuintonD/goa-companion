@@ -204,12 +204,67 @@ Reading:
    measured even (70.3% against 70.8%) at 1.4× the cost and is off.
 4. **F4 does not hold.** G4 off was +6.3 on 1000–1063 and −2.1 here; over the 320 games together 55.3% against
    54.1%. G4 stays.
-5. **F7 (hold-the-zone / push-to-win intents) was not built.** Under F1 the turn-4 looks resolve the round-end
-   minion battle and push through the engine, and Throne losses against s8 fell to 8 of 57; an intent would only
-   add a static bias to what the look now sees. Not measured.
+5. **F7 (hold-the-zone) is built behind knob `hold`, off.** `TurnPlan.holdLine`: in our last zone (the next push
+   against us takes our Throne, or the last wave decides) and not ahead on minions, the intent is HOLD_LINE (stay
+   in the zone, `holdPull` −3 for a square outside it; an attack card targets their best minion unless a sure kill is
+   worth as much). Under F1 the turn-4 looks already resolve the round-end battle and push through the engine, and
+   Throne losses against s8 fell to 8 of 57. On the position bench it changes no answer (below). Not kept on.
 6. **The ladder.** 9 over 8 is 59.4%. Hand knowledge alone gave 10 nothing over 9 (51.0%); what separates them is
    using it inside looks (`knowLook` 55.7%) and spending more of the look on our own choices (`branch=2` 55.2%).
    Both went into 10.
+
+### Resumed session: the ladder at 256 games, the knobs on the bench (2026-11-22 afternoon)
+
+Ladder on fresh development line-ups 1160–1287 (128 mirrored line-ups, 256 games each; the audit's ≥ 256 rule):
+
+| Row | Won | Rate | Wilson 95% | Pairs (lost both / split / won both) | Defeats/game (no card) | Answer ms mean / p95 / max |
+|---|---|---|---|---|---|---|
+| h10 (= 9 + `knowHands` + `knowLook` + `lookBranches=2`, as committed in ee604f05) vs h9 | 145–111 | **56.6%** | 50.5–62.6 | 18 / 75 / 35 | 1.00 (115) / 1.33 (121) | 16.0 / 54.6 / 788 |
+| h10 + `branch=2` only (no `knowLook`) vs h9 | 145–111 | 56.6% | 50.5–62.6 | 14 / 83 / 31 | 0.88 (128) / 1.25 (135) | 16.6 / 56.9 / 950 |
+| h9 vs h8 | 150–106 | **58.6%** | 52.5–64.5 | 14 / 78 / 36 | 1.05 (122) / 1.00 (125) | 13.9 / 46.9 / 821 |
+
+Both steps of the ladder hold with intervals clear of 50%. `knowLook` adds nothing measurable on top of the two
+branched choices (the same 145–111); it stays at 10 because it is the principled use of the known hand and costs
+nothing.
+
+Position bench (version 1, sets puzzles + probe; rounds pending the verdict cache build), the same code as the rows
+above (`h10` here is the build before ee604f05, so `h10+branch=2+knowLook=1` is today's 10):
+
+| Spec | puzzles right (271) | probe right (233) | probe wp regret | note |
+|---|---|---|---|---|
+| h5 | 72.7% | 54.5% | .0173 | |
+| h8 | 75.6% | 51.9% | .0179 | |
+| h9 | 75.6% | 54.1% | .0162 | |
+| h10 (before ee604f05) | 78.6% | 54.5% | .0164 | rounds 76.0% (499) |
+| h10+branch=2+knowLook=1 (today's 10) | — | — | — | (branch=2: 79.7% / 54.5%; knowLook: 78.2% / 55.8%) |
+| h10+rest=0 | 77.9% | 51.9% | .0173 | F1 off |
+| h10+escape=0 | 78.6% | 54.5% | .0167 | F3 off |
+| h10+finisher=1 (F6) | 78.6% | 54.5% | .0164 | no answer changed |
+| h10+hold=1 (F7) | 78.6% | 54.5% | .0164 | no answer changed |
+| h10+allyAfter=1 (postlude, REVIEW-2-design #5) | 78.6% | 54.9% | .0166 | one answer |
+| h10+earlyRed=0 (F4) | 78.6% | 55.4% | .0159 | two answers |
+| h10+width=8 | 78.6% | 54.1% | .0166 | |
+| h10+predict=1 | 78.6% | 54.5% | .0166 | |
+| h10+reveal=4 (F2) | 79.0% | 55.8% | .0160 | |
+| h9+restSpaces=6 | 75.6% | 53.2% | .0172 | |
+
+The bench separates the ladder (h5 → h10 on puzzles) and confirms that F6, F7 and the postlude almost never change
+an answer: they stay off (knobs `finisher`, `hold`, `allyAfter`). One or two answers in 233–271 is noise.
+
+**The book inside the search** (x10+pol=1+scope=3 in this build; the probe oracle is s10 with the net, so it leans
+toward the net leaf):
+
+| Spec | puzzles right | probe right | probe wp regret | ms an answer |
+|---|---|---|---|---|
+| x10 leaf=0 (HEval), F1 book | 82.7% | 59.2% | .0128 | 1823 |
+| x10 leaf=0, book `rest=0` | 82.3% | 62.7% | .0112 | 466 |
+| x10 leaf=2 (net), F1 book | **86.7%** | 70.0% | .0099 | 1669 |
+| x10 leaf=2, book `rest=0` | 83.4% | 72.1% | .0090 | 483 |
+
+The search is ahead of the book on both sets (x10 82.7–86.7% of the puzzles against h10's 78.6%). F1 inside the
+playouts: with the net leaf it solves 9 more puzzles (solver truth), on the oracle set it is 5 answers further
+from the net-based oracle, with HEval even; it costs 3.5–4× per answer. Undecided on positions: games are running
+(x10 leaf=2 with and without F1 in the book, 256 games).
 
 ### The position bench (`AiPositionBenchTest`, for every track)
 
