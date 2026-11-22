@@ -191,7 +191,9 @@ class AiPositionBenchTest {
         val i = d.options.indexOf(c)
         val right: Boolean? = when {
             i < 0 -> false
+
             i in wins -> true
+
             // A full round's key holds the solution only: another answer is proved or refuted (cached).
             pp.fullRound -> verdicts.getOrPut("$id:$i") {
                 pp.solver.child(n, c)?.let { child ->
@@ -317,8 +319,8 @@ class AiPositionBenchTest {
         val keep = System.getenv("AI_BENCH_KEEP")?.toDoubleOrNull() ?: 0.06
         val all = AiHarness.mixedLineups(first + lineups, size = format.size)
         val jobs = ArrayList<Callable<List<String>>>()
-        for (i in first until first + lineups) for (hRed in listOf(true, false)) {
-            jobs += Callable { makeGame(format, all[i], i, hRed, keep) }
+        for (i in first until first + lineups) {
+            for (hRed in listOf(true, false)) jobs += Callable { makeGame(format, all[i], i, hRed, keep) }
         }
         val lines = runAll(jobs).flatten()
         val name = "probe-v$VERSION-${format.label.replace(" ", "")}-$first-${first + lineups - 1}.jsonl.gz"

@@ -636,7 +636,6 @@ internal object CardSim {
     private const val PRELUDE_CAP = 24
     private const val PRELUDE = "cardSim.prelude"
 
-
     /** This hero's own choices after the action that are worth a few tries. */
     private val BRANCHED = setOf(
         DecisionKind.CHOOSE_SPACE,
