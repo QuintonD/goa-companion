@@ -1,5 +1,6 @@
 package dev.quinton.goa.core.game.ai.hybrid
 
+import dev.quinton.goa.core.domain.PortableMath
 import dev.quinton.goa.core.game.AnswerResult
 import dev.quinton.goa.core.game.Choice
 import dev.quinton.goa.core.game.Decision
@@ -7,15 +8,16 @@ import dev.quinton.goa.core.game.DecisionKind
 import dev.quinton.goa.core.game.GameSetup
 import dev.quinton.goa.core.game.ai.Fallback
 import dev.quinton.goa.core.game.ai.heuristic.CardSim
+import dev.quinton.goa.core.game.ai.heuristic.DefaultHeroHeuristics
 import dev.quinton.goa.core.game.ai.heuristic.General
 import dev.quinton.goa.core.game.ai.heuristic.HContext
+import dev.quinton.goa.core.game.ai.heuristic.HeroHeuristics
 import dev.quinton.goa.core.game.ai.heuristic.HeroPlaybooks
 import dev.quinton.goa.core.game.ai.heuristic.HeuristicAi
 import dev.quinton.goa.core.game.ai.heuristic.HeuristicProfile
 import dev.quinton.goa.core.game.engine.EngineData
 import dev.quinton.goa.core.game.engine.EngineSession
 import dev.quinton.goa.core.game.engine.GameState
-import dev.quinton.goa.core.domain.PortableMath
 import dev.quinton.goa.core.model.match.Team
 import kotlin.coroutines.cancellation.CancellationException
 import kotlin.random.Random
@@ -39,6 +41,13 @@ internal class BookPolicy(seed: Long, tune: Map<String, Double>) {
 
     val profile: HeuristicProfile get() = full.profile
 
+    /**
+     * The hero playbooks everything here reads: strength 10's ([HeroPlaybooks.forStrength]), or none with the
+     * measurement knob `heroes=0` (HybridAi's `pbooks=0`, wave 3 Track D).
+     */
+    val playbooks: (String) -> HeroHeuristics =
+        if ((tune["heroes"] ?: 1.0) <= 0.0) { _ -> DefaultHeroHeuristics } else HeroPlaybooks.forStrength(10)
+
     /** The book's answer to [d], the pending question of [session]. */
     fun answer(
         session: EngineSession,
@@ -61,8 +70,8 @@ internal class BookPolicy(seed: Long, tune: Map<String, Double>) {
 
     /** The book's static values of [d]'s options on [session] (general rules plus the hero's notes). */
     fun staticValues(session: EngineSession, d: Decision, seen: Map<String, Set<String>>): DoubleArray {
-        val ctx = HContext(session, d, d.team, profile, seen = seen)
-        val book = HeroPlaybooks.forHero(d.seat)
+        val ctx = HContext(session, d, d.team, profile, playbooks, seen = seen)
+        val book = playbooks(d.seat)
         val forced = try {
             book.override(ctx, d)
         } catch (e: CancellationException) {
@@ -92,8 +101,8 @@ internal class BookPolicy(seed: Long, tune: Map<String, Double>) {
      */
     fun cardValues(session: EngineSession, d: Decision, seen: Map<String, Set<String>>): DoubleArray? {
         if (d.kind != DecisionKind.PLAY_CARD || d.options.any { it !is Choice.Card }) return null
-        val ctx = HContext(session, d, d.team, profile, seen = seen)
-        val book = HeroPlaybooks.forHero(d.seat)
+        val ctx = HContext(session, d, d.team, profile, playbooks, seen = seen)
+        val book = playbooks(d.seat)
         return try {
             DoubleArray(d.options.size) { i ->
                 val o = d.options[i] as Choice.Card
@@ -134,7 +143,7 @@ internal class BookPolicy(seed: Long, tune: Map<String, Double>) {
                 prompt = "Play a card",
                 options = pool.map { Choice.Card(it) },
             )
-            val ctx = HContext(session, d, h.team, profile, seen = seen(h.team), stateOverride = state)
+            val ctx = HContext(session, d, h.team, profile, playbooks, seen = seen(h.team), stateOverride = state)
             val values = if (model >= 2) {
                 cardValuesOn(ctx, d) ?: staticOn(ctx, d)
             } else {
@@ -152,12 +161,12 @@ internal class BookPolicy(seed: Long, tune: Map<String, Double>) {
     }
 
     private fun staticOn(ctx: HContext, d: Decision): DoubleArray {
-        val book = HeroPlaybooks.forHero(d.seat)
+        val book = playbooks(d.seat)
         return DoubleArray(d.options.size) { i -> General.score(ctx, d, d.options[i]) + book.adjust(ctx, d, d.options[i]) }
     }
 
     private fun cardValuesOn(ctx: HContext, d: Decision): DoubleArray? {
-        val book = HeroPlaybooks.forHero(d.seat)
+        val book = playbooks(d.seat)
         return DoubleArray(d.options.size) { i ->
             val o = d.options[i] as Choice.Card
             (CardSim.value(ctx, o.cardId) ?: return null) + General.commitment(ctx, d, o) +

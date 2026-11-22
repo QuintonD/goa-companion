@@ -1,5 +1,6 @@
 package dev.quinton.goa.core.game.ai.heuristic
 
+import dev.quinton.goa.core.game.AiStrength
 import dev.quinton.goa.core.game.Choice
 import dev.quinton.goa.core.game.Decision
 import dev.quinton.goa.core.game.ai.heuristic.heroes.ArienHeuristics
@@ -151,6 +152,21 @@ object HeroPlaybooks {
     ).associateBy { it.heroId }
 
     fun forHero(id: String): HeroHeuristics = byId[id] ?: DefaultHeroHeuristics
+
+    /**
+     * Playbooks switched off at strength 10, where the general book plays the hero instead (wave 3 Track D,
+     * `core/game/ai/heuristic/RESULTS.md`): each lost to the general book at strength 10 with an interval clear
+     * of 50% (Mortimer 172–212 of 384 mirrored games, 44.8% [39.9–49.8]).
+     */
+    val offAtTen: Set<String> = setOf("mortimer")
+
+    /** The playbooks a player of [strength] uses: [forHero], less [offAtTen] at strength 10. */
+    fun forStrength(strength: Int): (String) -> HeroHeuristics =
+        if (strength < AiStrength.MAX) {
+            ::forHero
+        } else {
+            { id -> if (id in offAtTen) DefaultHeroHeuristics else forHero(id) }
+        }
 
     fun ids(): Set<String> = byId.keys
 }

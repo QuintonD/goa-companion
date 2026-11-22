@@ -1,9 +1,14 @@
 package dev.quinton.goa.core.game.ai.heuristic
 
 import com.google.common.truth.Truth.assertThat
+import dev.quinton.goa.core.game.Choice
+import dev.quinton.goa.core.game.Decision
+import dev.quinton.goa.core.game.DecisionKind
 import dev.quinton.goa.core.game.ai.AiHarness
 import dev.quinton.goa.core.game.ai.Tournament
 import dev.quinton.goa.core.game.ai.heuristic.heroes.LegacyPlaybooks
+import dev.quinton.goa.core.game.engine.GameState
+import dev.quinton.goa.core.model.board.Hex
 import dev.quinton.goa.core.model.match.Team
 import org.junit.Test
 
@@ -29,17 +34,21 @@ class HeroAblationTest {
         val tune = System.getenv("AI_H_TUNE")?.split("+")?.filter { it.contains("=") }
             ?.associate { kv -> kv.substringBefore("=") to kv.substringAfter("=").toDouble() }.orEmpty()
         val heroes = if (spec == "all") HeroPlaybooks.ids().sorted() else spec.split(",").map { it.trim() }
-        // AI_H_ABLATION_MODE=full,rules,style: the whole book, its notes with the default style, its style alone.
+        // AI_H_ABLATION_MODE=full,rules,style: the whole book, its notes with the default style, its style alone;
+        // noeval, nothreat, noplay, nochoose: the whole book less one hook (see [variant]).
         val modes = System.getenv("AI_H_ABLATION_MODE")?.split(",")?.map { it.trim() } ?: listOf("full")
         val first = System.getenv("AI_H_FIRST")?.toIntOrNull() ?: 0
         val legacy = System.getenv("AI_H_VS") == "legacy"
+        // AI_H_SKIP: leave out the first line-ups that seat the hero (a fresh set for a re-measure).
+        val skip = System.getenv("AI_H_SKIP")?.toIntOrNull() ?: 0
         // Each shuffle of the roster seats a hero once in (roster / table) line-ups.
-        val pool = AiHarness.mixedLineups(first + (lineups + 96) * 32 / (2 * format.size) + 32, size = format.size)
+        val pool = AiHarness.mixedLineups(
+            first + (lineups + maxOf(96, skip)) * 32 / (2 * format.size) + 32,
+            size = format.size,
+        )
             .drop(first)
         for (mode in modes) {
             for (hero in heroes) {
-                // AI_H_SKIP: leave out the first line-ups that seat the hero (a fresh set for a re-measure).
-                val skip = System.getenv("AI_H_SKIP")?.toIntOrNull() ?: 0
                 val all = pool.filter { hero in it.first || hero in it.second }.drop(skip).take(lineups)
                 assertThat(all).isNotEmpty()
                 val book = variant(HeroPlaybooks.forHero(hero), mode)
@@ -92,8 +101,36 @@ class HeroAblationTest {
         assertThat(score.games).isGreaterThan(0)
     }
 
-    /** `rules`: the playbook's notes with the default style; `style`: its style with no notes; else the whole book. */
+    /**
+     * `rules`: the playbook's notes with the default style; `style`: its style with no notes; `noeval`: no
+     * [HeroHeuristics.evalTerms]; `nothreat`: no [HeroHeuristics.threatAdjust]; `noplay`: no card-play notes
+     * (PLAY_CARD adjust and override); `nochoose`: no notes on any other question; else the whole book.
+     */
     private fun variant(book: HeroHeuristics, mode: String): HeroHeuristics = when (mode) {
+        "noeval" -> object : HeroHeuristics by book {
+            override fun evalTerms(state: GameState, team: Team, heroId: String): Double = 0.0
+        }
+
+        "nothreat" -> object : HeroHeuristics by book {
+            override fun threatAdjust(ctx: HContext, enemyHeroId: String, target: Hex): Double = 0.0
+            override fun threatAdjust(ctx: HContext, enemyHeroId: String, target: Hex, victimId: String): Double =
+                0.0
+        }
+
+        "noplay" -> object : HeroHeuristics by book {
+            override fun override(ctx: HContext, d: Decision): Choice? =
+                if (d.kind == DecisionKind.PLAY_CARD) null else book.override(ctx, d)
+            override fun adjust(ctx: HContext, d: Decision, choice: Choice): Double =
+                if (d.kind == DecisionKind.PLAY_CARD) 0.0 else book.adjust(ctx, d, choice)
+        }
+
+        "nochoose" -> object : HeroHeuristics by book {
+            override fun override(ctx: HContext, d: Decision): Choice? =
+                if (d.kind != DecisionKind.PLAY_CARD) null else book.override(ctx, d)
+            override fun adjust(ctx: HContext, d: Decision, choice: Choice): Double =
+                if (d.kind != DecisionKind.PLAY_CARD) 0.0 else book.adjust(ctx, d, choice)
+        }
+
         "rules" -> object : HeroHeuristics by book {
             override val style: HeroStyle = HeroStyle.DEFAULT
         }

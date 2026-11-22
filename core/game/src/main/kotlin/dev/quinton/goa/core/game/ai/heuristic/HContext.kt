@@ -50,7 +50,7 @@ class HContext(
     /** The team this answer is for. Scores that name a side use this. */
     val team: Team,
     val profile: HeuristicProfile,
-    val playbooks: (String) -> HeroHeuristics = HeroPlaybooks::forHero,
+    val playbooks: (String) -> HeroHeuristics = HeroPlaybooks.forStrength(profile.strength),
     /** This move ignores minion defense modifiers (a low strength, some of the time). */
     val blindModifiers: Boolean = false,
     /** Cards each enemy has shown since their last level-up. Empty unless the profile counts. */

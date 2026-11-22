@@ -57,8 +57,9 @@ class HybridAi(
     val book: HeuristicAi = HeuristicAi(10, seed, tune = bookTune)
 
     /**
-     * The playout policy. `pbooks=0` (a measurement knob, wave 3 Track D) plays every seat of the playouts with
-     * the general book alone, no hero playbooks (`heroes=0` there); the root's own answers keep them.
+     * The playout policy. `pbooks=0` (a measurement knob, wave 3 Track D) runs the whole search with the general
+     * book alone, no hero playbooks (`heroes=0` there): candidate order, the opponent model, every seat of the
+     * playouts and the HEval leaf's hero terms. Answers outside the search ([book]) keep them.
      */
     private val policy = BookPolicy(
         seed,
@@ -271,7 +272,7 @@ class HybridAi(
 
     private fun leaf(f: EngineSession, team: Team, seen: Map<String, Set<String>>, eval: PositionEvaluator?): Double {
         if (eval != null) return eval.evaluate(f.state, team)
-        val ctx = HContext(f, f.pending, team, policy.profile, seen = seen, finishing = true)
+        val ctx = HContext(f, f.pending, team, policy.profile, policy.playbooks, seen = seen, finishing = true)
         return HEval.evaluate(ctx, team)
     }
 

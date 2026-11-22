@@ -30,7 +30,7 @@ class HeuristicAi(
     tune: Map<String, Double> = emptyMap(),
     /** Measurement only (the hybrid search's cheaper playout policies): a change to the strength's profile. */
     profileEdit: (HeuristicProfile) -> HeuristicProfile = { it },
-    playbooks: (String) -> HeroHeuristics = HeroPlaybooks::forHero,
+    playbooks: (String) -> HeroHeuristics = HeroPlaybooks.forStrength(strength),
 ) : AiPlayer {
     /** Measurement only: `h10+heroes=0` seats every hero with the general book alone. */
     private val playbooks: (String) -> HeroHeuristics =
