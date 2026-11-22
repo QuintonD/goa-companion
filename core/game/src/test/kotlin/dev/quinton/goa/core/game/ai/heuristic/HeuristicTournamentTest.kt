@@ -30,6 +30,9 @@ class HeuristicTournamentTest {
         val first = System.getenv("AI_H_FIRST")?.toIntOrNull() ?: 0
         val threads = System.getenv("AI_THREADS")?.toIntOrNull() ?: 2
         val format = AiHarness.Format.parse(System.getenv("AI_FORMAT"))
+        // AI_SPRT=0.55: the pentanomial SPRT (p0 0.5, α β 0.05) on batches of AI_SPRT_BATCH line-ups, at most AI_H_GAMES.
+        val sprt = System.getenv("AI_SPRT")?.toDoubleOrNull()?.let { Tournament.Sprt(it) }
+        val sprtBatch = System.getenv("AI_SPRT_BATCH")?.toIntOrNull() ?: 16
         for (pair in spec.split(",").map { it.trim() }.filter { it.isNotEmpty() }) {
             val (aName, bName) = pair.split(":")
             val aTimes = Collections.synchronizedList(ArrayList<Long>())
@@ -39,12 +42,15 @@ class HeuristicTournamentTest {
             val a = side(aName, aTimes, aPlays)
             val b = side(bName, bTimes, bPlays)
             val t0 = System.nanoTime()
-            val score = Tournament.runMixed(a, b, lineups, threads, firstLineup = first, format = format)
+            val score = Tournament.runMixed(
+                a, b, lineups, threads, firstLineup = first, format = format, sprt = sprt, sprtBatch = sprtBatch,
+            )
+            val verdict = sprt?.let { " SPRT(${it.p1}) ${it.verdict(score)}" }.orEmpty()
             val secs = (System.nanoTime() - t0) / 1e9
             val (lo, hi) = score.interval
             println(
                 "H_TOURNAMENT $score Wilson ${"%.1f".format(lo * 100)}-${"%.1f".format(hi * 100)}% " +
-                    "in ${"%.0f".format(secs)} s",
+                    "in ${"%.0f".format(secs)} s$verdict",
             )
             println("H_TOURNAMENT   ${score.details()}")
             println(
@@ -58,7 +64,7 @@ class HeuristicTournamentTest {
             System.getenv("AI_H_OUT")?.let { out ->
                 java.io.File(out).appendText(
                     "== $pair lineups $first+$lineups ${format.label}\n$score Wilson ${"%.1f".format(lo * 100)}-" +
-                        "${"%.1f".format(hi * 100)}% in ${"%.0f".format(secs)} s\n${score.details()}\n" +
+                        "${"%.1f".format(hi * 100)}% in ${"%.0f".format(secs)} s$verdict\n${score.details()}\n" +
                         "answer ${a.label} ${ms(aTimes)} ms, ${b.label} ${ms(bTimes)} ms\n" +
                         "card play ${a.label} ${ms(aPlays)} ms, ${b.label} ${ms(bPlays)} ms\n",
                 )

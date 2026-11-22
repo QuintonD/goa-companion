@@ -132,7 +132,7 @@ class HybridAi(
         val seenByThem = Searcher.seenCards(es, enemy)
         val seenOf = { t: Team -> if (t == team) seenByUs else seenByThem }
         val leafEval = leafOf(es.engineData)
-        val memoOn = config.memo && horizon.memoable && config.kill == 0
+        val memoOn = config.memo && horizon.memoable && config.kill == 0 && !config.leafAverage
         if (memoOn) resetMemo(es)
         val snapshot = if (memoOn) memo else null
         val view = MemoView(team, (seenByUs.hashCode() * 31 + seenByThem.hashCode()), horizon.ordinal)
@@ -156,6 +156,10 @@ class HybridAi(
         val priors = Array(candidates.size) { DoubleArray(g) { Double.NaN } }
         val usePrior = isPlay && config.prior != 0.0
         val found = Array(candidates.size) { arrayOfNulls<List<MemoKey>>(g) }
+        // The tree after the reveal ([HybridConfig.treeDepth]): its frontier playouts' paths and values, per task.
+        val useTree = !isPlay && config.treeDepth > 0 && horizon == HybridHorizon.TURN
+        val treeFound = Array(candidates.size) { arrayOfNulls<List<Pair<List<MemoKey>, Double>>>(g) }
+        val rootTurn = turnIndex(es.state)
         val tasks = ArrayList<() -> Unit>()
         for ((i, col) in columns.withIndex()) {
             val s = col.sample
@@ -179,13 +183,22 @@ class HybridAi(
                         val f = s.det.forkForAnswer()
                         if (BookPolicy.play(f, s.dp, c)) {
                             answered.incrementAndFetch()
-                            val path = if (memoHere) ArrayList<MemoKey>() else null
-                            val v = playout(
-                                f, team, horizon, seenOf, s.salt, if (memoHere) snapshot else null, view, path,
-                                leafEval, seenByUs, col.reply,
-                            )
-                            values[j][i] = v
-                            found[j][i] = path
+                            if (useTree) {
+                                val out = if (memoHere) ArrayList<Pair<List<MemoKey>, Double>>() else null
+                                val t = TreeRun(
+                                    team, seenOf, s.salt, if (memoHere) snapshot else null, view, out,
+                                    leafEval, seenByUs, rootTurn, cancelled,
+                                )
+                                values[j][i] = tree(f, config.treeDepth, Double.NEGATIVE_INFINITY, Double.POSITIVE_INFINITY, t)
+                                treeFound[j][i] = out
+                            } else {
+                                val path = if (memoHere) ArrayList<MemoKey>() else null
+                                values[j][i] = playout(
+                                    f, team, horizon, seenOf, s.salt, if (memoHere) snapshot else null, view, path,
+                                    leafEval, seenByUs, col.reply,
+                                )
+                                found[j][i] = path
+                            }
                         }
                     }
                 }
@@ -203,7 +216,13 @@ class HybridAi(
                     for (k in path) memo[k] = v
                 }
             }
+            for (j in candidates.indices) {
+                for (i in 0 until g) {
+                    for ((path, v) in treeFound[j][i] ?: continue) for (k in path) memo[k] = v
+                }
+            }
         }
+        if (config.worstReply > 0.0) robust(values, columns)
         val bookAnswer = candidates[0]
         var best: Choice? = null
         var bestV = Double.NEGATIVE_INFINITY
@@ -249,6 +268,114 @@ class HybridAi(
             } + " -> $best (book $bookAnswer)",
         )
         return best?.takeIf { it in d.options }
+    }
+
+    /**
+     * [HybridConfig.worstReply]: each sample's columns (its enemy replies, consecutive in [columns]) take
+     * (1 − w) × their mean + w × their worst, so a card that only works against the likely reply pays for it.
+     */
+    @Suppress("NestedBlockDepth")
+    private fun robust(values: Array<DoubleArray>, columns: List<Column>) {
+        val w = config.worstReply.coerceIn(0.0, 1.0)
+        for (row in values) {
+            var i = 0
+            while (i < columns.size) {
+                var end = i
+                while (end < columns.size && columns[end].sample === columns[i].sample) end++
+                var sum = 0.0
+                var n = 0
+                var min = Double.POSITIVE_INFINITY
+                for (k in i until end) {
+                    val v = row[k]
+                    if (v.isNaN()) continue
+                    sum += v
+                    n++
+                    if (v < min) min = v
+                }
+                if (n > 1) {
+                    val r = (1 - w) * (sum / n) + w * min
+                    for (k in i until end) if (!row[k].isNaN()) row[k] = r
+                }
+                i = end
+            }
+        }
+    }
+
+    /** What one tree under a root candidate needs ([tree]). */
+    private class TreeRun(
+        val team: Team,
+        val seenOf: (Team) -> Map<String, Set<String>>,
+        val salt: Long,
+        val memo: Map<MemoKey, Double>?,
+        val view: MemoView,
+        /** The frontier playouts' paths and values, for the memo after the answer. */
+        val out: MutableList<Pair<List<MemoKey>, Double>>?,
+        val leafEval: PositionEvaluator?,
+        val seen: Map<String, Set<String>>,
+        /** The real question's turn: the tree ends with it (the turn horizon). */
+        val turn: Int,
+        val cancelled: () -> Boolean,
+    )
+
+    /**
+     * Minimax with alpha-beta over the rest of the turn from [f] ([HybridConfig.treeDepth]): [depth] more
+     * choices may branch. A question with one option is answered; one the tree does not branch on (a kind
+     * outside [HybridConfig.treeKinds], an enemy's with [HybridConfig.treeEnemy] 0) gets the book's answer;
+     * at depth 0 the book plays out to the turn's end (the memo's playout) and the leaf scores it. Branches
+     * are the book's own answer and its best by static score ([HybridConfig.treeWidth]), the book's first, so
+     * the cut-offs come early. Ours maximise, the enemy's minimise; the value is from [TreeRun.team]'s view.
+     */
+    @Suppress("CyclomaticComplexMethod", "ReturnCount")
+    private fun tree(f: EngineSession, depth: Int, alpha0: Double, beta0: Double, t: TreeRun): Double {
+        var steps = 0
+        var d: Decision
+        while (true) {
+            d = f.pending ?: return leaf(f, t.team, t.seen, t.leafEval)
+            if (turnIndex(f.state) != t.turn || steps++ > config.maxSteps) return leaf(f, t.team, t.seen, t.leafEval)
+            if (d.options.size > 1) {
+                if (depth <= 0 || t.cancelled()) {
+                    val path = if (t.out != null) ArrayList<MemoKey>() else null
+                    val v = playout(f, t.team, HybridHorizon.TURN, t.seenOf, t.salt, t.memo, t.view, path, t.leafEval, t.seen)
+                    if (path != null) t.out?.add(path to v)
+                    return v
+                }
+                val ours = d.team == t.team
+                val branches = (config.treeKinds.isEmpty() || d.kind in config.treeKinds) && (ours || config.treeEnemy == 1)
+                if (branches) break
+            }
+            val mode = if (d.team == t.team) config.ownPolicy else config.enemyPolicy
+            val c = if (d.options.size == 1) d.options[0] else policy.answer(f, d, mode, t.seenOf(d.team), t.salt)
+            if (!BookPolicy.play(f, d, c)) return leaf(f, t.team, t.seen, t.leafEval)
+            answered.incrementAndFetch()
+        }
+        val maxing = d.team == t.team
+        val mode = if (maxing) config.ownPolicy else config.enemyPolicy
+        val first = policy.answer(f, d, mode, t.seenOf(d.team), t.salt)
+        val options = if (d.options.size <= config.treeWidth) {
+            (listOf(first) + d.options).distinct()
+        } else {
+            val sv = policy.staticValues(f, d, t.seenOf(d.team))
+            (listOf(first) + d.options.indices.sortedByDescending { sv[it] }.map { d.options[it] })
+                .distinct().take(config.treeWidth.coerceAtLeast(1))
+        }
+        var alpha = alpha0
+        var beta = beta0
+        var best = if (maxing) Double.NEGATIVE_INFINITY else Double.POSITIVE_INFINITY
+        for (c in options) {
+            val g = f.forkForAnswer()
+            if (!BookPolicy.play(g, d, c)) continue
+            answered.incrementAndFetch()
+            val v = tree(g, depth - 1, alpha, beta, t)
+            if (maxing) {
+                if (v > best) best = v
+                if (best > alpha) alpha = best
+            } else {
+                if (v < best) best = v
+                if (best < beta) beta = best
+            }
+            if (alpha >= beta) break
+        }
+        return if (best.isInfinite()) leaf(f, t.team, t.seen, t.leafEval) else best
     }
 
     /** Diagnostics only: one line per searched decision. */
@@ -397,12 +524,16 @@ class HybridAi(
         var limit = config.maxSteps
         var kills: Map<String, String>? = null
         var extended = false
+        var leafSum = 0.0
+        var leafCount = 0
         while (n < limit) {
             val d = f.pending ?: break
             val s = f.state
+            var turnEnd = false
             if (turnIndex(s) != turn) {
                 turn = turnIndex(s)
                 turnsEnded++
+                turnEnd = true
             }
             if (s.round != startRound && newRoundTurn < 0) newRoundTurn = turnIndex(s)
             val stop = when (horizon) {
@@ -424,6 +555,10 @@ class HybridAi(
                 }
             }
             if (stop) break
+            if (turnEnd && config.leafAverage) {
+                leafSum += leaf(f, rootTeam, seen, leafEval)
+                leafCount++
+            }
             if (memo != null && path != null && !extended) {
                 val key = MemoKey(posKey(f), turnsWanted - turnsEnded, view)
                 val known = memo[key]
@@ -451,7 +586,8 @@ class HybridAi(
             answered.incrementAndFetch()
             n++
         }
-        return leaf(f, rootTeam, seen, leafEval)
+        val end = leaf(f, rootTeam, seen, leafEval)
+        return if (leafCount == 0) end else (leafSum + end) / (leafCount + 1)
     }
 
     /** An enemy's card play drawn from the opponent model (softmax of the book's card scores, 15% uniform). */
