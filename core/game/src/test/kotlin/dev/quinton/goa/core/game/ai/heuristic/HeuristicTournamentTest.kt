@@ -83,7 +83,8 @@ class HeuristicTournamentTest {
         if (all.isEmpty()) return null
         val t = LongArray(4)
         for (h in all) h.stats.forEachIndexed { i, v -> t[i] += v }
-        return "answers hash ${answersHash.getAndSet(0)}; hybrid playouts ${t[0]}, memo hits ${t[1]}, samples ${t[2]} drawn / ${t[3]} distinct"
+        return "answers hash ${answersHash.getAndSet(0)}; hybrid playouts ${t[0]}, memo hits ${t[1]}, " +
+            "samples ${t[2]} drawn / ${t[3]} distinct"
     }
 
     private fun ms(times: List<Long>): String {
@@ -109,7 +110,9 @@ class HeuristicTournamentTest {
         // h10+sim=0+spare=2: a strength and measurement knobs (HeuristicProfile.tune).
         val parts = spec.split("+")
         val n = parts[0].drop(1).toInt()
-        val tune = parts.drop(1).associate { kv -> kv.substringBefore("=") to kv.substringAfter("=").toDouble() } - "thr"
+        val tune = parts.drop(1).associate { kv ->
+            kv.substringBefore("=") to kv.substringAfter("=").toDouble()
+        } - "thr"
         return when (spec[0]) {
             'h', 'H' -> HeuristicAi(n, seed, tune = tune)
             's', 'S' -> AiPlayers.searchDeterministic(n, seed)
@@ -122,7 +125,11 @@ class HeuristicTournamentTest {
         }
     }
 
-    private fun timed(inner: AiPlayer, times: MutableList<Long>, plays: MutableList<Long>): AiPlayer = object : AiPlayer {
+    private fun timed(
+        inner: AiPlayer,
+        times: MutableList<Long>,
+        plays: MutableList<Long>,
+    ): AiPlayer = object : AiPlayer {
         override fun choose(session: GameSession, decision: Decision, cancelled: () -> Boolean): Choice {
             val t0 = System.nanoTime()
             val choice = inner.choose(session, decision, cancelled)

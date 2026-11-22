@@ -23,7 +23,11 @@ object HybridPlayers {
     fun hybrid(seed: Long, knobs: Map<String, Double>, runner: SampleRunner = SampleRunner.SEQUENTIAL): AiPlayer =
         HybridAi(seed, knobs, runner)
 
-    fun searchWithBook(seed: Long, knobs: Map<String, Double>, runner: SampleRunner = SampleRunner.SEQUENTIAL): AiPlayer {
+    fun searchWithBook(
+        seed: Long,
+        knobs: Map<String, Double>,
+        runner: SampleRunner = SampleRunner.SEQUENTIAL,
+    ): AiPlayer {
         val bookTune = knobs.filterKeys { it !in HybridConfig.NAMES }
         val policy = BookPolicy(seed, bookTune)
         // pol=-1 keeps the old playout policy (only the opponent model and the leaf change).
@@ -35,7 +39,9 @@ object HybridPlayers {
         var p = AiPlayers.profile(10).copy(
             playoutPolicy = if (polCode < 0) null else { f, d, _ -> policy.answer(f, d, mode, emptyMap(), seed) },
             playModelOn = if (model > 0) {
-                { data, setup, st, hero, pool -> policy.playWeights(data, setup, st, hero, pool, model, tau) { emptyMap() } }
+                { data, setup, st, hero, pool ->
+                    policy.playWeights(data, setup, st, hero, pool, model, tau) { emptyMap() }
+                }
             } else {
                 null
             },

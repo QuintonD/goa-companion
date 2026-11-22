@@ -3064,3 +3064,24 @@ so that response follows the sampled copy. That is the bias of reasoning on one 
 leak of the real cards (`NoPeekingTest` holds); removing it needs a "stop before a hidden-dependent
 resolution" hook in `EngineSession`. Strength against s8 was unchanged by the fixes (51.6–55.7% on
 development line-ups, within noise).
+
+Addendum, wave 3 track C (2026-11-22): **strength 10 is a search over the book.** `AiPlayers.forStrength(10, …)`
+(and `forApp`, `deterministic`, `forLevel` at Expert) returns `HybridAi` (`ai/hybrid/`, REVIEW-2-search.md's
+`x10`); 1–9 stay `HeuristicAi`. Every question with two or more options (but act-first) is searched: up to 24
+determinizations from the deciding team's view (strength 10's: enemy hand pools known, ADR-062), merged where they
+deal the same position; on each, the book's own answer and its best few (all cards at a card play; 8 spaces, 6
+units, 4 of anything else by static score) are answered on a fork and played to the end of the turn by the book
+exactly as h10 plays it for every seat. At a card play with an enemy still to choose, each sample is also played
+with three enemy cards drawn from the book's opponent model, so the search is not tuned to one deterministic
+reply. The leaf is the old learned ensemble (`AiPlayers.SEARCH_10_LEAF = HybridLeaf.NET`: one switch; `HEVAL` is
+the book's own position value). The best weighted mean wins; the book's answer keeps a tie. A transposition
+memo keeps playout values for the real turn. Answers are a function of the seed, the decision and the session on
+any `SampleRunner`; `NoPeekingTest` and `HybridSearchTest` hold it. No wall clock (the owner: "regardless of the
+device"), so the same strength on every device; `cancelled()` stops it. The server's takeover keeps strength 4.
+Measured (RESULTS.md "Wave 3 — Track C"): merging identical samples cut the time 4.8× with the same answers;
+against the old strength 10 on held-out line-ups 300–395 these knobs (W2) made 54.2% (47.1–61.1, 192 games). The old
+search stays the coach, the puzzle solver, `AiBenchmark` and the yardstick. The owner's ruling (2026-11-22): the
+leaf that ships is whichever measures strongest (Track B's HEval or a retrained net as another `HybridLeaf`), so the
+leaf stays one switch. After the reveal the samples merge into one known position; a minimax over the rest of the
+turn there (the tree, `td`/`tw`: book-ordered, book playouts at its frontier) beat W2 56.6% (50.5–62.6, 256
+development games); its held-out numbers are pending (RESULTS.md).
