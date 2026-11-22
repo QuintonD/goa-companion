@@ -7,7 +7,11 @@ this file is how the code uses it, what each strength does, what it costs and ho
 
 The player a game seats (`AiPlayers.forApp`, `forStrength`, `deterministic`, `forLevel`) is the
 heuristic book: a general playbook plus one file per hero, in
-[`ai/heuristic/`](heuristic/README.md). The contract is [`heuristic/DESIGN.md`](heuristic/DESIGN.md).
+[`ai/heuristic/`](heuristic/README.md). **Strength 10 (Expert) is a search over that book** since wave 3
+(ADR-085 addendum; `ai/hybrid/HybridAi.kt`, knobs `AiPlayers.SEARCH_10`, leaf switch `AiPlayers.SEARCH_10_LEAF`;
+design and measurements in [`heuristic/REVIEW-2-search.md`](heuristic/REVIEW-2-search.md) and
+[`heuristic/RESULTS.md`](heuristic/RESULTS.md) "Wave 3 — Track C"): every choice played to the end of the turn by
+the book for every seat and scored by the old learned ensemble. The contract is [`heuristic/DESIGN.md`](heuristic/DESIGN.md).
 Strength 1–10 still means the same bands (Easy 2, Normal 6, Hard 8, Expert 10). The search described
 below — determinized playouts, the learned net — is no longer that player. It remains the coach, the
 puzzle solver, and `AiPlayers.searchDeterministic` / `searchForStrength`, so a tournament can still
