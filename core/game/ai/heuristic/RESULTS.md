@@ -146,3 +146,47 @@ Held out, line-ups 300–395, 192 mirrored 2v2 games: h10 vs s8 106–86 = 55.2%
 h10 won by last push 54 / Life 23 / Throne 29, s8 by 52 / 24 / 10. Defeats a game h10 0.91, s8 1.13 (with no
 card to defend 77 / 63). Answers h10 3.3 / 11.0 / 311 ms (mean / p95 / max), s8 20.0 / 74.7 / 561 ms.
 Unchanged from before the review (55.2% on the same line-ups).
+
+## Wave 3 — Track B (evaluation, 2026-11-22)
+
+HEval is now a named feature vector times weights (`HTerm`, `HEvalWeights`; HEVAL.md). The hand-set weights
+reproduce the old evaluation exactly (`GameParityTest` unchanged), and h10 still plays with them. Line-ups are
+development (1000+, 2000+) unless they say otherwise. Wilson is the 95% interval. No result below clears the
+bar the owner set: an HEval leaf that beats the net leaf head-to-head.
+
+**HEval as h10's own evaluation** (mirrored 2v2, line-ups 1000+):
+
+| Change | Pair | Games | Win | Wilson | Kept |
+|--------|------|------:|----:|--------|------|
+| outcome-fitted set (`hw.*` = set 1) | : h10 | 128 | 49.2% | 40.7–57.8 | no |
+| the same | : s8 (h10 baseline on these line-ups 55.5%, 46.8–63.8) | 128 | 51.6% | 43.0–60.0 | no |
+| minion price ×1.4 (`laneDelta=1.4`, REVIEW-2-design §2.2.1) | : h10 | 512 | 51.0% | 46.7–55.3 | no |
+| the same | : s8 (same baseline) | 128 | 42.2% | 34.0–50.8 | no |
+
+**HEval as x10's leaf** (`x10+pol=1+scope=3`, line-ups 1000–1031). On these line-ups REVIEW-2-search measured
+the hand leaf at 43.8% against s10 and the net leaf at 65.6%.
+
+| Leaf | Against | Games | Win | Wilson | x10 answer ms (mean / p95 / max) |
+|------|---------|------:|----:|--------|------|
+| set 1, fitted to outcomes (`hevLeaf=1`) | s10 | 64 | 43.8% | 32.3–55.9 | 517 / 2099 / 17378 |
+| set 2, distilled from the net (`hevLeaf=2`) | s10 | 64 | 40.6% | 29.5–52.9 | 508 / 2044 / 17082 |
+| set 3, every term fitted to outcomes (`hevLeaf=3`) | s10 | 64 | 35.9% | 25.3–48.2 | 547 / 2218 / 14163 |
+| hand set, round horizon (`hz=3+hzo=3`), line-ups 1000–1023 | x10 with the net leaf, turn horizon | 48 | 29.2% | 18.2–43.2 | 1423 / 5629 / 23289 |
+
+None of these was continued: all four sit far below the net leaf's 65.6%. A turn-horizon head-to-head of
+leaf=0 against leaf=2 was not run, because every leaf=0 variant measured 22–30 points under the net leaf
+against s10. The answer times come from a shared, overloaded machine, so read them as upper bounds.
+
+**Positions.** These are predictive scores, not play.
+
+| Measure | Hand HEval | Fitted | Net |
+|---------|-----------:|-------:|----:|
+| Log-loss of P(win), 1,200 h10 games, 4-fold CV by game | 0.593 | 0.587 | 0.577 |
+| Log-loss on 64 x10-vs-s10 games, weights from the h10 games, slope refit | 0.637 | 0.624 (set 1), 0.620 (set 3) | 0.627 |
+| x10 leaves (87,568, 32 games): share of searched decisions whose pick matches the net's, held-out fold | 74.5% | 76.1% | — |
+| the same: the net's regret of HEval's pick, coins a decision | 1.30 | 1.09 | 0 |
+
+Predicting the outcome better did not make a better leaf. A leaf only has to rank the candidates within one
+sample, and those differences are small next to the spread between positions. Within samples the hand terms
+explain 53% of the net's variance and the refit 74%: 91% at round-start leaves, 67% at mid-round leaves.
+HEVAL.md "Residuals" has where the rest sits.

@@ -31,13 +31,15 @@ NET_TO_COINS = 1.45 / 0.0186
 WIN = 1000.0
 
 
-def load(paths, kinds):
+def load(paths, kinds, turns=None):
     groups = defaultdict(list)  # (game, decision, sample) -> [(cand, net, f, terminal)]
     meta = {}
     for path in paths:
         with open(path) as fh:
             for r in csv.DictReader(fh):
                 if kinds and r["kind"] not in kinds:
+                    continue
+                if turns and int(r["turn"]) not in turns:
                     continue
                 net = float(r["net"])
                 terminal = abs(net) >= 19.99
@@ -95,8 +97,9 @@ def main():
     ap.add_argument("--l2", default="0.001,0.01,0.1,1")
     ap.add_argument("--kinds", default="")
     ap.add_argument("--fold", type=int, default=0)
+    ap.add_argument("--turns", default="", help="leaf turns kept, e.g. 1 (a new round) or 2,3,4")
     args = ap.parse_args()
-    groups, meta = load(args.csv, set(k for k in args.kinds.split(",") if k))
+    groups, meta = load(args.csv, set(k for k in args.kinds.split(",") if k), set(int(t) for t in args.turns.split(",") if t))
     terms = list(HAND)
     zero = set(t for t in args.zero.split(",") if t)
     chosen = [t for t in args.terms.split(",") if t and t not in zero]

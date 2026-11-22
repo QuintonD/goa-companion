@@ -59,7 +59,8 @@ object HEval {
         value(ctx, team, exposure, HEvalWeights.of(ctx.profile))
 
     /** The value a search uses at its leaf: the `hevLeaf` weights (HEVAL.md). */
-    fun evaluateLeaf(ctx: HContext, team: Team): Double = value(ctx, team, null, HEvalWeights.of(ctx.profile, leaf = true))
+    fun evaluateLeaf(ctx: HContext, team: Team): Double =
+        value(ctx, team, null, HEvalWeights.of(ctx.profile, leaf = true))
 
     /** [evaluate] with explicit [weights]. */
     fun value(ctx: HContext, team: Team, exposure: Pair<String, Double>?, weights: HEvalWeights): Double {
@@ -148,7 +149,9 @@ object HEval {
         add(HTerm.PRESENCE, bodies.maxOf { ctx.presence(it) })
         if (on(HTerm.OPPORTUNITY)) add(HTerm.OPPORTUNITY, bodies.maxOf { ctx.opportunity(h.id, it) })
         if (on(HTerm.LANE_THREAT)) add(HTerm.LANE_THREAT, bodies.maxOf { laneThreat(ctx, h, it, 1.0) })
-        if (ctx.profile.laneTiming && on(HTerm.ZONE_PULL)) add(HTerm.ZONE_PULL, bodies.maxOf { zonePull(ctx, h.id, it) })
+        if (ctx.profile.laneTiming && on(HTerm.ZONE_PULL)) {
+            add(HTerm.ZONE_PULL, bodies.maxOf { zonePull(ctx, h.id, it) })
+        }
         if (ctx.profile.threatMap && on(HTerm.EXPOSURE)) {
             add(HTerm.EXPOSURE, exposure ?: bodies.maxOf { ctx.exposure(h.id, it) })
         }
@@ -156,8 +159,11 @@ object HEval {
         if (on(HTerm.ACCESS)) add(HTerm.ACCESS, -bodies.minOf { actionsTo(ctx, h.team, it, goalOf(ctx, h, it)) })
         if (on(HTerm.FORMATION)) add(HTerm.FORMATION, formation(ctx, h.team, at))
         if (on(HTerm.IDEAL_GAP)) {
-            val nearest = ctx.state.heroes.filter { it.team != h.team && it.at != null }.minOfOrNull { HexGrid.distance(at, it.at!!) }
-            if (nearest != null) add(HTerm.IDEAL_GAP, -kotlin.math.abs(nearest - ctx.style(h.id).idealDistance).toDouble())
+            val nearest = ctx.state.heroes.filter { it.team != h.team && it.at != null }
+                .minOfOrNull { HexGrid.distance(at, it.at!!) }
+            if (nearest != null) {
+                add(HTerm.IDEAL_GAP, -kotlin.math.abs(nearest - ctx.style(h.id).idealDistance).toDouble())
+            }
         }
         if (on(HTerm.MINION_MOD)) add(HTerm.MINION_MOD, ctx.minionModifier(at, h.team).toDouble())
     }
@@ -403,7 +409,11 @@ object HEval {
                     red = max(0.0, red - PROJ_KILL * min(killsByBlue, red))
                 }
                 val endOfRound = !battleDone && (ctx.roundOver || state.turn >= 4)
-                if (endOfRound) roundEnd(ctx, zones, i, waves, red, blue) else laneWinV2(ctx, zones, i, waves, pushChance(red, blue))
+                if (endOfRound) {
+                    roundEnd(ctx, zones, i, waves, red, blue)
+                } else {
+                    laneWinV2(ctx, zones, i, waves, pushChance(red, blue))
+                }
             }
             val weight = if (ctx.profile.laneTiming && ctx.matchPoint(lane)) 100.0 else 60.0
             v += weight * (2 * w - 1)

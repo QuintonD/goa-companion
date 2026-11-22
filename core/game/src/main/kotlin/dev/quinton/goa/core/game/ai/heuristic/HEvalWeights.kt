@@ -113,7 +113,9 @@ enum class HTerm(val label: String, val hand: Double) {
  */
 class HEvalWeights(val name: String, val w: DoubleArray, val laneDelta: Double) {
     init {
-        require(w.size == HTerm.entries.size) { "HEvalWeights $name: ${w.size} weights for ${HTerm.entries.size} terms" }
+        require(w.size == HTerm.entries.size) {
+            "HEvalWeights $name: ${w.size} weights for ${HTerm.entries.size} terms"
+        }
     }
 
     operator fun get(t: HTerm): Double = w[t.ordinal]
@@ -186,7 +188,8 @@ class HEvalWeights(val name: String, val w: DoubleArray, val laneDelta: Double) 
 
         private fun resolve(profile: HeuristicProfile, leaf: Boolean): HEvalWeights {
             val book = profile.knob("hev", DEFAULT_SET.toDouble()).toInt()
-            val idx = if (leaf) profile.knob("hevLeaf", if ("hev" in profile.tune) book.toDouble() else DEFAULT_LEAF_SET.toDouble()).toInt() else book
+            val leafDefault = if ("hev" in profile.tune) book else DEFAULT_LEAF_SET
+            val idx = if (leaf) profile.knob("hevLeaf", leafDefault.toDouble()).toInt() else book
             val base = SETS[idx.coerceIn(0, SETS.lastIndex)]
             if (profile.tune.isEmpty()) return base
             val w = base.w.copyOf()
