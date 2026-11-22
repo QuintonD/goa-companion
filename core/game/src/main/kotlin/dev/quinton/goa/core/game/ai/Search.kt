@@ -18,6 +18,10 @@ import kotlin.concurrent.atomics.incrementAndFetch
 import kotlin.math.sqrt
 import kotlin.random.Random
 
+/** The hybrid prototype's opponent model for an unrevealed card ([LevelProfile.playModelOn]). */
+internal typealias PlayModel =
+    (EngineData, dev.quinton.goa.core.game.GameSetup, GameState, String, List<String>) -> List<Double>?
+
 /** How far a playout runs before the position is evaluated. */
 internal enum class Horizon {
     /** Until the card being resolved (or the end-of-round step) is done. */
@@ -133,9 +137,11 @@ internal data class LevelProfile(
      * option in place of the static policy and the one-ply looks (the heuristic book). Null = as above.
      */
     val playoutPolicy: ((EngineSession, Decision, Team) -> Choice)? = null,
-    /** Prototype only: the opponent model's weights for an unrevealed card in place of [playWeights]; null falls back. */
-    val playModelOn: ((EngineData, dev.quinton.goa.core.game.GameSetup, GameState, String, List<String>) -> List<Double>?)? =
-        null,
+    /**
+     * Prototype only: the opponent model's weights for an unrevealed card in place of [playWeights]; null
+     * falls back.
+     */
+    val playModelOn: PlayModel? = null,
     /** Prototype only: scores a playout's end in place of [learned]'s evaluator. */
     val leafOn: ((EngineSession, Team) -> Double)? = null,
 )
@@ -695,6 +701,7 @@ internal class Searcher(
     }
 
     /** Play on to the horizon with the rollout policy. */
+    @Suppress("CyclomaticComplexMethod") // the prototype hooks (REVIEW-2-search.md) add two branches
     fun playout(
         f: EngineSession,
         rootSeat: String,

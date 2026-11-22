@@ -1,5 +1,6 @@
 package dev.quinton.goa.core.game.ai.hybrid
 
+import dev.quinton.goa.core.domain.PortableMath
 import dev.quinton.goa.core.game.AnswerResult
 import dev.quinton.goa.core.game.Choice
 import dev.quinton.goa.core.game.Decision
@@ -15,7 +16,6 @@ import dev.quinton.goa.core.game.ai.heuristic.HeuristicProfile
 import dev.quinton.goa.core.game.engine.EngineData
 import dev.quinton.goa.core.game.engine.EngineSession
 import dev.quinton.goa.core.game.engine.GameState
-import dev.quinton.goa.core.domain.PortableMath
 import dev.quinton.goa.core.model.match.Team
 import kotlin.coroutines.cancellation.CancellationException
 import kotlin.random.Random
@@ -35,7 +35,12 @@ internal class BookPolicy(seed: Long, tune: Map<String, Double>) {
     val full = HeuristicAi(10, seed, tune = quiet)
 
     /** h10's rules with looks only where the text is opaque: card plays from static scores. */
-    val static = HeuristicAi(10, seed, tune = quiet, profileEdit = { it.copy(lookahead = HeuristicProfile.Look.OPAQUE) })
+    val static = HeuristicAi(
+        10,
+        seed,
+        tune = quiet,
+        profileEdit = { it.copy(lookahead = HeuristicProfile.Look.OPAQUE) },
+    )
 
     val profile: HeuristicProfile get() = full.profile
 
@@ -108,7 +113,8 @@ internal class BookPolicy(seed: Long, tune: Map<String, Double>) {
     }
 
     /**
-     * The opponent model for an unrevealed played card ([dev.quinton.goa.core.game.engine.Determinizer.Options.playWeight]):
+     * The opponent model for an unrevealed played card
+     * ([dev.quinton.goa.core.game.engine.Determinizer.Options.playWeight]):
      * a softmax of the hero's own book values over its hand pool, 15% uniform. [state] is the
      * determinizer's copy with the pool back in hand; a bare session over it gives the book its data.
      */
@@ -153,7 +159,9 @@ internal class BookPolicy(seed: Long, tune: Map<String, Double>) {
 
     private fun staticOn(ctx: HContext, d: Decision): DoubleArray {
         val book = HeroPlaybooks.forHero(d.seat)
-        return DoubleArray(d.options.size) { i -> General.score(ctx, d, d.options[i]) + book.adjust(ctx, d, d.options[i]) }
+        return DoubleArray(d.options.size) { i ->
+            General.score(ctx, d, d.options[i]) + book.adjust(ctx, d, d.options[i])
+        }
     }
 
     private fun cardValuesOn(ctx: HContext, d: Decision): DoubleArray? {
