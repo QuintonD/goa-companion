@@ -74,13 +74,22 @@ object AiPlayers {
     val SEARCH_10_LEAF: HybridLeaf = HybridLeaf.NET
 
     /**
-     * Strength 10's search over the heuristic book ([HybridAi], ADR-085 addendum): the knobs of
-     * [dev.quinton.goa.core.game.ai.hybrid.HybridConfig.fromKnobs] (the leaf is [SEARCH_10_LEAF]).
+     * Strength 10's search over the heuristic book ([HybridAi], ADR-085 addendum "Wave 3"): the knobs of
+     * [dev.quinton.goa.core.game.ai.hybrid.HybridConfig.fromKnobs] (the leaf is [SEARCH_10_LEAF]). The book
+     * exactly as h10 plays it answers in the playouts (`pol` 1); every question with a choice is searched
+     * (`scope` 3) to the end of the turn; 24 determinizations a card play, merged where they deal the same
+     * position (`K`); the book's own answer plus its best 8 spaces / 6 units / 4 of anything else (`topS`,
+     * `topU`, `top`); 4 enemy replies a card play while an enemy still has to choose (`rep`); the memo (`tt`).
+     * Any other key goes to the book as a [dev.quinton.goa.core.game.ai.heuristic.HeuristicProfile.tune] knob.
      */
     val SEARCH_10: Map<String, Double> = mapOf(
         "pol" to 1.0,
         "scope" to 3.0,
         "tt" to 1.0,
+        "K" to 24.0,
+        "topS" to 8.0,
+        "topU" to 6.0,
+        "rep" to 4.0,
     )
 
     /** The strengths the search plays ([HybridAi]); below them the heuristic book alone ([HeuristicAi]). */
