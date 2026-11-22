@@ -84,7 +84,15 @@ class HybridSearchTest {
             val (red, blue) = AiHarness.mixedLineups(3, seed = 99L)[2]
             val s = TestData.engine.newGame(AiHarness.setup(red, blue, AiLevel.EXPERT, AiLevel.EXPERT, Team.RED))
                 as EngineSession
-            val knobs = mapOf("pol" to 1.0, "scope" to 3.0, "tt" to 1.0, "K" to 4.0, "Ko" to 2.0, "td" to 2.0, "tw" to 2.0)
+            val knobs = mapOf(
+                "pol" to 1.0,
+                "scope" to 3.0,
+                "tt" to 1.0,
+                "K" to 4.0,
+                "Ko" to 2.0,
+                "td" to 2.0,
+                "tw" to 2.0,
+            )
             val one = mapOf(Team.RED to HybridAi(7L, knobs), Team.BLUE to HybridAi(8L, knobs))
             val many = mapOf(Team.RED to HybridAi(7L, knobs, threads), Team.BLUE to HybridAi(8L, knobs, threads))
             val noMemo = knobs + ("tt" to 0.0)

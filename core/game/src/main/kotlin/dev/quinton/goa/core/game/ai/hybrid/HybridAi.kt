@@ -381,12 +381,14 @@ class HybridAi(
                 if (branches) break
             }
             val mode = if (d.team == t.team) config.ownPolicy else config.enemyPolicy
-            val drawn = if (t.replyRng != null && d.team != t.team && d.kind == DecisionKind.PLAY_CARD && d.options.size > 1) {
+            val enemyCard = d.team != t.team && d.kind == DecisionKind.PLAY_CARD && d.options.size > 1
+            val drawn = if (t.replyRng != null && enemyCard) {
                 drawReply(f, d, t.seenOf, t.replyRng)
             } else {
                 null
             }
-            val c = drawn ?: if (d.options.size == 1) d.options[0] else policy.answer(f, d, mode, t.seenOf(d.team), t.salt)
+            val c = drawn
+                ?: if (d.options.size == 1) d.options[0] else policy.answer(f, d, mode, t.seenOf(d.team), t.salt)
             if (!BookPolicy.play(f, d, c)) return leaf(f, t.team, t.seen, t.leafEval)
             answered.incrementAndFetch()
         }

@@ -30,7 +30,8 @@ class HeuristicTournamentTest {
         val first = System.getenv("AI_H_FIRST")?.toIntOrNull() ?: 0
         val threads = System.getenv("AI_THREADS")?.toIntOrNull() ?: 2
         val format = AiHarness.Format.parse(System.getenv("AI_FORMAT"))
-        // AI_SPRT=0.55: the pentanomial SPRT (p0 0.5, α β 0.05) on batches of AI_SPRT_BATCH line-ups, at most AI_H_GAMES.
+        // AI_SPRT=0.55: the pentanomial SPRT (p0 0.5, α β 0.05) on batches of AI_SPRT_BATCH line-ups,
+        // at most AI_H_GAMES.
         val sprt = System.getenv("AI_SPRT")?.toDoubleOrNull()?.let { Tournament.Sprt(it) }
         val sprtBatch = System.getenv("AI_SPRT_BATCH")?.toIntOrNull() ?: 16
         for (pair in spec.split(",").map { it.trim() }.filter { it.isNotEmpty() }) {
@@ -43,7 +44,14 @@ class HeuristicTournamentTest {
             val b = side(bName, bTimes, bPlays)
             val t0 = System.nanoTime()
             val score = Tournament.runMixed(
-                a, b, lineups, threads, firstLineup = first, format = format, sprt = sprt, sprtBatch = sprtBatch,
+                a,
+                b,
+                lineups,
+                threads,
+                firstLineup = first,
+                format = format,
+                sprt = sprt,
+                sprtBatch = sprtBatch,
             )
             val verdict = sprt?.let { " SPRT(${it.p1}) ${it.verdict(score)}" }.orEmpty()
             val secs = (System.nanoTime() - t0) / 1e9
@@ -115,12 +123,16 @@ class HeuristicTournamentTest {
         } - "thr"
         return when (spec[0]) {
             'h', 'H' -> HeuristicAi(n, seed, tune = tune)
+
             's', 'S' -> AiPlayers.searchDeterministic(n, seed)
+
             // The search prototypes of REVIEW-2-search.md (strength 10 only).
             'x', 'X' -> HybridPlayers.hybrid(seed, tune, runner).also {
                 (it as? dev.quinton.goa.core.game.ai.hybrid.HybridAi)?.let(hybrids::add)
             }
+
             'y', 'Y' -> HybridPlayers.searchWithBook(seed, tune, runner)
+
             else -> error("AI_H_TOURNAMENT wants h6 or s6, not $spec")
         }
     }

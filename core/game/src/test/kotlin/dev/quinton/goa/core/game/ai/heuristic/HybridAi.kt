@@ -28,20 +28,30 @@ internal class HybridAi(
         /** card, action, move, space, target, unit, opaque, defend, discard, upgrade, minion, respawn, first. */
         fun category(es: EngineSession, d: Decision): String = when (d.kind) {
             DecisionKind.PLAY_CARD -> "card"
+
             DecisionKind.CHOOSE_ACTION -> "action"
+
             DecisionKind.CHOOSE_SPACE -> {
                 val subject = d.context.subjectId
                 val own = subject != null && (subject == d.seat || es.state.hero(subject)?.team == d.team)
                 if (own) "move" else "space"
             }
+
             DecisionKind.CHOOSE_UNIT -> if (d.prompt.startsWith("Target")) "target" else "unit"
+
             DecisionKind.CHOOSE_OPTION, DecisionKind.CHOOSE_TOKEN, DecisionKind.CONFIRM, DecisionKind.CHOOSE_NUMBER ->
                 "opaque"
+
             DecisionKind.DEFEND -> "defend"
+
             DecisionKind.CHOOSE_CARD -> "discard"
+
             DecisionKind.UPGRADE_CARD, DecisionKind.KEEP_UPGRADE -> "upgrade"
+
             DecisionKind.REMOVE_MINION, DecisionKind.MINION_RETURN -> "minion"
+
             DecisionKind.RESPAWN -> "respawn"
+
             DecisionKind.ACT_FIRST -> "first"
         }
     }

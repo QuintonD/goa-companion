@@ -11,10 +11,10 @@ import dev.quinton.goa.core.game.TestData
 import dev.quinton.goa.core.game.ai.AiHarness
 import dev.quinton.goa.core.game.ai.AiPlayers
 import dev.quinton.goa.core.game.ai.Analysis
+import dev.quinton.goa.core.game.ai.EvalSource
 import dev.quinton.goa.core.game.ai.Evaluator
 import dev.quinton.goa.core.game.ai.Searcher
 import dev.quinton.goa.core.game.ai.WinChance
-import dev.quinton.goa.core.game.ai.EvalSource
 import dev.quinton.goa.core.game.engine.EngineSession
 import dev.quinton.goa.core.game.engine.GameState
 import dev.quinton.goa.core.game.engine.Zone
@@ -94,14 +94,16 @@ class HeuristicRegretTest {
         val all = AiHarness.mixedLineups(first + lineups, size = format.size)
         val jobs = ArrayList<Callable<Unit>>()
         for (opp in spec.split(",").map { it.trim() }.filter { it.isNotEmpty() }) {
-            for (i in first until first + lineups) for (hRed in listOf(true, false)) {
-                jobs += Callable {
-                    val t0 = System.nanoTime()
-                    val lines = game(all[i], i, hRed, opp, stopAt = null)
-                    val secs = (System.nanoTime() - t0) / 1e9
-                    synchronized(this) { out.appendText(lines.joinToString("\n", postfix = "\n")) }
-                    val side = if (hRed) "R" else "B"
-                    println("REGRET game $i $side vs $opp: ${lines.size - 1} questions in ${secs.toInt()} s")
+            for (i in first until first + lineups) {
+                for (hRed in listOf(true, false)) {
+                    jobs += Callable {
+                        val t0 = System.nanoTime()
+                        val lines = game(all[i], i, hRed, opp, stopAt = null)
+                        val secs = (System.nanoTime() - t0) / 1e9
+                        synchronized(this) { out.appendText(lines.joinToString("\n", postfix = "\n")) }
+                        val side = if (hRed) "R" else "B"
+                        println("REGRET game $i $side vs $opp: ${lines.size - 1} questions in ${secs.toInt()} s")
+                    }
                 }
             }
         }
@@ -394,13 +396,21 @@ class HeuristicRegretTest {
         }
 
         is Choice.Space -> "space:${c.hex.q},${c.hex.r}"
+
         is Choice.Unit -> "unit:${c.unitId}"
+
         is Choice.Token -> "token:${c.tokenId}"
+
         is Choice.Action -> "action:${c.action.name}"
+
         is Choice.Option -> "option:${c.index}:${c.label.take(PROMPT)}"
+
         is Choice.Number -> "number:${c.value}"
+
         is Choice.Yes -> "yes"
+
         is Choice.Decline -> "decline:${c.label}"
+
         is Choice.Pass -> "pass"
     }
 

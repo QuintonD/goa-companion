@@ -186,6 +186,7 @@ data class HybridConfig(
         private fun byTurn(k: Map<String, Double>, prefix: String): Map<Int, HybridHorizon> =
             (1..4).mapNotNull { t -> k["$prefix$t"]?.let { t to HybridHorizon.of(it.toInt()) } }.toMap()
 
+        @Suppress("CyclomaticComplexMethod")
         fun fromKnobs(k: Map<String, Double>): HybridConfig {
             val d = HybridConfig()
             val pol = k["pol"]?.toInt()?.let(PolicyMode::of)
