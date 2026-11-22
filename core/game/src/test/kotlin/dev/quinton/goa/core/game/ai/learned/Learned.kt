@@ -90,7 +90,9 @@ internal object Learned {
      */
     fun side(name: String): Tournament.Side {
         // The heuristic book (`h10+temp=0.3`) and the hybrid search (`x10+…+net=…`), Wave 3 Track E.
-        if (name.startsWith("h") || name.startsWith("x")) return Tournament.Side(name) { seed -> LeafNets.player(name, seed) }
+        if (name.startsWith("h") || name.startsWith("x") || name.startsWith("W2")) {
+            return Tournament.Side(name) { seed -> LeafNets.player(name, seed) }
+        }
         val spec = if (name.startsWith("@")) HeroBenchTest.EXPLOITERS.getValue(name.drop(1)) else name
         val parts = spec.split("+")
         val strength = parts[0].removePrefix("s").toIntOrNull()
