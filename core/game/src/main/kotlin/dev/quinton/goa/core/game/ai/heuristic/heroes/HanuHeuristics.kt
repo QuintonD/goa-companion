@@ -64,7 +64,6 @@ object HanuHeuristics : HeroHeuristics {
         val at = ctx.own()?.at ?: return 0.0
         return when {
             id == "hanu-gold" -> gold(ctx, at)
-            id == SILVER -> hurryOutlook(ctx, at)
             id.startsWith("hanu-red") -> red(ctx, at, ctx.card(id))
             id in JOURNEY -> journey(ctx, at, ctx.card(id))
             else -> 0.0
@@ -129,20 +128,8 @@ object HanuHeuristics : HeroHeuristics {
         return hurryOn(ctx, ctx.hero(body) ?: return 0.0)
     }
 
-    /**
-     * Hurry up! at the card play: nothing in the card look prices the order it changes, so the best hurry
-     * among heroes in range whose card is already down on this copy (our own team's known, an enemy's from
-     * the sample), discounted for the cards still to be played and for the guess.
-     */
-    private fun hurryOutlook(ctx: HContext, at: Hex): Double {
-        val card = ctx.card(SILVER)
-        val reach = maxOf(card.range, card.radius) + ctx.itemBonus(ctx.seat, Stat.RANGE)
-        val best = ctx.state.heroes.filter { h ->
-            h.id != ctx.seat && h.unresolved.isNotEmpty() && h.at?.let { ctx.distance(at, it) <= reach } == true
-        }.maxOfOrNull { hurryOn(ctx, it) } ?: return 0.0
-        return OUTLOOK * best.coerceAtLeast(0.0)
-    }
-
+    // Wave 3: pricing Hurry up! at the card play too (0.6 × the best hurry on this copy's facedown cards)
+    // measured 41.1% [34.4–48.2] against the old book at strength 10: it spends the silver too often.
     private fun hurryOn(ctx: HContext, hero: HeroState): Double {
         val card = hero.unresolved.firstOrNull()?.let { ctx.card(it.id) } ?: return 0.0
         val ally = hero.team == ctx.team
@@ -225,9 +212,6 @@ object HanuHeuristics : HeroHeuristics {
 
     private const val SILVER = "hanu-silver"
     private const val HURRY = 11
-
-    /** Share of the best hurry counted at the card play (the order is a guess until the reveal). */
-    private const val OUTLOOK = 0.6
 
     /** A hurry that changes no order: a wasted target. */
     private const val NOTHING = -1.0

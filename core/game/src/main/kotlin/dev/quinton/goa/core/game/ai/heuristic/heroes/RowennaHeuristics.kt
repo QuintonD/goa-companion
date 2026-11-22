@@ -25,13 +25,9 @@ object RowennaHeuristics : HeroHeuristics {
         idealDistance = 1,
         aggression = 0.60,
         laneWeight = 1.1,
-        // Research §3: level 3 is blue when she is the finisher; the execute is only alive once she owns it
-        // (wave 3: with red, red, green first she almost never did, and the window logic never fired).
         upgradeOrder = listOf(
             "rowenna-red-2a",
-            "rowenna-blue-2b",
             "rowenna-red-3a",
-            "rowenna-blue-3b",
             "rowenna-green-2a",
             "rowenna-green-3a",
             "red",
@@ -64,7 +60,22 @@ object RowennaHeuristics : HeroHeuristics {
         DecisionKind.PLAY_CARD -> play(ctx, choice)
         DecisionKind.CHOOSE_UNIT -> target(ctx, d, choice)
         DecisionKind.DEFEND -> defend(d, choice)
+        DecisionKind.UPGRADE_CARD -> upgradeBlue(ctx, choice)
+        DecisionKind.KEEP_UPGRADE -> if (BatchC.cardId(choice) in executes) KEEP_EXECUTE else 0.0
         else -> 0.0
+    }
+
+    /**
+     * Research §3: blue at level 3 when she is the finisher; keep Accept Surrender / Glorious Triumph (the
+     * other becomes the Defense or Movement item). The execute is only alive once she owns it: with the
+     * order red, red, green she almost never did, and wave 3 measured its window logic never firing.
+     */
+    private fun upgradeBlue(ctx: HContext, choice: Choice): Double {
+        val id = BatchC.cardId(choice) ?: return 0.0
+        if (!id.startsWith("rowenna-blue")) return 0.0
+        val me = ctx.own() ?: return 0.0
+        val owns = me.cards.any { it.id in executes && it.zone in OWNED }
+        return if (owns && id !in executes) 0.0 else UPGRADE_BLUE
     }
 
     /** Silver places her next to a hero in range 4: beyond Movement 2, but the hit comes a turn later. */
@@ -180,6 +191,11 @@ object RowennaHeuristics : HeroHeuristics {
             c.zone == Zone.DISCARD && !c.faceDown && (ctx.card(c.id).defense ?: -99) + bonus >= total
         }
     }
+
+    /** Upgrade the blue line (toward the execute) and keep the execute variant. */
+    private const val UPGRADE_BLUE = 1.5
+    private const val KEEP_EXECUTE = 4.0
+    private val OWNED = setOf(Zone.HAND, Zone.PLAYED, Zone.RESOLVED, Zone.DISCARD)
 
     /** At or above this chance the execute is played outright (H11). */
     private const val SURE = 0.8
