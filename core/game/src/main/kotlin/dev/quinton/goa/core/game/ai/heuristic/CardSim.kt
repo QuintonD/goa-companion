@@ -344,6 +344,35 @@ internal object CardSim {
         return out
     }
 
+    /**
+     * Strength 10, knob `predict`: the opponent model for every enemy whose card is not revealed, kept in
+     * [ctx]'s memo so each card's look ([scoreCard]) weighs the enemy's cards by it. Their pool is known
+     * at 10 (ADR-062); which card of it was played is not, so a played card goes back to the pool.
+     */
+    fun cardModel(ctx: HContext) {
+        if (ctx.memo.containsKey(MODEL)) return
+        ctx.memo[MODEL] = null
+        if (!ctx.profile.knowHands || ctx.state.revealed) return
+        val base = ctx.state.copy()
+        val g0 = Game(ctx.session.engineData, base, emptyList(), RunMode.PROBE)
+        val out = HashMap<String, Map<String, Double>>()
+        for (h in base.heroes) {
+            if (h.team == ctx.team) continue
+            h.cards.firstOrNull { it.zone == Zone.PLAYED }?.let { g0.moveCard(h.id, it.id, Zone.HAND) }
+        }
+        for (h in base.heroes) {
+            if (h.team == ctx.team) continue
+            val pool = h.cards.filter { it.zone == Zone.HAND }.map { it.id }
+            if (pool.isEmpty()) continue
+            out[h.id] = model(ctx, base, h.id, pool).toMap()
+        }
+        ctx.memo[MODEL] = out
+    }
+
+    @Suppress("UNCHECKED_CAST")
+    private fun modelOf(ctx: HContext): Map<String, Map<String, Double>>? =
+        ctx.memo[MODEL] as Map<String, Map<String, Double>>?
+
     /** The opponent model: [heroId]'s chance to play each card of [pool], from its own book on [base]. */
     private fun model(ctx: HContext, base: GameState, heroId: String, pool: List<String>): List<Pair<String, Double>> {
         val h = base.hero(heroId) ?: return pool.map { it to 1.0 / pool.size }
@@ -479,6 +508,7 @@ internal object CardSim {
             seen = ctx.seen,
             finishing = true,
             stateOverride = end,
+            cardModel = modelOf(ctx),
         )
         val after = end.hero(ctx.seat)?.at
         val exposure = after?.let { ctx.seat to e.exposureSplit(ctx.seat, origin, it, init) }
@@ -546,6 +576,7 @@ internal object CardSim {
     private const val CAP = 16
 
     private const val SAMPLE_SALT = 0x51ED_2026L
+    private const val MODEL = "cardSim.model"
 
     /** Opponent model (F2): softmax temperature in coins, and the uniform share every card keeps. */
     private const val MODEL_TEMP = 2.0

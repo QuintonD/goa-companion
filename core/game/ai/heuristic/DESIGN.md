@@ -34,6 +34,9 @@ against. Research lives next to it: [GENERAL.md](GENERAL.md) (general heuristics
    gets `knowHands = true` (ADR-062, owner's request). Threat and initiative reasoning about an enemy must
    use the cards that enemy **could** hold by public knowledge (its whole possible pool, optionally
    weighted), not the one sampled hand. `NoPeekingTest`'s guarantees must hold for the new player.
+   Wave 3 (F1): after the reveal, strengths 9–10 play the rest of the turn out inside a look. At 10 an enemy's
+   defense or discard in it is answered by its book from the known hand (ADR-062); at 9 the look stops there and
+   prices it from the pool, as every look did before.
 2. **Determinism.** An answer depends only on (seed, decision id, seat) and the session: no state carried
    between `choose` calls except caches whose key fully determines their value. Undo/restore must give the
    same answers. All randomness from `Random(mix(seed, decision.id, seat))`.
@@ -44,7 +47,10 @@ against. Research lives next to it: [GENERAL.md](GENERAL.md) (general heuristics
 5. **Generic first.** A hero with no playbook (or a future hero) must play sensibly from the general set.
 6. **Fast.** Typical answer < 20 ms on the desktop JVM, worst case < 250 ms (the phone is 3–4× slower);
    no playouts. One-ply lookahead (fork, answer, finish the current action with the general policy,
-   evaluate with `HEval`) is allowed for choices whose effect only the engine knows.
+   evaluate with `HEval`) is allowed for choices whose effect only the engine knows. Lifted for 9–10 by the
+   owner's goal of 2026-11-21 (strength over cost, a card play under ~10 s): after the reveal a look plays the
+   turn to its end, every hero by its own static book, and on turn 4 through the round's end (`CardSim.RestLook`,
+   F1); about 15 ms an answer on the desktop JVM.
 7. **Legal and total.** Any exception → `Fallback.choose(decision)`; every `DecisionKind` answered.
 
 ## Shape of the code
@@ -126,8 +132,8 @@ signature heuristic must fire (use `position/PositionBuilder` or a seeded game a
 | 3–4 | + threat map (exposure), lookahead for opaque choices | medium, slips 8–12% |
 | 5–6 | + hero playbooks, turn plans | low, slips 3–5% |
 | 7–8 | + initiative reading (enemy possible cards), focus fire / team coordination, card counting | very low |
-| 9 | + two-turn plans (strip-then-kill, defender held back for a teammate), lane timing | none on critical choices |
-| 10 | 9 + `knowHands` (ADR-062) | argmax |
+| 9 | + two-turn plans (strip-then-kill, defender held back for a teammate), lane timing; after the reveal every look plays the rest of the turn (F1, `turnRest`) and every own square is looked at; the last card's escape on turn 4 (F3) | none on critical choices |
+| 10 | 9 + `knowHands` (ADR-062): inside those turns enemy defenses are answered from the known hand | argmax |
 
 Defences and lane-deciding moves never slip (they feel broken, not human). Saves from before the slider
 map levels to strengths as now (Easy 2, Normal 6, Hard 8, Expert 10).

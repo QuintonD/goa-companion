@@ -40,6 +40,11 @@ data class HeuristicProfile(
      * the turn resolved, [HEval] at its end). 0 is the one-action look of strengths 5–8.
      */
     val revealSamples: Int = 0,
+    /**
+     * Strength 10: the threat map at the card play weighs each enemy card by the enemy's own book (the
+     * known pool, softmax of its card looks) instead of uniformly by colour ([CardSim.cardModel]).
+     */
+    val predictCards: Boolean = false,
     /** Softmax temperature in coin-equivalents. 0 is argmax. */
     val temperature: Double,
     /** Options more than this far behind the best are never picked, temperature aside. */
@@ -150,6 +155,7 @@ data class HeuristicProfile(
                 counting = true,
                 twoTurn = true,
                 lane = true,
+                rest = true,
                 // Measured: 0.10 here cost 11 points against the old s8 (looks tie often; a tie became a coin).
                 temp = 0.0,
                 gap = 0.0,
@@ -168,6 +174,7 @@ data class HeuristicProfile(
                 twoTurn = true,
                 lane = true,
                 hands = true,
+                rest = true,
                 temp = 0.0,
                 gap = 0.0,
                 slip = 0.0,
@@ -187,6 +194,7 @@ data class HeuristicProfile(
             twoTurn: Boolean = false,
             lane: Boolean = false,
             hands: Boolean = false,
+            rest: Boolean = false,
             temp: Double,
             gap: Double,
             slip: Double,
@@ -203,6 +211,7 @@ data class HeuristicProfile(
             twoTurnPlans = twoTurn,
             laneTiming = lane,
             knowHands = hands,
+            turnRest = rest,
             temperature = temp,
             maxGap = gap,
             slipRate = slip,

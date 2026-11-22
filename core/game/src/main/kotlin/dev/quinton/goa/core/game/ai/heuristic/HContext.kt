@@ -59,6 +59,12 @@ class HContext(
     val finishing: Boolean = false,
     /** A state to read instead of [session]'s (a card simulation's result). Same engine data. */
     stateOverride: GameState? = null,
+    /**
+     * The opponent model at a card play (strength 10, knob `predict`): per hero, the chance it plays each
+     * card of its known pool this turn, from its own book ([CardSim.cardModel]). Replaces the uniform colour
+     * weights of the threat map for cards not yet revealed.
+     */
+    val cardModel: Map<String, Map<String, Double>>? = null,
 ) {
     val state: GameState = stateOverride ?: session.state
     private val overridden: Boolean = stateOverride != null
@@ -595,12 +601,14 @@ class HContext(
         val attackItems = itemBonus(enemyId, Stat.ATTACK)
         val initItems = itemBonus(enemyId, Stat.INITIATIVE)
         val out = ArrayList<ThreatInfo>()
+        val predicted = cardModel?.get(enemyId)
         fun add(p: PossibleCard, weight: Double, thisTurn: Boolean, approach: Int) {
             if (weight <= 0.0 || !p.card.threatens) return
             val reach = attackReach(enemyId, p.card) + approach
             if (reach <= 0) return
             val t = Threat(enemyId, p.card, p.card.attack + attackItems, reach, weight, thisTurn)
-            out += ThreatInfo(t, p.weight, p.playingNow, p.card.initiative + initItems)
+            // A predicted card's weight is the model's chance: no lethal pull on top of it.
+            out += ThreatInfo(t, p.weight, p.playingNow || (thisTurn && predicted != null), p.card.initiative + initItems)
         }
         val playing = pool.filter { it.playingNow }
         if (playing.isNotEmpty()) {
@@ -611,7 +619,8 @@ class HContext(
             // One card this turn. Each colour is equally likely; [PossibleCard.weight] is its share of that colour.
             val colours = pool.map { it.card.color }.distinct().size.coerceAtLeast(1)
             for (p in pool) {
-                add(p, 0.65 * p.weight / colours, thisTurn = true, approach = 0)
+                val now = if (predicted != null) predicted[p.card.id] ?: 0.0 else p.weight / colours
+                add(p, 0.65 * now, thisTurn = true, approach = 0)
                 if (state.turn < 4) add(p, 0.22 * p.weight / colours, thisTurn = false, approach = 1)
             }
         }

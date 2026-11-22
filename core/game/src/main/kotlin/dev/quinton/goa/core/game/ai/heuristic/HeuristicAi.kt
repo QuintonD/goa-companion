@@ -173,6 +173,7 @@ class HeuristicAi(
         if (d.options.any { it !is Choice.Card }) return null
         val book = if (profile.heroPlaybooks) playbooks(d.seat) else DefaultHeroHeuristics
         val values = DoubleArray(d.options.size)
+        if (ctx.profile.on("predict", profile.predictCards)) CardSim.cardModel(ctx)
         val samples = ctx.profile.knob("reveal", profile.revealSamples.toDouble()).toInt()
         val sampled = if (samples > 0) {
             CardSim.sampled(ctx, d.options.map { (it as Choice.Card).cardId }, samples)
