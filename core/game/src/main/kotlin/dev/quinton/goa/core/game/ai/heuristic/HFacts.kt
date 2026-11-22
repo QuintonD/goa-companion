@@ -248,7 +248,9 @@ internal fun laneKillDelta(ctx: HContext, lane: String, side: Team = ctx.team): 
     val dRed = w1 - w0
     val d = if (side == Team.RED) dRed else -dRed
     val weight = if (ctx.profile.laneTiming && ctx.matchPoint(lane)) 100.0 else 60.0
-    return weight * 2.0 * d
+    // Track B (wave 3): the scale HEval's lane term has, so the book's minion price agrees with it
+    // (REVIEW-2-design §2.2.1). 1.0 unless the weights say otherwise ([HEvalWeights.laneDelta]).
+    return weight * 2.0 * d * HEvalWeights.of(ctx.profile).laneDelta
 }
 
 /**

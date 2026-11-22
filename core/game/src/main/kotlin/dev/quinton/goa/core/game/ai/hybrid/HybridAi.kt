@@ -264,7 +264,8 @@ class HybridAi(
     private fun leaf(f: EngineSession, team: Team, seen: Map<String, Set<String>>, eval: PositionEvaluator?): Double {
         if (eval != null) return eval.evaluate(f.state, team)
         val ctx = HContext(f, f.pending, team, policy.profile, seen = seen, finishing = true)
-        return HEval.evaluate(ctx, team)
+        // Track B: the leaf's own weight set (`hevLeaf`; the book's set unless a knob says otherwise).
+        return HEval.evaluateLeaf(ctx, team)
     }
 
     private fun leafOf(data: EngineData): PositionEvaluator? {
