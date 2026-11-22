@@ -229,12 +229,25 @@ and with the memo off (`HybridSearchTest`).
 |---|---|---|---|---:|---:|---|---|---|---|---|
 | tree depth 2, width 3 (**W2T**) | W2 `+td=2+tw=3` | W2 | 1100–1227 | 256 | **56.6%** | 50.5–62.6 | 20/0/71/0/37 | 282 / 232 mean, 1 144 / 1 049 p95 | 627 / 630 mean, max 8 291 | yes (256 games, interval above 50%; SPRT still open) |
 | the same tree with the HEval leaf | W2(leaf 0) `+td=2+tw=3` | W2(leaf 0) | 1500–1627 | 256 | **55.9%** | 49.7–61.8 (pairs 50.3–61.4) | 20/0/73/0/35 | 225 / 188 mean, 923 / 845 p95 | 508 / 507 mean, max 10 252 | the gain holds with leaf 0 |
+| a deeper tree | W2T `+td=3` (depth 3, width 3) | W2T | 1700–1763 | 128 | 43.0% | 34.7–51.6 (pairs 35.2–50.7) | 18/0/37/0/9 | — | 522 / 528 mean, max 7 541 | no (SPRT(0.55) H0) |
 | the tree under card plays too | W2T `+tc=2` | W2T | 1300–1315 | 32 | 46.9% | 30.9–63.6 | 4/0/9/0/3 | — | games ~3× longer | stopped: too slow for the 10 s card-play limit, no sign of a gain |
 
 With the tree both leaves lose fewer heroes: leaf 0 0.84 defeats a game against 1.11 for the same search without
 it, 88 against 130 of them with no card left to defend (the empty-hand deaths of REVIEW-2-losses.md).
 
-PENDING: W2T against s10, a deeper tree (`td=3`).
+Depth 3 loses to depth 2: with the enemy minimising at every one of its choices over noisy leaf values, a deeper
+tree turns more noise into pessimism. Two choices deep is where the tree pays.
+
+W2T against the old search, development line-ups (a checkpoint):
+
+| Pair | Line-ups | Games | Win | Wilson | Pairs | Defeats / game | Answer ms mean / p95 / max | Card play ms | s10 card play ms |
+|---|---|---:|---:|---|---|---|---|---|---|
+| W2T : s10 | 1600–1631 | 64 | **71.9%** | 59.9–81.4 (pairs 60.5–83.3) | 3/0/12/0/17 | 0.66 / 1.64 | 289 / 1 169 / 9 750 | 648 / 2 076 / 9 750 | 835 / 1 757 / 13 315 |
+
+SPRT(0.6) accepted H1 after 64 games. For comparison W1 made 59.4% against s10 on development line-ups 1000–1063.
+
+PENDING: W2T's held-out checkpoint (600–695 against s10, 3v3 300–347, against h10) and its single- and 3-thread
+times.
 
 ### Strength 10 in AiPlayers
 
