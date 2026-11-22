@@ -29,6 +29,17 @@ data class HeuristicProfile(
     val laneTiming: Boolean,
     /** Strength 10 only (ADR-062): the enemies' hand pool is known; the facedown card is not. */
     val knowHands: Boolean,
+    /**
+     * F1 (REVIEW-2-losses): after the reveal a look plays the rest of the turn, every remaining hero's
+     * revealed card by its own book, and on turn 4 through the end of the round, instead of stopping at
+     * the end of our own action. The hybrid search turns it off for cheaper playouts (`profileEdit`).
+     */
+    val turnRest: Boolean = false,
+    /**
+     * F2: card plays scored as this many sampled turns ([CardSim.sampled]: every other card from its book,
+     * the turn resolved, [HEval] at its end). 0 is the one-action look of strengths 5–8.
+     */
+    val revealSamples: Int = 0,
     /** Softmax temperature in coin-equivalents. 0 is argmax. */
     val temperature: Double,
     /** Options more than this far behind the best are never picked, temperature aside. */

@@ -698,7 +698,8 @@ class HContext(
             val t = info.threat
             if (t.thisTurn && acted) continue
             val at = where(info) ?: continue
-            if (distance(from, at) > t.reach) continue
+            val slack = if (t.thisTurn) escapeSlack(h, info.initiative) else 0
+            if (distance(from, at) + slack > t.reach) continue
             val attack = t.card.attackCard || t.card.discardOrDefeat
             // G11 and section 2: no card left after the one still to play is a defeat by any attack.
             val lethal = kills(h, t, minionModifier(at, h.team)) || (!t.thisTurn && emptyNext && attack)
@@ -712,6 +713,23 @@ class HContext(
             }
         }
         return c
+    }
+
+    /**
+     * F3: a hero that starts the turn with its last card plays it and has nothing left to defend with
+     * ([defenseless]). An attack acting after that card can still miss: the card's movement carries the
+     * hero away first. The distance it can add against a threat on [initiative]; 0 when it cannot escape
+     * (no movement, slower, or a hidden hand below strength 10). Knob `escape`.
+     */
+    private fun escapeSlack(h: HeroState, initiative: Int): Int {
+        if (!profile.on("escape", profile.turnRest) || state.revealed || roundOver) return 0
+        if (h.hand.size != 1 || !playsThisTurn(h)) return 0
+        if (h.team != team && !profile.knowHands) return 0
+        val c = card(h.hand[0].id)
+        if (!c.hasMovement || c.movement <= 0) return 0
+        val ours = c.initiative + itemBonus(h.id, Stat.INITIATIVE)
+        val first = ours > initiative || (ours == initiative && state.tieBreaker == h.team)
+        return if (first) c.movement else 0
     }
 
     /** A hidden card that would defeat us is the card they play when they hold it (G2): its colour share. */

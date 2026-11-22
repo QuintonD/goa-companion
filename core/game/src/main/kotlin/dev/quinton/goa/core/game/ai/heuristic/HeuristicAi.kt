@@ -139,13 +139,18 @@ class HeuristicAi(
         val got = ArrayList<Int>()
         val values = ArrayList<Double>()
         val book = if (profile.heroPlaybooks) playbooks(d.seat) else DefaultHeroHeuristics
+        val rest = CardSim.restOn(ctx)
         for (i in idxs) {
             if (cancelled()) break
             got += i
             // The look is the position. [General.commitment] is what that position does not contain.
             val o = d.options[i]
             val ownTurn = ctx.profile.on("turnLook", true) && ctx.state.acting == d.seat
-            val turn = if (ownTurn) CardSim.after(ctx, d, o) else null
+            val turn = when {
+                rest -> CardSim.rest(ctx, d, o)
+                ownTurn -> CardSim.after(ctx, d, o)
+                else -> null
+            }
             values += (turn ?: Lookahead.value(ctx, d, o)) +
                 General.commitment(ctx, d, d.options[i]) +
                 ctx.inLook { adjust(book, ctx, d, d.options[i]) }
@@ -168,9 +173,18 @@ class HeuristicAi(
         if (d.options.any { it !is Choice.Card }) return null
         val book = if (profile.heroPlaybooks) playbooks(d.seat) else DefaultHeroHeuristics
         val values = DoubleArray(d.options.size)
+        val samples = ctx.profile.knob("reveal", profile.revealSamples.toDouble()).toInt()
+        val sampled = if (samples > 0) {
+            CardSim.sampled(ctx, d.options.map { (it as Choice.Card).cardId }, samples)
+        } else {
+            null
+        }
         for ((i, o) in d.options.withIndex()) {
             if (cancelled()) return null
-            val sim = CardSim.value(ctx, (o as Choice.Card).cardId) ?: return null
+            // Knob `revealMix` (measurement): a share of the one-action look kept beside the sampled turn.
+            val mix = if (sampled != null) ctx.profile.knob("revealMix", 1.0) else 0.0
+            val one = if (mix < 1.0) CardSim.value(ctx, (o as Choice.Card).cardId) ?: return null else 0.0
+            val sim = if (sampled != null) mix * sampled[i] + (1.0 - mix) * one else one
             values[i] = sim + General.commitment(ctx, d, o) + ctx.inLook { adjust(book, ctx, d, o) }
         }
         scored?.invoke("cards", d.options, values)
@@ -221,7 +235,12 @@ class HeuristicAi(
             DecisionKind.DEFEND -> if (nullDefense || ctx.profile.on("defLook", true)) d.options.size else 0
 
             // A move is where a static score walks into a death. Strength 7+ checks its best few.
-            DecisionKind.CHOOSE_SPACE -> if (look == HeuristicProfile.Look.MOVES) SPACE_CAP else 0
+            // F1: with the turn played out every square is scored by what happens to it.
+            DecisionKind.CHOOSE_SPACE -> when {
+                look != HeuristicProfile.Look.MOVES -> 0
+                CardSim.restOn(ctx) -> ctx.profile.knob("restSpaces", REST_SPACES.toDouble()).toInt()
+                else -> SPACE_CAP
+            }
 
             else -> 0
         }
@@ -285,6 +304,7 @@ class HeuristicAi(
         private const val OPAQUE_CAP = 8
         private const val UNIT_CAP = 8
         private const val SPACE_CAP = 6
+        private const val REST_SPACES = 64
 
         /** The same mix as the old search, so a seed names one stream of answers. */
         fun mix(a: Long, b: Long): Long {
