@@ -146,3 +146,48 @@ Held out, line-ups 300–395, 192 mirrored 2v2 games: h10 vs s8 106–86 = 55.2%
 h10 won by last push 54 / Life 23 / Throne 29, s8 by 52 / 24 / 10. Defeats a game h10 0.91, s8 1.13 (with no
 card to defend 77 / 63). Answers h10 3.3 / 11.0 / 311 ms (mean / p95 / max), s8 20.0 / 74.7 / 561 ms.
 Unchanged from before the review (55.2% on the same line-ups).
+
+## Wave 3 — Track C: search (strength 10 is the hybrid search, 2026-11-22)
+
+Started from REVIEW-2-search.md's best, `x10+pol=1+scope=3+leaf=2` (call it **B**: the full book in the playouts,
+every question with a choice searched, turn horizon, K 8 / Ko 4, top 4, the old learned ensemble at the leaves;
+52.1% against s10 held out). Code in `ai/hybrid/` (`HybridAi`, `HybridConfig`); strength 10 seats it
+(`AiPlayers.SEARCH_10`, the leaf switch `AiPlayers.SEARCH_10_LEAF`). Development line-ups 1000–1063 (128 mirrored
+2v2 games a row), `AI_THREADS=3`, oldboi shared with three other agents; Wilson 95% intervals; pairs = pentanomial
+(lost both / – / split / – / won both). Times are per question with two or more options, one thread per answer,
+three games at once (mean / p95 / max, ms).
+
+### Speed (same answers)
+
+| Change | Check | Effect |
+|---|---|---|
+| Samples that deal the same position (the step-start state's `StateHash` plus the answers since) are played once, with their weight (`dd`, on) | the same answer fingerprint (`answers hash`) as without it over two full games | 1 624 samples drawn, 428 distinct: after the reveal strength 10 knows every hand, so a post-reveal question is one position. Answer 562 → 118 ms mean, card play 1 286 → 267 ms (4.8×) |
+| One runner task per (sample, candidate) instead of per sample | — | the threads stay busy when one position is left |
+| Transposition memo (`tt`): a playout's value is kept for every position it passed (key: position, turn ends left, team, public log) for the real turn; it grows between answers, never during one | the same fingerprint; `HybridSearchTest`: memo on/off and 1/3 threads give the same answers | 13.5% of playouts answered from the memo; answer 118 → 94 ms mean |
+
+### Strength (development line-ups, against the current best x)
+
+| Variant | Spec | Opponent | Win | Wilson | Pairs | Card play ms (variant / opponent) | Kept |
+|---|---|---|---:|---|---|---|---|
+| wider candidates, more samples (**W1**) | B `+K=24+topS=8+topU=6` | B | 56.3% | 47.6–64.5 | 13/0/30/0/21 | 480 / 329 | yes |
+| kill extension (ADR-061's, both sides) | B `+kill=1` | B | 50.8% | 42.2–59.3 | 14/0/35/0/15 | 351 / 318 | no |
+| W1 against the old search | W1 | s10 | **59.4%** | 50.7–67.5 | 8/0/36/0/20 | 491 / 830 | — |
+| enemy replies with variety (**W2**): while an enemy still has to choose its card, each sample is played 4 times, once with the book's reply and 3 times with the enemy's card drawn from the opponent model (softmax τ 2 of the book's static card scores, 15% uniform) | W1 `+rep=4` | W1 | 55.5% | 46.8–63.8 | 9/0/39/0/16 | 638 / 480 | yes |
+| two-turn horizon for turn-3 card plays (empty-hand risk) | W1 `+hz3=2` | W1 | 53.1% | 44.5–61.6 | 15/0/30/0/19 | 524 / 471 | — |
+| the same on W2 | W2 `+hz3=2` | W2 | 48.4% | 40.0–57.0 | 11/0/44/0/9 | 677 / 588 | no |
+| wider still | W2 `+topS=12+topU=8+top=6` | W2 | 52.3% | 43.7–60.8 | 13/0/35/0/16 | 631 / 625 | no |
+
+Not built or not run, and why. Progressive widening, racing and adaptive K by standard error need samples that
+differ; after the merge most questions have one position (a post-reveal question's samples are all the same game
+for strength 10), so each candidate is one deterministic playout and the only lever left is which candidates are
+played. A round-end horizon on turn 4 is what the turn horizon already does (a turn-4 playout runs through the
+round's end: minion battle, push, level-ups). Regret matching at card plays (ADR-061) measured nothing against
+s10 and every opponent here is deterministic; not retried. Card pruning (`prune`) is built and off.
+
+### Shipped: strength 10 = W2
+
+`x10+pol=1+scope=3+leaf=2+tt=1+K=24+topS=8+topU=6+rep=4` is `AiPlayers.forStrength(10, …)` (`SEARCH_10`, leaf
+`SEARCH_10_LEAF = HybridLeaf.NET`). Strengths 1–9 are the book (`HeuristicAi`). No wall clock: the same answers on
+every device; `cancelled()` stops it and the book answers.
+
+FINAL_TABLE
