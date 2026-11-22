@@ -50,6 +50,8 @@ data class HeuristicProfile(
      * answered by that enemy's book from the known hand, instead of stopping and pricing it from the pool.
      */
     val knowLook: Boolean = false,
+    /** How many of this hero's own choices inside a look try the book's best few answers (strength 7+). */
+    val lookBranches: Int = 1,
     /** Softmax temperature in coin-equivalents. 0 is argmax. */
     val temperature: Double,
     /** Options more than this far behind the best are never picked, temperature aside. */
@@ -217,6 +219,10 @@ data class HeuristicProfile(
             laneTiming = lane,
             knowHands = hands,
             turnRest = rest,
+            // Strength 10 (wave 3): enemy defenses answered from the known hand inside the card look, and
+            // two own choices branched in a look (h10 : h9 51.0% without, 55.7% / 55.2% with each).
+            knowLook = hands,
+            lookBranches = if (hands) 2 else 1,
             temperature = temp,
             maxGap = gap,
             slipRate = slip,

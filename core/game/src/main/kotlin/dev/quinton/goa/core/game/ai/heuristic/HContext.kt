@@ -608,7 +608,8 @@ class HContext(
             if (reach <= 0) return
             val t = Threat(enemyId, p.card, p.card.attack + attackItems, reach, weight, thisTurn)
             // A predicted card's weight is the model's chance: no lethal pull on top of it.
-            out += ThreatInfo(t, p.weight, p.playingNow || (thisTurn && predicted != null), p.card.initiative + initItems)
+            val known = p.playingNow || (thisTurn && predicted != null)
+            out += ThreatInfo(t, p.weight, known, p.card.initiative + initItems)
         }
         val playing = pool.filter { it.playingNow }
         if (playing.isNotEmpty()) {

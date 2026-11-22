@@ -345,7 +345,8 @@ internal object CardSim {
                 val sim = EngineSession(data, ctx.session.setup, st, Random(HeuristicAi.mix(d.id, k.toLong())))
                 sim.quiet = true
                 sim.start()
-                sum += run(ctx, sim, ctx.profile.knob("revealBranch", 0.0).toInt(), SampleLook(ctx, turn), actions = true)
+                val branches = ctx.profile.knob("revealBranch", 0.0).toInt()
+                sum += run(ctx, sim, branches, SampleLook(ctx, turn), actions = true)
             }
             out[i] = sum / samples
         }
@@ -490,7 +491,8 @@ internal object CardSim {
     }
 
     private fun branchesOf(ctx: HContext): Int {
-        val default = if (ctx.profile.lookahead >= HeuristicProfile.Look.MOVES) 1.0 else 0.0
+        val moves = ctx.profile.lookahead >= HeuristicProfile.Look.MOVES
+        val default = if (moves) ctx.profile.lookBranches.toDouble() else 0.0
         return ctx.profile.knob("branch", default).toInt()
     }
 
