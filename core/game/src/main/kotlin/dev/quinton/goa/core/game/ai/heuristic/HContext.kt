@@ -278,7 +278,7 @@ class HContext(
         var v = pKill * killWorth(heroId) + pHit * discardWorth(h)
         if (profile.heroPlaybooks) {
             for (e in state.heroes) {
-                if (e.team != h.team) v += playbooks(e.id).threatAdjust(this, e.id, at)
+                if (e.team != h.team) v += playbooks(e.id).threatAdjust(this, e.id, at, h.id)
             }
         }
         return v
@@ -642,7 +642,7 @@ class HContext(
         var v = pKill * killWorth(heroId) + pHit * discardWorth(h)
         if (profile.heroPlaybooks) {
             for (e in state.heroes) {
-                if (e.team != h.team) v += playbooks(e.id).threatAdjust(this, e.id, after)
+                if (e.team != h.team) v += playbooks(e.id).threatAdjust(this, e.id, after, h.id)
             }
         }
         return v

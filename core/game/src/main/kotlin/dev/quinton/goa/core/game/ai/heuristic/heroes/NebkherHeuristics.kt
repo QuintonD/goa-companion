@@ -9,6 +9,7 @@ import dev.quinton.goa.core.game.ai.heuristic.HeroHeuristics
 import dev.quinton.goa.core.game.ai.heuristic.HeroRole
 import dev.quinton.goa.core.game.ai.heuristic.HeroStyle
 import dev.quinton.goa.core.game.engine.GameState
+import dev.quinton.goa.core.game.engine.Zone
 import dev.quinton.goa.core.game.heroes.NebkherHero
 import dev.quinton.goa.core.model.board.Hex
 import dev.quinton.goa.core.model.catalog.CardColor
@@ -35,6 +36,8 @@ object NebkherHeuristics : HeroHeuristics {
     override fun adjust(ctx: HContext, d: Decision, choice: Choice): Double = when (d.kind) {
         DecisionKind.PLAY_CARD -> play(ctx, choice)
         DecisionKind.CHOOSE_OPTION -> colour(ctx, d, choice)
+        DecisionKind.CHOOSE_SPACE -> if (d.prompt.startsWith("Place an Illusion")) site(ctx, choice) else 0.0
+        DecisionKind.CHOOSE_TOKEN -> if (d.prompt.startsWith("You may swap with an Illusion")) swap(ctx, choice) else 0.0
         else -> 0.0
     }
 
@@ -42,17 +45,20 @@ object NebkherHeuristics : HeroHeuristics {
         if (heroId != this.heroId) return 0.0
         val sign = BatchBSupport.sign(state, team, heroId)
         val illusions = BatchBSupport.tokens(state, heroId, NebkherHero.ILLUSION)
-        val hero = state.hero(heroId)?.at
+        val me = state.hero(heroId) ?: return 0.0
+        val hero = me.at
         var value = 0.0
         if (hero != null) {
             val beside = illusions.count { token ->
                 state.heroes.any { enemy ->
-                    enemy.team != state.hero(heroId)?.team &&
-                        enemy.at?.let { HexGrid.distance(it, token.at!!) == 1 } == true
+                    enemy.team != me.team &&
+                        enemy.at?.let { HexGrid.distance(it, token.at!!) == 1 && HexGrid.distance(hero, it) <= RED_A_RANGE } == true
                 }
             }
-            // evalTerms: an Illusion beside an enemy hero is the red A target and the green B modifier.
-            value += beside * 1.5
+            // Research §evalTerms: an Illusion beside an enemy hero in his red range is the red A target, +5
+            // while red A is in hand; else it is the green B modifier and a teleport, the old +1.5.
+            val redA = me.cards.any { it.id in RED_A && it.zone == Zone.HAND }
+            value += beside * if (redA) TAG else 1.5
         }
         return sign * value
     }
@@ -138,6 +144,43 @@ object NebkherHeuristics : HeroHeuristics {
         return value
     }
 
+    /**
+     * Research rule 3 / §5.3: where an Illusion goes. Beside an enemy hero in his red range it is the red A
+     * target (and green B's modifier); two steps from one, red A walks it in. As a teleport it is worth the
+     * enemies it puts in Mind Grip's range 5 beyond those his own space has. The card look then takes the
+     * best of these sites, and [evalTerms] prices what is left on the board.
+     */
+    private fun site(ctx: HContext, choice: Choice): Double {
+        val hex = (choice as? Choice.Space)?.hex ?: return 0.0
+        val me = ctx.own()?.at ?: return 0.0
+        var v = 0.0
+        for (enemy in ctx.enemies()) {
+            val pos = enemy.at ?: continue
+            if (ctx.distance(me, pos) > RED_A_RANGE) continue
+            v += when (ctx.distance(hex, pos)) {
+                1 -> SITE_BESIDE
+                2 -> SITE_NEAR
+                else -> 0.0
+            }
+        }
+        v += (inGoldRange(ctx, hex) - inGoldRange(ctx, me)).coerceIn(0, 3) * SITE_RANGE
+        if (ctx.inBattleZone(hex)) v += SITE_ZONE
+        return v
+    }
+
+    /** "You may swap with an Illusion token in play": the space it puts him on, against staying. */
+    private fun swap(ctx: HContext, choice: Choice): Double {
+        val id = (choice as? Choice.Token)?.tokenId ?: return 0.0
+        val to = ctx.state.piece(id)?.at ?: return 0.0
+        val me = ctx.own()?.at ?: return 0.0
+        val range = (inGoldRange(ctx, to) - inGoldRange(ctx, me)) * SITE_RANGE
+        val danger = (ctx.exposure(ctx.seat, to) - ctx.exposure(ctx.seat, me)) * SWAP_DANGER
+        return range - danger
+    }
+
+    private fun inGoldRange(ctx: HContext, at: Hex): Int =
+        ctx.enemies().count { enemy -> enemy.at?.let { ctx.distance(at, it) <= GOLD_RANGE } == true }
+
     /** What copying [enemyId]'s faceup previous-slot card is worth from here (attacks and discards). */
     private fun copyWorth(ctx: HContext, enemyId: String): Double {
         val card = BatchBSupport.previous(ctx, enemyId) ?: return 0.0
@@ -150,6 +193,24 @@ object NebkherHeuristics : HeroHeuristics {
     }
 
     private const val RED_A_RANGE = 5
+    private const val GOLD_RANGE = 5
+    private val RED_A = setOf("nebkher-red-1", "nebkher-red-2a", "nebkher-red-3a")
+
+    /** An Illusion beside an enemy hero in red range while red A is in hand (research §evalTerms: +5). */
+    private const val TAG = 5.0
+
+    /** Placement: beside an enemy hero in red range; two steps away (red A walks it in). */
+    private const val SITE_BESIDE = 3.0
+    private const val SITE_NEAR = 1.0
+
+    /** Placement or swap: each enemy it adds to Mind Grip's range (research: +4 each, cap 12; halved). */
+    private const val SITE_RANGE = 1.5
+
+    /** Placement in a Battle Zone: a teleport into the fight. */
+    private const val SITE_ZONE = 0.5
+
+    /** Share of the extra exposure a swap walks into that counts against it. */
+    private const val SWAP_DANGER = 0.5
     private const val LAST_TURN = 4
     private val NAMING = setOf("nebkher-blue-1", "nebkher-blue-2a", "nebkher-blue-3a")
 

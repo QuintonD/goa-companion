@@ -96,6 +96,13 @@ interface HeroHeuristics {
      * (Brogan's straight lines, a body on another space). Coin-equivalents, usually small.
      */
     fun threatAdjust(ctx: HContext, enemyHeroId: String, target: Hex): Double = 0.0
+
+    /**
+     * [threatAdjust] when the threatened hero is known: [victimId] would stand on [target]. A threat that
+     * depends on the victim (an execute of an empty hand) overrides this; the default is the plain one.
+     */
+    fun threatAdjust(ctx: HContext, enemyHeroId: String, target: Hex, victimId: String): Double =
+        threatAdjust(ctx, enemyHeroId, target)
 }
 
 /** A hero the registry does not know. The general book plays them. */

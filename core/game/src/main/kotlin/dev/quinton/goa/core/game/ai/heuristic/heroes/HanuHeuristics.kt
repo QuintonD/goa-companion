@@ -9,6 +9,7 @@ import dev.quinton.goa.core.game.ai.heuristic.HContext
 import dev.quinton.goa.core.game.ai.heuristic.HeroHeuristics
 import dev.quinton.goa.core.game.ai.heuristic.HeroRole
 import dev.quinton.goa.core.game.ai.heuristic.HeroStyle
+import dev.quinton.goa.core.game.engine.HeroState
 import dev.quinton.goa.core.game.engine.isEmpty
 import dev.quinton.goa.core.model.board.Hex
 import dev.quinton.goa.core.model.catalog.Stat
@@ -106,32 +107,80 @@ object HanuHeuristics : HeroHeuristics {
         return if (allyHits) -3.0 else 1.5
     }
 
-    // H3/H4/H5: Hurry up! An ally's slow attack goes to 11; a fast enemy card drops to 11; with the ultimate,
-    // the enemy whose next action Hanu then chooses.
+    /**
+     * H3 / H4 / H5: Hurry up! sets a revealed, unresolved card to Initiative 11 (items still add), at
+     * Initiative 12, when the order is public (REVIEW-2-design §5.3). Its worth is the pairs of an ally and
+     * an enemy whose order it flips: an ally's attack now before the enemy it reaches walks (more when
+     * that enemy's card moves), an ally's escape now before the attack on it, and the same pairs against
+     * us when the flip goes the other way. A card already at 11 changes nothing. With the Ultimate, the
+     * enemy's next action is his: worth what their card would have done, and its movement in his hands.
+     */
     private fun hurry(ctx: HContext, choice: Choice): Double {
         val unit = (choice as? Choice.Unit)?.unitId ?: return 0.0
         val body = ctx.heroBody(unit) ?: return 0.0
         val hero = ctx.hero(body) ?: return 0.0
         val card = hero.unresolved.firstOrNull()?.let { ctx.card(it.id) } ?: return 0.0
         val ally = hero.team == ctx.team
-        val ultimate = ctx.own()?.ultimateUnlocked == true
-        return when {
-            // H4: the Ultimate Trick makes the enemy's next action his.
-            !ally && ultimate -> 12.0
-
-            // H3: an ally's attack at 10 or less now acts before the enemy can walk out of it.
-            ally && (card.attackCard || card.forcesDiscard) && card.initiative <= HURRY - 1 -> 6.0
-
-            ally && card.initiative >= HURRY -> -4.0
-
-            // H5: a fast enemy card now waits for initiative 11.
-            !ally && card.initiative > HURRY -> 4.0
-
-            !ally -> -2.0
-
-            else -> 0.0
+        if (!ally && ctx.own()?.ultimateUnlocked == true) return steal(ctx, hero, card)
+        val items = ctx.itemBonus(hero.id, Stat.INITIATIVE)
+        val before = card.initiative + items
+        val after = HURRY + items
+        if (before == after) return NOTHING
+        var v = 0.0
+        for (other in ctx.state.heroes) {
+            if (other.id == hero.id || other.id == ctx.seat || other.team == hero.team) continue
+            if (other.at == null || !ctx.stillToAct(other.id)) continue
+            val oc = other.unresolved.firstOrNull()?.let { ctx.card(it.id) } ?: continue
+            val oi = oc.initiative + ctx.itemBonus(other.id, Stat.INITIATIVE)
+            val was = actsFirst(ctx, hero, before, other, oi)
+            val now = actsFirst(ctx, hero, after, other, oi)
+            if (was == now) continue
+            // The pair's order flips. Ours is the hero on our team; it now goes first or now goes second.
+            val (us, usCard, them, themCard) = if (ally) {
+                Quad(hero, card, other, oc)
+            } else {
+                Quad(other, oc, hero, card)
+            }
+            val oursFirst = if (ally) now else !now
+            val gain = firstWorth(ctx, us, usCard, them, themCard)
+            v += if (oursFirst) gain else -gain
         }
+        return v
     }
+
+    /** [a] acting before [b] at these Initiatives; a tie across teams goes to the Tie Breaker coin's team. */
+    private fun actsFirst(ctx: HContext, a: HeroState, ai: Int, b: HeroState, bi: Int): Boolean =
+        ai > bi || (ai == bi && ctx.state.tieBreaker == a.team)
+
+    /** What our hero [us] gains by acting before their hero [them], each on its revealed card. */
+    private fun firstWorth(ctx: HContext, us: HeroState, usCard: HCard, them: HeroState, themCard: HCard): Double {
+        val a = us.at ?: return 0.0
+        val b = them.at ?: return 0.0
+        val d = ctx.distance(a, b)
+        var v = 0.0
+        // Our attack lands before they walk out of it (a card that moves them is the escape).
+        if ((usCard.attackCard || usCard.forcesDiscard) && d <= ctx.attackReach(us.id, usCard)) {
+            v += if (themCard.hasMovement) HIT_BEFORE_ESCAPE else HIT_FIRST
+        }
+        // Their attack would land on us first; now our movement card leaves before it.
+        if ((themCard.attackCard || themCard.forcesDiscard) && d <= ctx.attackReach(them.id, themCard) + 1) {
+            v += if (usCard.hasMovement) ESCAPE_FIRST else HIT_FIRST * 0.5
+        }
+        return v
+    }
+
+    /** H4: the Ultimate makes their next action his: their strike denied, and their movement his to use. */
+    private fun steal(ctx: HContext, e: HeroState, card: HCard): Double {
+        val at = e.at ?: return STEAL_BASE
+        val strike = if (card.attackCard || card.forcesDiscard) {
+            ctx.strikeFrom(e.id, at, card).coerceIn(0.0, STEAL_CAP)
+        } else {
+            0.0
+        }
+        return STEAL_BASE + strike + if (card.hasMovement) STEAL_MOVE else 0.0
+    }
+
+    private data class Quad(val us: HeroState, val usCard: HCard, val them: HeroState, val themCard: HCard)
 
     private fun escapeLine(ctx: HContext, from: Hex): Boolean {
         for (step in HexGrid.DIRECTIONS) {
@@ -151,6 +200,23 @@ object HanuHeuristics : HeroHeuristics {
 
     private const val SILVER = "hanu-silver"
     private const val HURRY = 11
+
+    /** A hurry that changes no order: a wasted target. */
+    private const val NOTHING = -1.0
+
+    /** Our attack now before the enemy it reaches, whose card moves (research H3: +6). */
+    private const val HIT_BEFORE_ESCAPE = 6.0
+
+    /** Our attack, or theirs, before the other when nobody walks. */
+    private const val HIT_FIRST = 2.5
+
+    /** Our movement card now before the attack on us (research H5: +4). */
+    private const val ESCAPE_FIRST = 4.0
+
+    /** The Ultimate's steal: the action itself, their strike (capped), their movement. */
+    private const val STEAL_BASE = 4.0
+    private const val STEAL_CAP = 15.0
+    private const val STEAL_MOVE = 3.0
     private const val FAR_RANGE = 4
     private val JOURNEY = setOf("hanu-blue-1", "hanu-blue-2a", "hanu-blue-3a")
     private val HERO_SHOT = setOf("hanu-red-1", "hanu-red-2a", "hanu-red-3a")

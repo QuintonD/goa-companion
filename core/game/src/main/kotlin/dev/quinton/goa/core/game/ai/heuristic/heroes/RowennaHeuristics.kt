@@ -41,12 +41,18 @@ object RowennaHeuristics : HeroHeuristics {
     private val executes = setOf("rowenna-blue-2b", "rowenna-blue-3b")
     private val shots = setOf("rowenna-green-2b", "rowenna-green-3b")
 
-    /** H11: an adjacent enemy hero with no cards in hand is the execute, when she holds it. */
+    /**
+     * H11: the execute, when it is all but certain. The window is an adjacent enemy hero who will have no
+     * card in hand when her blue resolves: an empty hand, or the last card about to be played
+     * ([HContext.defenseless]), and still beside her at Initiative 10: they act after her, or have already
+     * resolved (REVIEW-2-design §5.3). A likelier-than-not execute below that is priced at the card play.
+     */
     override fun override(ctx: HContext, d: Decision): Choice? {
         if (d.kind != DecisionKind.PLAY_CARD) return null
         val me = ctx.own() ?: return null
         val card = executes.firstOrNull { BatchC.inHand(me, it) } ?: return null
-        if (emptyAdjacent(ctx, me) == null) return null
+        val (_, p) = bestExecute(ctx, me, card) ?: return null
+        if (p < SURE) return null
         return d.options.firstOrNull { it is Choice.Card && it.cardId == card }
     }
 
@@ -65,13 +71,25 @@ object RowennaHeuristics : HeroHeuristics {
         return if (ctx.distance(at, target) in 3..4) 1.5 else 0.0
     }
 
+    /**
+     * The execute as a threat: a hero with no defense left ([HContext.defenseless]) standing beside her is
+     * defeated by alt blue whatever its Defense, while she may hold it (a known hand is 0 or 1).
+     */
+    override fun threatAdjust(ctx: HContext, enemyHeroId: String, target: Hex, victimId: String): Double {
+        val plain = threatAdjust(ctx, enemyHeroId, target)
+        if (enemyHeroId != heroId) return plain
+        val at = ctx.hero(heroId)?.at ?: return plain
+        if (ctx.distance(at, target) != 1 || !ctx.defenseless(victimId)) return plain
+        val hold = BatchBSupport.hold(ctx, heroId) { it.id in executes }
+        return plain + hold * THREAT_PLAYS * ctx.killWorth(victimId)
+    }
+
     private fun play(ctx: HContext, choice: Choice): Double {
         val id = BatchC.cardId(choice) ?: return 0.0
         val me = ctx.own() ?: return 0.0
         val at = me.at ?: return 0.0
         return when (id) {
-            // H12: the execute is also the Defense 6–7 block. Do not walk with it before turn 4.
-            in executes -> if (ctx.turn < 4 && emptyAdjacent(ctx, me) == null) -4.0 else 0.0
+            in executes -> execute(ctx, me, id)
 
             in shots -> openingShots(ctx, me, at) + BatchC.heroOnlyDiscard(ctx, id, BatchC.radiusOf(ctx, id))
 
@@ -119,11 +137,34 @@ object RowennaHeuristics : HeroHeuristics {
         return if (id in golds && BatchC.meets(d, id) && BatchC.otherMeets(d, id)) -2.5 else 0.0
     }
 
-    private fun emptyAdjacent(ctx: HContext, me: HeroState): String? {
+    /**
+     * H11 / H12 at the card play. A likely execute is its kill: chance × [HContext.killWorth]. The card look
+     * resolves alt blue on the position as it is now, so it already sees a hand that is empty now (and not
+     * that the hero may act first and step away): there the term is the correction for that chance. A hero
+     * whose last card is still in hand is invisible to the look, so the whole kill is added. With no
+     * window, H12: the execute is also the Defense 6–7 block; do not walk with it before turn 4.
+     */
+    private fun execute(ctx: HContext, me: HeroState, cardId: String): Double {
+        val (victim, p) = bestExecute(ctx, me, cardId) ?: return if (ctx.turn < 4) -4.0 else 0.0
+        val kill = ctx.killWorth(victim.id) * (if (cardId == "rowenna-blue-3b") TRIUMPH else 1.0)
+        val seen = ctx.looking && victim.hand.isEmpty()
+        return if (seen) -(1.0 - p) * kill else p * kill
+    }
+
+    /** The adjacent enemy hero the execute most likely defeats, with that chance; null when none can be. */
+    private fun bestExecute(ctx: HContext, me: HeroState, cardId: String): Pair<HeroState, Double>? {
         val at = me.at ?: return null
-        return ctx.enemies().firstOrNull { e ->
-            e.hand.isEmpty() && e.at?.let { ctx.distance(at, it) == 1 } == true
-        }?.id
+        val init = ctx.card(cardId).initiative + ctx.itemBonus(me.id, Stat.INITIATIVE)
+        var best: Pair<HeroState, Double>? = null
+        for (e in ctx.enemies()) {
+            val pos = e.at ?: continue
+            if (ctx.distance(at, pos) != 1 || !ctx.defenseless(e.id)) continue
+            // Acting first, they may walk off (or put her down) before Initiative 10. Resolved: they stay.
+            val first = if (e.id in ctx.state.turnRecord.resolved) 0.0 else ctx.actsBefore(e.id, init)
+            val p = 1.0 - first * LEAVES
+            if (best == null || p > best.second) best = e to p
+        }
+        return best
     }
 
     /** A faceup card in their discard meets gold's Attack 4 + items (public: discards are faceup). */
@@ -135,4 +176,16 @@ object RowennaHeuristics : HeroHeuristics {
             c.zone == Zone.DISCARD && !c.faceDown && (ctx.card(c.id).defense ?: -99) + bonus >= total
         }
     }
+
+    /** At or above this chance the execute is played outright (H11). */
+    private const val SURE = 0.8
+
+    /** Share of the heroes who act before her that leave her side first. */
+    private const val LEAVES = 0.75
+
+    /** Chance she spends the execute on a defenseless hero beside her, as the enemy's threat. */
+    private const val THREAT_PLAYS = 0.8
+
+    /** Glorious Triumph: the kill plus triple assist coins for her allies. */
+    private const val TRIUMPH = 1.1
 }

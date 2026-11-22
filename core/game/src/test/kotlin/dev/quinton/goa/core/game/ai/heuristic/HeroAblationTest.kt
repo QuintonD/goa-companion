@@ -3,6 +3,7 @@ package dev.quinton.goa.core.game.ai.heuristic
 import com.google.common.truth.Truth.assertThat
 import dev.quinton.goa.core.game.ai.AiHarness
 import dev.quinton.goa.core.game.ai.Tournament
+import dev.quinton.goa.core.game.ai.heuristic.heroes.LegacyPlaybooks
 import dev.quinton.goa.core.model.match.Team
 import org.junit.Test
 
@@ -12,7 +13,10 @@ import org.junit.Test
  * both sides: every line-up that seats it, mirrored. `AI_H_GAMES` is the number of line-ups (games are
  * twice that), `AI_H_STRENGTH` the strength (default 8), `AI_THREADS` the games run at once,
  * `AI_H_TUNE` measurement knobs both sides carry (`laneFloor=0.85`). A playbook should not lose; the
- * aim is over 55%.
+ * aim is over 55%. `AI_H_FIRST` is the first mixed line-up index the pool starts at (development line-ups
+ * from 1000; the held-out sets are 300–395 and 600–695). `AI_H_VS=legacy` seats the hero's previous
+ * playbook ([LegacyPlaybooks]) on the other side instead of the general book: the new notes against the
+ * old, head to head. `AI_H_OUT` appends each result line to that file.
  */
 class HeroAblationTest {
     @Test
@@ -27,8 +31,11 @@ class HeroAblationTest {
         val heroes = if (spec == "all") HeroPlaybooks.ids().sorted() else spec.split(",").map { it.trim() }
         // AI_H_ABLATION_MODE=full,rules,style: the whole book, its notes with the default style, its style alone.
         val modes = System.getenv("AI_H_ABLATION_MODE")?.split(",")?.map { it.trim() } ?: listOf("full")
+        val first = System.getenv("AI_H_FIRST")?.toIntOrNull() ?: 0
+        val legacy = System.getenv("AI_H_VS") == "legacy"
         // Each shuffle of the roster seats a hero once in (roster / table) line-ups.
-        val pool = AiHarness.mixedLineups((lineups + 96) * 32 / (2 * format.size) + 32, size = format.size)
+        val pool = AiHarness.mixedLineups(first + (lineups + 96) * 32 / (2 * format.size) + 32, size = format.size)
+            .drop(first)
         for (mode in modes) {
             for (hero in heroes) {
                 // AI_H_SKIP: leave out the first line-ups that seat the hero (a fresh set for a re-measure).
@@ -39,9 +46,10 @@ class HeroAblationTest {
                 val withBook = Tournament.Side("with") { seed ->
                     HeuristicAi(strength, seed, tune) { id -> if (id == hero) book else HeroPlaybooks.forHero(id) }
                 }
-                val without = Tournament.Side("without") { seed ->
+                val old = if (legacy) LegacyPlaybooks.forHero(hero) else DefaultHeroHeuristics
+                val without = Tournament.Side(if (legacy) "legacy" else "without") { seed ->
                     HeuristicAi(strength, seed, tune) { id ->
-                        if (id == hero) DefaultHeroHeuristics else HeroPlaybooks.forHero(id)
+                        if (id == hero) old else HeroPlaybooks.forHero(id)
                     }
                 }
                 val specs = all.mapIndexed { i, lineup ->
@@ -49,10 +57,11 @@ class HeroAblationTest {
                 }
                 val score = Tournament.play(withBook, without, specs, threads, format)
                 val (lo, hi) = score.interval
-                println(
-                    "H_ABLATION $mode $hero strength $strength: $score Wilson ${"%.1f".format(lo * 100)}-" +
-                        "${"%.1f".format(hi * 100)}%",
-                )
+                val line = "H_ABLATION $mode $hero strength $strength${if (legacy) " vs legacy" else ""} " +
+                    "lineups $first+: $score Wilson ${"%.1f".format(lo * 100)}-${"%.1f".format(hi * 100)}%"
+                println(line)
+                println("H_ABLATION   ${score.details()}")
+                System.getenv("AI_H_OUT")?.let { java.io.File(it).appendText(line + "\n") }
                 assertThat(score.games).isGreaterThan(0)
             }
         }
