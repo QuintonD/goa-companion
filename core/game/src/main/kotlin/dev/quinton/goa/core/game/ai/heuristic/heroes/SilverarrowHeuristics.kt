@@ -56,9 +56,13 @@ object SilverarrowHeuristics : HeroHeuristics {
         val at = ctx.hero(heroId)?.at ?: return 0.0
         val d = ctx.distance(at, target)
         val attacks = ctx.possibleCards(heroId).filter { it.card.attackCard }
-        if (attacks.isEmpty() || attacks.any { it.card.id !in ringCards }) return 0.0
-        val ring = attacks.minOf { it.card.range } + ctx.itemBonus(heroId, Stat.RANGE)
-        return if (d in 1 until ring) -2.0 else 0.0
+        val rings = attacks.filter { it.card.id in ringCards }
+        if (rings.isEmpty()) return 0.0
+        val ring = rings.minOf { it.card.range } + ctx.itemBonus(heroId, Stat.RANGE)
+        if (d !in 1 until ring) return 0.0
+        // #19: the share of her attacks that cannot hit inside the ring, not "all of them or nothing".
+        val share = rings.sumOf { it.weight } / attacks.sumOf { it.weight }.coerceAtLeast(1e-6)
+        return -2.0 * share
     }
 
     private fun play(ctx: HContext, choice: Choice): Double {

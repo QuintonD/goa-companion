@@ -52,11 +52,19 @@ object HanuHeuristics : HeroHeuristics {
         return 3.0 * BatchBSupport.hold(ctx, heroId) { it.id in HERO_SHOT && ctx.attackReach(heroId, it) >= distance }
     }
 
+    /** With the victim known: the reach above, priced by what that card costs them (#19), not a flat 3.0. */
+    override fun threatAdjust(ctx: HContext, enemyHeroId: String, target: Hex, victimId: String): Double {
+        val plain = threatAdjust(ctx, enemyHeroId, target)
+        if (plain <= 0.0) return plain
+        return PlaybookSupport.extraReach(ctx, heroId, victimId, target, HERO_SHOT)
+    }
+
     private fun play(ctx: HContext, choice: Choice): Double {
         val id = BatchBSupport.cardId(choice) ?: return 0.0
         val at = ctx.own()?.at ?: return 0.0
         return when {
             id == "hanu-gold" -> gold(ctx, at)
+            id == SILVER -> hurryOutlook(ctx, at)
             id.startsWith("hanu-red") -> red(ctx, at, ctx.card(id))
             id in JOURNEY -> journey(ctx, at, ctx.card(id))
             else -> 0.0
@@ -118,7 +126,24 @@ object HanuHeuristics : HeroHeuristics {
     private fun hurry(ctx: HContext, choice: Choice): Double {
         val unit = (choice as? Choice.Unit)?.unitId ?: return 0.0
         val body = ctx.heroBody(unit) ?: return 0.0
-        val hero = ctx.hero(body) ?: return 0.0
+        return hurryOn(ctx, ctx.hero(body) ?: return 0.0)
+    }
+
+    /**
+     * Hurry up! at the card play: nothing in the card look prices the order it changes, so the best hurry
+     * among heroes in range whose card is already down on this copy (our own team's known, an enemy's from
+     * the sample), discounted for the cards still to be played and for the guess.
+     */
+    private fun hurryOutlook(ctx: HContext, at: Hex): Double {
+        val card = ctx.card(SILVER)
+        val reach = maxOf(card.range, card.radius) + ctx.itemBonus(ctx.seat, Stat.RANGE)
+        val best = ctx.state.heroes.filter { h ->
+            h.id != ctx.seat && h.unresolved.isNotEmpty() && h.at?.let { ctx.distance(at, it) <= reach } == true
+        }.maxOfOrNull { hurryOn(ctx, it) } ?: return 0.0
+        return OUTLOOK * best.coerceAtLeast(0.0)
+    }
+
+    private fun hurryOn(ctx: HContext, hero: HeroState): Double {
         val card = hero.unresolved.firstOrNull()?.let { ctx.card(it.id) } ?: return 0.0
         val ally = hero.team == ctx.team
         if (!ally && ctx.own()?.ultimateUnlocked == true) return steal(ctx, hero, card)
@@ -200,6 +225,9 @@ object HanuHeuristics : HeroHeuristics {
 
     private const val SILVER = "hanu-silver"
     private const val HURRY = 11
+
+    /** Share of the best hurry counted at the card play (the order is a guess until the reveal). */
+    private const val OUTLOOK = 0.6
 
     /** A hurry that changes no order: a wasted target. */
     private const val NOTHING = -1.0

@@ -63,6 +63,13 @@ object WukHeuristics : HeroHeuristics {
         return if (nearTree && ctx.distance(from, target) in 2..3) 1.0 else 0.0
     }
 
+    /** With the victim known: the reach above, priced by what that card costs them (#19), not a flat 1.0. */
+    override fun threatAdjust(ctx: HContext, enemyHeroId: String, target: Hex, victimId: String): Double {
+        val plain = threatAdjust(ctx, enemyHeroId, target)
+        if (plain <= 0.0) return plain
+        return PlaybookSupport.extraReach(ctx, heroId, victimId, target, TREE_RED)
+    }
+
     private fun play(ctx: HContext, choice: Choice): Double {
         if (choice !is Choice.Card) return 0.0
         val at = ctx.own()?.at ?: return 0.0

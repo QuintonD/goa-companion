@@ -100,12 +100,7 @@ internal object BatchBSupport {
         return -(maxOf(strike, move) - move) - both
     }
 
-    /** The general book's movement outlook (General.moveOutlook), which a hero file cannot call. */
-    private fun moveOutlook(ctx: HContext, at: Hex, card: HCard): Double {
-        val far = ctx.distanceToBattleZone(at)
-        if (far <= 0) return 0.15
-        return minOf(far * 0.4, card.movement * 0.55)
-    }
+    private fun moveOutlook(ctx: HContext, at: Hex, card: HCard): Double = PlaybookSupport.moveOutlook(ctx, at, card)
 
     /** Enemy units (heroes and minions) by id and space. */
     fun enemyUnits(ctx: HContext): List<Pair<String, Hex>> {

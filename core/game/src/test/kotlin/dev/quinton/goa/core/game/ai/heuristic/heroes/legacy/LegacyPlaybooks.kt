@@ -15,7 +15,20 @@ object LegacyPlaybooks {
         LegacyMortimerHeuristics,
         LegacyHanuHeuristics,
         LegacyNebkherHeuristics,
+        LegacyUrsafarHeuristics,
+        LegacyWaspHeuristics,
+        LegacySwiftHeuristics,
+        LegacyWukHeuristics,
+        LegacyTrinketsHeuristics,
+        LegacyWidgetHeuristics,
+        LegacyWhisperHeuristics,
+        LegacyMrakHeuristics,
+        LegacySilverarrowHeuristics,
+        LegacyTakahideHeuristics,
+        LegacyIgnatiaHeuristics,
     ).associateBy { it.heroId }
 
     fun forHero(id: String): HeroHeuristics = byId[id] ?: HeroPlaybooks.forHero(id)
+
+    fun ids(): Set<String> = byId.keys
 }

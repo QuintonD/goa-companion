@@ -51,11 +51,19 @@ class HybridAi(
     private val runner: SampleRunner = SampleRunner.SEQUENTIAL,
 ) : AiPlayer {
     val config: HybridConfig = HybridConfig.fromKnobs(knobs)
-    private val bookTune = knobs.filterKeys { it !in HybridConfig.NAMES }
+    private val bookTune = knobs.filterKeys { it !in HybridConfig.NAMES && it != PLAYOUT_BOOKS }
 
     /** h10: the answer to everything the search does not take, and the fallback. */
     val book: HeuristicAi = HeuristicAi(10, seed, tune = bookTune)
-    private val policy = BookPolicy(seed, bookTune)
+
+    /**
+     * The playout policy. `pbooks=0` (a measurement knob, wave 3 Track D) plays every seat of the playouts with
+     * the general book alone, no hero playbooks (`heroes=0` there); the root's own answers keep them.
+     */
+    private val policy = BookPolicy(
+        seed,
+        if ((knobs[PLAYOUT_BOOKS] ?: 1.0) <= 0.0) bookTune + ("heroes" to 0.0) else bookTune,
+    )
 
     @kotlin.concurrent.Volatile
     private var leafCache: Pair<EngineData, PositionEvaluator?>? = null
@@ -279,6 +287,9 @@ class HybridAi(
     }
 
     companion object {
+        /** Knob: hero playbooks in the playouts (1, the default) or the general book alone (0). */
+        private const val PLAYOUT_BOOKS = "pbooks"
+
         /** The hero's own action choices (scope 2). */
         private val OWN_ACTION = setOf(
             DecisionKind.CHOOSE_ACTION,

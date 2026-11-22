@@ -67,13 +67,18 @@ object MrakHeuristics : HeroHeuristics {
         val distance = ctx.distance(from, target)
         val ground =
             BatchBSupport.touchesTerrain(ctx, target) || BatchBSupport.besideToken(ctx.state, target, MrakHero.ROCK)
-        val red = BatchBSupport.hold(ctx, heroId) { card ->
-            card.id == "mrak-red-1" || card.id == "mrak-red-2a" || card.id == "mrak-red-3a"
-        }
+        val red = BatchBSupport.hold(ctx, heroId) { card -> card.id in SEISMIC }
         if (distance > SEISMIC_REACH || !ground || red < 0.15) return 0.0
         // threatAdjust: seismic is a discard on ground next to terrain or a rock, a defeat on an empty hand.
         val empty = ctx.state.heroes.any { hero -> hero.at == target && ctx.handCount(hero.id) == 0 }
         return red * (if (empty) 8.0 else 2.5)
+    }
+
+    /** With the victim known: the reach above, priced by what that card costs them (#19), not a flat 8 or 2.5. */
+    override fun threatAdjust(ctx: HContext, enemyHeroId: String, target: Hex, victimId: String): Double {
+        val plain = threatAdjust(ctx, enemyHeroId, target)
+        if (plain <= 0.0) return plain
+        return PlaybookSupport.extraReach(ctx, heroId, victimId, target, SEISMIC)
     }
 
     private fun play(ctx: HContext, choice: Choice): Double {
@@ -93,7 +98,13 @@ object MrakHeuristics : HeroHeuristics {
             val adjacent = BatchBSupport.enemyUnits(ctx).any { (_, pos) -> ctx.distance(at, pos) == 1 }
             return if (adjacent) 0.0 else BatchBSupport.deadStrike(ctx, at, card)
         }
-        return if (victims.any { ctx.handCount(it) == 0 }) 8.0 else 1.0
+        // A hero already empty is a defeat the card look resolves itself; one whose last card is still in
+        // hand is not seen by it, so that kill is added (#19: ctx.killWorth, not a flat 8).
+        val kills = victims.mapNotNull { ctx.hero(it) }.filter { ctx.defenseless(it.id) }
+        if (kills.isEmpty()) return 1.0
+        val seen = kills.filter { it.hand.isEmpty() }
+        if (ctx.looking && seen.isNotEmpty()) return 0.0
+        return kills.maxOf { ctx.killWorth(it.id) }
     }
 
     // H6: Stone Grip needs a hero in range with three empty adjacent spaces.
@@ -131,11 +142,15 @@ object MrakHeuristics : HeroHeuristics {
             enemy.at?.let { ctx.distance(at, it) == 1 } == true && ctx.handCount(enemy.id) > 0
         }
         return when {
-            act == ActionType.PRIMARY && defeat -> 8.0
+            act == ActionType.PRIMARY && defeat -> if (ctx.looking) 0.0 else killOf(ctx, radius)
             act == ActionType.ATTACK && adjacent && !defeat -> 2.0
             else -> 0.0
         }
     }
+
+    /** The best kill among grounded empty-handed heroes in [radius]. */
+    private fun killOf(ctx: HContext, radius: Int): Double =
+        grounded(ctx, radius).filter { ctx.handCount(it) == 0 }.maxOfOrNull { ctx.killWorth(it) } ?: 0.0
 
     /** Enemy heroes in [radius] standing next to terrain or one of his rocks (the seismic condition). */
     private fun grounded(ctx: HContext, radius: Int): List<String> {
@@ -159,4 +174,6 @@ object MrakHeuristics : HeroHeuristics {
 
     /** Stone Grip's own test: the engine's empty spaces beside [at]. */
     private fun emptyAround(ctx: HContext, at: Hex): Int = HexGrid.neighbors(at).count { ctx.game.isEmpty(it) }
+
+    private val SEISMIC = setOf("mrak-red-1", "mrak-red-2a", "mrak-red-3a")
 }

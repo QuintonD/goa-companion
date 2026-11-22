@@ -75,6 +75,13 @@ object SwiftHeuristics : HeroHeuristics {
         return if (nextToUnit) 2.5 else 0.0
     }
 
+    /** With the victim known: the reach above, priced by what that card costs them (#19), not a flat 2.5. */
+    override fun threatAdjust(ctx: HContext, enemyHeroId: String, target: Hex, victimId: String): Double {
+        val plain = threatAdjust(ctx, enemyHeroId, target)
+        if (plain <= 0.0) return plain
+        return PlaybookSupport.extraReach(ctx, heroId, victimId, target, shotguns)
+    }
+
     private fun play(ctx: HContext, choice: Choice): Double {
         val id = BatchC.cardId(choice) ?: return 0.0
         return when (id) {

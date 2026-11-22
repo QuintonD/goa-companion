@@ -71,9 +71,12 @@ object TakahideHeuristics : HeroHeuristics {
         if (enemyHeroId != heroId) return 0.0
         val at = ctx.hero(heroId)?.at ?: return 0.0
         val ring = ctx.card(STING).range + ctx.itemBonus(heroId, Stat.RANGE)
-        val pool = ctx.possibleCards(heroId)
-        val stingOnly = pool.any { it.card.id == STING } && pool.none { it.card.id == STRIKE || it.card.id == FLOAT }
-        return if (stingOnly && ctx.distance(at, target) in 2 until ring) -1.5 else 0.0
+        if (ctx.distance(at, target) !in 2 until ring) return 0.0
+        // #19: the Sting's share of his golds, not "only when Strike and Float are both ruled out".
+        val golds = ctx.possibleCards(heroId).filter { it.card.id == STING || it.card.id == STRIKE || it.card.id == FLOAT }
+        val total = golds.sumOf { it.weight }
+        if (total <= 0.0) return 0.0
+        return -1.5 * golds.filter { it.card.id == STING }.sumOf { it.weight } / total
     }
 
     private fun defend(d: Decision, choice: Choice): Double {

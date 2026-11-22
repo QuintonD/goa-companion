@@ -65,6 +65,13 @@ object IgnatiaHeuristics : HeroHeuristics {
         return 2.0 * BatchBSupport.hold(ctx, heroId) { it.id in BLUE_DISCARD }
     }
 
+    /** With the victim known: the reach above, priced by what that card costs them (#19), not a flat 2.0. */
+    override fun threatAdjust(ctx: HContext, enemyHeroId: String, target: Hex, victimId: String): Double {
+        val plain = threatAdjust(ctx, enemyHeroId, target)
+        if (plain <= 0.0) return plain
+        return PlaybookSupport.extraReach(ctx, heroId, victimId, target, BLUE_DISCARD)
+    }
+
     private fun play(ctx: HContext, choice: Choice): Double {
         val id = BatchBSupport.cardId(choice) ?: return 0.0
         val at = ctx.own()?.at ?: return 0.0

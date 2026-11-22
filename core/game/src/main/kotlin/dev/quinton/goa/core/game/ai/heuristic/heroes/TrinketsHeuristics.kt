@@ -70,6 +70,13 @@ object TrinketsHeuristics : HeroHeuristics {
         return if (lined) 1.5 else 0.0
     }
 
+    /** With the victim known: the Turret line's +2 Attack, priced by the kill it adds (#19), not a flat 1.5. */
+    override fun threatAdjust(ctx: HContext, enemyHeroId: String, target: Hex, victimId: String): Double {
+        val plain = threatAdjust(ctx, enemyHeroId, target)
+        if (plain <= 0.0) return plain
+        return PlaybookSupport.extraAttack(ctx, heroId, victimId, target, CANNON, bonus = TURRET_LINE)
+    }
+
     private fun play(ctx: HContext, choice: Choice): Double {
         if (choice !is Choice.Card) return 0.0
         val at = ctx.own()?.at ?: return 0.0
@@ -214,6 +221,9 @@ object TrinketsHeuristics : HeroHeuristics {
     private const val HANDICAP = "trinkets-handicap"
     private const val SILVER = "trinkets-silver"
     private val CANNON = setOf("trinkets-red-1", "trinkets-red-2a", "trinkets-red-3a")
+
+    /** The Cannon's bonus on a line through him and the Turret (H16). */
+    private const val TURRET_LINE = 2
     private val DISCHARGE = setOf("trinkets-red-2b", "trinkets-red-3b")
     private val DISRUPTOR = setOf("trinkets-blue-1", "trinkets-blue-2a", "trinkets-blue-3a")
     private val BARRIER = setOf("trinkets-blue-2b", "trinkets-blue-3b")

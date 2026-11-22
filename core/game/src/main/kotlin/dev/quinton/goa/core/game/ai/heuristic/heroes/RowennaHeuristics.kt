@@ -25,9 +25,13 @@ object RowennaHeuristics : HeroHeuristics {
         idealDistance = 1,
         aggression = 0.60,
         laneWeight = 1.1,
+        // Research §3: level 3 is blue when she is the finisher; the execute is only alive once she owns it
+        // (wave 3: with red, red, green first she almost never did, and the window logic never fired).
         upgradeOrder = listOf(
             "rowenna-red-2a",
+            "rowenna-blue-2b",
             "rowenna-red-3a",
+            "rowenna-blue-3b",
             "rowenna-green-2a",
             "rowenna-green-3a",
             "red",

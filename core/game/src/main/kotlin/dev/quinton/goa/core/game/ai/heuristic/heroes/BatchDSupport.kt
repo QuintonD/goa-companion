@@ -25,7 +25,6 @@ import dev.quinton.goa.core.model.catalog.CardColor
 import dev.quinton.goa.core.model.catalog.Stat
 import dev.quinton.goa.core.model.match.Team
 import kotlin.math.max
-import kotlin.math.min
 
 /**
  * Lookups for the tigerclaw–xargatha playbooks (batch D). No engine forks: distances, occupancy and
@@ -110,8 +109,7 @@ internal object BatchDSupport {
      * Public knowledge allows [heroId] to still hold [cardId] (the real hand for us and at strength 10),
      * or it is the card they revealed this turn and have still to resolve: a threat either way.
      */
-    fun mayHold(ctx: HContext, heroId: String, cardId: String): Boolean =
-        ctx.possibleCards(heroId).any { it.card.id == cardId }
+    fun mayHold(ctx: HContext, heroId: String, cardId: String): Boolean = BatchC.mayHold(ctx, heroId, setOf(cardId))
 
     fun holds(ctx: HContext, cardIds: Set<String>): Boolean = ctx.ownHand().any { it.id in cardIds }
 
@@ -212,12 +210,7 @@ internal object BatchDSupport {
     fun outlookFix(ctx: HContext, card: HCard, real: Double): Double =
         if (card.attackCard || card.forcesDiscard) strikeFix(ctx, card, real) else real
 
-    /** [General]'s movement outlook for a card (kept in step by hand: it is private there). */
-    private fun moveOutlook(ctx: HContext, at: Hex, card: HCard): Double {
-        val far = ctx.distanceToBattleZone(at)
-        if (far <= 0) return 0.15
-        return min(far * 0.4, card.movement * 0.55)
-    }
+    private fun moveOutlook(ctx: HContext, at: Hex, card: HCard): Double = PlaybookSupport.moveOutlook(ctx, at, card)
 
     /**
      * A space question that places a piece, not this hero. The general book scores those as if the

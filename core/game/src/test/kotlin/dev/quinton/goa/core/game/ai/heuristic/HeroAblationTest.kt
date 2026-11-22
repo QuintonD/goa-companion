@@ -67,6 +67,31 @@ class HeroAblationTest {
         }
     }
 
+    /**
+     * Opt-in. `AI_H_LEGACY_BOOK=1`: the whole current book against the whole legacy book ([LegacyPlaybooks]: the
+     * playbooks wave 3 Track D changed, as they were) in mixed line-ups from `AI_H_FIRST`, `AI_H_GAMES` line-ups
+     * mirrored, at `AI_H_STRENGTH` (default 10).
+     */
+    @Test
+    fun `the current book against the legacy book`() {
+        if (System.getenv("AI_H_LEGACY_BOOK") == null) return
+        val strength = System.getenv("AI_H_STRENGTH")?.toIntOrNull() ?: 10
+        val lineups = System.getenv("AI_H_GAMES")?.toIntOrNull() ?: 24
+        val first = System.getenv("AI_H_FIRST")?.toIntOrNull() ?: 0
+        val threads = System.getenv("AI_THREADS")?.toIntOrNull() ?: 2
+        val format = AiHarness.Format.parse(System.getenv("AI_FORMAT"))
+        val current = Tournament.Side("current") { seed -> HeuristicAi(strength, seed) }
+        val legacy = Tournament.Side("legacy") { seed -> HeuristicAi(strength, seed) { LegacyPlaybooks.forHero(it) } }
+        val score = Tournament.runMixed(current, legacy, lineups, threads, firstLineup = first, format = format)
+        val (lo, hi) = score.interval
+        val line = "H_BOOK strength $strength lineups $first+$lineups: $score Wilson " +
+            "${"%.1f".format(lo * 100)}-${"%.1f".format(hi * 100)}%"
+        println(line)
+        println("H_BOOK   ${score.details()}")
+        System.getenv("AI_H_OUT")?.let { java.io.File(it).appendText(line + "\n") }
+        assertThat(score.games).isGreaterThan(0)
+    }
+
     /** `rules`: the playbook's notes with the default style; `style`: its style with no notes; else the whole book. */
     private fun variant(book: HeroHeuristics, mode: String): HeroHeuristics = when (mode) {
         "rules" -> object : HeroHeuristics by book {
