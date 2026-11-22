@@ -166,30 +166,50 @@ noted), `AI_THREADS=3` on a shared oldboi. Wilson 95% intervals; pairs = h lost 
   a turn with one card has nothing to defend with; a threat acting after that card misses when the card's
   movement takes it out of reach first. A Silver (no movement) or a slower card cannot escape: the threat map
   prices the defeat in full.
-- **Strengths.** 9 and 10 have `turnRest` (F1 + F3). 8 and below are unchanged.
+- **Strength 10's own layer** (profile `knowLook`, `lookBranches`). The card play's one-action look no longer stops
+  at an enemy's defense: that enemy's book answers it from the known hand (ADR-062), and the action goes on. Two of
+  our own choices inside a look try the book's best 4 answers (one below 10).
+- **Strengths.** 9 has `turnRest` (F1 + F3); 10 has 9 + `knowHands` + `knowLook` + `lookBranches = 2`. 8 and
+  below are unchanged.
 
-### Measured so far (games, development line-ups 1064–1159, 192 games a row)
+### Development measurements (line-ups 1064–1159, 192 games each)
 
-The previous agent's runs (logs kept in its scratchpad). Under the wave-3 audit (2026-11-22) a row whose interval
-includes 50% decides nothing; rows marked "indicative" need an SPRT or ≥ 256 games before a keep decision.
+| Variant | Against | Won | Rate | Wilson 95% | Pairs | Defeats/game (no card) | Answer ms mean / p95 / max |
+|---|---|---|---|---|---|---|---|
+| h10 (start of wave 3) | s8 | 105–87 | 54.7% | 47.6–61.6 | 17/53/26 | 0.94 (79) / 1.13 (73) | 4.0 / 14.3 / 771 |
+| h10 + G4 off (F4, `earlyRed=0`) | s8 | 101–91 | 52.6% | 45.6–59.5 | 15/61/20 | 0.96 (83) / 1.16 (73) | 3.2 / 10.8 / 111 |
+| **h10 + F1** (`rest=1`) | s8 | 135–57 | **70.3%** | 63.5–76.3 | 4/49/43 | 0.80 (41) / 1.34 (80) | 13.4 / 44.7 / 908 |
+| **h10 + F1 + F3** (`rest=1+escape=1`) | s8 | 136–56 | **70.8%** | 64.0–76.8 | 4/48/44 | 0.73 (36) / 1.31 (80) | 14.7 / 50.5 / 918 |
+| h10 + F1, other heroes by the one-ply book (`restBook=1`) | s8 | 135–57 | 70.3% | 63.5–76.3 | 6/45/45 | 0.66 (42) / 1.25 (70) | 69.5 / 290 / 5123 |
+| h10 + F1 + F2, 4 sampled reveals (`reveal=4`) | s8 | 125–67 | 65.1% | 58.1–71.5 | 6/55/35 | 0.67 (43) / 1.43 (93) | 37.8 / 156 / 969 |
+| h10 + F1 + F2, our choices after the action branched (`reveal=4+revealBranch=1`) | s8 | 124–68 | 64.6% | 57.6–71.0 | 11/46/39 | 0.80 (65) / 1.39 (108) | 66.5 / 296 / 1666 |
+| h10 + F1 + F3 + opponent card model in the threat map (`predict=1`) | s8 | 135–57 | 70.3% | 63.5–76.3 | 4/49/43 | 0.71 (33) / 1.32 (83) | 21.2 / 77.7 / 1610 |
+| h9 (F1 + F3) | h8 | 114–78 | 59.4% | 52.3–66.1 | 12/54/30 | 1.03 (81) / 0.92 (80) | 13.5 / 45.4 / 842 |
+| h10 = h9 + `knowHands` | h9 | 98–94 | 51.0% | 44.0–58.0 | 17/60/19 | 1.06 (89) / 1.20 (92) | 13.0 / 44.2 / 614 |
+| … + `knowLook` | h9 | 107–85 | 55.7% | 48.7–62.6 | 13/59/24 | 0.98 (77) / 1.19 (94) | 15.2 / 50.6 / 997 |
+| … + `branch=2` | h9 | 106–86 | 55.2% | 48.1–62.1 | 14/58/24 | 1.03 (85) / 1.22 (101) | 16.3 / 56.9 / 876 |
+| … + `width=8` | h9 | 104–88 | 54.2% | 47.1–61.1 | 15/58/23 | 0.97 (88) / 1.22 (98) | 16.2 / 56.1 / 1064 |
 
-| Row | Won | Rate | Wilson 95% | Note |
-|---|---|---|---|---|
-| h10 vs s8 (before F1) | 105–87 | 54.7% | 47.6–61.6 | baseline on these games |
-| h10+earlyRed=0 vs s8 (before F1) | 101–91 | 52.6% | 45.6–59.5 | F4 (G4 off): no gain here; the +6.3 of REVIEW-2-losses was on 1000–1063 |
-| h10+rest=1 vs s8 (F1) | 135–57 | 70.3% | 63.5–76.3 | **F1: +15.6 points**, interval clear of the baseline's |
-| h10+rest=1+escape=1 vs s8 (F1+F3) | 136–56 | 70.8% | 64.0–76.8 | F3 adds nothing measurable |
-| h10+rest=1+restBook=1 vs s8 | 135–57 | 70.3% | 63.5–76.3 | other heroes by their 1-ply book inside the rest look: same, 5× slower |
-| h10+rest=1+reveal=4 vs s8 (F2) | 125–67 | 65.1% | 58.1–71.5 | F2 (4 sampled turns at the card play): −5, rejected for now |
-| h10+rest=1+reveal=4+revealBranch=1 vs s8 | 124–68 | 64.6% | 57.6–71.0 | |
-| h10(rest)+predict=1 vs s8 | 135–57 | 70.3% | 63.5–76.3 | opponent card model in the threat map: same |
-| h9 vs h8 (9 with F1) | 114–78 | 59.4% | 52.3–66.1 | the 8 → 9 step |
-| h10 vs h9 | 98–94 | 51.0% | 44.0–58.0 | the 9 → 10 step: none (also 98–94 for `knowLook`, a no-op in that build) |
-| h10+branch=2 vs h9 | 106–86 | 55.2% | 48.1–62.1 | indicative: two own choices branched inside every look |
-| h10+width=8 vs h9 | 104–88 | 54.2% | 47.1–61.1 | indicative: 8 answers per branch instead of 4 |
+Reading:
 
-Answer times (shared machine, upper bounds): h10 with F1 13.4 / 44.7 / 908 ms an answer (mean / p95 / max), card
-play 11.3 / 35 / 374 ms; before F1 4.0 / 14.3 / 771 ms.
+1. **F1 is the step.** Playing the rest of the turn after the reveal took h10 from 54.7% to 70.3% against s8 on the
+   same 192 games (+15.6 points, intervals disjoint), above the +11.7 ceiling REVIEW-2-losses measured by giving
+   own moves to s10, and halved the empty-hand defeats (79 → 41). It costs about 3× per answer (13 ms mean).
+   s8's wins by the Throne fell from 13 to 8 and by Life from 23 to 15.
+2. **F3 is small but the right way round** (+0.5, defeats 0.80 → 0.73, empty-handed 41 → 36): kept as part of F1.
+3. **F2 as built loses 5–6 points** with and without our own later choices branched: sampling the enemies' cards
+   from the book and resolving the turn makes the card choice noisier than the one-action look with its exposure
+   split by initiative, and empty-hand defeats rose (41 → 65). It stays in the code behind `reveal` (default 0)
+   with its opponent model; the cheaper use of the same model, enemy card weights in the threat map (`predict`),
+   measured even (70.3% against 70.8%) at 1.4× the cost and is off.
+4. **F4 does not hold.** G4 off was +6.3 on 1000–1063 and −2.1 here; over the 320 games together 55.3% against
+   54.1%. G4 stays.
+5. **F7 (hold-the-zone / push-to-win intents) was not built.** Under F1 the turn-4 looks resolve the round-end
+   minion battle and push through the engine, and Throne losses against s8 fell to 8 of 57; an intent would only
+   add a static bias to what the look now sees. Not measured.
+6. **The ladder.** 9 over 8 is 59.4%. Hand knowledge alone gave 10 nothing over 9 (51.0%); what separates them is
+   using it inside looks (`knowLook` 55.7%) and spending more of the look on our own choices (`branch=2` 55.2%).
+   Both went into 10.
 
 ### The position bench (`AiPositionBenchTest`, for every track)
 

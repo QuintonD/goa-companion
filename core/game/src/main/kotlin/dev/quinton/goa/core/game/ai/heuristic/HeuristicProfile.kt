@@ -223,6 +223,10 @@ data class HeuristicProfile(
             laneTiming = lane,
             knowHands = hands,
             turnRest = rest,
+            // Strength 10 (wave 3): enemy defenses answered from the known hand inside the card look, and
+            // two own choices branched in a look (h10 : h9 51.0% without, 55.7% / 55.2% with each).
+            knowLook = hands,
+            lookBranches = if (hands) 2 else 1,
             temperature = temp,
             maxGap = gap,
             slipRate = slip,
