@@ -38,6 +38,11 @@ internal class Trainer(
      * the loss weight `auxWeight[j]` (0 = no head); only the win head is exported, the others shape the layers.
      */
     private val auxWeight: DoubleArray = DoubleArray(0),
+    /**
+     * A saved net to start from instead of random weights (Wave 3 Track E: fine-tuning the checked-in net on
+     * the book's positions); its folded first layer is unfolded with this data's standardization.
+     */
+    private val initFrom: Learned.NetData? = null,
 ) {
     private val aux: Int = auxWeight.size
 
@@ -110,6 +115,27 @@ internal class Trainer(
         b2.fill(0.01)
     }
 
+    /** Starts from [n]'s weights: the exact inverse of [export]'s folding under this data's mean and scale. */
+    private fun warmStart(n: Learned.NetData) {
+        require(n.inputs == inputs && n.h1 == h1 && n.h2 == h2) { "Warm start: another architecture" }
+        for (j in 0 until h1) {
+            var b = n.b1[j].toDouble()
+            for (i in 0 until inputs) {
+                val w = n.w1[i * h1 + j].toDouble()
+                w1[i * h1 + j] = w * sd[i]
+                b += w * mean[i]
+            }
+            b1[j] = b
+        }
+        for (k in w2.indices) w2[k] = n.w2[k].toDouble()
+        for (k in b2.indices) b2[k] = n.b2[k].toDouble()
+        for (k in w3.indices) w3[k] = n.w3[k].toDouble()
+        for (i in 0 until inputs) wl[i] = n.wl[i] * sd[i]
+        if (heroes > 0 && n.heroes == Learned.HEROES) for (k in wh.indices) wh[k] = n.wh[k].toDouble()
+        if (cards > 0 && n.cards == Learned.CARDS) for (k in wc.indices) wc[k] = n.wc[k].toDouble()
+        println("TRAIN warm start: tables ${n.heroes == Learned.HEROES} / ${n.cards == Learned.CARDS}")
+    }
+
     /** Standardizes [x] in place with the training statistics. */
     private fun standardize(x: FloatArray) {
         for (r in 0 until x.size / inputs) {
@@ -143,6 +169,7 @@ internal class Trainer(
             }
         }
         init(constant)
+        initFrom?.let(::warmStart)
         standardize(train.x)
         standardize(valid.x)
         val m = params.map { DoubleArray(it.size) }

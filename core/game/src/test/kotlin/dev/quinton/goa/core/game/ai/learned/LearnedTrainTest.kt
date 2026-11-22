@@ -167,6 +167,8 @@ class LearnedTrainTest {
             if (tabled) Learned.CARDS.size else 0,
             Features.BOARD_AT,
             if (useAux) auxWeight else DoubleArray(0),
+            // AI_INIT=<net>: fine-tune a saved or checked-in net (`cur1`) instead of starting at random (Track E).
+            System.getenv("AI_INIT")?.let { initData(it) },
         ).train(data(train, targets, release = true), data(valid, targets, release = false), cfg)
         println("TRAIN trained in ${"%.0f".format((System.nanoTime() - t0) / 1e9)} s")
         val net = Learned.NetData(
@@ -190,6 +192,12 @@ class LearnedTrainTest {
             )
             println("TRAIN wrote $target")
         }
+    }
+
+    /** A saved net's data, or a checked-in one's (`cur1`…) through its weights object. */
+    private fun initData(name: String): Learned.NetData {
+        LeafNets.CHECKED_IN_DATA[name]?.let { return it() }
+        return Learned.loadNetData(File(Learned.NETS, "$name.net"))
     }
 
     private fun report(set: List<Pos>, k: Double, m: DoubleArray, net: LearnedNet, label: String) {
@@ -256,7 +264,14 @@ class LearnedTrainTest {
     /** λ-returns per game, bootstrapped from the teacher's P(Red wins) at the next positions; λ = 1 is the result. */
     private fun targets(all: List<Pos>, lambda: Double, teacher: String, k: Double): Map<Pos, Float> {
         val out = HashMap<Pos, Float>(all.size * 2)
-        val net = if (teacher == "hand" || lambda >= 1.0) null else Learned.net(teacher)
+        // A net, or the mean logit of several (`avg(cur1,cur2,cur3)`: the checked-in ensemble, Wave 3 Track E).
+        val nets = when {
+            teacher == "hand" || lambda >= 1.0 -> null
+            teacher.startsWith("avg(") -> teacher.removePrefix("avg(").removeSuffix(")").split(",").map {
+                Learned.net(it.trim())
+            }
+            else -> listOf(Learned.net(teacher))
+        }
         for ((_, ps) in all.groupBy { it.family to it.game }) {
             val sorted = ps.sortedBy { it.index }
             var g = if (sorted.first().redWon) 1.0 else 0.0
@@ -266,7 +281,7 @@ class LearnedTrainTest {
                     val next = sorted[i + 1]
                     val v = when {
                         lambda >= 1.0 -> result
-                        net != null -> Trainer.sigmoid(logit(net, next))
+                        nets != null -> Trainer.sigmoid(nets.sumOf { logit(it, next) } / nets.size)
                         else -> Trainer.sigmoid(k * next.hand)
                     }
                     g = (1 - lambda) * v + lambda * g

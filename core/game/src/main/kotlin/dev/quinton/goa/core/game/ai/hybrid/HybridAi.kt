@@ -69,6 +69,12 @@ class HybridAi(
     @kotlin.concurrent.Volatile
     private var leafCache: Pair<EngineData, PositionEvaluator?>? = null
 
+    /**
+     * Measurement only (Wave 3 Track E, a net under test loaded by a test): scores the playout ends instead
+     * of [HybridConfig.leaf]. Null in play. Set before the first answer.
+     */
+    internal var leafOverride: ((EngineData) -> PositionEvaluator)? = null
+
     @kotlin.concurrent.Volatile
     private var killEval: Pair<EngineData, Evaluator>? = null
 
@@ -498,7 +504,7 @@ class HybridAi(
 
     private fun leafOf(data: EngineData): PositionEvaluator? {
         leafCache?.let { if (it.first === data) return it.second }
-        val e: PositionEvaluator? = when (config.leaf) {
+        val e: PositionEvaluator? = leafOverride?.invoke(data) ?: when (config.leaf) {
             HybridLeaf.HEVAL -> null
             HybridLeaf.OLD -> Evaluator(data, AiPlayers.TUNED_WITH_NET)
             HybridLeaf.NET -> NetEvaluator(data, LearnedNet.ENSEMBLE)
