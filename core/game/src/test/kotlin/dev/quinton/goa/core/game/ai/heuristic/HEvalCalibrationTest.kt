@@ -90,6 +90,77 @@ class HEvalCalibrationTest {
         }
     }
 
+    /**
+     * `AI_HEVAL_LEAVES=x10+pol=1+scope=3+leaf=2:s10` plays mirrored games and appends to `AI_HEVAL_OUT` one
+     * row per leaf the hybrid side scores: the decision, the sample and the candidate, the learned net's
+     * logit and the [HTerm] features from the deciding team's side (HEVAL.md "Leaf ranking").
+     */
+    @Test
+    fun `record leaves`() {
+        val spec = System.getenv("AI_HEVAL_LEAVES") ?: return
+        val out = File(System.getenv("AI_HEVAL_OUT") ?: error("AI_HEVAL_OUT"))
+        val lineups = System.getenv("AI_H_GAMES")?.toIntOrNull() ?: 4
+        val first = System.getenv("AI_H_FIRST")?.toIntOrNull() ?: 2500
+        val threads = System.getenv("AI_THREADS")?.toIntOrNull() ?: 2
+        val format = AiHarness.Format.parse(System.getenv("AI_FORMAT"))
+        if (!out.exists()) {
+            out.writeText((listOf("game", "decision", "kind", "sample", "cand", "round", "turn", "net") + HTerm.entries.map { it.label }).joinToString(",") + "\n")
+        }
+        val all = AiHarness.mixedLineups(first + lineups, size = format.size)
+        val (aName, bName) = spec.split(":")
+        val profile = HeuristicProfile.of(10)
+        val jobs = ArrayList<Callable<Int>>()
+        for (i in first until first + lineups) {
+            val (red, blue) = all[i]
+            val coin = if (i % 2 == 0) Team.RED else Team.BLUE
+            for (aIsRed in listOf(true, false)) {
+                jobs += Callable {
+                    val seed = (60_000L + i) * 2
+                    val game = "$spec|$i|${if (aIsRed) "a" else "b"}"
+                    val net = NetEvaluator(TestData.engine.data, LearnedNet.ENSEMBLE)
+                    val rows = StringBuilder()
+                    val hybrid = HybridAi(seed, tuneOf(aName))
+                    hybrid.leafObserver = { d, sample, cand, f, team ->
+                        val ctx = HContext(f, f.pending, team, profile, finishing = true)
+                        val red = if (f.state.winner == null) net.redLogit(f.state) else if (f.state.winner == Team.RED) 20.0 else -20.0
+                        val feats = HEval.features(ctx, team)
+                        val win = f.state.winner?.let { if (it == team) 1.0 else -1.0 }
+                        rows.append(game).append(',').append(d.id).append(',').append(d.kind.name).append(',')
+                            .append(sample).append(',').append(cand).append(',').append(f.state.round).append(',')
+                            .append(f.state.turn).append(',').append("%.4f".format(if (team == Team.RED) red else -red))
+                        for (t in HTerm.entries) {
+                            val v = feats?.get(t.ordinal) ?: if (t == HTerm.LIFE) 1000.0 * win!! else 0.0
+                            rows.append(',').append("%.4f".format(v))
+                        }
+                        rows.append('\n')
+                    }
+                    val setup = AiHarness.setup(red, blue, AiLevel.NORMAL, AiLevel.NORMAL, coin, format.length, format.mapId)
+                    val other = player(bName, seed + 1)
+                    AiHarness.play(setup, mapOf(Team.RED to if (aIsRed) hybrid else other, Team.BLUE to if (aIsRed) other else hybrid))
+                    synchronized(this) { out.appendText(rows.toString()) }
+                    rows.count { it == '\n' }
+                }
+            }
+        }
+        val pool = Executors.newFixedThreadPool(threads)
+        try {
+            val n = pool.invokeAll(jobs).sumOf { f ->
+                try {
+                    f.get()
+                } catch (e: java.util.concurrent.ExecutionException) {
+                    println("HEVAL_LEAVES game failed: ${e.cause}")
+                    0
+                }
+            }
+            println("HEVAL_LEAVES $spec: ${jobs.size} games, $n leaves -> $out")
+        } finally {
+            pool.shutdown()
+        }
+    }
+
+    private fun tuneOf(spec: String): Map<String, Double> =
+        spec.split("+").drop(1).associate { kv -> kv.substringBefore("=") to kv.substringAfter("=").toDouble() }
+
     private fun header(): String =
         (listOf("game", "players", "round", "turn", "team", "won", "net") + HTerm.entries.map { it.label }).joinToString(",")
 

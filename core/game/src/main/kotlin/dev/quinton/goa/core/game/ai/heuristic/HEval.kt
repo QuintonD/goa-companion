@@ -10,6 +10,8 @@ import dev.quinton.goa.core.game.engine.Zone
 import dev.quinton.goa.core.game.engine.enemyUnitsInZone
 import dev.quinton.goa.core.game.engine.respawnSpaces
 import dev.quinton.goa.core.model.board.Hex
+import dev.quinton.goa.core.model.board.MinionType
+import dev.quinton.goa.core.model.catalog.Stat
 import dev.quinton.goa.core.model.match.Team
 import kotlin.math.ceil
 import kotlin.math.max
@@ -128,12 +130,14 @@ object HEval {
         if (h.ultimateUnlocked) levels += 8.0
         add(HTerm.LEVELS, levels)
         if (h.counters.isNotEmpty()) add(HTerm.COUNTERS, h.counters.entries.sumOf { (k, n) -> counter(k, n) })
+        val readable = h.team == ctx.team || ctx.profile.knowHands
         if (!ctx.roundOver) {
             add(HTerm.HAND, hand(ctx, h))
-            if (h.team == ctx.team || ctx.profile.knowHands) {
+            if (readable) {
                 add(HTerm.HAND_RATING, 0.12 * h.hand.sumOf { ctx.card(it.id).rating })
             }
         }
+        if (readable && (on(HTerm.DEFENSE) || on(HTerm.DEFENDERS) || on(HTerm.INITIATIVE))) handShape(ctx, h, ::add)
         val at = h.at
         if (at == null) {
             add(HTerm.OFF_BOARD, 1.0)
@@ -150,6 +154,36 @@ object HEval {
         }
         if (on(HTerm.OPP_POOL)) add(HTerm.OPP_POOL, bodies.maxOf { reachingPlays(ctx, h, it).first })
         if (on(HTerm.ACCESS)) add(HTerm.ACCESS, -bodies.minOf { actionsTo(ctx, h.team, it, goalOf(ctx, h, it)) })
+        if (on(HTerm.FORMATION)) add(HTerm.FORMATION, formation(ctx, h.team, at))
+        if (on(HTerm.IDEAL_GAP)) {
+            val nearest = ctx.state.heroes.filter { it.team != h.team && it.at != null }.minOfOrNull { HexGrid.distance(at, it.at!!) }
+            if (nearest != null) add(HTerm.IDEAL_GAP, -kotlin.math.abs(nearest - ctx.style(h.id).idealDistance).toDouble())
+        }
+        if (on(HTerm.MINION_MOD)) add(HTerm.MINION_MOD, ctx.minionModifier(at, h.team).toDouble())
+    }
+
+    /** [HTerm.DEFENSE], [HTerm.DEFENDERS] and [HTerm.INITIATIVE] of a hand the evaluating team may read. */
+    private fun handShape(ctx: HContext, h: HeroState, add: (HTerm, Double) -> Unit) {
+        if (h.hand.isEmpty()) return
+        val cards = h.hand.map { ctx.card(it.id) }
+        val defenders = cards.filter { it.canDefend || it.block }
+        add(HTerm.DEFENDERS, defenders.size.toDouble())
+        val items = ctx.itemBonus(h.id, Stat.DEFENSE)
+        defenders.mapNotNull { it.defense }.maxOrNull()?.let { add(HTerm.DEFENSE, (it + items).toDouble()) }
+        val init = ctx.itemBonus(h.id, Stat.INITIATIVE)
+        add(HTerm.INITIATIVE, (cards.maxOf { it.initiative } + init).toDouble())
+    }
+
+    /** Friendly melee minions adjacent, enemy ranged minions within 2 (the weights of `HContext.formation`). */
+    private fun formation(ctx: HContext, team: Team, at: Hex): Double {
+        var v = 0.0
+        for (m in ctx.state.minions) {
+            val pos = m.at ?: continue
+            val d = HexGrid.distance(at, pos)
+            if (m.team == team && m.type != MinionType.RANGED && d == 1) v += 1.0
+            if (m.team != team && m.type == MinionType.RANGED && d in 1..2) v -= 1.35
+        }
+        return v
     }
 
     /** G51: the same pull [HContext.placement] uses, so a one-ply look sees the next zone. */

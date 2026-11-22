@@ -128,6 +128,7 @@ class HybridAi(
                             answered.incrementAndFetch()
                             playout(f, team, horizon, seenOf, HeuristicAi.mix(base, i.toLong()))
                             values[j][i] = leaf(f, team, seenByUs, leafEval)
+                            leafObserver?.invoke(d, i, j, f, team)
                         }
                     }
                 }
@@ -165,6 +166,12 @@ class HybridAi(
 
     /** Diagnostics only: one line per searched decision. */
     var trace: ((String) -> Unit)? = null
+
+    /**
+     * Calibration only (Track B, HEVAL.md "Leaf ranking"): every scored leaf, with the decision, the
+     * sample, the candidate's index and the deciding team. Null in play. Runs on the sample's thread.
+     */
+    var leafObserver: ((Decision, Int, Int, EngineSession, Team) -> Unit)? = null
 
     /**
      * What is searched: every card for a card play; for another question the book's own answer and its

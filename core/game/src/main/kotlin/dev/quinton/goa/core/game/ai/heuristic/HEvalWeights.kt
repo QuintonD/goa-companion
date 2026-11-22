@@ -80,6 +80,24 @@ enum class HTerm(val label: String, val hand: Double) {
      * push's chance from the new zone's spawns. `(60 or 100) × (2W − 1)`.
      */
     LANE_PROJ("laneProj", 0.0),
+
+    /** The best Defense (printed + items) among the hand's cards that can defend; a readable hand only. */
+    DEFENSE("defense", 0.0),
+
+    /** Cards in a readable hand that can defend or block. */
+    DEFENDERS("defenders", 0.0),
+
+    /** Friendly melee minions adjacent (+1) and enemy ranged minions within 2 (−1.35), as `HContext.formation`. */
+    FORMATION("formation", 0.0),
+
+    /** Minus how far the nearest enemy hero is from the hero's ideal distance (`HeroStyle.idealDistance`). */
+    IDEAL_GAP("idealGap", 0.0),
+
+    /** The minion defense modifier (p.14) where the hero stands. */
+    MINION_MOD("minionMod", 0.0),
+
+    /** The highest Initiative (printed + items) in a readable hand. */
+    INITIATIVE("initiative", 0.0),
     ;
 
     companion object {

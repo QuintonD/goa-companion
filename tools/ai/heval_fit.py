@@ -23,7 +23,17 @@ HAND = {
     "coins": 1.0, "levels": 1.0, "counters": 1.0, "hand": 1.0, "handRating": 1.0, "offBoard": -8.0,
     "presence": 1.0, "opportunity": 2.0, "laneThreat": 0.3, "zonePull": 1.0, "exposure": -1.0,
     "playbook": 1.0, "oppPool": 0.0, "access": 0.0, "laneProj": 0.0,
+    "defense": 0.0, "defenders": 0.0, "formation": 0.0, "idealGap": 0.0, "minionMod": 0.0, "initiative": 0.0,
 }
+
+
+def fold_of_game(game):
+    """The fold of a game: its line-up's index mod 4, so both mirrored games of a line-up stay together."""
+    parts = game.split("|")
+    try:
+        return int(parts[1]) % 4
+    except (IndexError, ValueError):
+        return zlib.crc32(game.encode()) % 4
 
 
 def sigmoid(z):
@@ -147,7 +157,7 @@ def main():
     if args.cv:
         cross_validate(rows, args)
         return
-    test_of = lambda r: (zlib.crc32(r[0].encode()) & 3) == args.fold
+    test_of = lambda r: fold_of_game(r[0]) == args.fold
     train = [r for r in rows if not test_of(r)]
     test = [r for r in rows if test_of(r)]
     print(f"{len(rows)} rows ({len({r[0] for r in rows})} games): train {len(train)}, test {len(test)}")
@@ -197,7 +207,7 @@ def distil(rows, args):
     zero = set(t for t in args.zero.split(",") if t)
     chosen = [t for t in args.terms.split(",") if t and t not in zero]
     rest = [t for t in terms if t not in chosen and t not in zero]
-    fold_of = lambda r: zlib.crc32(r[0].encode()) & 3
+    fold_of = lambda r: fold_of_game(r[0])
     train = [r for r in rows if fold_of(r) != args.fold]
     test = [r for r in rows if fold_of(r) == args.fold]
     score = lambda r: sum(HAND[t] * r[5][t] for t in terms)
@@ -242,7 +252,7 @@ def cross_validate(rows, args):
     zero = set(t for t in args.zero.split(",") if t)
     chosen = [t for t in args.terms.split(",") if t and t not in zero]
     rest = [t for t in terms if t not in chosen and t not in zero]
-    fold_of = lambda r: zlib.crc32(r[0].encode()) & 3
+    fold_of = lambda r: fold_of_game(r[0])
     score = lambda r: sum(HAND[t] * r[5][t] for t in terms)
     l2s = [float(x) for x in args.l2.split(",")]
     totals = {"current": 0.0, "net": 0.0}
