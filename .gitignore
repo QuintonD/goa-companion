@@ -42,3 +42,4 @@ web/e2e/playwright-report/
 secrets/
 .secrets/
 *.env
+__pycache__/
