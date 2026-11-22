@@ -8,6 +8,7 @@ import dev.quinton.goa.core.game.TestData
 import dev.quinton.goa.core.game.engine.Determinizer
 import dev.quinton.goa.core.game.engine.EngineSession
 import dev.quinton.goa.core.game.engine.Zone
+import dev.quinton.goa.core.game.ai.hybrid.HybridPlayers
 import dev.quinton.goa.core.game.heroes.MinHero
 import dev.quinton.goa.core.game.position.PositionBuilder
 import dev.quinton.goa.core.game.position.PositionPhase
@@ -50,6 +51,16 @@ class NoPeekingTest {
             val ca = SearchAi(AiLevel.EXPERT, team, seed, timeCap = false).choose(a, da)
             val cb = SearchAi(AiLevel.EXPERT, team, seed, timeCap = false).choose(b, db)
             assertThat(cb).isEqualTo(ca)
+        }
+        // The hybrid search prototypes (REVIEW-2-search.md) are strength-10 players: they read hands as it does.
+        if (AiStrength.MAX in strengths) {
+            val knobs = mapOf("K" to 3.0, "Ko" to 2.0, "scope" to 3.0, "hz" to 3.0, "model" to 2.0)
+            for (seed in 1L..2L) {
+                assertThat(HybridPlayers.hybrid(seed, knobs).choose(b, db))
+                    .isEqualTo(HybridPlayers.hybrid(seed, knobs).choose(a, da))
+                assertThat(HybridPlayers.searchWithBook(seed, mapOf("K" to 3.0, "Ko" to 2.0)).choose(b, db))
+                    .isEqualTo(HybridPlayers.searchWithBook(seed, mapOf("K" to 3.0, "Ko" to 2.0)).choose(a, da))
+            }
         }
         // The coach's words too (ADR-051): the same public view, the same suggestions, line for line.
         for (seed in 1L..3L) {

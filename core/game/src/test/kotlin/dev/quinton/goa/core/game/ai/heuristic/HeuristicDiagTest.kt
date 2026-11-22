@@ -6,6 +6,7 @@ import dev.quinton.goa.core.game.DecisionKind
 import dev.quinton.goa.core.game.GameEvent
 import dev.quinton.goa.core.game.ai.AiHarness
 import dev.quinton.goa.core.game.ai.AiPlayers
+import dev.quinton.goa.core.game.ai.hybrid.HybridPlayers
 import dev.quinton.goa.core.game.engine.EngineSession
 import dev.quinton.goa.core.game.engine.Zone
 import dev.quinton.goa.core.model.match.Team
@@ -180,6 +181,11 @@ class HeuristicDiagTest {
         val parts = spec.split("+")
         val n = parts[0].drop(1).toInt()
         val tune = parts.drop(1).associate { kv -> kv.substringBefore("=") to kv.substringAfter("=").toDouble() }
-        return if (spec[0] == 'h') HeuristicAi(n, seed, tune = tune) else AiPlayers.searchDeterministic(n, seed)
+        return when (spec[0]) {
+            'h' -> HeuristicAi(n, seed, tune = tune)
+            'x' -> HybridPlayers.hybrid(seed, tune)
+            'y' -> HybridPlayers.searchWithBook(seed, tune)
+            else -> AiPlayers.searchDeterministic(n, seed)
+        }
     }
 }
