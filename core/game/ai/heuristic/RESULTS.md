@@ -228,8 +228,13 @@ and with the memo off (`HybridSearchTest`).
 | Variant | Spec | Opponent | Line-ups | Games | Win | Wilson | Pairs | Answer ms (variant / opponent) | Card play ms | Kept |
 |---|---|---|---|---:|---:|---|---|---|---|---|
 | tree depth 2, width 3 (**W2T**) | W2 `+td=2+tw=3` | W2 | 1100–1227 | 256 | **56.6%** | 50.5–62.6 | 20/0/71/0/37 | 282 / 232 mean, 1 144 / 1 049 p95 | 627 / 630 mean, max 8 291 | yes (256 games, interval above 50%; SPRT still open) |
+| the same tree with the HEval leaf | W2(leaf 0) `+td=2+tw=3` | W2(leaf 0) | 1500–1627 | 256 | **55.9%** | 49.7–61.8 (pairs 50.3–61.4) | 20/0/73/0/35 | 225 / 188 mean, 923 / 845 p95 | 508 / 507 mean, max 10 252 | the gain holds with leaf 0 |
+| the tree under card plays too | W2T `+tc=2` | W2T | 1300–1315 | 32 | 46.9% | 30.9–63.6 | 4/0/9/0/3 | — | games ~3× longer | stopped: too slow for the 10 s card-play limit, no sign of a gain |
 
-PENDING: the card-play tree (`tc`), the leaf-0 check of W2T, and W2T against s10.
+With the tree both leaves lose fewer heroes: leaf 0 0.84 defeats a game against 1.11 for the same search without
+it, 88 against 130 of them with no card left to defend (the empty-hand deaths of REVIEW-2-losses.md).
+
+PENDING: W2T against s10, a deeper tree (`td=3`).
 
 ### Strength 10 in AiPlayers
 
