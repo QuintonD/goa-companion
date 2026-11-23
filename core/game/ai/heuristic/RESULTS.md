@@ -263,8 +263,16 @@ toward the net leaf):
 
 The search is ahead of the book on both sets (x10 82.7–86.7% of the puzzles against h10's 78.6%). F1 inside the
 playouts: with the net leaf it solves 9 more puzzles (solver truth), on the oracle set it is 5 answers further
-from the net-based oracle, with HEval even; it costs 3.5–4× per answer. Undecided on positions: games are running
-(x10 leaf=2 with and without F1 in the book, 256 games).
+from the net-based oracle, with HEval even; it costs 3.5–4× per answer. Undecided on positions.
+
+In games (today's book: F1 + `knowLook` + `lookBranches=2`; x10+pol=1+scope=3+leaf=2 with it against the same search
+with `+rest=0` in its book), the first 32 of 256 planned games, development line-ups 1160–1175: **20–12 = 62.5%
+[45.3–77.1]**, pairs 2 / 8 / 6, defeats a game 0.84 / 1.16. Indicative only (the interval includes 50%). The cost is
+the problem: answers 2.33 s mean / 8.7 s p95 / 55.8 s max against 0.69 / 2.8 / 16.1 s, card plays 5.7 s / 19.4 s
+/ 55.8 s against 1.6 / 5.1 / 16.1 s on a loaded shared machine (upper bounds), past the ~10 s card-play budget at
+p95. Inside playouts a cheaper book (F1 without the two branched choices, or F1 only at the first ply) is the
+trade to test next (Track C's `BookPolicy`; the knobs pass through `bookTune`). The remaining chunks (1176–1287)
+were queued when this was written; their logs are not part of this table.
 
 ### Held-out checkpoints (line-ups 300–395 / 600–695; no longer clean per the audit, so checkpoints, not the final table)
 
