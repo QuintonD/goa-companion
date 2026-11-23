@@ -148,6 +148,15 @@ internal class LearnedNet(
          * mean of their scores is what the search overrates less than any one of them.
          */
         val ENSEMBLE: List<LearnedNet> by lazy { listOf(CURRENT, LearnedWeights2.net(), LearnedWeights3.net()) }
+
+        /**
+         * Wave 3 Track E: [ENSEMBLE] and three nets fine-tuned from it on the heuristic book's self-play games and
+         * the hybrid search's own (`LearnedWeightsG1..3`, teacher [ENSEMBLE], λ 0.7): the mean of six, the leaf
+         * [dev.quinton.goa.core.game.ai.hybrid.HybridLeaf.NET6]. The new three alone measured weaker at the leaf.
+         */
+        val ENSEMBLE_6: List<LearnedNet> by lazy {
+            ENSEMBLE + listOf(LearnedWeightsG1.net(), LearnedWeightsG2.net(), LearnedWeightsG3.net())
+        }
     }
 }
 

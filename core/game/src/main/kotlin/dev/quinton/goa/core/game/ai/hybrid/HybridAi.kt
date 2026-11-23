@@ -543,6 +543,7 @@ class HybridAi(
             HybridLeaf.HEVAL -> null
             HybridLeaf.OLD -> Evaluator(data, AiPlayers.TUNED_WITH_NET)
             HybridLeaf.NET -> NetEvaluator(data, LearnedNet.ENSEMBLE)
+            HybridLeaf.NET6 -> NetEvaluator(data, LearnedNet.ENSEMBLE_6)
         }
         leafCache = data to e
         return e

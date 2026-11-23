@@ -43,6 +43,9 @@ enum class HybridLeaf {
 
     /** The old strength 10's learned ensemble ([dev.quinton.goa.core.game.ai.NetEvaluator]). */
     NET,
+
+    /** [NET]'s three nets and three fine-tuned on the book's and the search's games, averaged (Track E, `leaf=3`). */
+    NET6,
     ;
 
     companion object {

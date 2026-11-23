@@ -13,6 +13,9 @@ import dev.quinton.goa.core.game.ai.LearnedNet
 import dev.quinton.goa.core.game.ai.LearnedWeights
 import dev.quinton.goa.core.game.ai.LearnedWeights2
 import dev.quinton.goa.core.game.ai.LearnedWeights3
+import dev.quinton.goa.core.game.ai.LearnedWeightsG1
+import dev.quinton.goa.core.game.ai.LearnedWeightsG2
+import dev.quinton.goa.core.game.ai.LearnedWeightsG3
 import dev.quinton.goa.core.game.ai.NetEvaluator
 import dev.quinton.goa.core.game.ai.Searcher
 import dev.quinton.goa.core.game.ai.Term
@@ -44,6 +47,13 @@ class LearnedNetTest {
         assertThat(LearnedNet.ENSEMBLE).hasSize(3)
         assertThat(LearnedNet.ENSEMBLE.first()).isSameInstanceAs(net)
         for (n in LearnedNet.ENSEMBLE) assertThat(n.forward(x, 0).isFinite()).isTrue()
+        // Wave 3 Track E: the six-net leaf (the ensemble first, then the three fine-tuned on the book's games).
+        for (h in listOf(LearnedWeightsG1.SCHEMA_HASH, LearnedWeightsG2.SCHEMA_HASH, LearnedWeightsG3.SCHEMA_HASH)) {
+            assertThat(h).isEqualTo(Features.SCHEMA_HASH)
+        }
+        assertThat(LearnedNet.ENSEMBLE_6).hasSize(6)
+        assertThat(LearnedNet.ENSEMBLE_6.take(3)).containsExactlyElementsIn(LearnedNet.ENSEMBLE).inOrder()
+        for (n in LearnedNet.ENSEMBLE_6) assertThat(n.forward(x, 0).isFinite()).isTrue()
     }
 
     @Test
