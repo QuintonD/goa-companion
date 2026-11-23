@@ -102,7 +102,7 @@ class AiPositionBenchTest {
     }
 
     private fun saveVerdicts() {
-        if (budget != ROUND_BUDGET) return
+        if (budget != ROUND_BUDGET || verdicts.isEmpty()) return
         verdictFile.parentFile.mkdirs()
         verdictFile.writeText(verdicts.entries.sortedBy { it.key }.joinToString("") { "${it.key} ${it.value}\n" })
     }
