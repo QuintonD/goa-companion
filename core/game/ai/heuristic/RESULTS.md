@@ -259,7 +259,13 @@ The development checkpoint (71.9% on 64 games) was optimistic; held out, W2T is 
 54.2% on 300–395). Short of the owner's 65% target. s10 still wins mostly by the last push (31 of its 44 wins on
 648–695).
 
-PENDING: 3v3 300–347 against s10, against h10, and the single- and 3-thread times.
+3v3 (held-out checkpoint 300–347, 96 games): W2T against s10 **61.5%** (51.5–70.6; pairs 52.7–70.2, 5/0/27/0/16);
+defeats 1.47 a game against s10's 1.91. 3v3 costs more: W2T's card play 1 533 ms mean, 5 330 p95, 21 957 max (s10:
+1 379 / 2 855 / 8 720), one thread per answer with three games sharing the loaded machine, so upper bounds; the
+maximum is over the ~10 s card-play budget there (six seats: more enemy-reply columns and longer playouts). With the
+app's sample threads it falls by about their number (the samples and candidates are independent tasks).
+
+PENDING: against h10, and the single- and 3-thread times.
 
 ### Strength 10 in AiPlayers
 
