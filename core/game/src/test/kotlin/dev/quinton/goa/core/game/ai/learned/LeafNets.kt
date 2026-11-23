@@ -80,16 +80,20 @@ internal object LeafNets {
             when (k) {
                 // `avg(a/b/c)` too, where commas separate specs (the position bench).
                 "net" -> net = v.replace('/', ',')
+
                 "thr" -> threads = v.toInt()
+
                 else -> knobs[k] = v.toDouble()
             }
         }
         return when (spec[0]) {
             'h' -> HeuristicAi(strength, seed, tune = knobs)
+
             'x' -> {
                 val runner = if (threads > 1) ThreadRunner(threads) else SampleRunner.SEQUENTIAL
                 HybridAi(seed, knobs, runner).also { h -> net?.let { h.leafOverride = evaluator(it) } }
             }
+
             else -> error("LeafNets: h… or x…, not $spec")
         }
     }

@@ -35,6 +35,7 @@ class TeamTournamentTest {
             val seat = System.getenv("AI_SEAT")?.split(",")
             val specs = when {
                 seat != null -> Teams.seating(n, size, family, seat, first)
+
                 // AI_FAMILY=mixed: the heuristic tournaments' line-ups (`AiHarness.mixedLineups`, `AI_H_FIRST`
                 // ranges, the same seeds as `Tournament.runMixed`), so runs compare with theirs (Wave 3).
                 mixed -> {
@@ -45,6 +46,7 @@ class TeamTournamentTest {
                         Teams.Spec(all[i], if (i % 2 == 0) Team.RED else Team.BLUE, 50_000L + i)
                     }
                 }
+
                 else -> Teams.specs(n, size, family, first)
             }
             val store = System.getenv("AI_STORE")?.let(::File)

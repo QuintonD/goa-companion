@@ -297,9 +297,11 @@ class LearnedTrainTest {
         // A net, or the mean logit of several (`avg(cur1,cur2,cur3)`: the checked-in ensemble, Wave 3 Track E).
         val nets = when {
             teacher == "hand" || lambda >= 1.0 -> null
+
             teacher.startsWith("avg(") -> teacher.removePrefix("avg(").removeSuffix(")").split(",").map {
                 Learned.net(it.trim())
             }
+
             else -> listOf(Learned.net(teacher))
         }
         for ((_, ps) in all.groupBy { it.family to it.game }) {
