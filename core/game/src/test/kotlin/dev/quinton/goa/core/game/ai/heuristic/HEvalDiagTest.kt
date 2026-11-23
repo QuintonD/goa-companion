@@ -39,19 +39,20 @@ class HEvalDiagTest {
                             val f = HEval.features(ctx, d.team)
                             val hand = HEval.value(ctx, d.team, null, HEvalWeights.HAND)
                             val withRace = HEval.value(ctx, d.team, null, race)
-                            println("DIAG   option $i value hand ${"%.2f".format(hand)} with lastRace ${"%.2f".format(withRace)}")
+                            println(
+                                "DIAG   option $i value hand ${"%.2f".format(hand)} " +
+                                    "with lastRace ${"%.2f".format(withRace)}",
+                            )
                             val st = fork.state
                             println(
                                 "DIAG   option $i $c: step ${st.step} turn ${st.turn} pending ${fork.pending?.kind} " +
                                     "minions ${st.minions.map { "${it.team}:${it.type}@${it.at}" }} " +
                                     "heroes ${st.heroes.map { "${it.id}@${it.at} hand ${it.hand.size}" }}",
                             )
-                            println(
-                                "DIAG     " + (
-                                    f?.let { v -> HTerm.entries.joinToString(" ") { "${it.label}=${"%.2f".format(v[it.ordinal])}" } }
-                                        ?: "finished, winner ${st.winner}"
-                                    ),
-                            )
+                            val terms = f?.let { v ->
+                                HTerm.entries.joinToString(" ") { "${it.label}=${"%.2f".format(v[it.ordinal])}" }
+                            }
+                            println("DIAG     " + (terms ?: "finished, winner ${st.winner}"))
                         }
                     }
                     for (i in e.options) visit(pp.solver.child(n, d.options[i]) ?: return, path + i)

@@ -206,7 +206,9 @@ class AiPositionBenchTest {
 
             else -> false
         }
-        if (right == false && misses) println("BENCH MISS $spec $id ${d.kind} answered $i, winning ${wins.joinToString("/")}")
+        if (right == false && misses) {
+            println("BENCH MISS $spec $id ${d.kind} answered $i, winning ${wins.joinToString("/")}")
+        }
         return Row(set, d.kind, right, if (right == true) 0.0 else 1.0, ms = ms)
     }
 

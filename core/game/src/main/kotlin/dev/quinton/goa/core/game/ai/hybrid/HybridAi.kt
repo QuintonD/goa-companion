@@ -52,6 +52,7 @@ class HybridAi(
     private val runner: SampleRunner = SampleRunner.SEQUENTIAL,
 ) : AiPlayer {
     val config: HybridConfig = HybridConfig.fromKnobs(knobs)
+
     // The HEval-leaf search's default weights (HEVAL.md "Wave 3 — Track B2"); a `hev` knob overrides it.
     private val bookTune = HEvalWeights.searchDefaults(config.leaf == HybridLeaf.HEVAL) +
         knobs.filterKeys { it !in HybridConfig.NAMES }
