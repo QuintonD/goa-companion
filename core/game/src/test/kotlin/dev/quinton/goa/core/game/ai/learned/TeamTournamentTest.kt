@@ -1,6 +1,7 @@
 package dev.quinton.goa.core.game.ai.learned
 
 import dev.quinton.goa.core.game.ai.Tournament
+import dev.quinton.goa.core.model.match.Team
 import java.io.File
 import org.junit.Test
 
@@ -22,6 +23,7 @@ class TeamTournamentTest {
         val first = System.getenv("AI_FIRST")?.toIntOrNull() ?: 0
         val threads = System.getenv("AI_THREADS")?.toIntOrNull() ?: 4
         val sprt = System.getenv("AI_SPRT")?.toDoubleOrNull()?.let { Tournament.Sprt(it) }
+        val mixed = System.getenv("AI_FAMILY") == "mixed"
         val family = when (System.getenv("AI_FAMILY") ?: "test") {
             "train" -> Teams.TRAIN
             "tune" -> Teams.TUNE
@@ -31,8 +33,22 @@ class TeamTournamentTest {
             val (a, b) = Learned.splitTop(pair, ':')
             val t0 = System.nanoTime()
             val seat = System.getenv("AI_SEAT")?.split(",")
-            val specs =
-                if (seat == null) Teams.specs(n, size, family, first) else Teams.seating(n, size, family, seat, first)
+            val specs = when {
+                seat != null -> Teams.seating(n, size, family, seat, first)
+
+                // AI_FAMILY=mixed: the heuristic tournaments' line-ups (`AiHarness.mixedLineups`, `AI_H_FIRST`
+                // ranges, the same seeds as `Tournament.runMixed`), so runs compare with theirs (Wave 3).
+                mixed -> {
+                    // The integrator's sealed final range (Wave 3): never played here.
+                    require(first + n <= SEALED_FIRST || first > SEALED_LAST) { "line-ups 5000–5095 are sealed" }
+                    val all = dev.quinton.goa.core.game.ai.AiHarness.mixedLineups(first + n, size = size)
+                    (first until first + n).map { i ->
+                        Teams.Spec(all[i], if (i % 2 == 0) Team.RED else Team.BLUE, 50_000L + i)
+                    }
+                }
+
+                else -> Teams.specs(n, size, family, first)
+            }
             val store = System.getenv("AI_STORE")?.let(::File)
             // AI_KILLS=1: each side's team kills open and taken, the kill extension's rate, work per card play
             // (ADR-061).
@@ -70,5 +86,10 @@ class TeamTournamentTest {
             }
             if (System.getenv("AI_LINES") != null) score.lines.forEach { println("TEAMS   $it") }
         }
+    }
+
+    private companion object {
+        const val SEALED_FIRST = 5000
+        const val SEALED_LAST = 5095
     }
 }

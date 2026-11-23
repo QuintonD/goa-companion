@@ -75,23 +75,44 @@ class LearnedTrainTest {
         )
     }
 
+    /** One run's settings over the environment ([AI_TRAIN_RUNS]). */
+    private var overrides: Map<String, String> = emptyMap()
+
+    private fun env(k: String): String? = overrides[k] ?: System.getenv(k)
+
+    /**
+     * `AI_TRAIN_RUNS=name1:AI_SEED=2;AI_LAMBDA=0.8|name2:…` trains several nets in one JVM (one run slot on a
+     * shared machine, Wave 3 Track E), each with its settings over the environment; the features are cached once.
+     */
     @Test
     fun `train the learned evaluation`() {
-        val spec = System.getenv("AI_TRAIN") ?: return
-        val name = System.getenv("AI_TRAIN_NAME") ?: "net"
-        val rate = System.getenv("AI_RESOLVED")?.toDouble() ?: 0.35
-        val lambda = System.getenv("AI_LAMBDA")?.toDouble() ?: 0.7
-        val teacher = System.getenv("AI_TEACHER") ?: "hand"
-        val h1 = System.getenv("AI_H1")?.toInt() ?: 64
-        val h2 = System.getenv("AI_H2")?.toInt() ?: 32
-        val seed = System.getenv("AI_SEED")?.toLong() ?: 1L
-        val threads = System.getenv("AI_THREADS")?.toInt() ?: 4
+        val runs = System.getenv("AI_TRAIN_RUNS") ?: return trainOnce()
+        for (run in runs.split("|").filter { it.isNotBlank() }) {
+            val (name, kv) = run.split(":", limit = 2)
+            overrides = kv.split(";").filter { it.isNotBlank() }
+                .associate { it.substringBefore("=") to it.substringAfter("=") } + ("AI_TRAIN_NAME" to name)
+            println("TRAIN run $name: $overrides")
+            trainOnce()
+        }
+        overrides = emptyMap()
+    }
+
+    private fun trainOnce() {
+        val spec = env("AI_TRAIN") ?: return
+        val name = env("AI_TRAIN_NAME") ?: "net"
+        val rate = env("AI_RESOLVED")?.toDouble() ?: 0.35
+        val lambda = env("AI_LAMBDA")?.toDouble() ?: 0.7
+        val teacher = env("AI_TEACHER") ?: "hand"
+        val h1 = env("AI_H1")?.toInt() ?: 64
+        val h2 = env("AI_H2")?.toInt() ?: 32
+        val seed = env("AI_SEED")?.toLong() ?: 1L
+        val threads = env("AI_THREADS")?.toInt() ?: 4
         val files = spec.split(",").map(::File).flatMap { f ->
             if (f.isDirectory) f.listFiles { x -> x.name.endsWith(".jsonl") }!!.sorted() else listOf(f)
         }
         // `AI_AUX=kills:0.3,push:0.3,life:0.3`: auxiliary heads and their loss weights (ADR-060, [AuxTargets]).
         val auxWeight = DoubleArray(AuxTargets.COUNT)
-        System.getenv("AI_AUX")?.split(",")?.filter { it.isNotBlank() }?.forEach {
+        env("AI_AUX")?.split(",")?.filter { it.isNotBlank() }?.forEach {
             val (k, w) = it.split(":")
             auxWeight[AuxTargets.NAMES.indexOf(k).also { i -> require(i >= 0) { "Unknown aux target $k" } }] =
                 w.toDouble()
@@ -100,7 +121,7 @@ class LearnedTrainTest {
         val all = files.flatMap { f ->
             val ps = load(f, rate, threads)
             if (useAux) {
-                val dir = File(System.getenv("AI_AUX_CACHE") ?: "D:/.goa-qa/v14/a/cache")
+                val dir = File(env("AI_AUX_CACHE") ?: "D:/.goa-qa/v14/a/cache")
                 val t = AuxTargets.load(f, rate, threads, dir)
                 var missing = 0
                 for (p in ps) {
@@ -113,7 +134,7 @@ class LearnedTrainTest {
             }
             ps
         }
-        if (System.getenv("AI_BOARD") == "0") {
+        if (env("AI_BOARD") == "0") {
             for (p in all) {
                 p.x?.fill(0f, Features.BOARD_AT, Features.SIZE)
                 p.x?.fill(0f, Features.SIZE + Features.BOARD_AT, 2 * Features.SIZE)
@@ -139,23 +160,23 @@ class LearnedTrainTest {
         println("TRAIN hand slope k = ${"%.4f".format(k)} (coin scale ${"%.2f".format(1 / k)})")
         val targets = targets(all, lambda, teacher, k)
         val cfg = Trainer.Config(
-            lr = System.getenv("AI_LR")?.toDouble() ?: 3e-4,
-            weightDecay = System.getenv("AI_WD")?.toDouble() ?: 1e-3,
-            batch = System.getenv("AI_BATCH")?.toInt() ?: 512,
-            maxEpochs = System.getenv("AI_EPOCHS")?.toInt() ?: 40,
-            patience = System.getenv("AI_PATIENCE")?.toInt() ?: 5,
-            tableDecay = System.getenv("AI_TABLE_DECAY")?.toDouble() ?: 1.0,
+            lr = env("AI_LR")?.toDouble() ?: 3e-4,
+            weightDecay = env("AI_WD")?.toDouble() ?: 1e-3,
+            batch = env("AI_BATCH")?.toInt() ?: 512,
+            maxEpochs = env("AI_EPOCHS")?.toInt() ?: 40,
+            patience = env("AI_PATIENCE")?.toInt() ?: 5,
+            tableDecay = env("AI_TABLE_DECAY")?.toDouble() ?: 1.0,
         )
         val t0 = System.nanoTime()
         // The linear skip starts as the hand evaluation (its tuned score is a feature, ±score / 30 per side).
-        val skip = if (System.getenv("AI_SKIP") ==
+        val skip = if (env("AI_SKIP") ==
             "0"
         ) {
             emptyMap()
         } else {
             mapOf(Features.NAMES.indexOf("tunedScore") to k * 15)
         }
-        val tabled = System.getenv("AI_TABLES") != "0"
+        val tabled = env("AI_TABLES") != "0"
         val raw = Trainer(
             Features.SIZE,
             h1,
@@ -167,6 +188,8 @@ class LearnedTrainTest {
             if (tabled) Learned.CARDS.size else 0,
             Features.BOARD_AT,
             if (useAux) auxWeight else DoubleArray(0),
+            // AI_INIT=<net>: fine-tune a saved or checked-in net (`cur1`) instead of starting at random (Track E).
+            initData(env("AI_INIT")),
         ).train(data(train, targets, release = true), data(valid, targets, release = false), cfg)
         println("TRAIN trained in ${"%.0f".format((System.nanoTime() - t0) / 1e9)} s")
         val net = Learned.NetData(
@@ -176,9 +199,8 @@ class LearnedTrainTest {
         val out = File(Learned.NETS, "$name.net")
         Learned.saveNet(net, out)
         println("TRAIN saved $out")
-        report(test, k, m, net.toNet(), "test")
-        report(valid, k, m, net.toNet(), "valid")
-        val write = System.getenv("AI_TRAIN_WRITE")
+        reports(test, valid, k, m, net.toNet())
+        val write = env("AI_TRAIN_WRITE")
         if (write != null) {
             val target = File(if (write == "1") WEIGHTS else write)
             WeightsWriter.write(
@@ -189,6 +211,22 @@ class LearnedTrainTest {
                 }}, λ $lambda, teacher $teacher, seed $seed",
             )
             println("TRAIN wrote $target")
+        }
+    }
+
+    /** A saved net's data, or a checked-in one's (`cur1`…) through its weights object; null: none. */
+    private fun initData(name: String?): Learned.NetData? {
+        if (name == null) return null
+        LeafNets.CHECKED_IN_DATA[name]?.let { return it() }
+        return Learned.loadNetData(File(Learned.NETS, "$name.net"))
+    }
+
+    /** The test and validation reports, and with `AI_COMPARE=cur1,cur2` other nets on the same test split (Track E). */
+    private fun reports(test: List<Pos>, valid: List<Pos>, k: Double, m: DoubleArray, net: LearnedNet) {
+        report(test, k, m, net, "test")
+        report(valid, k, m, net, "valid")
+        for (other in env("AI_COMPARE")?.split(",").orEmpty().filter { it.isNotBlank() }) {
+            report(test, k, m, Learned.net(other), "test[$other]")
         }
     }
 
@@ -232,10 +270,10 @@ class LearnedTrainTest {
 
     /** The rows of [ps]; with [release] the positions give up their inputs (the big training set). */
     private fun data(ps: List<Pos>, targets: Map<Pos, Float>, release: Boolean): Trainer.Data {
-        val x = FloatArray(ps.size * 2 * Features.SIZE)
-        for ((r, p) in ps.withIndex()) {
-            p.x!!.copyInto(x, r * 2 * Features.SIZE)
-            if (release) p.x = null
+        // The trainer standardizes its rows in place: the training set hands its arrays over, the others copy.
+        val x = Array(ps.size) { r ->
+            val p = ps[r]
+            if (release) p.x!!.also { p.x = null } else p.x!!.copyOf()
         }
         return Trainer.Data(
             x,
@@ -256,7 +294,16 @@ class LearnedTrainTest {
     /** λ-returns per game, bootstrapped from the teacher's P(Red wins) at the next positions; λ = 1 is the result. */
     private fun targets(all: List<Pos>, lambda: Double, teacher: String, k: Double): Map<Pos, Float> {
         val out = HashMap<Pos, Float>(all.size * 2)
-        val net = if (teacher == "hand" || lambda >= 1.0) null else Learned.net(teacher)
+        // A net, or the mean logit of several (`avg(cur1,cur2,cur3)`: the checked-in ensemble, Wave 3 Track E).
+        val nets = when {
+            teacher == "hand" || lambda >= 1.0 -> null
+
+            teacher.startsWith("avg(") -> teacher.removePrefix("avg(").removeSuffix(")").split(",").map {
+                Learned.net(it.trim())
+            }
+
+            else -> listOf(Learned.net(teacher))
+        }
         for ((_, ps) in all.groupBy { it.family to it.game }) {
             val sorted = ps.sortedBy { it.index }
             var g = if (sorted.first().redWon) 1.0 else 0.0
@@ -266,7 +313,7 @@ class LearnedTrainTest {
                     val next = sorted[i + 1]
                     val v = when {
                         lambda >= 1.0 -> result
-                        net != null -> Trainer.sigmoid(logit(net, next))
+                        nets != null -> Trainer.sigmoid(nets.sumOf { logit(it, next) } / nets.size)
                         else -> Trainer.sigmoid(k * next.hand)
                     }
                     g = (1 - lambda) * v + lambda * g
@@ -296,7 +343,7 @@ class LearnedTrainTest {
     private fun load(file: File, rate: Double, threads: Int): List<Pos> {
         val cache =
             File(
-                System.getenv("AI_CACHE")?.let(::File) ?: file.parentFile,
+                env("AI_CACHE")?.let(::File) ?: file.parentFile,
                 "${file.nameWithoutExtension}.${java.lang.Long.toHexString(Features.SCHEMA_HASH)}-$rate.feat",
             )
         if (cache.exists() && cache.lastModified() >= file.lastModified()) return readCache(cache)

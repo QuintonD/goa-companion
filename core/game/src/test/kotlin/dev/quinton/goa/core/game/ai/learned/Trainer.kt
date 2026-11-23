@@ -38,6 +38,11 @@ internal class Trainer(
      * the loss weight `auxWeight[j]` (0 = no head); only the win head is exported, the others shape the layers.
      */
     private val auxWeight: DoubleArray = DoubleArray(0),
+    /**
+     * A saved net to start from instead of random weights (Wave 3 Track E: fine-tuning the checked-in net on
+     * the book's positions); its folded first layer is unfolded with this data's standardization.
+     */
+    private val initFrom: Learned.NetData? = null,
 ) {
     private val aux: Int = auxWeight.size
 
@@ -55,7 +60,8 @@ internal class Trainer(
      * [aux] the auxiliary targets, [AuxTargets.COUNT] a row (NaN = unknown), or null.
      */
     class Data(
-        val x: FloatArray,
+        /** One array a row: Red's then Blue's features (no big copy, so a big set fits a small heap). */
+        val rows: Array<FloatArray>,
         val target: FloatArray,
         val outcome: FloatArray,
         val extras: List<Extras>,
@@ -110,6 +116,27 @@ internal class Trainer(
         b2.fill(0.01)
     }
 
+    /** Starts from [n]'s weights: the exact inverse of [export]'s folding under this data's mean and scale. */
+    private fun warmStart(n: Learned.NetData) {
+        require(n.inputs == inputs && n.h1 == h1 && n.h2 == h2) { "Warm start: another architecture" }
+        for (j in 0 until h1) {
+            var b = n.b1[j].toDouble()
+            for (i in 0 until inputs) {
+                val w = n.w1[i * h1 + j].toDouble()
+                w1[i * h1 + j] = w * sd[i]
+                b += w * mean[i]
+            }
+            b1[j] = b
+        }
+        for (k in w2.indices) w2[k] = n.w2[k].toDouble()
+        for (k in b2.indices) b2[k] = n.b2[k].toDouble()
+        for (k in w3.indices) w3[k] = n.w3[k].toDouble()
+        for (i in 0 until inputs) wl[i] = n.wl[i] * sd[i]
+        if (heroes > 0 && n.heroes == Learned.HEROES) for (k in wh.indices) wh[k] = n.wh[k].toDouble()
+        if (cards > 0 && n.cards == Learned.CARDS) for (k in wc.indices) wc[k] = n.wc[k].toDouble()
+        println("TRAIN warm start: tables ${n.heroes == Learned.HEROES} / ${n.cards == Learned.CARDS}")
+    }
+
     /** Standardizes [x] in place with the training statistics. */
     private fun standardize(x: FloatArray) {
         for (r in 0 until x.size / inputs) {
@@ -121,12 +148,13 @@ internal class Trainer(
     /** Trains on [train] and [valid], whose inputs it overwrites. */
     fun train(train: Data, valid: Data, cfg: Config = Config()): Learned.NetData {
         // Statistics over both points of view of every training row.
-        val rows = train.x.size / inputs
+        val rows = train.rows.size * 2
+        fun at(r: Int, i: Int): Float = train.rows[r / 2][(r % 2) * inputs + i]
         for (i in 0 until inputs) {
             var s = 0.0
             var ss = 0.0
             for (r in 0 until rows) {
-                val v = train.x[r * inputs + i].toDouble()
+                val v = at(r, i).toDouble()
                 s += v
                 ss += v * v
             }
@@ -138,13 +166,14 @@ internal class Trainer(
         val constant = BooleanArray(inputs) { i ->
             sd[i] == 1.0 && run {
                 var v = 0.0
-                for (r in 0 until rows) v = max(v, kotlin.math.abs(train.x[r * inputs + i] - mean[i]))
+                for (r in 0 until rows) v = max(v, kotlin.math.abs(at(r, i) - mean[i]))
                 v < 1e-6
             }
         }
         init(constant)
-        standardize(train.x)
-        standardize(valid.x)
+        initFrom?.let(::warmStart)
+        for (x in train.rows) standardize(x)
+        for (x in valid.rows) standardize(x)
         val m = params.map { DoubleArray(it.size) }
         val v = params.map { DoubleArray(it.size) }
         var step = 0
@@ -239,17 +268,17 @@ internal class Trainer(
                 for (q in a until e) {
                     val r = order[q]
                     val e = data.extras[r]
-                    val x = data.x
-                    val zr = forward(x, 2 * r * inputs, ws.red) + tables(e, true)
-                    val zb = forward(x, (2 * r + 1) * inputs, ws.blue) + tables(e, false)
+                    val x = data.rows[r]
+                    val zr = forward(x, 0, ws.red) + tables(e, true)
+                    val zb = forward(x, inputs, ws.blue) + tables(e, false)
                     val p = sigmoid(zr - zb)
                     val target = data.target[r].toDouble()
                     loss += -(target * ln(p.coerceAtLeast(1e-9)) + (1 - target) * ln((1 - p).coerceAtLeast(1e-9)))
                     val d = p - target
                     val extra = if (aux > 0 && data.aux != null) auxBack(data.aux, r, ws, g) else null
                     if (extra != null) loss += extra.second
-                    backward(x, 2 * r * inputs, ws.red, d, g, extra?.first, 1.0)
-                    backward(x, (2 * r + 1) * inputs, ws.blue, -d, g, extra?.first, -1.0)
+                    backward(x, 0, ws.red, d, g, extra?.first, 1.0)
+                    backward(x, inputs, ws.blue, -d, g, extra?.first, -1.0)
                     tablesBack(e, true, d, g)
                     tablesBack(e, false, -d, g)
                 }
@@ -397,13 +426,12 @@ internal class Trainer(
     private fun logLoss(d: Data): Double {
         val a = Work()
         var l = 0.0
-        val x = d.x
         val y = d.outcome
         for (r in y.indices) {
             val e = d.extras[r]
             val p = sigmoid(
-                forward(x, 2 * r * inputs, a.red) + tables(e, true) -
-                    forward(x, (2 * r + 1) * inputs, a.blue) - tables(e, false),
+                forward(d.rows[r], 0, a.red) + tables(e, true) -
+                    forward(d.rows[r], inputs, a.blue) - tables(e, false),
             )
             l += -(y[r] * ln(p.coerceAtLeast(1e-9)) + (1 - y[r]) * ln((1 - p).coerceAtLeast(1e-9)))
         }

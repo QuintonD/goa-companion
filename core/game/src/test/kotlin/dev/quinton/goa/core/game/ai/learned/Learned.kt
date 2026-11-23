@@ -89,6 +89,10 @@ internal object Learned {
      * `@<name>` is an exploiter of [HeroBenchTest.EXPLOITERS] (`@life`, `@hunter`, `@bold`).
      */
     fun side(name: String): Tournament.Side {
+        // The heuristic book (`h10+temp=0.3`) and the hybrid search (`x10+…+net=…`), Wave 3 Track E.
+        if (name.startsWith("h") || name.startsWith("x") || name.startsWith("W2")) {
+            return Tournament.Side(name) { seed -> LeafNets.player(name, seed) }
+        }
         val spec = if (name.startsWith("@")) HeroBenchTest.EXPLOITERS.getValue(name.drop(1)) else name
         val parts = spec.split("+")
         val strength = parts[0].removePrefix("s").toIntOrNull()
@@ -162,6 +166,8 @@ internal object Learned {
 
     /** A net saved by [saveNet]; a bare name is looked up under the nets directory. */
     fun net(path: String): LearnedNet = nets.getOrPut(path) {
+        // The checked-in nets by name: `cur1` (`LearnedWeights`, b1s3), `cur2`, `cur3` (ADR-060's ensemble).
+        LeafNets.CHECKED_IN[path]?.let { return@getOrPut it() }
         val f = File(path).takeIf { it.isAbsolute || it.exists() } ?: File(NETS, "$path.net")
         loadNet(f)
     }

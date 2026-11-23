@@ -432,6 +432,10 @@ class AiPositionBenchTest {
 /** The specs of `HeuristicTournamentTest`, for the bench (h, s, x, y with `+knob=value`). */
 internal object BenchSpecs {
     fun player(spec: String, seed: Long): AiPlayer {
+        // Track E: a hybrid search with a saved net at its leaves (`x10+…+net=avg(a,b,c)`, `W2+net=…`).
+        if ("+net=" in spec || spec.startsWith("W2")) {
+            return dev.quinton.goa.core.game.ai.learned.LeafNets.player(spec, seed)
+        }
         val parts = spec.split("+")
         val n = parts[0].drop(1).toInt()
         val tune = parts.drop(1).associate { kv -> kv.substringBefore("=") to kv.substringAfter("=").toDouble() }
