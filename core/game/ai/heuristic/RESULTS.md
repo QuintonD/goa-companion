@@ -196,8 +196,10 @@ FINAL_TABLE
 
 The question: the hybrid search scores the end of book-played playouts, a different distribution from the old nets'
 training data (old strength 6–8 self-play), so would a net trained on the book's own games make a better leaf than
-the checked-in ensemble (`leaf=2`, the mean of `LearnedWeights` 1–3)? **No: three retrained ensembles all fit the
-book's positions better, and none plays better at the leaf. `leaf=2` stays.**
+the checked-in ensemble (`leaf=2`, the mean of `LearnedWeights` 1–3)? **Alone, no: three retrained ensembles all fit
+the book's positions better and none plays better at the leaf. Averaged with the checked-in three, yes: the mean of
+six nets (`leaf=3`, `HybridLeaf.NET6`) won 56.1% of 512 games against the same search with `leaf=2` (2v2, Wilson
+51.7–60.3).** 3v3 and the old-s10 checkpoint are below (pending where marked).
 
 **Data** (`LearnedSelfPlayTest`, now with book and hybrid sides): 9 600 games on the training line-ups only
 (`Teams.TRAIN`, games 0–9 599), 2v2 ×1, 3v3 ×1, 4v4 ×0.3. Each team plays a variant drawn per game:
@@ -243,13 +245,17 @@ differs; 2v2 development line-ups, mirrored, `AI_FAMILY=mixed` = the heuristic t
 |---|---|---|---|---|---|---|---|---|
 | `avg(w1,w2,w3)` | 1000–1127 | 256 | 122–134 | 47.7% | 41.6–53.8 | 34 / 66 / 28 | open after 256 | 1.01 (0.80) |
 | `avg(g1,g2,g3)` | 1200–1295 | 192 | 86–106 | 44.8% | 37.9–51.9 | 27 / 52 / 17 | **H0** after 192 | 1.11 (0.95) |
+| `avg(cur1,cur2,cur3,g1,g2,g3)` | 1400–1527 | 256 | 142–114 | 55.5% | 49.3–61.4 | 29 / 56 / 43 | open after 256 | 1.11 (0.98) |
+| the same, fresh line-ups | 1600–1727 | 256 | 145–111 | 56.6% | 50.5–62.6 | 23 / 65 / 40 | fixed 256 | 1.02 (1.01) |
+| **both runs (six nets, `leaf=3`)** | | **512** | **287–225** | **56.1%** | **51.7–60.3** | 52 / 121 / 83 (pairs 51.7–60.4) | **H1** (pentanomial, the 512 together) | 1.07 (0.99) |
 
-Neither is stronger; both lose more heroes than the checked-in leaf. What this says: a better fit to the book's
-results is not a better leaf. As in v0.9–v0.14 ("log-loss hardly separates what play separates"), the search
-picks the option the leaf overrates, and nets fitted to book self-play (cheap, noisy games with reckless variants)
-seem to rate exposure differently from nets fitted to the old searches' games, whose positions are closer to what
-a searching player reaches. The checked-in ensemble is the leaf to beat; a fourth generation would need targets
-from the search itself (the search's backed-up values, or many more search games), not more book games.
+The new three alone are not stronger and lose more heroes than the checked-in leaf: a better fit to the book's
+results is not a better leaf (as in v0.9–v0.14, "log-loss hardly separates what play separates"; the search picks
+the option the leaf overrates). Averaged with the checked-in three they win: the two families were fitted to
+different games (old search self-play; the book's and the search's own) and err in different places, so their mean
+is overrated in fewer places, the effect ADR-060's three seeds had (63.0% there). The bench did not see it either
+(the six-net row above sits between). Heroes lost a game are level (1.07 against 0.99 over the 512 games; with no
+card left to defend 176 against 169).
 
 **What was added** (all opt-in, measurement only): `HybridAi.leafOverride` (internal, null in play: a test can put
 a saved net at the leaves); `LeafNets` (test: `h…`, `x…+net=avg(a,b,c)`, `W2` as self-play and tournament sides
