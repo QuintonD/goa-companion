@@ -59,9 +59,26 @@ class HybridAi(
     knobs: Map<String, Double> = emptyMap(),
     private val runner: SampleRunner = SampleRunner.SEQUENTIAL,
 ) : AiPlayer {
-    val config: HybridConfig = HybridConfig.fromKnobs(knobs)
+    /** The search's knobs for a 2v2 game (and any game without `6.` knobs). */
+    private val config2: HybridConfig = HybridConfig.fromKnobs(knobs)
+
+    /**
+     * The knobs when six heroes play (3v3): `6.name` overrides `name` there (e.g. `6.rep=2`), so the
+     * longer six-seat playouts can spend less per card play. Without `6.` knobs the same as 2v2.
+     */
+    private val config6: HybridConfig = prefixed(knobs, SIX_SEATS).let { six ->
+        if (six.isEmpty()) config2 else HybridConfig.fromKnobs(knobs.filterKeys { !it.startsWith(SIX_SEATS) } + six)
+    }
+
+    /** The knobs of the question being answered: [config2], or [config6] in a game of more than four heroes. */
+    @kotlin.concurrent.Volatile
+    private var active: HybridConfig = config2
+
+    val config: HybridConfig get() = active
+
     private val bookTune = knobs.filterKeys {
-        it !in HybridConfig.NAMES && !it.startsWith(ROOT_TUNE) && !it.startsWith(PLAYOUT_TUNE)
+        it !in HybridConfig.NAMES && !it.startsWith(ROOT_TUNE) && !it.startsWith(PLAYOUT_TUNE) &&
+            !it.startsWith(SIX_SEATS)
     }
 
     /**
@@ -102,6 +119,7 @@ class HybridAi(
         if (decision.options.isEmpty()) return Fallback.choose(decision)
         if (decision.options.size == 1) return decision.options.single()
         val es = session as? EngineSession ?: return book.choose(session, decision, cancelled)
+        active = if (es.state.heroes.size > FOUR_SEATS) config6 else config2
         if (!searched(es, decision)) return book.choose(session, decision, cancelled)
         return try {
             search(es, decision, cancelled) ?: book.choose(session, decision, cancelled)
@@ -477,6 +495,8 @@ class HybridAi(
     }
 
     private fun horizonFor(s: GameState, isPlay: Boolean): HybridHorizon {
+        val last = if (isPlay) config.lastWaveHorizon else config.lastWaveOtherHorizon
+        if (last != null && s.wavesLeft.values.any { it <= config.lastWaves }) return last
         val byTurn = if (isPlay) config.playHorizonByTurn else config.otherHorizonByTurn
         return byTurn[s.turn] ?: if (isPlay) config.horizon else config.otherHorizon
     }
@@ -771,6 +791,11 @@ class HybridAi(
 
         /** Book knobs for the playouts' book only (`p.name`). */
         const val PLAYOUT_TUNE: String = "p."
+
+        /** Search knobs for six-hero games only (`6.name`). */
+        const val SIX_SEATS: String = "6."
+
+        private const val FOUR_SEATS = 4
 
         private const val REPLY_SALT = 0x2E9_1E5L
 

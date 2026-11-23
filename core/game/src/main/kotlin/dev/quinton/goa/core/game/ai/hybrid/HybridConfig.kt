@@ -150,6 +150,16 @@ data class HybridConfig(
     val treeEnemy: Int = 1,
     /** Tree nodes, ours or theirs, of these kinds only (empty = every kind). */
     val treeKinds: Set<DecisionKind> = emptySet(),
+    /**
+     * The last push (Wave 3 Track C2): while a lane has [lastWaves] or fewer Wave counters left (the next push
+     * there may end the game), card plays look this far instead (null: as on any other turn), so the push
+     * that decides the game is played, not judged by the leaf.
+     */
+    val lastWaveHorizon: HybridHorizon? = null,
+    /** The same for the other searched questions (null: as on any other turn). */
+    val lastWaveOtherHorizon: HybridHorizon? = null,
+    /** Wave counters left on a lane that make it the last wave for [lastWaveHorizon]. */
+    val lastWaves: Int = 1,
 ) {
     /** How many of the book's best by static score are searched at [kind] (beside its own answer). */
     fun topFor(kind: DecisionKind): Int = when (kind) {
@@ -180,7 +190,7 @@ data class HybridConfig(
             "K", "Ko", "top", "hz", "hzo", "leaf", "pol", "polE", "scope", "model", "tau", "prior", "risk",
             "dd", "tt", "kill", "prune", "hz1", "hz2", "hz3", "hz4", "hzo1", "hzo2", "hzo3", "hzo4", "topS", "topU",
             "rep", "repM", "repT", "lavg", "mm",
-            "td", "tw", "te", "tk", "tc",
+            "td", "tw", "te", "tk", "tc", "lw", "lwo", "lwn",
         )
 
         private fun byTurn(k: Map<String, Double>, prefix: String): Map<Int, HybridHorizon> =
@@ -222,6 +232,9 @@ data class HybridConfig(
                 treeCard = k["tc"]?.toInt() ?: d.treeCard,
                 treeEnemy = k["te"]?.toInt() ?: d.treeEnemy,
                 treeKinds = k["tk"]?.let { treeKindsOf(it.toInt()) } ?: d.treeKinds,
+                lastWaveHorizon = k["lw"]?.toInt()?.let(HybridHorizon::of),
+                lastWaveOtherHorizon = k["lwo"]?.toInt()?.let(HybridHorizon::of),
+                lastWaves = k["lwn"]?.toInt() ?: d.lastWaves,
             )
         }
     }
