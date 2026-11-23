@@ -753,6 +753,32 @@ class HContext(
     }
 
     /**
+     * Expected loss of [heroId] standing at [at] from [enemyId] alone: [exposure]'s chances with one enemy
+     * in the threat map (its card this turn and next). Additive hook for HEval's team-level exposure
+     * (`HTerm.TEAM_EXPOSURE`, wave 3 Track B2): an enemy plays one card a turn, so its threat is charged
+     * once, to its best target, not to every hero it reaches. 0 without a threat map.
+     */
+    fun exposureFrom(enemyId: String, heroId: String, at: Hex): Double {
+        if (!profile.threatMap) return 0.0
+        val h = state.hero(heroId) ?: return 0.0
+        val e = state.hero(enemyId) ?: return 0.0
+        val from = e.at ?: return 0.0
+        if (e.team == h.team) return 0.0
+        val nowCards = h.hand.size - if (playsThisTurn(h)) 1 else 0
+        val emptyNext = state.turn < 4 && nowCards - 1 <= 0
+        val c = enemyChances(h, from, alreadyActed(enemyId), threatInfo(enemyId), emptyNext) { at }
+        val nextCap = if (emptyNext) profile.knob("emptyCap", 0.6) else 0.28
+        val noKill = (1.0 - min(0.70, c.killNow)) * (1.0 - min(nextCap, c.killNext))
+        val noHit = (1.0 - min(0.70, c.hitNow)) * (1.0 - min(0.28, c.hitNext))
+        var pKill = min(0.92, 1.0 - noKill)
+        if (c.attackReaches && defenseless(heroId)) pKill = max(pKill, 0.85)
+        val pHit = (1.0 - pKill) * min(0.9, 1.0 - noHit)
+        var v = pKill * killWorth(heroId) + pHit * discardWorth(h)
+        if (profile.heroPlaybooks) v += playbooks(enemyId).threatAdjust(this, enemyId, at)
+        return v
+    }
+
+    /**
      * Chance [heroId] acts before [initiative] this turn: the share of its possible cards that are
      * faster (ties by the coin). 1 or 0 once its card is revealed (G7).
      */

@@ -47,6 +47,14 @@ object HEval {
     /** Share of a reachable attack play that becomes a minion kill in [HTerm.LANE_PROJ]'s projection. */
     private const val PROJ_KILL = 0.5
 
+    /**
+     * [HTerm.LAST_RACE]: minion kills a hero makes in a turn of a later round (REVIEW-2-losses: a 2v2 team
+     * takes 1.09–1.36 minions a round, about 0.15 a hero a turn), and the rounds the race looks ahead
+     * before the designer's push chance settles the rest.
+     */
+    private const val RACE_LATER_RATE = 0.15
+    private const val RACE_LATER_ROUNDS = 2
+
     private val TERMS = HTerm.entries.size
 
     fun evaluate(ctx: HContext, team: Team): Double = evaluate(ctx, team, null)
@@ -99,6 +107,10 @@ object HEval {
         }
         if (on(HTerm.PIECES)) f[HTerm.PIECES.ordinal] = pieces(ctx)
         if (on(HTerm.LANE_PROJ)) f[HTerm.LANE_PROJ.ordinal] = laneProjected(ctx)
+        if (on(HTerm.TEAM_EXPOSURE) && ctx.profile.threatMap) {
+            f[HTerm.TEAM_EXPOSURE.ordinal] = teamExposure(ctx, Team.RED) - teamExposure(ctx, Team.BLUE)
+        }
+        if (on(HTerm.LAST_RACE)) f[HTerm.LAST_RACE.ordinal] = lastRace(ctx)
         val early = state.round <= 2 && state.heroes.all { it.level <= 3 }
         for (h in state.heroes) {
             val sign = if (h.team == Team.RED) 1.0 else -1.0
@@ -473,5 +485,170 @@ object HEval {
         val win = if (k == 1 || w <= 1) 1.0 else laneWin(k - 1, m + 1, w - 1, 0.5)
         val lose = if (m == 1 || w <= 1) 0.0 else laneWin(k + 1, m - 1, w - 1, 0.5)
         return p * win + (1 - p) * lose
+    }
+
+    // ---- wave 3 Track B2 terms (HEVAL.md "Wave 3 — Track B2") ---------------------------------------
+
+    /**
+     * [HTerm.TEAM_EXPOSURE] of [victims]: each enemy hero's expected loss on its best target among them,
+     * summed over the enemy heroes on the board.
+     */
+    private fun teamExposure(ctx: HContext, victims: Team): Double {
+        val state = ctx.state
+        val ours = state.heroes.filter { it.team == victims && it.at != null }
+        if (ours.isEmpty()) return 0.0
+        var v = 0.0
+        for (e in state.heroes) {
+            if (e.team == victims || e.at == null) continue
+            var best = 0.0
+            for (h in ours) {
+                val loss = bodiesOf(ctx, h).maxOf { ctx.exposureFrom(e.id, h.id, it) }
+                if (loss > best) best = loss
+            }
+            v += best
+        }
+        return v
+    }
+
+    private fun bodiesOf(ctx: HContext, h: HeroState): List<Hex> =
+        listOf(h.at!!) + ctx.state.pieces.filter { it.heroBody == h.id && it.at != null }.map { it.at!! }
+
+    /** [HTerm.LAST_RACE]: the race for each lane whose next push can end the game. */
+    private fun lastRace(ctx: HContext): Double {
+        val state = ctx.state
+        var v = 0.0
+        for ((lane, bz) in state.battleZones) {
+            if (!ctx.matchPoint(lane)) continue
+            val zones = ctx.game.geo.lanes[lane]?.zones ?: continue
+            val i = zones.indexOf(bz)
+            if (i < 0) continue
+            val waves = state.wavesLeft[lane] ?: 1
+            val p = when (state.pushDue[lane]) {
+                Team.RED -> 1.0
+                Team.BLUE -> 0.0
+                null -> raceChance(ctx, lane)
+            }
+            val w = p * afterPush(ctx, zones, i, waves, true) + (1 - p) * afterPush(ctx, zones, i, waves, false)
+            v += 100.0 * (2 * w - 1)
+        }
+        return v
+    }
+
+    /**
+     * P(Red empties [lane]'s Battle Zone of Blue minions before Blue empties it of Red ones), which pushes
+     * the lane (p.8). Turn by turn this round: each hero still to play a card kills one enemy minion of the
+     * lane with chance [PROJ_KILL] × its reaching attack plays ÷ its plays left (pool weights for a hidden
+     * hand); both teams' kills in one turn land together, a double wipe is even. The round's Minion Battle
+     * (the loser removes the difference: a ≥ 2b pushes, else 2b − a stays), then [RACE_LATER_ROUNDS] more
+     * rounds at [RACE_LATER_RATE] a hero a turn. Whatever is still open then goes by the designer's push chance.
+     */
+    private fun raceChance(ctx: HContext, lane: String): Double {
+        val r0 = ctx.minionCount(Team.RED, lane)
+        val b0 = ctx.minionCount(Team.BLUE, lane)
+        if (r0 == 0 || b0 == 0) {
+            return when {
+                r0 > 0 -> 1.0
+                b0 > 0 -> 0.0
+                else -> 0.5
+            }
+        }
+        val state = ctx.state
+        val race = Race(r0, b0)
+        // This round: who still plays, and how likely each play takes a minion of this lane.
+        val plays = HashMap<String, Int>()
+        val q = HashMap<String, Double>()
+        for (h in state.heroes) {
+            val left = ctx.playsLeft(h.id)
+            plays[h.id] = left
+            val at = h.at
+            if (left <= 0 || at == null) continue
+            val (n, l) = reachingPlays(ctx, h, at)
+            if (l == lane && n > 0.0) q[h.id] = min(0.95, PROJ_KILL * n / left)
+        }
+        val turns = plays.values.maxOrNull() ?: 0
+        for (t in 0 until turns) {
+            val red = ArrayList<Double>()
+            val blue = ArrayList<Double>()
+            for (h in state.heroes) {
+                val left = plays[h.id] ?: 0
+                val p = q[h.id] ?: continue
+                if (t < turns - left) continue
+                if (h.team == Team.RED) red += p else blue += p
+            }
+            race.turn(red, blue)
+        }
+        if (!(ctx.roundOver && state.step.ordinal > Step.MINION_BATTLE.ordinal)) race.battle()
+        val redHeroes = List(state.heroes.count { it.team == Team.RED }) { RACE_LATER_RATE }
+        val blueHeroes = List(state.heroes.count { it.team == Team.BLUE }) { RACE_LATER_RATE }
+        repeat(RACE_LATER_ROUNDS) {
+            repeat(4) { race.turn(redHeroes, blueHeroes) }
+            race.battle()
+        }
+        var p = race.redWin
+        race.forEach { r, b, m -> p += m * pushChance(r.toDouble(), b.toDouble()) }
+        return p
+    }
+
+    /** The open states of [raceChance]: probability mass over (Red minions, Blue minions). */
+    private class Race(private val r0: Int, private val b0: Int) {
+        private var mass = DoubleArray((r0 + 1) * (b0 + 1)).also { it[r0 * (b0 + 1) + b0] = 1.0 }
+        var redWin = 0.0
+            private set
+
+        fun forEach(f: (Int, Int, Double) -> Unit) {
+            for (r in 1..r0) for (b in 1..b0) mass[r * (b0 + 1) + b].let { if (it > 0.0) f(r, b, it) }
+        }
+
+        /** One turn: Red's kills against Blue's, from each acting hero's chance of one kill. */
+        fun turn(red: List<Double>, blue: List<Double>) {
+            if (red.isEmpty() && blue.isEmpty()) return
+            val kr = kills(red)
+            val kb = kills(blue)
+            val next = DoubleArray(mass.size)
+            forEach { r, b, m ->
+                for (x in kr.indices) {
+                    for (y in kb.indices) {
+                        val p = m * kr[x] * kb[y]
+                        if (p == 0.0) continue
+                        val blueGone = x >= b
+                        val redGone = y >= r
+                        when {
+                            blueGone && redGone -> redWin += 0.5 * p
+                            blueGone -> redWin += p
+                            redGone -> Unit
+                            else -> next[(r - y) * (b0 + 1) + (b - x)] += p
+                        }
+                    }
+                }
+            }
+            mass = next
+        }
+
+        /** The Minion Battle (p.8): the team with fewer removes the difference; all of them is a push. */
+        fun battle() {
+            val next = DoubleArray(mass.size)
+            forEach { r, b, m ->
+                when {
+                    r > b -> if (2 * b - r <= 0) redWin += m else next[r * (b0 + 1) + (2 * b - r)] += m
+                    b > r -> if (2 * r - b > 0) next[(2 * r - b) * (b0 + 1) + b] += m
+                    else -> next[r * (b0 + 1) + b] += m
+                }
+            }
+            mass = next
+        }
+
+        /** The distribution of how many of [chances] come true (independent). */
+        private fun kills(chances: List<Double>): DoubleArray {
+            var d = doubleArrayOf(1.0)
+            for (c in chances) {
+                val n = DoubleArray(d.size + 1)
+                for (k in d.indices) {
+                    n[k] += d[k] * (1 - c)
+                    n[k + 1] += d[k] * c
+                }
+                d = n
+            }
+            return d
+        }
     }
 }

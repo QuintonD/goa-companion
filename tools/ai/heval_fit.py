@@ -24,6 +24,7 @@ HAND = {
     "presence": 1.0, "opportunity": 2.0, "laneThreat": 0.3, "zonePull": 1.0, "exposure": -1.0,
     "playbook": 1.0, "oppPool": 0.0, "access": 0.0, "laneProj": 0.0,
     "defense": 0.0, "defenders": 0.0, "formation": 0.0, "idealGap": 0.0, "minionMod": 0.0, "initiative": 0.0,
+    "teamExposure": 0.0, "lastRace": 0.0,
 }
 
 

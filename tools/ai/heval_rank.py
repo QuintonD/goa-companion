@@ -98,6 +98,9 @@ def main():
     ap.add_argument("--kinds", default="")
     ap.add_argument("--fold", type=int, default=0)
     ap.add_argument("--turns", default="", help="leaf turns kept, e.g. 1 (a new round) or 2,3,4")
+    ap.add_argument("--w", default="", help="fixed weight sets to score, e.g. 'teamExposure=-1;lastRace=0.3,exposure=-0.5'"
+                    " (';' between sets, ',' between terms; the rest keep the hand weights)")
+    ap.add_argument("--only", action="store_true", help="score the --w sets and stop (no fit)")
     args = ap.parse_args()
     groups, meta = load(args.csv, set(k for k in args.kinds.split(",") if k), set(int(t) for t in args.turns.split(",") if t))
     terms = list(HAND)
@@ -112,6 +115,14 @@ def main():
           f"{len({k[:2] for k in groups})} decisions, {len({k[0] for k in groups})} games")
     hand = [HAND[t] for t in terms]
     evaluate("hand weights", groups, meta, hand, test)
+    for spec in (x for x in args.w.split(";") if x):
+        w = hand[:]
+        for kv in spec.split(","):
+            t, v = kv.split("=")
+            w[terms.index(t)] = float(v)
+        evaluate(spec, groups, meta, w, test if not args.only else list(groups))
+    if args.only:
+        return
     # Centered design.
     xs, ys = [], []
     for key in train:

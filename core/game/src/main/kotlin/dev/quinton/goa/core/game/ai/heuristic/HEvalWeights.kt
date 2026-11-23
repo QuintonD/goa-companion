@@ -98,6 +98,22 @@ enum class HTerm(val label: String, val hand: Double) {
 
     /** The highest Initiative (printed + items) in a readable hand. */
     INITIATIVE("initiative", 0.0),
+
+    /**
+     * Team-level exposure (wave 3 Track B2): each enemy hero's expected loss on its best target among our
+     * heroes (`HContext.exposureFrom`: its card this turn and next), summed over the enemy heroes. An enemy
+     * plays one card a turn, so its threat is charged once, not to every hero it reaches as [EXPOSURE] does.
+     * Positive; the weight is negative.
+     */
+    TEAM_EXPOSURE("teamExposure", 0.0),
+
+    /**
+     * The race for a push that decides the game (a lane at match point, the last wave above all; wave 3
+     * Track B2): who empties the Battle Zone first, turn by turn from the heroes' reachable attack plays on
+     * minions, with the round-end battle (a ≥ 2b pushes, else 2b − a carries over) and later rounds at the
+     * measured kill rate. `100 × (2W − 1)`, W the lane after the race's push.
+     */
+    LAST_RACE("lastRace", 0.0),
     ;
 
     companion object {
