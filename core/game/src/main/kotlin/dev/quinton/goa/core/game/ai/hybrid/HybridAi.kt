@@ -222,6 +222,7 @@ class HybridAi(
         val bookAnswer = candidates[0]
         var best: Choice? = null
         var bestV = Double.NEGATIVE_INFINITY
+        val means = onSearched?.let { DoubleArray(candidates.size) { Double.NaN } }
         for ((j, c) in candidates.withIndex()) {
             var wSum = 0.0
             var sum = 0.0
@@ -233,6 +234,7 @@ class HybridAi(
             }
             if (wSum == 0.0) continue
             val m = sum / wSum
+            means?.set(j, m)
             var sq = 0.0
             for (i in 0 until g) {
                 val v = values[j][i]
@@ -263,11 +265,19 @@ class HybridAi(
                 "${candidates[j]}=${if (v.isEmpty()) "-" else (kotlin.math.round(v.average() * 10) / 10).toString()}"
             } + " -> $best (book $bookAnswer)",
         )
+        if (means != null) onSearched?.invoke(d, candidates, means, best)
         return best?.takeIf { it in d.options }
     }
 
     /** Diagnostics only: one line per searched decision. */
     var trace: ((String) -> Unit)? = null
+
+    /**
+     * Measurement only (Wave 3 Track E2, search-value targets for the leaf nets): after each searched
+     * decision, the candidates, each one's backed-up value (the weighted mean of its leaf values from the
+     * deciding team's view, NaN when none was played) and the answer. Null in play; changes no answer.
+     */
+    internal var onSearched: ((Decision, List<Choice>, DoubleArray, Choice?) -> Unit)? = null
 
     /**
      * [n] determinizations; those that deal the same position (same state at the step's start, same

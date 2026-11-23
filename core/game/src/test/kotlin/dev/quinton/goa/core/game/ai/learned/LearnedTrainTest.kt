@@ -3,6 +3,7 @@ package dev.quinton.goa.core.game.ai.learned
 import dev.quinton.goa.core.game.ai.Features
 import dev.quinton.goa.core.game.ai.LearnedNet
 import dev.quinton.goa.core.game.ai.Term
+import dev.quinton.goa.core.model.match.Team
 import java.io.DataInputStream
 import java.io.DataOutputStream
 import java.io.File
@@ -118,8 +119,21 @@ class LearnedTrainTest {
                 w.toDouble()
         }
         val useAux = auxWeight.any { it != 0.0 }
-        val all = files.flatMap { f ->
+        // `AI_SV=<values.tsv>,…` ([SearchValueTest]): the search's backed-up values of the positions it searched.
+        val sv = env("AI_SV")?.split(",")?.filter { it.isNotBlank() }?.let { readSearchValues(it.map(::File)) }
+        val all = files.withIndex().flatMap { (src, f) ->
             val ps = load(f, rate, threads)
+            for (p in ps) p.src = src
+            if (sv != null) {
+                var n = 0
+                for (p in ps) {
+                    sv["${f.nameWithoutExtension}\t${p.game}\t${p.index}"]?.let {
+                        p.sv = it
+                        n++
+                    }
+                }
+                println("TRAIN search values for $n of ${ps.size} positions of ${f.name}")
+            }
             if (useAux) {
                 val dir = File(env("AI_AUX_CACHE") ?: "D:/.goa-qa/v14/a/cache")
                 val t = AuxTargets.load(f, rate, threads, dir)
@@ -140,7 +154,8 @@ class LearnedTrainTest {
                 p.x?.fill(0f, Features.SIZE + Features.BOARD_AT, 2 * Features.SIZE)
             }
         }
-        val train = all.filter { it.lineup % 10 < 8 }
+        val svOnly = env("AI_SV_ONLY") == "1"
+        val train = all.filter { it.lineup % 10 < 8 && (!svOnly || !it.sv.isNaN()) }
         val valid = all.filter { it.lineup % 10 == 8 }
         val test = all.filter { it.lineup % 10 == 9 }
         println(
@@ -159,6 +174,15 @@ class LearnedTrainTest {
         )
         println("TRAIN hand slope k = ${"%.4f".format(k)} (coin scale ${"%.2f".format(1 / k)})")
         val targets = targets(all, lambda, teacher, k)
+        // `AI_SV_LAMBDA=λ`: a position with a search value gets λ · result + (1 − λ) · the search's P(Red wins);
+        // `AI_SV_ONLY=1` trains on those positions alone (the rest stay for validation and test).
+        val svLambda = env("AI_SV_LAMBDA")?.toDouble()
+        if (svLambda != null) {
+            for (p in all) {
+                if (p.sv.isNaN()) continue
+                targets[p] = (svLambda * (if (p.redWon) 1.0 else 0.0) + (1 - svLambda) * p.sv).toFloat()
+            }
+        }
         val cfg = Trainer.Config(
             lr = env("AI_LR")?.toDouble() ?: 3e-4,
             weightDecay = env("AI_WD")?.toDouble() ?: 1e-3,
@@ -266,6 +290,38 @@ class LearnedTrainTest {
     ) {
         /** The auxiliary targets ([AuxTargets]), when asked for. */
         var aux: FloatArray? = null
+
+        /** Which input file (games of two files can share a number). */
+        var src: Int = 0
+
+        /** The search's P(Red wins) at this position ([SearchValueTest]), NaN: not searched. */
+        var sv: Float = Float.NaN
+    }
+
+    /**
+     * The search values of [files] as P(Red wins) per `file\tgame\tindex`: each team's value of the card it
+     * would play, in coin-equivalents from its view, through σ(v / `AI_SV_SCALE`) (default: the six-net leaf's
+     * mean coin scale), Red's and Blue's averaged when both were searched.
+     */
+    private fun readSearchValues(files: List<File>): Map<String, Float> {
+        val scale = env("AI_SV_SCALE")?.toDouble() ?: SV_SCALE
+        val col = env("AI_SV_COL")?.toInt() ?: 4
+        val sums = HashMap<String, DoubleArray>()
+        for (f in files) {
+            for (line in f.readLines()) {
+                val t = line.split("\t")
+                if (t.size < 8) continue
+                val v = t[col].toDouble()
+                if (v.isNaN()) continue
+                val p = Trainer.sigmoid((v / scale).coerceIn(-SV_CLAMP, SV_CLAMP))
+                val red = if (t[3] == Team.RED.name) p else 1 - p
+                val a = sums.getOrPut("${t[0]}\t${t[1]}\t${t[2]}") { DoubleArray(2) }
+                a[0] += red
+                a[1] += 1.0
+            }
+        }
+        println("TRAIN search values: ${sums.size} positions from ${files.joinToString { it.name }}")
+        return sums.mapValues { (_, a) -> (a[0] / a[1]).toFloat() }
     }
 
     /** The rows of [ps]; with [release] the positions give up their inputs (the big training set). */
@@ -292,7 +348,7 @@ class LearnedTrainTest {
     }
 
     /** λ-returns per game, bootstrapped from the teacher's P(Red wins) at the next positions; λ = 1 is the result. */
-    private fun targets(all: List<Pos>, lambda: Double, teacher: String, k: Double): Map<Pos, Float> {
+    private fun targets(all: List<Pos>, lambda: Double, teacher: String, k: Double): MutableMap<Pos, Float> {
         val out = HashMap<Pos, Float>(all.size * 2)
         // A net, or the mean logit of several (`avg(cur1,cur2,cur3)`: the checked-in ensemble, Wave 3 Track E).
         val nets = when {
@@ -304,7 +360,7 @@ class LearnedTrainTest {
 
             else -> listOf(Learned.net(teacher))
         }
-        for ((_, ps) in all.groupBy { it.family to it.game }) {
+        for ((_, ps) in all.groupBy { Triple(it.src, it.family, it.game) }) {
             val sorted = ps.sortedBy { it.index }
             var g = if (sorted.first().redWon) 1.0 else 0.0
             val result = g
@@ -429,6 +485,12 @@ class LearnedTrainTest {
 
     companion object {
         const val WEIGHTS = "src/main/kotlin/dev/quinton/goa/core/game/ai/LearnedWeights.kt"
+
+        /** The six-net leaf's mean coin scale: its value / this is its mean logit (Track E2's search values). */
+        private const val SV_SCALE = 37.852
+
+        /** A won game's leaf value is huge: a logit past this is certain enough. */
+        private const val SV_CLAMP = 12.0
 
         /** Rows the report's twelve-term fit uses. */
         private const val FIT_ROWS = 150_000
