@@ -248,6 +248,7 @@ differs; 2v2 development line-ups, mirrored, `AI_FAMILY=mixed` = the heuristic t
 | `avg(cur1,cur2,cur3,g1,g2,g3)` | 1400–1527 | 256 | 142–114 | 55.5% | 49.3–61.4 | 29 / 56 / 43 | open after 256 | 1.11 (0.98) |
 | the same, fresh line-ups | 1600–1727 | 256 | 145–111 | 56.6% | 50.5–62.6 | 23 / 65 / 40 | fixed 256 | 1.02 (1.01) |
 | **both runs (six nets, `leaf=3`)** | | **512** | **287–225** | **56.1%** | **51.7–60.3** | 52 / 121 / 83 (pairs 51.7–60.4) | **H1** (pentanomial, the 512 together) | 1.07 (0.99) |
+| six nets, **3v3** | 1000–1047 (3v3 line-ups) | 96 | 57–39 | 59.4% | 49.4–68.7 | 7 / 25 / 16 (pairs 49.9–68.8) | open; stopped at the 2-hour slot | 1.89 (1.93) |
 
 The new three alone are not stronger and lose more heroes than the checked-in leaf: a better fit to the book's
 results is not a better leaf (as in v0.9–v0.14, "log-loss hardly separates what play separates"; the search picks
