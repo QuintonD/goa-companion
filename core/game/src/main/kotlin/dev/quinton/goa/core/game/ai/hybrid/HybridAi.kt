@@ -60,11 +60,19 @@ class HybridAi(
     private val runner: SampleRunner = SampleRunner.SEQUENTIAL,
 ) : AiPlayer {
     val config: HybridConfig = HybridConfig.fromKnobs(knobs)
-    private val bookTune = knobs.filterKeys { it !in HybridConfig.NAMES }
+    private val bookTune = knobs.filterKeys { it !in HybridConfig.NAMES && ':' !in it }
+
+    /**
+     * Book knobs for one of the two books only: `r:name` for the root book (the real question's own answer,
+     * which orders the candidates, and the fallback), `p:name` for the book inside the playouts and the tree;
+     * a plain name goes to both. A costly look can then answer the real question but stay out of the playouts.
+     */
+    private val rootTune = bookTune + prefixed(knobs, ROOT_TUNE)
+    private val playoutTune = bookTune + prefixed(knobs, PLAYOUT_TUNE)
 
     /** h10: the answer to everything the search does not take, and the fallback. */
-    val book: HeuristicAi = HeuristicAi(10, seed, tune = bookTune)
-    private val policy = BookPolicy(seed, bookTune)
+    val book: HeuristicAi = HeuristicAi(10, seed, tune = rootTune)
+    private val policy = BookPolicy(seed, playoutTune)
 
     @kotlin.concurrent.Volatile
     private var leafCache: Pair<EngineData, PositionEvaluator?>? = null
@@ -752,6 +760,15 @@ class HybridAi(
         private const val PRUNE_KEEP = 3
 
         private const val MEMO_CAP = 400_000
+        private fun prefixed(knobs: Map<String, Double>, prefix: String): Map<String, Double> =
+            knobs.filterKeys { it.startsWith(prefix) }.mapKeys { it.key.removePrefix(prefix) }
+
+        /** Book knobs for the root book only (`r:name`). */
+        const val ROOT_TUNE: String = "r:"
+
+        /** Book knobs for the playouts' book only (`p:name`). */
+        const val PLAYOUT_TUNE: String = "p:"
+
         private const val REPLY_SALT = 0x2E9_1E5L
 
         fun turnIndex(s: GameState): Int = s.round * 8 + s.turn
