@@ -285,8 +285,10 @@ card-play mean):
 
 Looking at the book's 6 best squares instead of all 64 keeps the puzzle gain at about twice rest=0's cost instead
 of 3.5 times; the two branched choices are not the cost. This is the candidate for `AiPlayers.SEARCH_10` (a knob
-string, no code). Games of it against `rest=0` inside x10 (dev 1160–1287, 32-game chunks) were started when this
-was written and are pending.
+string, no code). My x10 games of it were cancelled before they started (the machine's lock was held for hours);
+Track C2 has merged this branch and is testing it by SPRT inside strength 10's search (W2T), on line-ups 2000–2999,
+together with Track C's `r.`/`p.` knob scoping (`p.rest=0`: F1 at the root answer only). The exact pre-F1 book is
+`rest=0+escape=0+knowLook=0+branch=1` (the bench row `h10+rest=0` above left F3's escape on).
 
 ### Held-out checkpoints (line-ups 300–395 / 600–695; no longer clean per the audit, so checkpoints, not the final table)
 
