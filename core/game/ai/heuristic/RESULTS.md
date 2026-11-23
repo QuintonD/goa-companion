@@ -230,6 +230,7 @@ and with the memo off (`HybridSearchTest`).
 | tree depth 2, width 3 (**W2T**) | W2 `+td=2+tw=3` | W2 | 1100–1227 | 256 | **56.6%** | 50.5–62.6 | 20/0/71/0/37 | 282 / 232 mean, 1 144 / 1 049 p95 | 627 / 630 mean, max 8 291 | yes (256 games, interval above 50%; SPRT still open) |
 | the same tree with the HEval leaf | W2(leaf 0) `+td=2+tw=3` | W2(leaf 0) | 1500–1627 | 256 | **55.9%** | 49.7–61.8 (pairs 50.3–61.4) | 20/0/73/0/35 | 225 / 188 mean, 923 / 845 p95 | 508 / 507 mean, max 10 252 | the gain holds with leaf 0 |
 | a deeper tree | W2T `+td=3` (depth 3, width 3) | W2T | 1700–1763 | 128 | 43.0% | 34.7–51.6 (pairs 35.2–50.7) | 18/0/37/0/9 | — | 522 / 528 mean, max 7 541 | no (SPRT(0.55) H0) |
+| the enemy answered by the book inside the tree | W2T `+te=0` | W2T | 1800–1847 | 96 | 50.0% | 40.2–59.8 | 9/0/30/0/9 | — | — | no (even; stopped at 96 for the checkpoint runs) |
 | the tree under card plays too | W2T `+tc=2` | W2T | 1300–1315 | 32 | 46.9% | 30.9–63.6 | 4/0/9/0/3 | — | games ~3× longer | stopped: too slow for the 10 s card-play limit, no sign of a gain |
 
 With the tree both leaves lose fewer heroes: leaf 0 0.84 defeats a game against 1.11 for the same search without
@@ -246,8 +247,19 @@ W2T against the old search, development line-ups (a checkpoint):
 
 SPRT(0.6) accepted H1 after 64 games. For comparison W1 made 59.4% against s10 on development line-ups 1000–1063.
 
-PENDING: W2T's held-out checkpoint (600–695 against s10, 3v3 300–347, against h10) and its single- and 3-thread
-times.
+W2T against the old search, held-out checkpoint (600–695; no longer a clean range, see the audit), 2v2:
+
+| Pair | Line-ups | Games | Win | Wilson | Pairs | Defeats / game | Answer ms mean / p95 / max | s10 answer ms |
+|---|---|---:|---:|---|---|---|---|---|
+| W2T : s10 | 600–647 | 96 | 59.4% | 49.4–68.7 | 8/0/23/0/17 | 0.77 / 1.36 | — | — |
+| W2T : s10 | 648–695 | 96 | 54.2% | 44.2–63.8 | 10/0/24/0/14 | 0.80 / 1.07 | 290 / 1 198 / 7 797 | 410 / 1 302 / 9 937 |
+| W2T : s10 | 600–695 | 192 | **56.8%** | 49.7–63.6 | 18/0/47/0/31 | | | |
+
+The development checkpoint (71.9% on 64 games) was optimistic; held out, W2T is about 57% against s10 (W2 was
+54.2% on 300–395). Short of the owner's 65% target. s10 still wins mostly by the last push (31 of its 44 wins on
+648–695).
+
+PENDING: 3v3 300–347 against s10, against h10, and the single- and 3-thread times.
 
 ### Strength 10 in AiPlayers
 
