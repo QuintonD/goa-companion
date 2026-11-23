@@ -139,6 +139,10 @@ class HybridAi(
     /** One distinct determinized position and how many of the samples dealt it. */
     private class Sample(val det: EngineSession, val dp: Decision, val salt: Long, var weight: Int)
 
+    /** A card play on [this] sample takes several enemy replies ([HybridConfig.replies]). */
+    private fun Sample.replyAt(isPlay: Boolean, team: Team): Boolean =
+        isPlay && config.replies > 1 && enemiesToPlay(det.state, team)
+
     /** A sample played with the book's enemy replies ([reply] 0) or with enemy card plays drawn ([reply] ≥ 1). */
     private class Column(val sample: Sample, val reply: Int, val weight: Double)
 
@@ -175,8 +179,19 @@ class HybridAi(
         // Columns: each distinct sample, and at a card play with enemies still to choose, [HybridConfig.replies]
         // versions of it: the book's reply (0) and enemy card plays drawn from the opponent model.
         val columns = ArrayList<Column>()
-        for (s in samples) {
-            val r = if (isPlay && config.replies > 1 && enemiesToPlay(s.det.state, team)) config.replies else 1
+        val cap = if (isPlay) config.columnCap else 0
+        var reps = config.replies
+        var played: List<Sample> = samples
+        if (cap > 0) {
+            val wanted = samples.sumOf { if (it.replyAt(isPlay, team)) reps else 1 }
+            if (wanted > cap) {
+                reps = maxOf(1, cap / samples.size)
+                // The heaviest samples first; equal weights keep their order (a stable sort).
+                if (samples.size > cap) played = samples.sortedByDescending { it.weight }.take(cap)
+            }
+        }
+        for (s in played) {
+            val r = if (s.replyAt(isPlay, team) && reps > 1) reps else 1
             for (k in 0 until r) columns += Column(s, k, s.weight.toDouble() / r)
         }
         val g = columns.size

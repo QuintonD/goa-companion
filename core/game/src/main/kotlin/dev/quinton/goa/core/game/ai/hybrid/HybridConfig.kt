@@ -160,6 +160,12 @@ data class HybridConfig(
     val lastWaveOtherHorizon: HybridHorizon? = null,
     /** Wave counters left on a lane that make it the last wave for [lastWaveHorizon]. */
     val lastWaves: Int = 1,
+    /**
+     * At most this many columns (distinct samples × enemy replies) at a card play (0: no cap): past it the
+     * replies per sample shrink (to one), then only the heaviest samples are played. Bounds the slowest
+     * card plays (many distinct deals early in a round, six seats) and leaves the usual ones alone.
+     */
+    val columnCap: Int = 0,
 ) {
     /** How many of the book's best by static score are searched at [kind] (beside its own answer). */
     fun topFor(kind: DecisionKind): Int = when (kind) {
@@ -190,7 +196,7 @@ data class HybridConfig(
             "K", "Ko", "top", "hz", "hzo", "leaf", "pol", "polE", "scope", "model", "tau", "prior", "risk",
             "dd", "tt", "kill", "prune", "hz1", "hz2", "hz3", "hz4", "hzo1", "hzo2", "hzo3", "hzo4", "topS", "topU",
             "rep", "repM", "repT", "lavg", "mm",
-            "td", "tw", "te", "tk", "tc", "lw", "lwo", "lwn",
+            "td", "tw", "te", "tk", "tc", "lw", "lwo", "lwn", "cap",
         )
 
         private fun byTurn(k: Map<String, Double>, prefix: String): Map<Int, HybridHorizon> =
@@ -235,6 +241,7 @@ data class HybridConfig(
                 lastWaveHorizon = k["lw"]?.toInt()?.let(HybridHorizon::of),
                 lastWaveOtherHorizon = k["lwo"]?.toInt()?.let(HybridHorizon::of),
                 lastWaves = k["lwn"]?.toInt() ?: d.lastWaves,
+                columnCap = k["cap"]?.toInt() ?: d.columnCap,
             )
         }
     }
