@@ -67,11 +67,13 @@ object AiPlayers {
         searchPlayer(strength, seed, timeCap = true, runner)
 
     /**
-     * The leaf of the strength-10 search's playouts: the one switch between the old learned ensemble
-     * ([HybridLeaf.NET], the strongest measured so far, ADR-085 addendum "Wave 3") and the book's own position
-     * value ([HybridLeaf.HEVAL]); the owner ships whichever measures strongest. Every other knob is [SEARCH_10].
+     * The leaf of the strength-10 search's playouts: the one switch between the learned nets ([HybridLeaf.NET6],
+     * the old ensemble averaged with three nets fine-tuned on the book's and the search's games, the strongest
+     * measured so far, ADR-085 addendum "Wave 3"; [HybridLeaf.NET] the old ensemble alone) and the book's own
+     * position value ([HybridLeaf.HEVAL]); the owner ships whichever measures strongest. Every other knob is
+     * [SEARCH_10].
      */
-    val SEARCH_10_LEAF: HybridLeaf = HybridLeaf.NET
+    val SEARCH_10_LEAF: HybridLeaf = HybridLeaf.NET6
 
     /**
      * Strength 10's search over the heuristic book ([HybridAi], ADR-085 addendum "Wave 3"): the knobs of
@@ -81,7 +83,10 @@ object AiPlayers {
      * position (`K`); the book's own answer plus its best 8 spaces / 6 units / 4 of anything else (`topS`,
      * `topU`, `top`); 4 enemy replies a card play while an enemy still has to choose (`rep`); the memo (`tt`);
      * after the reveal a minimax over the rest of the turn, two choices deep over the book's best three
-     * (`td`, `tw`; the tree, RESULTS.md "Wave 3 — Track C").
+     * (`td`, `tw`; the tree, RESULTS.md "Wave 3 — Track C"). The book (at the root and in the playouts) branches
+     * one own choice in its card looks and looks six spaces ahead at a rest (`branch`, `restSpaces`: Track A's
+     * F1 book in its cheap form, RESULTS.md "Wave 3 — Track C2"). With six heroes a card play plays at most
+     * `6.cap` columns (samples × enemy replies), which bounds the slowest 3v3 card plays.
      * Any other key goes to the book as a [dev.quinton.goa.core.game.ai.heuristic.HeuristicProfile.tune] knob.
      */
     val SEARCH_10: Map<String, Double> = mapOf(
@@ -94,6 +99,9 @@ object AiPlayers {
         "rep" to 4.0,
         "td" to 2.0,
         "tw" to 3.0,
+        "branch" to 1.0,
+        "restSpaces" to 6.0,
+        "6.cap" to 8.0,
     )
 
     /** The strengths the search plays ([HybridAi]); below them the heuristic book alone ([HeuristicAi]). */
