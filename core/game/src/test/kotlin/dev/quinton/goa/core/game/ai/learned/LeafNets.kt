@@ -78,7 +78,8 @@ internal object LeafNets {
         for (p in parts.drop(1)) {
             val (k, v) = p.split("=", limit = 2)
             when (k) {
-                "net" -> net = v
+                // `avg(a/b/c)` too, where commas separate specs (the position bench).
+                "net" -> net = v.replace('/', ',')
                 "thr" -> threads = v.toInt()
                 else -> knobs[k] = v.toDouble()
             }
