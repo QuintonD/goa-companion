@@ -269,7 +269,34 @@ Against the book alone (h10, 300–347, 96 games): W2T **95.8%** (89.8–98.4; p
 against h10's 1.38. Answer 234 / 943 / 14 426 ms (mean / p95 / max), card play 538 / 1 735 / 14 426 ms, three games
 at once on the loaded machine.
 
-PENDING: the single- and 3-thread times.
+Times, one game at a time (line-ups 348–353 against h10, 12 games; the machine still shared, so upper bounds):
+
+| W2T | Answer ms mean / p95 / max | Card play ms mean / p95 / max |
+|---|---|---|
+| one thread per answer | 216 / 874 / 6 055 | 510 / 1 692 / 6 055 |
+| three threads (`thr=3`, the app's `AiSampleThreads` kind of runner) | 103 / 416 / 1 835 | 222 / 708 / 1 835 |
+
+Both runs gave the same answers (the same order-free fingerprint of every answer, 6246851226319491729): the runner's
+width changes the time, not the play.
+
+### Summary (Track C, 2026-11-23)
+
+Strength 10 (`AiPlayers.SEARCH_10`) is now W2T: `x10+pol=1+scope=3+leaf=2+tt=1+K=24+topS=8+topU=6+rep=4+td=2+tw=3`,
+the leaf `AiPlayers.SEARCH_10_LEAF` (the net today; one switch, the owner ships whichever leaf measures strongest).
+
+| W2T against | Range | Games | Win | Wilson |
+|---|---|---:|---:|---|
+| W2 (the tree's own gain, net leaf) | dev 1100–1227 | 256 | 56.6% | 50.5–62.6 |
+| W2 (the same with the HEval leaf on both sides) | dev 1500–1627 | 256 | 55.9% | 49.7–61.8 |
+| s10, 2v2 | dev 1600–1631 | 64 | 71.9% | 59.9–81.4 |
+| s10, 2v2 | held-out checkpoint 600–695 | 192 | 56.8% | 49.7–63.6 |
+| s10, 3v3 | held-out checkpoint 300–347 | 96 | 61.5% | 51.5–70.6 |
+| h10, 2v2 | held-out checkpoint 300–347 | 96 | 95.8% | 89.8–98.4 |
+
+Short of the owner's 65% against s10 in 2v2. Not kept: round horizon (32.8%), depth-3 tree (43.0%, SPRT H0), the
+enemy answered by the book in the tree (50.0% at 96), the tree under card plays (too slow). Open: Track A's F1 book
+inside the playouts (+12.5 indicative in x10, 3–4× the cost; `branch=1+restSpaces=6` is its cheap form, and
+`p.`/`r.` knobs give the root and the playouts different books), Track B's / E's leaf, and 3v3's card-play maximum.
 
 ### Strength 10 in AiPlayers
 

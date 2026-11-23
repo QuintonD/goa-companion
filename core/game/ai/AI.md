@@ -11,7 +11,8 @@ strengths 1–9, the heuristic book: a general playbook plus one file per hero, 
 At strength 10 it is the hybrid search over that book (`ai/hybrid/HybridAi`, ADR-085 addendum "Wave 3"):
 every question with a choice is tried on determinized copies, each candidate played out to the end of
 the turn by the book for every seat and scored by the leaf `AiPlayers.SEARCH_10_LEAF` (the old learned
-ensemble today; `HybridLeaf.HEVAL` is the book's own value, one switch). Its knobs are
+ensemble today; `HybridLeaf.HEVAL` is the book's own value, one switch). After the reveal, where its samples are one
+known position, it searches a small minimax over the rest of the turn instead of one playout (the tree). Its knobs are
 `AiPlayers.SEARCH_10`; the measurements are in [`heuristic/RESULTS.md`](heuristic/RESULTS.md) "Wave 3 —
 Track C". No wall clock (the same answers on every device); cancelling stops it and the book answers.
 Strength 1–10 still means the same bands (Easy 2, Normal 6, Hard 8, Expert 10). The old search described
