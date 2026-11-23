@@ -29,6 +29,33 @@ data class HeuristicProfile(
     val laneTiming: Boolean,
     /** Strength 10 only (ADR-062): the enemies' hand pool is known; the facedown card is not. */
     val knowHands: Boolean,
+    /**
+     * F1 (REVIEW-2-losses): after the reveal a look plays the rest of the turn, every remaining hero's
+     * revealed card by its own book, and on turn 4 through the end of the round, instead of stopping at
+     * the end of our own action. The hybrid search turns it off for cheaper playouts (`profileEdit`).
+     */
+    val turnRest: Boolean = false,
+    /**
+     * F2: card plays scored as this many sampled turns ([CardSim.sampled]: every other card from its book,
+     * the turn resolved, [HEval] at its end). 0 is the one-action look of strengths 5–8.
+     */
+    val revealSamples: Int = 0,
+    /**
+     * Strength 10: the threat map at the card play weighs each enemy card by the enemy's own book (the
+     * known pool, softmax of its card looks) instead of uniformly by colour ([CardSim.cardModel]).
+     */
+    val predictCards: Boolean = false,
+    /**
+     * Strength 10: the card play's own-action look continues through an enemy's defense or discard,
+     * answered by that enemy's book from the known hand, instead of stopping and pricing it from the pool.
+     */
+    val knowLook: Boolean = false,
+    /**
+     * Inside a look (strength 7+, [Look.MOVES]): how many of this hero's own choices after the answer are
+     * branched, and how many of the book's answers each branch tries ([CardSim]). Knobs `branch`, `width`.
+     */
+    val lookBranches: Int = 1,
+    val lookWidth: Int = 4,
     /** Softmax temperature in coin-equivalents. 0 is argmax. */
     val temperature: Double,
     /** Options more than this far behind the best are never picked, temperature aside. */
@@ -139,6 +166,7 @@ data class HeuristicProfile(
                 counting = true,
                 twoTurn = true,
                 lane = true,
+                rest = true,
                 // Measured: 0.10 here cost 11 points against the old s8 (looks tie often; a tie became a coin).
                 temp = 0.0,
                 gap = 0.0,
@@ -157,6 +185,7 @@ data class HeuristicProfile(
                 twoTurn = true,
                 lane = true,
                 hands = true,
+                rest = true,
                 temp = 0.0,
                 gap = 0.0,
                 slip = 0.0,
@@ -176,6 +205,7 @@ data class HeuristicProfile(
             twoTurn: Boolean = false,
             lane: Boolean = false,
             hands: Boolean = false,
+            rest: Boolean = false,
             temp: Double,
             gap: Double,
             slip: Double,
@@ -192,6 +222,11 @@ data class HeuristicProfile(
             twoTurnPlans = twoTurn,
             laneTiming = lane,
             knowHands = hands,
+            turnRest = rest,
+            // Strength 10 (wave 3): enemy defenses answered from the known hand inside the card look, and
+            // two own choices branched in a look (h10 : h9 51.0% without, 55.7% / 55.2% with each).
+            knowLook = hands,
+            lookBranches = if (hands) 2 else 1,
             temperature = temp,
             maxGap = gap,
             slipRate = slip,

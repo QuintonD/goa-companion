@@ -26,6 +26,7 @@ data class TurnPlan(
             if (exposure > 10.0 && played.hasMovement && !played.attackCard) {
                 return TurnPlan(Intent.RETREAT, null, played.id)
             }
+            if (ctx.profile.on("hold", false)) holdLine(ctx, h.id, at, played)?.let { return it }
             if (ctx.profile.laneTiming && ctx.lanes().any { ctx.laneMargin(it) >= 2 && !ctx.matchPoint(it) } &&
                 played.hasMovement && !played.attackCard
             ) {
@@ -38,6 +39,23 @@ data class TurnPlan(
             if (played.skillCard) return TurnPlan(Intent.SET_UP, null, played.id)
             if (ctx.inBattleZone(at)) return TurnPlan(Intent.DEFEND_LANE, null, played.id)
             return TurnPlan(Intent.FARM, null, played.id)
+        }
+
+        /**
+         * F7 (knob `hold`): we stand in our last zone (the next push against us takes our Throne, or the
+         * last wave decides) and we are not ahead on minions. Stay in the zone and take their minions:
+         * a hero only when the kill is sure and worth as much.
+         */
+        private fun holdLine(ctx: HContext, heroId: String, at: Hex, card: HCard): TurnPlan? {
+            val zone = ctx.zoneOf(at) ?: return null
+            val lane = ctx.lanes().firstOrNull { ctx.battleZone(it) == zone } ?: return null
+            val last = stepsToEnemyThrone(ctx, lane, ctx.team.opponent) <= 1 || (ctx.state.wavesLeft[lane] ?: 9) <= 1
+            if (!last || ctx.laneMargin(lane) > 0) return null
+            if (!card.attackCard) return TurnPlan(Intent.HOLD_LINE, null, card.id)
+            val minion = bestMinion(ctx, heroId, at, card) ?: return null
+            val hero = bestHero(ctx, heroId, at, card)
+            val sure = hero?.first?.let { ctx.defenseless(it) } == true && hero.second >= minion.second
+            return if (sure) null else TurnPlan(Intent.HOLD_LINE, minion.first, card.id)
         }
 
         private fun attackPlan(ctx: HContext, heroId: String, at: Hex, card: HCard): TurnPlan {

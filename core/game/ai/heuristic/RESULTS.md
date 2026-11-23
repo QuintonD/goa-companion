@@ -147,6 +147,208 @@ h10 won by last push 54 / Life 23 / Throne 29, s8 by 52 / 24 / 10. Defeats a gam
 card to defend 77 / 63). Answers h10 3.3 / 11.0 / 311 ms (mean / p95 / max), s8 20.0 / 74.7 / 561 ms.
 Unchanged from before the review (55.2% on the same line-ups).
 
+## Wave 3 — Track A (policy: the book's decisions, 2026-11-22)
+
+Mirrored 2v2, development line-ups 1064–1159 (96 line-ups, 192 games a row, the same games in every row unless
+noted), `AI_THREADS=3` on a shared oldboi. Wilson 95% intervals; pairs = h lost both / split / won both.
+
+### What changed
+
+- **F1, the rest of the turn after the reveal** (`CardSim.RestLook`, profile `turnRest`, knob `rest`). Every look
+  at a decision during the resolution (actions, squares, targets, bullets, our defenses) answers the option on a
+  fork and plays the turn to its end: every hero still to act resolves its revealed card with its own static book
+  (its playbook's `adjust`/`override`), our own first choice after the answer tries the book's best 4, and on
+  turn 4 the round ends through the engine (minion battle, push, level-ups) and the look stops at the next card
+  play. `HEval` scores where the turn leaves everyone. Every own square is looked at (64, was 6), and G2's square
+  trap (`SpaceRules.commitment`) is off in these looks: the attack is played, not guessed. An enemy defense or
+  discard: at 10 its book answers from the known hand (ADR-062); at 9 the look stops and prices it from the pool.
+- **F3, the last card's escape** (`HContext.escapeSlack`, knob `escape`, on with `turnRest`). A hero entering
+  a turn with one card has nothing to defend with; a threat acting after that card misses when the card's
+  movement takes it out of reach first. A Silver (no movement) or a slower card cannot escape: the threat map
+  prices the defeat in full.
+- **Strength 10's own layer** (profile `knowLook`, `lookBranches`). The card play's one-action look no longer stops
+  at an enemy's defense: that enemy's book answers it from the known hand (ADR-062), and the action goes on. Two of
+  our own choices inside a look try the book's best 4 answers (one below 10).
+- **Strengths.** 9 has `turnRest` (F1 + F3); 10 has 9 + `knowHands` + `knowLook` + `lookBranches = 2`. 8 and
+  below are unchanged.
+
+### Development measurements (line-ups 1064–1159, 192 games each)
+
+| Variant | Against | Won | Rate | Wilson 95% | Pairs | Defeats/game (no card) | Answer ms mean / p95 / max |
+|---|---|---|---|---|---|---|---|
+| h10 (start of wave 3) | s8 | 105–87 | 54.7% | 47.6–61.6 | 17/53/26 | 0.94 (79) / 1.13 (73) | 4.0 / 14.3 / 771 |
+| h10 + G4 off (F4, `earlyRed=0`) | s8 | 101–91 | 52.6% | 45.6–59.5 | 15/61/20 | 0.96 (83) / 1.16 (73) | 3.2 / 10.8 / 111 |
+| **h10 + F1** (`rest=1`) | s8 | 135–57 | **70.3%** | 63.5–76.3 | 4/49/43 | 0.80 (41) / 1.34 (80) | 13.4 / 44.7 / 908 |
+| **h10 + F1 + F3** (`rest=1+escape=1`) | s8 | 136–56 | **70.8%** | 64.0–76.8 | 4/48/44 | 0.73 (36) / 1.31 (80) | 14.7 / 50.5 / 918 |
+| h10 + F1, other heroes by the one-ply book (`restBook=1`) | s8 | 135–57 | 70.3% | 63.5–76.3 | 6/45/45 | 0.66 (42) / 1.25 (70) | 69.5 / 290 / 5123 |
+| h10 + F1 + F2, 4 sampled reveals (`reveal=4`) | s8 | 125–67 | 65.1% | 58.1–71.5 | 6/55/35 | 0.67 (43) / 1.43 (93) | 37.8 / 156 / 969 |
+| h10 + F1 + F2, our choices after the action branched (`reveal=4+revealBranch=1`) | s8 | 124–68 | 64.6% | 57.6–71.0 | 11/46/39 | 0.80 (65) / 1.39 (108) | 66.5 / 296 / 1666 |
+| h10 + F1 + F3 + opponent card model in the threat map (`predict=1`) | s8 | 135–57 | 70.3% | 63.5–76.3 | 4/49/43 | 0.71 (33) / 1.32 (83) | 21.2 / 77.7 / 1610 |
+| h9 (F1 + F3) | h8 | 114–78 | 59.4% | 52.3–66.1 | 12/54/30 | 1.03 (81) / 0.92 (80) | 13.5 / 45.4 / 842 |
+| h10 = h9 + `knowHands` | h9 | 98–94 | 51.0% | 44.0–58.0 | 17/60/19 | 1.06 (89) / 1.20 (92) | 13.0 / 44.2 / 614 |
+| … + `knowLook` | h9 | 107–85 | 55.7% | 48.7–62.6 | 13/59/24 | 0.98 (77) / 1.19 (94) | 15.2 / 50.6 / 997 |
+| … + `branch=2` | h9 | 106–86 | 55.2% | 48.1–62.1 | 14/58/24 | 1.03 (85) / 1.22 (101) | 16.3 / 56.9 / 876 |
+| … + `width=8` | h9 | 104–88 | 54.2% | 47.1–61.1 | 15/58/23 | 0.97 (88) / 1.22 (98) | 16.2 / 56.1 / 1064 |
+
+Reading:
+
+1. **F1 is the step.** Playing the rest of the turn after the reveal took h10 from 54.7% to 70.3% against s8 on the
+   same 192 games (+15.6 points, intervals disjoint), above the +11.7 ceiling REVIEW-2-losses measured by giving
+   own moves to s10, and halved the empty-hand defeats (79 → 41). It costs about 3× per answer (13 ms mean).
+   s8's wins by the Throne fell from 13 to 8 and by Life from 23 to 15.
+2. **F3 is small but the right way round** (+0.5, defeats 0.80 → 0.73, empty-handed 41 → 36): kept as part of F1.
+3. **F2 as built loses 5–6 points** with and without our own later choices branched: sampling the enemies' cards
+   from the book and resolving the turn makes the card choice noisier than the one-action look with its exposure
+   split by initiative, and empty-hand defeats rose (41 → 65). It stays in the code behind `reveal` (default 0)
+   with its opponent model; the cheaper use of the same model, enemy card weights in the threat map (`predict`),
+   measured even (70.3% against 70.8%) at 1.4× the cost and is off.
+4. **F4 does not hold.** G4 off was +6.3 on 1000–1063 and −2.1 here; over the 320 games together 55.3% against
+   54.1%. G4 stays.
+5. **F7 (hold-the-zone) is built behind knob `hold`, off.** `TurnPlan.holdLine`: in our last zone (the next push
+   against us takes our Throne, or the last wave decides) and not ahead on minions, the intent is HOLD_LINE (stay
+   in the zone, `holdPull` −3 for a square outside it; an attack card targets their best minion unless a sure kill is
+   worth as much). Under F1 the turn-4 looks already resolve the round-end battle and push through the engine, and
+   Throne losses against s8 fell to 8 of 57. On the position bench it changes no answer (below). Not kept on.
+6. **The ladder.** 9 over 8 is 59.4%. Hand knowledge alone gave 10 nothing over 9 (51.0%); what separates them is
+   using it inside looks (`knowLook` 55.7%) and spending more of the look on our own choices (`branch=2` 55.2%).
+   Both went into 10.
+
+### Resumed session: the ladder at 256 games, the knobs on the bench (2026-11-22 afternoon)
+
+Ladder on fresh development line-ups 1160–1287 (128 mirrored line-ups, 256 games each; the audit's ≥ 256 rule):
+
+| Row | Won | Rate | Wilson 95% | Pairs (lost both / split / won both) | Defeats/game (no card) | Answer ms mean / p95 / max |
+|---|---|---|---|---|---|---|
+| h10 (= 9 + `knowHands` + `knowLook` + `lookBranches=2`, as committed in ee604f05) vs h9 | 145–111 | **56.6%** | 50.5–62.6 | 18 / 75 / 35 | 1.00 (115) / 1.33 (121) | 16.0 / 54.6 / 788 |
+| h10 + `branch=2` only (no `knowLook`) vs h9 | 145–111 | 56.6% | 50.5–62.6 | 14 / 83 / 31 | 0.88 (128) / 1.25 (135) | 16.6 / 56.9 / 950 |
+| h9 vs h8 | 150–106 | **58.6%** | 52.5–64.5 | 14 / 78 / 36 | 1.05 (122) / 1.00 (125) | 13.9 / 46.9 / 821 |
+
+Both steps of the ladder hold with intervals clear of 50%. `knowLook` adds nothing measurable on top of the two
+branched choices (the same 145–111); it stays at 10 because it is the principled use of the known hand and costs
+nothing.
+
+Position bench (version 1, sets puzzles + probe; rounds pending the verdict cache build), the same code as the rows
+above (`h10` here is the build before ee604f05, so `h10+branch=2+knowLook=1` is today's 10):
+
+| Spec | puzzles right (271) | probe right (233) | probe wp regret | note |
+|---|---|---|---|---|
+| h5 | 72.7% | 54.5% | .0173 | |
+| h8 | 75.6% | 51.9% | .0179 | |
+| h9 | 75.6% | 54.1% | .0162 | |
+| h10 (before ee604f05) | 78.6% | 54.5% | .0164 | rounds 76.0% (499) |
+| h10+branch=2+knowLook=1 (today's 10) | — | — | — | (branch=2: 79.7% / 54.5%; knowLook: 78.2% / 55.8%) |
+| h10+rest=0 | 77.9% | 51.9% | .0173 | F1 off |
+| h10+escape=0 | 78.6% | 54.5% | .0167 | F3 off |
+| h10+finisher=1 (F6) | 78.6% | 54.5% | .0164 | no answer changed |
+| h10+hold=1 (F7) | 78.6% | 54.5% | .0164 | no answer changed |
+| h10+allyAfter=1 (postlude, REVIEW-2-design #5) | 78.6% | 54.9% | .0166 | one answer |
+| h10+earlyRed=0 (F4) | 78.6% | 55.4% | .0159 | two answers |
+| h10+width=8 | 78.6% | 54.1% | .0166 | |
+| h10+predict=1 | 78.6% | 54.5% | .0166 | |
+| h10+reveal=4 (F2) | 79.0% | 55.8% | .0160 | |
+| h9+restSpaces=6 | 75.6% | 53.2% | .0172 | |
+
+The bench separates the ladder (h5 → h10 on puzzles) and confirms that F6, F7 and the postlude almost never change
+an answer: they stay off (knobs `finisher`, `hold`, `allyAfter`). One or two answers in 233–271 is noise.
+
+**The book inside the search** (x10+pol=1+scope=3 in this build; the probe oracle is s10 with the net, so it leans
+toward the net leaf):
+
+| Spec | puzzles right | probe right | probe wp regret | ms an answer |
+|---|---|---|---|---|
+| x10 leaf=0 (HEval), F1 book | 82.7% | 59.2% | .0128 | 1823 |
+| x10 leaf=0, book `rest=0` | 82.3% | 62.7% | .0112 | 466 |
+| x10 leaf=2 (net), F1 book | **86.7%** | 70.0% | .0099 | 1669 |
+| x10 leaf=2, book `rest=0` | 83.4% | 72.1% | .0090 | 483 |
+
+The search is ahead of the book on both sets (x10 82.7–86.7% of the puzzles against h10's 78.6%). F1 inside the
+playouts: with the net leaf it solves 9 more puzzles (solver truth), on the oracle set it is 5 answers further
+from the net-based oracle, with HEval even; it costs 3.5–4× per answer. Undecided on positions.
+
+In games (today's book: F1 + `knowLook` + `lookBranches=2`; x10+pol=1+scope=3+leaf=2 with it against the same search
+with `+rest=0` in its book), the first 32 of 256 planned games, development line-ups 1160–1175: **20–12 = 62.5%
+[45.3–77.1]**, pairs 2 / 8 / 6, defeats a game 0.84 / 1.16. Indicative only (the interval includes 50%). The cost is
+the problem: answers 2.33 s mean / 8.7 s p95 / 55.8 s max against 0.69 / 2.8 / 16.1 s, card plays 5.7 s / 19.4 s
+/ 55.8 s against 1.6 / 5.1 / 16.1 s on a loaded shared machine (upper bounds), past the ~10 s card-play budget at
+p95. The rest of that run was stopped for a cheaper book.
+
+A cheaper F1 book for the playouts, on the bench (x10+pol=1+scope=3+leaf=2 + the book knob; card = the probe's
+card-play mean):
+
+| Book knobs | puzzles | probe | probe wp regret | ms an answer | card play |
+|---|---|---|---|---|---|
+| `rest=0` | 83.4% | 72.5% | .0086 | 539 | 1.2 s |
+| none (today's h10 book) | 87.5% | 70.8% | .0108 | 1814 | 4.5 s |
+| `branch=1` | 86.7% | 70.8% | .0093 | 1751 | 4.5 s |
+| `branch=0` | 85.2% | 67.4% | .0104 | 1060 | 2.8 s |
+| **`branch=1+restSpaces=6`** | **87.1%** | 70.4% | .0095 | **970** | **2.4 s** |
+
+Looking at the book's 6 best squares instead of all 64 keeps the puzzle gain at about twice rest=0's cost instead
+of 3.5 times; the two branched choices are not the cost. This is the candidate for `AiPlayers.SEARCH_10` (a knob
+string, no code). Games of it against `rest=0` inside x10 (dev 1160–1287, 32-game chunks) were started when this
+was written and are pending.
+
+### Held-out checkpoints (line-ups 300–395 / 600–695; no longer clean per the audit, so checkpoints, not the final table)
+
+Today's strength 10 (= `h10+branch=2+knowLook=1` in the build these ran on; the same code paths as the committed
+profile), mirrored, `AI_THREADS=3`, shared machine (times are upper bounds). The sealed final range 5000+ was not run.
+
+| Row | Line-ups | Games | Won | Rate | Wilson 95% | Pairs (lost both / split / won both) | Before wave 3 | Answer ms mean / p95 / max |
+|---|---|---|---|---|---|---|---|---|
+| h10 vs s8, 2v2 | 300–395 | 192 | 135–57 | **70.3%** | 63.5–76.3 | 7 / 43 / 46 | 55.2% | 16.4 / 56.3 / 1031 |
+| h10 vs s8, 2v2 | 600–695 | 192 | 116–76 | **60.4%** | 53.4–67.1 | 9 / 58 / 29 | 53.1% | 16.5 / 55.8 / 1073 |
+| h10 vs s8, 3v3 | 300–347 | 96 | 68–28 | **70.8%** | 61.1–79.0 | 2 / 24 / 22 | — | 28.1 / 95.8 / 1998 |
+| h10 vs s10, 2v2 | 300–395 | 192 | 46–146 | 24.0% | 18.5–30.5 | 55 / 36 / 5 | 15.6% | 15.1 / 52.1 / 870 (s10 416 / 1296 / 8195) |
+| h10 vs h9 | 300–395 | 192 | 114–78 | 59.4% | 52.3–66.1 | 9 / 60 / 27 | 50.5% (h10:h8) | 15.6 / 53.8 / 884 |
+| h9 vs h8 | 300–395 | 192 | 101–91 | 52.6% | 45.6–59.5 | 16 / 59 / 21 | — | 13.8 / 46.5 / 871 |
+| h8 vs h5 | 300–395 | 192 | 117–75 | 60.9% | 53.9–67.6 | 12 / 51 / 33 | — | 4.8 / 16.7 / 112 |
+
+Defeats a game, h10 / s8: 0.89 / 1.35 (300–395; with no card to defend 40 / 76), 0.78 / 1.35 (600–695; 38 / 88);
+3v3 1.45 / 2.03. The book against s8 gained 15 points on 300–395 and 7 on 600–695; against s10 it gained 8 and is
+still far behind (s10 wins 146 of 192): the book alone is not strength 10's answer to the old search; the hybrid
+search on top of it is (Track C). The ladder: 10 over 9 holds held-out (59.4%); 9 over 8 is 52.6% here against
+58.6% and 59.4% on the two development sets (over all 640 games 365–275 = 57.0%).
+
+### The position bench (`AiPositionBenchTest`, for every track)
+
+Decision quality on fixed positions, before games (wave-3 audit). Opt-in:
+
+```
+AI_BENCH=h10,h10+rest=0,x10+pol=1+scope=3+leaf=0 AI_THREADS=3 goa-run AiPositionBenchTest
+AI_BENCH_SETS=puzzles,rounds,probe   # default all three
+```
+
+It prints per spec, per set and per decision kind: questions answered, the share answered right, the mean regret
+and the mean answer time (shared machine: an upper bound). Specs are `HeuristicTournamentTest`'s (h, s, x, y with
+`+knob=value`), so a search spec with book knobs (`x10+pol=1+scope=3+leaf=0+rest=0`) is benched the same way.
+Version 1 of the sets:
+
+- **puzzles** (ground truth: the puzzle solver, exact). Every player question with a real choice on every winning
+  line of the turn puzzles' answer keys, where not every option wins: 271 questions. Right = the goal stays forced.
+- **rounds** (ground truth: the puzzle solver). The player questions on the solution lines of the 22 full-round
+  puzzles (enemy plays known, ADR-052): 499 questions. The key holds the solution's answer; another answer is
+  proved or refuted by the solver at 200,000 expansions. Those verdicts are cached in
+  `src/test/resources/bench/rounds-verdicts-v1-e1.txt` (committed, shared by every spec and track; an answer the
+  budget cannot settle is counted apart as "unknown", never as right).
+- **probe** (ground truth: an ORACLE, a strong opinion, not the truth). 233 positions from h10's games against s8 on
+  line-ups 1000–1011 (24 games, each h10 question with a choice kept with chance 0.06), stored as replayable
+  answers in `src/test/resources/bench/probe-v1-2v2-1000-1011.jsonl.gz` (18 KB). Every option is valued by the
+  regret probe's oracle (REVIEW-2-losses.md: the old strength-10 search with the learned net, 3× card samples, no
+  clock, opponent card model, kill extension). Right = the oracle's best option; regret in its coin scale (a few
+  won/lost lines make the coin mean noisy) and in win chance (`wpRegret`, the better summary).
+  `AI_BENCH_MAKE=<line-ups> AI_H_FIRST=… AI_FORMAT=…` writes another probe file (never line-ups 5000+).
+
+h10 (the book with F1, commit 2f1781d4), the first bench row:
+
+| Set | n | Right | Regret | ms |
+|---|---|---|---|---|
+| puzzles | 271 | 78.6% | 0.214 | 41 |
+| rounds | 499 | 76.0% | 0.240 | 14 |
+| probe | 233 | 54.5% | wp 0.0164 (coins 12.6) | 25 |
+
+By kind, the weak spots: puzzles `play_card` 52.9% (17), `choose_space` 68.6% (35), `choose_unit` 70.8% (65);
+rounds `play_card` 64.5% (172); probe `choose_space` 38.1% (63, wp regret 0.020), `play_card` 43.9% (57, 0.017).
+
 ## Wave 3 — Track C: search (strength 10 is the hybrid search, 2026-11-22)
 
 Started from REVIEW-2-search.md's best, `x10+pol=1+scope=3+leaf=2` (call it **B**: the full book in the playouts,
