@@ -261,6 +261,7 @@ object Tournament {
 
     private const val PAIR_OUTCOMES = 5
     private const val MIN_PAIRS = 8
+    private const val SPRT_BATCH = 16
 
     private val KEEP_GOING = System.getenv("AI_KEEP_GOING") != null
 
@@ -302,12 +303,23 @@ object Tournament {
         threads: Int = 4,
         firstLineup: Int = 0,
         format: AiHarness.Format = AiHarness.Format.TWO,
+        sprt: Sprt? = null,
+        sprtBatch: Int = SPRT_BATCH,
     ): Score {
         val all = AiHarness.mixedLineups(firstLineup + lineups, size = format.size)
         val specs = (firstLineup until firstLineup + lineups).map { i ->
             Spec(all[i], if (i % 2 == 0) Team.RED else Team.BLUE, 50_000L + i)
         }
-        return play(a, b, specs, threads, format)
+        if (sprt == null) return play(a, b, specs, threads, format)
+        // [sprt]: line-ups in batches, stopping as soon as the test decides (at most [lineups]).
+        val score = Score(a, b)
+        for (batch in specs.chunked(sprtBatch.coerceAtLeast(1))) {
+            play(a, b, batch, threads, format, score)
+            val v = sprt.verdict(score)
+            println("SPRT so far $score: $v")
+            if (v != Sprt.Verdict.GOING_ON) break
+        }
+        return score
     }
 
     fun play(
@@ -316,8 +328,9 @@ object Tournament {
         specs: List<Spec>,
         threads: Int,
         format: AiHarness.Format = AiHarness.Format.TWO,
+        into: Score = Score(a, b),
     ): Score {
-        val score = Score(a, b)
+        val score = into
         // Each job: did side a win (null = unfinished), and the game.
         val jobs = ArrayList<Callable<Triple<Boolean?, AiHarness.Result, Long>>>()
         val aRed = ArrayList<Boolean>()

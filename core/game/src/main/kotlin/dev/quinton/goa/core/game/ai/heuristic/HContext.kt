@@ -59,6 +59,12 @@ class HContext(
     val finishing: Boolean = false,
     /** A state to read instead of [session]'s (a card simulation's result). Same engine data. */
     stateOverride: GameState? = null,
+    /**
+     * The opponent model at a card play (strength 10, knob `predict`): per hero, the chance it plays each
+     * card of its known pool this turn, from its own book ([CardSim.cardModel]). Replaces the uniform colour
+     * weights of the threat map for cards not yet revealed.
+     */
+    val cardModel: Map<String, Map<String, Double>>? = null,
 ) {
     val state: GameState = stateOverride ?: session.state
     private val overridden: Boolean = stateOverride != null
@@ -292,7 +298,7 @@ class HContext(
         state.hero(heroId)?.let { v += laneThreat(this, it, at, profile.knob("oppLane", HEval.LANE_THREAT)) }
         v += formation(heroId, at, style)
         if (profile.threatMap) v -= exposurePenalty(heroId, at) * profile.knob("fear", 1.0)
-        if (profile.turnPlans && heroId == seat) v += planPull(at)
+        if (profile.turnPlans && heroId == seat) v += planPull(at) + holdPull(at)
         // G51: once the push is decided, stand in the zone it is moving into.
         if (profile.laneTiming) v += zonePull(heroId, at)
         return v
@@ -381,7 +387,10 @@ class HContext(
         // A poke that only spends a card loses the minion we could have farmed. A real kill does not.
         var v = chance * kill + (1.0 - chance) * strip * (if (chance < 0.4) 0.65 else 1.0)
         // G60: a teammate still to act turns a failed poke into the card they will not have.
-        if (profile.focusFire && allyCanReach(h)) v += if (h.hand.size <= 2) 6.0 else 3.5
+        // F6 (knob `finisher`): only when that teammate's attack can finish what the poke leaves.
+        if (profile.focusFire && allyCanReach(h) && (!profile.on("finisher", false) || allyFinishes(h))) {
+            v += if (h.hand.size <= 2) 6.0 else 3.5
+        }
         if (profile.twoTurnPlans && chance < 0.55 && h.hand.size <= 3 && turn in 2..3) v += 2.0
         return v
     }
@@ -595,12 +604,15 @@ class HContext(
         val attackItems = itemBonus(enemyId, Stat.ATTACK)
         val initItems = itemBonus(enemyId, Stat.INITIATIVE)
         val out = ArrayList<ThreatInfo>()
+        val predicted = cardModel?.get(enemyId)
         fun add(p: PossibleCard, weight: Double, thisTurn: Boolean, approach: Int) {
             if (weight <= 0.0 || !p.card.threatens) return
             val reach = attackReach(enemyId, p.card) + approach
             if (reach <= 0) return
             val t = Threat(enemyId, p.card, p.card.attack + attackItems, reach, weight, thisTurn)
-            out += ThreatInfo(t, p.weight, p.playingNow, p.card.initiative + initItems)
+            // A predicted card's weight is the model's chance: no lethal pull on top of it.
+            val known = p.playingNow || (thisTurn && predicted != null)
+            out += ThreatInfo(t, p.weight, known, p.card.initiative + initItems)
         }
         val playing = pool.filter { it.playingNow }
         if (playing.isNotEmpty()) {
@@ -611,7 +623,8 @@ class HContext(
             // One card this turn. Each colour is equally likely; [PossibleCard.weight] is its share of that colour.
             val colours = pool.map { it.card.color }.distinct().size.coerceAtLeast(1)
             for (p in pool) {
-                add(p, 0.65 * p.weight / colours, thisTurn = true, approach = 0)
+                val now = if (predicted != null) predicted[p.card.id] ?: 0.0 else p.weight / colours
+                add(p, 0.65 * now, thisTurn = true, approach = 0)
                 if (state.turn < 4) add(p, 0.22 * p.weight / colours, thisTurn = false, approach = 1)
             }
         }
@@ -698,7 +711,8 @@ class HContext(
             val t = info.threat
             if (t.thisTurn && acted) continue
             val at = where(info) ?: continue
-            if (distance(from, at) > t.reach) continue
+            val slack = if (t.thisTurn) escapeSlack(h, info.initiative) else 0
+            if (distance(from, at) + slack > t.reach) continue
             val attack = t.card.attackCard || t.card.discardOrDefeat
             // G11 and section 2: no card left after the one still to play is a defeat by any attack.
             val lethal = kills(h, t, minionModifier(at, h.team)) || (!t.thisTurn && emptyNext && attack)
@@ -712,6 +726,23 @@ class HContext(
             }
         }
         return c
+    }
+
+    /**
+     * F3: a hero that starts the turn with its last card plays it and has nothing left to defend with
+     * ([defenseless]). An attack acting after that card can still miss: the card's movement carries the
+     * hero away first. The distance it can add against a threat on [initiative]; 0 when it cannot escape
+     * (no movement, slower, or a hidden hand below strength 10). Knob `escape`.
+     */
+    private fun escapeSlack(h: HeroState, initiative: Int): Int {
+        if (!profile.on("escape", profile.turnRest) || state.revealed || roundOver) return 0
+        if (h.hand.size != 1 || !playsThisTurn(h)) return 0
+        if (h.team != team && !profile.knowHands) return 0
+        val c = card(h.hand[0].id)
+        if (!c.hasMovement || c.movement <= 0) return 0
+        val ours = c.initiative + itemBonus(h.id, Stat.INITIATIVE)
+        val first = ours > initiative || (ours == initiative && state.tieBreaker == h.team)
+        return if (first) c.movement else 0
     }
 
     /** A hidden card that would defeat us is the card they play when they hold it (G2): its colour share. */
@@ -831,6 +862,26 @@ class HContext(
         }
     }
 
+    /**
+     * F6: a teammate's attack in reach that defeats [target] once our poke has taken a card: the hand
+     * left is only the cards still to play, or no defense left likely holds that attack.
+     */
+    private fun allyFinishes(target: HeroState): Boolean {
+        val at = target.at ?: return false
+        val stripped = target.hand.size - 1 <= playsLeft(target.id)
+        val mod = minionModifier(at, target.team)
+        return state.heroes.any { ally ->
+            val from = ally.at
+            ally.team == team && ally.id != seat && from != null &&
+                attackCardsOf(ally).any { c ->
+                    distance(from, at) <= attackReach(ally.id, c) + 2 && (
+                        stripped ||
+                            killChance(target, c.attack + itemBonus(ally.id, Stat.ATTACK), c.ranged, mod) >= FINISH
+                        )
+                }
+        }
+    }
+
     private fun rangedCovers(m: MinionState, victimTeam: Team): Boolean {
         val at = m.at ?: return false
         return state.heroes.any { h ->
@@ -865,10 +916,17 @@ class HContext(
         return v
     }
 
+    /** F7: holding our last zone, a square outside it gives the lane away. */
+    private fun holdPull(at: Hex): Double {
+        if (plan.intent != Intent.HOLD_LINE) return 0.0
+        val from = own()?.at ?: return 0.0
+        return if (zoneOf(at) == zoneOf(from)) 0.0 else -HOLD_STAY
+    }
+
     private fun planPull(at: Hex): Double {
         val target = plan.targetId?.let { state.hero(it)?.at ?: state.minion(it)?.at } ?: return 0.0
         return when (plan.intent) {
-            Intent.KILL, Intent.FARM, Intent.PUSH, Intent.CLEAR_MINION, Intent.WIN, Intent.SETUP ->
+            Intent.KILL, Intent.FARM, Intent.PUSH, Intent.CLEAR_MINION, Intent.WIN, Intent.SETUP, Intent.HOLD_LINE ->
                 -0.35 * distance(at, target)
 
             Intent.RETREAT, Intent.SURVIVE, Intent.LET_PUSH, Intent.ROTATE -> 0.25 * distance(at, target)
@@ -909,6 +967,12 @@ class HContext(
 
     companion object {
         private const val KILL_TEMPO = 5.0
+
+        /** F6: a follow-up attack this likely to defeat is a finisher (not a likely-held defense). */
+        private const val FINISH = 0.3
+
+        /** F7: leaving the zone we hold. */
+        private const val HOLD_STAY = 3.0
 
         /** The least [HeroStyle.laneWeight] the book plays (a measurement knob, `laneFloor`). */
         private const val LANE_FLOOR = 0.0

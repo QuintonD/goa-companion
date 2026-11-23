@@ -124,6 +124,51 @@ data class HybridConfig(
     val replyModel: Int = 1,
     /** Softmax temperature of the drawn replies, coin-equivalents. */
     val replyTau: Double = 2.0,
+    /**
+     * The leaf averaged over the playout: the leaf at every turn end it passes and at its end, equally
+     * weighted (a longer horizon judged by several positions, not the last one). Off for the memo.
+     */
+    val leafAverage: Boolean = false,
+    /**
+     * Robustness at card plays with several enemy replies ([replies]): a sample's value is
+     * (1 − this) × its mean over the replies + this × its worst reply.
+     */
+    val worstReply: Double = 0.0,
+    /**
+     * The tree after the reveal (Wave 3 Track C): at a searched question that is not a card play, each
+     * candidate is followed by a minimax over the rest of the turn this many choices deep (0 = off: one
+     * book playout). A choice is a later question with more than one option, ours (max) or the enemy's
+     * (min, [treeEnemy]); forced answers are free. Past the depth, or at a node the budget no longer
+     * covers, the book plays out to the horizon and the leaf scores it.
+     */
+    val treeDepth: Int = 0,
+    /**
+     * The tree under a card play's candidates: after our card (and the column's enemy replies), a minimax
+     * this many choices deep over the rest of the turn once the cards are revealed (0 = off: one playout).
+     */
+    val treeCard: Int = 0,
+    /** Options per tree node: the book's own answer plus its best by static score, this many in all. */
+    val treeWidth: Int = 3,
+    /** Enemy nodes in the tree: 1 the enemy takes its worst-for-us option (minimax), 0 the book answers. */
+    val treeEnemy: Int = 1,
+    /** Tree nodes, ours or theirs, of these kinds only (empty = every kind). */
+    val treeKinds: Set<DecisionKind> = emptySet(),
+    /**
+     * The last push (Wave 3 Track C2): while a lane has [lastWaves] or fewer Wave counters left (the next push
+     * there may end the game), card plays look this far instead (null: as on any other turn), so the push
+     * that decides the game is played, not judged by the leaf.
+     */
+    val lastWaveHorizon: HybridHorizon? = null,
+    /** The same for the other searched questions (null: as on any other turn). */
+    val lastWaveOtherHorizon: HybridHorizon? = null,
+    /** Wave counters left on a lane that make it the last wave for [lastWaveHorizon]. */
+    val lastWaves: Int = 1,
+    /**
+     * At most this many columns (distinct samples × enemy replies) at a card play (0: no cap): past it the
+     * replies per sample shrink (to one), then only the heaviest samples are played. Bounds the slowest
+     * card plays (many distinct deals early in a round, six seats) and leaves the usual ones alone.
+     */
+    val columnCap: Int = 0,
 ) {
     /** How many of the book's best by static score are searched at [kind] (beside its own answer). */
     fun topFor(kind: DecisionKind): Int = when (kind) {
@@ -133,16 +178,34 @@ data class HybridConfig(
     }
 
     companion object {
+        private val DEFENSE_KINDS = setOf(DecisionKind.DEFEND, DecisionKind.CHOOSE_CARD)
+
+        /**
+         * `tk` as bits: 1 spaces (moves, pushes, placements), 2 units (targets), 4 defenses and discards
+         * (the card a hero gives up), 8 actions; 0 every kind.
+         */
+        fun treeKindsOf(bits: Int): Set<DecisionKind> {
+            if (bits == 0) return emptySet()
+            val out = HashSet<DecisionKind>()
+            if (bits and 1 != 0) out += DecisionKind.CHOOSE_SPACE
+            if (bits and 2 != 0) out += DecisionKind.CHOOSE_UNIT
+            if (bits and 4 != 0) out += DEFENSE_KINDS
+            if (bits and 8 != 0) out += DecisionKind.CHOOSE_ACTION
+            return out
+        }
+
         /** Knob names [fromKnobs] reads; the rest go to the book. */
         val NAMES: Set<String> = setOf(
             "K", "Ko", "top", "hz", "hzo", "leaf", "pol", "polE", "scope", "model", "tau", "prior", "risk",
             "dd", "tt", "kill", "prune", "hz1", "hz2", "hz3", "hz4", "hzo1", "hzo2", "hzo3", "hzo4", "topS", "topU",
-            "rep", "repM", "repT",
+            "rep", "repM", "repT", "lavg", "mm",
+            "td", "tw", "te", "tk", "tc", "lw", "lwo", "lwn", "cap",
         )
 
         private fun byTurn(k: Map<String, Double>, prefix: String): Map<Int, HybridHorizon> =
             (1..4).mapNotNull { t -> k["$prefix$t"]?.let { t to HybridHorizon.of(it.toInt()) } }.toMap()
 
+        @Suppress("CyclomaticComplexMethod")
         fun fromKnobs(k: Map<String, Double>): HybridConfig {
             val d = HybridConfig()
             val pol = k["pol"]?.toInt()?.let(PolicyMode::of)
@@ -171,6 +234,17 @@ data class HybridConfig(
                 replies = k["rep"]?.toInt() ?: d.replies,
                 replyModel = k["repM"]?.toInt() ?: d.replyModel,
                 replyTau = k["repT"] ?: d.replyTau,
+                leafAverage = k["lavg"]?.let { it != 0.0 } ?: d.leafAverage,
+                worstReply = k["mm"] ?: d.worstReply,
+                treeDepth = k["td"]?.toInt() ?: d.treeDepth,
+                treeWidth = k["tw"]?.toInt() ?: d.treeWidth,
+                treeCard = k["tc"]?.toInt() ?: d.treeCard,
+                treeEnemy = k["te"]?.toInt() ?: d.treeEnemy,
+                treeKinds = k["tk"]?.let { treeKindsOf(it.toInt()) } ?: d.treeKinds,
+                lastWaveHorizon = k["lw"]?.toInt()?.let(HybridHorizon::of),
+                lastWaveOtherHorizon = k["lwo"]?.toInt()?.let(HybridHorizon::of),
+                lastWaves = k["lwn"]?.toInt() ?: d.lastWaves,
+                columnCap = k["cap"]?.toInt() ?: d.columnCap,
             )
         }
     }

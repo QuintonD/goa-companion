@@ -239,9 +239,9 @@ class EngineHost(private val load: suspend () -> Pair<Catalog, List<BoardMap>>) 
     companion object {
         /**
          * The computer player of a seat: the phone's rule ([AiPlayers.forApp]: its strength, seeded per
-         * strength, with the wall-clock cap, ADR-039), so a strength plays the same search as on the
-         * phone; a browser that is slower ends a strong search sooner (the play addendum of ADR-043).
-         * A seat without a computer (never asked) plays as Normal.
+         * strength, ADR-039), so a strength gives the same answers as on the phone. No wall clock (ADR-085):
+         * strength 10's search takes longer in a slower browser, and cancelling ends the worker. A seat
+         * without a computer (never asked) plays as Normal.
          */
         fun aiFor(controller: Controller.Ai?): AiPlayer =
             AiPlayers.forApp(controller?.strength ?: AiLevel.NORMAL.strength)

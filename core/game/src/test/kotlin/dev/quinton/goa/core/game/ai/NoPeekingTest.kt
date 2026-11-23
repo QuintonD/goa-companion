@@ -5,10 +5,10 @@ import dev.quinton.goa.core.game.AiLevel
 import dev.quinton.goa.core.game.AiStrength
 import dev.quinton.goa.core.game.Choice
 import dev.quinton.goa.core.game.TestData
+import dev.quinton.goa.core.game.ai.hybrid.HybridPlayers
 import dev.quinton.goa.core.game.engine.Determinizer
 import dev.quinton.goa.core.game.engine.EngineSession
 import dev.quinton.goa.core.game.engine.Zone
-import dev.quinton.goa.core.game.ai.hybrid.HybridPlayers
 import dev.quinton.goa.core.game.heroes.MinHero
 import dev.quinton.goa.core.game.position.PositionBuilder
 import dev.quinton.goa.core.game.position.PositionPhase

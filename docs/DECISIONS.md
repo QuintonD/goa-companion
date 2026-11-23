@@ -3079,5 +3079,15 @@ memo keeps playout values for the real turn. Answers are a function of the seed,
 any `SampleRunner`; `NoPeekingTest` and `HybridSearchTest` hold it. No wall clock (the owner: "regardless of the
 device"), so the same strength on every device; `cancelled()` stops it. The server's takeover keeps strength 4.
 Measured (RESULTS.md "Wave 3 — Track C"): merging identical samples cut the time 4.8× with the same answers;
-against the old strength 10 on held-out line-ups HELDOUT_LINE. The old search stays the coach, the puzzle solver,
-`AiBenchmark` and the yardstick.
+against the old strength 10 on held-out line-ups 300–395 these knobs (W2) made 54.2% (47.1–61.1, 192 games). The old
+search stays the coach, the puzzle solver, `AiBenchmark` and the yardstick. The owner's ruling (2026-11-22): the
+leaf that ships is whichever measures strongest (Track B's HEval or a retrained net as another `HybridLeaf`), so the
+leaf stays one switch. After the reveal the samples merge into one known position; a minimax over the rest of the
+turn there (the tree, `td` 2 / `tw` 3: our choices maximise, the enemy's minimise, over the book's own answer and its best two
+by static score, alpha-beta, book playouts at its frontier, the memo shared) beat W2 56.6% (50.5–62.6, 256
+development games) with the net leaf and 55.9% (49.7–61.8, 256) with HEval, and is part of `SEARCH_10` (W2T).
+W2T against the old strength 10 on held-out checkpoint line-ups: 56.8% in 2v2 (600–695, 192 games, 49.7–63.6) and
+61.5% in 3v3 (300–347, 96 games); against h10 95.8%. One thread: card play 510 ms mean, 1.7 s p95, 6.1 s max; three
+threads 222 ms / 0.7 s / 1.8 s; 3v3 on the loaded machine peaked at 22 s. A depth-3 tree and a round horizon
+measured worse. Below the owner's 65% target; the next levers are the leaf and Track A's stronger book in the
+playouts (`r.`/`p.` knobs give the root and the playouts different book settings).

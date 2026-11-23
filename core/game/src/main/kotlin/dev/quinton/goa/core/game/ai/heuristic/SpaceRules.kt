@@ -37,7 +37,8 @@ internal object SpaceRules {
 
     /** G2 on the square we would end on: an enemy still to act defeats us there. */
     fun commitment(ctx: HContext, d: Decision, o: Choice): Double {
-        if (o !is Choice.Space || !ctx.profile.threatMap) return 0.0
+        // F1: a look that plays the rest of the turn sees the enemy's attack land.
+        if (o !is Choice.Space || !ctx.profile.threatMap || CardSim.restOn(ctx)) return 0.0
         val subject = d.context.subjectId
         val body = (if (subject == null) placed(ctx, d) else ctx.heroBody(subject)) ?: return 0.0
         if (ctx.state.hero(body)?.team != ctx.team) return 0.0
