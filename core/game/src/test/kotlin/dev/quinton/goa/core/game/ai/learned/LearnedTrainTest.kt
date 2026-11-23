@@ -189,7 +189,7 @@ class LearnedTrainTest {
             Features.BOARD_AT,
             if (useAux) auxWeight else DoubleArray(0),
             // AI_INIT=<net>: fine-tune a saved or checked-in net (`cur1`) instead of starting at random (Track E).
-            env("AI_INIT")?.let { initData(it) },
+            initData(env("AI_INIT")),
         ).train(data(train, targets, release = true), data(valid, targets, release = false), cfg)
         println("TRAIN trained in ${"%.0f".format((System.nanoTime() - t0) / 1e9)} s")
         val net = Learned.NetData(
@@ -199,12 +199,7 @@ class LearnedTrainTest {
         val out = File(Learned.NETS, "$name.net")
         Learned.saveNet(net, out)
         println("TRAIN saved $out")
-        report(test, k, m, net.toNet(), "test")
-        report(valid, k, m, net.toNet(), "valid")
-        // AI_COMPARE=cur1,cur2: other nets on the same test split (the checked-in ones, Track E).
-        env("AI_COMPARE")?.split(",")?.filter { it.isNotBlank() }?.forEach {
-            report(test, k, m, Learned.net(it), "test[$it]")
-        }
+        reports(test, valid, k, m, net.toNet())
         val write = env("AI_TRAIN_WRITE")
         if (write != null) {
             val target = File(if (write == "1") WEIGHTS else write)
@@ -219,10 +214,20 @@ class LearnedTrainTest {
         }
     }
 
-    /** A saved net's data, or a checked-in one's (`cur1`…) through its weights object. */
-    private fun initData(name: String): Learned.NetData {
+    /** A saved net's data, or a checked-in one's (`cur1`…) through its weights object; null: none. */
+    private fun initData(name: String?): Learned.NetData? {
+        if (name == null) return null
         LeafNets.CHECKED_IN_DATA[name]?.let { return it() }
         return Learned.loadNetData(File(Learned.NETS, "$name.net"))
+    }
+
+    /** The test and validation reports, and with `AI_COMPARE=cur1,cur2` other nets on the same test split (Track E). */
+    private fun reports(test: List<Pos>, valid: List<Pos>, k: Double, m: DoubleArray, net: LearnedNet) {
+        report(test, k, m, net, "test")
+        report(valid, k, m, net, "valid")
+        for (other in env("AI_COMPARE")?.split(",").orEmpty().filter { it.isNotBlank() }) {
+            report(test, k, m, Learned.net(other), "test[$other]")
+        }
     }
 
     private fun report(set: List<Pos>, k: Double, m: DoubleArray, net: LearnedNet, label: String) {
