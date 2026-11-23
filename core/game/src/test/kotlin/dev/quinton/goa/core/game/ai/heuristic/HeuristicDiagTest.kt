@@ -78,7 +78,8 @@ class HeuristicDiagTest {
                     )
                     drain(r.session, seenEvents, Int.MAX_VALUE, lines)
                     val aWon = r.winner == aTeam
-                    out += "DIAG game ${red + blue} a=$aName ${if (aRed) "Red" else "Blue"} won=$aWon rounds=${r.rounds} " +
+                    val side = if (aRed) "Red" else "Blue"
+                    out += "DIAG game ${red + blue} a=$aName $side won=$aWon rounds=${r.rounds} " +
                         "reason ${r.session.state.winReason} a ${tally(r.session, aTeam)} | " +
                         "b ${tally(r.session, aTeam.opponent)}"
                     val heroesA = (if (aRed) red else blue).toSet()

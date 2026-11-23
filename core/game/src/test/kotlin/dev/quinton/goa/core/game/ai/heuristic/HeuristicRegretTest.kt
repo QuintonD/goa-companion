@@ -418,7 +418,9 @@ class HeuristicRegretTest {
 
     private fun replay(specs: String) {
         for (spec in specs.split(",").map { it.trim() }.filter { it.isNotEmpty() }) {
-            val (idx, side, opp, id) = spec.split(":")
+            val parts = spec.split(":")
+            val (idx, side, opp) = parts
+            val id = parts[3]
             val i = idx.toInt()
             val all = AiHarness.mixedLineups(i + 1, size = format.size)
             println("REPLAY ==== $spec ${all[i]}")

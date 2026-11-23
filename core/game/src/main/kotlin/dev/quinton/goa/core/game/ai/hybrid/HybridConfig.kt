@@ -101,7 +101,7 @@ data class HybridConfig(
     val memo: Boolean = false,
     /** The kill extension: 0 off, 1 a playout runs on through a next-turn team kill of either side, 2 ours only. */
     val kill: Int = 0,
-    /** Card plays: cards the book's card look scores more than this below its best are not searched (0 = off; 3 kept). */
+    /** Card plays: cards the book's card look scores more than this below its best are not searched (0 off; 3 kept). */
     val prune: Double = 0.0,
     /** Card-play horizon on a given turn of the round (1–4), overriding [horizon]. */
     val playHorizonByTurn: Map<Int, HybridHorizon> = emptyMap(),
@@ -137,6 +137,9 @@ data class HybridConfig(
             "rep", "repM", "repT",
         )
 
+        private fun byTurn(k: Map<String, Double>, prefix: String): Map<Int, HybridHorizon> =
+            (1..4).mapNotNull { t -> k["$prefix$t"]?.let { t to HybridHorizon.of(it.toInt()) } }.toMap()
+
         fun fromKnobs(k: Map<String, Double>): HybridConfig {
             val d = HybridConfig()
             val pol = k["pol"]?.toInt()?.let(PolicyMode::of)
@@ -158,8 +161,8 @@ data class HybridConfig(
                 memo = k["tt"]?.let { it != 0.0 } ?: d.memo,
                 kill = k["kill"]?.toInt() ?: d.kill,
                 prune = k["prune"] ?: d.prune,
-                playHorizonByTurn = (1..4).mapNotNull { t -> k["hz$t"]?.let { t to HybridHorizon.of(it.toInt()) } }.toMap(),
-                otherHorizonByTurn = (1..4).mapNotNull { t -> k["hzo$t"]?.let { t to HybridHorizon.of(it.toInt()) } }.toMap(),
+                playHorizonByTurn = byTurn(k, "hz"),
+                otherHorizonByTurn = byTurn(k, "hzo"),
                 topSpace = k["topS"]?.toInt(),
                 topUnit = k["topU"]?.toInt(),
                 replies = k["rep"]?.toInt() ?: d.replies,

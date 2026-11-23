@@ -124,7 +124,7 @@ class HybridAi(
     private fun enemiesToPlay(s: GameState, team: Team): Boolean =
         !s.revealed && s.heroes.any { it.team != team && it.unresolved.isEmpty() && it.hand.size > 1 }
 
-    @Suppress("CyclomaticComplexMethod", "LongMethod")
+    @Suppress("CyclomaticComplexMethod", "LongMethod", "NestedBlockDepth")
     private fun search(es: EngineSession, d: Decision, cancelled: () -> Boolean): Choice? {
         val rng = Random(HeuristicAi.mix(seed, d.id * 1_000_003L + d.seat.hashCode()))
         val base = rng.nextLong()
@@ -187,8 +187,17 @@ class HybridAi(
                             answered.incrementAndFetch()
                             val path = if (memoHere) ArrayList<MemoKey>() else null
                             val v = playout(
-                                f, team, horizon, seenOf, s.salt, if (memoHere) snapshot else null, view, path,
-                                leafEval, seenByUs, col.reply,
+                                f,
+                                team,
+                                horizon,
+                                seenOf,
+                                s.salt,
+                                if (memoHere) snapshot else null,
+                                view,
+                                path,
+                                leafEval,
+                                seenByUs,
+                                col.reply,
                             )
                             values[j][i] = v
                             found[j][i] = path
@@ -373,7 +382,13 @@ class HybridAi(
      * the leaf value. With a [memo], a position it already valued ends the playout at once; [path]
      * collects the positions passed (for the memo).
      */
-    @Suppress("LongParameterList", "CyclomaticComplexMethod", "LongMethod", "NestedBlockDepth")
+    @Suppress(
+        "LongParameterList",
+        "CyclomaticComplexMethod",
+        "LongMethod",
+        "NestedBlockDepth",
+        "LoopWithTooManyJumpStatements",
+    )
     private fun playout(
         f: EngineSession,
         rootTeam: Team,
@@ -417,8 +432,11 @@ class HybridAi(
                         s.acting != startActor || turnIndex(s) != startTurn
 
                 HybridHorizon.TURN -> turnsEnded >= (if (extended) 2 else 1)
+
                 HybridHorizon.TWO_TURNS -> turnsEnded >= (if (extended) 3 else 2)
+
                 HybridHorizon.ROUND -> s.round != startRound
+
                 HybridHorizon.ROUND_PLUS -> newRoundTurn >= 0 && turnIndex(s) != newRoundTurn
             }
             if (stop && !extended && config.kill > 0 && turnsEnded == turnsWanted && turnsWanted > 0) {
@@ -444,7 +462,8 @@ class HybridAi(
             } else {
                 null
             }
-            val drawn = if (replyRng != null && turnsEnded == 0 && d.team != rootTeam && d.kind == DecisionKind.PLAY_CARD) {
+            val enemyCard = turnsEnded == 0 && d.team != rootTeam && d.kind == DecisionKind.PLAY_CARD
+            val drawn = if (replyRng != null && enemyCard) {
                 drawReply(f, d, seenOf, replyRng)
             } else {
                 null
@@ -461,10 +480,22 @@ class HybridAi(
     }
 
     /** An enemy's card play drawn from the opponent model (softmax of the book's card scores, 15% uniform). */
-    private fun drawReply(f: EngineSession, d: Decision, seenOf: (Team) -> Map<String, Set<String>>, rng: Random): Choice? {
+    private fun drawReply(
+        f: EngineSession,
+        d: Decision,
+        seenOf: (Team) -> Map<String, Set<String>>,
+        rng: Random,
+    ): Choice? {
         val pool = d.options.map { (it as? Choice.Card)?.cardId ?: return null }
         val w = policy.playWeights(
-            f.engineData, f.setup, f.state, d.seat, pool, maxOf(1, config.replyModel), config.replyTau, seenOf,
+            f.engineData,
+            f.setup,
+            f.state,
+            d.seat,
+            pool,
+            maxOf(1, config.replyModel),
+            config.replyTau,
+            seenOf,
         ) ?: return null
         var r = rng.nextDouble() * w.sum()
         for ((i, x) in w.withIndex()) {
@@ -485,7 +516,11 @@ class HybridAi(
         val ev = killEvaluator(data)
         val enemy = if (team == Team.RED) Team.BLUE else Team.RED
         val ours = TeamKills.chances(ev, s, team).firstOrNull()?.attackers.orEmpty()
-        val theirs = if (config.kill == 1) TeamKills.chances(ev, s, enemy).firstOrNull()?.attackers.orEmpty() else emptyMap()
+        val theirs = if (config.kill == 1) {
+            TeamKills.chances(ev, s, enemy).firstOrNull()?.attackers.orEmpty()
+        } else {
+            emptyMap()
+        }
         return (ours + theirs).takeIf { it.isNotEmpty() }
     }
 
