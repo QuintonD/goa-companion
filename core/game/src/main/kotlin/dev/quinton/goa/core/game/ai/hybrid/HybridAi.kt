@@ -60,11 +60,13 @@ class HybridAi(
     private val runner: SampleRunner = SampleRunner.SEQUENTIAL,
 ) : AiPlayer {
     val config: HybridConfig = HybridConfig.fromKnobs(knobs)
-    private val bookTune = knobs.filterKeys { it !in HybridConfig.NAMES && ':' !in it }
+    private val bookTune = knobs.filterKeys {
+        it !in HybridConfig.NAMES && !it.startsWith(ROOT_TUNE) && !it.startsWith(PLAYOUT_TUNE)
+    }
 
     /**
-     * Book knobs for one of the two books only: `r:name` for the root book (the real question's own answer,
-     * which orders the candidates, and the fallback), `p:name` for the book inside the playouts and the tree;
+     * Book knobs for one of the two books only: `r.name` for the root book (the real question's own answer,
+     * which orders the candidates, and the fallback), `p.name` for the book inside the playouts and the tree;
      * a plain name goes to both. A costly look can then answer the real question but stay out of the playouts.
      */
     private val rootTune = bookTune + prefixed(knobs, ROOT_TUNE)
@@ -763,11 +765,11 @@ class HybridAi(
         private fun prefixed(knobs: Map<String, Double>, prefix: String): Map<String, Double> =
             knobs.filterKeys { it.startsWith(prefix) }.mapKeys { it.key.removePrefix(prefix) }
 
-        /** Book knobs for the root book only (`r:name`). */
-        const val ROOT_TUNE: String = "r:"
+        /** Book knobs for the root book only (`r.name`). */
+        const val ROOT_TUNE: String = "r."
 
-        /** Book knobs for the playouts' book only (`p:name`). */
-        const val PLAYOUT_TUNE: String = "p:"
+        /** Book knobs for the playouts' book only (`p.name`). */
+        const val PLAYOUT_TUNE: String = "p."
 
         private const val REPLY_SALT = 0x2E9_1E5L
 
