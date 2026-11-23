@@ -249,19 +249,24 @@ class LearnedTrainTest {
     private fun reports(test: List<Pos>, valid: List<Pos>, k: Double, m: DoubleArray, net: LearnedNet) {
         report(test, k, m, net, "test")
         report(valid, k, m, net, "valid")
+        // `avg(a/b/c)` (Track E2): an ensemble, scored by the mean of its nets' logits (as the leaf averages them).
         for (other in env("AI_COMPARE")?.split(",").orEmpty().filter { it.isNotBlank() }) {
-            report(test, k, m, Learned.net(other), "test[$other]")
+            val nets = other.removePrefix("avg(").removeSuffix(")").split("/").map { Learned.net(it.trim()) }
+            report(test, k, m, { p -> nets.sumOf { logit(it, p) } / nets.size }, "test[$other]")
         }
     }
 
-    private fun report(set: List<Pos>, k: Double, m: DoubleArray, net: LearnedNet, label: String) {
+    private fun report(set: List<Pos>, k: Double, m: DoubleArray, net: LearnedNet, label: String) =
+        report(set, k, m, { p -> logit(net, p) }, label)
+
+    private fun report(set: List<Pos>, k: Double, m: DoubleArray, logitOf: (Pos) -> Double, label: String) {
         fun line(title: String, ps: List<Pos>) {
             if (ps.isEmpty()) return
             val y = ps.map { it.redWon }
             val hand = Logistic.loss(ps.map { doubleArrayOf(it.hand.toDouble()) }, y, doubleArrayOf(k))
             val fit = Logistic.loss(ps.map { p -> DoubleArray(p.terms.size) { p.terms[it].toDouble() } }, y, m)
             val nn = ps.indices.sumOf { i ->
-                val p = Trainer.sigmoid(logit(net, ps[i])).coerceIn(1e-9, 1 - 1e-9)
+                val p = Trainer.sigmoid(logitOf(ps[i])).coerceIn(1e-9, 1 - 1e-9)
                 -(if (y[i]) ln(p) else ln(1 - p))
             } / ps.size
             println(
@@ -276,7 +281,7 @@ class LearnedTrainTest {
         if (searched.isNotEmpty()) {
             val rms = kotlin.math.sqrt(
                 searched.sumOf { p ->
-                    val d = Trainer.sigmoid(logit(net, p)) - p.sv
+                    val d = Trainer.sigmoid(logitOf(p)) - p.sv
                     d * d
                 } / searched.size,
             )
