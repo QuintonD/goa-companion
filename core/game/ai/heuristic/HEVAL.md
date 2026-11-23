@@ -34,6 +34,8 @@ so the hand set reproduces the old evaluation exactly (`GameParityTest` unchange
 | `oppPool` | attack plays still to come that reach an enemy minion. A hidden hand counts with the pool's weights, and the count stops at the plays left this round (fixes REVIEW-2-design §2.2.4) *(new)* | 0 |
 | `access` | minus the actions a hero needs to stand in its zone: walking 3 spaces an action, or Fast Travel (p.11) then walking. An off-board hero counts from its Throne respawn (p.7). Blocking an enemy's Fast Travel now shows here (#13) *(new)* | 0 |
 | `laneProj` | the lane from one projected minion battle (#9, #14). Both sides' expected minion kills this round come from the reachable attack plays (half of each). At the round's end the exact a ≥ 2b push and the 2b − a carry-over apply (engine `minionBattle`). The next push's chance comes from the new zone's spawns, not 0.5 *(new)* | 0 |
+| `teamExposure` | each enemy hero's expected loss on its best target among our heroes (its card this turn and next, `HContext.exposureFrom`), summed over the enemy heroes. An enemy plays one card a turn, so it is charged once (REVIEW-2-design §2.2.6) *(B2)* | 0 |
+| `lastRace` | for a lane whose next push can end the game (match point): who empties the Battle Zone first. Turn by turn this round from each hero's reachable attack plays on the lane's minions (half of them kill), the round's Minion Battle (a ≥ 2b pushes, else 2b − a stays), two more rounds at 0.15 kills a hero a turn, then the designer's push chance. `100 × (2W − 1)` *(B2)* | 0 (0.5 in set 4) |
 
 There is also a scale on the book's minion price, `laneKillDelta` (HFacts, additive hook `laneDelta`, default
 1): REVIEW-2-design §2.2.1 notes that the lane's ×1.4 never reached it.
@@ -48,7 +50,9 @@ There is also a scale on the book's minion price, `laneKillDelta` (HFacts, addit
 - The old knobs keep their meaning: `lane` sets the lane's scale, `opp` multiplies opportunity's 2.0, and
   `oppLane` is the lane-threat share.
 
-Sets: 0 `hand`, 1 `fit`, 2 `distil`, 3 `fitAll` (below).
+Sets: 0 `hand`, 1 `fit`, 2 `distil`, 3 `fitAll` (below), 4 `race` (hand + `lastRace` 0.5, Track B2).
+
+x10 with the HEval leaf (`HybridAi`, leaf 0, its default) seats its book with `hev=4` (`HEvalWeights.searchDefaults`), so the book's playouts and the leaf both score with `race`. A spec's own `hev` overrides it: `x10+…+hev=0` is the search as before B2. The book alone (h1–h10) keeps set 0.
 
 ## Calibration pipeline
 
@@ -151,3 +155,43 @@ for h10 and better as a leaf. Sets 1–3 and the new terms stay as knobs for mea
   - a last-push race at the last wave: who empties the zone first, from the reachable attack plays and
     the a ≥ 2b battle.
 - **Read on the position bench first** (Track A), then x10 leaf=0 against leaf=2 by SPRT.
+
+## Wave 3 — Track B2: team exposure and the last-push race
+
+Track B's residuals pointed at two missing terms (above, "What would move the leaf next"). Both are now named
+terms, `teamExposure` and `lastRace`, at weight 0 in the hand set. They were judged in four stages: leaf ranking,
+the position bench, h10 games and x10 games. RESULTS.md "Wave 3 — Track B2" has the tables.
+
+**Team exposure.** It doesn't help.
+- **Leaf ranking.** On 48,144 new leaves (x10 with the net leaf against s10, 16 games, line-ups 2520–2527),
+  team-level exposure ranks candidates no better than per-hero exposure scaled down. Pure team exposure picks
+  the net's best candidate in 71.4% of decisions, the hand weights in 71.2%, and per-hero exposure ×0.4 in
+  72.4%. Fitted within samples, `teamExposure` gets a weight of +0.03 next to `exposure` at −0.48.
+- **Position bench.** x10 drops 3–6 probe answers.
+- **h10 games.** Pure team exposure loses to h10 by SPRT (44.5%, 256 games); mixed with per-hero exposure
+  it measures 48.4%.
+
+The net barely reacts to exposure within a sample: the gap is the weight, not how the threat is shared out.
+
+**Last-push race.** It is kept, for the search only.
+- **The residual did not replicate.** Track B's "the net prices a last-wave minion at 52 coins, HEval at
+  21" depends on the sample. On Track B's own 8 games the within-sample slope is net 42 against HEval 25.
+  On the 16 new games it is net 33 against HEval 40. Fitted within samples, `lastRace` takes a negative
+  weight (−0.35), and leaf ranking moves by noise only.
+- **Games.** As the book's evaluation inside x10 and as x10's leaf, `lastRace` 0.5 beats the same search
+  without it by SPRT: 57.5% over 240 games. Its wins by the last push rose from 56 to 82.
+- **What the search gains is not leaf ranking.** The term changes how the book plays the end of its
+  playouts: it races to empty the zone.
+- **As h10's own evaluation** it measured even (51.2%, 256 games, SPRT undecided) and lost six of the
+  puzzle bench's defends, all in p36. There the book's one-ply finish crosses a push into match point and
+  answers the rest of the action differently. So h1–h10 keep set 0, and x10 seats `race` by default.
+
+**Against the net leaf** the race does not close the gap: x10 leaf=0 with `race` against x10 leaf=2 is 38.9%
+over 144 games (SPRT H0). The bar (an HEval leaf that beats the net leaf) is still not met.
+
+**What would move the leaf next.**
+- **The race over the whole lane, not only at match point.** The same race decides every push. Replacing the
+  designer's push chance in `lane` with the race is the natural next term. It would need its own games, and the
+  audit rules out re-fitting `lane`.
+- **A teacher better than the net**, as above. On the leaves the net did not see the race either, yet the
+  race won games.

@@ -182,8 +182,26 @@ class HEvalWeights(val name: String, val w: DoubleArray, val laneDelta: Double) 
             HTerm.EXPOSURE to -0.428, HTerm.OPP_POOL to 5.857, HTerm.ACCESS to 2.583, HTerm.OPPORTUNITY to 0.0,
         )
 
+        /**
+         * The hand weights plus the last-push race ([HTerm.LAST_RACE] 0.5; HEVAL.md "Wave 3 — Track B2"). As the
+         * book and the leaf of x10 with the HEval leaf it beat the same search without it by SPRT (57.5%, 240
+         * games). As h10's own evaluation it measured even (51.2%, 256 games) and lost one puzzle's defends, so the
+         * book keeps [HAND]; the search uses this set by default ([searchDefaults]).
+         */
+        val RACE: HEvalWeights = HAND.edit("race", HTerm.LAST_RACE to 0.5)
+
         /** Weight sets by number (`hev=1`). 0 is [HAND]. */
-        val SETS: List<HEvalWeights> = listOf(HAND, FIT, DISTIL, FIT_ALL)
+        val SETS: List<HEvalWeights> = listOf(HAND, FIT, DISTIL, FIT_ALL, RACE)
+
+        /** The set the HEval-leaf search (x10) gives its book and its leaf: [RACE]. */
+        const val SEARCH_SET: Int = 4
+
+        /**
+         * Book knobs a search seats its book with by default: `hev` = [SEARCH_SET] when its leaf is HEval
+         * ([heLeaf]), so the book's playouts and the leaf both score with it. A spec's own `hev` overrides it.
+         */
+        fun searchDefaults(heLeaf: Boolean): Map<String, Double> =
+            if (heLeaf) mapOf("hev" to SEARCH_SET.toDouble()) else emptyMap()
 
         /** The set the book uses when no knob says otherwise. */
         const val DEFAULT_SET: Int = 0

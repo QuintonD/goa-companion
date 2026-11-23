@@ -66,6 +66,9 @@ import org.junit.Test
  *   `AI_BENCH_KEEP`) regenerates a probe file; never on the sealed line-ups 5000+.
  */
 class AiPositionBenchTest {
+    /** `AI_BENCH_MISSES=1`: a line per puzzle question answered wrong (which one, and the winning options). */
+    private val misses = System.getenv("AI_BENCH_MISSES") != null
+
     private val threads = System.getenv("AI_THREADS")?.toIntOrNull() ?: 2
     private val budget = System.getenv("AI_BENCH_BUDGET")?.toLongOrNull() ?: ROUND_BUDGET
 
@@ -203,6 +206,7 @@ class AiPositionBenchTest {
 
             else -> false
         }
+        if (right == false && misses) println("BENCH MISS $spec $id ${d.kind} answered $i, winning ${wins.joinToString("/")}")
         return Row(set, d.kind, right, if (right == true) 0.0 else 1.0, ms = ms)
     }
 

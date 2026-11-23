@@ -16,6 +16,7 @@ import dev.quinton.goa.core.game.ai.SampleRunner
 import dev.quinton.goa.core.game.ai.Searcher
 import dev.quinton.goa.core.game.ai.heuristic.HContext
 import dev.quinton.goa.core.game.ai.heuristic.HEval
+import dev.quinton.goa.core.game.ai.heuristic.HEvalWeights
 import dev.quinton.goa.core.game.ai.heuristic.HeuristicAi
 import dev.quinton.goa.core.game.engine.Determinizer
 import dev.quinton.goa.core.game.engine.EngineData
@@ -51,7 +52,9 @@ class HybridAi(
     private val runner: SampleRunner = SampleRunner.SEQUENTIAL,
 ) : AiPlayer {
     val config: HybridConfig = HybridConfig.fromKnobs(knobs)
-    private val bookTune = knobs.filterKeys { it !in HybridConfig.NAMES }
+    // The HEval-leaf search's default weights (HEVAL.md "Wave 3 — Track B2"); a `hev` knob overrides it.
+    private val bookTune = HEvalWeights.searchDefaults(config.leaf == HybridLeaf.HEVAL) +
+        knobs.filterKeys { it !in HybridConfig.NAMES }
 
     /** h10: the answer to everything the search does not take, and the fallback. */
     val book: HeuristicAi = HeuristicAi(10, seed, tune = bookTune)

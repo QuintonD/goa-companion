@@ -190,3 +190,64 @@ Predicting the outcome better did not make a better leaf. A leaf only has to ran
 sample, and those differences are small next to the spread between positions. Within samples the hand terms
 explain 53% of the net's variance and the refit 74%: 91% at round-start leaves, 67% at mid-round leaves.
 HEVAL.md "Residuals" has where the rest sits.
+
+## Wave 3 — Track B2 (two evaluation terms from the residuals, 2026-11-23)
+
+Two new HEval terms, at weight 0 in the hand set (HEVAL.md "Wave 3 — Track B2"):
+- `teamExposure`: each enemy hero's threat charged once, to its best target, through the additive hook
+  `HContext.exposureFrom`.
+- `lastRace`: the race to empty a match-point Battle Zone.
+
+Every line-up below is development (2520+, 3000+). Wilson gives the 95% interval; "pairs" is the pentanomial
+interval over mirrored pairs. Keep decisions are the pentanomial SPRT (p0 0.5, p1 0.55, α = β = 0.05), the same
+formula as `Tournament.Sprt.verdict(score)`, run in batches of 24 line-ups. The answer times come from a shared,
+loaded machine, so read them as upper bounds.
+
+**Leaf ranking.** The data are 48,144 leaves of x10 with the net leaf against s10: 16 games, line-ups
+2520–2527, 2,833 searched decisions. The column is the share of decisions where the weights pick the net's
+best candidate.
+
+| Weights | Picks the net's best | Net regret, coins |
+|---------|---------------------:|------------------:|
+| hand | 71.2% | 1.97 |
+| `teamExposure` −1 in place of `exposure` | 71.4% | 2.02 |
+| `teamExposure` −0.5 in place of `exposure` | 71.9% | 1.93 |
+| `teamExposure` −0.7, `exposure` −0.3 | 71.3% | 2.01 |
+| `exposure` −0.4 (control: per-hero, scaled) | 72.4% | 1.84 |
+| `lastRace` 0.5 | 71.3% | 1.97 |
+| `lastRace` 1 | 71.1% | 1.96 |
+
+Fitted within samples: `exposure` −0.48, `teamExposure` +0.03, `lastRace` −0.32 (held-out regret 1.61).
+
+**Position bench** (Track A's `AiPositionBenchTest`, version 1, puzzles + probe):
+
+| Spec | puzzles right (271) | probe right (233) | probe wp regret |
+|------|-----:|-----:|-----:|
+| h10 | 77.9% | 51.9% | .0173 |
+| h10 + team exposure (`teamExposure` −1, `exposure` 0) | 77.1% | 51.9% | .0176 |
+| h10 + team exposure mixed (−0.7 / −0.3) | 77.1% | 51.1% | .0176 |
+| h10 + `lastRace` 0.5 | 75.3% (six p36 defends lost) | 52.4% | .0168 |
+| x10+pol=1+scope=3+leaf=0 | 82.3% | 62.2% | .0114 |
+| the same + team exposure | 81.2% | 59.7% | .0107 |
+| the same + team exposure mixed | 82.3% | 60.9% | .0108 |
+| the same + `lastRace` 0.5 | 82.7% | 62.2% | .0123 |
+
+**Games** (mirrored 2v2):
+
+| Pair | Line-ups | Games | Win | Wilson | Pairs | SPRT | Kept |
+|------|----------|------:|----:|--------|-------|------|------|
+| h10 + `lastRace` 0.5 : h10 | 3000–3127 | 256 | 51.2% | 45.1–57.2 | 46.4–55.9 | undecided | no (book keeps set 0) |
+| h10 + team exposure mixed : h10 | 3000–3127 | 256 | 48.4% | 42.4–54.5 | 42.6–54.3 | undecided | no |
+| h10 + team exposure : h10 | 3000–3127 | 256 | 44.5% | 38.6–50.7 | 39.5–49.5 | H0 | no |
+| **x10 leaf=0 + `lastRace` 0.5 : x10 leaf=0** | 3200–3319 | 240 | **57.5%** | 51.2–63.6 | 52.4–62.6 | **H1** | **yes: set 4 `race`, x10's default** |
+| x10 leaf=0 + `lastRace` 0.5 : x10 leaf=2 (net) | 3400–3471 | 144 | 38.9% | 31.3–47.0 | 31.4–46.4 | H0 | (the bar is not met) |
+
+In the kept pair, wins by the last push went from 56 to 82 (Throne 15 to 29, Life 31 to 27). Defeats per game
+were 0.97 against 0.90. Card plays took 1.25 s against 1.18 s mean (p95 3.7 s for both; max 13.6 s for both).
+
+**What changed in code.**
+- `HEvalWeights.RACE` (set 4: hand + `lastRace` 0.5) and `HEvalWeights.searchDefaults`.
+- `HybridAi` (Track C's file, additive) seats its book with `hev=4` when its leaf is HEval. A spec's `hev`
+  overrides it, and `x10+…+hev=0` is the search as before.
+- The book, and so h1–h10 and `GameParityTest`, are unchanged.
+- Team exposure stays a weight-0 term for measurement.
