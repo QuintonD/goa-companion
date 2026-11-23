@@ -191,3 +191,81 @@ s10 and every opponent here is deterministic; not retried. Card pruning (`prune`
 every device; `cancelled()` stops it and the book answers.
 
 FINAL_TABLE
+
+## Wave 3 — Track E: a new net generation for the search's leaf (route b, 2026-11-22/23)
+
+The question: the hybrid search scores the end of book-played playouts, a different distribution from the old nets'
+training data (old strength 6–8 self-play), so would a net trained on the book's own games make a better leaf than
+the checked-in ensemble (`leaf=2`, the mean of `LearnedWeights` 1–3)? **No: three retrained ensembles all fit the
+book's positions better, and none plays better at the leaf. `leaf=2` stays.**
+
+**Data** (`LearnedSelfPlayTest`, now with book and hybrid sides): 9 600 games on the training line-ups only
+(`Teams.TRAIN`, games 0–9 599), 2v2 ×1, 3v3 ×1, 4v4 ×0.3. Each team plays a variant drawn per game:
+`h10` ×4, `h8`, `h7`, `h6` ×1 each (noisier), `h10+fear=0` ×1.5 and `h10+fear=0+opp=2` ×1.5 (aggressive: ignores
+its own exposure, so walking into danger gets punished). About 1.2 games a second at three threads. In those
+games h10 won 52%, h8 46%, h7 48%, h6 41%, the aggressive variants 52–53%. Plus 256 games of the search itself
+(the first tournament below, stored), for generation 2. Positions: turn boundaries only (`AI_RESOLVED=0`), which is
+what a turn-horizon playout's leaf is: 229 025 positions (235 562 with the search's games). Split by line-up as
+before (line-up % 10: 8 validation, 9 test). The data and nets live outside git (`~/.goa-qa/trackE/`); every game
+replays from its record.
+
+**Nets** (same features and architecture, 374 → 64 → 32 → 1 with the hero and card tables; λ 0.7):
+
+| Ensemble | Start | Teacher | Data | Test log-loss (each seed) | Checked-in nets on the same split |
+|---|---|---|---|---|---|
+| `w` (w1–w3) | the checked-in nets (`AI_INIT=cur1…3`, lr 1e-4) | hand | book | 0.5688 / 0.5704 / 0.5693 | 0.5882 / 0.5882 / 0.5892 |
+| `s` (s1–s3) | random, seeds 1–3 | hand | book | 0.5709 / 0.5691 / 0.5691 | |
+| `g` (g1–g3) | the checked-in nets | the checked-in ensemble | book + 256 search games | 0.5651 / 0.5675 / 0.5657 | 0.5891 (cur1) |
+
+The hand evaluation scores 0.607 there and the 12-term fit 0.588: on book positions the checked-in nets are no
+better than a logistic fit of the hand terms, and every retrained net is 0.02 better (2v2 0.561 against 0.582,
+3v3 0.571 against 0.591). The distribution shift is real.
+
+**Position bench** (Track A's `AiPositionBenchTest`, version 1, copied in with a hook for `net=` specs; puzzles =
+solver truth, probe = the old net-based oracle, so it leans to the checked-in nets), all at W2:
+
+| Leaf | puzzles right (271) | probe right (233) | probe wp regret |
+|---|---|---|---|
+| checked-in ensemble (`leaf=2`) | 83.8% | 70.0% | .0097 |
+| `avg(w1,w2,w3)` | 83.0% | 61.8% | .0099 |
+| `avg(g1,g2,g3)` | 84.1% | 65.2% | .0091 |
+| `avg(s1,s2,s3)` | 83.8% | 63.5% | .0106 |
+| `avg(cur1,cur2,cur3,w1,w2,w3)` | 83.8% | 66.5% | .0093 |
+
+The leaf hardly changes a puzzle answer (225–228 of 271); the probe agrees most with the nets its oracle uses. The
+bench did not predict the games below (`g` had the lowest probe regret and lost).
+
+**Games** (W2 = `x10+pol=1+scope=3+tt=1+K=24+topS=8+topU=6+rep=4`, the same search on both sides, only the leaf
+differs; 2v2 development line-ups, mirrored, `AI_FAMILY=mixed` = the heuristic tournaments' line-ups and seeds,
+`AI_THREADS=3`, pentanomial SPRT at 0.55 against 0.50; Wilson 95%):
+
+| Leaf (against W2 with `leaf=2`) | Line-ups | Games | Won | Rate | Wilson | Pairs (lost both / split / won both) | SPRT | Heroes lost a game (W2's) |
+|---|---|---|---|---|---|---|---|---|
+| `avg(w1,w2,w3)` | 1000–1127 | 256 | 122–134 | 47.7% | 41.6–53.8 | 34 / 66 / 28 | open after 256 | 1.01 (0.80) |
+| `avg(g1,g2,g3)` | 1200–1295 | 192 | 86–106 | 44.8% | 37.9–51.9 | 27 / 52 / 17 | **H0** after 192 | 1.11 (0.95) |
+
+Neither is stronger; both lose more heroes than the checked-in leaf. What this says: a better fit to the book's
+results is not a better leaf. As in v0.9–v0.14 ("log-loss hardly separates what play separates"), the search
+picks the option the leaf overrates, and nets fitted to book self-play (cheap, noisy games with reckless variants)
+seem to rate exposure differently from nets fitted to the old searches' games, whose positions are closer to what
+a searching player reaches. The checked-in ensemble is the leaf to beat; a fourth generation would need targets
+from the search itself (the search's backed-up values, or many more search games), not more book games.
+
+**What was added** (all opt-in, measurement only): `HybridAi.leafOverride` (internal, null in play: a test can put
+a saved net at the leaves); `LeafNets` (test: `h…`, `x…+net=avg(a,b,c)`, `W2` as self-play and tournament sides
+through `Learned.side`; `cur1..3` name the checked-in nets); `TeamTournamentTest` `AI_FAMILY=mixed` (the heuristic
+tournaments' line-ups, refuses 5000–5095); the trainer: warm start from a net (`AI_INIT`), an ensemble teacher
+(`AI_TEACHER=avg(cur1,cur2,cur3)`), several runs in one JVM (`AI_TRAIN_RUNS`), `AI_COMPARE`, and rows kept as one
+array each (no big copy, so 230 000 positions train in the 1.5 GB run heap). The bench file is Track A's, with a
+three-line hook for `net=` specs (resolve against Track A's copy when merging).
+
+To reproduce (from the checkout root; `S` = the swarm scratchpad, `Q=~/.goa-qa/trackE`):
+
+```
+AI_SELFPLAY=4800:$Q/data/book-c.jsonl AI_FIRST=4800 AI_THREADS=3 AI_SIZES='2*1,3*1,4*0.3' \
+  AI_VARIANTS='h10*4,h8*1,h7*1,h6*1,h10+fear=0*1.5,h10+fear=0+opp=2*1.5' $S/goa-run LearnedSelfPlayTest
+AI_NETS=$Q/nets AI_CACHE=$Q/cache AI_TRAIN=$Q/data/book-a.jsonl,… AI_RESOLVED=0 AI_THREADS=3 \
+  AI_TRAIN_RUNS='w1:AI_INIT=cur1;AI_LR=1e-4;AI_SEED=1|…' $S/goa-run LearnedTrainTest
+AI_NETS=$Q/nets AI_TEAMS='W2+net=avg(w1,w2,w3):W2' AI_SIZE=2 AI_FAMILY=mixed AI_FIRST=1000 AI_N=128 AI_SPRT=0.55 \
+  AI_THREADS=3 $S/goa-run TeamTournamentTest
+```
