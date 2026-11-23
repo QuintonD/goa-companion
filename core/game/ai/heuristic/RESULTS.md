@@ -265,7 +265,11 @@ defeats 1.47 a game against s10's 1.91. 3v3 costs more: W2T's card play 1 533 ms
 maximum is over the ~10 s card-play budget there (six seats: more enemy-reply columns and longer playouts). With the
 app's sample threads it falls by about their number (the samples and candidates are independent tasks).
 
-PENDING: against h10, and the single- and 3-thread times.
+Against the book alone (h10, 300–347, 96 games): W2T **95.8%** (89.8–98.4; pairs 0/0/4/0/44), 0.42 defeats a game
+against h10's 1.38. Answer 234 / 943 / 14 426 ms (mean / p95 / max), card play 538 / 1 735 / 14 426 ms, three games
+at once on the loaded machine.
+
+PENDING: the single- and 3-thread times.
 
 ### Strength 10 in AiPlayers
 
