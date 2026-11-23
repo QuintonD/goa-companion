@@ -129,5 +129,68 @@ class SearchValueTest {
         return sb.toString()
     }
 
-    private fun fmt(v: Double) = if (v.isNaN()) "NaN" else String.format(java.util.Locale.ROOT, "%.4f", v)
+    /**
+     * The same values recorded while a game is played (`AI_SV_LIVE` in [LearnedSelfPlayTest]): each search side
+     * reports the first card play of its team in each turn it searched; [lines] maps the turns to the trainer's
+     * position indices by replaying the record.
+     */
+    internal class Live(players: List<dev.quinton.goa.core.game.AiPlayer>) {
+        private class Row(val turn: Int, val team: Team, val best: Double, val max: Double, val n: Int)
+
+        private val rows = java.util.Collections.synchronizedList(ArrayList<Row>())
+        private val searched = HashSet<Pair<Int, Team>>()
+
+        @Volatile
+        private var current: Pair<Int, Team>? = null
+
+        init {
+            for (p in players) {
+                val h = p as? HybridAi ?: continue
+                h.onSearched = { _, cands, means, best ->
+                    current?.let { (turn, team) ->
+                        current = null
+                        val i = cands.indexOf(best)
+                        val max = means.filter { !it.isNaN() }.maxOrNull() ?: Double.NaN
+                        rows += Row(turn, team, if (i < 0) Double.NaN else means[i], max, cands.size)
+                    }
+                }
+            }
+        }
+
+        /** Before each decision: marks the one whose search counts (as [SearchValueTest.game] picks it). */
+        fun observe(s: EngineSession, d: dev.quinton.goa.core.game.Decision) {
+            current = null
+            val st = s.state
+            if (d.kind != DecisionKind.PLAY_CARD || st.revealed || d.options.size <= 1 || st.winner != null) return
+            val key = Searcher.turnIndex(st) to d.team
+            if (searched.add(key)) current = key
+        }
+
+        fun lines(tag: String, r: Learned.GameRecord): String {
+            val index = HashMap<Int, Int>()
+            val s = TestData.engine.newGame(r.setup) as EngineSession
+            var lastTurn = -1
+            var n = -1
+            for (c in r.answers) {
+                val d = s.pending ?: break
+                val st = s.state
+                val turn = Searcher.turnIndex(st)
+                if (turn != lastTurn && st.winner == null) index[turn] = ++n
+                lastTurn = turn
+                if (s.answer(d.id, c) !is AnswerResult.Accepted) break
+            }
+            val sb = StringBuilder()
+            for (row in rows) {
+                val i = index[row.turn] ?: continue
+                sb.append(tag).append('\t').append(r.game).append('\t').append(i).append('\t').append(row.team.name)
+                    .append('\t').append(fmt(row.best)).append('\t').append(fmt(row.max)).append('\t')
+                    .append(fmt(row.best)).append('\t').append(row.n).append('\n')
+            }
+            return sb.toString()
+        }
+    }
+
+    private companion object {
+        fun fmt(v: Double) = if (v.isNaN()) "NaN" else String.format(java.util.Locale.ROOT, "%.4f", v)
+    }
 }

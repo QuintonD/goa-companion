@@ -101,20 +101,32 @@ class LearnedSelfPlayTest {
         val bv = pick(variants, rng)
         val coin = if (g % 2 == 0) Team.RED else Team.BLUE
         val setup = AiHarness.setup(red, blue, AiLevel.NORMAL, AiLevel.NORMAL, coin)
+        val redAi = sides.getValue(rv).factory(g * 2L + 1)
+        val blueAi = sides.getValue(bv).factory(g * 2L + 2)
+        // AI_SV_LIVE=<values.tsv> (Wave 3 Track E2): a search side's own values, as SearchValueTest writes them.
+        val live = liveValues?.let { SearchValueTest.Live(listOf(redAi, blueAi)) }
         val r = AiHarness.play(
             setup,
-            mapOf(
-                Team.RED to explore(sides.getValue(rv).factory(g * 2L + 1), g * 2L + 1),
-                Team.BLUE to explore(sides.getValue(bv).factory(g * 2L + 2), g * 2L + 2),
-            ),
+            mapOf(Team.RED to explore(redAi, g * 2L + 1), Team.BLUE to explore(blueAi, g * 2L + 2)),
             maxDecisions = 20_000,
+            observe = live?.let { l -> { session, d -> l.observe(session, d) } },
         )
         val rec = Learned.GameRecord(
             g, size, g, Teams.TRAIN, rv, bv, r.winner?.name, r.rounds,
             r.session.view(null).winReason?.name ?: "UNFINISHED", setup, r.session.answers(),
         )
+        if (live != null && rec.winner != null) {
+            val lines = live.lines(liveTag!!, rec)
+            synchronized(this) { liveValues!!.appendText(lines) }
+        }
         return Learned.JSON.encodeToString(Learned.GameRecord.serializer(), rec)
     }
+
+    private val liveValues: File? = System.getenv("AI_SV_LIVE")?.let(::File)
+
+    /** The values' key: the games file's name, as [SearchValueTest] names it. */
+    private val liveTag: String? = System.getenv("AI_SELFPLAY")?.split(":", limit = 2)?.getOrNull(1)
+        ?.let { File(it).nameWithoutExtension }
 
     /** ε-exploration at the level-up questions, seeded per decision. */
     private fun explore(player: AiPlayer, seed: Long): AiPlayer {

@@ -271,6 +271,18 @@ class LearnedTrainTest {
         }
         line("all", set)
         line("turn starts", set.filter { it.boundary })
+        // Track E2: how far the net lies from the search's own values where they exist (RMS, in probability).
+        val searched = set.filter { !it.sv.isNaN() }
+        if (searched.isNotEmpty()) {
+            val rms = kotlin.math.sqrt(
+                searched.sumOf { p ->
+                    val d = Trainer.sigmoid(logit(net, p)) - p.sv
+                    d * d
+                } / searched.size,
+            )
+            line("searched", searched)
+            println("TRAIN $label searched n=${searched.size}: net vs search value RMS ${"%.4f".format(rms)}")
+        }
         for (size in set.map { it.size }.distinct().sorted()) line("${size}v$size", set.filter { it.size == size })
     }
 
