@@ -270,9 +270,23 @@ with `+rest=0` in its book), the first 32 of 256 planned games, development line
 [45.3–77.1]**, pairs 2 / 8 / 6, defeats a game 0.84 / 1.16. Indicative only (the interval includes 50%). The cost is
 the problem: answers 2.33 s mean / 8.7 s p95 / 55.8 s max against 0.69 / 2.8 / 16.1 s, card plays 5.7 s / 19.4 s
 / 55.8 s against 1.6 / 5.1 / 16.1 s on a loaded shared machine (upper bounds), past the ~10 s card-play budget at
-p95. Inside playouts a cheaper book (F1 without the two branched choices, or F1 only at the first ply) is the
-trade to test next (Track C's `BookPolicy`; the knobs pass through `bookTune`). The remaining chunks (1176–1287)
-were queued when this was written; their logs are not part of this table.
+p95. The rest of that run was stopped for a cheaper book.
+
+A cheaper F1 book for the playouts, on the bench (x10+pol=1+scope=3+leaf=2 + the book knob; card = the probe's
+card-play mean):
+
+| Book knobs | puzzles | probe | probe wp regret | ms an answer | card play |
+|---|---|---|---|---|---|
+| `rest=0` | 83.4% | 72.5% | .0086 | 539 | 1.2 s |
+| none (today's h10 book) | 87.5% | 70.8% | .0108 | 1814 | 4.5 s |
+| `branch=1` | 86.7% | 70.8% | .0093 | 1751 | 4.5 s |
+| `branch=0` | 85.2% | 67.4% | .0104 | 1060 | 2.8 s |
+| **`branch=1+restSpaces=6`** | **87.1%** | 70.4% | .0095 | **970** | **2.4 s** |
+
+Looking at the book's 6 best squares instead of all 64 keeps the puzzle gain at about twice rest=0's cost instead
+of 3.5 times; the two branched choices are not the cost. This is the candidate for `AiPlayers.SEARCH_10` (a knob
+string, no code). Games of it against `rest=0` inside x10 (dev 1160–1287, 32-game chunks) were started when this
+was written and are pending.
 
 ### Held-out checkpoints (line-ups 300–395 / 600–695; no longer clean per the audit, so checkpoints, not the final table)
 
