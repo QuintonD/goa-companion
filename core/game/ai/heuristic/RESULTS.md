@@ -199,7 +199,7 @@ training data (old strength 6–8 self-play), so would a net trained on the book
 the checked-in ensemble (`leaf=2`, the mean of `LearnedWeights` 1–3)? **Alone, no: three retrained ensembles all fit
 the book's positions better and none plays better at the leaf. Averaged with the checked-in three, yes: the mean of
 six nets (`leaf=3`, `HybridLeaf.NET6`) won 56.1% of 512 games against the same search with `leaf=2` (2v2, Wilson
-51.7–60.3).** 3v3 and the old-s10 checkpoint are below (pending where marked).
+51.7–60.3); in 3v3 59.4% of 96 (49.4–68.7, cut at the slot limit).**
 
 **Data** (`LearnedSelfPlayTest`, now with book and hybrid sides): 9 600 games on the training line-ups only
 (`Teams.TRAIN`, games 0–9 599), 2v2 ×1, 3v3 ×1, 4v4 ×0.3. Each team plays a variant drawn per game:
@@ -250,6 +250,11 @@ differs; 2v2 development line-ups, mirrored, `AI_FAMILY=mixed` = the heuristic t
 | **both runs (six nets, `leaf=3`)** | | **512** | **287–225** | **56.1%** | **51.7–60.3** | 52 / 121 / 83 (pairs 51.7–60.4) | **H1** (pentanomial, the 512 together) | 1.07 (0.99) |
 | six nets, **3v3** | 1000–1047 (3v3 line-ups) | 96 | 57–39 | 59.4% | 49.4–68.7 | 7 / 25 / 16 (pairs 49.9–68.8) | open; stopped at the 2-hour slot | 1.89 (1.93) |
 
+Against the old search, a checkpoint on line-ups no longer clean (held out before wave 3, so labelled, not final):
+`W2+leaf=3` against `s10`, 2v2, line-ups 300–363, 128 games: 71–57, **55.5%** (Wilson 46.8–63.8; pairs 48.2–62.7,
+8 / 41 / 15), heroes lost a game 0.99 against s10's 1.18. Not run there with `leaf=2`, so it says where the six-net
+search stands against the floor, not how much the leaf added; the 65% target against s10 is not reached by the leaf.
+
 The new three alone are not stronger and lose more heroes than the checked-in leaf: a better fit to the book's
 results is not a better leaf (as in v0.9–v0.14, "log-loss hardly separates what play separates"; the search picks
 the option the leaf overrates). Averaged with the checked-in three they win: the two families were fitted to
@@ -257,6 +262,17 @@ different games (old search self-play; the book's and the search's own) and err 
 is overrated in fewer places, the effect ADR-060's three seeds had (63.0% there). The bench did not see it either
 (the six-net row above sits between). Heroes lost a game are level (1.07 against 0.99 over the 512 games; with no
 card left to defend 176 against 169).
+
+**Wired** (additive; nothing that plays changes until the switch is flipped): `HybridLeaf.NET6` (`leaf=3`) scores
+the playout ends with `LearnedNet.ENSEMBLE_6`, the checked-in three and `LearnedWeightsG1..3` (g1–g3, Base64 like
+the others, 209 KB of source each; written in `WeightsWriter`'s exact format, checked byte for byte against the
+three checked-in files). On the bench `W2+leaf=3` gives exactly the answers of `W2+net=avg(cur1,…,g3)` from the
+saved nets (every row equal). The features are extracted once and each net adds one forward pass, so six nets cost
+little over three; the bench's answer times do not separate them on this shared machine (upper bounds). In the web
+build the three weights add about 0.6 MB of source to `engine-worker.js` (not measured). **For Track C:** strength
+10 takes it with `AiPlayers.SEARCH_10_LEAF = HybridLeaf.NET6` (one line); measured on W2 here, not yet on W2 plus
+the tree after the reveal; `GameParityTest`'s strength-10 hash changes when the switch flips (re-pin from the JVM,
+check Node).
 
 **What was added** (all opt-in, measurement only): `HybridAi.leafOverride` (internal, null in play: a test can put
 a saved net at the leaves); `LeafNets` (test: `h…`, `x…+net=avg(a,b,c)`, `W2` as self-play and tournament sides
