@@ -55,10 +55,12 @@ class HybridAppTimesTest {
                         } else {
                             "-"
                         }
-                        if (game > 0 || searched > 1) println(
-                            "APP_TIME size=$size game=$game round=${s.state.round} turn=${s.state.turn} " +
-                                "kind=${d.kind} options=${d.options.size} ms=$ms memo=${ten.memoSize} agree=$agree",
-                        )
+                        if (game > 0 || searched > 1) {
+                            println(
+                                "APP_TIME size=$size game=$game round=${s.state.round} turn=${s.state.turn} " +
+                                    "kind=${d.kind} options=${d.options.size} ms=$ms memo=${ten.memoSize} agree=$agree",
+                            )
+                        }
                         a
                     } else {
                         book.choose(s, d)

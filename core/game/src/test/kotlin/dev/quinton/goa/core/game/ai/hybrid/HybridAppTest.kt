@@ -62,7 +62,7 @@ class HybridAppTest {
         val plain = AiPlayers.deterministic(10, 7L)
         // An hour: never reached, so the same answers, from the same player the apps build.
         val timed = AiPlayers.forApp(10, budgetMs = HOUR_MS) as HybridAi
-        val same = HybridAi(AiPlayers.APP_SEED + 10, AiPlayers.SEARCH_10 + ("leaf" to AiPlayers.SEARCH_10_LEAF.ordinal.toDouble()))
+        val same = HybridAi(AiPlayers.APP_SEED + 10, SHIPPED)
         var compared = 0
         while (compared < BUDGET_DECISIONS) {
             val d = s.pending ?: break
@@ -81,7 +81,7 @@ class HybridAppTest {
     @Test
     fun `a short think time cuts the search and still answers a real option in time`() {
         val s = game(2, seed = 33L)
-        val tight = HybridAi(7L, AiPlayers.SEARCH_10 + ("leaf" to AiPlayers.SEARCH_10_LEAF.ordinal.toDouble()) + ("ms" to TIGHT_MS.toDouble()))
+        val tight = HybridAi(7L, SHIPPED + ("ms" to TIGHT_MS.toDouble()))
         val mover = AiPlayers.deterministic(4, 9L)
         var plays = 0
         var worstOverMs = 0L
@@ -109,6 +109,9 @@ class HybridAppTest {
     }
 
     private companion object {
+        /** Strength 10's knobs as [AiPlayers.forStrength] builds them. */
+        val SHIPPED = AiPlayers.SEARCH_10 + ("leaf" to AiPlayers.SEARCH_10_LEAF.ordinal.toDouble())
+
         const val DECISIONS = 24
         const val BUDGET_DECISIONS = 12
         const val HOUR_MS = 3_600_000L

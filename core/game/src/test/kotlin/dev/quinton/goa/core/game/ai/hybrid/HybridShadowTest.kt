@@ -42,7 +42,8 @@ class HybridShadowTest {
                     HybridAi(seed + (knobs["seed"] ?: 0.0).toLong(), knobs - "seed", runner)
                 }
                 val h10 = HeuristicAi(10, seed + 1)
-                val setup = AiHarness.setup(red, blue, AiLevel.NORMAL, AiLevel.NORMAL, coin, format.length, format.mapId)
+                val setup =
+                    AiHarness.setup(red, blue, AiLevel.NORMAL, AiLevel.NORMAL, coin, format.length, format.mapId)
                 val s = TestData.engine.newGame(setup) as EngineSession
                 var n = 0
                 while (n < MAX_DECISIONS) {
@@ -82,7 +83,7 @@ class HybridShadowTest {
                     check(s.answer(d.id, c) is AnswerResult.Accepted) { "rejected $c" }
                     n++
                 }
-                println("SHADOW game $i ${red + blue} ref ${refTeam}: winner ${s.state.winner}, round ${s.state.round}")
+                println("SHADOW game $i ${red + blue} ref $refTeam: winner ${s.state.winner}, round ${s.state.round}")
                 report(specs, rows)
             }
         }

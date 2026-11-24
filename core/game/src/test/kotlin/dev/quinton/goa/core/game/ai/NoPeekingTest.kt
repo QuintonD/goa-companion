@@ -117,8 +117,9 @@ class NoPeekingTest {
         val a = played(setup, first) { 0 }
         val b = played(setup, first) { d -> if (d.kind == DecisionKind.PLAY_CARD) d.options.size - 1 else 0 }
         assertThat(a.state.heroes).hasSize(6)
-        assertThat(a.state.heroes.filter { it.team == Team.RED }.map { h -> h.cards.single { it.zone == Zone.PLAYED }.id })
-            .isNotEqualTo(b.state.heroes.filter { it.team == Team.RED }.map { h -> h.cards.single { it.zone == Zone.PLAYED }.id })
+        fun redPlays(s: EngineSession) =
+            s.state.heroes.filter { it.team == Team.RED }.map { h -> h.cards.single { it.zone == Zone.PLAYED }.id }
+        assertThat(redPlays(a)).isNotEqualTo(redPlays(b))
         assertShippedSameChoice(a, b)
     }
 

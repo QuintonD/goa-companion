@@ -170,7 +170,7 @@ class HeuristicTournamentTest {
     }
 
     companion object {
-        /** The first sealed line-up (Wave 3/4: the integrator's final table; TeamTournamentTest and AiPositionBenchTest too). */
+        /** The first sealed line-up (the integrator's final table; TeamTournamentTest and AiPositionBenchTest too). */
         const val SEALED_FROM: Int = 5000
 
         /** Refuses a run that reaches the sealed line-ups unless [unseal] is "1" (`AI_UNSEAL=1`, the final table). */
