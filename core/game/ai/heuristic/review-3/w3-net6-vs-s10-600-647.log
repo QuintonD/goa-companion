@@ -1,0 +1,203 @@
+JUnit version 4.13.2
+.GAME [brynn, silverarrow, ignatia, hanu] x10+pol=1+scope=3+leaf=3+tt=1+K=24+topS=8+topU=6+rep=4+td=2+tw=3+branch=1+restSpaces=6 Red: a won true in 128 s
+GAME [brogan, mrak, wasp, garrus] x10+pol=1+scope=3+leaf=3+tt=1+K=24+topS=8+topU=6+rep=4+td=2+tw=3+branch=1+restSpaces=6 Blue: a won true in 173 s
+GAME [brogan, mrak, wasp, garrus] x10+pol=1+scope=3+leaf=3+tt=1+K=24+topS=8+topU=6+rep=4+td=2+tw=3+branch=1+restSpaces=6 Red: a won false in 181 s
+GAME [brynn, silverarrow, ignatia, hanu] x10+pol=1+scope=3+leaf=3+tt=1+K=24+topS=8+topU=6+rep=4+td=2+tw=3+branch=1+restSpaces=6 Blue: a won true in 203 s
+GAME [emmitt, gydion, bain, takahide] x10+pol=1+scope=3+leaf=3+tt=1+K=24+topS=8+topU=6+rep=4+td=2+tw=3+branch=1+restSpaces=6 Red: a won false in 161 s
+GAME [emmitt, gydion, bain, takahide] x10+pol=1+scope=3+leaf=3+tt=1+K=24+topS=8+topU=6+rep=4+td=2+tw=3+branch=1+restSpaces=6 Blue: a won false in 171 s
+GAME [whisper, arien, swift, nebkher] x10+pol=1+scope=3+leaf=3+tt=1+K=24+topS=8+topU=6+rep=4+td=2+tw=3+branch=1+restSpaces=6 Red: a won true in 105 s
+GAME [dodger, tigerclaw, snorri, mortimer] x10+pol=1+scope=3+leaf=3+tt=1+K=24+topS=8+topU=6+rep=4+td=2+tw=3+branch=1+restSpaces=6 Red: a won true in 165 s
+GAME [dodger, tigerclaw, snorri, mortimer] x10+pol=1+scope=3+leaf=3+tt=1+K=24+topS=8+topU=6+rep=4+td=2+tw=3+branch=1+restSpaces=6 Blue: a won true in 242 s
+GAME [misa, xargatha, tali, min] x10+pol=1+scope=3+leaf=3+tt=1+K=24+topS=8+topU=6+rep=4+td=2+tw=3+branch=1+restSpaces=6 Red: a won true in 84 s
+GAME [whisper, arien, swift, nebkher] x10+pol=1+scope=3+leaf=3+tt=1+K=24+topS=8+topU=6+rep=4+td=2+tw=3+branch=1+restSpaces=6 Blue: a won false in 170 s
+GAME [misa, xargatha, tali, min] x10+pol=1+scope=3+leaf=3+tt=1+K=24+topS=8+topU=6+rep=4+td=2+tw=3+branch=1+restSpaces=6 Blue: a won true in 148 s
+GAME [rowenna, trinkets, ursafar, sabina] x10+pol=1+scope=3+leaf=3+tt=1+K=24+topS=8+topU=6+rep=4+td=2+tw=3+branch=1+restSpaces=6 Red: a won true in 168 s
+GAME [rowenna, trinkets, ursafar, sabina] x10+pol=1+scope=3+leaf=3+tt=1+K=24+topS=8+topU=6+rep=4+td=2+tw=3+branch=1+restSpaces=6 Blue: a won false in 164 s
+GAME [wuk, widget, cutter, razzle] x10+pol=1+scope=3+leaf=3+tt=1+K=24+topS=8+topU=6+rep=4+td=2+tw=3+branch=1+restSpaces=6 Red: a won true in 195 s
+GAME [wuk, widget, cutter, razzle] x10+pol=1+scope=3+leaf=3+tt=1+K=24+topS=8+topU=6+rep=4+td=2+tw=3+branch=1+restSpaces=6 Blue: a won true in 205 s
+GAME [nebkher, mrak, razzle, ignatia] x10+pol=1+scope=3+leaf=3+tt=1+K=24+topS=8+topU=6+rep=4+td=2+tw=3+branch=1+restSpaces=6 Red: a won false in 171 s
+GAME [silverarrow, rowenna, brynn, hanu] x10+pol=1+scope=3+leaf=3+tt=1+K=24+topS=8+topU=6+rep=4+td=2+tw=3+branch=1+restSpaces=6 Red: a won false in 145 s
+GAME [silverarrow, rowenna, brynn, hanu] x10+pol=1+scope=3+leaf=3+tt=1+K=24+topS=8+topU=6+rep=4+td=2+tw=3+branch=1+restSpaces=6 Blue: a won true in 145 s
+GAME [nebkher, mrak, razzle, ignatia] x10+pol=1+scope=3+leaf=3+tt=1+K=24+topS=8+topU=6+rep=4+td=2+tw=3+branch=1+restSpaces=6 Blue: a won false in 211 s
+GAME [wuk, garrus, takahide, ursafar] x10+pol=1+scope=3+leaf=3+tt=1+K=24+topS=8+topU=6+rep=4+td=2+tw=3+branch=1+restSpaces=6 Red: a won true in 124 s
+GAME [wuk, garrus, takahide, ursafar] x10+pol=1+scope=3+leaf=3+tt=1+K=24+topS=8+topU=6+rep=4+td=2+tw=3+branch=1+restSpaces=6 Blue: a won false in 147 s
+GAME [dodger, misa, tigerclaw, whisper] x10+pol=1+scope=3+leaf=3+tt=1+K=24+topS=8+topU=6+rep=4+td=2+tw=3+branch=1+restSpaces=6 Red: a won true in 129 s
+GAME [dodger, misa, tigerclaw, whisper] x10+pol=1+scope=3+leaf=3+tt=1+K=24+topS=8+topU=6+rep=4+td=2+tw=3+branch=1+restSpaces=6 Blue: a won false in 124 s
+GAME [xargatha, mortimer, min, sabina] x10+pol=1+scope=3+leaf=3+tt=1+K=24+topS=8+topU=6+rep=4+td=2+tw=3+branch=1+restSpaces=6 Blue: a won true in 157 s
+GAME [trinkets, bain, wasp, snorri] x10+pol=1+scope=3+leaf=3+tt=1+K=24+topS=8+topU=6+rep=4+td=2+tw=3+branch=1+restSpaces=6 Red: a won false in 77 s
+GAME [brogan, gydion, cutter, tali] x10+pol=1+scope=3+leaf=3+tt=1+K=24+topS=8+topU=6+rep=4+td=2+tw=3+branch=1+restSpaces=6 Red: a won true in 79 s
+GAME [trinkets, bain, wasp, snorri] x10+pol=1+scope=3+leaf=3+tt=1+K=24+topS=8+topU=6+rep=4+td=2+tw=3+branch=1+restSpaces=6 Blue: a won true in 104 s
+GAME [xargatha, mortimer, min, sabina] x10+pol=1+scope=3+leaf=3+tt=1+K=24+topS=8+topU=6+rep=4+td=2+tw=3+branch=1+restSpaces=6 Red: a won false in 280 s
+GAME [brogan, gydion, cutter, tali] x10+pol=1+scope=3+leaf=3+tt=1+K=24+topS=8+topU=6+rep=4+td=2+tw=3+branch=1+restSpaces=6 Blue: a won false in 96 s
+GAME [emmitt, arien, swift, widget] x10+pol=1+scope=3+leaf=3+tt=1+K=24+topS=8+topU=6+rep=4+td=2+tw=3+branch=1+restSpaces=6 Red: a won false in 106 s
+GAME [emmitt, arien, swift, widget] x10+pol=1+scope=3+leaf=3+tt=1+K=24+topS=8+topU=6+rep=4+td=2+tw=3+branch=1+restSpaces=6 Blue: a won true in 140 s
+GAME [garrus, wuk, min, wasp] x10+pol=1+scope=3+leaf=3+tt=1+K=24+topS=8+topU=6+rep=4+td=2+tw=3+branch=1+restSpaces=6 Red: a won true in 130 s
+GAME [garrus, wuk, min, wasp] x10+pol=1+scope=3+leaf=3+tt=1+K=24+topS=8+topU=6+rep=4+td=2+tw=3+branch=1+restSpaces=6 Blue: a won true in 145 s
+GAME [widget, hanu, nebkher, silverarrow] x10+pol=1+scope=3+leaf=3+tt=1+K=24+topS=8+topU=6+rep=4+td=2+tw=3+branch=1+restSpaces=6 Red: a won false in 139 s
+GAME [widget, hanu, nebkher, silverarrow] x10+pol=1+scope=3+leaf=3+tt=1+K=24+topS=8+topU=6+rep=4+td=2+tw=3+branch=1+restSpaces=6 Blue: a won false in 85 s
+GAME [gydion, takahide, mrak, snorri] x10+pol=1+scope=3+leaf=3+tt=1+K=24+topS=8+topU=6+rep=4+td=2+tw=3+branch=1+restSpaces=6 Red: a won true in 97 s
+GAME [razzle, dodger, tali, mortimer] x10+pol=1+scope=3+leaf=3+tt=1+K=24+topS=8+topU=6+rep=4+td=2+tw=3+branch=1+restSpaces=6 Red: a won false in 169 s
+GAME [razzle, dodger, tali, mortimer] x10+pol=1+scope=3+leaf=3+tt=1+K=24+topS=8+topU=6+rep=4+td=2+tw=3+branch=1+restSpaces=6 Blue: a won true in 129 s
+GAME [gydion, takahide, mrak, snorri] x10+pol=1+scope=3+leaf=3+tt=1+K=24+topS=8+topU=6+rep=4+td=2+tw=3+branch=1+restSpaces=6 Blue: a won true in 111 s
+GAME [emmitt, sabina, brogan, brynn] x10+pol=1+scope=3+leaf=3+tt=1+K=24+topS=8+topU=6+rep=4+td=2+tw=3+branch=1+restSpaces=6 Red: a won true in 110 s
+GAME [emmitt, sabina, brogan, brynn] x10+pol=1+scope=3+leaf=3+tt=1+K=24+topS=8+topU=6+rep=4+td=2+tw=3+branch=1+restSpaces=6 Blue: a won true in 135 s
+GAME [trinkets, ursafar, bain, swift] x10+pol=1+scope=3+leaf=3+tt=1+K=24+topS=8+topU=6+rep=4+td=2+tw=3+branch=1+restSpaces=6 Red: a won true in 110 s
+GAME [trinkets, ursafar, bain, swift] x10+pol=1+scope=3+leaf=3+tt=1+K=24+topS=8+topU=6+rep=4+td=2+tw=3+branch=1+restSpaces=6 Blue: a won true in 109 s
+GAME [tigerclaw, arien, cutter, xargatha] x10+pol=1+scope=3+leaf=3+tt=1+K=24+topS=8+topU=6+rep=4+td=2+tw=3+branch=1+restSpaces=6 Red: a won false in 102 s
+GAME [tigerclaw, arien, cutter, xargatha] x10+pol=1+scope=3+leaf=3+tt=1+K=24+topS=8+topU=6+rep=4+td=2+tw=3+branch=1+restSpaces=6 Blue: a won true in 93 s
+GAME [ignatia, whisper, rowenna, misa] x10+pol=1+scope=3+leaf=3+tt=1+K=24+topS=8+topU=6+rep=4+td=2+tw=3+branch=1+restSpaces=6 Red: a won false in 100 s
+GAME [ignatia, whisper, rowenna, misa] x10+pol=1+scope=3+leaf=3+tt=1+K=24+topS=8+topU=6+rep=4+td=2+tw=3+branch=1+restSpaces=6 Blue: a won true in 101 s
+GAME [gydion, rowenna, min, widget] x10+pol=1+scope=3+leaf=3+tt=1+K=24+topS=8+topU=6+rep=4+td=2+tw=3+branch=1+restSpaces=6 Red: a won true in 116 s
+GAME [nebkher, snorri, swift, tali] x10+pol=1+scope=3+leaf=3+tt=1+K=24+topS=8+topU=6+rep=4+td=2+tw=3+branch=1+restSpaces=6 Red: a won true in 123 s
+GAME [gydion, rowenna, min, widget] x10+pol=1+scope=3+leaf=3+tt=1+K=24+topS=8+topU=6+rep=4+td=2+tw=3+branch=1+restSpaces=6 Blue: a won true in 145 s
+GAME [nebkher, snorri, swift, tali] x10+pol=1+scope=3+leaf=3+tt=1+K=24+topS=8+topU=6+rep=4+td=2+tw=3+branch=1+restSpaces=6 Blue: a won true in 91 s
+GAME [dodger, garrus, tigerclaw, xargatha] x10+pol=1+scope=3+leaf=3+tt=1+K=24+topS=8+topU=6+rep=4+td=2+tw=3+branch=1+restSpaces=6 Red: a won true in 66 s
+GAME [dodger, garrus, tigerclaw, xargatha] x10+pol=1+scope=3+leaf=3+tt=1+K=24+topS=8+topU=6+rep=4+td=2+tw=3+branch=1+restSpaces=6 Blue: a won false in 92 s
+GAME [cutter, ignatia, emmitt, brynn] x10+pol=1+scope=3+leaf=3+tt=1+K=24+topS=8+topU=6+rep=4+td=2+tw=3+branch=1+restSpaces=6 Red: a won true in 114 s
+GAME [silverarrow, arien, wuk, takahide] x10+pol=1+scope=3+leaf=3+tt=1+K=24+topS=8+topU=6+rep=4+td=2+tw=3+branch=1+restSpaces=6 Red: a won true in 87 s
+GAME [cutter, ignatia, emmitt, brynn] x10+pol=1+scope=3+leaf=3+tt=1+K=24+topS=8+topU=6+rep=4+td=2+tw=3+branch=1+restSpaces=6 Blue: a won false in 147 s
+GAME [silverarrow, arien, wuk, takahide] x10+pol=1+scope=3+leaf=3+tt=1+K=24+topS=8+topU=6+rep=4+td=2+tw=3+branch=1+restSpaces=6 Blue: a won false in 142 s
+GAME [hanu, trinkets, whisper, razzle] x10+pol=1+scope=3+leaf=3+tt=1+K=24+topS=8+topU=6+rep=4+td=2+tw=3+branch=1+restSpaces=6 Red: a won true in 131 s
+GAME [hanu, trinkets, whisper, razzle] x10+pol=1+scope=3+leaf=3+tt=1+K=24+topS=8+topU=6+rep=4+td=2+tw=3+branch=1+restSpaces=6 Blue: a won true in 141 s
+GAME [wasp, brogan, sabina, misa] x10+pol=1+scope=3+leaf=3+tt=1+K=24+topS=8+topU=6+rep=4+td=2+tw=3+branch=1+restSpaces=6 Red: a won true in 81 s
+GAME [wasp, brogan, sabina, misa] x10+pol=1+scope=3+leaf=3+tt=1+K=24+topS=8+topU=6+rep=4+td=2+tw=3+branch=1+restSpaces=6 Blue: a won false in 76 s
+GAME [ursafar, bain, mortimer, mrak] x10+pol=1+scope=3+leaf=3+tt=1+K=24+topS=8+topU=6+rep=4+td=2+tw=3+branch=1+restSpaces=6 Blue: a won true in 93 s
+GAME [widget, bain, swift, min] x10+pol=1+scope=3+leaf=3+tt=1+K=24+topS=8+topU=6+rep=4+td=2+tw=3+branch=1+restSpaces=6 Red: a won false in 105 s
+GAME [ursafar, bain, mortimer, mrak] x10+pol=1+scope=3+leaf=3+tt=1+K=24+topS=8+topU=6+rep=4+td=2+tw=3+branch=1+restSpaces=6 Red: a won true in 142 s
+GAME [gydion, whisper, tigerclaw, arien] x10+pol=1+scope=3+leaf=3+tt=1+K=24+topS=8+topU=6+rep=4+td=2+tw=3+branch=1+restSpaces=6 Blue: a won true in 67 s
+GAME [widget, bain, swift, min] x10+pol=1+scope=3+leaf=3+tt=1+K=24+topS=8+topU=6+rep=4+td=2+tw=3+branch=1+restSpaces=6 Blue: a won true in 105 s
+GAME [gydion, whisper, tigerclaw, arien] x10+pol=1+scope=3+leaf=3+tt=1+K=24+topS=8+topU=6+rep=4+td=2+tw=3+branch=1+restSpaces=6 Red: a won false in 79 s
+GAME [ignatia, tali, brynn, takahide] x10+pol=1+scope=3+leaf=3+tt=1+K=24+topS=8+topU=6+rep=4+td=2+tw=3+branch=1+restSpaces=6 Red: a won true in 72 s
+GAME [misa, garrus, brogan, mortimer] x10+pol=1+scope=3+leaf=3+tt=1+K=24+topS=8+topU=6+rep=4+td=2+tw=3+branch=1+restSpaces=6 Blue: a won true in 135 s
+GAME [ignatia, tali, brynn, takahide] x10+pol=1+scope=3+leaf=3+tt=1+K=24+topS=8+topU=6+rep=4+td=2+tw=3+branch=1+restSpaces=6 Blue: a won true in 102 s
+GAME [misa, garrus, brogan, mortimer] x10+pol=1+scope=3+leaf=3+tt=1+K=24+topS=8+topU=6+rep=4+td=2+tw=3+branch=1+restSpaces=6 Red: a won true in 190 s
+GAME [razzle, cutter, wuk, wasp] x10+pol=1+scope=3+leaf=3+tt=1+K=24+topS=8+topU=6+rep=4+td=2+tw=3+branch=1+restSpaces=6 Red: a won true in 101 s
+GAME [snorri, hanu, trinkets, silverarrow] x10+pol=1+scope=3+leaf=3+tt=1+K=24+topS=8+topU=6+rep=4+td=2+tw=3+branch=1+restSpaces=6 Red: a won true in 103 s
+GAME [razzle, cutter, wuk, wasp] x10+pol=1+scope=3+leaf=3+tt=1+K=24+topS=8+topU=6+rep=4+td=2+tw=3+branch=1+restSpaces=6 Blue: a won true in 167 s
+GAME [snorri, hanu, trinkets, silverarrow] x10+pol=1+scope=3+leaf=3+tt=1+K=24+topS=8+topU=6+rep=4+td=2+tw=3+branch=1+restSpaces=6 Blue: a won true in 126 s
+GAME [dodger, rowenna, xargatha, sabina] x10+pol=1+scope=3+leaf=3+tt=1+K=24+topS=8+topU=6+rep=4+td=2+tw=3+branch=1+restSpaces=6 Red: a won true in 91 s
+GAME [emmitt, nebkher, mrak, ursafar] x10+pol=1+scope=3+leaf=3+tt=1+K=24+topS=8+topU=6+rep=4+td=2+tw=3+branch=1+restSpaces=6 Red: a won true in 163 s
+GAME [emmitt, nebkher, mrak, ursafar] x10+pol=1+scope=3+leaf=3+tt=1+K=24+topS=8+topU=6+rep=4+td=2+tw=3+branch=1+restSpaces=6 Blue: a won true in 132 s
+GAME [dodger, rowenna, xargatha, sabina] x10+pol=1+scope=3+leaf=3+tt=1+K=24+topS=8+topU=6+rep=4+td=2+tw=3+branch=1+restSpaces=6 Blue: a won true in 72 s
+GAME [trinkets, razzle, snorri, arien] x10+pol=1+scope=3+leaf=3+tt=1+K=24+topS=8+topU=6+rep=4+td=2+tw=3+branch=1+restSpaces=6 Red: a won true in 122 s
+GAME [trinkets, razzle, snorri, arien] x10+pol=1+scope=3+leaf=3+tt=1+K=24+topS=8+topU=6+rep=4+td=2+tw=3+branch=1+restSpaces=6 Blue: a won true in 140 s
+GAME [dodger, hanu, cutter, ursafar] x10+pol=1+scope=3+leaf=3+tt=1+K=24+topS=8+topU=6+rep=4+td=2+tw=3+branch=1+restSpaces=6 Red: a won true in 96 s
+GAME [dodger, hanu, cutter, ursafar] x10+pol=1+scope=3+leaf=3+tt=1+K=24+topS=8+topU=6+rep=4+td=2+tw=3+branch=1+restSpaces=6 Blue: a won true in 63 s
+GAME [brogan, tigerclaw, tali, ignatia] x10+pol=1+scope=3+leaf=3+tt=1+K=24+topS=8+topU=6+rep=4+td=2+tw=3+branch=1+restSpaces=6 Blue: a won false in 106 s
+GAME [brogan, tigerclaw, tali, ignatia] x10+pol=1+scope=3+leaf=3+tt=1+K=24+topS=8+topU=6+rep=4+td=2+tw=3+branch=1+restSpaces=6 Red: a won true in 148 s
+GAME [emmitt, wuk, sabina, misa] x10+pol=1+scope=3+leaf=3+tt=1+K=24+topS=8+topU=6+rep=4+td=2+tw=3+branch=1+restSpaces=6 Red: a won true in 145 s
+GAME [gydion, wasp, bain, mrak] x10+pol=1+scope=3+leaf=3+tt=1+K=24+topS=8+topU=6+rep=4+td=2+tw=3+branch=1+restSpaces=6 Red: a won false in 76 s
+GAME [emmitt, wuk, sabina, misa] x10+pol=1+scope=3+leaf=3+tt=1+K=24+topS=8+topU=6+rep=4+td=2+tw=3+branch=1+restSpaces=6 Blue: a won true in 122 s
+GAME [gydion, wasp, bain, mrak] x10+pol=1+scope=3+leaf=3+tt=1+K=24+topS=8+topU=6+rep=4+td=2+tw=3+branch=1+restSpaces=6 Blue: a won true in 69 s
+GAME [widget, xargatha, whisper, rowenna] x10+pol=1+scope=3+leaf=3+tt=1+K=24+topS=8+topU=6+rep=4+td=2+tw=3+branch=1+restSpaces=6 Red: a won false in 104 s
+GAME [widget, xargatha, whisper, rowenna] x10+pol=1+scope=3+leaf=3+tt=1+K=24+topS=8+topU=6+rep=4+td=2+tw=3+branch=1+restSpaces=6 Blue: a won true in 106 s
+GAME [nebkher, brynn, silverarrow, min] x10+pol=1+scope=3+leaf=3+tt=1+K=24+topS=8+topU=6+rep=4+td=2+tw=3+branch=1+restSpaces=6 Red: a won false in 107 s
+GAME [swift, mortimer, takahide, garrus] x10+pol=1+scope=3+leaf=3+tt=1+K=24+topS=8+topU=6+rep=4+td=2+tw=3+branch=1+restSpaces=6 Red: a won true in 80 s
+GAME [nebkher, brynn, silverarrow, min] x10+pol=1+scope=3+leaf=3+tt=1+K=24+topS=8+topU=6+rep=4+td=2+tw=3+branch=1+restSpaces=6 Blue: a won true in 98 s
+GAME [swift, mortimer, takahide, garrus] x10+pol=1+scope=3+leaf=3+tt=1+K=24+topS=8+topU=6+rep=4+td=2+tw=3+branch=1+restSpaces=6 Blue: a won true in 103 s
+H_TOURNAMENT x10+pol=1+scope=3+leaf=3+tt=1+K=24+topS=8+topU=6+rep=4+td=2+tw=3+branch=1+restSpaces=6 vs s10: 67-29 (draws 0) of 96 = 69.8% [95% 60.0-78.1%; pairs 61.3-78.3% 3/0/23/0/22], avg 6.2 rounds, {LAST_PUSH=50, LIFE_COUNTERS=31, THRONE=15} Wilson 60.0-78.1% in 4046 s
+H_TOURNAMENT   defeats/game x10+pol=1+scope=3+leaf=3+tt=1+K=24+topS=8+topU=6+rep=4+td=2+tw=3+branch=1+restSpaces=6 0.77 s10 1.26 (with no card to defend: 25 / 37); x10+pol=1+scope=3+leaf=3+tt=1+K=24+topS=8+topU=6+rep=4+td=2+tw=3+branch=1+restSpaces=6 won by {LAST_PUSH=33, LIFE_COUNTERS=21, THRONE=13}; s10 won by {LAST_PUSH=17, LIFE_COUNTERS=10, THRONE=2}; wall 125.9 s/game (max 281 s)
+H_TOURNAMENT   answer x10+pol=1+scope=3+leaf=3+tt=1+K=24+topS=8+topU=6+rep=4+td=2+tw=3+branch=1+restSpaces=6 490.22 / 2064.08 / 18850.8 ms, s10 315.81 / 999.85 / 7081.9 ms (mean / p95 / max)
+H_TOURNAMENT   card play x10+pol=1+scope=3+leaf=3+tt=1+K=24+topS=8+topU=6+rep=4+td=2+tw=3+branch=1+restSpaces=6 1202.45 / 3780.90 / 18850.8 ms, s10 624.74 / 1294.56 / 7081.9 ms (mean / p95 / max)
+H_TOURNAMENT   answers hash -8330582696706494443; hybrid playouts 241332, memo hits 32558, samples 148432 drawn / 25490 distinct
+H_TOURNAMENT   game brogan+mrak vs wasp+garrus: x10+pol=1+scope=3+leaf=3+tt=1+K=24+topS=8+topU=6+rep=4+td=2+tw=3+branch=1+restSpaces=6 Red, s10 won by LAST_PUSH in round 8
+H_TOURNAMENT   game brogan+mrak vs wasp+garrus: x10+pol=1+scope=3+leaf=3+tt=1+K=24+topS=8+topU=6+rep=4+td=2+tw=3+branch=1+restSpaces=6 Blue, x10+pol=1+scope=3+leaf=3+tt=1+K=24+topS=8+topU=6+rep=4+td=2+tw=3+branch=1+restSpaces=6 won by LAST_PUSH in round 6
+H_TOURNAMENT   game brynn+silverarrow vs ignatia+hanu: x10+pol=1+scope=3+leaf=3+tt=1+K=24+topS=8+topU=6+rep=4+td=2+tw=3+branch=1+restSpaces=6 Red, x10+pol=1+scope=3+leaf=3+tt=1+K=24+topS=8+topU=6+rep=4+td=2+tw=3+branch=1+restSpaces=6 won by LAST_PUSH in round 5
+H_TOURNAMENT   game brynn+silverarrow vs ignatia+hanu: x10+pol=1+scope=3+leaf=3+tt=1+K=24+topS=8+topU=6+rep=4+td=2+tw=3+branch=1+restSpaces=6 Blue, x10+pol=1+scope=3+leaf=3+tt=1+K=24+topS=8+topU=6+rep=4+td=2+tw=3+branch=1+restSpaces=6 won by LAST_PUSH in round 10
+H_TOURNAMENT   game emmitt+gydion vs bain+takahide: x10+pol=1+scope=3+leaf=3+tt=1+K=24+topS=8+topU=6+rep=4+td=2+tw=3+branch=1+restSpaces=6 Red, s10 won by LIFE_COUNTERS in round 7
+H_TOURNAMENT   game emmitt+gydion vs bain+takahide: x10+pol=1+scope=3+leaf=3+tt=1+K=24+topS=8+topU=6+rep=4+td=2+tw=3+branch=1+restSpaces=6 Blue, s10 won by LAST_PUSH in round 7
+H_TOURNAMENT   game dodger+tigerclaw vs snorri+mortimer: x10+pol=1+scope=3+leaf=3+tt=1+K=24+topS=8+topU=6+rep=4+td=2+tw=3+branch=1+restSpaces=6 Red, x10+pol=1+scope=3+leaf=3+tt=1+K=24+topS=8+topU=6+rep=4+td=2+tw=3+branch=1+restSpaces=6 won by LIFE_COUNTERS in round 5
+H_TOURNAMENT   game dodger+tigerclaw vs snorri+mortimer: x10+pol=1+scope=3+leaf=3+tt=1+K=24+topS=8+topU=6+rep=4+td=2+tw=3+branch=1+restSpaces=6 Blue, x10+pol=1+scope=3+leaf=3+tt=1+K=24+topS=8+topU=6+rep=4+td=2+tw=3+branch=1+restSpaces=6 won by LAST_PUSH in round 6
+H_TOURNAMENT   game whisper+arien vs swift+nebkher: x10+pol=1+scope=3+leaf=3+tt=1+K=24+topS=8+topU=6+rep=4+td=2+tw=3+branch=1+restSpaces=6 Red, x10+pol=1+scope=3+leaf=3+tt=1+K=24+topS=8+topU=6+rep=4+td=2+tw=3+branch=1+restSpaces=6 won by THRONE in round 4
+H_TOURNAMENT   game whisper+arien vs swift+nebkher: x10+pol=1+scope=3+leaf=3+tt=1+K=24+topS=8+topU=6+rep=4+td=2+tw=3+branch=1+restSpaces=6 Blue, s10 won by LAST_PUSH in round 6
+H_TOURNAMENT   game misa+xargatha vs tali+min: x10+pol=1+scope=3+leaf=3+tt=1+K=24+topS=8+topU=6+rep=4+td=2+tw=3+branch=1+restSpaces=6 Red, x10+pol=1+scope=3+leaf=3+tt=1+K=24+topS=8+topU=6+rep=4+td=2+tw=3+branch=1+restSpaces=6 won by LIFE_COUNTERS in round 4
+H_TOURNAMENT   game misa+xargatha vs tali+min: x10+pol=1+scope=3+leaf=3+tt=1+K=24+topS=8+topU=6+rep=4+td=2+tw=3+branch=1+restSpaces=6 Blue, x10+pol=1+scope=3+leaf=3+tt=1+K=24+topS=8+topU=6+rep=4+td=2+tw=3+branch=1+restSpaces=6 won by LAST_PUSH in round 6
+H_TOURNAMENT   game rowenna+trinkets vs ursafar+sabina: x10+pol=1+scope=3+leaf=3+tt=1+K=24+topS=8+topU=6+rep=4+td=2+tw=3+branch=1+restSpaces=6 Red, x10+pol=1+scope=3+leaf=3+tt=1+K=24+topS=8+topU=6+rep=4+td=2+tw=3+branch=1+restSpaces=6 won by LIFE_COUNTERS in round 9
+H_TOURNAMENT   game rowenna+trinkets vs ursafar+sabina: x10+pol=1+scope=3+leaf=3+tt=1+K=24+topS=8+topU=6+rep=4+td=2+tw=3+branch=1+restSpaces=6 Blue, s10 won by LAST_PUSH in round 6
+H_TOURNAMENT   game wuk+widget vs cutter+razzle: x10+pol=1+scope=3+leaf=3+tt=1+K=24+topS=8+topU=6+rep=4+td=2+tw=3+branch=1+restSpaces=6 Red, x10+pol=1+scope=3+leaf=3+tt=1+K=24+topS=8+topU=6+rep=4+td=2+tw=3+branch=1+restSpaces=6 won by LAST_PUSH in round 8
+H_TOURNAMENT   game wuk+widget vs cutter+razzle: x10+pol=1+scope=3+leaf=3+tt=1+K=24+topS=8+topU=6+rep=4+td=2+tw=3+branch=1+restSpaces=6 Blue, x10+pol=1+scope=3+leaf=3+tt=1+K=24+topS=8+topU=6+rep=4+td=2+tw=3+branch=1+restSpaces=6 won by LAST_PUSH in round 5
+H_TOURNAMENT   game nebkher+mrak vs razzle+ignatia: x10+pol=1+scope=3+leaf=3+tt=1+K=24+topS=8+topU=6+rep=4+td=2+tw=3+branch=1+restSpaces=6 Red, s10 won by THRONE in round 6
+H_TOURNAMENT   game nebkher+mrak vs razzle+ignatia: x10+pol=1+scope=3+leaf=3+tt=1+K=24+topS=8+topU=6+rep=4+td=2+tw=3+branch=1+restSpaces=6 Blue, s10 won by LAST_PUSH in round 7
+H_TOURNAMENT   game silverarrow+rowenna vs brynn+hanu: x10+pol=1+scope=3+leaf=3+tt=1+K=24+topS=8+topU=6+rep=4+td=2+tw=3+branch=1+restSpaces=6 Red, s10 won by LAST_PUSH in round 7
+H_TOURNAMENT   game silverarrow+rowenna vs brynn+hanu: x10+pol=1+scope=3+leaf=3+tt=1+K=24+topS=8+topU=6+rep=4+td=2+tw=3+branch=1+restSpaces=6 Blue, x10+pol=1+scope=3+leaf=3+tt=1+K=24+topS=8+topU=6+rep=4+td=2+tw=3+branch=1+restSpaces=6 won by LIFE_COUNTERS in round 5
+H_TOURNAMENT   game wuk+garrus vs takahide+ursafar: x10+pol=1+scope=3+leaf=3+tt=1+K=24+topS=8+topU=6+rep=4+td=2+tw=3+branch=1+restSpaces=6 Red, x10+pol=1+scope=3+leaf=3+tt=1+K=24+topS=8+topU=6+rep=4+td=2+tw=3+branch=1+restSpaces=6 won by LAST_PUSH in round 6
+H_TOURNAMENT   game wuk+garrus vs takahide+ursafar: x10+pol=1+scope=3+leaf=3+tt=1+K=24+topS=8+topU=6+rep=4+td=2+tw=3+branch=1+restSpaces=6 Blue, s10 won by LIFE_COUNTERS in round 5
+H_TOURNAMENT   game dodger+misa vs tigerclaw+whisper: x10+pol=1+scope=3+leaf=3+tt=1+K=24+topS=8+topU=6+rep=4+td=2+tw=3+branch=1+restSpaces=6 Red, x10+pol=1+scope=3+leaf=3+tt=1+K=24+topS=8+topU=6+rep=4+td=2+tw=3+branch=1+restSpaces=6 won by LAST_PUSH in round 7
+H_TOURNAMENT   game dodger+misa vs tigerclaw+whisper: x10+pol=1+scope=3+leaf=3+tt=1+K=24+topS=8+topU=6+rep=4+td=2+tw=3+branch=1+restSpaces=6 Blue, s10 won by LIFE_COUNTERS in round 7
+H_TOURNAMENT   game xargatha+mortimer vs min+sabina: x10+pol=1+scope=3+leaf=3+tt=1+K=24+topS=8+topU=6+rep=4+td=2+tw=3+branch=1+restSpaces=6 Red, s10 won by LIFE_COUNTERS in round 7
+H_TOURNAMENT   game xargatha+mortimer vs min+sabina: x10+pol=1+scope=3+leaf=3+tt=1+K=24+topS=8+topU=6+rep=4+td=2+tw=3+branch=1+restSpaces=6 Blue, x10+pol=1+scope=3+leaf=3+tt=1+K=24+topS=8+topU=6+rep=4+td=2+tw=3+branch=1+restSpaces=6 won by THRONE in round 5
+H_TOURNAMENT   game trinkets+bain vs wasp+snorri: x10+pol=1+scope=3+leaf=3+tt=1+K=24+topS=8+topU=6+rep=4+td=2+tw=3+branch=1+restSpaces=6 Red, s10 won by LAST_PUSH in round 5
+H_TOURNAMENT   game trinkets+bain vs wasp+snorri: x10+pol=1+scope=3+leaf=3+tt=1+K=24+topS=8+topU=6+rep=4+td=2+tw=3+branch=1+restSpaces=6 Blue, x10+pol=1+scope=3+leaf=3+tt=1+K=24+topS=8+topU=6+rep=4+td=2+tw=3+branch=1+restSpaces=6 won by LAST_PUSH in round 5
+H_TOURNAMENT   game brogan+gydion vs cutter+tali: x10+pol=1+scope=3+leaf=3+tt=1+K=24+topS=8+topU=6+rep=4+td=2+tw=3+branch=1+restSpaces=6 Red, x10+pol=1+scope=3+leaf=3+tt=1+K=24+topS=8+topU=6+rep=4+td=2+tw=3+branch=1+restSpaces=6 won by LAST_PUSH in round 7
+H_TOURNAMENT   game brogan+gydion vs cutter+tali: x10+pol=1+scope=3+leaf=3+tt=1+K=24+topS=8+topU=6+rep=4+td=2+tw=3+branch=1+restSpaces=6 Blue, s10 won by LIFE_COUNTERS in round 6
+H_TOURNAMENT   game emmitt+arien vs swift+widget: x10+pol=1+scope=3+leaf=3+tt=1+K=24+topS=8+topU=6+rep=4+td=2+tw=3+branch=1+restSpaces=6 Red, s10 won by LAST_PUSH in round 6
+H_TOURNAMENT   game emmitt+arien vs swift+widget: x10+pol=1+scope=3+leaf=3+tt=1+K=24+topS=8+topU=6+rep=4+td=2+tw=3+branch=1+restSpaces=6 Blue, x10+pol=1+scope=3+leaf=3+tt=1+K=24+topS=8+topU=6+rep=4+td=2+tw=3+branch=1+restSpaces=6 won by LAST_PUSH in round 7
+H_TOURNAMENT   game garrus+wuk vs min+wasp: x10+pol=1+scope=3+leaf=3+tt=1+K=24+topS=8+topU=6+rep=4+td=2+tw=3+branch=1+restSpaces=6 Red, x10+pol=1+scope=3+leaf=3+tt=1+K=24+topS=8+topU=6+rep=4+td=2+tw=3+branch=1+restSpaces=6 won by LAST_PUSH in round 7
+H_TOURNAMENT   game garrus+wuk vs min+wasp: x10+pol=1+scope=3+leaf=3+tt=1+K=24+topS=8+topU=6+rep=4+td=2+tw=3+branch=1+restSpaces=6 Blue, x10+pol=1+scope=3+leaf=3+tt=1+K=24+topS=8+topU=6+rep=4+td=2+tw=3+branch=1+restSpaces=6 won by LAST_PUSH in round 7
+H_TOURNAMENT   game widget+hanu vs nebkher+silverarrow: x10+pol=1+scope=3+leaf=3+tt=1+K=24+topS=8+topU=6+rep=4+td=2+tw=3+branch=1+restSpaces=6 Red, s10 won by LAST_PUSH in round 7
+H_TOURNAMENT   game widget+hanu vs nebkher+silverarrow: x10+pol=1+scope=3+leaf=3+tt=1+K=24+topS=8+topU=6+rep=4+td=2+tw=3+branch=1+restSpaces=6 Blue, s10 won by THRONE in round 5
+H_TOURNAMENT   game razzle+dodger vs tali+mortimer: x10+pol=1+scope=3+leaf=3+tt=1+K=24+topS=8+topU=6+rep=4+td=2+tw=3+branch=1+restSpaces=6 Red, s10 won by LIFE_COUNTERS in round 6
+H_TOURNAMENT   game razzle+dodger vs tali+mortimer: x10+pol=1+scope=3+leaf=3+tt=1+K=24+topS=8+topU=6+rep=4+td=2+tw=3+branch=1+restSpaces=6 Blue, x10+pol=1+scope=3+leaf=3+tt=1+K=24+topS=8+topU=6+rep=4+td=2+tw=3+branch=1+restSpaces=6 won by LIFE_COUNTERS in round 5
+H_TOURNAMENT   game gydion+takahide vs mrak+snorri: x10+pol=1+scope=3+leaf=3+tt=1+K=24+topS=8+topU=6+rep=4+td=2+tw=3+branch=1+restSpaces=6 Red, x10+pol=1+scope=3+leaf=3+tt=1+K=24+topS=8+topU=6+rep=4+td=2+tw=3+branch=1+restSpaces=6 won by LAST_PUSH in round 7
+H_TOURNAMENT   game gydion+takahide vs mrak+snorri: x10+pol=1+scope=3+leaf=3+tt=1+K=24+topS=8+topU=6+rep=4+td=2+tw=3+branch=1+restSpaces=6 Blue, x10+pol=1+scope=3+leaf=3+tt=1+K=24+topS=8+topU=6+rep=4+td=2+tw=3+branch=1+restSpaces=6 won by LAST_PUSH in round 6
+H_TOURNAMENT   game emmitt+sabina vs brogan+brynn: x10+pol=1+scope=3+leaf=3+tt=1+K=24+topS=8+topU=6+rep=4+td=2+tw=3+branch=1+restSpaces=6 Red, x10+pol=1+scope=3+leaf=3+tt=1+K=24+topS=8+topU=6+rep=4+td=2+tw=3+branch=1+restSpaces=6 won by LAST_PUSH in round 7
+H_TOURNAMENT   game emmitt+sabina vs brogan+brynn: x10+pol=1+scope=3+leaf=3+tt=1+K=24+topS=8+topU=6+rep=4+td=2+tw=3+branch=1+restSpaces=6 Blue, x10+pol=1+scope=3+leaf=3+tt=1+K=24+topS=8+topU=6+rep=4+td=2+tw=3+branch=1+restSpaces=6 won by LAST_PUSH in round 7
+H_TOURNAMENT   game trinkets+ursafar vs bain+swift: x10+pol=1+scope=3+leaf=3+tt=1+K=24+topS=8+topU=6+rep=4+td=2+tw=3+branch=1+restSpaces=6 Red, x10+pol=1+scope=3+leaf=3+tt=1+K=24+topS=8+topU=6+rep=4+td=2+tw=3+branch=1+restSpaces=6 won by LIFE_COUNTERS in round 7
+H_TOURNAMENT   game trinkets+ursafar vs bain+swift: x10+pol=1+scope=3+leaf=3+tt=1+K=24+topS=8+topU=6+rep=4+td=2+tw=3+branch=1+restSpaces=6 Blue, x10+pol=1+scope=3+leaf=3+tt=1+K=24+topS=8+topU=6+rep=4+td=2+tw=3+branch=1+restSpaces=6 won by LAST_PUSH in round 6
+H_TOURNAMENT   game tigerclaw+arien vs cutter+xargatha: x10+pol=1+scope=3+leaf=3+tt=1+K=24+topS=8+topU=6+rep=4+td=2+tw=3+branch=1+restSpaces=6 Red, s10 won by LAST_PUSH in round 7
+H_TOURNAMENT   game tigerclaw+arien vs cutter+xargatha: x10+pol=1+scope=3+leaf=3+tt=1+K=24+topS=8+topU=6+rep=4+td=2+tw=3+branch=1+restSpaces=6 Blue, x10+pol=1+scope=3+leaf=3+tt=1+K=24+topS=8+topU=6+rep=4+td=2+tw=3+branch=1+restSpaces=6 won by THRONE in round 5
+H_TOURNAMENT   game ignatia+whisper vs rowenna+misa: x10+pol=1+scope=3+leaf=3+tt=1+K=24+topS=8+topU=6+rep=4+td=2+tw=3+branch=1+restSpaces=6 Red, s10 won by LAST_PUSH in round 7
+H_TOURNAMENT   game ignatia+whisper vs rowenna+misa: x10+pol=1+scope=3+leaf=3+tt=1+K=24+topS=8+topU=6+rep=4+td=2+tw=3+branch=1+restSpaces=6 Blue, x10+pol=1+scope=3+leaf=3+tt=1+K=24+topS=8+topU=6+rep=4+td=2+tw=3+branch=1+restSpaces=6 won by THRONE in round 5
+H_TOURNAMENT   game gydion+rowenna vs min+widget: x10+pol=1+scope=3+leaf=3+tt=1+K=24+topS=8+topU=6+rep=4+td=2+tw=3+branch=1+restSpaces=6 Red, x10+pol=1+scope=3+leaf=3+tt=1+K=24+topS=8+topU=6+rep=4+td=2+tw=3+branch=1+restSpaces=6 won by LIFE_COUNTERS in round 7
+H_TOURNAMENT   game gydion+rowenna vs min+widget: x10+pol=1+scope=3+leaf=3+tt=1+K=24+topS=8+topU=6+rep=4+td=2+tw=3+branch=1+restSpaces=6 Blue, x10+pol=1+scope=3+leaf=3+tt=1+K=24+topS=8+topU=6+rep=4+td=2+tw=3+branch=1+restSpaces=6 won by LAST_PUSH in round 8
+H_TOURNAMENT   game nebkher+snorri vs swift+tali: x10+pol=1+scope=3+leaf=3+tt=1+K=24+topS=8+topU=6+rep=4+td=2+tw=3+branch=1+restSpaces=6 Red, x10+pol=1+scope=3+leaf=3+tt=1+K=24+topS=8+topU=6+rep=4+td=2+tw=3+branch=1+restSpaces=6 won by LAST_PUSH in round 7
+H_TOURNAMENT   game nebkher+snorri vs swift+tali: x10+pol=1+scope=3+leaf=3+tt=1+K=24+topS=8+topU=6+rep=4+td=2+tw=3+branch=1+restSpaces=6 Blue, x10+pol=1+scope=3+leaf=3+tt=1+K=24+topS=8+topU=6+rep=4+td=2+tw=3+branch=1+restSpaces=6 won by THRONE in round 4
+H_TOURNAMENT   game dodger+garrus vs tigerclaw+xargatha: x10+pol=1+scope=3+leaf=3+tt=1+K=24+topS=8+topU=6+rep=4+td=2+tw=3+branch=1+restSpaces=6 Red, x10+pol=1+scope=3+leaf=3+tt=1+K=24+topS=8+topU=6+rep=4+td=2+tw=3+branch=1+restSpaces=6 won by LIFE_COUNTERS in round 5
+H_TOURNAMENT   game dodger+garrus vs tigerclaw+xargatha: x10+pol=1+scope=3+leaf=3+tt=1+K=24+topS=8+topU=6+rep=4+td=2+tw=3+branch=1+restSpaces=6 Blue, s10 won by LIFE_COUNTERS in round 6
+H_TOURNAMENT   game cutter+ignatia vs emmitt+brynn: x10+pol=1+scope=3+leaf=3+tt=1+K=24+topS=8+topU=6+rep=4+td=2+tw=3+branch=1+restSpaces=6 Red, x10+pol=1+scope=3+leaf=3+tt=1+K=24+topS=8+topU=6+rep=4+td=2+tw=3+branch=1+restSpaces=6 won by LIFE_COUNTERS in round 8
+H_TOURNAMENT   game cutter+ignatia vs emmitt+brynn: x10+pol=1+scope=3+leaf=3+tt=1+K=24+topS=8+topU=6+rep=4+td=2+tw=3+branch=1+restSpaces=6 Blue, s10 won by LAST_PUSH in round 9
+H_TOURNAMENT   game silverarrow+arien vs wuk+takahide: x10+pol=1+scope=3+leaf=3+tt=1+K=24+topS=8+topU=6+rep=4+td=2+tw=3+branch=1+restSpaces=6 Red, x10+pol=1+scope=3+leaf=3+tt=1+K=24+topS=8+topU=6+rep=4+td=2+tw=3+branch=1+restSpaces=6 won by LIFE_COUNTERS in round 5
+H_TOURNAMENT   game silverarrow+arien vs wuk+takahide: x10+pol=1+scope=3+leaf=3+tt=1+K=24+topS=8+topU=6+rep=4+td=2+tw=3+branch=1+restSpaces=6 Blue, s10 won by LAST_PUSH in round 6
+H_TOURNAMENT   game hanu+trinkets vs whisper+razzle: x10+pol=1+scope=3+leaf=3+tt=1+K=24+topS=8+topU=6+rep=4+td=2+tw=3+branch=1+restSpaces=6 Red, x10+pol=1+scope=3+leaf=3+tt=1+K=24+topS=8+topU=6+rep=4+td=2+tw=3+branch=1+restSpaces=6 won by LAST_PUSH in round 6
+H_TOURNAMENT   game hanu+trinkets vs whisper+razzle: x10+pol=1+scope=3+leaf=3+tt=1+K=24+topS=8+topU=6+rep=4+td=2+tw=3+branch=1+restSpaces=6 Blue, x10+pol=1+scope=3+leaf=3+tt=1+K=24+topS=8+topU=6+rep=4+td=2+tw=3+branch=1+restSpaces=6 won by LAST_PUSH in round 6
+H_TOURNAMENT   game wasp+brogan vs sabina+misa: x10+pol=1+scope=3+leaf=3+tt=1+K=24+topS=8+topU=6+rep=4+td=2+tw=3+branch=1+restSpaces=6 Red, x10+pol=1+scope=3+leaf=3+tt=1+K=24+topS=8+topU=6+rep=4+td=2+tw=3+branch=1+restSpaces=6 won by LAST_PUSH in round 7
+H_TOURNAMENT   game wasp+brogan vs sabina+misa: x10+pol=1+scope=3+leaf=3+tt=1+K=24+topS=8+topU=6+rep=4+td=2+tw=3+branch=1+restSpaces=6 Blue, s10 won by LAST_PUSH in round 6
+H_TOURNAMENT   game ursafar+bain vs mortimer+mrak: x10+pol=1+scope=3+leaf=3+tt=1+K=24+topS=8+topU=6+rep=4+td=2+tw=3+branch=1+restSpaces=6 Red, x10+pol=1+scope=3+leaf=3+tt=1+K=24+topS=8+topU=6+rep=4+td=2+tw=3+branch=1+restSpaces=6 won by LIFE_COUNTERS in round 6
+H_TOURNAMENT   game ursafar+bain vs mortimer+mrak: x10+pol=1+scope=3+leaf=3+tt=1+K=24+topS=8+topU=6+rep=4+td=2+tw=3+branch=1+restSpaces=6 Blue, x10+pol=1+scope=3+leaf=3+tt=1+K=24+topS=8+topU=6+rep=4+td=2+tw=3+branch=1+restSpaces=6 won by THRONE in round 4
+H_TOURNAMENT   game widget+bain vs swift+min: x10+pol=1+scope=3+leaf=3+tt=1+K=24+topS=8+topU=6+rep=4+td=2+tw=3+branch=1+restSpaces=6 Red, s10 won by LAST_PUSH in round 6
+H_TOURNAMENT   game widget+bain vs swift+min: x10+pol=1+scope=3+leaf=3+tt=1+K=24+topS=8+topU=6+rep=4+td=2+tw=3+branch=1+restSpaces=6 Blue, x10+pol=1+scope=3+leaf=3+tt=1+K=24+topS=8+topU=6+rep=4+td=2+tw=3+branch=1+restSpaces=6 won by LAST_PUSH in round 5
+H_TOURNAMENT   game gydion+whisper vs tigerclaw+arien: x10+pol=1+scope=3+leaf=3+tt=1+K=24+topS=8+topU=6+rep=4+td=2+tw=3+branch=1+restSpaces=6 Red, s10 won by LAST_PUSH in round 6
+H_TOURNAMENT   game gydion+whisper vs tigerclaw+arien: x10+pol=1+scope=3+leaf=3+tt=1+K=24+topS=8+topU=6+rep=4+td=2+tw=3+branch=1+restSpaces=6 Blue, x10+pol=1+scope=3+leaf=3+tt=1+K=24+topS=8+topU=6+rep=4+td=2+tw=3+branch=1+restSpaces=6 won by THRONE in round 4
+H_TOURNAMENT   game misa+garrus vs brogan+mortimer: x10+pol=1+scope=3+leaf=3+tt=1+K=24+topS=8+topU=6+rep=4+td=2+tw=3+branch=1+restSpaces=6 Red, x10+pol=1+scope=3+leaf=3+tt=1+K=24+topS=8+topU=6+rep=4+td=2+tw=3+branch=1+restSpaces=6 won by LAST_PUSH in round 9
+H_TOURNAMENT   game misa+garrus vs brogan+mortimer: x10+pol=1+scope=3+leaf=3+tt=1+K=24+topS=8+topU=6+rep=4+td=2+tw=3+branch=1+restSpaces=6 Blue, x10+pol=1+scope=3+leaf=3+tt=1+K=24+topS=8+topU=6+rep=4+td=2+tw=3+branch=1+restSpaces=6 won by LIFE_COUNTERS in round 5
+H_TOURNAMENT   game ignatia+tali vs brynn+takahide: x10+pol=1+scope=3+leaf=3+tt=1+K=24+topS=8+topU=6+rep=4+td=2+tw=3+branch=1+restSpaces=6 Red, x10+pol=1+scope=3+leaf=3+tt=1+K=24+topS=8+topU=6+rep=4+td=2+tw=3+branch=1+restSpaces=6 won by LIFE_COUNTERS in round 5
+H_TOURNAMENT   game ignatia+tali vs brynn+takahide: x10+pol=1+scope=3+leaf=3+tt=1+K=24+topS=8+topU=6+rep=4+td=2+tw=3+branch=1+restSpaces=6 Blue, x10+pol=1+scope=3+leaf=3+tt=1+K=24+topS=8+topU=6+rep=4+td=2+tw=3+branch=1+restSpaces=6 won by LAST_PUSH in round 6
+H_TOURNAMENT   game razzle+cutter vs wuk+wasp: x10+pol=1+scope=3+leaf=3+tt=1+K=24+topS=8+topU=6+rep=4+td=2+tw=3+branch=1+restSpaces=6 Red, x10+pol=1+scope=3+leaf=3+tt=1+K=24+topS=8+topU=6+rep=4+td=2+tw=3+branch=1+restSpaces=6 won by LIFE_COUNTERS in round 5
+H_TOURNAMENT   game razzle+cutter vs wuk+wasp: x10+pol=1+scope=3+leaf=3+tt=1+K=24+topS=8+topU=6+rep=4+td=2+tw=3+branch=1+restSpaces=6 Blue, x10+pol=1+scope=3+leaf=3+tt=1+K=24+topS=8+topU=6+rep=4+td=2+tw=3+branch=1+restSpaces=6 won by LIFE_COUNTERS in round 6
+H_TOURNAMENT   game snorri+hanu vs trinkets+silverarrow: x10+pol=1+scope=3+leaf=3+tt=1+K=24+topS=8+topU=6+rep=4+td=2+tw=3+branch=1+restSpaces=6 Red, x10+pol=1+scope=3+leaf=3+tt=1+K=24+topS=8+topU=6+rep=4+td=2+tw=3+branch=1+restSpaces=6 won by LAST_PUSH in round 6
+H_TOURNAMENT   game snorri+hanu vs trinkets+silverarrow: x10+pol=1+scope=3+leaf=3+tt=1+K=24+topS=8+topU=6+rep=4+td=2+tw=3+branch=1+restSpaces=6 Blue, x10+pol=1+scope=3+leaf=3+tt=1+K=24+topS=8+topU=6+rep=4+td=2+tw=3+branch=1+restSpaces=6 won by LAST_PUSH in round 7
+H_TOURNAMENT   game emmitt+nebkher vs mrak+ursafar: x10+pol=1+scope=3+leaf=3+tt=1+K=24+topS=8+topU=6+rep=4+td=2+tw=3+branch=1+restSpaces=6 Red, x10+pol=1+scope=3+leaf=3+tt=1+K=24+topS=8+topU=6+rep=4+td=2+tw=3+branch=1+restSpaces=6 won by LAST_PUSH in round 8
+H_TOURNAMENT   game emmitt+nebkher vs mrak+ursafar: x10+pol=1+scope=3+leaf=3+tt=1+K=24+topS=8+topU=6+rep=4+td=2+tw=3+branch=1+restSpaces=6 Blue, x10+pol=1+scope=3+leaf=3+tt=1+K=24+topS=8+topU=6+rep=4+td=2+tw=3+branch=1+restSpaces=6 won by THRONE in round 7
+H_TOURNAMENT   game dodger+rowenna vs xargatha+sabina: x10+pol=1+scope=3+leaf=3+tt=1+K=24+topS=8+topU=6+rep=4+td=2+tw=3+branch=1+restSpaces=6 Red, x10+pol=1+scope=3+leaf=3+tt=1+K=24+topS=8+topU=6+rep=4+td=2+tw=3+branch=1+restSpaces=6 won by LIFE_COUNTERS in round 7
+H_TOURNAMENT   game dodger+rowenna vs xargatha+sabina: x10+pol=1+scope=3+leaf=3+tt=1+K=24+topS=8+topU=6+rep=4+td=2+tw=3+branch=1+restSpaces=6 Blue, x10+pol=1+scope=3+leaf=3+tt=1+K=24+topS=8+topU=6+rep=4+td=2+tw=3+branch=1+restSpaces=6 won by THRONE in round 5
+H_TOURNAMENT   game trinkets+razzle vs snorri+arien: x10+pol=1+scope=3+leaf=3+tt=1+K=24+topS=8+topU=6+rep=4+td=2+tw=3+branch=1+restSpaces=6 Red, x10+pol=1+scope=3+leaf=3+tt=1+K=24+topS=8+topU=6+rep=4+td=2+tw=3+branch=1+restSpaces=6 won by LAST_PUSH in round 6
+H_TOURNAMENT   game trinkets+razzle vs snorri+arien: x10+pol=1+scope=3+leaf=3+tt=1+K=24+topS=8+topU=6+rep=4+td=2+tw=3+branch=1+restSpaces=6 Blue, x10+pol=1+scope=3+leaf=3+tt=1+K=24+topS=8+topU=6+rep=4+td=2+tw=3+branch=1+restSpaces=6 won by LIFE_COUNTERS in round 6
+H_TOURNAMENT   game dodger+hanu vs cutter+ursafar: x10+pol=1+scope=3+leaf=3+tt=1+K=24+topS=8+topU=6+rep=4+td=2+tw=3+branch=1+restSpaces=6 Red, x10+pol=1+scope=3+leaf=3+tt=1+K=24+topS=8+topU=6+rep=4+td=2+tw=3+branch=1+restSpaces=6 won by LIFE_COUNTERS in round 8
+H_TOURNAMENT   game dodger+hanu vs cutter+ursafar: x10+pol=1+scope=3+leaf=3+tt=1+K=24+topS=8+topU=6+rep=4+td=2+tw=3+branch=1+restSpaces=6 Blue, x10+pol=1+scope=3+leaf=3+tt=1+K=24+topS=8+topU=6+rep=4+td=2+tw=3+branch=1+restSpaces=6 won by LIFE_COUNTERS in round 4
+H_TOURNAMENT   game brogan+tigerclaw vs tali+ignatia: x10+pol=1+scope=3+leaf=3+tt=1+K=24+topS=8+topU=6+rep=4+td=2+tw=3+branch=1+restSpaces=6 Red, x10+pol=1+scope=3+leaf=3+tt=1+K=24+topS=8+topU=6+rep=4+td=2+tw=3+branch=1+restSpaces=6 won by LIFE_COUNTERS in round 9
+H_TOURNAMENT   game brogan+tigerclaw vs tali+ignatia: x10+pol=1+scope=3+leaf=3+tt=1+K=24+topS=8+topU=6+rep=4+td=2+tw=3+branch=1+restSpaces=6 Blue, s10 won by LIFE_COUNTERS in round 7
+H_TOURNAMENT   game emmitt+wuk vs sabina+misa: x10+pol=1+scope=3+leaf=3+tt=1+K=24+topS=8+topU=6+rep=4+td=2+tw=3+branch=1+restSpaces=6 Red, x10+pol=1+scope=3+leaf=3+tt=1+K=24+topS=8+topU=6+rep=4+td=2+tw=3+branch=1+restSpaces=6 won by LAST_PUSH in round 8
+H_TOURNAMENT   game emmitt+wuk vs sabina+misa: x10+pol=1+scope=3+leaf=3+tt=1+K=24+topS=8+topU=6+rep=4+td=2+tw=3+branch=1+restSpaces=6 Blue, x10+pol=1+scope=3+leaf=3+tt=1+K=24+topS=8+topU=6+rep=4+td=2+tw=3+branch=1+restSpaces=6 won by LAST_PUSH in round 6
+H_TOURNAMENT   game gydion+wasp vs bain+mrak: x10+pol=1+scope=3+leaf=3+tt=1+K=24+topS=8+topU=6+rep=4+td=2+tw=3+branch=1+restSpaces=6 Red, s10 won by LIFE_COUNTERS in round 6
+H_TOURNAMENT   game gydion+wasp vs bain+mrak: x10+pol=1+scope=3+leaf=3+tt=1+K=24+topS=8+topU=6+rep=4+td=2+tw=3+branch=1+restSpaces=6 Blue, x10+pol=1+scope=3+leaf=3+tt=1+K=24+topS=8+topU=6+rep=4+td=2+tw=3+branch=1+restSpaces=6 won by THRONE in round 5
+H_TOURNAMENT   game widget+xargatha vs whisper+rowenna: x10+pol=1+scope=3+leaf=3+tt=1+K=24+topS=8+topU=6+rep=4+td=2+tw=3+branch=1+restSpaces=6 Red, s10 won by LAST_PUSH in round 8
+H_TOURNAMENT   game widget+xargatha vs whisper+rowenna: x10+pol=1+scope=3+leaf=3+tt=1+K=24+topS=8+topU=6+rep=4+td=2+tw=3+branch=1+restSpaces=6 Blue, x10+pol=1+scope=3+leaf=3+tt=1+K=24+topS=8+topU=6+rep=4+td=2+tw=3+branch=1+restSpaces=6 won by LIFE_COUNTERS in round 6
+H_TOURNAMENT   game nebkher+brynn vs silverarrow+min: x10+pol=1+scope=3+leaf=3+tt=1+K=24+topS=8+topU=6+rep=4+td=2+tw=3+branch=1+restSpaces=6 Red, s10 won by LIFE_COUNTERS in round 6
+H_TOURNAMENT   game nebkher+brynn vs silverarrow+min: x10+pol=1+scope=3+leaf=3+tt=1+K=24+topS=8+topU=6+rep=4+td=2+tw=3+branch=1+restSpaces=6 Blue, x10+pol=1+scope=3+leaf=3+tt=1+K=24+topS=8+topU=6+rep=4+td=2+tw=3+branch=1+restSpaces=6 won by THRONE in round 5
+H_TOURNAMENT   game swift+mortimer vs takahide+garrus: x10+pol=1+scope=3+leaf=3+tt=1+K=24+topS=8+topU=6+rep=4+td=2+tw=3+branch=1+restSpaces=6 Red, x10+pol=1+scope=3+leaf=3+tt=1+K=24+topS=8+topU=6+rep=4+td=2+tw=3+branch=1+restSpaces=6 won by THRONE in round 4
+H_TOURNAMENT   game swift+mortimer vs takahide+garrus: x10+pol=1+scope=3+leaf=3+tt=1+K=24+topS=8+topU=6+rep=4+td=2+tw=3+branch=1+restSpaces=6 Blue, x10+pol=1+scope=3+leaf=3+tt=1+K=24+topS=8+topU=6+rep=4+td=2+tw=3+branch=1+restSpaces=6 won by THRONE in round 5
+
+Time: 4,045.846
+
+OK (1 test)
+
