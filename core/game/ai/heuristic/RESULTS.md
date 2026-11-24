@@ -709,3 +709,39 @@ the minion wins the push) at strengths 10, 8 and 5; the book passed both before 
 in these positions still loses (the `bookRoundEnd` column of the diagnostic): by turn 3 the round was already lost
 against the book's turn 4. The extension removes a verified defect in how the search judges the deciding turn; the
 win rate is for the integrator's measurement.
+
+### Position bench, before and after (`AiPositionBenchTest`)
+
+The book is unchanged, so its bench rows are unchanged by construction (h10: puzzles 78.6%, rounds 76.0%, the
+table above). `lpx` can only change a search answered on turn 3 while a lane is on its last wave; the bench now
+has `AI_BENCH_LASTWAVE=1` to keep exactly those questions (46 of puzzles + rounds) and `AI_BENCH_MISSES=1` to name
+the wrong ones. Everywhere else the two specs answer identically by construction.
+
+```
+X='x10+pol=1+scope=3+leaf=3+tt=1+K=24+topS=8+topU=6+rep=4+td=2+tw=3+branch=1+restSpaces=6'
+AI_BENCH="$X,$X+lpx=1" AI_BENCH_SETS=puzzles,rounds AI_BENCH_LASTWAVE=1 AI_BENCH_MISSES=1 AI_THREADS=2 \
+  goa-run AiPositionBenchTest
+```
+
+| Spec | puzzles (last wave, turn 3) | rounds (last wave, turn 3) | ms an answer (puzzles / rounds) |
+|---|---|---|---|
+| W3+NET6 (as played) | 10/10 | 31/32 right, 4 unknown | 397 / 621 |
+| W3+NET6 + `lpx` | 10/10 | 31/33 right, 3 unknown | 698 / 1 527 |
+
+The same number right; one former "unknown" (a choose_action) is now right and one space answer is now wrong:
+`r10` ("Nothing Left to Defend With"), a full round whose enemy plays are scripted and known to the solver
+(ADR-052). With `lpx` the search plays the enemy's turn 4 with the book instead of judging it, and here the
+book's turn 4 is not the scripted one. Both runs also share one miss (`r39`, a choose_unit). Cost: about 1.5–2.5×
+on these questions only (two threads, shared machine: upper bounds); on the recorded positions 1.2–4.5× (0.2–2.2 s
+with three threads). Worst-case card-play time grows on last-wave turn 3 (V2 §6.2: no wall clock); not measured.
+
+### What is still open (for the integrator)
+
+- **The win rate.** No tournament was run; the extension is kept on the strength of the recorded positions.
+- **Turns 1–2 of the last wave (600R).** The search also preferred non-attack cards over the book's Red cards
+  there; the extension does not reach it. The leaf is the lever (Track H), or `lw=3` with a cheaper policy.
+- **Interaction with Track F's aggregation fix (V2 §2.4).** The extension reaches more finished games (±1000) at
+  turn 3; with the column mean on the logit scale one lost column dominates. With F's win-probability mean this is
+  the intended behaviour; without it the search leans to avoiding any immediately lost column.
+- **3v3**: the same knob applies (base knob, not `6.`); not checked on a 3v3 position.
+- `hold` stays off (it changed none of the ten deciding answers, and none on the bench in wave 3).
