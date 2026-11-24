@@ -200,6 +200,25 @@ class EngineSession internal constructor(
     fun forkHalting(stop: (GameState) -> Boolean): EngineSession = forkSession().also { it.haltWhen = stop }
 
     /**
+     * A copy of this position as someone else sees it (the AI's opponent model): [edit] changes a copy of the
+     * step's start and of the shown state alike (e.g. a facedown card back into its hand), and the pending
+     * question stays, so answers on the copy re-run the step from the edited start. Only for edits that leave
+     * the step's answers so far valid (hand and played-card zones); an AI never answers the real game on it.
+     */
+    internal fun viewWith(edit: (GameState) -> Unit): EngineSession {
+        val f = forkSession()
+        val cp = checkpoint.copy()
+        edit(cp)
+        f.checkpoint = cp
+        f.display = if (display === checkpoint) {
+            cp
+        } else {
+            display.copy().also(edit)
+        }
+        return f
+    }
+
+    /**
      * A fork that is answered at once (the puzzle solver): like [forkSession] but shares the displayed
      * state instead of copying it, since the next answer replaces it. Don't read its state before answering.
      */

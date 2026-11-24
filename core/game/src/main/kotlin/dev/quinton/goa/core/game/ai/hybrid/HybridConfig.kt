@@ -68,7 +68,7 @@ enum class PolicyMode {
 }
 
 /**
- * The hybrid search's knobs (prototype, opt-in; not wired into `AiPlayers`). A tournament spec
+ * The hybrid search's knobs (strength 10's are `AiPlayers.SEARCH_10`). A tournament spec
  * `x10+K=8+hz=1+leaf=0` sets them by name ([fromKnobs]); every other `name=value` is passed to the
  * book as a [dev.quinton.goa.core.game.ai.heuristic.HeuristicProfile.tune] knob.
  */
@@ -169,6 +169,34 @@ data class HybridConfig(
      * card plays (many distinct deals early in a round, six seats) and leaves the usual ones alone.
      */
     val columnCap: Int = 0,
+    /**
+     * Wave 4 Track F (review-3 V2 §2.4): the leaf is a win probability ([dev.quinton.goa.core.game.ai.LeafChance])
+     * and the columns' mean is an expected chance to win; false: the leaf's coin scale, where a finished game's
+     * ±1000 swamps the mean (the old behaviour, knob `lp=0`, for measurement only).
+     */
+    val chanceLeaf: Boolean = true,
+    /**
+     * Wave 4 Track F (review-3 V2 §1.3): a seat choosing its card in a playout, and the opponent model, see the
+     * other team's facedown cards back in hand ([HiddenCards]); false: the old clairvoyant model (`hide=0`).
+     */
+    val hide: Boolean = true,
+    /**
+     * Wave 4 Track F (review-3 V2 §2.2–2.3): at a card play, every enemy whose card this turn we cannot see
+     * (played facedown, or still to choose) is dealt from the opponent model ([model], [tau]) by enumeration:
+     * each sample is played with the most likely joint deals, at most this many, until they cover [dealMass]
+     * of the model, each weighted by its exact probability. The same model for every seat colour (enemies
+     * before or after us in seat order), and no drawn replies: a seed changes nothing in it. 0: off (the
+     * samples deal played cards at random, [replies] models the enemies still to play).
+     */
+    val deals: Int = 0,
+    /** The share of the opponent model's joint probability the [deals] cover before they stop. */
+    val dealMass: Double = 0.95,
+    /**
+     * Wave 4 Track F (review-3 V2 §6.2): a wall-clock budget per searched answer, ms (0: none). Past it the
+     * search stops inside its playouts and answers with the columns every candidate finished (the book's own
+     * answer when none did). Answers then depend on the device's speed; tests and tournaments leave it 0.
+     */
+    val budgetMs: Long = 0,
 ) {
     /** How many of the book's best by static score are searched at [kind] (beside its own answer). */
     fun topFor(kind: DecisionKind): Int = when (kind) {
@@ -199,7 +227,7 @@ data class HybridConfig(
             "K", "Ko", "top", "hz", "hzo", "leaf", "pol", "polE", "scope", "model", "tau", "prior", "risk",
             "dd", "tt", "kill", "prune", "hz1", "hz2", "hz3", "hz4", "hzo1", "hzo2", "hzo3", "hzo4", "topS", "topU",
             "rep", "repM", "repT", "lavg", "mm",
-            "td", "tw", "te", "tk", "tc", "lw", "lwo", "lwn", "cap",
+            "td", "tw", "te", "tk", "tc", "lw", "lwo", "lwn", "cap", "lp", "hide", "deal", "dealP", "ms",
         )
 
         private fun byTurn(k: Map<String, Double>, prefix: String): Map<Int, HybridHorizon> =
@@ -245,6 +273,11 @@ data class HybridConfig(
                 lastWaveOtherHorizon = k["lwo"]?.toInt()?.let(HybridHorizon::of),
                 lastWaves = k["lwn"]?.toInt() ?: d.lastWaves,
                 columnCap = k["cap"]?.toInt() ?: d.columnCap,
+                chanceLeaf = k["lp"]?.let { it != 0.0 } ?: d.chanceLeaf,
+                hide = k["hide"]?.let { it != 0.0 } ?: d.hide,
+                deals = k["deal"]?.toInt() ?: d.deals,
+                dealMass = k["dealP"] ?: d.dealMass,
+                budgetMs = k["ms"]?.toLong() ?: d.budgetMs,
             )
         }
     }

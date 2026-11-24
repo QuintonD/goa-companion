@@ -45,9 +45,16 @@ object AiPlayers {
     fun forApp(strength: Int, runner: SampleRunner = SampleRunner.SEQUENTIAL): AiPlayer =
         forStrength(strength, APP_SEED + strength, runner)
 
-    /** The production player. No wall clock; [runner] runs strength 10's playouts. */
-    fun forStrength(strength: Int, seed: Long, runner: SampleRunner = SampleRunner.SEQUENTIAL): AiPlayer =
-        heuristic(strength, seed, runner)
+    /**
+     * The production player; [runner] runs strength 10's playouts. [budgetMs]: strength 10's wall-clock budget
+     * per searched answer (null: none, the same answers on every device; [dev.quinton.goa.core.game.ai.hybrid.HybridConfig.budgetMs]).
+     */
+    fun forStrength(
+        strength: Int,
+        seed: Long,
+        runner: SampleRunner = SampleRunner.SEQUENTIAL,
+        budgetMs: Long? = null,
+    ): AiPlayer = heuristic(strength, seed, runner, budgetMs)
 
     /** Fully reproducible (tests, tournaments): the same player as [forStrength], with no clock to cut. */
     fun deterministic(strength: Int, seed: Long): AiPlayer = heuristic(strength, seed, SampleRunner.SEQUENTIAL)
@@ -81,7 +88,9 @@ object AiPlayers {
      * exactly as h10 plays it answers in the playouts (`pol` 1); every question with a choice is searched
      * (`scope` 3) to the end of the turn; 24 determinizations a card play, merged where they deal the same
      * position (`K`); the book's own answer plus its best 8 spaces / 6 units / 4 of anything else (`topS`,
-     * `topU`, `top`); 4 enemy replies a card play while an enemy still has to choose (`rep`); the memo (`tt`);
+     * `topU`, `top`); the enemies' hidden cards (played facedown or still to choose) dealt from the opponent model
+     * by enumeration, the 8 most likely joint deals up to 95% of it, the same for either seat colour (`deal`,
+     * Wave 4 Track F, RESULTS.md "Wave 4 — Track F"; it replaced 4 enemy replies at Red seats, `rep`); the memo (`tt`);
      * after the reveal a minimax over the rest of the turn, two choices deep over the book's best three
      * (`td`, `tw`; the tree, RESULTS.md "Wave 3 — Track C"). The book (at the root and in the playouts) branches
      * one own choice in its card looks and looks six spaces ahead at a rest (`branch`, `restSpaces`: Track A's
@@ -96,7 +105,7 @@ object AiPlayers {
         "K" to 24.0,
         "topS" to 8.0,
         "topU" to 6.0,
-        "rep" to 4.0,
+        "deal" to 8.0,
         "td" to 2.0,
         "tw" to 3.0,
         "branch" to 1.0,
@@ -108,10 +117,10 @@ object AiPlayers {
     const val SEARCH_FROM: Int = 10
 
     /** Strength [SEARCH_FROM] and up: the search over the book, its samples on [runner]; below, the book. */
-    private fun heuristic(strength: Int, seed: Long, runner: SampleRunner): AiPlayer {
+    private fun heuristic(strength: Int, seed: Long, runner: SampleRunner, budgetMs: Long? = null): AiPlayer {
         val s = AiStrength.coerce(strength)
         if (s < SEARCH_FROM) return HeuristicAi(s, seed)
-        return HybridAi(seed, SEARCH_10 + ("leaf" to SEARCH_10_LEAF.ordinal.toDouble()), runner)
+        return HybridAi(seed, SEARCH_10 + ("leaf" to SEARCH_10_LEAF.ordinal.toDouble()), runner, budgetMs)
     }
 
     private fun searchPlayer(

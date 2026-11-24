@@ -13,6 +13,12 @@ import kotlin.math.max
 /** What scores a position for one team, in coin-equivalents (positive: good for [Team]). */
 internal fun interface PositionEvaluator {
     fun evaluate(state: GameState, team: Team): Double
+
+    /**
+     * [team]'s chance to win at [state] in [0, 1] ([LeafChance]): what may be averaged over samples. By default
+     * the coin score through [WinChance]'s calibration; a learned evaluator gives its own σ(logit).
+     */
+    fun chance(state: GameState, team: Team): Double = LeafChance.ofScore(evaluate(state, team), state, team)
 }
 
 /** Where a searching strength uses the learned evaluation (AI.md "Learned evaluation"). */
@@ -233,5 +239,19 @@ internal class NetEvaluator(data: EngineData, private val nets: List<LearnedNet>
             state.winner?.let { if (it == Team.RED) Evaluator.WIN - state.round else -Evaluator.WIN + state.round }
                 ?: redScore(state)
         return if (team == Team.RED) red else -red
+    }
+
+    /**
+     * [team]'s chance to win: the mean of the nets' σ(logit) (an ensemble averages probabilities, not
+     * log-odds); a finished game is [LeafChance.terminal]. Same features, one extraction.
+     */
+    override fun chance(state: GameState, team: Team): Double {
+        LeafChance.terminal(state, team)?.let { return it }
+        val perHero = FloatArray(state.heroes.size * Features.HERO.size)
+        val x = extract(state, perHero)
+        var sum = 0.0
+        for (net in nets) sum += LeafChance.ofLogit(logit(net, state, x, perHero))
+        val red = LeafChance.unfinished(sum / nets.size)
+        return if (team == Team.RED) red else 1.0 - red
     }
 }
