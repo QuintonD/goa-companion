@@ -47,7 +47,8 @@ object AiPlayers {
 
     /**
      * The production player; [runner] runs strength 10's playouts. [budgetMs]: strength 10's wall-clock budget
-     * per searched answer (null: none, the same answers on every device; [dev.quinton.goa.core.game.ai.hybrid.HybridConfig.budgetMs]).
+     * per searched answer (null: none, the same answers on every device;
+     * [dev.quinton.goa.core.game.ai.hybrid.HybridConfig.budgetMs]).
      */
     fun forStrength(
         strength: Int,
@@ -90,7 +91,8 @@ object AiPlayers {
      * position (`K`); the book's own answer plus its best 8 spaces / 6 units / 4 of anything else (`topS`,
      * `topU`, `top`); the enemies' hidden cards (played facedown or still to choose) dealt from the opponent model
      * by enumeration, the 8 most likely joint deals up to 95% of it, the same for either seat colour (`deal`,
-     * Wave 4 Track F, RESULTS.md "Wave 4 — Track F"; it replaced 4 enemy replies at Red seats, `rep`); the memo (`tt`);
+     * Wave 4 Track F, RESULTS.md "Wave 4 — Track F"; it replaced 4 enemy replies at Red seats, `rep`); the memo
+     * (`tt`);
      * after the reveal a minimax over the rest of the turn, two choices deep over the book's best three
      * (`td`, `tw`; the tree, RESULTS.md "Wave 3 — Track C"). The book (at the root and in the playouts) branches
      * one own choice in its card looks and looks six spaces ahead at a rest (`branch`, `restSpaces`: Track A's

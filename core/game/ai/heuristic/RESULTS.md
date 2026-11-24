@@ -608,3 +608,86 @@ AI_NETS=$Q/nets AI_CACHE=$Q/cache AI_TRAIN=$Q/data/book-a.jsonl,… AI_RESOLVED=
 AI_NETS=$Q/nets AI_TEAMS='W2+net=avg(w1,w2,w3):W2' AI_SIZE=2 AI_FAMILY=mixed AI_FIRST=1000 AI_N=128 AI_SPRT=0.55 \
   AI_THREADS=3 $S/goa-run TeamTournamentTest
 ```
+
+## Wave 4 — Track F: search fixes (strength 10, 2026-11-24)
+
+Fixes of the verified defects in `review-3/V2-code.md` (audit branch `audit/wave3-ai`), validated by construction and on
+a fixed set of positions; **no games were played** for it. Base: 959e4013 (SEARCH_10 = W3 + NET6 leaf + `6.cap`), which
+compiled and passed `HybridSearchTest`, `NoPeekingTest` and `GameParityTest` as it was; nothing needed re-pinning
+(`GameParityTest` does not run `HybridAi`, V2 §6.4).
+
+### What changed
+- **Leaf on the win-chance scale (V2 §2.4, knob `lp`, on by default).** `LeafChance` (new, `ai/LeafChance.kt`) is the one
+  conversion: a finished game is 1 / 0 (a hair, 1e-6 a round, prefers sooner wins and later losses), a learned leaf is the
+  mean of its nets' σ(logit) (`PositionEvaluator.chance`, `NetEvaluator` overrides it: an ensemble averages
+  probabilities), a coin score (HEval, the old evaluator) goes through `WinChance`'s Platt fit for the game size (fitted
+  for the hand evaluation; for HEval the nearest calibrated mapping, not its own fit). The search's leaf returns it, so
+  the column mean is an expected chance to win and one finished column no longer swamps the rest. `lp=0` restores the
+  coin scale (measurement only). `prior` (off) still mixes the book's coin-scale card values in.
+- **Modelled seats do not see the other team's facedown card (V2 §1.3 and §1.2.3, knob `hide`, on by default).** A
+  playout seat's card play (`BookPolicy.answer`) and the opponent model (`BookPolicy.playWeights`) are answered on that
+  seat's view: every other-team unrevealed played card back in hand, stamps cleared (`HiddenCards`, new; engine helper
+  `EngineSession.viewWith`). The hand is then what it was before the facedown choice (ADR-062: pool known, card not).
+- **Enemy cards dealt by enumeration, for both seat colours (V2 §2.2–2.3, knob `deal`, SEARCH_10 `deal=8`, replaces
+  `rep=4`).** At a card play every enemy whose card this turn we cannot see — played facedown before us (Blue seats) or
+  still to choose (Red seats) — gets the opponent model's chances over its hand pool on its own view (the same
+  `model=1` softmax as before); the joint deals are enumerated most likely first (an exact beam, `HybridAi.topDeals`), at
+  most 8 and until they cover 95% (`dealP`), each column weighted by its exact probability. Played cards are dealt into
+  the column's copy; a still-to-choose enemy plays its dealt card when its turn comes in the playout. No drawn replies and
+  no seat-colour-dependent model; the book's clairvoyant column-0 reply is gone. `deal=0` restores the old columns.
+  Why enumeration over more samples: the noise was in which 3 replies were drawn (and in the multinomial deal counts at
+  Blue seats); enumerating the model's mass removes it at a fixed cost, where more samples only shrink it slowly.
+- **Per-answer budget (V2 §6.2, §6.6; knob `ms`, `HybridAi(…, budgetMs)`, `AiPlayers.forStrength(…, budgetMs)`).** Off by
+  default (answers stay device-independent). With it, the book's own answer is computed first (it is the answer if no
+  column finishes), the stop is polled at every playout step and tree node, a cut playout is NaN, and the answer uses only
+  the columns every candidate finished (all candidates compared on the same columns). Without a budget answers are
+  unchanged. The app wiring is Track A's.
+- **Silent fallbacks counted (V2 §6.7).** `HybridAi.fallbacks`: playout answers that threw or were not an option,
+  opponent models that threw, static scores that threw, answers the engine refused, whole searches that threw, and
+  `deadline` (answers the budget cut). `DecisionSetTest` prints the sums.
+- #12 (`6.cap` drops the model's tail, doubles the book reply's share): with deals there is no book-reply column; the cap
+  keeps the heaviest deal columns at their exact weights. #15: the root book's card look is now also the budget's answer.
+
+### Validation (`HybridFixesTest`)
+- Aggregation: the V2 §2.4 scenario (A: one lost column of four, three at 88%; B: four at 5%) — the coin-scale mean picks
+  B, the chance mean gives A 0.66 and B 0.05; finished games bracket every position.
+- Hidden cards: on 60 Red-last-seat card plays of four h10 games, the next Blue seat's FULL reply and its model weights are
+  identical whatever card Red put down; with `hide=0` they depended on it in 2 (reply) and 2 (weights) of the 60.
+- Deals: `topDeals` is exact and stops at the mass; on Red and Blue card plays the shipped config takes several deal
+  columns, all scores in [0, 1], zero fallbacks, and the same answer under two seeds.
+- Budget: 60 ms on a round-2 3v3 card play answers legally within 60 + 200 ms (one deadline cut recorded, no search
+  fallback); the same answer unbudgeted took 2.9 s.
+
+### The decision set (`DecisionSetTest`, for every track)
+211 card plays with a choice (105 Red seats, 106 Blue): 156 from the 24 stored 2v2 games of the probe bench
+(`bench/probe-v1-2v2-1000-1011.jsonl.gz`, h10 vs s8, line-ups 1000–1011) and 55 from two 3v3 h10-vs-h10 games
+(`bench/decisions-v1-3v3.jsonl.gz`, 3v3 line-ups 1000–1001), kept by a hash of game and question. A fresh player per
+position and spec (as the apps do), one thread per search, three positions in parallel on the shared 8-core machine
+(times are ±15% between runs). Run it as
+`AI_DECISIONS="old:lp=0+hide=0+deal=0+rep=4;new:;new1:seed=1" AI_THREADS=3 goa-run DecisionSetTest` (specs are knobs
+over SEARCH_10; `seed=n` is the noise control; `AI_DECISIONS_MAX` for a smoke run). About 2 s a position a spec.
+
+| | old (959e4013) | new (this track) |
+|---|---|---|
+| seed-only change flips the card (all / Red / Blue) | 26/211 12.3% / 15/105 14.3% / 11/106 10.4% | **0/211 0.0%** / 0 / 0 |
+| columns mean (Red / Blue), max | 4.0 / 6.6, 15 | 6.2 / 6.4, 10 |
+| ms mean (Red / Blue) | 1144 / 1890 | 1765 / 1790 |
+| ms mean / p95 / max | 1519 / 5077 / 8586 | 1778 / 5764 / 13862 |
+| 2v2 ms mean / max; 3v3 ms mean / max | 1199 / 8586; 2427 / 7794 | 1276 / 6117; 3201 / 13862 |
+| silent fallbacks (all kinds) | 0 | 0 |
+
+New differs from old on 20/211 (9.5%), less than old differs from itself under another seed (12.3%). One fix at a time
+against old: `lp` alone changes 3 (all three are cards old itself flips with the seed), `hide` alone 4 (2), `deal` alone 17
+(13 Red; 10 of them old's own seed flips). Examples: 2v2 game 2010 r10t3 (Blue, Garrus, losing): old's mean −868.8 vs
+−869.2 is two lost columns averaged with positions; on the chance scale green-3a is 4.9% against silver's 3.7%. 3v3
+1001 r2t3 (Red, Razzle): old silver −37.9 vs red-2b −41.2 from 4 columns, the 8 enumerated deals give red-2b 29.1% vs
+26.2%. Most other changes are between cards within 0.5 points of chance of each other.
+
+Cost: Red seats now play up to 8 deal columns where they played 4 replies, so Red card plays cost what Blue ones did
+(+54% at Red, −5% at Blue, +17% overall). The worst case grew in 3v3 at Red (13.9 s against 6.9 s on one position, 8
+columns where it had 4); the budget is the bound for the app.
+
+### Not verified
+Strength in games (no games played: the integrator's measurement decides). HEval's chance mapping is `WinChance`'s fit,
+not one of its own. The opponent model itself (static softmax, τ 2, 15% uniform, independent per enemy) is unchanged and
+unmeasured as a predictor. JS timing of the budget. NoPeekingTest still covers 2v2 round 1 only (V2 §1.2).

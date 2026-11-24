@@ -35,7 +35,13 @@ class HybridFixesTest {
         assertThat(HybridAi.columnScore(oldB, weights)).isGreaterThan(HybridAi.columnScore(oldA, weights))
         // The chance scale.
         val loss = LeafChance.terminal(lost, Team.RED)!!
-        val a = doubleArrayOf(loss, LeafChance.ofLogit(80.0 / coin), LeafChance.ofLogit(80.0 / coin), LeafChance.ofLogit(80.0 / coin))
+        val a =
+            doubleArrayOf(
+                loss,
+                LeafChance.ofLogit(80.0 / coin),
+                LeafChance.ofLogit(80.0 / coin),
+                LeafChance.ofLogit(80.0 / coin),
+            )
         val b = DoubleArray(4) { LeafChance.ofLogit(-117.0 / coin) }
         val sa = HybridAi.columnScore(a, weights)
         val sb = HybridAi.columnScore(b, weights)
@@ -140,7 +146,12 @@ class HybridFixesTest {
         val all = HybridAi.topDeals(listOf(a, b), 6, 1.0)
         // 0.48, 0.24, 0.12, 0.08, 0.06, 0.02
         assertThat(all.map { it.first.toList() }).containsExactly(
-            listOf(0, 1), listOf(1, 1), listOf(0, 0), listOf(2, 1), listOf(1, 0), listOf(2, 0),
+            listOf(0, 1),
+            listOf(1, 1),
+            listOf(0, 0),
+            listOf(2, 1),
+            listOf(1, 0),
+            listOf(2, 0),
         ).inOrder()
         assertThat(all.sumOf { it.second }).isWithin(1e-12).of(1.0)
         assertThat(all[0].second).isWithin(1e-12).of(0.48)

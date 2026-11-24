@@ -216,7 +216,12 @@ class HybridAi(
         !s.revealed && s.heroes.any { it.team != team && it.unresolved.isEmpty() && it.hand.size > 1 }
 
     @Suppress("CyclomaticComplexMethod", "LongMethod", "NestedBlockDepth")
-    private fun search(es: EngineSession, d: Decision, userCancelled: () -> Boolean, cancelled: () -> Boolean): Choice? {
+    private fun search(
+        es: EngineSession,
+        d: Decision,
+        userCancelled: () -> Boolean,
+        cancelled: () -> Boolean,
+    ): Choice? {
         val rng = Random(HeuristicAi.mix(seed, d.id * 1_000_003L + d.seat.hashCode()))
         val base = rng.nextLong()
         val isPlay = d.kind == DecisionKind.PLAY_CARD

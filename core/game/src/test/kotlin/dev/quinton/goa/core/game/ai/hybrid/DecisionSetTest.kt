@@ -116,7 +116,9 @@ class DecisionSetTest {
                 "DEC ${row.label} ${d.team} ${d.seat} " + specs.indices.joinToString(" ") { k ->
                     val a = asked[k]
                     val top = a.scores.entries.sortedByDescending { it.value }.take(2)
-                        .joinToString(",") { "${(it.key as? Choice.Card)?.cardId ?: it.key}=${"%.4f".format(it.value)}" }
+                        .joinToString(",") {
+                            "${(it.key as? Choice.Card)?.cardId ?: it.key}=${"%.4f".format(it.value)}"
+                        }
                     "${specs[k].first}=${(a.choice as? Choice.Card)?.cardId ?: a.choice}|${"%.0f".format(a.ms)}ms|" +
                         "c${a.cols}|$top"
                 },
@@ -136,7 +138,9 @@ class DecisionSetTest {
             for ((k, v) in f) sums[k] = (sums[k] ?: 0L) + v
         }
 
-        @Synchronized fun text(): String = sums.entries.sortedBy { it.key }.joinToString(" ") { "${it.key}=${it.value}" }
+        @Synchronized fun text(): String = sums.entries.sortedBy {
+            it.key
+        }.joinToString(" ") { "${it.key}=${it.value}" }
     }
 
     private fun report(names: List<String>, rows: List<Row>) {
@@ -165,7 +169,7 @@ class DecisionSetTest {
                     val r = rows.filter { team == null || it.team == team }
                     if (r.isEmpty()) return@mapNotNull null
                     val diff = r.count { it.asked[a].choice != it.asked[b].choice }
-                    "${team ?: "all"} ${diff}/${r.size} (${"%.1f".format(100.0 * diff / r.size)}%)"
+                    "${team ?: "all"} $diff/${r.size} (${"%.1f".format(100.0 * diff / r.size)}%)"
                 }
                 println("DECSET differ ${names[a]} vs ${names[b]}: ${parts.joinToString(", ")}")
             }
@@ -211,7 +215,9 @@ class DecisionSetTest {
         val out = ArrayList<Int>()
         for ((n, i) in g.answers.withIndex()) {
             val d = es.pending ?: break
-            if (d.kind == DecisionKind.PLAY_CARD && d.options.count { it is Choice.Card } > 1 && unit(game, d.id) < keep) {
+            if (d.kind == DecisionKind.PLAY_CARD && d.options.count { it is Choice.Card } > 1 &&
+                unit(game, d.id) < keep
+            ) {
                 out += n
             }
             check(es.answer(d.id, d.options[i]) is AnswerResult.Accepted)
@@ -231,7 +237,10 @@ class DecisionSetTest {
         for (i in MAKE_FIRST until MAKE_FIRST + MAKE_LINEUPS) {
             val (red, blue) = all[i]
             val coin = if (i % 2 == 0) Team.RED else Team.BLUE
-            val players = mapOf(Team.RED to HeuristicAi(10, 70_000L + 2 * i), Team.BLUE to HeuristicAi(10, 70_001L + 2 * i))
+            val players = mapOf(
+                Team.RED to HeuristicAi(10, 70_000L + 2 * i),
+                Team.BLUE to HeuristicAi(10, 70_001L + 2 * i),
+            )
             val es = newGame(Stored("", format, red, blue, coin, emptyList(), emptyList()))
             val answers = ArrayList<Int>()
             while (answers.size < MAX_DECISIONS) {

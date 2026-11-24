@@ -17,7 +17,13 @@ import dev.quinton.goa.core.model.match.Team
 internal object HiddenCards {
     /** Heroes not of [team] with a card played facedown this turn and not yet revealed. */
     fun playedAgainst(s: GameState, team: Team): List<HeroState> =
-        if (s.revealed) emptyList() else s.heroes.filter { h -> h.team != team && h.cards.any { it.zone == Zone.PLAYED } }
+        if (s.revealed) {
+            emptyList()
+        } else {
+            s.heroes.filter { h ->
+                h.team != team && h.cards.any { it.zone == Zone.PLAYED }
+            }
+        }
 
     /** [h]'s unrevealed played cards back into its hand, stamps cleared (they would tell which was played). */
     fun unplay(h: HeroState) {
