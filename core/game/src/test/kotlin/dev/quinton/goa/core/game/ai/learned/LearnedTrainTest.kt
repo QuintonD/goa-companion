@@ -76,6 +76,79 @@ class LearnedTrainTest {
         )
     }
 
+    /**
+     * Offline check of leaf nets (Wave 4 Track H, expert iteration): `AI_DUMP=<out.tsv>` with
+     * `AI_DUMP_FILES=<games>,…`, `AI_SV=<values.tsv>` and `AI_DUMP_NETS=cur1,cur2,…` writes one line per held-out
+     * position (line-up % 10 = 9) and per position the search scored in any split (so the search values can be
+     * calibrated on the training split): where it comes from, its split, the result, the search's value (raw, Red's
+     * view, coin-equivalents, averaged over the teams searched), the turn / round / Wave counters / match points,
+     * and each net's logit of P(Red wins). `tools/ai/expert-iteration/offline.py` turns it into the tables. A
+     * separate variable from `AI_TRAIN`, so the training test in this class stays off. Changes nothing.
+     */
+    @Test
+    fun `dump held-out logits`() {
+        val out = File(System.getenv("AI_DUMP") ?: return)
+        val files = System.getenv("AI_DUMP_FILES")!!.split(",").map(::File)
+        val names = System.getenv("AI_DUMP_NETS")!!.split(",").filter { it.isNotBlank() }
+        val nets = names.map { Learned.net(it) }
+        val threads = System.getenv("AI_THREADS")?.toInt() ?: 3
+        val raw = HashMap<String, DoubleArray>()
+        for (f in System.getenv("AI_SV")?.split(",").orEmpty().filter { it.isNotBlank() }.map(::File)) {
+            for (line in f.readLines()) {
+                val t = line.split("\t")
+                if (t.size < 8) continue
+                val v = t[4].toDouble()
+                if (v.isNaN()) continue
+                val a = raw.getOrPut("${t[0]}\t${t[1]}\t${t[2]}") { DoubleArray(2) }
+                a[0] += if (t[3] == Team.RED.name) v else -v
+                a[1] += 1.0
+            }
+        }
+        val g = Features.GLOBAL_AT
+        val at = { n: String -> g + Features.GLOBAL.indexOf(n).also { require(it >= 0) { n } } }
+        val turnAt = at("turn")
+        val roundAt = at("round")
+        val wavesAt = at("wavesLeft")
+        val mpOwnAt = at("matchPointOwn")
+        val mpEnemyAt = at("matchPointEnemy")
+        out.parentFile?.mkdirs()
+        var n = 0
+        out.bufferedWriter().use { w ->
+            w.write(
+                "file\tsplit\tgame\tlineup\tsize\tindex\tboundary\tredWon\tsv\tsvTeams\tturn\tround\twaves\t" +
+                    "mpRed\tmpBlue\t" + names.joinToString("\t") + "\n",
+            )
+            for (f in files) {
+                val tag = f.nameWithoutExtension
+                val ps = load(f, env("AI_RESOLVED")?.toDouble() ?: 0.0, threads).filter {
+                    it.lineup % 10 == 9 || raw.containsKey("$tag\t${it.game}\t${it.index}")
+                }
+                for (p in ps) {
+                    val x = p.x!!
+                    val sv = raw["$tag\t${p.game}\t${p.index}"]
+                    val split = when (p.lineup % 10) {
+                        9 -> "test"
+                        8 -> "valid"
+                        else -> "train"
+                    }
+                    w.write(
+                        "$tag\t$split\t${p.game}\t${p.lineup}\t${p.size}\t${p.index}\t${if (p.boundary) 1 else 0}\t" +
+                            "${if (p.redWon) 1 else 0}\t${sv?.let { f4(it[0] / it[1]) } ?: "NaN"}\t" +
+                            "${sv?.get(1)?.toInt() ?: 0}\t${f4(x[turnAt] * 4.0)}\t${f4(x[roundAt] * 8.0)}\t" +
+                            "${f4(x[wavesAt] * 5.0)}\t${f4(x[mpOwnAt].toDouble())}\t${f4(x[mpEnemyAt].toDouble())}",
+                    )
+                    for (net in nets) w.write("\t" + f4(logit(net, p)))
+                    w.write("\n")
+                    n++
+                }
+                println("DUMP $tag: ${ps.size} positions")
+            }
+        }
+        println("DUMP wrote $n positions to $out")
+    }
+
+    private fun f4(v: Double) = String.format(java.util.Locale.ROOT, "%.4f", v)
+
     /** One run's settings over the environment ([AI_TRAIN_RUNS]). */
     private var overrides: Map<String, String> = emptyMap()
 
@@ -317,11 +390,17 @@ class LearnedTrainTest {
 
     /**
      * The search values of [files] as P(Red wins) per `file\tgame\tindex`: each team's value of the card it
-     * would play, in coin-equivalents from its view, through σ(v / `AI_SV_SCALE`) (default: the six-net leaf's
-     * mean coin scale), Red's and Blue's averaged when both were searched.
+     * would play, in coin-equivalents from its view, turned to Red's view and averaged over the teams searched
+     * (each team's value of its own best card is optimistic, by about 8 coin-equivalents at the median; the mean of
+     * the two views cancels that), then σ(v / `AI_SV_SCALE`, default the six-net leaf's mean coin scale) with the
+     * logit capped at ±`AI_SV_CLAMP` (default 12). Wave 4 Track H: a playout that wins inside the turn scores the
+     * win (thousands of coin-equivalents), so one such sample drags the mean far past anything the leaf says; the
+     * cap at the six nets' own 99th-percentile confidence (3.28 on the training split) makes the values better
+     * calibrated predictors of the result than the nets themselves (RESULTS.md "Wave 4 — Track H").
      */
     private fun readSearchValues(files: List<File>): Map<String, Float> {
         val scale = env("AI_SV_SCALE")?.toDouble() ?: SV_SCALE
+        val clamp = env("AI_SV_CLAMP")?.toDouble() ?: SV_CLAMP
         val col = env("AI_SV_COL")?.toInt() ?: 4
         val sums = HashMap<String, DoubleArray>()
         for (f in files) {
@@ -330,15 +409,16 @@ class LearnedTrainTest {
                 if (t.size < 8) continue
                 val v = t[col].toDouble()
                 if (v.isNaN()) continue
-                val p = Trainer.sigmoid((v / scale).coerceIn(-SV_CLAMP, SV_CLAMP))
-                val red = if (t[3] == Team.RED.name) p else 1 - p
                 val a = sums.getOrPut("${t[0]}\t${t[1]}\t${t[2]}") { DoubleArray(2) }
-                a[0] += red
+                a[0] += if (t[3] == Team.RED.name) v else -v
                 a[1] += 1.0
             }
         }
-        println("TRAIN search values: ${sums.size} positions from ${files.joinToString { it.name }}")
-        return sums.mapValues { (_, a) -> (a[0] / a[1]).toFloat() }
+        println(
+            "TRAIN search values: ${sums.size} positions from ${files.joinToString { it.name }}, scale $scale, " +
+                "cap ±$clamp",
+        )
+        return sums.mapValues { (_, a) -> Trainer.sigmoid((a[0] / a[1] / scale).coerceIn(-clamp, clamp)).toFloat() }
     }
 
     /** The rows of [ps]; with [release] the positions give up their inputs (the big training set). */
