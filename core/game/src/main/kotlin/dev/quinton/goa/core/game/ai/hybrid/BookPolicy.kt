@@ -17,6 +17,9 @@ import dev.quinton.goa.core.game.engine.EngineData
 import dev.quinton.goa.core.game.engine.EngineSession
 import dev.quinton.goa.core.game.engine.GameState
 import dev.quinton.goa.core.model.match.Team
+import kotlin.concurrent.atomics.AtomicLong
+import kotlin.concurrent.atomics.ExperimentalAtomicApi
+import kotlin.concurrent.atomics.incrementAndFetch
 import kotlin.coroutines.cancellation.CancellationException
 import kotlin.random.Random
 
@@ -28,8 +31,21 @@ import kotlin.random.Random
  * It answers on a copy that is already determinized (a search sample or a fork of one): nothing here
  * reads the real session.
  */
-internal class BookPolicy(seed: Long, tune: Map<String, Double>) {
+@OptIn(ExperimentalAtomicApi::class)
+internal class BookPolicy(
+    seed: Long,
+    tune: Map<String, Double>,
+    /**
+     * A seat choosing its card does not see the other team's facedown cards ([HiddenCards]): its card play
+     * and the opponent model are answered on its view, where they are back in hand (review-3 V2 §1.3).
+     * False only to measure the old behaviour (knob `hide=0`).
+     */
+    private val hide: Boolean = true,
+) {
     private val quiet = tune + mapOf("temp" to 0.0, "mix" to 0.0)
+
+    /** Silent fallbacks so far (review-3 V2 §6.7): see [Fallbacks]. */
+    val fallbacks: Fallbacks = Fallbacks()
 
     /** h10 as it plays, on the given copy. */
     val full = HeuristicAi(10, seed, tune = quiet)
@@ -55,11 +71,13 @@ internal class BookPolicy(seed: Long, tune: Map<String, Double>) {
         if (d.options.size == 1) return d.options[0]
         val ai = if (mode == PolicyMode.FULL) full else static
         return try {
-            ai.answerOn(session, d, Random(HeuristicAi.mix(salt, d.id)), seen).takeIf { it in d.options }
-                ?: Fallback.choose(d)
+            val on = if (hide && d.kind == DecisionKind.PLAY_CARD) HiddenCards.viewOf(session, d.team) else session
+            ai.answerOn(on, d, Random(HeuristicAi.mix(salt, d.id)), seen).takeIf { it in d.options }
+                ?: Fallback.choose(d).also { fallbacks.answers.incrementAndFetch() }
         } catch (e: CancellationException) {
             throw e
         } catch (_: Exception) {
+            fallbacks.answers.incrementAndFetch()
             Fallback.choose(d)
         }
     }
@@ -86,6 +104,7 @@ internal class BookPolicy(seed: Long, tune: Map<String, Double>) {
             } catch (e: CancellationException) {
                 throw e
             } catch (_: Exception) {
+                fallbacks.statics.incrementAndFetch()
                 Double.NEGATIVE_INFINITY
             }
         }
@@ -117,6 +136,8 @@ internal class BookPolicy(seed: Long, tune: Map<String, Double>) {
      * ([dev.quinton.goa.core.game.engine.Determinizer.Options.playWeight]):
      * a softmax of the hero's own book values over its hand pool, 15% uniform. [state] is the
      * determinizer's copy with the pool back in hand; a bare session over it gives the book its data.
+     * The other team's unrevealed played cards are back in their hands too ([hide]): the hero chose
+     * without seeing them, whatever order the determinizer redeals in (review-3 V2 §1.2.3).
      */
     fun playWeights(
         data: EngineData,
@@ -131,7 +152,9 @@ internal class BookPolicy(seed: Long, tune: Map<String, Double>) {
         if (model <= 0 || pool.size <= 1) return null
         val h = state.hero(heroId) ?: return null
         return try {
-            val session = EngineSession(data, setup, state.copy())
+            val view = state.copy()
+            if (hide) HiddenCards.hideFrom(view, h.team)
+            val session = EngineSession(data, setup, view)
             val d = Decision(
                 id = -1L - pool.size,
                 seat = heroId,
@@ -140,7 +163,7 @@ internal class BookPolicy(seed: Long, tune: Map<String, Double>) {
                 prompt = "Play a card",
                 options = pool.map { Choice.Card(it) },
             )
-            val ctx = HContext(session, d, h.team, profile, seen = seen(h.team), stateOverride = state)
+            val ctx = HContext(session, d, h.team, profile, seen = seen(h.team), stateOverride = view)
             val values = if (model >= 2) {
                 cardValuesOn(ctx, d) ?: staticOn(ctx, d)
             } else {
@@ -153,6 +176,7 @@ internal class BookPolicy(seed: Long, tune: Map<String, Double>) {
         } catch (e: CancellationException) {
             throw e
         } catch (_: Exception) {
+            fallbacks.model.incrementAndFetch()
             null
         }
     }
@@ -173,14 +197,44 @@ internal class BookPolicy(seed: Long, tune: Map<String, Double>) {
         }
     }
 
+    /**
+     * Answers [d] on [session], falling back to the first other option when the answer is refused (counted in
+     * [fallbacks]).
+     */
+    fun play(session: EngineSession, d: Decision, c: Choice): Boolean {
+        if (session.answer(d.id, c) is AnswerResult.Accepted) return true
+        fallbacks.refused.incrementAndFetch()
+        val alt = d.options.firstOrNull { it != c } ?: return false
+        return session.answer(d.id, alt) is AnswerResult.Accepted
+    }
+
+    /**
+     * Where the search quietly made do (review-3 V2 §6.7), so a broken path shows in tests and reports instead
+     * of playing as the book: [answers] a playout answer that threw or was not an option (the first legal
+     * option played instead); [model] an opponent model that threw (uniform instead); [statics] an option whose
+     * static score threw (ranked last); [refused] an answer the engine refused (another option played);
+     * [search] a whole search that threw (the book answered the real question).
+     */
+    @OptIn(ExperimentalAtomicApi::class)
+    class Fallbacks {
+        val answers = AtomicLong(0)
+        val model = AtomicLong(0)
+        val statics = AtomicLong(0)
+        val refused = AtomicLong(0)
+        val search = AtomicLong(0)
+
+        fun snapshot(): Map<String, Long> = linkedMapOf(
+            "answers" to answers.load(),
+            "model" to model.load(),
+            "statics" to statics.load(),
+            "refused" to refused.load(),
+            "search" to search.load(),
+        )
+
+        val total: Long get() = snapshot().values.sum()
+    }
+
     companion object {
         private const val UNIFORM_SHARE = 0.15
-
-        /** Answers [d] on [session], falling back to the first legal option when the answer is refused. */
-        fun play(session: EngineSession, d: Decision, c: Choice): Boolean {
-            if (session.answer(d.id, c) is AnswerResult.Accepted) return true
-            val alt = d.options.firstOrNull { it != c } ?: return false
-            return session.answer(d.id, alt) is AnswerResult.Accepted
-        }
     }
 }

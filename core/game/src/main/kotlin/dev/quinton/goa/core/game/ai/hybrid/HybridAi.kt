@@ -1,5 +1,6 @@
 package dev.quinton.goa.core.game.ai.hybrid
 
+import dev.quinton.goa.core.domain.monotonicNanos
 import dev.quinton.goa.core.game.AiPlayer
 import dev.quinton.goa.core.game.Choice
 import dev.quinton.goa.core.game.Controller
@@ -9,6 +10,7 @@ import dev.quinton.goa.core.game.GameSession
 import dev.quinton.goa.core.game.ai.AiPlayers
 import dev.quinton.goa.core.game.ai.Evaluator
 import dev.quinton.goa.core.game.ai.Fallback
+import dev.quinton.goa.core.game.ai.LeafChance
 import dev.quinton.goa.core.game.ai.LearnedNet
 import dev.quinton.goa.core.game.ai.NetEvaluator
 import dev.quinton.goa.core.game.ai.PositionEvaluator
@@ -22,6 +24,7 @@ import dev.quinton.goa.core.game.engine.Determinizer
 import dev.quinton.goa.core.game.engine.EngineData
 import dev.quinton.goa.core.game.engine.EngineSession
 import dev.quinton.goa.core.game.engine.GameState
+import dev.quinton.goa.core.game.engine.Zone
 import dev.quinton.goa.core.game.puzzles.StateHash
 import dev.quinton.goa.core.model.match.Team
 import kotlin.concurrent.atomics.AtomicLong
@@ -58,16 +61,29 @@ class HybridAi(
     private val seed: Long,
     knobs: Map<String, Double> = emptyMap(),
     private val runner: SampleRunner = SampleRunner.SEQUENTIAL,
+    /**
+     * A wall-clock budget per searched answer in ms, overriding the knob `ms` ([HybridConfig.budgetMs]);
+     * null: the knob's (0: none). The app passes the device's; tests and tournaments leave it unset.
+     */
+    budgetMs: Long? = null,
 ) : AiPlayer {
     /** The search's knobs for a 2v2 game (and any game without `6.` knobs). */
-    private val config2: HybridConfig = HybridConfig.fromKnobs(knobs)
+    private val config2: HybridConfig = HybridConfig.fromKnobs(knobs).let { c ->
+        if (budgetMs != null) c.copy(budgetMs = budgetMs) else c
+    }
 
     /**
      * The knobs when six heroes play (3v3): `6.name` overrides `name` there (e.g. `6.rep=2`), so the
      * longer six-seat playouts can spend less per card play. Without `6.` knobs the same as 2v2.
      */
     private val config6: HybridConfig = prefixed(knobs, SIX_SEATS).let { six ->
-        if (six.isEmpty()) config2 else HybridConfig.fromKnobs(knobs.filterKeys { !it.startsWith(SIX_SEATS) } + six)
+        if (six.isEmpty()) {
+            config2
+        } else {
+            HybridConfig.fromKnobs(knobs.filterKeys { !it.startsWith(SIX_SEATS) } + six).let { c ->
+                if (budgetMs != null) c.copy(budgetMs = budgetMs) else c
+            }
+        }
     }
 
     /** The knobs of the question being answered: [config2], or [config6] in a game of more than four heroes. */
@@ -91,7 +107,7 @@ class HybridAi(
 
     /** h10: the answer to everything the search does not take, and the fallback. */
     val book: HeuristicAi = HeuristicAi(10, seed, tune = rootTune)
-    private val policy = BookPolicy(seed, playoutTune)
+    private val policy = BookPolicy(seed, playoutTune, hide = config2.hide)
 
     @kotlin.concurrent.Volatile
     private var leafCache: Pair<EngineData, PositionEvaluator?>? = null
@@ -117,6 +133,15 @@ class HybridAi(
     /** Diagnostics: playouts started, those the memo answered, samples drawn, distinct positions among them. */
     val stats: List<Long> get() = listOf(playouts.load(), memoHits.load(), drawn.load(), distinct.load())
 
+    /**
+     * Silent fallbacks so far, by kind (review-3 V2 §6.7; [BookPolicy.Fallbacks]), and `deadline`: searched answers
+     * the budget ([HybridConfig.budgetMs]) cut short. Zero everywhere in a healthy run without a budget.
+     */
+    val fallbacks: Map<String, Long>
+        get() = policy.fallbacks.snapshot() + ("deadline" to deadlineCuts.load())
+
+    private val deadlineCuts = AtomicLong(0)
+
     /** The transposition memo: position (with what the playout from it means) → leaf value. One real turn. */
     private var memo: HashMap<MemoKey, Double> = HashMap()
     private var memoTurn: Pair<EngineData, Int>? = null
@@ -126,13 +151,27 @@ class HybridAi(
         if (decision.options.size == 1) return decision.options.single()
         val es = session as? EngineSession ?: return book.choose(session, decision, cancelled)
         active = if (es.state.heroes.size > FOUR_SEATS) config6 else config2
-        if (!searched(es, decision)) return book.choose(session, decision, cancelled)
+        val stop = stopOf(cancelled)
+        if (!searched(es, decision)) return book.choose(session, decision, stop)
         return try {
-            search(es, decision, cancelled) ?: book.choose(session, decision, cancelled)
+            search(es, decision, cancelled, stop) ?: book.choose(session, decision, stop)
         } catch (e: CancellationException) {
             throw e
         } catch (_: Exception) {
-            book.choose(session, decision, cancelled)
+            policy.fallbacks.search.incrementAndFetch()
+            book.choose(session, decision, stop)
+        }
+    }
+
+    /** [cancelled], or past this answer's budget ([HybridConfig.budgetMs]) from now. */
+    private fun stopOf(cancelled: () -> Boolean): () -> Boolean {
+        val ms = config.budgetMs
+        if (ms <= 0) return cancelled
+        val deadline = monotonicNanos() + ms * NANOS_PER_MS
+        var over = false
+        return {
+            if (!over && monotonicNanos() >= deadline) over = true
+            over || cancelled()
         }
     }
 
@@ -142,22 +181,47 @@ class HybridAi(
         else -> d.kind != DecisionKind.ACT_FIRST
     }
 
-    /** One distinct determinized position and how many of the samples dealt it. */
-    private class Sample(val det: EngineSession, val dp: Decision, val salt: Long, var weight: Int)
+    /**
+     * One distinct determinized position and how many of the samples dealt it. With card deals
+     * ([HybridConfig.deals]) [unplayed] are the enemies whose facedown card was put back in hand (each
+     * column deals it again).
+     */
+    private class Sample(
+        val det: EngineSession,
+        val dp: Decision,
+        val salt: Long,
+        var weight: Int,
+        val unplayed: List<String> = emptyList(),
+    )
 
     /** A card play on [this] sample takes several enemy replies ([HybridConfig.replies]). */
     private fun Sample.replyAt(isPlay: Boolean, team: Team): Boolean =
-        isPlay && config.replies > 1 && enemiesToPlay(det.state, team)
+        isPlay && config.deals <= 0 && config.replies > 1 && enemiesToPlay(det.state, team)
 
-    /** A sample played with the book's enemy replies ([reply] 0) or with enemy card plays drawn ([reply] ≥ 1). */
-    private class Column(val sample: Sample, val reply: Int, val weight: Double)
+    /**
+     * A sample played with the book's enemy replies ([reply] 0) or with enemy card plays drawn ([reply] ≥ 1);
+     * with card deals, on [det] (the sample with the deal's played cards) and with [planned] cards for the
+     * enemies still to choose.
+     */
+    private class Column(
+        val sample: Sample,
+        val reply: Int,
+        val weight: Double,
+        val det: EngineSession = sample.det,
+        val planned: Map<String, String> = emptyMap(),
+    )
 
     /** An enemy of [team] has not played its card this turn yet (its choice is still the playout's). */
     private fun enemiesToPlay(s: GameState, team: Team): Boolean =
         !s.revealed && s.heroes.any { it.team != team && it.unresolved.isEmpty() && it.hand.size > 1 }
 
     @Suppress("CyclomaticComplexMethod", "LongMethod", "NestedBlockDepth")
-    private fun search(es: EngineSession, d: Decision, cancelled: () -> Boolean): Choice? {
+    private fun search(
+        es: EngineSession,
+        d: Decision,
+        userCancelled: () -> Boolean,
+        cancelled: () -> Boolean,
+    ): Choice? {
         val rng = Random(HeuristicAi.mix(seed, d.id * 1_000_003L + d.seat.hashCode()))
         val base = rng.nextLong()
         val isPlay = d.kind == DecisionKind.PLAY_CARD
@@ -175,31 +239,19 @@ class HybridAi(
         val snapshot = if (memoOn) memo else null
         val view = MemoView(team, (seenByUs.hashCode() * 31 + seenByThem.hashCode()), horizon.ordinal)
 
-        val samples = samples(es, d, base, n, seenByUs, seenOf, cancelled) ?: return null
+        // The book's own answer first: it orders the candidates, and it is the answer when the budget runs out
+        // before any column is finished.
+        val own = book.choose(es, d, cancelled)
+        val dealing = isPlay && config.deals > 0 && !es.state.revealed
+        val samples = samples(es, d, base, n, seenByUs, seenOf, cancelled, dealing)
+            ?: return if (userCancelled()) null else own.also { deadlineCuts.incrementAndFetch() }
         if (samples.isEmpty()) return null
         drawn.addAndFetch(samples.sumOf { it.weight }.toLong())
         distinct.addAndFetch(samples.size.toLong())
         val first = samples[0]
-        val candidates = candidates(es, d, first.dp, first.det, seenByUs, cancelled)
+        val candidates = candidates(own, d, first.dp, first.det, seenByUs)
         if (candidates.size <= 1) return candidates.firstOrNull()
-        // Columns: each distinct sample, and at a card play with enemies still to choose, [HybridConfig.replies]
-        // versions of it: the book's reply (0) and enemy card plays drawn from the opponent model.
-        val columns = ArrayList<Column>()
-        val cap = if (isPlay) config.columnCap else 0
-        var reps = config.replies
-        var played: List<Sample> = samples
-        if (cap > 0) {
-            val wanted = samples.sumOf { if (it.replyAt(isPlay, team)) reps else 1 }
-            if (wanted > cap) {
-                reps = maxOf(1, cap / samples.size)
-                // The heaviest samples first; equal weights keep their order (a stable sort).
-                if (samples.size > cap) played = samples.sortedByDescending { it.weight }.take(cap)
-            }
-        }
-        for (s in played) {
-            val r = if (s.replyAt(isPlay, team) && reps > 1) reps else 1
-            for (k in 0 until r) columns += Column(s, k, s.weight.toDouble() / r)
-        }
+        val columns = columns(samples, isPlay, team, dealing, seenOf)
         val g = columns.size
         val values = Array(candidates.size) { DoubleArray(g) { Double.NaN } }
         val priors = Array(candidates.size) { DoubleArray(g) { Double.NaN } }
@@ -210,13 +262,16 @@ class HybridAi(
         val useTree = treeDepth > 0 && horizon == HybridHorizon.TURN
         val treeFound = Array(candidates.size) { arrayOfNulls<List<Pair<List<MemoKey>, Double>>>(g) }
         val rootTurn = turnIndex(es.state)
+        // A task that ran to its end (its value may still be NaN: an answer the engine refused). With a budget,
+        // only columns every candidate finished count, so all candidates are compared on the same columns.
+        val done = Array(candidates.size) { BooleanArray(g) }
         val tasks = ArrayList<() -> Unit>()
         for ((i, col) in columns.withIndex()) {
             val s = col.sample
             if (usePrior) {
                 tasks += {
                     if (!cancelled()) {
-                        policy.cardValues(s.det, s.dp, seenByUs)?.let { pv ->
+                        policy.cardValues(col.det, s.dp, seenByUs)?.let { pv ->
                             for ((j, c) in candidates.withIndex()) {
                                 val at = s.dp.options.indexOf(c)
                                 if (at >= 0) priors[j][i] = pv[at]
@@ -225,13 +280,17 @@ class HybridAi(
                     }
                 }
             }
-            val memoHere = memoOn && col.reply == 0
+            // A playout is a function of its position only without drawn replies or planned enemy cards.
+            val memoHere = memoOn && col.reply == 0 && col.planned.isEmpty()
             for ((j, c) in candidates.withIndex()) {
-                if (c !in s.dp.options) continue
+                if (c !in s.dp.options) {
+                    done[j][i] = true
+                    continue
+                }
                 tasks += {
                     if (!cancelled()) {
-                        val f = s.det.forkForAnswer()
-                        if (BookPolicy.play(f, s.dp, c)) {
+                        val f = col.det.forkForAnswer()
+                        if (policy.play(f, s.dp, c)) {
                             answered.incrementAndFetch()
                             if (useTree) {
                                 val out = if (memoHere) ArrayList<Pair<List<MemoKey>, Double>>() else null
@@ -247,6 +306,7 @@ class HybridAi(
                                     rootTurn,
                                     cancelled,
                                     col.reply,
+                                    col.planned,
                                 )
                                 values[j][i] = tree(f, treeDepth, Double.NEGATIVE_INFINITY, Double.POSITIVE_INFINITY, t)
                                 treeFound[j][i] = out
@@ -264,23 +324,37 @@ class HybridAi(
                                     leafEval,
                                     seenByUs,
                                     col.reply,
+                                    col.planned,
+                                    cancelled,
                                 )
                                 found[j][i] = path
                             }
                         }
+                        // A playout or tree the stop cut short is NaN and not done.
+                        done[j][i] = !values[j][i].isNaN() || !cancelled()
                     }
                 }
             }
         }
         runner.runAll(tasks)
-        if (cancelled()) return null
+        if (userCancelled()) return null
+        // The columns every candidate finished (all of them unless the budget ran out).
+        val complete = BooleanArray(g) { i -> candidates.indices.all { done[it][i] } }
+        if (complete.none { it }) {
+            deadlineCuts.incrementAndFetch()
+            return own.takeIf { it in d.options }
+        }
+        if (!complete.all { it }) {
+            deadlineCuts.incrementAndFetch()
+            for (row in values) for (i in 0 until g) if (!complete[i]) row[i] = Double.NaN
+        }
         if (memoOn) {
             // The memo grows only here, in task order, so every answer sees the same memo.
             for (j in candidates.indices) {
                 for (i in 0 until g) {
                     val path = found[j][i] ?: continue
                     val v = values[j][i]
-                    if (v.isNaN()) continue
+                    if (v.isNaN() || !done[j][i]) continue
                     for (k in path) memo[k] = v
                 }
             }
@@ -295,25 +369,13 @@ class HybridAi(
         var best: Choice? = null
         var bestV = Double.NEGATIVE_INFINITY
         val scoredHere = if (scored != null) LinkedHashMap<Choice, Double>() else null
+        val weights = DoubleArray(g) { columns[it].weight }
         for ((j, c) in candidates.withIndex()) {
-            var wSum = 0.0
-            var sum = 0.0
-            for (i in 0 until g) {
-                val v = values[j][i]
-                if (v.isNaN()) continue
-                wSum += columns[i].weight
-                sum += columns[i].weight * v
-            }
-            if (wSum == 0.0) continue
-            val m = sum / wSum
-            var sq = 0.0
-            for (i in 0 until g) {
-                val v = values[j][i]
-                if (!v.isNaN()) sq += columns[i].weight * (v - m) * (v - m)
-            }
-            val sd = if (wSum < 2) 0.0 else sqrt(sq / (wSum - 1))
-            var score = m - config.risk * sd
+            var score = columnScore(values[j], weights, config.risk)
+            if (score.isNaN()) continue
             if (usePrior) {
+                // The prior is the book's card value on the coin scale; with the chance leaf its weight means
+                // something else (off in SEARCH_10).
                 var pw = 0.0
                 var ps = 0.0
                 for (i in 0 until g) {
@@ -339,6 +401,90 @@ class HybridAi(
             } + " -> $best (book $bookAnswer)",
         )
         return best?.takeIf { it in d.options }
+    }
+
+    /**
+     * The search's columns: each distinct sample; at a card play with card deals ([HybridConfig.deals]) its most
+     * likely enemy card deals, else with enemies still to choose [HybridConfig.replies] versions of it (the
+     * book's reply and drawn ones). At most [HybridConfig.columnCap] at a card play, the heaviest kept.
+     */
+    private fun columns(
+        samples: List<Sample>,
+        isPlay: Boolean,
+        team: Team,
+        dealing: Boolean,
+        seenOf: (Team) -> Map<String, Set<String>>,
+    ): List<Column> {
+        val columns = ArrayList<Column>()
+        val cap = if (isPlay) config.columnCap else 0
+        if (dealing) {
+            for (s in samples) columns += dealt(s, team, seenOf)
+            if (cap in 1 until columns.size) {
+                // The heaviest columns; equal weights keep their order (a stable sort). Their weights stay
+                // exact: the cut deals' share is dropped, as [HybridConfig.dealMass] drops the tail.
+                return columns.sortedByDescending { it.weight }.take(cap)
+            }
+            return columns
+        }
+        var reps = config.replies
+        var played: List<Sample> = samples
+        if (cap > 0) {
+            val wanted = samples.sumOf { if (it.replyAt(isPlay, team)) reps else 1 }
+            if (wanted > cap) {
+                reps = maxOf(1, cap / samples.size)
+                // The heaviest samples first; equal weights keep their order (a stable sort).
+                if (samples.size > cap) played = samples.sortedByDescending { it.weight }.take(cap)
+            }
+        }
+        for (s in played) {
+            val r = if (s.replyAt(isPlay, team) && reps > 1) reps else 1
+            for (k in 0 until r) columns += Column(s, k, s.weight.toDouble() / r)
+        }
+        return columns
+    }
+
+    /**
+     * [s]'s enemy card deals ([HybridConfig.deals]): every enemy whose card this turn [team] cannot see, put
+     * back in hand by [samples] ([Sample.unplayed]) or still to choose, gets the opponent model's chances over its
+     * hand pool on its own view ([BookPolicy.playWeights], ours hidden from it); the joint deals are taken most
+     * likely first ([topDeals]). Played cards are dealt into the column's copy; the cards of enemies still to
+     * choose are played when their turn to choose comes in the playout ([Column.planned]).
+     */
+    private fun dealt(s: Sample, team: Team, seenOf: (Team) -> Map<String, Set<String>>): List<Column> {
+        val st = s.det.state
+        val toPlay = st.heroes.filter {
+            it.team != team && it.id !in s.unplayed && it.seat > st.stepSeat && it.unresolved.isEmpty() &&
+                it.hand.size > 1
+        }.map { it.id }
+        val heroes = s.unplayed + toPlay
+        val pools = heroes.map { id -> st.hero(id)?.hand.orEmpty().map { it.id }.sorted() }
+        val chances = heroes.indices.map { k ->
+            val pool = pools[k]
+            val w = if (config.model > 0 && pool.size > 1) {
+                policy.playWeights(s.det.engineData, s.det.setup, st, heroes[k], pool, config.model, config.tau, seenOf)
+            } else {
+                null
+            }
+            val ok = w?.map { if (it.isFinite() && it > 0) it else 0.0 }?.takeIf { it.sum() > 0 }
+            ok ?: List(pool.size) { 1.0 }
+        }
+        val deals = topDeals(chances, config.deals, config.dealMass)
+        val total = deals.sumOf { it.second }
+        val unplayed = s.unplayed.toSet()
+        return deals.map { (picks, p) ->
+            val played = HashMap<String, String>()
+            val planned = HashMap<String, String>()
+            for ((k, i) in picks.withIndex()) {
+                val card = pools[k].getOrNull(i) ?: continue
+                if (heroes[k] in unplayed) played[heroes[k]] = card else planned[heroes[k]] = card
+            }
+            val det = if (played.isEmpty()) {
+                s.det
+            } else {
+                s.det.viewWith { copy -> for ((h, c) in played) HiddenCards.play(copy, h, c) }
+            }
+            Column(s, 0, s.weight * p / total, det, planned)
+        }
     }
 
     /**
@@ -388,6 +534,8 @@ class HybridAi(
         val cancelled: () -> Boolean,
         /** The column's enemy replies at a card play (0: the book's), drawn as [playout] draws them. */
         val reply: Int = 0,
+        /** The column's dealt cards for enemies still to choose ([HybridConfig.deals]). */
+        val planned: Map<String, String> = emptyMap(),
     ) {
         val replyRng: Random? = if (reply > 0) Random(HeuristicAi.mix(salt, REPLY_SALT + reply)) else null
     }
@@ -405,10 +553,11 @@ class HybridAi(
         var steps = 0
         var d: Decision
         while (true) {
+            if (t.cancelled()) return Double.NaN
             d = f.pending ?: return leaf(f, t.team, t.seen, t.leafEval)
             if (turnIndex(f.state) != t.turn || steps++ > config.maxSteps) return leaf(f, t.team, t.seen, t.leafEval)
             if (d.options.size > 1) {
-                if (depth <= 0 || t.cancelled()) {
+                if (depth <= 0) {
                     val path = if (t.out != null) ArrayList<MemoKey>() else null
                     val v = playout(
                         f,
@@ -422,8 +571,10 @@ class HybridAi(
                         t.leafEval,
                         t.seen,
                         t.reply,
+                        t.planned,
+                        t.cancelled,
                     )
-                    if (path != null) t.out?.add(path to v)
+                    if (path != null && !v.isNaN()) t.out?.add(path to v)
                     return v
                 }
                 val ours = d.team == t.team
@@ -439,9 +590,10 @@ class HybridAi(
             } else {
                 null
             }
-            val c = drawn
+            val c = (if (enemyCard) plannedCard(t.planned, d) else null)
+                ?: drawn
                 ?: if (d.options.size == 1) d.options[0] else policy.answer(f, d, mode, t.seenOf(d.team), t.salt)
-            if (!BookPolicy.play(f, d, c)) return leaf(f, t.team, t.seen, t.leafEval)
+            if (!policy.play(f, d, c)) return leaf(f, t.team, t.seen, t.leafEval)
             answered.incrementAndFetch()
         }
         val maxing = d.team == t.team
@@ -459,9 +611,10 @@ class HybridAi(
         var best = if (maxing) Double.NEGATIVE_INFINITY else Double.POSITIVE_INFINITY
         for (c in options) {
             val g = f.forkForAnswer()
-            if (!BookPolicy.play(g, d, c)) continue
+            if (!policy.play(g, d, c)) continue
             answered.incrementAndFetch()
             val v = tree(g, depth - 1, alpha, beta, t)
+            if (v.isNaN()) return v
             if (maxing) {
                 if (v > best) best = v
                 if (best > alpha) alpha = best
@@ -492,10 +645,31 @@ class HybridAi(
         seenByUs: Map<String, Set<String>>,
         seenOf: (Team) -> Map<String, Set<String>>,
         cancelled: () -> Boolean,
+        dealing: Boolean = false,
     ): List<Sample>? {
         val dets = arrayOfNulls<EngineSession>(n)
+        val unplayed = arrayOfNulls<List<String>>(n)
         val tasks = (0 until n).map { i ->
-            { if (!cancelled()) dets[i] = determinize(es, d, HeuristicAi.mix(base, i.toLong()), seenByUs, seenOf) }
+            {
+                if (!cancelled()) {
+                    val det = determinize(es, d, HeuristicAi.mix(base, i.toLong()), seenByUs, seenOf, dealing)
+                    if (dealing) {
+                        // The enemies' facedown cards back in hand: each column deals them again from the model,
+                        // so samples that differ only in those cards are one sample.
+                        val hidden = det.state.heroes.filter { h ->
+                            h.team != d.team && h.cards.count { it.zone == Zone.PLAYED } == 1
+                        }.map { it.id }
+                        unplayed[i] = hidden
+                        dets[i] = if (hidden.isEmpty()) {
+                            det
+                        } else {
+                            det.viewWith { st -> for (h in hidden) st.hero(h)?.let(HiddenCards::unplay) }
+                        }
+                    } else {
+                        dets[i] = det
+                    }
+                }
+            }
         }
         if (n > 2) runner.runAll(tasks) else tasks.forEach { it() }
         if (cancelled()) return null
@@ -504,6 +678,7 @@ class HybridAi(
         for (i in 0 until n) {
             val det = dets[i] ?: continue
             val dp = det.pending?.takeIf { it.seat == d.seat && it.kind == d.kind } ?: continue
+            val hidden = unplayed[i].orEmpty()
             if (config.dedupe) {
                 val key = posKey(det)
                 val same = byKey[key]
@@ -511,11 +686,11 @@ class HybridAi(
                     same.weight++
                     continue
                 }
-                val s = Sample(det, dp, HeuristicAi.mix(base, i.toLong()), 1)
+                val s = Sample(det, dp, HeuristicAi.mix(base, i.toLong()), 1, hidden)
                 byKey[key] = s
                 out += s
             } else {
-                out += Sample(det, dp, HeuristicAi.mix(base, i.toLong()), 1)
+                out += Sample(det, dp, HeuristicAi.mix(base, i.toLong()), 1, hidden)
             }
         }
         return out
@@ -534,14 +709,12 @@ class HybridAi(
      * static score ([HybridConfig.topFor]). The book's answer comes first.
      */
     private fun candidates(
-        es: EngineSession,
+        own: Choice,
         d: Decision,
         dp: Decision,
         det: EngineSession,
         seen: Map<String, Set<String>>,
-        cancelled: () -> Boolean,
     ): List<Choice> {
-        val own = book.choose(es, d, cancelled)
         val legal = d.options.filter { it in dp.options }
         if (d.kind == DecisionKind.PLAY_CARD) {
             val all = (listOf(own) + legal).distinct().filter { it in d.options }
@@ -568,6 +741,7 @@ class HybridAi(
         sampleSeed: Long,
         seenByUs: Map<String, Set<String>>,
         seenOf: (Team) -> Map<String, Set<String>>,
+        dealing: Boolean = false,
     ): EngineSession {
         val humans = es.setup.seats.filter {
             it.team == d.team && it.controller == Controller.Human && it.heroId != d.seat
@@ -576,7 +750,8 @@ class HybridAi(
         val setup = es.setup
         val options = Determinizer.Options(
             seen = seenByUs,
-            playWeight = if (config.model > 0) {
+            // With card deals the enemies' played cards are dealt again per column: no weights needed here.
+            playWeight = if (config.model > 0 && !dealing) {
                 { st: GameState, hero: String, pool: List<String> ->
                     policy.playWeights(data, setup, st, hero, pool, config.model, config.tau, seenOf)
                         ?: List(pool.size) { 1.0 }
@@ -614,6 +789,8 @@ class HybridAi(
         leafEval: PositionEvaluator?,
         seen: Map<String, Set<String>>,
         reply: Int = 0,
+        planned: Map<String, String> = emptyMap(),
+        stop: () -> Boolean = { false },
     ): Double {
         playouts.incrementAndFetch()
         val replyRng = if (reply > 0) Random(HeuristicAi.mix(salt, REPLY_SALT + reply)) else null
@@ -634,6 +811,8 @@ class HybridAi(
         var leafSum = 0.0
         var leafCount = 0
         while (n < limit) {
+            // Fine-grained cancellation (the budget): a playout cut short has no value.
+            if (stop()) return Double.NaN
             val d = f.pending ?: break
             val s = f.state
             var turnEnd = false
@@ -678,7 +857,7 @@ class HybridAi(
                 }
                 path += key
             }
-            val planned = if (extended && d.kind == DecisionKind.PLAY_CARD) {
+            val kill = if (extended && d.kind == DecisionKind.PLAY_CARD) {
                 kills?.get(d.seat)?.let { Choice.Card(it) }?.takeIf { it in d.options }
             } else {
                 null
@@ -689,16 +868,23 @@ class HybridAi(
             } else {
                 null
             }
-            val c = planned ?: drawn ?: run {
+            val dealt = if (enemyCard) plannedCard(planned, d) else null
+            val c = kill ?: dealt ?: drawn ?: run {
                 val mode = if (d.team == rootTeam) config.ownPolicy else config.enemyPolicy
                 policy.answer(f, d, mode, seenOf(d.team), salt)
             }
-            if (!BookPolicy.play(f, d, c)) break
+            if (!policy.play(f, d, c)) break
             answered.incrementAndFetch()
             n++
         }
         val end = leaf(f, rootTeam, seen, leafEval)
         return if (leafCount == 0) end else (leafSum + end) / (leafCount + 1)
+    }
+
+    /** The card the column dealt [d]'s enemy seat ([HybridConfig.deals]), if it may still play it. */
+    private fun plannedCard(planned: Map<String, String>, d: Decision): Choice? {
+        if (planned.isEmpty()) return null
+        return planned[d.seat]?.let { Choice.Card(it) }?.takeIf { it in d.options }
     }
 
     /** An enemy's card play drawn from the opponent model (softmax of the book's card scores, 15% uniform). */
@@ -753,10 +939,15 @@ class HybridAi(
         return e
     }
 
+    /**
+     * A playout's end from [team]'s view: its chance to win ([LeafChance], so the columns' mean is an expected
+     * chance and a finished game counts 1 or 0, review-3 V2 §2.4), or with `lp=0` the leaf's coin scale.
+     */
     private fun leaf(f: EngineSession, team: Team, seen: Map<String, Set<String>>, eval: PositionEvaluator?): Double {
-        if (eval != null) return eval.evaluate(f.state, team)
+        if (eval != null) return if (config.chanceLeaf) eval.chance(f.state, team) else eval.evaluate(f.state, team)
         val ctx = HContext(f, f.pending, team, policy.profile, seen = seen, finishing = true)
-        return HEval.evaluate(ctx, team)
+        val v = HEval.evaluate(ctx, team)
+        return if (config.chanceLeaf) LeafChance.ofScore(v, f.state, team) else v
     }
 
     private fun leafOf(data: EngineData): PositionEvaluator? {
@@ -827,6 +1018,59 @@ class HybridAi(
 
         private const val REPLY_SALT = 0x2E9_1E5L
 
+        private const val NANOS_PER_MS = 1_000_000L
+
         fun turnIndex(s: GameState): Int = s.round * 8 + s.turn
+
+        /**
+         * A candidate's score over its columns: the weighted mean of [values] (NaN entries skipped) less
+         * [risk] × their weighted sd; NaN when no column has a value. With the chance leaf the mean is the
+         * candidate's expected chance to win.
+         */
+        internal fun columnScore(values: DoubleArray, weights: DoubleArray, risk: Double = 0.0): Double {
+            var wSum = 0.0
+            var sum = 0.0
+            for (i in values.indices) {
+                val v = values[i]
+                if (v.isNaN()) continue
+                wSum += weights[i]
+                sum += weights[i] * v
+            }
+            if (wSum == 0.0) return Double.NaN
+            val m = sum / wSum
+            if (risk == 0.0) return m
+            var sq = 0.0
+            for (i in values.indices) {
+                val v = values[i]
+                if (!v.isNaN()) sq += weights[i] * (v - m) * (v - m)
+            }
+            val sd = if (wSum < 2) 0.0 else sqrt(sq / (wSum - 1))
+            return m - risk * sd
+        }
+
+        /**
+         * The most likely joint deals of independent per-hero [chances] (each hero's weights over its pool,
+         * any positive scale): at most [max] of them, most likely first, stopping once they cover [mass] of the
+         * total; each with its probability. A beam over the heroes in order, [max] wide, is exact: a deal in the
+         * top [max] has its every prefix in the top [max] prefixes. Ties keep pool order (deterministic).
+         */
+        internal fun topDeals(chances: List<List<Double>>, max: Int, mass: Double): List<Pair<IntArray, Double>> {
+            var beam = listOf(IntArray(0) to 1.0)
+            for (w in chances) {
+                val sum = w.sum()
+                if (w.isEmpty() || sum <= 0.0) continue
+                val next = ArrayList<Pair<IntArray, Double>>(beam.size * w.size)
+                for ((picks, p) in beam) for ((i, x) in w.withIndex()) if (x > 0) next += (picks + i) to p * x / sum
+                beam = next.sortedByDescending { it.second }.take(max.coerceAtLeast(1))
+            }
+            val out = ArrayList<Pair<IntArray, Double>>()
+            var covered = 0.0
+            for (deal in beam) {
+                out += deal
+                covered += deal.second
+                if (covered >= mass) break
+            }
+            return out
+        }
     }
 }

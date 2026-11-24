@@ -10,11 +10,15 @@ strengths 1–9, the heuristic book: a general playbook plus one file per hero, 
 [`ai/heuristic/`](heuristic/README.md). The contract is [`heuristic/DESIGN.md`](heuristic/DESIGN.md).
 At strength 10 it is the hybrid search over that book (`ai/hybrid/HybridAi`, ADR-085 addendum "Wave 3"):
 every question with a choice is tried on determinized copies, each candidate played out to the end of
-the turn by the book for every seat and scored by the leaf `AiPlayers.SEARCH_10_LEAF` (the old learned
-ensemble today; `HybridLeaf.HEVAL` is the book's own value, one switch). After the reveal, where its samples are one
-known position, it searches a small minimax over the rest of the turn instead of one playout (the tree). Its knobs are
-`AiPlayers.SEARCH_10`; the measurements are in [`heuristic/RESULTS.md`](heuristic/RESULTS.md) "Wave 3 —
-Track C". No wall clock (the same answers on every device); cancelling stops it and the book answers.
+the turn by the book for every seat and scored by the leaf `AiPlayers.SEARCH_10_LEAF` (six learned nets today;
+`HybridLeaf.HEVAL` is the book's own value, one switch) as a chance to win (`LeafChance`: the mean over samples is an
+expected chance). At a card play the enemies' hidden cards (played facedown or still to choose) are dealt from the
+opponent model by enumeration of the likeliest joint deals, and a modelled seat never sees the other team's facedown
+card (Wave 4 Track F). After the reveal, where its samples are one known position, it searches a small minimax over
+the rest of the turn instead of one playout (the tree). Its knobs are `AiPlayers.SEARCH_10`; the measurements are in
+[`heuristic/RESULTS.md`](heuristic/RESULTS.md) "Wave 3 — Track C" and "Wave 4 — Track F". No wall clock unless the
+caller passes a budget (`AiPlayers.forStrength(…, budgetMs)`: past it the search answers with the samples it
+finished); without one the same answers on every device. Cancelling stops it inside its playouts.
 Strength 1–10 still means the same bands (Easy 2, Normal 6, Hard 8, Expert 10). The old search described
 below — determinized playouts with the search's own policy, the learned net — is no longer a seated
 player. It remains the coach, the puzzle solver, and `AiPlayers.searchDeterministic` /
