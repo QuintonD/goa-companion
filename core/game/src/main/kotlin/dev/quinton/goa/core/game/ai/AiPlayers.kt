@@ -86,7 +86,9 @@ object AiPlayers {
      * (`td`, `tw`; the tree, RESULTS.md "Wave 3 — Track C"). The book (at the root and in the playouts) branches
      * one own choice in its card looks and looks six spaces ahead at a rest (`branch`, `restSpaces`: Track A's
      * F1 book in its cheap form, RESULTS.md "Wave 3 — Track C2"). With six heroes a card play plays at most
-     * `6.cap` columns (samples × enemy replies), which bounds the slowest 3v3 card plays.
+     * `6.cap` columns (samples × enemy replies), which bounds the slowest 3v3 card plays. On the last wave a turn-3
+     * playout plays on through turn 4 and the round end, where the Minion Battle decides the game (`lpx`, RESULTS.md
+     * "Wave 4 — Track P").
      * Any other key goes to the book as a [dev.quinton.goa.core.game.ai.heuristic.HeuristicProfile.tune] knob.
      */
     val SEARCH_10: Map<String, Double> = mapOf(
@@ -102,6 +104,7 @@ object AiPlayers {
         "branch" to 1.0,
         "restSpaces" to 6.0,
         "6.cap" to 8.0,
+        "lpx" to 1.0,
     )
 
     /** The strengths the search plays ([HybridAi]); below them the heuristic book alone ([HeuristicAi]). */

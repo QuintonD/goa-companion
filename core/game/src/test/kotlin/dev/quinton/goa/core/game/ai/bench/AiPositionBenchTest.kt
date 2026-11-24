@@ -211,6 +211,8 @@ class AiPositionBenchTest {
 
             else -> false
         }
+        // AI_BENCH_MISSES=1: name every question answered wrong (to read it with the solver's key).
+        if (right == false && System.getenv("AI_BENCH_MISSES") == "1") println("BENCH   miss $spec $id ${d.kind} $c")
         return Row(set, d.kind, right, if (right == true) 0.0 else 1.0, ms = ms)
     }
 

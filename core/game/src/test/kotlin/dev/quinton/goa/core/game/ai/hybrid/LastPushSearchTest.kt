@@ -94,6 +94,61 @@ class LastPushSearchTest {
             .isEqualTo(Choice.Card("bain-red-3a"))
     }
 
+    /**
+     * Game 604 (x10 Blue: Swift, NebKher), round 6, turn 3, last wave, Blue 1 minion against Red 2: unless Blue takes
+     * a Red minion this turn or next, the battle pushes for Red (2 ≥ 2 × 1). Swift holds Red 3a (his only attack),
+     * Blue 2a and Silver. Red 3a has no target this turn (its Primary is not offered: Movement or Hold only), so
+     * playing it now spends the attack as a move and leaves no attack for turn 4. The search with the turn-3 horizon
+     * played it; the book moves with Blue 2a and keeps Red 3a.
+     */
+    @Test
+    fun `604 - behind on the last wave, turn 3 keeps the attack card for turn 4`() {
+        val p = RecordedGames.at("game-604B", 6, 3, "swift", DecisionKind.PLAY_CARD)
+        val s = p.session
+        assertWithMessage("Red 2 against Blue 1").that(count(s)).isEqualTo(2 to 1)
+        val attacks = s.state.hero("swift")!!.hand.filter {
+            s.engineData.card(it.id).primary == dev.quinton.goa.core.model.catalog.PrimaryAction.ATTACK
+        }.map { it.id }
+        assertWithMessage("Swift's attacks").that(attacks).containsExactly("swift-red-3a")
+        // The rules check: played now, Red 3a offers no attack.
+        val now = s.forkSession()
+        check(now.answer(now.pending!!.id, Choice.Card("swift-red-3a")) is AnswerResult.Accepted)
+        val book = HeuristicAi(10, 3L)
+        var n = 0
+        while (n++ < 200) {
+            val d = now.pending ?: break
+            if (d.seat == "swift" && d.kind == DecisionKind.CHOOSE_ACTION) {
+                assertWithMessage("Red 3a's actions now").that(d.options)
+                    .doesNotContain(Choice.Action(dev.quinton.goa.core.game.ActionType.PRIMARY))
+                break
+            }
+            check(now.answer(d.id, book.choose(now, d)) is AnswerResult.Accepted)
+        }
+        assertWithMessage("the game's answer").that(p.played).isEqualTo(Choice.Card("swift-red-3a"))
+        assertWithMessage("the book").that(book(s)).isEqualTo(Choice.Card("swift-blue-2a"))
+        assertWithMessage("with lpx").that(search("604B", s, played + ("lpx" to 1.0)))
+            .isEqualTo(Choice.Card("swift-blue-2a"))
+    }
+
+    /**
+     * The extension is a function of the position (it starts at turn 4 of a last-wave round, whatever the path), so
+     * the memo stays exact and the threads do not matter: the same scores with the memo off and on one thread.
+     */
+    @Test
+    fun `the extension keeps the memo exact and the answer deterministic`() {
+        val s = RecordedGames.at("game-632R", 6, 3, "widget", DecisionKind.CHOOSE_UNIT).session
+        fun scores(knobs: Map<String, Double>, threads: Int): Map<Choice, Double> {
+            val out = LinkedHashMap<Choice, Double>()
+            val ai = HybridAi(seed("632R"), knobs, ThreadRunner(threads))
+            ai.scored = { _, scored, _ -> out.putAll(scored) }
+            ai.choose(s, s.pending!!)
+            return out
+        }
+        val on = scores(played + ("lpx" to 1.0), THREADS)
+        assertWithMessage("memo off").that(scores(played + ("lpx" to 1.0) + ("tt" to 0.0), THREADS)).isEqualTo(on)
+        assertWithMessage("one thread").that(scores(played + ("lpx" to 1.0), 1)).isEqualTo(on)
+    }
+
     /** Opt-in (`AI_LASTPUSH_DIAG=1`): every recorded question, with and without `lpx`, its time and the round end. */
     @Test
     fun `diagnostics`() {
