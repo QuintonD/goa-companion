@@ -44,7 +44,15 @@ class CardEquilibriumProbeTest {
                 val cur = HybridAi(seed, knobs, runner)
                 val eq = HybridAi(seed, knobs + ("eq" to 1.0), runner)
                 val books = mapOf(Team.RED to HeuristicAi(10, seed + 1), Team.BLUE to HeuristicAi(10, seed + 2))
-                val setup = AiHarness.setup(red, blue, AiLevel.NORMAL, AiLevel.NORMAL, coin, format.length, format.mapId)
+                val setup = AiHarness.setup(
+                    red,
+                    blue,
+                    AiLevel.NORMAL,
+                    AiLevel.NORMAL,
+                    coin,
+                    format.length,
+                    format.mapId,
+                )
                 val s = TestData.engine.newGame(setup) as EngineSession
                 var n = 0
                 while (n < MAX_DECISIONS) {
@@ -66,7 +74,8 @@ class CardEquilibriumProbeTest {
                         println(
                             "EQ {\"game\":$g,\"id\":${d.id},\"round\":${s.state.round},\"turn\":${s.state.turn}," +
                                 "\"seat\":\"${d.seat}\",\"team\":\"${d.team}\",\"heroes\":${s.state.heroes.size}," +
-                                "\"cur\":\"${(now as? Choice.Card)?.cardId}\",\"eqAnswer\":\"${(eqAnswer as? Choice.Card)?.cardId}\"," +
+                                "\"cur\":\"${(now as? Choice.Card)?.cardId}\"," +
+                                "\"eqAnswer\":\"${(eqAnswer as? Choice.Card)?.cardId}\"," +
                                 "\"msCur\":${"%.0f".format(msCur)},\"msEq\":${"%.0f".format(msEq)}," +
                                 "\"m\":${line ?: "null"}}",
                         )
@@ -74,7 +83,7 @@ class CardEquilibriumProbeTest {
                     check(s.answer(d.id, c) is AnswerResult.Accepted) { "rejected $c" }
                     n++
                 }
-                println("EQ game $g ${red + blue}: winner ${s.state.winner}, round ${s.state.round}, plays so far $plays")
+                println("EQ game $g ${red + blue}: winner ${s.state.winner}, round ${s.state.round}, plays $plays")
             }
         }
     }
@@ -88,7 +97,8 @@ class CardEquilibriumProbeTest {
         return "{\"rows\":$rows,\"cols\":$cols,\"w\":${arr(m.columnWeight)},\"mass\":${"%.4f".format(m.mass)}," +
             "\"down\":${m.enemiesDown},\"toPlay\":${m.enemiesToPlay}," +
             "\"a\":${m.payoff.joinToString(",", "[", "]") { arr(it) }}," +
-            "\"row\":${p.row},\"argmax\":${p.argmax},\"saddle\":${p.saddle},\"value\":${"%.6f".format(p.solution.value)}," +
+            "\"row\":${p.row},\"argmax\":${p.argmax},\"saddle\":${p.saddle}," +
+            "\"value\":${"%.6f".format(p.solution.value)}," +
             "\"p\":${arr(p.solution.row)},\"q\":${arr(p.solution.column)},\"played\":${arr(p.played)}}"
     }
 

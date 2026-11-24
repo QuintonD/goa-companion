@@ -608,3 +608,87 @@ AI_NETS=$Q/nets AI_CACHE=$Q/cache AI_TRAIN=$Q/data/book-a.jsonl,… AI_RESOLVED=
 AI_NETS=$Q/nets AI_TEAMS='W2+net=avg(w1,w2,w3):W2' AI_SIZE=2 AI_FAMILY=mixed AI_FIRST=1000 AI_N=128 AI_SPRT=0.55 \
   AI_THREADS=3 $S/goa-run TeamTournamentTest
 ```
+
+## Wave 4 — Track G: the card play as a matrix game (`eq`, 2026-11-24)
+
+Question (review-3/R1 §7.1, V2 §3): strength 10 plays the best reply to one predicted enemy card (the book's
+softmax). With the enemy hands known (ADR-062) the only unknown before the reveal is the enemy's facedown card,
+so each card play is a simultaneous zero-sum matrix game. Does solving it instead of best-replying matter?
+
+**What was built** (all off by default; `eq=1` turns it on):
+- `ai/hybrid/CardEquilibrium.kt`: an exact solver (simplex, Bland's rule, deterministic, plain Kotlin, JVM and JS),
+  the joint enemy columns, the win-chance conversion, the pick.
+- `ai/hybrid/CardEquilibriumSearch.kt`: the matrix. Rows: our cards, the search's own candidates (all legal cards).
+  Columns: the opponent model's likeliest joint card plays of the enemy heroes whose card is unknown (per hero the
+  book's softmax over its hand, computed with every card back in hand; independent heroes; top `cap` joint plays,
+  else 9). An enemy that already played gets its card dealt one-hot by the determinizer on a shared seed; an enemy
+  still to play gets it in the playout (`HybridAi.playout`'s new `forced`). Teammates still to play are the book,
+  as in the search: one AI plays the team, and the teammate answers after us knowing our card (a sequential team
+  choice, so no iterated best response). Cell: one book playout to the search's horizon, valued as our win chance
+  (σ(value / mean coin scale of the leaf's nets); a finished game 1/0; Track G's own helper, to be replaced by
+  Track F's when merged).
+- `HybridAi`: a knob-gated hook (`eq`) before the card-play search, plus `forced` in `playout` and a probe callback.
+  A matrix that cannot be built (no card options, fewer than two rows) falls through to the normal search.
+- The pick: a pure saddle point is played as it is (the equilibrium is pure; among several saddle rows the model's
+  best). Otherwise a card sampled from the equilibrium with the search's seeded RNG, shares under 10% dropped.
+
+**Validation by construction.** `CardEquilibriumTest` (commonTest, JVM + JS): matching pennies, rock-paper-scissors,
+a saddle game, dominated rows and columns, a 1/21 sliver dropped, determinism under a fixed seed, 300 random games
+(a third on a coarse grid for ties and degenerate vertices) checked against the LP optimality conditions, joint
+columns, win chance. `CardEquilibriumSearchTest` (JVM): on real card plays the `eq=1` answer is legal, comes from a
+built matrix, and is the same on 1 and 3 threads and on a fresh instance; and a Blue card play builds the identical
+matrix and plays the identical card whichever card Red really put down (no peeking).
+
+**Offline numbers (Step 1)**: `CardEquilibriumProbeTest`, h10 vs h10 games on line-ups 1000–1001 (2v2, 120 card
+plays) and 1000 (3v3, 60), both colours, every card play with two or more cards. Strength 10 as it ships and strength
+10 with `eq=1` answered each (2 threads, timed); the games went on with the book's answers. Numbers from
+`eq_report.py` / `eq_extra.py` (Track G scratch) on the `EQ {…}` lines. Payoffs are our win chance.
+
+| | all (180) | 2v2 (120) | 3v3 (60) |
+|---|---|---|---|
+| matrix size (rows × columns, mean) | 3.6 × 7.8 | 3.6 × 7.8 | 3.7 × 7.8 |
+| model probability the columns cover | 0.90 | 0.95 | 0.78 |
+| matrix's model best reply = strength 10's card | 92.2% | | |
+| pure saddle point | 72.8% | 71.7% | 75.0% |
+| equilibrium's likeliest card ≠ strength 10's card | 28.9% | 27.5% | 31.7% |
+| eq=1's actual answer ≠ strength 10's | 52 of 180 (28.9%) | | |
+| equilibrium entropy, bits (mean; exact / as played) | 0.21 / 0.19 | 0.22 / 0.21 | 0.18 / 0.16 |
+| plays where eq mixes (played entropy > 0.5 bit) | 22.2% | | |
+| strength 10's exploitability: value − its card's worst column (mean / p90 / max) | 0.0054 / 0.014 / 0.134 | 0.0052 / 0.013 / 0.134 | 0.0056 / 0.015 / 0.051 |
+| plays where it exceeds 1 point | 14.4% | 14.2% | 15.0% |
+| eq's cost if the model is right: model value of strength 10's card − of eq's mix (mean) | 0.0039 | 0.0028 | 0.0061 |
+| dropping shares under 10%: guarantee lost (mean / max) | 0.0001 / 0.005 | | |
+| ms per card play, strength 10 (mean / p95 / max) | 1059 / 4019 / 6979 | 815 / 3237 / 6979 | 1545 / 5231 / 6316 |
+| ms per card play, eq=1 (mean / p95 / max) | 1382 / 4511 / 6484 | 1040 / 3509 / 5615 | 2065 / 5691 / 6484 |
+
+Context: the best and the worst card differ by 4.8 points of model value on average (median 3.4), the best and the
+second by 2.3 (median 1.1); the enemy's card moves a row by 9.2 points on average. Split by matrix type: in the 131
+saddle matrices the model's best reply is exploitable by 0.26 points on average (eq costs 0.27 against the model);
+in the 49 mixed ones by 1.15 points (eq costs 0.86). The exploitability is concentrated: the 9 worst plays (5%) hold
+53% of it, the top ones late in the game (round 4; 13.4 points at the worst). By seat: enemies still to play
+(92 plays) 69.6% saddle, exploitability 0.59 points; enemies already down (88) 76.1%, 0.48 points.
+
+**Reading.** The book's best reply is nearly unexploitable on these matrices: half a point of win chance a card play
+on average, and the equilibrium gives up about as much (0.4 points) whenever the book's model is right. The games are
+mostly pure (73% saddle, 0.2 bits). So on positions, equilibrium play neither gains nor loses measurably; it changes the
+card in 29% of plays, mostly between near-equal cards. Exploitability here is a lower bound (the enemy's best reply
+is restricted to the model's top columns, 90% of its mass in 2v2, 78% in 3v3) and is judged by the same book playouts
+and leaf that make the matrix.
+
+**Time.** eq=1 is within the shipped search's per-card-play envelope: max 6.5 s vs 7.0 s, p95 4.5 s vs 4.0 s, mean
++0.3 s (2 threads, oldboi, shared). It is slower where the enemy still has to play (9 columns vs the search's 4
+replies: mean 1.42 s vs 0.87 s) and no slower where the enemy's cards are down.
+
+**Recommendation: do not put `eq=1` in the shipped candidate for the 65%-vs-old-s10 measurement.** The offline
+stakes (±0.5 point per card play, either sign depending on how well the book's model predicts old s10) are below what
+one decisive measurement can resolve, and against a deterministic opponent the best reply is the right side of that
+trade (R1 §1.6). Keep it as a knob for two uses: unpredictability against people (strength 10's card play is a
+deterministic best reply a player can learn, V2 §3; eq mixes in 22% of plays at ~0.4 points' cost against the model),
+and as the measured reference if the late-game plays where the best reply is exploitable by 5–13 points are taken up
+(a restriction of eq to those plays was not built: it would be a knob choice made on 9 positions).
+
+**Not verified:** any game result with `eq=1` (no games were run beyond the probe's book games); whether the book's
+softmax is a fair stand-in for old s10's or a human's card play; the JS run of `CardEquilibriumTest` beyond
+`:core:game:allTests` (see the track report). Side effect by construction: for card plays, `eq=1` already avoids V2
+§2.4 (logit/±1000 mean: it averages win chances) and §1.3 (the enemy's model is computed with our card in hand, and
+its columns are enumerated, not drawn), so it is also a cross-check for Track F's fixes of those.

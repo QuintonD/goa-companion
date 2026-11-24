@@ -138,22 +138,24 @@ internal object CardEquilibrium {
      * per-hero model weights ([perHero]: hero → (card, probability) in the model's order). Ties keep
      * enumeration order, so the result is deterministic. Returns the columns and their probabilities.
      */
-    fun jointColumns(perHero: List<Pair<String, List<Pair<String, Double>>>>, cap: Int): List<Pair<Map<String, String>, Double>> {
+    fun jointColumns(perHero: List<Pair<String, List<Pair<String, Double>>>>, cap: Int): List<Joint> {
         var joint = listOf(emptyMap<String, String>() to 1.0)
+        val order = compareByDescending<IndexedValue<Joint>> { it.value.second }.thenBy { it.index }
         for ((hero, cards) in perHero) {
-            val next = ArrayList<Pair<Map<String, String>, Double>>(joint.size * cards.size)
+            val next = ArrayList<Joint>(joint.size * cards.size)
             for ((m, p) in joint) for ((card, q) in cards) next += (m + (hero to card)) to p * q
             // Keeping only the best [cap] after each hero is exact: a joint play's probability is a product
             // of non-negative factors, so a prefix outside the top cap cannot end inside it.
-            joint = next.withIndex().sortedWith(compareByDescending<IndexedValue<Pair<Map<String, String>, Double>>> {
-                it.value.second
-            }.thenBy { it.index }).take(maxOf(1, cap)).map { it.value }
+            joint = next.withIndex().sortedWith(order).take(maxOf(1, cap)).map { it.value }
         }
         return joint
     }
 
     private const val EPS = 1e-12
 }
+
+/** A joint enemy card play (hero → card) and its probability under the opponent model. */
+internal typealias Joint = Pair<Map<String, String>, Double>
 
 /** An exact solver for small two-player zero-sum matrix games (the row player maximises). */
 internal object MatrixGame {
@@ -182,7 +184,8 @@ internal object MatrixGame {
         require(m > 0 && n > 0 && a.all { it.size == n }) { "a matrix game needs a full matrix" }
         val lo = a.minOf { it.min() }
         val shift = 1.0 - lo
-        // Tableau: m constraint rows, then the objective row; columns 0..n-1 the w's, n..n+m-1 the slacks, last the RHS.
+        // Tableau: m constraint rows, then the objective row; columns 0..n-1 the w's, n..n+m-1 the slacks,
+        // the last the right-hand side.
         val w = n + m
         val t = Array(m + 1) { DoubleArray(w + 1) }
         for (i in 0 until m) {
