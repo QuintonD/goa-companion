@@ -164,6 +164,13 @@ data class HybridConfig(
     /** Wave counters left on a lane that make it the last wave for [lastWaveHorizon]. */
     val lastWaves: Int = 1,
     /**
+     * The last push at the round's end (Wave 4 Track P, `lpx`): on a lane with [lastWaves] or fewer Wave counters,
+     * a playout (or the post-reveal tree) that would stop at the start of turn 4 plays turn 4 and the round end
+     * instead: the Minion Battle and the push decide the game there (p.8), so they are played, not judged by the
+     * leaf. Turn 4 searches already reach the round end; turns 1 and 2 are unchanged.
+     */
+    val lastPushExtension: Boolean = false,
+    /**
      * At most this many columns (distinct samples × enemy replies) at a card play (0: no cap): past it the
      * replies per sample shrink (to one), then only the heaviest samples are played. Bounds the slowest
      * card plays (many distinct deals early in a round, six seats) and leaves the usual ones alone.
@@ -199,7 +206,7 @@ data class HybridConfig(
             "K", "Ko", "top", "hz", "hzo", "leaf", "pol", "polE", "scope", "model", "tau", "prior", "risk",
             "dd", "tt", "kill", "prune", "hz1", "hz2", "hz3", "hz4", "hzo1", "hzo2", "hzo3", "hzo4", "topS", "topU",
             "rep", "repM", "repT", "lavg", "mm",
-            "td", "tw", "te", "tk", "tc", "lw", "lwo", "lwn", "cap",
+            "td", "tw", "te", "tk", "tc", "lw", "lwo", "lwn", "lpx", "cap",
         )
 
         private fun byTurn(k: Map<String, Double>, prefix: String): Map<Int, HybridHorizon> =
@@ -244,6 +251,7 @@ data class HybridConfig(
                 lastWaveHorizon = k["lw"]?.toInt()?.let(HybridHorizon::of),
                 lastWaveOtherHorizon = k["lwo"]?.toInt()?.let(HybridHorizon::of),
                 lastWaves = k["lwn"]?.toInt() ?: d.lastWaves,
+                lastPushExtension = k["lpx"]?.let { it != 0.0 } ?: d.lastPushExtension,
                 columnCap = k["cap"]?.toInt() ?: d.columnCap,
             )
         }
