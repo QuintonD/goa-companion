@@ -227,9 +227,13 @@ class LearnedTrainTest {
                 p.x?.fill(0f, Features.SIZE + Features.BOARD_AT, 2 * Features.SIZE)
             }
         }
+        // `AI_SV_ONLY=1` (expert iteration, Wave 4 Track H): train on the positions the search scored, and stop early
+        // on the validation split's searched positions against their targets (how well the net imitates the
+        // search), not on every position against the results: with the book's games in the validation set the
+        // stopping rule measured the book and stopped before the search's values had moved the net.
         val svOnly = env("AI_SV_ONLY") == "1"
         val train = all.filter { it.lineup % 10 < 8 && (!svOnly || !it.sv.isNaN()) }
-        val valid = all.filter { it.lineup % 10 == 8 }
+        val valid = all.filter { it.lineup % 10 == 8 && (!svOnly || !it.sv.isNaN()) }
         val test = all.filter { it.lineup % 10 == 9 }
         println(
             "TRAIN ${all.size} positions from ${all.map { it.game to it.family }.distinct().size} games " +
@@ -248,7 +252,6 @@ class LearnedTrainTest {
         println("TRAIN hand slope k = ${"%.4f".format(k)} (coin scale ${"%.2f".format(1 / k)})")
         val targets = targets(all, lambda, teacher, k)
         // `AI_SV_LAMBDA=λ`: a position with a search value gets λ · result + (1 − λ) · the search's P(Red wins);
-        // `AI_SV_ONLY=1` trains on those positions alone (the rest stay for validation and test).
         val svLambda = env("AI_SV_LAMBDA")?.toDouble()
         if (svLambda != null) {
             for (p in all) {
@@ -287,7 +290,11 @@ class LearnedTrainTest {
             if (useAux) auxWeight else DoubleArray(0),
             // AI_INIT=<net>: fine-tune a saved or checked-in net (`cur1`) instead of starting at random (Track E).
             initData(env("AI_INIT")),
-        ).train(data(train, targets, release = true), data(valid, targets, release = false), cfg)
+        ).train(
+            data(train, targets, release = true),
+            data(valid, targets, release = false, outcomeIsTarget = svOnly),
+            cfg,
+        )
         println("TRAIN trained in ${"%.0f".format((System.nanoTime() - t0) / 1e9)} s")
         val net = Learned.NetData(
             raw.inputs, raw.h1, raw.h2, raw.w1, raw.b1, raw.w2, raw.b2, raw.w3, raw.wl, raw.b3, 1 / k,
@@ -422,7 +429,12 @@ class LearnedTrainTest {
     }
 
     /** The rows of [ps]; with [release] the positions give up their inputs (the big training set). */
-    private fun data(ps: List<Pos>, targets: Map<Pos, Float>, release: Boolean): Trainer.Data {
+    private fun data(
+        ps: List<Pos>,
+        targets: Map<Pos, Float>,
+        release: Boolean,
+        outcomeIsTarget: Boolean = false,
+    ): Trainer.Data {
         // The trainer standardizes its rows in place: the training set hands its arrays over, the others copy.
         val x = Array(ps.size) { r ->
             val p = ps[r]
@@ -431,7 +443,8 @@ class LearnedTrainTest {
         return Trainer.Data(
             x,
             FloatArray(ps.size) { targets.getValue(ps[it]) },
-            FloatArray(ps.size) { if (ps[it].redWon) 1f else 0f },
+            // What early stopping scores: the results, or (`outcomeIsTarget`) the targets themselves.
+            FloatArray(ps.size) { if (outcomeIsTarget) targets.getValue(ps[it]) else if (ps[it].redWon) 1f else 0f },
             ps.map { it.extras },
             if (ps.any { it.aux != null }) {
                 FloatArray(ps.size * AuxTargets.COUNT) { i ->

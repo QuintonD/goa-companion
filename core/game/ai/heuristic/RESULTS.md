@@ -608,3 +608,86 @@ AI_NETS=$Q/nets AI_CACHE=$Q/cache AI_TRAIN=$Q/data/book-a.jsonl,… AI_RESOLVED=
 AI_NETS=$Q/nets AI_TEAMS='W2+net=avg(w1,w2,w3):W2' AI_SIZE=2 AI_FAMILY=mixed AI_FIRST=1000 AI_N=128 AI_SPRT=0.55 \
   AI_THREADS=3 $S/goa-run TeamTournamentTest
 ```
+
+## Wave 4 — Track H: expert iteration, the leaf trained on the search's own values (2026-11-24)
+
+**Question.** Train the leaf on the positions the search queried, with the search's backed-up values as targets
+(review-3/R2-cardgames.md §4.3, "expert iteration"), using Track E2's data: the search `W2+leaf=3` re-searched the
+turn boundaries of 1 056 stored search games (`~/.goa-qa/trackE2/data/sv-x.tsv`, 26 959 positions; both teams searched
+at 26 706). **Answer: no new leaf.** The search's values carry real information that NET6 lacks, but it sits where the
+search's turn horizon contains the round-end push, and two training runs could not move a net toward it. Nothing that
+plays changed; no game was played except a 2-game smoke run of the recipe.
+
+**The targets first.** A team's value of its own best card is optimistic: Red's plus Blue's value of the same position
+is +8.2 coin-equivalents at the median (should be 0), so the trainer now averages the two views in Red's terms before
+anything else (`readSearchValues`). Read as σ(v / 37.85) (the six nets' mean coin scale) the values predict the result
+*worse* than NET6 (held out 0.656 against 0.622), because a playout that wins inside the turn scores the win
+(thousands of coin-equivalents): 4% of positions sit past the old ±12 logit clamp and the reliability table bends
+(predicted 0.01 → observed 0.12). Capped at NET6's own 99th-percentile confidence on the training split (|logit|
+3.28, `AI_SV_CLAMP`; chosen from the nets, not fitted to results) they are a better predictor than NET6:
+
+| Δ log-loss, search value − NET6 (per-game bootstrap 95%) | Training split (860 games) | Held out (98 games) |
+|---|---|---|
+| every searched position | −0.0013 (−0.0053 … +0.0031) | −0.0081 (−0.0214 … +0.0077) |
+| turn 4 of the round (the playouts include the round-end push) | **−0.0233 (−0.0305 … −0.0159)** | **−0.0300 (−0.0503 … −0.0070)** |
+| last push (a lane at its last Wave counter), turn ≥ 3 | **−0.0375 (−0.0556 … −0.0193)** | −0.0654 (−0.1277 … +0.0043) |
+| not the last push | −0.0025 (−0.0053 … +0.0002) | −0.0066 (−0.0132 … +0.0011) |
+
+So the search knows more than the leaf exactly where s10 beats us (the last push), and only when its playouts reach
+the push; at turns 1–3 a searched value is no better than NET6's static one.
+
+**Training** (`LearnedTrainTest`, warm start from g1–g3, lr 1e-4, the book's games keep λ-returns 0.7 from the NET6
+teacher). Searched positions target 0.2 · result + 0.8 · capped search value. λ 0.2: on the training split the capped
+values' Brier (0.2050) is within ~0.01–0.02 of the result noise E[V(1−V)] (the best predictor available scores 0.2042),
+so under independent errors the result deserves ~0.05–0.15 of the weight; 0.2 hedges for the search's errors being
+correlated with NET6's (it is built from NET6 leaves). Two runs, three seeds each, about 4 minutes of training in all:
+
+- **ei1–3**: every position (the searched ones are 10%), early stopping on the validation results. Validation loss was
+  flat from epoch 1 (best epochs 2, 1, 6): the stopping rule measures the book's games, so the nets stayed g.
+- **es1–3** (`AI_SV_ONLY=1`, now also stops on the searched validation positions against their targets): imitation
+  loss improved 0.0010–0.0020 over 10–18 epochs, then stopped.
+
+**Offline, held out** (line-up % 10 = 9; `tools/ai/expert-iteration/offline.py` on the `LearnedTrainTest` dump;
+ensembles average logit × coin scale as the leaf does; Δ = per-game paired bootstrap against NET6):
+
+| Leaf | Searched positions (2 468, 98 games): log-loss / Brier / RMS to the search value | Δ log-loss vs NET6 | Book positions (22 989, 960 games) Δ | Late last push (2 639, 746 games) Δ |
+|---|---|---|---|---|
+| the search value itself | 0.6139 / 0.2126 / 0 | | | |
+| NET6 (`leaf=3`) | 0.6220 / 0.2175 / 0.1018 | — | — | — |
+| cur1–3 (`leaf=2`) | 0.6287 / 0.2203 / 0.1083 | +0.0067 (−0.0015 … +0.0153) | +0.0140 | +0.0279 |
+| g1–3 | 0.6210 / 0.2173 / 0.1061 | −0.0010 (−0.0097 … +0.0074) | −0.0096 | −0.0140 |
+| ei1–3 | 0.6202 / 0.2170 / 0.1061 | −0.0018 (−0.0122 … +0.0093) | −0.0159 | −0.0172 |
+| es1–3 | 0.6215 / 0.2175 / 0.1053 | −0.0005 (−0.0163 … +0.0157) | −0.0072 | −0.0086 |
+| cur1–3 + ei1–3 (NET6 with ei for g) | 0.6215 / 0.2172 / 0.1011 | −0.0005 (−0.0028 … +0.0016) | −0.0043 | −0.0036 |
+| cur1–3 + es1–3 | 0.6222 / 0.2176 / 0.1013 | +0.0003 (−0.0071 … +0.0070) | −0.0001 | +0.0020 |
+| NET6 + es1–3 (nine) | 0.6208 / 0.2170 / 0.1009 | −0.0012 (−0.0068 … +0.0043) | −0.0039 | −0.0054 |
+
+Calibration (expected calibration error on the searched positions, 10 bins): NET6 0.052, es1–3 0.039, ei1–3 0.045,
+cur + es 0.045, the capped search value 0.049. Every net is overconfident at 0.7–0.8 there (0.74 predicted, 0.57
+observed). The "late last push" column is mostly book games (all held-out positions with a lane at its last Wave
+counter, turn ≥ 3); on the 273 searched ones no net differs from NET6 by more than its interval.
+
+**Reading.** On the leaf's own distribution (searched positions of search games) no new ensemble is distinguishable
+from NET6, and none comes closer to the search's values (RMS 0.101–0.106 against 0.102). The gains on the book's
+positions are the g family's trait (a better fit to the book's results), which Track E already showed is not a better
+leaf. So nothing was wired: no `leaf=4`, no new weights, `SEARCH_10` untouched. Why the nets do not absorb the
+search's knowledge: what the search adds is the round-end push played out (turn 4), and the residual between the search
+value and NET6 is not predictable from the features with ~22 000 positions (es moved RMS by 0.001). **For the
+integrator and Track P:** the measurable gap between search and leaf is at the end of turn 3 of a last-push round (the
+leaf judges a position whose push it cannot see); a horizon that reaches the push there (HybridConfig
+`lastWaveHorizon`) targets it directly. C2 measured `lw=3` at 52.1% of 96 and did not keep it; this is evidence for that
+mechanism, not a game result.
+
+**What was added** (all test/tools, nothing in play): `LearnedTrainTest` "dump held-out logits" (`AI_DUMP`,
+`AI_DUMP_FILES`, `AI_DUMP_NETS`: every held-out position and every searched one, with each net's logit, the search
+value, turn / round / Wave counters / match points), the search values read as the Red-view mean capped at
+`AI_SV_CLAMP`, `AI_SV_ONLY` stopping on the searched positions' targets; `tools/ai/expert-iteration/offline.py` (the
+tables above: search-value calibration, held-out log-loss / Brier / RMS / KL with paired per-game bootstrap,
+reliability tables, last-push subsets) and `tools/ai/expert-iteration/round.sh` (the next round with no hand work:
+self-play with live search values (`AI_SV_LIVE`) on training line-ups from game 20 000 (refuses 4000–5999) → cap fit →
+three seeds → dump → tables, with the adoption rule in its header). Nets and dumps: `~/.goa-qa/trackH/` (nets ei1–3,
+es1–3; `dump/base.md`, `run1.md`, `run2.md`).
+
+**Not verified:** anything in play (by design); whether more search data (round.sh's self-play, ~250 games an hour)
+would let a net learn the push (es's flat imitation curve says not soon); the search values come from W2 + NET6, not
+today's SEARCH_10 (W3 + tree + cap), which the next round's default `SPEC=W2` uses.

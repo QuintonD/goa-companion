@@ -258,6 +258,12 @@ def main():
     reliability("held out, positions the search scored", searched)
     reliability("held out, every position", test)
 
+    def delta(ps, m):
+        if a.ref not in models or m == a.ref:
+            return "—"
+        d, lo, hi = boot(ps, m, a.ref)
+        return f"{d:+.4f} ({lo:+.4f} … {hi:+.4f})"
+
     # 5. The last push.
     lp = [p for p in test if p["waves"] <= 1.0001]
     late = [p for p in lp if p["turn"] >= 3]
@@ -271,12 +277,12 @@ def main():
         if not ps:
             continue
         print(f"### {title} ({len(ps)} positions, {len({(p['file'], p['game']) for p in ps})} games)\n")
-        print(f"| Model | log-loss vs result | Brier | mean abs(P − P_{a.ref}) | RMS vs search value (n) |\n"
-              "|---|---:|---:|---:|---:|")
+        print(f"| Model | log-loss vs result | Brier | mean abs(P − P_{a.ref}) | RMS vs search value (n) | "
+              f"Δ log-loss vs {a.ref} (95% per-game bootstrap) |\n|---|---:|---:|---:|---:|---|")
         sq = [p for p in ps if not math.isnan(p["q"])]
         if len(sq) == len(ps):
             print(f"| *the search's value itself* | {sum(ll(p['q'], p['y']) for p in ps) / len(ps):.4f} | "
-                  f"{sum((p['q'] - p['y']) ** 2 for p in ps) / len(ps):.4f} | | |")
+                  f"{sum((p['q'] - p['y']) ** 2 for p in ps) / len(ps):.4f} | | | |")
         for m in models:
             pr = [prob(p, m) for p in ps]
             refp = [prob(p, a.ref) for p in ps] if a.ref in models else pr
@@ -284,7 +290,7 @@ def main():
             rms = f"{math.sqrt(sum((x - q) ** 2 for x, q in svp) / len(svp)):.4f} ({len(svp)})" if svp else "—"
             print(f"| {m} | {sum(ll(x, p['y']) for x, p in zip(pr, ps)) / len(ps):.4f} | "
                   f"{sum((x - p['y']) ** 2 for x, p in zip(pr, ps)) / len(ps):.4f} | "
-                  f"{sum(abs(x - r) for x, r in zip(pr, refp)) / len(ps):.4f} | {rms} |")
+                  f"{sum(abs(x - r) for x, r in zip(pr, refp)) / len(ps):.4f} | {rms} | {delta(ps, m)} |")
         print()
 
 
