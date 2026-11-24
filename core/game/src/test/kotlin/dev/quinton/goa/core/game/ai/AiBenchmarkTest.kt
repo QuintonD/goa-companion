@@ -1,8 +1,8 @@
 package dev.quinton.goa.core.game.ai
 
 import com.google.common.truth.Truth.assertThat
-import dev.quinton.goa.core.game.AiLevel
 import dev.quinton.goa.core.game.TestData
+import dev.quinton.goa.core.game.ai.hybrid.HybridAi
 import java.util.concurrent.atomic.AtomicLong
 import org.junit.Test
 
@@ -43,13 +43,8 @@ class AiBenchmarkTest {
         // The work is what makes answers per second comparable: three threads must not lose counts.
         val positions = AiBenchmark.positions(engine).take(WORK_POSITIONS)
         fun work(runner: SampleRunner): List<Long> {
-            val p = SearchAi(
-                AiLevel.of(10),
-                AiPlayers.profile(10),
-                1L,
-                timeCap = false,
-                runner = runner,
-            )
+            // The shipped strength 10 (the search over the book), as the meter runs it.
+            val p = AiPlayers.forStrength(10, 1L, runner) as HybridAi
             return positions.map { s ->
                 val w0 = p.work
                 p.choose(s, s.pending!!)

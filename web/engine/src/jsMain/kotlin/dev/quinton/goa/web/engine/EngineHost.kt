@@ -15,6 +15,7 @@ import dev.quinton.goa.core.game.engine.GameEngine
 import dev.quinton.goa.core.game.puzzles.EnginePuzzleBook
 import dev.quinton.goa.core.model.board.BoardMap
 import dev.quinton.goa.core.model.catalog.Catalog
+import dev.quinton.goa.core.model.match.Team
 import dev.quinton.goa.feature.board.play.game.humans
 import dev.quinton.goa.feature.board.play.game.mergedView
 import dev.quinton.goa.feature.board.play.puzzles.openView
@@ -42,6 +43,13 @@ class EngineHost(private val load: suspend () -> Pair<Catalog, List<BoardMap>>) 
     private var book: EnginePuzzleBook? = null
 
     private var game: GameSession? = null
+
+    /**
+     * The game's computer players, one per team and strength, kept for the whole game: strength 10's memo
+     * carries from one answer to the next within a turn (as the tournaments measured it). A new game or a
+     * restored save starts them afresh; the answers are the same either way (the memo only saves work).
+     */
+    private val players = HashMap<Pair<Team, Int>, AiPlayer>()
 
     /** How many of the game's events the page has (it keeps them; later replies send the rest). */
     private var sent = 0
@@ -178,6 +186,7 @@ class EngineHost(private val load: suspend () -> Pair<Catalog, List<BoardMap>>) 
 
     private fun started(session: GameSession): EngineResponse {
         game = session
+        players.clear()
         sent = 0
         return snapshot(session, canUndo = canUndo(session))
     }
@@ -189,7 +198,9 @@ class EngineHost(private val load: suspend () -> Pair<Catalog, List<BoardMap>>) 
             return snapshot(g, accepted = false)
         }
         val seat = g.setup.seats.firstOrNull { it.heroId == decision.seat }
-        val choice = aiFor(seat?.controller as? Controller.Ai).choose(g, decision)
+        val controller = seat?.controller as? Controller.Ai
+        val player = players.getOrPut(decision.team to strengthOf(controller)) { aiFor(controller) }
+        val choice = player.choose(g, decision)
         val before = g.events.size
         if (g.answer(decision.id, choice) !is AnswerResult.Accepted) g.answer(decision.id, decision.options.first())
         val revealed = g.events.drop(before).any { it is GameEvent.CardsRevealed }
@@ -239,11 +250,12 @@ class EngineHost(private val load: suspend () -> Pair<Catalog, List<BoardMap>>) 
     companion object {
         /**
          * The computer player of a seat: the phone's rule ([AiPlayers.forApp]: its strength, seeded per
-         * strength, ADR-039), so a strength gives the same answers as on the phone. No wall clock (ADR-085):
-         * strength 10's search takes longer in a slower browser, and cancelling ends the worker. A seat
-         * without a computer (never asked) plays as Normal.
+         * strength, ADR-039), so a strength gives the same answers as on the phone. Strength 10 thinks within
+         * the app's budget ([AiPlayers.APP_BUDGET_MS]) on the worker's one thread; cancelling ends the worker.
+         * A seat without a computer (never asked) plays as Normal. The host keeps one per team and strength.
          */
-        fun aiFor(controller: Controller.Ai?): AiPlayer =
-            AiPlayers.forApp(controller?.strength ?: AiLevel.NORMAL.strength)
+        fun aiFor(controller: Controller.Ai?): AiPlayer = AiPlayers.forApp(strengthOf(controller))
+
+        private fun strengthOf(controller: Controller.Ai?): Int = controller?.strength ?: AiLevel.NORMAL.strength
     }
 }

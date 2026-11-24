@@ -13,6 +13,7 @@ import dev.quinton.goa.core.data.game.AiPlayers
 import dev.quinton.goa.core.data.game.GameInProgress
 import dev.quinton.goa.core.data.game.StoredGame
 import dev.quinton.goa.core.game.AiLevel
+import dev.quinton.goa.core.game.AiPlayer
 import dev.quinton.goa.core.game.AnswerResult
 import dev.quinton.goa.core.game.Choice
 import dev.quinton.goa.core.game.Coach
@@ -130,6 +131,13 @@ class GameViewModel internal constructor(
     /** The game being played; only touched on [engine]. */
     private var session: GameSession? = null
     private var progress: GameInProgress? = null
+
+    /**
+     * The game's computer players, one per team and strength, kept until another game starts: strength 10's
+     * memo carries from one answer to the next within a turn, as the tournaments measured it (the answers are
+     * the same without it; it only saves work). Each is asked on [engine], one question at a time.
+     */
+    private val players = HashMap<Pair<Team, Int>, AiPlayer>()
     private var map: BoardMap? = null
     private var heroes: Map<String, BoardHero> = emptyMap()
     private var cards: Map<String, Card> = emptyMap()
@@ -216,6 +224,7 @@ class GameViewModel internal constructor(
 
     private suspend fun start(game: GameSession, inProgress: GameInProgress, fresh: Boolean) {
         session = game
+        players.clear()
         progress = inProgress
         humans = game.setup.humans
         bottomTeam = game.setup.humanTeam ?: Team.RED
@@ -618,7 +627,8 @@ class GameViewModel internal constructor(
 
     private suspend fun computerAnswers(game: GameSession, decision: Decision) {
         val computer = game.setup.seats.firstOrNull { it.heroId == decision.seat }?.controller as? Controller.Ai
-        val player = ai.forStrength(computer?.strength ?: AiLevel.NORMAL.strength)
+        val strength = computer?.strength ?: AiLevel.NORMAL.strength
+        val player = players.getOrPut(decision.team to strength) { ai.forStrength(strength) }
         thinking = false
         publish()
         // "Thinking…" once the computer takes a while.

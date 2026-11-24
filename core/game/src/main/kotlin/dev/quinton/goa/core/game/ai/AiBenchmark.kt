@@ -6,6 +6,7 @@ import dev.quinton.goa.core.game.Controller
 import dev.quinton.goa.core.game.DecisionKind
 import dev.quinton.goa.core.game.GameSetup
 import dev.quinton.goa.core.game.SeatSetup
+import dev.quinton.goa.core.game.ai.hybrid.HybridAi
 import dev.quinton.goa.core.game.engine.EngineSession
 import dev.quinton.goa.core.game.engine.GameEngine
 import dev.quinton.goa.core.model.match.Team
@@ -17,13 +18,19 @@ import kotlin.random.Random
  * never been measured, so the app's settings run this and the owner sends back the line. The same
  * card plays on every device: fixed 3v3 games, played on by a fast static player, so no position
  * depends on how far a search got. A slower device answers a prefix of the same shuffled list.
+ *
+ * The player is the strength 10 the apps seat ([AiPlayers.forStrength]: the search over the book,
+ * [HybridAi]) without the app's think time, so the times are the whole search's and [Result.overCap]
+ * counts the card plays the app's budget ([AiPlayers.APP_BUDGET_MS]) would cut short.
  */
 object AiBenchmark {
     /**
      * Bumped when the positions or the measure change: numbers compare only within a version. 2 (ADR-060):
      * strength 10 scores its one-ply looks with three nets, so an engine answer costs about twice v1's.
+     * 3 (wave 4): the player is the shipped search over the book ([HybridAi]), not the old search; an
+     * "answer" is one engine answer in its playouts and trees.
      */
-    const val VERSION: Int = 2
+    const val VERSION: Int = 3
     const val MILLIS: Long = 30_000L
     private const val WARM_UP_SHARE = 6
     private const val SEED = 20_261_031L
@@ -35,8 +42,8 @@ object AiBenchmark {
     private const val SIZE = 3
     private const val MAP = "forgotten-island"
 
-    /** The device budget a card play has to fit in at this strength (the app's wall-clock cap). */
-    private val capMs: Long get() = AiPlayers.profile(STRENGTH).budgetMs
+    /** The device budget a card play has to fit in at this strength (the app's think time). */
+    private val capMs: Long get() = AiPlayers.APP_BUDGET_MS
 
     class Result(
         val threads: Int,
@@ -99,7 +106,7 @@ object AiBenchmark {
         cancelled: () -> Boolean = { false },
     ): Result? {
         val positions = positions(engine)
-        val player = SearchAi(AiLevel.of(STRENGTH), AiPlayers.profile(STRENGTH), SEED, timeCap = false, runner)
+        val player = AiPlayers.forStrength(STRENGTH, SEED, runner) as HybridAi
         val start = monotonicNanos()
         val warmEnd = start + millis * NANOS_PER_MS / WARM_UP_SHARE
         val end = start + millis * NANOS_PER_MS

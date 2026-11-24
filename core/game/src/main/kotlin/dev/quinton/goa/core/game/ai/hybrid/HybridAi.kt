@@ -1,5 +1,6 @@
 package dev.quinton.goa.core.game.ai.hybrid
 
+import dev.quinton.goa.core.domain.monotonicNanos
 import dev.quinton.goa.core.game.AiPlayer
 import dev.quinton.goa.core.game.Choice
 import dev.quinton.goa.core.game.Controller
@@ -110,12 +111,19 @@ class HybridAi(
     private val playouts = AtomicLong(0)
     private val drawn = AtomicLong(0)
     private val distinct = AtomicLong(0)
+    private val late = AtomicLong(0)
 
     /** Engine answers spent in playouts so far (the work measure). */
     val work: Long get() = answered.load()
 
-    /** Diagnostics: playouts started, those the memo answered, samples drawn, distinct positions among them. */
-    val stats: List<Long> get() = listOf(playouts.load(), memoHits.load(), drawn.load(), distinct.load())
+    /**
+     * Diagnostics: playouts started, those the memo answered, samples drawn, distinct positions among them,
+     * searched answers the [HybridConfig.budgetMs] deadline cut short.
+     */
+    val stats: List<Long> get() = listOf(playouts.load(), memoHits.load(), drawn.load(), distinct.load(), late.load())
+
+    /** Positions the memo holds now (tests: it survives from one answer to the next within a turn). */
+    internal val memoSize: Int get() = memo.size
 
     /** The transposition memo: position (with what the playout from it means) → leaf value. One real turn. */
     private var memo: HashMap<MemoKey, Double> = HashMap()
@@ -169,17 +177,23 @@ class HybridAi(
         val seenByUs = Searcher.seenCards(es, team)
         val seenByThem = Searcher.seenCards(es, enemy)
         val seenOf = { t: Team -> if (t == team) seenByUs else seenByThem }
+        // The app's think time (HybridConfig.budgetMs): past the deadline no work starts and running work stops.
+        val budget = if (isPlay) config.budgetMs else config.budgetMs / OTHER_BUDGET_SHARE
+        val deadline = if (budget > 0) monotonicNanos() + budget * NANOS_PER_MS else Long.MAX_VALUE
+        val pastDeadline = if (budget > 0) ({ monotonicNanos() > deadline }) else ({ false })
+        val stop = { cancelled() || pastDeadline() }
         val leafEval = leafOf(es.engineData)
         val memoOn = config.memo && horizon.memoable && config.kill == 0 && !config.leafAverage
         if (memoOn) resetMemo(es)
         val snapshot = if (memoOn) memo else null
         val view = MemoView(team, (seenByUs.hashCode() * 31 + seenByThem.hashCode()), horizon.ordinal)
 
-        val samples = samples(es, d, base, n, seenByUs, seenOf, cancelled) ?: return null
+        val samples = samples(es, d, base, n, seenByUs, seenOf, stop) ?: return null
         if (samples.isEmpty()) return null
         drawn.addAndFetch(samples.sumOf { it.weight }.toLong())
         distinct.addAndFetch(samples.size.toLong())
         val first = samples[0]
+        // The book's own answer (first) is the answer when time runs out, so it is never cut short.
         val candidates = candidates(es, d, first.dp, first.det, seenByUs, cancelled)
         if (candidates.size <= 1) return candidates.firstOrNull()
         // Columns: each distinct sample, and at a card play with enemies still to choose, [HybridConfig.replies]
@@ -202,6 +216,8 @@ class HybridAi(
         }
         val g = columns.size
         val values = Array(candidates.size) { DoubleArray(g) { Double.NaN } }
+        // Columns some candidate did not finish before the deadline: left out, so the comparison stays paired.
+        val cut = BooleanArray(g)
         val priors = Array(candidates.size) { DoubleArray(g) { Double.NaN } }
         val usePrior = isPlay && config.prior != 0.0
         val found = Array(candidates.size) { arrayOfNulls<List<MemoKey>>(g) }
@@ -229,7 +245,9 @@ class HybridAi(
             for ((j, c) in candidates.withIndex()) {
                 if (c !in s.dp.options) continue
                 tasks += {
-                    if (!cancelled()) {
+                    if (stop()) {
+                        cut[i] = true
+                    } else {
                         val f = s.det.forkForAnswer()
                         if (BookPolicy.play(f, s.dp, c)) {
                             answered.incrementAndFetch()
@@ -245,11 +263,16 @@ class HybridAi(
                                     leafEval,
                                     seenByUs,
                                     rootTurn,
-                                    cancelled,
+                                    stop,
                                     col.reply,
                                 )
-                                values[j][i] = tree(f, treeDepth, Double.NEGATIVE_INFINITY, Double.POSITIVE_INFINITY, t)
-                                treeFound[j][i] = out
+                                val v = tree(f, treeDepth, Double.NEGATIVE_INFINITY, Double.POSITIVE_INFINITY, t)
+                                if (pastDeadline()) {
+                                    cut[i] = true
+                                } else {
+                                    values[j][i] = v
+                                    treeFound[j][i] = out
+                                }
                             } else {
                                 val path = if (memoHere) ArrayList<MemoKey>() else null
                                 values[j][i] = playout(
@@ -264,8 +287,14 @@ class HybridAi(
                                     leafEval,
                                     seenByUs,
                                     col.reply,
+                                    stop,
                                 )
-                                found[j][i] = path
+                                if (pastDeadline()) {
+                                    cut[i] = true
+                                    values[j][i] = Double.NaN
+                                } else {
+                                    found[j][i] = path
+                                }
                             }
                         }
                     }
@@ -281,14 +310,21 @@ class HybridAi(
                     val path = found[j][i] ?: continue
                     val v = values[j][i]
                     if (v.isNaN()) continue
-                    for (k in path) memo[k] = v
+                    for (k in path) remember(k, v)
                 }
             }
             for (j in candidates.indices) {
                 for (i in 0 until g) {
-                    for ((path, v) in treeFound[j][i] ?: continue) for (k in path) memo[k] = v
+                    for ((path, v) in treeFound[j][i] ?: continue) for (k in path) remember(k, v)
                 }
             }
+        }
+        // (The memo above took every playout that finished in time: its values are exact.)
+        if (cut.any { it }) {
+            late.incrementAndFetch()
+            // Out of time: only the columns every candidate finished count; none finished, the book answers.
+            for (row in values) for (i in 0 until g) if (cut[i]) row[i] = Double.NaN
+            if (cut.all { it }) return candidates[0].takeIf { it in d.options }
         }
         if (config.worstReply > 0.0) robust(values, columns)
         val bookAnswer = candidates[0]
@@ -422,6 +458,7 @@ class HybridAi(
                         t.leafEval,
                         t.seen,
                         t.reply,
+                        t.cancelled,
                     )
                     if (path != null) t.out?.add(path to v)
                     return v
@@ -614,6 +651,7 @@ class HybridAi(
         leafEval: PositionEvaluator?,
         seen: Map<String, Set<String>>,
         reply: Int = 0,
+        stop: () -> Boolean = NEVER,
     ): Double {
         playouts.incrementAndFetch()
         val replyRng = if (reply > 0) Random(HeuristicAi.mix(salt, REPLY_SALT + reply)) else null
@@ -634,6 +672,8 @@ class HybridAi(
         var leafSum = 0.0
         var leafCount = 0
         while (n < limit) {
+            // Out of time or cancelled: the value is not used (the column is cut), so stop at once.
+            if (stop()) return Double.NaN
             val d = f.pending ?: break
             val s = f.state
             var turnEnd = false
@@ -771,14 +811,23 @@ class HybridAi(
         return e
     }
 
-    /** The memo holds one real turn (a playout never outlives its turn but for the horizons that skip the memo). */
+    /**
+     * The memo holds one real turn (a playout never outlives its turn but for the horizons that skip the memo).
+     * A player is kept for a whole game (the app keeps one per team and strength, as the tournaments do), so the
+     * memo carries from one answer to the next within the turn; a new turn or another engine starts it empty.
+     */
     private fun resetMemo(es: EngineSession) {
         val now = es.engineData to turnIndex(es.state)
         val was = memoTurn
-        if (was == null || was.first !== now.first || was.second != now.second || memo.size > MEMO_CAP) {
+        if (was == null || was.first !== now.first || was.second != now.second) {
             memo = HashMap()
             memoTurn = now
         }
+    }
+
+    /** Remembers a playout value; a full memo ([MEMO_CAP], a phone's memory) keeps what it has for the turn. */
+    private fun remember(k: MemoKey, v: Double) {
+        if (memo.size < MEMO_CAP || k in memo) memo[k] = v
     }
 
     /** A position: the state at its step's start (as the puzzle solver hashes it) and the answers since. */
@@ -809,7 +858,15 @@ class HybridAi(
         /** Card pruning keeps at least this many cards (and the book's own). */
         private const val PRUNE_KEEP = 3
 
-        private const val MEMO_CAP = 400_000
+        /**
+         * The memo's size bound. Each entry is about 150 bytes on a 64-bit JVM (the key, its position key, the
+         * boxed value, the hash map's node and slot), so this is about 15 MB at most per player.
+         */
+        internal const val MEMO_CAP = 100_000
+
+        private const val OTHER_BUDGET_SHARE = 3
+        private const val NANOS_PER_MS = 1_000_000L
+        private val NEVER: () -> Boolean = { false }
 
         private fun prefixed(knobs: Map<String, Double>, prefix: String): Map<String, Double> =
             knobs.filterKeys { it.startsWith(prefix) }.mapKeys { it.key.removePrefix(prefix) }

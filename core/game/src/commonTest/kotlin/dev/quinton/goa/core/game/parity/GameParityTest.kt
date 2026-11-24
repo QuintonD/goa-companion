@@ -46,6 +46,11 @@ class GameParityTest {
         val engine: GameEngine by lazy {
             GameEngine(catalog, maps, MatchRules.parse(catalogAsset("match-setup.json")))
         }
+
+        /** Strength 10's answers with a choice in [theShippedStrengthTenChoosesAlike] (card plays and the rest). */
+        const val SHIPPED_TEN_ANSWERS = 30
+
+        const val SHIPPED_TEN_HASH = "ba4dff96352e3c60cc164ba50b2ed35849bc91e5e206ae10ffe433a5f7dcf39a"
     }
 
     @Test
@@ -174,6 +179,47 @@ class GameParityTest {
             }
         }
         assertTranscript("da6c3fe62c21e8d0b6168f2184449f96d9c4827e896acdf7469168b4a646e39c", transcript, "searching AI")
+    }
+
+    /**
+     * The strength 10 the apps seat (the search over the book, ADR-085 addendum; wave 4: one player per team
+     * for the game, so its memo carries between answers, as the apps keep it) against strength 9 (the book
+     * alone): determinized samples merged by state hash, book playouts, enemy replies drawn from the softmax
+     * opponent model, the post-reveal tree and the six learned nets at the leaves (f32). The phone and the
+     * browser must play it alike, answer for answer.
+     */
+    @Test
+    fun theShippedStrengthTenChoosesAlike() {
+        val setup = GameSetup(
+            mapId = "forgotten-island",
+            seats = listOf(
+                SeatSetup("wasp", Team.RED, Controller.Ai(AiLevel.EXPERT, strength = 9)),
+                SeatSetup("xargatha", Team.RED, Controller.Ai(AiLevel.EXPERT, strength = 9)),
+                SeatSetup("arien", Team.BLUE, Controller.Ai(AiLevel.EXPERT)),
+                SeatSetup("brogan", Team.BLUE, Controller.Ai(AiLevel.EXPERT)),
+            ),
+            length = GameLength.QUICK,
+            tieBreaker = Team.RED,
+        )
+        val players = mapOf(
+            Team.RED to AiPlayers.deterministic(9, 13),
+            Team.BLUE to AiPlayers.deterministic(10, 17),
+        )
+        val s = engine.newGame(setup) as EngineSession
+        val transcript = buildString {
+            var searched = 0
+            var n = 0
+            while (searched < SHIPPED_TEN_ANSWERS && n < 400) {
+                val d = s.pending ?: break
+                val c = players.getValue(d.team).choose(s, d)
+                appendLine(d.line(d.options.indexOf(c)))
+                if (d.team == Team.BLUE && d.options.size > 1) searched++
+                check(s.answer(d.id, c) is AnswerResult.Accepted)
+                n++
+            }
+            appendLine("round ${s.state.round} turn ${s.state.turn} searched $searched")
+        }
+        assertTranscript(SHIPPED_TEN_HASH, transcript, "shipped strength 10")
     }
 
     @Test

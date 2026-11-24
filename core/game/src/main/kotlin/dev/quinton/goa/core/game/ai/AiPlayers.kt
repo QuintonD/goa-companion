@@ -30,8 +30,9 @@ import kotlin.random.Random
  * those in a game the person plays.
  *
  * Deterministic for a seed (answers depend on the seed, the decision id and the seat). Neither the book
- * nor the strength-10 search has a wall-clock cap (the same strength on every device); the search stops
- * when its answer is cancelled. The old search player's [searchForStrength] still has one.
+ * nor [forStrength]'s strength-10 search has a wall-clock cap; the search stops when its answer is cancelled.
+ * The apps' [forApp] gives strength 10 the think time [APP_BUDGET_MS]. The old search player's
+ * [searchForStrength] has its own cap.
  */
 object AiPlayers {
     /** The seed the apps give the computer players: the phone's (core/data) and the web worker's (ADR-043). */
@@ -41,9 +42,30 @@ object AiPlayers {
      * The computer player the apps seat at [strength] (ADR-039, ADR-085): [forStrength] seeded per
      * strength, so a strength is the same player on the phone and in the browser. [runner] runs the
      * strength-10 search's playouts (the same answers on any runner); the book below it does not sample.
+     *
+     * Strength 10 thinks at most [budgetMs] a card play and a third of it for any other searched question
+     * ([HybridConfig][dev.quinton.goa.core.game.ai.hybrid.HybridConfig.budgetMs]; ADR-047's 2 s by default).
+     * Answers that finish within it are the same on every device and runner; one cut short depends on the
+     * device's speed. The player keeps a memo for the turn: the apps keep one player per team and strength
+     * for the whole game (as the tournaments measured it), never one per answer, and ask it one question at
+     * a time.
      */
-    fun forApp(strength: Int, runner: SampleRunner = SampleRunner.SEQUENTIAL): AiPlayer =
-        forStrength(strength, APP_SEED + strength, runner)
+    fun forApp(
+        strength: Int,
+        runner: SampleRunner = SampleRunner.SEQUENTIAL,
+        budgetMs: Long = APP_BUDGET_MS,
+    ): AiPlayer {
+        val s = AiStrength.coerce(strength)
+        if (s < SEARCH_FROM || budgetMs <= 0) return forStrength(s, APP_SEED + s, runner)
+        return HybridAi(APP_SEED + s, searchKnobs() + ("ms" to budgetMs.toDouble()), runner)
+    }
+
+    /**
+     * The app's think time for strength 10's card plays, milliseconds (the owner's ceiling, ADR-047: about
+     * 2 s a card play on the phone; other searched questions a third). Wave 4 track A measured the search's
+     * single-thread times against it (RESULTS.md "Wave 4 — Track A").
+     */
+    const val APP_BUDGET_MS: Long = 2_000L
 
     /** The production player. No wall clock; [runner] runs strength 10's playouts. */
     fun forStrength(strength: Int, seed: Long, runner: SampleRunner = SampleRunner.SEQUENTIAL): AiPlayer =
@@ -111,8 +133,11 @@ object AiPlayers {
     private fun heuristic(strength: Int, seed: Long, runner: SampleRunner): AiPlayer {
         val s = AiStrength.coerce(strength)
         if (s < SEARCH_FROM) return HeuristicAi(s, seed)
-        return HybridAi(seed, SEARCH_10 + ("leaf" to SEARCH_10_LEAF.ordinal.toDouble()), runner)
+        return HybridAi(seed, searchKnobs(), runner)
     }
+
+    /** Strength 10's knobs: [SEARCH_10] with its leaf ([SEARCH_10_LEAF]). */
+    private fun searchKnobs(): Map<String, Double> = SEARCH_10 + ("leaf" to SEARCH_10_LEAF.ordinal.toDouble())
 
     private fun searchPlayer(
         strength: Int,

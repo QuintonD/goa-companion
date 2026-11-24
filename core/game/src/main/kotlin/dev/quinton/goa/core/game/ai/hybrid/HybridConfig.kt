@@ -169,6 +169,15 @@ data class HybridConfig(
      * card plays (many distinct deals early in a round, six seats) and leaves the usual ones alone.
      */
     val columnCap: Int = 0,
+    /**
+     * The app's think time (ADR-047's budget; 0: none, the tests' and tournaments' players): a card play may
+     * take this many milliseconds, any other searched question a third. Past it no new playout starts, the
+     * running ones stop at their next step, and the answer is the best weighted mean over the columns every
+     * candidate finished in time (the book's own answer when none did). Answers then depend on the device's
+     * speed; under the budget they are the same as without one. Wave 4 track A: a minimal deadline for the
+     * app's wiring (`AiPlayers.forApp`); track F's hard deadline inside the search replaces the mechanism.
+     */
+    val budgetMs: Long = 0,
 ) {
     /** How many of the book's best by static score are searched at [kind] (beside its own answer). */
     fun topFor(kind: DecisionKind): Int = when (kind) {
@@ -199,7 +208,7 @@ data class HybridConfig(
             "K", "Ko", "top", "hz", "hzo", "leaf", "pol", "polE", "scope", "model", "tau", "prior", "risk",
             "dd", "tt", "kill", "prune", "hz1", "hz2", "hz3", "hz4", "hzo1", "hzo2", "hzo3", "hzo4", "topS", "topU",
             "rep", "repM", "repT", "lavg", "mm",
-            "td", "tw", "te", "tk", "tc", "lw", "lwo", "lwn", "cap",
+            "td", "tw", "te", "tk", "tc", "lw", "lwo", "lwn", "cap", "ms",
         )
 
         private fun byTurn(k: Map<String, Double>, prefix: String): Map<Int, HybridHorizon> =
@@ -245,6 +254,7 @@ data class HybridConfig(
                 lastWaveOtherHorizon = k["lwo"]?.toInt()?.let(HybridHorizon::of),
                 lastWaves = k["lwn"]?.toInt() ?: d.lastWaves,
                 columnCap = k["cap"]?.toInt() ?: d.columnCap,
+                budgetMs = k["ms"]?.toLong() ?: d.budgetMs,
             )
         }
     }
