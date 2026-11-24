@@ -197,6 +197,14 @@ data class HybridConfig(
      * answer when none did). Answers then depend on the device's speed; tests and tournaments leave it 0.
      */
     val budgetMs: Long = 0,
+    /**
+     * Wave 4 Track G: 1 plays a card as a matrix game ([CardEquilibrium], [CardEquilibriumSearch]): our cards
+     * (the search's candidates) against the enemy's joint card plays (the search's own enumerated [deals],
+     * merged over the samples), each cell the win chance the search found ([chanceLeaf]), solved exactly; a
+     * pure saddle point is played as it is, else a card sampled from the equilibrium. Needs [deals] and
+     * [chanceLeaf] (without them it does nothing). 0 (default): the search's best reply to the opponent model.
+     */
+    val equilibrium: Int = 0,
 ) {
     /** How many of the book's best by static score are searched at [kind] (beside its own answer). */
     fun topFor(kind: DecisionKind): Int = when (kind) {
@@ -227,7 +235,7 @@ data class HybridConfig(
             "K", "Ko", "top", "hz", "hzo", "leaf", "pol", "polE", "scope", "model", "tau", "prior", "risk",
             "dd", "tt", "kill", "prune", "hz1", "hz2", "hz3", "hz4", "hzo1", "hzo2", "hzo3", "hzo4", "topS", "topU",
             "rep", "repM", "repT", "lavg", "mm",
-            "td", "tw", "te", "tk", "tc", "lw", "lwo", "lwn", "cap", "lp", "hide", "deal", "dealP", "ms",
+            "td", "tw", "te", "tk", "tc", "lw", "lwo", "lwn", "cap", "lp", "hide", "deal", "dealP", "ms", "eq",
         )
 
         private fun byTurn(k: Map<String, Double>, prefix: String): Map<Int, HybridHorizon> =
@@ -278,6 +286,7 @@ data class HybridConfig(
                 deals = k["deal"]?.toInt() ?: d.deals,
                 dealMass = k["dealP"] ?: d.dealMass,
                 budgetMs = k["ms"]?.toLong() ?: d.budgetMs,
+                equilibrium = k["eq"]?.toInt() ?: d.equilibrium,
             )
         }
     }

@@ -212,6 +212,10 @@ class HybridAi(
         val weight: Double,
         val det: EngineSession = sample.det,
         val planned: Map<String, String> = emptyMap(),
+        /** Every enemy card this column deals (played facedown and [planned]): Track G's matrix column. */
+        val deal: Map<String, String> = emptyMap(),
+        /** The opponent model's probability of [deal] in its sample, times the sample's weight. */
+        val modelMass: Double = weight,
     )
 
     /** An enemy of [team] has not played its card this turn yet (its choice is still the playout's). */
@@ -367,6 +371,10 @@ class HybridAi(
                 }
             }
         }
+        // Wave 4 Track G (`eq`): the card play as a matrix game over the search's own deal columns.
+        if (dealing && config.equilibrium > 0 && config.chanceLeaf) {
+            equilibrium(d, candidates, columns, values, samples.sumOf { it.weight }.toDouble(), rng)?.let { return it }
+        }
         if (config.worstReply > 0.0) robust(values, columns)
         val bookAnswer = candidates[0]
         var best: Choice? = null
@@ -486,7 +494,7 @@ class HybridAi(
             } else {
                 s.det.viewWith { copy -> for ((h, c) in played) HiddenCards.play(copy, h, c) }
             }
-            Column(s, 0, s.weight * p / total, det, planned)
+            Column(s, 0, s.weight * p / total, det, planned, played + planned, s.weight * p)
         }
     }
 
@@ -628,6 +636,28 @@ class HybridAi(
             if (alpha >= beta) break
         }
         return if (best.isInfinite()) leaf(f, t.team, t.seen, t.leafEval) else best
+    }
+
+    /** Diagnostics only (Track G's probe): each card play's matrix and what was picked from it. */
+    internal var equilibriumProbe: ((Decision, CardEquilibrium.Matrix, CardEquilibrium.Pick) -> Unit)? = null
+
+    /**
+     * [HybridConfig.equilibrium]: the card play solved as a matrix game over the search's deal [columns]
+     * ([CardEquilibriumSearch]); null (no matrix: fewer than two cards) leaves the answer to the search's best.
+     */
+    private fun equilibrium(
+        d: Decision,
+        candidates: List<Choice>,
+        columns: List<Column>,
+        values: Array<DoubleArray>,
+        sampleWeight: Double,
+        rng: Random,
+    ): Choice? {
+        val cols = columns.map { CardEquilibriumSearch.DealColumn(it.deal, it.weight, it.modelMass, it.planned.size) }
+        val m = CardEquilibriumSearch.matrix(candidates, cols, values, d.options, sampleWeight) ?: return null
+        val pick = CardEquilibrium.pick(m, rng)
+        equilibriumProbe?.invoke(d, m, pick)
+        return m.rows[pick.row].takeIf { it in d.options }
     }
 
     /** Diagnostics only: one line per searched decision. */

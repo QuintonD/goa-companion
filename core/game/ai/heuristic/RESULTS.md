@@ -610,14 +610,22 @@ AI_NETS=$Q/nets AI_TEAMS='W2+net=avg(w1,w2,w3):W2' AI_SIZE=2 AI_FAMILY=mixed AI_
   AI_THREADS=3 $S/goa-run TeamTournamentTest
 ```
 
-## Wave 4 — Track F: search fixes (strength 10, 2026-11-24)
+## Wave 4 (2026-11-24)
+
+Three tracks on the audit's verified defects (`review-3/V2-code.md`), merged on `t3/wave4-integration`: F (search fixes),
+A (the apps' strength 10) and G (the card play as a matrix game, off by default). No tournaments were played for any of
+them; each was validated by construction and on fixed positions. Strength 10 (`AiPlayers.SEARCH_10`) is now W3 + NET6
+leaf + `6.cap` + F's defaults (`lp` chance leaf, `hide`, `deal=8` instead of `rep=4`); no budget in `forStrength` or the
+tournaments, the app's 2 s only through `AiPlayers.forApp`. The merge itself is the last subsection.
+
+### Wave 4 — Track F: search fixes (strength 10)
 
 Fixes of the verified defects in `review-3/V2-code.md` (audit branch `audit/wave3-ai`), validated by construction and on
 a fixed set of positions; **no games were played** for it. Base: 959e4013 (SEARCH_10 = W3 + NET6 leaf + `6.cap`), which
 compiled and passed `HybridSearchTest`, `NoPeekingTest` and `GameParityTest` as it was; nothing needed re-pinning
 (`GameParityTest` does not run `HybridAi`, V2 §6.4).
 
-### What changed
+#### What changed
 - **Leaf on the win-chance scale (V2 §2.4, knob `lp`, on by default).** `LeafChance` (new, `ai/LeafChance.kt`) is the one
   conversion: a finished game is 1 / 0 (a hair, 1e-6 a round, prefers sooner wins and later losses), a learned leaf is the
   mean of its nets' σ(logit) (`PositionEvaluator.chance`, `NetEvaluator` overrides it: an ensemble averages
@@ -649,7 +657,7 @@ compiled and passed `HybridSearchTest`, `NoPeekingTest` and `GameParityTest` as 
 - #12 (`6.cap` drops the model's tail, doubles the book reply's share): with deals there is no book-reply column; the cap
   keeps the heaviest deal columns at their exact weights. #15: the root book's card look is now also the budget's answer.
 
-### Validation (`HybridFixesTest`)
+#### Validation (`HybridFixesTest`)
 - Aggregation: the V2 §2.4 scenario (A: one lost column of four, three at 88%; B: four at 5%) — the coin-scale mean picks
   B, the chance mean gives A 0.66 and B 0.05; finished games bracket every position.
 - Hidden cards: on 60 Red-last-seat card plays of four h10 games, the next Blue seat's FULL reply and its model weights are
@@ -659,7 +667,7 @@ compiled and passed `HybridSearchTest`, `NoPeekingTest` and `GameParityTest` as 
 - Budget: 60 ms on a round-2 3v3 card play answers legally within 60 + 200 ms (one deadline cut recorded, no search
   fallback); the same answer unbudgeted took 2.9 s.
 
-### The decision set (`DecisionSetTest`, for every track)
+#### The decision set (`DecisionSetTest`, for every track)
 211 card plays with a choice (105 Red seats, 106 Blue): 156 from the 24 stored 2v2 games of the probe bench
 (`bench/probe-v1-2v2-1000-1011.jsonl.gz`, h10 vs s8, line-ups 1000–1011) and 55 from two 3v3 h10-vs-h10 games
 (`bench/decisions-v1-3v3.jsonl.gz`, 3v3 line-ups 1000–1001), kept by a hash of game and question. A fresh player per
@@ -688,12 +696,12 @@ Cost: Red seats now play up to 8 deal columns where they played 4 replies, so Re
 (+54% at Red, −5% at Blue, +17% overall). The worst case grew in 3v3 at Red (13.9 s against 6.9 s on one position, 8
 columns where it had 4); the budget is the bound for the app.
 
-### Not verified
+#### Not verified
 Strength in games (no games played: the integrator's measurement decides). HEval's chance mapping is `WinChance`'s fit,
 not one of its own. The opponent model itself (static softmax, τ 2, 15% uniform, independent per enemy) is unchanged and
 unmeasured as a predictor. JS timing of the budget. NoPeekingTest still covers 2v2 round 1 only (V2 §1.2).
 
-## Wave 4 — Track A: strength 10 as the apps ship it (2026-11-24)
+### Wave 4 — Track A: strength 10 as the apps ship it
 
 Fixes for review-3/V2-code.md §6 (#7, #8, #9, #11 app side, #13) and V1 §2. No tournaments; validated by tests.
 
@@ -707,12 +715,12 @@ Fixes for review-3/V2-code.md §6 (#7, #8, #9, #11 app side, #13) and V1 §2. No
   answer. Probe: peak 889 entries (2v2) and 1 321 (3v3) in a turn, so the cap never binds in play.
   `HybridAppTest` "one player for the game keeps its memo…": 24 searched answers equal to a fresh player per answer,
   the memo is non-empty when later answers of a turn start, more memo hits than fresh players.
-- **The app's think time (#11, app side).** `HybridConfig.budgetMs` (knob `ms`) and a minimal deadline in `HybridAi`:
-  past it no playout starts, running playouts stop at their next step (they now poll; the tree too), and the answer
-  is the best weighted mean over the columns every candidate finished in time; none finished, the book's own answer
-  (computed first, never cut). `AiPlayers.forApp(strength, runner, budgetMs = APP_BUDGET_MS = 2000)` passes it (card
-  plays; other searched questions a third, ADR-047's rule); `forStrength`/`deterministic` have none. **For the merge:
-  track F's hard deadline replaces this mechanism; keep the `forApp` wiring.** **Conflict to settle:** ADR-085's
+- **The app's think time (#11, app side).** Track A built a minimal deadline of its own (`HybridConfig.budgetMs`, knob
+  `ms`, card plays the budget and other searched questions a third); **at the merge Track F's deadline replaced it**
+  (the same knob, `stopOf`: the book's answer first, the stop polled in every playout step and tree node, only columns
+  every candidate finished; one budget for every searched answer, as Track A's own times recommend below).
+  `AiPlayers.forApp(strength, runner, budgetMs = APP_BUDGET_MS = 2000)` passes it through `HybridAi(…, budgetMs)`;
+  `forStrength`/`deterministic` have none. The numbers in this section are Track A's deadline's. **Conflict to settle:** ADR-085's
   addendum records the owner's "no wall clock, regardless of the device"; the brief asked for ADR-047's 2 s. With a
   budget, answers cut short depend on the device (phone ≠ browser then). `HybridAppTest`: an hour's budget gives the
   unbudgeted answers; a 60 ms budget cut 6 of 6 card plays with legal answers and a worst overrun of 14 ms.
@@ -745,3 +753,109 @@ Fixes for review-3/V2-code.md §6 (#7, #8, #9, #11 app side, #13) and V1 §2. No
   order dependence (§1.2.3) and the human teammate's *hand* (read as for a computer teammate, §1.2.4).
 - **Not verified:** anything on a device (phone factor, browser timing beyond Node), strength effects of the budget
   in games, memory on the phone (the per-entry size is an estimate; JS entries are larger).
+
+### Wave 4 — Track G: the card play as a matrix game (`eq`)
+
+Question (review-3/R1 §7.1, V2 §3): strength 10 plays the best reply to one predicted enemy card (the book's
+softmax). With the enemy hands known (ADR-062) the only unknown before the reveal is the enemy's facedown card,
+so each card play is a simultaneous zero-sum matrix game. Does solving it instead of best-replying matter?
+
+**What was built** (all off by default; `eq=1` turns it on):
+- `ai/hybrid/CardEquilibrium.kt`: an exact solver (simplex, Bland's rule, deterministic, plain Kotlin, JVM and JS),
+  the joint enemy columns, the win-chance conversion, the pick.
+- `ai/hybrid/CardEquilibriumSearch.kt`: the matrix. Rows: our cards, the search's own candidates (all legal cards).
+  Columns: the opponent model's likeliest joint card plays of the enemy heroes whose card is unknown (per hero the
+  book's softmax over its hand, computed with every card back in hand; independent heroes; top `cap` joint plays,
+  else 9). An enemy that already played gets its card dealt one-hot by the determinizer on a shared seed; an enemy
+  still to play gets it in the playout (`HybridAi.playout`'s new `forced`). Teammates still to play are the book,
+  as in the search: one AI plays the team, and the teammate answers after us knowing our card (a sequential team
+  choice, so no iterated best response). Cell: one book playout to the search's horizon, valued as our win chance
+  (σ(value / mean coin scale of the leaf's nets); a finished game 1/0; Track G's own helper, to be replaced by
+  Track F's when merged).
+- `HybridAi`: a knob-gated hook (`eq`) before the card-play search, plus `forced` in `playout` and a probe callback.
+  A matrix that cannot be built (no card options, fewer than two rows) falls through to the normal search.
+- The pick: a pure saddle point is played as it is (the equilibrium is pure; among several saddle rows the model's
+  best). Otherwise a card sampled from the equilibrium with the search's seeded RNG, shares under 10% dropped.
+
+**Validation by construction.** `CardEquilibriumTest` (commonTest, JVM + JS): matching pennies, rock-paper-scissors,
+a saddle game, dominated rows and columns, a 1/21 sliver dropped, determinism under a fixed seed, 300 random games
+(a third on a coarse grid for ties and degenerate vertices) checked against the LP optimality conditions, joint
+columns, win chance. `CardEquilibriumSearchTest` (JVM): on real card plays the `eq=1` answer is legal, comes from a
+built matrix, and is the same on 1 and 3 threads and on a fresh instance; and a Blue card play builds the identical
+matrix and plays the identical card whichever card Red really put down (no peeking).
+
+**Offline numbers (Step 1)**: `CardEquilibriumProbeTest`, h10 vs h10 games on line-ups 1000–1001 (2v2, 120 card
+plays) and 1000 (3v3, 60), both colours, every card play with two or more cards. Strength 10 as it ships and strength
+10 with `eq=1` answered each (2 threads, timed); the games went on with the book's answers. Numbers from
+`eq_report.py` / `eq_extra.py` (Track G scratch) on the `EQ {…}` lines. Payoffs are our win chance.
+
+| | all (180) | 2v2 (120) | 3v3 (60) |
+|---|---|---|---|
+| matrix size (rows × columns, mean) | 3.6 × 7.8 | 3.6 × 7.8 | 3.7 × 7.8 |
+| model probability the columns cover | 0.90 | 0.95 | 0.78 |
+| matrix's model best reply = strength 10's card | 92.2% | | |
+| pure saddle point | 72.8% | 71.7% | 75.0% |
+| equilibrium's likeliest card ≠ strength 10's card | 28.9% | 27.5% | 31.7% |
+| eq=1's actual answer ≠ strength 10's | 52 of 180 (28.9%) | | |
+| equilibrium entropy, bits (mean; exact / as played) | 0.21 / 0.19 | 0.22 / 0.21 | 0.18 / 0.16 |
+| plays where eq mixes (played entropy > 0.5 bit) | 22.2% | | |
+| strength 10's exploitability: value − its card's worst column (mean / p90 / max) | 0.0054 / 0.014 / 0.134 | 0.0052 / 0.013 / 0.134 | 0.0056 / 0.015 / 0.051 |
+| plays where it exceeds 1 point | 14.4% | 14.2% | 15.0% |
+| eq's cost if the model is right: model value of strength 10's card − of eq's mix (mean) | 0.0039 | 0.0028 | 0.0061 |
+| dropping shares under 10%: guarantee lost (mean / max) | 0.0001 / 0.005 | | |
+| ms per card play, strength 10 (mean / p95 / max) | 1059 / 4019 / 6979 | 815 / 3237 / 6979 | 1545 / 5231 / 6316 |
+| ms per card play, eq=1 (mean / p95 / max) | 1382 / 4511 / 6484 | 1040 / 3509 / 5615 | 2065 / 5691 / 6484 |
+
+Context: the best and the worst card differ by 4.8 points of model value on average (median 3.4), the best and the
+second by 2.3 (median 1.1); the enemy's card moves a row by 9.2 points on average. Split by matrix type: in the 131
+saddle matrices the model's best reply is exploitable by 0.26 points on average (eq costs 0.27 against the model);
+in the 49 mixed ones by 1.15 points (eq costs 0.86). The exploitability is concentrated: the 9 worst plays (5%) hold
+53% of it, the top ones late in the game (round 4; 13.4 points at the worst). By seat: enemies still to play
+(92 plays) 69.6% saddle, exploitability 0.59 points; enemies already down (88) 76.1%, 0.48 points.
+
+**Reading.** The book's best reply is nearly unexploitable on these matrices: half a point of win chance a card play
+on average, and the equilibrium gives up about as much (0.4 points) whenever the book's model is right. The games are
+mostly pure (73% saddle, 0.2 bits). So on positions, equilibrium play neither gains nor loses measurably; it changes the
+card in 29% of plays, mostly between near-equal cards. Exploitability here is a lower bound (the enemy's best reply
+is restricted to the model's top columns, 90% of its mass in 2v2, 78% in 3v3) and is judged by the same book playouts
+and leaf that make the matrix.
+
+**Time.** eq=1 is within the shipped search's per-card-play envelope: max 6.5 s vs 7.0 s, p95 4.5 s vs 4.0 s, mean
++0.3 s (2 threads, oldboi, shared). It is slower where the enemy still has to play (9 columns vs the search's 4
+replies: mean 1.42 s vs 0.87 s) and no slower where the enemy's cards are down.
+
+**Recommendation: do not put `eq=1` in the shipped candidate for the 65%-vs-old-s10 measurement.** The offline
+stakes (±0.5 point per card play, either sign depending on how well the book's model predicts old s10) are below what
+one decisive measurement can resolve, and against a deterministic opponent the best reply is the right side of that
+trade (R1 §1.6). Keep it as a knob for two uses: unpredictability against people (strength 10's card play is a
+deterministic best reply a player can learn, V2 §3; eq mixes in 22% of plays at ~0.4 points' cost against the model),
+and as the measured reference if the late-game plays where the best reply is exploitable by 5–13 points are taken up
+(a restriction of eq to those plays was not built: it would be a knob choice made on 9 positions).
+
+**Not verified:** any game result with `eq=1` (no games were run beyond the probe's book games); whether the book's
+softmax is a fair stand-in for old s10's or a human's card play; the JS run of `CardEquilibriumTest` beyond
+`:core:game:allTests` (see the track report). Side effect by construction: for card plays, `eq=1` already avoids V2
+§2.4 (logit/±1000 mean: it averages win chances) and §1.3 (the enemy's model is computed with our card in hand, and
+its columns are enumerated, not drawn), so it is also a cross-check for Track F's fixes of those.
+
+### Wave 4 — integration (t3/wave4-integration)
+
+Merged in order F (e8a69018), A (521eeece), G (a8035692) onto `feature/ai-wave4`.
+
+- **Deadline (F × A).** Both added the knob `ms`. F's mechanism kept (`HybridAi.stopOf`, book answer first, the stop
+  polled in playouts and trees, `deadline` in `HybridAi.fallbacks`); A's own deadline (`late`, `pastDeadline`, `cut`)
+  dropped. Kept from A: `forApp` (now `HybridAi(seed, knobs, runner, budgetMs)`), the kept-player hosts (web worker,
+  phone), `MEMO_CAP` 100 000 with `remember` (a full memo stops growing, no mid-turn drop), `memoSize`, and its tests,
+  re-pointed at `fallbacks["deadline"]`. F's `forStrength(…, budgetMs)` parameter removed: the budget is `forApp`'s
+  alone. One budget for every searched answer (F's), not A's third for non-card questions. `HybridAi.stats` stays four
+  long: A's fifth entry would have overrun `HeuristicTournamentTest`'s four-slot sum.
+- **Equilibrium on F's columns (G × F).** G built its own matrix (one determinization, the model's top joint plays,
+  one playout a cell, `forced` cards, its own σ(value / coin scale) conversion). F's deal columns are the same thing
+  with more samples, so the port takes the matrix from the search's own values: a column per distinct joint deal
+  (`Column.deal`, played facedown + planned), its cell the weighted mean over the samples that dealt it, its weight the
+  summed column weight (`CardEquilibriumSearch.matrix`); the cells are F's chance leaf (`LeafChance`), so G's
+  conversion (`CardEquilibrium.winChance`), its column enumeration (`jointColumns`, F has `topDeals`) and the playout's
+  `forced` (F has `planned`) are deleted. The model-weighted row mean is then exactly the search's own score of that
+  card, so the matrix's best reply is SEARCH_10's card (unless `risk`/`prior`/`mm` are set) and `eq=1` costs nothing
+  over the search. `eq` needs `deal` > 0 and `lp` (otherwise it does nothing); default 0. G's Step 1 numbers above were
+  measured with G's own builder on the pre-F base and are not re-measured with the ported one.
