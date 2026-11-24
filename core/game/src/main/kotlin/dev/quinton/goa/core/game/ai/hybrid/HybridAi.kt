@@ -295,6 +295,7 @@ class HybridAi(
         var best: Choice? = null
         var bestV = Double.NEGATIVE_INFINITY
         val means = onSearched?.let { DoubleArray(candidates.size) { Double.NaN } }
+        val scoredHere = if (scored != null) LinkedHashMap<Choice, Double>() else null
         for ((j, c) in candidates.withIndex()) {
             var wSum = 0.0
             var sum = 0.0
@@ -325,12 +326,14 @@ class HybridAi(
                 }
                 if (pw > 0) score = (1 - config.prior) * score + config.prior * ps / pw
             }
+            scoredHere?.put(c, score)
             // The book's own answer is first and keeps a tie.
             if (score > bestV) {
                 bestV = score
                 best = c
             }
         }
+        scoredHere?.let { scored?.invoke(d, it, g) }
         trace?.invoke(
             "${d.seat} ${d.kind} samples=${samples.size}/$n " + candidates.indices.joinToString(" ") { j ->
                 val v = values[j].filter { !it.isNaN() }
@@ -476,6 +479,9 @@ class HybridAi(
 
     /** Diagnostics only: one line per searched decision. */
     var trace: ((String) -> Unit)? = null
+
+    /** Diagnostics only (tests): each searched decision's candidates with their final scores, and its columns. */
+    internal var scored: ((Decision, Map<Choice, Double>, Int) -> Unit)? = null
 
     /**
      * Measurement only (Wave 3 Track E2, search-value targets for the leaf nets): after each searched
