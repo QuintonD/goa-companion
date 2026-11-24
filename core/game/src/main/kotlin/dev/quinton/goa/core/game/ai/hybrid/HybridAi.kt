@@ -174,6 +174,11 @@ class HybridAi(
         if (memoOn) resetMemo(es)
         val snapshot = if (memoOn) memo else null
         val view = MemoView(team, (seenByUs.hashCode() * 31 + seenByThem.hashCode()), horizon.ordinal)
+        // Wave 4 Track G (`eq`): the card play as a matrix game; null (a card play it cannot build) searches on.
+        if (isPlay && config.equilibrium > 0) {
+            equilibrium(es, d, rng, base, horizon, seenOf, leafEval, view, cancelled)?.let { return it }
+            if (cancelled()) return null
+        }
 
         val samples = samples(es, d, base, n, seenByUs, seenOf, cancelled) ?: return null
         if (samples.isEmpty()) return null
@@ -474,6 +479,56 @@ class HybridAi(
         return if (best.isInfinite()) leaf(f, t.team, t.seen, t.leafEval) else best
     }
 
+    private val cardGame = CardEquilibriumSearch(policy, runner)
+
+    /** Diagnostics only (Track G's probe): each card play's matrix and what was picked from it. */
+    internal var equilibriumProbe: ((Decision, CardEquilibrium.Matrix, CardEquilibrium.Pick) -> Unit)? = null
+
+    /** [HybridConfig.equilibrium]: the card play solved as a matrix game ([CardEquilibriumSearch]). */
+    @Suppress("LongParameterList")
+    private fun equilibrium(
+        es: EngineSession,
+        d: Decision,
+        rng: Random,
+        base: Long,
+        horizon: HybridHorizon,
+        seenOf: (Team) -> Map<String, Set<String>>,
+        leafEval: PositionEvaluator?,
+        view: MemoView,
+        cancelled: () -> Boolean,
+    ): Choice? {
+        val team = d.team
+        val seenByUs = seenOf(team)
+        val humans = es.setup.seats.filter {
+            it.team == team && it.controller == Controller.Human && it.heroId != d.seat
+        }.map { it.heroId }.toSet()
+        // The leaf's coin scale (a learned leaf is the mean of its nets' logit × coin scale); null: hand evaluation.
+        val scale = when {
+            leafOverride != null -> null
+            config.leaf == HybridLeaf.NET -> LearnedNet.ENSEMBLE.map { it.coinScale }.average()
+            config.leaf == HybridLeaf.NET6 -> LearnedNet.ENSEMBLE_6.map { it.coinScale }.average()
+            else -> null
+        }
+        val perSide = es.state.heroes.count { it.team == team }
+        val m = cardGame.matrix(
+            es,
+            d,
+            config,
+            HeuristicAi.mix(base, 0L),
+            seenOf,
+            humans,
+            cancelled,
+            candidates = { det, dp -> candidates(es, d, dp, det, seenByUs, cancelled) },
+            valueOf = { f, salt, forced ->
+                playout(f, team, horizon, seenOf, salt, null, view, null, leafEval, seenByUs, forced = forced)
+            },
+            chance = { CardEquilibrium.winChance(it, scale, perSide) },
+        ) ?: return null
+        val pick = CardEquilibrium.pick(m, rng)
+        equilibriumProbe?.invoke(d, m, pick)
+        return m.rows[pick.row].takeIf { it in d.options }
+    }
+
     /** Diagnostics only: one line per searched decision. */
     var trace: ((String) -> Unit)? = null
 
@@ -614,6 +669,8 @@ class HybridAi(
         leafEval: PositionEvaluator?,
         seen: Map<String, Set<String>>,
         reply: Int = 0,
+        /** Track G's matrix column: enemy hero → the card it plays this turn (instead of the book's or a draw). */
+        forced: Map<String, Choice>? = null,
     ): Double {
         playouts.incrementAndFetch()
         val replyRng = if (reply > 0) Random(HeuristicAi.mix(salt, REPLY_SALT + reply)) else null
@@ -684,7 +741,9 @@ class HybridAi(
                 null
             }
             val enemyCard = turnsEnded == 0 && d.team != rootTeam && d.kind == DecisionKind.PLAY_CARD
-            val drawn = if (replyRng != null && enemyCard) {
+            val drawn = if (forced != null && enemyCard) {
+                forced[d.seat]?.takeIf { it in d.options }
+            } else if (replyRng != null && enemyCard) {
                 drawReply(f, d, seenOf, replyRng)
             } else {
                 null

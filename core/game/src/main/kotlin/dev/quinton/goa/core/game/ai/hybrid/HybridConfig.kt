@@ -169,6 +169,13 @@ data class HybridConfig(
      * card plays (many distinct deals early in a round, six seats) and leaves the usual ones alone.
      */
     val columnCap: Int = 0,
+    /**
+     * Wave 4 Track G: 1 plays a card as a matrix game ([CardEquilibrium], [CardEquilibriumSearch]): our cards
+     * against the enemy's likeliest joint card plays (at most [columnCap], else 9), solved exactly, a pure
+     * saddle point played as it is, else a card sampled from the equilibrium. 0 (default): the search's best
+     * reply to the opponent model.
+     */
+    val equilibrium: Int = 0,
 ) {
     /** How many of the book's best by static score are searched at [kind] (beside its own answer). */
     fun topFor(kind: DecisionKind): Int = when (kind) {
@@ -199,7 +206,7 @@ data class HybridConfig(
             "K", "Ko", "top", "hz", "hzo", "leaf", "pol", "polE", "scope", "model", "tau", "prior", "risk",
             "dd", "tt", "kill", "prune", "hz1", "hz2", "hz3", "hz4", "hzo1", "hzo2", "hzo3", "hzo4", "topS", "topU",
             "rep", "repM", "repT", "lavg", "mm",
-            "td", "tw", "te", "tk", "tc", "lw", "lwo", "lwn", "cap",
+            "td", "tw", "te", "tk", "tc", "lw", "lwo", "lwn", "cap", "eq",
         )
 
         private fun byTurn(k: Map<String, Double>, prefix: String): Map<Int, HybridHorizon> =
@@ -245,6 +252,7 @@ data class HybridConfig(
                 lastWaveOtherHorizon = k["lwo"]?.toInt()?.let(HybridHorizon::of),
                 lastWaves = k["lwn"]?.toInt() ?: d.lastWaves,
                 columnCap = k["cap"]?.toInt() ?: d.columnCap,
+                equilibrium = k["eq"]?.toInt() ?: d.equilibrium,
             )
         }
     }
