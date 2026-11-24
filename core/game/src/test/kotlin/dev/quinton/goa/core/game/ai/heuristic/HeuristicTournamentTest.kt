@@ -1,5 +1,6 @@
 package dev.quinton.goa.core.game.ai.heuristic
 
+import com.google.common.truth.Truth.assertThat
 import dev.quinton.goa.core.game.AiPlayer
 import dev.quinton.goa.core.game.Choice
 import dev.quinton.goa.core.game.Decision
@@ -19,15 +20,28 @@ import org.junit.Test
  * against the old search (`sN`) or another book. `AI_H_GAMES` is the number of line-ups
  * (each is mirrored, so games are twice that; default 24). `AI_FORMAT` and `AI_THREADS` as elsewhere.
  * Prints the win rate, the Wilson interval and the mean, p95 and longest time to answer.
- * `AI_H_FIRST` is the first mixed line-up index, so a final table can use a held-out seed.
+ * `AI_H_FIRST` is the first mixed line-up index, so a final table can use a held-out seed. Line-ups
+ * [SEALED_FROM] and up are sealed for the integrator's final table: refused unless `AI_UNSEAL=1`.
  * `h10/action.move/s10` is h10 with those categories of question answered by s10 ([HybridAi]).
  */
 class HeuristicTournamentTest {
+    @Test
+    fun `the sealed line-ups are refused without the final table's override`() {
+        checkUnsealed(0, 24, null)
+        checkUnsealed(4000, 1000, null)
+        for ((first, n) in listOf(4990 to 24, 5000 to 1, 6000 to 8)) {
+            assertThat(runCatching { checkUnsealed(first, n, null) }.isFailure).isTrue()
+            assertThat(runCatching { checkUnsealed(first, n, "0") }.isFailure).isTrue()
+            checkUnsealed(first, n, "1")
+        }
+    }
+
     @Test
     fun `mirrored games`() {
         val spec = System.getenv("AI_H_TOURNAMENT") ?: return
         val lineups = System.getenv("AI_H_GAMES")?.toIntOrNull() ?: 24
         val first = System.getenv("AI_H_FIRST")?.toIntOrNull() ?: 0
+        checkUnsealed(first, lineups, System.getenv("AI_UNSEAL"))
         val threads = System.getenv("AI_THREADS")?.toIntOrNull() ?: 2
         val format = AiHarness.Format.parse(System.getenv("AI_FORMAT"))
         // AI_SPRT=0.55: the pentanomial SPRT (p0 0.5, α β 0.05) on batches of AI_SPRT_BATCH line-ups,
@@ -152,6 +166,18 @@ class HeuristicTournamentTest {
                 answersHash.accumulateAndGet(decision.id * 31 + choice.hashCode()) { x, y -> x + y * 0x9E3779B1L }
             }
             return choice
+        }
+    }
+
+    companion object {
+        /** The first sealed line-up (the integrator's final table; TeamTournamentTest and AiPositionBenchTest too). */
+        const val SEALED_FROM: Int = 5000
+
+        /** Refuses a run that reaches the sealed line-ups unless [unseal] is "1" (`AI_UNSEAL=1`, the final table). */
+        fun checkUnsealed(first: Int, lineups: Int, unseal: String?) {
+            require(first + lineups <= SEALED_FROM || unseal == "1") {
+                "line-ups $SEALED_FROM+ are sealed for the final table (AI_UNSEAL=1 for that table only)"
+            }
         }
     }
 }

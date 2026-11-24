@@ -133,6 +133,9 @@ class HybridAi(
     /** Diagnostics: playouts started, those the memo answered, samples drawn, distinct positions among them. */
     val stats: List<Long> get() = listOf(playouts.load(), memoHits.load(), drawn.load(), distinct.load())
 
+    /** Positions the memo holds now (tests: it survives from one answer to the next within a turn). */
+    internal val memoSize: Int get() = memo.size
+
     /**
      * Silent fallbacks so far, by kind (review-3 V2 §6.7; [BookPolicy.Fallbacks]), and `deadline`: searched answers
      * the budget ([HybridConfig.budgetMs]) cut short. Zero everywhere in a healthy run without a budget.
@@ -355,12 +358,12 @@ class HybridAi(
                     val path = found[j][i] ?: continue
                     val v = values[j][i]
                     if (v.isNaN() || !done[j][i]) continue
-                    for (k in path) memo[k] = v
+                    for (k in path) remember(k, v)
                 }
             }
             for (j in candidates.indices) {
                 for (i in 0 until g) {
-                    for ((path, v) in treeFound[j][i] ?: continue) for (k in path) memo[k] = v
+                    for ((path, v) in treeFound[j][i] ?: continue) for (k in path) remember(k, v)
                 }
             }
         }
@@ -962,14 +965,23 @@ class HybridAi(
         return e
     }
 
-    /** The memo holds one real turn (a playout never outlives its turn but for the horizons that skip the memo). */
+    /**
+     * The memo holds one real turn (a playout never outlives its turn but for the horizons that skip the memo).
+     * A player is kept for a whole game (the app keeps one per team and strength, as the tournaments do), so the
+     * memo carries from one answer to the next within the turn; a new turn or another engine starts it empty.
+     */
     private fun resetMemo(es: EngineSession) {
         val now = es.engineData to turnIndex(es.state)
         val was = memoTurn
-        if (was == null || was.first !== now.first || was.second != now.second || memo.size > MEMO_CAP) {
+        if (was == null || was.first !== now.first || was.second != now.second) {
             memo = HashMap()
             memoTurn = now
         }
+    }
+
+    /** Remembers a playout value; a full memo ([MEMO_CAP], a phone's memory) keeps what it has for the turn. */
+    private fun remember(k: MemoKey, v: Double) {
+        if (memo.size < MEMO_CAP || k in memo) memo[k] = v
     }
 
     /** A position: the state at its step's start (as the puzzle solver hashes it) and the answers since. */
@@ -1000,7 +1012,11 @@ class HybridAi(
         /** Card pruning keeps at least this many cards (and the book's own). */
         private const val PRUNE_KEEP = 3
 
-        private const val MEMO_CAP = 400_000
+        /**
+         * The memo's size bound. Each entry is about 150 bytes on a 64-bit JVM (the key, its position key, the
+         * boxed value, the hash map's node and slot), so this is about 15 MB at most per player.
+         */
+        internal const val MEMO_CAP = 100_000
 
         private fun prefixed(knobs: Map<String, Double>, prefix: String): Map<String, Double> =
             knobs.filterKeys { it.startsWith(prefix) }.mapKeys { it.key.removePrefix(prefix) }

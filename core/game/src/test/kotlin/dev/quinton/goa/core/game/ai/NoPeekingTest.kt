@@ -1,9 +1,16 @@
 package dev.quinton.goa.core.game.ai
 
 import com.google.common.truth.Truth.assertThat
+import dev.quinton.goa.core.game.ActionType
 import dev.quinton.goa.core.game.AiLevel
 import dev.quinton.goa.core.game.AiStrength
+import dev.quinton.goa.core.game.AnswerResult
 import dev.quinton.goa.core.game.Choice
+import dev.quinton.goa.core.game.Controller
+import dev.quinton.goa.core.game.Decision
+import dev.quinton.goa.core.game.DecisionKind
+import dev.quinton.goa.core.game.Driver
+import dev.quinton.goa.core.game.GameSetup
 import dev.quinton.goa.core.game.TestData
 import dev.quinton.goa.core.game.ai.hybrid.HybridPlayers
 import dev.quinton.goa.core.game.engine.Determinizer
@@ -68,6 +75,112 @@ class NoPeekingTest {
             val sb = AiCoach(TestData.engine, seed, UNHURRIED).suggest(null, b, db)
             assertThat(sb).isEqualTo(sa)
         }
+    }
+
+    /**
+     * The shipped players only (strengths 1–10 as the apps seat them, without the app's think time, so the
+     * answers do not depend on this machine's speed): the cases the audit found uncovered (review-3/V2-code.md
+     * §1.2: six heroes and the 3v3 knobs, a human teammate, tokens placed by the engine's own flow this turn).
+     */
+    private fun assertShippedSameChoice(a: EngineSession, b: EngineSession) {
+        val da = a.pending!!
+        val db = b.pending!!
+        assertThat(db.kind).isEqualTo(da.kind)
+        assertThat(db.seat).isEqualTo(da.seat)
+        assertThat(db.options).isEqualTo(da.options)
+        assertThat(b.view(db.seat)).isEqualTo(a.view(da.seat))
+        for (strength in everyStrength) {
+            for (seed in 1L..2L) {
+                val ca = AiPlayers.deterministic(strength, seed).choose(a, da)
+                val cb = AiPlayers.deterministic(strength, seed).choose(b, db)
+                assertThat(cb).isEqualTo(ca)
+            }
+        }
+    }
+
+    /** A game from its first question; [answers] picks each card play's option until [until] is asked. */
+    private fun played(setup: GameSetup, until: (Decision) -> Boolean, answers: (Decision) -> Int): EngineSession {
+        val s = TestData.engine.newGame(setup) as EngineSession
+        while (true) {
+            val d = s.pending!!
+            if (until(d)) return s
+            check(s.answer(d.id, d.options[answers(d)]) is AnswerResult.Accepted)
+        }
+    }
+
+    /** Six heroes (the 3v3 knobs, `6.cap`): Red's three facedown cards differ, Blue's first seat decides. */
+    @Test
+    fun `in 3v3 the enemies' facedown cards do not change the choice`() {
+        val (red, blue) = AiHarness.mixedLineups(1, seed = 606L, size = 3)[0]
+        val setup = AiHarness.setup(red, blue, AiLevel.EXPERT, AiLevel.EXPERT, Team.RED)
+        val first = { d: Decision -> d.team == Team.BLUE && d.kind == DecisionKind.PLAY_CARD }
+        val a = played(setup, first) { 0 }
+        val b = played(setup, first) { d -> if (d.kind == DecisionKind.PLAY_CARD) d.options.size - 1 else 0 }
+        assertThat(a.state.heroes).hasSize(6)
+        fun redPlays(s: EngineSession) =
+            s.state.heroes.filter { it.team == Team.RED }.map { h -> h.cards.single { it.zone == Zone.PLAYED }.id }
+        assertThat(redPlays(a)).isNotEqualTo(redPlays(b))
+        assertShippedSameChoice(a, b)
+    }
+
+    /**
+     * A human teammate's facedown card (p.4: teammates do not show each other their cards): Blue's first seat
+     * is a person who played one card or another, its computer teammate decides.
+     */
+    @Test
+    fun `a human teammate's facedown card does not change the choice`() {
+        val (red, blue) = AiHarness.mixedLineups(1, seed = 707L)[0]
+        val base = AiHarness.setup(red, blue, AiLevel.EXPERT, AiLevel.EXPERT, Team.RED)
+        val person = blue[0]
+        val setup = base.copy(
+            seats = base.seats.map { if (it.heroId == person) it.copy(controller = Controller.Human) else it },
+        )
+        val computerTeammate = { d: Decision -> d.team == Team.BLUE && d.seat != person }
+        val a = played(setup, computerTeammate) { 0 }
+        val b = played(setup, computerTeammate) { d -> if (d.seat == person) d.options.size - 1 else 0 }
+        assertThat(a.state.hero(person)!!.cards.single { it.zone == Zone.PLAYED }.id)
+            .isNotEqualTo(b.state.hero(person)!!.cards.single { it.zone == Zone.PLAYED }.id)
+        assertShippedSameChoice(a, b)
+    }
+
+    /**
+     * Mines Min places this turn through the engine's own flow (not built into the position): the blast on one
+     * space or the other. The next question that is not Min's own comes in a later step, so the determinizer
+     * shuffles them from its step-start state (review-3/V2-code.md §1.2 item 2: a token placed in the current
+     * step would be replayed with its real kind; no card asks another seat a question after placing one).
+     */
+    @Test
+    fun `mines placed this turn do not change an enemy's choice`() {
+        fun build(blast: Hex): EngineSession {
+            val d = Driver(
+                position(TestData.engine, TestData.FOREST) {
+                    clearMinions()
+                    hero("min", Team.RED, Hex(0, -2)) { played("min-blue-1") }
+                    hero("xargatha", Team.RED, Hex(-1, -1)) { played("xargatha-green-1") }
+                    hero("arien", Team.BLUE, Hex(3, -2)) { played("arien-blue-1") }
+                    hero("brogan", Team.BLUE, Hex(3, -3)) { played("brogan-blue-1") }
+                    phase = PositionPhase.Resolving(next = "min")
+                },
+            )
+            d.action("min", ActionType.PRIMARY)
+            d.space(2, -2)
+            d.space(2, -3)
+            d.space(blast)
+            // Red's later questions get the same answers in both games; stop at Blue's first real choice.
+            while (true) {
+                val q = d.s.pending!!
+                if (q.team == Team.BLUE && q.options.size > 1) break
+                check(d.s.answer(q.id, q.options[0]) is AnswerResult.Accepted)
+            }
+            // The mines are in the step-start state the determinizer samples from (shuffled there).
+            assertThat(d.s.checkpointState.pieces.count { it.faceDown && it.owner == "min" }).isEqualTo(2)
+            return d.s
+        }
+        val a = build(Hex(2, -2))
+        val b = build(Hex(2, -3))
+        assertThat(a.state.pieces.single { it.kind == MinHero.BLAST }.at)
+            .isNotEqualTo(b.state.pieces.single { it.kind == MinHero.BLAST }.at)
+        assertShippedSameChoice(a, b)
     }
 
     private companion object {

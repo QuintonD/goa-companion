@@ -61,8 +61,10 @@ internal object PlayEngineModule {
         runBlocking { GameEngine(catalog.catalog.first(), maps.maps.first()) }
 
     /**
-     * The ten strengths of core/game/ai (AI.md); one player per request, seeded per strength as on the
-     * web. The samples of one answer run on a few background threads ([AiSampleThreads], AI.md "Budgets").
+     * The ten strengths of core/game/ai (AI.md); a new player per request, seeded per strength as on the
+     * web, with strength 10's think time ([GameAiPlayers.APP_BUDGET_MS]). The game screen keeps one per team
+     * and strength for the whole game (strength 10's memo lives in it). The samples of one answer run on a
+     * few background threads ([AiSampleThreads], AI.md "Budgets").
      */
     @Provides
     @Singleton

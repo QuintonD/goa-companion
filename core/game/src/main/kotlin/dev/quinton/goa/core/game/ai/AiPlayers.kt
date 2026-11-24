@@ -30,8 +30,9 @@ import kotlin.random.Random
  * those in a game the person plays.
  *
  * Deterministic for a seed (answers depend on the seed, the decision id and the seat). Neither the book
- * nor the strength-10 search has a wall-clock cap (the same strength on every device); the search stops
- * when its answer is cancelled. The old search player's [searchForStrength] still has one.
+ * nor [forStrength]'s strength-10 search has a wall-clock cap; the search stops when its answer is cancelled.
+ * The apps' [forApp] gives strength 10 the think time [APP_BUDGET_MS]. The old search player's
+ * [searchForStrength] has its own cap.
  */
 object AiPlayers {
     /** The seed the apps give the computer players: the phone's (core/data) and the web worker's (ADR-043). */
@@ -41,21 +42,38 @@ object AiPlayers {
      * The computer player the apps seat at [strength] (ADR-039, ADR-085): [forStrength] seeded per
      * strength, so a strength is the same player on the phone and in the browser. [runner] runs the
      * strength-10 search's playouts (the same answers on any runner); the book below it does not sample.
+     *
+     * Strength 10 thinks at most [budgetMs] a searched answer (card play or any other; the search's own
+     * deadline, [HybridConfig][dev.quinton.goa.core.game.ai.hybrid.HybridConfig.budgetMs], Wave 4 Track F:
+     * ADR-047's 2 s by default). Answers that finish within it are the same on every device and runner; one
+     * cut short depends on the device's speed. The player keeps a memo for the turn: the apps keep one player per team and strength
+     * for the whole game (as the tournaments measured it), never one per answer, and ask it one question at
+     * a time.
      */
-    fun forApp(strength: Int, runner: SampleRunner = SampleRunner.SEQUENTIAL): AiPlayer =
-        forStrength(strength, APP_SEED + strength, runner)
+    fun forApp(
+        strength: Int,
+        runner: SampleRunner = SampleRunner.SEQUENTIAL,
+        budgetMs: Long = APP_BUDGET_MS,
+    ): AiPlayer {
+        val s = AiStrength.coerce(strength)
+        if (s < SEARCH_FROM || budgetMs <= 0) return forStrength(s, APP_SEED + s, runner)
+        return HybridAi(APP_SEED + s, searchKnobs(), runner, budgetMs)
+    }
 
     /**
-     * The production player; [runner] runs strength 10's playouts. [budgetMs]: strength 10's wall-clock budget
-     * per searched answer (null: none, the same answers on every device;
-     * [dev.quinton.goa.core.game.ai.hybrid.HybridConfig.budgetMs]).
+     * The app's think time for strength 10's searched answers, milliseconds (the owner's ceiling, ADR-047:
+     * about 2 s a card play on the phone; the other searched questions get the same, Track A's measurement
+     * shows their 3v3 p90 at 2.1 s). Wave 4 Track A measured the search's single-thread times against it
+     * (RESULTS.md "Wave 4 — Track A").
      */
-    fun forStrength(
-        strength: Int,
-        seed: Long,
-        runner: SampleRunner = SampleRunner.SEQUENTIAL,
-        budgetMs: Long? = null,
-    ): AiPlayer = heuristic(strength, seed, runner, budgetMs)
+    const val APP_BUDGET_MS: Long = 2_000L
+
+    /**
+     * The production player with no wall clock (the same answers on every device; tournaments and tests);
+     * [runner] runs strength 10's playouts. The apps' think time is [forApp]'s alone.
+     */
+    fun forStrength(strength: Int, seed: Long, runner: SampleRunner = SampleRunner.SEQUENTIAL): AiPlayer =
+        heuristic(strength, seed, runner)
 
     /** Fully reproducible (tests, tournaments): the same player as [forStrength], with no clock to cut. */
     fun deterministic(strength: Int, seed: Long): AiPlayer = heuristic(strength, seed, SampleRunner.SEQUENTIAL)
@@ -97,7 +115,7 @@ object AiPlayers {
      * (`td`, `tw`; the tree, RESULTS.md "Wave 3 — Track C"). The book (at the root and in the playouts) branches
      * one own choice in its card looks and looks six spaces ahead at a rest (`branch`, `restSpaces`: Track A's
      * F1 book in its cheap form, RESULTS.md "Wave 3 — Track C2"). With six heroes a card play plays at most
-     * `6.cap` columns (samples × enemy replies), which bounds the slowest 3v3 card plays.
+     * `6.cap` columns (samples × enemy deals), which bounds the slowest 3v3 card plays.
      * Any other key goes to the book as a [dev.quinton.goa.core.game.ai.heuristic.HeuristicProfile.tune] knob.
      */
     val SEARCH_10: Map<String, Double> = mapOf(
@@ -119,11 +137,14 @@ object AiPlayers {
     const val SEARCH_FROM: Int = 10
 
     /** Strength [SEARCH_FROM] and up: the search over the book, its samples on [runner]; below, the book. */
-    private fun heuristic(strength: Int, seed: Long, runner: SampleRunner, budgetMs: Long? = null): AiPlayer {
+    private fun heuristic(strength: Int, seed: Long, runner: SampleRunner): AiPlayer {
         val s = AiStrength.coerce(strength)
         if (s < SEARCH_FROM) return HeuristicAi(s, seed)
-        return HybridAi(seed, SEARCH_10 + ("leaf" to SEARCH_10_LEAF.ordinal.toDouble()), runner, budgetMs)
+        return HybridAi(seed, searchKnobs(), runner)
     }
+
+    /** Strength 10's knobs: [SEARCH_10] with its leaf ([SEARCH_10_LEAF]). */
+    private fun searchKnobs(): Map<String, Double> = SEARCH_10 + ("leaf" to SEARCH_10_LEAF.ordinal.toDouble())
 
     private fun searchPlayer(
         strength: Int,
