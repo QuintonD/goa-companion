@@ -22,6 +22,8 @@ class HybridAppTimesTest {
     @Test
     fun `decision times on one thread`() {
         val spec = System.getenv("AI_APP_TIMES") ?: return
+        // At most this many searched answers of strength 10 a game (a short probe), the first (warm-up) unprinted.
+        val maxTen = System.getenv("AI_APP_MAX")?.toIntOrNull() ?: Int.MAX_VALUE
         val budgets = (System.getenv("AI_APP_BUDGETS") ?: "2000,667").split(",").map { it.trim().toLong() }
         val knobs = AiPlayers.SEARCH_10 + ("leaf" to AiPlayers.SEARCH_10_LEAF.ordinal.toDouble())
         var game = 0
@@ -39,19 +41,21 @@ class HybridAppTimesTest {
                 val book = AiPlayers.deterministic(9, SEED + game)
                 var answers = 0
                 var peakMemo = 0
-                while (answers < MAX_ANSWERS) {
+                var searched = 0
+                while (answers < MAX_ANSWERS && searched < maxTen) {
                     val d = s.pending ?: break
                     val c = if (d.team == tenTeam && d.options.size > 1) {
                         val t0 = System.nanoTime()
                         val a = ten.choose(s, d)
                         val ms = (System.nanoTime() - t0) / 1_000_000
                         peakMemo = maxOf(peakMemo, ten.memoSize)
+                        searched++
                         val agree = if (d.kind == DecisionKind.PLAY_CARD) {
                             timed.joinToString(" ") { p -> if (p.choose(s, d) == a) "=" else "x" }
                         } else {
                             "-"
                         }
-                        println(
+                        if (game > 0 || searched > 1) println(
                             "APP_TIME size=$size game=$game round=${s.state.round} turn=${s.state.turn} " +
                                 "kind=${d.kind} options=${d.options.size} ms=$ms memo=${ten.memoSize} agree=$agree",
                         )

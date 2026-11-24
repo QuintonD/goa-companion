@@ -588,7 +588,8 @@ little over three; the bench's answer times do not separate them on this shared 
 build the three weights add about 0.6 MB of source to `engine-worker.js` (not measured). **For Track C:** strength
 10 takes it with `AiPlayers.SEARCH_10_LEAF = HybridLeaf.NET6` (one line); measured on W2 here, not yet on W2 plus
 the tree after the reveal; `GameParityTest`'s strength-10 hash changes when the switch flips (re-pin from the JVM,
-check Node).
+check Node). *(Correction, wave 4 track A: this was false when written: no parity test ran `HybridAi` then. Since
+wave 4 `theShippedStrengthTenChoosesAlike` does, and it does change with the leaf.)*
 
 **What was added** (all opt-in, measurement only): `HybridAi.leafOverride` (internal, null in play: a test can put
 a saved net at the leaves); `LeafNets` (test: `h…`, `x…+net=avg(a,b,c)`, `W2` as self-play and tournament sides
@@ -608,3 +609,56 @@ AI_NETS=$Q/nets AI_CACHE=$Q/cache AI_TRAIN=$Q/data/book-a.jsonl,… AI_RESOLVED=
 AI_NETS=$Q/nets AI_TEAMS='W2+net=avg(w1,w2,w3):W2' AI_SIZE=2 AI_FAMILY=mixed AI_FIRST=1000 AI_N=128 AI_SPRT=0.55 \
   AI_THREADS=3 $S/goa-run TeamTournamentTest
 ```
+
+## Wave 4 — Track A: strength 10 as the apps ship it (2026-11-24)
+
+Fixes for review-3/V2-code.md §6 (#7, #8, #9, #11 app side, #13) and V1 §2. No tournaments; validated by tests.
+
+- **One player per team for the game (#7).** The web worker (`web/engine/.../EngineHost.kt`, `players`) and the
+  phone (`feature/board/.../GameViewModel.kt`, `players`) keep one player per (team, strength) until another game
+  starts, as `Tournament` does, so `HybridAi`'s memo carries between answers within a turn. The memo key covers
+  everything a playout's value depends on across answers (state hash at step start + answers since + decision
+  counter, team, both public logs' hash, turn ends left, horizon; the playout book has no randomness at h10 with
+  `temp`/`mix` 0; reply columns never use the memo; engine and turn changes reset it). The cap is now 100 000 entries
+  (≈150 B each on the JVM, ≈15 MB) and a full memo stops growing for the turn instead of being dropped at the next
+  answer. Probe: peak 889 entries (2v2) and 1 321 (3v3) in a turn, so the cap never binds in play.
+  `HybridAppTest` "one player for the game keeps its memo…": 24 searched answers equal to a fresh player per answer,
+  the memo is non-empty when later answers of a turn start, more memo hits than fresh players.
+- **The app's think time (#11, app side).** `HybridConfig.budgetMs` (knob `ms`) and a minimal deadline in `HybridAi`:
+  past it no playout starts, running playouts stop at their next step (they now poll; the tree too), and the answer
+  is the best weighted mean over the columns every candidate finished in time; none finished, the book's own answer
+  (computed first, never cut). `AiPlayers.forApp(strength, runner, budgetMs = APP_BUDGET_MS = 2000)` passes it (card
+  plays; other searched questions a third, ADR-047's rule); `forStrength`/`deterministic` have none. **For the merge:
+  track F's hard deadline replaces this mechanism; keep the `forApp` wiring.** **Conflict to settle:** ADR-085's
+  addendum records the owner's "no wall clock, regardless of the device"; the brief asked for ADR-047's 2 s. With a
+  budget, answers cut short depend on the device (phone ≠ browser then). `HybridAppTest`: an hour's budget gives the
+  unbudgeted answers; a 60 ms budget cut 6 of 6 card plays with legal answers and a worst overrun of 14 ms.
+- **Times on one thread** (`HybridAppTimesTest`, `AI_APP_MAX=70 AI_APP_TIMES=2:1,3:1`, s10 vs the book at 9 on dev
+  line-ups of its own seed, oldboi loaded by other runs (load ≈ 4), 198 s): 2v2 card plays p50 568 ms, p90 3.2 s, p95
+  4.1 s, max 5.2 s; other questions p50 32 ms, p95 315 ms. 3v3 card plays p50 1.2 s, p90 6.0 s, p95 7.0 s, max 8.6 s
+  (turn 1 of a round is the slow one); other questions p50 81 ms, p90 2.1 s, max 5.6 s. Over 2 s on this machine: 6 of
+  21 (2v2) and 9 of 22 (3v3) card plays. Cutting barely changes the answer: with 2 s 22/22 and 20/22 card plays equal
+  the unbudgeted answer, with 667 ms (2 s on a phone 3× slower) 21/22 and 19/22. **JS:** the shipped-s10 parity
+  transcript took 379 s on Node against 33 s on the JVM (same answers), about 11× slower, so in the browser 2 s buys
+  what about 0.18 s buys on this JVM's single thread: the budget would cut most card plays there.
+  **Recommendation (not applied):** keep 2 s for card plays on the phone (three threads, ≈2.2×; few answers change
+  even when cut), let the non-card questions use the full 2 s rather than a third in 3v3 (their p90 is 2.1 s here,
+  the post-reveal tree), and either give the web worker a longer budget (about 5 s) or make the JS build faster
+  (Kotlin/JS emulates `Long`, which the state hash and RNG mixing use heavily; unprofiled). Device numbers: the speed
+  meter, below.
+- **The speed meter measures what ships (#8).** `AiBenchmark` (v3) runs `AiPlayers.forStrength(10)` (`HybridAi`)
+  without the budget and counts card plays over `APP_BUDGET_MS`; `AiBenchmarkTest` checks its work counts on three
+  threads.
+- **JVM↔JS parity of the shipped s10 (#9).** `GameParityTest.theShippedStrengthTenChoosesAlike`: s10 (kept per team)
+  against s9 (the book), 30 searched s10 answers (card plays with replies, the post-reveal tree, level-ups), the
+  same transcript on the JVM and on Node (hash `ba4dff96…`). No divergence found. It adds ≈6 min to the JS tests.
+- **Sealed line-ups.** `HeuristicTournamentTest` refuses line-ups 5000+ unless `AI_UNSEAL=1` (final table only); a
+  unit test checks it.
+- **NoPeekingTest (#13).** Three new cases on every shipped strength 1–10: 3v3 (`6.cap`) with the enemies' three
+  facedown cards different; a human teammate's facedown card; Min's mines placed by the engine's own flow this
+  turn (blast on one space or the other). All pass: **no leak found.** The mid-step token hole (§1.2.2) is not
+  reachable today: no card asks another seat a question after placing a facedown token in the same step; the mines
+  test asserts the tokens are in the step-start state the determinizer shuffles. Not covered: the determinizer's
+  order dependence (§1.2.3) and the human teammate's *hand* (read as for a computer teammate, §1.2.4).
+- **Not verified:** anything on a device (phone factor, browser timing beyond Node), strength effects of the budget
+  in games, memory on the phone (the per-entry size is an estimate; JS entries are larger).
