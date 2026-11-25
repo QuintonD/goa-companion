@@ -1117,3 +1117,26 @@ Merged in order F (e8a69018), A (521eeece), G (a8035692), P (97eaa202), H (f5f14
   `eq=1` plays another card than SEARCH_10 on 50/211 (23.7%; Red 24/105, Blue 26/106), at the same cost (mean 1783 ms,
   max 13 806: the matrix reuses the search's values). Track G measured 28.9% with its own builder. `HybridAppTest`
   (one core, night cap): a 60 ms budget cut 6 of 6 card plays, worst overrun 150 ms.
+
+### Wave 4 — the decisive measurement (2026-11-25)
+
+Merged SEARCH_10 (`x10+pol=1+scope=3+tt=1+K=24+topS=8+topU=6+deal=8+td=2+tw=3+branch=1+restSpaces=6+6.cap=8+lpx=1+leaf=3`,
+= `AiPlayers.SEARCH_10` + NET6) against old s10 (`searchDeterministic(10)`), 2v2 mirrored, **fresh line-ups 4000–4047**
+(nothing tuned or checkpointed on 4000–4999), `AI_SPRT=0.65 AI_SPRT_P0=0.60` (pentanomial GSPRT, α = β = 0.05, batches
+of 16 line-ups, at most 192). Raw log: `wave-4/search10-vs-s10-4000-4047.log`.
+
+| | |
+|---|---|
+| Verdict | **SPRT(0.60, 0.65): H1** after 96 games (48 line-ups), i.e. ≥ 65% accepted at 5% error rates |
+| Score | 72–24 = **75.0%**, Wilson 65.5–82.6%; pairs 66.3–83.7% (pentanomial 3/0/18/0/27) |
+| Batches | 81.3% (32), 73.4% (64), 75.0% (96) |
+| How SEARCH_10 won (72) | last push 36, Throne 19, Life 17 |
+| How old s10 won (24) | last push 13, Life 9, Throne 2 (last push 54% of its wins; was 17/29 = 59% at 600–647) |
+| Card play mean / p95 / max | 1319 / 4204 / 12 920 ms (old s10 587 / 1185 / 4147); no budget in tournaments |
+| Wall time | 4341 s (72 min), 3 games at once |
+
+Caveats: the point estimate of an SPRT that stops early is biased upwards (it stopped on a good stretch), so read the
+true score as "≥ 65% with 95% confidence by the test", not "75%"; the Wilson interval is the fixed-sample one and is
+only approximate after a sequential stop. 2v2 only: 3v3 was not measured. No app budget: with the 2 s budget
+(`forApp`) answers are cut on slow card plays (Track A: 22/22 2v2 and 20/22 3v3 card plays unchanged at 2 s on the JVM;
+the browser is ~11x slower). The sealed 5000+ final table is still unrun.
