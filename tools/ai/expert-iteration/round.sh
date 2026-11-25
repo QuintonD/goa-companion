@@ -27,7 +27,7 @@
 #   GOA_RUN   the run gate [the swarm's goa-run]
 #
 # Stages:
-#   selfplay  LearnedSelfPlayTest with AI_SV_LIVE: the games ($R/games.jsonl) and the search's values ($R/sv.tsv),
+#   selfplay  LearnedSelfPlayTest with AI_SV_LIVE: the games ($R/sp-<round>.jsonl) and the search's values,
 #             recorded while the games are played (same rows as SearchValueTest writes after the fact).
 #   train     LearnedTrainTest, one JVM, three seeds: book positions keep λ-returns (λ 0.7) from TEACHER; positions
 #             the search scored get LAMBDA · result + (1 − LAMBDA) · σ(value / SV_SCALE).
@@ -66,6 +66,9 @@ CACHE=${CACHE:-$Q/trackH/cache}
 STAGES=${*:-selfplay train dump offline}
 case "$FIRST" in 4???|5???) echo "FIRST $FIRST: the tournament line-ups 4000-5999 are reserved" >&2; exit 2 ;; esac
 
+# This round's files, named after the round: the trainer keys search values by the games file's name.
+G=$R/sp-$(basename "$R").jsonl
+V=$R/sp-$(basename "$R").sv.tsv
 # The games and values of every round so far plus this one.
 games=$BOOK
 values=""
@@ -73,18 +76,18 @@ for p in $(echo "$PREV" | tr ',' ' '); do
   games="$games,${p%%:*}"
   v=${p#*:}; [ -n "$v" ] && values="${values:+$values,}$v"
 done
-if [ -s "$R/games.jsonl" ]; then games="$games,$R/games.jsonl"; values="${values:+$values,}$R/sv.tsv"; fi
+if [ -s "$G" ]; then games="$games,$G"; values="${values:+$values,}$V"; fi
 
 run() { (cd "$ROOT" && nice -n 10 "$GOA_RUN" "$@"); }
 
 for stage in $STAGES; do
   case $stage in
   selfplay)
-    [ -s "$R/games.jsonl" ] && { echo "selfplay: $R/games.jsonl exists, skipped" >&2; continue; }
-    AI_SELFPLAY="$GAMES:$R/games.jsonl" AI_FIRST=$FIRST AI_THREADS=3 AI_SIZES="$SIZES" AI_VARIANTS="$SPEC*1" \
-      AI_SV_LIVE="$R/sv.tsv" AI_NETS="$NETS" \
+    [ -s "$G" ] && { echo "selfplay: $G exists, skipped" >&2; continue; }
+    AI_SELFPLAY="$GAMES:$G" AI_FIRST=$FIRST AI_THREADS=3 AI_SIZES="$SIZES" AI_VARIANTS="$SPEC*1" \
+      AI_SV_LIVE="$V" AI_NETS="$NETS" \
       run dev.quinton.goa.core.game.ai.learned.LearnedSelfPlayTest > "$R/selfplay.log" 2>&1
-    games="$games,$R/games.jsonl"; values="${values:+$values,}$R/sv.tsv"
+    games="$games,$G"; values="${values:+$values,}$V"
     ;;
   train)
     cap=$SV_CAP

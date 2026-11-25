@@ -171,6 +171,8 @@ class LearnedTrainTest {
         overrides = emptyMap()
     }
 
+    /** One training run: an opt-in runner whose many knobs are read in one place, so it is long on purpose. */
+    @Suppress("CyclomaticComplexMethod", "LongMethod")
     private fun trainOnce() {
         val spec = env("AI_TRAIN") ?: return
         val name = env("AI_TRAIN_NAME") ?: "net"
@@ -444,7 +446,13 @@ class LearnedTrainTest {
             x,
             FloatArray(ps.size) { targets.getValue(ps[it]) },
             // What early stopping scores: the results, or (`outcomeIsTarget`) the targets themselves.
-            FloatArray(ps.size) { if (outcomeIsTarget) targets.getValue(ps[it]) else if (ps[it].redWon) 1f else 0f },
+            FloatArray(ps.size) {
+                when {
+                    outcomeIsTarget -> targets.getValue(ps[it])
+                    ps[it].redWon -> 1f
+                    else -> 0f
+                }
+            },
             ps.map { it.extras },
             if (ps.any { it.aux != null }) {
                 FloatArray(ps.size * AuxTargets.COUNT) { i ->
