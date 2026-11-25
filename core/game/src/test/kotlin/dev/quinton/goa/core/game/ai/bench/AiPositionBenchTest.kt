@@ -69,6 +69,12 @@ class AiPositionBenchTest {
     private val threads = System.getenv("AI_THREADS")?.toIntOrNull() ?: 2
     private val budget = System.getenv("AI_BENCH_BUDGET")?.toLongOrNull() ?: ROUND_BUDGET
 
+    /**
+     * `AI_BENCH_LASTWAVE=1`: puzzles and rounds keep only the questions asked on turn 3 while a lane is on its last
+     * wave, the only ones the search's last-push extension (`lpx`, RESULTS.md "Wave 4 — Track P") can change.
+     */
+    private val lastWaveOnly = System.getenv("AI_BENCH_LASTWAVE") == "1"
+
     @Test
     fun `position bench`() {
         System.getenv("AI_BENCH_MAKE")?.toIntOrNull()?.let { return make(it) }
@@ -162,7 +168,9 @@ class AiPositionBenchTest {
             val d = n.decision ?: return
             when (val e = key.entries[AnswerKey.pathOf(path)] ?: return) {
                 is AnswerKey.Wins -> {
-                    if (d.options.size > 1 && (pp.fullRound || e.options.size < d.options.size)) {
+                    val st = n.session.state
+                    val asked = !lastWaveOnly || (st.turn == 3 && st.wavesLeft.values.any { it <= 1 })
+                    if (asked && d.options.size > 1 && (pp.fullRound || e.options.size < d.options.size)) {
                         out += judgePuzzle(spec, pp, n, d, e.options, set, "${p.info.id}:${AnswerKey.pathOf(path)}")
                     }
                     for (i in e.options) visit(pp.solver.child(n, d.options[i]) ?: return, path + i)
@@ -203,6 +211,8 @@ class AiPositionBenchTest {
 
             else -> false
         }
+        // AI_BENCH_MISSES=1: name every question answered wrong (to read it with the solver's key).
+        if (right == false && System.getenv("AI_BENCH_MISSES") == "1") println("BENCH   miss $spec $id ${d.kind} $c")
         return Row(set, d.kind, right, if (right == true) 0.0 else 1.0, ms = ms)
     }
 

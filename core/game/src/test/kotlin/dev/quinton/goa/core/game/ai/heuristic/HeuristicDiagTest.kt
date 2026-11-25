@@ -20,7 +20,10 @@ import org.junit.Test
  * and the turn before: who held how many cards, the cards revealed, attacks, defenses and pushes.
  * Read it to see how the heuristic player loses, not how often (that is [HeuristicTournamentTest]).
  * `AI_FORMAT` (`3v3`…) as in the tournament; `AI_H_DIAG=h10:s10,h10:s8@3v3` runs several, each with
- * its own format after `@`. `AI_THREADS` plays games at once.
+ * its own format after `@`. `AI_THREADS` plays games at once. `AI_H_DIAG_ONLY=600R,604B` replays only those
+ * games (line-up index and side a's colour), so single lost games of a tournament log replay exactly (the same
+ * seeds as [dev.quinton.goa.core.game.ai.Tournament.runMixed]); a hybrid side a prints its search trace (`  S`),
+ * every hero move (`  M`) and the units removed (`  -`). `AI_H_DIAG_SAVE=<dir>` keeps each game as a save.
  */
 class HeuristicDiagTest {
     @Test
@@ -34,16 +37,21 @@ class HeuristicDiagTest {
         }
     }
 
+    // One game's whole trace, read top to bottom.
+    @Suppress("CyclomaticComplexMethod", "LongMethod")
     private fun diagnose(spec: String, format: AiHarness.Format) {
         val lineups = System.getenv("AI_H_GAMES")?.toIntOrNull() ?: 6
         val first = System.getenv("AI_H_FIRST")?.toIntOrNull() ?: 0
         val (aName, bName) = spec.split(":")
-        val all = AiHarness.mixedLineups(first + lineups, size = format.size)
         val threads = System.getenv("AI_THREADS")?.toIntOrNull() ?: 1
+        val only = System.getenv("AI_H_DIAG_ONLY")?.split(",")?.map { it.trim() }?.filter { it.isNotEmpty() }
         val jobs = ArrayList<Callable<List<String>>>()
-        for (i in first until first + lineups) {
+        val range = only?.map { it.dropLast(1).toInt() }?.distinct()?.sorted() ?: (first until first + lineups).toList()
+        val all = AiHarness.mixedLineups(range.max() + 1, size = format.size)
+        for (i in range) {
             val (red, blue) = all[i]
             for (aRed in listOf(true, false)) {
+                if (only != null && "$i${if (aRed) "R" else "B"}" !in only) continue
                 jobs += Callable {
                     val out = ArrayList<String>()
                     val coin = if (i % 2 == 0) Team.RED else Team.BLUE
@@ -54,6 +62,10 @@ class HeuristicDiagTest {
                     var lastKey = -1
                     val pa = player(aName, if (aRed) seed else seed + 1)
                     (pa as? HeuristicAi)?.trace = { line -> lines += lastKey to "    > $line" }
+                    (pa as? dev.quinton.goa.core.game.ai.hybrid.HybridAi)?.trace = { line ->
+                        synchronized(lines) { lines += lastKey to "    S $line" }
+                    }
+                    val moves = only != null
                     val pb = player(bName, if (aRed) seed + 1 else seed)
                     val r = AiHarness.play(
                         AiHarness.setup(red, blue, AiLevel.NORMAL, AiLevel.NORMAL, coin, format.length, format.mapId),
@@ -64,7 +76,7 @@ class HeuristicDiagTest {
                         observe = { s, d ->
                             val st = s.state
                             val key = st.round * 8 + st.turn
-                            seenEvents = drain(s, seenEvents, key, lines)
+                            seenEvents = drain(s, seenEvents, key, lines, moves)
                             if (key != lastKey && d.kind == DecisionKind.PLAY_CARD) {
                                 lastKey = key
                                 lines += key to status(s)
@@ -76,7 +88,19 @@ class HeuristicDiagTest {
                             }
                         },
                     )
-                    drain(r.session, seenEvents, Int.MAX_VALUE, lines)
+                    drain(r.session, seenEvents, Int.MAX_VALUE, lines, moves)
+                    // AI_H_DIAG_SAVE=<dir>: the whole game (start and every answer), to rebuild any position of it.
+                    System.getenv("AI_H_DIAG_SAVE")?.let { dir ->
+                        val f = java.io.File(dir, "game-$i${if (aRed) "R" else "B"}.json.gz")
+                        java.util.zip.GZIPOutputStream(f.outputStream()).bufferedWriter().use {
+                            it.write(
+                                kotlinx.serialization.json.Json.encodeToString(
+                                    dev.quinton.goa.core.game.SavedGame.serializer(),
+                                    r.session.save(),
+                                ),
+                            )
+                        }
+                    }
                     val aWon = r.winner == aTeam
                     val side = if (aRed) "Red" else "Blue"
                     out += "DIAG game ${red + blue} a=$aName $side won=$aWon rounds=${r.rounds} " +
@@ -104,7 +128,13 @@ class HeuristicDiagTest {
         }
     }
 
-    private fun drain(s: EngineSession, from: Int, key: Int, lines: MutableList<Pair<Int, String>>): Int {
+    private fun drain(
+        s: EngineSession,
+        from: Int,
+        key: Int,
+        lines: MutableList<Pair<Int, String>>,
+        moves: Boolean = false,
+    ): Int {
         val ev = s.events
         for (e in ev.drop(from)) {
             val line = when (e) {
@@ -125,11 +155,20 @@ class HeuristicDiagTest {
 
                 is GameEvent.GameOver -> "  G ${e.winner} ${e.reason}"
 
+                is GameEvent.Moved -> if (moves && s.state.hero(e.unitId) != null) {
+                    "  M ${e.unitId} -> ${e.path.lastOrNull()?.let { "${it.q},${it.r}" }}"
+                } else {
+                    null
+                }
+
+                is GameEvent.Removed -> if (moves) "  - ${e.text}" else null
+
                 is GameEvent.CardsChanged -> if (e.discarded.isNotEmpty()) "  C ${e.text}" else null
 
                 is GameEvent.Note -> when {
                     e.text.endsWith(" has no card to defend with.") -> "  E ${e.text}"
                     "battle" in e.text.lowercase() -> "  N ${e.text}"
+                    moves -> "  n ${e.text}"
                     else -> null
                 }
 

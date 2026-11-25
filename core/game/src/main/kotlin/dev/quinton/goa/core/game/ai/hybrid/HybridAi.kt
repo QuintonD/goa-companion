@@ -566,6 +566,23 @@ class HybridAi(
         while (true) {
             if (t.cancelled()) return Double.NaN
             d = f.pending ?: return leaf(f, t.team, t.seen, t.leafEval)
+            if (turnIndex(f.state) != t.turn && lastPushAt(f.state, t.turn)) {
+                // [HybridConfig.lastPushExtension]: turn 4 and the round end are played, not judged. The column's
+                // reply and dealt cards were turn 3's; the budget's stop still cuts it (NaN).
+                return playout(
+                    f,
+                    t.team,
+                    HybridHorizon.TURN,
+                    t.seenOf,
+                    t.salt,
+                    null,
+                    t.view,
+                    null,
+                    t.leafEval,
+                    t.seen,
+                    stop = t.cancelled,
+                )
+            }
             if (turnIndex(f.state) != t.turn || steps++ > config.maxSteps) return leaf(f, t.team, t.seen, t.leafEval)
             if (d.options.size > 1) {
                 if (depth <= 0) {
@@ -868,6 +885,11 @@ class HybridAi(
 
                 HybridHorizon.ROUND_PLUS -> newRoundTurn >= 0 && turnIndex(s) != newRoundTurn
             }
+            if (stop && !extended && horizon == HybridHorizon.TURN && turnsEnded == 1 && lastPushAt(s, startTurn)) {
+                // [HybridConfig.lastPushExtension]: on to the round's end (TURN stops at the second turn end).
+                extended = true
+                continue
+            }
             if (stop && !extended && config.kill > 0 && turnsEnded == turnsWanted && turnsWanted > 0) {
                 kills = killPlan(f.engineData, s, rootTeam, startRound)
                 if (kills != null) {
@@ -919,6 +941,14 @@ class HybridAi(
         if (planned.isEmpty()) return null
         return planned[d.seat]?.let { Choice.Card(it) }?.takeIf { it in d.options }
     }
+
+    /**
+     * [HybridConfig.lastPushExtension]: [s] is the start of turn 4, reached from turn 3 ([fromTurn]) of the same
+     * round, while a lane is on its last wave.
+     */
+    private fun lastPushAt(s: GameState, fromTurn: Int): Boolean =
+        config.lastPushExtension && s.turn == 4 && turnIndex(s) == fromTurn + 1 && s.winner == null &&
+            s.wavesLeft.values.any { it <= config.lastWaves }
 
     /** An enemy's card play drawn from the opponent model (softmax of the book's card scores, 15% uniform). */
     private fun drawReply(

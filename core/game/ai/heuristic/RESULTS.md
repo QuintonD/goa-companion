@@ -612,10 +612,11 @@ AI_NETS=$Q/nets AI_TEAMS='W2+net=avg(w1,w2,w3):W2' AI_SIZE=2 AI_FAMILY=mixed AI_
 
 ## Wave 4 (2026-11-24)
 
-Three tracks on the audit's verified defects (`review-3/V2-code.md`), merged on `t3/wave4-integration`: F (search fixes),
-A (the apps' strength 10) and G (the card play as a matrix game, off by default). No tournaments were played for any of
-them; each was validated by construction and on fixed positions. Strength 10 (`AiPlayers.SEARCH_10`) is now W3 + NET6
-leaf + `6.cap` + F's defaults (`lp` chance leaf, `hide`, `deal=8` instead of `rep=4`); no budget in `forStrength` or the
+Four tracks on the audit's verified defects (`review-3/V2-code.md`), merged on `t3/wave4-integration`: F (search fixes),
+A (the apps' strength 10), G (the card play as a matrix game, off by default) and P (the last push: `lpx`). No
+tournaments were played for any of them (P replayed 12 recorded games); each was validated by construction and on fixed
+positions. Strength 10 (`AiPlayers.SEARCH_10`) is now W3 + NET6 leaf + `6.cap` + F's defaults (`lp` chance leaf, `hide`,
+`deal=8` instead of `rep=4`) + P's `lpx`; no budget in `forStrength` or the
 tournaments, the app's 2 s only through `AiPlayers.forApp`. The merge itself is the last subsection.
 
 ### Wave 4 — Track F: search fixes (strength 10)
@@ -838,9 +839,146 @@ softmax is a fair stand-in for old s10's or a human's card play; the JS run of `
 §2.4 (logit/±1000 mean: it averages win chances) and §1.3 (the enemy's model is computed with our card in hand, and
 its columns are enumerated, not drawn), so it is also a cross-check for Track F's fixes of those.
 
+### Wave 4 — Track P: how the old strength 10 still wins the last push
+
+The audit (`review-3/V2-code.md` §5, §7 #4/#5) expected the search to inherit the book's blind spots: `hold` off,
+no push before turn 4, rollout looks that optimise HEval under a NET6 search. Old s10's wins over W3+NET6 on
+line-ups 600–647 (the audit log `review-3/w3-net6-vs-s10-600-647.log`): last push 17, Life 10, Throne 2. This
+track diagnosed from those games, not from new tournaments.
+
+#### Method: replay the lost games, read the deciding turn
+
+Games are deterministic given the line-up and the seeds, so `HeuristicDiagTest` can now replay single games of a
+tournament log (`AI_H_DIAG_ONLY=632R,604B`: line-up and side a's colour, the seeds of `Tournament.runMixed`). A
+hybrid side a prints its search trace (each searched question: the candidates' mean values, its answer, **the
+book's answer**), every move and removal; `AI_H_DIAG_SAVE=<dir>` keeps the whole game (start + answers, 3 KB
+gzipped), from which `RecordedGames.at` rebuilds any position without asking a player. Budget used: 12 single-game
+replays (8 traced last-push losses: 600R 604B 606B 609R 613R 615R 628B 632R; four of them again with saves). All 8
+reproduced the log exactly (same winner, reason and round). Wall time of game runs: about 15 minutes in all.
+
+```
+X='x10+pol=1+scope=3+leaf=3+tt=1+K=24+topS=8+topU=6+rep=4+td=2+tw=3+branch=1+restSpaces=6'
+AI_H_DIAG="$X:s10" AI_H_DIAG_ONLY=600R,604B,606B,609R,613R,615R,628B,632R AI_H_DIAG_ALL=1 AI_THREADS=3 \
+  goa-run HeuristicDiagTest
+```
+
+The board: forgotten-island has three lane zones, so the last wave (one Wave counter) is fought in the middle zone
+from a fresh 6 against 6, and the round end decides: the side with fewer minions removes the difference and a
+side left with none loses the push, which is the game (p.8; a minions against b: a ≥ 2b pushes).
+
+#### What decided each game (x10 = the candidate; "book" = the book's own answer printed by the search)
+
+| Game | Deciding moment | Minions (us–them) | x10 played | The book's answer | Then |
+|---|---|---|---|---|---|
+| 632R Widget+Bain | R6 T3, Widget's Gold target | 2–4 | Swift (a hero; he defended) | the minion m36 | 1–4 at turn 4's end, push |
+| 613R Trinkets+Bain | R5 T3, Bain's card | 4–5 | Silver, Hold | Red 3a, Primary (attack) | Blue took two: 2–5; one kill on T4: 2–4, push |
+| 604B Swift+NebKher | R6 T3, Swift's card | 1–2 (B–R) | Red 3a, as a move (no target) | Blue 2a (the move), Red kept for T4 | no attack left for T4: 1–2, push |
+| 606B Ursafar+Sabina | R6 T3, Ursafar's card | 2–3 | Blue 2a | Gold | 1–2 at the end, push |
+| 628B Wuk+Takahide | R5 T3, both cards | 5–5 | Silver + Hold; Green move | Blue 2a + Primary; Red 2a | Red took two: 3–5; R6 lost mid-turn |
+| 615R Emmitt+Arien | R5 T3, Emmitt's Gold target | 5–5 | Widget (a hero; he defended) | the minion m48 | 3–4 at the end → 2–4; R6 lost mid-turn |
+| 600R Brogan+Mrak | R7 T1–T2 (4–6), no minion taken all round | 4–6 | Blue (Fast Travel) ×2; Green, Silver | Green ×2; Red 3a ×2 | 2–6, push in R8 |
+| 609R Silverarrow+Rowenna | R6 T4, Silverarrow's Red target | 3–5 | Hanu (defeated: Blue to 2 Life) | Hanu (the same) | 1–5 at the end; lost R7 |
+
+Readings:
+
+1. **Six of eight were decided on turn 3 of a last-wave round by the search overriding the book** (632R, 613R,
+   604B, 606B, 628B, 615R). In each, the book's answer attacked a minion or kept the attack card for turn 4; the
+   search chose a hero, a Silver Hold or a move. The cause is the horizon: a turn-3 playout stops at the first
+   question of turn 4 and the NET6 leaf judges a position whose Minion Battle is already decided by counts it
+   does not price exactly (its training positions are turn boundaries of whole games; last-wave turn-4 starts are
+   rare there). A turn-4 search does not have this problem: its playouts run through the round end.
+2. One (600R) was lost on turns 1–2 of the last wave, again with the search choosing the non-attack cards over
+   the book's Red cards. The extension below does not reach turns 1–2 (that is `lw=3`, the whole round, tried in
+   C2: 52.1% [96], 45 s worst case, not kept).
+3. One (609R) is a turn-4 judgement the book shares (a hero kill that left Blue on 2 Life against a minion that
+   would have kept 2–4): not clearly wrong by the rules, so no test.
+4. **The book was not the blind one in these games.** In every deciding spot the book's own answer was the
+   rule-right one. Turning `hold` on would not change those answers (diagnostic below). `hold` (F7) was built in
+   wave 3 Track A and left off because it changed no answer on the position bench (RESULTS.md "Development
+   measurements", item 5, and the bench table: `h10+hold=1` "no answer changed"), not because it hurt.
+5. Presence is not the problem: in last-wave rounds x10's heroes stood in the Battle Zone at turn starts 81 of 120
+   times, s10's 76 of 120 (from the trace, `zone.py`).
+
+#### The fix: play the round end on the last wave (`lpx`, on in `SEARCH_10`)
+
+`HybridConfig.lastPushExtension` (knob `lpx`): while a lane has `lastWaves` (1) or fewer Wave counters, a playout
+that would stop at the start of turn 4 of the round it started in (turn 3's TURN horizon), or a post-reveal tree
+that reaches that point, plays turn 4 and the round end (the Minion Battle and the push) with the book, and the
+leaf scores the next round's start or the game's end. Turn-4 searches already did that; turns 1 and 2 are
+untouched. The extension depends only on the position, so the memo stays exact (keys are recorded before it, as
+for the kill extension) and answers do not depend on threads (tested). `AiPlayers.SEARCH_10` sets `lpx=1` (a
+one-line change in Track F's map; the integrator may move it).
+
+Validated by construction on the recorded positions (`LastPushSearchTest`, opt-in `AI_LASTPUSH_DIAG=1` for all;
+the search as it played: the log's knobs, the game's seeds; 3 threads):
+
+| Position | Minions | Game (= search without `lpx`, reproduced) | Book | With `lpx` | ms without / with |
+|---|---|---|---|---|---|
+| 632R R6T3 Widget's target | 2–4 | Swift | m36 | **m36** | 556 / 958 |
+| 632R R6T3 Bain's card | 2–4 | Green 2a | Red 2a | **Red 2a** | 758 / 1 377 |
+| 632R R6T3 Widget's card | 2–4 | Gold | Gold | Blue 2b | 489 / 2 189 |
+| 613R R5T3 Bain's card | 4–5 | Silver | Red 3a | **Red 3a** | 420 / 657 |
+| 613R R5T3 Bain's action (after Silver) | 4–5 | Hold | Primary | **Primary** | 205 / 1 180 |
+| 604B R6T3 Swift's card | 1–2 | Red 3a | Blue 2a | **Blue 2a** | 1 083 / 1 284 |
+| 604B R6T3 NebKher's card | 1–2 | Silver | Green 2b | **Green 2b** | 474 / 732 |
+| 606B R6T3 Ursafar's card | 2–3 | Blue 2a | Gold | Blue 2a | 437 / 658 |
+| 604B R5T4 NebKher's action (turn 4: unchanged by design) | 4–5 | Hold | Primary | Hold | 190 / 156 |
+| 606B R6T2 Sabina's action (turn 2: unchanged by design) | 2–3 | Movement | Primary | Movement | 7 / 10 |
+
+Every recorded answer reproduces without `lpx` (the positions are the games'). With it, six of the eight turn-3
+answers become the book's rule-right answer; the other two change to another card or stay. The book with `hold=1`
+gives the book's answer in all ten (so `hold` stays off: it would change none of the deciding answers).
+
+Asserted (JVM tests): 632 (the minion, not the hero: 2 against 4 pushes, p.8), 613 (spend the attack card on turn 3),
+604 (keep the only attack card: played now Red 3a offers no Primary, checked through the engine), and the memo /
+thread determinism of the extension. `LastPushBookTest` pins the book's turn-4 battle arithmetic on a hand-built
+last-wave position (behind 2–4: the minion keeps the game, checked through the engine to the round end; level 2–2:
+the minion wins the push) at strengths 10, 8 and 5; the book passed both before any change, so no book rule changed.
+
+**Not shown**: that these games are saved. Played out with the book for both sides to the round end, every option
+in these positions still loses (the `bookRoundEnd` column of the diagnostic): by turn 3 the round was already lost
+against the book's turn 4. The extension removes a verified defect in how the search judges the deciding turn; the
+win rate is for the integrator's measurement.
+
+#### Position bench, before and after (`AiPositionBenchTest`)
+
+The book is unchanged, so its bench rows are unchanged by construction (h10: puzzles 78.6%, rounds 76.0%, the
+table above). `lpx` can only change a search answered on turn 3 while a lane is on its last wave; the bench now
+has `AI_BENCH_LASTWAVE=1` to keep exactly those questions (46 of puzzles + rounds) and `AI_BENCH_MISSES=1` to name
+the wrong ones. Everywhere else the two specs answer identically by construction.
+
+```
+X='x10+pol=1+scope=3+leaf=3+tt=1+K=24+topS=8+topU=6+rep=4+td=2+tw=3+branch=1+restSpaces=6'
+AI_BENCH="$X,$X+lpx=1" AI_BENCH_SETS=puzzles,rounds AI_BENCH_LASTWAVE=1 AI_BENCH_MISSES=1 AI_THREADS=2 \
+  goa-run AiPositionBenchTest
+```
+
+| Spec | puzzles (last wave, turn 3) | rounds (last wave, turn 3) | ms an answer (puzzles / rounds) |
+|---|---|---|---|
+| W3+NET6 (as played) | 10/10 | 31/32 right, 4 unknown | 397 / 621 |
+| W3+NET6 + `lpx` | 10/10 | 31/33 right, 3 unknown | 698 / 1 527 |
+
+The same number right; one former "unknown" (a choose_action) is now right and one space answer is now wrong:
+`r10` ("Nothing Left to Defend With"), a full round whose enemy plays are scripted and known to the solver
+(ADR-052). With `lpx` the search plays the enemy's turn 4 with the book instead of judging it, and here the
+book's turn 4 is not the scripted one. Both runs also share one miss (`r39`, a choose_unit). Cost: about 1.5–2.5×
+on these questions only (two threads, shared machine: upper bounds); on the recorded positions 1.2–4.5× (0.2–2.2 s
+with three threads). Worst-case card-play time grows on last-wave turn 3 (V2 §6.2: no wall clock); not measured.
+
+#### What is still open (for the integrator)
+
+- **The win rate.** No tournament was run; the extension is kept on the strength of the recorded positions.
+- **Turns 1–2 of the last wave (600R).** The search also preferred non-attack cards over the book's Red cards
+  there; the extension does not reach it. The leaf is the lever (Track H), or `lw=3` with a cheaper policy.
+- **Interaction with Track F's aggregation fix (V2 §2.4).** The extension reaches more finished games (±1000) at
+  turn 3; with the column mean on the logit scale one lost column dominates. With F's win-probability mean this is
+  the intended behaviour; without it the search leans to avoiding any immediately lost column.
+- **3v3**: the same knob applies (base knob, not `6.`); not checked on a 3v3 position.
+- `hold` stays off (it changed none of the ten deciding answers, and none on the bench in wave 3).
+
 ### Wave 4 — integration (t3/wave4-integration)
 
-Merged in order F (e8a69018), A (521eeece), G (a8035692) onto `feature/ai-wave4`.
+Merged in order F (e8a69018), A (521eeece), G (a8035692), P (97eaa202) onto `feature/ai-wave4`.
 
 - **Deadline (F × A).** Both added the knob `ms`. F's mechanism kept (`HybridAi.stopOf`, book answer first, the stop
   polled in playouts and trees, `deadline` in `HybridAi.fallbacks`); A's own deadline (`late`, `pastDeadline`, `cut`)
@@ -859,3 +997,9 @@ Merged in order F (e8a69018), A (521eeece), G (a8035692) onto `feature/ai-wave4`
   card, so the matrix's best reply is SEARCH_10's card (unless `risk`/`prior`/`mm` are set) and `eq=1` costs nothing
   over the search. `eq` needs `deal` > 0 and `lp` (otherwise it does nothing); default 0. G's Step 1 numbers above were
   measured with G's own builder on the pre-F base and are not re-measured with the ported one.
+- **Last push on F's search (P × F).** `lpx` kept on in SEARCH_10 and in the knob list beside F's. The playout's
+  extension runs inside F's loop, so F's per-step stop (the budget) and its deals cover turn 4 too; deals and the
+  playout's `planned` cards apply to the root turn's card plays only, so turn 4's are the book's, as in P. The tree's
+  extension playout now gets the stop (`stop = t.cancelled`: a cut is NaN, as for the tree's other playouts) and not
+  the column's reply or planned cards (they were turn 3's). The leaf at the end is F's `LeafChance`, which is the
+  aggregation P's open item asked for.
