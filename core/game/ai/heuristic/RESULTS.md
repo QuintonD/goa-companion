@@ -1101,3 +1101,19 @@ Merged in order F (e8a69018), A (521eeece), G (a8035692), P (97eaa202), H (f5f14
   a probability of 1/0, not ±1000 coin, which is the outlier Track H capped with `AI_SV_CLAMP` (the cap stays). Values
   recorded before the merge (H's `sv-x.tsv`, from W2) are on the old mean; mixing the two in one training run is not
   checked. Answers decided by `eq` are not reported (off by default).
+- **Checks on the merged branch (287f15d7, no games).** Gate: `:core:game:jvmTest` 160 suites / 2 189 tests, JS
+  `:core:game:jsTest` 15, `:web:app:jsTest` 166, `:web:engine:jsTest` 8, all pass; detekt / ktlint clean;
+  `:app:compileDebugKotlin` builds. The shipped-s10 parity transcript changed with F's SEARCH_10 and was re-pinned
+  (`b3bfc3bb…`, the JVM and Node gave the same hash; `lpx` did not move it). Decision set (`AI_DECISIONS=
+  "new:;new1:seed=1;eq:eq=1" AI_THREADS=3`, 2026-11-25 06:01, oldboi load ≈ 2, merged SEARCH_10 with `lpx`):
+
+  | | merged SEARCH_10 | Track F alone (above) |
+  |---|---|---|
+  | seed-only change flips the card (all / Red / Blue) | **0/211 0.0%** / 0 / 0 | 0/211 |
+  | ms mean (Red / Blue) | 1878 / 1832 | 1765 / 1790 |
+  | ms mean / p50 / p95 / max | 1855 / 1284 / 5615 / 13 608 | 1778 / – / 5764 / 13 862 |
+  | silent fallbacks (all kinds) | 0 | 0 |
+
+  `eq=1` plays another card than SEARCH_10 on 50/211 (23.7%; Red 24/105, Blue 26/106), at the same cost (mean 1783 ms,
+  max 13 806: the matrix reuses the search's values). Track G measured 28.9% with its own builder. `HybridAppTest`
+  (one core, night cap): a 60 ms budget cut 6 of 6 card plays, worst overrun 150 ms.
