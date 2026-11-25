@@ -31,6 +31,15 @@ internal object LeafChance {
     fun ofLogit(logit: Double): Double = Evaluator.sigmoid(logit)
 
     /**
+     * [ofLogit]'s inverse, for recording a chance on a log-odds scale (the search-value targets, Wave 4 Track H):
+     * the chance is held within [LOGIT_FLOOR] of 0 and 1 first, so a finished game is a large finite logit (±13.8).
+     */
+    fun toLogit(p: Double): Double {
+        val q = p.coerceIn(LOGIT_FLOOR, 1.0 - LOGIT_FLOOR)
+        return kotlin.math.ln(q / (1.0 - q))
+    }
+
+    /**
      * P(win) of a coin-scale score from [team]'s side ([Evaluator]'s, or the book's
      * [dev.quinton.goa.core.game.ai.heuristic.HEval]), through the Platt fit of [WinChance] for the game's
      * size. A finished [state] scores by [terminal]. The fit is for the hand evaluation with the coach's knobs;
@@ -51,4 +60,7 @@ internal object LeafChance {
 
     /** Unfinished positions stay strictly between every loss and every win ([terminal]'s hair). */
     private const val MAX_ROUNDS = 100
+
+    /** [toLogit]'s bound on a chance's distance from 0 and 1. */
+    private const val LOGIT_FLOOR = 1.0e-6
 }

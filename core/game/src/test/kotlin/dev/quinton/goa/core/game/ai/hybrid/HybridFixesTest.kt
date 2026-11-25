@@ -236,6 +236,40 @@ class HybridFixesTest {
         assertThat(free.fallbacks.getValue("deadline")).isEqualTo(0L)
     }
 
+    /**
+     * Wave 4 integration (Track H × F): the search-value hook reports coin-equivalents, the scale the trainer reads:
+     * with the chance leaf, logit(the candidate's mean chance) × the leaf nets' coin scale; `toLogit` inverts
+     * `ofLogit` and keeps a finished game finite.
+     */
+    @Test
+    fun `search values are recorded on the trainer's coin scale`() {
+        for (x in listOf(-6.0, -0.5, 0.0, 2.0, 9.0)) {
+            assertThat(LeafChance.toLogit(LeafChance.ofLogit(x))).isWithin(1e-9).of(x)
+        }
+        assertThat(LeafChance.toLogit(1.0)).isWithin(0.1).of(13.8)
+        assertThat(LeafChance.toLogit(0.0)).isWithin(0.1).of(-13.8)
+        val s = newGame(2, 41L)
+        val book = HeuristicAi(10, 3L)
+        var d = s.pending ?: error("no question")
+        while (!(d.kind == DecisionKind.PLAY_CARD && d.options.size > 1)) {
+            check(s.answer(d.id, book.choose(s, d)) is AnswerResult.Accepted)
+            d = s.pending ?: error("game over")
+        }
+        val knobs = AiPlayers.SEARCH_10 + ("leaf" to AiPlayers.SEARCH_10_LEAF.ordinal.toDouble())
+        val ai = HybridAi(5L, knobs)
+        var scores: Map<Choice, Double> = emptyMap()
+        var values: Pair<List<Choice>, DoubleArray>? = null
+        ai.scored = { _, sc, _ -> scores = sc }
+        ai.onSearched = { _, cands, means, _ -> values = cands to means }
+        ai.choose(s.forkSession(), d)
+        val scale = NetEvaluator(s.engineData, LearnedNet.ENSEMBLE_6).coinScale
+        val (cands, means) = values ?: error("not searched")
+        assertThat(scores).isNotEmpty()
+        for ((c, score) in scores) {
+            assertThat(means[cands.indexOf(c)]).isWithin(1e-6).of(LeafChance.toLogit(score) * scale)
+        }
+    }
+
     private fun newGame(size: Int, seed: Long): EngineSession {
         val (red, blue) = AiHarness.mixedLineups(1, seed = seed, size = size)[0]
         return TestData.engine.newGame(AiHarness.setup(red, blue, AiLevel.EXPERT, AiLevel.EXPERT, Team.RED))

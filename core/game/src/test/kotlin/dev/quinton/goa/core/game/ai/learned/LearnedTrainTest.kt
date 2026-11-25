@@ -3,6 +3,7 @@ package dev.quinton.goa.core.game.ai.learned
 import dev.quinton.goa.core.game.ai.Features
 import dev.quinton.goa.core.game.ai.LearnedNet
 import dev.quinton.goa.core.game.ai.Term
+import dev.quinton.goa.core.model.match.Team
 import java.io.DataInputStream
 import java.io.DataOutputStream
 import java.io.File
@@ -75,6 +76,79 @@ class LearnedTrainTest {
         )
     }
 
+    /**
+     * Offline check of leaf nets (Wave 4 Track H, expert iteration): `AI_DUMP=<out.tsv>` with
+     * `AI_DUMP_FILES=<games>,…`, `AI_SV=<values.tsv>` and `AI_DUMP_NETS=cur1,cur2,…` writes one line per held-out
+     * position (line-up % 10 = 9) and per position the search scored in any split (so the search values can be
+     * calibrated on the training split): where it comes from, its split, the result, the search's value (raw, Red's
+     * view, coin-equivalents, averaged over the teams searched), the turn / round / Wave counters / match points,
+     * and each net's logit of P(Red wins). `tools/ai/expert-iteration/offline.py` turns it into the tables. A
+     * separate variable from `AI_TRAIN`, so the training test in this class stays off. Changes nothing.
+     */
+    @Test
+    fun `dump held-out logits`() {
+        val out = File(System.getenv("AI_DUMP") ?: return)
+        val files = System.getenv("AI_DUMP_FILES")!!.split(",").map(::File)
+        val names = System.getenv("AI_DUMP_NETS")!!.split(",").filter { it.isNotBlank() }
+        val nets = names.map { Learned.net(it) }
+        val threads = System.getenv("AI_THREADS")?.toInt() ?: 3
+        val raw = HashMap<String, DoubleArray>()
+        for (f in System.getenv("AI_SV")?.split(",").orEmpty().filter { it.isNotBlank() }.map(::File)) {
+            for (line in f.readLines()) {
+                val t = line.split("\t")
+                if (t.size < 8) continue
+                val v = t[4].toDouble()
+                if (v.isNaN()) continue
+                val a = raw.getOrPut("${t[0]}\t${t[1]}\t${t[2]}") { DoubleArray(2) }
+                a[0] += if (t[3] == Team.RED.name) v else -v
+                a[1] += 1.0
+            }
+        }
+        val g = Features.GLOBAL_AT
+        val at = { n: String -> g + Features.GLOBAL.indexOf(n).also { require(it >= 0) { n } } }
+        val turnAt = at("turn")
+        val roundAt = at("round")
+        val wavesAt = at("wavesLeft")
+        val mpOwnAt = at("matchPointOwn")
+        val mpEnemyAt = at("matchPointEnemy")
+        out.parentFile?.mkdirs()
+        var n = 0
+        out.bufferedWriter().use { w ->
+            w.write(
+                "file\tsplit\tgame\tlineup\tsize\tindex\tboundary\tredWon\tsv\tsvTeams\tturn\tround\twaves\t" +
+                    "mpRed\tmpBlue\t" + names.joinToString("\t") + "\n",
+            )
+            for (f in files) {
+                val tag = f.nameWithoutExtension
+                val ps = load(f, env("AI_RESOLVED")?.toDouble() ?: 0.0, threads).filter {
+                    it.lineup % 10 == 9 || raw.containsKey("$tag\t${it.game}\t${it.index}")
+                }
+                for (p in ps) {
+                    val x = p.x!!
+                    val sv = raw["$tag\t${p.game}\t${p.index}"]
+                    val split = when (p.lineup % 10) {
+                        9 -> "test"
+                        8 -> "valid"
+                        else -> "train"
+                    }
+                    w.write(
+                        "$tag\t$split\t${p.game}\t${p.lineup}\t${p.size}\t${p.index}\t${if (p.boundary) 1 else 0}\t" +
+                            "${if (p.redWon) 1 else 0}\t${sv?.let { f4(it[0] / it[1]) } ?: "NaN"}\t" +
+                            "${sv?.get(1)?.toInt() ?: 0}\t${f4(x[turnAt] * 4.0)}\t${f4(x[roundAt] * 8.0)}\t" +
+                            "${f4(x[wavesAt] * 5.0)}\t${f4(x[mpOwnAt].toDouble())}\t${f4(x[mpEnemyAt].toDouble())}",
+                    )
+                    for (net in nets) w.write("\t" + f4(logit(net, p)))
+                    w.write("\n")
+                    n++
+                }
+                println("DUMP $tag: ${ps.size} positions")
+            }
+        }
+        println("DUMP wrote $n positions to $out")
+    }
+
+    private fun f4(v: Double) = String.format(java.util.Locale.ROOT, "%.4f", v)
+
     /** One run's settings over the environment ([AI_TRAIN_RUNS]). */
     private var overrides: Map<String, String> = emptyMap()
 
@@ -97,6 +171,8 @@ class LearnedTrainTest {
         overrides = emptyMap()
     }
 
+    /** One training run: an opt-in runner whose many knobs are read in one place, so it is long on purpose. */
+    @Suppress("CyclomaticComplexMethod", "LongMethod")
     private fun trainOnce() {
         val spec = env("AI_TRAIN") ?: return
         val name = env("AI_TRAIN_NAME") ?: "net"
@@ -118,8 +194,21 @@ class LearnedTrainTest {
                 w.toDouble()
         }
         val useAux = auxWeight.any { it != 0.0 }
-        val all = files.flatMap { f ->
+        // `AI_SV=<values.tsv>,…` ([SearchValueTest]): the search's backed-up values of the positions it searched.
+        val sv = env("AI_SV")?.split(",")?.filter { it.isNotBlank() }?.let { readSearchValues(it.map(::File)) }
+        val all = files.withIndex().flatMap { (src, f) ->
             val ps = load(f, rate, threads)
+            for (p in ps) p.src = src
+            if (sv != null) {
+                var n = 0
+                for (p in ps) {
+                    sv["${f.nameWithoutExtension}\t${p.game}\t${p.index}"]?.let {
+                        p.sv = it
+                        n++
+                    }
+                }
+                println("TRAIN search values for $n of ${ps.size} positions of ${f.name}")
+            }
             if (useAux) {
                 val dir = File(env("AI_AUX_CACHE") ?: "D:/.goa-qa/v14/a/cache")
                 val t = AuxTargets.load(f, rate, threads, dir)
@@ -140,8 +229,13 @@ class LearnedTrainTest {
                 p.x?.fill(0f, Features.SIZE + Features.BOARD_AT, 2 * Features.SIZE)
             }
         }
-        val train = all.filter { it.lineup % 10 < 8 }
-        val valid = all.filter { it.lineup % 10 == 8 }
+        // `AI_SV_ONLY=1` (expert iteration, Wave 4 Track H): train on the positions the search scored, and stop early
+        // on the validation split's searched positions against their targets (how well the net imitates the
+        // search), not on every position against the results: with the book's games in the validation set the
+        // stopping rule measured the book and stopped before the search's values had moved the net.
+        val svOnly = env("AI_SV_ONLY") == "1"
+        val train = all.filter { it.lineup % 10 < 8 && (!svOnly || !it.sv.isNaN()) }
+        val valid = all.filter { it.lineup % 10 == 8 && (!svOnly || !it.sv.isNaN()) }
         val test = all.filter { it.lineup % 10 == 9 }
         println(
             "TRAIN ${all.size} positions from ${all.map { it.game to it.family }.distinct().size} games " +
@@ -159,6 +253,14 @@ class LearnedTrainTest {
         )
         println("TRAIN hand slope k = ${"%.4f".format(k)} (coin scale ${"%.2f".format(1 / k)})")
         val targets = targets(all, lambda, teacher, k)
+        // `AI_SV_LAMBDA=λ`: a position with a search value gets λ · result + (1 − λ) · the search's P(Red wins);
+        val svLambda = env("AI_SV_LAMBDA")?.toDouble()
+        if (svLambda != null) {
+            for (p in all) {
+                if (p.sv.isNaN()) continue
+                targets[p] = (svLambda * (if (p.redWon) 1.0 else 0.0) + (1 - svLambda) * p.sv).toFloat()
+            }
+        }
         val cfg = Trainer.Config(
             lr = env("AI_LR")?.toDouble() ?: 3e-4,
             weightDecay = env("AI_WD")?.toDouble() ?: 1e-3,
@@ -190,7 +292,11 @@ class LearnedTrainTest {
             if (useAux) auxWeight else DoubleArray(0),
             // AI_INIT=<net>: fine-tune a saved or checked-in net (`cur1`) instead of starting at random (Track E).
             initData(env("AI_INIT")),
-        ).train(data(train, targets, release = true), data(valid, targets, release = false), cfg)
+        ).train(
+            data(train, targets, release = true),
+            data(valid, targets, release = false, outcomeIsTarget = svOnly),
+            cfg,
+        )
         println("TRAIN trained in ${"%.0f".format((System.nanoTime() - t0) / 1e9)} s")
         val net = Learned.NetData(
             raw.inputs, raw.h1, raw.h2, raw.w1, raw.b1, raw.w2, raw.b2, raw.w3, raw.wl, raw.b3, 1 / k,
@@ -225,19 +331,24 @@ class LearnedTrainTest {
     private fun reports(test: List<Pos>, valid: List<Pos>, k: Double, m: DoubleArray, net: LearnedNet) {
         report(test, k, m, net, "test")
         report(valid, k, m, net, "valid")
+        // `avg(a/b/c)` (Track E2): an ensemble, scored by the mean of its nets' logits (as the leaf averages them).
         for (other in env("AI_COMPARE")?.split(",").orEmpty().filter { it.isNotBlank() }) {
-            report(test, k, m, Learned.net(other), "test[$other]")
+            val nets = other.removePrefix("avg(").removeSuffix(")").split("/").map { Learned.net(it.trim()) }
+            report(test, k, m, { p -> nets.sumOf { logit(it, p) } / nets.size }, "test[$other]")
         }
     }
 
-    private fun report(set: List<Pos>, k: Double, m: DoubleArray, net: LearnedNet, label: String) {
+    private fun report(set: List<Pos>, k: Double, m: DoubleArray, net: LearnedNet, label: String) =
+        report(set, k, m, { p -> logit(net, p) }, label)
+
+    private fun report(set: List<Pos>, k: Double, m: DoubleArray, logitOf: (Pos) -> Double, label: String) {
         fun line(title: String, ps: List<Pos>) {
             if (ps.isEmpty()) return
             val y = ps.map { it.redWon }
             val hand = Logistic.loss(ps.map { doubleArrayOf(it.hand.toDouble()) }, y, doubleArrayOf(k))
             val fit = Logistic.loss(ps.map { p -> DoubleArray(p.terms.size) { p.terms[it].toDouble() } }, y, m)
             val nn = ps.indices.sumOf { i ->
-                val p = Trainer.sigmoid(logit(net, ps[i])).coerceIn(1e-9, 1 - 1e-9)
+                val p = Trainer.sigmoid(logitOf(ps[i])).coerceIn(1e-9, 1 - 1e-9)
                 -(if (y[i]) ln(p) else ln(1 - p))
             } / ps.size
             println(
@@ -247,6 +358,18 @@ class LearnedTrainTest {
         }
         line("all", set)
         line("turn starts", set.filter { it.boundary })
+        // Track E2: how far the net lies from the search's own values where they exist (RMS, in probability).
+        val searched = set.filter { !it.sv.isNaN() }
+        if (searched.isNotEmpty()) {
+            val rms = kotlin.math.sqrt(
+                searched.sumOf { p ->
+                    val d = Trainer.sigmoid(logitOf(p)) - p.sv
+                    d * d
+                } / searched.size,
+            )
+            line("searched", searched)
+            println("TRAIN $label searched n=${searched.size}: net vs search value RMS ${"%.4f".format(rms)}")
+        }
         for (size in set.map { it.size }.distinct().sorted()) line("${size}v$size", set.filter { it.size == size })
     }
 
@@ -266,10 +389,54 @@ class LearnedTrainTest {
     ) {
         /** The auxiliary targets ([AuxTargets]), when asked for. */
         var aux: FloatArray? = null
+
+        /** Which input file (games of two files can share a number). */
+        var src: Int = 0
+
+        /** The search's P(Red wins) at this position ([SearchValueTest]), NaN: not searched. */
+        var sv: Float = Float.NaN
+    }
+
+    /**
+     * The search values of [files] as P(Red wins) per `file\tgame\tindex`: each team's value of the card it
+     * would play, in coin-equivalents from its view, turned to Red's view and averaged over the teams searched
+     * (each team's value of its own best card is optimistic, by about 8 coin-equivalents at the median; the mean of
+     * the two views cancels that), then σ(v / `AI_SV_SCALE`, default the six-net leaf's mean coin scale) with the
+     * logit capped at ±`AI_SV_CLAMP` (default 12). Wave 4 Track H: a playout that wins inside the turn scores the
+     * win (thousands of coin-equivalents), so one such sample drags the mean far past anything the leaf says; the
+     * cap at the six nets' own 99th-percentile confidence (3.28 on the training split) makes the values better
+     * calibrated predictors of the result than the nets themselves (RESULTS.md "Wave 4 — Track H").
+     */
+    private fun readSearchValues(files: List<File>): Map<String, Float> {
+        val scale = env("AI_SV_SCALE")?.toDouble() ?: SV_SCALE
+        val clamp = env("AI_SV_CLAMP")?.toDouble() ?: SV_CLAMP
+        val col = env("AI_SV_COL")?.toInt() ?: 4
+        val sums = HashMap<String, DoubleArray>()
+        for (f in files) {
+            for (line in f.readLines()) {
+                val t = line.split("\t")
+                if (t.size < 8) continue
+                val v = t[col].toDouble()
+                if (v.isNaN()) continue
+                val a = sums.getOrPut("${t[0]}\t${t[1]}\t${t[2]}") { DoubleArray(2) }
+                a[0] += if (t[3] == Team.RED.name) v else -v
+                a[1] += 1.0
+            }
+        }
+        println(
+            "TRAIN search values: ${sums.size} positions from ${files.joinToString { it.name }}, scale $scale, " +
+                "cap ±$clamp",
+        )
+        return sums.mapValues { (_, a) -> Trainer.sigmoid((a[0] / a[1] / scale).coerceIn(-clamp, clamp)).toFloat() }
     }
 
     /** The rows of [ps]; with [release] the positions give up their inputs (the big training set). */
-    private fun data(ps: List<Pos>, targets: Map<Pos, Float>, release: Boolean): Trainer.Data {
+    private fun data(
+        ps: List<Pos>,
+        targets: Map<Pos, Float>,
+        release: Boolean,
+        outcomeIsTarget: Boolean = false,
+    ): Trainer.Data {
         // The trainer standardizes its rows in place: the training set hands its arrays over, the others copy.
         val x = Array(ps.size) { r ->
             val p = ps[r]
@@ -278,7 +445,14 @@ class LearnedTrainTest {
         return Trainer.Data(
             x,
             FloatArray(ps.size) { targets.getValue(ps[it]) },
-            FloatArray(ps.size) { if (ps[it].redWon) 1f else 0f },
+            // What early stopping scores: the results, or (`outcomeIsTarget`) the targets themselves.
+            FloatArray(ps.size) {
+                when {
+                    outcomeIsTarget -> targets.getValue(ps[it])
+                    ps[it].redWon -> 1f
+                    else -> 0f
+                }
+            },
             ps.map { it.extras },
             if (ps.any { it.aux != null }) {
                 FloatArray(ps.size * AuxTargets.COUNT) { i ->
@@ -292,7 +466,7 @@ class LearnedTrainTest {
     }
 
     /** λ-returns per game, bootstrapped from the teacher's P(Red wins) at the next positions; λ = 1 is the result. */
-    private fun targets(all: List<Pos>, lambda: Double, teacher: String, k: Double): Map<Pos, Float> {
+    private fun targets(all: List<Pos>, lambda: Double, teacher: String, k: Double): MutableMap<Pos, Float> {
         val out = HashMap<Pos, Float>(all.size * 2)
         // A net, or the mean logit of several (`avg(cur1,cur2,cur3)`: the checked-in ensemble, Wave 3 Track E).
         val nets = when {
@@ -304,7 +478,7 @@ class LearnedTrainTest {
 
             else -> listOf(Learned.net(teacher))
         }
-        for ((_, ps) in all.groupBy { it.family to it.game }) {
+        for ((_, ps) in all.groupBy { Triple(it.src, it.family, it.game) }) {
             val sorted = ps.sortedBy { it.index }
             var g = if (sorted.first().redWon) 1.0 else 0.0
             val result = g
@@ -429,6 +603,12 @@ class LearnedTrainTest {
 
     companion object {
         const val WEIGHTS = "src/main/kotlin/dev/quinton/goa/core/game/ai/LearnedWeights.kt"
+
+        /** The six-net leaf's mean coin scale: its value / this is its mean logit (Track E2's search values). */
+        private const val SV_SCALE = 37.852
+
+        /** A won game's leaf value is huge: a logit past this is certain enough. */
+        private const val SV_CLAMP = 12.0
 
         /** Rows the report's twelve-term fit uses. */
         private const val FIT_ROWS = 150_000

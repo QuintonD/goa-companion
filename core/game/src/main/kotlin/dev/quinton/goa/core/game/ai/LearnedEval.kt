@@ -197,6 +197,9 @@ internal class NetEvaluator(data: EngineData, private val nets: List<LearnedNet>
 
     private val features = Features(data)
 
+    /** The nets' mean coin scale (coin-equivalents per logit; the search-value recorders' scale). */
+    val coinScale: Double = nets.sumOf { it.coinScale } / nets.size
+
     init {
         require(nets.isNotEmpty()) { "Learned evaluation without a net" }
         for (net in nets) {

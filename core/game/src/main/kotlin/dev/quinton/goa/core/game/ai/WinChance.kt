@@ -25,6 +25,9 @@ internal object WinChance {
         else -> SLOPE_5V5
     }
 
+    /** Coin-equivalents per logit of this fit ([of]'s inverse slope), for values recorded on the coin scale. */
+    fun coinScale(heroesPerSide: Int): Double = 1.0 / slope(heroesPerSide)
+
     fun of(score: Double, heroesPerSide: Int): Double = when {
         score >= DECIDED -> 1.0
         score <= -DECIDED -> 0.0

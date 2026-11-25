@@ -17,6 +17,7 @@ import dev.quinton.goa.core.game.ai.PositionEvaluator
 import dev.quinton.goa.core.game.ai.SampleRunner
 import dev.quinton.goa.core.game.ai.Searcher
 import dev.quinton.goa.core.game.ai.TeamKills
+import dev.quinton.goa.core.game.ai.WinChance
 import dev.quinton.goa.core.game.ai.heuristic.HContext
 import dev.quinton.goa.core.game.ai.heuristic.HEval
 import dev.quinton.goa.core.game.ai.heuristic.HeuristicAi
@@ -379,11 +380,13 @@ class HybridAi(
         val bookAnswer = candidates[0]
         var best: Choice? = null
         var bestV = Double.NEGATIVE_INFINITY
+        val means = onSearched?.let { DoubleArray(candidates.size) { Double.NaN } }
         val scoredHere = if (scored != null) LinkedHashMap<Choice, Double>() else null
         val weights = DoubleArray(g) { columns[it].weight }
         for ((j, c) in candidates.withIndex()) {
             var score = columnScore(values[j], weights, config.risk)
             if (score.isNaN()) continue
+            means?.set(j, columnScore(values[j], weights))
             if (usePrior) {
                 // The prior is the book's card value on the coin scale; with the chance leaf its weight means
                 // something else (off in SEARCH_10).
@@ -411,6 +414,7 @@ class HybridAi(
                 "${candidates[j]}=${if (v.isEmpty()) "-" else (kotlin.math.round(v.average() * 10) / 10).toString()}"
             } + " -> $best (book $bookAnswer)",
         )
+        if (means != null) onSearched?.invoke(d, candidates, searchedScale(means, es.state, leafEval), best)
         return best?.takeIf { it in d.options }
     }
 
@@ -682,6 +686,25 @@ class HybridAi(
 
     /** Diagnostics only (tests): each searched decision's candidates with their final scores, and its columns. */
     internal var scored: ((Decision, Map<Choice, Double>, Int) -> Unit)? = null
+
+    /**
+     * Measurement only (Wave 3 Track E2, search-value targets for the leaf nets): after each searched
+     * decision, the candidates, each one's backed-up value (the weighted mean of its leaf values from the
+     * deciding team's view, NaN when none was played) and the answer. Null in play; changes no answer.
+     *
+     * The values are coin-equivalents (logit × the leaf's coin scale), the scale the trainer reads
+     * (`LearnedTrainTest` divides by NET6's coin scale). With the chance leaf (`lp`, Wave 4 Track F) the mean
+     * is taken over win chances and reported as [LeafChance.toLogit] of that mean × the leaf's coin scale
+     * ([searchedScale]); with `lp=0` it is the old coin-scale mean (finished games at ±1000 inside it).
+     */
+    internal var onSearched: ((Decision, List<Choice>, DoubleArray, Choice?) -> Unit)? = null
+
+    /** [onSearched]'s values: chance means back to coin-equivalents (see there); coin-scale means as they are. */
+    private fun searchedScale(means: DoubleArray, s: GameState, leafEval: PositionEvaluator?): DoubleArray {
+        if (!config.chanceLeaf) return means
+        val scale = (leafEval as? NetEvaluator)?.coinScale ?: WinChance.coinScale(LeafChance.heroesPerSide(s))
+        return DoubleArray(means.size) { if (means[it].isNaN()) Double.NaN else LeafChance.toLogit(means[it]) * scale }
+    }
 
     /**
      * [n] determinizations; those that deal the same position (same state at the step's start, same
