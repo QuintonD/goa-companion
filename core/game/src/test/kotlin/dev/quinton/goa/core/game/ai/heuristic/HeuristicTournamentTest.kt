@@ -46,7 +46,9 @@ class HeuristicTournamentTest {
         val format = AiHarness.Format.parse(System.getenv("AI_FORMAT"))
         // AI_SPRT=0.55: the pentanomial SPRT (p0 0.5, α β 0.05) on batches of AI_SPRT_BATCH line-ups,
         // at most AI_H_GAMES.
-        val sprt = System.getenv("AI_SPRT")?.toDoubleOrNull()?.let { Tournament.Sprt(it) }
+        // AI_SPRT_P0=0.60: H0 other than an even score (AI_SPRT is then H1), e.g. "at least 65%?" = 0.60 vs 0.65.
+        val p0 = System.getenv("AI_SPRT_P0")?.toDoubleOrNull() ?: 0.5
+        val sprt = System.getenv("AI_SPRT")?.toDoubleOrNull()?.let { Tournament.Sprt(it, p0) }
         val sprtBatch = System.getenv("AI_SPRT_BATCH")?.toIntOrNull() ?: 16
         for (pair in spec.split(",").map { it.trim() }.filter { it.isNotEmpty() }) {
             val (aName, bName) = pair.split(":")
@@ -67,7 +69,7 @@ class HeuristicTournamentTest {
                 sprt = sprt,
                 sprtBatch = sprtBatch,
             )
-            val verdict = sprt?.let { " SPRT(${it.p1}) ${it.verdict(score)}" }.orEmpty()
+            val verdict = sprt?.let { " SPRT(${it.p0}, ${it.p1}) ${it.verdict(score)}" }.orEmpty()
             val secs = (System.nanoTime() - t0) / 1e9
             val (lo, hi) = score.interval
             println(
