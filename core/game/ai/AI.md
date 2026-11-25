@@ -16,9 +16,12 @@ expected chance). At a card play the enemies' hidden cards (played facedown or s
 opponent model by enumeration of the likeliest joint deals, and a modelled seat never sees the other team's facedown
 card (Wave 4 Track F). After the reveal, where its samples are one known position, it searches a small minimax over
 the rest of the turn instead of one playout (the tree). Its knobs are `AiPlayers.SEARCH_10`; the measurements are in
-[`heuristic/RESULTS.md`](heuristic/RESULTS.md) "Wave 3 — Track C" and "Wave 4 — Track F". No wall clock unless the
-caller passes a budget (`AiPlayers.forStrength(…, budgetMs)`: past it the search answers with the samples it
-finished); without one the same answers on every device. Cancelling stops it inside its playouts.
+[`heuristic/RESULTS.md`](heuristic/RESULTS.md) "Wave 3 — Track C" and "Wave 4 — Track F". `forStrength`,
+`deterministic` and the tournaments have no wall clock (the same answers on every device); the apps' `AiPlayers.forApp`
+gives strength 10 a think time (`APP_BUDGET_MS`, 2 s a searched answer, knob `ms`: past it the search answers with the
+columns every candidate finished, the book's own answer if none) and the apps keep one player per team for the game, so
+its memo carries within a turn (Wave 4 Track A). Cancelling stops it inside its playouts. `eq=1` (off) plays a card
+play as a matrix game over the search's own deal columns (Wave 4 Track G).
 Strength 1–10 still means the same bands (Easy 2, Normal 6, Hard 8, Expert 10). The old search described
 below — determinized playouts with the search's own policy, the learned net — is no longer a seated
 player. It remains the coach, the puzzle solver, and `AiPlayers.searchDeterministic` /
@@ -34,7 +37,7 @@ in 5–7 ms on average (p95 20–25 ms) on oldboi; the search's numbers below ar
 ## Architecture
 
 The app binds these in `core/data/.../game/PlayEngineModule.kt`:
-`AiPlayers { strength -> forStrength(strength, seed, AiSampleThreads) }` (each answer's samples on three
+`AiPlayers { strength -> forApp(strength, AiSampleThreads) }` (each answer's samples on three
 background threads, "Budgets") and `AiCoach(factory)`. A seat's
 `Controller.Ai` carries its strength 1–10; a save from before the slider carries only the level and
 plays as the level's strength (Easy 2, Normal 6, Hard 8, Expert 10, ADR-039).

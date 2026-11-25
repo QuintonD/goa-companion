@@ -50,7 +50,7 @@ class GameParityTest {
         /** Strength 10's answers with a choice in [theShippedStrengthTenChoosesAlike] (card plays and the rest). */
         const val SHIPPED_TEN_ANSWERS = 30
 
-        const val SHIPPED_TEN_HASH = "ba4dff96352e3c60cc164ba50b2ed35849bc91e5e206ae10ffe433a5f7dcf39a"
+        const val SHIPPED_TEN_HASH = "b3bfc3bb986a33b0d132c9cf7a7ce83a351179db548397206336920bdca94141"
     }
 
     @Test
