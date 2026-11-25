@@ -46,9 +46,9 @@ object AiPlayers {
      * Strength 10 thinks at most [budgetMs] a searched answer (card play or any other; the search's own
      * deadline, [HybridConfig][dev.quinton.goa.core.game.ai.hybrid.HybridConfig.budgetMs], Wave 4 Track F:
      * ADR-047's 2 s by default). Answers that finish within it are the same on every device and runner; one
-     * cut short depends on the device's speed. The player keeps a memo for the turn: the apps keep one player per team and strength
-     * for the whole game (as the tournaments measured it), never one per answer, and ask it one question at
-     * a time.
+     * cut short depends on the device's speed. The player keeps a memo for the turn: the apps keep one player
+     * per team and strength for the whole game (as the tournaments measured it), never one per answer, and ask
+     * it one question at a time.
      */
     fun forApp(
         strength: Int,
