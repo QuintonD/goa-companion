@@ -80,7 +80,23 @@ class DecisionSetTest {
         val keep: List<Int>,
     )
 
-    private class Asked(val choice: Choice, val ms: Double, val cols: Int, val scores: Map<Choice, Double>)
+    private class Asked(
+        val choice: Choice,
+        val ms: Double,
+        val cols: Int,
+        val scores: Map<Choice, Double>,
+        val work: Long = 0,
+    )
+
+    /** Every candidate's exact score (bits), in candidate order: equal digests mean the same search result. */
+    private fun digest(scores: Map<Choice, Double>): String {
+        var h = 1469598103934665603L
+        for ((c, v) in scores) {
+            h = (h xor c.toString().hashCode().toLong()) * 1099511628211L
+            h = (h xor v.toRawBits()) * 1099511628211L
+        }
+        return (h ushr 16).toString(16)
+    }
 
     private class Row(val label: String, val team: Team, val seat: String, val asked: List<Asked>)
 
@@ -109,7 +125,7 @@ class DecisionSetTest {
                 val c = ai.choose(es.forkSession(), d)
                 val ms = (System.nanoTime() - t0) / 1e6
                 fallbacks.merge(ai.fallbacks)
-                Asked(c, ms, cols, scores)
+                Asked(c, ms, cols, scores, ai.work)
             }
             val row = Row("${g.label}:$n r${es.state.round}t${es.state.turn}", d.team, d.seat, asked)
             println(
@@ -120,7 +136,7 @@ class DecisionSetTest {
                             "${(it.key as? Choice.Card)?.cardId ?: it.key}=${"%.4f".format(it.value)}"
                         }
                     "${specs[k].first}=${(a.choice as? Choice.Card)?.cardId ?: a.choice}|${"%.0f".format(a.ms)}ms|" +
-                        "c${a.cols}|$top"
+                        "c${a.cols}|$top|w${a.work}|#${digest(a.scores)}"
                 },
             )
             out += row
