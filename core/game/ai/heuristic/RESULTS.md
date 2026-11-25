@@ -1140,3 +1140,63 @@ true score as "≥ 65% with 95% confidence by the test", not "75%"; the Wilson i
 only approximate after a sequential stop. 2v2 only: 3v3 was not measured. No app budget: with the 2 s budget
 (`forApp`) answers are cut on slow card plays (Track A: 22/22 2v2 and 20/22 3v3 card plays unchanged at 2 s on the JVM;
 the browser is ~11x slower). The sealed 5000+ final table is still unrun.
+
+## Efficiency: the same strength 10, faster (2026-11-25, ADR-086)
+
+Branch `t3/ai-efficiency` (from `feature/ai-wave4` ede2c722). Goal: make the shipped strength 10 (`SEARCH_10` + NET6,
+75% against the old strength 10 above) cheaper **without changing a single answer**, so its strength needs no new
+games: every change is exact by construction and checked on the decision set and the parity transcripts.
+
+**Where the time went** (JFR, 50 decision-set positions, one thread): 94% inside the book's answers in the playouts
+(`BookPolicy.answer` → `HeuristicAi.look` → `CardSim.rest`, the rest-of-turn look); of it, the static scoring of every
+inner question (`General.score` → `HContext.placement`/`exposure`) ~64% and the engine's step re-runs ~26%; the
+learned leaf ~1%, determinization and the memo key under 1%. On Node (the web app) two costs of Kotlin/JS alone came
+on top: a property-reference object built on every read of a `by lazy` property (22% of the time) and a JavaScript
+stack captured by every engine signal (`Suspend` is an exception: 16%).
+
+**What changed** (none of it changes what is computed, only how often and how):
+- `CardSim.ranked`: each option scored once, then the same stable sort (the selector ran on every comparison).
+- `HContext`: per-decision memos of pure facts about its state that every option and space asked again — heavy
+  immunity, kill and discard worth, goal zone, match point, plays left, a hero's attack/defense/lane cards, item
+  bonuses, minion targets, the lane-kill value, movement and Fast Travel destinations, and `placement` itself (kept
+  apart while a hero's note is looking, `looking`, which a note may read). The state a context reads is never
+  changed while it lives (the existing card and threat caches already relied on it).
+- `BoardGeometry.distanceToZone`: a table per map instead of a minimum over the zone's spaces each time.
+- `HeroState.handSize` / `hasUnresolved`: counts without building the hand list.
+- Engine: a fork no longer copies the start state it immediately replaces; `CardSim` forks that are answered at
+  once share the shown state (`forkForAnswer`, as `HybridAi` already did); in a determinized copy a re-run no
+  longer rebuilds the card's action options (the Primary probe) to check an answer the session knows was accepted
+  on the same start with the same answers before it (`EngineSession.trusted`, `Game.askAlways`; ENGINE.md).
+- Kotlin/JS: `HContext.game`/`plan`/`placedHero` and the flow's action availability are plain backing fields, not
+  delegates; `HybridAi.choose` and `HeuristicAi.choose` run in `withoutStackTraces` (JS: `Error.stackTraceLimit = 0`
+  for the call, restored after; JVM: nothing, its signals never had traces).
+
+**Checks.** The decision set (211 card plays, `DecisionSetTest`, now printing each search's work and a digest of
+every candidate's exact score bits) run on the baseline and on this branch side by side, three threads each:
+**211/211 answers, score digests and work counts identical.** `GameParityTest` (7 tests) passes on the JVM and on
+Node with the pinned transcripts unchanged (shipped strength 10 `b3bfc3bb…`). Gate: `:core:game:allTests` (JVM 160
+suites / 2 189 tests, JS 15), `:core:domain:allTests` (423 + 45), `:web:engine:jsTest` (8), `:app:compileDebugKotlin`,
+detekt and ktlint of both modules: all pass.
+
+| | baseline (ede2c722) | this branch | |
+|---|---|---|---|
+| Decision set, JVM, 211 card plays, 3 + 3 threads at once: mean ms | 2 665 | 1 703 | **1.56×** (median per position 1.46×) |
+| Shipped-s10 parity game on Node (`theShippedStrengthTenChoosesAlike`) | 258 s | 49.5 s | **5.2×** |
+| Old-search parity game on Node (`theSearchingLevelsChooseAlike`) | 47 s | 35 s | 1.3× |
+| `GameParityTest` (7 tests) on the JVM, quiet machine, twice each | 36.9 / 36.1 s | 22.8 / 23.0 s | 1.6× |
+
+The decision-set times are both runs sharing the machine (load ≈ 6 of 8 cores), so absolute ms are higher than a
+quiet run; the ratio is what counts. The step order of the batches: score-once sort + `HContext` memos + zone table
+1.31×; engine forks and trusted re-runs 1.49×; `placement` memo and hand counts 1.54×, final 1.56× (JVM); the two
+Kotlin/JS fixes 78 s → 49.5 s on Node (JVM unchanged; 53.5 s in a later run). In the gate's run the same game took 7.6 s on the JVM, so Node is now
+about 6.5× slower than the JVM on it, where Track A measured about 11×.
+
+**What it means in play.** Without a budget (tournaments, `forStrength`) the answers are the same, only sooner. With
+the app's 2 s budget (`forApp`) fewer card plays are cut short, most of all in the browser, so the app's strength 10
+can only get closer to the unbudgeted one measured above.
+
+**Left.** The profile is now flat on the JVM: the book's static scoring of every inner question of the rest-of-turn
+look (~40%) and the engine's step re-runs (~40%: re-running a step from its start for every answer is the engine's
+design). Within one search the book is almost never asked the same question on the same position twice (3%
+measured), so an answer cache would not pay. On Node what is left is mostly string-keyed hash lookups (Kotlin/JS
+does not cache a string's hash) and garbage collection.

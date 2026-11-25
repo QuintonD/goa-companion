@@ -53,7 +53,13 @@ whole game is serializable at *any* decision, mid-card and mid-defense included 
 start state plus the answers), forks are a pointer copy, and the same code runs for humans, the AI
 and the puzzle solver. The cost is re-running the step for every answer; steps are short (one
 card resolution) and the costly option lists (the Primary-action probe, defense previews) are
-built lazily, only when a question is really pending (`Game.askAlways`).
+built lazily, only when a question is really pending (`Game.askAlways`). In a determinized copy (the
+AI's, with a lenient random source that replaces answers the sampled state no longer offers) `askAlways`
+still builds them on a re-run to check the answer, except for the answers the session knows replay as
+given (`EngineSession.trusted`: each was accepted from a run on the same checkpoint whose earlier answers
+were all trusted; a new step starts the count at 0, and a determinization under the real step's answers or
+an edited view trusts nothing until its step ends). Runs are deterministic, so skipping that check changes
+no answer (ADR-086).
 
 Rules for code that runs inside a step (scripts included):
 
@@ -64,7 +70,9 @@ Rules for code that runs inside a step (scripts included):
   (`Game.touch()`), emit events and fire triggers.
 - **Single-option questions are not asked** (`ask(auto = true)`, the default) unless the question is
   an act of the player (play, action, defend, respawn, confirm, optional choices with Decline).
-- **Control flow signals** (`ControlSignal`, no stack traces): `Suspend`, `GameEnded`, `Fizzle`
+- **Control flow signals** (`ControlSignal`, no stack traces on the JVM; on Kotlin/JS the AI's entry points
+  run inside `withoutStackTraces`, since a JS exception captures one in its constructor): `Suspend`,
+  `GameEnded`, `Fizzle`
   (a mandatory step can't be done, p.10: caught at the action, which then ends), `ActorDefeated`
   (the acting hero was defeated: its action ends), `ProbeHit` (probes). Never catch them broadly.
 

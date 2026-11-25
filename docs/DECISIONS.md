@@ -3091,3 +3091,21 @@ W2T against the old strength 10 on held-out checkpoint line-ups: 56.8% in 2v2 (6
 threads 222 ms / 0.7 s / 1.8 s; 3v3 on the loaded machine peaked at 22 s. A depth-3 tree and a round horizon
 measured worse. Below the owner's 65% target; the next levers are the leaf and Track A's stronger book in the
 playouts (`r.`/`p.` knobs give the root and the playouts different book settings).
+
+## ADR-086 — Strength 10 made faster only by changes that keep every answer (2026-11-25)
+**Context:** The owner asked to make the best computer player (wave 4's strength 10, 75% against the old
+strength 10) more efficient "without diminishing results". Its time is almost all the book's rest-of-turn look
+inside the playouts and the engine's step re-runs; on Kotlin/JS two runtime costs came on top (a property
+reference built on every read of a delegated property, a stack trace captured by every engine signal).
+**Decision:** Only exact speed-ups: memos of pure per-decision facts in `HContext`, score-once sorting, a per-map
+zone-distance table, list-free hand counts, forks that skip a copy they would replace, and in determinized copies
+re-runs that trust answers already accepted on the same step start with the same answers before them
+(`EngineSession.trusted`; a determinization under the real step's answers or an edited view trusts none). On JS, backing fields
+instead of `by lazy` on hot paths and `withoutStackTraces` around the AI's `choose`. No knob, leaf, sample count
+or budget changed. Proof: on the 211-position decision set every answer, every candidate's exact score and the
+work count are identical to the baseline; the JVM and Node parity transcripts are unchanged.
+**Consequences:** The same strength 10 in 1.56× less time on the JVM and about 5× less on Node (RESULTS.md
+"Efficiency"); with the app's 2 s budget fewer card plays are cut, most of all in the browser. Code that
+mutates a state an `HContext` is reading would now be wrong in more places (it already was for the card and
+threat caches); the engine's determinism (ENGINE.md) is what makes trusted re-runs exact. The JS signals inside
+the AI have no stack traces; errors there were already caught and counted as fallbacks.
