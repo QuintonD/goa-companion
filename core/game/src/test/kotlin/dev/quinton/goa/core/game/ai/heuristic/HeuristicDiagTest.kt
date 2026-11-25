@@ -37,6 +37,8 @@ class HeuristicDiagTest {
         }
     }
 
+    // One game's whole trace, read top to bottom.
+    @Suppress("CyclomaticComplexMethod", "LongMethod")
     private fun diagnose(spec: String, format: AiHarness.Format) {
         val lineups = System.getenv("AI_H_GAMES")?.toIntOrNull() ?: 6
         val first = System.getenv("AI_H_FIRST")?.toIntOrNull() ?: 0
