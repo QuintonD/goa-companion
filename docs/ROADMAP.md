@@ -602,3 +602,13 @@ passes (including an in-place upgrade from the morning build with real data). Ev
 - [ ] Hero grid scroll smoothness measured on the S25 Ultra (emulator host GPU crashes under flings; software GPU numbers only)
 - [ ] Baseline profile
 - [ ] Signed release APK sideloaded and smoke-tested on the S25 Ultra
+
+## Backlog
+
+- [ ] Heroes choose where they start (owner, 2026-11-24): at setup each player picks which of their team's
+  hero spawn points their hero starts on (owner's ruling; p.6 step 9 only says "Place the hero miniatures on
+  the marked spaces" — check the FAQ before building), instead of the app assigning them in
+  pick order (`BoardSetup.opening`, the [APP] note under *Opening* in DOMAIN.md). Covers the play engine's
+  setup (`core:game` `engine/Setup.kt`, `PositionBuilder`), the computer's choice for its own heroes, online
+  games and the board sandbox's opening; with more than three per team, the extras pick their adjacent space
+  too (p.20)
