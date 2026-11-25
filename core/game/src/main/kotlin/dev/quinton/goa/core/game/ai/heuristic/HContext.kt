@@ -92,7 +92,11 @@ class HContext(
     }
     val seat: String = decision?.seat.orEmpty()
 
-    val game: Game by lazy { Game(session.engineData, state, emptyList(), RunMode.PROBE) }
+    // Backing fields, not `by lazy`: Kotlin/JS builds a property reference on every read of a delegated property.
+    private var gameField: Game? = null
+
+    val game: Game
+        get() = gameField ?: Game(session.engineData, state, emptyList(), RunMode.PROBE).also { gameField = it }
 
     val round: Int get() = state.round
     val turn: Int get() = state.turn
@@ -107,11 +111,35 @@ class HContext(
     private val modCache = HashMap<Long, Int>()
     private val styleCache = HashMap<String, HeroStyle>()
 
+    // Per-decision memos of pure facts about [state] (it is not changed while a context reads it, as the caches
+    // above already assume): the book asks them again for every option and every space it scores.
+    private val immuneCache = HashMap<String, Boolean>()
+    private val killWorthCache = HashMap<String, Double>()
+    private val goalZoneCache = HashMap<String, String?>()
+    private val matchPointCache = HashMap<String, Boolean>()
+    private val playsLeftCache = HashMap<String, Int>()
+    private val attackCardsCache = HashMap<String, List<HCard>>()
+    private val defensesCache = HashMap<String, List<Pair<HCard, Double>>>()
+    private val discardWorthCache = HashMap<String, Double>()
+    private val itemBonusCache = HashMap<String, IntArray>()
+    private val targetsCache = HashMap<Team, List<MinionState>>()
+    private val movesCache = HashMap<String, Set<Hex>>()
+    private val travelCache = HashMap<String, List<Hex>>()
+    private val laneCardsCache = HashMap<String, List<Pair<HCard, Double>>>()
+
+    /** [placement] per hero and space, apart for [looking] (a hero's threat notes may read [patches]). */
+    private val placementCache = HashMap<String, HashMap<Hex, Double>>()
+    private val placementLookCache = HashMap<String, HashMap<Hex, Double>>()
+    internal val laneKillRed = HashMap<String, Double>()
+    internal val laneKillBlue = HashMap<String, Double>()
+
     /** Per-decision results a look computes once for every option ([CardSim]'s teammate prelude). */
     internal val memo = HashMap<String, Any?>()
 
     /** The intent for this turn, derived from the state. Stable for the whole decision. */
-    val plan: TurnPlan by lazy { TurnPlan.derive(this) }
+    private var planField: TurnPlan? = null
+
+    val plan: TurnPlan get() = planField ?: TurnPlan.derive(this).also { planField = it }
 
     fun hero(id: String): HeroState? = state.hero(id)
 
@@ -148,6 +176,7 @@ class HContext(
 
     /** Hexes from [hex] to the nearest space of [zone]. 0 when [hex] is in the zone. */
     fun distanceToZone(hex: Hex, zone: String): Int {
+        game.geo.distanceToZone(hex, zone)?.let { return it }
         if (zoneOf(hex) == zone) return 0
         val spaces = game.geo.zoneSpaces[zone].orEmpty()
         return spaces.minOfOrNull { HexGrid.distance(hex, it) } ?: 0
@@ -169,20 +198,44 @@ class HContext(
         return modCache.getOrPut(key) { game.minionModifier(hex, team, null) }
     }
 
-    fun heavyImmune(minionId: String): Boolean = game.heavyImmune(minionId)
+    fun heavyImmune(minionId: String): Boolean = immuneCache.getOrPut(minionId) { game.heavyImmune(minionId) }
 
-    fun itemBonus(heroId: String, stat: Stat): Int = game.itemBonus(heroId, stat)
+    fun itemBonus(heroId: String, stat: Stat): Int {
+        val row = itemBonusCache.getOrPut(heroId) { IntArray(STATS) { UNKNOWN } }
+        val known = row[stat.ordinal]
+        if (known != UNKNOWN) return known
+        return game.itemBonus(heroId, stat).also { row[stat.ordinal] = it }
+    }
+
+    /** [h]'s attack-card candidates with weights, as [laneThreat] reads them: held cards, or the possible pool. */
+    internal fun laneCards(h: HeroState): List<Pair<HCard, Double>> =
+        if (h === state.hero(h.id)) laneCardsCache.getOrPut(h.id) { laneCardsOf(h) } else laneCardsOf(h)
+
+    private fun laneCardsOf(h: HeroState): List<Pair<HCard, Double>> = if (h.team == team || profile.knowHands) {
+        (h.hand + h.unresolved).map { card(it.id) to 1.0 }
+    } else {
+        possibleCards(h.id).map { it.card to it.weight }
+    }
+
+    /** Enemy minions of [owner] on the board that are not immune heavies: what an attack card can take. */
+    internal fun minionTargets(owner: Team): List<MinionState> = targetsCache.getOrPut(owner) {
+        state.minions.filter { it.team != owner && it.at != null && !heavyImmune(it.id) }
+    }
 
     /** The icon's value now (printed + items + effects), or null when the card has no such icon. */
     fun cardValue(heroId: String, cardId: String, stat: Stat): Int? = game.cardValue(heroId, cardId, stat)
 
-    fun movementDestinations(heroId: String, cardId: String): Set<Hex> {
+    fun movementDestinations(heroId: String, cardId: String): Set<Hex> =
+        movesCache.getOrPut(cardId + MOVE_KEY + heroId) { movementDestinationsOf(heroId, cardId) }
+
+    private fun movementDestinationsOf(heroId: String, cardId: String): Set<Hex> {
         val n = game.cardValue(heroId, cardId, Stat.MOVEMENT) ?: return emptySet()
         if (n <= 0) return emptySet()
         return game.reach(MoveSpec(heroId, 0, n, movementAction = true)).keys
     }
 
-    fun fastTravelDestinations(heroId: String): List<Hex> = game.fastTravelDestinations(heroId)
+    fun fastTravelDestinations(heroId: String): List<Hex> =
+        travelCache.getOrPut(heroId) { game.fastTravelDestinations(heroId) }
 
     fun canFastTravel(heroId: String): Boolean = fastTravelDestinations(heroId).isNotEmpty()
 
@@ -194,7 +247,7 @@ class HContext(
             else -> 0
         }
         if (base == 0) return 0
-        val extra = if (card.ranged) game.itemBonus(heroId, Stat.RANGE) else 0
+        val extra = if (card.ranged) itemBonus(heroId, Stat.RANGE) else 0
         return base + extra
     }
 
@@ -211,13 +264,15 @@ class HContext(
 
     fun ownHand(): List<HCard> = hand(seat).orEmpty()
 
-    fun handCount(heroId: String): Int = state.hero(heroId)?.hand?.size ?: 0
+    fun handCount(heroId: String): Int = state.hero(heroId)?.handSize ?: 0
 
     /**
      * Cards this hero still has to play this round, from the public turn: the turns after this one,
      * plus this turn's card while the hero has neither played nor resolved one.
      */
-    fun playsLeft(heroId: String): Int {
+    fun playsLeft(heroId: String): Int = playsLeftCache.getOrPut(heroId) { playsLeftOf(heroId) }
+
+    private fun playsLeftOf(heroId: String): Int {
         val h = state.hero(heroId) ?: return 0
         if (roundOver) return 0
         val later = (4 - state.turn).coerceAtLeast(0)
@@ -225,7 +280,7 @@ class HContext(
             Step.TURN_START -> true
 
             Step.PLAY, Step.REVEAL, Step.RESOLVE ->
-                h.unresolved.isEmpty() && h.hand.isNotEmpty() && heroId !in state.turnRecord.resolved &&
+                !h.hasUnresolved && h.handSize > 0 && heroId !in state.turnRecord.resolved &&
                     (state.step != Step.PLAY || h.seat >= state.stepSeat)
 
             else -> false
@@ -292,6 +347,12 @@ class HContext(
 
     /** How good it is for [heroId] to stand at [at], in coin-equivalents, before a full evaluation. */
     fun placement(heroId: String, at: Hex): Double {
+        val byHero = (if (looking) placementLookCache else placementCache).getOrPut(heroId) { HashMap() }
+        byHero[at]?.let { return it }
+        return placementOf(heroId, at).also { byHero[at] = it }
+    }
+
+    private fun placementOf(heroId: String, at: Hex): Double {
         val style = style(heroId)
         var v = presence(at) * style.laneWeight
         v += opportunity(heroId, at) * 2.0 * profile.knob("opp", 1.0)
@@ -328,7 +389,7 @@ class HContext(
         val h = state.hero(heroId) ?: return 0.0
         val attacks = attackCardsOf(h)
         if (attacks.isEmpty()) return 0.0
-        val minions = state.minions.filter { it.team != h.team && it.at != null && !heavyImmune(it.id) }
+        val minions = minionTargets(h.team)
         var v = 0.0
         for (c in attacks) {
             val reach = attackReach(heroId, c)
@@ -379,7 +440,7 @@ class HContext(
         if (h.team == team) return -8.0
         val at = h.at ?: return 0.0
         // G11: an empty hand, or the last card about to be played, is a defeat.
-        if (h.hand.isEmpty() || defenseless(targetId)) return killWorth(targetId)
+        if (h.handSize == 0 || defenseless(targetId)) return killWorth(targetId)
         val mod = minionModifier(at, h.team)
         val chance = killChance(h, attackTotal, ranged, mod)
         val kill = killWorth(targetId)
@@ -389,9 +450,9 @@ class HContext(
         // G60: a teammate still to act turns a failed poke into the card they will not have.
         // F6 (knob `finisher`): only when that teammate's attack can finish what the poke leaves.
         if (profile.focusFire && allyCanReach(h) && (!profile.on("finisher", false) || allyFinishes(h))) {
-            v += if (h.hand.size <= 2) 6.0 else 3.5
+            v += if (h.handSize <= 2) 6.0 else 3.5
         }
-        if (profile.twoTurnPlans && chance < 0.55 && h.hand.size <= 3 && turn in 2..3) v += 2.0
+        if (profile.twoTurnPlans && chance < 0.55 && h.handSize <= 3 && turn in 2..3) v += 2.0
         return v
     }
 
@@ -440,13 +501,15 @@ class HContext(
      * "discards a card, or is defeated"; "if able" takes nothing from it (Cards.kt forceDiscard).
      */
     private fun discardStrike(e: HeroState, card: HCard): Double = when {
-        e.hand.isNotEmpty() -> discardWorth(e)
+        e.handSize > 0 -> discardWorth(e)
         card.discardOrDefeat -> killWorth(e.id)
         else -> 0.0
     }
 
     /** Coin-equivalents of defeating [heroId], Life included. Public: the level band is the death cost. */
-    fun killWorth(heroId: String): Double {
+    fun killWorth(heroId: String): Double = killWorthCache.getOrPut(heroId) { killWorthOf(heroId) }
+
+    private fun killWorthOf(heroId: String): Double {
         val h = state.hero(heroId) ?: return 8.0
         val tier = deathTier(h.level)
         val life = life(h.team)
@@ -462,9 +525,12 @@ class HContext(
     fun lastLifeWorth(): Double = profile.knob("lastLife", LAST_LIFE)
 
     /** What throwing one card costs that hero, from the spare they have left. */
-    fun discardWorth(h: HeroState): Double {
+    fun discardWorth(h: HeroState): Double =
+        if (h === state.hero(h.id)) discardWorthCache.getOrPut(h.id) { discardWorthOf(h) } else discardWorthOf(h)
+
+    private fun discardWorthOf(h: HeroState): Double {
         if (roundOver) return 0.0
-        val spare = h.hand.size - playsLeft(h.id)
+        val spare = h.handSize - playsLeft(h.id)
         val base = when {
             state.turn >= 4 && playsLeft(h.id) <= 0 -> 1.2
             spare >= 2 -> 2.0
@@ -475,7 +541,9 @@ class HContext(
         return base
     }
 
-    fun matchPoint(lane: String): Boolean {
+    fun matchPoint(lane: String): Boolean = matchPointCache.getOrPut(lane) { matchPointOf(lane) }
+
+    private fun matchPointOf(lane: String): Boolean {
         val waves = state.wavesLeft[lane] ?: return false
         if (waves <= 1) return true
         val bz = state.battleZones[lane] ?: return false
@@ -507,7 +575,16 @@ class HContext(
      * space" does not, and may place the hero, another hero, or a token (a Turret, a Barrier, a grenade).
      * Probed once through the engine: answer the first space and see who stands there. Null for a piece.
      */
-    val placedHero: String? by lazy { probePlaced() }
+    val placedHero: String?
+        get() {
+            if (!placedKnown) {
+                placedField = probePlaced()
+                placedKnown = true
+            }
+            return placedField
+        }
+    private var placedField: String? = null
+    private var placedKnown = false
 
     private fun probePlaced(): String? {
         val d = decision ?: return null
@@ -672,7 +749,7 @@ class HContext(
         var noHit = 1.0
         var attackReaches = false
         // Cards in hand while this turn resolves, and while the next one does (one more is played).
-        val nowCards = h.hand.size - if (playsThisTurn(h)) 1 else 0
+        val nowCards = h.handSize - if (playsThisTurn(h)) 1 else 0
         val emptyNext = state.turn < 4 && nowCards - 1 <= 0
         val attackers = ArrayList<Double>()
         for ((enemyId, list) in threatsFromEnemies(h)) {
@@ -736,7 +813,7 @@ class HContext(
      */
     private fun escapeSlack(h: HeroState, initiative: Int): Int {
         if (!profile.on("escape", profile.turnRest) || state.revealed || roundOver) return 0
-        if (h.hand.size != 1 || !playsThisTurn(h)) return 0
+        if (h.handSize != 1 || !playsThisTurn(h)) return 0
         if (h.team != team && !profile.knowHands) return 0
         val c = card(h.hand[0].id)
         if (!c.hasMovement || c.movement <= 0) return 0
@@ -809,7 +886,7 @@ class HContext(
     private fun kills(h: HeroState, t: Threat, mod: Int): Boolean {
         // "Discards a card, if able" defeats nobody, not even an empty hand (Cards.kt forceDiscard).
         if (!t.card.attackCard && !t.card.discardOrDefeat) return false
-        if (h.hand.isEmpty()) return true
+        if (h.handSize == 0) return true
         // "Discards a card, or is defeated" with a card in hand is a discard; a defense does not answer it.
         if (!t.card.attackCard) return false
         val options = defensesOf(h)
@@ -818,7 +895,7 @@ class HContext(
     }
 
     private fun killChance(h: HeroState, total: Int, ranged: Boolean, mod: Int): Double {
-        if (h.hand.isEmpty()) return 1.0
+        if (h.handSize == 0) return 1.0
         val options = defensesOf(h)
         if (options.isEmpty()) return 1.0
         val holding = options.filter { holds(h.id, it.first, total, ranged, mod) }
@@ -829,7 +906,10 @@ class HContext(
     }
 
     /** Defense cards they might hold, with the colour-weight of [possibleCards]. */
-    private fun defensesOf(h: HeroState): List<Pair<HCard, Double>> {
+    private fun defensesOf(h: HeroState): List<Pair<HCard, Double>> =
+        if (h === state.hero(h.id)) defensesCache.getOrPut(h.id) { defensesOfNow(h) } else defensesOfNow(h)
+
+    private fun defensesOfNow(h: HeroState): List<Pair<HCard, Double>> {
         val cards = if (h.team == team || profile.knowHands) {
             h.hand.map { card(it.id) to 1.0 }
         } else {
@@ -848,7 +928,10 @@ class HContext(
         return printed + itemBonus(heroId, Stat.DEFENSE) + mods >= total
     }
 
-    private fun attackCardsOf(h: HeroState): List<HCard> = if (h.team == team || profile.knowHands) {
+    private fun attackCardsOf(h: HeroState): List<HCard> =
+        if (h === state.hero(h.id)) attackCardsCache.getOrPut(h.id) { attackCardsOfNow(h) } else attackCardsOfNow(h)
+
+    private fun attackCardsOfNow(h: HeroState): List<HCard> = if (h.team == team || profile.knowHands) {
         (h.hand + h.unresolved).map { card(it.id) }.filter { it.attackCard }
     } else {
         possibleCards(h.id).map { it.card }.filter { it.attackCard }.distinctBy { it.id }
@@ -868,7 +951,7 @@ class HContext(
      */
     private fun allyFinishes(target: HeroState): Boolean {
         val at = target.at ?: return false
-        val stripped = target.hand.size - 1 <= playsLeft(target.id)
+        val stripped = target.handSize - 1 <= playsLeft(target.id)
         val mod = minionModifier(at, target.team)
         return state.heroes.any { ally ->
             val from = ally.at
@@ -948,7 +1031,10 @@ class HContext(
      * The zone [heroId] should be standing in. Null until lane timing is on.
      * At match point it is the current Battle Zone; once a push is decided, the next one (G51).
      */
-    fun goalZone(heroId: String): String? = goalZoneOf(this, heroId)
+    fun goalZone(heroId: String): String? {
+        if (goalZoneCache.containsKey(heroId)) return goalZoneCache[heroId]
+        return goalZoneOf(this, heroId).also { goalZoneCache[heroId] = it }
+    }
 
     /** The zone a push by [pushing] moves [lane] into, or null when that zone is a Throne or absent. */
     fun nextBattleZone(lane: String, pushing: Team): String? = nextZoneOf(this, lane, pushing)
@@ -967,6 +1053,10 @@ class HContext(
 
     companion object {
         private const val KILL_TEMPO = 5.0
+
+        private val STATS = Stat.entries.size
+        private const val MOVE_KEY = "\u0000"
+        private const val UNKNOWN = Int.MIN_VALUE
 
         /** F6: a follow-up attack this likely to defeat is a finisher (not a likely-held defense). */
         private const val FINISH = 0.3

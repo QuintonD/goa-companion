@@ -64,6 +64,27 @@ class BoardGeometry private constructor(val map: BoardMap) {
 
     fun zoneOf(hex: Hex): String? = spaces[hex]?.zone
 
+    /**
+     * Hexes from the space [hex] to the nearest space of [zone] (0 inside it), from a table built once per map;
+     * null when [hex] is not a space or [zone] has no spaces (the caller works it out).
+     */
+    fun distanceToZone(hex: Hex, zone: String): Int? = zoneDistances()[zone]?.get(hex)
+
+    /** Built on first use (a race builds equal tables twice; no `by lazy`, which costs a reference per read on JS). */
+    @kotlin.concurrent.Volatile
+    private var zoneDistanceTable: Map<String, Map<Hex, Int>>? = null
+
+    private fun zoneDistances(): Map<String, Map<Hex, Int>> {
+        zoneDistanceTable?.let { return it }
+        val table = zoneSpaces.mapValues { (zone, inZone) ->
+            spaces.mapValues { (hex, space) ->
+                if (space.zone == zone) 0 else inZone.minOf { HexGrid.distance(hex, it) }
+            }
+        }
+        zoneDistanceTable = table
+        return table
+    }
+
     fun throneZone(team: Team): String? = map.zones.firstOrNull { it.kind == ZoneKind.THRONE && it.team == team }?.id
 
     /** Hero spawn points of [team], in map order. */

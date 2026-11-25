@@ -96,7 +96,7 @@ object HEval {
     }
 
     private fun hand(ctx: HContext, h: HeroState): Double {
-        val n = h.hand.size
+        val n = h.handSize
         val need = ctx.playsLeft(h.id)
         val spareW = when (ctx.state.turn) {
             1 -> 3.0

@@ -26,6 +26,7 @@ import dev.quinton.goa.core.game.engine.EngineData
 import dev.quinton.goa.core.game.engine.EngineSession
 import dev.quinton.goa.core.game.engine.GameState
 import dev.quinton.goa.core.game.engine.Zone
+import dev.quinton.goa.core.game.engine.withoutStackTraces
 import dev.quinton.goa.core.game.puzzles.StateHash
 import dev.quinton.goa.core.model.match.Team
 import kotlin.concurrent.atomics.AtomicLong
@@ -150,7 +151,10 @@ class HybridAi(
     private var memo: HashMap<MemoKey, Double> = HashMap()
     private var memoTurn: Pair<EngineData, Int>? = null
 
-    override fun choose(session: GameSession, decision: Decision, cancelled: () -> Boolean): Choice {
+    override fun choose(session: GameSession, decision: Decision, cancelled: () -> Boolean): Choice =
+        withoutStackTraces { answer(session, decision, cancelled) }
+
+    private fun answer(session: GameSession, decision: Decision, cancelled: () -> Boolean): Choice {
         if (decision.options.isEmpty()) return Fallback.choose(decision)
         if (decision.options.size == 1) return decision.options.single()
         val es = session as? EngineSession ?: return book.choose(session, decision, cancelled)

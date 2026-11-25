@@ -25,10 +25,10 @@ internal fun spareWeightOf(turn: Int): Double = when (turn) {
 /** No card left that can answer an attack, or the last card is about to be played (G11). */
 internal fun heroIsDefenseless(ctx: HContext, heroId: String): Boolean {
     val h = ctx.state.hero(heroId) ?: return false
-    if (h.hand.isEmpty()) return true
+    if (h.handSize == 0) return true
     if (ctx.state.revealed || ctx.roundOver) return false
     // Only this turn's card empties the hand now; a hero that already played facedown still defends.
-    return h.hand.size <= 1 && ctx.playsThisTurn(h)
+    return h.handSize <= 1 && ctx.playsThisTurn(h)
 }
 
 /** Has not resolved a card yet, and still will this turn. */
@@ -37,17 +37,17 @@ internal fun heroStillToAct(ctx: HContext, heroId: String): Boolean {
     if (heroId in ctx.state.turnRecord.resolved) return false
     val h = ctx.state.hero(heroId) ?: return false
     if (!ctx.state.revealed || ctx.state.step == Step.PLAY || ctx.state.step == Step.TURN_START) {
-        return ctx.playsLeft(heroId) > 0 || h.unresolved.isNotEmpty()
+        return ctx.playsLeft(heroId) > 0 || h.hasUnresolved
     }
-    return h.unresolved.isNotEmpty() && heroId != ctx.state.acting
+    return h.hasUnresolved && heroId != ctx.state.acting
 }
 
 /** An enemy who has not resolved can still aim an attack at a square we end on. */
 internal fun stillThreatens(ctx: HContext, enemy: HeroState): Boolean {
     if (enemy.at == null || ctx.roundOver) return false
     if (enemy.id in ctx.state.turnRecord.resolved) return false
-    if (ctx.state.revealed) return enemy.unresolved.isNotEmpty()
-    return ctx.playsLeft(enemy.id) > 0 || enemy.unresolved.isNotEmpty()
+    if (ctx.state.revealed) return enemy.hasUnresolved
+    return ctx.playsLeft(enemy.id) > 0 || enemy.hasUnresolved
 }
 
 internal fun defensePool(ctx: HContext, h: HeroState, without: String?): List<HCard> {
@@ -156,7 +156,7 @@ internal fun stripSetsUp(ctx: HContext, enemy: HeroState): Boolean {
     if (!ctx.profile.twoTurnPlans || ctx.turn !in 2..3) return false
     if (heroIsDefenseless(ctx, enemy.id)) return false
     val at = enemy.at ?: return false
-    val arrive = enemy.hand.size - 1 - (4 - ctx.turn)
+    val arrive = enemy.handSize - 1 - (4 - ctx.turn)
     if (arrive > 1) return false
     return ctx.state.heroes.any { hero ->
         hero.team == ctx.team && hero.at?.let { ctx.distance(it, at) <= 6 } == true
@@ -228,7 +228,10 @@ internal fun spawnEdge(ctx: HContext, zone: String, attacker: Team): Int =
  * Killing one enemy minion on [lane] changes `60 × W` (G58), from [HContext.team]'s side.
  * Raw counts, not push potential: the minion we take now is the one the projection was hoping for.
  */
-internal fun laneKillDelta(ctx: HContext, lane: String, side: Team = ctx.team): Double {
+internal fun laneKillDelta(ctx: HContext, lane: String, side: Team = ctx.team): Double =
+    (if (side == Team.RED) ctx.laneKillRed else ctx.laneKillBlue).getOrPut(lane) { laneKillDeltaOf(ctx, lane, side) }
+
+private fun laneKillDeltaOf(ctx: HContext, lane: String, side: Team): Double {
     val zones = ctx.game.geo.lanes[lane]?.zones ?: return 0.0
     val bz = ctx.state.battleZones[lane] ?: return 0.0
     val i = zones.indexOf(bz)
@@ -299,12 +302,8 @@ private fun laneWinOf(k: Int, m: Int, w: Int, p: Double): Double {
  */
 internal fun laneThreat(ctx: HContext, h: HeroState, at: Hex, share: Double): Double {
     if (share <= 0.0 || ctx.roundOver || ctx.playsLeft(h.id) <= 0) return 0.0
-    val cards: List<Pair<HCard, Double>> = if (h.team == ctx.team || ctx.profile.knowHands) {
-        (h.hand + h.unresolved).map { ctx.card(it.id) to 1.0 }
-    } else {
-        ctx.possibleCards(h.id).map { it.card to it.weight }
-    }
-    val targets = ctx.state.minions.filter { it.team != h.team && it.at != null && !ctx.heavyImmune(it.id) }
+    val cards = ctx.laneCards(h)
+    val targets = ctx.minionTargets(h.team)
     if (targets.isEmpty()) return 0.0
     var near = 0.0
     var far = 0.0

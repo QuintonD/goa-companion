@@ -48,7 +48,7 @@ internal object CardSim {
         val book = if (ctx.profile.heroPlaybooks) ctx.playbooks(ctx.seat) else DefaultHeroHeuristics
         val actionCtx = HContext(sim, first, ctx.team, ctx.profile, ctx.playbooks, seen = ctx.seen, finishing = true)
         for (o in first.options) {
-            val f = sim.forkSession()
+            val f = sim.forkForAnswer()
             if (f.answer(first.id, o) !is AnswerResult.Accepted) continue
             val v = run(ctx, f, branchesOf(ctx), look) + General.commitment(actionCtx, first, o) +
                 actionCtx.inLook { book.adjust(actionCtx, first, o) }
@@ -185,7 +185,7 @@ internal object CardSim {
         val book = if (c.profile.heroPlaybooks) c.playbooks(d.seat) else DefaultHeroHeuristics
         var best: Double? = null
         for (o in d.options) {
-            val g = f.forkSession()
+            val g = f.forkForAnswer()
             if (g.answer(d.id, o) !is AnswerResult.Accepted) continue
             val v = run(ctx, g, branches, look) + General.commitment(c, d, o) + c.inLook { book.adjust(c, d, o) }
             if (best == null || v > best) best = v
@@ -201,7 +201,7 @@ internal object CardSim {
         val ranked = ranked(c, d, ctx.seat) ?: return null
         var best: Double? = null
         for (o in ranked.take(ctx.profile.knob("width", ctx.profile.lookWidth.toDouble()).toInt())) {
-            val g = f.forkSession()
+            val g = f.forkForAnswer()
             if (g.answer(d.id, o) is AnswerResult.Accepted) {
                 val v = run(ctx, g, branches - 1, look)
                 if (best == null || v > best) best = v
@@ -472,7 +472,7 @@ internal object CardSim {
      * cannot be answered.
      */
     fun rest(ctx: HContext, d: Decision, choice: Choice): Double? {
-        val f = ctx.session.forkSession()
+        val f = ctx.session.forkForAnswer()
         val look = RestLook(ctx, ctx.state.round * 8 + ctx.state.turn)
         return try {
             if (f.answer(d.id, choice) !is AnswerResult.Accepted) return null
@@ -489,7 +489,7 @@ internal object CardSim {
      * the action played out with a few tries at its next choice. Null when it cannot be answered.
      */
     fun after(ctx: HContext, d: Decision, choice: Choice): Double? {
-        val f = ctx.session.forkSession()
+        val f = ctx.session.forkForAnswer()
         val look = TurnLook(ctx, ctx.state.acting, ctx.state.round * 8 + ctx.state.turn)
         return try {
             if (f.answer(d.id, choice) !is AnswerResult.Accepted) return null
@@ -590,7 +590,11 @@ internal object CardSim {
         if (book.override(c, d)?.takeIf { it in d.options } != null) {
             null
         } else {
-            d.options.sortedByDescending { o -> General.score(c, d, o) + book.adjust(c, d, o) }
+            // Each option scored once (the scores are pure for this context), then the same stable sort.
+            val v = DoubleArray(d.options.size) { i ->
+                General.score(c, d, d.options[i]) + book.adjust(c, d, d.options[i])
+            }
+            d.options.indices.sortedByDescending { v[it] }.map { d.options[it] }
         }
     } catch (e: CancellationException) {
         throw e

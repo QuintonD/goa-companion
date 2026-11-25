@@ -60,6 +60,12 @@ class Game internal constructor(
      * action is unavailable, what the Primary will do, ADR-041) are left out; options are the same.
      */
     internal val explain: Boolean = true,
+    /**
+     * The first [trusted] [answers] are known to be options where they are replayed (each was accepted on
+     * this run's start state, with the same answers before it, and runs are deterministic): [askAlways]
+     * replays them without building the options, as it does without [lenient]. The session keeps the count.
+     */
+    private val trusted: Int = 0,
 ) {
     val geo: BoardGeometry = data.geometry(state.mapId)
 
@@ -187,7 +193,7 @@ class Game internal constructor(
     ): Choice {
         if (mode == RunMode.PROBE) throw ProbeHit()
         val index = asked
-        if (index < answers.size && lenient == null) {
+        if (index < answers.size && (lenient == null || index < trusted)) {
             asked++
             return answers[index]
         }

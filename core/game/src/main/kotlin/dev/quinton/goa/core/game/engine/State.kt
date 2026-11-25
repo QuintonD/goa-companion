@@ -109,6 +109,12 @@ class HeroState(
 
     val hand: List<CardInst> get() = inZone(Zone.HAND)
 
+    /** [hand]'s size, without building the list (the AI asks it very often). */
+    val handSize: Int get() = cards.count { it.zone == Zone.HAND }
+
+    /** [unresolved] is not empty, without building the list. */
+    val hasUnresolved: Boolean get() = cards.any { it.zone == Zone.PLAYED }
+
     /** This turn's played and unresolved cards (usually one). */
     val unresolved: List<CardInst> get() = inZone(Zone.PLAYED)
 

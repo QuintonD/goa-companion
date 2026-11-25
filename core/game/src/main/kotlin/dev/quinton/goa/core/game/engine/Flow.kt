@@ -295,15 +295,19 @@ fun Game.resolveCard(heroId: String) {
     }
     trigger(Trigger.ChoosingAction(heroId, cardId))
     // Options and the reasons for the printed actions left out come from one pass (ADR-041).
-    val availability by lazy(LazyThreadSafetyMode.NONE) { actionAvailability(heroId, cardId, explain) }
+    // Computed once, and only when asked (a local `by lazy` costs a property reference per read on Kotlin/JS).
+    var known: ActionAvailability? = null
+    fun availability(): ActionAvailability = known ?: actionAvailability(heroId, cardId, explain).also { known = it }
     val answer = askAlways(
         heroId,
         DecisionKind.CHOOSE_ACTION,
         "Choose an action for ${cardName(cardId)}",
         cardId,
-        context = { DecisionContext(unavailable = availability.unavailable, primaryPreview = availability.preview) },
+        context = {
+            DecisionContext(unavailable = availability().unavailable, primaryPreview = availability().preview)
+        },
     ) {
-        availability.options.map { Choice.Action(it) }
+        availability().options.map { Choice.Action(it) }
     } as Choice.Action
     val kind = when (answer.action) {
         ActionType.PRIMARY -> primaryKind(card(cardId))

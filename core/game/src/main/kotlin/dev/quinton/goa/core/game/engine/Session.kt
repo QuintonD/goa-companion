@@ -48,15 +48,33 @@ internal class SavedPayload(
  * step; [segment] the answers given since. Every answer re-runs the step from the checkpoint; a run
  * that reaches an unanswered decision stops there and its partly applied copy is what [view] shows.
  */
-class EngineSession internal constructor(
+class EngineSession private constructor(
     private val data: EngineData,
     override val setup: GameSetup,
     /** The state the game (or position) started from; never mutated. */
     private val initial: GameState,
-    private val lenient: Random? = null,
+    private val lenient: Random?,
+    /** A fork's state comes from the session it copies: no copy of [initial] to start from. */
+    fork: Boolean,
 ) : GameSession {
-    private var checkpoint: GameState = initial.copy()
+    internal constructor(
+        data: EngineData,
+        setup: GameSetup,
+        initial: GameState,
+        lenient: Random? = null,
+    ) : this(data, setup, initial, lenient, fork = false)
+
+    private var checkpoint: GameState = if (fork) initial else initial.copy()
     private var segment: ArrayList<Choice> = ArrayList()
+
+    /**
+     * How many of [segment]'s answers are known to replay as given on [checkpoint] ([Game]'s `trusted`): each
+     * was accepted from a run on this checkpoint with every answer before it trusted. A determinization starts
+     * at 0 under the real step's answers (a [lenient] run may have to replace one of those), so it trusts no
+     * answer until that step ends; an edited view ([viewWith]) is [NEVER] (its pending question was asked on the
+     * unedited start). A new step starts at 0.
+     */
+    private var trusted: Int = 0
     private var display: GameState = checkpoint
     private var pendingDecision: Decision? = null
     private var history: Chain<AnswerRecord>? = null
@@ -116,7 +134,7 @@ class EngineSession internal constructor(
                 return
             }
             val work = checkpoint.copy()
-            val g = Game(data, work, segment, RunMode.NORMAL, lenient, explain = !quiet)
+            val g = Game(data, work, segment, RunMode.NORMAL, lenient, explain = !quiet, trusted = trusted)
             try {
                 g.runStep()
                 commit(work, g)
@@ -145,6 +163,7 @@ class EngineSession internal constructor(
         for (e in g.events) committed = Chain.push(committed, e)
         partial = emptyList()
         segment = ArrayList()
+        trusted = 0
         Mark.after(from, work, committed?.size ?: 0)?.let { marks = Chain.push(marks, it) }
     }
 
@@ -161,7 +180,10 @@ class EngineSession internal constructor(
         if (decisionId != p.id) return AnswerResult.Rejected("Stale decision $decisionId (pending ${p.id})")
         if (choice !in p.options) return AnswerResult.Rejected("Not one of the options")
         val before = eventCount
+        // An answer to a question asked on trusted answers replays as given (the run is deterministic).
+        val extend = trusted == segment.size
         segment.add(choice)
+        if (extend) trusted = segment.size
         history = Chain.push(history, AnswerRecord(decisionId, p.seat, choice))
         advance()
         return AnswerResult.Accepted(events.drop(before))
@@ -177,9 +199,10 @@ class EngineSession internal constructor(
 
     /** A copy with its own future; shares the immutable history and event chains. */
     fun forkSession(): EngineSession {
-        val f = EngineSession(data, setup, initial, lenient)
+        val f = EngineSession(data, setup, initial, lenient, fork = true)
         f.checkpoint = checkpoint
         f.segment = ArrayList(segment)
+        f.trusted = trusted
         f.display = if (display === checkpoint) f.checkpoint else display.copy()
         f.pendingDecision = pendingDecision
         f.history = history
@@ -210,6 +233,7 @@ class EngineSession internal constructor(
         val cp = checkpoint.copy()
         edit(cp)
         f.checkpoint = cp
+        f.trusted = NEVER
         f.display = if (display === checkpoint) {
             cp
         } else {
@@ -223,9 +247,10 @@ class EngineSession internal constructor(
      * state instead of copying it, since the next answer replaces it. Don't read its state before answering.
      */
     internal fun forkForAnswer(): EngineSession {
-        val f = EngineSession(data, setup, initial, lenient)
+        val f = EngineSession(data, setup, initial, lenient, fork = true)
         f.checkpoint = checkpoint
         f.segment = ArrayList(segment)
+        f.trusted = trusted
         f.display = display
         f.pendingDecision = pendingDecision
         f.history = history
@@ -275,6 +300,7 @@ class EngineSession internal constructor(
         val replay = replay(data, setup, initial, records.subList(0, index))
         checkpoint = replay.checkpoint
         segment = replay.segment
+        trusted = replay.trusted
         display = replay.display
         pendingDecision = replay.pendingDecision
         history = replay.history
@@ -287,6 +313,9 @@ class EngineSession internal constructor(
 
     companion object {
         private const val MAX_STEPS_WITHOUT_DECISION = 10_000
+
+        /** [trusted] for a session whose pending question was not asked on its own checkpoint: trust nothing. */
+        private const val NEVER = -1
 
         internal val JSON = Json {
             ignoreUnknownKeys = true

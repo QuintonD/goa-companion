@@ -11,6 +11,7 @@ import dev.quinton.goa.core.game.ai.Fallback
 import dev.quinton.goa.core.game.ai.Picker
 import dev.quinton.goa.core.game.engine.Determinizer
 import dev.quinton.goa.core.game.engine.EngineSession
+import dev.quinton.goa.core.game.engine.withoutStackTraces
 import dev.quinton.goa.core.model.match.Team
 import kotlin.coroutines.cancellation.CancellationException
 import kotlin.random.Random
@@ -58,7 +59,10 @@ class HeuristicAi(
      */
     internal var scored: ((stage: String, options: List<Choice>, values: DoubleArray) -> Unit)? = null
 
-    override fun choose(session: GameSession, decision: Decision, cancelled: () -> Boolean): Choice {
+    override fun choose(session: GameSession, decision: Decision, cancelled: () -> Boolean): Choice =
+        withoutStackTraces { chooseNow(session, decision, cancelled) }
+
+    private fun chooseNow(session: GameSession, decision: Decision, cancelled: () -> Boolean): Choice {
         if (decision.options.isEmpty()) return Fallback.choose(decision)
         if (decision.options.size == 1) return decision.options.single()
         val es = session as? EngineSession ?: return Fallback.choose(decision)
