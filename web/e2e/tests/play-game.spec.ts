@@ -214,17 +214,19 @@ test("new game: the strength slider, a strength per seat, the official coin, the
     await pickHero(page, name);
   }
   await page.getByRole("button", { name: "Next", exact: true }).click();
-  // ADR-039: 1..10, a fresh browser at 5; the band and the phone's words with it.
+  // ADR-039, ADR-087: 1..11, a fresh browser at 5; the band and the phone's words with it.
   const slider = page.getByRole("slider", { name: "Computer strength" });
-  await expect(slider).toHaveAttribute("aria-valuetext", "Strength 5 of 10, Normal");
+  await expect(slider).toHaveAttribute("aria-valuetext", "Strength 5 of 11, Normal");
   await expect(page.locator(".goa-strength-value").first()).toHaveText("5 · Normal");
   await page.getByRole("button", { name: "Computer strength: stronger" }).click();
   await page.getByRole("button", { name: "Computer strength: stronger" }).click();
   await page.getByRole("button", { name: "Computer strength: stronger" }).click();
   await expect(page.locator(".goa-strength-value").first()).toHaveText("8 · Hard");
   await slider.fill("10");
-  await expect(page.getByRole("button", { name: "Computer strength: stronger" })).toBeDisabled();
   await expect(page.getByText("As strong as it gets on a phone. It knows the cards in your hand, though not the one you play facedown. Expect to be punished.")).toBeVisible();
+  await slider.fill("11");
+  await expect(page.getByRole("button", { name: "Computer strength: stronger" })).toBeDisabled();
+  await expect(page.getByText("Cheats: it sees every card, your hand and the one you play facedown. Deliberately unfair.")).toBeVisible();
   await slider.fill("7");
   // Advanced: a strength per computer seat, each starting at the one for all.
   await page.locator(".goa-switch-row", { hasText: "Advanced: a strength per seat" }).locator("input").check();

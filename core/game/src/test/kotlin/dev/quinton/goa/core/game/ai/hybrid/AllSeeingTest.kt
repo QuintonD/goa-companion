@@ -60,14 +60,15 @@ class AllSeeingTest {
     fun `strength 11 plays whole games against strength 10`() {
         val lineups = AiHarness.mixedLineups(GAMES, seed = 20_261_126L)
         var wins11 = 0
+        // Paired: each lineup and coin twice, 11 on each side, so a lineup's side bias cancels.
         for (g in 0 until GAMES) {
-            val (red, blue) = lineups[g]
+            val (red, blue) = lineups[g / 2]
             val elevenRed = g % 2 == 0
             val players = mapOf(
                 Team.RED to AiPlayers.forApp(if (elevenRed) 11 else 10, budgetMs = BUDGET_MS),
                 Team.BLUE to AiPlayers.forApp(if (elevenRed) 10 else 11, budgetMs = BUDGET_MS),
             )
-            val coin = if (g % 4 < 2) Team.RED else Team.BLUE
+            val coin = if ((g / 2) % 2 == 0) Team.RED else Team.BLUE
             val r = AiHarness.play(AiHarness.setup(red, blue, AiLevel.EXPERT, AiLevel.EXPERT, coin), players)
             val elevenTeam = if (elevenRed) Team.RED else Team.BLUE
             if (r.winner == elevenTeam) wins11++
@@ -78,7 +79,7 @@ class AllSeeingTest {
     }
 
     private companion object {
-        const val GAMES = 6
+        const val GAMES = 12
         const val BUDGET_MS = 250L
     }
 }
