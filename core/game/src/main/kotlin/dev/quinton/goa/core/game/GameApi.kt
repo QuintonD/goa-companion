@@ -117,7 +117,21 @@ data class GameSetup(
     val length: GameLength = GameLength.QUICK,
     /** The team whose symbol shows on the Tie Breaker coin after the setup flip (p.5 step 3). */
     val tieBreaker: Team,
-)
+) {
+    /**
+     * ADR-087: the team with a strength-11 seat listed after the other, so the engine (which asks for
+     * cards in seat order) asks it last and it sees every enemy card played facedown. Pick order within
+     * each team is kept (the opening places heroes by it). Unchanged when neither or both teams have one.
+     */
+    fun allSeeingLast(): GameSetup {
+        fun sees(s: SeatSetup) = (s.controller as? Controller.Ai)?.let { it.strength >= AiStrength.ALL_SEEING } == true
+        val seeing = seats.filter(::sees).map { it.team }.distinct()
+        if (seeing.size != 1) return this
+        val (late, early) = seats.partition { it.team == seeing.single() }
+        val ordered = early + late
+        return if (ordered == seats) this else copy(seats = ordered)
+    }
+}
 
 // ---------------------------------------------------------------------------------------------
 // Decisions: the engine asks, a human or the AI answers with one of the listed options.

@@ -147,6 +147,9 @@ object AiPlayers {
     }
 
     /** Strength 10's knobs: [SEARCH_10] with its leaf ([SEARCH_10_LEAF]). */
+    /** The search's knobs at [strength] (10 or 11), as the apps seat it: measurements build on them. */
+    fun knobsFor(strength: Int): Map<String, Double> = searchKnobs(strength)
+
     private fun searchKnobs(strength: Int = SEARCH_FROM): Map<String, Double> =
         SEARCH_10 + ("leaf" to SEARCH_10_LEAF.ordinal.toDouble()) +
             if (strength >= AiStrength.ALL_SEEING) mapOf("omni" to 1.0) else emptyMap()

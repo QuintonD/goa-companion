@@ -3122,5 +3122,16 @@ histories, facedown tokens), the search deals cards only to enemies still to cho
 real played card, and the threat map reads an enemy's facedown card as already revealed. The enemies inside its
 playouts still play from their own honest view. ADR-062's "the facedown card stays hidden" holds for 1–10 only.
 
-**Consequences:** The slider and stored setting go to 11 (Expert band). NoPeekingTest still covers 1–10. Its
-strength over 10 was only smoke-measured at ship (`AllSeeingTest`, short think time).
+Knowing the state is worth little on its own: strength 10 already knows the hands, and the engine asks for cards
+in seat order (Red's seats first), so an all-seeing Red seat chose before any enemy card was down. So
+`GameSetup.allSeeingLast()` (applied by `GameEngine.newGame` and the new-game form) lists the team with a
+strength-11 seat after the other one: it is asked for its cards last and sees every enemy card of the turn.
+Pick order within a team is kept (the opening places by it); nothing else reads the order across teams (the AI
+indexes by `stepSeat`, the learned features pool by team and hero id). The cards are revealed together, so the
+order changes no rule.
+
+**Consequences:** The slider and stored setting go to 11 (Expert band). NoPeekingTest still covers 1–10.
+Measured (`AllSeeingTest`, `AI_ALL_SEEING=24 AI_ALL_SEEING_MS=250`, paired line-ups and coins): before the
+reordering 11 won 3/6, 2/6 and 8/12 against 10; after it 18/24 (75%, 9 as Red and 9 as Blue), with 0 of 1158
+card plays made before every enemy had played. A game with a strength-11 seat lists that team first in its setup
+and save.

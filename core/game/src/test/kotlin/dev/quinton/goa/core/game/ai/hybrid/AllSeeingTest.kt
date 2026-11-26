@@ -4,7 +4,11 @@ import com.google.common.truth.Truth.assertThat
 import dev.quinton.goa.core.game.AiLevel
 import dev.quinton.goa.core.game.AiStrength
 import dev.quinton.goa.core.game.AnswerResult
+import dev.quinton.goa.core.game.Controller
 import dev.quinton.goa.core.game.DecisionKind
+import dev.quinton.goa.core.game.GameLength
+import dev.quinton.goa.core.game.GameSetup
+import dev.quinton.goa.core.game.SeatSetup
 import dev.quinton.goa.core.game.TestData
 import dev.quinton.goa.core.game.ai.AiHarness
 import dev.quinton.goa.core.game.ai.AiPlayers
@@ -14,8 +18,8 @@ import dev.quinton.goa.core.game.engine.EngineSession
 import dev.quinton.goa.core.game.engine.GameState
 import dev.quinton.goa.core.game.engine.Zone
 import dev.quinton.goa.core.model.match.Team
-import org.junit.Test
 import kotlin.random.Random
+import org.junit.Test
 
 /** Strength 11, the all-seeing computer: reads the true state, and plays whole games against strength 10. */
 class AllSeeingTest {
@@ -57,29 +61,84 @@ class AllSeeingTest {
     }
 
     @Test
-    fun `strength 11 plays whole games against strength 10`() {
-        val lineups = AiHarness.mixedLineups(GAMES, seed = 20_261_126L)
-        var wins11 = 0
-        // Paired: each lineup and coin twice, 11 on each side, so a lineup's side bias cancels.
-        for (g in 0 until GAMES) {
-            val (red, blue) = lineups[g / 2]
-            val elevenRed = g % 2 == 0
-            val players = mapOf(
-                Team.RED to AiPlayers.forApp(if (elevenRed) 11 else 10, budgetMs = BUDGET_MS),
-                Team.BLUE to AiPlayers.forApp(if (elevenRed) 10 else 11, budgetMs = BUDGET_MS),
-            )
-            val coin = if ((g / 2) % 2 == 0) Team.RED else Team.BLUE
-            val r = AiHarness.play(AiHarness.setup(red, blue, AiLevel.EXPERT, AiLevel.EXPERT, coin), players)
-            val elevenTeam = if (elevenRed) Team.RED else Team.BLUE
-            if (r.winner == elevenTeam) wins11++
-            println("ALL_SEEING game $g: $red v $blue, 11 is $elevenTeam, winner ${r.winner}, rounds ${r.rounds}")
-            assertThat(r.winner).isNotNull()
-        }
-        println("ALL_SEEING strength 11 won $wins11 of $GAMES against strength 10")
+    fun `the team with a strength 11 seat is asked for its cards last, pick order kept`() {
+        fun seat(id: String, team: Team, c: Controller) = SeatSetup(id, team, c)
+        val setup = GameSetup(
+            TestData.FOREST,
+            listOf(
+                seat("wasp", Team.RED, Controller.Ai(11)),
+                seat("brogan", Team.RED, Controller.Human),
+                seat("arien", Team.BLUE, Controller.Human),
+                seat("tigerclaw", Team.BLUE, Controller.Ai(4)),
+            ),
+            tieBreaker = Team.RED,
+        )
+        assertThat(setup.allSeeingLast().seats.map { it.heroId }).containsExactly("arien", "tigerclaw", "wasp", "brogan")
+            .inOrder()
+        val s = TestData.engine.newGame(setup) as EngineSession
+        assertThat(s.setup.seats.map { it.heroId }).containsExactly("arien", "tigerclaw", "wasp", "brogan").inOrder()
+        assertThat(s.state.heroes.map { it.id }).containsExactly("arien", "tigerclaw", "wasp", "brogan").inOrder()
+        // Neither or both teams all-seeing: unchanged.
+        val plain = setup.copy(seats = setup.seats.map { it.copy(controller = Controller.Ai(10)) })
+        assertThat(plain.allSeeingLast()).isSameInstanceAs(plain)
+        val both = setup.copy(seats = setup.seats.map { it.copy(controller = Controller.Ai(11)) })
+        assertThat(both.allSeeingLast()).isSameInstanceAs(both)
     }
 
-    private companion object {
-        const val GAMES = 12
-        const val BUDGET_MS = 250L
+    /**
+     * Strength 11 against strength 10, paired (each line-up and coin twice, 11 on each side, so a line-up's
+     * side bias cancels), at the app's think time unless `AI_ALL_SEEING_MS` says otherwise. Slow: runs only
+     * with `AI_ALL_SEEING=<games>`. Every card play of 11 must see every enemy card of the turn.
+     */
+    @Test
+    fun `strength 11 plays whole games against strength 10`() {
+        val games = System.getenv("AI_ALL_SEEING")?.toIntOrNull() ?: return
+        val budget = System.getenv("AI_ALL_SEEING_MS")?.toLongOrNull() ?: AiPlayers.APP_BUDGET_MS
+        // Extra knobs for 11 only, e.g. AI_ALL_SEEING_KNOBS="tc=2,tw=3".
+        val extra = System.getenv("AI_ALL_SEEING_KNOBS").orEmpty().split(",").filter { "=" in it }
+            .associate { it.substringBefore("=").trim() to it.substringAfter("=").trim().toDouble() }
+        val lineups = AiHarness.mixedLineups((games + 1) / 2, seed = 20_261_126L)
+        var wins11 = 0
+        var blind = 0
+        var plays = 0
+        val bySide = mutableMapOf(Team.RED to 0, Team.BLUE to 0)
+        for (g in 0 until games) {
+            val (red, blue) = lineups[g / 2]
+            val eleven = if (g % 2 == 0) Team.RED else Team.BLUE
+            fun strength(t: Team) = if (t == eleven) 11 else 10
+            val players = Team.entries.associateWith { t ->
+                if (t == eleven && extra.isNotEmpty()) {
+                    HybridAi(AiPlayers.APP_SEED + 11, AiPlayers.knobsFor(11) + extra, budgetMs = budget)
+                } else {
+                    AiPlayers.forApp(strength(t), budgetMs = budget)
+                }
+            }
+            val coin = if ((g / 2) % 2 == 0) Team.RED else Team.BLUE
+            val setup = GameSetup(
+                TestData.FOREST,
+                red.map { SeatSetup(it, Team.RED, Controller.Ai(strength(Team.RED))) } +
+                    blue.map { SeatSetup(it, Team.BLUE, Controller.Ai(strength(Team.BLUE))) },
+                length = GameLength.QUICK,
+                tieBreaker = coin,
+            )
+            val r = AiHarness.play(setup, players, observe = { s, d ->
+                if (d.team == eleven && d.kind == DecisionKind.PLAY_CARD && !s.state.revealed) {
+                    plays++
+                    val unseen = s.state.heroes.any { h ->
+                        h.team != eleven && h.hand.isNotEmpty() && h.cards.none { it.zone == Zone.PLAYED }
+                    }
+                    if (unseen) blind++
+                }
+            })
+            if (r.winner == eleven) {
+                wins11++
+                bySide[eleven] = bySide.getValue(eleven) + 1
+            }
+            println("ALL_SEEING game $g: $red v $blue, 11 is $eleven, winner ${r.winner}, rounds ${r.rounds}")
+            assertThat(r.winner).isNotNull()
+        }
+        println("ALL_SEEING strength 11 won $wins11 of $games against strength 10 (as Red ${bySide[Team.RED]}, " +
+            "as Blue ${bySide[Team.BLUE]}); $blind of $plays card plays before an enemy had played, budget $budget ms, knobs $extra")
+        assertThat(blind).isEqualTo(0)
     }
 }

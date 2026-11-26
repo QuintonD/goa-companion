@@ -37,7 +37,8 @@ class GameEngine(
 
     override fun newGame(setup: GameSetup): GameSession {
         validate(setup)
-        return EngineSession(data, setup, Setup.initialState(data, setup)).start()
+        val ordered = setup.allSeeingLast()
+        return EngineSession(data, ordered, Setup.initialState(data, ordered)).start()
     }
 
     /** A game from an arbitrary position (PositionBuilder). */

@@ -194,6 +194,7 @@ object NewGameRules {
             team = team,
             controller = if (controls(control, heroId, team)) Controller.Human else computer(form, heroId),
         )
-        return GameSetup(mapId, red.map { seat(it, Team.RED) } + blue.map { seat(it, Team.BLUE) }, form.length, coin)
+        val seats = red.map { seat(it, Team.RED) } + blue.map { seat(it, Team.BLUE) }
+        return GameSetup(mapId, seats, form.length, coin).allSeeingLast()
     }
 }
