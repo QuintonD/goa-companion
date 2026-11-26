@@ -3133,5 +3133,7 @@ order changes no rule.
 **Consequences:** The slider and stored setting go to 11 (Expert band). NoPeekingTest still covers 1–10.
 Measured (`AllSeeingTest`, `AI_ALL_SEEING=24 AI_ALL_SEEING_MS=250`, paired line-ups and coins): before the
 reordering 11 won 3/6, 2/6 and 8/12 against 10; after it 18/24 (75%, 9 as Red and 9 as Blue), with 0 of 1158
-card plays made before every enemy had played. A game with a strength-11 seat lists that team first in its setup
-and save.
+card plays made before every enemy had played. A game with a strength-11 seat lists that team last in its setup
+and save. A second run of the same: 15/24, so 33/48 (69%) in all. The tree under card plays (`tc=2`), affordable now
+that a card play has one known position, measured 12/24 (8 as Red, 4 as Blue) at 250 ms and is not shipped; untried
+at the app's 2 s.
