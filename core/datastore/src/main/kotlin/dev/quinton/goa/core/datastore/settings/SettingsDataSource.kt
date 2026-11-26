@@ -81,7 +81,7 @@ class SettingsDataSource @Inject constructor(@param:SettingsStore private val st
                 ?: Defaults.timerLayout,
             puzzleNudges = prefs[Keys.PUZZLE_NUDGES] ?: Defaults.puzzleNudges,
             // Out-of-range values (a hand-edited or future file) fall back to the default.
-            computerStrength = prefs[Keys.COMPUTER_STRENGTH]?.takeIf { it in 1..10 } ?: Defaults.computerStrength,
+            computerStrength = prefs[Keys.COMPUTER_STRENGTH]?.takeIf { it in 1..11 } ?: Defaults.computerStrength,
             boardStyle = prefs[Keys.BOARD_STYLE]?.let { name -> BoardStyle.entries.firstOrNull { it.name == name } }
                 ?: Defaults.boardStyle,
         )

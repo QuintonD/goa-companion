@@ -27,7 +27,10 @@ object PlayText {
     fun strengthNote(strength: Int): String = when (AiStrength.coerce(strength)) {
         AiStrength.MIN -> "A gentle first game: slow to spot danger and quick to slip. Good for learning the rules."
 
-        AiStrength.MAX ->
+        AiStrength.ALL_SEEING ->
+            "Cheats: it sees every card, your hand and the one you play facedown. Deliberately unfair."
+
+        AiStrength.ALL_SEEING - 1 ->
             "As strong as it gets on a phone. It knows the cards in your hand, though not the one you play facedown. " +
                 "Expect to be punished."
 

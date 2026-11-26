@@ -378,10 +378,11 @@ internal object CardSim {
         val out = HashMap<String, Map<String, Double>>()
         for (h in base.heroes) {
             if (h.team == ctx.team) continue
-            h.cards.firstOrNull { it.zone == Zone.PLAYED }?.let { g0.moveCard(h.id, it.id, Zone.HAND) }
+            val played = h.cards.firstOrNull { it.zone == Zone.PLAYED } ?: continue
+            if (ctx.profile.omniscient) out[h.id] = mapOf(played.id to 1.0) else g0.moveCard(h.id, played.id, Zone.HAND)
         }
         for (h in base.heroes) {
-            if (h.team == ctx.team) continue
+            if (h.team == ctx.team || h.id in out) continue
             val pool = h.cards.filter { it.zone == Zone.HAND }.map { it.id }
             if (pool.isEmpty()) continue
             out[h.id] = model(ctx, base, h.id, pool).toMap()

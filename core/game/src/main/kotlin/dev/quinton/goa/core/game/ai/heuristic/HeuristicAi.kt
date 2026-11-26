@@ -43,6 +43,7 @@ class HeuristicAi(
             laneTiming = p.on("laneTiming", p.laneTiming),
             twoTurnPlans = p.on("twoTurn", p.twoTurnPlans),
             knowHands = p.on("knowHands", p.knowHands),
+            omniscient = p.on("omni", p.omniscient),
             focusFire = p.on("focus", p.focusFire),
             initiativeReading = p.on("initiative", p.initiativeReading),
             cardCounting = p.on("counting", p.cardCounting),
@@ -270,6 +271,7 @@ class HeuristicAi(
             seen = if (profile.cardCounting) seenCards(es, d.team) else emptyMap(),
             hidePlayedOf = humans,
             knowHands = profile.knowHands,
+            omniscient = profile.omniscient,
         )
         return es.determinizeWith(d.team, sampleSeed, options, quiet = true)
     }

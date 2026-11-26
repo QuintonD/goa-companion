@@ -29,6 +29,8 @@ data class HeuristicProfile(
     val laneTiming: Boolean,
     /** Strength 10 only (ADR-062): the enemies' hand pool is known; the facedown card is not. */
     val knowHands: Boolean,
+    /** Strength 11 only: no determinization at all, the AI reads the true game state (every hidden card). */
+    val omniscient: Boolean = false,
     /**
      * F1 (REVIEW-2-losses): after the reveal a look plays the rest of the turn, every remaining hero's
      * revealed card by its own book, and on turn 4 through the end of the round, instead of stopping at
@@ -189,7 +191,7 @@ data class HeuristicProfile(
                 temp = 0.0,
                 gap = 0.0,
                 slip = 0.0,
-            )
+            ).copy(omniscient = s >= AiStrength.ALL_SEEING)
         }
 
         @Suppress("LongParameterList")

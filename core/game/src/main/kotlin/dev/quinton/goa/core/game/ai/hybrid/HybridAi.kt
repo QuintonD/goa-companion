@@ -733,9 +733,14 @@ class HybridAi(
                     if (dealing) {
                         // The enemies' facedown cards back in hand: each column deals them again from the model,
                         // so samples that differ only in those cards are one sample.
-                        val hidden = det.state.heroes.filter { h ->
-                            h.team != d.team && h.cards.count { it.zone == Zone.PLAYED } == 1
-                        }.map { it.id }
+                        // Strength 11 (ADR-087) sees the facedown cards: only enemies still to choose are dealt.
+                        val hidden = if (book.profile.omniscient) {
+                            emptyList()
+                        } else {
+                            det.state.heroes.filter { h ->
+                                h.team != d.team && h.cards.count { it.zone == Zone.PLAYED } == 1
+                            }.map { it.id }
+                        }
                         unplayed[i] = hidden
                         dets[i] = if (hidden.isEmpty()) {
                             det
@@ -838,6 +843,7 @@ class HybridAi(
             },
             hidePlayedOf = humans,
             knowHands = policy.profile.knowHands,
+            omniscient = policy.profile.omniscient,
         )
         return es.determinizeWith(d.team, sampleSeed, options, quiet = true)
     }

@@ -42,6 +42,8 @@ object Determinizer {
         val hidePlayedOf: Set<String> = emptySet(),
         val hideAllOf: Set<String> = emptySet(),
         val knowHands: Boolean = false,
+        /** Strength 11: nothing is hidden; the sample is the true state. */
+        val omniscient: Boolean = false,
     )
 
     fun sample(data: EngineData, source: GameState, viewer: Team, rng: Random): GameState =
@@ -49,6 +51,10 @@ object Determinizer {
 
     fun sample(data: EngineData, source: GameState, viewer: Team, rng: Random, options: Options): GameState {
         val s = source.copy()
+        if (options.omniscient) {
+            s.stamp++
+            return s
+        }
         for (h in s.heroes) {
             if (h.team == viewer && h.id !in options.hideAllOf) continue
             val known = options.knowHands && h.team != viewer

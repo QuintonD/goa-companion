@@ -3109,3 +3109,18 @@ work count are identical to the baseline; the JVM and Node parity transcripts ar
 mutates a state an `HContext` is reading would now be wrong in more places (it already was for the card and
 threat caches); the engine's determinism (ENGINE.md) is what makes trusted re-runs exact. The JS signals inside
 the AI have no stack traces; errors there were already caught and counted as fallbacks.
+
+## ADR-087 — Strength 11: an all-seeing computer (2026-11-26)
+
+**Context:** The owner asked for a computer above strength 10 that is given every piece of information,
+deliberately unfair, shipped quickly.
+
+**Decision:** `AiStrength.MAX` is 11 (`AiStrength.ALL_SEEING`). Strength 11 is strength 10's search
+(`HybridAi`, same knobs and think time) with the book knob `omni`: `HeuristicProfile.omniscient` makes
+`Determinizer.Options.omniscient` return the true state (enemy hands, facedown played cards, upgrade
+histories, facedown tokens), the search deals cards only to enemies still to choose (facedown ones stay real), the opponent model is the
+real played card, and the threat map reads an enemy's facedown card as already revealed. The enemies inside its
+playouts still play from their own honest view. ADR-062's "the facedown card stays hidden" holds for 1–10 only.
+
+**Consequences:** The slider and stored setting go to 11 (Expert band). NoPeekingTest still covers 1–10. Its
+strength over 10 was only smoke-measured at ship (`AllSeeingTest`, short think time).

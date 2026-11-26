@@ -58,7 +58,7 @@ enum class AiLevel(
     ;
 
     companion object {
-        /** The band a strength belongs to: 1–3 Easy, 4–6 Normal, 7–8 Hard, 9–10 Expert. */
+        /** The band a strength belongs to: 1–3 Easy, 4–6 Normal, 7–8 Hard, 9–11 Expert. */
         fun of(strength: Int): AiLevel = when (AiStrength.coerce(strength)) {
             in 1..3 -> EASY
             in 4..6 -> NORMAL
@@ -71,7 +71,10 @@ enum class AiLevel(
 /** The computer's strength scale (ADR-039): 1 (a true first game) to 10 (as strong as a phone allows). */
 object AiStrength {
     const val MIN: Int = 1
-    const val MAX: Int = 10
+    const val MAX: Int = 11
+
+    /** Strength 11: sees every hidden card (hands, facedown plays, upgrades). Deliberately unfair. */
+    const val ALL_SEEING: Int = 11
     const val DEFAULT: Int = 5
 
     fun coerce(strength: Int): Int = strength.coerceIn(MIN, MAX)

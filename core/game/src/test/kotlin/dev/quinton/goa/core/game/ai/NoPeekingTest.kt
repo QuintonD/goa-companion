@@ -34,7 +34,9 @@ import org.junit.Test
  *   nothing else (the same hands with a different facedown card or token give it the same answer).
  */
 class NoPeekingTest {
-    private val everyStrength = AiStrength.MIN..AiStrength.MAX
+    // Strength 11 (ADR-087) sees everything by design: the honest strengths stop at 10.
+    private val everyStrength = AiStrength.MIN until AiStrength.ALL_SEEING
+    private val honestMax = AiStrength.ALL_SEEING - 1
     private val withoutHands = AiStrength.MIN until KNOWS_HANDS
 
     private fun assertSameChoice(a: EngineSession, b: EngineSession, strengths: IntRange = everyStrength) {
@@ -53,14 +55,14 @@ class NoPeekingTest {
             }
         }
         // Team play (ADR-061: joint card play, the kill extension, regret matching) reads only the copies too.
-        val team = AiPlayers.profile(AiStrength.MAX).copy(joint = 2, killExt = 1, rm = 0.5, workBudget = 3000)
+        val team = AiPlayers.profile(honestMax).copy(joint = 2, killExt = 1, rm = 0.5, workBudget = 3000)
         for (seed in 1L..2L) {
             val ca = SearchAi(AiLevel.EXPERT, team, seed, timeCap = false).choose(a, da)
             val cb = SearchAi(AiLevel.EXPERT, team, seed, timeCap = false).choose(b, db)
             assertThat(cb).isEqualTo(ca)
         }
         // The hybrid search prototypes (REVIEW-2-search.md) are strength-10 players: they read hands as it does.
-        if (AiStrength.MAX in strengths) {
+        if (honestMax in strengths) {
             val knobs = mapOf("K" to 3.0, "Ko" to 2.0, "scope" to 3.0, "hz" to 3.0, "model" to 2.0)
             for (seed in 1L..2L) {
                 assertThat(HybridPlayers.hybrid(seed, knobs).choose(b, db))

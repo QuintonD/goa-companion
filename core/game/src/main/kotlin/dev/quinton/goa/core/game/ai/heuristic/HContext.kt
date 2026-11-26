@@ -621,7 +621,7 @@ class HContext(
     }
 
     private fun realPool(h: HeroState): List<PossibleCard> {
-        val playing = state.revealed
+        val playing = state.revealed || (profile.omniscient && h.team != team)
         return (h.hand + h.unresolved).map { inst ->
             PossibleCard(card(inst.id), 1.0, playing && inst.zone == Zone.PLAYED)
         }

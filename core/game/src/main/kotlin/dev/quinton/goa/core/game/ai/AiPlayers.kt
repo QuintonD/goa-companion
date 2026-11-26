@@ -57,7 +57,7 @@ object AiPlayers {
     ): AiPlayer {
         val s = AiStrength.coerce(strength)
         if (s < SEARCH_FROM || budgetMs <= 0) return forStrength(s, APP_SEED + s, runner)
-        return HybridAi(APP_SEED + s, searchKnobs(), runner, budgetMs)
+        return HybridAi(APP_SEED + s, searchKnobs(s), runner, budgetMs)
     }
 
     /**
@@ -143,11 +143,13 @@ object AiPlayers {
     private fun heuristic(strength: Int, seed: Long, runner: SampleRunner): AiPlayer {
         val s = AiStrength.coerce(strength)
         if (s < SEARCH_FROM) return HeuristicAi(s, seed)
-        return HybridAi(seed, searchKnobs(), runner)
+        return HybridAi(seed, searchKnobs(s), runner)
     }
 
     /** Strength 10's knobs: [SEARCH_10] with its leaf ([SEARCH_10_LEAF]). */
-    private fun searchKnobs(): Map<String, Double> = SEARCH_10 + ("leaf" to SEARCH_10_LEAF.ordinal.toDouble())
+    private fun searchKnobs(strength: Int = SEARCH_FROM): Map<String, Double> =
+        SEARCH_10 + ("leaf" to SEARCH_10_LEAF.ordinal.toDouble()) +
+            if (strength >= AiStrength.ALL_SEEING) mapOf("omni" to 1.0) else emptyMap()
 
     private fun searchPlayer(
         strength: Int,
