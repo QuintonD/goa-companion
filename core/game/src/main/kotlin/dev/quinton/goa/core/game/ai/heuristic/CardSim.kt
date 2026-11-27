@@ -9,6 +9,7 @@ import dev.quinton.goa.core.game.DecisionKind
 import dev.quinton.goa.core.game.engine.EngineSession
 import dev.quinton.goa.core.game.engine.Game
 import dev.quinton.goa.core.game.engine.GameState
+import dev.quinton.goa.core.game.engine.HeroState
 import dev.quinton.goa.core.game.engine.NEXT_ACTOR
 import dev.quinton.goa.core.game.engine.RunMode
 import dev.quinton.goa.core.game.engine.Step
@@ -33,16 +34,19 @@ import kotlin.random.Random
  */
 internal object CardSim {
     /** Best value of playing [cardId] now, over the actions it offers. Null when it cannot be simulated. */
-    fun value(ctx: HContext, cardId: String): Double? {
+    fun value(ctx: HContext, cardId: String, assume: Map<String, String> = emptyMap()): Double? {
         val d = ctx.decision ?: return null
         val h = ctx.own() ?: return null
-        val sim = start(ctx, d, cardId) ?: return null
-        val origin = h.at
         val init = ctx.card(cardId).initiative + ctx.itemBonus(ctx.seat, Stat.INITIATIVE)
+        // Track T (`team.order`): every known teammate card in initiative order, before and after ours.
+        val team = if (TeamPlay.order(ctx.profile)) teamOrder(ctx, d, init, assume) else null
+        val sim = (if (team != null) startFrom(ctx, d, cardId, team.prior.state) else start(ctx, d, cardId))
+            ?: return null
+        val origin = h.at
         val first = sim.pending
-        val look = CardLook(ctx, origin, init)
+        val look = CardLook(ctx, origin, init, team)
         if (first == null || first.seat != ctx.seat || first.kind != DecisionKind.CHOOSE_ACTION) {
-            return run(ctx, sim, branchesOf(ctx), look)
+            return look.withTeam(run(ctx, sim, branchesOf(ctx), look))
         }
         var best: Double? = null
         val book = if (ctx.profile.heroPlaybooks) ctx.playbooks(ctx.seat) else DefaultHeroHeuristics
@@ -50,16 +54,19 @@ internal object CardSim {
         for (o in first.options) {
             val f = sim.forkForAnswer()
             if (f.answer(first.id, o) !is AnswerResult.Accepted) continue
-            val v = run(ctx, f, branchesOf(ctx), look) + General.commitment(actionCtx, first, o) +
+            val v = look.withTeam(run(ctx, f, branchesOf(ctx), look)) + General.commitment(actionCtx, first, o) +
                 actionCtx.inLook { book.adjust(actionCtx, first, o) }
             if (best == null || v > best) best = v
         }
         return best
     }
 
-    private fun start(ctx: HContext, d: Decision, cardId: String): EngineSession? {
+    private fun start(ctx: HContext, d: Decision, cardId: String): EngineSession? =
+        startFrom(ctx, d, cardId, prelude(ctx, d) ?: ctx.state)
+
+    private fun startFrom(ctx: HContext, d: Decision, cardId: String, base: GameState): EngineSession? {
         val data = ctx.session.engineData
-        val st = (prelude(ctx, d) ?: ctx.state).copy()
+        val st = base.copy()
         // Not revealed: a card someone played facedown before us stays hidden in every score below.
         st.revealed = false
         Game(data, st, emptyList(), RunMode.PROBE).moveCard(ctx.seat, cardId, Zone.PLAYED)
@@ -232,7 +239,7 @@ internal object CardSim {
     }
 
     /** The card play: the action alone, before the reveal, exposure split by initiative. */
-    private class CardLook(val ctx: HContext, val origin: Hex?, val init: Int) : Look {
+    private class CardLook(val ctx: HContext, val origin: Hex?, val init: Int, val team: TeamOrder? = null) : Look {
         override val viewer get() = ctx.team
 
         /** Strength 10 (knob `knowLook`): the enemy's hand is known (ADR-062), so its book answers its defense. */
@@ -245,9 +252,34 @@ internal object CardSim {
 
         override fun stop(f: EngineSession, d: Decision): Boolean = false
 
-        override fun strike(f: EngineSession, d: Decision): Double = strikeOf(ctx, f, d, init)
+        override fun strike(f: EngineSession, d: Decision): Double = strikeOf(ctx, f, d, init, team)
 
-        override fun score(f: EngineSession, strike: Double): Double = scoreCard(ctx, f, origin, init, strike)
+        /** The best leaf of one action's look so far (Track T): the teammates after us play from it alone. */
+        private var leaf: EngineSession? = null
+        private var leafStrike = 0.0
+        private var leafValue = Double.NEGATIVE_INFINITY
+
+        override fun score(f: EngineSession, strike: Double): Double {
+            if (team == null) return scoreCard(ctx, f, origin, init, strike)
+            if (team.after.isEmpty()) return scoreTeam(ctx, f, origin, init, strike, team, post = false)
+            // The branches pick their leaf without the teammates after us; [withTeam] plays them from the best one.
+            val v = scoreTeam(ctx, f, origin, init, strike, team, post = false)
+            if (v > leafValue) {
+                leafValue = v
+                leaf = f
+                leafStrike = strike
+            }
+            return v
+        }
+
+        /** [v], one action's look, with the teammates after us played from its best leaf. */
+        fun withTeam(v: Double): Double {
+            val f = leaf
+            leaf = null
+            leafValue = Double.NEGATIVE_INFINITY
+            if (team == null || team.after.isEmpty() || f == null) return v
+            return scoreTeam(ctx, f, origin, init, leafStrike, team, post = true)
+        }
     }
 
     /**
@@ -509,8 +541,14 @@ internal object CardSim {
     }
 
     /** Our attack on, or discard from, a hidden hand: the pool says what it is worth, not the sampled cards (G57). */
-    private fun strikeOf(ctx: HContext, f: EngineSession, d: Decision, init: Int): Double {
+    private fun strikeOf(ctx: HContext, f: EngineSession, d: Decision, init: Int, team: TeamOrder? = null): Double {
         val at = HContext(f, d, ctx.team, ctx.profile, ctx.playbooks, seen = ctx.seen, finishing = true)
+        if (team != null) {
+            at.teamHits = team.prior.hits
+            at.teamDead = team.prior.dead
+            at.teamInit = init
+            at.teamSimulated = team.after.toSet()
+        }
         // G7: a target whose card acts first may have left.
         val flee = if (init == Int.MAX_VALUE) 0.0 else ctx.profile.knob("flee", FLEE) * ctx.actsBefore(d.seat, init)
         return Lookahead.pooled(at, d) * (1.0 - flee)
@@ -563,6 +601,227 @@ internal object CardSim {
         val first = if (origin != null) e.defeatBefore(ctx.seat, origin, init) else 0.0
         return HEval.evaluate(e, ctx.team, exposure) + strike * (1.0 - first)
     }
+
+    // ---------------------------------------------------------------------------------------------
+    // Track T (`team.order`, G113–G114): teammates' known cards resolved in initiative order.
+    // ---------------------------------------------------------------------------------------------
+
+    /**
+     * A card play's teammates: [prior] is the position after every known teammate card that acts before ours
+     * (and what their priced hits did), [after] the teammates whose known card acts after ours, fastest first.
+     */
+    internal class TeamOrder(val prior: Prior, val after: List<String>)
+
+    /**
+     * A position with the hits priced on the way to it: [strike] the value of teammates' hits that reached a hidden
+     * answer (the pool's price), [hits] / [dead] the chance each enemy hero was made to throw a card / defeated.
+     */
+    internal class Prior(
+        val state: GameState,
+        val strike: Double,
+        val hits: Map<String, Double>,
+        val dead: Map<String, Double>,
+    )
+
+    /**
+     * The teammates of [ctx]'s card play whose card is known to the team (a computer teammate's facedown card, and
+     * the cards [assume]d for a teammate still to choose, G115), split by our card's initiative [init]: faster or
+     * tied (a same-team tie is the team's to order; the look plays the teammate first) act before, slower after.
+     * The before part is resolved once per decision and split ([TEAM_PRE] memo).
+     */
+    private fun teamOrder(ctx: HContext, d: Decision, init: Int, assume: Map<String, String>): TeamOrder {
+        val base = teamBase(ctx, assume)
+        val computers = TeamPlay.computers(ctx)
+        val allies = base.heroes.filter { a ->
+            a.team == ctx.team && a.id != ctx.seat && a.id in computers && a.id !in base.turnRecord.resolved &&
+                a.cards.count { it.zone == Zone.PLAYED } == 1
+        }.map { a ->
+            val card = a.cards.single { it.zone == Zone.PLAYED }.id
+            a to (ctx.card(card).initiative + ctx.itemBonus(a.id, Stat.INITIATIVE))
+        }.sortedWith(compareByDescending<Pair<HeroState, Int>> { it.second }.thenBy { it.first.seat })
+        val before = allies.filter { it.second >= init }.map { it.first.id }
+        val after = allies.filter { it.second < init }.map { it.first.id }
+        val key = TEAM_PRE + assume.entries.joinToString(",") { "${it.key}=${it.value}" } + "|" + before.joinToString(",")
+        val prior = ctx.memo.getOrPut(key) { chain(ctx, base, before, d.id, emptyMap(), emptyMap(), 0.0) } as Prior
+        return TeamOrder(prior, after)
+    }
+
+    /** [ctx]'s position with the [assume]d cards facedown (a teammate still to choose, G115). */
+    private fun teamBase(ctx: HContext, assume: Map<String, String>): GameState {
+        if (assume.isEmpty()) return ctx.state
+        val key = TEAM_BASE + assume.entries.joinToString(",") { "${it.key}=${it.value}" }
+        return ctx.memo.getOrPut(key) {
+            val st = ctx.state.copy()
+            val g = Game(ctx.session.engineData, st, emptyList(), RunMode.PROBE)
+            for ((hero, card) in assume) {
+                if (st.hero(hero)?.card(card)?.zone == Zone.HAND) g.moveCard(hero, card, Zone.PLAYED)
+            }
+            st
+        } as GameState
+    }
+
+    /** [allies] act alone, in order, from [from]; one that cannot be finished is left to the threat map. */
+    @Suppress("LongParameterList")
+    private fun chain(
+        ctx: HContext,
+        from: GameState,
+        allies: List<String>,
+        salt: Long,
+        hits: Map<String, Double>,
+        dead: Map<String, Double>,
+        strike: Double,
+    ): Prior {
+        var p = Prior(from, strike, hits, dead)
+        for (a in allies) {
+            val next = try {
+                actPriced(ctx, p, a, salt)
+            } catch (e: CancellationException) {
+                throw e
+            } catch (_: Exception) {
+                null
+            }
+            if (next != null) p = next
+        }
+        return p
+    }
+
+    /**
+     * [ally]'s action alone on a copy of [p]'s position, with its own book. An enemy's defense or discard (which
+     * reads a hidden hand) is priced from the pool, from our team's side, with the hits already landed ([p]); the
+     * action ends there (G114): its card is resolved and the enemy keeps its hand in the position. Null when the
+     * action cannot be finished.
+     */
+    private fun actPriced(ctx: HContext, p: Prior, ally: String, salt: Long): Prior? {
+        val st = p.state.copy()
+        st.revealed = false
+        st.step = Step.RESOLVE
+        st.acting = null
+        st.vars[NEXT_ACTOR] = ally
+        val rng = Random(HeuristicAi.mix(salt, ally.hashCode().toLong()))
+        val sim = EngineSession(ctx.session.engineData, ctx.session.setup, st, rng)
+        sim.quiet = true
+        sim.haltWhen = { s -> ally in s.turnRecord.resolved || s.step != Step.RESOLVE }
+        sim.start()
+        var n = 0
+        while (n < PRELUDE_CAP) {
+            val q = sim.pending ?: break
+            if (Lookahead.hiddenAnswer(sim.state, q, ctx.team)) {
+                val at = HContext(sim, q, ctx.team, ctx.profile, ctx.playbooks, seen = ctx.seen, finishing = true)
+                at.teamHits = p.hits
+                at.teamDead = p.dead
+                at.teamInit = Int.MAX_VALUE
+                at.teamSimulated = setOf(ctx.seat)
+                val strike = Lookahead.pooled(at, q)
+                val (hits, dead) = landed(at, q, p)
+                val end = sim.state.copy()
+                if (!abort(ctx, end, ally)) return null
+                return Prior(end, p.strike + strike, hits, dead)
+            }
+            val c = HContext(sim, q, q.team, ctx.profile, ctx.playbooks, seen = ctx.seen, finishing = true)
+            if (q.team == ctx.team) {
+                c.teamHits = p.hits
+                c.teamDead = p.dead
+            }
+            val choice = policy(c, q, ally) ?: return null
+            if (sim.answer(q.id, choice) !is AnswerResult.Accepted) return null
+            n++
+        }
+        val end = sim.state
+        if (sim.pending != null || end.winner != null || ally !in end.turnRecord.resolved) return null
+        return Prior(end, p.strike, p.hits, p.dead)
+    }
+
+    /** The hit priced at [q] (an enemy's defense or discard): it surely costs them a card unless it defeats them. */
+    private fun landed(at: HContext, q: Decision, p: Prior): Pair<Map<String, Double>, Map<String, Double>> {
+        val target = q.seat
+        val h = at.state.hero(target) ?: return p.hits to p.dead
+        val kill = if (q.kind == DecisionKind.DEFEND) {
+            at.teamKillChance(target, q.context.attackTotal ?: 0, q.context.rangedAttack == true)
+        } else {
+            0.0
+        }
+        if (h.handSize <= 0) return p.hits to p.dead
+        val dead = p.dead + (target to ((p.dead[target] ?: 0.0) + kill).coerceAtMost(1.0))
+        return (p.hits + (target to 1.0)) to dead
+    }
+
+    /** End [hero]'s action on [st] where it stands (a look priced the rest): its card resolved, nobody acting. */
+    private fun abort(ctx: HContext, st: GameState, hero: String): Boolean {
+        val h = st.hero(hero) ?: return false
+        val played = h.cards.filter { it.zone == Zone.PLAYED }.map { it.id }
+        val g = Game(ctx.session.engineData, st, emptyList(), RunMode.PROBE)
+        for (c in played) g.moveCard(hero, c, Zone.RESOLVED, slot = st.turn, keepEffects = true)
+        if (hero !in st.turnRecord.resolved) st.turnRecord.resolved += hero
+        st.acting = null
+        st.step = Step.RESOLVE
+        return true
+    }
+
+    /**
+     * The card play's position with its teammates: our action's end (ended where a hidden answer was priced, when
+     * it was), then each teammate whose known card acts after ours, with its own book, every hit priced with the
+     * hits before it; scored as [scoreCard] plus the teammates' priced hits.
+     */
+    @Suppress("LongParameterList")
+    private fun scoreTeam(
+        ctx: HContext,
+        f: EngineSession,
+        origin: Hex?,
+        init: Int,
+        strike: Double,
+        team: TeamOrder,
+        post: Boolean = true,
+    ): Double {
+        var after: Prior? = null
+        if (post && team.after.isNotEmpty()) {
+            after = try {
+                val end = f.state.copy()
+                var hits = team.prior.hits
+                var dead = team.prior.dead
+                val q = f.pending
+                if (q != null) {
+                    // Our hit ended the look at their answer: it is priced, and the teammates meet what it leaves.
+                    val at = HContext(f, q, ctx.team, ctx.profile, ctx.playbooks, seen = ctx.seen, finishing = true)
+                    at.teamHits = hits
+                    at.teamDead = dead
+                    val l = landed(at, q, team.prior)
+                    hits = l.first
+                    dead = l.second
+                }
+                if (abort(ctx, end, ctx.seat)) {
+                    chain(ctx, end, team.after, ctx.decision?.id ?: 0L, hits, dead, 0.0)
+                } else {
+                    null
+                }
+            } catch (e: CancellationException) {
+                throw e
+            } catch (_: Exception) {
+                null
+            }
+        }
+        val end = (after?.state ?: f.state).copy()
+        end.revealed = false
+        end.acting = null
+        val e = HContext(
+            ctx.session,
+            null,
+            ctx.team,
+            ctx.profile,
+            ctx.playbooks,
+            seen = ctx.seen,
+            finishing = true,
+            stateOverride = end,
+            cardModel = modelOf(ctx),
+        )
+        val stands = end.hero(ctx.seat)?.at
+        val exposure = stands?.let { ctx.seat to e.exposureSplit(ctx.seat, origin, it, init) }
+        val first = if (origin != null) e.defeatBefore(ctx.seat, origin, init) else 0.0
+        return HEval.evaluate(e, ctx.team, exposure) + strike * (1.0 - first) + team.prior.strike +
+            (after?.strike ?: 0.0)
+    }
+
+    private const val TEAM_PRE = "team.pre:"
+    private const val TEAM_BASE = "team.base:"
 
     /**
      * Knob `restBook` (measurement): another hero's answer inside a played-out turn by the whole book of

@@ -334,6 +334,18 @@ G21. [PLAY_CARD] FROM 7 MODE ADD WHEN the intent is `ROTATE` and a movement card
 
 G22. [PLAY_CARD] FROM 1 MODE ADD WHEN the only option is Pass THEN Pass WEIGHT 0 SOURCE [RB p.7]
 
+**Team play, strategy round (Track T, `TeamPlay.kt`).** The owner: "let's assume we know what cards our team mates are playing". A computer teammate's hand and facedown card are known to its team; a human teammate's facedown card stays hidden until the reveal [RB p.4]. Knobs `team` (master) and `team.<name>` (RESULTS.md "Strategy round - Track T").
+
+G113. [PLAY_CARD, CHOOSE_UNIT] FROM 7 MODE ADD WHEN we price a hit on hero `u` that may not defeat, and a teammate's card known to the team (revealed, or a computer's facedown card) acts after ours and reaches `u` THEN add what our strip gives their hit: their hit's worth on a hand one card thinner minus on the hand as it is, times the chance ours does not defeat; 0 when every teammate's card is known and none follows; G60's old constant only when a teammate's card is unknown WEIGHT that difference (`team.follow`) SOURCE [BGG 3033553] [BGG 2894296] [REASONED]
+
+G114. [PLAY_CARD] FROM 7 MODE EVAL WHEN computer teammates' cards are known THEN the card's look resolves every known teammate card in initiative order, the faster ones before ours and the slower ones after (a same-team tie: the teammate first), each with its own book; a teammate's hit that reaches a hidden defense is priced from the pool, and the next hit on that hero meets the thinner hand (or no hero, at the chance it was defeated) WEIGHT the position (`team.order`) SOURCE [RB p.7] [BGG 3033553] [REASONED]
+
+G115. [PLAY_CARD] FROM 8 MODE EVAL WHEN a computer teammate still chooses its card after us this turn THEN score our best three cards each with the teammate's two best replies (its own static book) resolved together as G114, and play our half of the best pair; the teammate asked later sees our card and best-responds WEIGHT the pair's position (`team.joint`) SOURCE [BGG 3033553] [REASONED]
+
+G116. [PLAY_CARD] FROM 9 MODE ADD WHEN an enemy starts turn 4 with at most one card (it plays it and has nothing to defend with) and the card we would play now is our last attack that can reach them on turn 4 THEN avoid it: 0.4 of their kill value when no computer teammate keeps such an attack, 0.1 when one does WEIGHT −(that share × kill value) (`team.reserve`) SOURCE [BGG 2894296] [BGG 3033553] [REASONED]
+
+G117. [PLAY_CARD] FROM 9 MODE ADD WHEN G10's strip sets up a turn-4 kill but nobody on the team will hold an attack that reaches the target on turn 4 THEN the set-up is worth 0.3 of G10's weight WEIGHT ×0.3 (`team.reserve`) SOURCE [BGG 2894296] [REASONED]
+
 ### ACT_FIRST
 
 G23. [ACT_FIRST] FROM 5 MODE ADD WHEN one tied hero's action makes the other's target legal, dead, or unmodified THEN that hero first WEIGHT +(the kill or the minion the order unlocks) SOURCE [RB p.7] [BGG 2894296]
@@ -343,6 +355,8 @@ G24. [ACT_FIRST] FROM 3 MODE ADD WHEN one tied hero is in a space where an enemy
 G25. [ACT_FIRST] FROM 5 MODE ADD WHEN one tied hero's straight-line attack needs a square the other would enter THEN the attacker first WEIGHT +8 SOURCE [REASONED from RB p.18 movement]
 
 G26. [ACT_FIRST] FROM 1 MODE ADD WHEN none of G23–G25 apply THEN the hero whose intent is earlier in section 1 WEIGHT +2 SOURCE [REASONED]
+
+G118. [ACT_FIRST] FROM 9 MODE EVAL WHEN two teammates tie THEN play the rest of the turn out both ways (each hero by its own book, the F1 look) and take the better order; G23–G26 stay the static score below strength 9 WEIGHT the position (`team.tie`) SOURCE [RB p.7] [REASONED]
 
 ### RESPAWN
 

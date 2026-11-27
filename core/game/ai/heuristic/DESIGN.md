@@ -76,6 +76,12 @@ ai/heuristic/
                         7 a computer teammate's known card that acts first resolves before ours, G14, unless
                         it makes an enemy defend or discard), and an attack on or a discard from a hidden hand
                         is priced from the pool when the defender would answer.
+                        Track T (`team.order`): every computer teammate's known card is resolved in initiative
+                        order, before ours or after it (from the best leaf of each action), and a teammate's hit
+                        that reaches a hidden defense is priced there and its action ended, the next hit on that
+                        hero meeting the thinner hand
+  TeamPlay.kt           team play (strategy round, Track T): known teammate cards, the follow-up of a strip
+                        (G113), the joint card choice (G115), the turn-4 finisher reserve (G116, G117)
                         The same look (TurnLook) scores actions, targets, spaces and defenses after the reveal
   General.kt            the general playbook: dispatches each DecisionKind to its rules (GENERAL.md):
   PlayRules.kt            PLAY_CARD (G1–G22)        ActionRules.kt  CHOOSE_ACTION (G32–G42)
@@ -131,8 +137,8 @@ signature heuristic must fire (use `position/PositionBuilder` or a seeded game a
 | 1–2 | general playbook only, no threat map, no lookahead; forgets minion modifiers sometimes | high temperature, slips 15–25% |
 | 3–4 | + threat map (exposure), lookahead for opaque choices | medium, slips 8–12% |
 | 5–6 | + hero playbooks, turn plans | low, slips 3–5% |
-| 7–8 | + initiative reading (enemy possible cards), focus fire / team coordination, card counting | very low |
-| 9 | + two-turn plans (strip-then-kill, defender held back for a teammate), lane timing; after the reveal every look plays the rest of the turn (F1, `turnRest`) and every own square is looked at; the last card's escape on turn 4 (F3) | none on critical choices |
+| 7–8 | + initiative reading (enemy possible cards), focus fire / team coordination, card counting; a computer teammate's facedown card is known and its action is played in initiative order inside the card look, before and after ours (Track T, `team.known` / `team.order` / `team.follow`, G113–G114); from 8 the teammate asked first plays its half of the best pair of cards (`team.joint`, G115) | very low |
+| 9 | + two-turn plans (strip-then-kill, defender held back for a teammate, a turn-4 finisher kept by the team: `team.reserve`, G116–G117; a same-team tie played out both ways: `team.tie`, G118), lane timing; after the reveal every look plays the rest of the turn (F1, `turnRest`) and every own square is looked at; the last card's escape on turn 4 (F3) | none on critical choices |
 | 10 | 9 + `knowHands` (ADR-062): inside those turns, and in the card play's own-action look (`knowLook`), enemy defenses are answered from the known hand; two of its own choices inside every look are branched (`lookBranches = 2`, 9 and below 1). Measured h10 : h9 56.6% on 256 development games (RESULTS.md, wave 3) | argmax |
 
 Defences and lane-deciding moves never slip (they feel broken, not human). Saves from before the slider
