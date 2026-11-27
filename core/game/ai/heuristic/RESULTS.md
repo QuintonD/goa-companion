@@ -1358,13 +1358,14 @@ What the self-play numbers say (rates of the tables above):
   (1.8 / 2.5 per game per side): coins left on the table for a discard that rarely converts.
 - **Minions left untaken**: of the actions that began with a minion in reach, 39% (2v2) / 48% (3v3) took no minion that
   turn (attacked a hero instead in 2.3 / 3.5 per game, moved away 1.7 / 2.3). Minions still give 60% of coins in 2v2
-  and only 48% in 3v3; pity coins are 25% / 19% (a hero ends about a third of its rounds without levelling).
+  and only 48% in 3v3; pity coins are 20% / 19% (a hero ends about a third of its rounds without levelling).
 - **Pushes alternate**: a push is almost never followed by the same team's next push within a round (`double` 0) and
   only 10% / 15% of pushes suffered were the second in a row (`again`) - yet every Throne ending is one, and in all 8
   Throne games of the 2v2 run the second push came during the turns (`m`), not at the Minion Battle.
-- **Where the heroes are when a wave is lost**: per push suffered, 2v2: 0.49 heroes in the new Battle Zone, 0.62 a walk
-  away, 0.30 farther (0.29 stranded on the enemy side), 0.08 dead; 3v3 (three heroes): 0.78 in, 0.52 walk, 0.69 far
-  (0.63 stranded). In 3v3 a third of the team is out of position for the next wave.
+- **Where the heroes are when a wave is lost** (the losing side's heroes read after each push but the game-ending
+  one): 2v2 32% in the new Battle Zone, 42% a walk away, 20% farther (19% stranded on the enemy side), 6% dead; 3v3 38%
+  in, 25% walk, 33% far (31% stranded), 4% dead. In 3v3 a third of the team is out of position for the next wave. The
+  winners follow their wave no better (3v3: 23% in, 36% far).
 - **Fast Travel**: 30% / 35% of the actions that wanted it (outside the Battle Zone, out of walking reach, Movement
   offered) could not Fast Travel.
 - **Team play**: two heroes on one target in a turn is rare (0.12 / 0.31 turns a game); 35% / 45% of kills were
