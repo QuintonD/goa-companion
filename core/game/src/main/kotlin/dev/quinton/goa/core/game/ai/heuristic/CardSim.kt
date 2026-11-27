@@ -677,13 +677,18 @@ internal object CardSim {
                 actPriced(ctx, p, a, salt)
             } catch (e: CancellationException) {
                 throw e
-            } catch (_: Exception) {
+            } catch (e: Exception) {
+                debug?.invoke("team: $a failed: $e")
                 null
             }
             if (next != null) p = next
+            debug?.invoke("team: $a ${if (next == null) "not played" else "played, strike ${p.strike}"}")
         }
         return p
     }
+
+    /** Tests only: a line for each teammate the order look plays (Track T). */
+    internal var debug: ((String) -> Unit)? = null
 
     /**
      * [ally]'s action alone on a copy of [p]'s position, with its own book. An enemy's defense or discard (which
@@ -723,11 +728,15 @@ internal object CardSim {
                 c.teamDead = p.dead
             }
             val choice = policy(c, q, ally) ?: return null
+            debug?.invoke("team: $ally ${q.kind} -> $choice")
             if (sim.answer(q.id, choice) !is AnswerResult.Accepted) return null
             n++
         }
         val end = sim.state
-        if (sim.pending != null || end.winner != null || ally !in end.turnRecord.resolved) return null
+        if (sim.pending != null || end.winner != null || ally !in end.turnRecord.resolved) {
+            debug?.invoke("team: $ally unfinished: pending ${sim.pending?.kind} step ${end.step}")
+            return null
+        }
         return Prior(end, p.strike, p.hits, p.dead)
     }
 

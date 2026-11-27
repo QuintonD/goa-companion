@@ -23,39 +23,39 @@ class TeamPlayBookTest {
     private val ai = Controller.Ai(AiLevel.EXPERT)
 
     /**
-     * Turn [turn], Red to play from seat 1: Brogan (seat 0, Red, [broganController]) has played [broganCard]
-     * facedown; Xargatha (Red, computer) chooses from [xargathaHand]; Arien (Blue) stands next to both with
-     * [arienHand]; Wasp (Blue) is far away.
+     * Turn [turn], Red to play from seat 1: Xargatha (seat 0, Red, [allyController]) has played [allyCard]
+     * facedown; Wasp (Red, computer) chooses from [ourHand]; Arien (Blue) stands next to both with [arienHand];
+     * Brogan (Blue) is far away. Wasp's Gold (initiative 12) and Xargatha's Red (7) both target an adjacent unit.
      */
     @Suppress("LongParameterList")
     private fun build(
-        broganCard: String?,
-        broganHand: List<String> = listOf("brogan-blue-1"),
-        xargathaHand: List<String> = listOf("xargatha-gold", "xargatha-blue-1"),
+        allyCard: String?,
+        allyHand: List<String> = listOf("xargatha-blue-1"),
+        ourHand: List<String> = listOf("wasp-gold", "wasp-blue-1"),
         arienHand: List<String> = listOf("arien-blue-1", "arien-green-1"),
         turn: Int = 4,
-        broganController: Controller = ai,
+        allyController: Controller = ai,
         fromSeat: Int = 1,
     ): EngineSession = position(TestData.engine, TestData.FOREST) {
         round = 2
         this.turn = turn
         clearMinions()
-        hero("brogan", Team.RED, Hex(2, -3)) {
-            controller = broganController
-            if (broganCard != null) played(broganCard)
-            hand(*broganHand.toTypedArray())
+        hero("xargatha", Team.RED, Hex(2, -3)) {
+            controller = allyController
+            if (allyCard != null) played(allyCard)
+            hand(*allyHand.toTypedArray())
         }
-        hero("xargatha", Team.RED, Hex(2, -2)) {
+        hero("wasp", Team.RED, Hex(2, -2)) {
             controller = ai
-            hand(*xargathaHand.toTypedArray())
+            hand(*ourHand.toTypedArray())
         }
         hero("arien", Team.BLUE, Hex(3, -3)) {
             controller = ai
             hand(*arienHand.toTypedArray())
         }
-        hero("wasp", Team.BLUE, Hex(-3, 2)) {
+        hero("brogan", Team.BLUE, Hex(-3, 2)) {
             controller = ai
-            hand("wasp-blue-1", "wasp-green-1", "wasp-red-1")
+            hand("brogan-blue-1", "brogan-green-1", "brogan-red-1")
         }
         phase = PositionPhase.PlayCards(fromSeat = fromSeat)
     }
@@ -68,21 +68,21 @@ class TeamPlayBookTest {
 
     @Test
     fun `a computer teammate's facedown card is its card this turn, a human's is not`() {
-        val s = build("brogan-red-1")
-        assertThat(s.pending!!.seat).isEqualTo("xargatha")
-        val known = ctx(s).possibleCards("brogan").filter { it.playingNow }.map { it.card.id }
-        assertThat(known).containsExactly("brogan-red-1")
+        val s = build("xargatha-red-1")
+        assertThat(s.pending!!.seat).isEqualTo("wasp")
+        val known = ctx(s).possibleCards("xargatha").filter { it.playingNow }.map { it.card.id }
+        assertThat(known).containsExactly("xargatha-red-1")
         // Knob off: as before, the facedown card is one of the pool.
-        assertThat(ctx(s, mapOf("team" to 0.0)).possibleCards("brogan").none { it.playingNow }).isTrue()
-        assertThat(ctx(s, mapOf("team.known" to 0.0)).possibleCards("brogan").none { it.playingNow }).isTrue()
+        assertThat(ctx(s, mapOf("team" to 0.0)).possibleCards("xargatha").none { it.playingNow }).isTrue()
+        assertThat(ctx(s, mapOf("team.known" to 0.0)).possibleCards("xargatha").none { it.playingNow }).isTrue()
         // A person's facedown card stays hidden (p.4).
-        val human = build("brogan-red-1", broganController = Controller.Human)
-        assertThat(ctx(human).possibleCards("brogan").none { it.playingNow }).isTrue()
-        assertThat(TeamPlay.knownCard(ctx(human), human.state.hero("brogan")!!)).isNull()
+        val human = build("xargatha-red-1", allyController = Controller.Human)
+        assertThat(ctx(human).possibleCards("xargatha").none { it.playingNow }).isTrue()
+        assertThat(TeamPlay.knownCard(ctx(human), human.state.hero("xargatha")!!)).isNull()
     }
 
     /**
-     * Arien's turn-4 hand (two cards: one played, one to defend with) that Brogan's Red alone does not surely
+     * Arien's turn-4 hand (two cards: one played, one to defend with) that Xargatha's Red alone does not surely
      * defeat, so a strip before it matters.
      */
     private val arienHand: List<String> by lazy {
@@ -93,96 +93,91 @@ class TeamPlayBookTest {
             listOf("arien-blue-1", "arien-green-1"),
         )
         hands.first { hand ->
-            val s = build("brogan-red-1", arienHand = hand)
+            val s = build("xargatha-red-1", arienHand = hand)
             val c = ctx(s)
-            val red = c.card("brogan-red-1")
-            val total = red.attack + c.itemBonus("brogan", dev.quinton.goa.core.model.catalog.Stat.ATTACK)
+            val red = c.card("xargatha-red-1")
+            val total = red.attack + c.itemBonus("xargatha", dev.quinton.goa.core.model.catalog.Stat.ATTACK)
             c.teamBaseStrike(s.state.hero("arien")!!, total, red.ranged, 0) < c.killWorth("arien") - 1.0
         }
     }
 
     @Test
     fun `a known teammate attack after ours turns our strip into its kill`() {
-        // Turn 4: Arien holds two cards, plays one, defends with the other; Brogan's Red acts after our Gold.
-        val follow = build("brogan-red-1", arienHand = arienHand)
+        // Turn 4: Arien holds two cards, plays one, defends with the other; Xargatha's Red acts after our Gold.
+        val follow = build("xargatha-red-1", arienHand = arienHand)
         val c = ctx(follow)
-        c.teamInit = TeamPlay.initiative(c, "xargatha", "xargatha-gold")
-        val arien = follow.state.hero("arien")!!
-        val gain = TeamPlay.followUp(c, arien, chance = 0.0)
+        c.teamInit = TeamPlay.initiative(c, "wasp", "wasp-gold")
+        val gain = TeamPlay.followUp(c, follow.state.hero("arien")!!, chance = 0.0)
         assertThat(gain).isNotNull()
         assertThat(gain!!).isGreaterThan(5.0)
-        // Must not fire: Brogan's known card is not an attack.
-        val move = build("brogan-blue-1", broganHand = listOf("brogan-red-1"), arienHand = arienHand)
+        // Must not fire: Xargatha's known card is not an attack.
+        val move = build("xargatha-blue-1", allyHand = listOf("xargatha-red-1"), arienHand = arienHand)
         val m = ctx(move)
         m.teamInit = c.teamInit
         assertThat(TeamPlay.followUp(m, move.state.hero("arien")!!, chance = 0.0)).isEqualTo(0.0)
         // Unknown (a person's card): the old constant decides (null).
-        val human = build("brogan-red-1", broganController = Controller.Human)
+        val human = build("xargatha-red-1", allyController = Controller.Human, arienHand = arienHand)
         val h = ctx(human)
         h.teamInit = c.teamInit
         assertThat(TeamPlay.followUp(h, human.state.hero("arien")!!, chance = 0.0)).isNull()
         // A teammate whose card acts first has met the target already: no follow-up from it.
-        val fast = build("brogan-gold", broganHand = listOf("brogan-blue-1"))
+        val fast = build("xargatha-gold", allyHand = listOf("xargatha-blue-1"), arienHand = arienHand)
         val f = ctx(fast)
-        f.teamInit = TeamPlay.initiative(f, "xargatha", "xargatha-blue-1")
+        f.teamInit = TeamPlay.initiative(f, "wasp", "wasp-blue-1")
         assertThat(TeamPlay.followUp(f, fast.state.hero("arien")!!, chance = 0.0)).isEqualTo(0.0)
     }
 
     @Test
     fun `the card play values the strip more when the teammate's known attack follows it`() {
-        fun gap(s: EngineSession, tune: Map<String, Double> = emptyMap()): Double {
-            val book = HeuristicAi(9, 3L, tune = tune)
+        fun gap(s: EngineSession): Double {
+            val book = HeuristicAi(9, 3L)
             var values: Map<Choice, Double> = emptyMap()
             book.scored = { stage, options, v -> if (stage == "cards") values = options.zip(v.toList()).toMap() }
             book.choose(s, s.pending!!)
-            return values.getValue(Choice.Card("xargatha-gold")) - values.getValue(Choice.Card("xargatha-blue-1"))
+            return values.getValue(Choice.Card("wasp-gold")) - values.getValue(Choice.Card("wasp-blue-1"))
         }
-        val withAttack = gap(build("brogan-red-1", arienHand = arienHand))
-        val withMove = gap(build("brogan-blue-1", broganHand = listOf("brogan-red-1"), arienHand = arienHand))
-        // Our Gold's hit leaves Arien empty for Brogan's Red: worth more than with a teammate who only moves.
+        CardSim.debug = { println("  gap $it") }
+        val (withAttack, withMove) = try {
+            gap(build("xargatha-red-1", arienHand = arienHand)) to
+                gap(build("xargatha-blue-1", allyHand = listOf("xargatha-red-1"), arienHand = arienHand))
+        } finally {
+            CardSim.debug = null
+        }
+        println("  gap with attack $withAttack, with move $withMove")
+        // Our Gold's hit leaves Arien empty for Xargatha's Red: worth more than with a teammate who only moves.
         assertThat(withAttack - withMove).isGreaterThan(2.0)
     }
 
     @Test
     fun `the team keeps a turn-4 finisher for an enemy who will arrive empty-handed`() {
         // Turn 3, before Blue plays: Arien holds two cards, plays one now and starts turn 4 with one.
-        val noHelp = build(
-            "brogan-blue-1",
-            broganHand = listOf("brogan-green-1"),
-            xargathaHand = listOf("xargatha-gold", "xargatha-blue-1"),
-            arienHand = listOf("arien-blue-1", "arien-green-1"),
-            turn = 3,
-        )
+        val noHelp = build("xargatha-blue-1", allyHand = listOf("xargatha-green-1"), turn = 3)
         val c = ctx(noHelp)
         assertThat(TeamPlay.emptyOnTurn4(c).map { it.id }).containsExactly("arien")
-        val alone = TeamPlay.reserve(c, c.card("xargatha-gold"))
+        val alone = TeamPlay.reserve(c, c.card("wasp-gold"))
         assertThat(alone).isLessThan(-0.3 * c.killWorth("arien"))
         // Not the finisher's card: no cost.
-        assertThat(TeamPlay.reserve(c, c.card("xargatha-blue-1"))).isEqualTo(0.0)
+        assertThat(TeamPlay.reserve(c, c.card("wasp-blue-1"))).isEqualTo(0.0)
         // A teammate still holds an attack for turn 4: the cost is small.
-        val helped = build(
-            "brogan-blue-1",
-            broganHand = listOf("brogan-red-1", "brogan-green-1"),
-            turn = 3,
-        )
+        val helped = build("xargatha-blue-1", allyHand = listOf("xargatha-red-1", "xargatha-green-1"), turn = 3)
         val h = ctx(helped)
-        val shared = TeamPlay.reserve(h, h.card("xargatha-gold"))
+        val shared = TeamPlay.reserve(h, h.card("wasp-gold"))
         assertThat(shared).isLessThan(0.0)
         assertThat(shared).isGreaterThan(alone)
         // Must not fire: Arien keeps two cards into turn 4.
         val full = build(
-            "brogan-blue-1",
-            broganHand = listOf("brogan-green-1"),
+            "xargatha-blue-1",
+            allyHand = listOf("xargatha-green-1"),
             arienHand = listOf("arien-blue-1", "arien-green-1", "arien-red-1"),
             turn = 3,
         )
-        assertThat(TeamPlay.reserve(ctx(full), ctx(full).card("xargatha-gold"))).isEqualTo(0.0)
+        assertThat(TeamPlay.reserve(ctx(full), ctx(full).card("wasp-gold"))).isEqualTo(0.0)
         // Knob off.
         val off = ctx(noHelp, mapOf("team" to 0.0))
-        assertThat(TeamPlay.reserve(off, off.card("xargatha-gold"))).isEqualTo(0.0)
+        assertThat(TeamPlay.reserve(off, off.card("wasp-gold"))).isEqualTo(0.0)
         // Below strength 9 the layer is off.
         val seven = HContext(noHelp, noHelp.pending!!, Team.RED, HeuristicProfile.of(7))
-        assertThat(TeamPlay.reserve(seven, seven.card("xargatha-gold"))).isEqualTo(0.0)
+        assertThat(TeamPlay.reserve(seven, seven.card("wasp-gold"))).isEqualTo(0.0)
     }
 
     @Test
