@@ -48,7 +48,9 @@ internal object CardRules {
         val next = ctx.session.engineData.upgradesOf(h, o.cardId)
         if (next.isEmpty()) return -5.0
         val best = next.maxOf { kept -> keepValue(ctx, d.seat, kept, next - kept) }
-        return best - ctx.card(o.cardId).rating + upgradeBias(ctx, d.seat, o.cardId)
+        // G118 (Track V): the job's colour, inside the hero file's order.
+        val plan = TeamStrategy.upgradeBias(ctx, d.seat, ctx.card(o.cardId), next.map { ctx.card(it) })
+        return best - ctx.card(o.cardId).rating + upgradeBias(ctx, d.seat, o.cardId) + plan
     }
 
     /** G107: keep the card the plan plays; the other becomes its item (G108–G111). */
@@ -58,8 +60,14 @@ internal object CardRules {
         return keepValue(ctx, d.seat, o.cardId, others) + upgradeBias(ctx, d.seat, o.cardId) * 0.25
     }
 
-    private fun keepValue(ctx: HContext, seat: String, keep: String, items: List<String>): Double =
-        ctx.card(keep).rating + items.sumOf { itemValue(ctx, seat, ctx.card(it).item) }
+    private fun keepValue(ctx: HContext, seat: String, keep: String, items: List<String>): Double {
+        val v = ctx.card(keep).rating + items.sumOf { item ->
+            val stat = ctx.card(item).item
+            itemValue(ctx, seat, stat) * (stat?.let { TeamStrategy.itemScale(ctx, seat, it) } ?: 1.0)
+        }
+        // G120 (Track V): the card the job plays stays in the hand.
+        return v + TeamStrategy.keepBias(ctx, seat, ctx.card(keep), items.map { ctx.card(it) })
+    }
 
     /** An item's worth: how many of the hero's round cards carry the matching icon. */
     private fun itemValue(ctx: HContext, seat: String, stat: Stat?): Double {
@@ -72,8 +80,8 @@ internal object CardRules {
             // G108: a defense point on every card that defends.
             Stat.DEFENSE -> cards.count { it.canDefend && it.defense != null } * 0.7
 
-            // G110: initiative, a little on every card.
-            Stat.INITIATIVE -> cards.size * 0.35
+            // G110: initiative, a little on every card; G105 (Track V) more when it breaks ties with enemy attacks.
+            Stat.INITIATIVE -> cards.size * 0.35 + TeamStrategy.initiativeEdge(ctx, seat)
 
             // G111: movement, range and radius on the cards that use them.
             Stat.MOVEMENT -> cards.count { it.hasMovement } * 0.35

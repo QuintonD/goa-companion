@@ -150,7 +150,7 @@ class HContext(
         if (!profile.heroPlaybooks) return@getOrPut HeroStyle.DEFAULT
         val s = playbooks(heroId).style
         val floor = profile.knob("laneFloor", LANE_FLOOR)
-        if (s.laneWeight < floor) s.copy(laneWeight = floor) else s
+        TeamStrategy.style(this, heroId, if (s.laneWeight < floor) s.copy(laneWeight = floor) else s)
     }
 
     fun card(id: String): HCard = cardCache.getOrPut(id) {
@@ -518,7 +518,7 @@ class HContext(
         val enemies = state.heroes.count { it.team != h.team }
         var v = loss + h.level + tier * (enemies - 1).coerceAtLeast(0) + KILL_TEMPO
         if (deathsToLose(h.team) <= 1) v *= profile.knob("lastMult", 1.15)
-        return v
+        return v * TeamStrategy.deathScale(this, h.team)
     }
 
     /** The last Life counter: its loss is the game (GENERAL §2), priced so a sure death outweighs any farm. */
@@ -1041,6 +1041,9 @@ class HContext(
 
     /** Coin change in `60 × W` from defeating one enemy minion on [lane] (G58). */
     fun laneKillValue(lane: String): Double = laneKillDelta(this, lane)
+
+    // Track V: the team plan of each side, derived once per context (TeamStrategy.view).
+    internal val teamViews = HashMap<Team, TeamStrategy.View>(2)
 
     /** Mild danger is a tax. A likely death this turn is not a place to stand. */
     private fun exposurePenalty(heroId: String, at: Hex): Double {
