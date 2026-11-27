@@ -1270,3 +1270,105 @@ equal pushes suffered; minion coins are 2–4 per minion).
 **Not exposed by the engine (so not measured):** whether a hero *wanted* to Fast Travel (only "far and not offered"
 is measurable), which minion a teammate *meant* to take (collisions are inferred from reach), and positions at the
 exact moment of a mid-round push (read at the next decision instead).
+
+### Baseline: the book in self-play (e6174517, release 0.17.0)
+
+`h9:h9` 2v2 on line-ups 2900–2931 (64 games, 94 s) and 3v3 on 3000–3015 (32 games, 72 s); per-game means of one
+side (both sides are the same player, so they are equal). Raw logs: the integrator's scratchpad, `summary.txt`.
+
+| key | h9:h9 2v2 2900+32 h9 | h9:h9 3v3 3000+16 h9 |
+|---|---|---|
+| games | 64.00 | 32.00 |
+| win | 0.50 | 0.50 |
+| rounds | 6.66 | 5.88 |
+| minions | 7.27 | 7.34 |
+| minions.lost | 7.27 | 7.34 |
+| coins.minion | 15.09 | 15.31 |
+| coins.kill | 3.36 | 5.28 |
+| coins.assist | 1.52 | 4.81 |
+| coins.pity | 4.95 | 6.16 |
+| coins.other | 0.38 | 0.69 |
+| push.won.mid | 0.28 | 0.31 |
+| push.won.eor | 0.84 | 0.97 |
+| push.lost.mid | 0.28 | 0.31 |
+| push.lost.eor | 0.84 | 0.97 |
+| pushesLost | 1.12 | 1.28 |
+| push.lost.double | 0.00 | 0.00 |
+| push.lost.again | 0.11 | 0.19 |
+| push.lost.in | 0.55 | 1.00 |
+| push.lost.walk | 0.70 | 0.66 |
+| push.lost.far | 0.34 | 0.88 |
+| push.lost.dead | 0.09 | 0.09 |
+| push.lost.stranded | 0.33 | 0.81 |
+| push.won.in | 0.50 | 0.59 |
+| push.won.walk | 0.73 | 0.94 |
+| push.won.far | 0.39 | 0.94 |
+| push.won.dead | 0.06 | 0.16 |
+| act.far | 3.86 | 7.56 |
+| ft.offered.far | 2.70 | 4.91 |
+| ft.blocked.far | 1.16 | 2.66 |
+| ft.taken | 2.70 | 4.78 |
+| atk.minion | 6.80 | 6.91 |
+| atk.hero | 5.16 | 7.41 |
+| atk.hero.kill | 1.05 | 1.75 |
+| atk.hero.followed | 0.38 | 0.81 |
+| atk.hero.poke | 3.73 | 4.84 |
+| atk.hero.poke.minion | 1.84 | 2.47 |
+| act.minion | 10.77 | 13.06 |
+| act.minion.took | 6.55 | 6.78 |
+| act.minion.untaken | 4.22 | 6.28 |
+| act.minion.hero | 2.28 | 3.50 |
+| act.minion.hold | 0.14 | 0.25 |
+| act.minion.move | 1.72 | 2.34 |
+| act.hold | 2.95 | 3.91 |
+| kills | 1.08 | 1.88 |
+| kills.stripFinish | 0.38 | 0.84 |
+| kills.oneShot | 0.50 | 0.59 |
+| team.sameTarget | 0.12 | 0.31 |
+| assists | 1.08 | 3.75 |
+| team.minionCollision | 0.14 | 0.34 |
+| deaths | 1.08 | 1.88 |
+| deaths.emptyHand | 0.56 | 0.78 |
+| deaths.emptyHand.covered | 0.22 | 0.56 |
+| win.THRONE | 0.06 | 0.06 |
+| win.LAST_PUSH | 0.22 | 0.34 |
+| win.LIFE_COUNTERS | 0.22 | 0.09 |
+| loss.THRONE | 0.06 | 0.06 |
+| loss.LAST_PUSH | 0.22 | 0.34 |
+| loss.LIFE_COUNTERS | 0.22 | 0.09 |
+| end.mid | 0.11 | 0.16 |
+| end.eor | 0.17 | 0.25 |
+| lvl.r1 | 1.73 | 1.66 |
+| lvl.r2 | 2.61 | 2.56 |
+| lvl.r3 | 3.27 | 3.20 |
+| lvl.r4 | 3.80 | 3.83 |
+| lvl.r5 | 4.36 | 4.22 |
+| lvl.r6 | 4.78 | 4.89 |
+| lvl.r7 | 5.08 | 4.50 |
+| lvl.r8 | 5.00 | 5.00 |
+| lvl5.share | 0.58 | 0.32 |
+| lvl5.round | 5.05 | 5.23 |
+| lvl.r9 |  | 5.50 |
+
+How the games ended: 2v2 LAST_PUSH 28, LIFE_COUNTERS 28, THRONE 8 of 64; 3v3 LAST_PUSH 22, LIFE 6, THRONE 4 of 32.
+
+What the self-play numbers say (rates of the tables above):
+- **Pokes dominate hero attacks**: 72% (2v2) / 65% (3v3) of attacks on heroes neither defeat the hero nor are
+  followed by a team kill within a turn, and about half of those pokes were made with an enemy minion in reach
+  (1.8 / 2.5 per game per side): coins left on the table for a discard that rarely converts.
+- **Minions left untaken**: of the actions that began with a minion in reach, 39% (2v2) / 48% (3v3) took no minion that
+  turn (attacked a hero instead in 2.3 / 3.5 per game, moved away 1.7 / 2.3). Minions still give 60% of coins in 2v2
+  and only 48% in 3v3; pity coins are 25% / 19% (a hero ends about a third of its rounds without levelling).
+- **Pushes alternate**: a push is almost never followed by the same team's next push within a round (`double` 0) and
+  only 10% / 15% of pushes suffered were the second in a row (`again`) - yet every Throne ending is one, and in all 8
+  Throne games of the 2v2 run the second push came during the turns (`m`), not at the Minion Battle.
+- **Where the heroes are when a wave is lost**: per push suffered, 2v2: 0.49 heroes in the new Battle Zone, 0.62 a walk
+  away, 0.30 farther (0.29 stranded on the enemy side), 0.08 dead; 3v3 (three heroes): 0.78 in, 0.52 walk, 0.69 far
+  (0.63 stranded). In 3v3 a third of the team is out of position for the next wave.
+- **Fast Travel**: 30% / 35% of the actions that wanted it (outside the Battle Zone, out of walking reach, Movement
+  offered) could not Fast Travel.
+- **Team play**: two heroes on one target in a turn is rare (0.12 / 0.31 turns a game); 35% / 45% of kills were
+  strip-then-finish; half of all deaths (0.56 of 1.08 in 2v2) are heroes with no card left, and in 3v3 most of those
+  had a teammate within 3 spaces (0.56 of 0.78).
+- **Levels**: level 3.3 after round 3, 4.4 after round 5; 58% (2v2) / 32% (3v3) of heroes reach level 5, in round 5.
+  Items tucked are mostly Defense (298 of 466 in 2v2), Initiative next.

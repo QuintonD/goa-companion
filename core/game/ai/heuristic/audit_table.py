@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """StrategyAuditTest summaries side by side (strategy round, Track M; RESULTS.md "Strategy round - Track M").
 
-    python3 -I audit_table.py before.log after.log [more.log ...]
+    python3 -I audit_table.py [--no-diff] before.log after.log [more.log ...]
 
 Reads every `AUDIT_SUMMARY` line of the files (a log or an AI_AUDIT_OUT file) and prints one Markdown table:
 a row per key, a column per summary line (`pair format range side`), the per-game means as printed. With two
@@ -29,6 +29,8 @@ def parse(path):
 
 
 def main(paths):
+    no_diff = "--no-diff" in paths
+    paths = [p for p in paths if p != "--no-diff"]
     cols = []
     for c in (c for p in paths for c in parse(p)):
         # A self-play pair (h9:h9) prints the same side twice: keep one.
@@ -41,7 +43,7 @@ def main(paths):
         for k in values:
             if k not in keys:
                 keys.append(k)
-    diff = len(cols) == 2
+    diff = len(cols) == 2 and not no_diff
     header = ["key"] + [h for h, _ in cols] + (["after - before"] if diff else [])
     print("| " + " | ".join(header) + " |")
     print("|" + "---|" * len(header))
