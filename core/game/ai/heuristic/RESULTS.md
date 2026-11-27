@@ -1200,3 +1200,70 @@ look (~40%) and the engine's step re-runs (~40%: re-running a step from its star
 design). Within one search the book is almost never asked the same question on the same position twice (3%
 measured), so an answer cache would not pay. On Node what is left is mostly string-keyed hash lookups (Kotlin/JS
 does not cache a string's hash) and garbage collection.
+
+## Strategy round - Track M (behaviour audit, 2026-11-27)
+
+`StrategyAuditTest` (test code only) plays the tournament's mirrored games and counts what the players did, so the
+strategy tracks (T team play, W waves, V win condition) can measure behaviour before and after, not only the win
+rate. It reads the engine's events ([GameEvent]) and, at every decision, the live state (the engine's own paths for
+"one walk", its Fast Travel options); nothing in `src/main` changed.
+
+**Run it** (from the checkout root; `goa-run --compile` after any change):
+
+```
+S=<the round's scratchpad>
+AI_AUDIT=h9:h9 AI_AUDIT_GAMES=32 AI_H_FIRST=2900 AI_THREADS=2 $S/goa-run StrategyAuditTest > audit.log
+AI_AUDIT=h9:h9 AI_AUDIT_GAMES=16 AI_H_FIRST=3000 AI_FORMAT=3v3 AI_THREADS=2 $S/goa-run StrategyAuditTest > audit3.log
+AI_AUDIT=h9:a10 AI_AUDIT_GAMES=16 AI_H_FIRST=2950 AI_THREADS=2 $S/goa-run StrategyAuditTest > audit10.log
+AI_AUDIT=h9:h9+team=0 ...        # a track's change against its knob-off book, same games
+grep AUDIT_SUMMARY audit.log     # one line per side: key=per-game mean, fixed key order: diff before/after
+```
+
+Sides use the tournament's syntax (`hN[+knob=v]`, `sN` the old search, `xN`/`yN`, `h10/action.move/s10`) plus `aN`,
+the shipped player at strength N (`AiPlayers.forStrength`: the book below 10, the hybrid search at 10 and 11; `s10`
+is the OLD search, so "the book against strength 10" is `h9:a10`). `AI_AUDIT_GAMES` is line-ups (games = twice
+that). Line-ups, seeds and coins are `Tournament.runMixed`'s, so an audit plays exactly the games a tournament on the
+same range plays. `AI_AUDIT_TRAIL=k` prints game k's whole log with the audit's notes; `AI_AUDIT_OUT=f` appends the
+summary lines to a file. In a self-play pair (`h9:h9`) both sides are the same player, so the two blocks agree.
+
+**Definitions** (per side, summed over its games; the summary prints per-game means). An "action" is a
+`CHOOSE_ACTION` decision; "minion in reach" there means the card being resolved is an attack card and an enemy
+minion that is not an immune heavy stands within its reach (printed range or 1, printed pre-attack move, range items:
+`HContext.attackReach`, hex distance, walls not walked).
+
+| Key | Meaning |
+|---|---|
+| `minions` | enemy minions the side's heroes defeated |
+| `coins.minion` / `.kill` / `.assist` / `.pity` / `.other` | coins gained, by the reason the engine writes ("defeated a … minion", "defeated <hero>", "assist", "pity coin", anything else) |
+| `lvl.rK` | the side's mean hero level at the end of round K, after its level-ups (rounds that ended) |
+| `lvl5.share` / `lvl5.round` | share of hero-games that reached level 5 / mean round in which they did |
+| `push.won.mid` / `.eor`, `push.lost.mid` / `.eor` | pushes won / suffered during the turns / at the end-of-round Push step (`pushesLost` = both) |
+| `push.lost.double` | pushes suffered when the side had already suffered one in the same or the previous round |
+| `push.lost.in` / `.walk` / `.far` / `.dead` | per push suffered, the side's heroes at the first decision after it (new wave spawned): in the new Battle Zone / can reach it with one Movement action of the best Movement card in hand (engine paths) / farther / off the board. The game-ending push is not read (no decision follows) |
+| `push.lost.stranded` | of `far`, those on the enemy's side of the new Battle Zone (lane zone order) |
+| `push.won.*` | the same for pushes won (heroes following the wave forward) |
+| `act.far` | actions offering Movement while the hero is outside the Battle Zone and this card's Movement cannot reach it |
+| `ft.offered.far` / `ft.blocked.far` | of `act.far`: Fast Travel offered / not offered (enemy in the zone, effects, no space). `ft.taken`: Fast Travel chosen anywhere |
+| `atk.minion` / `atk.hero` | attacks ([GameEvent.Attacked]) on minions / heroes (a Razzle double is Razzle) |
+| `atk.hero.kill` | the attack defeated the hero (the next hero defeat is that hero's, by this attacker, with no attack between) |
+| `atk.hero.followed` | not a kill, but the side defeated that hero later in the same turn or the next turn |
+| `atk.hero.poke` | neither: a poke. `atk.hero.poke.minion`: pokes by a hero whose action began with a minion in reach |
+| `act.minion` | actions that began with a minion in reach; `.took` the hero defeated a minion that turn, `.untaken` it did not, `.hero` it attacked a hero, `.hold` it chose Hold, `.move` Movement or Fast Travel |
+| `act.hold` | every Hold chosen |
+| `kills` / `kills.stripFinish` / `kills.oneShot` | enemy heroes defeated / of those, a different hero of the side attacked the victim earlier that round (strip, then finish) / no earlier attack by the side on it that round |
+| `team.sameTarget` | turns in which two or more of the side's heroes attacked the same enemy hero |
+| `assists` | assist payments (one per teammate per kill) |
+| `team.minionCollision` | actions with an attack card and no minion left in reach, where a teammate had defeated a minion within that reach earlier in the turn |
+| `deaths` / `.emptyHand` / `.emptyHand.covered` | the side's heroes defeated / with no card to defend with (engine note) / of those, a teammate within 3 spaces at the turn's start (a proxy for "could have covered") |
+| `win.<reason>` / `loss.<reason>` | how the side's games ended (THRONE, LAST_PUSH, LIFE_COUNTERS); `end.mid` / `end.eor`: its push wins made during the turns / at the end of the round |
+
+The report also prints the role mix per team (`HeroStyle.role` of its heroes) with games and wins, and per hero the
+colours upgraded and the item stats tucked. Hand checks: two full trails (2v2 line-up 2900 game 0, 3v3 line-up 3001
+game 0) read event by event: every poke, minion-in-reach action, push read, Fast Travel note, same-target turn and
+kill class matched the log. An always-on test (`the audit's counts agree with the game log`, one h4 game pair, about
+6 s) checks the identities (attack classes sum to `atk.hero`; kills of one side are deaths of the other; pushes won
+equal pushes suffered; minion coins are 2–4 per minion).
+
+**Not exposed by the engine (so not measured):** whether a hero *wanted* to Fast Travel (only "far and not offered"
+is measurable), which minion a teammate *meant* to take (collisions are inferred from reach), and positions at the
+exact moment of a mid-round push (read at the next decision instead).

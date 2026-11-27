@@ -50,7 +50,8 @@ import org.junit.Test
  * The counters (a "side" is one contestant; it plays Red in one game of a pair and Blue in the other):
  *
  * Economy
- * - `minions`: enemy minions defeated by the side's heroes (a [GameEvent.Defeated] of a minion with `byHeroId`).
+ * - `minions`: enemy minions defeated by the side's heroes (a [GameEvent.Defeated] of a minion with `byHeroId`);
+ *   `minions.lost`: the side's minions defeated by enemy heroes (Minion Battle removals are not defeats).
  * - `coins.minion` / `coins.kill` / `coins.assist` / `coins.pity` / `coins.other`: coins gained, by the reason the
  *   engine writes in [GameEvent.CoinsGained] ("defeated a … minion", "defeated <hero>", "assist", "pity coin";
  *   anything else, e.g. coins taken by a card, is `other`).
@@ -61,7 +62,8 @@ import org.junit.Test
  * Waves ([GameEvent.LanePushed]; `mid` = during the turns, `eor` = the end-of-round Push step)
  * - `push.won.mid` / `push.won.eor` / `push.lost.mid` / `push.lost.eor`: pushes the side won or suffered.
  * - `push.lost.double`: pushes suffered when the same side had already suffered one in this round or the round
- *   before (a double push).
+ *   before. `push.lost.again`: pushes suffered when the lane's previous push also went against the side (the next
+ *   wave lost too, however many rounds later: a double push in the owner's sense).
  * - `push.lost.in` / `.walk` / `.far` / `.dead`: for each push suffered, the side's heroes, read at the first
  *   decision after the push (the new wave has spawned; nobody moves in between except by the rest of the pushing
  *   action): standing in the new Battle Zone; outside it but able to reach it with one Movement action of the best
@@ -113,6 +115,7 @@ class StrategyAuditTest {
         val threads = System.getenv("AI_THREADS")?.toIntOrNull() ?: 2
         val format = AiHarness.Format.parse(System.getenv("AI_FORMAT"))
         val trail = System.getenv("AI_AUDIT_TRAIL")?.toIntOrNull()
+        lines = System.getenv("AI_AUDIT_LINES") != null
         for (pair in spec.split(",").map { it.trim() }.filter { it.isNotEmpty() }) {
             val (aName, bName) = pair.split(":")
             println("AUDIT $pair $format line-ups $first+$lineups (${2 * lineups} games), threads $threads")
@@ -151,6 +154,9 @@ class StrategyAuditTest {
     }
 
     // ---- running ------------------------------------------------------------------------------------------------
+
+    /** `AI_AUDIT_LINES=1`: one line per game (line-up, side a's colour, the result, the pushes in order). */
+    private var lines = false
 
     private fun run(
         aName: String,
@@ -198,8 +204,18 @@ class StrategyAuditTest {
         }
         val a = SideStats(aName)
         val b = SideStats(bName)
-        for (g in results) {
+        for ((k, g) in results.withIndex()) {
             g.trail?.let { t -> t.forEach(::println) }
+            if (lines) {
+                val st = g.s.state
+                val j = jobs[k]
+                val result = st.winner?.let { if (it == g.aTeam) "$aName won" else "$bName won" } ?: "unfinished"
+                println(
+                    "AUDIT_GAME $k ${j.lineup.first.joinToString("+")} vs ${j.lineup.second.joinToString("+")}: " +
+                        "$aName ${if (j.aRed) "Red" else "Blue"}, $result by ${st.winReason} in round ${st.round}; " +
+                        "pushes ${g.pushLog.joinToString(" ").ifEmpty { "none" }} (a = $aName)",
+                )
+            }
             g.into(a, g.aTeam)
             g.into(b, g.aTeam.opponent)
         }
@@ -287,7 +303,8 @@ class StrategyAuditTest {
                 "AUDIT   rates: poke ${ratio("atk.hero.poke", "atk.hero")} of hero attacks " +
                     "(${ratio("atk.hero.poke.minion", "atk.hero.poke")} with a minion in reach); minion left untaken " +
                     "${ratio("act.minion.untaken", "act.minion")}; strip-finish ${ratio("kills.stripFinish", "kills")} " +
-                    "of kills; double ${ratio("push.lost.double", "pushesLost")} of pushes suffered; " +
+                    "of kills; double ${ratio("push.lost.double", "pushesLost")} (next wave lost too " +
+                    "${ratio("push.lost.again", "pushesLost")}) of pushes suffered; " +
                     "FT blocked ${ratio("ft.blocked.far", "act.far")} of far actions",
             )
             val minionCoins = c.v("coins.minion")
@@ -318,8 +335,9 @@ class StrategyAuditTest {
         companion object {
             /** Every run prints these, zero or not (the summary lines stay aligned). */
             val KEYS = listOf(
-                "minions", "coins.minion", "coins.kill", "coins.assist", "coins.pity", "coins.other",
+                "minions", "minions.lost", "coins.minion", "coins.kill", "coins.assist", "coins.pity", "coins.other",
                 "push.won.mid", "push.won.eor", "push.lost.mid", "push.lost.eor", "pushesLost", "push.lost.double",
+                "push.lost.again",
                 "push.lost.in", "push.lost.walk", "push.lost.far", "push.lost.dead", "push.lost.stranded",
                 "push.won.in", "push.won.walk", "push.won.far", "push.won.dead",
                 "act.far", "ft.offered.far", "ft.blocked.far", "ft.taken",
@@ -381,6 +399,13 @@ class StrategyAuditTest {
         /** Pushes waiting to be read at the next decision: lane's new zone, winner. */
         private val pendingPushes = ArrayList<Pair<String, Team>>()
 
+        /** Lane → the winner of its last push; the game's pushes as `a3e` (side a won in round 3, end of round). */
+        private val lastPushWinner = HashMap<String, Team>()
+        val pushLog = ArrayList<String>()
+
+        /** Minion → its team (read before every answer; a defeated minion is gone from the state). */
+        private val minionTeam = HashMap<String, Team>()
+
         /** Hero → whether its current action began with a minion in reach. */
         private val actionReach = HashMap<String, Boolean>()
 
@@ -427,7 +452,10 @@ class StrategyAuditTest {
 
         private fun before(d: Decision) {
             val st = s.state
-            for (m in st.minions) m.at?.let { minionAt[m.id] = it }
+            for (m in st.minions) {
+                m.at?.let { minionAt[m.id] = it }
+                minionTeam[m.id] = m.team
+            }
             turnStart.getOrPut(gturn) { st.heroes.associate { it.id to it.at } }
             if (pendingPushes.isNotEmpty()) readPushes(d)
             if (d.kind == DecisionKind.CHOOSE_ACTION) readAction(d)
@@ -621,6 +649,7 @@ class StrategyAuditTest {
                         val by = e.byHeroId?.let(::heroOf) ?: return
                         val team = teamOf[by] ?: return
                         c(team).add("minions")
+                        minionTeam[victim]?.let { if (it != team) c(it).add("minions.lost") }
                         minionsTakenThisTurn += by to minionAt[victim]
                         val key = by to gturn
                         minionKills[key] = (minionKills[key] ?: 0) + 1
@@ -631,6 +660,10 @@ class StrategyAuditTest {
                     val loser = e.winner.opponent
                     val mid = !endOfRound
                     val doubled = pushes.any { it.winner == e.winner && it.round >= round - 1 }
+                    val again = lastPushWinner[e.lane] == e.winner
+                    lastPushWinner[e.lane] = e.winner
+                    if (again) c(loser).add("push.lost.again")
+                    pushLog += "${if (e.winner == aTeam) "a" else "b"}$round${if (mid) "m" else "e"}"
                     pushes += Push(round, e.winner, mid)
                     lastPushMid = mid
                     val when_ = if (mid) "mid" else "eor"
