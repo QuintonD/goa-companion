@@ -1051,6 +1051,19 @@ class HContext(
     /** A threat, the card's share of its colour, whether it is revealed, and its initiative with items. */
     private class ThreatInfo(val threat: Threat, val poolWeight: Double, val known: Boolean, val initiative: Int)
 
+    // Track W (wave management and positioning)
+
+    /**
+     * Track W (`wave.farm`): P(an attack of [total] defeats [targetId] where it stands), the chance
+     * [heroStrikeWorth] prices (G57): 1 for an empty hand or a last card about to be played (G11).
+     */
+    internal fun waveKillChance(targetId: String, total: Int, ranged: Boolean): Double {
+        val h = state.hero(targetId) ?: return 0.0
+        val at = h.at ?: return 0.0
+        if (h.handSize == 0 || defenseless(targetId)) return 1.0
+        return killChance(h, total, ranged, minionModifier(at, h.team))
+    }
+
     companion object {
         private const val KILL_TEMPO = 5.0
 

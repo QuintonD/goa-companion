@@ -204,7 +204,7 @@ internal fun goalZoneOf(ctx: HContext, heroId: String): String? {
         val margin = if (h.team == ctx.team) ctx.laneMargin(lane) else -ctx.laneMargin(lane)
         val dest = when {
             ctx.matchPoint(lane) || stepsToEnemyThrone(ctx, lane, h.team) <= 1 -> bz
-            margin <= -2 -> nextZoneOf(ctx, lane, h.team.opponent) ?: bz
+            margin <= -2 || losingLate(ctx, lane, h.team) -> nextZoneOf(ctx, lane, h.team.opponent) ?: bz
             margin >= 2 -> nextZoneOf(ctx, lane, h.team) ?: bz
             else -> bz
         }
@@ -215,6 +215,16 @@ internal fun goalZoneOf(ctx: HContext, heroId: String): String? {
         }
     }
     return best
+}
+
+/**
+ * Track W (`wave.plan`): the projected battle already pushes against [team] (LOST), or it is losing and the round
+ * is in its last two turns, so the next zone is where the following wave is fought (G51, the owner's reposition).
+ */
+private fun losingLate(ctx: HContext, lane: String, team: Team): Boolean {
+    if (!waveOn(ctx, "plan")) return false
+    val view = waveView(ctx, lane, team)
+    return view.state == WaveState.LOST || (view.losing && (ctx.turn >= 3 || ctx.roundOver))
 }
 
 internal fun spawnCount(ctx: HContext, zone: String, side: Team): Int =
@@ -228,7 +238,15 @@ internal fun spawnEdge(ctx: HContext, zone: String, attacker: Team): Int =
  * Killing one enemy minion on [lane] changes `60 × W` (G58), from [HContext.team]'s side.
  * Raw counts, not push potential: the minion we take now is the one the projection was hoping for.
  */
-internal fun laneKillDelta(ctx: HContext, lane: String, side: Team = ctx.team): Double =
+internal fun laneKillDelta(ctx: HContext, lane: String, side: Team = ctx.team): Double {
+    val raw = laneKillRaw(ctx, lane, side)
+    // Track W (`wave.price`, REVIEW-2-design item 10): the same 1.4 lane scale [HEval] scores, so the book's static
+    // price of a minion (target order, finishing policy, plans, hero notes) agrees with the look that judges it.
+    return if (waveOn(ctx, "price")) raw * ctx.profile.knob("lane", HEval.LANE) else raw
+}
+
+/** [laneKillDelta] on the unscaled 60/100 lane, as [laneThreat] (inside [HEval]) was tuned. */
+private fun laneKillRaw(ctx: HContext, lane: String, side: Team): Double =
     (if (side == Team.RED) ctx.laneKillRed else ctx.laneKillBlue).getOrPut(lane) { laneKillDeltaOf(ctx, lane, side) }
 
 private fun laneKillDeltaOf(ctx: HContext, lane: String, side: Team): Double {
@@ -320,6 +338,104 @@ internal fun laneThreat(ctx: HContext, h: HeroState, at: Hex, share: Double): Do
         if (lane == null) lane = targets.minByOrNull { ctx.distance(at, it.at!!) }?.lane
     }
     val l = lane ?: return 0.0
-    val value = laneKillDelta(ctx, l, h.team).coerceAtLeast(0.0)
+    val value = laneKillRaw(ctx, l, h.team).coerceAtLeast(0.0)
     return share * value * (minOf(near, 2.0) + 0.35 * minOf(far, 2.0 - minOf(near, 2.0)))
 }
+
+// ---- Track W: wave management and positioning (strategy round, 2026-11-27) ------------------------------------
+
+/** First strength of the wave layer (GENERAL §1 "How the order moves"; the lane-timing strength). */
+internal const val WAVE_FROM: Int = 9
+
+/**
+ * Track W's switch for one rule: the master knob `wave` and the rule's own `wave.<name>`, on from [WAVE_FROM].
+ * With `wave=0` every Track W rule is off and the book answers exactly as before the round.
+ */
+internal fun waveOn(ctx: HContext, name: String): Boolean = waveOn(ctx.profile, name)
+
+internal fun waveOn(profile: HeuristicProfile, name: String): Boolean =
+    profile.on("wave", profile.strength >= WAVE_FROM) && profile.on("wave.$name", profile.strength >= WAVE_FROM)
+
+/** How a lane's next push looks from one team (Track W, GENERAL §1 "By lane state"). */
+internal enum class WaveState { WINNING, CONTESTED, LOSING, LOST }
+
+/**
+ * One lane, projected to this round's Minion Battle from [team]'s side: the minion counts after both sides'
+ * push potential ([HEval.pushChance], the same numbers [HEval] scores) and the chance we win the next push.
+ * [pushInto] is the zone their push moves the lane into (null when it is our Throne: that push is the game).
+ */
+internal class WaveView(
+    val lane: String,
+    val ours: Int,
+    val theirs: Int,
+    /** P(we win the next push on this lane). */
+    val p: Double,
+    val pushInto: String?,
+    val pushOut: String?,
+) {
+    val state: WaveState
+        get() = when {
+            p <= LOST_P -> WaveState.LOST
+            p <= LOSING_P -> WaveState.LOSING
+            p >= 1.0 - LOSING_P -> WaveState.WINNING
+            else -> WaveState.CONTESTED
+        }
+
+    val losing: Boolean get() = state == WaveState.LOSING || state == WaveState.LOST
+
+    private companion object {
+        /** [HEval]'s clamp for a projection that empties our side (0.05), or a deficit of about 2.7 projected. */
+        const val LOST_P = 0.051
+
+        /** About one projected minion behind (σ(−1.1 × 0.8)). */
+        const val LOSING_P = 0.3
+    }
+}
+
+internal fun waveView(ctx: HContext, lane: String, team: Team = ctx.team): WaveView {
+    val red = HEval.pushChance(ctx, lane)
+    val p = if (team == Team.RED) red else 1.0 - red
+    return WaveView(
+        lane,
+        ctx.minionCount(team, lane),
+        ctx.minionCount(team.opponent, lane),
+        p,
+        nextZoneOf(ctx, lane, team.opponent),
+        nextZoneOf(ctx, lane, team),
+    )
+}
+
+/**
+ * Track W (`wave.next`, GENERAL §2 "Lane": `p = σ(1.1 × advantage + 0.3 × presence)`): how much of the next
+ * round's fight in [zone] [team]'s heroes will be there for. A hero in the zone counts 1; one walk (3 spaces) is one
+ * action, and the plays still left this round can be spent getting there before the Minion Battle, half of them as
+ * moves; each action still missing then costs 0.3 of the round. A hero off the board respawns at its Throne: near
+ * when the zone is the one next to that Throne (RB p.7). Public positions only.
+ */
+internal fun zonePresence(ctx: HContext, zone: String, team: Team): Double {
+    var v = 0.0
+    val throne = ctx.game.geo.throneZone(team)
+    val throneNear = throne != null && throne in ctx.game.geo.adjacentZones[zone].orEmpty()
+    for (h in ctx.state.heroes) {
+        if (h.team != team) continue
+        val at = h.at
+        if (at == null) {
+            v += if (throneNear) OFF_NEAR else OFF_FAR
+            continue
+        }
+        val d = ctx.distanceToZone(at, zone)
+        if (d == 0) {
+            v += 1.0
+            continue
+        }
+        val actions = (d + WALK - 1) / WALK
+        val late = max(0.0, actions - 0.5 * ctx.playsLeft(h.id))
+        v += max(0.0, 1.0 - LATE * late)
+    }
+    return v
+}
+
+private const val WALK = 3
+private const val LATE = 0.3
+private const val OFF_NEAR = 0.6
+private const val OFF_FAR = 0.3

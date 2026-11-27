@@ -26,7 +26,8 @@ data class TurnPlan(
             if (exposure > 10.0 && played.hasMovement && !played.attackCard) {
                 return TurnPlan(Intent.RETREAT, null, played.id)
             }
-            if (ctx.profile.on("hold", false)) holdLine(ctx, h.id, at, played)?.let { return it }
+            if (waveOn(ctx, "plan")) reposition(ctx, at, played)?.let { return it }
+            if (ctx.profile.on("hold", waveOn(ctx, "plan"))) holdLine(ctx, h.id, at, played)?.let { return it }
             if (ctx.profile.laneTiming && ctx.lanes().any { ctx.laneMargin(it) >= 2 && !ctx.matchPoint(it) } &&
                 played.hasMovement && !played.attackCard
             ) {
@@ -50,12 +51,40 @@ data class TurnPlan(
             val zone = ctx.zoneOf(at) ?: return null
             val lane = ctx.lanes().firstOrNull { ctx.battleZone(it) == zone } ?: return null
             val last = stepsToEnemyThrone(ctx, lane, ctx.team.opponent) <= 1 || (ctx.state.wavesLeft[lane] ?: 9) <= 1
-            if (!last || ctx.laneMargin(lane) > 0) return null
+            // Track W (`wave.plan`): "not ahead" is the projected battle, not today's count.
+            val ahead = if (waveOn(ctx, "plan")) {
+                waveView(ctx, lane).state == WaveState.WINNING
+            } else {
+                ctx.laneMargin(lane) > 0
+            }
+            if (!last || ahead) return null
             if (!card.attackCard) return TurnPlan(Intent.HOLD_LINE, null, card.id)
             val minion = bestMinion(ctx, heroId, at, card) ?: return null
             val hero = bestHero(ctx, heroId, at, card)
             val sure = hero?.first?.let { ctx.defenseless(it) } == true && hero.second >= minion.second
             return if (sure) null else TurnPlan(Intent.HOLD_LINE, minion.first, card.id)
+        }
+
+        /**
+         * Track W (`wave.plan`, GENERAL §1 "By lane state", G41): the lane is projected to push against us into a
+         * zone this hero is more than one walk from, and the turns left in the round are no more than the walks
+         * it needs (or the push is already decided): this movement card goes there now. Earlier in the round the
+         * hero farms first; the gold on the way is the look's to take.
+         */
+        private fun reposition(ctx: HContext, at: Hex, card: HCard): TurnPlan? {
+            if (!card.hasMovement || card.attackCard) return null
+            for (lane in ctx.lanes()) {
+                val bz = ctx.battleZone(lane) ?: continue
+                val view = waveView(ctx, lane)
+                if (!view.losing) continue
+                val into = view.pushInto ?: continue
+                val d = ctx.distanceToZone(at, into)
+                if (d <= WALK || ctx.distanceToZone(at, bz) > LANE_NEAR) continue
+                val walks = (d + WALK - 1) / WALK
+                val after = (4 - ctx.turn).coerceAtLeast(0)
+                if (view.state == WaveState.LOST || walks > after) return TurnPlan(Intent.RETREAT, null, card.id)
+            }
+            return null
         }
 
         private fun attackPlan(ctx: HContext, heroId: String, at: Hex, card: HCard): TurnPlan {
@@ -66,6 +95,12 @@ data class TurnPlan(
             val killNow = bestHero?.first?.let { ctx.defenseless(it) } == true
             val setup = ctx.profile.twoTurnPlans && bestHero != null && !killNow && heroWorth + 6.0 >= minionWorth &&
                 ctx.state.hero(bestHero.first)?.let { stripSetsUp(ctx, it) } == true
+            // Track W (`wave.farm`, P3/P6): unless the kill is real, the safe minion is the plan.
+            if (waveOn(ctx, "farm") && bestMinion != null && bestHero != null && !killNow && !setup &&
+                !realKill(ctx, heroId, bestHero.first, card)
+            ) {
+                return TurnPlan(if (minionWorth >= 14.0) Intent.PUSH else Intent.FARM, bestMinion.first, card.id)
+            }
             return when {
                 killNow && heroWorth >= minionWorth -> TurnPlan(Intent.KILL, bestHero?.first, card.id)
                 setup -> TurnPlan(Intent.SETUP, bestHero?.first, card.id)
@@ -75,6 +110,23 @@ data class TurnPlan(
                 else -> TurnPlan(Intent.DEFEND_LANE, null, card.id)
             }
         }
+
+        /**
+         * Track W (P3): the kill this card can make is real: the target has no defense left (G11), the hit beats what
+         * it can hold more often than not, or a teammate who can reach it follows up (G14, G60).
+         */
+        internal fun realKill(ctx: HContext, heroId: String, targetId: String, card: HCard): Boolean {
+            val total = card.attack + ctx.itemBonus(heroId, Stat.ATTACK)
+            val chance = ctx.waveKillChance(targetId, total, card.ranged)
+            if (chance >= REAL_KILL) return true
+            val target = ctx.state.hero(targetId) ?: return false
+            return chance >= ALLY_KILL && allyHunting(ctx, target)
+        }
+
+        private const val WALK = 3
+        private const val LANE_NEAR = 6
+        private const val REAL_KILL = 0.5
+        private const val ALLY_KILL = 0.3
 
         private fun bestMinion(ctx: HContext, heroId: String, at: Hex, card: HCard): Pair<String, Double>? {
             var best: Pair<String, Double>? = null
