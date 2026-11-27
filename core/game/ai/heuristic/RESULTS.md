@@ -1217,6 +1217,7 @@ AI_AUDIT=h9:h9 AI_AUDIT_GAMES=16 AI_H_FIRST=3000 AI_FORMAT=3v3 AI_THREADS=2 $S/g
 AI_AUDIT=h9:a10 AI_AUDIT_GAMES=16 AI_H_FIRST=2950 AI_THREADS=2 $S/goa-run StrategyAuditTest > audit10.log
 AI_AUDIT=h9:h9+team=0 ...        # a track's change against its knob-off book, same games
 grep AUDIT_SUMMARY audit.log     # one line per side: key=per-game mean, fixed key order: diff before/after
+python3 -I core/game/ai/heuristic/audit_table.py before.log after.log   # Markdown table, after - before
 ```
 
 Sides use the tournament's syntax (`hN[+knob=v]`, `sN` the old search, `xN`/`yN`, `h10/action.move/s10`) plus `aN`,
@@ -1224,7 +1225,8 @@ the shipped player at strength N (`AiPlayers.forStrength`: the book below 10, th
 is the OLD search, so "the book against strength 10" is `h9:a10`). `AI_AUDIT_GAMES` is line-ups (games = twice
 that). Line-ups, seeds and coins are `Tournament.runMixed`'s, so an audit plays exactly the games a tournament on the
 same range plays. `AI_AUDIT_TRAIL=k` prints game k's whole log with the audit's notes; `AI_AUDIT_OUT=f` appends the
-summary lines to a file. In a self-play pair (`h9:h9`) both sides are the same player, so the two blocks agree.
+summary lines to a file; `AI_AUDIT_LINES=1` prints one `AUDIT_GAME` line per game (line-up, side a's colour, result, the
+pushes in order, e.g. `a3e b5m` = side a won a push at the end of round 3, side b one during round 5). In a self-play pair (`h9:h9`) both sides are the same player, so the two blocks agree.
 
 **Definitions** (per side, summed over its games; the summary prints per-game means). An "action" is a
 `CHOOSE_ACTION` decision; "minion in reach" there means the card being resolved is an attack card and an enemy
@@ -1233,12 +1235,13 @@ minion that is not an immune heavy stands within its reach (printed range or 1, 
 
 | Key | Meaning |
 |---|---|
-| `minions` | enemy minions the side's heroes defeated |
+| `minions` / `minions.lost` | enemy minions the side's heroes defeated / the side's minions enemy heroes defeated (Minion Battle removals are not defeats) |
 | `coins.minion` / `.kill` / `.assist` / `.pity` / `.other` | coins gained, by the reason the engine writes ("defeated a … minion", "defeated <hero>", "assist", "pity coin", anything else) |
 | `lvl.rK` | the side's mean hero level at the end of round K, after its level-ups (rounds that ended) |
 | `lvl5.share` / `lvl5.round` | share of hero-games that reached level 5 / mean round in which they did |
 | `push.won.mid` / `.eor`, `push.lost.mid` / `.eor` | pushes won / suffered during the turns / at the end-of-round Push step (`pushesLost` = both) |
-| `push.lost.double` | pushes suffered when the side had already suffered one in the same or the previous round |
+| `push.lost.double` | pushes suffered when the side had already suffered one in the same or the previous round (never seen: a wave takes two rounds or more to rebuild) |
+| `push.lost.again` | pushes suffered when the lane's previous push also went against the side: the next wave lost too, the owner's "double push" (every Throne loss is one) |
 | `push.lost.in` / `.walk` / `.far` / `.dead` | per push suffered, the side's heroes at the first decision after it (new wave spawned): in the new Battle Zone / can reach it with one Movement action of the best Movement card in hand (engine paths) / farther / off the board. The game-ending push is not read (no decision follows) |
 | `push.lost.stranded` | of `far`, those on the enemy's side of the new Battle Zone (lane zone order) |
 | `push.won.*` | the same for pushes won (heroes following the wave forward) |
