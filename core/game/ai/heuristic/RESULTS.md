@@ -1274,7 +1274,8 @@ exact moment of a mid-round push (read at the next decision instead).
 ### Baseline: the book in self-play (e6174517, release 0.17.0)
 
 `h9:h9` 2v2 on line-ups 2900–2931 (64 games, 94 s) and 3v3 on 3000–3015 (32 games, 72 s); per-game means of one
-side (both sides are the same player, so they are equal). Raw logs: the integrator's scratchpad, `summary.txt`.
+side (both sides are the same player, so they are equal). The summary lines of all three baseline runs are in
+`strategy-audit-baseline.txt` (next to this file): `audit_table.py strategy-audit-baseline.txt after.log` compares.
 
 | key | h9:h9 2v2 2900+32 h9 | h9:h9 3v3 3000+16 h9 |
 |---|---|---|
