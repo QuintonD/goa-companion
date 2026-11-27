@@ -1373,3 +1373,104 @@ What the self-play numbers say (rates of the tables above):
   had a teammate within 3 spaces (0.56 of 0.78).
 - **Levels**: level 3.3 after round 3, 4.4 after round 5; 58% (2v2) / 32% (3v3) of heroes reach level 5, in round 5.
   Items tucked are mostly Defense (298 of 466 in 2v2), Initiative next.
+
+### Baseline: the book against strength 10 (`h9:a10`)
+
+The same audit, h9 against the shipped strength 10 (`a10`, the hybrid search, ADR-085/086) on line-ups 2950–2965,
+2v2, 32 games in 736 s: **h9 2–30**. Per-game means; the self-play column is repeated for scale. Strength 10's book
+is h10, so where a10 differs from h9 the difference is mostly the search's.
+
+| key | h9:h9 2v2 2900+32 h9 | h9:a10 2v2 2950+16 h9 | h9:a10 2v2 2950+16 a10 |
+|---|---|---|---|
+| games | 64.00 | 32.00 | 32.00 |
+| win | 0.50 | 0.06 | 0.94 |
+| rounds | 6.66 | 5.72 | 5.72 |
+| minions | 7.27 | 5.81 | 8.06 |
+| minions.lost | 7.27 | 8.06 | 5.81 |
+| coins.minion | 15.09 | 12.25 | 17.25 |
+| coins.kill | 3.36 | 1.22 | 4.25 |
+| coins.assist | 1.52 | 0.53 | 1.97 |
+| coins.pity | 4.95 | 4.31 | 2.94 |
+| coins.other | 0.38 | 0.25 | 0.44 |
+| push.won.mid | 0.28 | 0.34 | 0.59 |
+| push.won.eor | 0.84 | 0.25 | 1.00 |
+| push.lost.mid | 0.28 | 0.59 | 0.34 |
+| push.lost.eor | 0.84 | 1.00 | 0.25 |
+| pushesLost | 1.12 | 1.59 | 0.59 |
+| push.lost.double | 0.00 | 0.03 | 0.00 |
+| push.lost.again | 0.11 | 0.47 | 0.06 |
+| push.lost.in | 0.55 | 0.84 | 0.09 |
+| push.lost.walk | 0.70 | 0.53 | 0.50 |
+| push.lost.far | 0.34 | 0.25 | 0.47 |
+| push.lost.dead | 0.09 | 0.25 | 0.00 |
+| push.lost.stranded | 0.33 | 0.25 | 0.47 |
+| push.won.in | 0.50 | 0.22 | 0.81 |
+| push.won.walk | 0.73 | 0.47 | 0.75 |
+| push.won.far | 0.39 | 0.31 | 0.28 |
+| push.won.dead | 0.06 | 0.06 | 0.03 |
+| act.far | 3.86 | 4.09 | 3.66 |
+| ft.offered.far | 2.70 | 2.94 | 2.59 |
+| ft.blocked.far | 1.16 | 1.16 | 1.06 |
+| ft.taken | 2.70 | 2.91 | 2.91 |
+| atk.minion | 6.80 | 5.47 | 7.44 |
+| atk.hero | 5.16 | 3.50 | 3.31 |
+| atk.hero.kill | 1.05 | 0.44 | 1.50 |
+| atk.hero.followed | 0.38 | 0.09 | 0.47 |
+| atk.hero.poke | 3.73 | 2.97 | 1.34 |
+| atk.hero.poke.minion | 1.84 | 1.44 | 0.56 |
+| act.minion | 10.77 | 9.00 | 10.12 |
+| act.minion.took | 6.55 | 5.38 | 7.09 |
+| act.minion.untaken | 4.22 | 3.62 | 3.03 |
+| act.minion.hero | 2.28 | 1.78 | 1.28 |
+| act.minion.hold | 0.14 | 0.16 | 0.16 |
+| act.minion.move | 1.72 | 1.72 | 1.66 |
+| act.hold | 2.95 | 2.41 | 3.41 |
+| kills | 1.08 | 0.44 | 1.53 |
+| kills.stripFinish | 0.38 | 0.16 | 0.38 |
+| kills.oneShot | 0.50 | 0.25 | 0.84 |
+| team.sameTarget | 0.12 | 0.00 | 0.12 |
+| assists | 1.08 | 0.44 | 1.53 |
+| team.minionCollision | 0.14 | 0.38 | 0.06 |
+| deaths | 1.08 | 1.53 | 0.44 |
+| deaths.emptyHand | 0.56 | 0.69 | 0.19 |
+| deaths.emptyHand.covered | 0.22 | 0.28 | 0.06 |
+| win.THRONE | 0.06 | 0.00 | 0.34 |
+| win.LAST_PUSH | 0.22 | 0.06 | 0.31 |
+| win.LIFE_COUNTERS | 0.22 | 0.00 | 0.28 |
+| loss.THRONE | 0.06 | 0.34 | 0.00 |
+| loss.LAST_PUSH | 0.22 | 0.31 | 0.06 |
+| loss.LIFE_COUNTERS | 0.22 | 0.28 | 0.00 |
+| end.mid | 0.11 | 0.06 | 0.41 |
+| end.eor | 0.17 | 0.00 | 0.25 |
+| lvl.r1 | 1.73 | 1.52 | 1.94 |
+| lvl.r2 | 2.61 | 2.58 | 2.81 |
+| lvl.r3 | 3.27 | 3.20 | 3.52 |
+| lvl.r4 | 3.80 | 3.67 | 4.17 |
+| lvl.r5 | 4.36 | 4.21 | 4.82 |
+| lvl.r6 | 4.78 | 5.00 | 5.25 |
+| lvl.r7 | 5.08 | 5.50 | 5.50 |
+| lvl.r8 | 5.00 |  |  |
+| lvl5.share | 0.58 | 0.30 | 0.62 |
+| lvl5.round | 5.05 | 4.68 | 4.65 |
+
+Ends: a10 won 11 by THRONE, 10 by LAST_PUSH, 9 by LIFE_COUNTERS; h9 won 2 by LAST_PUSH. Shares of hero reads after
+pushes (all but the game-ending one): when h9 lost a push 45% of its heroes were in the new Battle Zone, 28% a walk
+away, 13% far, 13% dead; when a10 won one, 43% of a10's heroes were already in the new zone (h9's, after its own push
+wins: 21%). Items tucked: h9 Defense 122 of 187 (65%); a10 Attack 67, Defense 72, Initiative 67, Radius 13, Range 12
+of 236 (Defense 31%). Per hero, a10 also upgrades green far more (e.g. Misa: h9 blue 2 red 3, a10 blue 3 green 2 red 1).
+
+**Where the book looks weakest against strength 10** (steers T, W and V; each a key to watch before and after):
+1. **Losing the next wave too (W).** h9 suffers 1.59 pushes a game against 0.59, and 0.47 a game are the second in a
+   row (`push.lost.again`, 30% of its pushes suffered; a10 0.06): every one of the 11 Throne losses. a10 wins the
+   end-of-round Minion Battle push 1.00 a game against h9's 0.25: it keeps more minions (h9 loses 8.1 a game to
+   enemy heroes, a10 5.8) and follows its own wave forward (43% against 21% in the new zone after a push won).
+2. **Farming (W/T).** a10 defeats 8.1 minions a game against 5.8 and collects 26.8 coins against 18.6; h9's pity coins
+   are 23% of its income (a10 11%). The gap starts in round 1: a10 heroes are level 1.94 after round 1, h9 1.52 - half
+   of h9's heroes take no minion in the first round. The gap grows to +0.6 levels by round 5.
+3. **Pokes that do not convert (T).** Both attack heroes about as often (3.5 against 3.3 a game), but 85% of h9's hero
+   attacks are pokes (2.97 a game, 1.44 with a minion in reach) against 40% of a10's; a10 turns 60% of its hero
+   attacks into a kill within the turn (h9 15%) and kills 1.53 a game against 0.44. h9's minion collisions (a teammate
+   took the only minion in reach) are 0.38 a game against 0.06.
+4. **Defense-first items and colours (V).** h9 tucks Defense 65% of the time against 31%, and dies 1.53 times a game
+   against 0.44, 0.69 of them with no card left (a10 0.19): the extra Defense does not save it, while a10's Attack,
+   Initiative and Radius items go with its kills.

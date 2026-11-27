@@ -141,7 +141,8 @@ class StrategyAuditTest {
             assertThat(c.v("coins.minion")).isAtLeast(2.0 * c.v("minions"))
             assertThat(c.v("coins.minion")).isAtMost(4.0 * c.v("minions"))
             // A hero attack is a kill, followed or a poke; an action with a minion in reach took one or not.
-            assertThat(c.v("atk.hero.kill") + c.v("atk.hero.followed") + c.v("atk.hero.poke")).isEqualTo(c.v("atk.hero"))
+            val classes = c.v("atk.hero.kill") + c.v("atk.hero.followed") + c.v("atk.hero.poke")
+            assertThat(classes).isEqualTo(c.v("atk.hero"))
             assertThat(c.v("act.minion.took") + c.v("act.minion.untaken")).isEqualTo(c.v("act.minion"))
             assertThat(c.v("kills.stripFinish")).isAtMost(c.v("kills"))
             assertThat(c.v("ft.offered.far") + c.v("ft.blocked.far")).isEqualTo(c.v("act.far"))
@@ -149,7 +150,8 @@ class StrategyAuditTest {
         // Kills of one side are deaths of the other; pushes won by one are suffered by the other.
         assertThat(a.c.v("kills")).isEqualTo(b.c.v("deaths"))
         assertThat(b.c.v("kills")).isEqualTo(a.c.v("deaths"))
-        assertThat(a.c.v("push.won.mid") + a.c.v("push.won.eor")).isEqualTo(b.c.v("push.lost.mid") + b.c.v("push.lost.eor"))
+        val won = a.c.v("push.won.mid") + a.c.v("push.won.eor")
+        assertThat(won).isEqualTo(b.c.v("push.lost.mid") + b.c.v("push.lost.eor"))
         assertThat(a.c.v("assists")).isEqualTo(a.c.v("kills")) // 2v2: one teammate per kill
     }
 
@@ -294,7 +296,8 @@ class StrategyAuditTest {
         }.sorted()
 
         fun report(): String = buildString {
-            appendLine("AUDIT --- $label: $wins wins of $games, ${"%.1f".format(rounds.toDouble() / games)} rounds/game")
+            val perGame = "%.1f".format(rounds.toDouble() / games)
+            appendLine("AUDIT --- $label: $wins wins of $games, $perGame rounds/game")
             for (k in counterKeys()) {
                 appendLine("AUDIT   %-26s total %7.0f   per game %7.2f".format(k, c.v(k), mean(k)))
             }
@@ -302,8 +305,9 @@ class StrategyAuditTest {
             appendLine(
                 "AUDIT   rates: poke ${ratio("atk.hero.poke", "atk.hero")} of hero attacks " +
                     "(${ratio("atk.hero.poke.minion", "atk.hero.poke")} with a minion in reach); minion left untaken " +
-                    "${ratio("act.minion.untaken", "act.minion")}; strip-finish ${ratio("kills.stripFinish", "kills")} " +
-                    "of kills; double ${ratio("push.lost.double", "pushesLost")} (next wave lost too " +
+                    "${ratio("act.minion.untaken", "act.minion")}; " +
+                    "strip-finish ${ratio("kills.stripFinish", "kills")} of kills; " +
+                    "double ${ratio("push.lost.double", "pushesLost")} (next wave lost too " +
                     "${ratio("push.lost.again", "pushesLost")}) of pushes suffered; " +
                     "FT blocked ${ratio("ft.blocked.far", "act.far")} of far actions",
             )
@@ -314,10 +318,9 @@ class StrategyAuditTest {
                 "AUDIT   compositions: " + comps.entries.joinToString("; ") { (k, v) -> "$k ${v[1]}/${v[0]}" },
             )
             for (hero in (upgrades.keys + items.keys).toSortedSet()) {
-                appendLine(
-                    "AUDIT   levels $hero: upgraded ${upgrades[hero].orEmpty().entries.joinToString(" ") { "${it.key} ${it.value}" }}" +
-                        "; items ${items[hero].orEmpty().entries.joinToString(" ") { "${it.key} ${it.value}" }}",
-                )
+                val up = upgrades[hero].orEmpty().entries.joinToString(" ") { "${it.key} ${it.value}" }
+                val tucked = items[hero].orEmpty().entries.joinToString(" ") { "${it.key} ${it.value}" }
+                appendLine("AUDIT   levels $hero: upgraded $up; items $tucked")
             }
             val itemTotals = java.util.TreeMap<String, Int>()
             items.values.forEach { m -> m.forEach { (k, v) -> itemTotals[k] = (itemTotals[k] ?: 0) + v } }
@@ -539,7 +542,8 @@ class StrategyAuditTest {
                 if (!inZone && zones.none { walk(g, h.id, n, it) }) {
                     cs.add("act.far")
                     if (ActionType.FAST_TRAVEL in options) cs.add("ft.offered.far") else cs.add("ft.blocked.far")
-                    note("far: ${h.id} at ${g.zoneOf(at)}, FT ${if (ActionType.FAST_TRAVEL in options) "offered" else "blocked"}")
+                    val ft = if (ActionType.FAST_TRAVEL in options) "offered" else "blocked"
+                    note("far: ${h.id} at ${g.zoneOf(at)}, FT $ft")
                 }
             }
         }
@@ -575,17 +579,7 @@ class StrategyAuditTest {
         private fun event(e: GameEvent) {
             trail?.add("r$round.t$turn ${e.text}")
             when (e) {
-                is GameEvent.RoundStarted -> {
-                    if (e.round > round) {
-                        // The previous round ended: the levels after its level-ups.
-                        for ((id, lvl) in levels) {
-                            c(teamOf.getValue(id)).add("lvl.r$round.sum", lvl.toDouble())
-                            c(teamOf.getValue(id)).add("lvl.r$round.n")
-                        }
-                    }
-                    round = e.round
-                    endOfRound = false
-                }
+                is GameEvent.RoundStarted -> onRound(e)
 
                 is GameEvent.TurnStarted -> {
                     gturn++
@@ -593,33 +587,9 @@ class StrategyAuditTest {
                     minionsTakenThisTurn.clear()
                 }
 
-                is GameEvent.CoinsGained -> {
-                    val t = teamOf[e.heroId] ?: return
-                    val why = when {
-                        e.text.contains("(defeated a ") -> "minion"
-                        e.text.contains("(assist)") -> "assist"
-                        e.text.contains("(pity coin)") -> "pity"
-                        e.text.contains("(defeated ") -> "kill"
-                        else -> "other"
-                    }
-                    c(t).add("coins.$why", e.amount.toDouble())
-                    if (why == "assist") c(t).add("assists")
-                }
+                is GameEvent.CoinsGained -> onCoins(e)
 
-                is GameEvent.Attacked -> {
-                    val attacker = heroOf(e.attackerId) ?: return
-                    val team = teamOf[attacker] ?: return
-                    val target = heroOf(e.targetId)
-                    if (target == null) {
-                        c(team).add("atk.minion")
-                        lastAttack = null
-                        return
-                    }
-                    val a = Attack(idx, gturn, round, attacker, target)
-                    a.minionInReach = actionReach[attacker] ?: false
-                    attacks += a
-                    lastAttack = a
-                }
+                is GameEvent.Attacked -> onAttack(e)
 
                 is GameEvent.Note -> {
                     if (e.text.startsWith("End of round")) endOfRound = true
@@ -628,61 +598,17 @@ class StrategyAuditTest {
                     }
                 }
 
-                is GameEvent.Defeated -> {
-                    val victim = e.unitId
-                    if (victim in heroes) {
-                        val d = Defeat(idx, gturn, round, victim, e.byHeroId)
-                        d.emptyHand = pendingEmpty == victim
-                        val la = lastAttack
-                        if (la != null && la.target == victim && la.attacker == e.byHeroId) la.kill = true
-                        if (d.emptyHand) {
-                            val at = turnStart[gturn]?.get(victim)
-                            d.covered = at != null && turnStart[gturn].orEmpty().any { (id, hex) ->
-                                id != victim && teamOf[id] == teamOf[victim] && hex != null &&
-                                    HexGrid.distance(at, hex) <= COVER
-                            }
-                        }
-                        defeats += d
-                        pendingEmpty = null
-                        lastAttack = null
-                    } else {
-                        val by = e.byHeroId?.let(::heroOf) ?: return
-                        val team = teamOf[by] ?: return
-                        c(team).add("minions")
-                        minionTeam[victim]?.let { if (it != team) c(it).add("minions.lost") }
-                        minionsTakenThisTurn += by to minionAt[victim]
-                        val key = by to gturn
-                        minionKills[key] = (minionKills[key] ?: 0) + 1
-                    }
-                }
+                is GameEvent.Defeated -> if (e.unitId in heroes) onHeroDefeat(e) else onMinionDefeat(e)
 
-                is GameEvent.LanePushed -> {
-                    val loser = e.winner.opponent
-                    val mid = !endOfRound
-                    val doubled = pushes.any { it.winner == e.winner && it.round >= round - 1 }
-                    val again = lastPushWinner[e.lane] == e.winner
-                    lastPushWinner[e.lane] = e.winner
-                    if (again) c(loser).add("push.lost.again")
-                    pushLog += "${if (e.winner == aTeam) "a" else "b"}$round${if (mid) "m" else "e"}"
-                    pushes += Push(round, e.winner, mid)
-                    lastPushMid = mid
-                    val when_ = if (mid) "mid" else "eor"
-                    c(e.winner).add("push.won.$when_")
-                    c(loser).add("push.lost.$when_")
-                    c(loser).add("pushesLost")
-                    if (doubled) c(loser).add("push.lost.double")
-                    pendingPushes += e.newBattleZone to e.winner
-                    note("push won by ${e.winner} ($when_)${if (doubled) ", a double push" else ""}")
-                }
+                is GameEvent.LanePushed -> onPush(e)
 
                 is GameEvent.LevelledUp -> {
                     levels[e.heroId] = e.level
                     if (e.level >= 5 && e.heroId !in level5) level5[e.heroId] = round
                 }
 
-                is GameEvent.CardsChanged -> {
-                    val m = ITEM.find(e.text) ?: return
-                    itemsBy.getOrPut(e.heroId) { ArrayList() } += m.groupValues[1]
+                is GameEvent.CardsChanged -> ITEM.find(e.text)?.let {
+                    itemsBy.getOrPut(e.heroId) { ArrayList() } += it.groupValues[1]
                 }
 
                 is GameEvent.GameOver -> {
@@ -698,7 +624,102 @@ class StrategyAuditTest {
             idx++
         }
 
+        private fun onRound(e: GameEvent.RoundStarted) {
+            if (e.round > round) {
+                // The previous round ended: the levels after its level-ups.
+                for ((id, lvl) in levels) {
+                    c(teamOf.getValue(id)).add("lvl.r$round.sum", lvl.toDouble())
+                    c(teamOf.getValue(id)).add("lvl.r$round.n")
+                }
+            }
+            round = e.round
+            endOfRound = false
+        }
+
+        private fun onCoins(e: GameEvent.CoinsGained) {
+            val t = teamOf[e.heroId] ?: return
+            val why = when {
+                e.text.contains("(defeated a ") -> "minion"
+                e.text.contains("(assist)") -> "assist"
+                e.text.contains("(pity coin)") -> "pity"
+                e.text.contains("(defeated ") -> "kill"
+                else -> "other"
+            }
+            c(t).add("coins.$why", e.amount.toDouble())
+            if (why == "assist") c(t).add("assists")
+        }
+
+        private fun onAttack(e: GameEvent.Attacked) {
+            val attacker = heroOf(e.attackerId) ?: return
+            val team = teamOf[attacker] ?: return
+            val target = heroOf(e.targetId)
+            if (target == null) {
+                c(team).add("atk.minion")
+                lastAttack = null
+                return
+            }
+            val a = Attack(idx, gturn, round, attacker, target)
+            a.minionInReach = actionReach[attacker] ?: false
+            attacks += a
+            lastAttack = a
+        }
+
+        private fun onHeroDefeat(e: GameEvent.Defeated) {
+            val victim = e.unitId
+            val d = Defeat(idx, gturn, round, victim, e.byHeroId)
+            d.emptyHand = pendingEmpty == victim
+            val la = lastAttack
+            if (la != null && la.target == victim && la.attacker == e.byHeroId) la.kill = true
+            if (d.emptyHand) {
+                val start = turnStart[gturn].orEmpty()
+                val at = start[victim]
+                d.covered = at != null && start.any { (id, hex) ->
+                    id != victim && teamOf[id] == teamOf[victim] && hex != null && HexGrid.distance(at, hex) <= COVER
+                }
+            }
+            defeats += d
+            pendingEmpty = null
+            lastAttack = null
+        }
+
+        private fun onMinionDefeat(e: GameEvent.Defeated) {
+            val victim = e.unitId
+            val by = e.byHeroId?.let(::heroOf) ?: return
+            val team = teamOf[by] ?: return
+            c(team).add("minions")
+            minionTeam[victim]?.let { if (it != team) c(it).add("minions.lost") }
+            minionsTakenThisTurn += by to minionAt[victim]
+            val key = by to gturn
+            minionKills[key] = (minionKills[key] ?: 0) + 1
+        }
+
+        private fun onPush(e: GameEvent.LanePushed) {
+            val loser = e.winner.opponent
+            val mid = !endOfRound
+            val doubled = pushes.any { it.winner == e.winner && it.round >= round - 1 }
+            val again = lastPushWinner[e.lane] == e.winner
+            lastPushWinner[e.lane] = e.winner
+            if (again) c(loser).add("push.lost.again")
+            pushLog += "${if (e.winner == aTeam) "a" else "b"}$round${if (mid) "m" else "e"}"
+            pushes += Push(round, e.winner, mid)
+            lastPushMid = mid
+            val phase = if (mid) "mid" else "eor"
+            c(e.winner).add("push.won.$phase")
+            c(loser).add("push.lost.$phase")
+            c(loser).add("pushesLost")
+            if (doubled) c(loser).add("push.lost.double")
+            pendingPushes += e.newBattleZone to e.winner
+            note("push won by ${e.winner} ($phase)${if (doubled) ", a double push" else ""}")
+        }
+
         private fun finish() {
+            countAttacks()
+            countDefeats()
+            countActions()
+            countLevels()
+        }
+
+        private fun countAttacks() {
             for (a in attacks) {
                 val team = teamOf.getValue(a.attacker)
                 val cs = c(team)
@@ -709,13 +730,23 @@ class StrategyAuditTest {
                 }
                 when {
                     a.kill -> cs.add("atk.hero.kill")
+
                     followed -> cs.add("atk.hero.followed")
+
                     else -> {
                         cs.add("atk.hero.poke")
                         if (a.minionInReach) cs.add("atk.hero.poke.minion")
                     }
                 }
             }
+            for ((_, group) in attacks.groupBy { Triple(it.gturn, teamOf[it.attacker], it.target) }) {
+                if (group.map { it.attacker }.distinct().size >= 2) {
+                    c(teamOf.getValue(group[0].attacker)).add("team.sameTarget")
+                }
+            }
+        }
+
+        private fun countDefeats() {
             for (d in defeats) {
                 c(teamOf.getValue(d.victim)).add("deaths")
                 if (d.emptyHand) c(teamOf.getValue(d.victim)).add("deaths.emptyHand")
@@ -732,9 +763,9 @@ class StrategyAuditTest {
                 if (earlier.any { it.attacker != killer }) cs.add("kills.stripFinish")
                 if (earlier.isEmpty()) cs.add("kills.oneShot")
             }
-            for ((_, group) in attacks.groupBy { Triple(it.gturn, teamOf[it.attacker], it.target) }) {
-                if (group.map { it.attacker }.distinct().size >= 2) c(teamOf.getValue(group[0].attacker)).add("team.sameTarget")
-            }
+        }
+
+        private fun countActions() {
             for (a in actions) {
                 if (!a.minionInReach) continue
                 val cs = c(teamOf.getValue(a.hero))
@@ -748,6 +779,9 @@ class StrategyAuditTest {
                 }
                 if (attacks.any { it.attacker == a.hero && it.gturn == a.gturn }) cs.add("act.minion.hero")
             }
+        }
+
+        private fun countLevels() {
             for ((id, team) in teamOf) {
                 c(team).add("heroGames")
                 level5[id]?.let {
