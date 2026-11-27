@@ -82,10 +82,10 @@ data class HeuristicProfile(
      * Knob defaults by strength, one row per track layer (read through [on]; `<master>=0` turns a whole track off).
      *
      * Track V, the team plan ([TeamStrategy]), master `plan` (default on):
-     *   plan.upgrade  from 5  the job and the team's gaps choose the upgrade and the item (G118-G120); G105 from 7
-     *   plan.econ     from 5  the Tier III step, a due level and the Pity coin in HEval (G121)
-     *   plan.style    from 7  aggression, lane weight and keep-defender by job and Life race, team-aligned (G115-G116)
-     *   plan.race     from 7  the worth of a death by the Life race (G117)
+     *   plan.upgrade  from 5  the job and the team's gaps choose the upgrade and the item (G145-G147); G105 from 7
+     *   plan.econ     from 5  the Tier III step, a due level and the Pity coin in HEval (G148)
+     *   plan.style    from 7  aggression, lane weight and keep-defender by job and Life race, team-aligned (G142-G143)
+     *   plan.race     from 7  the worth of a death by the Life race (G144)
      */
 
     /** What one-ply lookahead is allowed to re-score. */

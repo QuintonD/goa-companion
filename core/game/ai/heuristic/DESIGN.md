@@ -82,6 +82,9 @@ ai/heuristic/
   SpaceRules.kt           spaces, respawn, minion return  UnitRules.kt  CHOOSE_UNIT (G57–G68)
   DefendRules.kt          DEFEND (G77–G84)          CardRules.kt    discards, retrieves, level-ups
   MiscRules.kt            act first, tokens, options, confirms, numbers, minion removal
+  TeamStrategy.kt       the team plan (GENERAL §4a): composition from the kits, KILL / PUSH / SCALE, each hero's
+                        job; acts through one hook each in HContext.style, HContext.killWorth and HEval, and in
+                        CardRules' upgrades (knobs `plan`, `plan.style`, `plan.race`, `plan.upgrade`, `plan.econ`)
   HFacts.kt             facts the general book derives (defenselessness, who still acts, lane deltas, the
                         lane-priced minion threat, push direction)
   HeroHeuristics.kt     the per-hero interface + registry (below)
@@ -130,8 +133,8 @@ signature heuristic must fire (use `position/PositionBuilder` or a seeded game a
 |---|---|---|
 | 1–2 | general playbook only, no threat map, no lookahead; forgets minion modifiers sometimes | high temperature, slips 15–25% |
 | 3–4 | + threat map (exposure), lookahead for opaque choices | medium, slips 8–12% |
-| 5–6 | + hero playbooks, turn plans | low, slips 3–5% |
-| 7–8 | + initiative reading (enemy possible cards), focus fire / team coordination, card counting | very low |
+| 5–6 | + hero playbooks, turn plans; the team plan's upgrades and economy (`plan.upgrade`, `plan.econ`, GENERAL §4a) | low, slips 3–5% |
+| 7–8 | + initiative reading (enemy possible cards), focus fire / team coordination, card counting; the team plan's jobs and Life race (`plan.style`, `plan.race`) | very low |
 | 9 | + two-turn plans (strip-then-kill, defender held back for a teammate), lane timing; after the reveal every look plays the rest of the turn (F1, `turnRest`) and every own square is looked at; the last card's escape on turn 4 (F3) | none on critical choices |
 | 10 | 9 + `knowHands` (ADR-062): inside those turns, and in the card play's own-action look (`knowLook`), enemy defenses are answered from the known hand; two of its own choices inside every look are branched (`lookBranches = 2`, 9 and below 1). Measured h10 : h9 56.6% on 256 development games (RESULTS.md, wave 3) | argmax |
 

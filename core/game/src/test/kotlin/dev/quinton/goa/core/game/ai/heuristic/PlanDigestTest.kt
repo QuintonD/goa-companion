@@ -39,7 +39,8 @@ class PlanDigestTest {
                 val all = AiHarness.mixedLineups(first + count, size = format.size)
                 for (i in first until first + count) {
                     val (red, blue) = all[i]
-                    val setup = AiHarness.setup(red, blue, AiLevel.NORMAL, AiLevel.NORMAL, if (i % 2 == 0) Team.RED else Team.BLUE)
+                    val coin = if (i % 2 == 0) Team.RED else Team.BLUE
+                    val setup = AiHarness.setup(red, blue, AiLevel.NORMAL, AiLevel.NORMAL, coin)
                     val players = mapOf(
                         Team.RED to recorder(player(spec, 50_000L + i), md, picks),
                         Team.BLUE to recorder(player(spec, 50_001L + i), md, picks),
@@ -50,7 +51,8 @@ class PlanDigestTest {
                             round = s.state.round
                             for (t in Team.entries) {
                                 val hs = s.state.heroes.filter { it.team == t }
-                                if (hs.isNotEmpty()) levels.getOrPut(round) { ArrayList() } += hs.map { it.level }.average()
+                                if (hs.isEmpty()) continue
+                                levels.getOrPut(round) { ArrayList() } += hs.map { it.level }.average()
                             }
                         }
                     })
@@ -63,9 +65,13 @@ class PlanDigestTest {
             val hex = md.digest().joinToString("") { "%02x".format(it) }
             val secs = (System.nanoTime() - t0) / 1e9
             println("PLAN_DIGEST $spec games=$games decisions=$decisions sha256=$hex in ${"%.0f".format(secs)} s")
-            println("PLAN_LEVELS $spec " + levels.keys.sorted().joinToString(" ") { "r$it=${"%.2f".format(levels.getValue(it).average())}" })
+            val curve = levels.keys.sorted().joinToString(" ") { r ->
+                "r$r=${"%.2f".format(levels.getValue(r).average())}"
+            }
+            println("PLAN_LEVELS $spec $curve")
             println("PLAN_ENDINGS $spec $endings")
-            println("PLAN_PICKS $spec " + picks.entries.sortedBy { it.key }.joinToString(" ") { "${it.key}:${it.value}" })
+            val chosen = picks.entries.sortedBy { it.key }.joinToString(" ") { "${it.key}:${it.value}" }
+            println("PLAN_PICKS $spec $chosen")
         }
     }
 
@@ -84,10 +90,12 @@ class PlanDigestTest {
                 val data = (session as EngineSession).engineData
                 when (decision.kind) {
                     DecisionKind.UPGRADE_CARD -> bump(picks, "up.${data.card(c.cardId).color.name.lowercase()}")
+
                     DecisionKind.KEEP_UPGRADE -> {
                         val item = decision.options.filterIsInstance<Choice.Card>().first { it != c }
                         bump(picks, "item.${data.card(item.cardId).item?.name?.lowercase()}")
                     }
+
                     else -> Unit
                 }
             }

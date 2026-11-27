@@ -12,8 +12,9 @@ import dev.quinton.goa.core.model.catalog.Stat
  *
  * Not implemented: G74 and G75 (naming the colour an enemy will discard or reveal) need a question
  * shape the engine asks as an option list; that list is opaque and goes through the one-ply look.
- * G105 and G112 (initiative clusters against every enemy Gold, front-line defense) are left to hero
- * playbooks' [HeroStyle.upgradeOrder]. G106 holds by construction: hidden upgrades are never read.
+ * G105 (initiative ties against enemy attacks) and G112 generalised to the hero's job (G145–G147) come from the
+ * team plan ([TeamStrategy], knob `plan.upgrade`, from 5; G105 from 7). G106 holds by construction: hidden
+ * upgrades are never read.
  */
 internal object CardRules {
     /** G72 a discard throws the least useful card and keeps the answer to a lethal threat; G73, G76 take the best. */
@@ -48,7 +49,7 @@ internal object CardRules {
         val next = ctx.session.engineData.upgradesOf(h, o.cardId)
         if (next.isEmpty()) return -5.0
         val best = next.maxOf { kept -> keepValue(ctx, d.seat, kept, next - kept) }
-        // G118 (Track V): the job's colour, inside the hero file's order.
+        // G145 (Track V): the job's colour, inside the hero file's order.
         val plan = TeamStrategy.upgradeBias(ctx, d.seat, ctx.card(o.cardId), next.map { ctx.card(it) })
         return best - ctx.card(o.cardId).rating + upgradeBias(ctx, d.seat, o.cardId) + plan
     }
@@ -65,7 +66,7 @@ internal object CardRules {
             val stat = ctx.card(item).item
             itemValue(ctx, seat, stat) * (stat?.let { TeamStrategy.itemScale(ctx, seat, it) } ?: 1.0)
         }
-        // G120 (Track V): the card the job plays stays in the hand.
+        // G147 (Track V): the card the job plays stays in the hand.
         return v + TeamStrategy.keepBias(ctx, seat, ctx.card(keep), items.map { ctx.card(it) })
     }
 

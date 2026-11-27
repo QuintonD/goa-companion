@@ -1,13 +1,13 @@
 package dev.quinton.goa.core.game.ai.heuristic
 
 import com.google.common.truth.Truth.assertThat
+import dev.quinton.goa.core.game.Choice
+import dev.quinton.goa.core.game.DecisionKind
 import dev.quinton.goa.core.game.TestData
+import dev.quinton.goa.core.game.engine.EngineSession
 import dev.quinton.goa.core.game.position.PositionPhase
 import dev.quinton.goa.core.game.position.position
 import dev.quinton.goa.core.model.match.Team
-import dev.quinton.goa.core.game.Choice
-import dev.quinton.goa.core.game.DecisionKind
-import dev.quinton.goa.core.game.engine.EngineSession
 import org.junit.Test
 
 class TeamStrategyTest {
@@ -26,7 +26,10 @@ class TeamStrategyTest {
             }
             val ctx = HContext(s, s.pending, Team.RED, HeuristicProfile.of(9))
             val k = TeamStrategy.kit(ctx, id)
-            println("KIT %-12s kill %.2f clear %.2f dura %.2f mob %.2f setup %.2f".format(id, k.kill, k.clear, k.durability, k.mobility, k.setup))
+            println(
+                "KIT %-12s kill %.2f clear %.2f dura %.2f mob %.2f setup %.2f"
+                    .format(id, k.kill, k.clear, k.durability, k.mobility, k.setup),
+            )
             for (x in listOf(k.kill, k.clear, k.durability, k.mobility, k.setup)) assertThat(x.isFinite()).isTrue()
         }
     }
@@ -71,10 +74,12 @@ class TeamStrategyTest {
         assertThat(v.plan).isEqualTo(TeamStrategy.Plan.KILL)
         assertThat(v.hunt).isTrue()
         assertThat(v.jobs).containsExactly("tigerclaw", TeamStrategy.Job.FINISHER, "mrak", TeamStrategy.Job.STRIPPER)
-        // G117: their death is worth more to us; switched off by the knob, the master and below strength 7.
+        // G144: their death is worth more to us; switched off by the knob, the master and below strength 7.
         assertThat(TeamStrategy.deathScale(c, Team.BLUE)).isWithin(1e-9).of(1.15)
-        assertThat(TeamStrategy.deathScale(ctx(duo(blueLife = 1), tune = mapOf("plan.race" to 0.0)), Team.BLUE)).isEqualTo(1.0)
-        assertThat(TeamStrategy.deathScale(ctx(duo(blueLife = 1), tune = mapOf("plan" to 0.0)), Team.BLUE)).isEqualTo(1.0)
+        for (off in listOf("plan.race", "plan")) {
+            val c0 = ctx(duo(blueLife = 1), tune = mapOf(off to 0.0))
+            assertThat(TeamStrategy.deathScale(c0, Team.BLUE)).isEqualTo(1.0)
+        }
         assertThat(TeamStrategy.deathScale(ctx(duo(blueLife = 1), strength = 6), Team.BLUE)).isEqualTo(1.0)
         // The finisher hunts harder than its own book, the stripper a little.
         val base = HeroPlaybooks.forHero("tigerclaw").style
@@ -91,7 +96,7 @@ class TeamStrategyTest {
         val s = c.style("tigerclaw")
         assertThat(s.laneWeight).isGreaterThan(base.laneWeight)
         assertThat(s.aggression).isLessThan(base.aggression)
-        // The enemy reads its own plan from the same public facts: three pushes from our throne, a weaker push for them.
+        // The enemy reads its own plan from the same public facts: three pushes from our throne, a weaker push.
         val push = TeamStrategy.Plan.PUSH
         assertThat(TeamStrategy.view(c, Team.BLUE).scores.getValue(push)).isLessThan(v.scores.getValue(push) - 0.5)
     }
@@ -119,7 +124,8 @@ class TeamStrategyTest {
         for (id in listOf("tigerclaw", "mrak")) {
             val base = HeroPlaybooks.forHero(id).style
             assertThat(c.style(id).keepDefender).isTrue()
-            assertThat(c.style(id).aggression).isLessThan(ctx(duo(), tune = mapOf("plan" to 0.0)).style(id).aggression + 1e-9)
+            val plain = ctx(duo(), tune = mapOf("plan" to 0.0)).style(id).aggression
+            assertThat(c.style(id).aggression).isLessThan(plain + 1e-9)
             assertThat(base.aggression).isAtLeast(0.0)
         }
     }
@@ -173,7 +179,13 @@ class TeamStrategyTest {
     }
 
     /** The first card [heroId] keeps when levelling from 1 with 10 coins, beside [partner]. */
-    private fun firstKeep(heroId: String, partner: String, round: Int, blueLife: Int?, tune: Map<String, Double>): String {
+    private fun firstKeep(
+        heroId: String,
+        partner: String,
+        round: Int,
+        blueLife: Int?,
+        tune: Map<String, Double>,
+    ): String {
         val s = position(engine, TestData.FOREST) {
             this.round = round
             hero(heroId, Team.RED, geo.heroSpawns(Team.RED)[0]) { coins = 10 }
@@ -207,44 +219,5 @@ class TeamStrategyTest {
         val off = mapOf("plan" to 0.0)
         assertThat(firstKeep("bain", "tigerclaw", 1, null, emptyMap())).isEqualTo("bain-red-2b")
         assertThat(firstKeep("bain", "tigerclaw", 1, null, off)).isEqualTo("bain-red-2a")
-    }
-
-    @Test
-    fun `scan level ups with and without the plan`() {
-        if (System.getenv("AI_PLAN_SCAN") == null) return
-        val geo = engine.data.geometry(TestData.FOREST)
-        for (id in engine.playableHeroes.sorted()) for (partner in listOf("mrak", "tigerclaw")) for (kill in listOf(false, true)) {
-            if (id == partner) continue
-            val foes = listOf("arien", "brogan", "wasp").filter { it != id && it != partner }.take(2)
-            val s = position(engine, TestData.FOREST) {
-                round = if (kill) 3 else 1
-                hero(id, Team.RED, geo.heroSpawns(Team.RED)[0]) { coins = 10 }
-                hero(partner, Team.RED, geo.heroSpawns(Team.RED)[1])
-                hero(foes[0], Team.BLUE, geo.heroSpawns(Team.BLUE)[0])
-                hero(foes[1], Team.BLUE, geo.heroSpawns(Team.BLUE)[1])
-                if (kill) lifeCounters(Team.BLUE, 1)
-                phase = PositionPhase.EndOfRound
-            }
-            val on = HeuristicAi(9, 1L)
-            val off = HeuristicAi(9, 1L, tune = mapOf("plan" to 0.0))
-            val line = StringBuilder()
-            var guard = 0
-            while (guard++ < 40) {
-                val d = s.pending ?: break
-                if (d.seat != id || (d.kind != DecisionKind.UPGRADE_CARD && d.kind != DecisionKind.KEEP_UPGRADE)) {
-                    if (d.seat == id) break
-                    s.answer(d.id, on.choose(s, d)); continue
-                }
-                val a = on.choose(s, d) as Choice.Card
-                val b = off.choose(s, d) as Choice.Card
-                val ctx = HContext(s, d, Team.RED, HeuristicProfile.of(9))
-                val job = TeamStrategy.job(ctx, id)
-                fun st(id: String) = ctx.card(id).let { "a${it.attack}d${it.defense}i${it.initiative}r${it.range}${if (it.ranged) "R" else ""}x${it.radius}m${it.movement}${if (it.forcesDiscard || it.discardOrDefeat) "S" else ""}${if (it.block) "B" else ""}:${it.item}" }
-                val diff = if (a != b) " (off ${b.cardId})" + if (d.kind == DecisionKind.KEEP_UPGRADE) " {${st(a.cardId)} vs ${st(b.cardId)}}" else "" else ""
-                line.append(" ${d.kind.name.take(4)}[$job] ${a.cardId}$diff")
-                s.answer(d.id, a)
-            }
-            println("SCAN $id+$partner ${if (kill) "kill" else "early"}:$line")
-        }
     }
 }

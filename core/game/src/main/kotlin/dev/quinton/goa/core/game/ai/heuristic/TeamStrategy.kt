@@ -11,20 +11,20 @@ import kotlin.math.max
 import kotlin.math.min
 
 /**
- * Track V, the win condition (GENERAL.md §4a, G113–G121): what a team is good at, what it is playing for, and each
+ * Track V, the win condition (GENERAL.md §4a, G140–G148): what a team is good at, what it is playing for, and each
  * hero's job inside that plan. Re-derived from the state at every decision (no memory) and from public information
  * only: the heroes' printed kits (their whole catalog deck, which is public), levels, items, Life, lanes and waves.
  * The same function gives a team its own plan and the plan it reads for the enemy.
  *
  * The plan acts in four places, each its own knob under the master `plan`:
  * - `plan.style` (from 7): [style], the one hook in [HContext.style]: aggression, lane weight and keep-defender by job
- *   and by the Life race, pulled toward one team target so heroes of a team do not split (G115, G116).
+ *   and by the Life race, pulled toward one team target so heroes of a team do not split (G142, G143).
  * - `plan.race` (from 7): [deathScale], the one hook in [HContext.killWorth]: a death is worth more to the side whose
- *   road it is (hunt) or who cannot afford it, less to the side that can afford it in the last push (G117).
+ *   road it is (hunt) or who cannot afford it, less to the side that can afford it in the last push (G144).
  * - `plan.upgrade` (from 5): [itemScale], [keepBias] and [upgradeBias] in [CardRules]: the job and what the team
- *   lacks choose the upgrade and the item; the hero file's `upgradeOrder` stays the order (G118–G120).
+ *   lacks choose the upgrade and the item; the hero file's `upgradeOrder` stays the order (G145–G147).
  * - `plan.econ` (from 5): [evalTerm], the one line in [HEval]: the Tier III step at level 5, a level that is due this
- *   round, and the Pity coin (G121).
+ *   round, and the Pity coin (G148).
  */
 internal object TeamStrategy {
     /** What a team plays for. Economy is in every plan: SCALE is "nothing else is the shorter road yet". */
@@ -34,8 +34,8 @@ internal object TeamStrategy {
     enum class Job { FINISHER, STRIPPER, ANCHOR, PUSHER, FARMER }
 
     /**
-     * One hero's printed kit, each 0..~1.2: [kill] attack, initiative and forced discards; [clear] attack cards, range and
-     * radius (wave clear); [durability] defense and blocks; [mobility] movement; [setup] strips and skills.
+     * One hero's printed kit, each 0..~1.2: [kill] attack, initiative and forced discards; [clear] attack cards,
+     * range and radius (wave clear); [durability] defense and blocks; [mobility] movement; [setup] strips and skills.
      */
     data class Kit(val kill: Double, val clear: Double, val durability: Double, val mobility: Double, val setup: Double)
 
@@ -54,13 +54,13 @@ internal object TeamStrategy {
         val kit: Kit,
         val enemyKit: Kit,
     ) {
-        /** We cannot afford a death and they can (G117: play safe). */
+        /** We cannot afford a death and they can (G144: play safe). */
         val danger: Boolean get() = ours <= 1 && theirs >= 2
 
-        /** We can afford a death and they cannot (G117: the last push is easier for us). */
+        /** We can afford a death and they cannot (G144: the last push is easier for us). */
         val afford: Boolean get() = ours >= 2 && theirs <= 1
 
-        /** Their Life is the shorter road (G116: hunt). */
+        /** Their Life is the shorter road (G143: hunt). */
         val hunt: Boolean get() = theirs <= 2 && theirs < ours
     }
 
@@ -92,11 +92,16 @@ internal object TeamStrategy {
     fun kit(ctx: HContext, heroId: String): Kit {
         val h = ctx.state.hero(heroId) ?: return ZERO
         val raw = rawStyle(ctx, heroId)
-        return kits.getOrPut(heroId + "|" + raw.hashCode()) { kitOf(ctx, h, raw) }
+        kits[heroId]?.let { (style, kit) -> if (style == raw) return kit }
+        // A playbook other than the registry's (an ablation) is computed and not kept.
+        return kitOf(ctx, h, raw).also { if (raw == registryStyle(ctx, heroId)) kits[heroId] = raw to it }
     }
 
     private fun rawStyle(ctx: HContext, heroId: String): HeroStyle =
         if (ctx.profile.heroPlaybooks) ctx.playbooks(heroId).style else HeroStyle.DEFAULT
+
+    private fun registryStyle(ctx: HContext, heroId: String): HeroStyle =
+        if (ctx.profile.heroPlaybooks) HeroPlaybooks.forHero(heroId).style else HeroStyle.DEFAULT
 
     private fun kitOf(ctx: HContext, h: HeroState, style: HeroStyle): Kit {
         val cards = h.cards.map { ctx.card(it.id) }.filter { it.color in KIT_COLOURS }.distinctBy { it.id }
@@ -148,11 +153,11 @@ internal object TeamStrategy {
         val early = state.round <= 2 && state.heroes.all { it.level <= 3 }
         val wavesLeft = state.wavesLeft.values.maxOrNull() ?: 1
 
-        // G113: composition, per hero (team sums are per hero so 2v2 and 3v3 read alike).
+        // G140: composition, per hero (team sums are per hero so 2v2 and 3v3 read alike).
         var kill = 0.6 * (kit.kill - enemyKit.durability) / size
         var push = 0.6 * (kit.clear - enemyKit.clear) / size
         var scale = 0.0
-        // G114: the race shifts the plan. Their Life is a road when one or two deaths end the game.
+        // G141: the race shifts the plan. Their Life is a road when one or two deaths end the game.
         if (dTheirs <= 1) kill += 1.0 else if (dTheirs == 2) kill += 0.35
         if (dTheirs < dOurs) kill += 0.25
         if (toWin <= 1) push += 0.8
@@ -167,7 +172,7 @@ internal object TeamStrategy {
     }
 
     /**
-     * G115: each hero's job. KILL: the best killer finishes, the best set-up strips, a third farms. PUSH: the most
+     * G142: each hero's job. KILL: the best killer finishes, the best set-up strips, a third farms. PUSH: the most
      * durable anchors, the rest push. SCALE: the most durable anchors, the rest farm. Ties go to the hero id.
      */
     private fun jobs(ctx: HContext, mine: List<HeroState>, plan: Plan): Map<String, Job> {
@@ -199,7 +204,7 @@ internal object TeamStrategy {
     // ---- the plan acts ----------------------------------------------------------------------------------------------
 
     /**
-     * G115–G117, the [HContext.style] hook: [base] modulated by the hero's job and its team's Life race, and pulled
+     * G142–G144, the [HContext.style] hook: [base] modulated by the hero's job and its team's Life race, and pulled
      * toward the team's target aggression so a 2v2 team does not hunt with one hero and farm with the other.
      */
     fun style(ctx: HContext, heroId: String, base: HeroStyle): HeroStyle {
@@ -234,7 +239,7 @@ internal object TeamStrategy {
     }
 
     /**
-     * G117, the [HContext.killWorth] hook: how much a death of a [victim] hero is worth, from the deciding team's plan.
+     * G144, the [HContext.killWorth] hook: how much a death of a [victim] hero is worth, from the deciding team's plan.
      * Their death is worth more when their Life is our road; ours more when we cannot afford it, less in the last push
      * when we can and they cannot ("it is a lot easier to win the last push if you can afford to die").
      */
@@ -254,7 +259,7 @@ internal object TeamStrategy {
     }
 
     /**
-     * G118–G119: the item's worth to [seat] by its job and what the team lacks. The finisher wants attack and
+     * G145–G146: the item's worth to [seat] by its job and what the team lacks. The finisher wants attack and
      * initiative, the anchor defense, a pusher or farmer movement, range and radius. An item a teammate already
      * carries twice is worth less (do not stack what the team covers); a team that cannot hold the enemy's attacks
      * values defense more.
@@ -291,15 +296,16 @@ internal object TeamStrategy {
             }
         }
         if (stat == Stat.DEFENSE && v.enemyKit.kill > v.kit.durability) s *= 1.15
-        val covered = ctx.state.heroes.filter { it.team == h.team && it.id != seat }.sumOf { ctx.itemBonus(it.id, stat) }
+        val mates = ctx.state.heroes.filter { it.team == h.team && it.id != seat }
+        val covered = mates.sumOf { ctx.itemBonus(it.id, stat) }
         if (covered >= 2 && !(job == Job.FINISHER && stat == Stat.ATTACK)) s *= max(0.7, 1.0 - 0.1 * (covered - 1))
         return s
     }
 
     /**
-     * G120: the card to keep (the other becomes the item) by job: the finisher keeps attack and initiative, the anchor
-     * defense, a stripper the card that forces a discard, a pusher or farmer range, radius and movement. Coin-equivalents
-     * on the scale of [HCard.rating] (about 3–7 a card).
+     * G147: the card to keep (the other becomes the item) by job: the finisher keeps attack and initiative, the anchor
+     * defense, a stripper the card that forces a discard, a pusher or farmer range, radius and movement.
+     * Coin-equivalents on the scale of [HCard.rating] (about 3–7 a card).
      */
     fun keepBias(ctx: HContext, seat: String, keep: HCard, others: List<HCard>): Double {
         if (!upgradeOn(ctx)) return 0.0
@@ -314,7 +320,7 @@ internal object TeamStrategy {
     }
 
     /**
-     * G118: which colour to upgrade. The hero file's `upgradeOrder` stays the order ([CardRules]); the job adds a
+     * G145: which colour to upgrade. The hero file's `upgradeOrder` stays the order ([CardRules]); the job adds a
      * little to the colour that does its work: Red (attack) for the finisher, Blue (defense) for the anchor, the colour
      * whose next Tier forces a discard for a stripper, the colour whose next Tier reaches further for a pusher.
      */
@@ -354,9 +360,10 @@ internal object TeamStrategy {
     }
 
     /**
-     * G121, the one line in [HEval]: economy terms the level term misses, Red's view. A level that is due this round is
+     * G148, the one line in [HEval]: economy terms the level term misses, Red's view. A level that is due this round is
      * certain (levelling is mandatory, coins are never lost, RB p.15), the level that reaches 5 adds the first Tier III
-     * (the designer's "true bump in power", BGG 3472633), and a hero that will not level collects the Pity coin (RB p.8).
+     * (the designer's "true bump in power", BGG 3472633), and a hero that will not level collects the Pity coin
+     * (RB p.8).
      */
     fun evalTerm(ctx: HContext): Double {
         if (!econOn(ctx)) return 0.0
@@ -412,8 +419,11 @@ internal object TeamStrategy {
     private val ZERO = Kit(0.0, 0.0, 0.0, 0.0, 0.0)
     private val KIT_COLOURS = setOf(CardColor.RED, CardColor.GREEN, CardColor.BLUE, CardColor.GOLD, CardColor.SILVER)
 
-    /** Kits by hero and raw style: the catalog deck is fixed, so the key fully determines the value. */
-    private val kits = concurrentMap<String, Kit>()
+    /**
+     * Kits by hero, with the style they were made from: the catalog deck is fixed, so hero and style fully determine
+     * the value. Two entries a hero at most (playbooks on, and [HeroStyle.DEFAULT] below strength 5).
+     */
+    private val kits = concurrentMap<String, Pair<HeroStyle, Kit>>()
 
     const val MASTER: String = "plan"
     const val STYLE_FROM: Int = 7
@@ -424,10 +434,10 @@ internal object TeamStrategy {
     private const val KILL_AGGRESSION = 0.65
     private const val FARM_AGGRESSION = 0.45
 
-    /** Share of the way each hero's aggression moves toward the team's target (G115). */
+    /** Share of the way each hero's aggression moves toward the team's target (G142). */
     private const val ALIGN = 0.3
 
-    /** G117: the most a plan moves the worth of a death. */
+    /** G144: the most a plan moves the worth of a death. */
     private const val RACE = 0.15
 
     private const val LEVEL = 3.0
