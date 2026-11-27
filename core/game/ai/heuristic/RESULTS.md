@@ -1469,7 +1469,7 @@ of 236 (Defense 31%). Per hero, a10 also upgrades green far more (e.g. Misa: h9 
    of h9's heroes take no minion in the first round. The gap grows to +0.6 levels by round 5.
 3. **Pokes that do not convert (T).** Both attack heroes about as often (3.5 against 3.3 a game), but 85% of h9's hero
    attacks are pokes (2.97 a game, 1.44 with a minion in reach) against 40% of a10's; a10 turns 60% of its hero
-   attacks into a kill within the turn (h9 15%) and kills 1.53 a game against 0.44. h9's minion collisions (a teammate
+   attacks into a team kill that turn or the next (h9 15%) and kills 1.53 a game against 0.44. h9's minion collisions (a teammate
    took the only minion in reach) are 0.38 a game against 0.06.
 4. **Defense-first items and colours (V).** h9 tucks Defense 65% of the time against 31%, and dies 1.53 times a game
    against 0.44, 0.69 of them with no card left (a10 0.19): the extra Defense does not save it, while a10's Attack,
