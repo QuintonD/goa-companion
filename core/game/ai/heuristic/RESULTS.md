@@ -1331,3 +1331,12 @@ sits behind the same master switch (`losingLate` returns false with `wave=0`).
   actions that wanted it), and no rule here uses Fast Travel before the push.
 - Not measured: strengths below 9 (the layer is off there), double-lane maps (the projection is per lane and works there by
   construction, but no game was played on Across the River).
+
+### Gate
+
+`:core:game:allTests` (2026-11-28, quiet hours, one core): JVM 2 202 tests, two failures, both expected: the shipped
+strength 10 parity transcript (re-pinned to `cf21bd85…`; the integrator re-pins after the merge) and `BenchmarkTest`'s
+engine-speed floor (random players, 2 games/s; fails under the one-core quiet-hours cap, untouched by this track).
+After the re-pin: JS (Node) 15/15 including `theShippedStrengthTenChoosesAlike` (the JVM and Node transcripts agree),
+JVM heuristic + parity 108/108. detekt and ktlint: clean in this track's files; the remaining findings are the known
+`AllSeeingTest.kt` and `AiPlayers.kt:149` (a KDoc placement on main), neither touched here.
