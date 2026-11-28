@@ -134,9 +134,10 @@ object AiPlayers {
         "restSpaces" to 6.0,
         "6.cap" to 8.0,
         "lpx" to 1.0,
-        // Track T (strategy round): the joint card choice of computer teammates is the root book's, not the
-        // playouts' (its pairs of card looks would multiply every playout's card plays).
-        "p.team.joint" to 0.0,
+        // Track T (strategy round): team play stays off in strength 10's book (root and playouts) until the
+        // integrator measures it there: with it on, LastPushSearchTest's game 613 position flips (the search plays
+        // Silver). `team=1` turns it on; `p.team.joint=0` would keep the joint card choice out of the playouts.
+        "team" to 0.0,
     )
 
     /** The strengths the search plays ([HybridAi]); below them the heuristic book alone ([HeuristicAi]). */
