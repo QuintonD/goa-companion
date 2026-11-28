@@ -1283,3 +1283,8 @@ keep a different card with the plan than without. Opt-in: `PlanDigestTest` (dige
 
 **Game budget.** Screen 256; digests 31 (h5 2 + 2, h9 18 on the branch and 9 on the baseline); the audit replayed 128
 of the screen's own games (the same seeds, so the same games, with counters).
+
+**Gate** (2a0eb0aa): `:core:game:allTests` passes on the JVM (166 suites) and in JS (Node), with `GameParityTest`
+re-pinned (the AI game `67224d65…`, shipped strength 10 `f49f9f50…`; JVM and JS agree). detekt and ktlint are
+clean for this track's files. What is left comes from main (`AllSeeingTest.kt`, `AiPlayers.kt:149`). 82de52a9 only
+rewrites two chained if-else as `when` (same values) and re-runs `TeamStrategyTest` and `GameParityTest` (JVM).
