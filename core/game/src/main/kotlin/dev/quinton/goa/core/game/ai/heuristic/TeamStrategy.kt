@@ -76,8 +76,8 @@ internal object TeamStrategy {
 
     /**
      * The jobs and the Life race act on teams of at most `plan.size` heroes (default 2). Measured (RESULTS.md,
-     * Track V): in 3v3 they cost games (h9 22-42 against the plan-off book: the plan side killed less and died more), in 2v2
-     * they did not (72-56); upgrades and economy act at every size.
+     * Track V): in 3v3 they cost games (h9 22-42 against the plan-off book: the plan side killed less and died
+     * more), in 2v2 they did not (72-56); upgrades and economy act at every size.
      */
     private fun sizeOn(ctx: HContext): Boolean =
         ctx.state.heroes.count { it.team == ctx.team } <= ctx.profile.knob("plan.size", SIZE.toDouble())
@@ -167,7 +167,11 @@ internal object TeamStrategy {
         var push = 0.6 * (kit.clear - enemyKit.clear) / size
         var scale = 0.0
         // G141: the race shifts the plan. Their Life is a road when one or two deaths end the game.
-        if (dTheirs <= 1) kill += 1.0 else if (dTheirs == 2) kill += 0.35
+        kill += when {
+            dTheirs <= 1 -> 1.0
+            dTheirs == 2 -> 0.35
+            else -> 0.0
+        }
         if (dTheirs < dOurs) kill += 0.25
         if (toWin <= 1) push += 0.8
         if (lastWave) push += 0.5
@@ -397,7 +401,11 @@ internal object TeamStrategy {
             level++
             due += LEVEL + if (level == TIER_III_LEVEL) TIER_III else 0.0
         }
-        v += if (due > 0.0) DUE * due - HEVAL_DUE else if (h.levelledThisRound) 0.0 else PITY
+        v += when {
+            due > 0.0 -> DUE * due - HEVAL_DUE
+            h.levelledThisRound -> 0.0
+            else -> PITY
+        }
         return v
     }
 
@@ -415,7 +423,6 @@ internal object TeamStrategy {
     private fun norm(x: Double, lo: Double, hi: Double): Double = ((x - lo) / (hi - lo)).coerceIn(0.0, 1.0)
 
     private fun List<Double>.average0(): Double = if (isEmpty()) 0.0 else sum() / size
-
 
     private fun sum(kits: List<Kit>): Kit = Kit(
         kits.sumOf { it.kill },
