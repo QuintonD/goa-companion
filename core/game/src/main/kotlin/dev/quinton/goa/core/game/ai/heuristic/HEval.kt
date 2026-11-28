@@ -34,7 +34,10 @@ object HEval {
      * (integration, line-ups 1000–1383, 768 games each): 1.4 beat 1.0 head to head 54.9% and took h10
      * against the old s8 from 49.7% to 54.3%; 0.7 lost 43.4%; 1.8 and 2.5 tied 1.4.
      */
-    private const val LANE = 1.4
+    internal const val LANE = 1.4
+
+    /** GENERAL §2 "Lane": `0.3 × presence`, our heroes near the next Battle Zone minus theirs (Track W). */
+    private const val PRESENCE = 0.3
 
     /** Share of a kill's lane value that a minion in reach of a card still to play is worth. */
     internal const val LANE_THREAT = 0.3
@@ -119,27 +122,65 @@ object HEval {
     private fun lane(ctx: HContext): Double {
         var v = 0.0
         val state = ctx.state
+        val next = waveOn(ctx, "next")
         for ((lane, bz) in state.battleZones) {
             val zones = ctx.game.geo.lanes[lane]?.zones ?: continue
             val i = zones.indexOf(bz)
             if (i < 0) continue
             val red = ctx.minionCount(Team.RED, lane)
             val blue = ctx.minionCount(Team.BLUE, lane)
-            val ppRed = push(ctx, Team.RED, bz)
-            val ppBlue = push(ctx, Team.BLUE, bz)
-            val a = max(0.0, red - ppBlue)
-            val b = max(0.0, blue - ppRed)
-            var p = sigmoid(1.1 * (a - b))
-            if (a > b && 2 * b - a <= 0.25) p = max(p, 0.95)
-            if (b > a && 2 * a - b <= 0.25) p = min(p, 0.05)
+            val p = redPush(ctx, bz, red, blue)
             val waves = state.wavesLeft[lane] ?: 1
-            val w = laneWin(zones.lastIndex - i, i, waves, p)
+            val w = if (next) {
+                laneWinNext(ctx, lane, zones.lastIndex - i, i, waves, p)
+            } else {
+                laneWin(zones.lastIndex - i, i, waves, p)
+            }
             val match = ctx.profile.laneTiming && ctx.matchPoint(lane)
             val laneWeight = (if (match) 100.0 else 60.0) * ctx.profile.knob("lane", LANE)
             val margin = if (match) 3.0 else 1.5
             v += laneWeight * (2 * w - 1) + margin * (red - blue)
         }
         return v
+    }
+
+    /** P(Red wins [lane]'s next push): the counts after both sides' push potential (GENERAL §2 "Lane"). */
+    private fun redPush(ctx: HContext, bz: String, red: Int, blue: Int): Double {
+        val ppRed = push(ctx, Team.RED, bz)
+        val ppBlue = push(ctx, Team.BLUE, bz)
+        val a = max(0.0, red - ppBlue)
+        val b = max(0.0, blue - ppRed)
+        var p = sigmoid(1.1 * (a - b))
+        if (a > b && 2 * b - a <= 0.25) p = max(p, 0.95)
+        if (b > a && 2 * a - b <= 0.25) p = min(p, 0.05)
+        return p
+    }
+
+    /** Track W: the p [lane] scores, for the wave projection ([waveView]). 0.5 for a lane with no Battle Zone. */
+    internal fun pushChance(ctx: HContext, lane: String): Double {
+        val bz = ctx.state.battleZones[lane] ?: return 0.5
+        return redPush(ctx, bz, ctx.minionCount(Team.RED, lane), ctx.minionCount(Team.BLUE, lane))
+    }
+
+    /**
+     * Track W (`wave.next`, REVIEW-2-design items 6/13/14): [laneWin], with the push after this one priced by who
+     * will stand in the zone it moves into ([zonePresence]) instead of an even 0.5. A team that is losing the wave
+     * and stands in the zone the push moves into is not pushed again at once (the owner's double push); a team that
+     * wins it and arrives with the push gets the next one. GENERAL §2: `0.3 × presence` per hero.
+     */
+    private fun laneWinNext(ctx: HContext, lane: String, k: Int, m: Int, w: Int, p: Double): Double {
+        if (k <= 0) return 1.0
+        if (m <= 0) return 0.0
+        val win = if (k == 1 || w <= 1) 1.0 else laneWin(k - 1, m + 1, w - 1, nextPush(ctx, lane, Team.RED))
+        val lose = if (m == 1 || w <= 1) 0.0 else laneWin(k + 1, m - 1, w - 1, nextPush(ctx, lane, Team.BLUE))
+        return p * win + (1 - p) * lose
+    }
+
+    /** P(Red wins the push after [pusher] pushes [lane]): presence in the new zone, Red minus Blue. */
+    private fun nextPush(ctx: HContext, lane: String, pusher: Team): Double {
+        val zone = nextZoneOf(ctx, lane, pusher) ?: return 0.5
+        val diff = zonePresence(ctx, zone, Team.RED) - zonePresence(ctx, zone, Team.BLUE)
+        return sigmoid(ctx.profile.knob("wave.pres", PRESENCE) * diff)
     }
 
     /** Enemy minions this team can still take (the designer's Push Potential). Public cards only. */

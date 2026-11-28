@@ -130,6 +130,10 @@ At `p = 0.5`, `W(0,3) = 0.5`. One push makes `W(+1,2) = p(2−p) = 0.75`. `60 ×
 
 `p = σ(1.1 × projectedAdvantage + 0.3 × presence)`. `presence` is our heroes within one action of the next Battle Zone, minus theirs. `1.1` makes +1 advantage `p ≈ 0.75` and +2 `p ≈ 0.90`, which is the designer's "very likely" / "almost guarantees" [BGG 2899258]. A projection that empties a side is `p ≈ 0.95` (a mid-turn push can still be answered). On turn 4 after every action the projection is the battle itself.
 
+**The push after the next one (G115, strength 9, knob `wave.next`).** The recursion's second step used `p = 0.5` whoever stood where. From strength 9 the push after each branch is `σ(0.3 × presence)` in the zone that push moves the lane into: each hero counts 1 in that zone, and `1 − 0.3 × late` otherwise, where `late` is the walks (3 spaces each) still missing after half the plays left this round are spent walking; a hero off the board counts 0.6 when the zone is next to its own Throne (it respawns there), else 0.3. Deeper steps stay at 0.5, and the last wave has no next push. A team losing the wave that stands where the push lands is not pushed again at once (the owner's double push); a team winning it that arrives with the push gets the next one. The spawn edge (6 against 5 on Forgotten Island) is not in this term: HEval already prices it once the push happens, and putting it in the recursion halves the value of a centre minion (REVIEW-2 item 14 is still open). [owner, 2026-11-27] [BGG 2899258: "get stranded on the wrong side of the board"] [REASONED]
+
+**A minion's static price (G117, strength 9, knob `wave.price`).** `laneKillDelta`, which prices a minion for the static book (targets, plans, the finishing policy inside every look, hero notes), is scaled by the same 1.4 the lane is (REVIEW-2-design §2.2 item 1, item 10), so the book and the look that judges it agree on a minion (≈ 21 at an even lane). `laneThreat`, inside HEval, keeps the unscaled value it was tuned with.
+
 **Push potential.** At round start, two minion-kills per hero, less for a melee hero more than one action (about 5–6 spaces, or two actions at the "3 spaces = one action" rate) from the Battle Zone [BGG 2899258, BGG 2898177]. Exact version: count remaining attacks, "defeat a minion" skills, and removals that the engine can already see will reach a minion, given movement still in hand. A Red or Gold already played without a minion is −1 to that hero [BGG 2899258]. Cap the team's total by the enemy minions actually standing, and discount when several heroes can reach only the same minions:
 
 | Heroes who can reach the lane | Per reaching attack card |
@@ -209,6 +213,12 @@ At `PLAY_CARD`, and again at every later decision of the same turn, derive one i
 | `SET_UP` | A teammate's intent needs a modifier, a body on a line, or a piece, and our card does that better than it farms. | The space or unit that makes their action legal. Their kill is our score too. |
 | `BLOCK` | A space we can stand is the corridor they Fast Travel through, or the landing square of a straight-line attack, and exposure there is less than 8. | Stand there. Do not block a teammate's line. |
 | `SPAWN_CAMP` | Strength 9+. An enemy is off the board, we can reach a throne spawn they would use before they act, and our `deathsToLose` ≥ 2. | The spawn, or the space that attacks every spawn. If they can kill us there for a Life we cannot spend, the intent is illegal: do not go. |
+
+**The wave projection (G116, strength 9, knob `wave.plan`).** Each lane reads, from the deciding team, the `p` HEval scores (counts after both sides' push potential): `LOST` (p ≤ 0.08, the clamp of a projection that empties us), `LOSING` (p ≤ 0.3, about one projected minion behind), `WINNING` (p ≥ 0.7), else `CONTESTED`. Then:
+
+- `RETREAT` (reposition): the lane is `LOSING` or `LOST`, the push lands in a zone (not our Throne) more than one walk from the hero, the hero is within 6 of the Battle Zone, the card played moves and does not attack, and the turns left after this one are fewer than the walks needed (or the push is decided). Earlier in the round the hero farms first; the gold on the way is the look's to take [BGG 3168047: "take one on turn 3, reposition with the long move on turn 4"].
+- The goal zone (G51) moves to the zone their push lands in when the projection is `LOST`, or `LOSING` on turns 3–4, as well as at a raw margin of −2. Respawns follow it (G31). Strength 9 only (knob `wave.goal`): at 10 it cost four hero puzzles on the position bench.
+- `HOLD_LINE` (F7, knob `hold`) reads "not ahead" from the projection (not projected `WINNING`) when it is turned on; it stays off by default: turned on it cost strength 10 four hero puzzles on the position bench (RESULTS, Track W).
 
 **Card into intent.** The card is the first step of the intent, not the highest-initiative card that does something.
 
@@ -461,6 +471,10 @@ G66. [CHOOSE_UNIT] FROM 1 MODE EVAL WHEN the choice moves, pushes or swaps a uni
 G67. [CHOOSE_UNIT] FROM 5 MODE ADD WHEN the target is one of several bodies and defeating any body defeats the hero THEN prefer the body with the worst `minionMod` for them WEIGHT +4 SOURCE [REASONED]
 
 G68. [CHOOSE_UNIT] FROM 9 MODE ADD WHEN the intent is `SETUP(u)` and `u` is legal THEN target `u` rather than a richer minion WEIGHT +(kill value on turn 4, discounted by 0.7 if our finisher's reach is only possible rather than certain) SOURCE [BGG 3033553] [REASONED]
+
+G113. [CHOOSE_UNIT, and every choice looked at after the reveal] FROM 9 MODE EVAL WHEN a rest-of-turn look reaches an enemy's defense or discard that reads a hidden hand THEN price that answer from the pool as before, and add the change from the defender's own answer (on this team's determinized copy) to the end of the turn, so a hit on a hero is judged at the same horizon as a minion WEIGHT the look's own value SOURCE [REASONED: Track W audit, 2026-11-27 — the hero look stopped at the defense and the minion look played the whole turn; 5 of 18 baseline pokes change] (knob `wave.even`)
+
+G59 is also added on top of a look from strength 9 (knob `wave.farm`): the minion's static price less the poke's, capped at 6. The turn plan takes the same view: an attack card whose best hero is not a real kill (empty hand, a hit that beats what they can hold, or a teammate who can reach them follows up) plans the safe minion (`FARM` / `PUSH`), not `KILL` [owner, 2026-11-27: "Unless you are explicitly going for a kill the safest thing to do is get gold from minions"] [BGG 3499405] [BGG 3033553].
 
 ### CHOOSE_TOKEN
 

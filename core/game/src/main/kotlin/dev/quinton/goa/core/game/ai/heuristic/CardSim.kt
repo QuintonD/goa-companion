@@ -150,7 +150,7 @@ internal object CardSim {
         var n = 0
         var d = f.pending
         while (n < look.cap && d != null && !look.stop(f, d)) {
-            if (look.hidden(f, d)) return look.score(f, look.strike(f, d))
+            if (look.hidden(f, d)) return hiddenScore(ctx, f, d, branches, look)
             val c = HContext(f, d, d.team, ctx.profile, ctx.playbooks, seen = ctx.seen, finishing = true)
             // A sampled turn (F2): our own action is chosen once the cards are revealed, so every action is tried.
             if (actions && d.seat == ctx.seat && f.state.acting == ctx.seat && d.options.size > 1 &&
@@ -653,4 +653,24 @@ internal object CardSim {
 
     /** Share of the strike lost when the target's card acts first (it may have moved). */
     private const val FLEE = 0.3
+
+    // Track W (wave management and positioning, `wave.even`): one horizon for every option of a rest-of-turn look.
+
+    /**
+     * An answer that reads a hidden hand ends a look and is priced from the pool ([Look.strike]). In a rest-of-turn
+     * look without the known hands of strength 10 ([RestLook] at 9) that scored an attack on a hero before the heroes
+     * still to act had acted, while a look at a minion played the whole turn: the poke won by the horizon (Track W,
+     * RESULTS "Strategy round - Track W"). With `wave.even` the turn goes on: the defender's book answers on this
+     * team's determinized copy, and only the change from that answer to the turn's end is added to the pooled price,
+     * so the strike itself is still priced from the pool (DESIGN non-negotiable 1).
+     */
+    private fun hiddenScore(ctx: HContext, f: EngineSession, d: Decision, branches: Int, look: Look): Double {
+        val priced = look.score(f, look.strike(f, d))
+        if (look !is RestLook || !waveOn(ctx, "even")) return priced
+        val c = HContext(f, d, d.team, ctx.profile, ctx.playbooks, seen = ctx.seen, finishing = true)
+        val choice = policy(c, d, d.seat) ?: return priced
+        if (f.answer(d.id, choice) !is AnswerResult.Accepted) return priced
+        val mid = look.score(f, 0.0)
+        return priced + run(ctx, f, branches, look) - mid
+    }
 }

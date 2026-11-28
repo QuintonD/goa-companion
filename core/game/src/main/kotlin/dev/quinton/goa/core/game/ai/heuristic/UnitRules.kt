@@ -25,6 +25,7 @@ internal object UnitRules {
     /** G13 on the minion itself; G64 a minion a teammate still to act will take. */
     fun commitment(ctx: HContext, d: Decision, o: Choice): Double {
         if (o !is Choice.Unit) return 0.0
+        if (waveOn(ctx, "farm")) farmFirst(ctx, d, o.unitId)?.let { return it }
         val m = ctx.state.minion(o.unitId) ?: return 0.0
         if (m.team == ctx.team) return 0.0
         var v = 0.0
@@ -87,6 +88,28 @@ internal object UnitRules {
         }
     }
 
+    /**
+     * G59 (MODE ADD, so it stays on top of a look; Track W `wave.farm`): an attack on a hero who keeps a defense,
+     * whose kill is not real ([TurnPlan.realKill]), while an enemy minion is a legal target. The minion is gold and
+     * wave for certain; the poke is a card they may throw. Weight: the minion's price less the poke's, at most
+     * [FARM_CAP]. Null when [unitId] is not such a hero.
+     */
+    private fun farmFirst(ctx: HContext, d: Decision, unitId: String): Double? {
+        val body = ctx.heroBody(unitId) ?: return null
+        val hero = ctx.state.hero(body) ?: return null
+        if (hero.team == ctx.team) return null
+        val card = d.sourceCardId?.let { ctx.card(it) } ?: return 0.0
+        if (!card.attackCard) return 0.0
+        val minion = d.options.filterIsInstance<Choice.Unit>().mapNotNull { ctx.state.minion(it.unitId) }
+            .filter { it.team != ctx.team && !ctx.heavyImmune(it.id) }
+            .maxOfOrNull { ctx.minionWorth(it.id) } ?: return 0.0
+        if (TurnPlan.realKill(ctx, d.seat, body, card)) return 0.0
+        val total = card.attack + ctx.itemBonus(d.seat, Stat.ATTACK)
+        val poke = ctx.heroStrikeWorth(body, total, card.ranged)
+        return -(minion - poke).coerceIn(0.0, FARM_CAP)
+    }
+
+    private const val FARM_CAP = 6.0
     private const val PLAN_TARGET = 1.8
     private const val BODY_PER_POINT = 2.0
     private const val THIN = 6.0

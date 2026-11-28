@@ -35,8 +35,10 @@ against. Research lives next to it: [GENERAL.md](GENERAL.md) (general heuristics
    use the cards that enemy **could** hold by public knowledge (its whole possible pool, optionally
    weighted), not the one sampled hand. `NoPeekingTest`'s guarantees must hold for the new player.
    Wave 3 (F1): after the reveal, strengths 9–10 play the rest of the turn out inside a look. At 10 an enemy's
-   defense or discard in it is answered by its book from the known hand (ADR-062); at 9 the look stops there and
-   prices it from the pool, as every look did before.
+   defense or discard in it is answered by its book from the known hand (ADR-062); at 9 the look prices it from the
+   pool, as every look did before. Strategy round, Track W (`wave.even`): at 9 the turn then goes on, the defender's
+   book answering on the team's determinized copy, and only the change from that answer to the turn's end is added
+   to the pooled price, so a hit on a hero is judged at the same horizon as a minion; the strike itself stays pooled.
 2. **Determinism.** An answer depends only on (seed, decision id, seat) and the session: no state carried
    between `choose` calls except caches whose key fully determines their value. Undo/restore must give the
    same answers. All randomness from `Random(mix(seed, decision.id, seat))`.
@@ -135,7 +137,7 @@ signature heuristic must fire (use `position/PositionBuilder` or a seeded game a
 | 3–4 | + threat map (exposure), lookahead for opaque choices | medium, slips 8–12% |
 | 5–6 | + hero playbooks, turn plans; the team plan's upgrades and economy (`plan.upgrade`, `plan.econ`, GENERAL §4a) | low, slips 3–5% |
 | 7–8 | + initiative reading (enemy possible cards), focus fire / team coordination, card counting; the team plan's jobs and Life race (`plan.style`, `plan.race`) | very low |
-| 9 | + two-turn plans (strip-then-kill, defender held back for a teammate), lane timing; after the reveal every look plays the rest of the turn (F1, `turnRest`) and every own square is looked at; the last card's escape on turn 4 (F3) | none on critical choices |
+| 9 | + two-turn plans (strip-then-kill, defender held back for a teammate), lane timing; the wave layer (Track W: one look horizon, farm first, the next push priced by presence, reposition and hold by the projected wave, `wave`); after the reveal every look plays the rest of the turn (F1, `turnRest`) and every own square is looked at; the last card's escape on turn 4 (F3) | none on critical choices |
 | 10 | 9 + `knowHands` (ADR-062): inside those turns, and in the card play's own-action look (`knowLook`), enemy defenses are answered from the known hand; two of its own choices inside every look are branched (`lookBranches = 2`, 9 and below 1). Measured h10 : h9 56.6% on 256 development games (RESULTS.md, wave 3) | argmax |
 
 Defences and lane-deciding moves never slip (they feel broken, not human). Saves from before the slider
