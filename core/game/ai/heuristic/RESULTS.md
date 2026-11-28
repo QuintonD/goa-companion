@@ -1475,3 +1475,91 @@ of 236 (Defense 31%). Per hero, a10 also upgrades green far more (e.g. Misa: h9 
 4. **Defense-first items and colours (V).** h9 tucks Defense 65% of the time against 31%, and dies 1.53 times a game
    against 0.44, 0.69 of them with no card left (a10 0.19): the extra Defense does not save it, while a10's Attack,
    Initiative and Radius items go with its kills.
+
+## Strategy round - Track V (win condition and the team plan, 2026-11-27)
+
+Branch `t3/strategy-plan` from e6174517. The owner: "What is your squad's strengths and what are you playing for; you
+will always need to play for economy and get stronger, but your upgrades and mid to late game strategy should be
+aligned with your teammates." New file `TeamStrategy.kt`, rules G140–G148 in GENERAL.md §4a.
+
+**What it is.** At every decision, from public facts only (each hero's whole catalog deck, levels, items, Life, lanes,
+waves), each team gets: a composition (kill, wave clear, durability, mobility, set-up per hero, from `HCard` numbers
+and the hero file's `HeroStyle`); a plan, KILL / PUSH / SCALE, that moves with the Life race (`deathsToLose`), the
+lanes (pushes to their Throne, last wave, minion margin) and the level gap; and a job per hero (finisher, stripper,
+anchor, pusher, farmer). The enemy's plan is the same function of the same facts.
+
+**Where it acts** (knobs; master `plan`, default on):
+
+| Knob | From | What | Where |
+|---|---|---|---|
+| `plan.upgrade` | 5 | the item and the kept card by job and the team's gaps (G145–G147); G105's initiative ties from 7 | `CardRules` (Track V's file) |
+| `plan.econ` | 5 | the Tier III step at level 5, a due level as certain, the Pity coin (G148) | one line in `HEval.scoreRed` |
+| `plan.style` | 7 | aggression, lane weight, keep-defender by job and Life race, pulled toward one team target (G142, G143) | one hook in `HContext.style` |
+| `plan.race` | 7 | a death's worth ×(1 ± 0.15) by the Life race, from the deciding team's plan (G144) | one hook in `HContext.killWorth` |
+| `plan.size` | 2 | style and race only for teams of at most this many heroes | |
+
+Existing functions changed (shared `HContext`): `style()` (the hook) and `killWorthOf()` (the last line multiplies
+by `TeamStrategy.deathScale`); a `teamViews` field in a `// Track V` block. `killWorth` already counted the death cost
+at levels 4 and 7 (tier), so no further level-4/7 risk term was added.
+
+**Knob-off proof.** `PlanDigestTest` (opt-in) plays fixed self-play games and hashes every answer. Baseline
+(e6174517) and this branch with `plan=0` give the same digest: h9, 9 games (line-ups 2600–2605 2v2, 2600–2602 3v3),
+3 578 answers, `61faf79d…`; h5, 2 games, 799 answers, `0cb1aa87…`. The hybrid search's decision set (60 card plays,
+`off:plan=0` against `new:`) differs in 2 of 60 answers with the plan on.
+
+**Screen** (`h9:h9+plan=0`, mirrored, the code before `plan.size`):
+
+| Pair | Line-ups | Games | Result | Wilson 95% | Defeats/game on / off |
+|---|---|---|---|---|---|
+| h9 2v2 | 2600–2663 | 128 | 72–56, 56.3% | 47.6–64.5% | 1.06 / 1.05 |
+| h9 3v3 | 2700–2731 | 64 | 22–42, 34.4% | 23.9–46.6% | 2.31 / 1.66 |
+| h7 2v2 | 2800–2831 | 64 | 32–32, 50.0% | 38.1–61.9% | 0.86 / 1.08 |
+
+h9 2v2 wins by the last push 39 against 29 and the Throne 16 against 9. The 3v3 result is a significant loss, so
+the shipped default gates `plan.style` and `plan.race` to teams of two (`plan.size = 2`). In 2v2 that changes
+nothing, so the 2v2 rows above still measure the shipped code. In 3v3 the shipped plan is upgrades and economy only,
+and that is **not measured**.
+
+**Why 3v3 lost** (Track M's `StrategyAuditTest` on the screen's own 3v3 games, 2700+32, plan on against off, per game):
+kills 1.66 against 2.31, deaths 2.31 against 1.66, empty-hand deaths 1.00 against 0.63, pokes 5.25 against 4.55,
+Holds 3.20 against 2.69. The 3v3 plan side fought worse, not more. A replay of the decision set's stored games
+(`PlanReplayTest`, no new games) shows where the plan sits in 3v3: SCALE on 52% of card plays (everyone but the anchor
+farms, aggression lower), and "hunt" on 19%, almost always when the enemy's heroes are the higher level (their death
+costs 2 Life, ours 1), which tells the weaker side to hunt. Both are candidates; this round's budget did not allow
+separating them. The designer's line that kills get easier in 3v3 because a third hero farms while two commit
+(GENERAL §1) suggests 3v3 wants a finisher and a stripper in every plan, not only in KILL.
+
+**2v2 behaviour** (the same audit on 2600+32): minions taken 7.55 against 7.02, minion coins 15.75 against 14.47,
+pushes suffered 1.11 against 1.27, second pushes in a row 0.11 against 0.20, empty-hand deaths 0.44 against 0.55, heroes
+already in the new zone after a push we won 0.55 against 0.42 a game.
+
+**Upgrades and levels** (self-play digest games, 9 each, plan on / off): items tucked Defense 59% / 63%, Initiative
+28% / 19%, Attack 9% / 14%; colours upgraded red 53 / 54, blue 38 / 34, green 21 / 25. Mean level at the start of
+rounds 2–7: on 1.77, 2.68, 3.35, 4.03, 4.54, 5.03; off 1.77, 2.69, 3.28, 3.95, 4.45, 4.95. A level-up scan of every
+hero (two partners, an early and a kill position) gave job-consistent keeps: finishers keep the higher attack and
+take Initiative, anchors keep the higher defense and take Defense, farmers keep radius or range. Track M found h9
+tucks Defense in 65% of items against 31% for the shipped strength 10. The plan moves that only to 59%, because the
+base item values (G108: 0.7 a defending card) favour Defense. That is a hand-off: the base values, not the plan.
+
+**Bench** (`AiPositionBenchTest`, h9 / h9+plan=0): probe 54.9% (128/233) / 54.1% (126/233), wp regret 0.0162 both;
+puzzles 75.6% both; rounds 95.5% (378/396) both. Flat.
+
+**Cost.** Card play in the screen: h9 13.86 against 12.87 ms (+8%), 3v3 15.34 against 15.04 (+2%), h7 6.21 against
+5.82 (+7%). Strength 10's decision set: 2 637 against 2 634 ms a card play, the same work counts. Kits are cached by
+hero and style (a catalog fact); the plan is derived once per context and team.
+
+**Tests.** `TeamStrategyTest`: every hero's kit; the opening is SCALE with the most durable hero anchoring; one death
+from their defeat is KILL (finisher and stripper, a death of theirs ×1.15, off by knob, master and below 7); one push
+from their Throne is PUSH (anchor and pusher, lane weight up); the last push when we can afford a death (×0.85); we
+cannot afford one (keep a defender, aggression down); style is the hero file's with the plan off or below 7; 3v3 keeps
+style and race off unless `plan.size=3`; determinism; the economy numbers; a finisher (Rowenna) and an anchor (Bain)
+keep a different card with the plan than without. Opt-in: `PlanDigestTest` (digest, level curve, upgrade picks),
+`PlanReplayTest` (where the plan acts, on stored games).
+
+**Game budget.** Screen 256; digests 31 (h5 2 + 2, h9 18 on the branch and 9 on the baseline); the audit replayed 128
+of the screen's own games (the same seeds, so the same games, with counters).
+
+**Gate** (2a0eb0aa): `:core:game:allTests` passes on the JVM (166 suites) and in JS (Node), with `GameParityTest`
+re-pinned (the AI game `67224d65…`, shipped strength 10 `f49f9f50…`; JVM and JS agree). detekt and ktlint are
+clean for this track's files. What is left comes from main (`AllSeeingTest.kt`, `AiPlayers.kt:149`). 82de52a9 only
+rewrites two chained if-else as `when` (same values) and re-runs `TeamStrategyTest` and `GameParityTest` (JVM).

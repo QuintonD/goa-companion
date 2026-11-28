@@ -62,6 +62,7 @@ object HEval {
         if (ctx.profile.heroPlaybooks) {
             for (h in state.heroes) v += ctx.playbooks(h.id).evalTerms(state, Team.RED, h.id)
         }
+        v += TeamStrategy.evalTerm(ctx)
         return v
     }
 
