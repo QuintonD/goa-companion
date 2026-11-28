@@ -150,7 +150,6 @@ object AiPlayers {
         return HybridAi(seed, searchKnobs(s), runner)
     }
 
-    /** Strength 10's knobs: [SEARCH_10] with its leaf ([SEARCH_10_LEAF]). */
     /** The search's knobs at [strength] (10 or 11), as the apps seat it: measurements build on them. */
     fun knobsFor(strength: Int): Map<String, Double> = searchKnobs(strength)
 

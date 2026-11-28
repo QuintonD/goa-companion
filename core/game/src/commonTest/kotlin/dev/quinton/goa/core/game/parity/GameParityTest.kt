@@ -50,9 +50,8 @@ class GameParityTest {
         /** Strength 10's answers with a choice in [theShippedStrengthTenChoosesAlike] (card plays and the rest). */
         const val SHIPPED_TEN_ANSWERS = 30
 
-        // Re-pinned for the strategy round's Track W (the wave layer at strengths 9 and 10's book); the integrator
-        // re-pins after the merge.
-        const val SHIPPED_TEN_HASH = "cf21bd85fb6b18eb42a734c158c5af2d58a82a6c4d7c53d9edc233afbf226dda"
+        // Re-pinned after the strategy round's merge (Tracks T, W, V on feature/ai-strategy); JVM and Node agree.
+        const val SHIPPED_TEN_HASH = "f487a23653e143a2bb3b782c4055633417e9a8699357df4b7a788e1c9f0fc3f7"
     }
 
     @Test
@@ -141,7 +140,7 @@ class GameParityTest {
         }
         // Re-pinned for ADR-085: the seated player is the heuristic book, the same on the JVM and in JS (last:
         // both review rounds, REVIEW-core.md and REVIEW-heroes.md).
-        assertTranscript("d7017562b5c647433c9f309e2775589d830d5b87b439b853de2f75e2356dcb3b", transcript, "AI game")
+        assertTranscript("67224d651a10a60b79c1269fb6f380219d54fe0d4db91255719e3ed49cb5a8fb", transcript, "AI game")
     }
 
     /**

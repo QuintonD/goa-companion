@@ -53,7 +53,10 @@ class AllSeeingTest {
         val truth = blueCards(s.state)
         repeat(5) { i ->
             val o = Determinizer.sample(
-                s.engineData, s.state, Team.RED, Random(i),
+                s.engineData,
+                s.state,
+                Team.RED,
+                Random(i),
                 Determinizer.Options(knowHands = true, omniscient = true),
             )
             assertThat(blueCards(o)).isEqualTo(truth)
@@ -73,7 +76,8 @@ class AllSeeingTest {
             ),
             tieBreaker = Team.RED,
         )
-        assertThat(setup.allSeeingLast().seats.map { it.heroId }).containsExactly("arien", "tigerclaw", "wasp", "brogan")
+        assertThat(setup.allSeeingLast().seats.map { it.heroId })
+            .containsExactly("arien", "tigerclaw", "wasp", "brogan")
             .inOrder()
         val s = TestData.engine.newGame(setup) as EngineSession
         assertThat(s.setup.seats.map { it.heroId }).containsExactly("arien", "tigerclaw", "wasp", "brogan").inOrder()
@@ -137,8 +141,11 @@ class AllSeeingTest {
             println("ALL_SEEING game $g: $red v $blue, 11 is $eleven, winner ${r.winner}, rounds ${r.rounds}")
             assertThat(r.winner).isNotNull()
         }
-        println("ALL_SEEING strength 11 won $wins11 of $games against strength 10 (as Red ${bySide[Team.RED]}, " +
-            "as Blue ${bySide[Team.BLUE]}); $blind of $plays card plays before an enemy had played, budget $budget ms, knobs $extra")
+        println(
+            "ALL_SEEING strength 11 won $wins11 of $games against strength 10 (as Red ${bySide[Team.RED]}, " +
+                "as Blue ${bySide[Team.BLUE]}); $blind of $plays card plays before an enemy had played, " +
+                "budget $budget ms, knobs $extra",
+        )
         assertThat(blind).isEqualTo(0)
     }
 }

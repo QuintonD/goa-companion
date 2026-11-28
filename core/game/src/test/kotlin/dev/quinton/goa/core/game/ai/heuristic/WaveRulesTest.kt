@@ -222,14 +222,16 @@ class WaveRulesTest {
     fun `a recorded poke - one horizon for both targets takes the minion`() {
         val (s, d) = recorded(2504, true, 4, 1, "silverarrow", DecisionKind.CHOOSE_UNIT)
         val seed = (50_000L + 2504) * 2
-        val base = HeuristicAi(9, seed, tune = mapOf("wave" to 0.0)).choose(s.forkSession(), d)
-        val wave = HeuristicAi(9, seed).choose(s.forkSession(), d)
+        // The wave layer alone: the other strategy-round layers (team play, the team plan) off on both sides.
+        val base = HeuristicAi(9, seed, tune = BASELINE).choose(s.forkSession(), d)
+        val wave = HeuristicAi(9, seed, tune = OTHERS_OFF).choose(s.forkSession(), d)
         assertWithMessage("baseline").that(base).isEqualTo(Choice.Unit("min"))
         assertWithMessage("wave layer").that(wave).isEqualTo(Choice.Unit("m29"))
-        assertWithMessage("same answer twice").that(HeuristicAi(9, seed).choose(s.forkSession(), d)).isEqualTo(wave)
+        assertWithMessage("same answer twice").that(HeuristicAi(9, seed, tune = OTHERS_OFF).choose(s.forkSession(), d))
+            .isEqualTo(wave)
     }
 
-    /** The first [kind] question of [seat] on [round]/[turn] of a [WaveAuditTest] game, h9 with `wave=0` both sides. */
+    /** The first [kind] question of [seat] on [round]/[turn] of a [WaveAuditTest] game, the baseline h9 both sides. */
     private fun recorded(
         i: Int,
         aRed: Boolean,
@@ -241,7 +243,7 @@ class WaveRulesTest {
         val (red, blue) = AiHarness.mixedLineups(i + 1, size = 2)[i]
         val coin = if (i % 2 == 0) Team.RED else Team.BLUE
         val seed = (50_000L + i) * 2
-        val base = mapOf("wave" to 0.0)
+        val base = BASELINE
         val pa = HeuristicAi(9, if (aRed) seed else seed + 1, tune = base)
         val pb = HeuristicAi(9, if (aRed) seed + 1 else seed, tune = base)
         var found: Pair<EngineSession, Decision>? = null
@@ -264,4 +266,12 @@ class WaveRulesTest {
     }
 
     private class Reached : RuntimeException()
+
+    private companion object {
+        /** Team play and the team plan off: the book the recorded game was played and judged with. */
+        val OTHERS_OFF = mapOf("team" to 0.0, "plan" to 0.0)
+
+        /** The book before the strategy round (every layer of it off). */
+        val BASELINE = OTHERS_OFF + ("wave" to 0.0)
+    }
 }
