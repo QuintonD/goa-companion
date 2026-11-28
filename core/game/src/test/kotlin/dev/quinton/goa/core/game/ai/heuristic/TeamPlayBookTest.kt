@@ -95,9 +95,14 @@ class TeamPlayBookTest {
         hands.first { hand ->
             val s = build("xargatha-red-1", arienHand = hand)
             val c = ctx(s)
-            val red = c.card("xargatha-red-1")
-            val total = red.attack + c.itemBonus("xargatha", dev.quinton.goa.core.model.catalog.Stat.ATTACK)
-            c.teamBaseStrike(s.state.hero("arien")!!, total, red.ranged, 0) < c.killWorth("arien") - 1.0
+            val arien = s.state.hero("arien")!!
+            // Neither our Gold nor Xargatha's Red defeats Arien alone for sure.
+            listOf("xargatha" to "xargatha-red-1", "wasp" to "wasp-gold").all { (hero, card) ->
+                val k = c.card(card)
+                val total = k.attack + c.itemBonus(hero, dev.quinton.goa.core.model.catalog.Stat.ATTACK)
+                c.teamKillChance("arien", total, k.ranged) < 0.5 &&
+                    c.teamBaseStrike(arien, total, k.ranged, 0) < c.killWorth("arien") - 1.0
+            }
         }
     }
 
@@ -128,24 +133,58 @@ class TeamPlayBookTest {
     }
 
     @Test
-    fun `the card play values the strip more when the teammate's known attack follows it`() {
-        fun gap(s: EngineSession): Double {
-            val book = HeuristicAi(9, 3L)
-            var values: Map<Choice, Double> = emptyMap()
-            book.scored = { stage, options, v -> if (stage == "cards") values = options.zip(v.toList()).toMap() }
-            book.choose(s, s.pending!!)
-            return values.getValue(Choice.Card("wasp-gold")) - values.getValue(Choice.Card("wasp-blue-1"))
+    fun `a hit after a teammate's priced hit meets the thinner hand`() {
+        // G114: inside a look, Xargatha's hit on Arien was priced first (Arien threw a card, or was defeated).
+        val s = build("xargatha-red-1", arienHand = arienHand)
+        val gold = ctx(s).card("wasp-gold")
+        fun worth(hits: Map<String, Double>, dead: Map<String, Double>): Double {
+            val c = ctx(s)
+            c.teamHits = hits
+            c.teamDead = dead
+            // Xargatha's own follow-up is the look's to play (not priced twice).
+            c.teamSimulated = setOf("xargatha")
+            return c.heroStrikeWorth("arien", gold.attack, gold.ranged)
         }
-        CardSim.debug = { println("  gap $it") }
-        val (withAttack, withMove) = try {
-            gap(build("xargatha-red-1", arienHand = arienHand)) to
-                gap(build("xargatha-blue-1", allyHand = listOf("xargatha-red-1"), arienHand = arienHand))
+        val fresh = worth(emptyMap(), emptyMap())
+        val thinned = worth(mapOf("arien" to 1.0), mapOf("arien" to 0.0))
+        // Turn 4: one card left in hand after the strip, and it is about to be played: our hit is the defeat.
+        assertThat(thinned).isGreaterThan(fresh + 5.0)
+        assertThat(thinned).isWithin(1e-9).of(ctx(s).killWorth("arien"))
+        // Defeated already: nothing left to hit.
+        assertThat(worth(mapOf("arien" to 1.0), mapOf("arien" to 1.0))).isWithin(1e-9).of(0.0)
+        // The order look's debug line: the teammate's hit after our Gold is priced (a positive strike).
+        val lines = ArrayList<String>()
+        CardSim.debug = { lines += it }
+        try {
+            CardSim.value(ctx(s), "wasp-gold")
         } finally {
             CardSim.debug = null
         }
-        println("  gap with attack $withAttack, with move $withMove")
-        // Our Gold's hit leaves Arien empty for Xargatha's Red: worth more than with a teammate who only moves.
-        assertThat(withAttack - withMove).isGreaterThan(2.0)
+        val strikes = lines.mapNotNull { it.substringAfter("strike ", "").toDoubleOrNull() }
+        assertThat(strikes.any { it > 0.0 }).isTrue()
+    }
+
+    @Test
+    fun `the card look plays a known teammate card after a faster card of ours and before a slower one`() {
+        // Xargatha's Gold (11) facedown: our Gold (12) acts first, our Blue (10) after it.
+        val s = build("xargatha-gold", allyHand = listOf("xargatha-blue-1"), ourHand = listOf("wasp-gold", "wasp-blue-1"))
+        fun played(card: String, tune: Map<String, Double> = emptyMap()): List<String> {
+            val lines = ArrayList<String>()
+            CardSim.debug = { lines += it }
+            try {
+                CardSim.value(ctx(s, tune), card)
+            } finally {
+                CardSim.debug = null
+            }
+            return lines.filter { it.startsWith("team: xargatha ") && ("played" in it || "not played" in it) }
+        }
+        // After our faster Gold: once per action of ours (the postlude).
+        assertThat(played("wasp-gold")).isNotEmpty()
+        // Before our slower Blue: once for the decision (the prelude, shared by every slower card).
+        assertThat(played("wasp-blue-1")).hasSize(1)
+        // Knob off: the old G14 prelude only (Xargatha does not surely act before every card of ours).
+        assertThat(played("wasp-gold", mapOf("team.order" to 0.0))).isEmpty()
+        assertThat(played("wasp-gold", mapOf("team" to 0.0))).isEmpty()
     }
 
     @Test
