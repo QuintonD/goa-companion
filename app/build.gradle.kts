@@ -12,8 +12,8 @@ android {
     namespace = "dev.quinton.goa"
     defaultConfig {
         applicationId = "dev.quinton.goa"
-        versionCode = 17
-        versionName = "0.17.0"
+        versionCode = 18
+        versionName = "0.18.0"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         // Each instrumented test starts from a fresh install state: the orchestrator runs every
         // test in its own process and clears the app's data (Room DB, DataStore) before it.

@@ -592,6 +592,13 @@ passes (including an in-place upgrade from the morning build with real data). Ev
 - [ ] Strengths 9–10 above 8 (even now); fewer empty-hand defeats
 - [ ] Device check on the S25 Ultra (answer times on the phone; desktop: mean 5–7 ms, longest warm 3v3 answer 46 ms)
 
+## M35 — Strategy layers: team play, waves, the team plan (ADR-088) — built, JVM-tested; not verified on device
+- [x] Behaviour audit (`StrategyAuditTest`): pokes, pushes suffered, next wave lost, stranded heroes — 2026-11-27
+- [x] `team`, `wave` and `plan` layers in the book from strength 9, knob-off digests identical — 2026-11-28
+- [x] Decisive sealed run: h9 56.5% (51.5–61.4) against the book without them, strength 10 52.1% (neutral);
+  released as 0.18.0 — 2026-11-28, JVM tournaments only
+- [ ] Open: team play at strength 10, Defense bias of the base item values (G108), 3v3 jobs
+
 ## M5 — Polish & release readiness
 - [x] Accessibility pass: ATF checks on 25 screens (no errors), contrast fixes, TalkBack labels, font scale 2.0 screenshots — 2026-10-17 (emulator/JVM)
 - [ ] Tablet sanity check
