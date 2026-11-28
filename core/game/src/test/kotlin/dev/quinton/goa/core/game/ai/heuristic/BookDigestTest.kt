@@ -4,8 +4,8 @@ import dev.quinton.goa.core.game.AiLevel
 import dev.quinton.goa.core.game.AiPlayer
 import dev.quinton.goa.core.game.Choice
 import dev.quinton.goa.core.game.Decision
-import dev.quinton.goa.core.game.GameSession
 import dev.quinton.goa.core.game.DecisionKind
+import dev.quinton.goa.core.game.GameSession
 import dev.quinton.goa.core.game.ai.AiHarness
 import dev.quinton.goa.core.model.match.Team
 import java.util.concurrent.Callable

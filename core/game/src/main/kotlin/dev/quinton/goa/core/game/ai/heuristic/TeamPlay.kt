@@ -77,30 +77,39 @@ internal object TeamPlay {
         var unknown = false
         var best = 0.0
         for (a in s.heroes) {
-            if (a.team != ctx.team || a.id == ctx.seat || a.id == s.acting) continue
-            if (a.id in s.turnRecord.resolved || a.id in ctx.teamSimulated) continue
-            val from = a.at ?: continue
+            val from = a.at
+            val skip = a.team != ctx.team || a.id == ctx.seat || a.id == s.acting ||
+                a.id in s.turnRecord.resolved || a.id in ctx.teamSimulated || from == null
+            if (skip) continue
             val card = knownCard(ctx, a)
             if (card == null) {
                 if (a.hasUnresolved || ctx.playsThisTurn(a)) unknown = unknown || reaches(ctx, a, at)
-                continue
+            } else {
+                best = max(best, gainOf(ctx, a, card, target, at))
             }
-            val c = ctx.card(card)
-            if (!c.attackCard && !c.discardOrDefeat) continue
-            // Before the reveal, a teammate whose card acts first has already met the target as it is.
-            val strikerInit = ctx.teamInit
-            if (!s.revealed && strikerInit != null && strikerInit != Int.MAX_VALUE &&
-                initiative(ctx, a.id, card) >= strikerInit
-            ) {
-                continue
-            }
-            if (ctx.distance(from, at) > ctx.attackReach(a.id, c).coerceAtLeast(1)) continue
-            val total = c.attack + ctx.itemBonus(a.id, Stat.ATTACK)
-            val gain = ctx.teamBaseStrike(target, total, c.ranged, 1) - ctx.teamBaseStrike(target, total, c.ranged, 0)
-            best = max(best, gain)
         }
         if (best <= 0.0 && unknown) return null
         return (1.0 - chance) * best
+    }
+
+    /** What teammate [a]'s known [card] gains on [target] (at [at]) from one card fewer in the target's hand. */
+    private fun gainOf(
+        ctx: HContext,
+        a: HeroState,
+        card: String,
+        target: HeroState,
+        at: dev.quinton.goa.core.model.board.Hex,
+    ): Double {
+        val from = a.at ?: return 0.0
+        val c = ctx.card(card)
+        if (!c.attackCard && !c.discardOrDefeat) return 0.0
+        // Before the reveal, a teammate whose card acts first has already met the target as it is.
+        val strikerInit = ctx.teamInit
+        val first = !ctx.state.revealed && strikerInit != null && strikerInit != Int.MAX_VALUE &&
+            initiative(ctx, a.id, card) >= strikerInit
+        if (first || ctx.distance(from, at) > ctx.attackReach(a.id, c).coerceAtLeast(1)) return 0.0
+        val total = c.attack + ctx.itemBonus(a.id, Stat.ATTACK)
+        return ctx.teamBaseStrike(target, total, c.ranged, 1) - ctx.teamBaseStrike(target, total, c.ranged, 0)
     }
 
     /** [a] holds an attack (hand or facedown) that could reach [at] with a step: the old constant's test. */

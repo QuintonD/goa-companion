@@ -4,6 +4,7 @@ import dev.quinton.goa.core.game.AiLevel
 import dev.quinton.goa.core.game.GameEvent
 import dev.quinton.goa.core.game.ai.AiHarness
 import dev.quinton.goa.core.game.engine.EngineSession
+import dev.quinton.goa.core.game.engine.Zone
 import dev.quinton.goa.core.model.match.Team
 import java.util.concurrent.Callable
 import java.util.concurrent.Executors
@@ -93,7 +94,7 @@ class TeamAuditTest {
                 if (st.turn == 4 && !handAt4.containsKey(st.round)) {
                     posAt4[st.round] = st.heroes.filter { it.at != null }.associate { it.id to it.at!! }
                     handAt4[st.round] = st.heroes.filter { it.at != null }.associate { h ->
-                        h.id to h.cards.count { it.zone == dev.quinton.goa.core.game.engine.Zone.HAND || it.zone == dev.quinton.goa.core.game.engine.Zone.PLAYED }
+                        h.id to h.cards.count { it.zone == Zone.HAND || it.zone == Zone.PLAYED }
                     }
                 }
             },
@@ -122,11 +123,14 @@ class TeamAuditTest {
                 val (reaching, anyAttack) = t4.remove(round to hero) ?: continue
                 when {
                     card != null && card in reaching -> c.inc("t4hit")
+
                     reaching.isNotEmpty() -> {
                         c.inc("t4missed")
                         out += "TEAM ${format.label} $i R${round}T4 MISSED $hero played $card could $reaching"
                     }
+
                     anyAttack -> c.inc("t4far")
+
                     else -> c.inc("t4noAttack")
                 }
             }
@@ -146,8 +150,10 @@ class TeamAuditTest {
         val from = me.at ?: return emptySet<String>() to false
         val empty = s.state.heroes.filter { e ->
             e.team != d.team && e.at != null &&
-                e.cards.count { it.zone == dev.quinton.goa.core.game.engine.Zone.HAND ||
-                    it.zone == dev.quinton.goa.core.game.engine.Zone.PLAYED } <= 1
+                e.cards.count {
+                    it.zone == Zone.HAND ||
+                        it.zone == Zone.PLAYED
+                } <= 1
         }
         if (empty.isEmpty()) return emptySet<String>() to false
         val attacks = me.hand.map { ctx.card(it.id) }.filter { it.attackCard || it.discardOrDefeat }
@@ -199,7 +205,9 @@ class TeamAuditTest {
                         if (teamOf[e] == team) continue
                         val cards = handAt4[round]?.get(e) ?: continue
                         if (cards > 1) continue
-                        if (byTarget.containsKey(e)) c.inc("stripFollow") else {
+                        if (byTarget.containsKey(e)) {
+                            c.inc("stripFollow")
+                        } else {
                             val pos = posAt4[round].orEmpty()
                             val near = pos[e]?.let { at ->
                                 pos.filterKeys { teamOf[it] == team }.values.minOfOrNull {
@@ -208,7 +216,10 @@ class TeamAuditTest {
                             }
                             c.inc("stripNone")
                             if (near != null && near <= 3) c.inc("stripNoneNear3")
-                            if (log) out += "TEAM $label R${round}T4 STRIPNONE $team on $e near $near played $played | $actions"
+                            if (log) {
+                                out +=
+                                    "TEAM $label R${round}T4 STRIPNONE $team on $e near $near played $played | $actions"
+                            }
                         }
                     }
                 }

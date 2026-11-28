@@ -641,7 +641,8 @@ internal object CardSim {
         }.sortedWith(compareByDescending<Pair<HeroState, Int>> { it.second }.thenBy { it.first.seat })
         val before = allies.filter { it.second >= init }.map { it.first.id }
         val after = allies.filter { it.second < init }.map { it.first.id }
-        val key = TEAM_PRE + assume.entries.joinToString(",") { "${it.key}=${it.value}" } + "|" + before.joinToString(",")
+        val assumed = assume.entries.joinToString(",") { "${it.key}=${it.value}" }
+        val key = TEAM_PRE + assumed + "|" + before.joinToString(",")
         val prior = ctx.memo.getOrPut(key) { chain(ctx, base, before, d.id, emptyMap(), emptyMap(), 0.0) } as Prior
         return TeamOrder(prior, after)
     }
@@ -677,8 +678,8 @@ internal object CardSim {
                 actPriced(ctx, p, a, salt)
             } catch (e: CancellationException) {
                 throw e
-            } catch (e: Exception) {
-                debug?.invoke("team: $a failed: $e")
+            } catch (_: Exception) {
+                debug?.invoke("team: $a failed")
                 null
             }
             if (next != null) p = next

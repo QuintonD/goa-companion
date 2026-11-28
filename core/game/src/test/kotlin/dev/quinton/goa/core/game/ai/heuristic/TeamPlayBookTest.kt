@@ -167,7 +167,11 @@ class TeamPlayBookTest {
     @Test
     fun `the card look plays a known teammate card after a faster card of ours and before a slower one`() {
         // Xargatha's Gold (11) facedown: our Gold (12) acts first, our Blue (10) after it.
-        val s = build("xargatha-gold", allyHand = listOf("xargatha-blue-1"), ourHand = listOf("wasp-gold", "wasp-blue-1"))
+        val s = build(
+            "xargatha-gold",
+            allyHand = listOf("xargatha-blue-1"),
+            ourHand = listOf("wasp-gold", "wasp-blue-1"),
+        )
         fun played(card: String, tune: Map<String, Double> = emptyMap()): List<String> {
             val lines = ArrayList<String>()
             CardSim.debug = { lines += it }
@@ -266,10 +270,22 @@ class TeamPlayBookTest {
             round = 2
             turn = 2
             clearMinions()
-            hero("brogan", Team.RED, Hex(2, -3)) { controller = ai; played("brogan-gold") }
-            hero("arien", Team.RED, Hex(2, -2)) { controller = ai; played("arien-gold") }
-            hero("xargatha", Team.BLUE, Hex(3, -3)) { controller = ai; played("xargatha-green-1") }
-            hero("wasp", Team.BLUE, Hex(4, -4)) { controller = ai; played("wasp-green-1") }
+            hero("brogan", Team.RED, Hex(2, -3)) {
+                controller = ai
+                played("brogan-gold")
+            }
+            hero("arien", Team.RED, Hex(2, -2)) {
+                controller = ai
+                played("arien-gold")
+            }
+            hero("xargatha", Team.BLUE, Hex(3, -3)) {
+                controller = ai
+                played("xargatha-green-1")
+            }
+            hero("wasp", Team.BLUE, Hex(4, -4)) {
+                controller = ai
+                played("wasp-green-1")
+            }
             phase = PositionPhase.Resolving()
         }
         val s = tie()

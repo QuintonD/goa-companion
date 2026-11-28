@@ -33,7 +33,9 @@ class TeamProbeTest {
             println(board(s))
             for (sp in specs) {
                 val parts = sp.split("+")
-                val tune = parts.drop(1).associate { kv -> kv.substringBefore("=") to kv.substringAfter("=").toDouble() }
+                val tune = parts.drop(1).associate { kv ->
+                    kv.substringBefore("=") to kv.substringAfter("=").toDouble()
+                }
                 val ai = HeuristicAi(parts[0].drop(1).toInt(), 7L, tune = tune)
                 ai.trace = { println("  $sp > $it") }
                 val d = s.pending!!
@@ -55,7 +57,10 @@ class TeamProbeTest {
             val start = SavedGame(
                 saved.engineVersion,
                 saved.setup,
-                EngineSession.JSON.encodeToString(SavedPayload.serializer(), SavedPayload(payload.initial, emptyList())),
+                EngineSession.JSON.encodeToString(
+                    SavedPayload.serializer(),
+                    SavedPayload(payload.initial, emptyList()),
+                ),
             )
             val s = TestData.engine.restore(start) as EngineSession
             var seen = 0
@@ -74,7 +79,8 @@ class TeamProbeTest {
         fun board(s: EngineSession): String {
             val st = s.state
             val sb = StringBuilder()
-            sb.append("  R${st.round}T${st.turn} coin ${st.tieBreaker} life ${st.lifeCounters} zones ${st.battleZones}\n")
+            sb.append("  R${st.round}T${st.turn} coin ${st.tieBreaker} life ${st.lifeCounters}")
+            sb.append(" zones ${st.battleZones}\n")
             for (h in st.heroes) {
                 val hand = h.cards.filter { it.zone == Zone.HAND }.joinToString(",") { it.id.substringAfter("-") }
                 val played = h.cards.filter { it.zone == Zone.PLAYED }.joinToString(",") { it.id.substringAfter("-") }

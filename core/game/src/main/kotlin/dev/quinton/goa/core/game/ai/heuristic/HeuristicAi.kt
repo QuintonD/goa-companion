@@ -262,7 +262,8 @@ class HeuristicAi(
             // A move is where a static score walks into a death. Strength 7+ checks its best few.
             // F1: with the turn played out every square is scored by what happens to it.
             // Track T (G118, `team.tie`): a same-team tie is ordered by playing the rest of the turn both ways.
-            DecisionKind.ACT_FIRST -> if (TeamPlay.on(ctx.profile, "tie", 9) && CardSim.restOn(ctx)) d.options.size else 0
+            DecisionKind.ACT_FIRST ->
+                if (TeamPlay.on(ctx.profile, "tie", 9) && CardSim.restOn(ctx)) d.options.size else 0
 
             DecisionKind.CHOOSE_SPACE -> when {
                 look != HeuristicProfile.Look.MOVES -> 0
