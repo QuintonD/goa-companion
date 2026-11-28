@@ -28,7 +28,12 @@ import org.junit.Test
 class WaveRulesTest {
     private val geo = TestData.engine.data.geometry(TestData.FOREST)
 
-    private fun spaces(zone: String): List<Hex> = geo.zoneSpaces.getValue(zone).sortedWith(compareBy({ it.q }, { it.r }))
+    private fun spaces(zone: String): List<Hex> =
+        geo.zoneSpaces.getValue(zone).sortedWith(compareBy<Hex> { it.q }.thenBy { it.r })
+
+    /** The space of [zone] nearest [to]. */
+    private fun nearest(zone: String, to: String): Hex =
+        spaces(zone).minBy { h -> geo.zoneSpaces.getValue(to).minOf { HexGrid.distance(h, it) } }
 
     /** Spaces of [zone] at least [from] spaces from every space of [away]. */
     private fun far(zone: String, away: String, from: Int): List<Hex> =
@@ -108,7 +113,7 @@ class WaveRulesTest {
         val early = lane(red = 4, blue = 5, brogan = at, turn = 1)
         assertWithMessage("turn 1 with three turns to walk").that(plan(early).intent).isNotEqualTo(Intent.RETREAT)
         // Already one walk from the zone the push moves into: nothing to do.
-        val near = spaces("lane-1-1").minBy { h -> geo.zoneSpaces.getValue("lane-1-2").minOf { HexGrid.distance(h, it) } }
+        val near = nearest("lane-1-1", "lane-1-2")
         assertWithMessage("in the next zone").that(plan(lane(4, 5, near, 4)).intent).isNotEqualTo(Intent.RETREAT)
         // Winning: no reposition.
         assertWithMessage("winning").that(plan(lane(6, 4, at, 4)).intent).isNotEqualTo(Intent.RETREAT)
@@ -118,7 +123,7 @@ class WaveRulesTest {
     fun `the zone a losing push moves into is worth standing in, until the last wave`() {
         // Red 2 against Blue 5 in the center: Blue's push is coming. Brogan in Red's pre-throne (where it lands)
         // or as far on Blue's side: the difference the wave layer adds is positive, and zero when no push follows.
-        val home = spaces("lane-1-1").minBy { h -> geo.zoneSpaces.getValue("lane-1-2").minOf { HexGrid.distance(h, it) } }
+        val home = nearest("lane-1-1", "lane-1-2")
         val away = far("lane-1-3", "lane-1-1", 6).first()
         fun gain(waves: Int, tune: Map<String, Double>): Double {
             val profile = HeuristicProfile.of(9).copy(tune = tune)
@@ -168,8 +173,10 @@ class WaveRulesTest {
         // G59 on top of the look: a poke pays, a real kill (an empty hand) does not, and nothing with the layer off.
         val (pf, pd) = unitQuestion(poke)
         val (kf, kd) = unitQuestion(spot(emptyList()))
-        fun g59(f: EngineSession, d: Decision, tune: Map<String, Double> = emptyMap()) =
-            UnitRules.commitment(HContext(f, d, Team.RED, HeuristicProfile.of(9).copy(tune = tune)), d, Choice.Unit("arien"))
+        fun g59(f: EngineSession, d: Decision, tune: Map<String, Double> = emptyMap()): Double {
+            val ctx = HContext(f, d, Team.RED, HeuristicProfile.of(9).copy(tune = tune))
+            return UnitRules.commitment(ctx, d, Choice.Unit("arien"))
+        }
         assertWithMessage("poke").that(g59(pf, pd)).isLessThan(0.0)
         assertWithMessage("poke, wave off").that(g59(pf, pd, mapOf("wave" to 0.0))).isEqualTo(0.0)
         assertWithMessage("empty hand").that(g59(kf, kd)).isEqualTo(0.0)

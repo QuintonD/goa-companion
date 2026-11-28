@@ -218,11 +218,13 @@ internal fun goalZoneOf(ctx: HContext, heroId: String): String? {
 }
 
 /**
- * Track W (`wave.plan`): the projected battle already pushes against [team] (LOST), or it is losing and the round
+ * Track W (`wave.goal`): the projected battle already pushes against [team] (LOST), or it is losing and the round
  * is in its last two turns, so the next zone is where the following wave is fought (G51, the owner's reposition).
  */
 private fun losingLate(ctx: HContext, lane: String, team: Team): Boolean {
-    if (!waveOn(ctx, "plan")) return false
+    // Strength 9 only: at 10 the move of the goal zone cost four hero puzzles on the position bench (RESULTS, Track W).
+    val goal = ctx.profile.strength == WAVE_FROM
+    if (!ctx.profile.on("wave", ctx.profile.strength >= WAVE_FROM) || !ctx.profile.on("wave.goal", goal)) return false
     val view = waveView(ctx, lane, team)
     return view.state == WaveState.LOST || (view.losing && (ctx.turn >= 3 || ctx.roundOver))
 }

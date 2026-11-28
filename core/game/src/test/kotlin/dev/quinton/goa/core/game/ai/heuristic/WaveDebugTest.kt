@@ -24,7 +24,10 @@ class WaveDebugTest {
     }
 
     private fun explain(spec: String) {
-        val (game, round, turn, seat, kind) = spec.split(":")
+        val parts = spec.split(":")
+        val (game, round, turn) = parts
+        val seat = parts[3]
+        val kind = parts[4]
         val i = game.dropLast(1).toInt()
         val aRed = game.last() == 'R'
         val all = AiHarness.mixedLineups(i + 1, size = 2)
@@ -71,12 +74,13 @@ class WaveDebugTest {
         val all = eval(emptyMap())
         val noLane = eval(mapOf("lane" to 0.0))
         val st = f.state
+        fun count(lane: String, team: Team) = st.minions.count { it.lane == lane && it.team == team && it.at != null }
         val lanes = st.battleZones.entries.joinToString { (lane, bz) ->
-            "$bz R${st.minions.count { it.lane == lane && it.team == Team.RED && it.at != null }}" +
-                " B${st.minions.count { it.lane == lane && it.team == Team.BLUE && it.at != null }} w${st.wavesLeft[lane]}"
+            "$bz R${count(lane, Team.RED)} B${count(lane, Team.BLUE)} w${st.wavesLeft[lane]}"
         }
         val heroes = st.heroes.joinToString(" ") { h ->
-            "${h.id}(${h.team.name[0]}) c${h.coins} L${h.level} hand ${h.handSize} at ${h.at?.let { "${it.q},${it.r}" }}"
+            val at = h.at?.let { "${it.q},${it.r}" }
+            "${h.id}(${h.team.name[0]}) c${h.coins} L${h.level} hand ${h.handSize} at $at"
         }
         return "HEval %.1f (lane %.1f, rest %.1f) life R%d B%d | %s | %s".format(
             all,

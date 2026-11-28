@@ -27,7 +27,9 @@ data class TurnPlan(
                 return TurnPlan(Intent.RETREAT, null, played.id)
             }
             if (waveOn(ctx, "plan")) reposition(ctx, at, played)?.let { return it }
-            if (ctx.profile.on("hold", waveOn(ctx, "plan"))) holdLine(ctx, h.id, at, played)?.let { return it }
+            // F7 stays off by default: turned on with the wave plan it cost h10 four hero puzzles on the position
+            // bench (an attack card held for a minion where the kill was the point; Track W, RESULTS).
+            if (ctx.profile.on("hold", false)) holdLine(ctx, h.id, at, played)?.let { return it }
             if (ctx.profile.laneTiming && ctx.lanes().any { ctx.laneMargin(it) >= 2 && !ctx.matchPoint(it) } &&
                 played.hasMovement && !played.attackCard
             ) {
@@ -73,18 +75,19 @@ data class TurnPlan(
          */
         private fun reposition(ctx: HContext, at: Hex, card: HCard): TurnPlan? {
             if (!card.hasMovement || card.attackCard) return null
-            for (lane in ctx.lanes()) {
-                val bz = ctx.battleZone(lane) ?: continue
-                val view = waveView(ctx, lane)
-                if (!view.losing) continue
-                val into = view.pushInto ?: continue
-                val d = ctx.distanceToZone(at, into)
-                if (d <= WALK || ctx.distanceToZone(at, bz) > LANE_NEAR) continue
-                val walks = (d + WALK - 1) / WALK
-                val after = (4 - ctx.turn).coerceAtLeast(0)
-                if (view.state == WaveState.LOST || walks > after) return TurnPlan(Intent.RETREAT, null, card.id)
-            }
-            return null
+            val after = (4 - ctx.turn).coerceAtLeast(0)
+            val now = ctx.lanes().any { lane -> mustLeave(ctx, at, lane, after) }
+            return if (now) TurnPlan(Intent.RETREAT, null, card.id) else null
+        }
+
+        /** [reposition] for one lane: losing, the landing zone beyond a walk, and no turn to spare. */
+        private fun mustLeave(ctx: HContext, at: Hex, lane: String, after: Int): Boolean {
+            val bz = ctx.battleZone(lane) ?: return false
+            val view = waveView(ctx, lane)
+            val into = view.pushInto ?: return false
+            val d = ctx.distanceToZone(at, into)
+            if (!view.losing || d <= WALK || ctx.distanceToZone(at, bz) > LANE_NEAR) return false
+            return view.state == WaveState.LOST || (d + WALK - 1) / WALK > after
         }
 
         private fun attackPlan(ctx: HContext, heroId: String, at: Hex, card: HCard): TurnPlan {

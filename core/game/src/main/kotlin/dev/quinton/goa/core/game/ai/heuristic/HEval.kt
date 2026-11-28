@@ -128,7 +128,7 @@ object HEval {
             if (i < 0) continue
             val red = ctx.minionCount(Team.RED, lane)
             val blue = ctx.minionCount(Team.BLUE, lane)
-            val p = redPush(ctx, lane, bz, red, blue)
+            val p = redPush(ctx, bz, red, blue)
             val waves = state.wavesLeft[lane] ?: 1
             val w = if (next) {
                 laneWinNext(ctx, lane, zones.lastIndex - i, i, waves, p)
@@ -144,7 +144,7 @@ object HEval {
     }
 
     /** P(Red wins [lane]'s next push): the counts after both sides' push potential (GENERAL §2 "Lane"). */
-    private fun redPush(ctx: HContext, lane: String, bz: String, red: Int, blue: Int): Double {
+    private fun redPush(ctx: HContext, bz: String, red: Int, blue: Int): Double {
         val ppRed = push(ctx, Team.RED, bz)
         val ppBlue = push(ctx, Team.BLUE, bz)
         val a = max(0.0, red - ppBlue)
@@ -158,7 +158,7 @@ object HEval {
     /** Track W: the p [lane] scores, for the wave projection ([waveView]). 0.5 for a lane with no Battle Zone. */
     internal fun pushChance(ctx: HContext, lane: String): Double {
         val bz = ctx.state.battleZones[lane] ?: return 0.5
-        return redPush(ctx, lane, bz, ctx.minionCount(Team.RED, lane), ctx.minionCount(Team.BLUE, lane))
+        return redPush(ctx, bz, ctx.minionCount(Team.RED, lane), ctx.minionCount(Team.BLUE, lane))
     }
 
     /**

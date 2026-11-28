@@ -1200,3 +1200,134 @@ look (~40%) and the engine's step re-runs (~40%: re-running a step from its star
 design). Within one search the book is almost never asked the same question on the same position twice (3%
 measured), so an answer cache would not pay. On Node what is left is mostly string-keyed hash lookups (Kotlin/JS
 does not cache a string's hash) and garbage collection.
+
+## Strategy round - Track W (wave management and positioning, 2026-11-27)
+
+Owner: "Gold and getting waves is very important. Unless you are explicitly going for a kill the safest thing to do is
+get gold from minions. If you see you are losing a wave you should be repositioning so you are in a good spot for the
+following wave and dont lose to double push." Branch `t3/strategy-waves`. Everything is behind knob `wave` (master)
+and `wave.<rule>`, on from strength 9 (`WAVE_FROM`, the lane-timing strength); strengths 1–8 are unchanged.
+
+### Diagnosis (32 baseline h9 v h9 games, line-ups 2500–2515, 2v2 and 3v3; `WaveAuditTest`)
+
+- When an attack could take a hero or a minion, h9 took the hero 54% of the time and the hero was not defeated in
+  that turn in most of those (2v2: 30 pokes in 67 mixed targets; 3v3: 47 in 100). Holds with a minion in reach and
+  Fast Travel blocked were rare (under 3%).
+- 34% of the pushes suffered in 2v2 found one of our heroes more than one walk from the zone the push moved into.
+- **The cause of most pokes was the look's horizon, not a weight.** At strength 9 a choice after the reveal is looked
+  at to the end of the turn (F1, `RestLook`), but a hit on an enemy hero who holds cards stops at the hidden defense
+  and is priced from the pool, while a hit on a minion plays every remaining hero's action. The poke was scored before
+  the enemies who still act had acted. Re-asking the baseline's pokes with the turn played on (`AI_W_ALT`): hero values
+  fell by 10–50 coins and 5 of 18 answers became the minion (`WaveDebugTest` splits the end-of-turn HEval by term).
+- Most of the remaining hero choices over a minion are not mistakes by the rules: the minion is the enemy's last in the
+  zone and its defeat pushes mid-round into a worse spot (GENERAL §2 "prefer a push that happens in the Minion
+  Battle"), or the sampled defense fails and the hero dies. The audit now counts only minions that are not the last.
+
+### What changed (each rule its knob; GENERAL G113, G115–G117, G59 note)
+
+| Knob | Rule | Theme |
+|---|---|---|
+| `wave.even` | A rest-of-turn look that meets a hidden defense keeps the pooled price and adds the change from the defender's own answer (the team's determinized copy) to the turn's end: every option is judged at the same horizon. `CardSim.hiddenScore` (one line in `run`, one function; a cross-edit in Track T's file, flagged below). | farm first |
+| `wave.farm` | G59 (MODE ADD) now also on top of looks: a hero hit that is not a real kill (no empty hand, kill chance below 0.5, no teammate who can reach and follow up at 0.3+) while a non-immune minion is legal pays the minion's price less the poke's, at most 6. `TurnPlan.attackPlan` plans the minion (FARM/PUSH) instead of KILL unless the kill is real. | farm first |
+| `wave.price` | `laneKillDelta` (the static price of a minion: targets, plans, the finishing policy inside every look, hero notes) on HEval's 1.4 lane scale (REVIEW-2 item 10); `laneThreat` keeps the raw value it was tuned with. | gold and wave priced the same everywhere |
+| `wave.next` | HEval's lane recursion: the push after each branch is `σ(0.3 × presence)` in the zone that push lands in (GENERAL §2's documented `0.3 × presence`), presence timed by the walks still needed against the plays left; 0.5 before. The last wave has no next push. | reposition, no double push; arrive with the push |
+| `wave.plan` | The wave projection (`waveView`: WINNING / CONTESTED / LOSING / LOST from HEval's own p). RETREAT (reposition) when losing, the landing zone more than a walk away and the turns left fewer than the walks; the goal zone (G51, and respawns, G31) moves there when LOST or LOSING on turns 3–4 (`wave.goal`, strength 9 only after the bench). F7 HOLD_LINE reads "not ahead" from the projection when `hold=1`; it was on with `wave.plan` in the screen and is **off by default after it** (the bench below). | reposition; defend the new zone |
+
+Not built: the spawn edge (6 against 5) in the next push. HEval already prices it once the push happens (a fresh wave,
+both sides' push potential), and the recursion's 0.5 is more optimistic than that, so every push into a 6-against-5
+zone looks like a drop of about 0.25 W when it happens (seen at 2505R R4T1: −90 for the minion that pushes). Putting
+the edge into the recursion makes it consistent but halves the value of a centre minion (W_win − W_lose 0.5 → 0.25 at
+three waves), against the theme; the designer says defenders are at a disadvantage, so the after-push value is more
+likely the one that is wrong. Left open (REVIEW-2 item 14).
+
+### Proof that `wave=0` is the baseline
+
+`WaveAuditTest` prints a digest of every answer with a choice. Baseline (e6174517) h9:h9 on 2500–2515 (16 games each):
+2v2 `390f8a833dc0d0d8`, 3v3 `368c0b34cd5a6663`. This branch with `h9+wave=0:h9+wave=0`: **the same two digests**, and
+every behaviour count identical.
+
+### Tests
+
+`WaveRulesTest` (JVM): the projection's states from each side; reposition fires on turn 4 when losing and far, not on
+turn 1, not one walk from the landing zone, not when winning, not with `wave=0`; HEval's next-push term is positive for
+standing in the landing zone with three waves and exactly 0 on the last wave; G59 taxes a poke, not an empty hand, and
+nothing with `wave=0`; a recorded position (2504R R4T1, Silverarrow: Min or the minion m29) where the baseline pokes and
+the wave layer takes the minion, the same answer twice. `WaveAuditTest`, `WaveDebugTest`: opt-in diagnostics.
+
+### The screen (h9 against h9+wave=0, mirrored, `StrategyAuditTest`, the tournament's games)
+
+| Format | Line-ups | Games | h9 (wave on) won | Rate | Wilson 95% |
+|---|---|---|---|---|---|
+| 2v2 | 2300–2395 | 192 | 102 | 53.1% | 46.1–60.1 |
+| 3v3 | 2400–2431 | 64 | 32 | 50.0% | 38.1–61.9 |
+| all | | 256 | 134 | 52.3% | 46.2–58.4 |
+
+Behaviour in the same games, per game, wave on / off (Track M's counters):
+
+| | 2v2 on | 2v2 off | 3v3 on | 3v3 off |
+|---|---|---|---|---|
+| pushes suffered | 1.19 | 1.30 | 1.11 | 1.09 |
+| next wave lost too (`push.lost.again`) | 0.11 | 0.14 | 0.17 | 0.14 |
+| Throne losses | 0.03 | 0.08 | 0.12 | 0.11 |
+| heroes in the new zone after a push suffered / won | 0.71 / 0.68 | 0.56 / 0.53 | 0.94 / 0.84 | 0.86 / 0.72 |
+| heroes stranded after a push suffered | 0.33 | 0.42 | 0.67 | 0.58 |
+| end-of-round pushes won | 1.06 | 0.92 | 0.94 | 0.86 |
+| minions defeated | 7.26 | 7.24 | 6.38 | 7.02 |
+| pokes (hero attacks that neither kill nor are followed up) | 3.33 | 3.82 | 4.56 | 4.47 |
+| kills / deaths | 1.27 / 1.10 | 1.10 / 1.27 | 2.06 / 1.80 | 1.80 / 2.06 |
+
+Reading: in 2v2 the layer does what the theme asks of position (fewer pushes suffered, more heroes where the push lands
+on both sides of it, fewer stranded, Throne losses down from 0.08 to 0.03, more end-of-round pushes won) and pokes
+less, but it does not take more minions: the attacks it stops spending on pokes went to kills, not to gold. In 3v3 it
+took fewer minions and more team kills (the turn played on now shows the teammate's follow-up after a strip), and
+stranded slightly more; the win rate is even. Neither interval excludes 50%.
+
+### Cost
+
+- The book's card play (8 games, h9 against h9+wave=0, 2v2 line-ups 2520–2523, one thread, both sides in the same
+  process): **10.5 ms mean / 33 ms p95 / 280 ms max with the layer, 8.5 / 24 / 123 without** (1.23× mean, 1.41× p95):
+  under the 2× allowed. The cost is `wave.even`'s continuation after a hidden defense (the turn played on), which
+  strength 9 alone pays.
+- Strength 10 (`DecisionSetTest`, the first 60 card plays, `old:wave=0` against the shipped knobs, two threads):
+  search work 15 681 against 15 793 (0.99×), mean 1 646 ms against 1 833 ms (shared machine), the same columns, no
+  fallbacks, 7 of 60 answers different. Nothing needed gating out of the playouts (`p.` prefix not used).
+
+### Position bench (`AiPositionBenchTest`, v1, all sets; one core, quiet hours)
+
+| Spec | probe right | puzzles right | rounds right (unknown) |
+|---|---|---|---|
+| h9+wave=0 (baseline) | 54.1% (126/233) | 75.6% (205/271) | 95.5% (378/396, 103) |
+| h9 as screened | 55.4% (129/233) | 76.0% (206/271) | 95.7% (375/392, 107) |
+| h10+wave=0 (baseline) | 55.8% (130/233) | 79.3% (215/271) | 95.2% (380/399, 100) |
+| h10 as screened | 55.8% (130/233) | **77.9% (211/271)** | 95.2% (377/396, 103) |
+
+h10 lost four puzzles. On the puzzle set alone, one rule off at a time: `wave.farm=0`, `wave.price=0`, `wave.next=0`
+211 each; `wave.plan=0` 215. Inside the plan, F7 HOLD_LINE off: still 211; **`wave.goal=0`: 215**; the reposition intent
+alone off: 213. The goal zone that moves to the landing zone (zone pull in HEval and in placement) walks h10 away from
+hero puzzles' kills (p02, p13, p36, p60; p60 takes a minion). So after the screen two defaults changed:
+
+- `wave.goal` (the goal zone part of `wave.plan`, now its own knob) is on at strength 9 only; h10 is back to 215/271,
+  the baseline. h9 keeps it (puzzles 76.0% with it, 75.6% without).
+- F7 `hold` stays off (the default before the round): turning it on was part of the screened `wave.plan` but measured no
+  better on the bench, and it has never measured positive.
+
+The screen above is therefore for h9 with `hold=1`; the shipped h9 differs from it only by `hold` (off). The digest proof
+was re-run after the `hold` change: `wave=0` still gives `390f8a833dc0d0d8` / `368c0b34cd5a6663`; the `wave.goal` split
+sits behind the same master switch (`losingLate` returns false with `wave=0`).
+
+### Hand-offs and open items
+
+- **Cross-edit in Track T's file:** `CardSim.run` calls `hiddenScore` instead of returning the pooled price at a hidden
+  answer (one changed line), and `hiddenScore` is appended at the end of `CardSim` in a `// Track W` block. It changes
+  only `RestLook` (strength 9: at 10 the hands are known and the look never stops there) and only with `wave.even`.
+- **3v3 took fewer minions** (6.38 against 7.02 a game) and more team kills; the farm-first rules do not hold there yet.
+  The likely reason is the same one-horizon fix: with three heroes the turn played on often shows a teammate finishing
+  a stripped hero, which is real value, but it also turns pokes into kills that the minion count pays for.
+- **No more minions in 2v2.** The pokes went down (3.82 → 3.33 a game) but the attacks went to kills, not gold. Track M's
+  `act.minion.untaken` is unchanged (4.6 → 4.8): a card that could take a minion and moves instead (2.0 a game) is not
+  addressed by this track; the look at CHOOSE_ACTION prefers the position, and nothing here says why.
+- **The spawn edge in HEval's recursion** (REVIEW-2 item 14), above: deliberately not built.
+- **Fast Travel** blocked by fresh minions is rare in these games (1–2% of card plays; Track M counts 30–35% of the
+  actions that wanted it), and no rule here uses Fast Travel before the push.
+- Not measured: strengths below 9 (the layer is off there), double-lane maps (the projection is per lane and works there by
+  construction, but no game was played on Across the River).

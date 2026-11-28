@@ -217,8 +217,8 @@ At `PLAY_CARD`, and again at every later decision of the same turn, derive one i
 **The wave projection (G116, strength 9, knob `wave.plan`).** Each lane reads, from the deciding team, the `p` HEval scores (counts after both sides' push potential): `LOST` (p ≤ 0.08, the clamp of a projection that empties us), `LOSING` (p ≤ 0.3, about one projected minion behind), `WINNING` (p ≥ 0.7), else `CONTESTED`. Then:
 
 - `RETREAT` (reposition): the lane is `LOSING` or `LOST`, the push lands in a zone (not our Throne) more than one walk from the hero, the hero is within 6 of the Battle Zone, the card played moves and does not attack, and the turns left after this one are fewer than the walks needed (or the push is decided). Earlier in the round the hero farms first; the gold on the way is the look's to take [BGG 3168047: "take one on turn 3, reposition with the long move on turn 4"].
-- The goal zone (G51) moves to the zone their push lands in when the projection is `LOST`, or `LOSING` on turns 3–4, as well as at a raw margin of −2. Respawns follow it (G31).
-- `HOLD_LINE` (F7) is on: in our last zone, or on the last wave, and not projected `WINNING`.
+- The goal zone (G51) moves to the zone their push lands in when the projection is `LOST`, or `LOSING` on turns 3–4, as well as at a raw margin of −2. Respawns follow it (G31). Strength 9 only (knob `wave.goal`): at 10 it cost four hero puzzles on the position bench.
+- `HOLD_LINE` (F7, knob `hold`) reads "not ahead" from the projection (not projected `WINNING`) when it is turned on; it stays off by default: turned on it cost strength 10 four hero puzzles on the position bench (RESULTS, Track W).
 
 **Card into intent.** The card is the first step of the intent, not the highest-initiative card that does something.
 

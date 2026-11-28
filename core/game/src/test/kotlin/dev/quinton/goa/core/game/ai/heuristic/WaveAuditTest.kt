@@ -99,7 +99,8 @@ class WaveAuditTest {
                 "(${pct(pushesOut, suffered)}; heroes out ${pct(outAtPush, heroesAtPush)}), wrong side $wrongSide, " +
                 "double pushes $doubles, FT blocked ${pct(ftBlocked, playCards)} of $playCards plays, " +
                 "pokes over a (not last) minion $pokes of ${pokeChoices + minionChoices} mixed targets " +
-                "(hero chosen $pokeChoices), holds with a minion in reach $holdsWithMinion of $holds, endings $endings, " +
+                "(hero chosen $pokeChoices), holds with a minion in reach $holdsWithMinion of $holds, " +
+                "endings $endings, " +
                 "card play ms ${ms()}"
         }
     }
@@ -168,7 +169,8 @@ class WaveAuditTest {
                             val st = session!!.state
                             notes += "$i${if (aRed) "R" else "B"} POKE R${st.round}T${st.turn} ${d.seat} -> $c " +
                                 rec?.lines?.lastOrNull().orEmpty()
-                            // AI_W_ALT=restHidden=1: the same question asked of another tune, on a copy (no effect on the game).
+                            // AI_W_ALT=restHidden=1: the same question asked of another tune, on a copy (no
+                            // effect on the game).
                             System.getenv("AI_W_ALT")?.let { alt ->
                                 val tune = alt.split("+").associate { kv ->
                                     kv.substringBefore("=") to kv.substringAfter("=").toDouble()
@@ -235,8 +237,10 @@ class WaveAuditTest {
         println("WAVE digest $total games ${digests.joinToString(" ")}")
     }
 
-    /** Choice-level counts: a hero hit over an offered minion, a Hold with a minion in reach. */
-    /** True when [c] is a hero target chosen over an offered minion. */
+    /**
+     * Choice-level counts: a hero hit over an offered minion, a Hold with a minion in reach. True when [c] is a hero
+     * target chosen over an offered minion.
+     */
     private fun choice(s: EngineSession, d: Decision, c: Choice, side: Side, pending: MutableList<Poke>): Boolean {
         when (d.kind) {
             DecisionKind.CHOOSE_UNIT -> {
@@ -248,9 +252,8 @@ class WaveAuditTest {
                 // A minion that is not its side's last in the lane: taking it does not push mid-round (that push
                 // can be a mistake, GENERAL §2 "Heavy and the early push"), so the hero over it is a real poke.
                 val minions = d.options.filterIsInstance<Choice.Unit>().filter { o ->
-                    st.minion(o.unitId)?.let { m ->
-                        m.team != d.team && st.minions.count { it.team == m.team && it.lane == m.lane && it.at != null } > 1
-                    } == true
+                    val m = st.minion(o.unitId)
+                    m != null && m.team != d.team && lastCount(s, m) > 1
                 }
                 if (heroes.isEmpty() || minions.isEmpty() || c !is Choice.Unit) return false
                 if (c in heroes) {
@@ -283,6 +286,10 @@ class WaveAuditTest {
         }
         return false
     }
+
+    /** [m]'s side's minions on its lane, on the board. */
+    private fun lastCount(s: EngineSession, m: dev.quinton.goa.core.game.engine.MinionState): Int =
+        s.state.minions.count { it.team == m.team && it.lane == m.lane && it.at != null }
 
     private class Poke(val team: Team, val target: String, val key: Int)
 

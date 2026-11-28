@@ -50,7 +50,9 @@ class GameParityTest {
         /** Strength 10's answers with a choice in [theShippedStrengthTenChoosesAlike] (card plays and the rest). */
         const val SHIPPED_TEN_ANSWERS = 30
 
-        const val SHIPPED_TEN_HASH = "b3bfc3bb986a33b0d132c9cf7a7ce83a351179db548397206336920bdca94141"
+        // Re-pinned for the strategy round's Track W (the wave layer at strengths 9 and 10's book); the integrator
+        // re-pins after the merge.
+        const val SHIPPED_TEN_HASH = "cf21bd85fb6b18eb42a734c158c5af2d58a82a6c4d7c53d9edc233afbf226dda"
     }
 
     @Test
