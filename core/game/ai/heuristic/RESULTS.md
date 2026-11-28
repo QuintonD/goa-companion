@@ -1200,3 +1200,278 @@ look (~40%) and the engine's step re-runs (~40%: re-running a step from its star
 design). Within one search the book is almost never asked the same question on the same position twice (3%
 measured), so an answer cache would not pay. On Node what is left is mostly string-keyed hash lookups (Kotlin/JS
 does not cache a string's hash) and garbage collection.
+
+## Strategy round - Track M (behaviour audit, 2026-11-27)
+
+`StrategyAuditTest` (test code only) plays the tournament's mirrored games and counts what the players did, so the
+strategy tracks (T team play, W waves, V win condition) can measure behaviour before and after, not only the win
+rate. It reads the engine's events ([GameEvent]) and, at every decision, the live state (the engine's own paths for
+"one walk", its Fast Travel options); nothing in `src/main` changed.
+
+**Run it** (from the checkout root; `goa-run --compile` after any change):
+
+```
+S=<the round's scratchpad>
+AI_AUDIT=h9:h9 AI_AUDIT_GAMES=32 AI_H_FIRST=2900 AI_THREADS=2 $S/goa-run StrategyAuditTest > audit.log
+AI_AUDIT=h9:h9 AI_AUDIT_GAMES=16 AI_H_FIRST=3000 AI_FORMAT=3v3 AI_THREADS=2 $S/goa-run StrategyAuditTest > audit3.log
+AI_AUDIT=h9:a10 AI_AUDIT_GAMES=16 AI_H_FIRST=2950 AI_THREADS=2 $S/goa-run StrategyAuditTest > audit10.log
+AI_AUDIT=h9:h9+team=0 ...        # a track's change against its knob-off book, same games
+grep AUDIT_SUMMARY audit.log     # one line per side: key=per-game mean, fixed key order: diff before/after
+python3 -I core/game/ai/heuristic/audit_table.py before.log after.log   # Markdown table, after - before
+```
+
+Sides use the tournament's syntax (`hN[+knob=v]`, `sN` the old search, `xN`/`yN`, `h10/action.move/s10`) plus `aN`,
+the shipped player at strength N (`AiPlayers.forStrength`: the book below 10, the hybrid search at 10 and 11; `s10`
+is the OLD search, so "the book against strength 10" is `h9:a10`). `AI_AUDIT_GAMES` is line-ups (games = twice
+that). Line-ups, seeds and coins are `Tournament.runMixed`'s, so an audit plays exactly the games a tournament on the
+same range plays. `AI_AUDIT_TRAIL=k` prints game k's whole log with the audit's notes; `AI_AUDIT_OUT=f` appends the
+summary lines to a file; `AI_AUDIT_LINES=1` prints one `AUDIT_GAME` line per game (line-up, side a's colour, result, the
+pushes in order, e.g. `a3e b5m` = side a won a push at the end of round 3, side b one during round 5). In a self-play pair (`h9:h9`) both sides are the same player, so the two blocks agree.
+
+**Definitions** (per side, summed over its games; the summary prints per-game means). An "action" is a
+`CHOOSE_ACTION` decision; "minion in reach" there means the card being resolved is an attack card and an enemy
+minion that is not an immune heavy stands within its reach (printed range or 1, printed pre-attack move, range items:
+`HContext.attackReach`, hex distance, walls not walked).
+
+| Key | Meaning |
+|---|---|
+| `minions` / `minions.lost` | enemy minions the side's heroes defeated / the side's minions enemy heroes defeated (Minion Battle removals are not defeats) |
+| `coins.minion` / `.kill` / `.assist` / `.pity` / `.other` | coins gained, by the reason the engine writes ("defeated a … minion", "defeated <hero>", "assist", "pity coin", anything else) |
+| `lvl.rK` | the side's mean hero level at the end of round K, after its level-ups (rounds that ended) |
+| `lvl5.share` / `lvl5.round` | share of hero-games that reached level 5 / mean round in which they did |
+| `push.won.mid` / `.eor`, `push.lost.mid` / `.eor` | pushes won / suffered during the turns / at the end-of-round Push step (`pushesLost` = both) |
+| `push.lost.double` | pushes suffered when the side had already suffered one in the same or the previous round (never seen: a wave takes two rounds or more to rebuild) |
+| `push.lost.again` | pushes suffered when the lane's previous push also went against the side: the next wave lost too, the owner's "double push" (every Throne loss is one) |
+| `push.lost.in` / `.walk` / `.far` / `.dead` | per push suffered, the side's heroes at the first decision after it (new wave spawned): in the new Battle Zone / can reach it with one Movement action of the best Movement card in hand (engine paths) / farther / off the board. The game-ending push is not read (no decision follows) |
+| `push.lost.stranded` | of `far`, those on the enemy's side of the new Battle Zone (lane zone order) |
+| `push.won.*` | the same for pushes won (heroes following the wave forward) |
+| `act.far` | actions offering Movement while the hero is outside the Battle Zone and this card's Movement cannot reach it |
+| `ft.offered.far` / `ft.blocked.far` | of `act.far`: Fast Travel offered / not offered (enemy in the zone, effects, no space). `ft.taken`: Fast Travel chosen anywhere |
+| `atk.minion` / `atk.hero` | attacks ([GameEvent.Attacked]) on minions / heroes (a Razzle double is Razzle) |
+| `atk.hero.kill` | the attack defeated the hero (the next hero defeat is that hero's, by this attacker, with no attack between) |
+| `atk.hero.followed` | not a kill, but the side defeated that hero later in the same turn or the next turn |
+| `atk.hero.poke` | neither: a poke. `atk.hero.poke.minion`: pokes by a hero whose action began with a minion in reach |
+| `act.minion` | actions that began with a minion in reach; `.took` the hero defeated a minion that turn, `.untaken` it did not, `.hero` it attacked a hero, `.hold` it chose Hold, `.move` Movement or Fast Travel |
+| `act.hold` | every Hold chosen |
+| `kills` / `kills.stripFinish` / `kills.oneShot` | enemy heroes defeated / of those, a different hero of the side attacked the victim earlier that round (strip, then finish) / no earlier attack by the side on it that round |
+| `team.sameTarget` | turns in which two or more of the side's heroes attacked the same enemy hero |
+| `assists` | assist payments (one per teammate per kill) |
+| `team.minionCollision` | actions with an attack card and no minion left in reach, where a teammate had defeated a minion within that reach earlier in the turn |
+| `deaths` / `.emptyHand` / `.emptyHand.covered` | the side's heroes defeated / with no card to defend with (engine note) / of those, a teammate within 3 spaces at the turn's start (a proxy for "could have covered") |
+| `win.<reason>` / `loss.<reason>` | how the side's games ended (THRONE, LAST_PUSH, LIFE_COUNTERS); `end.mid` / `end.eor`: its push wins made during the turns / at the end of the round |
+
+The report also prints the role mix per team (`HeroStyle.role` of its heroes) with games and wins, and per hero the
+colours upgraded and the item stats tucked. Hand checks: two full trails (2v2 line-up 2900 game 0, 3v3 line-up 3001
+game 0) read event by event: every poke, minion-in-reach action, push read, Fast Travel note, same-target turn and
+kill class matched the log. An always-on test (`the audit's counts agree with the game log`, one h4 game pair, about
+6 s) checks the identities (attack classes sum to `atk.hero`; kills of one side are deaths of the other; pushes won
+equal pushes suffered; minion coins are 2–4 per minion).
+
+**Not exposed by the engine (so not measured):** whether a hero *wanted* to Fast Travel (only "far and not offered"
+is measurable), which minion a teammate *meant* to take (collisions are inferred from reach), and positions at the
+exact moment of a mid-round push (read at the next decision instead).
+
+### Baseline: the book in self-play (e6174517, release 0.17.0)
+
+`h9:h9` 2v2 on line-ups 2900–2931 (64 games, 94 s) and 3v3 on 3000–3015 (32 games, 72 s); per-game means of one
+side (both sides are the same player, so they are equal). The summary lines of all three baseline runs are in
+`strategy-audit-baseline.txt` (next to this file): `audit_table.py strategy-audit-baseline.txt after.log` compares.
+
+| key | h9:h9 2v2 2900+32 h9 | h9:h9 3v3 3000+16 h9 |
+|---|---|---|
+| games | 64.00 | 32.00 |
+| win | 0.50 | 0.50 |
+| rounds | 6.66 | 5.88 |
+| minions | 7.27 | 7.34 |
+| minions.lost | 7.27 | 7.34 |
+| coins.minion | 15.09 | 15.31 |
+| coins.kill | 3.36 | 5.28 |
+| coins.assist | 1.52 | 4.81 |
+| coins.pity | 4.95 | 6.16 |
+| coins.other | 0.38 | 0.69 |
+| push.won.mid | 0.28 | 0.31 |
+| push.won.eor | 0.84 | 0.97 |
+| push.lost.mid | 0.28 | 0.31 |
+| push.lost.eor | 0.84 | 0.97 |
+| pushesLost | 1.12 | 1.28 |
+| push.lost.double | 0.00 | 0.00 |
+| push.lost.again | 0.11 | 0.19 |
+| push.lost.in | 0.55 | 1.00 |
+| push.lost.walk | 0.70 | 0.66 |
+| push.lost.far | 0.34 | 0.88 |
+| push.lost.dead | 0.09 | 0.09 |
+| push.lost.stranded | 0.33 | 0.81 |
+| push.won.in | 0.50 | 0.59 |
+| push.won.walk | 0.73 | 0.94 |
+| push.won.far | 0.39 | 0.94 |
+| push.won.dead | 0.06 | 0.16 |
+| act.far | 3.86 | 7.56 |
+| ft.offered.far | 2.70 | 4.91 |
+| ft.blocked.far | 1.16 | 2.66 |
+| ft.taken | 2.70 | 4.78 |
+| atk.minion | 6.80 | 6.91 |
+| atk.hero | 5.16 | 7.41 |
+| atk.hero.kill | 1.05 | 1.75 |
+| atk.hero.followed | 0.38 | 0.81 |
+| atk.hero.poke | 3.73 | 4.84 |
+| atk.hero.poke.minion | 1.84 | 2.47 |
+| act.minion | 10.77 | 13.06 |
+| act.minion.took | 6.55 | 6.78 |
+| act.minion.untaken | 4.22 | 6.28 |
+| act.minion.hero | 2.28 | 3.50 |
+| act.minion.hold | 0.14 | 0.25 |
+| act.minion.move | 1.72 | 2.34 |
+| act.hold | 2.95 | 3.91 |
+| kills | 1.08 | 1.88 |
+| kills.stripFinish | 0.38 | 0.84 |
+| kills.oneShot | 0.50 | 0.59 |
+| team.sameTarget | 0.12 | 0.31 |
+| assists | 1.08 | 3.75 |
+| team.minionCollision | 0.14 | 0.34 |
+| deaths | 1.08 | 1.88 |
+| deaths.emptyHand | 0.56 | 0.78 |
+| deaths.emptyHand.covered | 0.22 | 0.56 |
+| win.THRONE | 0.06 | 0.06 |
+| win.LAST_PUSH | 0.22 | 0.34 |
+| win.LIFE_COUNTERS | 0.22 | 0.09 |
+| loss.THRONE | 0.06 | 0.06 |
+| loss.LAST_PUSH | 0.22 | 0.34 |
+| loss.LIFE_COUNTERS | 0.22 | 0.09 |
+| end.mid | 0.11 | 0.16 |
+| end.eor | 0.17 | 0.25 |
+| lvl.r1 | 1.73 | 1.66 |
+| lvl.r2 | 2.61 | 2.56 |
+| lvl.r3 | 3.27 | 3.20 |
+| lvl.r4 | 3.80 | 3.83 |
+| lvl.r5 | 4.36 | 4.22 |
+| lvl.r6 | 4.78 | 4.89 |
+| lvl.r7 | 5.08 | 4.50 |
+| lvl.r8 | 5.00 | 5.00 |
+| lvl5.share | 0.58 | 0.32 |
+| lvl5.round | 5.05 | 5.23 |
+| lvl.r9 |  | 5.50 |
+
+How the games ended: 2v2 LAST_PUSH 28, LIFE_COUNTERS 28, THRONE 8 of 64; 3v3 LAST_PUSH 22, LIFE 6, THRONE 4 of 32.
+
+What the self-play numbers say (rates of the tables above):
+- **Pokes dominate hero attacks**: 72% (2v2) / 65% (3v3) of attacks on heroes neither defeat the hero nor are
+  followed by a team kill within a turn, and about half of those pokes were made with an enemy minion in reach
+  (1.8 / 2.5 per game per side): coins left on the table for a discard that rarely converts.
+- **Minions left untaken**: of the actions that began with a minion in reach, 39% (2v2) / 48% (3v3) took no minion that
+  turn (attacked a hero instead in 2.3 / 3.5 per game, moved away 1.7 / 2.3). Minions still give 60% of coins in 2v2
+  and only 48% in 3v3; pity coins are 20% / 19% (a hero ends about a third of its rounds without levelling).
+- **Pushes alternate**: a push is almost never followed by the same team's next push within a round (`double` 0) and
+  only 10% / 15% of pushes suffered were the second in a row (`again`) - yet every Throne ending is one, and in all 8
+  Throne games of the 2v2 run the second push came during the turns (`m`), not at the Minion Battle.
+- **Where the heroes are when a wave is lost** (the losing side's heroes read after each push but the game-ending
+  one): 2v2 32% in the new Battle Zone, 42% a walk away, 20% farther (19% stranded on the enemy side), 6% dead; 3v3 38%
+  in, 25% walk, 33% far (31% stranded), 4% dead. In 3v3 a third of the team is out of position for the next wave. The
+  winners follow their wave no better (3v3: 23% in, 36% far).
+- **Fast Travel**: 30% / 35% of the actions that wanted it (outside the Battle Zone, out of walking reach, Movement
+  offered) could not Fast Travel.
+- **Team play**: two heroes on one target in a turn is rare (0.12 / 0.31 turns a game); 35% / 45% of kills were
+  strip-then-finish; half of all deaths (0.56 of 1.08 in 2v2) are heroes with no card left, and in 3v3 most of those
+  had a teammate within 3 spaces (0.56 of 0.78).
+- **Levels**: level 3.3 after round 3, 4.4 after round 5; 58% (2v2) / 32% (3v3) of heroes reach level 5, in round 5.
+  Items tucked are mostly Defense (298 of 466 in 2v2), Initiative next.
+
+### Baseline: the book against strength 10 (`h9:a10`)
+
+The same audit, h9 against the shipped strength 10 (`a10`, the hybrid search, ADR-085/086) on line-ups 2950–2965,
+2v2, 32 games in 736 s: **h9 2–30**. Per-game means; the self-play column is repeated for scale. Strength 10's book
+is h10, so where a10 differs from h9 the difference is mostly the search's.
+
+| key | h9:h9 2v2 2900+32 h9 | h9:a10 2v2 2950+16 h9 | h9:a10 2v2 2950+16 a10 |
+|---|---|---|---|
+| games | 64.00 | 32.00 | 32.00 |
+| win | 0.50 | 0.06 | 0.94 |
+| rounds | 6.66 | 5.72 | 5.72 |
+| minions | 7.27 | 5.81 | 8.06 |
+| minions.lost | 7.27 | 8.06 | 5.81 |
+| coins.minion | 15.09 | 12.25 | 17.25 |
+| coins.kill | 3.36 | 1.22 | 4.25 |
+| coins.assist | 1.52 | 0.53 | 1.97 |
+| coins.pity | 4.95 | 4.31 | 2.94 |
+| coins.other | 0.38 | 0.25 | 0.44 |
+| push.won.mid | 0.28 | 0.34 | 0.59 |
+| push.won.eor | 0.84 | 0.25 | 1.00 |
+| push.lost.mid | 0.28 | 0.59 | 0.34 |
+| push.lost.eor | 0.84 | 1.00 | 0.25 |
+| pushesLost | 1.12 | 1.59 | 0.59 |
+| push.lost.double | 0.00 | 0.03 | 0.00 |
+| push.lost.again | 0.11 | 0.47 | 0.06 |
+| push.lost.in | 0.55 | 0.84 | 0.09 |
+| push.lost.walk | 0.70 | 0.53 | 0.50 |
+| push.lost.far | 0.34 | 0.25 | 0.47 |
+| push.lost.dead | 0.09 | 0.25 | 0.00 |
+| push.lost.stranded | 0.33 | 0.25 | 0.47 |
+| push.won.in | 0.50 | 0.22 | 0.81 |
+| push.won.walk | 0.73 | 0.47 | 0.75 |
+| push.won.far | 0.39 | 0.31 | 0.28 |
+| push.won.dead | 0.06 | 0.06 | 0.03 |
+| act.far | 3.86 | 4.09 | 3.66 |
+| ft.offered.far | 2.70 | 2.94 | 2.59 |
+| ft.blocked.far | 1.16 | 1.16 | 1.06 |
+| ft.taken | 2.70 | 2.91 | 2.91 |
+| atk.minion | 6.80 | 5.47 | 7.44 |
+| atk.hero | 5.16 | 3.50 | 3.31 |
+| atk.hero.kill | 1.05 | 0.44 | 1.50 |
+| atk.hero.followed | 0.38 | 0.09 | 0.47 |
+| atk.hero.poke | 3.73 | 2.97 | 1.34 |
+| atk.hero.poke.minion | 1.84 | 1.44 | 0.56 |
+| act.minion | 10.77 | 9.00 | 10.12 |
+| act.minion.took | 6.55 | 5.38 | 7.09 |
+| act.minion.untaken | 4.22 | 3.62 | 3.03 |
+| act.minion.hero | 2.28 | 1.78 | 1.28 |
+| act.minion.hold | 0.14 | 0.16 | 0.16 |
+| act.minion.move | 1.72 | 1.72 | 1.66 |
+| act.hold | 2.95 | 2.41 | 3.41 |
+| kills | 1.08 | 0.44 | 1.53 |
+| kills.stripFinish | 0.38 | 0.16 | 0.38 |
+| kills.oneShot | 0.50 | 0.25 | 0.84 |
+| team.sameTarget | 0.12 | 0.00 | 0.12 |
+| assists | 1.08 | 0.44 | 1.53 |
+| team.minionCollision | 0.14 | 0.38 | 0.06 |
+| deaths | 1.08 | 1.53 | 0.44 |
+| deaths.emptyHand | 0.56 | 0.69 | 0.19 |
+| deaths.emptyHand.covered | 0.22 | 0.28 | 0.06 |
+| win.THRONE | 0.06 | 0.00 | 0.34 |
+| win.LAST_PUSH | 0.22 | 0.06 | 0.31 |
+| win.LIFE_COUNTERS | 0.22 | 0.00 | 0.28 |
+| loss.THRONE | 0.06 | 0.34 | 0.00 |
+| loss.LAST_PUSH | 0.22 | 0.31 | 0.06 |
+| loss.LIFE_COUNTERS | 0.22 | 0.28 | 0.00 |
+| end.mid | 0.11 | 0.06 | 0.41 |
+| end.eor | 0.17 | 0.00 | 0.25 |
+| lvl.r1 | 1.73 | 1.52 | 1.94 |
+| lvl.r2 | 2.61 | 2.58 | 2.81 |
+| lvl.r3 | 3.27 | 3.20 | 3.52 |
+| lvl.r4 | 3.80 | 3.67 | 4.17 |
+| lvl.r5 | 4.36 | 4.21 | 4.82 |
+| lvl.r6 | 4.78 | 5.00 | 5.25 |
+| lvl.r7 | 5.08 | 5.50 | 5.50 |
+| lvl.r8 | 5.00 |  |  |
+| lvl5.share | 0.58 | 0.30 | 0.62 |
+| lvl5.round | 5.05 | 4.68 | 4.65 |
+
+Ends: a10 won 11 by THRONE, 10 by LAST_PUSH, 9 by LIFE_COUNTERS; h9 won 2 by LAST_PUSH. Shares of hero reads after
+pushes (all but the game-ending one): when h9 lost a push 45% of its heroes were in the new Battle Zone, 28% a walk
+away, 13% far, 13% dead; when a10 won one, 43% of a10's heroes were already in the new zone (h9's, after its own push
+wins: 21%). Items tucked: h9 Defense 122 of 187 (65%); a10 Attack 67, Defense 72, Initiative 67, Radius 13, Range 12
+of 236 (Defense 31%). Per hero, a10 also upgrades green far more (e.g. Misa: h9 blue 2 red 3, a10 blue 3 green 2 red 1).
+
+**Where the book looks weakest against strength 10** (steers T, W and V; each a key to watch before and after):
+1. **Losing the next wave too (W).** h9 suffers 1.59 pushes a game against 0.59, and 0.47 a game are the second in a
+   row (`push.lost.again`, 30% of its pushes suffered; a10 0.06): every one of the 11 Throne losses. a10 wins the
+   end-of-round Minion Battle push 1.00 a game against h9's 0.25: it keeps more minions (h9 loses 8.1 a game to
+   enemy heroes, a10 5.8) and follows its own wave forward (43% against 21% in the new zone after a push won).
+2. **Farming (W/T).** a10 defeats 8.1 minions a game against 5.8 and collects 26.8 coins against 18.6; h9's pity coins
+   are 23% of its income (a10 11%). The gap starts in round 1: a10 heroes are level 1.94 after round 1, h9 1.52 - half
+   of h9's heroes take no minion in the first round. The gap grows to +0.6 levels by round 5.
+3. **Pokes that do not convert (T).** Both attack heroes about as often (3.5 against 3.3 a game), but 85% of h9's hero
+   attacks are pokes (2.97 a game, 1.44 with a minion in reach) against 40% of a10's; a10 turns 60% of its hero
+   attacks into a team kill that turn or the next (h9 15%) and kills 1.53 a game against 0.44. h9's minion collisions (a teammate
+   took the only minion in reach) are 0.38 a game against 0.06.
+4. **Defense-first items and colours (V).** h9 tucks Defense 65% of the time against 31%, and dies 1.53 times a game
+   against 0.44, 0.69 of them with no card left (a10 0.19): the extra Defense does not save it, while a10's Attack,
+   Initiative and Radius items go with its kills.
