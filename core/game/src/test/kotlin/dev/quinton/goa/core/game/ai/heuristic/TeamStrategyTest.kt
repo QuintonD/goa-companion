@@ -74,7 +74,7 @@ class TeamStrategyTest {
         assertThat(v.plan).isEqualTo(TeamStrategy.Plan.KILL)
         assertThat(v.hunt).isTrue()
         assertThat(v.jobs).containsExactly("tigerclaw", TeamStrategy.Job.FINISHER, "mrak", TeamStrategy.Job.STRIPPER)
-        // G144: their death is worth more to us; switched off by the knob, the master and below strength 7.
+        // G144: their death is worth more to us; switched off by the knob, the master and below strength 9.
         assertThat(TeamStrategy.deathScale(c, Team.BLUE)).isWithin(1e-9).of(1.15)
         for (off in listOf("plan.race", "plan")) {
             val c0 = ctx(duo(blueLife = 1), tune = mapOf(off to 0.0))
@@ -131,7 +131,7 @@ class TeamStrategyTest {
     }
 
     @Test
-    fun `with the plan off or below strength 7 the style is the hero file's`() {
+    fun `with the plan off or below strength 9 the style is the hero file's`() {
         for ((strength, tune) in listOf(9 to mapOf("plan" to 0.0), 9 to mapOf("plan.style" to 0.0), 6 to emptyMap())) {
             val c = ctx(duo(blueLife = 1), strength, tune)
             for (id in listOf("tigerclaw", "mrak", "arien", "brogan")) {
@@ -196,7 +196,7 @@ class TeamStrategyTest {
         assertThat(econ(5, 0)).isEqualTo(3.0)
         // Two levels due at once (2 + 3 coins from level 2).
         assertThat(econ(2, 5)).isWithin(1e-9).of(0.85 * 6 - 1.5)
-        // The term is off with the knob and below strength 5.
+        // The term is off with the knob and below strength 9.
         assertThat(TeamStrategy.evalTerm(ctx(duo(), tune = mapOf("plan.econ" to 0.0)))).isEqualTo(0.0)
         assertThat(TeamStrategy.evalTerm(ctx(duo(), strength = 4))).isEqualTo(0.0)
     }

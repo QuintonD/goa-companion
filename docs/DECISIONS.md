@@ -3137,3 +3137,33 @@ card plays made before every enemy had played. A game with a strength-11 seat li
 and save. A second run of the same: 15/24, so 33/48 (69%) in all. The tree under card plays (`tc=2`), affordable now
 that a card play has one known position, measured 12/24 (8 as Red, 4 as Blue) at 250 ms and is not shipped; untried
 at the app's 2 s.
+
+## ADR-088 — Strategy layers in the heuristic book: team play, waves, the team plan (2026-11-28)
+
+**Context.** The owner (2026-11-27) asked to go deep on three themes: team play with computer teammates' cards known
+(combos, working together); wave management (gold from minions unless the kill is real, reposition when a wave is
+lost, no double push); and a win condition (the squad's strengths, a plan, upgrades aligned with teammates). A
+behaviour audit (`StrategyAuditTest`) showed the book at strength 9 poking (72–85% of hero attacks killed nobody),
+losing the next wave after a push, and stranding heroes on the wrong side.
+
+**Decision.** Three layers, each behind a master knob (`team`, `wave`, `plan`; with all three off the book gives
+exactly the old answers, proven by answer digests), all on from strength 9 only (strengths 1–8 unchanged):
+- `team` (G113–G118, `TeamPlay.kt`): a computer teammate's facedown card is known and played in initiative order
+  inside the card look, before and after ours; the first teammate to choose plays its half of the best card pair;
+  a turn-4 finisher is kept; same-team ties are played out both ways. A human teammate's card stays hidden.
+- `wave` (G120–G124): one look horizon for hero and minion targets (the poke's main cause), farm first unless the
+  kill is real, the next push priced by who stands in the zone it lands in, a wave projection per lane that
+  repositions a hero when the wave is being lost.
+- `plan` (G140–G148, `TeamStrategy.kt`): composition, a KILL / PUSH / SCALE plan and a job per hero; style and Life
+  race (2v2 only: in 3v3 they lost 22–42), upgrades and items by job and team gaps, the level-5 and Pity economy.
+Strength 10 keeps `wave` and `plan` in its book and `team=0` (with it, a pinned last-push position flipped).
+
+**Measured** (sealed line-ups, mirrored, against the same book with the three layers off): h9 2v2 139/256 (54.3%,
+48.2–60.3), 3v3 78/128 (60.9%, 52.3–69.0), together 56.5% (51.5–61.4); h7 with the plan on from 5/7 48.4% (128),
+hence strength 9 only; strength 10 50/96 (52.1%, 42.2–61.8) — neutral. Pokes −38%, pushes suffered −17%, next wave
+lost too −45%, heroes stranded −33% (2v2). Details: `core/game/ai/heuristic/RESULTS.md` "Strategy round".
+
+**Consequences.** Book play is measurably more wave- and team-aware at strength 9; strength 10's strength is still
+set by its search and learned leaf, so these layers barely move it. Combo kills (strip-then-finish) did not rise:
+the team layer's gain is fewer pokes, not more combos. Open: team play at strength 10 (re-check game 613), the
+base item values' Defense bias (G108), 3v3 jobs, a defense debuff set up for a teammate, escape-line blocking.

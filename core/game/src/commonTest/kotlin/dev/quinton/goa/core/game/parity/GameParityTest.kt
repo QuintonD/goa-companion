@@ -140,7 +140,7 @@ class GameParityTest {
         }
         // Re-pinned for ADR-085: the seated player is the heuristic book, the same on the JVM and in JS (last:
         // both review rounds, REVIEW-core.md and REVIEW-heroes.md).
-        assertTranscript("67224d651a10a60b79c1269fb6f380219d54fe0d4db91255719e3ed49cb5a8fb", transcript, "AI game")
+        assertTranscript("d7017562b5c647433c9f309e2775589d830d5b87b439b853de2f75e2356dcb3b", transcript, "AI game")
     }
 
     /**

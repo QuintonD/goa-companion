@@ -1807,3 +1807,31 @@ in the order look but priced from printed defenses when the look stops at a hidd
 and covering a low-hand ally have no rule of their own; the 3v3 "two on the target, the third on minions" is left to
 the order look and G15. The position bench (`AiPositionBenchTest`) at h9 was queued twice and killed by the
 2-hour limit on a full machine: not measured.
+
+## Strategy round - integration and the decisive measurement (2026-11-28)
+
+Tracks M, V, W, T merged on `feature/ai-strategy` (in that order). Merge work: RESULTS/DESIGN/GENERAL text,
+Track W's rule numbers G113/G115–G117 renumbered G120/G122–G124 (Track T owns G113–G118), Track W's `hiddenScore`
+hook in Track T's `CardSim.kt` kept, `WaveRulesTest`'s recorded position replayed with the baseline book (team, plan
+and wave off), parity re-pinned (JVM = Node), lint fixes from main (`AllSeeingTest`, `AiPlayers`). After the h7 row
+below, every `plan` layer starts at strength 9 (`TeamStrategy.*_FROM`), so strengths 1–8 play exactly as on main
+(the seeded AI-game transcript is main's again).
+
+Sealed line-ups (6000+, `AI_UNSEAL=1`), `StrategyAuditTest`, mirrored, the candidate against itself with
+`team=0+wave=0+plan=0` (the baseline book, by the digest proofs):
+
+| Pair | Line-ups | Games | Candidate | Wilson 95% |
+|---|---|---|---|---|
+| h9 : h9 off, 2v2 | 6000–6127 | 256 | 139–117, 54.3% | 48.2–60.3 |
+| h9 : h9 off, 3v3 | 6200–6263 | 128 | 78–50, 60.9% | 52.3–69.0 |
+| h9, both formats | | 384 | 217–167, 56.5% | 51.5–61.4 |
+| h7 : h7 off, 2v2 (plan on from 5/7 then) | 6300–6363 | 128 | 62–66, 48.4% | 40.0–57.0 |
+| a10 : a10+wave=0+plan=0, 2v2 (team=0 in both) | 6500–6547 | 96 | 50–46, 52.1% | 42.2–61.8 |
+| h9 : a10 / h9 off : a10, 2v2 | 6400–6415 | 32 each | 3–29 / 1–31 | |
+
+Behaviour per game, h9 candidate / baseline (same games): 2v2 pokes 2.35 / 3.82, pushes suffered 1.11 / 1.33, next
+wave lost too 0.11 / 0.19, stranded after a push 0.31 / 0.46, heroes in the new zone after a push won 0.68 / 0.51,
+Throne wins 0.14 / 0.04, minions 7.70 / 7.43, kills 1.10 / 1.14; 3v3 pokes 2.84 / 4.66, pushes suffered 1.05 / 1.25,
+next wave lost too 0.10 / 0.21, stranded 0.57 / 0.88. Strength 10: next wave lost too 0.09 / 0.22, the rest flat.
+Logs: the session scratchpad `final/` (not kept). Not measured: the three layers one by one in combination, 3v3 at
+strength 10, double-lane maps, strengths 7–8 with team play on.

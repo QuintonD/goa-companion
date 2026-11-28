@@ -15,6 +15,7 @@ import dev.quinton.goa.core.game.ai.AiHarness
 import dev.quinton.goa.core.game.ai.AiPlayers
 import dev.quinton.goa.core.game.ai.SampleRunner
 import dev.quinton.goa.core.game.ai.ThreadRunner
+import dev.quinton.goa.core.game.ai.hybrid.HybridAi as SearchAi10
 import dev.quinton.goa.core.game.ai.hybrid.HybridPlayers
 import dev.quinton.goa.core.game.engine.EngineSession
 import dev.quinton.goa.core.game.engine.MoveSpec
@@ -236,10 +237,20 @@ class StrategyAuditTest {
         val runner = if (threads > 1) ThreadRunner(threads) else SampleRunner.SEQUENTIAL
         return when (spec[0]) {
             'h', 'H' -> HeuristicAi(n, seed, tune = tune - "thr")
-            'a', 'A' -> AiPlayers.forStrength(n, seed, runner)
+
+            // The shipped player; knobs on a searched strength go on top of its own (`a10+wave=0`).
+            'a', 'A' -> if (n >= AiPlayers.SEARCH_FROM && (tune - "thr").isNotEmpty()) {
+                SearchAi10(seed, AiPlayers.knobsFor(n) + (tune - "thr"), runner)
+            } else {
+                AiPlayers.forStrength(n, seed, runner)
+            }
+
             's', 'S' -> AiPlayers.searchDeterministic(n, seed)
+
             'x', 'X' -> HybridPlayers.hybrid(seed, tune - "thr", runner)
+
             'y', 'Y' -> HybridPlayers.searchWithBook(seed, tune - "thr", runner)
+
             else -> error("AI_AUDIT wants hN, aN, sN, xN or yN, not $spec")
         }
     }

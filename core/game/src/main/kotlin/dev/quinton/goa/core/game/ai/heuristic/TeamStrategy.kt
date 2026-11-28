@@ -442,10 +442,13 @@ internal object TeamStrategy {
     private val kits = concurrentMap<String, Pair<HeroStyle, Kit>>()
 
     const val MASTER: String = "plan"
-    const val STYLE_FROM: Int = 7
-    const val RACE_FROM: Int = 7
-    const val UPGRADE_FROM: Int = 5
-    const val ECON_FROM: Int = 5
+
+    // Every layer from strength 9 (integration, RESULTS "Strategy round - integration"): with them on from 5 and 7,
+    // h7 against itself without the plan scored 50.0% (Track V, 64 games) and 48.4% (sealed 6300-6363, 128 games).
+    const val STYLE_FROM: Int = 9
+    const val RACE_FROM: Int = 9
+    const val UPGRADE_FROM: Int = 9
+    const val ECON_FROM: Int = 9
     const val SIZE: Int = 2
 
     private const val KILL_AGGRESSION = 0.65
