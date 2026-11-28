@@ -141,6 +141,29 @@ class TeamStrategyTest {
     }
 
     @Test
+    fun `in 3v3 the jobs and the Life race stay off unless plan size allows three`() {
+        val s = position(engine, TestData.FOREST) {
+            round = 3
+            hero("tigerclaw", Team.RED, geo.heroSpawns(Team.RED)[0])
+            hero("mrak", Team.RED, geo.heroSpawns(Team.RED)[1])
+            hero("wasp", Team.RED, geo.heroSpawns(Team.RED)[2])
+            hero("arien", Team.BLUE, geo.heroSpawns(Team.BLUE)[0])
+            hero("brogan", Team.BLUE, geo.heroSpawns(Team.BLUE)[1])
+            hero("xargatha", Team.BLUE, geo.heroSpawns(Team.BLUE)[2])
+            lifeCounters(Team.BLUE, 1)
+            phase = PositionPhase.PlayCards(0)
+        }
+        val c = ctx(s)
+        assertThat(TeamStrategy.deathScale(c, Team.BLUE)).isEqualTo(1.0)
+        assertThat(c.style("tigerclaw")).isEqualTo(HeroPlaybooks.forHero("tigerclaw").style)
+        val three = ctx(s, tune = mapOf("plan.size" to 3.0))
+        assertThat(TeamStrategy.deathScale(three, Team.BLUE)).isWithin(1e-9).of(1.15)
+        assertThat(three.style("tigerclaw")).isNotEqualTo(HeroPlaybooks.forHero("tigerclaw").style)
+        // The plan itself is still derived (upgrades read the jobs at every size).
+        assertThat(TeamStrategy.view(c, Team.RED).plan).isEqualTo(TeamStrategy.Plan.KILL)
+    }
+
+    @Test
     fun `the plan is the same from a fresh context`() {
         val s = duo(blueLife = 2, zone = "lane-1-1")
         for (team in Team.entries) {

@@ -86,6 +86,7 @@ data class HeuristicProfile(
      *   plan.econ     from 5  the Tier III step, a due level and the Pity coin in HEval (G148)
      *   plan.style    from 7  aggression, lane weight and keep-defender by job and Life race, team-aligned (G142-G143)
      *   plan.race     from 7  the worth of a death by the Life race (G144)
+     *   plan.size     2       style and race only for teams of at most this many heroes (3v3 measured negative)
      */
 
     /** What one-ply lookahead is allowed to re-score. */

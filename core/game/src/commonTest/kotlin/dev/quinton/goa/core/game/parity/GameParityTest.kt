@@ -50,7 +50,7 @@ class GameParityTest {
         /** Strength 10's answers with a choice in [theShippedStrengthTenChoosesAlike] (card plays and the rest). */
         const val SHIPPED_TEN_ANSWERS = 30
 
-        const val SHIPPED_TEN_HASH = "b3bfc3bb986a33b0d132c9cf7a7ce83a351179db548397206336920bdca94141"
+        const val SHIPPED_TEN_HASH = "f49f9f50444b5e9dd373166a5d2c4e9475647744418f63162f7b3f2e62f3c1a6"
     }
 
     @Test
@@ -138,8 +138,8 @@ class GameParityTest {
             appendLine("round ${s.state.round} winner ${s.state.winner}")
         }
         // Re-pinned for ADR-085: the seated player is the heuristic book, the same on the JVM and in JS (last:
-        // both review rounds, REVIEW-core.md and REVIEW-heroes.md).
-        assertTranscript("d7017562b5c647433c9f309e2775589d830d5b87b439b853de2f75e2356dcb3b", transcript, "AI game")
+        // both review rounds, REVIEW-core.md and REVIEW-heroes.md; then Track V, the team plan).
+        assertTranscript("67224d651a10a60b79c1269fb6f380219d54fe0d4db91255719e3ed49cb5a8fb", transcript, "AI game")
     }
 
     /**

@@ -69,9 +69,18 @@ internal object TeamStrategy {
     fun on(ctx: HContext, knob: String, from: Int): Boolean =
         ctx.profile.on(MASTER, true) && ctx.profile.on(knob, ctx.profile.strength >= from)
 
-    private fun styleOn(ctx: HContext) = ctx.profile.heroPlaybooks && on(ctx, "plan.style", STYLE_FROM)
+    private fun styleOn(ctx: HContext) =
+        ctx.profile.heroPlaybooks && on(ctx, "plan.style", STYLE_FROM) && sizeOn(ctx)
 
-    private fun raceOn(ctx: HContext) = on(ctx, "plan.race", RACE_FROM)
+    private fun raceOn(ctx: HContext) = on(ctx, "plan.race", RACE_FROM) && sizeOn(ctx)
+
+    /**
+     * The jobs and the Life race act on teams of at most `plan.size` heroes (default 2). Measured (RESULTS.md,
+     * Track V): in 3v3 they cost games (h9 22-42 against the plan-off book: the plan side killed less and died more), in 2v2
+     * they did not (72-56); upgrades and economy act at every size.
+     */
+    private fun sizeOn(ctx: HContext): Boolean =
+        ctx.state.heroes.count { it.team == ctx.team } <= ctx.profile.knob("plan.size", SIZE.toDouble())
 
     fun upgradeOn(ctx: HContext) = on(ctx, "plan.upgrade", UPGRADE_FROM)
 
@@ -430,6 +439,7 @@ internal object TeamStrategy {
     const val RACE_FROM: Int = 7
     const val UPGRADE_FROM: Int = 5
     const val ECON_FROM: Int = 5
+    const val SIZE: Int = 2
 
     private const val KILL_AGGRESSION = 0.65
     private const val FARM_AGGRESSION = 0.45
@@ -453,4 +463,17 @@ internal object TeamStrategy {
     private const val TIE_BREAK = 0.4
     private const val TIE_CAP = 1.2
     private val ROUND_ZONES = setOf(Zone.HAND, Zone.PLAYED, Zone.RESOLVED, Zone.DISCARD)
+}
+
+/** Diagnostics (tests): the plan facts of [heroId]'s team at this decision, as short labels. */
+internal fun planFacts(ctx: HContext, heroId: String): List<String> {
+    val h = ctx.state.hero(heroId) ?: return emptyList()
+    val v = TeamStrategy.view(ctx, h.team)
+    val out = mutableListOf("plan.${v.plan}", "job.${v.jobs[heroId]}")
+    if (v.hunt) out += "hunt"
+    if (v.afford) out += "afford"
+    if (v.danger) out += "danger"
+    if (v.lastWave) out += "lastWave"
+    out += "d${v.ours}-${v.theirs}"
+    return out
 }
