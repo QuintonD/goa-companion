@@ -256,9 +256,11 @@ class TeamPlayBookTest {
         assertThat(t1.any { " joint " in it }).isTrue()
         assertThat(a2).isEqualTo(a1)
         assertThat(t2).isEqualTo(t1)
-        assertThat(ask(first(ai), 8).second.any { " joint " in it }).isTrue()
-        // Must not fire: strength 7, the knob off, a person to plan with.
-        assertThat(ask(first(ai), 7).second.none { " joint " in it }).isTrue()
+        // Strength 8 only with the knobs on (the layers start at 9 by default).
+        val on8 = mapOf("team.joint" to 1.0, "team.order" to 1.0, "team.known" to 1.0)
+        assertThat(ask(first(ai), 8, on8).second.any { " joint " in it }).isTrue()
+        // Must not fire: strength 8 by default, the knob off, a person to plan with.
+        assertThat(ask(first(ai), 8).second.none { " joint " in it }).isTrue()
         assertThat(ask(first(ai), 9, mapOf("team.joint" to 0.0)).second.none { " joint " in it }).isTrue()
         assertThat(ask(first(ai), 9, mapOf("team" to 0.0)).second.none { " joint " in it }).isTrue()
         assertThat(ask(first(Controller.Human), 9).second.none { " joint " in it }).isTrue()

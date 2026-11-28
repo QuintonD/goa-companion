@@ -1222,13 +1222,13 @@ the look at the first hidden defense (the old prelude returned nothing).
 
 | Knob | From | Rule | What it does |
 |---|---|---|---|
-| `team.known` | 7 | G114 | A computer teammate's facedown card (and our own) is its card this turn in `possibleCards` (`HContext.realPool`): its threat is the card at 0.72, its initiative exact. A human teammate's card stays one of the pool. |
-| `team.order` | 7 | G114 | The card look resolves every known teammate card in initiative order: faster (or tied) ones before ours from one shared prelude, slower ones after ours from the best leaf of each action (postlude). A teammate's hit that reaches a hidden defense is priced from the pool and its action ended there; the next hit on that hero meets the thinner hand, or nobody at the chance it was defeated (`HContext.teamHits/teamDead`). Replaces the G14 prelude and the `allyAfter` postlude. |
-| `team.follow` | 7 | G113 | `heroStrikeWorth`'s G60 constant is replaced, where the teammate's card is known, by what our strip gives that teammate's later hit (their hit on a hand one card thinner minus on the hand as it is), 0 when no known card follows; a look that plays the teammate itself does not add it again. |
-| `team.joint` | 8 | G115 | The teammate asked first with a computer teammate still to choose: our best 3 cards × its 2 best replies (its static book) are looked at as pairs in initiative order; we play our half of the best pair. Off in strength 10's playouts (`p.team.joint=0` in `SEARCH_10`). |
+| `team.known` | 9 | G114 | A computer teammate's facedown card (and our own) is its card this turn in `possibleCards` (`HContext.realPool`): its threat is the card at 0.72, its initiative exact. A human teammate's card stays one of the pool. |
+| `team.order` | 9 | G114 | The card look resolves every known teammate card in initiative order: faster (or tied) ones before ours from one shared prelude, slower ones after ours from the best leaf of each action (postlude). A teammate's hit that reaches a hidden defense is priced from the pool and its action ended there; the next hit on that hero meets the thinner hand, or nobody at the chance it was defeated (`HContext.teamHits/teamDead`). Replaces the G14 prelude and the `allyAfter` postlude. |
+| `team.follow` | 9 | G113 | `heroStrikeWorth`'s G60 constant is replaced, where the teammate's card is known, by what our strip gives that teammate's later hit (their hit on a hand one card thinner minus on the hand as it is), 0 when no known card follows; a look that plays the teammate itself does not add it again. |
+| `team.joint` | 9 | G115 | The teammate asked first with a computer teammate still to choose: our best 3 cards × its 2 best replies (its static book) are looked at as pairs in initiative order; we play our half of the best pair. Off in strength 10's playouts (`p.team.joint=0` in `SEARCH_10`). |
 | `team.reserve` | 9 | G116, G117 | Two-turn kills: spending the team's last attack that reaches an enemy who starts turn 4 with at most one card costs 0.4 of the kill (0.1 when a computer teammate keeps one); G10's strip bonus is ×0.3 when nobody will hold the finisher. |
 | `team.tie` | 9 | G118 | A same-team initiative tie (ACT_FIRST) is played out both ways by the rest-of-turn look. |
-| (with `team.order`) | 7 | G64 | Inside a card look, a minion that is a known teammate card's only target in reach is left to it (`UnitRules` → `TeamPlay.claimed`). G14/G15's static join bonus is dropped when every teammate still to act has a known card (the look played them). |
+| (with `team.order`) | 9 | G64 | Inside a card look, a minion that is a known teammate card's only target in reach is left to it (`UnitRules` → `TeamPlay.claimed`). G14/G15's static join bonus is dropped when every teammate still to act has a known card (the look played them). |
 
 Existing functions changed in `HContext` (shared file): `realPool` (the known card) and `heroStrikeWorth` (split into
 `strikeWorthOf` with a `thin` count; the ledger and the follow-up). Both give the old values with `team=0`.
@@ -1246,6 +1246,13 @@ strength-9 side and the shipped strength 10's 30 searched answers do not meet a 
 | 3v3, line-ups 2000–2063 | 128 | 72–56, **56.3%** | 47.6–64.5 |
 | 2v2, line-ups 2000–2047 | 96 | 53–43, **55.2%** | 45.3–64.8 |
 | both | 224 | 125–99, **55.8%** | 49.3–62.2 |
+| h7 : h7+team=0, 3v3, line-ups 2064–2079 | 32 | 13–19, 40.6% | 25.5–57.9 |
+
+The screen ran with the layers on from 7 (`known`, `order`, `follow`), 8 (`joint`) and 9 (`reserve`, `tie`). The h7
+result is small but it is the only evidence below 9, and strengths 7–8 lack the rest-of-turn look that 9 plays
+after the reveal; with the game budget spent, **every team layer now starts at 9** (`TeamPlay.FROM`): strengths 7
+and 8 play exactly as before (the knob-off digest), strength 9 is the configuration measured above. A knob turns a
+layer on lower (`h7+team.order=1+team.known=1+team.follow=1`) for the integrator's re-screen.
 
 | per game (team on / off) | 3v3 | 2v2 |
 |---|---|---|

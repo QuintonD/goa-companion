@@ -17,29 +17,33 @@ import kotlin.math.max
  * teammate's facedown card stays hidden exactly as before (the determinized copy deals it again, and nothing
  * here reads it: [knownCard] is null for a human until the reveal).
  *
- * Knobs (`HeuristicProfile.tune`): the master switch `team` (on), and per layer `team.<name>`, each on from the
- * strength named at its use. With `team=0` the book answers exactly as before this track.
- * - `team.known` (7): a computer teammate's facedown card is its card this turn in every threat and initiative
+ * Knobs (`HeuristicProfile.tune`): the master switch `team` (on), and per layer `team.<name>`, each on from
+ * strength 9 ([FROM]; measured there, RESULTS.md "Strategy round - Track T"; at 7 the first screen lost 13–19, so 7
+ * and 8 keep the old play). With `team=0` the book answers exactly as before this track.
+ * - `team.known` (9): a computer teammate's facedown card is its card this turn in every threat and initiative
  *   read (it was one colour in k, the REVIEW-2-design dilution).
- * - `team.order` (7): the card play's look resolves every computer teammate's known card in initiative order,
+ * - `team.order` (9): the card play's look resolves every computer teammate's known card in initiative order,
  *   before ours (prelude) and after ours (postlude), each with its own book ([CardSim]).
- * - `team.follow` (7): a hit we price is followed by a known teammate card that reaches the same hero: the
+ * - `team.follow` (9): a hit we price is followed by a known teammate card that reaches the same hero: the
  *   card our strip takes is the one their hit no longer meets ([followUp]), in place of the old constant.
- * - `team.joint` (8): the teammate asked first picks its half of the best pair of cards ([joint]).
+ * - `team.joint` (9): the teammate asked first picks its half of the best pair of cards ([joint]).
  * - `team.reserve` (9): two-turn kills: the team keeps a turn-4 finisher for an enemy that will arrive empty-handed
  *   ([reserve]), and a strip is worth its set-up only when someone will finish ([finisherFor]).
  * - `team.tie` (9): a same-team initiative tie is decided by playing the rest of the turn both ways.
  */
 internal object TeamPlay {
+    /** The strength every team layer starts at by default (each knob can turn it on lower: `h7+team.order=1`). */
+    const val FROM = 9
+
     /** Track T layer [name]: the master switch `team` and `team.<name>`, by default on from strength [from]. */
     fun on(p: HeuristicProfile, name: String, from: Int): Boolean =
         p.on("team", true) && p.on("team.$name", p.strength >= from)
 
-    fun known(p: HeuristicProfile): Boolean = p.focusFire && on(p, "known", 7)
+    fun known(p: HeuristicProfile): Boolean = p.focusFire && on(p, "known", FROM)
 
-    fun order(p: HeuristicProfile): Boolean = p.focusFire && on(p, "order", 7)
+    fun order(p: HeuristicProfile): Boolean = p.focusFire && on(p, "order", FROM)
 
-    fun follow(p: HeuristicProfile): Boolean = p.focusFire && on(p, "follow", 7)
+    fun follow(p: HeuristicProfile): Boolean = p.focusFire && on(p, "follow", FROM)
 
     /** Heroes seated as computer players (every seat but a human's). */
     fun computers(ctx: HContext): Set<String> =
@@ -247,7 +251,7 @@ internal object TeamPlay {
     // ---------------------------------------------------------------------------------------------
 
     fun jointOn(p: HeuristicProfile): Boolean =
-        p.focusFire && p.lookahead >= HeuristicProfile.Look.ACTIONS && on(p, "joint", 8) && order(p)
+        p.focusFire && p.lookahead >= HeuristicProfile.Look.ACTIONS && on(p, "joint", FROM) && order(p)
 
     /**
      * The computer teammate still to choose its card this turn that this card play plans with: the nearest one
