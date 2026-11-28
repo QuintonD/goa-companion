@@ -438,18 +438,30 @@ class HContext(
     fun heroStrikeWorth(targetId: String, attackTotal: Int, ranged: Boolean): Double {
         val h = state.hero(targetId) ?: return 0.4
         if (h.team == team) return -8.0
+        // Track T (G114): a hit a teammate's card already landed on [h] earlier in this look.
+        if (teamHits.isNotEmpty() || teamDead.isNotEmpty()) teamAfterHits(h, attackTotal, ranged)?.let { return it }
+        return strikeWorthOf(h, attackTotal, ranged)
+    }
+
+    private fun strikeWorthOf(h: HeroState, attackTotal: Int, ranged: Boolean, thin: Int = 0): Double {
+        val targetId = h.id
         val at = h.at ?: return 0.0
         // G11: an empty hand, or the last card about to be played, is a defeat.
         if (h.handSize == 0 || defenseless(targetId)) return killWorth(targetId)
+        if (thin > 0 && teamEmptyAfter(h, thin)) return killWorth(targetId)
         val mod = minionModifier(at, h.team)
         val chance = killChance(h, attackTotal, ranged, mod)
         val kill = killWorth(targetId)
-        val strip = discardWorth(h)
+        val strip = if (thin > 0) teamThinStrip(h, thin) else discardWorth(h)
         // A poke that only spends a card loses the minion we could have farmed. A real kill does not.
         var v = chance * kill + (1.0 - chance) * strip * (if (chance < 0.4) 0.65 else 1.0)
         // G60: a teammate still to act turns a failed poke into the card they will not have.
         // F6 (knob `finisher`): only when that teammate's attack can finish what the poke leaves.
-        if (profile.focusFire && allyCanReach(h) && (!profile.on("finisher", false) || allyFinishes(h))) {
+        // Track T (G113, `team.follow`): a teammate whose card is known follows up by its own card, or not at all.
+        val follow = if (profile.focusFire && TeamPlay.follow(profile)) TeamPlay.followUp(this, h, chance) else null
+        if (follow != null) {
+            v += follow
+        } else if (profile.focusFire && allyCanReach(h) && (!profile.on("finisher", false) || allyFinishes(h))) {
             v += if (h.handSize <= 2) 6.0 else 3.5
         }
         if (profile.twoTurnPlans && chance < 0.55 && h.handSize <= 3 && turn in 2..3) v += 2.0
@@ -621,7 +633,8 @@ class HContext(
     }
 
     private fun realPool(h: HeroState): List<PossibleCard> {
-        val playing = state.revealed || (profile.omniscient && h.team != team)
+        // Track T (`team.known`): a computer teammate's facedown card is known to its team (G113).
+        val playing = state.revealed || (profile.omniscient && h.team != team) || TeamPlay.knowsFacedown(this, h)
         return (h.hand + h.unresolved).map { inst ->
             PossibleCard(card(inst.id), 1.0, playing && inst.zone == Zone.PLAYED)
         }
@@ -1065,6 +1078,73 @@ class HContext(
         val at = h.at ?: return 0.0
         if (h.handSize == 0 || defenseless(targetId)) return 1.0
         return killChance(h, total, ranged, minionModifier(at, h.team))
+    }
+
+    // Track T (team play, TeamPlay.kt): facts a look carries about its teammates' hits.
+
+    /**
+     * Inside a card play's look: the chance each enemy hero was made to throw a card ([teamHits]) or was
+     * defeated ([teamDead]) by a teammate's hit priced earlier in the same look (G114), so the next hit on them
+     * meets the thinner hand. Empty outside a look.
+     */
+    internal var teamHits: Map<String, Double> = emptyMap()
+    internal var teamDead: Map<String, Double> = emptyMap()
+
+    /** The striker's initiative while a look prices a hit (Int.MAX_VALUE after the reveal); null elsewhere. */
+    internal var teamInit: Int? = null
+
+    /** Teammates whose action this look plays itself after the hit (their follow-up is not priced again). */
+    internal var teamSimulated: Set<String> = emptySet()
+
+    /** G114: a hit on [h] after earlier hits of this look: none left if defeated, a thinner hand if stripped. */
+    private fun teamAfterHits(h: HeroState, attackTotal: Int, ranged: Boolean): Double? {
+        val dead = teamDead[h.id] ?: 0.0
+        val hit = teamHits[h.id] ?: 0.0
+        if (dead <= 0.0 && hit <= 0.0) return null
+        val full = strikeWorthOf(h, attackTotal, ranged)
+        val thin = strikeWorthOf(h, attackTotal, ranged, thin = 1)
+        return (1.0 - dead) * (hit * thin + (1.0 - hit) * full)
+    }
+
+    /** [h] has nothing to defend with once [thin] more cards are gone (the card still to play left out). */
+    private fun teamEmptyAfter(h: HeroState, thin: Int): Boolean {
+        val left = h.handSize - thin
+        if (left <= 0) return true
+        return !state.revealed && !roundOver && left <= 1 && playsThisTurn(h)
+    }
+
+    /** What the next card thrown costs [h] once [thin] cards are already gone. */
+    private fun teamThinStrip(h: HeroState, thin: Int): Double {
+        if (roundOver) return 0.0
+        val spare = h.handSize - thin - playsLeft(h.id)
+        return when {
+            state.turn >= 4 && playsLeft(h.id) <= 0 -> 1.2
+            spare >= 2 -> 2.0
+            spare == 1 -> 3.2
+            spare == 0 -> 5.0
+            else -> 7.0
+        }
+    }
+
+    /** G113: a teammate's hit on [h] with [thin] cards already gone, without anyone's follow-up. */
+    internal fun teamBaseStrike(h: HeroState, attackTotal: Int, ranged: Boolean, thin: Int): Double {
+        val at = h.at ?: return 0.0
+        if (h.handSize == 0 || defenseless(h.id) || (thin > 0 && teamEmptyAfter(h, thin))) return killWorth(h.id)
+        val chance = killChance(h, attackTotal, ranged, minionModifier(at, h.team))
+        val strip = if (thin > 0) teamThinStrip(h, thin) else discardWorth(h)
+        return chance * killWorth(h.id) + (1.0 - chance) * strip * (if (chance < 0.4) 0.65 else 1.0)
+    }
+
+    /** G114: the chance a hit of [attackTotal] on [targetId] defeats it, from the pool (1 for an empty hand). */
+    internal fun teamKillChance(targetId: String, attackTotal: Int, ranged: Boolean): Double {
+        val h = state.hero(targetId) ?: return 0.0
+        val at = h.at ?: return 0.0
+        if (h.handSize == 0 || defenseless(targetId)) return 1.0
+        val dead = teamDead[targetId] ?: 0.0
+        val hit = teamHits[targetId] ?: 0.0
+        val c = killChance(h, attackTotal, ranged, minionModifier(at, h.team))
+        val thinKill = if (teamEmptyAfter(h, 1)) 1.0 else c
+        return (1.0 - dead) * (hit * thinKill + (1.0 - hit) * c)
     }
 
     companion object {

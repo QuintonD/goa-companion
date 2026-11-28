@@ -199,6 +199,25 @@ class HeuristicAi(
                 "${(d.options[i] as Choice.Card).cardId}=${round1(values[i])}"
             },
         )
+        // Track T (G115, `team.joint`): a computer teammate still to choose; our half of the best pair of cards.
+        if (sampled == null) {
+            val joint = TeamPlay.joint(ctx, d, values) { i ->
+                val o = d.options[i]
+                General.commitment(ctx, d, o) - PlayRules.teamKillOf(ctx, o) + ctx.inLook { adjust(book, ctx, d, o) }
+            }
+            if (joint != null) {
+                val (idx, jv) = joint
+                trace?.invoke(
+                    "${d.seat} joint " + idx.indices.joinToString(" ") { j ->
+                        "${(d.options[idx[j]] as Choice.Card).cardId}=${round1(jv[j])}"
+                    },
+                )
+                val all = DoubleArray(d.options.size) { Double.NEGATIVE_INFINITY }
+                for ((j, i) in idx.withIndex()) all[i] = jv[j]
+                mixed(ctx, d, all, rng)?.let { return it }
+                return pick(d, idx, jv, rng, fromLook = true)
+            }
+        }
         mixed(ctx, d, values, rng)?.let { return it }
         return pick(d, d.options.indices.toList(), values, rng, fromLook = true)
     }
@@ -242,6 +261,10 @@ class HeuristicAi(
 
             // A move is where a static score walks into a death. Strength 7+ checks its best few.
             // F1: with the turn played out every square is scored by what happens to it.
+            // Track T (G118, `team.tie`): a same-team tie is ordered by playing the rest of the turn both ways.
+            DecisionKind.ACT_FIRST ->
+                if (TeamPlay.on(ctx.profile, "tie", 9) && CardSim.restOn(ctx)) d.options.size else 0
+
             DecisionKind.CHOOSE_SPACE -> when {
                 look != HeuristicProfile.Look.MOVES -> 0
                 CardSim.restOn(ctx) -> ctx.profile.knob("restSpaces", REST_SPACES.toDouble()).toInt()

@@ -59,9 +59,19 @@ internal object PlayRules {
         }
         v += earlyRed(ctx, h, at, card) * ctx.profile.knob("earlyRed", 1.0) // G4
         v += strip(ctx, h, at, card) // G10
-        v += teamKill(ctx, h, card) // G14 G15
+        // G14 G15; Track T: a look that plays every teammate's known card already saw them join (G113).
+        if (!(simulated && TeamPlay.covered(ctx))) v += teamKill(ctx, h, card)
         v += pressLead(ctx, h, at, card) // G19
+        v += TeamPlay.reserve(ctx, card) // G116
         return v
+    }
+
+    /** G14/G15's part of [add] for [choice] (Track T: the joint look plays the partner and leaves it out). */
+    fun teamKillOf(ctx: HContext, choice: Choice): Double {
+        if (choice !is Choice.Card) return 0.0
+        val h = ctx.own() ?: return 0.0
+        if (h.at == null) return 0.0
+        return teamKill(ctx, h, ctx.card(choice.cardId))
     }
 
     /**
@@ -222,7 +232,11 @@ internal object PlayRules {
         for (e in ctx.enemies()) {
             val pos = e.at ?: continue
             if (!stripSetsUp(ctx, e) || !inAttackReach(ctx, h.id, pos, card)) continue
-            val bonus = ctx.killWorth(e.id) - 12.0
+            var bonus = ctx.killWorth(e.id) - 12.0
+            // G117 (Track T): the strip is a set-up only when someone on the team will hold the finisher.
+            if (TeamPlay.reserveOn(ctx.profile) && !TeamPlay.finisherFor(ctx, e, card)) {
+                bonus *= ctx.profile.knob("team.stripAlone", STRIP_ALONE)
+            }
             if (bonus > best) best = bonus
         }
         return best
@@ -285,4 +299,7 @@ internal object PlayRules {
     }
 
     private const val PRESS = 6.0
+
+    /** G117: a strip's set-up bonus when nobody on the team keeps a turn-4 finisher. */
+    private const val STRIP_ALONE = 0.3
 }

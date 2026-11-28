@@ -19,6 +19,7 @@ internal object UnitRules {
         v += bodies(ctx, o.unitId)
         v += thin(ctx, o.unitId)
         v += setup(ctx, o.unitId)
+        v -= TeamPlay.claimed(ctx, d, o.unitId) // Track T: G64 before the reveal, for a known teammate card
         return v
     }
 

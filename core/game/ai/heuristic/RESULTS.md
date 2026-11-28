@@ -1586,7 +1586,7 @@ and `wave.<rule>`, on from strength 9 (`WAVE_FROM`, the lane-timing strength); s
   zone and its defeat pushes mid-round into a worse spot (GENERAL §2 "prefer a push that happens in the Minion
   Battle"), or the sampled defense fails and the hero dies. The audit now counts only minions that are not the last.
 
-### What changed (each rule its knob; GENERAL G113, G115–G117, G59 note)
+### What changed (each rule its knob; GENERAL G120, G122–G124, G59 note)
 
 | Knob | Rule | Theme |
 |---|---|---|
@@ -1703,3 +1703,107 @@ engine-speed floor (random players, 2 games/s; fails under the one-core quiet-ho
 After the re-pin: JS (Node) 15/15 including `theShippedStrengthTenChoosesAlike` (the JVM and Node transcripts agree),
 JVM heuristic + parity 108/108. detekt and ktlint: clean in this track's files; the remaining findings are the known
 `AllSeeingTest.kt` and `AiPlayers.kt:149` (a KDoc placement on main), neither touched here.
+
+## Strategy round - Track T: team play (2026-11-27, branch t3/strategy-team)
+
+The owner: "team play (lets assume we know what cards our team mates are playing). Combos and working together."
+Code: `TeamPlay.kt` (new), `CardSim.kt` (the order look), `HContext.kt` (two existing functions changed, listed
+below, and a Track T block at the end), `PlayRules.kt`, one call each from `UnitRules.score` and
+`HeuristicAi.cardLook`/`cap`. Rules G113–G118 in GENERAL.md.
+
+**Diagnosis first** (`TeamAuditTest`, 8 + 8 h9 self-play games, line-ups 2000–2007): turn-4 card choice with a
+finisher in hand was right (35 hits, 4 misses against an enemy that was empty-handed), but in the same games
+103 stripped enemies reached turn 4 with at most one card and nobody hit them; at those turn-4 card plays the
+hero held no attack card 328 times and an attack out of reach 71 times. Focus fire was rare: 10 turns of two
+teammates hitting the same hero in 16 games, 4 kills by two attackers out of 43. Reading the code showed why the
+look could not see a teammate: `heroStrikeWorth`'s +6/+3.5 bonus fired on almost every priced hit (inside a look
+the deciding context's seat is the defender, so the striker counted as its own "teammate who can reach"), a
+computer teammate's facedown card was one colour in k (REVIEW-2-design's dilution), and a teammate's action stopped
+the look at the first hidden defense (the old prelude returned nothing).
+
+**What changed** (each behind a knob; `team=0` turns all of it off):
+
+| Knob | From | Rule | What it does |
+|---|---|---|---|
+| `team.known` | 9 | G114 | A computer teammate's facedown card (and our own) is its card this turn in `possibleCards` (`HContext.realPool`): its threat is the card at 0.72, its initiative exact. A human teammate's card stays one of the pool. |
+| `team.order` | 9 | G114 | The card look resolves every known teammate card in initiative order: faster (or tied) ones before ours from one shared prelude, slower ones after ours from the best leaf of each action (postlude). A teammate's hit that reaches a hidden defense is priced from the pool and its action ended there; the next hit on that hero meets the thinner hand, or nobody at the chance it was defeated (`HContext.teamHits/teamDead`). Replaces the G14 prelude and the `allyAfter` postlude. |
+| `team.follow` | 9 | G113 | `heroStrikeWorth`'s G60 constant is replaced, where the teammate's card is known, by what our strip gives that teammate's later hit (their hit on a hand one card thinner minus on the hand as it is), 0 when no known card follows; a look that plays the teammate itself does not add it again. |
+| `team.joint` | 9 | G115 | The teammate asked first with a computer teammate still to choose: our best 3 cards × its 2 best replies (its static book) are looked at as pairs in initiative order; we play our half of the best pair. |
+| `team.reserve` | 9 | G116, G117 | Two-turn kills: spending the team's last attack that reaches an enemy who starts turn 4 with at most one card costs 0.4 of the kill (0.1 when a computer teammate keeps one); G10's strip bonus is ×0.3 when nobody will hold the finisher. |
+| `team.tie` | 9 | G118 | A same-team initiative tie (ACT_FIRST) is played out both ways by the rest-of-turn look. |
+| (with `team.order`) | 9 | G64 | Inside a card look, a minion that is a known teammate card's only target in reach is left to it (`UnitRules` → `TeamPlay.claimed`). G14/G15's static join bonus is dropped when every teammate still to act has a known card (the look played them). |
+
+Existing functions changed in `HContext` (shared file): `realPool` (the known card) and `heroStrikeWorth` (split into
+`strikeWorthOf` with a `thin` count; the ledger and the follow-up). Both give the old values with `team=0`.
+
+**Knob-off proof.** `BookDigestTest` (every answer of fixed self-play games hashed; line-ups 2000–2001, 2v2 and
+3v3, mirrored): the baseline (e6174517) gives h9 `9a37419d650f2e20`, h7 `94385b9c5b816980`; this branch with
+`team=0` gives the same two digests. `GameParityTest` passes on the JVM with the pinned transcripts unchanged (its
+strength-9 side and the shipped strength 10's 30 searched answers do not meet a team rule early enough to change).
+
+**Tier-1 screen** (`StrategyAuditTest`, the tournament's mirrored games, `h9` against `h9+team=0`, line-ups from
+2000; the audit's behaviour counters per game):
+
+| | games | team on : off | Wilson 95% |
+|---|---|---|---|
+| 3v3, line-ups 2000–2063 | 128 | 72–56, **56.3%** | 47.6–64.5 |
+| 2v2, line-ups 2000–2047 | 96 | 53–43, **55.2%** | 45.3–64.8 |
+| both | 224 | 125–99, **55.8%** | 49.3–62.2 |
+| h7 : h7+team=0, 3v3, line-ups 2064–2079 | 32 | 13–19, 40.6% | 25.5–57.9 |
+
+The screen ran with the layers on from 7 (`known`, `order`, `follow`), 8 (`joint`) and 9 (`reserve`, `tie`). The h7
+result is small but it is the only evidence below 9, and strengths 7–8 lack the rest-of-turn look that 9 plays
+after the reveal; with the game budget spent, **every team layer now starts at 9** (`TeamPlay.FROM`): strengths 7
+and 8 play exactly as before (the knob-off digest), strength 9 is the configuration measured above. A knob turns a
+layer on lower (`h7+team.order=1+team.known=1+team.follow=1`) for the integrator's re-screen.
+
+| per game (team on / off) | 3v3 | 2v2 |
+|---|---|---|
+| hero attacks | 5.66 / 7.33 | 3.78 / 5.34 |
+| of them pokes (no defeat, no follow-up) | 3.39 / 4.76 (60% / 65%) | 2.51 / 3.87 (66% / 72%) |
+| pokes with a minion in reach | 1.98 / 2.44 | 1.42 / 2.03 |
+| minions defeated | 7.63 / 7.28 | 7.75 / 7.21 |
+| coins from minions | 15.98 / 15.16 | 16.40 / 14.94 |
+| pushes suffered | 1.10 / 1.25 | 1.06 / 1.31 |
+| kills | 1.77 / 1.85 | 0.96 / 1.16 |
+| kills by strip then finish | 0.52 / 0.74 | 0.19 / 0.27 |
+| teammates on the same target (`team.sameTarget`) | 0.24 / 0.26 | 0.08 / 0.14 |
+| a teammate's only reachable minion taken (`team.minionCollision`) | 0.41 / 0.45 | 0.26 / 0.24 |
+| deaths | 1.85 / 1.77 | 1.16 / 0.96 |
+
+**What the numbers say, honestly.** Team play on wins 55.8% (224 games), the lower Wilson bound just under 50%:
+a likely gain, not a proven one. By behaviour the gain is economy, not combos: about 1.5 fewer hero attacks a
+game, nearly all of them pokes, and the actions go to minions (more minions and minion coins, fewer pushes
+suffered). That is the follow-up rule (G113) removing the old constant that inside every look paid +3.5/+6 for a
+"teammate" who was in fact the striker. The combo counters did not rise: strip-then-finish kills, focus on one
+target and the minion collisions are flat or slightly down, so the order look, the joint choice and the reserve
+did not yet make the team kill together more often. No knob was screened alone (no sweeps in this round's
+budget), so the share of each layer in the gain is unmeasured.
+
+**Strength 10.** With team play in strength 10's book (root and playouts, the joint choice out of the playouts)
+the decision set (`DecisionSetTest`, the first 24 card plays) answered 23/24 alike at 720 ms a card play against
+852 ms without (no added cost). But `LastPushSearchTest`'s game-613 position (behind on the last wave, turn 3
+spends the attack card) then plays Silver: the search's answer flips while the book's stays right. Strength 10 is
+not this track's measurement (no strength-10 games in the budget), so `SEARCH_10` carries `team=0` and strength
+10 and 11 play exactly as before; turning it on (`team=1`, with `p.team.joint=0`) is a hand-off to the integrator,
+with that test to re-check (its pinned search spec now names `team=0`, the book it was played with).
+
+**Cost** (`BookDigestTest`, the same games on a loaded machine, card plays): h9 2v2 about 24–35 ms with team play
+against 12–22 ms without, 3v3 31–42 ms against 21–30 ms (1.3–1.6×, under the 2× limit; quiet-machine numbers not
+taken). Strength 7 and 8 are unchanged.
+
+**Tests.** `TeamPlayBookTest` (9 built positions, JVM): the known card (and a human's not), the follow-up and its
+must-not cases (no attack, a person's card, a faster teammate), the prelude and the postlude by initiative and with
+the knob off, the hit ledger (a thinner hand; nothing left after a sure defeat), the turn-4 reserve and its
+must-not cases, the joint choice at 9 (and 8 only with its knobs) with determinism, the same-team tie looked at
+from 9, and a human teammate's facedown card never read at 7–10 with every layer on. Opt-in tools: `BookDigestTest`
+(answer digests), `TeamAuditTest` (focus fire, turn-4 finishers), `TeamProbeTest` (one recorded question with the
+trace). `:core:game:allTests` (JVM and JS): one failure, the game-613 search test above, before `team=0` went into
+`SEARCH_10`; detekt and ktlint clean on this track's files (`AllSeeingTest.kt` and `AiPlayers.kt`'s dangling KDoc
+are pre-existing).
+
+**Not done, open.** A defense debuff or a minion modifier set up for the teammate's hit is resolved by the engine
+in the order look but priced from printed defenses when the look stops at a hidden defense; blocking an escape line
+and covering a low-hand ally have no rule of their own; the 3v3 "two on the target, the third on minions" is left to
+the order look and G15. The position bench (`AiPositionBenchTest`) at h9 was queued twice and killed by the
+2-hour limit on a full machine: not measured.
