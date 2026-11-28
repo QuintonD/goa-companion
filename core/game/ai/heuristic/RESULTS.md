@@ -1283,7 +1283,7 @@ the decision set (`DecisionSetTest`, the first 24 card plays) answered 23/24 ali
 spends the attack card) then plays Silver: the search's answer flips while the book's stays right. Strength 10 is
 not this track's measurement (no strength-10 games in the budget), so `SEARCH_10` carries `team=0` and strength
 10 and 11 play exactly as before; turning it on (`team=1`, with `p.team.joint=0`) is a hand-off to the integrator,
-with that test to re-check.
+with that test to re-check (its pinned search spec now names `team=0`, the book it was played with).
 
 **Cost** (`BookDigestTest`, the same games on a loaded machine, card plays): h9 2v2 about 24–35 ms with team play
 against 12–22 ms without, 3v3 31–42 ms against 21–30 ms (1.3–1.6×, under the 2× limit; quiet-machine numbers not

@@ -25,11 +25,14 @@ class LastPushSearchTest {
     /**
      * The tournament's spec of the lost games (`x10+pol=1+scope=3+leaf=3+…`), the search as it played them, except
      * that since the Wave 4 merge Track F's default-on fixes apply (`lp` win-chance mean, `hide`); `deal` stays off
-     * here (`rep=4` as played). [shipped] is strength 10 as it ships (deals, `lpx`).
+     * here (`rep=4` as played). [shipped] is strength 10 as it ships (deals, `lpx`). The book is the one they were
+     * played with: the strategy round's team play (Track T, `team`) off, as in the shipped strength 10; with it on,
+     * game 613's search plays Silver (RESULTS.md "Strategy round - Track T").
      */
     private val played: Map<String, Double> = mapOf(
         "pol" to 1.0, "scope" to 3.0, "leaf" to HybridLeaf.NET6.ordinal.toDouble(), "tt" to 1.0, "K" to 24.0,
         "topS" to 8.0, "topU" to 6.0, "rep" to 4.0, "td" to 2.0, "tw" to 3.0, "branch" to 1.0, "restSpaces" to 6.0,
+        "team" to 0.0,
     )
 
     /** The seed each side played with (Tournament.runMixed: Red (50 000 + line-up) × 2, Blue one more). */
